@@ -22,7 +22,7 @@ Represents an integer constant in the workflow.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | value | `int` |  | `0` |
 
 ## Outputs
@@ -31,9 +31,6 @@ Represents an integer constant in the workflow.
 |--------|------|-------------|
 | output | `int` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.constant](../) namespace.
-

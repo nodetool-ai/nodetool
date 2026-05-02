@@ -11,72 +11,26 @@ namespace: "nodetool.text"
 
 ## Description
 
-Replaces placeholders in a string with dynamic inputs using Jinja2 templating.
-    text, template, formatting
-
-    This node is dynamic and can be used to format text with dynamic properties.
+Replaces placeholders in a string with dynamic inputs using {{ variable }} or {variable} syntax.
+    Supports Jinja2-style filters: {{ var|upper }}, {{ var|lower }}, {{ var|capitalize }},
+    {{ var|title }}, {{ var|trim }}, {{ var|truncate(n) }}, {{ var|default(val) }}.
+    text, template, formatting, format, variable, replace
 
     Use cases:
     - Generating personalized messages with dynamic content
     - Creating parameterized queries or commands
-    - Formatting and filtering text output based on variable inputs
-
-    Examples:
-    {% raw %}
-    - text: "Hello, {{ name }}!"
-    - text: "Title: {{ title|truncate(20) }}"
-    - text: "Name: {{ name|upper }}"
-    {% endraw %}
-
-    Available filters:
-    - truncate(length): Truncates text to given length
-    - upper: Converts text to uppercase
-    - lower: Converts text to lowercase
-    - title: Converts text to title case
-    - trim: Removes whitespace from start/end
-    - replace(old, new): Replaces substring
-    - default(value): Sets default if value is undefined
-    - first: Gets first character/item
-    - last: Gets last character/item
-    - length: Gets length of string/list
-    - sort: Sorts list
-    - join(delimiter): Joins list with delimiter
 
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| template | `str` |
-
-    Examples:
-    {% raw %}
-    - text: "Hello, {{ name }}!"
-    - text: "Title: {{ title|truncate(20) }}"
-    - text: "Name: {{ name|upper }}" 
-    {% endraw %} 
-
-    Available filters:
-    - truncate(length): Truncates text to given length
-    - upper: Converts text to uppercase
-    - lower: Converts text to lowercase
-    - title: Converts text to title case
-    - trim: Removes whitespace from start/end
-    - replace(old, new): Replaces substring
-    - default(value): Sets default if value is undefined
-    - first: Gets first character/item
-    - last: Gets last character/item
-    - length: Gets length of string/list
-    - sort: Sorts list
-    - join(delimiter): Joins list with delimiter
- | `` |
+|----------|------|-------------|---------|
+| template | `str` | Template string with {{ variable }} or {variable} placeholders. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
 | output | `str` |  |
-
-## Metadata
 
 ## Related Nodes
 

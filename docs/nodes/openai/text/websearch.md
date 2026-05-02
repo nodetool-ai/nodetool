@@ -20,7 +20,7 @@ namespace: "openai.text"
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | query | `str` | The search query to execute. | `` |
 
 ## Outputs
@@ -29,9 +29,6 @@ namespace: "openai.text"
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [openai.text](../) namespace.
-

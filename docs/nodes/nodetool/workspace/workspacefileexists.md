@@ -14,15 +14,10 @@ namespace: "nodetool.workspace"
 Check if a file or directory exists in the workspace.
     workspace, file, exists, check
 
-    Use cases:
-    - Validate file presence before processing
-    - Implement conditional logic based on file existence
-    - Check for generated files
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Relative path within workspace to check | `` |
 
 ## Outputs
@@ -31,9 +26,6 @@ Check if a file or directory exists in the workspace.
 |--------|------|-------------|
 | output | `bool` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.workspace](../) namespace.
-

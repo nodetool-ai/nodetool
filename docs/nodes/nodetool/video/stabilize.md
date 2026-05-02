@@ -14,18 +14,13 @@ namespace: "nodetool.video"
 Apply video stabilization to reduce camera shake and jitter.
     video, stabilize, smooth, shake-reduction
 
-    Use cases:
-    1. Improve quality of handheld or action camera footage
-    2. Smooth out panning and tracking shots
-    3. Enhance viewer experience by reducing motion sickness
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| video | `video` | The input video to stabilize. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| smoothing | `float` | Smoothing strength. Higher values result in smoother but potentially more cropped video. | `10.0` |
-| crop_black | `bool` | Whether to crop black borders that may appear after stabilization. | `True` |
+|----------|------|-------------|---------|
+| video | `video` | The input video to stabilize. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| smoothing | `float` | Smoothing strength. Higher values result in smoother but potentially more cropped video. | `10` |
+| crop_black | `bool` | Whether to crop black borders that may appear after stabilization. | `true` |
 
 ## Outputs
 
@@ -33,9 +28,6 @@ Apply video stabilization to reduce camera shake and jitter.
 |--------|------|-------------|
 | output | `video` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.video](../) namespace.
-

@@ -16,19 +16,16 @@ Iterate over rows of a dataframe.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| dataframe | `dataframe` | The input dataframe. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+|----------|------|-------------|---------|
+| dataframe | `dataframe` | The input dataframe. | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| dict | `Dict[Any, Any]` |  |
+| dict | `dict` |  |
 | index | `any` |  |
-
-## Metadata
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

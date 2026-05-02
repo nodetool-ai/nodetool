@@ -26,20 +26,17 @@ Generate vector representations of text for semantic analysis.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | input | `str` |  | `` |
-| model | `Enum['text-embedding-3-large', 'text-embedding-3-small']` |  | `text-embedding-3-small` |
+| model | `enum` |  | `text-embedding-3-small` |
 | chunk_size | `int` |  | `4096` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `np_array` |  |
-
-## Metadata
+| output | `list` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [openai.text](../) namespace.
-

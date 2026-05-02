@@ -22,10 +22,10 @@ Match a filename against a pattern using Unix shell-style wildcards.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | filename | `str` | Filename to check | `` |
 | pattern | `str` | Pattern to match against (e.g. *.txt, data_*.csv) | `*` |
-| case_sensitive | `bool` | Whether the pattern matching should be case-sensitive | `True` |
+| case_sensitive | `bool` | Whether the pattern matching should be case-sensitive | `true` |
 
 ## Outputs
 
@@ -33,9 +33,6 @@ Match a filename against a pattern using Unix shell-style wildcards.
 |--------|------|-------------|
 | output | `bool` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

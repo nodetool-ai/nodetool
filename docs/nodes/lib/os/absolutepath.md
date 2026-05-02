@@ -22,7 +22,7 @@ Return the absolute path of a file or directory.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Path to convert to absolute | `` |
 
 ## Outputs
@@ -31,9 +31,6 @@ Return the absolute path of a file or directory.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

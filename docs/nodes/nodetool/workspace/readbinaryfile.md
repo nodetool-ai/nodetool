@@ -14,15 +14,10 @@ namespace: "nodetool.workspace"
 Read a binary file from the workspace as base64-encoded string.
     workspace, file, read, binary
 
-    Use cases:
-    - Read generated binary data
-    - Load binary files for processing
-    - Access non-text files
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Relative path to file within workspace | `` |
 
 ## Outputs
@@ -31,9 +26,6 @@ Read a binary file from the workspace as base64-encoded string.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.workspace](../) namespace.
-

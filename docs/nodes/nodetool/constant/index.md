@@ -3,69 +3,35 @@ layout: page
 title: "nodetool.constant Nodes"
 ---
 
-
-This namespace contains 15 node(s).
+This namespace contains 28 node(s).
 
 ## Available Nodes
 
+- **[ASRModel Constant](asrmodelconstant.md)** - Represents an automatic speech recognition model constant in the workflow.
 - **[Audio](audio.md)** - Represents an audio file constant in the workflow.
-    audio, file, mp3, wav
-
-    Use cases:
-    ...
+- **[Audio List](audiolist.md)** - Represents a list of audio file constants in the workflow.
 - **[Bool](bool.md)** - Represents a boolean constant in the workflow.
-    boolean, logic, flag
-
-    Use cases:
-    - Con...
 - **[Constant](constant.md)** - Base class for fixed-value nodes.
-
-    constant, parameter, default
-
-    Use cases:
-    - Provide...
 - **[Data Frame](dataframe.md)** - Represents a fixed DataFrame constant in the workflow.
-    table, data, dataframe, pandas
-
-    Us...
 - **[Date](date.md)** - Make a date object from year, month, day.
-    date, make, create
 - **[Date Time](datetime.md)** - Make a datetime object from year, month, day, hour, minute, second.
-    datetime, make, create
 - **[Dict](dict.md)** - Represents a dictionary constant in the workflow.
-    dictionary, key-value, mapping
-
-    Use cas...
 - **[Document](document.md)** - Represents a document constant in the workflow.
-    document, pdf, word, docx
+- **[Embedding Model Constant](embeddingmodelconstant.md)** - Represents an embedding model constant in the workflow.
 - **[Float](float.md)** - Represents a floating-point number constant in the workflow.
-    number, decimal, float
-
-    Use ...
 - **[Image](image.md)** - Represents an image file constant in the workflow.
-    picture, photo, image
-
-    Use cases:
-    ...
+- **[Image List](imagelist.md)** - Represents a list of image file constants in the workflow.
+- **[Image Model Constant](imagemodelconstant.md)** - Represents an image generation model constant in the workflow.
+- **[Image Size](imagesize.md)**
 - **[Integer](integer.md)** - Represents an integer constant in the workflow.
-    number, integer, whole
-
-    Use cases:
-    - ...
 - **[JSON](json.md)** - Represents a JSON constant in the workflow.
-    json, object, dictionary
+- **[Language Model Constant](languagemodelconstant.md)** - Represents a language model constant in the workflow.
 - **[List](list.md)** - Represents a list constant in the workflow.
-    array, sequence, collection
-
-    Use cases:
-    -...
+- **[Model 3D](model3d.md)** - Represents a 3D model constant in the workflow.
+- **[Select](select.md)** - Represents a selection from a predefined set of options in the workflow.
 - **[String](string.md)** - Represents a string constant in the workflow.
-    text, string, characters
-
-    Use cases:
-    - ...
+- **[Text List](textlist.md)** - Represents a list of text strings in the workflow.
+- **[TTSModel Constant](ttsmodelconstant.md)** - Represents a text-to-speech model constant in the workflow.
 - **[Video](video.md)** - Represents a video file constant in the workflow.
-    video, movie, mp4, file
-
-    Use cases:
-   ...
+- **[Video List](videolist.md)** - Represents a list of video file constants in the workflow.
+- **[Video Model Constant](videomodelconstant.md)** - Represents a video generation model constant in the workflow.

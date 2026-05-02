@@ -17,11 +17,10 @@ Insert or update (upsert) records in a Supabase table.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | table_name | `str` | Table to upsert into | `` |
-| records | `(List[Dict[str, any]] | Dict[str, any])` | One or multiple rows to upsert | - |
-| on_conflict | `Optional[str]` | Optional column or comma-separated columns for ON CONFLICT | - |
-| return_rows | `bool` | Return upserted rows (uses select('*')) | `True` |
+| records | `union[list[dict[str, any]], dict[str, any]]` | One or multiple rows to upsert | `[]` |
+| return_rows | `bool` | Return upserted rows (uses select('*')) | `true` |
 
 ## Outputs
 
@@ -29,9 +28,6 @@ Insert or update (upsert) records in a Supabase table.
 |--------|------|-------------|
 | output | `any` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.supabase](../) namespace.
-

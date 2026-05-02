@@ -30,8 +30,8 @@ Find the first row in a dataframe that matches a given condition.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| df | `dataframe` | The DataFrame to search. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+|----------|------|-------------|---------|
+| df | `dataframe` | The DataFrame to search. | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 | condition | `str` | The condition to filter the DataFrame, e.g. 'column_name == value'. | `` |
 
 ## Outputs
@@ -40,9 +40,6 @@ Find the first row in a dataframe that matches a given condition.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

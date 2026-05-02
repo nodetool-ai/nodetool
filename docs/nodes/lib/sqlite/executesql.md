@@ -22,20 +22,17 @@ Execute arbitrary SQL statements for advanced operations.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | database_name | `str` | Name of the SQLite database file | `memory.db` |
 | sql | `str` | SQL statement to execute | `SELECT * FROM flashcards` |
-| parameters | `List[any]` | Parameters for parameterized queries (use ? in SQL) | `[]` |
+| parameters | `list[any]` | Parameters for parameterized queries (use ? in SQL) | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `Dict[str, any]` |  |
-
-## Metadata
+| output | `dict[str, any]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.sqlite](../) namespace.
-

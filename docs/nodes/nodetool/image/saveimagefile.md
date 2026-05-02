@@ -14,28 +14,14 @@ namespace: "nodetool.image"
 Write an image to disk.
     image, output, save, file
 
-    Use cases:
-    - Save processed images
-    - Export edited photos
-    - Archive image results
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| image | `image` | The image to save | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| image | `image` | The image to save | `{"type":"image","uri":"","asset_id":null,"data"...` |
 | folder | `str` | Folder where the file will be saved | `` |
-| filename | `str` | 
-        The name of the image file.
-        You can use time and date variables to create unique names:
-        %Y - Year
-        %m - Month
-        %d - Day
-        %H - Hour
-        %M - Minute
-        %S - Second
-         | `` |
-| overwrite | `bool` | Overwrite the file if it already exists, otherwise file will be renamed | `False` |
+| filename | `str` |          The name of the image file.         You can use time and date variables to create unique names:         %Y - Year         %m - Month         %d - Day         %H - Hour         %M - Minute         %S - Second          | `` |
+| overwrite | `bool` | Overwrite the file if it already exists, otherwise file will be renamed | `false` |
 
 ## Outputs
 
@@ -43,9 +29,6 @@ Write an image to disk.
 |--------|------|-------------|
 | output | `image` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.image](../) namespace.
-

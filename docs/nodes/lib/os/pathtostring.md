@@ -22,7 +22,7 @@ Convert a FilePath object to a string.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | file_path | `str` | File path to convert to string | `` |
 
 ## Outputs
@@ -31,9 +31,6 @@ Convert a FilePath object to a string.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

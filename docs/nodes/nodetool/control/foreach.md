@@ -12,7 +12,7 @@ namespace: "nodetool.control"
 ## Description
 
 Iterate over a list and emit each item sequentially.
-    iterator, loop, list, sequence
+    iterator, loop, list, sequence, repeat, enumerate, stream, collection
 
     Use cases:
     - Process each item of a collection in order
@@ -21,8 +21,8 @@ Iterate over a list and emit each item sequentially.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| input_list | `List[any]` | The list of items to iterate over. | `[]` |
+|----------|------|-------------|---------|
+| input_list | `list[any]` | The list of items to iterate over. | `[]` |
 
 ## Outputs
 
@@ -31,9 +31,6 @@ Iterate over a list and emit each item sequentially.
 | output | `any` |  |
 | index | `int` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.control](../) namespace.
-

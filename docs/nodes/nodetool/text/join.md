@@ -12,19 +12,14 @@ namespace: "nodetool.text"
 ## Description
 
 Joins a list of strings into a single string using a specified separator.
-    text, join, combine, +, add, concatenate
-
-    Use cases:
-    - Combining multiple text elements with a consistent delimiter
-    - Creating comma-separated lists from individual items
-    - Assembling formatted text from array elements
+    text, join, combine, concatenate, merge, list
 
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| strings | `List[str]` |  | `[]` |
-| separator | `str` |  | `` |
+|----------|------|-------------|---------|
+| strings | `list[str]` | The list of strings to join. | `[]` |
+| separator | `str` | Separator between items. | `` |
 
 ## Outputs
 
@@ -32,9 +27,6 @@ Joins a list of strings into a single string using a specified separator.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.text](../) namespace.
-

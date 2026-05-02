@@ -17,10 +17,10 @@ Call a PostgreSQL function via Supabase RPC.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | function | `str` | RPC function name | `` |
-| params | `Dict[str, any]` | Function params | - |
-| to_dataframe | `bool` | Return DataframeRef if result is a list of records | `False` |
+| params | `dict[str, any]` | Function params | `{}` |
+| to_dataframe | `bool` | Return DataframeRef if result is a list of records | `false` |
 
 ## Outputs
 
@@ -28,9 +28,6 @@ Call a PostgreSQL function via Supabase RPC.
 |--------|------|-------------|
 | output | `any` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.supabase](../) namespace.
-

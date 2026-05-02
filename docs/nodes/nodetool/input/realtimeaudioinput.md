@@ -17,11 +17,10 @@ Accepts streaming audio data for workflows.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| name | `str` | The parameter name for the workflow. | `` |
-| value | `any` | The value of the input. | - |
+|----------|------|-------------|---------|
+| name | `str` | The parameter name for the workflow. | `audio` |
+| value | `audio` | The audio to use as input. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 | description | `str` | The description of the input for the workflow. | `` |
-| audio | `audio` | The audio to use as input. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
@@ -29,9 +28,6 @@ Accepts streaming audio data for workflows.
 |--------|------|-------------|
 | chunk | `chunk` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.input](../) namespace.
-

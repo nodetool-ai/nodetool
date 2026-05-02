@@ -22,8 +22,8 @@ Represents a floating-point number constant in the workflow.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| value | `float` |  | `0.0` |
+|----------|------|-------------|---------|
+| value | `float` |  | `0` |
 
 ## Outputs
 
@@ -31,9 +31,6 @@ Represents a floating-point number constant in the workflow.
 |--------|------|-------------|
 | output | `float` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.constant](../) namespace.
-
