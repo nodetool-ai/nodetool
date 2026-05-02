@@ -10,6 +10,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
     },
     {
+      url: `${BASE_URL}/studio`,
+      lastModified: now,
+    },
+    {
+      url: `${BASE_URL}/cloud`,
+      lastModified: now,
+    },
+    {
       url: `${BASE_URL}/agents`,
       lastModified: now,
     },

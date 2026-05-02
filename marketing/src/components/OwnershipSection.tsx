@@ -11,8 +11,8 @@ const features = [
     icon: Cpu,
   },
   {
-    title: "Open Source",
-    body: "NodeTool is open-source under AGPL-3.0. Inspect, modify, and self-host the entire stack.",
+    title: "Always Open Source",
+    body: "Both editions — Studio (desktop) and Cloud (hosted) — share the same AGPL-3.0 codebase. No closed-source layer, no proprietary cloud-only features. Self-host any time.",
     icon: Globe,
   },
   {
@@ -21,8 +21,8 @@ const features = [
     icon: Shield,
   },
   {
-    title: "Cloud-Augmented",
-    body: "Mix local AI with cloud services. Add API keys for OpenAI, Anthropic, Replicate—use the best tool for each task.",
+    title: "BYOK Everywhere",
+    body: "Bring your own API keys for OpenAI, Anthropic, Gemini, Replicate, and more — in Studio (stored on disk) or Cloud (encrypted). You pay providers directly; we never mark up tokens.",
     icon: Lock,
   },
 ];
