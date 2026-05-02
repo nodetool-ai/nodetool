@@ -348,11 +348,26 @@ registry.loadPythonMetadata({ roots: metadataRoots, maxDepth: 8 });
 log.info(`Python metadata loaded [${startupMs()}]`);
 registerBaseNodes(registry);
 registerElevenLabsNodes(registry);
-registerTransformersJsNodes(registry);
+if (process.env["NODETOOL_ENV"] !== "production") {
+  registerTransformersJsNodes(registry);
+}
 registerFalNodes(registry);
 registerKieNodes(registry);
 registerReplicateNodes(registry);
-registerTransformersJsProvider();
+if (process.env["NODETOOL_ENV"] !== "production") {
+  registerTransformersJsProvider();
+}
+// In production, unregister optional JS-only nodes that require on-demand npm packages.
+if (process.env["NODETOOL_ENV"] === "production") {
+  const skippedPrefixes = ["lib.tensorflow.", "transformers."];
+  for (const nodeType of registry.list()) {
+    if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
+      if (registry.unregister(nodeType)) {
+        log.info(`Unregistered ${nodeType} in production`);
+      }
+    }
+  }
+}
 log.info(`Node registry ready [${startupMs()}]`);
 
 // ---------------------------------------------------------------------------

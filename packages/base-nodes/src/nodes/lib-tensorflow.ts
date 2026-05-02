@@ -14,6 +14,7 @@
  *   - COCO-SSD object detection
  *   - BERT QnA (extractive question answering)
  */
+import { importOptionalModule } from "@nodetool-ai/config";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import sharp from "sharp";
@@ -130,7 +131,9 @@ function cacheLazy<T>(
 const tfStore: { current: Promise<any> | null } = { current: null };
 async function loadTf(): Promise<any> {
   return cacheLazy(tfStore, async () => {
-    const tf = await import("@tensorflow/tfjs");
+    const tf = await importOptionalModule<typeof import("@tensorflow/tfjs")>(
+      "@tensorflow/tfjs"
+    );
     try {
       await (tf as any).setBackend("cpu");
       await (tf as any).ready();
@@ -158,7 +161,9 @@ async function loadMobileNet(version: 1 | 2 = 2): Promise<any> {
   }
   return cacheLazy(store, async () => {
     await loadTf();
-    const mobilenet = await import("@tensorflow-models/mobilenet");
+    const mobilenet = await importOptionalModule<
+      typeof import("@tensorflow-models/mobilenet")
+    >("@tensorflow-models/mobilenet");
     return mobilenet.load({ version, alpha: 1.0 });
   });
 }
@@ -270,7 +275,9 @@ const cocoSsdStore: { current: Promise<any> | null } = { current: null };
 async function loadCocoSsd(): Promise<any> {
   return cacheLazy(cocoSsdStore, async () => {
     await loadTf();
-    const cocoSsd = await import("@tensorflow-models/coco-ssd");
+    const cocoSsd = await importOptionalModule<
+      typeof import("@tensorflow-models/coco-ssd")
+    >("@tensorflow-models/coco-ssd");
     return cocoSsd.load({ base: "mobilenet_v2" });
   });
 }
@@ -343,7 +350,9 @@ const qnaStore: { current: Promise<any> | null } = { current: null };
 async function loadQna(): Promise<any> {
   return cacheLazy(qnaStore, async () => {
     await loadTf();
-    const qna = await import("@tensorflow-models/qna");
+    const qna = await importOptionalModule<typeof import("@tensorflow-models/qna")>(
+      "@tensorflow-models/qna"
+    );
     return qna.load();
   });
 }

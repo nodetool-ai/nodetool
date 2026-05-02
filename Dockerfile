@@ -1,18 +1,18 @@
-FROM node:24-slim
+# syntax=docker/dockerfile:1
 
-# System deps for native modules.
-# libsecret is required by keytar on Linux. The entrypoint below also provides a
-# Docker-friendly SECRETS_MASTER_KEY fallback so headless containers do not need
-# a desktop keychain/DBus session.
+FROM node:24-slim AS deps
+
+# Native build dependencies are only needed while installing/building packages.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-venv python3-pip \
-    build-essential curl ca-certificates \
-    libsecret-1-0 libsecret-1-dev \
+    build-essential pkg-config \
+    ca-certificates \
+    libsecret-1-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy package files first for better layer caching
+# Copy package manifests first for better dependency-layer caching.
 COPY package.json package-lock.json ./
 COPY packages/protocol/package.json packages/protocol/
 COPY packages/config/package.json packages/config/
@@ -40,12 +40,20 @@ COPY packages/chat/package.json packages/chat/
 COPY packages/websocket/package.json packages/websocket/
 COPY packages/cli/package.json packages/cli/
 COPY packages/deploy/package.json packages/deploy/
+COPY packages/sandbox/package.json packages/sandbox/
+COPY packages/sandbox-agent/package.json packages/sandbox-agent/
+COPY packages/sandbox-tools/package.json packages/sandbox-tools/
 COPY web/package.json web/
 
-# Install deps
-RUN npm ci 2>/dev/null || npm install
+RUN npm ci
 
-# Copy source and build backend packages
+FROM deps AS prod-deps
+RUN rm -rf node_modules \
+    && npm ci --omit=dev --workspace=@nodetool-ai/websocket --include-workspace-root=false \
+    && npm cache clean --force
+
+FROM deps AS build
+
 COPY packages/ packages/
 COPY scripts/ scripts/
 COPY tsconfig*.json ./
@@ -53,18 +61,51 @@ COPY turbo.json ./
 
 RUN npm run build:packages
 
-# Copy web source and build the frontend
 COPY web/ web/
+ARG WEB_BUILD_NODE_OPTIONS=--max-old-space-size=4096
+RUN cd web && NODE_OPTIONS="$WEB_BUILD_NODE_OPTIONS" npm run build
 
-RUN cd web && npm run build
+# Assemble a minimal runtime filesystem with compiled packages and web assets.
+RUN mkdir -p /runtime/packages /runtime/web \
+    && cp package.json package-lock.json /runtime/ \
+    && for pkg in packages/*; do \
+         if [ -d "$pkg/dist" ]; then \
+           mkdir -p "/runtime/$pkg"; \
+           cp "$pkg/package.json" "/runtime/$pkg/package.json"; \
+           cp -a "$pkg/dist" "/runtime/$pkg/dist"; \
+         fi; \
+       done \
+    && cp web/package.json /runtime/web/package.json \
+    && cp -a web/dist /runtime/web/dist
 
-# Tell the server to serve the built web app from the root path
-ENV STATIC_FOLDER=/app/web/dist
+FROM node:24-slim AS runtime
 
-# In Docker/headless Linux there is usually no system keychain. If neither a
-# master key nor AWS Secrets Manager is configured, persist a generated 32-byte
-# base64 key next to the SQLite database so encrypted secrets survive restarts
-# when /workspace is mounted as a volume. For production, pass
+ENV NODE_ENV=production \
+    NODETOOL_ENV=production \
+    HOST=0.0.0.0 \
+    STATIC_FOLDER=/app/web/dist \
+    DB_PATH=/workspace/nodetool.db \
+    CHROMA_PATH=/workspace/chroma \
+    ASSET_BUCKET=/workspace/assets \
+    HF_HOME=/workspace/hf-cache
+
+# Runtime-only OS packages. Key management is provided through
+# SECRETS_MASTER_KEY, not a system keychain inside the container.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /workspace \
+    && chown node:node /workspace
+
+WORKDIR /app
+
+COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=prod-deps --chown=node:node /app/packages ./packages
+COPY --from=build --chown=node:node /runtime/ ./
+
+# If neither a master key nor AWS Secrets Manager is configured, persist a
+# generated 32-byte base64 key next to the SQLite database so encrypted secrets
+# survive restarts when /workspace is mounted as a volume. For production, pass
 # -e SECRETS_MASTER_KEY=$(openssl rand -base64 32) or configure AWS.
 RUN printf '%s\n' \
     '#!/bin/sh' \
@@ -82,11 +123,12 @@ RUN printf '%s\n' \
     > /usr/local/bin/docker-entrypoint.sh \
     && chmod +x /usr/local/bin/docker-entrypoint.sh
 
+USER node
+
 EXPOSE 7777
 
-# Health check supports both TLS and plain HTTP
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
-    CMD curl -fsk https://localhost:7777/health 2>/dev/null || curl -f http://localhost:7777/health 2>/dev/null || exit 1
+    CMD curl -f http://localhost:7777/health || exit 1
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "packages/websocket/dist/server.js"]

@@ -16,6 +16,7 @@ import {
   getPythonPath,
   getSystemDataPath,
   getLlamaServerPath,
+  getOptionalNodeModulesPath,
 } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
 import { SystemInfo } from "./types.d";
@@ -220,6 +221,7 @@ export async function getSystemInfo(): Promise<SystemInfo> {
     condaEnvPath: getCondaEnvPath(),
     dataPath: getSystemDataPath(""),
     logsPath: LOG_FILE,
+    optionalNodePath: getOptionalNodeModulesPath(),
     // Python and package versions
     pythonVersion,
     // Feature availability

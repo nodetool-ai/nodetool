@@ -28,6 +28,8 @@ export {
   type DiagnosticResult
 } from "./diagnostics.js";
 
+export { importOptionalModule } from "./optional-modules.js";
+
 export {
   getNodetoolDataDir,
   getDefaultDbPath,

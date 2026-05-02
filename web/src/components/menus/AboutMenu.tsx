@@ -24,6 +24,7 @@ interface SystemInfoData {
   condaEnvPath: string;
   dataPath: string;
   logsPath: string;
+  optionalNodePath: string;
   pythonVersion: string | null;
   cudaAvailable: boolean;
   cudaVersion: string | null;
@@ -227,6 +228,7 @@ Application: ${systemInfo.installPath}
 Conda Environment: ${systemInfo.condaEnvPath}
 Data: ${systemInfo.dataPath}
 Logs: ${systemInfo.logsPath}
+NPM Packages: ${systemInfo.optionalNodePath}
 
 Features & Versions
 -------------------
@@ -339,6 +341,12 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
             <InfoRow
               label="Logs"
               value={systemInfo.logsPath}
+              copyable
+              onCopy={handleCopy}
+            />
+            <InfoRow
+              label="NPM Packages"
+              value={systemInfo.optionalNodePath}
               copyable
               onCopy={handleCopy}
             />

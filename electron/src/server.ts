@@ -2,6 +2,7 @@ import { dialog, shell, app } from "electron";
 import { logMessage } from "./logger";
 import {
   getLlamaServerPath,
+  getOptionalNodeModulesPath,
   getPythonPath,
   getProcessEnv,
   PID_FILE_PATH,
@@ -392,7 +393,9 @@ async function startServer(): Promise<void> {
   // backend/node_modules directory so Node.js can resolve externalized
   // ESM packages with standard package resolution.
   const backendNodeModules = path.join(path.dirname(backendEntryPoint), "node_modules");
-  logMessage(`Backend NODE_PATH: ${backendNodeModules}`);
+  const optionalNodeModules = getOptionalNodeModulesPath();
+  const backendNodePath = [backendNodeModules, optionalNodeModules].join(path.delimiter);
+  logMessage(`Backend NODE_PATH: ${backendNodePath}`);
 
   // Python path may not exist if the Python runtime hasn't been installed yet.
   // The backend will start without Python support in that case.
@@ -433,7 +436,8 @@ async function startServer(): Promise<void> {
     LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
     NODE_ENV: isDevMode() ? "development" : "production",
     NODE_OPTIONS: nodeOptionsParts.filter(Boolean).join(" "),
-    NODE_PATH: backendNodeModules,
+    NODE_PATH: backendNodePath,
+    NODETOOL_OPTIONAL_NODE_MODULES: optionalNodeModules,
   };
   const watchdogOpts: import("./watchdog").WatchdogOptions = isDevMode()
     ? {
