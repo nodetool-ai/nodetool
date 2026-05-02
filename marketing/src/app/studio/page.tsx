@@ -567,7 +567,7 @@ export default function StudioPage() {
               Open source today. The future is yours to build.
             </span>
           </p>
-          <div className="mt-4 flex justify-center gap-6 text-xs text-slate-500">
+          <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-slate-500">
             <a href="/" className="hover:text-slate-300 transition-colors">
               Home
             </a>
@@ -589,6 +589,12 @@ export default function StudioPage() {
               rel="noopener noreferrer"
             >
               Discord
+            </a>
+            <a href="/privacy" className="hover:text-slate-300 transition-colors">
+              Privacy
+            </a>
+            <a href="/terms" className="hover:text-slate-300 transition-colors">
+              Terms
             </a>
           </div>
         </div>

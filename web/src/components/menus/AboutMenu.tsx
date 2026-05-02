@@ -448,6 +448,28 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
           >
             Website
           </a>
+          <a
+            href="https://nodetool.ai/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: "var(--palette-primary-main)",
+              textDecoration: "none"
+            }}
+          >
+            Privacy Policy
+          </a>
+          <a
+            href="https://nodetool.ai/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: "var(--palette-primary-main)",
+              textDecoration: "none"
+            }}
+          >
+            Terms of Use
+          </a>
         </FlexColumn>
       </div>
     </Box>
