@@ -359,7 +359,7 @@ if (process.env["NODETOOL_ENV"] !== "production") {
 }
 // In production, unregister optional JS-only nodes that require on-demand npm packages.
 if (process.env["NODETOOL_ENV"] === "production") {
-  const skippedPrefixes = ["lib.tensorflow.", "transformers."];
+  const skippedPrefixes = ["lib.tensorflow.", "transformers.", "vector."];
   for (const nodeType of registry.list()) {
     if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
       if (registry.unregister(nodeType)) {
