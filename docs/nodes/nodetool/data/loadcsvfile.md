@@ -17,7 +17,7 @@ Load CSV file from file path.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | file_path | `str` | The path to the CSV file to load. | `` |
 
 ## Outputs
@@ -26,9 +26,6 @@ Load CSV file from file path.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

@@ -22,8 +22,8 @@ Aggregate dataframe by one or more columns.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| dataframe | `dataframe` | The DataFrame to group. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+|----------|------|-------------|---------|
+| dataframe | `dataframe` | The DataFrame to group. | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 | columns | `str` | Comma-separated column names to group by. | `` |
 | aggregation | `str` | Aggregation function: sum, mean, count, min, max, std, var, median, first, last | `sum` |
 
@@ -33,9 +33,6 @@ Aggregate dataframe by one or more columns.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

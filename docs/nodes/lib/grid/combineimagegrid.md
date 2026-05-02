@@ -22,8 +22,8 @@ Combine a grid of image tiles into a single image.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| tiles | `List[image]` | List of image tiles to combine. | `[]` |
+|----------|------|-------------|---------|
+| tiles | `list[image]` | List of image tiles to combine. | `[]` |
 | columns | `int` | Number of columns in the grid. | `0` |
 
 ## Outputs
@@ -32,9 +32,6 @@ Combine a grid of image tiles into a single image.
 |--------|------|-------------|
 | output | `image` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.grid](../) namespace.
-

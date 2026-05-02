@@ -23,7 +23,7 @@ Fetches content from a web page using a headless browser.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | url | `str` | URL to navigate to | `` |
 | timeout | `int` | Timeout in milliseconds for page navigation | `20000` |
 
@@ -33,11 +33,8 @@ Fetches content from a web page using a headless browser.
 |--------|------|-------------|
 | success | `bool` |  |
 | content | `str` |  |
-| metadata | `Dict[str, any]` |  |
-
-## Metadata
+| metadata | `dict[str, any]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.browser](../) namespace.
-

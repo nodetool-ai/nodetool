@@ -11,13 +11,13 @@ namespace: "search.google"
 
 ## Description
 
-Search Google Shopping for products.
-    google, shopping, products, ecommerce, serp
+Search Google Shopping for products with filters and pricing information.
+    google, shopping, products, ecommerce, serp, prices
 
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | query | `str` | Product name or description to search for | `` |
 | country | `str` | Country code for shopping search (e.g., 'us', 'uk', 'ca') | `us` |
 | min_price | `int` | Minimum price filter for products | `0` |
@@ -30,11 +30,9 @@ Search Google Shopping for products.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `List[shopping_result]` |  |
-
-## Metadata
+| results | `list[shopping_result]` |  |
+| text | `str` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [search.google](../) namespace.
-

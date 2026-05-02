@@ -17,9 +17,9 @@ Accepts a language model as a parameter for workflows.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | name | `str` | The parameter name for the workflow. | `` |
-| value | `language_model` | The language model to use as input. | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
+| value | `language_model` | The language model to use as input. | `{"type":"language_model","provider":"empty","id...` |
 | description | `str` | The description of the input for the workflow. | `` |
 
 ## Outputs
@@ -28,9 +28,6 @@ Accepts a language model as a parameter for workflows.
 |--------|------|-------------|
 | output | `language_model` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.input](../) namespace.
-

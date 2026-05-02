@@ -17,8 +17,8 @@ Define a schema for a dataframe.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| columns | `record_type` | The columns to use in the dataframe. | `{'type': 'record_type', 'columns': []}` |
+|----------|------|-------------|---------|
+| columns | `record_type` | The columns to use in the dataframe. | `{"type":"record_type","columns":[]}` |
 
 ## Outputs
 
@@ -26,9 +26,6 @@ Define a schema for a dataframe.
 |--------|------|-------------|
 | output | `record_type` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

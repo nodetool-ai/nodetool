@@ -17,8 +17,8 @@ Adds a page break to the document
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| document | `document` | The document to add the page break to | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| document | `document` | The document to add the page break to | `{"type":"document","uri":"","asset_id":null,"da...` |
 
 ## Outputs
 
@@ -26,9 +26,6 @@ Adds a page break to the document
 |--------|------|-------------|
 | output | `document` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.docx](../) namespace.
-

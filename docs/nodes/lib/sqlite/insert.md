@@ -22,20 +22,17 @@ Insert a record into a SQLite table.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | database_name | `str` | Name of the SQLite database file | `memory.db` |
 | table_name | `str` | Name of the table to insert into | `flashcards` |
-| data | `Dict[str, any]` | Data to insert as dict (column: value) | `{'content': 'example'}` |
+| data | `dict[str, any]` | Data to insert as dict (column: value) | `{"content":"example"}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `Dict[str, any]` |  |
-
-## Metadata
+| output | `dict[str, any]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.sqlite](../) namespace.
-

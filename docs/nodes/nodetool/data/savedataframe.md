@@ -21,19 +21,10 @@ Save dataframe in specified folder.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| df | `dataframe` |  | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| folder | `folder` | Name of the output folder. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
-| name | `str` | 
-        Name of the output file.
-        You can use time and date variables to create unique names:
-        %Y - Year
-        %m - Month
-        %d - Day
-        %H - Hour
-        %M - Minute
-        %S - Second
-         | `output.csv` |
+|----------|------|-------------|---------|
+| df | `dataframe` |  | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
+| folder | `folder` | Name of the output folder. | `{"type":"folder","uri":"","asset_id":null,"data...` |
+| name | `str` |          Name of the output file.         You can use time and date variables to create unique names:         %Y - Year         %m - Month         %d - Day         %H - Hour         %M - Minute         %S - Second          | `output.csv` |
 
 ## Outputs
 
@@ -41,9 +32,6 @@ Save dataframe in specified folder.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

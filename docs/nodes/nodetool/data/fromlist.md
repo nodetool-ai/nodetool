@@ -22,8 +22,8 @@ Convert list of dicts to dataframe.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| values | `List[any]` | List of values to be converted, each value will be a row. | `[]` |
+|----------|------|-------------|---------|
+| values | `list[any]` | List of values to be converted, each value will be a row. | `[]` |
 
 ## Outputs
 
@@ -31,9 +31,6 @@ Convert list of dicts to dataframe.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

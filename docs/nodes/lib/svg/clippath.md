@@ -22,9 +22,9 @@ Create clipping paths for SVG elements.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| clip_content | `svg_element` | SVG element to use as clip path | - |
-| content | `svg_element` | SVG element to clip | - |
+|----------|------|-------------|---------|
+| clip_content | `svg_element` | SVG element to use as clip path | `{"type":"svg_element","name":"","attributes":{}...` |
+| content | `svg_element` | SVG element to clip | `{"type":"svg_element","name":"","attributes":{}...` |
 
 ## Outputs
 
@@ -32,9 +32,6 @@ Create clipping paths for SVG elements.
 |--------|------|-------------|
 | output | `svg_element` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.svg](../) namespace.
-

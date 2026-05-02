@@ -22,7 +22,7 @@ Represents a string constant in the workflow.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | value | `str` |  | `` |
 
 ## Outputs
@@ -31,9 +31,6 @@ Represents a string constant in the workflow.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.constant](../) namespace.
-

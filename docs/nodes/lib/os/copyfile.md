@@ -22,13 +22,16 @@ Copy a file from source to destination path.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | source_path | `str` | Source file path | `` |
 | destination_path | `str` | Destination file path | `` |
 
-## Metadata
+## Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| output | `str` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

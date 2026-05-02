@@ -21,13 +21,14 @@ Create a new directory at specified path.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Directory path to create | `` |
-| exist_ok | `bool` | Don't error if directory already exists | `True` |
+| exist_ok | `bool` | Don't error if directory already exists | `true` |
 
-## Metadata
+## Outputs
+
+_(none)_
 
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

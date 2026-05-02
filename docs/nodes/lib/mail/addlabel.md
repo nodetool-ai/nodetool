@@ -17,7 +17,7 @@ Adds a label to a Gmail message.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | message_id | `str` | Message ID to label | `` |
 | label | `str` | Label to add to the message | `` |
 
@@ -27,9 +27,6 @@ Adds a label to a Gmail message.
 |--------|------|-------------|
 | output | `bool` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.mail](../) namespace.
-

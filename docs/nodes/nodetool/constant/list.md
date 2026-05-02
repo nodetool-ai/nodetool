@@ -22,18 +22,15 @@ Represents a list constant in the workflow.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| value | `List[any]` |  | `[]` |
+|----------|------|-------------|---------|
+| value | `list[any]` |  | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `List[any]` |  |
-
-## Metadata
+| output | `list[any]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.constant](../) namespace.
-

@@ -17,7 +17,7 @@ Get file last accessed timestamp.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Path to file | `` |
 
 ## Outputs
@@ -26,9 +26,6 @@ Get file last accessed timestamp.
 |--------|------|-------------|
 | output | `datetime` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

@@ -3,113 +3,57 @@ layout: page
 title: "nodetool.text Nodes"
 ---
 
-
-This namespace contains 29 node(s).
+This namespace contains 50 node(s).
 
 ## Available Nodes
 
-- **[Automatic Speech Recognition](automaticspeechrecognition.md)** - Automatic speech recognition node.
-    audio, speech, recognition
-- **[Check Length](haslength.md)** - Checks if text length meets specified conditions.
-    text, check, length, compare, validate, whi...
-- **[Collect](collect.md)** - Collects a stream of text inputs into a single string.
-    text, collect, list, stream
-- **[Concatenate Text](concat.md)** - Concatenates two text inputs into a single output.
-    text, concatenation, combine, +
-
-    Use c...
-- **[Contains Text](contains.md)** - Checks if text contains a specified substring.
-    text, check, contains, compare, validate, subs...
+- **[Automatic Speech Recognition](automaticspeechrecognition.md)** - Transcribe audio to text using automatic speech recognition models.
+- **[Capitalize Text](capitalizetext.md)** - Capitalizes only the first character.
+- **[Check Length](checklength.md)** - Checks if text length meets specified conditions.
+- **[Collapse Whitespace](collapsewhitespace.md)** - Collapses consecutive whitespace into single separators.
+- **[Collect Text](collecttext.md)** - Collects streaming text inputs into a single concatenated string.
+- **[Compare Text](comparetext.md)** - Compares two text values and reports ordering.
+- **[Concatenate Text](concatenatetext.md)** - Concatenates text inputs into a single output.
+- **[Contains Text](containstext.md)** - Checks if text contains a specified substring.
 - **[Count Tokens](counttokens.md)** - Counts the number of tokens in text using tiktoken.
-    text, tokens, count, encoding
-
-    Use ca...
+- **[Embedding](embedding.md)** - Generate vector representations of text using any supported embedding provider.
 - **[Ends With](endswith.md)** - Checks if text ends with a specified suffix.
-    text, check, suffix, compare, validate, substrin...
+- **[Equals](equals.md)** - Checks if two text inputs are equal.
 - **[Extract JSON](extractjson.md)** - Extracts data from JSON using JSONPath expressions.
-    json, extract, jsonpath
-
-    Use cases:
- ...
-- **[Extract Regex Groups](extractregex.md)** - Extracts substrings matching regex groups from text.
-    text, regex, extract
-
-    Use cases:
-   ...
-- **[Extract Text](extract.md)** - Extracts a substring from input text.
-    text, extract, substring
-
-    Use cases:
-    - Extracti...
-- **[Find All Regex Matches](findallregex.md)** - Finds all regex matches in text as separate substrings.
-    text, regex, find
-
-    Use cases:
-   ...
-- **[Find Regex Matches](regexmatch.md)** - Find all matches of a regex pattern in text.
-    regex, search, pattern, match
-
-    Use cases:
-  ...
-- **[Format Text](formattext.md)** - Replaces placeholders in a string with dynamic inputs using Jinja2 templating.
-    text, template...
+- **[Extract Regex Groups](extractregexgroups.md)** - Extracts substrings matching regex groups from text.
+- **[Extract Text](extracttext.md)** - Extracts a substring from input text.
+- **[Filter Regex String](filterregexstring.md)** - Filters a stream of strings using regular expressions.
+- **[Filter String](filterstring.md)** - Filters a stream of strings based on various criteria.
+- **[Find All Regex Matches](findallregexmatches.md)** - Finds all regex matches in text as separate substrings.
+- **[Find Regex Matches](findregexmatches.md)** - Find all matches of a regex pattern in text.
+- **[Format Text](formattext.md)** - Replaces placeholders in a string with dynamic inputs using {{ variable }} or...
 - **[HTML to Text](htmltotext.md)** - Converts HTML content to plain text using html2text.
-    html, convert, text, parse, extract
-
-   ...
+- **[Index Of](indexof.md)** - Finds the position of a substring in text.
 - **[Is Empty](isempty.md)** - Checks if text is empty or contains only whitespace.
-    text, check, empty, compare, validate, w...
 - **[Join](join.md)** - Joins a list of strings into a single string using a specified separator.
-    text, join, combine...
 - **[Load Text Assets](loadtextassets.md)** - Load text files from an asset folder.
-    load, text, file, import
-
-    Use cases:
-    - Loading ...
-- **[Parse JSON String](parsejson.md)** - Parses a JSON string into a Python object.
-    json, parse, convert
-
-    Use cases:
-    - Convert...
-- **[Replace Text](replace.md)** - Replaces a substring in a text with another substring.
-    text, replace, substitute
-
-    Use cas...
-- **[Replace with Regex](regexreplace.md)** - Replace text matching a regex pattern.
-    regex, replace, substitute
-
-    Use cases:
-    - Clean...
+- **[Load Text Folder](loadtextfolder.md)** - Load all text files from a folder, optionally including subfolders.
+- **[Measure Length](measurelength.md)** - Measures text length as characters, words, or lines.
+- **[Pad Text](padtext.md)** - Pads text to a target length.
+- **[Parse JSON String](parsejsonstring.md)** - Parses a JSON string into a Python object.
+- **[Remove Punctuation](removepunctuation.md)** - Removes punctuation characters from text.
+- **[Replace Text](replacetext.md)** - Replaces a substring in a text with another substring.
+- **[Replace with Regex](replacewithregex.md)** - Replace text matching a regex pattern.
 - **[Save Text](savetext.md)** - Saves input text to a file in the assets folder.
-    text, save, file
-
-    Use cases:
-    - Persi...
 - **[Save Text File](savetextfile.md)** - Saves input text to a file in the assets folder.
-    text, save, file
-- **[Slice Text](slice.md)** - Slices text using Python's slice notation (start:stop:step).
-    text, slice, substring
-
-    Use ...
-- **[Split Text](split.md)** - Separates text into a list of strings based on a specified delimiter.
-    text, split, tokenize
-
-...
-- **[Split Text into Chunks](chunk.md)** - Splits text into chunks of specified word length.
-    text, chunk, split
-
-    Use cases:
-    - Pr...
-- **[Split with Regex](regexsplit.md)** - Split text using a regex pattern as delimiter.
-    regex, split, tokenize
-
-    Use cases:
-    - P...
+- **[Slice Text](slicetext.md)** - Slices text using Python's slice notation (start:stop:step).
+- **[Slugify](slugify.md)** - Converts text into a slug suitable for URLs or IDs.
+- **[Split Text](splittext.md)** - Separates text into a list of strings based on a specified delimiter.
+- **[Split Text into Chunks](splittextintochunks.md)** - Splits text into chunks of specified word length.
+- **[Split with Regex](splitwithregex.md)** - Split text using a regex pattern as delimiter.
 - **[Starts With](startswith.md)** - Checks if text starts with a specified prefix.
-    text, check, prefix, compare, validate, substr...
-- **[Template](template.md)** - Uses Jinja2 templating to format strings with variables and filters. This node is dynamic and can...
-- **[Validate with Regex](regexvalidate.md)** - Check if text matches a regex pattern.
-    regex, validate, check
-
-    Use cases:
-    - Validate ...
+- **[Strip Accents](stripaccents.md)** - Removes accent marks while keeping base characters.
+- **[Surround With](surroundwith.md)** - Wraps text with the provided prefix and suffix.
+- **[Template](template.md)** - Uses template syntax to format strings with variables. Supports {{ variable }...
+- **[To Lowercase](tolowercase.md)** - Converts text to lowercase.
+- **[To String](tostring.md)** - Converts any input value to its string representation.
+- **[To Title Case](totitlecase.md)** - Converts text to title case.
+- **[To Uppercase](touppercase.md)** - Converts text to uppercase.
+- **[Trim Whitespace](trimwhitespace.md)** - Trims whitespace from the start and/or end of text.
+- **[Truncate Text](truncatetext.md)** - Truncates text to a maximum length.
+- **[Validate with Regex](validatewithregex.md)** - Check if text matches a regex pattern.

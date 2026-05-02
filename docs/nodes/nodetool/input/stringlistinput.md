@@ -17,20 +17,17 @@ Accepts a list of strings as a parameter for workflows.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | name | `str` | The parameter name for the workflow. | `` |
-| value | `List[str]` | The list of strings to use as input. | `[]` |
+| value | `list[str]` | The list of strings to use as input. | `[]` |
 | description | `str` | The description of the input for the workflow. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `List[str]` |  |
-
-## Metadata
+| output | `list[str]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.input](../) namespace.
-

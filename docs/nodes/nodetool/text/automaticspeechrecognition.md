@@ -11,15 +11,15 @@ namespace: "nodetool.text"
 
 ## Description
 
-Automatic speech recognition node.
-    audio, speech, recognition
+Transcribe audio to text using automatic speech recognition models.
+    audio, speech, recognition, transcription, ASR, whisper
 
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| model | `asr_model` |  | `{'type': 'asr_model', 'provider': 'fal_ai', 'id': 'openai/whisper-large-v3', 'name': '', 'path': None}` |
-| audio | `audio` | The audio to transcribe | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| model | `asr_model` |  | `{"type":"asr_model","provider":"fal_ai","id":"o...` |
+| audio | `audio` | The audio to transcribe | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 
@@ -27,9 +27,6 @@ Automatic speech recognition node.
 |--------|------|-------------|
 | text | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.text](../) namespace.
-

@@ -11,19 +11,20 @@ namespace: "search.google"
 
 ## Description
 
-Search with an image URL using Google Lens to find visual matches and related content.
-    google, lens, visual, image, search, serp
+Analyze images using Google Lens to find visual matches and related content.
+    google, lens, visual, image, search, serp, identify
 
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | image_url | `str` | URL of the image to analyze with Google Lens | `` |
 | num_results | `int` | Maximum number of visual search results to return | `10` |
 
-## Metadata
+## Outputs
+
+_(none)_
 
 ## Related Nodes
 
 Browse other nodes in the [search.google](../) namespace.
-
