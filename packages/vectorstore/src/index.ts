@@ -16,6 +16,53 @@ export {
 
 export { splitDocument, type TextChunk } from "./chroma-client.js";
 
+// ---------------------------------------------------------------------------
+// Backend-agnostic vector provider abstraction
+// ---------------------------------------------------------------------------
+
+export {
+  CollectionNotFoundError,
+  ProviderConfigError,
+  UnsupportedFilterError,
+  type CollectionInfo as ProviderCollectionInfo,
+  type CollectionMetadata as ProviderCollectionMetadata,
+  type CreateCollectionOptions,
+  type DistanceMetric,
+  type GetCollectionOptions,
+  type MetadataValue,
+  type RecordMetadata,
+  type VectorCollection,
+  type VectorFilter,
+  type VectorMatch,
+  type VectorProvider,
+  type VectorQuery,
+  type VectorRecord
+} from "./provider.js";
+
+export {
+  SqliteVecProvider,
+  type SqliteVecProviderOptions
+} from "./sqlite-vec-provider.js";
+
+export {
+  PineconeProvider,
+  type PineconeProviderOptions
+} from "./pinecone-provider.js";
+
+export {
+  SupabaseProvider,
+  type SupabaseProviderOptions
+} from "./supabase-provider.js";
+
+export {
+  createSqliteVecProvider,
+  createVectorProviderFromEnv,
+  getDefaultVectorProvider,
+  resetDefaultVectorProvider,
+  setDefaultVectorProvider,
+  type VectorProviderKind
+} from "./provider-factory.js";
+
 export {
   ProviderEmbeddingFunction,
   OpenAIEmbeddingFunction,
