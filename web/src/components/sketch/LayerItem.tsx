@@ -188,19 +188,26 @@ const LayerItem: React.FC<LayerItemProps> = ({
             }}
           />
         ) : thumbnailSrc ? (
-          <img
-            className="layer-thumbnail"
-            src={thumbnailSrc}
-            alt={layer.name}
-            draggable={false}
-            onClick={(e) => {
-              if ((e.ctrlKey || e.metaKey) && onLayerThumbnailCtrlClick) {
-                e.stopPropagation();
-                onLayerThumbnailCtrlClick(layer.id);
-              }
-            }}
-            style={{ cursor: onLayerThumbnailCtrlClick ? "pointer" : undefined }}
-          />
+          <Tooltip
+            title="Ctrl+click to create selection from layer"
+            placement="left"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+            disableHoverListener={!onLayerThumbnailCtrlClick}
+          >
+            <img
+              className="layer-thumbnail"
+              src={thumbnailSrc}
+              alt={layer.name}
+              draggable={false}
+              onClick={(e) => {
+                if ((e.ctrlKey || e.metaKey) && onLayerThumbnailCtrlClick) {
+                  e.stopPropagation();
+                  onLayerThumbnailCtrlClick(layer.id);
+                }
+              }}
+            />
+          </Tooltip>
         ) : (
           <Box className="layer-thumbnail-empty" />
         )}

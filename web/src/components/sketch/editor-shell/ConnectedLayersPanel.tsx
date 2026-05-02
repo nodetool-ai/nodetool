@@ -74,22 +74,26 @@ export const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
 
   const handleSelectionFromLayer = useCallback(
     async (layerId: string) => {
-      const canvas = await exportLayer(document, layerId);
-      if (!canvas) {
-        return;
+      try {
+        const canvas = await exportLayer(document, layerId);
+        if (!canvas) {
+          return;
+        }
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          return;
+        }
+        const { width, height } = canvas;
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const mask = createEmptyMask(width, height);
+        // Use the alpha channel of each pixel as the selection value
+        for (let i = 0; i < width * height; i++) {
+          mask.data[i] = imageData.data[i * 4 + 3];
+        }
+        setSelection(mask);
+      } catch (err) {
+        console.error("Failed to create selection from layer:", err);
       }
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        return;
-      }
-      const { width, height } = canvas;
-      const imageData = ctx.getImageData(0, 0, width, height);
-      const mask = createEmptyMask(width, height);
-      // Use the alpha channel of each pixel as the selection value
-      for (let i = 0; i < width * height; i++) {
-        mask.data[i] = imageData.data[i * 4 + 3];
-      }
-      setSelection(mask);
     },
     [document, setSelection]
   );
