@@ -5,9 +5,7 @@ title: "Chat with Docs"
 
 ## Overview
 
-A document retrieval and question-answering system that uses vector search and local LLMs to answer questions based on your document collection.
-
-
+Document retrieval and question-answering using vector search and local LLMs.
 
 ## Tags
 
@@ -26,14 +24,3 @@ graph TD
   query_2cff53 --> formattext_9
   formattext_9 --> agent_d83380
 {% endmermaid %}
-
-## How to Use
-
-1. Open NodeTool and create a new workflow
-2. Import this workflow from the examples gallery or build it manually following the diagram above
-3. Configure the input nodes with your data
-4. Run the workflow to see results
-
-## Related Workflows
-
-Browse other [workflow examples](/cookbook.md) to discover more capabilities.
