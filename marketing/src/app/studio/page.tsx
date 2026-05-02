@@ -12,8 +12,9 @@ import {
   HardDrive,
   Zap,
   Github,
+  Download,
 } from "lucide-react";
-import { DownloadButtons } from "../DownloadButtons";
+import { SmartDownloadButton } from "../SmartDownloadButton";
 
 const ModelSupportSection = dynamic(
   () => import("../../components/ModelSupportSection"),
@@ -339,42 +340,77 @@ export default function StudioPage() {
       >
         {/* Hero */}
         <section aria-labelledby="studio-hero-title" className="pt-2 relative">
+          <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+            <div className="absolute -top-32 left-1/3 h-[28rem] w-[28rem] rounded-full bg-amber-500/15 blur-[120px]" />
+            <div className="absolute -bottom-40 right-0 h-[26rem] w-[26rem] rounded-full bg-orange-500/10 blur-[120px]" />
+            <div className="absolute top-1/2 -right-20 h-[20rem] w-[20rem] rounded-full bg-rose-500/10 blur-[120px]" />
+          </div>
           <div className={sectionContainer}>
-            <div className="mx-auto max-w-4xl text-center py-12 md:py-20">
-              <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-amber-200">
-                <Cpu className="h-3.5 w-3.5" />
-                Studio Edition · Desktop · Open source
-              </span>
-              <h1
-                id="studio-hero-title"
-                className="mt-6 text-4xl md:text-6xl font-bold tracking-tight text-white"
-              >
-                Build AI workflows that
-                <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-300">
-                  run on your machine.
+            <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12 py-12 md:py-20">
+              <div className="lg:col-span-5">
+                <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-amber-200">
+                  <Cpu className="h-3.5 w-3.5" />
+                  Studio · Desktop · Open source
                 </span>
-              </h1>
-              <p className="mt-6 text-lg md:text-xl text-slate-300 leading-relaxed max-w-2xl mx-auto">
-                NodeTool Studio is the desktop app for builders who want their
-                models, data, and outputs to stay local. Use Ollama, MLX, and
-                GGUF models with zero per-token cost — and bring your own keys
-                for any cloud provider when you need them.
-              </p>
-              <div className="mt-10 flex flex-col items-center gap-4">
-                <DownloadButtons />
-                <p className="text-xs text-slate-400">
-                  Free · AGPL-3.0 · macOS, Windows, Linux · No account required
-                </p>
-              </div>
-              <div className="mt-8 inline-flex items-center gap-2 text-sm text-slate-400">
-                <span>Prefer the browser?</span>
-                <a
-                  href="/cloud"
-                  className="text-blue-300 hover:text-blue-200 underline underline-offset-2 font-medium"
+                <h1
+                  id="studio-hero-title"
+                  className="mt-6 text-4xl md:text-6xl font-bold tracking-tight text-white leading-[1.05]"
                 >
-                  Try NodeTool Cloud →
-                </a>
+                  Build AI workflows that
+                  <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-300">
+                    run on your machine.
+                  </span>
+                </h1>
+                <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
+                  NodeTool Studio is the desktop app for builders who want their
+                  models, data, and outputs to stay local. Use Ollama, MLX, and
+                  GGUF models with zero per-token cost — and bring your own keys
+                  for any cloud provider when you need them.
+                </p>
+                <div className="mt-8 flex flex-col gap-3">
+                  <SmartDownloadButton
+                    icon={<Download className="h-5 w-5" />}
+                    classNameOverride="inline-flex w-fit items-center justify-center gap-2 rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-semibold text-slate-950 shadow-lg shadow-amber-900/40 transition-all hover:bg-amber-400 hover:shadow-amber-900/60"
+                  />
+                  <p className="text-xs text-slate-400">
+                    Free · AGPL-3.0 · macOS, Windows, Linux · No account
+                    required ·{" "}
+                    <a
+                      href="https://github.com/nodetool-ai/nodetool/releases/latest"
+                      className="underline underline-offset-2 hover:text-slate-200"
+                    >
+                      All downloads
+                    </a>
+                  </p>
+                </div>
+                <div className="mt-6 inline-flex items-center gap-2 text-sm text-slate-400">
+                  <span>Prefer the browser?</span>
+                  <a
+                    href="/cloud"
+                    className="text-blue-300 hover:text-blue-200 underline underline-offset-2 font-medium"
+                  >
+                    Try NodeTool Cloud →
+                  </a>
+                </div>
+              </div>
+              <div className="relative lg:col-span-7">
+                <div
+                  aria-hidden
+                  className="absolute -inset-6 -z-10 rounded-[2rem] opacity-70 blur-3xl"
+                  style={{
+                    background:
+                      "radial-gradient(60% 60% at 50% 0%, rgba(251,191,36,0.30), transparent 60%), radial-gradient(50% 60% at 100% 100%, rgba(244,114,182,0.22), transparent 60%), radial-gradient(50% 60% at 0% 100%, rgba(249,115,22,0.22), transparent 60%)",
+                  }}
+                />
+                <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
+                  <img
+                    src="/screen_canvas.png"
+                    alt="NodeTool Studio workflow editor"
+                    className="block w-full rounded-xl"
+                    loading="eager"
+                  />
+                </div>
               </div>
             </div>
           </div>
