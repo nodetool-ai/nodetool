@@ -1,5 +1,6 @@
 import { createLogger } from "@nodetool-ai/config";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ImageRef, AudioRef } from "@nodetool-ai/node-sdk";
 import type {
   BaseProvider,
   Message,
@@ -10,7 +11,7 @@ import type {
   ProviderStreamItem,
   ToolCall
 } from "@nodetool-ai/runtime";
-import type { Chunk, ProcessingMessage } from "@nodetool-ai/protocol";
+import type { Chunk, LanguageModel, ProcessingMessage } from "@nodetool-ai/protocol";
 import { MultiModeAgent, Tool as AgentTool } from "@nodetool-ai/agents";
 import { hydrateBuiltinAgentTool } from "./agent-tool-hydration.js";
 
@@ -1163,6 +1164,59 @@ function hasContentType(
     : false;
 }
 
+const GEMMA_3_4B_IT_GGUF_TAGS = [
+  "gguf",
+  "image-text-to-text",
+  "arxiv:1905.07830",
+  "arxiv:1905.10044",
+  "arxiv:1911.11641",
+  "arxiv:1904.09728",
+  "arxiv:1705.03551",
+  "arxiv:1911.01547",
+  "arxiv:1907.10641",
+  "arxiv:1903.00161",
+  "arxiv:2009.03300",
+  "arxiv:2304.06364",
+  "arxiv:2103.03874",
+  "arxiv:2110.14168",
+  "arxiv:2311.12022",
+  "arxiv:2108.07732",
+  "arxiv:2107.03374",
+  "arxiv:2210.03057",
+  "arxiv:2106.03193",
+  "arxiv:1910.11856",
+  "arxiv:2502.12404",
+  "arxiv:2502.21228",
+  "arxiv:2404.16816",
+  "arxiv:2104.12756",
+  "arxiv:2311.16502",
+  "arxiv:2203.10244",
+  "arxiv:2404.12390",
+  "arxiv:1810.12440",
+  "arxiv:1908.02660",
+  "arxiv:2312.11805",
+  "base_model:google/gemma-3-4b-it",
+  "base_model:quantized:google/gemma-3-4b-it",
+  "license:gemma",
+  "endpoints_compatible",
+  "region:us",
+  "conversational"
+] as const;
+
+const GEMMA_3_4B_IT_GGUF_BASE = {
+  id: "ggml-org/gemma-3-4b-it-GGUF:gemma-3-4b-it-Q4_K_M.gguf",
+  type: "llama_cpp_model",
+  name: "Gemma 3 4B IT (GGUF)",
+  repo_id: "ggml-org/gemma-3-4b-it-GGUF",
+  path: "gemma-3-4b-it-Q4_K_M.gguf",
+  size_on_disk: 3113851289,
+  pipeline_tag: "image-text-to-text",
+  tags: GEMMA_3_4B_IT_GGUF_TAGS,
+  has_model_index: false,
+  downloads: 25779,
+  likes: 48
+} as const;
+
 export class SummarizerNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.Summarizer";
   static readonly title = "Summarizer";
@@ -1228,57 +1282,7 @@ export class SummarizerNode extends BaseNode {
         "Qwen3 4B offers multilingual summarization with tight, well-structured outputs.",
       size_on_disk: 2684354560
     },
-    {
-      id: "ggml-org/gemma-3-4b-it-GGUF:gemma-3-4b-it-Q4_K_M.gguf",
-      type: "llama_cpp_model",
-      name: "Gemma 3 4B IT (GGUF)",
-      repo_id: "ggml-org/gemma-3-4b-it-GGUF",
-      path: "gemma-3-4b-it-Q4_K_M.gguf",
-      description: "Efficient Gemma 3 for summarization via llama.cpp.",
-      size_on_disk: 3113851289,
-      pipeline_tag: "image-text-to-text",
-      tags: [
-        "gguf",
-        "image-text-to-text",
-        "arxiv:1905.07830",
-        "arxiv:1905.10044",
-        "arxiv:1911.11641",
-        "arxiv:1904.09728",
-        "arxiv:1705.03551",
-        "arxiv:1911.01547",
-        "arxiv:1907.10641",
-        "arxiv:1903.00161",
-        "arxiv:2009.03300",
-        "arxiv:2304.06364",
-        "arxiv:2103.03874",
-        "arxiv:2110.14168",
-        "arxiv:2311.12022",
-        "arxiv:2108.07732",
-        "arxiv:2107.03374",
-        "arxiv:2210.03057",
-        "arxiv:2106.03193",
-        "arxiv:1910.11856",
-        "arxiv:2502.12404",
-        "arxiv:2502.21228",
-        "arxiv:2404.16816",
-        "arxiv:2104.12756",
-        "arxiv:2311.16502",
-        "arxiv:2203.10244",
-        "arxiv:2404.12390",
-        "arxiv:1810.12440",
-        "arxiv:1908.02660",
-        "arxiv:2312.11805",
-        "base_model:google/gemma-3-4b-it",
-        "base_model:quantized:google/gemma-3-4b-it",
-        "license:gemma",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 25779,
-      likes: 48
-    }
+    { ...GEMMA_3_4B_IT_GGUF_BASE, description: "Efficient Gemma 3 for summarization via llama.cpp." }
   ];
 
   static readonly isStreamingOutput = true;
@@ -1289,7 +1293,7 @@ export class SummarizerNode extends BaseNode {
     title: "System Prompt",
     description: "The system prompt for the summarizer"
   })
-  declare system_prompt: any;
+  declare system_prompt: string;
 
   @prop({
     type: "language_model",
@@ -1304,7 +1308,7 @@ export class SummarizerNode extends BaseNode {
     title: "Model",
     description: "Model to use for summarization"
   })
-  declare model: any;
+  declare model: LanguageModel;
 
   @prop({
     type: "str",
@@ -1312,7 +1316,7 @@ export class SummarizerNode extends BaseNode {
     title: "Text",
     description: "The text to summarize"
   })
-  declare text: any;
+  declare text: string;
 
   @prop({
     type: "image",
@@ -1326,7 +1330,7 @@ export class SummarizerNode extends BaseNode {
     title: "Image",
     description: "Optional image to condition the summary"
   })
-  declare image: any;
+  declare image: ImageRef;
 
   @prop({
     type: "audio",
@@ -1340,7 +1344,7 @@ export class SummarizerNode extends BaseNode {
     title: "Audio",
     description: "Optional audio to condition the summary"
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const text = asText(this.text ?? this.text ?? "");
@@ -1386,7 +1390,7 @@ export class CreateThreadNode extends BaseNode {
     title: "Title",
     description: "Optional title for the new thread"
   })
-  declare title: any;
+  declare title: string;
 
   @prop({
     type: "str",
@@ -1395,7 +1399,7 @@ export class CreateThreadNode extends BaseNode {
     description:
       "Optional custom thread ID. If provided and owned by the user, it will be reused; otherwise a new thread is created."
   })
-  declare thread_id: any;
+  declare thread_id: string;
 
   async process(): Promise<Record<string, unknown>> {
     const requested = String(this.thread_id ?? this.thread_id ?? "").trim();
@@ -1482,57 +1486,7 @@ export class ExtractorNode extends BaseNode {
         "Reasoning-oriented DeepSeek shines when extraction needs cross-field validation.",
       size_on_disk: 4617089843
     },
-    {
-      id: "ggml-org/gemma-3-4b-it-GGUF:gemma-3-4b-it-Q4_K_M.gguf",
-      type: "llama_cpp_model",
-      name: "Gemma 3 4B IT (GGUF)",
-      repo_id: "ggml-org/gemma-3-4b-it-GGUF",
-      path: "gemma-3-4b-it-Q4_K_M.gguf",
-      description: "Efficient Gemma 3 for extraction via llama.cpp.",
-      size_on_disk: 3113851289,
-      pipeline_tag: "image-text-to-text",
-      tags: [
-        "gguf",
-        "image-text-to-text",
-        "arxiv:1905.07830",
-        "arxiv:1905.10044",
-        "arxiv:1911.11641",
-        "arxiv:1904.09728",
-        "arxiv:1705.03551",
-        "arxiv:1911.01547",
-        "arxiv:1907.10641",
-        "arxiv:1903.00161",
-        "arxiv:2009.03300",
-        "arxiv:2304.06364",
-        "arxiv:2103.03874",
-        "arxiv:2110.14168",
-        "arxiv:2311.12022",
-        "arxiv:2108.07732",
-        "arxiv:2107.03374",
-        "arxiv:2210.03057",
-        "arxiv:2106.03193",
-        "arxiv:1910.11856",
-        "arxiv:2502.12404",
-        "arxiv:2502.21228",
-        "arxiv:2404.16816",
-        "arxiv:2104.12756",
-        "arxiv:2311.16502",
-        "arxiv:2203.10244",
-        "arxiv:2404.12390",
-        "arxiv:1810.12440",
-        "arxiv:1908.02660",
-        "arxiv:2312.11805",
-        "base_model:google/gemma-3-4b-it",
-        "base_model:quantized:google/gemma-3-4b-it",
-        "license:gemma",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 25779,
-      likes: 48
-    }
+    { ...GEMMA_3_4B_IT_GGUF_BASE, description: "Efficient Gemma 3 for extraction via llama.cpp." }
   ];
 
   @prop({
@@ -1542,7 +1496,7 @@ export class ExtractorNode extends BaseNode {
     title: "System Prompt",
     description: "The system prompt for the data extractor"
   })
-  declare system_prompt: any;
+  declare system_prompt: string;
 
   @prop({
     type: "language_model",
@@ -1557,7 +1511,7 @@ export class ExtractorNode extends BaseNode {
     title: "Model",
     description: "Model to use for data extraction"
   })
-  declare model: any;
+  declare model: LanguageModel;
 
   @prop({
     type: "str",
@@ -1565,7 +1519,7 @@ export class ExtractorNode extends BaseNode {
     title: "Text",
     description: "The text to extract data from"
   })
-  declare text: any;
+  declare text: string;
 
   @prop({
     type: "image",
@@ -1579,7 +1533,7 @@ export class ExtractorNode extends BaseNode {
     title: "Image",
     description: "Optional image to assist extraction"
   })
-  declare image: any;
+  declare image: ImageRef;
 
   @prop({
     type: "audio",
@@ -1593,7 +1547,7 @@ export class ExtractorNode extends BaseNode {
     title: "Audio",
     description: "Optional audio to assist extraction"
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const text = asText(this.text ?? this.text ?? "");
@@ -1695,57 +1649,7 @@ export class ClassifierNode extends BaseNode {
         "Reasoning-focused DeepSeek variant is great for multi-step label decisions.",
       size_on_disk: 912680550
     },
-    {
-      id: "ggml-org/gemma-3-4b-it-GGUF:gemma-3-4b-it-Q4_K_M.gguf",
-      type: "llama_cpp_model",
-      name: "Gemma 3 4B IT (GGUF)",
-      repo_id: "ggml-org/gemma-3-4b-it-GGUF",
-      path: "gemma-3-4b-it-Q4_K_M.gguf",
-      description: "Efficient Gemma 3 for classification via llama.cpp.",
-      size_on_disk: 3113851289,
-      pipeline_tag: "image-text-to-text",
-      tags: [
-        "gguf",
-        "image-text-to-text",
-        "arxiv:1905.07830",
-        "arxiv:1905.10044",
-        "arxiv:1911.11641",
-        "arxiv:1904.09728",
-        "arxiv:1705.03551",
-        "arxiv:1911.01547",
-        "arxiv:1907.10641",
-        "arxiv:1903.00161",
-        "arxiv:2009.03300",
-        "arxiv:2304.06364",
-        "arxiv:2103.03874",
-        "arxiv:2110.14168",
-        "arxiv:2311.12022",
-        "arxiv:2108.07732",
-        "arxiv:2107.03374",
-        "arxiv:2210.03057",
-        "arxiv:2106.03193",
-        "arxiv:1910.11856",
-        "arxiv:2502.12404",
-        "arxiv:2502.21228",
-        "arxiv:2404.16816",
-        "arxiv:2104.12756",
-        "arxiv:2311.16502",
-        "arxiv:2203.10244",
-        "arxiv:2404.12390",
-        "arxiv:1810.12440",
-        "arxiv:1908.02660",
-        "arxiv:2312.11805",
-        "base_model:google/gemma-3-4b-it",
-        "base_model:quantized:google/gemma-3-4b-it",
-        "license:gemma",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 25779,
-      likes: 48
-    }
+    { ...GEMMA_3_4B_IT_GGUF_BASE, description: "Efficient Gemma 3 for classification via llama.cpp." }
   ];
 
   @prop({
@@ -1755,7 +1659,7 @@ export class ClassifierNode extends BaseNode {
     title: "System Prompt",
     description: "The system prompt for the classifier"
   })
-  declare system_prompt: any;
+  declare system_prompt: string;
 
   @prop({
     type: "language_model",
@@ -1770,7 +1674,7 @@ export class ClassifierNode extends BaseNode {
     title: "Model",
     description: "Model to use for classification"
   })
-  declare model: any;
+  declare model: LanguageModel;
 
   @prop({
     type: "str",
@@ -1778,7 +1682,7 @@ export class ClassifierNode extends BaseNode {
     title: "Text",
     description: "Text to classify"
   })
-  declare text: any;
+  declare text: string;
 
   @prop({
     type: "image",
@@ -1792,7 +1696,7 @@ export class ClassifierNode extends BaseNode {
     title: "Image",
     description: "Optional image to classify in context"
   })
-  declare image: any;
+  declare image: ImageRef;
 
   @prop({
     type: "audio",
@@ -1806,7 +1710,7 @@ export class ClassifierNode extends BaseNode {
     title: "Audio",
     description: "Optional audio to classify in context"
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "list[str]",
@@ -1815,7 +1719,7 @@ export class ClassifierNode extends BaseNode {
     description:
       "List of possible categories. If empty, LLM will determine categories."
   })
-  declare categories: any;
+  declare categories: string[];
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const text = asText(this.text ?? this.text ?? "");
@@ -1988,58 +1892,7 @@ export class AgentNode extends BaseNode {
       downloads: 156909,
       likes: 135
     },
-    {
-      id: "ggml-org/gemma-3-4b-it-GGUF:gemma-3-4b-it-Q4_K_M.gguf",
-      type: "llama_cpp_model",
-      name: "Gemma 3 4B IT (GGUF)",
-      repo_id: "ggml-org/gemma-3-4b-it-GGUF",
-      path: "gemma-3-4b-it-Q4_K_M.gguf",
-      description:
-        "Google's Gemma 3 4B in Q4_K_M quantization for efficient inference.",
-      size_on_disk: 3113851289,
-      pipeline_tag: "image-text-to-text",
-      tags: [
-        "gguf",
-        "image-text-to-text",
-        "arxiv:1905.07830",
-        "arxiv:1905.10044",
-        "arxiv:1911.11641",
-        "arxiv:1904.09728",
-        "arxiv:1705.03551",
-        "arxiv:1911.01547",
-        "arxiv:1907.10641",
-        "arxiv:1903.00161",
-        "arxiv:2009.03300",
-        "arxiv:2304.06364",
-        "arxiv:2103.03874",
-        "arxiv:2110.14168",
-        "arxiv:2311.12022",
-        "arxiv:2108.07732",
-        "arxiv:2107.03374",
-        "arxiv:2210.03057",
-        "arxiv:2106.03193",
-        "arxiv:1910.11856",
-        "arxiv:2502.12404",
-        "arxiv:2502.21228",
-        "arxiv:2404.16816",
-        "arxiv:2104.12756",
-        "arxiv:2311.16502",
-        "arxiv:2203.10244",
-        "arxiv:2404.12390",
-        "arxiv:1810.12440",
-        "arxiv:1908.02660",
-        "arxiv:2312.11805",
-        "base_model:google/gemma-3-4b-it",
-        "base_model:quantized:google/gemma-3-4b-it",
-        "license:gemma",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 25779,
-      likes: 48
-    },
+    { ...GEMMA_3_4B_IT_GGUF_BASE, description: "Google's Gemma 3 4B in Q4_K_M quantization for efficient inference." },
     {
       id: "ggml-org/gemma-3-12b-it-GGUF:gemma-3-12b-it-Q4_K_M.gguf",
       type: "llama_cpp_model",
@@ -2372,7 +2225,7 @@ export class AgentNode extends BaseNode {
     title: "Model",
     description: "Model to use for execution"
   })
-  declare model: any;
+  declare model: LanguageModel;
 
   @prop({
     type: "enum",
@@ -2382,7 +2235,7 @@ export class AgentNode extends BaseNode {
       "How the agent runs.\n\n• loop: standard tool‑calling loop — the LLM responds to the prompt and may iteratively call the connected tools until it produces a final answer. Use this for chat, Q&A, and most tool‑using tasks.\n• plan: the LLM first drafts a multi‑step task plan from the objective, then executes the steps in dependency order (independent steps run in parallel). Best for longer, structured jobs with clear sub‑tasks.\n• multi-agent: auto‑specialises a team of sub‑agents (count controlled by Num Agents) that collaborate on the objective using the chosen Team Strategy. Best for open‑ended objectives that benefit from different roles working together.",
     values: ["loop", "plan", "multi-agent"]
   })
-  declare mode: any;
+  declare mode: string;
 
   @prop({
     type: "str",
@@ -2391,7 +2244,7 @@ export class AgentNode extends BaseNode {
     description:
       "Instructions that define the agent's persona, role, tone, and global behaviour. Sent to the model as the system message at the start of every run, before any history or user prompt. Use it for things that should always hold (e.g. \"You are a senior Python reviewer. Reply in Markdown.\"). Leave the prompt itself for the per‑run task."
   })
-  declare system: any;
+  declare system: string;
 
   @prop({
     type: "str",
@@ -2400,7 +2253,7 @@ export class AgentNode extends BaseNode {
     description:
       "The user message for this run — the actual question, task, or content the agent should act on. Appended after the system prompt and conversation history as the latest user turn. Any connected Image or Audio inputs are attached to this message. In plan and multi-agent modes this is treated as the objective for planning."
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "list[tool_name]",
@@ -2409,7 +2262,7 @@ export class AgentNode extends BaseNode {
     description:
       "Tools to enable for the agent. Select workspace tools (read_file, write_file, list_directory) to enable file operations."
   })
-  declare tools: any;
+  declare tools: string[];
 
   @prop({
     type: "image",
@@ -2423,7 +2276,7 @@ export class AgentNode extends BaseNode {
     title: "Image",
     description: "The image to analyze"
   })
-  declare image: any;
+  declare image: ImageRef;
 
   @prop({
     type: "audio",
@@ -2437,7 +2290,7 @@ export class AgentNode extends BaseNode {
     title: "Audio",
     description: "The audio to analyze"
   })
-  declare audio: any;
+  declare audio: AudioRef;
 
   @prop({
     type: "list[message]",
@@ -2446,7 +2299,7 @@ export class AgentNode extends BaseNode {
     description:
       "Prior conversation turns to include before the current prompt, in chronological order (oldest first). Each item is a Message with a role (user/assistant/tool) and content. Use this to supply ad‑hoc context — for example, few‑shot examples, a previous chat transcript piped in from another node, or the messages output of an upstream Agent. Inserted between the system prompt and the new user prompt. If a Thread ID is also set, history loaded from the thread comes first, then this list, then the current prompt."
   })
-  declare history: any;
+  declare history: Message[];
 
   @prop({
     type: "str",
@@ -2455,7 +2308,7 @@ export class AgentNode extends BaseNode {
     description:
       "Identifier for a persistent conversation thread. When set, the agent loads all earlier messages stored under this ID before this turn and saves the new user message, assistant reply, and any tool messages back to it — giving the agent long‑term memory across runs and across nodes that share the same ID. Leave empty for a stateless one‑shot call. Use the Create Thread node to mint a fresh ID, or wire in the same string from upstream to continue an existing conversation."
   })
-  declare thread_id: any;
+  declare thread_id: string;
 
   @prop({
     type: "int",
@@ -2466,7 +2319,7 @@ export class AgentNode extends BaseNode {
     min: 1,
     max: 100000
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   @prop({
     type: "int",
@@ -2477,7 +2330,7 @@ export class AgentNode extends BaseNode {
     min: 1,
     max: 1000
   })
-  declare max_turns: any;
+  declare max_turns: number;
 
   @prop({
     type: "int",
@@ -2488,7 +2341,7 @@ export class AgentNode extends BaseNode {
     min: 2,
     max: 10
   })
-  declare num_agents: any;
+  declare num_agents: number;
 
   @prop({
     type: "enum",
@@ -2498,7 +2351,7 @@ export class AgentNode extends BaseNode {
       "How the auto‑specialised sub‑agents collaborate when Mode is multi-agent. Ignored in other modes.\n\n• coordinator: the first agent acts as a project manager — it decomposes the objective into tasks on a shared task board, and the remaining agents claim and execute them. Best for well‑defined goals where you want predictable orchestration.\n• autonomous: every agent sees the full objective and self‑organises, claiming tasks, posting messages, and creating new tasks as needed without a central planner. Best for open‑ended exploration.\n• hybrid: a coordinator seeds an initial plan, but worker agents may also create their own subtasks while executing. Balances structure with flexibility.",
     values: ["coordinator", "autonomous", "hybrid"]
   })
-  declare team_strategy: any;
+  declare team_strategy: string;
 
   /**
    * Build the tool list for this run. Override in subclasses to inject
