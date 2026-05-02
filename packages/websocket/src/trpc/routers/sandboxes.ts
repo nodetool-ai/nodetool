@@ -276,6 +276,12 @@ export const sandboxesRouter = router({
   list: protectedProcedure.output(listOutput).query(async ({ ctx }) => {
     const owned = await listOwnedSandboxes(ctx.userId);
     if (owned.length === 0) return [];
+    if (owned.length > 1) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only one sandbox per user is allowed"
+      });
+    }
 
     const ids = owned.map((entry) => entry.Id).filter((id): id is string => Boolean(id));
     const statsOut = await runDocker([
