@@ -6,7 +6,6 @@
  */
 
 import React, { useCallback } from "react";
-import { ToolbarIconButton } from "../ui_primitives";
 import {
   Restore as RestoreIcon,
   Compare as CompareIcon
