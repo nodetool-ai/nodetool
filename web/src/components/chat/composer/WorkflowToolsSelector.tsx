@@ -15,7 +15,7 @@ import {
   Popover,
   PopoverOrigin
 } from "@mui/material";
-import { EditorButton } from "../../../editor_ui";
+import { EditorButton } from "../../editor_ui";
 import { Chip } from "../../ui_primitives";
 import isEqual from "fast-deep-equal";
 import { Schema } from "@mui/icons-material";
