@@ -670,7 +670,7 @@ export default function Home() {
               </span>
               Open source today. The future is yours to build.
             </p>
-            <div className="flex items-center gap-5 text-sm text-slate-400">
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-slate-400">
               <a
                 href="https://github.com/nodetool-ai/nodetool"
                 className="inline-flex items-center gap-1.5 transition-colors hover:text-slate-100"
