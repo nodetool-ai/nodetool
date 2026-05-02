@@ -30,7 +30,7 @@ const ModelsRightSidebar: React.FC = () => {
       sx={{
         width: 280,
         minWidth: 280,
-        padding: "1.5rem 1rem 1.5rem 0",
+        padding: "1.5rem 1rem 1.5rem 1rem",
         gap: "1rem",
         overflowY: "auto",
         overflowX: "hidden"
