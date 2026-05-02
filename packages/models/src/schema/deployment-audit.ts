@@ -2,8 +2,8 @@ import { sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 
 /**
  * Append-only audit log of deployment activity. One row per action.
- * Partitioned by `user_id` (the owning user / tenant) so deletion of a user
- * naturally scopes its log pruning. `meta_json` is optional free-form JSON.
+ * Partitioned by `user_id` so deletion of a user naturally scopes its log
+ * pruning. `meta_json` is optional free-form JSON.
  */
 export const deploymentAudit = sqliteTable(
   "nodetool_deployment_audit",

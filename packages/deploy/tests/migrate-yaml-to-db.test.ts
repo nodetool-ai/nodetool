@@ -4,14 +4,8 @@ import * as os from "os";
 import * as path from "path";
 import * as crypto from "crypto";
 
-import { initTestDb, Deployment, DeploymentSettings } from "@nodetool-ai/models";
-import { generateMasterKey } from "@nodetool-ai/security";
-import { TenantStore } from "../src/tenant-store.js";
-import {
-  migrateLegacyDeploymentYaml,
-  migrateTenantsToDb
-} from "../src/migrate-yaml-to-db.js";
-import { DbDeploymentSettingsStore } from "../src/db-deployment-settings-store.js";
+import { initTestDb, Deployment } from "@nodetool-ai/models";
+import { migrateLegacyDeploymentYaml } from "../src/migrate-yaml-to-db.js";
 
 function makeTmpDir(): string {
   return path.join(os.tmpdir(), `nodetool-migrate-${crypto.randomUUID()}`);
@@ -49,7 +43,7 @@ describe("migrate-yaml-to-db", () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it("migrateLegacyDeploymentYaml imports rows under the given user_id", async () => {
+  it("imports rows under the given user_id", async () => {
     const yamlPath = path.join(tmpDir, "deployment.yaml");
     await fs.mkdir(tmpDir, { recursive: true });
     await fs.writeFile(yamlPath, SAMPLE_YAML);
@@ -66,7 +60,7 @@ describe("migrate-yaml-to-db", () => {
     expect(rows.find((r) => r.name === "prod")!.type).toBe("docker");
   });
 
-  it("migrateLegacyDeploymentYaml is idempotent", async () => {
+  it("is idempotent", async () => {
     const yamlPath = path.join(tmpDir, "deployment.yaml");
     await fs.mkdir(tmpDir, { recursive: true });
     await fs.writeFile(yamlPath, SAMPLE_YAML);
@@ -80,7 +74,7 @@ describe("migrate-yaml-to-db", () => {
     expect(idsAfter).toEqual(idsBefore);
   });
 
-  it("migrateLegacyDeploymentYaml returns 0 when file is missing", async () => {
+  it("returns 0 when file is missing", async () => {
     const result = await migrateLegacyDeploymentYaml({
       userId: "u1",
       configPath: path.join(tmpDir, "nope.yaml")
@@ -88,52 +82,15 @@ describe("migrate-yaml-to-db", () => {
     expect(result.imported).toBe(0);
   });
 
-  it("migrateTenantsToDb copies tenants + their deployments + credentials", async () => {
-    const masterKey = generateMasterKey();
-    const tenantStore = new TenantStore({
-      baseDir: tmpDir,
-      getMasterKey: () => masterKey
-    });
-    await tenantStore.createTenant({
-      id: "alice",
-      display_name: "Alice",
-      quota: { max_deployments: 9 }
-    });
-    await tenantStore.setCredential("alice", "RUNPOD_API_KEY", "alice-secret");
+  it("partitions imports by user_id (no cross-user bleed)", async () => {
+    const yamlPath = path.join(tmpDir, "deployment.yaml");
+    await fs.mkdir(tmpDir, { recursive: true });
+    await fs.writeFile(yamlPath, SAMPLE_YAML);
 
-    // Drop a deployment.yaml under the tenant dir.
-    const aliceDir = path.join(tmpDir, "alice");
-    await fs.writeFile(path.join(aliceDir, "deployment.yaml"), SAMPLE_YAML);
+    await migrateLegacyDeploymentYaml({ userId: "alice", configPath: yamlPath });
+    await migrateLegacyDeploymentYaml({ userId: "bob", configPath: yamlPath });
 
-    const result = await migrateTenantsToDb({
-      baseDir: tmpDir,
-      getMasterKey: () => masterKey
-    });
-    expect(result.tenants).toBe(1);
-    expect(result.deployments).toBe(2);
-
-    // Verify Deployment rows are owned by the tenant id (now the user_id).
-    const rows = await Deployment.listForUser("alice");
-    expect(rows).toHaveLength(2);
-
-    // Quota copied verbatim.
-    const settings = await DeploymentSettings.findByUserId("alice");
-    expect(JSON.parse(settings!.quota_json).max_deployments).toBe(9);
-
-    // Credentials copied + still decryptable through the store.
-    const dbStore = new DbDeploymentSettingsStore({
-      getMasterKey: () => masterKey
-    });
-    const loaded = await dbStore.loadCredentials("alice");
-    expect(loaded.RUNPOD_API_KEY).toBe("alice-secret");
-  });
-
-  it("migrateTenantsToDb returns 0 when no index.yaml exists", async () => {
-    const masterKey = generateMasterKey();
-    const result = await migrateTenantsToDb({
-      baseDir: tmpDir,
-      getMasterKey: () => masterKey
-    });
-    expect(result).toEqual({ tenants: 0, deployments: 0 });
+    expect(await Deployment.listForUser("alice")).toHaveLength(2);
+    expect(await Deployment.listForUser("bob")).toHaveLength(2);
   });
 });

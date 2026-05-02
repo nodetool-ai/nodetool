@@ -1,39 +1,23 @@
 /**
- * DB-backed replacement for the YAML-based TenantStore.
+ * Per-user deployment settings: quotas + encrypted provider credentials.
  *
- * Stores per-user deployment quotas and encrypted provider credentials in
- * the `nodetool_deployment_settings` table (one row per user_id). The "tenant"
- * terminology used by the file-based code maps 1:1 to "user" — every user
- * is their own deployment tenant.
- *
- * Credential ciphertexts are bound to the user via PBKDF2 salt
+ * Stores one row per user in `nodetool_deployment_settings`. Credential
+ * ciphertexts are bound to the user via PBKDF2 salt
  * (`encrypt(masterKey, userId, plaintext)`), so leaking one user's row plus
- * the master key does not compromise any other user's credentials.
+ * the master key cannot compromise any other user's credentials.
  */
 
 import { DeploymentSettings } from "@nodetool-ai/models";
 import { encrypt, decrypt } from "@nodetool-ai/security";
 import {
-  TenantQuotaSchema,
-  type TenantQuota,
+  DeploymentQuotaSchema,
+  type DeploymentQuota,
   type EncryptedCredential,
-  type TenantCredentials
-} from "./tenant-config.js";
-
-export class DeploymentSettingsNotFoundError extends Error {
-  constructor(userId: string) {
-    super(`Deployment settings for user ${JSON.stringify(userId)} not found`);
-    this.name = "DeploymentSettingsNotFoundError";
-  }
-}
+  type UserCredentials
+} from "./deployment-quota.js";
 
 const ENV_NAME_PATTERN = /^[A-Z][A-Z0-9_]*$/;
 
-/**
- * Per-user deployment settings stored in the database. Uses the same
- * encryption primitives as the file-based `TenantStore` so existing data
- * can be migrated by a one-shot copy (see `migrate-yaml-to-db.ts`).
- */
 export class DbDeploymentSettingsStore {
   private getMasterKey: () => Promise<string> | string;
 
@@ -45,16 +29,19 @@ export class DbDeploymentSettingsStore {
   // Quota
   // -------------------------------------------------------------------------
 
-  async getQuota(userId: string): Promise<TenantQuota> {
+  async getQuota(userId: string): Promise<DeploymentQuota> {
     const row = await DeploymentSettings.findByUserId(userId);
-    return TenantQuotaSchema.parse(
+    return DeploymentQuotaSchema.parse(
       row ? JSON.parse(row.quota_json || "{}") : {}
     );
   }
 
-  async setQuota(userId: string, quota: Partial<TenantQuota>): Promise<TenantQuota> {
+  async setQuota(
+    userId: string,
+    quota: Partial<DeploymentQuota>
+  ): Promise<DeploymentQuota> {
     const existing = await this.getQuota(userId);
-    const merged = TenantQuotaSchema.parse({ ...existing, ...quota });
+    const merged = DeploymentQuotaSchema.parse({ ...existing, ...quota });
     await DeploymentSettings.upsert({
       user_id: userId,
       quota_json: JSON.stringify(merged)
@@ -66,16 +53,15 @@ export class DbDeploymentSettingsStore {
   // Credentials
   // -------------------------------------------------------------------------
 
-  private async readCredentials(userId: string): Promise<TenantCredentials> {
+  private async readCredentials(userId: string): Promise<UserCredentials> {
     const row = await DeploymentSettings.findByUserId(userId);
     if (!row) return {};
-    const raw = JSON.parse(row.credentials_json || "{}") as TenantCredentials;
-    return raw;
+    return JSON.parse(row.credentials_json || "{}") as UserCredentials;
   }
 
   private async writeCredentials(
     userId: string,
-    creds: TenantCredentials
+    creds: UserCredentials
   ): Promise<void> {
     await DeploymentSettings.upsert({
       user_id: userId,
