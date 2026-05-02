@@ -55,8 +55,7 @@ const renderPropertyChange = (change: PropertyChange) => {
       }}
     >
       <Caption
-        weight={500}
-        sx={{ minWidth: 80, color: "text.secondary" }}
+        sx={{ minWidth: 80, color: "text.secondary", fontWeight: 500 }}
       >
         {change.key}:
       </Caption>
@@ -218,8 +217,7 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
         <Box sx={{ mb: 2 }}>
           <Caption
             color="success"
-            weight={500}
-            sx={{ display: "block", mb: 1 }}
+            sx={{ display: "block", mb: 1, fontWeight: 500 }}
           >
             Added Nodes ({diff.addedNodes.length})
           </Caption>
@@ -236,8 +234,7 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
         <Box sx={{ mb: 2 }}>
           <Caption
             color="error"
-            weight={500}
-            sx={{ display: "block", mb: 1 }}
+            sx={{ display: "block", mb: 1, fontWeight: 500 }}
           >
             Removed Nodes ({diff.removedNodes.length})
           </Caption>
@@ -252,14 +249,12 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
       {/* Modified Nodes */}
       {diff.modifiedNodes.length > 0 && (
         <Box sx={{ mb: 2 }}>
-          <Typography
-            variant="caption"
-            color="warning.main"
-            fontWeight="medium"
-            sx={{ display: "block", mb: 1 }}
+          <Caption
+            color="warning"
+            sx={{ display: "block", mb: 1, fontWeight: 500 }}
           >
             Modified Nodes ({diff.modifiedNodes.length})
-          </Typography>
+          </Caption>
           {diff.modifiedNodes.map((nodeChange) => (
             <ModifiedNodeItem key={nodeChange.nodeId} nodeChange={nodeChange} />
           ))}
@@ -270,13 +265,11 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
       {(diff.addedEdges.length > 0 || diff.removedEdges.length > 0) && (
         <>
           <Divider sx={{ my: 1 }} />
-          <Typography
-            variant="caption"
-            fontWeight="medium"
-            sx={{ display: "block", mb: 1 }}
+          <Caption
+            sx={{ display: "block", mb: 1, fontWeight: 500 }}
           >
             Connection Changes
-          </Typography>
+          </Caption>
           <List dense disablePadding>
             {diff.addedEdges.map((edge) => (
               <EdgeDiffItem key={`added-${edge.source}-${edge.target}`} edge={edge} type="added" />
