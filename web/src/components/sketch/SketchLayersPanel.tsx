@@ -387,6 +387,8 @@ export interface SketchLayersPanelProps {
   onGroupSelectedLayers: () => void;
   onMergeSelectedLayers: () => void;
   onDeleteSelectedLayers: () => void;
+  /** Ctrl/Cmd+click on a layer thumbnail — creates a selection from that layer's alpha. */
+  onSelectionFromLayer?: (layerId: string) => void;
 }
 
 const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
@@ -432,7 +434,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onUngroupLayer,
   onGroupSelectedLayers,
   onMergeSelectedLayers,
-  onDeleteSelectedLayers
+  onDeleteSelectedLayers,
+  onSelectionFromLayer
 }) => {
   const theme = useTheme();
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
@@ -1192,6 +1195,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               onDrop={handleDrop}
               onDragEnd={handleDragEnd}
               onToggleGroupCollapsed={onToggleGroupCollapsed}
+              onLayerThumbnailCtrlClick={onSelectionFromLayer}
             />
           );
         })}

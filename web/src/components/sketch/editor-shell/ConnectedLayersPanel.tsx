@@ -6,11 +6,13 @@
  * Canvas-metadata changes (activeLayerId, maskLayerId, canvas dimensions) only
  * trigger a rerender when they actually change, not on every layer-data mutation.
  */
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import SketchLayersPanel from "../SketchLayersPanel";
 import { useSketchStore } from "../state";
 import { useColorIntentRouter } from "../hooks";
 import type { BlendMode } from "../types";
+import { exportLayer } from "../serialization";
+import { createEmptyMask } from "../selection";
 
 export interface ConnectedLayersPanelProps {
   onClearLayer: () => void;
@@ -66,7 +68,31 @@ export const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
     (s) => s.selectLayerRangeInPanelOrder
   );
   const toggleIsolateLayer = useSketchStore((s) => s.toggleIsolateLayer);
+  const setSelection = useSketchStore((s) => s.setSelection);
+  const document = useSketchStore((s) => s.document);
   const handleFgColorChange = useColorIntentRouter();
+
+  const handleSelectionFromLayer = useCallback(
+    async (layerId: string) => {
+      const canvas = await exportLayer(document, layerId);
+      if (!canvas) {
+        return;
+      }
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        return;
+      }
+      const { width, height } = canvas;
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const mask = createEmptyMask(width, height);
+      // Use the alpha channel of each pixel as the selection value
+      for (let i = 0; i < width * height; i++) {
+        mask.data[i] = imageData.data[i * 4 + 3];
+      }
+      setSelection(mask);
+    },
+    [document, setSelection]
+  );
 
   if (panelsHidden) {
     return null;
@@ -123,6 +149,7 @@ export const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
       onGroupSelectedLayers={props.onGroupSelectedLayers}
       onMergeSelectedLayers={props.onMergeSelectedLayers}
       onDeleteSelectedLayers={props.onDeleteSelectedLayers}
+      onSelectionFromLayer={handleSelectionFromLayer}
     />
   );
 });

@@ -106,7 +106,7 @@
 - [x] Elliptical selection
 - [x] Free-form / lasso selection
 - [x] Selection actions (cut, copy, paste, delete, invert)
-- [ ] Get selection mask from layer by CTRL + clicking on layer preview item in right panel > creates selection from layer
+- [x] Get selection mask from layer by CTRL + clicking on layer preview item in right panel > creates selection from layer
 
 ### Move/Transform
 - [x] Move layer content
