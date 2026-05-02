@@ -33,6 +33,9 @@ import {
   APIKeysRightSidebar,
   SecurityNotice
 } from "./APIKeysTab";
+import SettingsIntroCard from "./SettingsIntroCard";
+import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
+import FolderSpecialOutlinedIcon from "@mui/icons-material/FolderSpecialOutlined";
 import ModelListIndex from "../hugging_face/model_list/ModelListIndex";
 import CollectionList from "../collections/CollectionList";
 import WorkspacesManager from "../workspaces/WorkspacesManager";
@@ -808,6 +811,17 @@ function SettingsPage() {
                 {/* Tab 3: Collections */}
                 <TabPanel value={settingsTab} index={3}>
                   <Box className="settings-panel-padded">
+                    <SettingsIntroCard
+                      icon={<LibraryBooksOutlinedIcon sx={{ fontSize: 22 }} />}
+                      title="Collections"
+                      description="Group documents into searchable collections for RAG workflows. Drop in PDFs, Markdown, HTML, or transcripts and any index node can query them."
+                      docsUrl="https://docs.nodetool.ai/collections.html"
+                      highlights={[
+                        { label: "Vector search" },
+                        { label: "Embedding-backed" },
+                        { label: "Workflow-ready" }
+                      ]}
+                    />
                     <CollectionList />
                   </Box>
                 </TabPanel>
@@ -816,6 +830,17 @@ function SettingsPage() {
                 {workspacesEnabled && (
                   <TabPanel value={settingsTab} index={4}>
                     <Box className="settings-panel-padded">
+                      <SettingsIntroCard
+                        icon={<FolderSpecialOutlinedIcon sx={{ fontSize: 22 }} />}
+                        title="Workspaces"
+                        description="Define directory roots that agents and workflows can read, write, and organize files in. Each workspace is a sandboxed folder available to chat tools and node runs."
+                        docsUrl="https://docs.nodetool.ai/workspaces.html"
+                        highlights={[
+                          { label: "Sandboxed folders" },
+                          { label: "Agent-accessible" },
+                          { label: "Per-project" }
+                        ]}
+                      />
                       <WorkspacesManager />
                     </Box>
                   </TabPanel>
