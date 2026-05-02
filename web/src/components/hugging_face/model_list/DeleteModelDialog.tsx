@@ -1,15 +1,13 @@
 import React, { useCallback } from "react";
 import {
-  Button,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
-  CircularProgress,
   Box,
   useTheme
 } from "@mui/material";
-import { Dialog } from "../../ui_primitives";
+import { Dialog, EditorButton, LoadingSpinner } from "../../ui_primitives";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   isFileExplorerAvailable,
@@ -186,7 +184,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
         </DialogContentText>
         {isDeleting && (
           <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-            <CircularProgress />
+            <LoadingSpinner size="medium" />
           </Box>
         )}
       </DialogContent>
