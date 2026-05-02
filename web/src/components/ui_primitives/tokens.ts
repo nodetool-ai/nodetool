@@ -73,6 +73,25 @@ export const BORDER_RADIUS = {
  * @example
  * css({ overflowY: "auto", ...scrollbarStyles(theme) })
  */
+export const thinScrollbarStyles = (theme: Theme) => ({
+  "&::-webkit-scrollbar": { width: "6px" },
+  "&::-webkit-scrollbar-track": { background: "transparent" },
+  "&::-webkit-scrollbar-thumb": {
+    backgroundColor: theme.vars.palette.action.disabledBackground,
+    borderRadius: BORDER_RADIUS.lg,
+  },
+  "&::-webkit-scrollbar-thumb:hover": {
+    backgroundColor: theme.vars.palette.action.disabled,
+  },
+});
+
+/**
+ * Standard themed scrollbar styles using the palette's custom scroll colors.
+ * Spread into Emotion css() blocks wherever you need consistent scrollbars.
+ *
+ * @example
+ * css({ overflowY: "auto", ...scrollbarStyles(theme) })
+ */
 export const scrollbarStyles = (theme: Theme) => ({
   scrollbarWidth: "thin" as const,
   scrollbarColor: `${theme.vars.palette.c_scroll_thumb ?? theme.vars.palette.grey[600]} ${theme.vars.palette.c_scroll_bg ?? "transparent"}`,

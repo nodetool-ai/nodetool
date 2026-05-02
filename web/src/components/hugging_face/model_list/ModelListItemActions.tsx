@@ -2,6 +2,7 @@ import React, { memo, useCallback } from "react";
 import { Box } from "@mui/material";
 import { Check } from "@mui/icons-material";
 import {
+  BORDER_RADIUS,
   Chip,
   DeleteButton,
   EditorButton,
@@ -75,7 +76,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
             alignItems: "center",
             gap: "0.5em",
             padding: "2px 8px",
-            borderRadius: "999px",
+            borderRadius: BORDER_RADIUS.pill,
             border: "1px solid",
             borderColor: "divider",
             color: "text.secondary",

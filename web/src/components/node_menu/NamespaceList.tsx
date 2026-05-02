@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
 import { Box, List } from "@mui/material";
-import { Text, EditorButton } from "../ui_primitives";
+import { Text, EditorButton, BORDER_RADIUS } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import NamespacePanel from "./NamespacePanel";
 import RenderNodes from "./RenderNodes";
@@ -84,7 +84,7 @@ const namespaceStyles = (theme: Theme) =>
     ".node-list::-webkit-scrollbar-track": { background: "transparent" },
     ".node-list::-webkit-scrollbar-thumb": {
       backgroundColor: theme.vars.palette.action.disabledBackground,
-      borderRadius: "var(--rounded-lg)"
+      borderRadius: BORDER_RADIUS.lg
     },
     ".node-list::-webkit-scrollbar-thumb:hover": {
       backgroundColor: theme.vars.palette.action.disabled
@@ -206,7 +206,7 @@ const namespaceStyles = (theme: Theme) =>
       alignItems: "center",
       margin: "2px 0",
       padding: "0",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       cursor: "pointer",
       transition: "all 0.2s ease",
       border: "1px solid transparent",
@@ -239,7 +239,7 @@ const namespaceStyles = (theme: Theme) =>
     ".node.focused": {
       color: "var(--palette-primary-main)",
       backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.1)",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       border: "1px solid rgba(var(--palette-primary-mainChannel) / 0.2)",
       boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
     },
@@ -291,7 +291,7 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".node-packs-info .MuiButton-root": {
       textTransform: "none",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       padding: "6px 10px",
       borderColor: theme.vars.palette.divider,
       color: theme.vars.palette.text.secondary,

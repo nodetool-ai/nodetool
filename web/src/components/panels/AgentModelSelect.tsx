@@ -13,7 +13,7 @@ import type { Theme } from "@mui/material/styles";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import SearchIcon from "@mui/icons-material/Search";
 import CheckIcon from "@mui/icons-material/Check";
-import { Popover } from "../ui_primitives";
+import { BORDER_RADIUS, Popover } from "../ui_primitives";
 
 export interface AgentModelOption {
   id: string;
@@ -38,7 +38,7 @@ const triggerStyles = (theme: Theme, disabled: boolean) => css({
   maxWidth: 240,
   minWidth: 80,
   padding: "0 10px",
-  borderRadius: 999,
+  borderRadius: BORDER_RADIUS.pill,
   border: "1px solid transparent",
   background: "transparent",
   color: theme.vars.palette.grey[100],
