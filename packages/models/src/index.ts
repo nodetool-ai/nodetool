@@ -33,7 +33,10 @@ export {
   runEvents,
   runLeases,
   teamTasks,
-  appSettings
+  appSettings,
+  deployments,
+  deploymentSettings,
+  deploymentAudit
 } from "./schema/index.js";
 
 // ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────
@@ -94,6 +97,13 @@ export { RunEvent } from "./run-event.js";
 export type { EventType } from "./run-event.js";
 
 export { RunLease } from "./run-lease.js";
+
+export { Deployment } from "./deployment.js";
+export type { DeploymentRow } from "./deployment.js";
+
+export { DeploymentSettings } from "./deployment-settings.js";
+
+export { DeploymentAudit } from "./deployment-audit.js";
 
 // ── API Graph ───────────────────────────────────────────────────────
 export {

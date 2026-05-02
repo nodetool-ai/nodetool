@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@nodetool-ai/config": "*",
+    "@nodetool-ai/models": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
     "@nodetool-ai/security": "*",
