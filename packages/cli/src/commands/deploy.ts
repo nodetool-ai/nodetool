@@ -23,7 +23,10 @@ import {
   saveDeploymentConfig,
   WorkflowSyncer
 } from "@nodetool-ai/deploy";
-import { getCollection } from "@nodetool-ai/vectorstore";
+import {
+  getDefaultVectorProvider,
+  CollectionNotFoundError
+} from "@nodetool-ai/vectorstore";
 
 import {
   asJson,
@@ -765,15 +768,21 @@ function registerCollections(deploy: Command): void {
         ) => {
           const batchSize = parsePositiveInt(opts.batchSize, "--batch-size");
 
-          const collection = await getCollection(collectionName);
-          if (!collection) {
-            throw new Error(`Local collection not found: ${collectionName}`);
+          let collection;
+          try {
+            collection = await getDefaultVectorProvider().getCollection({
+              name: collectionName
+            });
+          } catch (err) {
+            if (err instanceof CollectionNotFoundError) {
+              throw new Error(`Local collection not found: ${collectionName}`);
+            }
+            throw err;
           }
 
-          const metadata = (collection as { metadata?: Record<string, unknown> })
-            .metadata ?? {};
+          const metadata = collection.metadata ?? {};
           const embeddingModel =
-            (metadata["embedding_model"] as string | undefined) ?? "";
+            (metadata.embedding_model as string | undefined) ?? "";
           if (!embeddingModel) {
             throw new Error(
               `Local collection '${collectionName}' has no embedding_model in metadata — cannot sync without embeddings.`
@@ -783,22 +792,12 @@ function registerCollections(deploy: Command): void {
           // Inspect the local collection BEFORE creating anything on the
           // remote, so partial failures don't leave an empty/orphan collection
           // on the deployment.
-          const withGet = collection as unknown as {
-            get(opts?: {
-              limit?: number;
-              offset?: number;
-            }): Promise<{
-              ids: string[];
-              documents: (string | null)[];
-              metadatas: (Record<string, unknown> | null)[];
-            }>;
-          };
-          const page = await withGet.get({ limit: batchSize, offset: 0 });
+          const page = await collection.get({ limit: batchSize, offset: 0 });
 
-          if (page.ids.length > 0) {
+          if (page.length > 0) {
             throw new Error(
               "deploy collections sync: re-embedding of local documents during sync is not yet implemented in the Node CLI. " +
-                `Found ${page.ids.length} document(s) locally but cannot upload without embeddings. ` +
+                `Found ${page.length} document(s) locally but cannot upload without embeddings. ` +
                 "No remote collection was created."
             );
           }
