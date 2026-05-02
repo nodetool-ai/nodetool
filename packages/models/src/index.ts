@@ -36,7 +36,10 @@ export {
   teamTasks,
   appSettings,
   timelineSequences,
-  imageDocuments
+  imageDocuments,
+  deployments,
+  deploymentSettings,
+  deploymentAudit
 } from "./schema/index.js";
 
 // ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────
@@ -127,6 +130,14 @@ export {
   IMAGE_EDITOR_TEMPLATE_TAG,
   LAYER_TEMPLATE_SEED_IDS
 } from "./seeds/index.js";
+
+// ── Deployments ──────────────────────────────────────────────────────
+export { Deployment } from "./deployment.js";
+export type { DeploymentRow } from "./deployment.js";
+
+export { DeploymentSettings } from "./deployment-settings.js";
+
+export { DeploymentAudit } from "./deployment-audit.js";
 
 // ── API Graph ───────────────────────────────────────────────────────
 export {
