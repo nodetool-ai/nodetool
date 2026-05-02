@@ -6,7 +6,6 @@ import {
   MenuItem,
   Box,
   TextField,
-  IconButton,
   InputAdornment
 } from "@mui/material";
 import { css } from "@emotion/react";
@@ -18,7 +17,7 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
 import NodeItem from "../node_menu/NodeItem";
-import { ScrollArea, Text, Caption, FlexRow } from "../ui_primitives";
+import { ScrollArea, Text, Caption, FlexRow, ToolbarIconButton } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -374,14 +373,13 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                 ),
                 endAdornment: searchTerm ? (
                   <InputAdornment position="end">
-                    <IconButton
+                    <ToolbarIconButton
                       aria-label="clear search"
                       onClick={handleClearSearch}
-                      edge="end"
                       size="small"
-                    >
-                      <ClearIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
+                      icon={<ClearIcon sx={{ fontSize: 16 }} />}
+                      nodrag={false}
+                    />
                   </InputAdornment>
                 ) : null
               }

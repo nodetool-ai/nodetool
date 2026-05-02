@@ -189,18 +189,20 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
         )}
       </DialogContent>
       <DialogActions>
-        <Button
+        <EditorButton
+          density="compact"
+          variant="text"
           onClick={handleShowInExplorerClick}
           disabled={isExplorerDisabled || isDeleting}
         >
           Show in Explorer
-        </Button>
-        <Button onClick={onClose} disabled={isDeleting}>
+        </EditorButton>
+        <EditorButton density="compact" variant="text" onClick={onClose} disabled={isDeleting}>
           Cancel
-        </Button>
-        <Button onClick={handleConfirmDelete} autoFocus disabled={isDeleting}>
+        </EditorButton>
+        <EditorButton density="compact" variant="text" onClick={handleConfirmDelete} disabled={isDeleting}>
           Delete
-        </Button>
+        </EditorButton>
       </DialogActions>
     </Dialog>
   );
