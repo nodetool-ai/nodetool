@@ -702,6 +702,20 @@ export default function Home() {
               >
                 Community
               </a>
+              <span className="text-slate-700">•</span>
+              <a
+                href="/privacy"
+                className="transition-colors hover:text-slate-100"
+              >
+                Privacy
+              </a>
+              <span className="text-slate-700">•</span>
+              <a
+                href="/terms"
+                className="transition-colors hover:text-slate-100"
+              >
+                Terms
+              </a>
             </div>
           </div>
         </div>

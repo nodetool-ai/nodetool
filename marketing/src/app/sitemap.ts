@@ -25,5 +25,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${BASE_URL}/developers`,
       lastModified: now,
     },
+    {
+      url: `${BASE_URL}/privacy`,
+      lastModified: now,
+    },
+    {
+      url: `${BASE_URL}/terms`,
+      lastModified: now,
+    },
   ];
 }
