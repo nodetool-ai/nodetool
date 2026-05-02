@@ -84,7 +84,6 @@ ENV NODE_ENV=production \
     NODETOOL_ENV=production \
     HOST=0.0.0.0 \
     STATIC_FOLDER=/app/web/dist \
-    DB_PATH=/workspace/nodetool.db \
     CHROMA_PATH=/workspace/chroma \
     ASSET_BUCKET=/workspace/assets \
     HF_HOME=/workspace/hf-cache
@@ -110,6 +109,10 @@ COPY --from=build --chown=node:node /runtime/ ./
 RUN printf '%s\n' \
     '#!/bin/sh' \
     'set -eu' \
+    'if [ -z "${DATABASE_URL:-}" ] && [ -z "${DB_PATH:-}" ]; then' \
+    '  echo "ERROR: No database configured. Set DATABASE_URL (PostgreSQL) or DB_PATH (SQLite)." >&2' \
+    '  exit 1' \
+    'fi' \
     'KEY_FILE="${SECRETS_MASTER_KEY_FILE:-/workspace/.secrets_master_key}"' \
     'if [ -z "${SECRETS_MASTER_KEY:-}" ] && [ -z "${AWS_SECRETS_MASTER_KEY_NAME:-}" ]; then' \
     '  mkdir -p "$(dirname "$KEY_FILE")"' \
