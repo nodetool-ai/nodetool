@@ -442,6 +442,36 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     document: "text",
     created_at: "text",
     updated_at: "text"
+  },
+  nodetool_deployments: {
+    id: "text",
+    user_id: "text",
+    name: "text",
+    type: "text",
+    enabled: "integer",
+    config_json: "text",
+    state_json: "text",
+    etag: "text",
+    created_at: "text",
+    updated_at: "text"
+  },
+  nodetool_deployment_settings: {
+    user_id: "text",
+    quota_json: "text",
+    credentials_json: "text",
+    created_at: "text",
+    updated_at: "text"
+  },
+  nodetool_deployment_audit: {
+    id: "text",
+    user_id: "text",
+    deployment_name: "text",
+    actor: "text",
+    action: "text",
+    status: "text",
+    error: "text",
+    meta_json: "text",
+    ts: "text"
   }
 };
 
@@ -790,6 +820,44 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_image_document_user" ON "image_documents" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_image_document_project" ON "image_documents" ("project_id");
     CREATE INDEX IF NOT EXISTS "idx_image_document_updated" ON "image_documents" ("updated_at");
+
+    CREATE TABLE IF NOT EXISTS "nodetool_deployments" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "name" text NOT NULL,
+      "type" text NOT NULL,
+      "enabled" integer NOT NULL DEFAULT 1,
+      "config_json" text NOT NULL,
+      "state_json" text NOT NULL DEFAULT '{}',
+      "etag" text NOT NULL DEFAULT '',
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_deployments_user_name" ON "nodetool_deployments" ("user_id", "name");
+    CREATE INDEX IF NOT EXISTS "idx_deployments_user_id" ON "nodetool_deployments" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_deployments_type" ON "nodetool_deployments" ("type");
+
+    CREATE TABLE IF NOT EXISTS "nodetool_deployment_settings" (
+      "user_id" text PRIMARY KEY NOT NULL,
+      "quota_json" text NOT NULL DEFAULT '{}',
+      "credentials_json" text NOT NULL DEFAULT '{}',
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS "nodetool_deployment_audit" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "deployment_name" text,
+      "actor" text NOT NULL DEFAULT '',
+      "action" text NOT NULL,
+      "status" text NOT NULL,
+      "error" text,
+      "meta_json" text,
+      "ts" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_deployment_audit_user_ts" ON "nodetool_deployment_audit" ("user_id", "ts");
+    CREATE INDEX IF NOT EXISTS "idx_deployment_audit_action" ON "nodetool_deployment_audit" ("action");
   `;
 }
 

@@ -15,3 +15,6 @@ export { teamTasks } from "./team-tasks.js";
 export { appSettings } from "./settings.js";
 export { timelineSequences } from "./timeline-sequences.js";
 export { imageDocuments } from "./image-documents.js";
+export { deployments } from "./deployments.js";
+export { deploymentSettings } from "./deployment-settings.js";
+export { deploymentAudit } from "./deployment-audit.js";

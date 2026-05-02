@@ -54,8 +54,13 @@ export * from "./workflow-syncer.js";
 export * from "./storage-routes.js";
 export * from "./collection-routes.js";
 
-// Multi-tenant deployment
+// Multi-tenant deployment (file-backed; tenants == users)
 export * from "./tenant-config.js";
 export * from "./tenant-store.js";
 export * from "./tenant-audit.js";
 export * from "./multi-tenant-manager.js";
+
+// DB-backed deployment config and per-user settings
+export * from "./db-deployment-store.js";
+export * from "./db-deployment-settings-store.js";
+export * from "./migrate-yaml-to-db.js";
