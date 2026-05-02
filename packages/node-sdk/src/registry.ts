@@ -175,6 +175,17 @@ export class NodeRegistry {
     return loaded;
   }
 
+  /**
+   * Remove a node type from the registry.
+   * Returns true if the node type was present and removed.
+   */
+  unregister(nodeType: string): boolean {
+    const hadClass = this._classes.delete(nodeType);
+    this._loadedMetadataByType.delete(nodeType);
+    this._registeredMetadataByType.delete(nodeType);
+    return hadClass;
+  }
+
   clear(): void {
     this._classes.clear();
     this._loadedMetadataByType.clear();

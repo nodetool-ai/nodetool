@@ -39,6 +39,9 @@ const PackageManager: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<"all" | "installed" | "available" | "updates" | "runtimes">("all");
 
+  // Global processing flag that covers both Python package ops and runtime installs
+  const isAnyProcessing = isProcessing || installingRuntimes.size > 0;
+
   // Live console output from package manager commands (uv / micromamba)
   const MAX_CONSOLE_LINES = 500;
   const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
@@ -89,7 +92,7 @@ const PackageManager: React.FC = () => {
   useEffect(() => {
     const api = window.electronAPI;
     const onLog =
-      api?.server?.onLog ?? api?.onServerLog ?? window.api?.server?.onLog;
+      api?.server?.onLog ?? api?.onServerLog ?? window.electronAPI?.server?.onLog;
     if (typeof onLog !== "function") return;
 
     const unsubscribe = onLog((message: string) => {
@@ -122,6 +125,7 @@ const PackageManager: React.FC = () => {
   }, []);
 
   const handleInstallRuntime = useCallback(async (runtimeId: RuntimePackageId) => {
+    if (isProcessing) return;
     const api = window.electronAPI;
     if (!api?.packages?.installRuntime) return;
 
@@ -143,9 +147,10 @@ const PackageManager: React.FC = () => {
         return next;
       });
     }
-  }, [loadRuntimes]);
+  }, [loadRuntimes, isProcessing]);
 
   const handleUninstallRuntime = useCallback(async (runtimeId: RuntimePackageId) => {
+    if (isProcessing) return;
     const api = window.electronAPI;
     if (!api?.packages?.uninstallRuntime) return;
 
@@ -167,7 +172,7 @@ const PackageManager: React.FC = () => {
         return next;
       });
     }
-  }, [loadRuntimes]);
+  }, [loadRuntimes, isProcessing]);
 
   const initialize = async () => {
     try {
@@ -255,7 +260,7 @@ const PackageManager: React.FC = () => {
   };
 
   const handlePackageAction = async (repoId: string, isInstalled: boolean) => {
-    if (isProcessing) return;
+    if (isAnyProcessing || !repoId) return;
 
     setIsProcessing(true);
     setActivePackageId(repoId);
@@ -281,7 +286,7 @@ const PackageManager: React.FC = () => {
         setInstalledPackages(installedData.packages || []);
         // Trigger restart without awaiting to avoid UI hang
         try {
-          window.api?.restartServer?.();
+          window.electronAPI?.restartServer?.();
         } catch (e) {
           console.warn("Restart server failed:", e);
         }
@@ -303,7 +308,7 @@ const PackageManager: React.FC = () => {
   };
 
   const handleUpdatePackage = async (repoId: string) => {
-    if (isProcessing) return;
+    if (isAnyProcessing || !repoId) return;
 
     setIsProcessing(true);
     setActivePackageId(repoId);
@@ -323,7 +328,7 @@ const PackageManager: React.FC = () => {
       setInstalledPackages(installedData.packages || []);
       // Trigger restart without awaiting to avoid UI hang
       try {
-        window.api?.restartServer?.();
+        window.electronAPI?.restartServer?.();
       } catch (e) {
         console.warn("Restart server failed:", e);
       }
@@ -471,7 +476,7 @@ const PackageManager: React.FC = () => {
                           <button
                             className="btn btn-outline-danger full-width"
                             onClick={() => handleUninstallRuntime(rt.id as RuntimePackageId)}
-                            disabled={isInstalling || isProcessing}
+                            disabled={isInstalling || isAnyProcessing}
                           >
                             {isInstalling ? "Removing..." : "Uninstall"}
                           </button>
@@ -479,7 +484,7 @@ const PackageManager: React.FC = () => {
                           <button
                             className="btn btn-primary full-width"
                             onClick={() => handleInstallRuntime(rt.id as RuntimePackageId)}
-                            disabled={isInstalling || isProcessing}
+                            disabled={isInstalling || isAnyProcessing}
                           >
                             {isInstalling ? "Installing..." : "Install"}
                           </button>
@@ -501,7 +506,7 @@ const PackageManager: React.FC = () => {
               placeholder="Search packages..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              disabled={isProcessing}
+              disabled={isAnyProcessing}
             />
           </div>
           <div className="search-input-wrapper">
@@ -511,7 +516,7 @@ const PackageManager: React.FC = () => {
               placeholder="Search specific nodes..."
               value={nodeQuery}
               onChange={(e) => handleNodeSearch(e.target.value)}
-              disabled={isProcessing}
+              disabled={isAnyProcessing}
             />
           </div>
         </div>
@@ -542,11 +547,13 @@ const PackageManager: React.FC = () => {
                       </div>
                     </div>
                     <div className="node-action">
-                      {!isPackageInstalled(n.package) ? (
+                      {!n.package ? (
+                        <span className="status-text">—</span>
+                      ) : !isPackageInstalled(n.package) ? (
                         <button
                           className="btn btn-sm btn-primary"
                           onClick={() => handlePackageAction(n.package, false)}
-                          disabled={isProcessing}
+                          disabled={isAnyProcessing}
                         >
                           {activePackageId === n.package ? <div className="spinner-small" /> : "Install"}
                         </button>
@@ -593,17 +600,19 @@ const PackageManager: React.FC = () => {
                         </div>
                       )}
                     </div>
-                    <div className="package-repo-link">
-                      <a
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          openExternal(`https://github.com/${pkg.repo_id}`);
-                        }}
-                      >
-                        {pkg.repo_id}
-                      </a>
-                    </div>
+                    {pkg.repo_id.includes("/") && (
+                      <div className="package-repo-link">
+                        <a
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            openExternal(`https://github.com/${pkg.repo_id}`);
+                          }}
+                        >
+                          {pkg.repo_id}
+                        </a>
+                      </div>
+                    )}
                   </div>
 
                   <div className="package-card-body">
@@ -636,7 +645,7 @@ const PackageManager: React.FC = () => {
                       <button
                         className="btn btn-warning full-width"
                         onClick={() => handleUpdatePackage(pkg.repo_id)}
-                        disabled={isProcessing}
+                        disabled={isAnyProcessing}
                       >
                         {isActive ? <div className="spinner-small" /> : "Update v" + installedPkg?.latestVersion}
                       </button>
@@ -647,7 +656,7 @@ const PackageManager: React.FC = () => {
                       onClick={() =>
                         handlePackageAction(pkg.repo_id, installed)
                       }
-                      disabled={isProcessing}
+                      disabled={isAnyProcessing}
                     >
                       {isActive && !updateAvailable
                         ? <div className="spinner-small" />

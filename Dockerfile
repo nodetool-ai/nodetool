@@ -33,8 +33,6 @@ COPY packages/replicate-nodes/package.json packages/replicate-nodes/
 COPY packages/elevenlabs-nodes/package.json packages/elevenlabs-nodes/
 COPY packages/kie-codegen/package.json packages/kie-codegen/
 COPY packages/kie-nodes/package.json packages/kie-nodes/
-COPY packages/transformers-js-nodes/package.json packages/transformers-js-nodes/
-COPY packages/transformers-js-provider/package.json packages/transformers-js-provider/
 COPY packages/agents/package.json packages/agents/
 COPY packages/base-nodes/package.json packages/base-nodes/
 COPY packages/dsl/package.json packages/dsl/

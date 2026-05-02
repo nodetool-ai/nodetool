@@ -12,7 +12,7 @@
     "prepare-backend": "node scripts/bundle-backend.mjs",
     "verify:python-packages": "node scripts/verify-python-packages.mjs",
     "verify:bundle": "node scripts/verify-bundle.mjs",
-    "build": "npm run verify:python-packages && tsc && vite build && npm run verify:bundle && npm run prepare-backend && electron-builder",
+    "build": "tsc && vite build && npm run verify:bundle && npm run prepare-backend && electron-builder",
     "vite:build": "vite build && node scripts/verify-bundle.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint .",

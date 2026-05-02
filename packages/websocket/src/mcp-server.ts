@@ -86,10 +86,20 @@ function getRuntimeEnvironment(
       });
       registerBaseNodes(registry);
       registerElevenLabsNodes(registry);
-      registerTransformersJsNodes(registry);
+      if (process.env["NODETOOL_ENV"] !== "production") {
+        registerTransformersJsNodes(registry);
+      }
       registerFalNodes(registry);
       registerKieNodes(registry);
       registerReplicateNodes(registry);
+      if (process.env["NODETOOL_ENV"] === "production") {
+        const skippedPrefixes = ["lib.tensorflow.", "transformers."];
+        for (const nodeType of registry.list()) {
+          if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
+            registry.unregister(nodeType);
+          }
+        }
+      }
 
       const pythonBridge = new PythonStdioBridge({
         workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]

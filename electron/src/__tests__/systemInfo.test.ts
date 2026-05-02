@@ -16,6 +16,7 @@ jest.mock("../config", () => ({
   getPythonPath: jest.fn().mockReturnValue("/mock/conda/bin/python"),
   getSystemDataPath: jest.fn().mockImplementation((name: string) => `/mock/data/${name}`),
   getLlamaServerPath: jest.fn().mockReturnValue("/mock/conda/bin/llama-server"),
+  getOptionalNodeModulesPath: jest.fn().mockReturnValue("/mock/userData/optional-node/node_modules"),
 }));
 
 jest.mock("../logger", () => ({
@@ -94,6 +95,7 @@ describe("systemInfo.getSystemInfo()", () => {
         "llamaServerVersion",
         "logsPath",
         "nodeVersion",
+        "optionalNodePath",
         "os",
         "osVersion",
         "pythonVersion",

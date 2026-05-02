@@ -275,6 +275,7 @@ export interface SystemInfo {
   condaEnvPath: string;
   dataPath: string;
   logsPath: string;
+  optionalNodePath: string;
   // Python and package versions
   pythonVersion: string | null;
   // Feature availability
