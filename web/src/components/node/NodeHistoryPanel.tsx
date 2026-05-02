@@ -1,13 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useState, useCallback, useMemo } from "react";
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Stack
 } from "@mui/material";
-import { Text, Caption, FlexColumn, Chip, EditorButton, LoadingSpinner, AlertBanner, FlexRow } from "../ui_primitives";
+import { Text, Caption, FlexColumn, Chip, EditorButton, LoadingSpinner, AlertBanner, FlexRow, Dialog } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import HistoryIcon from "@mui/icons-material/History";
 import DeleteIcon from "@mui/icons-material/Delete";

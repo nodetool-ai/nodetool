@@ -3,7 +3,7 @@ import React from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { PlanningUpdate } from "../../stores/ApiTypes";
-import { css } from "@mui/material";
+import { css } from "@emotion/react";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 

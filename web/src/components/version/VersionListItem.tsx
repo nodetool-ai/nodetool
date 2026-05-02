@@ -6,12 +6,12 @@
  */
 
 import React, { useCallback } from "react";
-import { IconButton } from "@mui/material";
+import { ToolbarIconButton } from "../ui_primitives";
 import {
   Restore as RestoreIcon,
   Compare as CompareIcon
 } from "@mui/icons-material";
-import { Caption, Chip, DeleteButton, LoadingSpinner, Text, Tooltip } from "../ui_primitives";
+import { Caption, Chip, DeleteButton, LoadingSpinner, Text, Tooltip, ToolbarIconButton } from "../ui_primitives";
 import { SaveType } from "../../stores/VersionHistoryStore";
 import { formatDistanceToNow, format } from "date-fns";
 import { WorkflowVersion } from "../../stores/ApiTypes";
@@ -194,20 +194,26 @@ const VersionListItem = React.memo(function VersionListItem({
         }}
       >
         {compareMode ? (
-          <Tooltip title="Select for comparison">
-            <IconButton size="small" onClick={handleClick} aria-label="Select for comparison" sx={{ padding: "2px" }}>
-              <CompareIcon sx={{ fontSize: 14 }} />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            size="small"
+            onClick={handleClick}
+            tooltip="Select for comparison"
+            icon={<CompareIcon sx={{ fontSize: 14 }} />}
+            sx={{ padding: "2px" }}
+            nodrag={false}
+          />
         ) : isRestoring ? (
           <LoadingSpinner size="small" />
         ) : (
           <>
-            <Tooltip title="Restore this version">
-              <IconButton size="small" onClick={handleRestore} aria-label="Restore this version" sx={{ padding: "2px" }}>
-                <RestoreIcon sx={{ fontSize: 14 }} />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+              size="small"
+              onClick={handleRestore}
+              tooltip="Restore this version"
+              icon={<RestoreIcon sx={{ fontSize: 14 }} />}
+              sx={{ padding: "2px" }}
+              nodrag={false}
+            />
             <DeleteButton
               onClick={handleDelete}
               tooltip="Delete version"

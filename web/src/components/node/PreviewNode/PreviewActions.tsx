@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
-import { Button, Box } from "@mui/material";
+import { Box } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip } from "../../ui_primitives";
+import { Tooltip, EditorButton } from "../../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { CopyButton } from "../../ui_primitives";
@@ -99,13 +99,13 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
       }}
     >
       <Tooltip title="Download">
-        <Button
+        <EditorButton
           onClick={onDownload}
           className="action-button download"
           aria-label="Download"
         >
           <FileDownloadIcon />
-        </Button>
+        </EditorButton>
       </Tooltip>
       <Tooltip title="Add to Assets">
         <Button
