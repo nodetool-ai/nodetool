@@ -100,14 +100,14 @@ const NodeDiffItem: React.FC<{
     </ListItemIcon>
     <ListItemText
       primary={
-        <Typography variant="body2">
+        <Text size="small">
           {node.type?.split(".").pop() || "Node"}
-        </Typography>
+        </Text>
       }
       secondary={
-        <Typography variant="caption" color="text.secondary">
+        <Caption color="secondary">
           ID: {node.id.substring(0, 8)}...
-        </Typography>
+        </Caption>
       }
     />
     <Chip
@@ -143,9 +143,9 @@ const ModifiedNodeItem: React.FC<{ nodeChange: NodeChange }> = ({
         }}
       >
         <EditIcon color="warning" fontSize="small" />
-        <Typography variant="body2">
+        <Text size="small">
           {nodeChange.nodeType?.split(".").pop() || "Node"}
-        </Typography>
+        </Text>
         <Chip
           label={`${nodeChange.changes.length} change(s)`}
           size="small"
@@ -186,9 +186,9 @@ const EdgeDiffItem: React.FC<{
     </ListItemIcon>
     <ListItemText
       primary={
-        <Typography variant="caption">
+        <Caption>
           {edge.source?.substring(0, 8)}... → {edge.target?.substring(0, 8)}...
-        </Typography>
+        </Caption>
       }
     />
   </ListItem>
@@ -201,29 +201,28 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
 }) => {
   if (!diff.hasChanges) {
     return (
-      <Paper sx={{ p: 2, textAlign: "center" }}>
-        <Typography color="text.secondary">No changes detected</Typography>
-      </Paper>
+      <Surface sx={{ p: 2, textAlign: "center" }}>
+        <Text color="secondary">No changes detected</Text>
+      </Surface>
     );
   }
 
   return (
     <Box sx={{ p: 1 }}>
-      <Typography variant="subtitle2" gutterBottom>
+      <Text size="small" weight={600} sx={{ display: "block", mb: 1 }}>
         Changes: v{oldVersionNumber} → v{newVersionNumber}
-      </Typography>
+      </Text>
 
       {/* Added Nodes */}
       {diff.addedNodes.length > 0 && (
         <Box sx={{ mb: 2 }}>
-          <Typography
-            variant="caption"
-            color="success.main"
-            fontWeight="medium"
+          <Caption
+            color="success"
+            weight={500}
             sx={{ display: "block", mb: 1 }}
           >
             Added Nodes ({diff.addedNodes.length})
-          </Typography>
+          </Caption>
           <List dense disablePadding>
             {diff.addedNodes.map((node) => (
               <NodeDiffItem key={node.id} node={node} type="added" />
@@ -235,14 +234,13 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
       {/* Removed Nodes */}
       {diff.removedNodes.length > 0 && (
         <Box sx={{ mb: 2 }}>
-          <Typography
-            variant="caption"
-            color="error.main"
-            fontWeight="medium"
+          <Caption
+            color="error"
+            weight={500}
             sx={{ display: "block", mb: 1 }}
           >
             Removed Nodes ({diff.removedNodes.length})
-          </Typography>
+          </Caption>
           <List dense disablePadding>
             {diff.removedNodes.map((node) => (
               <NodeDiffItem key={node.id} node={node} type="removed" />

@@ -10,13 +10,13 @@ import React, {
   useLayoutEffect
 } from "react";
 import {
-  Button,
   Box,
-  Chip,
   Checkbox,
   Popover,
   PopoverOrigin
 } from "@mui/material";
+import { EditorButton } from "../../../editor_ui";
+import { Chip } from "../../ui_primitives";
 import isEqual from "fast-deep-equal";
 import { Schema } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
@@ -272,7 +272,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
         }
         delay={TOOLTIP_ENTER_DELAY}
       >
-        <Button
+        <EditorButton
           ref={buttonRef}
           className={`workflow-tools-button ${selectedTools.length > 0 ? "active" : ""
             }`}
