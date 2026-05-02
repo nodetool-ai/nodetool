@@ -7,18 +7,15 @@
 import React, { memo } from "react";
 import {
   Box,
-  Typography,
-  Paper,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
-  Chip,
   Accordion,
   AccordionSummary,
-  AccordionDetails,
-  Divider
+  AccordionDetails
 } from "@mui/material";
+import { Caption, Chip, Divider, Surface, Text } from "../ui_primitives";
 import {
   Add as AddIcon,
   Remove as RemoveIcon,
@@ -57,16 +54,14 @@ const renderPropertyChange = (change: PropertyChange) => {
         pl: 2
       }}
     >
-      <Typography
-        variant="caption"
-        fontWeight="medium"
+      <Caption
+        weight={500}
         sx={{ minWidth: 80, color: "text.secondary" }}
       >
         {change.key}:
-      </Typography>
+      </Caption>
       <Box sx={{ flex: 1 }}>
-        <Typography
-          variant="caption"
+        <Caption
           sx={{
             color: "error.main",
             textDecoration: "line-through",
@@ -74,13 +69,12 @@ const renderPropertyChange = (change: PropertyChange) => {
           }}
         >
           {formatValue(change.oldValue)}
-        </Typography>
-        <Typography
-          variant="caption"
+        </Caption>
+        <Caption
           sx={{ color: "success.main", display: "block" }}
         >
           {formatValue(change.newValue)}
-        </Typography>
+        </Caption>
       </Box>
     </Box>
   );

@@ -108,13 +108,13 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
         </EditorButton>
       </Tooltip>
       <Tooltip title="Add to Assets">
-        <Button
+        <EditorButton
           onClick={onAddToAssets}
           className="action-button"
           aria-label="Add to Assets"
         >
           <AddIcon />
-        </Button>
+        </EditorButton>
       </Tooltip>
       {assetInfo ? (
         <CopyAssetButton

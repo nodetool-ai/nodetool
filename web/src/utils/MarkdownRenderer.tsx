@@ -9,12 +9,11 @@ import rehypeRaw from "rehype-raw";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box } from "@mui/material";
-import { ToolbarIconButton } from "../components/ui_primitives";
+import { CopyButton, Dialog, ToolbarIconButton } from "../components/ui_primitives";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import { getShortcutTooltip } from "../config/shortcuts";
-import { CopyButton, Dialog } from "../components/ui_primitives";
 import "../styles/markdown/github-markdown.css";
 import "../styles/markdown/nodetool-markdown.css";
 
@@ -178,20 +177,19 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         {(isHovered || Boolean(isReadme)) && (
           <div className="markdown-output-actions">
             <CopyButton value={content ?? ""} buttonSize="small" />
-            <Tooltip title="Enter fullscreen" enterDelay={TOOLTIP_ENTER_DELAY}>
-              <IconButton
-                className="fullscreen-button"
-                aria-label="Enter fullscreen"
-                onClick={handleEnterFullscreen}
-                size="small"
-                sx={{
-                  bgcolor: (t) => t.palette.action.hover,
-                  "&:hover": { bgcolor: (t) => t.palette.action.selected }
-                }}
-              >
-                <FullscreenIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+              className="fullscreen-button"
+              tooltip="Enter fullscreen"
+              delay={TOOLTIP_ENTER_DELAY}
+              onClick={handleEnterFullscreen}
+              size="small"
+              icon={<FullscreenIcon fontSize="small" />}
+              sx={{
+                bgcolor: (t) => t.palette.action.hover,
+                "&:hover": { bgcolor: (t) => t.palette.action.selected }
+              }}
+              nodrag={false}
+            />
           </div>
         )}
         <Box sx={fillContainer ? { height: "100%" } : undefined}>
@@ -249,23 +247,19 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
               buttonSize="small"
               tooltipPlacement="bottom"
             />
-            <Tooltip
-              title={getShortcutTooltip("exitFullscreen")}
-              enterDelay={TOOLTIP_ENTER_DELAY}
-            >
-              <IconButton
-                className="fullscreen-exit-button"
-                aria-label="Exit fullscreen"
-                onClick={handleExitFullscreen}
-                size="small"
-                sx={{
-                  bgcolor: (t) => t.palette.action.hover,
-                  "&:hover": { bgcolor: (t) => t.palette.action.selected }
-                }}
-              >
-                <FullscreenExitIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+              className="fullscreen-exit-button"
+              tooltip={getShortcutTooltip("exitFullscreen")}
+              delay={TOOLTIP_ENTER_DELAY}
+              onClick={handleExitFullscreen}
+              size="small"
+              icon={<FullscreenExitIcon fontSize="small" />}
+              sx={{
+                bgcolor: (t) => t.palette.action.hover,
+                "&:hover": { bgcolor: (t) => t.palette.action.selected }
+              }}
+              nodrag={false}
+            />
           </div>
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}

@@ -8,9 +8,8 @@ import {
   DialogContent,
   DialogActions
 } from "@mui/material";
-import { FlexRow, Dialog } from "../ui_primitives";
+import { FlexRow, Dialog, EditorButton } from "../ui_primitives";
 import MenuItem from "@mui/material/MenuItem";
-import { EditorButton } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
 import useMetadataStore from "../../stores/MetadataStore";
