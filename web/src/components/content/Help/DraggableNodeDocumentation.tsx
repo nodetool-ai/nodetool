@@ -3,7 +3,7 @@ import React, { useMemo, useRef, useCallback } from "react";
 import NodeInfo from "../../node_menu/NodeInfo";
 import { css } from "@emotion/react";
 import Draggable from "react-draggable";
-import { Button } from "@mui/material";
+import { EditorButton } from "../../ui_primitives";
 import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
 import { useTheme } from "@mui/material/styles";
@@ -125,27 +125,28 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
           <span style={{ color: theme.vars.palette.grey[100] }}>
             Sorry, this node does not exist.
           </span>
-          <Button
+          <EditorButton
             variant="outlined"
+            density="compact"
             className="open-node-menu-button"
             onClick={handleOpenNodeMenu}
-            style={{ marginTop: "10px" }}
+            sx={{ marginTop: "10px" }}
           >
             Search for similar nodes
-          </Button>
+          </EditorButton>
         </div>
       );}
     return (
       <>
         <NodeInfo nodeMetadata={nodeMetadata} />
-        <Button
+        <EditorButton
           variant="contained"
-          color="primary"
+          density="normal"
           onClick={handleAddNode}
-          style={{ marginTop: "10px", marginRight: "10px" }}
+          sx={{ marginTop: "10px", marginRight: "10px" }}
         >
           Add Node
-        </Button>
+        </EditorButton>
       </>
     );
   }, [

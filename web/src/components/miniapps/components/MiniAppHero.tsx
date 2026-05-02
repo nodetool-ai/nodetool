@@ -1,8 +1,6 @@
 import React, { memo } from "react";
 import { Theme } from "@mui/material/styles";
 import {
-  Button,
-  CircularProgress,
   FormControl,
   InputLabel,
   LinearProgress,
@@ -10,7 +8,7 @@ import {
   Select,
   SelectChangeEvent
 } from "@mui/material";
-import { Text } from "../../ui_primitives";
+import { EditorButton, LoadingSpinner, Text } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
 import { Workflow } from "../../../stores/ApiTypes";
@@ -65,30 +63,29 @@ const MiniAppHero: React.FC<MiniAppHeroProps> = memo(({
               ))}
             </Select>
           </FormControl>
-          <Button
-            type="button"
+          <EditorButton
             variant="outlined"
-            size="small"
-            startIcon={<RefreshIcon />}
+            density="compact"
             onClick={onRefresh}
             disabled={workflowsLoading}
             className="refresh-button"
           >
+            <RefreshIcon sx={{ fontSize: "1em", mr: 0.5 }} />
             Refresh
-          </Button>
+          </EditorButton>
         </div>
       )}
 
       <div className="hero-status">
         {workflowsLoading && (
           <>
-            <CircularProgress size={18} />
+            <LoadingSpinner size="small" inline />
             <Text size="small">Loading workflows…</Text>
           </>
         )}
         {runnerState === "running" && (
           <>
-            <CircularProgress size={18} />
+            <LoadingSpinner size="small" inline />
             <Text size="small">
               {statusMessage || "Running workflow…"}
             </Text>

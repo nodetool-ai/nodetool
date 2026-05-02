@@ -8,7 +8,7 @@ import { shallow } from "zustand/shallow";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { TemporalState } from "zundo";
 import isEqual from "fast-deep-equal";
-import { Box } from "@mui/material";
+
 
 // Extend Window interface for HMR context preservation
 declare global {
@@ -48,7 +48,7 @@ interface NodeProviderProps {
 export const NodeProvider = ({ createStore, children }: NodeProviderProps) => {
   const store = useMemo(() => createStore(), [createStore]);
   if (!store) {
-    return <Box>Loading workflow...</Box>;
+    return <div>Loading workflow...</div>;
   }
   return <NodeContext.Provider value={store}>{children}</NodeContext.Provider>;
 };

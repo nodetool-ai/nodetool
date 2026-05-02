@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
-  Button,
   TextField
 } from "@mui/material";
 import { Text, FlexRow, AlertBanner, Surface } from "../ui_primitives";
+import { EditorButton } from "../editor_ui";
 import { getMousePosition } from "../../utils/MousePosition";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
@@ -281,14 +281,14 @@ const AssetCreateFolderConfirmation: React.FC = () => {
             padding: ".5em 1em"
           }}
         >
-          <Button
+          <EditorButton
             className="asset-create-folder-cancel-button"
             onClick={handleClose}
             sx={{ color: theme.vars.palette.grey[100] }}
           >
             Cancel
-          </Button>
-          <Button
+          </EditorButton>
+          <EditorButton
             className="asset-create-folder-confirm-button"
             onClick={handleCreateFolder}
             sx={{
@@ -297,7 +297,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
             }}
           >
             {hasSelectedAssets ? "Move to New Folder" : "Create Folder"}
-          </Button>
+          </EditorButton>
         </FlexRow>
 
         {hasSelectedAssets && (

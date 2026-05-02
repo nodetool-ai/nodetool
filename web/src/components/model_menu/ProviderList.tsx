@@ -5,15 +5,12 @@ import {
   List,
   ListItemButton,
   ListItemText,
-  CircularProgress,
   Checkbox,
   Box,
   Menu,
-  MenuItem,
-  Divider,
-  Button
+  MenuItem
 } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { Divider, EditorButton, LoadingSpinner, Tooltip } from "../ui_primitives";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useTheme } from "@mui/material/styles";
@@ -616,7 +613,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
     >
       {isLoading && (
         <div className="model-menu__providers-loading is-loading" style={{ padding: 8 }}>
-          <CircularProgress size={20} />
+          <LoadingSpinner size="small" />
         </div>
       )}
       {isError && (
@@ -880,20 +877,20 @@ const ProviderList: React.FC<ProviderListProps> = ({
                           />
                         </Tooltip>
                         <Tooltip className="model-menu__provider-add-key-tooltip" title="Open Settings to add API key">
-                          <Button
+                          <EditorButton
                             className="model-menu__provider-add-key-button"
-                            size="small"
+                            density="compact"
                             variant="text"
-                            color="warning"
                             sx={{
                               minWidth: "auto",
                               p: 0,
-                              fontSize: (theme: Theme) => theme.vars.fontSizeSmaller
+                              fontSize: (theme: Theme) => theme.vars.fontSizeSmaller,
+                              color: "warning.main"
                             }}
                             onClick={handleOpenSettings}
                           >
                             Add key
-                          </Button>
+                          </EditorButton>
                         </Tooltip>
                       </Box>
                     )}

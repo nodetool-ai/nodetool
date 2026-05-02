@@ -7,9 +7,9 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Button,
   Popover
 } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 
 interface NodeTitleEditorProps {
@@ -90,12 +90,12 @@ const NodeTitleEditor: React.FC<NodeTitleEditorProps> = ({
         />
       </DialogContent>
       <DialogActions>
-        <Button className="button-cancel" onClick={handleClose}>
+        <EditorButton className="button-cancel" onClick={handleClose}>
           Cancel
-        </Button>
-        <Button className="button-confirm" onClick={handleSave}>
+        </EditorButton>
+        <EditorButton className="button-confirm" onClick={handleSave}>
           Save
-        </Button>
+        </EditorButton>
       </DialogActions>
     </Popover>
   );

@@ -9,13 +9,12 @@ import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
-import { Badge } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { Visibility, InputOutlined, OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { FlexRow, Tooltip, ToolbarIconButton } from "../ui_primitives";
+import { FlexRow, Tooltip, ToolbarIconButton, NotificationBadge } from "../ui_primitives";
 
 export interface NodeHeaderProps {
   id: string;
@@ -404,9 +403,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             onClick={handleOpenLogsDialog}
             sx={{ padding: "4px" }}
           >
-            <Badge badgeContent={logCount} color="warning" max={99}>
+            <NotificationBadge count={logCount} color="warning" max={99}>
               <ListAltIcon sx={{ fontSize: "1rem" }} />
-            </Badge>
+            </NotificationBadge>
           </ToolbarIconButton>
         )}
       </FlexRow>

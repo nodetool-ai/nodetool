@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, forwardRef, useCallback } from "react";
-import { Button } from "@mui/material";
+import { EditorButton } from "../editor_ui";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -78,7 +78,7 @@ const BackToEditorButton = forwardRef<
 
   return (
     <Tooltip title="Back to Editor" delay={TOOLTIP_ENTER_DELAY}>
-      <Button
+      <EditorButton
         ref={ref}
         className="nav-button back-to-editor"
         onClick={handleNavigate}
@@ -87,7 +87,7 @@ const BackToEditorButton = forwardRef<
       >
         <KeyboardBackspaceIcon sx={{ fontSize: "20px", marginRight: "4px" }} />
         {buttonTitle}
-      </Button>
+      </EditorButton>
     </Tooltip>
   );
 });

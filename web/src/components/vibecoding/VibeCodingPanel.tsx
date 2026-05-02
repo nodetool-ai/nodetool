@@ -4,20 +4,12 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
   DialogContentText,
-  DialogTitle,
-  Tooltip,
-  Typography,
-  Snackbar,
-  Alert
+  Snackbar
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { CloseButton } from "../ui_primitives";
+import { AlertBanner, CloseButton, Dialog, EditorButton, Text, Tooltip } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
 import { trpcClient } from "../../trpc/client";
@@ -236,7 +228,7 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
       {/* Header */}
       <div className="panel-header">
         <div className="panel-title">
-          <Typography variant="h6">Design App UI</Typography>
+          <Text size="big" weight={600}>Design App UI</Text>
           {hasUnsavedChanges && (
             <Tooltip title="Unsaved changes">
               <div className="dirty-indicator" />
@@ -246,26 +238,27 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
         <div className="panel-actions">
           {session.savedHtml && (
             <Tooltip title="Remove custom app (use default UI)">
-              <Button
-                size="small"
-                color="error"
-                startIcon={<DeleteOutlineIcon />}
+              <EditorButton
+                density="compact"
+                variant="text"
                 onClick={handleShowClearDialog}
                 disabled={isSaving}
+                sx={{ color: "error.main" }}
               >
+                <DeleteOutlineIcon sx={{ fontSize: "1em", mr: 0.5 }} />
                 Clear App
-              </Button>
+              </EditorButton>
             </Tooltip>
           )}
-          <Button
+          <EditorButton
             variant="contained"
-            size="small"
-            startIcon={<SaveIcon />}
+            density="compact"
             onClick={handleSave}
             disabled={!hasUnsavedChanges || isSaving || !session.currentHtml}
           >
+            <SaveIcon sx={{ fontSize: "1em", mr: 0.5 }} />
             {isSaving ? "Saving..." : "Save"}
-          </Button>
+          </EditorButton>
           {onClose && (
             <CloseButton onClick={handleClose} />
           )}
@@ -293,44 +286,43 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
       <Dialog
         open={showDiscardDialog}
         onClose={handleHideDiscardDialog}
+        title="Unsaved Changes"
+        actions={
+          <>
+            <EditorButton density="compact" variant="text" onClick={handleHideDiscardDialog}>Cancel</EditorButton>
+            <EditorButton density="compact" variant="text" onClick={handleDiscardAndClose} sx={{ color: "error.main" }}>
+              Discard Changes
+            </EditorButton>
+            <EditorButton density="compact" variant="contained" onClick={handleSaveAndClose} disabled={isSaving}>
+              Save & Close
+            </EditorButton>
+          </>
+        }
       >
-        <DialogTitle>Unsaved Changes</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            You have unsaved changes. Are you sure you want to close without
-            saving?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleHideDiscardDialog}>Cancel</Button>
-          <Button onClick={handleDiscardAndClose} color="error">
-            Discard Changes
-          </Button>
-          <Button
-            onClick={handleSaveAndClose}
-            variant="contained"
-            disabled={isSaving}
-          >
-            Save & Close
-          </Button>
-        </DialogActions>
+        <DialogContentText>
+          You have unsaved changes. Are you sure you want to close without
+          saving?
+        </DialogContentText>
       </Dialog>
 
       {/* Clear App Dialog */}
-      <Dialog open={showClearDialog} onClose={handleHideClearDialog}>
-        <DialogTitle>Remove Custom App?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            This will remove the custom app and the workflow will use the
-            default MiniApp UI. This action cannot be undone.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleHideClearDialog}>Cancel</Button>
-          <Button onClick={handleClearApp} color="error" disabled={isSaving}>
-            Remove App
-          </Button>
-        </DialogActions>
+      <Dialog
+        open={showClearDialog}
+        onClose={handleHideClearDialog}
+        title="Remove Custom App?"
+        actions={
+          <>
+            <EditorButton density="compact" variant="text" onClick={handleHideClearDialog}>Cancel</EditorButton>
+            <EditorButton density="compact" variant="text" onClick={handleClearApp} disabled={isSaving} sx={{ color: "error.main" }}>
+              Remove App
+            </EditorButton>
+          </>
+        }
+      >
+        <DialogContentText>
+          This will remove the custom app and the workflow will use the
+          default MiniApp UI. This action cannot be undone.
+        </DialogContentText>
       </Dialog>
 
       {/* Snackbar */}
@@ -340,9 +332,9 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert severity={snackbar.severity} variant="filled">
+        <AlertBanner severity={snackbar.severity} variant="filled">
           {snackbar.message}
-        </Alert>
+        </AlertBanner>
       </Snackbar>
     </Box>
   );

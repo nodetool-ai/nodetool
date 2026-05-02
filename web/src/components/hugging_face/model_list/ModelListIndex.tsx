@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { Box, Button } from "@mui/material";
+import { Box } from "@mui/material";
+import { EditorButton } from "../../ui_primitives";
 import { LoadingSpinner, Text } from "../../ui_primitives";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -549,14 +550,14 @@ const ModelListIndex: React.FC = () => {
                     Switch to &quot;All&quot; or &quot;Available&quot; to find
                     models to download
                   </Text>
-                  <Button
+                  <EditorButton
                     variant="outlined"
-                    size="small"
+                    density="compact"
                     onClick={() => setFilterStatus("all")}
                     sx={{ mt: 1 }}
                   >
                     Show all models
-                  </Button>
+                  </EditorButton>
                 </>
               ) : (
                 <>

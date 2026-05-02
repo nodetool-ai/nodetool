@@ -4,7 +4,7 @@ import { memo, useState, useCallback, useRef, useMemo } from "react";
 import { NodeProps, Node } from "@xyflow/react";
 import { debounce } from "../../utils/lodashAlternatives";
 import isEqual from "fast-deep-equal";
-import { Container } from "@mui/material";
+import { Container } from "../ui_primitives";
 import { NodeData } from "../../stores/NodeData";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { useTheme } from "@mui/material/styles";

@@ -5,10 +5,9 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  IconButton,
   Collapse
 } from "@mui/material";
-import { FlexColumn, Text, LoadingSpinner, Tooltip } from "../../ui_primitives";
+import { FlexColumn, Text, LoadingSpinner, Tooltip, ToolbarIconButton } from "../../ui_primitives";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -217,18 +216,13 @@ const JobItem = ({ job }: { job: Job }) => {
           "&:hover": { backgroundColor: "action.hover" }
         }}
         secondaryAction={
-          <IconButton
-            edge="end"
+          <ToolbarIconButton
             size="small"
             onClick={handleExpandClick}
-            aria-label={expanded ? "Collapse job details" : "Expand job details"}
-          >
-            {expanded ? (
-              <KeyboardArrowUpIcon fontSize="small" />
-            ) : (
-              <KeyboardArrowDownIcon fontSize="small" />
-            )}
-          </IconButton>
+            ariaLabel={expanded ? "Collapse job details" : "Expand job details"}
+            tooltip={expanded ? "Collapse" : "Expand"}
+            icon={expanded ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
+          />
         }
       >
         <ListItemIcon sx={{ minWidth: 40 }}>{getStatusIcon()}</ListItemIcon>
@@ -256,11 +250,13 @@ const JobItem = ({ job }: { job: Job }) => {
         {(job.status === "running" ||
           job.status === "queued" ||
           job.status === "starting") && (
-          <IconButton
+          <ToolbarIconButton
             size="small"
             onClick={handleStop}
             disabled={cancelling}
-            aria-label="Stop job"
+            ariaLabel="Stop job"
+            tooltip="Stop job"
+            icon={cancelling ? <LoadingSpinner size="small" /> : <StopIcon fontSize="small" />}
             sx={{
               mr: 1,
               color: "error.main",
@@ -269,13 +265,7 @@ const JobItem = ({ job }: { job: Job }) => {
                 color: "error.contrastText"
               }
             }}
-          >
-            {cancelling ? (
-              <LoadingSpinner size="small" />
-            ) : (
-              <StopIcon fontSize="small" />
-            )}
-          </IconButton>
+          />
         )}
         <ListItemText sx={{ flex: "0 0 auto", textAlign: "right", mr: 1 }}>
           <Text size="tiny" color="secondary" sx={{ display: "block" }}>

@@ -4,7 +4,6 @@ import {
   TextField,
   Switch,
   FormControlLabel,
-  IconButton,
   InputAdornment
 } from "@mui/material";
 import { Clear as ClearIcon } from "@mui/icons-material";
@@ -12,7 +11,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton } from "../ui_primitives";
 import React, { memo, useCallback } from "react";
 
 interface SearchBarProps {
@@ -61,14 +60,13 @@ const SearchBar = memo(({
           input: {
             endAdornment: inputValue && (
               <InputAdornment position="end">
-                <IconButton
+                <ToolbarIconButton
                   aria-label="clear search"
                   onClick={onClear}
-                  edge="end"
                   size="small"
-                >
-                  <ClearIcon />
-                </IconButton>
+                  icon={<ClearIcon />}
+                  nodrag={false}
+                />
               </InputAdornment>
             )
           }

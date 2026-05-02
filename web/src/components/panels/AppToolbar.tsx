@@ -1,11 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import {
-  Button,
   Box,
   MenuItem,
   Select,
   FormControl
 } from "@mui/material";
+import { EditorButton } from "../editor_ui";
 import { Tooltip, LoadingSpinner } from "../ui_primitives";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -360,7 +360,7 @@ const NodeMenuButton = memo(function NodeMenuButton() {
       title={getShortcutTooltip("open NodeMenu")}
       delay={TOOLTIP_ENTER_DELAY}
     >
-      <Button
+      <EditorButton
         className={`action-button node-menu-button ${
           isMenuOpen ? "active" : ""
         }`}
@@ -368,7 +368,7 @@ const NodeMenuButton = memo(function NodeMenuButton() {
         tabIndex={-1}
       >
         <ControlPointIcon />
-      </Button>
+      </EditorButton>
     </Tooltip>
   );
 });
@@ -397,9 +397,9 @@ const SaveWorkflowButton = memo(function SaveWorkflowButton() {
       title={getShortcutTooltip("saveWorkflow")}
       delay={TOOLTIP_ENTER_DELAY}
     >
-      <Button className="action-button" onClick={handleSave} tabIndex={-1}>
+      <EditorButton className="action-button" onClick={handleSave} tabIndex={-1}>
         <SaveIcon />
-      </Button>
+      </EditorButton>
     </Tooltip>
   );
 });
@@ -414,9 +414,9 @@ const AutoLayoutButton = memo(function AutoLayoutButton({
       title="Arranges all nodes or selected nodes"
       delay={TOOLTIP_ENTER_DELAY}
     >
-      <Button className="action-button" onClick={autoLayout} tabIndex={-1}>
+      <EditorButton className="action-button" onClick={autoLayout} tabIndex={-1}>
         <LayoutIcon />
-      </Button>
+      </EditorButton>
     </Tooltip>
   );
 });
@@ -565,7 +565,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
       delay={TOOLTIP_ENTER_DELAY}
     >
       <span data-onboarding-target="run-workflow">
-        <Button
+        <EditorButton
           className={`action-button run-stop-button run-workflow ${
             isBusy ? "running" : ""
           }`}
@@ -589,7 +589,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
           ) : (
             <PlayArrow />
           )}
-        </Button>
+        </EditorButton>
       </span>
     </Tooltip>
   );
@@ -617,7 +617,7 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
       title={getShortcutTooltip("stopWorkflow")}
       delay={TOOLTIP_ENTER_DELAY}
     >
-      <Button
+      <EditorButton
         className={`action-button run-stop-button stop-workflow ${
           !canStop ? "disabled" : "running"
         }`}
@@ -625,7 +625,7 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
         tabIndex={-1}
       >
         <StopIcon />
-      </Button>
+      </EditorButton>
     </Tooltip>
   );
 });
@@ -650,7 +650,7 @@ const RunAsAppButton = memo(function RunAsAppButton() {
 
   return (
     <Tooltip title="Run as App" delay={TOOLTIP_ENTER_DELAY}>
-      <Button
+      <EditorButton
         className="action-button run-as-app-button"
         sx={{
           borderRadius: 0,
@@ -664,7 +664,7 @@ const RunAsAppButton = memo(function RunAsAppButton() {
         tabIndex={-1}
       >
         <RocketLaunchIcon />
-      </Button>
+      </EditorButton>
     </Tooltip>
   );
 });
@@ -684,13 +684,13 @@ const EditWorkflowButton = memo(function EditWorkflowButton({
   return (
     <>
       <Tooltip title="Edit Workflow Settings" delay={TOOLTIP_ENTER_DELAY}>
-        <Button
+        <EditorButton
           className="action-button"
           onClick={handleEditWorkflow}
           tabIndex={-1}
         >
           <EditIcon />
-        </Button>
+        </EditorButton>
       </Tooltip>
     </>
   );
@@ -717,9 +717,9 @@ const DownloadWorkflowButton = memo(function DownloadWorkflowButton() {
 
   return (
     <Tooltip title="Download Workflow JSON" delay={TOOLTIP_ENTER_DELAY}>
-      <Button className="action-button" onClick={handleDownload} tabIndex={-1}>
+      <EditorButton className="action-button" onClick={handleDownload} tabIndex={-1}>
         <DownloadIcon />
-      </Button>
+      </EditorButton>
     </Tooltip>
   );
 });
