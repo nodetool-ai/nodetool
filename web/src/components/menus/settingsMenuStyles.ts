@@ -92,12 +92,30 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     minHeight: 0,
     overflow: "hidden"
   },
+  ".settings-container--api-keys": {
+    display: "flex",
+    flexDirection: "row",
+    flex: 1,
+    minHeight: 0,
+    overflow: "hidden"
+  },
+  ".settings-content--api-keys": {
+    padding: "1.5rem 1rem",
+    overflowY: "auto",
+    overflowX: "hidden"
+  },
   ".settings-sidebar": {
     width: "220px",
     minWidth: "220px",
     backgroundColor: theme.vars.palette.background.default,
     padding: "1.5em 0",
-    overflowY: "auto"
+    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column"
+  },
+  ".settings-sidebar-footer": {
+    marginTop: "auto",
+    padding: "1em 0.75em 0.5em"
   },
   ".settings-sidebar-folder": {
     display: "flex",

@@ -27,8 +27,12 @@ import { isLocalhost, isElectron, isProduction } from "../../lib/env";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import FoldersSettings from "./FoldersSettingsMenu";
-import SecretsMenu from "./SecretsMenu";
 import AboutMenu from "./AboutMenu";
+import {
+  APIKeysTabContent,
+  APIKeysRightSidebar,
+  SecurityNotice
+} from "./APIKeysTab";
 import ModelListIndex from "../hugging_face/model_list/ModelListIndex";
 import CollectionList from "../collections/CollectionList";
 import WorkspacesManager from "../workspaces/WorkspacesManager";
@@ -358,7 +362,7 @@ function SettingsPage() {
           <div className="settings-page-header__titles">
             <h1 className="settings-page-header__title">Settings</h1>
             <p className="settings-page-header__subtitle">
-              API keys, providers, and editor preferences.
+              Manage API keys, providers, and editor preferences.
             </p>
           </div>
         </header>
@@ -380,7 +384,7 @@ function SettingsPage() {
               </Tabs>
             </div>
 
-            <div className="settings-container">
+            <div className={`settings-container${settingsTab === 1 && !isMobile ? " settings-container--api-keys" : ""}`}>
               {!isMobile && (settingsTab === 0 || settingsTab === 1 || settingsTab === aboutTabIndex) && (
                 <SettingsSidebar
                   key={`sidebar-${settingsTab}`}
@@ -395,6 +399,7 @@ function SettingsPage() {
                           : []
                   }
                   onSectionClick={scrollToSection}
+                  footer={settingsTab === 1 ? <SecurityNotice /> : undefined}
                 />
               )}
 
@@ -403,7 +408,7 @@ function SettingsPage() {
                   settingsTab === 2 || settingsTab === 3 || (settingsTab === 4 && workspacesEnabled)
                     ? " settings-content--full"
                     : ""
-                }`}
+                }${settingsTab === 1 ? " settings-content--api-keys" : ""}`}
                 ref={settingsContentRef}
               >
                 {/* Tab 0: General */}
@@ -676,22 +681,18 @@ function SettingsPage() {
                     style={{ marginBottom: "1.5em" }}
                   >
                     <SearchInput
-                      placeholder="Search API keys, settings, and folders..."
+                      placeholder="Search providers..."
                       value={apiSearchTerm}
                       onChange={setApiSearchTerm}
                       size="small"
                       showClear
                     />
                   </div>
-
-                  <Text size="big" id="api-keys" sx={{ marginBottom: "0.25em" }}>
-                    API Keys
-                  </Text>
-                  <SecretsMenu searchTerm={apiSearchTerm} />
+                  <APIKeysTabContent searchTerm={apiSearchTerm} />
 
                   {session?.access_token && !isLocalhost && (
                     <>
-                      <Text size="big" id="nodetool-api-token">
+                      <Text size="big" id="nodetool-api-token" sx={{ marginTop: "2em" }}>
                         Nodetool API
                       </Text>
                       <Text
@@ -760,21 +761,21 @@ function SettingsPage() {
                     </>
                   )}
 
-                  <Text size="big" id="api-settings">
+                  <Text size="big" id="api-settings" sx={{ marginTop: "2em" }}>
                     API Settings
                   </Text>
                   <RemoteSettingsMenuComponent />
 
                   {isLocalhost && (
                     <>
-                      <Text size="big" id="mcp-integration">
+                      <Text size="big" id="mcp-integration" sx={{ marginTop: "2em" }}>
                         MCP Integration
                       </Text>
                       <MCPSettingsMenu />
                     </>
                   )}
 
-                  <Text size="big" id="folders">
+                  <Text size="big" id="folders" sx={{ marginTop: "2em" }}>
                     Folders
                   </Text>
                   <FoldersSettings />
@@ -806,6 +807,10 @@ function SettingsPage() {
                   <AboutMenu />
                 </TabPanel>
               </div>
+
+              {settingsTab === 1 && !isMobile && (
+                <APIKeysRightSidebar />
+              )}
             </div>
           </div>
       </Box>
