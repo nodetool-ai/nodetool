@@ -53,3 +53,9 @@ export * from "./workflow-syncer.js";
 // Routes (framework-agnostic handlers)
 export * from "./storage-routes.js";
 export * from "./collection-routes.js";
+
+// Multi-tenant deployment
+export * from "./tenant-config.js";
+export * from "./tenant-store.js";
+export * from "./tenant-audit.js";
+export * from "./multi-tenant-manager.js";
