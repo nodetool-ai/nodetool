@@ -91,6 +91,7 @@ import workspaceRoutes from "./routes/workspace.js";
 import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
 import { agentSocketRoute, getAgentRuntime } from "./agent/index.js";
+import adminRoutes from "./routes/admin.js";
 
 // @llamaindex/liteparse bundles a webpack pdf.js whose `isNodeJS` heuristic
 // resolves to false inside Electron utilityProcess (process.type === "utility"),
@@ -584,7 +585,9 @@ app.addHook("onRequest", async (req, reply) => {
     pathname.startsWith("/api/oauth/") ||
     pathname === "/api/assets/packages" ||
     pathname.startsWith("/api/assets/packages/") ||
-    pathname === "/api/nodes/metadata"
+    pathname === "/api/nodes/metadata" ||
+    // Admin routes handle their own ADMIN_TOKEN auth
+    pathname.startsWith("/admin/")
   ) {
     return;
   }
@@ -837,6 +840,11 @@ await app.register(oauthRoutes, routeOpts);
 await app.register(workspaceRoutes, routeOpts);
 await app.register(filesRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
+// Admin endpoints — protected by ADMIN_TOKEN, available in production only.
+if (isProduction) {
+  await app.register(adminRoutes);
+  log.info("Admin routes registered (production mode)");
+}
 // MCP endpoints are only available in local/dev mode — not in production.
 // The configuration endpoints moved to the tRPC `mcpConfig` router; the
 // `/mcp` proxy below is a bare MCP over-HTTP transport and stays on REST.

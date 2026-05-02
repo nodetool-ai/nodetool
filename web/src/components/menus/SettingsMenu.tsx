@@ -47,9 +47,11 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
 import useSecretsStore from "../../stores/SecretsStore";
 import { settingsStyles } from "./settingsMenuStyles";
+import DeploymentMenu from "./DeploymentMenu";
 
 const workspacesEnabled = !isProduction;
 const aboutTabIndex = workspacesEnabled ? 5 : 4;
+const deploymentTabIndex = isProduction ? aboutTabIndex + 1 : -1;
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -80,6 +82,7 @@ function SettingsPage() {
   const session = useAuth((state) => state.session);
 
   const tabSubtitle = (tab: number): string => {
+    if (tab === deploymentTabIndex) return "Production server management and monitoring.";
     switch (tab) {
       case 0:
         return "Editor and workspace preferences.";
@@ -96,15 +99,17 @@ function SettingsPage() {
     }
   };
 
+  const maxTabIndex = deploymentTabIndex > 0 ? deploymentTabIndex : aboutTabIndex;
+
   const settingsTab = useMemo(() => {
     const raw = Number(searchParams.get("tab") ?? 0);
     if (Number.isNaN(raw)) return 0;
-    const bounded = Math.min(5, Math.max(0, raw));
+    const bounded = Math.min(maxTabIndex, Math.max(0, raw));
     if (!workspacesEnabled && bounded === 5) {
       return aboutTabIndex;
     }
     return bounded;
-  }, [searchParams]);
+  }, [searchParams, maxTabIndex]);
 
   const setGridSnap = useSettingsStore((state) => state.setGridSnap);
   const setConnectionSnap = useSettingsStore(
@@ -384,7 +389,9 @@ function SettingsPage() {
             <p className="settings-page-header__subtitle">
               {settingsTab === aboutTabIndex
                 ? "About this application."
-                : tabSubtitle(settingsTab)}
+                : settingsTab === deploymentTabIndex
+                  ? "Production server management and monitoring."
+                  : tabSubtitle(settingsTab)}
             </p>
           </div>
         </header>
@@ -403,6 +410,9 @@ function SettingsPage() {
                 <Tab label="Collections" id="settings-tab-3" />
                 {workspacesEnabled && <Tab label="Workspaces" id="settings-tab-4" />}
                 <Tab label="About" id={`settings-tab-${aboutTabIndex}`} />
+                {isProduction && (
+                  <Tab label="Deployment" id={`settings-tab-${deploymentTabIndex}`} />
+                )}
               </Tabs>
             </div>
 
@@ -427,7 +437,7 @@ function SettingsPage() {
 
               <div
                 className={`settings-content${
-                  settingsTab === 2 || settingsTab === 3 || (settingsTab === 4 && workspacesEnabled)
+                  settingsTab === 2 || settingsTab === 3 || (settingsTab === 4 && workspacesEnabled) || settingsTab === deploymentTabIndex
                     ? " settings-content--full"
                     : ""
                 }${settingsTab === 1 ? " settings-content--api-keys" : ""}`}
@@ -850,6 +860,15 @@ function SettingsPage() {
                 <TabPanel value={settingsTab} index={aboutTabIndex}>
                   <AboutMenu />
                 </TabPanel>
+
+                {/* Deployment — production only */}
+                {isProduction && (
+                  <TabPanel value={settingsTab} index={deploymentTabIndex}>
+                    <Box className="settings-panel-padded">
+                      <DeploymentMenu />
+                    </Box>
+                  </TabPanel>
+                )}
               </div>
 
               {settingsTab === 1 && !isMobile && (
