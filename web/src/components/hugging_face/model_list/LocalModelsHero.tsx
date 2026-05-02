@@ -5,7 +5,6 @@ import ComputerIcon from "@mui/icons-material/Computer";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import AddIcon from "@mui/icons-material/Add";
 import {
   Card,
   Caption,
@@ -30,13 +29,9 @@ const formatSize = (bytes: number): string => {
 
 interface LocalModelsHeroProps {
   models: UnifiedModel[];
-  onAddModel?: () => void;
 }
 
-const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({
-  models,
-  onAddModel
-}) => {
+const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
   const theme = useTheme();
 
   const stats = useMemo(() => {
@@ -148,27 +143,6 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({
           />
         </FlexRow>
 
-        {/* Add Model button */}
-        <FlexColumn align="flex-end" sx={{ flexShrink: 0 }}>
-          <EditorButton
-            density="normal"
-            variant="contained"
-            size="small"
-            startIcon={<AddIcon sx={{ fontSize: 16 }} />}
-            onClick={onAddModel}
-          >
-            Add Model
-          </EditorButton>
-          <Caption
-            sx={{
-              opacity: 0.5,
-              fontSize: theme.fontSizeTinyer,
-              marginTop: "4px"
-            }}
-          >
-            Import GGUF, ONNX, etc.
-          </Caption>
-        </FlexColumn>
       </FlexRow>
     </Card>
   );
