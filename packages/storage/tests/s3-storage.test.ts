@@ -41,12 +41,7 @@ describe("S3Storage", () => {
 
   beforeEach(() => {
     mockSend.mockReset();
-    storage = new S3Storage(
-      "my-bucket",
-      "http://localhost:9000",
-      "cdn.example.com",
-      "us-west-2"
-    );
+    storage = new S3Storage("my-bucket", "http://localhost:9000", "us-west-2");
   });
 
   describe("upload", () => {
@@ -126,19 +121,8 @@ describe("S3Storage", () => {
   });
 
   describe("getUrl", () => {
-    it("uses domain when set", () => {
-      expect(storage.getUrl("path/to/file.txt")).toBe(
-        "https://cdn.example.com/path/to/file.txt"
-      );
-    });
-
-    it("preserves http prefix on domain", () => {
-      const s = new S3Storage("bucket", undefined, "http://localhost:9000");
-      expect(s.getUrl("file.txt")).toBe("http://localhost:9000/file.txt");
-    });
-
-    it("falls back to S3 URL when no domain", () => {
-      const s = new S3Storage("my-bucket", undefined, undefined, "eu-west-1");
+    it("returns S3 URL with bucket and region", () => {
+      const s = new S3Storage("my-bucket", undefined, "eu-west-1");
       expect(s.getUrl("file.txt")).toBe(
         "https://my-bucket.s3.eu-west-1.amazonaws.com/file.txt"
       );
@@ -151,12 +135,10 @@ describe("S3Storage", () => {
       );
     });
 
-    it("handles keys with special characters", () => {
-      expect(storage.getUrl("path/to/my file.txt")).toBe(
-        "https://cdn.example.com/path/to/my file.txt"
-      );
-      expect(storage.getUrl("a/b/c/d.txt")).toBe(
-        "https://cdn.example.com/a/b/c/d.txt"
+    it("handles nested keys", () => {
+      const s = new S3Storage("bucket", undefined, "us-east-1");
+      expect(s.getUrl("a/b/c/d.txt")).toBe(
+        "https://bucket.s3.us-east-1.amazonaws.com/a/b/c/d.txt"
       );
     });
   });
@@ -284,7 +266,6 @@ describe("S3Storage", () => {
 
   describe("SDK loading caching", () => {
     it("returns the same SDK module reference on repeated loads", async () => {
-      // Two separate S3Storage instances both load the SDK
       const s1 = new S3Storage("bucket-a");
       const s2 = new S3Storage("bucket-b");
 
@@ -292,8 +273,6 @@ describe("S3Storage", () => {
       await s1.upload("a.txt", Buffer.from("a"));
       await s2.upload("b.txt", Buffer.from("b"));
 
-      // The import() mock is called but the caching means S3Client is reused
-      // Both should work without error, proving the cached SDK is functional
       expect(mockSend).toHaveBeenCalledTimes(2);
     });
   });
