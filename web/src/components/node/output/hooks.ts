@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Asset, AssetRef } from "../../../stores/ApiTypes";
 import { BASE_URL } from "../../../stores/BASE_URL";
+import { trpc } from "../../../trpc/client";
 
 /**
  * Base type for typed output values with a type discriminator
@@ -64,6 +65,18 @@ function toUint8Array(
   }
 
   return undefined;
+}
+
+/**
+ * Extracts the storage key from an asset URI.
+ * Handles asset:// and /api/storage/ schemes.
+ * Returns null for other schemes.
+ */
+function extractStorageKey(uri: string | null | undefined): string | null {
+  if (!uri) return null;
+  if (uri.startsWith("asset://")) return uri.slice("asset://".length);
+  if (uri.startsWith("/api/storage/")) return uri.slice("/api/storage/".length);
+  return null;
 }
 
 /**
@@ -142,10 +155,27 @@ export function getMimeTypeFromUri(
   }
 }
 
+/**
+ * Returns the signed URL for an asset URI.
+ * For cloud backends (S3/Supabase), returns a pre-signed URL.
+ * For the local file backend, returns the /api/storage/ URL.
+ * Falls back to resolveAssetUri() while the query is loading.
+ */
+export function useSignedUrl(uri: string | undefined | null): string {
+  const key = extractStorageKey(uri);
+  const { data } = trpc.storage.signUrl.useQuery(
+    { key: key ?? "" },
+    { enabled: Boolean(key), staleTime: 6 * 24 * 60 * 60 * 1000 }
+  );
+  return data?.url ?? resolveAssetUri(uri);
+}
+
 export function useVideoSrc(value: unknown) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const videoValue = value as VideoValue | null;
+  const signedUrl = useSignedUrl(videoValue?.uri);
+
   useEffect(() => {
-    const videoValue = value as VideoValue | null;
     if (videoValue?.type === "video" && videoRef.current) {
       const videoBytes = toUint8Array(videoValue.data);
       if (videoBytes && videoBytes.byteLength > 0) {
@@ -154,10 +184,10 @@ export function useVideoSrc(value: unknown) {
         videoRef.current.src = url;
         return () => URL.revokeObjectURL(url);
       } else if (videoValue.uri) {
-        videoRef.current.src = resolveAssetUri(videoValue.uri);
+        videoRef.current.src = signedUrl;
       }
     }
-  }, [value]);
+  }, [value, signedUrl]);
   return videoRef;
 }
 

@@ -5,7 +5,11 @@
 import { stat, unlink, readdir } from "node:fs/promises";
 import path from "node:path";
 import { extname } from "node:path";
-import { getDefaultAssetsPath } from "@nodetool-ai/config";
+import {
+  getDefaultAssetsPath,
+  loadAssetStorageConfig
+} from "@nodetool-ai/config";
+import { createAssetUrlBuilder } from "@nodetool-ai/storage";
 
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -16,7 +20,9 @@ import {
   storageMetadataInput,
   storageMetadataOutput,
   storageDeleteInput,
-  storageDeleteOutput
+  storageDeleteOutput,
+  signUrlInput,
+  signUrlOutput
 } from "@nodetool-ai/protocol/api-schemas/storage.js";
 import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas/api-error-code.js";
 
@@ -69,6 +75,20 @@ function keyFromPath(rootDir: string, filePath: string): string {
   return path
     .relative(rootDir, filePath)
     .replace(/\\/g, "/");
+}
+
+// ── URL builder (lazy, cached per backend kind) ───────────────────────────────
+
+let _urlBuilder: ((key: string) => Promise<string>) | null = null;
+let _urlBuilderKind: string | null = null;
+
+function getUrlBuilder(): (key: string) => Promise<string> {
+  const config = loadAssetStorageConfig();
+  if (!_urlBuilder || _urlBuilderKind !== config.kind) {
+    _urlBuilderKind = config.kind;
+    _urlBuilder = createAssetUrlBuilder(config);
+  }
+  return _urlBuilder;
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
@@ -155,6 +175,18 @@ export const storageRouter = router({
       } catch {
         throwApiError(ApiErrorCode.NOT_FOUND, "Object not found");
       }
+    }),
+
+  signUrl: protectedProcedure
+    .input(signUrlInput)
+    .output(signUrlOutput)
+    .query(async ({ input }) => {
+      const validationError = validateStorageKey(input.key);
+      if (validationError) {
+        throwApiError(ApiErrorCode.INVALID_INPUT, validationError);
+      }
+      const url = await getUrlBuilder()(input.key);
+      return { url };
     }),
 
   delete: protectedProcedure

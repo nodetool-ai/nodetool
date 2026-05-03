@@ -19,6 +19,9 @@ export {
 } from "./supabase-storage-adapter.js";
 export { createStorageAdapter, type StorageConfig } from "./factory.js";
 
+// URL builder
+export { createAssetUrlBuilder } from "./url-builder.js";
+
 // Caches
 export { MemoryUriCache } from "./memory-uri-cache.js";
 export {

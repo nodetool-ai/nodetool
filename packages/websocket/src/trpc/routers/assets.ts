@@ -14,7 +14,11 @@ import nodePath from "node:path";
 import { Buffer } from "node:buffer";
 import { Asset } from "@nodetool-ai/models";
 import type { Asset as AssetModel } from "@nodetool-ai/models";
-import { buildAssetUrl } from "@nodetool-ai/config";
+import {
+  loadAssetStorageConfig,
+  type StorageConfig
+} from "@nodetool-ai/config";
+import { createAssetUrlBuilder } from "@nodetool-ai/storage";
 import {
   getAssetFileName,
   getAssetStoragePath
@@ -42,12 +46,26 @@ import {
   type AssetResponse
 } from "@nodetool-ai/protocol/api-schemas/assets.js";
 
-function toAssetResponse(asset: AssetModel): AssetResponse {
+// Lazily initialized URL builder based on the configured storage backend.
+let _storageConfig: StorageConfig | null = null;
+let _urlBuilder: ((key: string) => Promise<string>) | null = null;
+
+function getUrlBuilder(): (key: string) => Promise<string> {
+  const config = loadAssetStorageConfig();
+  // Recreate if the config kind changed (e.g. test env switching backends).
+  if (!_urlBuilder || _storageConfig?.kind !== config.kind) {
+    _storageConfig = config;
+    _urlBuilder = createAssetUrlBuilder(config);
+  }
+  return _urlBuilder;
+}
+
+async function toAssetResponse(asset: AssetModel): Promise<AssetResponse> {
   const isFolder = asset.content_type === "folder";
   const fileName = isFolder
     ? null
     : getAssetFileName(asset.id, asset.content_type);
-  const getUrl = fileName ? buildAssetUrl(fileName) : null;
+  const getUrl = fileName ? await getUrlBuilder()(fileName) : null;
 
   const hasThumbnail =
     asset.content_type.startsWith("image/") ||
@@ -142,7 +160,7 @@ export const assetsRouter = router({
         limit: input.page_size
       });
       return {
-        assets: assets.map((a) => toAssetResponse(a)),
+        assets: await Promise.all(assets.map((a) => toAssetResponse(a))),
         next: cursor || null
       };
     }),
@@ -274,7 +292,9 @@ export const assetsRouter = router({
     .output(recursiveOutput)
     .query(async ({ ctx, input }) => {
       const assets = await getAllAssetsRecursive(ctx.userId, input.id);
-      return { assets: assets.map((a) => toAssetResponse(a)) };
+      return {
+        assets: await Promise.all(assets.map((a) => toAssetResponse(a)))
+      };
     }),
 
   search: protectedProcedure
@@ -289,7 +309,7 @@ export const assetsRouter = router({
         a.name.toLowerCase().includes(lowerQuery)
       );
       return {
-        assets: matched.map((a) => toAssetResponse(a)),
+        assets: await Promise.all(matched.map((a) => toAssetResponse(a))),
         next_cursor: nextCursor || null,
         total_count: matched.length,
         is_global_search: input.workflow_id === undefined
