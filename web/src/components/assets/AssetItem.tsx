@@ -48,7 +48,7 @@ const styles = (theme: Theme) =>
       contain: "layout style paint",
       border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`,
       boxShadow: "0 8px 18px rgb(0 0 0 / 0.18)",
-      transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease"
+      transition: "box-shadow 0.18s ease, border-color 0.18s ease"
     },
     "&.selected .asset": {
       border: `2px solid ${theme.vars.palette.primary.main}`,
@@ -95,7 +95,6 @@ const styles = (theme: Theme) =>
       willChange: "opacity"
     },
     "&:hover .asset": {
-      transform: "translateY(-2px)",
       boxShadow: "0 16px 30px rgb(0 0 0 / 0.18)",
       borderColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.1)`
     },
