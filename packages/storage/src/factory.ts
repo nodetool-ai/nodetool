@@ -10,14 +10,12 @@ export type StorageConfig =
       bucket: string;
       region?: string;
       endpoint?: string;
-      prefix?: string;
     }
   | {
       kind: "supabase";
       url: string;
-      serviceKey: string;
+      apiKey: string;
       bucket: string;
-      prefix?: string;
     };
 
 export function createStorageAdapter(config: StorageConfig): StorageAdapter {
@@ -28,15 +26,13 @@ export function createStorageAdapter(config: StorageConfig): StorageAdapter {
       return new S3StorageAdapter({
         bucket: config.bucket,
         region: config.region,
-        endpoint: config.endpoint,
-        prefix: config.prefix
+        endpoint: config.endpoint
       });
     case "supabase":
       return new SupabaseStorageAdapter({
         url: config.url,
-        serviceKey: config.serviceKey,
-        bucket: config.bucket,
-        prefix: config.prefix
+        apiKey: config.apiKey,
+        bucket: config.bucket
       });
   }
 }

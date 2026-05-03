@@ -63,6 +63,9 @@
       "path": "../security"
     },
     {
+      "path": "../storage"
+    },
+    {
       "path": "../vectorstore"
     }
   ]

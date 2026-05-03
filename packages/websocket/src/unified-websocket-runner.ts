@@ -7,8 +7,11 @@ import { pack, unpack } from "msgpackr";
 import {
   createLogger,
   getDefaultAssetsPath,
-  buildAssetUrl
+  buildAssetUrl,
+  loadAssetStorageConfig,
+  loadTempStorageConfig
 } from "@nodetool-ai/config";
+import { createStorageAdapter } from "@nodetool-ai/storage";
 import { resolveContentUrls, resolveContentForProvider } from "./resolve-media-urls.js";
 import {
   Graph,
@@ -43,7 +46,6 @@ import type {
   ImageToVideoParams
 } from "@nodetool-ai/runtime";
 import {
-  FileStorageAdapter,
   ProcessingContext as RuntimeProcessingContext,
   executeComfy,
   type ComfyProgressEvent,
@@ -195,6 +197,32 @@ function formatSanitizedError(error: unknown): string {
 
 function getAssetStoragePath(): string {
   return getDefaultAssetsPath();
+}
+
+/** Extract the object key from a cloud storage URI, or return null for file URIs. */
+function extractCloudKey(uri: string): string | null {
+  for (const scheme of ["supabase://", "s3://"]) {
+    if (uri.startsWith(scheme)) {
+      const rest = uri.slice(scheme.length);
+      const slash = rest.indexOf("/");
+      return slash >= 0 ? rest.slice(slash + 1) : null;
+    }
+  }
+  return null;
+}
+
+// Cached storage adapters — created once on first use, shared across all contexts.
+let _assetAdapter: ReturnType<typeof createStorageAdapter> | null = null;
+let _tempAdapter: ReturnType<typeof createStorageAdapter> | null = null;
+
+function getAssetAdapter() {
+  if (!_assetAdapter) _assetAdapter = createStorageAdapter(loadAssetStorageConfig());
+  return _assetAdapter;
+}
+
+function getTempAdapter() {
+  if (!_tempAdapter) _tempAdapter = createStorageAdapter(loadTempStorageConfig());
+  return _tempAdapter;
 }
 
 // ---------------------------------------------------------------------------
@@ -452,20 +480,25 @@ function createRuntimeContext(opts: {
     | "raw";
 }): RuntimeProcessingContext {
   const storagePath = getAssetStoragePath();
-  const storage = new FileStorageAdapter(storagePath);
+  const tempAdapter = getTempAdapter();
+  const assetAdapter = getAssetAdapter();
   const ctx = new RuntimeProcessingContext({
     ...opts,
     secretResolver: getSecret,
-    storage,
-    tempUrlResolver: (fileUri: string) => {
-      // Convert file:///path/to/storage/temp/uuid.png → public asset URL.
-      // When ASSET_DOMAIN / TEMP_DOMAIN are configured the result uses those
-      // domains; otherwise it falls back to /api/storage/temp/uuid.png.
-      const prefix = pathToFileURL(storagePath).toString();
-      if (fileUri.startsWith(prefix)) {
-        return buildAssetUrl(fileUri.slice(prefix.length + 1));
+    storage: tempAdapter,
+    tempUrlResolver: (uri: string) => {
+      // Cloud backends: key becomes /api/storage/<key> — the HTTP handler
+      // will redirect to a signed URL (once signed URL support is wired in).
+      const cloudKey = extractCloudKey(uri);
+      if (cloudKey !== null) {
+        return buildAssetUrl(cloudKey);
       }
-      return fileUri;
+      // File: convert file:///path/to/storage/uuid.png → /api/storage/uuid.png
+      const prefix = pathToFileURL(storagePath).toString();
+      if (uri.startsWith(prefix)) {
+        return buildAssetUrl(uri.slice(prefix.length + 1));
+      }
+      return uri;
     }
   });
 
@@ -480,8 +513,6 @@ function createRuntimeContext(opts: {
 
   ctx.setModelInterfaces({
     createAsset: async (args) => {
-      const { join } = await import("node:path");
-      const { writeFile, mkdir } = await import("node:fs/promises");
       const asset = new Asset({
         user_id: args.userId,
         workflow_id: args.workflowId ?? null,
@@ -493,9 +524,8 @@ function createRuntimeContext(opts: {
       });
       if (args.content) {
         const ext = MIME_TO_EXT[args.contentType] ?? "bin";
-        const fileName = `${asset.id}.${ext}`;
-        await mkdir(storagePath, { recursive: true });
-        await writeFile(join(storagePath, fileName), args.content);
+        const key = `${asset.id}.${ext}`;
+        await assetAdapter.store(key, args.content, args.contentType);
         asset.size = args.content.length;
       }
       await asset.save();

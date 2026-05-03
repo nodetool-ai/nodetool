@@ -42,6 +42,7 @@
     "@nodetool-ai/replicate-nodes": "*",
     "@nodetool-ai/runtime": "*",
     "@nodetool-ai/security": "*",
+    "@nodetool-ai/storage": "*",
     "@nodetool-ai/vectorstore": "*",
     "@mariozechner/pi-coding-agent": "^0.67.4",
     "@opencode-ai/sdk": "^1.3.15",

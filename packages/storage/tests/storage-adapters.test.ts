@@ -153,7 +153,7 @@ describe("SupabaseStorageAdapter", () => {
     const store = new Map<string, Uint8Array>();
     const storage = new SupabaseStorageAdapter({
       url: "https://x.supabase.co",
-      serviceKey: "k",
+      apiKey: "k",
       bucket: "uploads",
       client: fakeClient(store)
     });
@@ -166,7 +166,7 @@ describe("SupabaseStorageAdapter", () => {
   it("converts internal uri to public url", async () => {
     const storage = new SupabaseStorageAdapter({
       url: "https://x.supabase.co",
-      serviceKey: "k",
+      apiKey: "k",
       bucket: "uploads",
       client: fakeClient(new Map())
     });
@@ -182,7 +182,7 @@ describe("SupabaseStorageAdapter", () => {
       () =>
         new SupabaseStorageAdapter({
           url: "",
-          serviceKey: "k",
+          apiKey: "k",
           bucket: "b"
         })
     ).toThrow(/URL is required/);
@@ -190,15 +190,15 @@ describe("SupabaseStorageAdapter", () => {
       () =>
         new SupabaseStorageAdapter({
           url: "u",
-          serviceKey: "",
+          apiKey: "",
           bucket: "b"
         })
-    ).toThrow(/service key is required/);
+    ).toThrow(/API key is required/);
     expect(
       () =>
         new SupabaseStorageAdapter({
           url: "u",
-          serviceKey: "k",
+          apiKey: "k",
           bucket: ""
         })
     ).toThrow(/bucket is required/);
@@ -225,7 +225,7 @@ describe("createStorageAdapter factory", () => {
     const storage = createStorageAdapter({
       kind: "supabase",
       url: "https://x.supabase.co",
-      serviceKey: "k",
+      apiKey: "k",
       bucket: "b"
     });
     expect(storage).toBeInstanceOf(SupabaseStorageAdapter);

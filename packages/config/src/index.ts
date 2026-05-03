@@ -38,7 +38,12 @@ export {
   getDefaultAssetsPath,
   getDefaultTransformersJsCacheDir,
   getAssetFilePath,
-  getAssetDomain,
-  getTempDomain,
   buildAssetUrl
 } from "./paths.js";
+
+export {
+  loadAssetStorageConfig,
+  loadTempStorageConfig,
+  SIGNED_URL_TTL,
+  type StorageConfig
+} from "./storage-config.js";

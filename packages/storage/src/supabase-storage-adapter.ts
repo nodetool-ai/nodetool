@@ -1,12 +1,10 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { StorageAdapter } from "./storage-adapter.js";
-import { joinStorageKey, normalizeStorageKey } from "./storage-keys.js";
 
 export interface SupabaseStorageAdapterOptions {
   url: string;
-  serviceKey: string;
+  apiKey: string;
   bucket: string;
-  prefix?: string;
   /** Optional pre-built client (used by tests). */
   client?: SupabaseClient;
 }
@@ -20,25 +18,23 @@ export interface SupabaseStorageAdapterOptions {
  */
 export class SupabaseStorageAdapter implements StorageAdapter {
   readonly bucket: string;
-  readonly prefix: string | null;
   readonly url: string;
-  private readonly serviceKey: string;
+  private readonly apiKey: string;
   private client: SupabaseClient | null;
 
   constructor(opts: SupabaseStorageAdapterOptions) {
     if (!opts.url) throw new Error("Supabase URL is required");
-    if (!opts.serviceKey) throw new Error("Supabase service key is required");
+    if (!opts.apiKey) throw new Error("Supabase API key is required");
     if (!opts.bucket) throw new Error("Supabase bucket is required");
     this.url = opts.url;
-    this.serviceKey = opts.serviceKey;
+    this.apiKey = opts.apiKey;
     this.bucket = opts.bucket;
-    this.prefix = opts.prefix ? normalizeStorageKey(opts.prefix) : null;
     this.client = opts.client ?? null;
   }
 
   private getClient(): SupabaseClient {
     if (!this.client) {
-      this.client = createClient(this.url, this.serviceKey);
+      this.client = createClient(this.url, this.apiKey);
     }
     return this.client;
   }
@@ -61,19 +57,16 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     data: Uint8Array,
     contentType?: string
   ): Promise<string> {
-    const objectKey = joinStorageKey(this.prefix ?? undefined, key);
     const { error } = await this.getClient()
       .storage.from(this.bucket)
-      .upload(objectKey, data, {
+      .upload(key, data, {
         upsert: true,
         ...(contentType ? { contentType } : {})
       });
     if (error) {
-      throw new Error(
-        `Supabase upload failed for "${objectKey}": ${error.message}`
-      );
+      throw new Error(`Supabase upload failed for "${key}": ${error.message}`);
     }
-    return `supabase://${this.bucket}/${objectKey}`;
+    return `supabase://${this.bucket}/${key}`;
   }
 
   async retrieve(uri: string): Promise<Uint8Array | null> {
@@ -101,6 +94,12 @@ export class SupabaseStorageAdapter implements StorageAdapter {
       .list(dir, { search: name, limit: 1 });
     if (error || !data) return false;
     return data.some((entry) => entry.name === name);
+  }
+
+  async delete(uri: string): Promise<void> {
+    const parsed = this.parseUri(uri);
+    if (!parsed || parsed.bucket !== this.bucket) return;
+    await this.getClient().storage.from(parsed.bucket).remove([parsed.key]);
   }
 
   /**
