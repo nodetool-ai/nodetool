@@ -93,11 +93,11 @@ const welcomeStyles = (theme: Theme) =>
     },
     ".quick-start": {
       borderRadius: "var(--rounded-xl)",
-      padding: "10px 12px",
+      padding: theme.spacing(2.5, 3),
       border: `1px solid ${theme.vars.palette.grey[700]}`
     },
     ".quick-start-grid": {
-      marginTop: "2px"
+      marginTop: theme.spacing(0.5)
     },
     ".quick-card": {
       borderRadius: "var(--rounded-lg)",
@@ -108,20 +108,20 @@ const welcomeStyles = (theme: Theme) =>
       }
     },
     ".quick-card .MuiCardContent-root": {
-      padding: "10px 12px"
+      padding: theme.spacing(2.5, 3)
     },
     ".quick-card-icon": {
       fontSize: "22px",
       color: "var(--palette-primary-main)"
     },
     ".quick-card-title": {
-      marginTop: "4px",
+      marginTop: theme.spacing(1),
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeBig
     },
     ".quick-card-desc": {
       opacity: 0.85,
-      marginTop: "2px",
+      marginTop: theme.spacing(0.5),
       fontSize: "0.9em",
       display: "-webkit-box",
       WebkitLineClamp: 2,
@@ -131,7 +131,7 @@ const welcomeStyles = (theme: Theme) =>
     ".link": {
       color: theme.vars.palette.grey[100],
       display: "inline-block",
-      padding: "4px 8px",
+      padding: theme.spacing(1, 2),
       textDecoration: "none",
       borderRadius: "var(--rounded-sm)",
       transition: "all 0.2s"
@@ -264,7 +264,7 @@ const welcomeStyles = (theme: Theme) =>
       background: theme.vars.palette.grey[900],
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       borderRadius: 8,
-      padding: "8px 12px"
+      padding: theme.spacing(2, 3)
     },
     ".setup-list-secondary": {
       "& ul": {
@@ -309,7 +309,7 @@ const welcomeStyles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       backgroundColor: theme.vars.palette.grey[900],
       borderRadius: 10,
-      padding: "12px 14px"
+      padding: theme.spacing(3, 3.5)
     },
     ".local-model-header": {
       display: "flex",
@@ -325,7 +325,7 @@ const welcomeStyles = (theme: Theme) =>
     ".local-model-badges": {
       display: "flex",
       alignItems: "center",
-      gap: 6
+      gap: theme.spacing(1.5)
     },
     ".local-model-actions": {
       display: "flex",

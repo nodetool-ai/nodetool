@@ -49,8 +49,8 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
-    gap: "1.25rem",
-    padding: "1.25rem 1.75rem 1rem",
+    gap: theme.spacing(5),
+    padding: theme.spacing(5, 7, 4),
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     "& .settings-back": {
       flexShrink: 0
@@ -58,7 +58,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     "& .settings-page-header__titles": {
       display: "flex",
       flexDirection: "column",
-      gap: "2px",
+      gap: theme.spacing(0.5),
       minWidth: 0
     },
     "& .settings-page-header__title": {
@@ -289,7 +289,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
       "& .MuiInputLabel-root": {
         position: "relative",
         transform: "none",
-        marginBottom: "8px",
+        marginBottom: theme.spacing(2),
         fontWeight: "500",
         color: theme.vars.palette.grey[0],
         fontSize: theme.fontSizeNormal

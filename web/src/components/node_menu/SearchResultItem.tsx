@@ -31,8 +31,8 @@ const searchResultStyles = (theme: Theme) =>
     "&.search-result-item": {
       display: "flex",
       flexDirection: "column",
-      padding: "10px 12px",
-      margin: "2px 0",
+      padding: theme.spacing(2.5, 3),
+      margin: theme.spacing(0.5, 0),
       borderRadius: "var(--rounded-md)",
       cursor: "pointer",
       transition: "all 0.15s ease",
@@ -58,7 +58,12 @@ const searchResultStyles = (theme: Theme) =>
         display: "flex",
         alignItems: "flex-start",
         justifyContent: "space-between",
-        gap: "8px"
+        gap: theme.spacing(2)
+      },
+      ".result-header-right": {
+        display: "flex",
+        alignItems: "center",
+        gap: theme.spacing(1.5)
       },
       ".result-main": {
         flex: 1,
@@ -67,7 +72,7 @@ const searchResultStyles = (theme: Theme) =>
       ".result-title-row": {
         display: "flex",
         alignItems: "center",
-        gap: "8px"
+        gap: theme.spacing(2)
       },
       ".result-title": {
         fontSize: "0.95rem",
@@ -91,7 +96,7 @@ const searchResultStyles = (theme: Theme) =>
         fontSize: "0.8rem",
         color: theme.vars.palette.text.secondary,
         lineHeight: 1.4,
-        marginTop: "4px",
+        marginTop: theme.spacing(1),
         "& .highlight": {
           color: "var(--palette-primary-main)"
         }
@@ -115,18 +120,18 @@ const searchResultStyles = (theme: Theme) =>
       },
       ".matched-tags-inline": {
         display: "flex",
-        gap: "4px",
-        marginLeft: "4px"
+        gap: theme.spacing(1),
+        marginLeft: theme.spacing(1)
       },
       ".result-tags": {
         display: "flex",
         flexWrap: "wrap",
-        gap: "4px",
-        marginTop: "6px"
+        gap: theme.spacing(1),
+        marginTop: theme.spacing(1.5)
       },
       ".result-tag": {
         fontSize: "0.65rem",
-        padding: "2px 6px",
+        padding: theme.spacing(0.5, 1.5),
         borderRadius: "var(--rounded-lg)",
         backgroundColor: theme.vars.palette.action.selected,
         color: theme.vars.palette.text.secondary,
@@ -146,22 +151,22 @@ const searchResultStyles = (theme: Theme) =>
         right: 0,
         top: "100%",
         zIndex: 100,
-        padding: "0 12px 10px 12px"
+        padding: theme.spacing(0, 3, 2.5, 3)
       },
       ".io-info": {
-        padding: "8px",
+        padding: theme.spacing(2),
         backgroundColor: theme.vars.palette.background.paper,
         border: `1px solid ${theme.vars.palette.divider}`,
         borderRadius: "0 0 6px 6px",
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: theme.spacing(1),
         boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
       },
       ".io-row": {
         display: "flex",
         alignItems: "center",
-        gap: "8px",
+        gap: theme.spacing(2),
         fontSize: "0.7rem"
       },
       ".io-label": {
@@ -173,10 +178,10 @@ const searchResultStyles = (theme: Theme) =>
       ".io-items": {
         display: "flex",
         flexWrap: "wrap",
-        gap: "3px"
+        gap: theme.spacing(0.75)
       },
       ".io-item": {
-        padding: "1px 5px",
+        padding: theme.spacing(0.25, 1.25),
         borderRadius: "3px",
         fontSize: "0.65rem",
         borderLeft: "2px solid",
@@ -317,7 +322,7 @@ const SearchResultItem = memo(
                 </span>
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div className="result-header-right">
               <Text className="result-namespace" component="div">
                 <HighlightText
                   text={node.namespace}

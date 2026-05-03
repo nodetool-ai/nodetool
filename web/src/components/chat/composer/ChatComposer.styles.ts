@@ -1,5 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "../../ui_primitives/tokens";
 
 export const createStyles = (theme: Theme) =>
   css({
@@ -17,12 +18,12 @@ export const createStyles = (theme: Theme) =>
       alignItems: "stretch",
       borderRadius: 24,
       boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-      padding: "6px 12px",
+      padding: `${theme.spacing(0.75)} ${theme.spacing(1.5)}`,
       minHeight: "44px",
       boxSizing: "border-box",
       position: "relative",
       overflow: "hidden",
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
 
       "&:focus-within": {
         backgroundColor: "rgba(255, 255, 255, 0.05)",
@@ -40,7 +41,7 @@ export const createStyles = (theme: Theme) =>
         alignItems: "center",
         width: "100%",
         paddingTop: "0px",
-        gap: "8px",
+        gap: theme.spacing(1),
 
         ".chat-action-buttons": {
           marginLeft: "auto"
@@ -60,7 +61,7 @@ export const createStyles = (theme: Theme) =>
       outline: "none",
       border: "0",
       borderColor: "transparent",
-      padding: "6px 10px 0px 6px",
+      padding: `${theme.spacing(0.75)} ${theme.spacing(1.25)} 0 ${theme.spacing(0.75)}`,
       margin: "0",
       boxSizing: "border-box",
       "&::placeholder": {
@@ -72,12 +73,12 @@ export const createStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       flexDirection: "row",
-      gap: "6px",
+      gap: theme.spacing(0.75),
       flexShrink: 0,
-      padding: "0 6px",
+      padding: `0 ${theme.spacing(0.75)}`,
       "& button": {
         top: "0",
-        padding: "6px",
+        padding: theme.spacing(0.75),
         position: "relative",
         borderRadius: 12
       }
@@ -88,8 +89,8 @@ export const createStyles = (theme: Theme) =>
     ".file-preview-container": {
       display: "flex",
       flexWrap: "wrap",
-      gap: "6px",
-      padding: "6px 8px"
+      gap: theme.spacing(0.75),
+      padding: `${theme.spacing(0.75)} ${theme.spacing(1)}`
 
       // Mobile styles handled via separate CSS file
     },
@@ -102,7 +103,6 @@ export const createStyles = (theme: Theme) =>
 
       // Mobile styles handled via separate CSS file
 
-
       img: {
         width: "48px",
         height: "48px",
@@ -111,7 +111,7 @@ export const createStyles = (theme: Theme) =>
       },
 
       ".file-icon-wrapper": {
-        padding: "4px",
+        padding: theme.spacing(0.5),
         borderRadius: "var(--rounded-sm)",
         textAlign: "center",
         width: "48px",

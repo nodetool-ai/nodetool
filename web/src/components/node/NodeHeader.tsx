@@ -14,7 +14,7 @@ import ListAltIcon from "@mui/icons-material/ListAlt";
 import { Visibility, InputOutlined, OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { FlexRow, Tooltip, ToolbarIconButton, NotificationBadge } from "../ui_primitives";
+import { BORDER_RADIUS, FlexRow, Tooltip, ToolbarIconButton, NotificationBadge } from "../ui_primitives";
 
 export interface NodeHeaderProps {
   id: string;
@@ -183,7 +183,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           justifyContent: "center",
           width: "16px",
           height: "16px",
-          borderRadius: "999px",
+          borderRadius: BORDER_RADIUS.pill,
           fontSize: "0.6rem",
           fontWeight: 700,
           letterSpacing: "0.02em",
