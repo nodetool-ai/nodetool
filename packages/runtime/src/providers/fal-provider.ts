@@ -342,7 +342,7 @@ if (update.status === "IN_PROGRESS") {
     params: ImageToImageParams
   ): Promise<Record<string, unknown>> {
     const client = await this.getClient();
-    const blob = new Blob([image], { type: "image/png" });
+    const blob = new Blob([new Uint8Array(image) as Uint8Array<ArrayBuffer>], { type: "image/png" });
     const uploadedUrl = await client.storage.upload(blob);
 
     const b = new FalArgsBuilder(modelId);
@@ -380,7 +380,7 @@ if (update.status === "IN_PROGRESS") {
     params: ImageToVideoParams
   ): Promise<Record<string, unknown>> {
     const client = await this.getClient();
-    const blob = new Blob([image], { type: "image/png" });
+    const blob = new Blob([new Uint8Array(image) as Uint8Array<ArrayBuffer>], { type: "image/png" });
     const uploadedUrl = await client.storage.upload(blob);
 
     const b = new FalArgsBuilder(modelId);

@@ -24,6 +24,7 @@ interface SystemInfoData {
   condaEnvPath: string;
   dataPath: string;
   logsPath: string;
+  optionalNodePath: string;
   pythonVersion: string | null;
   cudaAvailable: boolean;
   cudaVersion: string | null;
@@ -227,6 +228,7 @@ Application: ${systemInfo.installPath}
 Conda Environment: ${systemInfo.condaEnvPath}
 Data: ${systemInfo.dataPath}
 Logs: ${systemInfo.logsPath}
+NPM Packages: ${systemInfo.optionalNodePath}
 
 Features & Versions
 -------------------
@@ -342,6 +344,12 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
               copyable
               onCopy={handleCopy}
             />
+            <InfoRow
+              label="NPM Packages"
+              value={systemInfo.optionalNodePath}
+              copyable
+              onCopy={handleCopy}
+            />
           </div>
         </>
       )}
@@ -439,6 +447,28 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
             }}
           >
             Website
+          </a>
+          <a
+            href="https://nodetool.ai/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: "var(--palette-primary-main)",
+              textDecoration: "none"
+            }}
+          >
+            Privacy Policy
+          </a>
+          <a
+            href="https://nodetool.ai/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: "var(--palette-primary-main)",
+              textDecoration: "none"
+            }}
+          >
+            Terms of Use
           </a>
         </FlexColumn>
       </div>

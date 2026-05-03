@@ -21,7 +21,8 @@ import {
 import AudioPlayer from "../audio/AudioPlayer";
 import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
-import { Container, List, ListItem, ListItemText } from "@mui/material";
+import { List, ListItem, ListItemText } from "@mui/material";
+import { Container } from "../ui_primitives";
 import ListTable from "./DataTable/ListTable";
 import ImageView from "./ImageView";
 import AssetViewer from "../assets/AssetViewer";
@@ -37,7 +38,7 @@ import {
   useImageAssets,
   useRevokeBlobUrls,
   useVideoSrc,
-  resolveAssetUri,
+  useSignedUrl,
   getMimeTypeFromUri
 } from "./output";
 import { TextRenderer } from "./output/TextRenderer";
@@ -390,6 +391,16 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
   const videoRef = useVideoSrc(type === "video" ? value : undefined);
 
+  // Extract the primary URI from the current value for signing.
+  // memory:// URIs are excluded — they're in-memory only and never stored.
+  const valueUri = useMemo(() => {
+    if (!value || typeof value !== "object") return undefined;
+    const v = value as Record<string, unknown>;
+    if (typeof v.uri === "string" && v.uri && !v.uri.startsWith("memory://")) return v.uri;
+    return undefined;
+  }, [value]);
+  const signedValueUrl = useSignedUrl(valueUri);
+
   const renderContent = useMemo(() => {
     switch (type) {
       case "plotly_config":
@@ -408,7 +419,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         } else {
           let imageSource: string | Uint8Array;
           if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
-            imageSource = resolveAssetUri(value.uri);
+            imageSource = signedValueUrl;
           } else if (value?.data instanceof Uint8Array) {
             imageSource = value.data;
           } else if (Array.isArray(value?.data)) {
@@ -425,8 +436,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         let audioSource: string | Uint8Array;
 
         if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
-          // Use URI if available (resolve asset:// to /api/storage/)
-          audioSource = resolveAssetUri(value.uri);
+          audioSource = signedValueUrl;
         } else if (Array.isArray(value?.data)) {
           // Convert array of bytes to Uint8Array
           audioSource = new Uint8Array(value.data);
@@ -461,7 +471,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "html": {
         const uri =
           value?.uri && typeof value.uri === "string" && !value.uri.startsWith("memory://")
-            ? resolveAssetUri(value.uri)
+            ? signedValueUrl
             : "";
         if (uri) {
           return (
@@ -500,7 +510,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         const rawUri =
           value?.uri && typeof value.uri === "string" ? value.uri : "";
         const uriFromRef =
-          rawUri && !rawUri.startsWith("memory://") ? resolveAssetUri(rawUri) : "";
+          rawUri && !rawUri.startsWith("memory://") ? signedValueUrl : "";
         const uri = uriFromRef || documentDataPreview.url;
         const mimeType = uriFromRef ? getMimeTypeFromUri(uriFromRef) : undefined;
         const isPdf =
@@ -549,7 +559,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           return <JSONRenderer value={value} showActions={showTextActions} />;
         }
 
-        const url = resolveAssetUri(rawUri);
+        const url = signedValueUrl;
         const format =
           value && typeof value === "object" && typeof (value as Record<string, unknown>).format === "string"
             ? ((value as Record<string, unknown>).format as string)
@@ -939,6 +949,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
   }, [
     value,
     type,
+    signedValueUrl,
     documentDataPreview,
     onDoubleClickAsset,
     videoRef,

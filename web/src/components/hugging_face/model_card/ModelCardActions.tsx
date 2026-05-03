@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback } from "react";
-import { CardActions, Box, Button } from "@mui/material";
+import { CardActions, Box } from "@mui/material";
+import { EditorButton } from "../../ui_primitives";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import { DeleteButton, Tooltip, Text } from "../../ui_primitives";
@@ -17,14 +18,15 @@ import {
 const ModelDownloadButton: React.FC<{ onClick: () => void }> = ({
   onClick
 }) => (
-  <Button
+  <EditorButton
     className="model-download-button"
     onClick={onClick}
     variant="outlined"
+    density="normal"
   >
     <DownloadIcon sx={{ marginRight: "0.5em", fontSize: "1.25em" }} />
     Download
-  </Button>
+  </EditorButton>
 );
 
 const ModelActions: React.FC<{

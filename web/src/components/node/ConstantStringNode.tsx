@@ -18,7 +18,6 @@ import {
 } from "@xyflow/react";
 import { debounce } from "../../utils/lodashAlternatives";
 import isEqual from "fast-deep-equal";
-import { Container, IconButton } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
@@ -26,7 +25,7 @@ import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeOutputs } from "./NodeOutputs";
 import NodeResizeHandle from "./NodeResizeHandle";
-import { CopyButton, Tooltip } from "../ui_primitives";
+import { CopyButton, Tooltip, ToolbarIconButton, Container } from "../ui_primitives";
 import TextEditorModal from "../properties/TextEditorModal";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
@@ -279,11 +278,9 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           workflowId={data.workflow_id}
         />
         <div className="header-actions nodrag nopan">
-          <Tooltip title="Open Editor" placement="bottom">
-            <IconButton size="small" onClick={toggleExpand} aria-label="Open Editor">
-              <OpenInFullIcon />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton title="Open Editor" size="small" onClick={toggleExpand}>
+            <OpenInFullIcon />
+          </ToolbarIconButton>
           <CopyButton value={localValue} buttonSize="small" />
         </div>
       </div>

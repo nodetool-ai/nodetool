@@ -14,15 +14,16 @@ namespace: "lib.docx"
 Creates a new Word document
     document, docx, file, create
 
+## Properties
+
+_(none)_
+
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
 | output | `document` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.docx](../) namespace.
-

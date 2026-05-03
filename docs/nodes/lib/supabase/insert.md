@@ -17,10 +17,10 @@ Insert record(s) into a Supabase table.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | table_name | `str` | Table to insert into | `` |
-| records | `(List[Dict[str, any]] | Dict[str, any])` | One or multiple rows to insert | - |
-| return_rows | `bool` | Return inserted rows (uses select('*')) | `True` |
+| records | `union[list[dict[str, any]], dict[str, any]]` | One or multiple rows to insert | `[]` |
+| return_rows | `bool` | Return inserted rows (uses select('*')) | `true` |
 
 ## Outputs
 
@@ -28,9 +28,6 @@ Insert record(s) into a Supabase table.
 |--------|------|-------------|
 | output | `any` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.supabase](../) namespace.
-

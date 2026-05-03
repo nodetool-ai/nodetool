@@ -17,7 +17,7 @@ Read a document from disk.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Path to the document to read | `` |
 
 ## Outputs
@@ -26,9 +26,6 @@ Read a document from disk.
 |--------|------|-------------|
 | output | `document` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.document](../) namespace.
-

@@ -933,7 +933,7 @@ export default function CreativesPage() {
                 Built with ❤️ by the NodeTool team
               </span>
             </p>
-            <div className="flex items-center gap-6 text-sm text-slate-500">
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-500">
               <Link href="/" className="hover:text-slate-300 transition-colors">
                 Home
               </Link>
@@ -961,6 +961,18 @@ export default function CreativesPage() {
               >
                 Docs
               </a>
+              <Link
+                href="/privacy"
+                className="hover:text-slate-300 transition-colors"
+              >
+                Privacy
+              </Link>
+              <Link
+                href="/terms"
+                className="hover:text-slate-300 transition-colors"
+              >
+                Terms
+              </Link>
             </div>
           </div>
         </div>

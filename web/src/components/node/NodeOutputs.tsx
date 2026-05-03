@@ -4,13 +4,11 @@ import DynamicOutputItem from "./DynamicOutputItem";
 import { Property, OutputSlot, TypeMetadata } from "../../stores/ApiTypes";
 import {
   TextField,
-  Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
-  Button
+  DialogActions
 } from "@mui/material";
-import { FlexRow } from "../ui_primitives";
+import { FlexRow, Dialog, EditorButton } from "../ui_primitives";
 import MenuItem from "@mui/material/MenuItem";
 import { useNodes } from "../../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
@@ -237,16 +235,16 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
           </FlexRow>
         </DialogContent>
         <DialogActions>
-          <Button
+          <EditorButton
             onClick={handleCloseDialog}
             variant="text"
             size="small"
           >
             Cancel
-          </Button>
-          <Button onClick={onSubmitEdit} variant="contained" size="small">
+          </EditorButton>
+          <EditorButton onClick={onSubmitEdit} variant="contained" size="small">
             Save
-          </Button>
+          </EditorButton>
         </DialogActions>
       </Dialog>
     </>

@@ -131,8 +131,32 @@ export const CPUFlavor = { CPU_3C: "cpu3c" };
 export const DataCenter = { US_TEXAS_1: "US-TX-1" };
 
 // vectorstore
-export async function getCollection(_name?: string) {
-  return null;
+export class CollectionNotFoundError extends Error {
+  constructor(name: string) {
+    super(`Vector collection '${name}' not found`);
+    this.name = "CollectionNotFoundError";
+  }
+}
+export function getDefaultVectorProvider() {
+  return {
+    name: "stub",
+    async getCollection({ name }: { name: string }) {
+      throw new CollectionNotFoundError(name);
+    },
+    async listCollections() {
+      return [];
+    },
+    async createCollection() {
+      throw new Error("stub provider");
+    },
+    async getOrCreateCollection() {
+      throw new Error("stub provider");
+    },
+    async deleteCollection() {
+      throw new Error("stub provider");
+    },
+    close() {}
+  };
 }
 
 // runtime storage adapter

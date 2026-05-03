@@ -22,7 +22,7 @@ Get the directory name component of a file path.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | File path to get dirname from | `` |
 
 ## Outputs
@@ -31,9 +31,6 @@ Get the directory name component of a file path.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

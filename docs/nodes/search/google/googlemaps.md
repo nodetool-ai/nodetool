@@ -11,13 +11,13 @@ namespace: "search.google"
 
 ## Description
 
-Search Google Maps for places or get details about a specific place.
-    google, maps, places, locations, serp
+Search Google Maps for places, businesses, and get location details.
+    google, maps, places, locations, serp, geography
 
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | query | `str` | Place name, address, or location query | `` |
 | num_results | `int` | Maximum number of map results to return | `10` |
 
@@ -25,11 +25,9 @@ Search Google Maps for places or get details about a specific place.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `List[local_result]` |  |
-
-## Metadata
+| results | `list[local_result]` |  |
+| text | `str` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [search.google](../) namespace.
-

@@ -22,10 +22,6 @@ const modelListItemStyles = (theme: Theme) =>
           "rgba(var(--palette-primary-main-channel) / 0.35)"
       },
 
-      "&.downloaded": {
-        borderColor: "rgba(var(--palette-success-main-channel) / 0.4)"
-      },
-
       "&.compact": {
         padding: ".5em .75em",
 

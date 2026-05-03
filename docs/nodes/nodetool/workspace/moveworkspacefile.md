@@ -14,15 +14,10 @@ namespace: "nodetool.workspace"
 Move or rename a file within the workspace.
     workspace, file, move, rename
 
-    Use cases:
-    - Rename files in workspace
-    - Move files to subdirectories
-    - Reorganize workspace files
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | source | `str` | Relative source path within workspace | `` |
 | destination | `str` | Relative destination path within workspace | `` |
 
@@ -32,9 +27,6 @@ Move or rename a file within the workspace.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.workspace](../) namespace.
-

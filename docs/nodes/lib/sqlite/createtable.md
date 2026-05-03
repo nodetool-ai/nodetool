@@ -22,12 +22,12 @@ Create a new SQLite table with specified columns.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | database_name | `str` | Name of the SQLite database file | `memory.db` |
 | table_name | `str` | Name of the table to create | `flashcards` |
-| columns | `record_type` | Column definitions | `{'type': 'record_type', 'columns': []}` |
-| add_primary_key | `bool` | Automatically make first integer column PRIMARY KEY AUTOINCREMENT | `True` |
-| if_not_exists | `bool` | Only create table if it doesn't exist | `True` |
+| columns | `record_type` | Column definitions | `{"type":"record_type","columns":[]}` |
+| add_primary_key | `bool` | Automatically make first integer column PRIMARY KEY AUTOINCREMENT | `true` |
+| if_not_exists | `bool` | Only create table if it doesn't exist | `true` |
 
 ## Outputs
 
@@ -37,9 +37,6 @@ Create a new SQLite table with specified columns.
 | table_name | `str` |  |
 | columns | `record_type` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.sqlite](../) namespace.
-

@@ -22,19 +22,16 @@ Convert dataframe column to list.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| dataframe | `dataframe` | The input dataframe. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+|----------|------|-------------|---------|
+| dataframe | `dataframe` | The input dataframe. | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 | column_name | `str` | The name of the column to be converted to a list. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `List[any]` |  |
-
-## Metadata
+| output | `list[any]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

@@ -73,10 +73,6 @@ const EXTERNAL_PACKAGES = [
   "@llamaindex/liteparse",
   "@hyzyla/pdfium",
   "tesseract.js",
-  // Lazy-loaded SDK that fails on Windows when resolved from inside the
-  // ASAR at module init. Keeping it external preserves the lazy semantics.
-  "@anthropic-ai/claude-agent-sdk",
-
   // Emscripten package with a package-relative .wasm asset. Keeping it external
   // preserves import.meta.url so emscripten-module.wasm resolves next to the
   // package's own JS instead of next to backend/server.mjs.

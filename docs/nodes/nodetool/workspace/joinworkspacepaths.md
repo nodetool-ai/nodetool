@@ -14,16 +14,11 @@ namespace: "nodetool.workspace"
 Join path components relative to workspace.
     workspace, path, join, combine
 
-    Use cases:
-    - Build file paths within workspace
-    - Construct nested paths
-    - Create organized file structures
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| paths | `List[str]` | Path components to join (relative to workspace) | `[]` |
+|----------|------|-------------|---------|
+| paths | `list[str]` | Path components to join (relative to workspace) | `[]` |
 
 ## Outputs
 
@@ -31,9 +26,6 @@ Join path components relative to workspace.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.workspace](../) namespace.
-

@@ -4,8 +4,6 @@ import React, { useMemo, useState, useCallback, memo } from "react";
 import { Box, Link } from "@mui/material";
 import { Chip, FlexRow, Tooltip, Text } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
-import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
-import FavoriteIcon from "@mui/icons-material/Favorite";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { ModelComponentProps } from "../ModelUtils";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
@@ -34,7 +32,6 @@ const ModelListItem: React.FC<
   handleModelDelete,
   handleShowInExplorer,
   compactView = false,
-  showModelStats = true,
   showFileExplorerButton = true,
   compatibility,
   isCheckingCache = false
@@ -252,26 +249,6 @@ const ModelListItem: React.FC<
         </div>
 
         <div className="model-details">
-          {model.type?.startsWith("hf.") && showModelStats && (
-            <div className="model-stats">
-              <div className="model-stats-item">
-                <Tooltip title="Downloads on HF last month">
-                  <CloudDownloadIcon fontSize="small" />
-                </Tooltip>
-                <Text component="span" size="small">
-                  {model.downloads?.toLocaleString() || "N/A"}
-                </Text>
-              </div>
-              <div className="model-stats-item">
-                <Tooltip title="Likes on HF">
-                  <FavoriteIcon fontSize="small" />
-                </Tooltip>
-                <Text component="span" size="small">
-                  {model.likes?.toLocaleString() || "N/A"}
-                </Text>
-              </div>
-            </div>
-          )}
           {model.description && (
             <div className="model-description-container">
               <Text component="span" className="model-description">

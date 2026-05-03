@@ -201,6 +201,75 @@ import { SPACING, GAP, PADDING } from "../ui_primitives";
 | `SPACING.xxl` | 5 | 20px |
 | `SPACING.huge` | 6 | 24px |
 
+## Design Tokens
+
+Beyond spacing, use these constants from `tokens.ts` for consistent values across all style files.
+
+### MOTION — transition timing
+
+```ts
+import { MOTION } from "../ui_primitives";
+
+// Single property
+transition: MOTION.all          // "all 200ms ease"
+transition: MOTION.border       // "border-color 200ms ease"
+transition: MOTION.background   // "background-color 150ms ease"
+transition: MOTION.transform    // "transform 120ms ease"
+transition: MOTION.opacity      // "opacity 150ms ease"
+transition: MOTION.shadow       // "box-shadow 200ms ease"
+
+// Compose multiple
+transition: `${MOTION.border}, ${MOTION.shadow}`
+```
+
+| Token | Value | Use |
+|---|---|---|
+| `MOTION.fast` | `120ms ease` | Hover micro-interactions |
+| `MOTION.normal` | `200ms ease` | Standard UI transitions |
+| `MOTION.slow` | `350ms ease` | Panel/drawer animations |
+
+### Z_INDEX — stacking layers
+
+```ts
+import { Z_INDEX } from "../ui_primitives";
+
+zIndex: Z_INDEX.raised    // 1 — slightly elevated in flow
+zIndex: Z_INDEX.dropdown  // 10 — menus, popovers
+zIndex: Z_INDEX.sticky    // 20 — sticky headers
+zIndex: Z_INDEX.overlay   // 100 — backdrops
+zIndex: Z_INDEX.modal     // 200 — dialogs
+zIndex: Z_INDEX.tooltip   // 300 — tooltips
+zIndex: Z_INDEX.toast     // 400 — toasts/notifications
+```
+
+### BORDER_RADIUS — consistent radii
+
+```ts
+import { BORDER_RADIUS } from "../ui_primitives";
+
+borderRadius: BORDER_RADIUS.sm     // "var(--rounded-sm)"
+borderRadius: BORDER_RADIUS.lg     // "var(--rounded-lg)"
+borderRadius: BORDER_RADIUS.pill   // "999px" — tags, chips, compact buttons
+borderRadius: BORDER_RADIUS.circle // "var(--rounded-circle)"
+```
+
+Use `BORDER_RADIUS` instead of raw `"var(--rounded-*)"` strings or magic numbers like `999`, `10`, `4`.
+
+### scrollbarStyles — standard themed scrollbar
+
+In Emotion `css()` blocks, spread `scrollbarStyles(theme)` wherever you need the app's standard scrollbar appearance (uses the `c_scroll_thumb`/`c_scroll_bg`/`c_scroll_hover` palette tokens):
+
+```ts
+import { scrollbarStyles } from "../ui_primitives/tokens";
+
+css({
+  overflowY: "auto",
+  ...scrollbarStyles(theme),
+})
+```
+
+Only use `scrollbarStyles` for the standard scroll appearance. Components with intentionally different scrollbar colors (e.g. chat thread) keep their own styles.
+
 ## Related Documents
 
 - **[Primitives README](./README.md)** — Full API reference with usage examples

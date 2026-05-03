@@ -69,6 +69,7 @@
     "workflow": "node ./scripts/run-workflow.mjs",
     "chat": "node ./packages/cli/dist/index.js",
     "nodetool": "node ./packages/cli/dist/nodetool.js",
+    "generate:node-docs": "node scripts/generate-node-docs.mjs",
     "generate:fal": "npm run generate --workspace=packages/fal-codegen",
     "generate:replicate": "npm run generate --workspace=packages/replicate-codegen -- --all && npm run extract-manifest --workspace=packages/replicate-nodes",
     "generate:kie": "npm run generate --workspace=packages/kie-codegen -- --all",
@@ -120,10 +121,10 @@
     "tsx": "^4.0.0",
     "turbo": "^2.9.6",
     "typescript-eslint": "^8.56.1",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.2",
+    "@openai/codex-sdk": "^0.118.0"
   },
   "dependencies": {
-    "@openai/codex-sdk": "^0.118.0",
     "keytar": "^7.9.0",
     "msgpackr": "^1.11.9"
   },

@@ -22,18 +22,15 @@ Extracts metadata from an RSS feed.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | url | `str` | URL of the RSS feed | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `Dict[Any, Any]` |  |
-
-## Metadata
+| output | `dict` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.rss](../) namespace.
-

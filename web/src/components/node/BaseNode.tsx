@@ -20,7 +20,6 @@ import {
   Box,
   Button,
   CircularProgress,
-  Container,
   Divider,
   Link,
   Menu,
@@ -28,8 +27,8 @@ import {
   Typography
 } from "@mui/material";
 import isEqual from "fast-deep-equal";
-import { Tooltip, EditorButton } from "../ui_primitives";
 import LaunchIcon from "@mui/icons-material/Launch";
+import { Tooltip, EditorButton, Container } from "../ui_primitives";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";

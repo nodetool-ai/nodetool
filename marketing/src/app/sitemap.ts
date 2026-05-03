@@ -10,6 +10,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
     },
     {
+      url: `${BASE_URL}/studio`,
+      lastModified: now,
+    },
+    {
+      url: `${BASE_URL}/cloud`,
+      lastModified: now,
+    },
+    {
       url: `${BASE_URL}/agents`,
       lastModified: now,
     },
@@ -23,6 +31,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${BASE_URL}/developers`,
+      lastModified: now,
+    },
+    {
+      url: `${BASE_URL}/imprint`,
+      lastModified: now,
+    },
+    {
+      url: `${BASE_URL}/privacy`,
+      lastModified: now,
+    },
+    {
+      url: `${BASE_URL}/terms`,
       lastModified: now,
     },
   ];

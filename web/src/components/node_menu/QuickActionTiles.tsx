@@ -8,7 +8,7 @@ import type {
   DragEvent as ReactDragEvent,
   ReactNode
 } from "react";
-import { Tooltip, Text } from "../ui_primitives";
+import { Tooltip, Text, thinScrollbarStyles } from "../ui_primitives";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import ImageIcon from "@mui/icons-material/Image";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
@@ -272,19 +272,7 @@ const tileStyles = (theme: Theme) =>
       alignContent: "start",
       marginTop: "12px",
       padding: "2px",
-      "&::-webkit-scrollbar": {
-        width: "6px"
-      },
-      "&::-webkit-scrollbar-track": {
-        background: "transparent"
-      },
-      "&::-webkit-scrollbar-thumb": {
-        backgroundColor: theme.vars.palette.action.disabledBackground,
-        borderRadius: "var(--rounded-lg)"
-      },
-      "&::-webkit-scrollbar-thumb:hover": {
-        backgroundColor: theme.vars.palette.action.disabled
-      }
+      ...thinScrollbarStyles(theme)
     },
     ".quick-tile": {
       display: "flex",

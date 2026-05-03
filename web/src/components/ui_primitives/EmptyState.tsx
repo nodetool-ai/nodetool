@@ -47,8 +47,8 @@ export interface EmptyStateProps {
   icon?: React.ReactNode;
   /** Title text */
   title?: string;
-  /** Description text */
-  description?: string;
+  /** Description text or element */
+  description?: React.ReactNode;
   /** Action button text */
   actionText?: string;
   /** Action button callback */
@@ -119,7 +119,7 @@ export const EmptyState: React.FC<EmptyStateProps> = memo(({
         {displayTitle}
       </Typography>
       {displayDescription && (
-        <Typography variant={descriptionVariant} className="empty-description">
+        <Typography variant={descriptionVariant} className="empty-description" component="div">
           {displayDescription}
         </Typography>
       )}

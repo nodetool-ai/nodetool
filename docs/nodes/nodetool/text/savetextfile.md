@@ -17,19 +17,10 @@ Saves input text to a file in the assets folder.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | text | `str` |  | `` |
 | folder | `str` | Path to the output folder. | `` |
-| name | `str` | 
-        Name of the output file.
-        You can use time and date variables to create unique names:
-        %Y - Year
-        %m - Month
-        %d - Day
-        %H - Hour
-        %M - Minute
-        %S - Second
-         | `%Y-%m-%d-%H-%M-%S.txt` |
+| name | `str` |          Name of the output file.         You can use time and date variables to create unique names:         %Y - Year         %m - Month         %d - Day         %H - Hour         %M - Minute         %S - Second          | `%Y-%m-%d-%H-%M-%S.txt` |
 
 ## Outputs
 
@@ -37,9 +28,6 @@ Saves input text to a file in the assets folder.
 |--------|------|-------------|
 | output | `text` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.text](../) namespace.
-

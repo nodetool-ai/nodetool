@@ -26,6 +26,7 @@ import {
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSecrets } from "../../hooks/useSecrets";
+import { useNavigate } from "react-router-dom";
 
 import type { Theme } from "@mui/material/styles";
 
@@ -123,7 +124,12 @@ function ModelList<TModel extends ModelSelectorModel>({
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
   const { isApiKeySet } = useSecrets();
   const theme = useTheme();
+  const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleOpenSettings = useCallback(() => {
+    navigate("/settings?tab=1");
+  }, [navigate]);
 
   const virtualizer = useVirtualizer({
     count: models.length,
@@ -344,7 +350,7 @@ function ModelList<TModel extends ModelSelectorModel>({
             variant="no-results"
             size="small"
             title="No models found"
-            description={`No models match "${searchTerm}". Try a different term, enable more providers, or download a local model from the Downloads tab.`}
+            description={`No models match "${searchTerm}". Try a different term or enable more providers.`}
           />
         ) : hasDownloads ? (
           <EmptyState
@@ -352,7 +358,24 @@ function ModelList<TModel extends ModelSelectorModel>({
             size="small"
             icon={<DownloadIcon className="empty-icon" />}
             title="No models yet — let's get started"
-            description="Download a local model or add an API key for a cloud provider to get going."
+            description={
+              <>
+                Download a local model or add an API key for a cloud provider to get going.
+                {" "}
+                <Box
+                  component="span"
+                  sx={{
+                    color: "primary.main",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    "&:hover": { opacity: 0.8 }
+                  }}
+                  onClick={handleOpenSettings}
+                >
+                  Open Settings
+                </Box>
+              </>
+            }
             actionText="Browse Recommended Downloads"
             onAction={onGoToDownloads}
           />
@@ -361,7 +384,26 @@ function ModelList<TModel extends ModelSelectorModel>({
             variant="empty"
             size="small"
             title="No models available"
-            description="Enable a provider in the left sidebar or add an API key in Settings."
+            description={
+              <>
+                Enable a provider in the left sidebar or add an API key in{" "}
+                <Box
+                  component="span"
+                  sx={{
+                    color: "primary.main",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    "&:hover": { opacity: 0.8 }
+                  }}
+                  onClick={handleOpenSettings}
+                >
+                  Settings
+                </Box>
+                .
+              </>
+            }
+            actionText="Open Settings"
+            onAction={handleOpenSettings}
           />
         )
       ) : (

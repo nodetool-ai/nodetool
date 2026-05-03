@@ -205,6 +205,27 @@ describe("SecretsMenu", () => {
         })
       ).toBeInTheDocument();
     });
+
+    it("should render full URLs in descriptions as one link", async () => {
+      const url = "https://platform.minimax.chat/user-center/basic-information/interface-key";
+      setupSecrets([
+        {
+          key: "MINIMAX_API_KEY",
+          description: `MiniMax API key for accessing MiniMax AI models. Get yours at ${url}`,
+          is_configured: false,
+          updated_at: null
+        }
+      ]);
+
+      render(<SecretsMenu />, { wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText("MINIMAX_API_KEY")).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole("link", { name: url })).toHaveAttribute("href", url);
+      expect(screen.queryByText(".minimax.chat/user-center/basic-information/interface-key")).not.toBeInTheDocument();
+    });
   });
 
 

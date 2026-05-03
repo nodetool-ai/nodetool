@@ -5,13 +5,12 @@ import LoginIcon from "@mui/icons-material/Login";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useMemo, useState, useCallback, useEffect, memo } from "react";
 import {
-  Button,
   Select,
   MenuItem,
   FormControl,
   InputLabel
 } from "@mui/material";
-import { TextInput, Text } from "../ui_primitives";
+import { TextInput, Text, EditorButton } from "../ui_primitives";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore, {
   type SettingWithValue
@@ -401,7 +400,7 @@ const RemoteSettings = () => {
                   <Text className="description">
                     Connect your HuggingFace account to access premium models and features
                   </Text>
-                  <Button
+                  <EditorButton
                     variant="contained"
                     color="primary"
                     onClick={handleHuggingFaceOAuth}
@@ -420,7 +419,7 @@ const RemoteSettings = () => {
                       : hfOAuthLoading
                         ? "Connecting..."
                         : "Connect with HuggingFace"}
-                  </Button>
+                  </EditorButton>
                 </div>
               </div>
 
@@ -449,7 +448,7 @@ const RemoteSettings = () => {
               )}
 
               <div className="save-button-container">
-                <Button
+                <EditorButton
                   variant="contained"
                   color="primary"
                   onClick={handleSave}
@@ -457,7 +456,7 @@ const RemoteSettings = () => {
                   startIcon={<SaveIcon />}
                 >
                   SAVE SETTINGS
-                </Button>
+                </EditorButton>
               </div>
             </div>
           </div>

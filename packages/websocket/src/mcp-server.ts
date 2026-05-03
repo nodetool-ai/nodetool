@@ -86,10 +86,20 @@ function getRuntimeEnvironment(
       });
       registerBaseNodes(registry);
       registerElevenLabsNodes(registry);
-      registerTransformersJsNodes(registry);
+      if (process.env["NODETOOL_ENV"] !== "production") {
+        registerTransformersJsNodes(registry);
+      }
       registerFalNodes(registry);
       registerKieNodes(registry);
       registerReplicateNodes(registry);
+      if (process.env["NODETOOL_ENV"] === "production") {
+        const skippedPrefixes = ["lib.tensorflow.", "transformers."];
+        for (const nodeType of registry.list()) {
+          if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
+            registry.unregister(nodeType);
+          }
+        }
+      }
 
       const pythonBridge = new PythonStdioBridge({
         workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
@@ -870,13 +880,16 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ limit }) => {
       try {
-        const { getVecStore } = await import("@nodetool-ai/vectorstore");
-        const store = await getVecStore();
-        const collections = await store.listCollections();
+        const { getDefaultVectorProvider } = await import(
+          "@nodetool-ai/vectorstore"
+        );
+        const provider = getDefaultVectorProvider();
+        const collections = await provider.listCollections();
         const result = await Promise.all(
-          collections.slice(0, limit).map(async (c) => {
-            const count = await c.count();
-            const metadata = c.metadata ?? {};
+          collections.slice(0, limit).map(async (info) => {
+            const collection = await provider.getCollection({ name: info.name });
+            const count = await collection.count();
+            const metadata = info.metadata ?? {};
             let workflowName: string | null = null;
             const workflowId = metadata.workflow as string | undefined;
             if (workflowId) {
@@ -884,7 +897,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
               if (workflow) workflowName = workflow.name;
             }
             return {
-              name: c.name,
+              name: info.name,
               count,
               metadata,
               workflow_name: workflowName
@@ -921,9 +934,11 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ name }) => {
       try {
-        const { getVecStore } = await import("@nodetool-ai/vectorstore");
-        const store = await getVecStore();
-        const collection = await store.getCollection({ name });
+        const { getDefaultVectorProvider } = await import(
+          "@nodetool-ai/vectorstore"
+        );
+        const provider = getDefaultVectorProvider();
+        const collection = await provider.getCollection({ name });
         const count = await collection.count();
         return {
           content: [
@@ -963,13 +978,24 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ name, query_texts, n_results }) => {
       try {
-        const { getVecStore } = await import("@nodetool-ai/vectorstore");
-        const store = await getVecStore();
-        const collection = await store.getCollection({ name });
-        const results = await collection.query({
-          queryTexts: query_texts,
-          nResults: n_results
-        });
+        const { getDefaultVectorProvider } = await import(
+          "@nodetool-ai/vectorstore"
+        );
+        const provider = getDefaultVectorProvider();
+        const collection = await provider.getCollection({ name });
+
+        const ids: string[][] = [];
+        const documents: (string | null)[][] = [];
+        const metadatas: (Record<string, unknown> | null)[][] = [];
+        const distances: number[][] = [];
+        for (const text of query_texts) {
+          const matches = await collection.query({ text, topK: n_results });
+          ids.push(matches.map((m) => m.id));
+          documents.push(matches.map((m) => m.document));
+          metadatas.push(matches.map((m) => m.metadata));
+          distances.push(matches.map((m) => m.distance));
+        }
+        const results = { ids, documents, metadatas, distances };
         return {
           content: [{ type: "text" as const, text: JSON.stringify(results) }]
         };

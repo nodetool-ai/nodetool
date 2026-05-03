@@ -62,10 +62,9 @@ export const deleteOutput = z.object({
 });
 
 // ── query (POST /api/collections/:name/query) ─────────────────────
-// Mirrors VecCollection.query opts — we expose the common shape used by the
-// REST handler: query_texts + n_results. Advanced filters (queryEmbeddings,
-// queryURIs, whereDocument, include) are intentionally not part of the public
-// tRPC surface at this stage.
+// Public wire shape for collection queries. Per-text embeddings and metadata
+// filters are intentionally not exposed at this stage; callers that need them
+// should use the in-process VectorCollection.query API directly.
 export const queryInput = z.object({
   name: z.string().min(1),
   query_texts: z.array(z.string()).min(1),

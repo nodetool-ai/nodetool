@@ -8,9 +8,9 @@
 
 import { Workflow } from "@nodetool-ai/models";
 import {
-  getVecStore,
-  VecNotFoundError,
-  type CollectionMetadata
+  getDefaultVectorProvider,
+  CollectionNotFoundError,
+  type ProviderCollectionMetadata
 } from "@nodetool-ai/vectorstore";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -29,16 +29,16 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/collections.js";
 
 /**
- * Normalize a CollectionMetadata (may contain `undefined` values per the
- * vectorstore type) to the wire schema (string | number | boolean only).
+ * Normalize a CollectionMetadata (may contain `undefined`/`null`) to the wire
+ * schema (string | number | boolean only).
  */
 function normalizeMetadata(
-  metadata: CollectionMetadata | undefined
+  metadata: ProviderCollectionMetadata | undefined
 ): Record<string, string | number | boolean> {
   const result: Record<string, string | number | boolean> = {};
   if (!metadata) return result;
   for (const [key, value] of Object.entries(metadata)) {
-    if (value !== undefined) result[key] = value;
+    if (value !== undefined && value !== null) result[key] = value;
   }
   return result;
 }
@@ -61,9 +61,9 @@ async function resolveWorkflowName(
   }
 }
 
-/** Map VecNotFoundError → tRPC NOT_FOUND. Re-throws anything else. */
+/** Map CollectionNotFoundError → tRPC NOT_FOUND. Re-throws anything else. */
 function rethrowAsTrpc(err: unknown): never {
-  if (err instanceof VecNotFoundError) {
+  if (err instanceof CollectionNotFoundError) {
     throwApiError(ApiErrorCode.NOT_FOUND, "Collection not found");
   }
   throw err;
@@ -71,18 +71,19 @@ function rethrowAsTrpc(err: unknown): never {
 
 export const collectionsRouter = router({
   list: protectedProcedure.output(listOutput).query(async () => {
-    const store = await getVecStore();
-    const collections = await store.listCollections();
+    const provider = getDefaultVectorProvider();
+    const collections = await provider.listCollections();
 
     const results = await Promise.all(
-      collections.map(async (col) => {
-        const count = await col.count();
-        const metadata = normalizeMetadata(col.metadata);
+      collections.map(async (info) => {
+        const collection = await provider.getCollection({ name: info.name });
+        const count = await collection.count();
+        const metadata = normalizeMetadata(info.metadata);
         const workflowName = await resolveWorkflowName(
           typeof metadata.workflow === "string" ? metadata.workflow : undefined
         );
         return {
-          name: col.name,
+          name: info.name,
           count,
           metadata,
           workflow_name: workflowName
@@ -97,9 +98,9 @@ export const collectionsRouter = router({
     .input(getInput)
     .output(collectionResponse)
     .query(async ({ input }) => {
-      const store = await getVecStore();
+      const provider = getDefaultVectorProvider();
       try {
-        const collection = await store.getCollection({ name: input.name });
+        const collection = await provider.getCollection({ name: input.name });
         const count = await collection.count();
         return {
           name: collection.name,
@@ -115,8 +116,8 @@ export const collectionsRouter = router({
     .input(createInput)
     .output(collectionResponse)
     .mutation(async ({ input }) => {
-      const store = await getVecStore();
-      const metadata: Record<string, string> = {};
+      const provider = getDefaultVectorProvider();
+      const metadata: ProviderCollectionMetadata = {};
       if (input.embedding_model) {
         metadata.embedding_model = input.embedding_model;
       }
@@ -124,7 +125,7 @@ export const collectionsRouter = router({
         metadata.embedding_provider = input.embedding_provider;
       }
 
-      const collection = await store.createCollection({
+      const collection = await provider.createCollection({
         name: input.name,
         metadata
       });
@@ -140,16 +141,16 @@ export const collectionsRouter = router({
     .input(updateInput)
     .output(collectionResponse)
     .mutation(async ({ input }) => {
-      const store = await getVecStore();
+      const provider = getDefaultVectorProvider();
       let collection;
       try {
-        collection = await store.getCollection({ name: input.name });
+        collection = await provider.getCollection({ name: input.name });
       } catch (err) {
         rethrowAsTrpc(err);
       }
 
       const existing = normalizeMetadata(collection.metadata);
-      const merged = { ...existing };
+      const merged: ProviderCollectionMetadata = { ...existing };
       if (input.metadata) {
         Object.assign(merged, input.metadata);
       }
@@ -160,7 +161,7 @@ export const collectionsRouter = router({
       const count = await collection.count();
       return {
         name: newName,
-        metadata: merged,
+        metadata: normalizeMetadata(merged),
         count
       };
     }),
@@ -169,9 +170,9 @@ export const collectionsRouter = router({
     .input(deleteInput)
     .output(deleteOutput)
     .mutation(async ({ input }) => {
-      const store = await getVecStore();
+      const provider = getDefaultVectorProvider();
       try {
-        await store.deleteCollection({ name: input.name });
+        await provider.deleteCollection(input.name);
       } catch (err) {
         rethrowAsTrpc(err);
       }
@@ -182,17 +183,30 @@ export const collectionsRouter = router({
     .input(queryInput)
     .output(queryOutput)
     .query(async ({ input }) => {
-      const store = await getVecStore();
+      const provider = getDefaultVectorProvider();
       let collection;
       try {
-        collection = await store.getCollection({ name: input.name });
+        collection = await provider.getCollection({ name: input.name });
       } catch (err) {
         rethrowAsTrpc(err);
       }
-      const results = await collection.query({
-        queryTexts: input.query_texts,
-        nResults: input.n_results
-      });
-      return results;
+
+      const ids: string[][] = [];
+      const documents: (string | null)[][] = [];
+      const metadatas: (Record<string, unknown> | null)[][] = [];
+      const distances: number[][] = [];
+
+      for (const text of input.query_texts) {
+        const matches = await collection.query({
+          text,
+          topK: input.n_results
+        });
+        ids.push(matches.map((m) => m.id));
+        documents.push(matches.map((m) => m.document));
+        metadatas.push(matches.map((m) => m.metadata));
+        distances.push(matches.map((m) => m.distance));
+      }
+
+      return { ids, documents, metadatas, distances };
     })
 });

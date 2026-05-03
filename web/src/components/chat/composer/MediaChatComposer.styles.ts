@@ -1,5 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
+import { MOTION, BORDER_RADIUS } from "../../ui_primitives/tokens";
 
 /**
  * Slick media-generation composer styles — a rounded glass surface with a
@@ -15,7 +16,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
     ".media-compose-card": {
       width: "100%",
       borderRadius: 22,
-      padding: "14px 16px 12px",
+      padding: `${theme.spacing(1.75)} ${theme.spacing(2)} ${theme.spacing(1.5)}`,
       background: theme.vars.palette.background.paper,
       backdropFilter: "blur(16px)",
       border: `1px solid ${
@@ -29,9 +30,8 @@ export const createMediaComposerStyles = (theme: Theme) =>
           : "0 10px 40px rgba(0,0,0,0.45)",
       display: "flex",
       flexDirection: "column",
-      gap: 10,
-      transition:
-        "border-color 180ms ease, box-shadow 180ms ease",
+      gap: theme.spacing(1.25),
+      transition: `${MOTION.border}, ${MOTION.shadow}`,
       "&:focus-within": {
         borderColor:
           theme.palette.mode === "light"
@@ -51,7 +51,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
       width: "100%",
       minHeight: 48,
       maxHeight: 220,
-      padding: "4px 6px",
+      padding: `${theme.spacing(0.5)} ${theme.spacing(0.75)}`,
       margin: 0,
       resize: "none",
       background: "transparent",
@@ -72,7 +72,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
     ".media-chip-row": {
       display: "flex",
       alignItems: "center",
-      gap: 4,
+      gap: theme.spacing(0.5),
       width: "100%",
       flexWrap: "wrap"
     },
@@ -80,9 +80,9 @@ export const createMediaComposerStyles = (theme: Theme) =>
     ".media-chip-row .divider-dot": {
       width: 4,
       height: 4,
-      borderRadius: "var(--rounded-circle)",
+      borderRadius: BORDER_RADIUS.circle,
       background: theme.vars.palette.grey[700],
-      margin: "0 2px"
+      margin: `0 ${theme.spacing(0.25)}`
     },
 
     ".media-chip-spacer": {
@@ -95,12 +95,12 @@ export const createMediaComposerStyles = (theme: Theme) =>
       justifyContent: "center",
       width: 32,
       height: 32,
-      borderRadius: 999,
+      borderRadius: BORDER_RADIUS.pill,
       background: "transparent",
       border: "none",
       color: theme.vars.palette.grey[300],
       cursor: "pointer",
-      transition: "background-color 140ms ease",
+      transition: MOTION.background,
       "&:hover:not(:disabled)": {
         backgroundColor: theme.vars.palette.action.hover
       },
@@ -116,8 +116,8 @@ export const createMediaComposerStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       height: 36,
-      padding: "0 20px",
-      borderRadius: 999,
+      padding: `0 ${theme.spacing(2.5)}`,
+      borderRadius: BORDER_RADIUS.pill,
       background: `linear-gradient(135deg, ${theme.vars.palette.primary.main} 0%, ${theme.vars.palette.primary.light} 100%)`,
       color: theme.vars.palette.primary.contrastText,
       border: "none",
@@ -126,7 +126,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
       fontSize: 14,
       fontWeight: 600,
       letterSpacing: 0.25,
-      transition: "transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease",
+      transition: `${MOTION.transform}, ${MOTION.shadow}, ${MOTION.opacity}`,
       boxShadow: "0 4px 14px rgba(74, 123, 255, 0.35)",
       "&:hover:not(:disabled)": {
         transform: "translateY(-1px)",
@@ -146,7 +146,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
       background: theme.vars.palette.grey[100],
       color: theme.vars.palette.grey[900],
       boxShadow: "none",
-      padding: "0 16px",
+      padding: `0 ${theme.spacing(2)}`,
       "&:hover:not(:disabled)": {
         background: theme.vars.palette.grey[50]
       }
@@ -155,7 +155,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
     ".media-file-preview-row": {
       display: "flex",
       flexWrap: "wrap",
-      gap: 6
+      gap: theme.spacing(0.75)
     },
 
     ".file-preview": {

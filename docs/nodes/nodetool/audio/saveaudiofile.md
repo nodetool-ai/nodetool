@@ -18,22 +18,16 @@ Write an audio file to disk.
     %Y - Year, %m - Month, %d - Day
     %H - Hour, %M - Minute, %S - Second
 
+    Supported formats: mp3, wav, ogg, flac, aac, m4a
+
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| audio | `audio` | The audio to save | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| audio | `audio` | The audio to save | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 | folder | `str` | Folder where the file will be saved | `` |
-| filename | `str` | 
-        Name of the file to save.
-        You can use time and date variables to create unique names:
-        %Y - Year
-        %m - Month
-        %d - Day
-        %H - Hour
-        %M - Minute
-        %S - Second
-         | `` |
+| filename | `str` |          Name of the file to save.         You can use time and date variables to create unique names:         %Y - Year         %m - Month         %d - Day         %H - Hour         %M - Minute         %S - Second          | `` |
+| FORMAT_MAP | `dict[str, str]` |  | `{".mp3":"mp3",".wav":"wav",".ogg":"ogg",".flac"...` |
 
 ## Outputs
 
@@ -41,9 +35,6 @@ Write an audio file to disk.
 |--------|------|-------------|
 | output | `audio` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.audio](../) namespace.
-

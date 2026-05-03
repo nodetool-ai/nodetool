@@ -3,10 +3,9 @@ layout: page
 title: "lib.ocr Nodes"
 ---
 
-
-This namespace contains 1 node(s).
+This namespace contains 2 node(s).
 
 ## Available Nodes
 
-- **[Paddle OCR](paddleocr.md)** - Performs Optical Character Recognition (OCR) on images using PaddleOCR.
-    image, text, ocr, doc...
+- **[OCR Extract Data](ocrextractdata.md)** - Run OCR on an image and return structured data: full text, mean confidence, a...
+- **[OCR Extract Text](ocrextracttext.md)** - Extract plain text from an image using Tesseract OCR.

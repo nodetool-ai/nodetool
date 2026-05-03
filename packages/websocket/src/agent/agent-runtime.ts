@@ -7,7 +7,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, importOptionalModule } from "@nodetool-ai/config";
 // `@anthropic-ai/claude-agent-sdk` is an optionalDependencies package that
 // isn't always resolvable inside the packaged Electron ASAR (notably on
 // Windows). Importing it statically would crash the backend at startup
@@ -256,7 +256,9 @@ class ClaudeAgentSession implements AgentQuerySession {
         ? Object.keys(uiToolSchemas).map((n) => `mcp__nodetool-ui__${n}`)
         : [];
 
-      const { query } = await import("@anthropic-ai/claude-agent-sdk");
+      const { query } = await importOptionalModule<typeof import("@anthropic-ai/claude-agent-sdk")>(
+        "@anthropic-ai/claude-agent-sdk"
+      );
       const queryHandle = query({
         prompt: message,
         options: {
@@ -402,7 +404,9 @@ class ClaudeSdkProvider implements AgentSdkProvider {
     _userId: string,
   ): Promise<AgentSessionInfoEntry[]> {
     try {
-      const { listSessions } = await import("@anthropic-ai/claude-agent-sdk");
+      const { listSessions } = await importOptionalModule<typeof import("@anthropic-ai/claude-agent-sdk")>(
+        "@anthropic-ai/claude-agent-sdk"
+      );
       const sdkSessions: SDKSessionInfo[] = await listSessions({
         dir: options.dir,
         limit: options.limit ?? 50,

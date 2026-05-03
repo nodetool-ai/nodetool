@@ -8,7 +8,7 @@ import React, {
   useCallback
 } from "react";
 import { useMediaQuery } from "@mui/material";
-import { AlertBanner, Text, Caption, FlexRow, FlexColumn } from "../../ui_primitives";
+import { AlertBanner, BORDER_RADIUS, Text, Caption, FlexRow, FlexColumn } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
@@ -443,7 +443,7 @@ const StandaloneChat: React.FC = () => {
                 display: "inline-flex",
                 py: 0.5,
                 px: 1,
-                borderRadius: "999px",
+                borderRadius: BORDER_RADIUS.pill,
                 backgroundColor: `rgba(${theme.vars.palette.info.mainChannel} / 0.12)`,
                 color: theme.vars.palette.info.main
               }}

@@ -221,74 +221,78 @@ s(
 sec(
   "OPENAI_API_KEY",
   "OpenAI",
-  "OpenAI API key for accessing GPT models, DALL-E, and other OpenAI services"
+  "OpenAI API key for accessing GPT models, DALL-E, and other OpenAI services. Get yours at https://platform.openai.com/api-keys"
 );
 sec(
   "OPENROUTER_API_KEY",
   "OpenRouter",
-  "OpenRouter API key for accessing multiple AI models through a unified API"
+  "OpenRouter API key for accessing multiple AI models through a unified API. Get yours at https://openrouter.ai/settings/keys"
 );
 sec(
   "ANTHROPIC_API_KEY",
   "Anthropic",
-  "Anthropic API key for accessing Claude models and other Anthropic services"
+  "Anthropic API key for accessing Claude models and other Anthropic services. Get yours at https://console.anthropic.com/settings/keys"
 );
 sec(
   "CEREBRAS_API_KEY",
   "Cerebras",
-  "Cerebras API key for accessing fast LLM inference on Cerebras hardware"
+  "Cerebras API key for accessing fast LLM inference on Cerebras hardware. Get yours at https://cloud.cerebras.ai/"
 );
 sec(
   "TOGETHER_API_KEY",
   "Together",
-  "Together AI API key for accessing open-source LLMs through Together's inference API"
+  "Together AI API key for accessing open-source LLMs through Together's inference API. Get yours at https://api.together.ai/settings/api-keys"
 );
 sec(
   "DEEPSEEK_API_KEY",
   "DeepSeek",
-  "DeepSeek API key for accessing DeepSeek-V3 chat and DeepSeek-R1 reasoning models"
+  "DeepSeek API key for accessing DeepSeek-V3 chat and DeepSeek-R1 reasoning models. Get yours at https://platform.deepseek.com/api-keys"
 );
 sec(
   "XAI_API_KEY",
   "xAI",
-  "xAI API key for accessing Grok models via xAI's OpenAI-compatible API"
+  "xAI API key for accessing Grok models via xAI's OpenAI-compatible API. Get yours at https://console.x.ai/"
 );
 sec(
   "GROQ_API_KEY",
   "Groq",
-  "Groq API key for accessing ultra-fast LLM inference on Groq's LPU hardware"
+  "Groq API key for accessing ultra-fast LLM inference on Groq's LPU hardware. Get yours at https://console.groq.com/keys"
 );
 sec(
   "ZHIPU_API_KEY",
   "ZAI",
-  "Z.AI API key for accessing GLM models through Z.AI's OpenAI-compatible API"
+  "Z.AI API key for accessing GLM models through Z.AI's OpenAI-compatible API. Get yours at https://open.bigmodel.cn/usercenter/apikeys"
 );
 sec(
   "MISTRAL_API_KEY",
   "Mistral",
-  "Mistral API key for accessing Mistral AI models"
+  "Mistral API key for accessing Mistral AI models. Get yours at https://console.mistral.ai/api-keys"
 );
 sec(
   "KIMI_API_KEY",
   "Kimi",
-  "Kimi (Moonshot) API key for accessing Kimi models via the Claude-compatible endpoint"
+  "Kimi (Moonshot) API key for accessing Kimi models via the Claude-compatible endpoint. Get yours at https://platform.moonshot.cn/console/api-keys"
 );
 sec(
   "MINIMAX_API_KEY",
   "MiniMax",
-  "MiniMax API key for accessing MiniMax AI models"
+  "MiniMax API key for accessing MiniMax AI models. Get yours at https://platform.minimax.chat/user-center/basic-information/interface-key"
 );
 sec(
   "AKI_API_KEY",
   "AKI",
-  "AKI.IO API key for accessing the AKI AI Model Hub"
+  "AKI.IO API key for accessing the AKI AI Model Hub. Get yours at https://aki.io/"
 );
 sec(
   "GEMINI_API_KEY",
   "Gemini",
-  "Gemini API key for accessing Google's Gemini AI models"
+  "Gemini API key for accessing Google's Gemini AI models. Get yours at https://aistudio.google.com/app/apikey"
 );
-sec("HF_TOKEN", "HF", "Token for HuggingFace Inference Providers");
+sec(
+  "HF_TOKEN",
+  "HF",
+  "Token for HuggingFace Inference Providers. Get yours at https://huggingface.co/settings/tokens"
+);
 sec(
   "LLAMA_API_KEY",
   "LlamaCpp",
@@ -297,7 +301,7 @@ sec(
 sec(
   "REPLICATE_API_TOKEN",
   "Replicate",
-  "Replicate API Token for running models on Replicate's cloud infrastructure"
+  "Replicate API Token for running models on Replicate's cloud infrastructure. Get yours at https://replicate.com/account/api-tokens"
 );
 sec("AIME_API_KEY", "Aime", "Aime API key for accessing Aime AI services");
 sec(
@@ -308,33 +312,33 @@ sec(
 sec(
   "GOOGLE_APP_PASSWORD",
   "Google",
-  "Google app password for secure authentication with Google services"
+  "Google app password for secure authentication with Google services. Manage at https://myaccount.google.com/apppasswords"
 );
 sec(
   "ELEVENLABS_API_KEY",
   "ElevenLabs",
-  "ElevenLabs API key for high-quality text-to-speech services"
+  "ElevenLabs API key for high-quality text-to-speech services. Get yours at https://elevenlabs.io/app/settings/api-keys"
 );
 sec(
   "FAL_API_KEY",
   "FAL",
-  "FAL API key for accessing FAL.ai's serverless AI infrastructure"
+  "FAL API key for accessing FAL.ai's serverless AI infrastructure. Get yours at https://fal.ai/dashboard/keys"
 );
 sec(
   "SERPAPI_API_KEY",
   "SerpAPI",
-  "API key for accessing SerpAPI scraping infrastructure"
+  "API key for accessing SerpAPI scraping infrastructure. Get yours at https://serpapi.com/manage-api-key"
 );
 sec(
   "APIFY_API_KEY",
   "Apify",
-  "API key for accessing Apify's web scraping and automation platform"
+  "API key for accessing Apify's web scraping and automation platform. Get yours at https://console.apify.com/account/integrations"
 );
 sec("BROWSER_URL", "Browser", "Browser URL for accessing a browser instance");
 sec(
   "RUNPOD_API_KEY",
   "RunPod",
-  "RunPod API key for accessing serverless endpoints"
+  "RunPod API key for accessing serverless endpoints. Get yours at https://www.runpod.io/console/user/settings"
 );
 sec(
   "NODE_SUPABASE_KEY",
@@ -344,35 +348,35 @@ sec(
 sec(
   "DATA_FOR_SEO_LOGIN",
   "DataForSEO",
-  "DataForSEO login for accessing DataForSEO's API"
+  "DataForSEO login for accessing DataForSEO's API. Sign up at https://app.dataforseo.com/register"
 );
 sec(
   "DATA_FOR_SEO_PASSWORD",
   "DataForSEO",
-  "DataForSEO password for accessing DataForSEO's API"
+  "DataForSEO password for accessing DataForSEO's API. Sign up at https://app.dataforseo.com/register"
 );
 sec(
   "TRACELOOP_API_KEY",
   "Observability",
-  "Traceloop API key for OpenLLMetry trace export"
+  "Traceloop API key for OpenLLMetry trace export. Get yours at https://app.traceloop.com/"
 );
-sec("KIE_API_KEY", "KIE", "KIE API key for accessing kie.ai");
+sec("KIE_API_KEY", "KIE", "KIE API key for accessing kie.ai. Get yours at https://kie.ai/");
 s(
   "KIE_TIMEOUT_SECONDS",
   "KIE",
   "Global timeout in seconds for Kie.ai API calls (0 = use default per-model timeout)"
 );
-sec("MESHY_API_KEY", "Meshy", "Meshy AI API key for 3D model generation");
-sec("RODIN_API_KEY", "Rodin", "Rodin AI API key for 3D model generation");
+sec("MESHY_API_KEY", "Meshy", "Meshy AI API key for 3D model generation. Get yours at https://app.meshy.ai/settings/api-keys");
+sec("RODIN_API_KEY", "Rodin", "Rodin AI API key for 3D model generation. Get yours at https://hyperhuman.deemos.com/");
 sec(
   "GITHUB_CLIENT_ID",
   "GitHub",
-  "GitHub OAuth App Client ID for OAuth PKCE authentication flow"
+  "GitHub OAuth App Client ID for OAuth PKCE authentication flow. Manage at https://github.com/settings/developers"
 );
 sec(
   "GITHUB_CLIENT_SECRET",
   "GitHub",
-  "GitHub OAuth App Client Secret for OAuth PKCE authentication flow"
+  "GitHub OAuth App Client Secret for OAuth PKCE authentication flow. Manage at https://github.com/settings/developers"
 );
 sec(
   "SERVER_AUTH_TOKEN",

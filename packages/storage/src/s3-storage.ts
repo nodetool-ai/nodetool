@@ -23,7 +23,6 @@ export class S3Storage implements AbstractStorage {
   constructor(
     private readonly bucketName: string,
     private readonly endpointUrl?: string,
-    private readonly domain?: string,
     private readonly region: string = "us-east-1"
   ) {}
 
@@ -96,12 +95,6 @@ export class S3Storage implements AbstractStorage {
   }
 
   getUrl(key: string): string {
-    if (this.domain) {
-      if (this.domain.startsWith("http")) {
-        return `${this.domain}/${key}`;
-      }
-      return `https://${this.domain}/${key}`;
-    }
     return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
   }
 }

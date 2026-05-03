@@ -1,18 +1,21 @@
 /**
- * Vector database nodes for NodeTool (sqlite-vec backed).
- * Provides collection management, indexing, and querying operations.
+ * Vector database nodes for NodeTool.
+ * Provides collection management, indexing, and querying operations against
+ * the active VectorProvider (sqlite-vec by default).
  */
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
-  getVecStore,
-  getCollection,
-  OllamaEmbeddingFunction
+  getDefaultVectorProvider,
+  OllamaEmbeddingFunction,
+  type RecordMetadata,
+  type VectorCollection,
+  type VectorMatch
 } from "@nodetool-ai/vectorstore";
 
 // ---------------------------------------------------------------------------
-// Client helpers
+// Helpers
 // ---------------------------------------------------------------------------
 
 async function getOllamaEmbedding(
@@ -22,6 +25,27 @@ async function getOllamaEmbedding(
   const ef = new OllamaEmbeddingFunction(model);
   const result = await ef.generate([text]);
   return result[0];
+}
+
+async function getCollectionByName(name: string): Promise<VectorCollection> {
+  return getDefaultVectorProvider().getCollection({ name });
+}
+
+function flattenMetadata(obj: Record<string, unknown>): RecordMetadata {
+  const result: RecordMetadata = {};
+  for (const [k, v] of Object.entries(obj ?? {})) {
+    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+      result[k] = v;
+    } else if (v !== null && v !== undefined) {
+      result[k] = String(v);
+    }
+  }
+  return result;
+}
+
+/** Sort matches by id ascending — mirrors the legacy Python ordering. */
+function sortMatchesById(matches: VectorMatch[]): VectorMatch[] {
+  return [...matches].sort((a, b) => a.id.localeCompare(b.id));
 }
 
 // ---------------------------------------------------------------------------
@@ -63,9 +87,8 @@ export class CollectionNode extends BaseNode {
   declare embedding_model: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const name = String(this.name ?? this.name ?? "");
-    const embeddingModel = (this.embedding_model ??
-      this.embedding_model ?? { repo_id: "" }) as {
+    const name = String(this.name ?? "");
+    const embeddingModel = (this.embedding_model ?? { repo_id: "" }) as {
       repo_id: string;
     };
 
@@ -73,8 +96,8 @@ export class CollectionNode extends BaseNode {
       throw new Error("Collection name cannot be empty");
     }
 
-    const store = await getVecStore();
-    await store.getOrCreateCollection({
+    const provider = getDefaultVectorProvider();
+    await provider.getOrCreateCollection({
       name,
       metadata: { embedding_model: embeddingModel.repo_id ?? "" }
     });
@@ -108,14 +131,11 @@ export class CountNode extends BaseNode {
   declare collection: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ??
-      this.collection ?? { name: "" }) as {
-      name: string;
-    };
+    const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const collection = await getCollection(name);
+    const collection = await getCollectionByName(name);
     const count = await collection.count();
     return { output: count };
   }
@@ -136,10 +156,7 @@ export class GetDocumentsNode extends BaseNode {
 
   @prop({
     type: "collection",
-    default: {
-      type: "collection",
-      name: ""
-    },
+    default: { type: "collection", name: "" },
     title: "Collection",
     description: "The collection to get"
   })
@@ -170,27 +187,23 @@ export class GetDocumentsNode extends BaseNode {
   declare offset: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ??
-      this.collection ?? { name: "" }) as {
-      name: string;
-    };
+    const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const ids = (this.ids ?? this.ids ?? []) as string[];
-    const limit = Number(this.limit ?? this.limit ?? 100);
-    const offset = Number(this.offset ?? this.offset ?? 0);
+    const ids = (this.ids ?? []) as string[];
+    const limit = Number(this.limit ?? 100);
+    const offset = Number(this.offset ?? 0);
 
-    const collection = await getCollection(name);
-    // When ids is empty, pass empty array (returns nothing) to match Python behavior.
-    // Passing undefined would return all docs, which differs from Python's empty-list semantics.
-    const result = await collection.get({
+    const collection = await getCollectionByName(name);
+    // Empty ids list returns nothing — matches Python's empty-list semantics.
+    const records = await collection.get({
       ids: ids.length > 0 ? ids : [],
       limit,
       offset
     });
 
-    return { output: result.documents };
+    return { output: records.map((r) => r.document ?? null) };
   }
 }
 
@@ -209,10 +222,7 @@ export class PeekNode extends BaseNode {
 
   @prop({
     type: "collection",
-    default: {
-      type: "collection",
-      name: ""
-    },
+    default: { type: "collection", name: "" },
     title: "Collection",
     description: "The collection to peek"
   })
@@ -227,18 +237,15 @@ export class PeekNode extends BaseNode {
   declare limit: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ??
-      this.collection ?? { name: "" }) as {
-      name: string;
-    };
+    const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const limit = Number(this.limit ?? this.limit ?? 100);
+    const limit = Number(this.limit ?? 100);
 
-    const collection = await getCollection(name);
-    const result = await collection.peek({ limit });
-    return { output: result.documents };
+    const collection = await getCollectionByName(name);
+    const records = await collection.get({ limit });
+    return { output: records.map((r) => r.document ?? null) };
   }
 }
 
@@ -254,10 +261,7 @@ export class IndexImageNode extends BaseNode {
 
   @prop({
     type: "collection",
-    default: {
-      type: "collection",
-      name: ""
-    },
+    default: { type: "collection", name: "" },
     title: "Collection",
     description: "The collection to index"
   })
@@ -297,22 +301,14 @@ export class IndexImageNode extends BaseNode {
   declare upsert: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ??
-      this.collection ?? { name: "" }) as {
-      name: string;
-    };
+    const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const image = (this.image ?? this.image ?? {}) as Record<string, unknown>;
-    const indexId = String(this.index_id ?? this.index_id ?? "");
-    const metadataRaw = (this.metadata ?? this.metadata ?? {}) as Record<
-      string,
-      unknown
-    >;
-    const doUpsert = Boolean(this.upsert ?? this.upsert ?? false);
+    const image = (this.image ?? {}) as Record<string, unknown>;
+    const indexId = String(this.index_id ?? "");
+    const metadataRaw = (this.metadata ?? {}) as Record<string, unknown>;
 
-    // Resolve document ID: prefer explicit index_id, then document_id field on image ref
     const resolvedId =
       indexId.trim() ||
       String((image as Record<string, unknown>).document_id ?? "").trim();
@@ -323,41 +319,19 @@ export class IndexImageNode extends BaseNode {
       );
     }
 
-    // Obtain image URI — TS environment does not have PIL; pass uri as document
     const uri = String(image.uri ?? image.asset_id ?? "");
     if (!uri) {
       throw new Error("Image reference must have a uri or asset_id");
     }
 
-    // Flatten metadata to Record<string, string | number | boolean>
-    const metadata: Record<string, string | number | boolean> = {};
-    for (const [k, v] of Object.entries(metadataRaw)) {
-      if (
-        typeof v === "string" ||
-        typeof v === "number" ||
-        typeof v === "boolean"
-      ) {
-        metadata[k] = v;
-      } else {
-        metadata[k] = String(v);
+    const collection = await getCollectionByName(name);
+    await collection.upsert([
+      {
+        id: resolvedId,
+        uri,
+        metadata: flattenMetadata(metadataRaw)
       }
-    }
-
-    const collection = await getCollection(name);
-
-    if (doUpsert) {
-      await collection.upsert({
-        ids: [resolvedId],
-        uris: [uri],
-        metadatas: [metadata]
-      });
-    } else {
-      await collection.add({
-        ids: [resolvedId],
-        uris: [uri],
-        metadatas: [metadata]
-      });
-    }
+    ]);
 
     return { output: null };
   }
@@ -375,10 +349,7 @@ export class IndexEmbeddingNode extends BaseNode {
 
   @prop({
     type: "collection",
-    default: {
-      type: "collection",
-      name: ""
-    },
+    default: { type: "collection", name: "" },
     title: "Collection",
     description: "The collection to index"
   })
@@ -386,12 +357,7 @@ export class IndexEmbeddingNode extends BaseNode {
 
   @prop({
     type: "list",
-    default: {
-      type: "list",
-      value: null,
-      dtype: "<i8",
-      shape: [1]
-    },
+    default: { type: "list", value: null, dtype: "<i8", shape: [1] },
     title: "Embedding",
     description: "The embedding to index"
   })
@@ -414,31 +380,24 @@ export class IndexEmbeddingNode extends BaseNode {
   declare metadata: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ??
-      this.collection ?? { name: "" }) as {
-      name: string;
-    };
+    const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const embeddingRaw = this.embedding ?? this.embedding;
-    const indexId = this.index_id ?? this.index_id ?? "";
-    const metadataRaw = this.metadata ?? this.metadata ?? {};
+    const embeddingRaw = this.embedding;
+    const indexId = this.index_id ?? "";
+    const metadataRaw = this.metadata ?? {};
 
-    // embeddingRaw may be a flat number[] (single embedding) or number[][] (batch)
-    // or an NPArray-like object with a `data` field
     let embeddings: number[][];
     if (Array.isArray(embeddingRaw)) {
       if (embeddingRaw.length === 0)
         throw new Error("The embedding cannot be empty");
       if (typeof embeddingRaw[0] === "number") {
-        // single 1-D array
         embeddings = [embeddingRaw as number[]];
       } else {
         embeddings = embeddingRaw as number[][];
       }
     } else if (embeddingRaw && typeof embeddingRaw === "object") {
-      // NPArray-like
       const obj = embeddingRaw as Record<string, unknown>;
       const data = obj.data ?? obj.array ?? obj.embedding;
       if (Array.isArray(data)) {
@@ -454,8 +413,9 @@ export class IndexEmbeddingNode extends BaseNode {
       throw new Error("The embedding cannot be empty");
     }
 
+    const collection = await getCollectionByName(name);
+
     if (Array.isArray(indexId)) {
-      // Batch mode
       if (indexId.length === 0) throw new Error("The IDs list cannot be empty");
       if (indexId.length !== embeddings.length) {
         throw new Error(
@@ -463,7 +423,7 @@ export class IndexEmbeddingNode extends BaseNode {
         );
       }
 
-      let metadatas: Record<string, string | number | boolean>[];
+      let metadatas: RecordMetadata[];
       if (Array.isArray(metadataRaw)) {
         if (metadataRaw.length !== indexId.length) {
           throw new Error(
@@ -473,20 +433,17 @@ export class IndexEmbeddingNode extends BaseNode {
         metadatas = metadataRaw.map(flattenMetadata);
       } else {
         const flat = flattenMetadata(metadataRaw as Record<string, unknown>);
-        metadatas = Array(indexId.length).fill(flat) as Record<
-          string,
-          string | number | boolean
-        >[];
+        metadatas = Array(indexId.length).fill(flat) as RecordMetadata[];
       }
 
-      const collection = await getCollection(name);
-      await collection.add({
-        ids: indexId,
-        embeddings,
-        metadatas
-      });
+      await collection.upsert(
+        indexId.map((id: string, i: number) => ({
+          id,
+          embedding: embeddings[i],
+          metadata: metadatas[i]
+        }))
+      );
     } else {
-      // Single mode
       const idStr = String(indexId);
       if (!idStr.trim()) throw new Error("The ID cannot be empty");
 
@@ -497,34 +454,13 @@ export class IndexEmbeddingNode extends BaseNode {
         >
       );
 
-      const collection = await getCollection(name);
-      await collection.add({
-        ids: [idStr],
-        embeddings: [embeddings[0]],
-        metadatas: [flat]
-      });
+      await collection.upsert([
+        { id: idStr, embedding: embeddings[0], metadata: flat }
+      ]);
     }
 
     return { output: null };
   }
-}
-
-function flattenMetadata(
-  obj: Record<string, unknown>
-): Record<string, string | number | boolean> {
-  const result: Record<string, string | number | boolean> = {};
-  for (const [k, v] of Object.entries(obj ?? {})) {
-    if (
-      typeof v === "string" ||
-      typeof v === "number" ||
-      typeof v === "boolean"
-    ) {
-      result[k] = v;
-    } else if (v !== null && v !== undefined) {
-      result[k] = String(v);
-    }
-  }
-  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -539,10 +475,7 @@ export class IndexTextChunkNode extends BaseNode {
 
   @prop({
     type: "collection",
-    default: {
-      type: "collection",
-      name: ""
-    },
+    default: { type: "collection", name: "" },
     title: "Collection",
     description: "The collection to index"
   })
@@ -573,28 +506,20 @@ export class IndexTextChunkNode extends BaseNode {
   declare metadata: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ??
-      this.collection ?? { name: "" }) as {
-      name: string;
-    };
+    const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const documentId = String(this.document_id ?? this.document_id ?? "");
+    const documentId = String(this.document_id ?? "");
     if (!documentId.trim()) throw new Error("The document ID cannot be empty");
 
-    const text = String(this.text ?? this.text ?? "");
-    const metadataRaw = (this.metadata ?? this.metadata ?? {}) as Record<
-      string,
-      unknown
-    >;
+    const text = String(this.text ?? "");
+    const metadataRaw = (this.metadata ?? {}) as Record<string, unknown>;
 
-    const collection = await getCollection(name);
-    await collection.add({
-      ids: [documentId],
-      documents: [text],
-      metadatas: [flattenMetadata(metadataRaw)]
-    });
+    const collection = await getCollectionByName(name);
+    await collection.upsert([
+      { id: documentId, document: text, metadata: flattenMetadata(metadataRaw) }
+    ]);
 
     return { output: null };
   }
@@ -614,10 +539,7 @@ export class IndexAggregatedTextNode extends BaseNode {
 
   @prop({
     type: "collection",
-    default: {
-      type: "collection",
-      name: ""
-    },
+    default: { type: "collection", name: "" },
     title: "Collection",
     description: "The collection to index"
   })
@@ -665,34 +587,25 @@ export class IndexAggregatedTextNode extends BaseNode {
   declare aggregation: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ??
-      this.collection ?? { name: "" }) as {
-      name: string;
-    };
+    const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const document = String(this.document ?? this.document ?? "");
-    const documentId = String(this.document_id ?? this.document_id ?? "");
-    const metadataRaw = (this.metadata ?? this.metadata ?? {}) as Record<
-      string,
-      unknown
-    >;
-    const textChunksRaw = (this.text_chunks ?? this.text_chunks ?? []) as (
+    const document = String(this.document ?? "");
+    const documentId = String(this.document_id ?? "");
+    const metadataRaw = (this.metadata ?? {}) as Record<string, unknown>;
+    const textChunksRaw = (this.text_chunks ?? []) as (
       | string
       | { text: string }
     )[];
-    const aggregation = String(
-      this.aggregation ?? this.aggregation ?? "mean"
-    ) as AggregationMethod;
+    const aggregation = String(this.aggregation ?? "mean") as AggregationMethod;
 
     if (!documentId.trim()) throw new Error("The document ID cannot be empty");
     if (!document.trim()) throw new Error("The document cannot be empty");
     if (textChunksRaw.length === 0)
       throw new Error("The text chunks cannot be empty");
 
-    // Retrieve the collection to get the embedding model name
-    const collection = await getCollection(name);
+    const collection = await getCollectionByName(name);
     const model = (collection.metadata as Record<string, unknown> | undefined)
       ?.embedding_model as string | undefined;
     if (!model)
@@ -700,46 +613,34 @@ export class IndexAggregatedTextNode extends BaseNode {
         "The collection does not have an embedding_model in its metadata"
       );
 
-    // Extract plain text from each chunk
     const texts = textChunksRaw.map((chunk) =>
       typeof chunk === "string" ? chunk : chunk.text
     );
 
-    // Compute embeddings via Ollama
     const embeddings: number[][] = [];
     for (const text of texts) {
-      const embedding = await getOllamaEmbedding(model, text);
-      embeddings.push(embedding);
+      embeddings.push(await getOllamaEmbedding(model, text));
     }
 
-    // Aggregate embeddings
     const dim = embeddings[0].length;
     const aggregated = new Array<number>(dim).fill(0);
 
     if (aggregation === "mean" || aggregation === "sum") {
       for (const emb of embeddings) {
-        for (let i = 0; i < dim; i++) {
-          aggregated[i] += emb[i];
-        }
+        for (let i = 0; i < dim; i++) aggregated[i] += emb[i];
       }
       if (aggregation === "mean") {
-        for (let i = 0; i < dim; i++) {
-          aggregated[i] /= embeddings.length;
-        }
+        for (let i = 0; i < dim; i++) aggregated[i] /= embeddings.length;
       }
     } else if (aggregation === "max") {
-      for (let i = 0; i < dim; i++) {
-        aggregated[i] = embeddings[0][i];
-      }
+      for (let i = 0; i < dim; i++) aggregated[i] = embeddings[0][i];
       for (let j = 1; j < embeddings.length; j++) {
         for (let i = 0; i < dim; i++) {
           aggregated[i] = Math.max(aggregated[i], embeddings[j][i]);
         }
       }
     } else if (aggregation === "min") {
-      for (let i = 0; i < dim; i++) {
-        aggregated[i] = embeddings[0][i];
-      }
+      for (let i = 0; i < dim; i++) aggregated[i] = embeddings[0][i];
       for (let j = 1; j < embeddings.length; j++) {
         for (let i = 0; i < dim; i++) {
           aggregated[i] = Math.min(aggregated[i], embeddings[j][i]);
@@ -751,12 +652,14 @@ export class IndexAggregatedTextNode extends BaseNode {
 
     const flat = flattenMetadata(metadataRaw);
 
-    await collection.add({
-      ids: [documentId],
-      documents: [document],
-      embeddings: [aggregated],
-      metadatas: Object.keys(flat).length > 0 ? [flat] : undefined
-    });
+    await collection.upsert([
+      {
+        id: documentId,
+        document,
+        embedding: aggregated,
+        metadata: Object.keys(flat).length > 0 ? flat : undefined
+      }
+    ]);
 
     return { output: null };
   }
@@ -774,10 +677,7 @@ export class IndexStringNode extends BaseNode {
 
   @prop({
     type: "collection",
-    default: {
-      type: "collection",
-      name: ""
-    },
+    default: { type: "collection", name: "" },
     title: "Collection",
     description: "The collection to index"
   })
@@ -808,23 +708,17 @@ export class IndexStringNode extends BaseNode {
   declare metadata: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ??
-      this.collection ?? { name: "" }) as {
-      name: string;
-    };
+    const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const documentId = String(this.document_id ?? this.document_id ?? "");
+    const documentId = String(this.document_id ?? "");
     if (!documentId.trim()) throw new Error("The document ID cannot be empty");
 
-    const text = String(this.text ?? this.text ?? "");
+    const text = String(this.text ?? "");
 
-    const collection = await getCollection(name);
-    await collection.add({
-      ids: [documentId],
-      documents: [text]
-    });
+    const collection = await getCollectionByName(name);
+    await collection.upsert([{ id: documentId, document: text }]);
 
     return { output: null };
   }
@@ -848,10 +742,7 @@ export class QueryImageNode extends BaseNode {
 
   @prop({
     type: "collection",
-    default: {
-      type: "collection",
-      name: ""
-    },
+    default: { type: "collection", name: "" },
     title: "Collection",
     description: "The collection to query"
   })
@@ -880,46 +771,27 @@ export class QueryImageNode extends BaseNode {
   declare n_results: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ??
-      this.collection ?? { name: "" }) as {
-      name: string;
-    };
+    const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const image = (this.image ?? this.image ?? {}) as Record<string, unknown>;
+    const image = (this.image ?? {}) as Record<string, unknown>;
     const uri = String(image.uri ?? image.asset_id ?? "");
     if (!uri) throw new Error("Image is not connected (no uri or asset_id)");
 
-    const nResults = Number(this.n_results ?? this.n_results ?? 1);
+    const nResults = Number(this.n_results ?? 1);
 
-    const collection = await getCollection(name);
-    const result = await collection.query({
-      queryURIs: [uri],
-      nResults,
-      include: ["documents", "metadatas", "distances"]
-    });
-
-    if (!result.ids) throw new Error("Ids are not returned");
-    if (!result.documents) throw new Error("Documents are not returned");
-    if (!result.metadatas) throw new Error("Metadatas are not returned");
-    if (!result.distances) throw new Error("Distances are not returned");
-
-    // Sort by ID (matching Python behavior)
-    const combined = result.ids[0].map((id, idx) => ({
-      id: String(id),
-      document: result.documents[0][idx] ?? "",
-      metadata: (result.metadatas[0][idx] ?? {}) as Record<string, unknown>,
-      distance: result.distances[0][idx] ?? 0
-    }));
-    combined.sort((a, b) => a.id.localeCompare(b.id));
+    const collection = await getCollectionByName(name);
+    const matches = sortMatchesById(
+      await collection.query({ uri, topK: nResults })
+    );
 
     return {
       output: {
-        ids: combined.map((r) => r.id),
-        documents: combined.map((r) => r.document),
-        metadatas: combined.map((r) => r.metadata),
-        distances: combined.map((r) => r.distance)
+        ids: matches.map((m) => m.id),
+        documents: matches.map((m) => m.document ?? ""),
+        metadatas: matches.map((m) => m.metadata),
+        distances: matches.map((m) => m.distance)
       }
     };
   }
@@ -943,10 +815,7 @@ export class QueryTextNode extends BaseNode {
 
   @prop({
     type: "collection",
-    default: {
-      type: "collection",
-      name: ""
-    },
+    default: { type: "collection", name: "" },
     title: "Collection",
     description: "The collection to query"
   })
@@ -969,43 +838,24 @@ export class QueryTextNode extends BaseNode {
   declare n_results: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ??
-      this.collection ?? { name: "" }) as {
-      name: string;
-    };
+    const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const text = String(this.text ?? this.text ?? "");
-    const nResults = Number(this.n_results ?? this.n_results ?? 1);
+    const text = String(this.text ?? "");
+    const nResults = Number(this.n_results ?? 1);
 
-    const collection = await getCollection(name);
-    const result = await collection.query({
-      queryTexts: [text],
-      nResults,
-      include: ["documents", "metadatas", "distances"]
-    });
-
-    if (!result.ids) throw new Error("Ids are not returned");
-    if (!result.documents) throw new Error("Documents are not returned");
-    if (!result.metadatas) throw new Error("Metadatas are not returned");
-    if (!result.distances) throw new Error("Distances are not returned");
-
-    // Sort by ID (matching Python behavior)
-    const combined = result.ids[0].map((id, idx) => ({
-      id: String(id),
-      document: result.documents[0][idx] ?? "",
-      metadata: (result.metadatas[0][idx] ?? {}) as Record<string, unknown>,
-      distance: result.distances[0][idx] ?? 0
-    }));
-    combined.sort((a, b) => a.id.localeCompare(b.id));
+    const collection = await getCollectionByName(name);
+    const matches = sortMatchesById(
+      await collection.query({ text, topK: nResults })
+    );
 
     return {
       output: {
-        ids: combined.map((r) => r.id),
-        documents: combined.map((r) => r.document),
-        metadatas: combined.map((r) => r.metadata),
-        distances: combined.map((r) => r.distance)
+        ids: matches.map((m) => m.id),
+        documents: matches.map((m) => m.document ?? ""),
+        metadatas: matches.map((m) => m.metadata),
+        distances: matches.map((m) => m.distance)
       }
     };
   }
@@ -1063,10 +913,8 @@ export class RemoveOverlapNode extends BaseNode {
   }
 
   async process(): Promise<Record<string, unknown>> {
-    const documents = (this.documents ?? this.documents ?? []) as string[];
-    const minOverlapWords = Number(
-      this.min_overlap_words ?? this.min_overlap_words ?? 2
-    );
+    const documents = (this.documents ?? []) as string[];
+    const minOverlapWords = Number(this.min_overlap_words ?? 2);
 
     if (documents.length === 0) {
       return { documents: [] };
@@ -1086,9 +934,7 @@ export class RemoveOverlapNode extends BaseNode {
 
       if (overlapWordCount > 0) {
         const newText = currWords.slice(overlapWordCount).join(" ");
-        if (newText) {
-          result.push(newText);
-        }
+        if (newText) result.push(newText);
       } else {
         result.push(documents[i]);
       }
@@ -1117,10 +963,7 @@ export class HybridSearchNode extends BaseNode {
 
   @prop({
     type: "collection",
-    default: {
-      type: "collection",
-      name: ""
-    },
+    default: { type: "collection", name: "" },
     title: "Collection",
     description: "The collection to query"
   })
@@ -1158,7 +1001,7 @@ export class HybridSearchNode extends BaseNode {
   })
   declare min_keyword_length: any;
 
-  private _getKeywordQuery(
+  private _getKeywordFilter(
     text: string,
     minKeywordLength: number
   ): Record<string, unknown> | null {
@@ -1171,58 +1014,44 @@ export class HybridSearchNode extends BaseNode {
 
     if (queryTokens.length === 0) return null;
     if (queryTokens.length > 1) {
-      return { $or: queryTokens.map((token) => ({ $contains: token })) };
+      return {
+        $document: {
+          $or: queryTokens.map((token) => ({ $contains: token }))
+        }
+      };
     }
-    return { $contains: queryTokens[0] };
+    return { $document: { $contains: queryTokens[0] } };
   }
 
   async process(): Promise<Record<string, unknown>> {
-    const collectionInput = (this.collection ??
-      this.collection ?? { name: "" }) as {
-      name: string;
-    };
+    const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const text = String(this.text ?? this.text ?? "");
+    const text = String(this.text ?? "");
     if (!text.trim()) throw new Error("Search text cannot be empty");
 
-    const nResults = Number(this.n_results ?? this.n_results ?? 5);
-    const kConstant = Number(this.k_constant ?? this.k_constant ?? 60.0);
-    const minKeywordLength = Number(
-      this.min_keyword_length ?? this.min_keyword_length ?? 3
-    );
+    const nResults = Number(this.n_results ?? 5);
+    const kConstant = Number(this.k_constant ?? 60.0);
+    const minKeywordLength = Number(this.min_keyword_length ?? 3);
 
-    const collection = await getCollection(name);
+    const collection = await getCollectionByName(name);
 
-    // Semantic search
-    const semanticResult = await collection.query({
-      queryTexts: [text],
-      nResults: nResults * 2,
-      include: ["documents", "metadatas", "distances"]
+    const semanticMatches = await collection.query({
+      text,
+      topK: nResults * 2
     });
 
-    // Keyword search
-    const keywordQuery = this._getKeywordQuery(text, minKeywordLength);
-    let keywordResult = semanticResult;
-    if (keywordQuery) {
-      keywordResult = await collection.query({
-        queryTexts: [text],
-        nResults: nResults * 2,
-        whereDocument: keywordQuery as Record<string, unknown>,
-        include: ["documents", "metadatas", "distances"]
+    const keywordFilter = this._getKeywordFilter(text, minKeywordLength);
+    let keywordMatches = semanticMatches;
+    if (keywordFilter) {
+      keywordMatches = await collection.query({
+        text,
+        topK: nResults * 2,
+        filter: keywordFilter
       });
     }
 
-    // Validate
-    for (const res of [semanticResult, keywordResult]) {
-      if (!res.ids) throw new Error("Ids are not returned");
-      if (!res.documents) throw new Error("Documents are not returned");
-      if (!res.metadatas) throw new Error("Metadatas are not returned");
-      if (!res.distances) throw new Error("Distances are not returned");
-    }
-
-    // Reciprocal rank fusion
     const combinedScores = new Map<
       string,
       {
@@ -1233,66 +1062,36 @@ export class HybridSearchNode extends BaseNode {
       }
     >();
 
-    const processResults = (
-      ids: string[],
-      docs: (string | null)[],
-      metas: (Record<string, unknown> | null)[],
-      distances: (number | null)[]
-    ) => {
-      ids.forEach((id, rank) => {
-        const strId = String(id);
+    const fuse = (matches: VectorMatch[]) => {
+      matches.forEach((m, rank) => {
         const score = 1 / (rank + kConstant);
-        if (combinedScores.has(strId)) {
-          combinedScores.get(strId)!.score += score;
+        const existing = combinedScores.get(m.id);
+        if (existing) {
+          existing.score += score;
         } else {
-          combinedScores.set(strId, {
-            doc: docs[rank] ?? "",
-            meta: (metas[rank] ?? {}) as Record<string, unknown>,
-            distance: distances[rank] ?? 0,
+          combinedScores.set(m.id, {
+            doc: m.document ?? "",
+            meta: m.metadata,
+            distance: m.distance,
             score
           });
         }
       });
     };
 
-    processResults(
-      semanticResult.ids[0].map(String),
-      semanticResult.documents[0],
-      semanticResult.metadatas[0] as (Record<string, unknown> | null)[],
-      semanticResult.distances[0]
-    );
-    processResults(
-      keywordResult.ids[0].map(String),
-      keywordResult.documents[0],
-      keywordResult.metadatas[0] as (Record<string, unknown> | null)[],
-      keywordResult.distances[0]
-    );
+    fuse(semanticMatches);
+    fuse(keywordMatches);
 
-    // Sort by combined score descending
     const sorted = [...combinedScores.entries()]
       .sort((a, b) => b[1].score - a[1].score)
       .slice(0, nResults);
 
-    const resultIds: string[] = [];
-    const resultDocs: string[] = [];
-    const resultMetas: Record<string, unknown>[] = [];
-    const resultDistances: number[] = [];
-    const resultScores: number[] = [];
-
-    for (const [id, data] of sorted) {
-      resultIds.push(id);
-      resultDocs.push(data.doc);
-      resultMetas.push(data.meta);
-      resultDistances.push(data.distance);
-      resultScores.push(data.score);
-    }
-
     return {
-      ids: resultIds,
-      documents: resultDocs,
-      metadatas: resultMetas,
-      distances: resultDistances,
-      scores: resultScores
+      ids: sorted.map(([id]) => id),
+      documents: sorted.map(([, d]) => d.doc),
+      metadatas: sorted.map(([, d]) => d.meta),
+      distances: sorted.map(([, d]) => d.distance),
+      scores: sorted.map(([, d]) => d.score)
     };
   }
 }

@@ -2,12 +2,12 @@
 import { css } from "@emotion/react";
 import React, { useState, useCallback } from "react";
 import {
-  Button,
   Menu,
   MenuItem,
   ListItemIcon,
   ListItemText
 } from "@mui/material";
+import { EditorButton } from "../../editor_ui";
 import { Text, Caption } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -194,7 +194,7 @@ export const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
 
   return (
     <div css={styles(theme)}>
-      <Button
+      <EditorButton
         className={`agent-mode-button ${agentMode ? "active" : ""}`}
         onClick={handleClick}
         disabled={disabled}
@@ -206,7 +206,7 @@ export const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
         <span className="mode-icon">{currentOption.icon}</span>
         {currentOption.label}
         <KeyboardArrowDownIcon className="arrow-icon" />
-      </Button>
+      </EditorButton>
 
       <Menu
         anchorEl={anchorEl}

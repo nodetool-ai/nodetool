@@ -3,7 +3,7 @@ import React from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Button, ButtonGroup } from "@mui/material";
+import { EditorButton, ButtonGroup } from "../../ui_primitives";
 import { Chunk } from "../../../stores/ApiTypes";
 import AudioVisualizer from "../../common/AudioVisualizer";
 import { useWebsocketRunner } from "../../../stores/WorkflowRunner";
@@ -67,10 +67,10 @@ const RealtimeAudioOutput: React.FC<Props> = ({
     <div css={styles(theme)}>
       <div className="controls">
         <ButtonGroup size="small">
-          <Button onClick={isPlaying ? stop : start}>
+          <EditorButton onClick={isPlaying ? stop : start}>
             {isPlaying ? "Stop" : "Start"}
-          </Button>
-          <Button onClick={restart}>Restart</Button>
+          </EditorButton>
+          <EditorButton onClick={restart}>Restart</EditorButton>
         </ButtonGroup>
         {isQueued && queuePosition !== null && (
           <div className="time">Queue position: {queuePosition}</div>

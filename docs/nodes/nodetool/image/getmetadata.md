@@ -14,16 +14,11 @@ namespace: "nodetool.image"
 Get metadata about the input image.
     metadata, properties, analysis, information
 
-    Use cases:
-    - Use width and height for layout calculations
-    - Analyze image properties for processing decisions
-    - Gather information for image cataloging or organization
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| image | `image` | The input image. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| image | `image` | The input image. | `{"type":"image","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 
@@ -35,9 +30,6 @@ Get metadata about the input image.
 | height | `int` |  |
 | channels | `int` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.image](../) namespace.
-

@@ -1,5 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
+import { scrollbarStyles } from "../../ui_primitives/tokens";
 
 export const createStyles = (theme: Theme) =>
   css({
@@ -16,20 +17,7 @@ export const createStyles = (theme: Theme) =>
       padding: `${theme.spacing(0.75)} ${theme.spacing(0.75)} ${theme.spacing(1.5)}`,
       margin: 0,
       listStyle: "none",
-      scrollbarWidth: "thin",
-      scrollbarColor: `${theme.vars.palette.c_scroll_thumb} ${theme.vars.palette.c_scroll_bg}`,
-      "&::-webkit-scrollbar": { width: 10 },
-      "&::-webkit-scrollbar-track": {
-        background: theme.vars.palette.c_scroll_bg
-      },
-      "&::-webkit-scrollbar-thumb": {
-        backgroundColor: theme.vars.palette.c_scroll_thumb,
-        borderRadius: 10,
-        border: `2px solid ${theme.vars.palette.c_scroll_bg}`
-      },
-      "&::-webkit-scrollbar-thumb:hover": {
-        backgroundColor: theme.vars.palette.c_scroll_hover
-      }
+      ...scrollbarStyles(theme),
     },
 
     ".thread-date-group": {

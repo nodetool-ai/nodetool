@@ -1,12 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
-type RunAgentLoopArgs = {
-  providerId?: string;
-  modelId?: string;
-  tools?: unknown[];
-};
-
 let SandboxShellNode: (typeof import("../src/nodes/sandbox.js"))["SandboxShellNode"];
 let SandboxBrowserNode: (typeof import("../src/nodes/sandbox.js"))["SandboxBrowserNode"];
 let SandboxFileNode: (typeof import("../src/nodes/sandbox.js"))["SandboxFileNode"];
@@ -66,9 +60,13 @@ vi.mock("@nodetool-ai/sandbox", () => {
   };
 });
 
-vi.mock("../src/nodes/agents.js", () => ({
-  runAgentLoop: mocks.runAgentLoop
-}));
+vi.mock("../src/nodes/agents.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/nodes/agents.js")>();
+  return {
+    ...actual,
+    runAgentLoop: mocks.runAgentLoop
+  };
+});
 
 describe("sandbox nodes", () => {
   beforeAll(async () => {
@@ -216,27 +214,20 @@ describe("sandbox nodes", () => {
     expect(result.output).toEqual({ bytes_written: 1, file: "a.txt" });
   });
 
-  it("SandboxAgent wires sandbox tools into runAgentLoop", async () => {
+  it("SandboxAgent wires sandbox tools into buildTools", async () => {
     const node = new SandboxAgentNode();
     node.assign({
       prompt: "do work",
       model: { provider: "openai", id: "gpt-5" }
     });
 
-    const context = {
-      getProvider: async () => ({
-        id: "openai",
-        generateMessage: async () => ({ content: [{ type: "text", text: "ok" }] })
-      })
-    } as unknown as ProcessingContext;
-    const result = await node.process(context);
+    const context = {} as unknown as ProcessingContext;
+    // buildTools is protected but we can access it via cast to verify
+    // that SandboxAgentNode augments the tool list with sandbox tools
+    const tools = await (node as unknown as { buildTools(ctx: unknown): Promise<unknown[]> }).buildTools(context);
 
-    expect(mocks.runAgentLoop).toHaveBeenCalledTimes(1);
-    const args = mocks.runAgentLoop.mock.calls[0][0] as RunAgentLoopArgs;
-    expect(args.providerId).toBe("openai");
-    expect(args.modelId).toBe("gpt-5");
-    expect(Array.isArray(args.tools)).toBe(true);
-    expect(args.tools?.length).toBeGreaterThan(10);
-    expect(result).toEqual({ text: "done" });
+    expect(mocks.acquire).toHaveBeenCalledTimes(1);
+    expect(Array.isArray(tools)).toBe(true);
+    expect(tools.length).toBeGreaterThan(10);
   });
 });

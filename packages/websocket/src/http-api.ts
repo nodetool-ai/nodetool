@@ -8,7 +8,12 @@ import { gzipSync } from "node:zlib";
 import { mkdir, writeFile, stat, readFile } from "node:fs/promises";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import nodePath from "node:path";
-import { createLogger, buildAssetUrl } from "@nodetool-ai/config";
+import {
+  createLogger,
+  loadAssetStorageConfig,
+  type StorageConfig
+} from "@nodetool-ai/config";
+import { createAssetUrlBuilder } from "@nodetool-ai/storage";
 import { workflowToDsl } from "@nodetool-ai/dsl";
 import {
   Workflow,
@@ -117,10 +122,20 @@ async function getWorkflowRuntimeEnvironment(
         });
         registerBaseNodes(registry);
         registerElevenLabsNodes(registry);
-        registerTransformersJsNodes(registry);
+        if (process.env["NODETOOL_ENV"] !== "production") {
+          registerTransformersJsNodes(registry);
+        }
         registerFalNodes(registry);
         registerKieNodes(registry);
         registerReplicateNodes(registry);
+        if (process.env["NODETOOL_ENV"] === "production") {
+          const skippedPrefixes = ["lib.tensorflow.", "transformers."];
+          for (const nodeType of registry.list()) {
+            if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
+              registry.unregister(nodeType);
+            }
+          }
+        }
       }
 
       const pythonBridge = new PythonStdioBridge({
@@ -1508,12 +1523,25 @@ interface AssetCreateBody {
   size?: number | null;
 }
 
-export function toAssetResponse(asset: Asset): JsonObject {
+// Lazily initialized URL builder based on the configured storage backend.
+let _httpStorageConfig: StorageConfig | null = null;
+let _httpUrlBuilder: ((key: string) => Promise<string>) | null = null;
+
+function getHttpUrlBuilder(): (key: string) => Promise<string> {
+  const config = loadAssetStorageConfig();
+  if (!_httpUrlBuilder || _httpStorageConfig?.kind !== config.kind) {
+    _httpStorageConfig = config;
+    _httpUrlBuilder = createAssetUrlBuilder(config);
+  }
+  return _httpUrlBuilder;
+}
+
+export async function toAssetResponse(asset: Asset): Promise<JsonObject> {
   const isFolder = asset.content_type === "folder";
   const fileName = isFolder
     ? null
     : getAssetFileName(asset.id, asset.content_type);
-  const getUrl = fileName ? buildAssetUrl(fileName) : null;
+  const getUrl = fileName ? await getHttpUrlBuilder()(fileName) : null;
 
   const hasThumbnail =
     asset.content_type.startsWith("image/") ||
@@ -1629,7 +1657,7 @@ export async function handleAssetsRoot(
       await writeFile(filePath, fileBuffer);
     }
 
-    return jsonResponse(toAssetResponse(asset));
+    return jsonResponse(await toAssetResponse(asset));
   }
 
   return errorResponse(405, "Method not allowed");

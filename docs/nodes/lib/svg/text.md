@@ -22,14 +22,14 @@ Add text elements to SVG.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | text | `str` | Text content | `` |
 | x | `int` | X coordinate | `0` |
 | y | `int` | Y coordinate | `0` |
 | font_family | `str` | Font family | `Arial` |
 | font_size | `int` | Font size | `16` |
-| fill | `color` | Text color | `{'type': 'color', 'value': '#000000'}` |
-| text_anchor | `Enum['start', 'middle', 'end']` | Text anchor position | `start` |
+| fill | `color` | Text color | `{"type":"color","value":"#000000"}` |
+| text_anchor | `enum` | Text anchor position | `start` |
 
 ## Outputs
 
@@ -37,9 +37,6 @@ Add text elements to SVG.
 |--------|------|-------------|
 | output | `svg_element` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.svg](../) namespace.
-

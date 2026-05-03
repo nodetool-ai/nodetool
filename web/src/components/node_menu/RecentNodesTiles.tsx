@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { DragEvent as ReactDragEvent } from "react";
-import { Tooltip, Text, ToolbarIconButton, FlexRow } from "../ui_primitives";
+import { Tooltip, Text, ToolbarIconButton, FlexRow, thinScrollbarStyles } from "../ui_primitives";
 import HistoryIcon from "@mui/icons-material/History";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
@@ -60,19 +60,7 @@ const tileStyles = (theme: Theme) =>
       alignContent: "start",
       overflowY: "auto",
       padding: "6px 2px 2px",
-      "&::-webkit-scrollbar": {
-        width: "6px"
-      },
-      "&::-webkit-scrollbar-track": {
-        background: "transparent"
-      },
-      "&::-webkit-scrollbar-thumb": {
-        backgroundColor: theme.vars.palette.action.disabledBackground,
-        borderRadius: "var(--rounded-lg)"
-      },
-      "&::-webkit-scrollbar-thumb:hover": {
-        backgroundColor: theme.vars.palette.action.disabled
-      }
+      ...thinScrollbarStyles(theme),
     },
     ".recent-tile": {
       display: "flex",

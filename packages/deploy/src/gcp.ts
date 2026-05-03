@@ -281,7 +281,9 @@ export class GCPDeployer {
       steps.push("Starting Google Cloud Run deployment...");
 
       // Prepare environment variables
-      const env: Record<string, string> = {};
+      const env: Record<string, string> = this.deployment.environment
+        ? { ...this.deployment.environment }
+        : {};
 
       // Call deploy function
       await deployToGcp({

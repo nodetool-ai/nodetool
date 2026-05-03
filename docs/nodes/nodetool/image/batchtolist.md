@@ -14,24 +14,18 @@ namespace: "nodetool.image"
 Convert an image batch to a list of image references.
     batch, list, images, processing
 
-    Use cases:
-    - Convert comfy batch outputs to list format
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| batch | `image` | The batch of images to convert. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| batch | `image` | The batch of images to convert. | `{"type":"image","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `List[image]` |  |
-
-## Metadata
+| output | `list[image]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.image](../) namespace.
-

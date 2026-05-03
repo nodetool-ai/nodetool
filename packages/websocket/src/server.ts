@@ -350,11 +350,26 @@ registry.loadPythonMetadata({ roots: metadataRoots, maxDepth: 8 });
 log.info(`Python metadata loaded [${startupMs()}]`);
 registerBaseNodes(registry);
 registerElevenLabsNodes(registry);
-registerTransformersJsNodes(registry);
+if (process.env["NODETOOL_ENV"] !== "production") {
+  registerTransformersJsNodes(registry);
+}
 registerFalNodes(registry);
 registerKieNodes(registry);
 registerReplicateNodes(registry);
-registerTransformersJsProvider();
+if (process.env["NODETOOL_ENV"] !== "production") {
+  registerTransformersJsProvider();
+}
+// In production, unregister optional JS-only nodes that require on-demand npm packages.
+if (process.env["NODETOOL_ENV"] === "production") {
+  const skippedPrefixes = ["lib.tensorflow.", "transformers.", "vector."];
+  for (const nodeType of registry.list()) {
+    if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
+      if (registry.unregister(nodeType)) {
+        log.info(`Unregistered ${nodeType} in production`);
+      }
+    }
+  }
+}
 log.info(`Node registry ready [${startupMs()}]`);
 
 // ---------------------------------------------------------------------------
@@ -858,9 +873,13 @@ if (!isProduction) {
     const request = new Request(url, {
       method: req.method,
       headers,
-      body: requestBody,
-      duplex: "half"
-    });
+      body: Buffer.isBuffer(requestBody)
+        ? new Uint8Array(requestBody)
+        : requestBody,
+      // `duplex` is required by Node's fetch when streaming bodies but is
+      // missing from some `@types/node`/`undici-types` versions of RequestInit.
+      ...({ duplex: "half" } as object)
+    } as RequestInit);
 
     const response = await handleMcpHttpRequest(request, { metadataRoots });
     if (!response) {

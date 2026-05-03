@@ -22,18 +22,15 @@ Extracts bulleted lists from markdown.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | markdown | `str` | The markdown text to analyze | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `List[Dict[str, any]]` |  |
-
-## Metadata
+| output | `list[dict[str, any]]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.markdown](../) namespace.
-

@@ -11,13 +11,13 @@ namespace: "search.google"
 
 ## Description
 
-Retrieve financial market data from Google Finance.
-    google, finance, stocks, market, serp
+Retrieve financial market data and stock information from Google Finance.
+    google, finance, stocks, market, serp, trading
 
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | query | `str` | Stock symbol or company name to search for | `` |
 | window | `str` | Time window for financial data (e.g., '1d', '5d', '1m', '3m', '6m', '1y', '5y') | `` |
 
@@ -25,11 +25,8 @@ Retrieve financial market data from Google Finance.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `Dict[str, any]` |  |
-
-## Metadata
+| results | `dict[str, any]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [search.google](../) namespace.
-

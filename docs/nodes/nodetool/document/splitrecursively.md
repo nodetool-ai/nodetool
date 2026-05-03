@@ -22,11 +22,11 @@ Splits text recursively using LangChain's RecursiveCharacterTextSplitter.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| document | `document` |  | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| document | `document` |  | `{"type":"document","uri":"","asset_id":null,"da...` |
 | chunk_size | `int` | Maximum size of each chunk in characters | `1000` |
 | chunk_overlap | `int` | Number of characters to overlap between chunks | `200` |
-| separators | `List[str]` | List of separators to use for splitting, in order of preference | `['\n\n', '\n', '.']` |
+| separators | `list[str]` | List of separators to use for splitting, in order of preference | `["\\n\\n","\\n","."]` |
 
 ## Outputs
 
@@ -35,10 +35,8 @@ Splits text recursively using LangChain's RecursiveCharacterTextSplitter.
 | text | `str` |  |
 | source_id | `str` |  |
 | start_index | `int` |  |
-
-## Metadata
+| chunks | `list` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.document](../) namespace.
-

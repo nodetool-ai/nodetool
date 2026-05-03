@@ -14,16 +14,10 @@ namespace: "nodetool.input"
 Accepts a local file path pointing to a document and converts it into a 'DocumentRef'.
     input, parameter, document, file, path, local_file, load
 
-    Use cases:
-    - Directly load a document (e.g., PDF, TXT, DOCX) from a specified local file path.
-    - Convert a local file path into a 'DocumentRef' that can be consumed by other document-processing nodes.
-    - Useful for development or workflows that have legitimate access to the local filesystem.
-    - To provide an existing 'DocumentRef', use 'DocumentInput'.
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | name | `str` | The parameter name for the workflow. | `` |
 | value | `str` | The path to the document file. | `` |
 | description | `str` | The description of the input for the workflow. | `` |
@@ -35,9 +29,6 @@ Accepts a local file path pointing to a document and converts it into a 'Documen
 | document | `document` |  |
 | path | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.input](../) namespace.
-

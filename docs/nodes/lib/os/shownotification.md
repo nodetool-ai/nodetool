@@ -22,7 +22,7 @@ Shows a system notification.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | title | `str` | Title of the notification | `` |
 | message | `str` | Content of the notification | `` |
 | timeout | `int` | How long the notification should stay visible (in seconds) | `10` |
@@ -33,9 +33,6 @@ Shows a system notification.
 |--------|------|-------------|
 | output | `none` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

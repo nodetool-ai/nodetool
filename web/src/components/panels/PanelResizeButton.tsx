@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Button } from "@mui/material";
+import { EditorButton } from "../editor_ui";
 import type { MouseEvent, CSSProperties } from "react";
 import { memo, useCallback } from "react";
 
@@ -77,7 +77,7 @@ const PanelResizeButton = memo(function PanelResizeButton({
         };
 
   return (
-    <Button
+    <EditorButton
       className="panel-resize-button"
       disableRipple
       css={buttonStyles}
@@ -88,7 +88,7 @@ const PanelResizeButton = memo(function PanelResizeButton({
     >
       {/* <CodeIcon /> */}
       <div className="resize-handle" />
-    </Button>
+    </EditorButton>
   );
 });
 

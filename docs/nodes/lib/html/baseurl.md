@@ -1,0 +1,37 @@
+---
+layout: page
+title: "Base Url"
+node_type: "lib.html.BaseUrl"
+namespace: "lib.html"
+---
+
+**Type:** `lib.html.BaseUrl`
+
+**Namespace:** `lib.html`
+
+## Description
+
+Extract the base URL from a given URL.
+    url parsing, domain extraction, web utilities
+
+    Use cases:
+    - Get domain name from full URLs
+    - Clean up URLs for comparison
+    - Extract root website addresses
+    - Standardize URL formats
+
+## Properties
+
+| Property | Type | Description | Default |
+|----------|------|-------------|---------|
+| url | `str` | The URL to extract the base from | `` |
+
+## Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| output | `str` |  |
+
+## Related Nodes
+
+Browse other nodes in the [lib.html](../) namespace.

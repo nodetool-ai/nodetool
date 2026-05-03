@@ -2,7 +2,8 @@
 import { css } from "@emotion/react";
 import React, { useCallback, useEffect, useState, useMemo, memo } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { Button, Popover } from "@mui/material";
+import { Popover } from "@mui/material";
+import { EditorButton } from "../editor_ui";
 import { ToolbarIconButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import ListIcon from "@mui/icons-material/List";
@@ -459,7 +460,7 @@ const WorkflowAssistantChat: React.FC = () => {
           provider runs autonomously with planning and tool use.
         </p>
         {!hasMessageInput && (
-          <Button
+          <EditorButton
             onClick={handleAddMessageInput}
             size="small"
             variant="outlined"
@@ -471,7 +472,7 @@ const WorkflowAssistantChat: React.FC = () => {
             }}
           >
             Add Message Input
-          </Button>
+          </EditorButton>
         )}
       </div>
     ),

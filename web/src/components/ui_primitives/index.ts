@@ -222,6 +222,9 @@ export {
 } from "./spacing";
 export type { SpacingValue } from "./spacing";
 
+// Design tokens
+export { MOTION, Z_INDEX, BORDER_RADIUS, scrollbarStyles, thinScrollbarStyles } from "./tokens";
+
 // Keyboard shortcuts display
 export { KeyboardShortcutCard } from "./KeyboardShortcutCard";
 export type { KeyboardShortcutCardProps, ShortcutItem } from "./KeyboardShortcutCard";
