@@ -872,8 +872,10 @@ if (!isProduction) {
       body: Buffer.isBuffer(requestBody)
         ? new Uint8Array(requestBody)
         : requestBody,
-      duplex: "half"
-    });
+      // `duplex` is required by Node's fetch when streaming bodies but is
+      // missing from some `@types/node`/`undici-types` versions of RequestInit.
+      ...({ duplex: "half" } as object)
+    } as RequestInit);
 
     const response = await handleMcpHttpRequest(request, { metadataRoots });
     if (!response) {
