@@ -1,20 +1,55 @@
-// @nodetool-ai/vectorstore — SQLite-vec backed vector store
+// @nodetool-ai/vectorstore — backend-agnostic vector store
+
+// ---------------------------------------------------------------------------
+// Backend-agnostic vector provider abstraction (preferred public API)
+// ---------------------------------------------------------------------------
 
 export {
-  SqliteVecStore,
-  VecCollection,
-  VecNotFoundError,
-  getDefaultStore,
-  resetDefaultStore,
-  type CollectionMetadata,
-  type CollectionInfo,
-  type DocumentRecord,
-  type QueryResult,
-  type GetResult,
-  type EmbeddingFunction
-} from "./sqlite-vec-store.js";
+  CollectionNotFoundError,
+  ProviderConfigError,
+  UnsupportedFilterError,
+  type CollectionInfo as ProviderCollectionInfo,
+  type CollectionMetadata as ProviderCollectionMetadata,
+  type CreateCollectionOptions,
+  type DistanceMetric,
+  type GetCollectionOptions,
+  type MetadataValue,
+  type RecordMetadata,
+  type VectorCollection,
+  type VectorFilter,
+  type VectorMatch,
+  type VectorProvider,
+  type VectorQuery,
+  type VectorRecord
+} from "./provider.js";
 
-export { splitDocument, type TextChunk } from "./chroma-client.js";
+export {
+  SqliteVecProvider,
+  type SqliteVecProviderOptions
+} from "./sqlite-vec-provider.js";
+
+export {
+  PineconeProvider,
+  type PineconeProviderOptions
+} from "./pinecone-provider.js";
+
+export {
+  SupabaseProvider,
+  type SupabaseProviderOptions
+} from "./supabase-provider.js";
+
+export {
+  createSqliteVecProvider,
+  createVectorProviderFromEnv,
+  getDefaultVectorProvider,
+  resetDefaultVectorProvider,
+  setDefaultVectorProvider,
+  type VectorProviderKind
+} from "./provider-factory.js";
+
+// ---------------------------------------------------------------------------
+// Embedding functions
+// ---------------------------------------------------------------------------
 
 export {
   ProviderEmbeddingFunction,
@@ -30,64 +65,84 @@ export {
   type ProviderEmbeddingOptions
 } from "./embedding.js";
 
+export { type EmbeddingFunction } from "./sqlite-vec-store.js";
+
+export { splitDocument, type TextChunk } from "./chroma-client.js";
+
 // ---------------------------------------------------------------------------
-// Convenience helpers (API-compatible with old ChromaDB wrappers)
+// Low-level sqlite-vec types — exported for tests and code that needs to
+// reach the underlying SQLite handle. New code should use VectorProvider.
 // ---------------------------------------------------------------------------
 
-import { getDefaultStore, type EmbeddingFunction } from "./sqlite-vec-store.js";
+export {
+  SqliteVecStore,
+  VecCollection,
+  VecNotFoundError,
+  getDefaultStore,
+  resetDefaultStore,
+  type CollectionMetadata,
+  type CollectionInfo,
+  type DocumentRecord,
+  type QueryResult,
+  type GetResult
+} from "./sqlite-vec-store.js";
+
+// ---------------------------------------------------------------------------
+// Convenience: resolve a collection through the default provider, attaching
+// an embedding function inferred from the collection's metadata.
+// ---------------------------------------------------------------------------
+
+import { getDefaultVectorProvider } from "./provider-factory.js";
 import { getProviderEmbeddingFunction } from "./embedding.js";
+import {
+  CollectionNotFoundError,
+  type RecordMetadata,
+  type VectorCollection
+} from "./provider.js";
+import type { EmbeddingFunction } from "./sqlite-vec-store.js";
 
 /**
- * Get the default vector store client (replaces getChromaClient).
+ * Resolve a collection by name through the default provider. If
+ * `embeddingFunction` is omitted, one is inferred from the collection's
+ * `embedding_model` / `embedding_provider` metadata. Use `getOrCreate` to
+ * create the collection if it does not exist.
  */
-export async function getVecStore() {
-  return getDefaultStore();
-}
-
-/**
- * Get a collection by name with optional embedding function.
- */
-export async function getCollection(
+export async function resolveCollection(
   name: string,
-  embeddingFunction?: EmbeddingFunction | null
-) {
-  const store = getDefaultStore();
-  return store.getCollection({
-    name,
-    embeddingFunction: embeddingFunction ?? undefined
-  });
-}
+  opts: {
+    embeddingFunction?: EmbeddingFunction;
+    getOrCreate?: boolean;
+    metadata?: RecordMetadata;
+  } = {}
+): Promise<VectorCollection> {
+  const provider = getDefaultVectorProvider();
 
-/**
- * Get all collections, automatically resolving embedding functions
- * from each collection's metadata.
- */
-export async function getAllCollections() {
-  const store = getDefaultStore();
-  const collections = await store.listCollections();
-  const result = [];
-
-  for (const col of collections) {
-    const metadata = col.metadata ?? {};
-    const model = metadata.embedding_model as string | undefined;
-    const provider = metadata.embedding_provider as string | undefined;
-
-    let ef: EmbeddingFunction | undefined;
-    if (model) {
-      ef = getProviderEmbeddingFunction(model, provider) ?? undefined;
-    }
-
-    // Re-get with embedding function
-    if (ef) {
-      const withEf = await store.getCollection({
-        name: col.name,
-        embeddingFunction: ef
-      });
-      result.push(withEf);
-    } else {
-      result.push(col);
+  let ef = opts.embeddingFunction;
+  if (!ef) {
+    try {
+      const existing = await provider.getCollection({ name });
+      const meta = existing.metadata ?? {};
+      const model = meta.embedding_model as string | undefined;
+      const efProvider = meta.embedding_provider as string | undefined;
+      if (model) {
+        ef = getProviderEmbeddingFunction(model, efProvider) ?? undefined;
+      }
+      if (ef) {
+        return provider.getCollection({ name, embeddingFunction: ef });
+      }
+      return existing;
+    } catch (e) {
+      if (!(e instanceof CollectionNotFoundError) || !opts.getOrCreate) throw e;
     }
   }
 
-  return result;
+  if (opts.getOrCreate) {
+    return provider.getOrCreateCollection({
+      name,
+      embeddingFunction: ef,
+      metadata: opts.metadata
+    });
+  }
+
+  return provider.getCollection({ name, embeddingFunction: ef });
 }

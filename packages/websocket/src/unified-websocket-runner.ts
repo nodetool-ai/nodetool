@@ -1915,25 +1915,27 @@ export class UnifiedWebSocketRunner {
     if (!collections.length || !queryText) return "";
 
     try {
-      const { getVecStore } = await import("@nodetool-ai/vectorstore");
-      const store = await getVecStore();
+      const { getDefaultVectorProvider } = await import(
+        "@nodetool-ai/vectorstore"
+      );
+      const provider = getDefaultVectorProvider();
 
       const allResults: string[] = [];
 
       for (const collectionName of collections) {
         try {
-          const collection = await store.getCollection({
+          const collection = await provider.getCollection({
             name: collectionName
           });
-          const results = await collection.query({
-            queryTexts: [queryText],
-            nResults,
-            include: ["documents", "metadatas"]
+          const matches = await collection.query({
+            text: queryText,
+            topK: nResults
           });
 
-          if (results.documents?.[0]?.length) {
+          if (matches.length > 0) {
             let collectionResults = `\n\n### Results from ${collectionName}:\n`;
-            for (const doc of results.documents[0]) {
+            for (const match of matches) {
+              const doc = match.document;
               if (!doc) continue;
               const preview =
                 doc.length > 200 ? `${doc.slice(0, 200)}...` : doc;
