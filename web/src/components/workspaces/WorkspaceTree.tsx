@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import { Text, Caption } from "../ui_primitives";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
+import type { TreeViewBaseItem } from "@mui/x-tree-view/models";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
@@ -661,7 +662,7 @@ const WorkspaceTree: React.FC = () => {
                   loadItemChildren(itemId);
                 }
               }}
-              items={files as any}
+              items={files as TreeViewBaseItem[]}
               aria-label="workspace file browser"
               selectedItems={selectedFilePath}
               sx={treeViewStyles(theme)}
@@ -670,7 +671,7 @@ const WorkspaceTree: React.FC = () => {
                   ({
                     "data-testid": "tree-item",
                     "data-itemid": itemId
-                  }) as any
+                  }) as Record<string, string>
               }}
             />
           </div>

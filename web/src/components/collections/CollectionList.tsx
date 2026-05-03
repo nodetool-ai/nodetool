@@ -8,6 +8,7 @@ import AddIcon from "@mui/icons-material/Add";
 import CollectionHeader from "./CollectionHeader";
 import EmptyCollectionState from "./EmptyCollectionState";
 import CollectionItem from "./CollectionItem";
+import type { UseMutationResult } from "@tanstack/react-query";
 import { useCollectionStore } from "../../stores/CollectionStore";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -177,7 +178,7 @@ const CollectionList = () => {
                       {
                         isPending: false,
                         mutate: () => { },
-                        mutateAsync: async () => { },
+                        mutateAsync: async () => Promise.resolve(),
                         reset: () => { },
                         context: undefined,
                         data: undefined,
@@ -191,7 +192,7 @@ const CollectionList = () => {
                         status: "idle",
                         submittedAt: 0,
                         variables: undefined
-                      } as any
+                      } as UseMutationResult<void, Error, string>
                     }
                   />
                 ))}

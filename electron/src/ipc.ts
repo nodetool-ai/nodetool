@@ -1121,7 +1121,7 @@ export function initializeIpcHandlers(): void {
             ? data
             : Array.isArray(data)
               ? Buffer.concat(data).toString("utf8")
-              : Buffer.from(data as any).toString("utf8");
+              : Buffer.from(data as ArrayBuffer | SharedArrayBuffer).toString("utf8");
         if (!event.sender.isDestroyed()) {
           event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
             connectionId,
