@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { shallow } from "zustand/shallow";
 import NamespaceItem from "./NamespaceItem";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
 
@@ -20,14 +21,13 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
     selectedOutputType,
     selectedProviderType
   } = useNodeMenuStore((state) => ({
-    highlightedNamespaces: state.highlightedNamespaces,
     selectedPath: state.selectedPath,
     allSearchMatches: state.allSearchMatches,
     searchTerm: state.searchTerm,
     selectedInputType: state.selectedInputType,
     selectedOutputType: state.selectedOutputType,
     selectedProviderType: state.selectedProviderType
-  }));
+  }), shallow);
 
   const minSearchTermLength = useMemo(() => {
     if (!searchTerm) {return 1;}

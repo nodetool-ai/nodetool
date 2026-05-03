@@ -3,21 +3,30 @@ import {
   type IncomingMessage,
   type ServerResponse
 } from "node:http";
-import { createLogger, getDefaultDbPath } from "@nodetool/config";
+import {
+  createLogger,
+  getDefaultDbPath,
+  getPostgresDatabaseUrl,
+  loadEnvironment
+} from "@nodetool-ai/config";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
-import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool/node-sdk";
-import { registerBaseNodes } from "@nodetool/base-nodes";
-import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
+import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
+import { registerBaseNodes } from "@nodetool-ai/base-nodes";
+import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
+import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection
 } from "./unified-websocket-runner.js";
-import { ScriptedProvider, autoScript } from "@nodetool/runtime";
+import { ScriptedProvider, autoScript } from "@nodetool-ai/runtime";
 import { handleNodeHttpRequest, type HttpApiOptions } from "./http-api.js";
-import { initDb } from "@nodetool/models";
+import { initDb, initPostgresDb } from "@nodetool-ai/models";
+
+loadEnvironment(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.."));
 
 const log = createLogger("nodetool.websocket.server");
 
@@ -1169,6 +1178,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
   });
   registerBaseNodes(registry);
   registerElevenLabsNodes(registry);
+  registerTransformersJsNodes(registry);
   const resolvedApiOptions: HttpApiOptions = {
     ...options,
     metadataRoots,
@@ -1313,10 +1323,13 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  // Initialize SQLite adapter pointing at the same DB as the Python side
-  const dbPath = getDefaultDbPath();
   try {
-    initDb(dbPath);
+    const postgresDatabaseUrl = getPostgresDatabaseUrl();
+    if (postgresDatabaseUrl) {
+      await initPostgresDb(postgresDatabaseUrl);
+    } else {
+      initDb(getDefaultDbPath());
+    }
   } catch {
     // DB unavailable — secrets will appear unconfigured
   }

@@ -23,7 +23,6 @@ import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "fast-deep-equal";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { FlexColumn, FlexRow, Chip } from "../ui_primitives";
-import log from "loglevel";
 
 const treeStyles = (theme: Theme) =>
   css({
@@ -38,7 +37,7 @@ const treeStyles = (theme: Theme) =>
       zIndex: 20000,
       // Glassmorphism container
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "16px",
+      borderRadius: "var(--rounded-xxl)",
       boxShadow: "0 24px 48px rgba(0, 0, 0, 0.05), 0 8px 16px rgba(0,0,0,0.02)",
       backgroundColor: theme.vars.palette.background.paper,
       backdropFilter: theme.vars.palette.glass.blur,
@@ -206,7 +205,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       // Do not clear selectedPath here; just perform search with current path
       state?.performSearch?.(searchTerm);
     } catch (error) {
-      log.error("Error performing search:", error);
+      console.error("Error performing search:", error);
     }
   }, [isMenuOpen, searchTerm, searchResults.length]);
 
@@ -283,7 +282,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
         <Box className="node-menu-container">
           <div className="main-content">
             <FlexColumn
-              gap={0.5}
+              gap={1}
               className="search-toolbar"
               sx={{
                 flexGrow: 0,
@@ -299,21 +298,31 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                 className="search-row"
                 sx={{ marginLeft: "-3px", width: "100%" }}
               >
-                <SearchInput
-                  focusSearchInput={focusSearchInput}
-                  focusOnTyping={false}
-                  placeholder="Search for nodes..."
-                  debounceTime={80}
-                  width={300}
-                  maxWidth={"300px"}
-                  searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  onPressEscape={closeNodeMenu}
-                  onPressArrowDown={handleArrowDown}
-                  onPressArrowUp={handleArrowUp}
-                  onPressEnter={handleEnter}
-                  searchResults={searchResults}
-                />
+                <span data-onboarding-target="node-menu-search">
+                  <SearchInput
+                    focusSearchInput={focusSearchInput}
+                    focusOnTyping={false}
+                    placeholder="Search for nodes..."
+                    debounceTime={80}
+                    width={300}
+                    maxWidth={"300px"}
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    onPressEscape={closeNodeMenu}
+                    onPressArrowDown={handleArrowDown}
+                    onPressArrowUp={handleArrowUp}
+                    onPressEnter={handleEnter}
+                    searchResults={searchResults}
+                  />
+                </span>
+                <div style={{ marginLeft: "0.75em", flex: "1 1 auto", minWidth: 0 }}>
+                  <TypeFilterChips
+                    selectedInputType={selectedInputType}
+                    selectedOutputType={selectedOutputType}
+                    setSelectedInputType={setSelectedInputType}
+                    setSelectedOutputType={setSelectedOutputType}
+                  />
+                </div>
                 {searchTerm && searchTerm.trim() !== "" && (
                   <span
                     style={{
@@ -326,64 +335,6 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                     {searchResults.length} {searchResults.length === 1 ? "node" : "nodes"}
                   </span>
                 )}
-                {(selectedProviderType !== "all" || selectedInputType || selectedOutputType) && (
-                  <Chip
-                    size="small"
-                    label="Filtered"
-                    variant="outlined"
-                    sx={{
-                      height: "20px",
-                      fontSize: "0.65rem",
-                      borderColor: "var(--palette-warning-main)",
-                      color: "var(--palette-warning-main)"
-                    }}
-                  />
-                )}
-                <FlexRow
-                  gap={0.75}
-                  align="center"
-                  justify="flex-end"
-                  sx={{
-                    marginLeft: "auto",
-                    flexWrap: "wrap",
-                    minHeight: "24px"
-                  }}
-                >
-                  {selectedProviderType !== "all" && (
-                    <Chip
-                      size="small"
-                      label={`Provider: ${selectedProviderType === "api" ? "API" : "Local"}`}
-                      onDelete={() => setSelectedProviderType("all")}
-                    />
-                  )}
-                  {selectedInputType && (
-                    <Chip
-                      size="small"
-                      label={`Input: ${selectedInputType}`}
-                      onDelete={() => setSelectedInputType("")}
-                    />
-                  )}
-                  {selectedOutputType && (
-                    <Chip
-                      size="small"
-                      label={`Output: ${selectedOutputType}`}
-                      onDelete={() => setSelectedOutputType("")}
-                    />
-                  )}
-                </FlexRow>
-              </FlexRow>
-              <FlexRow
-                gap={1.5}
-                align="center"
-                className="filters-row"
-                sx={{ width: "100%", paddingRight: "0.25em" }}
-              >
-                <TypeFilterChips
-                  selectedInputType={selectedInputType}
-                  selectedOutputType={selectedOutputType}
-                  setSelectedInputType={setSelectedInputType}
-                  setSelectedOutputType={setSelectedOutputType}
-                />
               </FlexRow>
             </FlexColumn>
             <NamespaceList

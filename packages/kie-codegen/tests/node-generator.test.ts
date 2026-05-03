@@ -44,7 +44,7 @@ describe("KieNodeGenerator.generateModule()", () => {
   it("generates imports with BaseNode and prop", () => {
     const code = gen.generateModule(makeModule());
     expect(code).toContain(
-      'import { BaseNode, prop } from "@nodetool/node-sdk"'
+      'import { BaseNode, prop } from "@nodetool-ai/node-sdk"'
     );
   });
 

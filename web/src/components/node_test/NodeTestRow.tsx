@@ -70,6 +70,7 @@ function NodeTestRowInner({
       >
         <IconButton
           size="small"
+          aria-label="Run test"
           onClick={(e) => {
             e.stopPropagation();
             handleRun();
@@ -191,7 +192,7 @@ function NodeTestRowInner({
                   color={STATUS_COLORS[status]}
                 />
               )}
-              <IconButton size="small" onClick={handleClose}>
+              <IconButton size="small" onClick={handleClose} aria-label="Close dialog">
                 <CloseIcon fontSize="small" />
               </IconButton>
             </Box>

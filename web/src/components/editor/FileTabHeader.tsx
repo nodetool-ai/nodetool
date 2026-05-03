@@ -151,7 +151,7 @@ const FileTabHeader = ({
         slotProps={{
           paper: {
             sx: {
-              borderRadius: "8px"
+              borderRadius: "var(--rounded-lg)"
             }
           }
         }}

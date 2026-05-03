@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { CollectionList } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
+import { trpcClient } from "../../trpc/client";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo, useMemo } from "react";
@@ -21,11 +21,7 @@ const CollectionProperty = (props: PropertyProps) => {
   const { data, error, isLoading } = useQuery<CollectionList>({
     queryKey: ["collections"],
     queryFn: async () => {
-      const { data, error } = await client.GET("/api/collections/");
-      if (error) {
-        throw error;
-      }
-      return data;
+      return (await trpcClient.collections.list.query()) as unknown as CollectionList;
     }
   });
 

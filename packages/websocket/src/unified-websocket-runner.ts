@@ -1,16 +1,22 @@
 import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
-import { getSecret } from "@nodetool/security";
-import { getSetting } from "./settings-api.js";
+import { getSecret } from "@nodetool-ai/models";
+import { getSetting } from "./settings-registry.js";
 import { pack, unpack } from "msgpackr";
-import { createLogger, getDefaultAssetsPath } from "@nodetool/config";
+import {
+  createLogger,
+  getDefaultAssetsPath,
+  buildAssetUrl
+} from "@nodetool-ai/config";
+import { resolveContentUrls, resolveContentForProvider } from "./resolve-media-urls.js";
 import {
   Graph,
   WorkflowRunner,
   type NodeExecutor,
-  type NodeTypeResolver
-} from "@nodetool/kernel";
+  type NodeTypeResolver,
+  type NodeValidator
+} from "@nodetool-ai/kernel";
 import {
   Asset,
   Job,
@@ -21,34 +27,98 @@ import {
   Thread,
   Workflow,
   type DBModel
-} from "@nodetool/models";
+} from "@nodetool-ai/models";
 import type {
   ProviderTool,
   Message as ProviderMessage,
   MessageContent,
   BaseProvider,
   ProcessingContext,
-  ToolCall as ProviderToolCall
-} from "@nodetool/runtime";
+  ToolCall as ProviderToolCall,
+  ImageModel as ProviderImageModel,
+  VideoModel as ProviderVideoModel,
+  TextToImageParams,
+  TextToVideoParams,
+  ImageToImageParams,
+  ImageToVideoParams
+} from "@nodetool-ai/runtime";
 import {
   FileStorageAdapter,
   ProcessingContext as RuntimeProcessingContext,
   executeComfy,
   type ComfyProgressEvent,
   type ComfyExecutionHandle
-} from "@nodetool/runtime";
-import type { Chunk } from "@nodetool/protocol";
+} from "@nodetool-ai/runtime";
+import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
   WebSocketMode
-} from "@nodetool/protocol";
-import { Tool } from "@nodetool/agents";
-import type { NodeMetadata } from "@nodetool/node-sdk";
+} from "@nodetool-ai/protocol";
+import { Tool } from "@nodetool-ai/agents";
+import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
 const MAX_ERROR_TEXT_LENGTH = 4000;
+
+/**
+ * Return `true` when the given http(s) URL appears to point at a public
+ * destination (not a loopback, link-local, or RFC1918 private address).
+ *
+ * Used before `fetch`ing URLs supplied by chat clients to resolve source
+ * images — without this gate, an authenticated user could coerce the server
+ * into reading internal services via `http://169.254.169.254/...`,
+ * `http://localhost:6379/...`, etc. The check is conservative: unparseable
+ * URLs and literal IP addresses in private ranges are refused. DNS-based
+ * bypass is still possible, so this is a defense-in-depth measure and not a
+ * full SSRF mitigation; intended for complementing network-level egress
+ * filtering.
+ */
+function isSafeExternalUrl(url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return false;
+  }
+  // Normalise IPv6 hostnames: WHATWG URL may return them with or without
+  // surrounding brackets depending on the runtime.
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (!host) return false;
+  if (
+    host === "localhost" ||
+    host === "ip6-localhost" ||
+    host === "ip6-loopback" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal")
+  ) {
+    return false;
+  }
+  // IPv4 literal check
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [a, b] = ipv4.slice(1).map((n) => parseInt(n, 10));
+    // 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16,
+    // 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10 (CGNAT)
+    if (a === 0 || a === 10 || a === 127) return false;
+    if (a === 169 && b === 254) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 100 && b >= 64 && b <= 127) return false;
+  }
+  // IPv6 literal — refuse loopback / ULA / link-local / unspecified ranges.
+  if (host.includes(":")) {
+    if (host === "::" || host === "::1") return false;
+    if (host.startsWith("fc") || host.startsWith("fd")) return false; // ULA fc00::/7
+    if (host.startsWith("fe80:")) return false; // link-local
+  }
+  return true;
+}
 
 function sanitizeLargeText(
   text: string,
@@ -388,10 +458,12 @@ function createRuntimeContext(opts: {
     secretResolver: getSecret,
     storage,
     tempUrlResolver: (fileUri: string) => {
-      // Convert file:///path/to/storage/temp/uuid.png → /api/storage/temp/uuid.png
+      // Convert file:///path/to/storage/temp/uuid.png → public asset URL.
+      // When ASSET_DOMAIN / TEMP_DOMAIN are configured the result uses those
+      // domains; otherwise it falls back to /api/storage/temp/uuid.png.
       const prefix = pathToFileURL(storagePath).toString();
       if (fileUri.startsWith(prefix)) {
-        return `/api/storage/${fileUri.slice(prefix.length + 1)}`;
+        return buildAssetUrl(fileUri.slice(prefix.length + 1));
       }
       return fileUri;
     }
@@ -645,6 +717,19 @@ export interface UnifiedWebSocketRunnerOptions {
   }) => Promise<void>;
   /** Resolve node metadata by type — used for auto_save_asset detection. */
   getNodeMetadata?: (nodeType: string) => NodeMetadata | undefined;
+  /**
+   * Optional pre-flight per-node validator. Forwarded to WorkflowRunner so
+   * missing required fields and unset model selections abort the run before
+   * any actor is spawned. `NodeRegistry.createNodeValidator()` from
+   * `@nodetool-ai/node-sdk` produces a compatible callback.
+   */
+  validateNode?: NodeValidator;
+  /**
+   * Optional NodeRegistry. When supplied, agent-mode chat routes through the
+   * graph-native MultiModeAgent → GraphPlanner path, biasing node selection
+   * toward `nodetool.*` core nodes and exposing a `find_model` tool.
+   */
+  nodeRegistry?: NodeRegistry;
 }
 
 export class UnifiedWebSocketRunner {
@@ -663,6 +748,10 @@ export class UnifiedWebSocketRunner {
   private workspaceResolver?: UnifiedWebSocketRunnerOptions["workspaceResolver"];
   private beforeRunJob?: UnifiedWebSocketRunnerOptions["beforeRunJob"];
   private getNodeMetadata?: UnifiedWebSocketRunnerOptions["getNodeMetadata"];
+  private validateNode?: UnifiedWebSocketRunnerOptions["validateNode"];
+  private nodeRegistry?: NodeRegistry;
+  private configuredProvidersCache: Map<string, Record<string, BaseProvider>> =
+    new Map();
 
   private sendLock: Promise<void> = Promise.resolve();
   private activeJobs = new Map<string, ActiveJob>();
@@ -806,6 +895,8 @@ export class UnifiedWebSocketRunner {
     this.workspaceResolver = options.workspaceResolver;
     this.beforeRunJob = options.beforeRunJob;
     this.getNodeMetadata = options.getNodeMetadata;
+    this.validateNode = options.validateNode;
+    this.nodeRegistry = options.nodeRegistry;
     this.getSystemStats =
       options.getSystemStats ??
       (() => ({
@@ -829,7 +920,10 @@ export class UnifiedWebSocketRunner {
     log.info("Client connected", { userId: this.userId });
 
     this.startHeartbeat();
-    this.startStatsBroadcast();
+    // Only broadcast system stats in development — unnecessary overhead in production
+    if (process.env.NODE_ENV !== "production") {
+      this.startStatsBroadcast();
+    }
     this.registerObserver();
   }
 
@@ -881,6 +975,16 @@ export class UnifiedWebSocketRunner {
       this.websocket.applicationState === "disconnected"
     ) {
       return;
+    }
+
+    // Resolve storage keys in content to browser-accessible URLs before
+    // sending over the wire.  This keeps DB storage URL-agnostic while
+    // delivering ready-to-use URLs to the client.
+    if (Array.isArray(message.content)) {
+      message = {
+        ...message,
+        content: resolveContentUrls(message.content as unknown[])
+      };
     }
 
     const payload =
@@ -1001,6 +1105,38 @@ export class UnifiedWebSocketRunner {
     throw new Error("workflow_id or graph is required");
   }
 
+  /**
+   * Surface a clean terminal job_update when pre-run setup fails (typically
+   * because the Python bridge could not start). Without this the error would
+   * bubble up to handleCommand and be sent as a generic `invalid_command`
+   * envelope, which the UI does not associate with the job — the workflow
+   * appears to spin forever instead of failing.
+   */
+  private async emitBeforeRunFailure(
+    jobId: string,
+    workflowId: string | null,
+    err: unknown
+  ): Promise<void> {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    this.logError("beforeRunJob failed", err);
+    await this.sendMessage({
+      type: "job_update",
+      status: "failed",
+      job_id: jobId,
+      workflow_id: workflowId,
+      error: errorMessage
+    });
+    try {
+      const job = (await Job.get(jobId)) as Job | null;
+      if (job) {
+        job.markFailed(errorMessage);
+        await job.save();
+      }
+    } catch (persistErr) {
+      this.logError("beforeRunJob failure persistence failed", persistErr);
+    }
+  }
+
   async runJob(req: RunJobRequest): Promise<void> {
     const userId = req.user_id ?? this.userId ?? "1";
     const workflowId = req.workflow_id ?? null;
@@ -1013,7 +1149,12 @@ export class UnifiedWebSocketRunner {
     // Route ComfyUI workflows to the dedicated comfy executor
     if (isComfyGraph(rawGraph)) {
       if (this.beforeRunJob) {
-        await this.beforeRunJob(rawGraph);
+        try {
+          await this.beforeRunJob(rawGraph);
+        } catch (err) {
+          await this.emitBeforeRunFailure(jobId, workflowId, err);
+          return;
+        }
       }
       await this.runComfyJob(
         jobId,
@@ -1029,7 +1170,12 @@ export class UnifiedWebSocketRunner {
     const graph = await this.hydrateGraph(rawGraph);
 
     if (this.beforeRunJob) {
-      await this.beforeRunJob(graph);
+      try {
+        await this.beforeRunJob(graph);
+      } catch (err) {
+        await this.emitBeforeRunFailure(jobId, workflowId, err);
+        return;
+      }
     }
 
     const workspaceDir =
@@ -1070,7 +1216,8 @@ export class UnifiedWebSocketRunner {
         this.resolveExecutor(
           node as { id: string; type: string; [key: string]: unknown }
         ),
-      executionContext: context
+      executionContext: context,
+      validateNode: this.validateNode
     });
 
     const active: ActiveJob = {
@@ -1628,12 +1775,12 @@ export class UnifiedWebSocketRunner {
     if (!role || !["user", "assistant", "system", "tool"].includes(role)) {
       return null;
     }
+    const rawContent = Array.isArray(m.content)
+      ? (resolveContentForProvider(m.content as unknown[]) as MessageContent[])
+      : (m.content as string | null);
     return {
       role,
-      content:
-        (Array.isArray(m.content)
-          ? (m.content as MessageContent[])
-          : (m.content as string | null)) ?? "",
+      content: rawContent ?? "",
       toolCallId: typeof m.tool_call_id === "string" ? m.tool_call_id : null,
       toolCalls: Array.isArray(m.tool_calls)
         ? (m.tool_calls as Array<{
@@ -1738,7 +1885,7 @@ export class UnifiedWebSocketRunner {
     if (!collections.length || !queryText) return "";
 
     try {
-      const { getVecStore } = await import("@nodetool/vectorstore");
+      const { getVecStore } = await import("@nodetool-ai/vectorstore");
       const store = await getVecStore();
 
       const allResults: string[] = [];
@@ -1875,6 +2022,28 @@ export class UnifiedWebSocketRunner {
       typeof data.workflow_target === "string" ? data.workflow_target : null;
     if (workflowTarget === "workflow" || workflowId) {
       await this.handleWorkflowMessage(data, requestSeq);
+      return;
+    }
+
+    // Route to media generation when the client requests a text-to-image or
+    // text-to-video turn. The composer attaches a `media_generation` field
+    // with mode + params; when mode is a media mode we invoke the provider's
+    // textToImage / textToVideo instead of a regular LLM round and return an
+    // assistant message containing MessageImageContent / MessageVideoContent.
+    const mediaGeneration =
+      data.media_generation && typeof data.media_generation === "object"
+        ? (data.media_generation as Record<string, unknown>)
+        : null;
+    if (
+      mediaGeneration &&
+      typeof mediaGeneration.mode === "string" &&
+      mediaGeneration.mode !== "chat"
+    ) {
+      await this.handleMediaGenerationMessage(
+        data,
+        mediaGeneration,
+        requestSeq
+      );
       return;
     }
 
@@ -2517,6 +2686,725 @@ export class UnifiedWebSocketRunner {
    *   6. Collect output_update results
    *   7. Send done chunk + response message with typed content
    */
+  /**
+   * Handle a chat_message with a `media_generation` payload by invoking the
+   * selected provider's textToImage / textToVideo API, storing the resulting
+   * asset(s), and returning them to the client as an assistant `Message`
+   * whose `content` is an array of `MessageImageContent` / `MessageVideoContent`
+   * blocks.
+   *
+   * The generated bytes are persisted via `ctx.storage.store()` so each
+   * output receives a stable URI the client can resolve as a server asset.
+   * The `media_generation` echo on the assistant message lets the UI render
+   * the generation header (model, variation count, resolution, etc.) in the
+   * conversation stream.
+   */
+  private async handleMediaGenerationMessage(
+    data: Record<string, unknown>,
+    mediaGeneration: Record<string, unknown>,
+    requestSeq?: number
+  ): Promise<void> {
+    const threadId =
+      typeof data.thread_id === "string" ? data.thread_id : "";
+    const workflowId =
+      typeof data.workflow_id === "string" ? data.workflow_id : null;
+    const userId = this.userId ?? "1";
+    const mode = String(mediaGeneration.mode ?? "");
+    const providerId = String(
+      mediaGeneration.provider ?? data.provider ?? this.defaultProvider
+    );
+    const modelId = String(
+      mediaGeneration.model ?? data.model ?? this.defaultModel
+    );
+    const prompt = this.extractTextContent(data.content);
+
+    log.info("Media generation", {
+      threadId,
+      mode,
+      provider: providerId,
+      model: modelId,
+      promptLen: prompt.length
+    });
+
+    if (!this.resolveProvider) {
+      await this.sendMessage({
+        type: "error",
+        message: "No provider resolver configured",
+        thread_id: threadId
+      });
+      return;
+    }
+
+    if (!modelId || modelId === "undefined") {
+      await this.sendMessage({
+        type: "error",
+        message: `Please select a ${mode} model before generating`,
+        thread_id: threadId
+      });
+      return;
+    }
+
+    if (!prompt) {
+      await this.sendMessage({
+        type: "error",
+        message: "Please enter a prompt",
+        thread_id: threadId
+      });
+      return;
+    }
+
+    if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;
+
+    const provider = await this.resolveProvider(providerId, userId);
+    // Wire up progress forwarding so provider.emitMessage() reaches the client.
+    provider.setMessageEmitter((msg) =>
+      void this.sendMessage(msg as Record<string, unknown>)
+    );
+
+    // Store generated media as a proper Asset record and return the
+    // asset ID.  The DB message stores only `asset_id` — URLs are
+    // resolved at serve time by resolveContentUrls / sendMessage.
+    const storagePath = getAssetStoragePath();
+    const storeMediaAsset = async (
+      bytes: Uint8Array,
+      contentType: string,
+      ext: string
+    ): Promise<string> => {
+      const { join } = await import("node:path");
+      const { writeFile: fsWrite, mkdir: fsMkdir } = await import(
+        "node:fs/promises"
+      );
+      const asset = new Asset({
+        user_id: userId,
+        workflow_id: workflowId ?? null,
+        name: `${mode}_${Date.now()}`,
+        content_type: contentType,
+        parent_id: null
+      });
+      const fileName = `${asset.id}.${ext}`;
+      await fsMkdir(storagePath, { recursive: true });
+      await fsWrite(join(storagePath, fileName), bytes);
+      asset.size = bytes.length;
+      await asset.save();
+      return asset.id;
+    };
+
+    try {
+      if (mode === "image") {
+        const variations = Math.max(
+          1,
+          Math.min(Number(mediaGeneration.variations ?? 1), 8)
+        );
+        const width =
+          typeof mediaGeneration.width === "number"
+            ? mediaGeneration.width
+            : undefined;
+        const height =
+          typeof mediaGeneration.height === "number"
+            ? mediaGeneration.height
+            : undefined;
+        const imageModel: ProviderImageModel = {
+          id: modelId,
+          name: modelId,
+          provider: providerId
+        };
+        const params: TextToImageParams = {
+          model: imageModel,
+          prompt,
+          width,
+          height
+        };
+
+        // Surface a progress chunk so the UI can show the request flight
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          content_type: "text",
+          content_metadata: { media_generation: mediaGeneration },
+          done: false
+        });
+
+        if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
+          return;
+        const imageBytesList = await provider.textToImages(params, variations);
+        const imageContents: Array<Record<string, unknown>> = [];
+        for (const bytes of imageBytesList) {
+          const assetId = await storeMediaAsset(bytes, "image/png", "png");
+          imageContents.push({
+            type: "image_url",
+            image: { type: "image", asset_id: assetId, mimeType: "image/png" }
+          });
+        }
+
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          done: true
+        });
+
+        const assistantMsgData: Record<string, unknown> = {
+          type: "message",
+          role: "assistant",
+          content: imageContents,
+          thread_id: threadId,
+          workflow_id: workflowId,
+          provider: providerId,
+          model: modelId,
+          media_generation: mediaGeneration
+        };
+        await this.saveMessageToDb(assistantMsgData);
+        await this.sendMessage(assistantMsgData);
+        return;
+      }
+
+      if (mode === "video") {
+        const aspectRatio =
+          typeof mediaGeneration.aspect_ratio === "string"
+            ? (mediaGeneration.aspect_ratio as string)
+            : null;
+        const resolution =
+          typeof mediaGeneration.resolution === "string"
+            ? (mediaGeneration.resolution as string)
+            : null;
+        const duration =
+          typeof mediaGeneration.duration === "number"
+            ? (mediaGeneration.duration as number)
+            : null;
+        const videoModel: ProviderVideoModel = {
+          id: modelId,
+          name: modelId,
+          provider: providerId
+        };
+        const params: TextToVideoParams = {
+          model: videoModel,
+          prompt,
+          aspectRatio,
+          resolution,
+          durationSeconds: duration
+        };
+
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          content_type: "text",
+          content_metadata: { media_generation: mediaGeneration },
+          done: false
+        });
+
+        const bytes = await provider.textToVideo(params);
+        const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
+
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          done: true
+        });
+
+        const assistantMsgData: Record<string, unknown> = {
+          type: "message",
+          role: "assistant",
+          content: [
+            {
+              type: "video",
+              video: {
+                type: "video",
+                asset_id: assetId,
+                format: "mp4",
+                duration: duration
+              }
+            }
+          ],
+          thread_id: threadId,
+          workflow_id: workflowId,
+          provider: providerId,
+          model: modelId,
+          media_generation: mediaGeneration
+        };
+        await this.saveMessageToDb(assistantMsgData);
+        await this.sendMessage(assistantMsgData);
+        return;
+      }
+
+      if (mode === "audio") {
+        const voice =
+          typeof mediaGeneration.voice === "string"
+            ? (mediaGeneration.voice as string)
+            : undefined;
+        const speed =
+          typeof mediaGeneration.speed === "number"
+            ? (mediaGeneration.speed as number)
+            : 1.0;
+        const requestedFormatRaw =
+          typeof mediaGeneration.audio_format === "string"
+            ? (mediaGeneration.audio_format as string).toLowerCase()
+            : null;
+        const supportedFormats = new Set([
+          "mp3",
+          "wav",
+          "pcm",
+          "opus",
+          "flac",
+          "aac"
+        ]);
+        const requestedFormat =
+          requestedFormatRaw && supportedFormats.has(requestedFormatRaw)
+            ? requestedFormatRaw
+            : null;
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          content_type: "text",
+          content_metadata: { media_generation: mediaGeneration },
+          done: false
+        });
+
+        let assetId: string;
+        let audioMimeType: string;
+
+        // Some providers (e.g. HuggingFace, OpenAI) can return fully-encoded
+        // audio. Prefer that path when available and honor the requested
+        // container when the provider supports it.
+        const encoded = await provider.textToSpeechEncoded({
+          text: prompt,
+          model: modelId,
+          voice,
+          speed,
+          audioFormat: requestedFormat ?? undefined
+        });
+
+        if (encoded) {
+          const mimeToExt: Record<string, string> = {
+            "audio/mpeg": "mp3",
+            "audio/wav": "wav",
+            "audio/ogg": "ogg",
+            "audio/flac": "flac",
+            "audio/aac": "aac"
+          };
+          const ext = mimeToExt[encoded.mimeType] ?? "flac";
+          if (
+            requestedFormat &&
+            requestedFormat !== ext &&
+            requestedFormat !== "pcm"
+          ) {
+            log.warn(
+              "Requested audio_format not supported by provider; returning native format",
+              { providerId, modelId, requestedFormat, returnedMime: encoded.mimeType }
+            );
+          }
+          assetId = await storeMediaAsset(encoded.data, encoded.mimeType, ext);
+          audioMimeType = encoded.mimeType;
+        } else {
+          // Streaming PCM path (OpenAI, Gemini, etc.)
+          const pcmChunks: Uint8Array[] = [];
+          let totalBytes = 0;
+          let chunkSampleRate = 24000;
+          for await (const chunk of provider.textToSpeech({
+            text: prompt,
+            model: modelId,
+            voice,
+            speed,
+            audioFormat: requestedFormat ?? undefined
+          })) {
+            if (
+              requestSeq !== undefined &&
+              requestSeq !== this.chatRequestSeq
+            )
+              return;
+            if (chunk?.samples) {
+              if (chunk.sampleRate) chunkSampleRate = chunk.sampleRate;
+              const view = new Uint8Array(
+                chunk.samples.buffer,
+                chunk.samples.byteOffset,
+                chunk.samples.byteLength
+              );
+              const copy = new Uint8Array(view);
+              pcmChunks.push(copy);
+              totalBytes += copy.byteLength;
+            }
+          }
+          const merged = new Uint8Array(totalBytes);
+          let off = 0;
+          for (const c of pcmChunks) {
+            merged.set(c, off);
+            off += c.byteLength;
+          }
+
+          if (requestedFormat === "pcm") {
+            // Return raw PCM Int16 bytes (no container).
+            assetId = await storeMediaAsset(merged, "audio/pcm", "pcm");
+            audioMimeType = "audio/pcm";
+          } else {
+            if (
+              requestedFormat &&
+              requestedFormat !== "wav" &&
+              requestedFormat !== "pcm"
+            ) {
+              log.warn(
+                "Requested audio_format cannot be produced from streaming PCM; falling back to WAV",
+                { providerId, modelId, requestedFormat }
+              );
+            }
+            // Wrap raw PCM Int16 in a WAV container so browsers can play it.
+            const sampleRate = chunkSampleRate;
+            const numChannels = 1;
+            const bitsPerSample = 16;
+            const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+            const blockAlign = numChannels * (bitsPerSample / 8);
+            const wavHeader = new ArrayBuffer(44);
+            const dv = new DataView(wavHeader);
+            const writeStr = (pos: number, str: string) => {
+              for (let i = 0; i < str.length; i++)
+                dv.setUint8(pos + i, str.charCodeAt(i));
+            };
+            writeStr(0, "RIFF");
+            dv.setUint32(4, 36 + merged.byteLength, true);
+            writeStr(8, "WAVE");
+            writeStr(12, "fmt ");
+            dv.setUint32(16, 16, true);
+            dv.setUint16(20, 1, true);
+            dv.setUint16(22, numChannels, true);
+            dv.setUint32(24, sampleRate, true);
+            dv.setUint32(28, byteRate, true);
+            dv.setUint16(32, blockAlign, true);
+            dv.setUint16(34, bitsPerSample, true);
+            writeStr(36, "data");
+            dv.setUint32(40, merged.byteLength, true);
+
+            const wav = new Uint8Array(44 + merged.byteLength);
+            wav.set(new Uint8Array(wavHeader), 0);
+            wav.set(merged, 44);
+
+            assetId = await storeMediaAsset(wav, "audio/wav", "wav");
+            audioMimeType = "audio/wav";
+          }
+        }
+
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          done: true
+        });
+
+        const assistantMsgData: Record<string, unknown> = {
+          type: "message",
+          role: "assistant",
+          content: [
+            {
+              type: "audio",
+              audio: {
+                type: "audio",
+                asset_id: assetId,
+                mimeType: audioMimeType
+              }
+            }
+          ],
+          thread_id: threadId,
+          workflow_id: workflowId,
+          provider: providerId,
+          model: modelId,
+          media_generation: mediaGeneration
+        };
+        await this.saveMessageToDb(assistantMsgData);
+        await this.sendMessage(assistantMsgData);
+        return;
+      }
+
+      if (mode === "image_edit" || mode === "image_to_video") {
+        // Resolve the source image from either the message content (most
+        // common path: user dropped an image into the composer) or from the
+        // explicit `source_asset_id` echo on the media_generation payload.
+        const sourceBytes = await this.resolveSourceImageBytes(
+          data,
+          mediaGeneration,
+          userId
+        );
+        if (!sourceBytes) {
+          await this.sendMessage({
+            type: "error",
+            message:
+              "A source image is required — drop or attach an image first",
+            thread_id: threadId
+          });
+          return;
+        }
+
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          content_type: "text",
+          content_metadata: { media_generation: mediaGeneration },
+          done: false
+        });
+
+        if (mode === "image_edit") {
+          const variations = Math.max(
+            1,
+            Math.min(Number(mediaGeneration.variations ?? 1), 8)
+          );
+          const targetWidth =
+            typeof mediaGeneration.width === "number"
+              ? (mediaGeneration.width as number)
+              : undefined;
+          const targetHeight =
+            typeof mediaGeneration.height === "number"
+              ? (mediaGeneration.height as number)
+              : undefined;
+          const strength =
+            typeof mediaGeneration.strength === "number"
+              ? (mediaGeneration.strength as number)
+              : undefined;
+          const numInferenceSteps =
+            typeof mediaGeneration.num_inference_steps === "number"
+              ? (mediaGeneration.num_inference_steps as number)
+              : undefined;
+          const editModel: ProviderImageModel = {
+            id: modelId,
+            name: modelId,
+            provider: providerId
+          };
+          const params: ImageToImageParams = {
+            model: editModel,
+            prompt,
+            targetWidth: targetWidth ?? null,
+            targetHeight: targetHeight ?? null,
+            strength: strength ?? null,
+            numInferenceSteps: numInferenceSteps ?? null
+          };
+          if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
+            return;
+          const imageBytesList = await provider.imageToImages(
+            sourceBytes,
+            params,
+            variations
+          );
+          const imageContents: Array<Record<string, unknown>> = [];
+          for (const bytes of imageBytesList) {
+            const assetId = await storeMediaAsset(bytes, "image/png", "png");
+            imageContents.push({
+              type: "image_url",
+              image: {
+                type: "image",
+                asset_id: assetId,
+                mimeType: "image/png"
+              }
+            });
+          }
+          await this.sendMessage({
+            type: "chunk",
+            thread_id: threadId,
+            content: "",
+            done: true
+          });
+          const assistantMsgData: Record<string, unknown> = {
+            type: "message",
+            role: "assistant",
+            content: imageContents,
+            thread_id: threadId,
+            workflow_id: workflowId,
+            provider: providerId,
+            model: modelId,
+            media_generation: mediaGeneration
+          };
+          await this.saveMessageToDb(assistantMsgData);
+          await this.sendMessage(assistantMsgData);
+          return;
+        }
+
+        // image_to_video
+        const aspectRatio =
+          typeof mediaGeneration.aspect_ratio === "string"
+            ? (mediaGeneration.aspect_ratio as string)
+            : null;
+        const resolution =
+          typeof mediaGeneration.resolution === "string"
+            ? (mediaGeneration.resolution as string)
+            : null;
+        const duration =
+          typeof mediaGeneration.duration === "number"
+            ? (mediaGeneration.duration as number)
+            : null;
+        const numInferenceSteps =
+          typeof mediaGeneration.num_inference_steps === "number"
+            ? (mediaGeneration.num_inference_steps as number)
+            : null;
+        const i2vModel: ProviderVideoModel = {
+          id: modelId,
+          name: modelId,
+          provider: providerId
+        };
+        const params: ImageToVideoParams = {
+          model: i2vModel,
+          prompt,
+          aspectRatio,
+          resolution,
+          durationSeconds: duration,
+          numInferenceSteps
+        };
+        const bytes = await provider.imageToVideo(sourceBytes, params);
+        const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          done: true
+        });
+        const assistantMsgData: Record<string, unknown> = {
+          type: "message",
+          role: "assistant",
+          content: [
+            {
+              type: "video",
+              video: {
+                type: "video",
+                asset_id: assetId,
+                format: "mp4",
+                duration
+              }
+            }
+          ],
+          thread_id: threadId,
+          workflow_id: workflowId,
+          provider: providerId,
+          model: modelId,
+          media_generation: mediaGeneration
+        };
+        await this.saveMessageToDb(assistantMsgData);
+        await this.sendMessage(assistantMsgData);
+        return;
+      }
+
+      // Modes not yet implemented on the backend — fall back to an informative
+      // error so the client can render the unsupported state cleanly.
+      await this.sendMessage({
+        type: "error",
+        message: `Media generation mode "${mode}" is not yet supported`,
+        thread_id: threadId
+      });
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      log.error("Media generation error", { threadId, mode, error: errMsg });
+      await this.sendMessage({
+        type: "error",
+        message: `Generation failed: ${errMsg}`,
+        thread_id: threadId
+      });
+    }
+  }
+
+  /**
+   * Resolve the source image bytes for image-edit / image-to-video calls.
+   * Searches in priority order:
+   *   1. `media_generation.source_asset_id`  → load from Asset storage
+   *   2. The first `image_url` content block on the user message
+   *      (supports asset_id, http(s) uri, and inline data:base64 payloads)
+   * Returns `null` when no usable source image can be found.
+   */
+  private async resolveSourceImageBytes(
+    data: Record<string, unknown>,
+    mediaGeneration: Record<string, unknown>,
+    userId: string
+  ): Promise<Uint8Array | null> {
+    const tryLoadAsset = async (
+      assetId: string
+    ): Promise<Uint8Array | null> => {
+      if (!assetId) return null;
+      try {
+        const asset = await Asset.find(userId, assetId);
+        if (!asset) return null;
+        const ext = (asset.content_type ?? "image/png").split("/")[1] ?? "png";
+        const { join } = await import("node:path");
+        const { readFile } = await import("node:fs/promises");
+        return new Uint8Array(
+          await readFile(join(getAssetStoragePath(), `${assetId}.${ext}`))
+        );
+      } catch (err) {
+        log.warn("resolveSourceImageBytes: asset load failed", {
+          assetId,
+          error: err instanceof Error ? err.message : String(err)
+        });
+        return null;
+      }
+    };
+
+    const explicitId =
+      typeof mediaGeneration.source_asset_id === "string"
+        ? (mediaGeneration.source_asset_id as string)
+        : null;
+    if (explicitId) {
+      const fromAsset = await tryLoadAsset(explicitId);
+      if (fromAsset) return fromAsset;
+    }
+
+    const content = data.content;
+    if (Array.isArray(content)) {
+      for (const c of content) {
+        if (!c || typeof c !== "object") continue;
+        const block = c as Record<string, unknown>;
+        if (block.type !== "image_url") continue;
+        const image = (block.image ?? {}) as Record<string, unknown>;
+        const assetId =
+          typeof image.asset_id === "string"
+            ? (image.asset_id as string)
+            : null;
+        if (assetId) {
+          const bytes = await tryLoadAsset(assetId);
+          if (bytes) return bytes;
+        }
+        const uri =
+          typeof image.uri === "string" ? (image.uri as string) : null;
+        if (uri) {
+          if (uri.startsWith("data:")) {
+            const commaIdx = uri.indexOf(",");
+            if (commaIdx > -1) {
+              const b64 = uri.slice(commaIdx + 1);
+              try {
+                return new Uint8Array(Buffer.from(b64, "base64"));
+              } catch {
+                /* fall through */
+              }
+            }
+          } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
+            if (!isSafeExternalUrl(uri)) {
+              log.warn(
+                "resolveSourceImageBytes: refusing to fetch non-public URL",
+                { uri }
+              );
+            } else {
+              try {
+                const resp = await fetch(uri);
+                if (resp.ok) {
+                  return new Uint8Array(await resp.arrayBuffer());
+                }
+              } catch (err) {
+                log.warn("resolveSourceImageBytes: fetch failed", {
+                  uri,
+                  error: err instanceof Error ? err.message : String(err)
+                });
+              }
+            }
+          }
+        }
+        const data64 =
+          typeof image.data === "string" ? (image.data as string) : null;
+        if (data64) {
+          try {
+            return new Uint8Array(Buffer.from(data64, "base64"));
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   private async handleWorkflowMessage(
     data: Record<string, unknown>,
     _requestSeq?: number
@@ -2648,7 +3536,8 @@ export class UnifiedWebSocketRunner {
           this.resolveExecutor(
             node as { id: string; type: string; [key: string]: unknown }
           ),
-        executionContext: context
+        executionContext: context,
+        validateNode: this.validateNode
       });
 
       const active: ActiveJob = {
@@ -2844,6 +3733,39 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * Build the map of configured BaseProvider instances for the given user.
+   * Cached per user — invalidate by clearing `configuredProvidersCache`.
+   * Used to expose `find_model` to the GraphPlanner agent so it can pick a
+   * real model+provider for generic AI nodes.
+   */
+  private async getConfiguredProviders(
+    userId: string
+  ): Promise<Record<string, BaseProvider>> {
+    const cached = this.configuredProvidersCache.get(userId);
+    if (cached) return cached;
+
+    const providersMod = await import("@nodetool-ai/runtime");
+    const ids: string[] = providersMod.listRegisteredProviderIds();
+    const result: Record<string, BaseProvider> = {};
+    await Promise.all(
+      ids.map(async (id) => {
+        try {
+          if (await providersMod.isProviderConfigured(id, userId)) {
+            result[id] = await providersMod.getProvider(id, userId);
+          }
+        } catch (err) {
+          log.debug("Skipping provider for find_model", {
+            provider: id,
+            error: err instanceof Error ? err.message : String(err)
+          });
+        }
+      })
+    );
+    this.configuredProvidersCache.set(userId, result);
+    return result;
+  }
+
+  /**
    * Handle agent mode messages.
    * Mirrors Python's AgentMessageProcessor.process().
    *
@@ -2875,19 +3797,26 @@ export class UnifiedWebSocketRunner {
 
     // Resolve tools — matches Python's tool resolution
     const {
-      Agent,
+      MultiModeAgent,
       ReadFileTool,
       WriteFileTool,
       BrowserTool,
       GoogleSearchTool,
       getAllMcpTools,
       resolveTool
-    } = await import("@nodetool/agents");
+    } = await import("@nodetool-ai/agents");
 
     let selectedTools: Tool[] = [];
     const rawToolNames = Array.isArray(data.tools)
       ? (data.tools as string[]).filter((t) => typeof t === "string")
       : [];
+
+    // Build configured providers up-front so both `getAllMcpTools` and the
+    // MultiModeAgent below share the same map. Cached per-user in
+    // `getConfiguredProviders`. Independent of the NodeRegistry — the
+    // multi-task planner needs `find_model` and the media-generation tools
+    // even when no registry is wired (i.e. graph mode is unavailable).
+    const agentProviders = await this.getConfiguredProviders(userId);
 
     if (rawToolNames.length > 0) {
       // User explicitly specified tools — resolve by name
@@ -2899,13 +3828,20 @@ export class UnifiedWebSocketRunner {
         tools: selectedTools.map((t) => t.name)
       });
     } else {
-      // No tools specified — use defaults + MCP tools for omnipotent mode
+      // No tools specified — use the current built-in defaults plus NodeTool's
+      // MCP-style backend tools. When a NodeRegistry is wired up, the MCP
+      // helper swaps the REST search/list/get tools for the in-process biased
+      // versions and adds `find_model`, so any agent loop (not just the
+      // GraphPlanner) gets the same node-selection bias.
       selectedTools = [
         new ReadFileTool(),
         new WriteFileTool(),
         new BrowserTool(),
         new GoogleSearchTool(),
-        ...getAllMcpTools()
+        ...getAllMcpTools({
+          registry: this.nodeRegistry,
+          providers: agentProviders
+        })
       ];
       log.debug("Using default + MCP tools for agent", {
         count: selectedTools.length
@@ -2952,23 +3888,64 @@ export class UnifiedWebSocketRunner {
       workspaceDir: agentWorkspaceDir
     });
 
+    const maxStepIterations =
+      typeof data.max_step_iterations === "number" &&
+      data.max_step_iterations > 0
+        ? Math.floor(data.max_step_iterations)
+        : 20;
+    const maxSteps =
+      typeof data.max_steps === "number" && data.max_steps > 0
+        ? Math.floor(data.max_steps)
+        : undefined;
+
+    // Pick the planner. Explicit `agent_planner` from the client wins; if
+    // omitted, default to "graph" when a NodeRegistry is wired (the
+    // workflow-builder path) and "multi" otherwise (TaskPlanner →
+    // ParallelTaskExecutor). Either way the request only reaches the
+    // graph path when a registry is actually available.
+    const requestedPlanner =
+      data.agent_planner === "graph" || data.agent_planner === "multi"
+        ? data.agent_planner
+        : null;
+    const defaultPlanner: "graph" | "multi" = this.nodeRegistry
+      ? "graph"
+      : "multi";
+    const plannerType = requestedPlanner ?? defaultPlanner;
+    const useGraphPlanner = plannerType === "graph" && !!this.nodeRegistry;
+    if (requestedPlanner === "graph" && !this.nodeRegistry) {
+      log.warn(
+        "Client requested graph planner but no NodeRegistry is wired — falling back to multi-task planner."
+      );
+    }
+
+    const markdownOutputSchema = {
+      type: "object",
+      properties: {
+        markdown: {
+          type: "string",
+          description: "The markdown content of the response"
+        }
+      },
+      required: ["markdown"]
+    } as const;
+
     try {
-      const agent = new Agent({
+      // Both planner types route through MultiModeAgent in plan mode; the
+      // `useGraphPlanner` flag picks GraphPlanner vs TaskPlanner under the
+      // hood. The legacy plain `Agent` is no longer used for agent_mode.
+      const agent = new MultiModeAgent({
         name: "Assistant",
         objective,
         provider,
         model,
+        mode: "plan",
         tools: selectedTools,
-        outputSchema: {
-          type: "object",
-          properties: {
-            markdown: {
-              type: "string",
-              description: "The markdown content of the response"
-            }
-          },
-          required: ["markdown"]
-        }
+        useGraphPlanner,
+        registry: useGraphPlanner ? this.nodeRegistry : undefined,
+        providers: useGraphPlanner ? agentProviders : undefined,
+        maxStepIterations,
+        ...(maxSteps !== undefined ? { maxSteps } : {}),
+        outputSchema: markdownOutputSchema
       });
 
       for await (const item of agent.execute(ctx)) {
@@ -2994,12 +3971,16 @@ export class UnifiedWebSocketRunner {
             thread_id: chunk.thread_id ?? threadId
           });
         } else if (msgType === "tool_call_update") {
-          // Forward tool call updates
+          // Forward tool call updates live AND persist them as an
+          // agent_execution message so that reopening a thread preserves the
+          // full per-step debug trace (which tools were called, with what args).
           const tc = item as {
             name: string;
             args: Record<string, unknown>;
             tool_call_id?: string;
             step_id?: string;
+            node_id?: string;
+            message?: string;
           };
           await this.sendMessage({
             type: "tool_call_update",
@@ -3007,11 +3988,33 @@ export class UnifiedWebSocketRunner {
             workflow_id: workflowId,
             tool_call_id: tc.tool_call_id ?? null,
             name: tc.name,
-            message: `Calling ${tc.name}...`,
+            message: tc.message ?? `Calling ${tc.name}...`,
             args: tc.args,
             step_id: tc.step_id ?? null,
+            node_id: tc.node_id ?? null,
             agent_execution_id: agentExecutionId
           });
+          const persisted: Record<string, unknown> = {
+            type: "message",
+            role: "agent_execution",
+            execution_event_type: "tool_call_update",
+            agent_execution_id: agentExecutionId,
+            content: {
+              type: "tool_call_update",
+              tool_call_id: tc.tool_call_id ?? null,
+              name: tc.name,
+              message: tc.message ?? `Calling ${tc.name}...`,
+              args: tc.args ?? {},
+              step_id: tc.step_id ?? null,
+              node_id: tc.node_id ?? null
+            },
+            thread_id: threadId,
+            workflow_id: workflowId,
+            provider: providerId,
+            model,
+            agent_mode: true
+          };
+          await this.saveMessageToDb(persisted);
         } else if (msgType === "task_update") {
           // Send task update as agent_execution message — persisted by _run_processor pattern
           const tu = item as { task?: unknown; step?: unknown; event?: string };
@@ -3529,7 +4532,7 @@ export class UnifiedWebSocketRunner {
       }).catch((err) => {
         log.warn("Failed to send system stats", { error: String(err) });
       });
-    }, 1_000);
+    }, 30_000);
   }
 
   private stopStatsBroadcast(): void {

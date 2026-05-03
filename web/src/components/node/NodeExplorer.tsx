@@ -19,7 +19,6 @@ import type { NodeData } from "../../stores/NodeData";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
 import PanelHeadline from "../ui/PanelHeadline";
 import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
-import log from "loglevel";
 
 type ExplorerEntry = {
   node: Node<NodeData>;
@@ -67,6 +66,10 @@ const styles = (theme: Theme) =>
       alignItems: "stretch",
       "&:last-of-type": {
         borderBottom: "none"
+      },
+      "&:hover .node-edit-button, .node-edit-button:focus-visible": {
+        opacity: 1,
+        pointerEvents: "auto"
       }
     },
     ".node-body": {
@@ -112,7 +115,10 @@ const styles = (theme: Theme) =>
       outline: "none",
       display: "flex",
       alignItems: "center",
-      justifyContent: "center"
+      justifyContent: "center",
+      opacity: 0,
+      pointerEvents: "none",
+      transition: "opacity 0.15s ease"
     },
     ".empty-state": {
       flex: 1,
@@ -196,7 +202,7 @@ const NodeExplorer: React.FC = () => {
       // Use findNode from store instead of depending on entire nodes array
       const node = findNode(nodeId);
       if (!node) {
-        log.warn("[NodeExplorer] node not found", { nodeId });
+        console.warn("[NodeExplorer] node not found", { nodeId });
         return;
       }
 

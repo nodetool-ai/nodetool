@@ -14,7 +14,7 @@ const dialogStyles = (theme: Theme) =>
       minWidth: "min(320px, calc(100vw - 32px))"
     },
     ".dialog-content": {
-      padding: "1em 1.25em"
+      padding: "1em 1.5em"
     },
     ".dialog-title": {
       fontFamily: theme.fontFamily1,
@@ -23,10 +23,13 @@ const dialogStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[0],
       wordSpacing: "normal",
       margin: 0,
-      padding: "1em 1.25em",
+      padding: ".75em 1.5em",
       borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
-    ".dialog-title span": {
+    ".dialog-title .panel-headline": {
+      padding: 0
+    },
+    ".dialog-title > span, .dialog-title .headline-title": {
       borderBottom: `2px solid ${"var(--palette-primary-main)"}`
     },
     ".dialog-actions": {
@@ -61,6 +64,9 @@ const dialogStyles = (theme: Theme) =>
     ".button-confirm": {
       color: "var(--palette-primary-main)",
       fontWeight: "bold"
+    },
+    ".button-confirm.MuiButton-containedError": {
+      color: theme.vars.palette.error.contrastText
     },
     ".button-confirm:hover": {
       backgroundColor: theme.vars.palette.grey[900]

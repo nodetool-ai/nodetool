@@ -36,7 +36,7 @@ describe("GroundedSearchNode", () => {
     const node = new GroundedSearchNode();
     const d = node.serialize();
     expect(d.query).toBe("");
-    expect(d.model).toBe("gemini-2.0-flash");
+    expect(d.model).toBe("gemini-3-flash-preview");
   });
 
   it("throws without API key", async () => {
@@ -80,11 +80,12 @@ describe("GroundedSearchNode", () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [url, opts] = mockFetch.mock.calls[0];
-    expect(url).toContain("gemini-2.0-flash:generateContent");
+    expect(url).toContain("gemini-3-flash-preview:generateContent");
     expect(url).toContain("key=test-key");
     expect(opts.method).toBe("POST");
 
     expect(result.results).toEqual(["Result text"]);
+    expect(result.text).toBe("Result text");
     expect(result.sources).toEqual([
       { title: "Source 1", url: "https://example.com" }
     ]);

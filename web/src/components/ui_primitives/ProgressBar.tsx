@@ -29,7 +29,7 @@ const styles = (theme: Theme) =>
       textAlign: "right"
     },
     ".progress-bar": {
-      borderRadius: 4,
+      borderRadius: theme.rounded.sm,
       height: 6,
       backgroundColor: theme.vars.palette.action.hover
     }

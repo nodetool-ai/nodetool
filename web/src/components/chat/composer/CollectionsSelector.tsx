@@ -167,7 +167,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
                   marginLeft: "-4px",
                   backgroundColor: theme.vars.palette.grey[700],
                   color: theme.vars.palette.grey[200],
-                  borderRadius: "6px",
+                  borderRadius: "var(--rounded-md)",
                   height: "18px",
                   "& .MuiChip-label": {
                     padding: "0 5px",

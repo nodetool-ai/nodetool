@@ -11,13 +11,12 @@
  * Subscription setup is handled by WorkflowManagerContext when workflows are loaded.
  */
 import { create, StoreApi, UseBoundStore } from "zustand";
+import { isLocalhost } from "../lib/env";
 import { NodeData } from "./NodeData";
-import { isLocalhost } from "./ApiClient";
 import { BASE_URL } from "./BASE_URL";
 import useResultsStore from "./ResultsStore";
 import { useComfyUIStore } from "./ComfyUIStore";
 import { Edge, Node } from "@xyflow/react";
-import log from "loglevel";
 import {
   Prediction,
   NodeProgress,
@@ -104,7 +103,7 @@ export type WorkflowRunner = {
   endInputStream: (inputName: string, handle?: string) => void;
 };
 
-type MsgpackData =
+export type MsgpackData =
   | JobUpdate
   | Prediction
   | NodeProgress
@@ -126,7 +125,7 @@ export const createWorkflowRunnerStore = (
     state: "idle",
     statusMessage: null,
     messageHandler: (_workflow: WorkflowAttributes, _data: MsgpackData) => {
-      log.warn("No message handler set");
+      console.warn("No message handler set");
     },
     setMessageHandler: (handler: MessageHandler) => {
       set({ messageHandler: handler });
@@ -142,7 +141,7 @@ export const createWorkflowRunnerStore = (
         await globalWebSocketManager.ensureConnection();
         set({ state: "connected" });
       } catch (error) {
-        log.error(`WorkflowRunner[${workflowId}]: Connection failed:`, error);
+        console.error(`WorkflowRunner[${workflowId}]: Connection failed:`, error);
         set({ state: "error" });
         throw error;
       }
@@ -160,7 +159,7 @@ export const createWorkflowRunnerStore = (
      * Reconnect to an existing job by job_id.
      */
     reconnect: async (jobId: string) => {
-      log.info(`WorkflowRunner[${workflowId}]: Reconnecting to job`, {
+      console.info(`WorkflowRunner[${workflowId}]: Reconnecting to job`, {
         jobId
       });
 
@@ -185,7 +184,7 @@ export const createWorkflowRunnerStore = (
       jobId: string,
       workflow: WorkflowAttributes
     ) => {
-      log.info(`WorkflowRunner[${workflowId}]: Reconnecting with workflow`, {
+      console.info(`WorkflowRunner[${workflowId}]: Reconnecting with workflow`, {
         jobId,
         workflowId: workflow.id
       });
@@ -213,7 +212,7 @@ export const createWorkflowRunnerStore = (
     streamInput: async (inputName: string, value: unknown, handle?: string) => {
       const { job_id } = get();
       if (!job_id) {
-        log.warn("streamInput called without an active job");
+        console.warn("streamInput called without an active job");
         return;
       }
 
@@ -234,7 +233,7 @@ export const createWorkflowRunnerStore = (
     endInputStream: async (inputName: string, handle?: string) => {
       const { job_id } = get();
       if (!job_id) {
-        log.warn("endInputStream called without an active job");
+        console.warn("endInputStream called without an active job");
         return;
       }
 
@@ -263,7 +262,21 @@ export const createWorkflowRunnerStore = (
       resource_limits?: Record<string, unknown>,
       subgraphNodeIds?: Set<string>
     ) => {
-      log.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
+      const currentState = get().state;
+      if (
+        currentState === "connecting" ||
+        currentState === "running" ||
+        currentState === "paused" ||
+        currentState === "suspended"
+      ) {
+        console.warn(
+          `WorkflowRunner[${workflowId}]: Ignoring run request while workflow is busy`,
+          { currentState }
+        );
+        return;
+      }
+
+      console.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
 
       await get().ensureConnection();
 
@@ -358,7 +371,7 @@ export const createWorkflowRunnerStore = (
         }
       };
 
-      log.info(`WorkflowRunner[${workflowId}]: Sending run_job command`, req);
+      console.info(`WorkflowRunner[${workflowId}]: Sending run_job command`, req);
 
       await globalWebSocketManager.send({
         type: "run_job",
@@ -392,7 +405,7 @@ export const createWorkflowRunnerStore = (
      */
     cancel: async () => {
       const { job_id, workflow, state } = get();
-      log.info(`WorkflowRunner[${workflowId}]: Cancelling job`, { job_id });
+      console.info(`WorkflowRunner[${workflowId}]: Cancelling job`, { job_id });
 
       if (state === "cancelled" || state === "idle" || state === "error") {
         return;
@@ -431,15 +444,15 @@ export const createWorkflowRunnerStore = (
      */
     pause: async () => {
       const { job_id, state } = get();
-      log.info(`WorkflowRunner[${workflowId}]: Pausing job`, { job_id });
+      console.info(`WorkflowRunner[${workflowId}]: Pausing job`, { job_id });
 
       if (state !== "running") {
-        log.warn(`WorkflowRunner[${workflowId}]: Cannot pause - not running`);
+        console.warn(`WorkflowRunner[${workflowId}]: Cannot pause - not running`);
         return;
       }
 
       if (!job_id) {
-        log.warn(`WorkflowRunner[${workflowId}]: Cannot pause - no job_id`);
+        console.warn(`WorkflowRunner[${workflowId}]: Cannot pause - no job_id`);
         return;
       }
 
@@ -461,17 +474,17 @@ export const createWorkflowRunnerStore = (
      */
     resume: async () => {
       const { job_id, state } = get();
-      log.info(`WorkflowRunner[${workflowId}]: Resuming job`, { job_id });
+      console.info(`WorkflowRunner[${workflowId}]: Resuming job`, { job_id });
 
       if (state !== "paused" && state !== "suspended") {
-        log.warn(
+        console.warn(
           `WorkflowRunner[${workflowId}]: Cannot resume - not paused or suspended (state: ${state})`
         );
         return;
       }
 
       if (!job_id) {
-        log.warn(`WorkflowRunner[${workflowId}]: Cannot resume - no job_id`);
+        console.warn(`WorkflowRunner[${workflowId}]: Cannot resume - no job_id`);
         return;
       }
 

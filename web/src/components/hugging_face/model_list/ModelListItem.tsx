@@ -235,9 +235,11 @@ const ModelListItem: React.FC<
             align="center"
             gap={1}
           >
-            <Text component="span" className="model-size">
-              {formatBytes(model.size_on_disk || 0)}
-            </Text>
+            {model.size_on_disk ? (
+              <Text component="span" className="model-size">
+                {formatBytes(model.size_on_disk)}
+              </Text>
+            ) : null}
             <ModelListItemActions
               model={model}
               onDownload={onDownload}

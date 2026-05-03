@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { TaskExecutor } from "../src/task-executor.js";
 import type { Step, Task } from "../src/types.js";
-import type { ProcessingMessage } from "@nodetool/protocol";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
 
 /**
  * Creates a mock provider that returns a finish_step tool call for each step.

@@ -14,18 +14,26 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Message, MessageContent, ChatStatus } from '../../types';
+import type { MediaGenerationRequest } from '../../stores/MediaGenerationStore';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatComposer } from './ChatComposer';
+import { ChatOptionsBar } from './ChatOptionsBar';
 import { useTheme } from '../../hooks/useTheme';
 
 interface ChatViewProps {
   status: ChatStatus;
   messages: Message[];
-  onSendMessage: (content: MessageContent[], text: string) => Promise<void>;
+  onSendMessage: (content: MessageContent[], text: string, mediaGeneration?: MediaGenerationRequest) => Promise<void>;
   onStop?: () => void;
   onRefresh?: () => Promise<void>;
   error?: string | null;
   statusMessage?: string | null;
+  agentMode?: boolean;
+  helpMode?: boolean;
+  selectedCollections?: string[];
+  onToggleAgentMode?: (next: boolean) => void;
+  onToggleHelpMode?: (next: boolean) => void;
+  onChangeCollections?: (next: string[]) => void;
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({
@@ -36,14 +44,20 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onRefresh,
   error,
   statusMessage,
+  agentMode = false,
+  helpMode = false,
+  selectedCollections = [],
+  onToggleAgentMode,
+  onToggleHelpMode,
+  onChangeCollections,
 }) => {
   const { colors } = useTheme();
   const isLoading = status === 'loading';
   const isStreaming = status === 'streaming';
 
   const handleSendMessage = useCallback(
-    (content: MessageContent[], text: string) => {
-      onSendMessage(content, text);
+    (content: MessageContent[], text: string, mediaGeneration?: MediaGenerationRequest) => {
+      onSendMessage(content, text, mediaGeneration);
     },
     [onSendMessage]
   );
@@ -139,6 +153,17 @@ export const ChatView: React.FC<ChatViewProps> = ({
           />
         )}
       </View>
+
+      {(onToggleAgentMode || onToggleHelpMode || onChangeCollections) && (
+        <ChatOptionsBar
+          agentMode={agentMode}
+          helpMode={helpMode}
+          selectedCollections={selectedCollections}
+          onToggleAgentMode={onToggleAgentMode || (() => {})}
+          onToggleHelpMode={onToggleHelpMode || (() => {})}
+          onChangeCollections={onChangeCollections || (() => {})}
+        />
+      )}
 
       <ChatComposer
         status={status}

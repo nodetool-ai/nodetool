@@ -8,6 +8,9 @@
 import {
   SketchDocument,
   Layer,
+  LayerContentBounds,
+  LayerTransform,
+  SegmentationSourceMetadata,
   getAncestorGroupOpacityProduct,
   isLayerCompositeVisible,
   normalizeSketchDocument,
@@ -24,6 +27,14 @@ export type LayerRasterBounds = {
   height: number;
 };
 
+export type ExportedRasterLayerSourceMetadata = SegmentationSourceMetadata;
+
+export interface ExportedRasterLayerData {
+  imageDataUrl: string;
+  byteLength: number;
+  sourceMetadata: ExportedRasterLayerSourceMetadata;
+}
+
 type SerializedLayerData = {
   version: 1;
   image: string | null;
@@ -32,6 +43,17 @@ type SerializedLayerData = {
 
 function getDefaultBounds(width: number, height: number): LayerRasterBounds {
   return { x: 0, y: 0, width, height };
+}
+
+function getDataUrlByteLength(dataUrl: string): number {
+  const commaIndex = dataUrl.indexOf(",");
+  if (commaIndex < 0) {
+    return dataUrl.length;
+  }
+  const base64Payload = dataUrl.slice(commaIndex + 1);
+  const padding =
+    base64Payload.endsWith("==") ? 2 : base64Payload.endsWith("=") ? 1 : 0;
+  return Math.max(0, Math.floor((base64Payload.length * 3) / 4) - padding);
 }
 
 function shouldStripSerializedLayerData(layer: Layer): boolean {
@@ -298,6 +320,50 @@ export async function exportLayer(
 
   await drawLayerToContext(ctx, doc, layer);
   return canvas;
+}
+
+export function exportSelectedRasterLayer(
+  doc: SketchDocument,
+  layerId: string
+): ExportedRasterLayerData | null {
+  const layer = doc.layers.find((entry) => entry.id === layerId);
+  if (!layer || layer.type !== "raster" || !layer.data) {
+    return null;
+  }
+
+  const decoded = deserializeLayerData(
+    layer.data,
+    doc.canvas.width,
+    doc.canvas.height
+  );
+  if (!decoded.image) {
+    return null;
+  }
+
+  const contentBounds = {
+    x: decoded.bounds.x,
+    y: decoded.bounds.y,
+    width: decoded.bounds.width,
+    height: decoded.bounds.height
+  };
+
+  return {
+    imageDataUrl: decoded.image,
+    byteLength: getDataUrlByteLength(decoded.image),
+    sourceMetadata: {
+      layerId: layer.id,
+      layerTransform: { ...layer.transform },
+      contentBounds,
+      canvasSize: {
+        width: doc.canvas.width,
+        height: doc.canvas.height
+      },
+      documentOrigin: {
+        x: (layer.transform.x ?? 0) + contentBounds.x,
+        y: (layer.transform.y ?? 0) + contentBounds.y
+      }
+    }
+  };
 }
 
 /**

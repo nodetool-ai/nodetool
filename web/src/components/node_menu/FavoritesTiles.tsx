@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
 import { Box } from "@mui/material";
 import { Tooltip, Text, ToolbarIconButton } from "../ui_primitives";
@@ -17,7 +18,6 @@ import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
-import log from "loglevel";
 
 const tileStyles = (theme: Theme) =>
   css({
@@ -64,7 +64,7 @@ const tileStyles = (theme: Theme) =>
       },
       "&::-webkit-scrollbar-thumb": {
         backgroundColor: theme.vars.palette.action.disabledBackground,
-        borderRadius: "8px"
+        borderRadius: "var(--rounded-lg)"
       },
       "&::-webkit-scrollbar-thumb:hover": {
         backgroundColor: theme.vars.palette.action.disabled
@@ -76,7 +76,7 @@ const tileStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       padding: "12px 8px",
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       cursor: "pointer",
       position: "relative",
       overflow: "hidden",
@@ -167,17 +167,15 @@ const FavoritesTiles = memo(function FavoritesTiles() {
   const memoizedStyles = useMemo(() => tileStyles(theme), [theme]);
 
   const { favorites, removeFavorite, clearFavorites } = useFavoriteNodesStore(
-    (state) => ({
+    useShallow((state) => ({
       favorites: state.favorites,
       removeFavorite: state.removeFavorite,
       clearFavorites: state.clearFavorites
-    })
+    }))
   );
 
-  const { setDragToCreate, setHoveredNode } = useNodeMenuStore((state) => ({
-    setDragToCreate: state.setDragToCreate,
-    setHoveredNode: state.setHoveredNode
-  }));
+  const setDragToCreate = useNodeMenuStore((state) => state.setDragToCreate);
+  const setHoveredNode = useNodeMenuStore((state) => state.setHoveredNode);
 
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addNotification = useNotificationStore(
@@ -229,7 +227,7 @@ const FavoritesTiles = memo(function FavoritesTiles() {
 
       const metadata = getMetadata(nodeType);
       if (!metadata) {
-        log.warn(`Metadata not found for node type: ${nodeType}`);
+        console.warn(`Metadata not found for node type: ${nodeType}`);
         addNotification({
           type: "warning",
           content: `Unable to find metadata for ${nodeType}.`,

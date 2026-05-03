@@ -1,5 +1,4 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
 export class FloatInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.FloatInput";
@@ -794,90 +793,6 @@ export class ImageInputNode extends BaseNode {
   }
 }
 
-export class SketchInputNode extends BaseNode {
-  static readonly nodeType = "nodetool.input.SketchInput";
-  static readonly title = "Sketch Input";
-  static readonly description =
-    "Draw and compose images in a layered sketch editor; exports a flattened composite image and an optional mask for inpainting or segmentation downstream.\n    sketch, draw, paint, mask, inpaint, layers, image, input, composite";
-  static readonly metadataOutputTypes = {
-    image: "image",
-    mask: "image",
-  };
-  static readonly basicFields = ["name", "sketch_data", "input_image"];
-  /** Layer image inputs (`layer_in_<layerName>`) are registered in editor state, not static @prop fields. */
-  static readonly isDynamic = true;
-
-  @prop({ type: "str", default: "", title: "Name", description: "The parameter name for the workflow." })
-  declare name: any;
-
-  @prop({ type: "str", default: "", title: "Description", description: "The description of the input for the workflow." })
-  declare description: any;
-
-  @prop({
-    type: "sketch",
-    default: "",
-    title: "Sketch",
-    description: "Serialized sketch document (edited on the canvas in the sketch editor).",
-  })
-  declare sketch_data: any;
-
-  @prop({
-    type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-    },
-    title: "Input Image",
-    description: "Optional base image from the graph; appears as a locked layer in the editor.",
-  })
-  declare input_image: any;
-
-  @prop({
-    type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-    },
-    title: "Image",
-    description: "Flattened sketch output (updated when you draw or save in the editor).",
-  })
-  declare image: any;
-
-  @prop({
-    type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-    },
-    title: "Mask",
-    description: "Mask export when configured in the sketch editor.",
-  })
-  declare mask: any;
-
-  async process(_context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const emptyImage = {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-    };
-    return {
-      image: this.image ?? emptyImage,
-      mask: this.mask ?? emptyImage,
-    };
-  }
-}
-
 export class ImageListInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.ImageListInput";
   static readonly title = "Image List Input";
@@ -1576,7 +1491,7 @@ export class MessageDeconstructorNode extends BaseNode {
         const block = item as Record<string, unknown>;
         const type = String(block.type ?? "");
         if (type === "text") text = String(block.text ?? "");
-        else if (type === "image") image = block.image ?? null;
+        else if (type === "image" || type === "image_url") image = block.image ?? null;
         else if (type === "audio") audio = block.audio ?? null;
       }
     }
@@ -1618,7 +1533,6 @@ export const INPUT_NODES = [
   DataframeInputNode,
   DocumentInputNode,
   ImageInputNode,
-  SketchInputNode,
   ImageListInputNode,
   VideoListInputNode,
   AudioListInputNode,

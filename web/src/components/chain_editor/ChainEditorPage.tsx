@@ -6,13 +6,12 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Box } from "@mui/material";
 import { LoadingSpinner } from "../ui_primitives/LoadingSpinner";
 import { Text } from "../ui_primitives/Text";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 import { ChainEditor } from "./ChainEditor";
 import { useChainEditorStore } from "./useChainEditorStore";
-import { client } from "../../stores/ApiClient";
+import { trpcClient } from "../../trpc/client";
 import type { Workflow } from "../../stores/ApiTypes";
 
 const ChainEditorPage: React.FC = () => {
@@ -27,11 +26,8 @@ const ChainEditorPage: React.FC = () => {
     const init = async () => {
       try {
         if (workflowId) {
-          const { data, error: fetchError } = await client.GET(
-            "/api/workflows/{id}",
-            { params: { path: { id: workflowId } } }
-          );
-          if (fetchError || !data) {
+          const data = await trpcClient.workflows.get.query({ id: workflowId });
+          if (!data) {
             setError("Workflow not found");
             return;
           }

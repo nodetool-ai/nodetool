@@ -4,6 +4,7 @@ import { Node, Edge, useReactFlow } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import { DUPLICATE_SPACING } from "../config/constants";
 import { useNodes } from "../contexts/NodeContext";
+import { shallow } from "zustand/shallow";
 
 /**
  * Hook for duplicating selected nodes and their connected edges.
@@ -36,7 +37,7 @@ export const useDuplicateNodes = (
     setEdges: state.setEdges,
     getSelectedNodes: state.getSelectedNodes,
     generateNodeIds: state.generateNodeIds
-  }));
+  }), shallow);
   return useCallback(() => {
     const getNodesBounds = reactFlow.getNodesBounds;
     const selectedNodes = getSelectedNodes();

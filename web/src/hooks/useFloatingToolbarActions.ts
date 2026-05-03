@@ -154,8 +154,8 @@ export const useFloatingToolbarActions = () => {
     }
   }, [isMenuOpen, openNodeMenu, closeNodeMenu]);
 
-  const handleToggleTerminal = useCallback(() => {
-    toggleBottomPanel("terminal");
+  const handleToggleTrace = useCallback(() => {
+    toggleBottomPanel("trace");
   }, [toggleBottomPanel]);
 
   const handleToggleMiniMap = useCallback(() => {
@@ -173,7 +173,7 @@ export const useFloatingToolbarActions = () => {
     handleRunAsApp,
     handleEditWorkflow,
     handleToggleNodeMenu,
-    handleToggleTerminal,
+    handleToggleTrace,
     handleToggleMiniMap,
     isWorkflowRunning,
     isPaused,

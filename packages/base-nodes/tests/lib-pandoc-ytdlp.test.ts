@@ -8,7 +8,7 @@ import {
   YtDlpDownloadLibNode,
   registerBaseNodes
 } from "../src/index.js";
-import { NodeRegistry } from "@nodetool/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 
 async function withMockBins(
   run: (binDir: string) => Promise<void>

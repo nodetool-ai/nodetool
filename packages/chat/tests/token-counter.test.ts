@@ -4,7 +4,7 @@ import {
   countMessageTokens,
   countMessagesTokens
 } from "../src/token-counter.js";
-import type { Message } from "@nodetool/runtime";
+import type { Message } from "@nodetool-ai/runtime";
 
 describe("countTextTokens", () => {
   it("returns 0 for null/undefined/empty", () => {
@@ -38,7 +38,7 @@ describe("countMessageTokens", () => {
       role: "user",
       content: [
         { type: "text", text: "hello world" },
-        { type: "image", image: { uri: "http://example.com/img.png" } }
+        { type: "image_url", image: { uri: "http://example.com/img.png" } }
       ]
     };
     const count = countMessageTokens(msg);

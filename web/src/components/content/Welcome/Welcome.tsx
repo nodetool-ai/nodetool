@@ -217,6 +217,17 @@ const recommendedModels: FeaturedModel[] = [
   }
 ];
 
+// Defined at module level — these are static lists, no need to recreate each render
+const FEATURED_LOCAL_MODEL_IDS = [
+  DEFAULT_MODEL,
+  "qwen3:4b",
+  "deepseek-r1:7b",
+  "gemma3:4b"
+];
+const featuredModels = recommendedModels.filter((m) =>
+  FEATURED_LOCAL_MODEL_IDS.includes(m.id)
+);
+
 const extractText = (node: ReactNode): string => {
   if (typeof node === "string") {return node;}
   if (React.isValidElement(node)) {
@@ -373,7 +384,8 @@ const Welcome = () => {
           key = item.key;
         } else if (React.isValidElement(item)) {
           // Use element type for components
-          const type = typeof item.type === "string" ? item.type : (item.type as any)?.displayName || (item.type as any)?.name || "component";
+          const componentType = item.type as string | (React.FC & { displayName?: string });
+          const type = typeof componentType === "string" ? componentType : componentType?.displayName || componentType?.name || "component";
           key = `${type}-${index}`;
         } else if (typeof item === "string" || typeof item === "number") {
           // Use the value itself for primitives
@@ -393,17 +405,6 @@ const Welcome = () => {
   ) => {
     updateSettings({ showWelcomeOnStartup: event.target.checked });
   };
-
-  // Featured local models to display in the setup section
-  const featuredLocalModelIds = [
-    DEFAULT_MODEL,
-    "qwen3:4b",
-    "deepseek-r1:7b",
-    "gemma3:4b"
-  ];
-  const featuredModels = recommendedModels.filter((m) =>
-    featuredLocalModelIds.includes(m.id)
-  );
 
   return (
     <div css={welcomeStyles(theme)} className="welcome-container">

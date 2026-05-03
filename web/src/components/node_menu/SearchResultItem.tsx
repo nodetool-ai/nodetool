@@ -33,7 +33,7 @@ const searchResultStyles = (theme: Theme) =>
       flexDirection: "column",
       padding: "10px 12px",
       margin: "2px 0",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       cursor: "pointer",
       transition: "all 0.15s ease",
       border: "1px solid transparent",
@@ -102,7 +102,7 @@ const searchResultStyles = (theme: Theme) =>
         justifyContent: "center",
         width: "20px",
         height: "20px",
-        borderRadius: "4px",
+        borderRadius: "var(--rounded-sm)",
         color: theme.vars.palette.text.secondary,
         transition: "transform 0.2s ease, color 0.2s ease",
         "&.expanded": {
@@ -127,7 +127,7 @@ const searchResultStyles = (theme: Theme) =>
       ".result-tag": {
         fontSize: "0.65rem",
         padding: "2px 6px",
-        borderRadius: "8px",
+        borderRadius: "var(--rounded-lg)",
         backgroundColor: theme.vars.palette.action.selected,
         color: theme.vars.palette.text.secondary,
         letterSpacing: "0.3px"
@@ -135,7 +135,7 @@ const searchResultStyles = (theme: Theme) =>
       ".provider-tag": {
         fontSize: "0.6rem",
         padding: "1px 5px",
-        borderRadius: "6px",
+        borderRadius: "var(--rounded-md)",
         letterSpacing: "0.3px",
         opacity: 1,
         border: "none"

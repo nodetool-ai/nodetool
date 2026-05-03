@@ -13,7 +13,6 @@ import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
 import { deserializeDragData, hasExternalFiles } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import log from "loglevel";
 
 interface AudioItem {
   uri: string;
@@ -39,7 +38,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       width: "100%",
       backgroundColor: `rgba(0, 0, 0, 0.2)`,
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       transition: "all 0.2s ease",
@@ -105,7 +104,7 @@ const styles = (theme: Theme) =>
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
       margin: "5px 0",
       backgroundColor: `rgba(0, 0, 0, 0.2)`,
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -312,7 +311,7 @@ const AudioListProperty = (props: PropertyProps) => {
         const newAudios = await Promise.all(uploadPromises);
         handleAddAudios(newAudios);
       } catch (error) {
-        log.error("Failed to upload audio files:", error);
+        console.error("Failed to upload audio files:", error);
       }
     },
     [uploadAsset, handleAddAudios, filteredAssets, globalSearchResults, selectedAssets]
@@ -378,7 +377,7 @@ const AudioListProperty = (props: PropertyProps) => {
         handleAddAudios(newAudios);
       }
     } catch (error) {
-      log.error("Error opening file picker:", error);
+      console.error("Error opening file picker:", error);
     }
   }, [uploadAsset, handleAddAudios]);
 
@@ -420,7 +419,7 @@ const AudioListProperty = (props: PropertyProps) => {
       const newAudios = await Promise.all(uploadPromises);
       handleAddAudios(newAudios);
     } catch (error) {
-      log.error("Failed to upload audio files:", error);
+      console.error("Failed to upload audio files:", error);
     }
 
     // Reset input so same file can be selected again

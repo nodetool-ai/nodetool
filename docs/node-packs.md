@@ -52,13 +52,13 @@ For terminal users:
 nodetool package list -a
 
 # Install a pack
-npm install @nodetool/<pack-name>
+npm install @nodetool-ai/<pack-name>
 
 # Update a pack
-npm update @nodetool/<pack-name>
+npm update @nodetool-ai/<pack-name>
 
 # Remove a pack
-npm uninstall @nodetool/<pack-name>
+npm uninstall @nodetool-ai/<pack-name>
 ```
 
 ---

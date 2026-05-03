@@ -10,16 +10,26 @@
  *   nodetool-chat --workspace /path/to/dir  # set workspace directory
  */
 
-import { initTelemetry } from "@nodetool/runtime";
+import { initTelemetry } from "@nodetool-ai/runtime";
 import { program } from "commander";
 import { render } from "ink";
 import React from "react";
 import { App } from "./app.js";
 import { loadSettings } from "./settings.js";
 import { runStdinMode } from "./stdin.js";
-import { initDb } from "@nodetool/models";
-import { getSecret } from "@nodetool/security";
-import { getDefaultDbPath, configureLogging } from "@nodetool/config";
+import { buildConfiguredProviders } from "./providers.js";
+import { initDb, getSecret } from "@nodetool-ai/models";
+import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { registerBaseNodes } from "@nodetool-ai/base-nodes";
+import {
+  DockerSandboxProvider,
+  SessionStore,
+  type Sandbox
+} from "@nodetool-ai/sandbox";
+import { createSandboxTools } from "@nodetool-ai/sandbox-tools";
+import { randomUUID } from "node:crypto";
+import type { Tool } from "@nodetool-ai/agents";
 
 // Configure logging: in interactive mode, suppress non-error logs to a file
 // so they don't interfere with the Ink TUI. Env vars can still override.
@@ -37,10 +47,6 @@ if (!process.env["NODETOOL_LOG_FILE"]) {
 }
 configureLogging();
 
-// Initialize OpenLLMetry before any LLM SDK calls are made.
-// No-op if TRACELOOP_API_KEY / OTEL_EXPORTER_OTLP_ENDPOINT is not set.
-await initTelemetry();
-
 program
   .name("nodetool-chat")
   .description(
@@ -54,6 +60,10 @@ program
   .option("-a, --agent", "Start in agent mode")
   .option("--no-agent", "Disable agent mode (overrides saved settings)")
   .option(
+    "--planner <type>",
+    "Agent planner: 'graph' (workflow builder, default) or 'multi' (parallel tasks)"
+  )
+  .option(
     "-w, --workspace <path>",
     "Workspace directory (default: current directory)"
   )
@@ -61,6 +71,26 @@ program
   .option(
     "-u, --url <url>",
     "NodeTool server WebSocket URL (e.g. ws://localhost:7777/ws)"
+  )
+  .option(
+    "--sandbox",
+    "Provision an isolated Docker sandbox and expose its tools (file, shell, browser, desktop, search, messaging) to the agent"
+  )
+  .option(
+    "--sandbox-image <image>",
+    "Override the sandbox Docker image (default: nodetool/sandbox-agent:latest)"
+  )
+  .option(
+    "--trace-file <path>",
+    "Append every LLM/agent/workflow span as JSONL to <path> (analyzer-friendly)"
+  )
+  .option(
+    "--trace-stdout [format]",
+    "Stream spans to stdout: 'pretty' (default, human-readable) or 'json' (JSONL)"
+  )
+  .option(
+    "--no-trace-stdout",
+    "Disable stdout span output (overrides NODETOOL_TRACE_STDOUT)"
   )
   .helpOption("-h, --help", "Show help")
   .version("0.1.0")
@@ -70,10 +100,39 @@ const opts = program.opts<{
   provider?: string;
   model?: string;
   agent?: boolean;
+  planner?: string;
   workspace?: string;
   tools?: string;
   url?: string;
+  sandbox?: boolean;
+  sandboxImage?: string;
+  traceFile?: string;
+  traceStdout?: string | boolean;
 }>();
+
+// Initialize OpenLLMetry before any LLM SDK calls are made. Honors CLI flags
+// and env vars (TRACELOOP_API_KEY, OTEL_EXPORTER_OTLP_ENDPOINT,
+// NODETOOL_TRACE_FILE, NODETOOL_TRACE_STDOUT). No-op if nothing is configured.
+await initTelemetry({
+  ...(opts.traceFile && { traceFile: opts.traceFile }),
+  ...(opts.traceStdout !== undefined && {
+    stdout: parseTraceStdout(opts.traceStdout)
+  })
+});
+
+function parseTraceStdout(v: string | boolean): "pretty" | "json" | false {
+  if (v === false) return false;
+  if (v === true) return "pretty";
+  if (typeof v === "string") {
+    const lower = v.toLowerCase();
+    if (lower === "false" || lower === "0" || lower === "no") return false;
+    if (lower === "json") return "json";
+    if (lower === "pretty" || lower === "true" || lower === "1") return "pretty";
+  }
+  throw new Error(
+    `--trace-stdout must be 'pretty' or 'json' (got ${JSON.stringify(v)})`
+  );
+}
 
 // Initialize database
 try {
@@ -89,6 +148,10 @@ const provider = opts.provider ?? settings.provider;
 const model = opts.model ?? settings.model;
 // When connecting to a WS server, default to regular chat mode unless --agent is explicit
 const agentMode = opts.agent ?? (opts.url ? false : settings.agentMode);
+const agentPlanner: "multi" | "graph" =
+  opts.planner === "multi" || opts.planner === "graph"
+    ? opts.planner
+    : settings.agentPlanner;
 const workspace = opts.workspace ?? settings.workspace;
 const enabledTools = opts.tools
   ? opts.tools.split(",").map((t) => t.trim())
@@ -131,15 +194,83 @@ await Promise.all([
   autoEnable("IMAP_USERNAME", ["search_email", "archive_email"])
 ]);
 
+// --- Sandbox provisioning (optional) ---------------------------------------
+//
+// When `--sandbox` is set we bring up a DockerSandbox for this CLI process,
+// wrap its ToolClient with the agent adapter, and pass the resulting Tool
+// array into the App as `extraTools`. The sandbox is released on exit.
+
+let sandboxStore: SessionStore | null = null;
+let sandboxHandle: Sandbox | null = null;
+let sandboxExtraTools: Tool[] | undefined;
+
+if (opts.sandbox) {
+  const provider_ = new DockerSandboxProvider(
+    opts.sandboxImage ? { defaultImage: opts.sandboxImage } : {}
+  );
+  sandboxStore = new SessionStore({ provider: provider_ });
+  const sessionId = `cli-${randomUUID().slice(0, 8)}`;
+  try {
+    sandboxHandle = await sandboxStore.acquire(sessionId, {
+      workspaceDir: workspace
+    });
+    sandboxExtraTools = createSandboxTools(sandboxHandle.client);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `Failed to provision sandbox: ${err instanceof Error ? err.message : String(err)}`
+    );
+    process.exit(1);
+  }
+
+  const cleanup = async (): Promise<void> => {
+    try {
+      if (sandboxStore) await sandboxStore.close();
+    } catch {
+      // ignore
+    }
+  };
+  process.on("SIGINT", () => void cleanup().finally(() => process.exit(130)));
+  process.on("SIGTERM", () => void cleanup().finally(() => process.exit(143)));
+  process.on("exit", () => {
+    // Best-effort synchronous cleanup; `release` is async so we just
+    // kick it off and trust Docker to reap containers on daemon shutdown.
+    if (sandboxHandle) void sandboxHandle.release();
+  });
+}
+
+// Build a NodeRegistry once per session for the graph-native agent. Only
+// when running locally (no --url): the WebSocket server has its own
+// registry and doesn't need the CLI to provide one.
+let cliRegistry: NodeRegistry | undefined;
+if (!opts.url) {
+  cliRegistry = new NodeRegistry();
+  registerBaseNodes(cliRegistry);
+}
+
+// Build configured providers unconditionally so `find_model` and the
+// media-generation tools (generate_image, generate_speech, etc.) are
+// available to ANY agent loop — multi-task or graph — even without a
+// registry.
+const cliAgentProviders = await buildConfiguredProviders();
+
 // Stdin mode: activated when stdin is piped (not a TTY)
 if (!process.stdin.isTTY) {
-  await runStdinMode({
-    provider,
-    model,
-    workspaceDir: workspace,
-    agentMode,
-    wsUrl: opts.url
-  });
+  try {
+    await runStdinMode({
+      provider,
+      model,
+      workspaceDir: workspace,
+      agentMode,
+      agentPlanner,
+      wsUrl: opts.url,
+      extraTools: sandboxExtraTools,
+      registry: cliRegistry,
+      agentProviders: cliAgentProviders
+    });
+  } finally {
+    if (sandboxStore) await sandboxStore.close();
+  }
   process.exit(0);
 }
 
@@ -148,12 +279,17 @@ const { waitUntilExit } = render(
     initialProvider: provider,
     initialModel: model,
     initialAgentMode: agentMode,
+    initialAgentPlanner: agentPlanner,
     enabledTools,
     workspaceDir: workspace,
-    wsUrl: opts.url
+    wsUrl: opts.url,
+    extraTools: sandboxExtraTools,
+    registry: cliRegistry,
+    agentProviders: cliAgentProviders
   }),
   { exitOnCtrlC: false }
 );
 
 await waitUntilExit();
+if (sandboxStore) await sandboxStore.close();
 process.exit(0);

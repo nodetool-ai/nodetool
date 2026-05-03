@@ -6,6 +6,26 @@ import ChatThreadView from "./ChatThreadView";
 import mockTheme from "../../../__mocks__/themeMock";
 import { Message } from "../../../stores/ApiTypes";
 
+// Bypass virtualization in tests: render every item synchronously.
+// jsdom has no layout engine, so @tanstack/react-virtual's measurements
+// would return zero and no items would appear.
+jest.mock("@tanstack/react-virtual", () => ({
+  useVirtualizer: ({ count }: { count: number }) => ({
+    getVirtualItems: () =>
+      Array.from({ length: count }, (_, index) => ({
+        index,
+        key: index,
+        start: index * 200,
+        end: (index + 1) * 200,
+        size: 200,
+        lane: 0
+      })),
+    getTotalSize: () => count * 200,
+    measureElement: () => {},
+    scrollToIndex: () => {}
+  })
+}));
+
 // Mock child components to isolate ChatThreadView logic
 jest.mock("../message/MessageView", () => ({
   MessageView: ({ message }: { message: Message }) => (

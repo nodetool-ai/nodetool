@@ -110,7 +110,7 @@ const helpStyles = (theme: Theme) =>
       fontSize: "0.85rem",
       fontWeight: 500,
       padding: "8px 14px",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       transition: "all 0.2s ease",
       flexShrink: 0,
       "&:hover": {
@@ -149,7 +149,7 @@ const helpStyles = (theme: Theme) =>
       },
       "&::-webkit-scrollbar-thumb": {
         background: theme.vars.palette.grey[500],
-        borderRadius: "4px"
+        borderRadius: "var(--rounded-sm)"
       },
       "&::-webkit-scrollbar-thumb:hover": {
         background: theme.vars.palette.grey[400]

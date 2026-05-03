@@ -98,3 +98,35 @@ describe("BaseNode — constructor with properties", () => {
     expect(node.scale).toBe(0.7); // default
   });
 });
+
+describe("BaseNode — list-type coercion", () => {
+  class ListNode extends BaseNode {
+    static readonly nodeType = "test.List";
+    @prop({ type: "list[image]", default: [] })
+    declare images: unknown[];
+
+    async process(): Promise<Record<string, unknown>> {
+      return { output: this.images };
+    }
+  }
+
+  it("wraps a single scalar value into a one-element list", () => {
+    const node = new ListNode();
+    const ref = { type: "image", uri: "https://example.com/a.png" };
+    node.assign({ images: ref });
+    expect(node.images).toEqual([ref]);
+  });
+
+  it("passes arrays through unchanged", () => {
+    const node = new ListNode();
+    const refs = [{ type: "image", uri: "a" }, { type: "image", uri: "b" }];
+    node.assign({ images: refs });
+    expect(node.images).toBe(refs);
+  });
+
+  it("preserves null and undefined (no wrap)", () => {
+    const node = new ListNode();
+    node.assign({ images: null });
+    expect(node.images).toBeNull();
+  });
+});

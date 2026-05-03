@@ -61,6 +61,7 @@ describe("GroundedSearchNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
     expect(result.results).toEqual(["Search result text"]);
+    expect(result.text).toBe("Search result text");
     expect(result.sources).toEqual([
       { title: "Source 1", url: "https://example.com" }
     ]);
@@ -109,6 +110,7 @@ describe("GroundedSearchNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
     expect(result.results).toEqual(["result"]);
+    expect(result.text).toBe("result");
     expect(result.sources).toEqual([]);
   });
 
@@ -1147,7 +1149,7 @@ describe("Node defaults coverage", () => {
     const node = new GroundedSearchNode();
     const d = node.serialize();
     expect(d.query).toBe("");
-    expect(d.model).toBe("gemini-2.0-flash");
+    expect(d.model).toBe("gemini-3-flash-preview");
   });
 
   it("EmbeddingNode defaults", () => {

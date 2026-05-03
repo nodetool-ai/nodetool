@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import type { NodeDescriptor, Edge } from "@nodetool/protocol";
+import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
 import { Graph, GraphValidationError } from "../../src/graph.js";
 import {
   makeRegistry,

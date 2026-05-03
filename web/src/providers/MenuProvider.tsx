@@ -3,7 +3,8 @@ import {
   ReactNode,
   useRef,
   useCallback,
-  useEffect
+  useEffect,
+  useMemo
 } from "react";
 import type { MenuEventData } from "../window";
 
@@ -47,8 +48,13 @@ export const MenuProvider = ({ children }: { children: ReactNode }) => {
     handlers.current.delete(handler);
   }, []);
 
+  const contextValue = useMemo(
+    () => ({ registerHandler, unregisterHandler }),
+    [registerHandler, unregisterHandler]
+  );
+
   return (
-    <MenuContext.Provider value={{ registerHandler, unregisterHandler }}>
+    <MenuContext.Provider value={contextValue}>
       {children}
     </MenuContext.Provider>
   );

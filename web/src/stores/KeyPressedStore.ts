@@ -207,10 +207,12 @@ const useKeyPressedStore = create<KeyPressedState>()((set, get) => ({
       const newKeyPressCount = { ...state.keyPressCount };
       let lastPressedKey = state.lastPressedKey;
 
+      let anyKeyPressed = false;
       Object.entries(keys).forEach(([key, isPressed]) => {
         const normalizedKey = key.toLowerCase();
 
         if (isPressed) {
+          anyKeyPressed = true;
           newPressedKeys.add(normalizedKey);
           lastPressedKey = normalizedKey;
           newKeyPressCount[normalizedKey] =
@@ -220,7 +222,13 @@ const useKeyPressedStore = create<KeyPressedState>()((set, get) => ({
         }
       });
 
-      executeComboCallbacks(newPressedKeys, event);
+      // Only fire combo callbacks on key-down transitions. Otherwise releasing
+      // a modifier while a non-modifier is still held (e.g. releasing Cmd
+      // while "1" is held after Cmd+1) would shrink pressedKeys to {"1"} and
+      // wrongly trigger the single-key "1" shortcut.
+      if (anyKeyPressed) {
+        executeComboCallbacks(newPressedKeys, event);
+      }
 
       return {
         pressedKeys: newPressedKeys,

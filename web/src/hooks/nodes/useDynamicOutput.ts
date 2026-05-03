@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import { TypeMetadata } from "../../stores/ApiTypes";
+import { shallow } from "zustand/shallow";
 
 export const useDynamicOutput = (
   nodeId: string,
@@ -8,7 +9,7 @@ export const useDynamicOutput = (
 ) => {
   const { updateNodeData } = useNodes((state) => ({
     updateNodeData: state.updateNodeData
-  }));
+  }), shallow);
 
   const handleDeleteOutput = useCallback(
     (outputName: string) => {

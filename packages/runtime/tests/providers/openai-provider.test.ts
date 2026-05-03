@@ -93,6 +93,7 @@ describe("OpenAIProvider", () => {
             tool_calls: [
               {
                 id: "tc1",
+                type: "function",
                 function: { name: "sum", arguments: '{"a":1}' }
               }
             ]
@@ -198,7 +199,7 @@ describe("OpenAIProvider", () => {
 
     await expect(provider.getAvailableASRModels()).resolves.toHaveLength(1);
     await expect(provider.getAvailableTTSModels()).resolves.toHaveLength(2);
-    await expect(provider.getAvailableImageModels()).resolves.toHaveLength(3);
+    await expect(provider.getAvailableImageModels()).resolves.toHaveLength(4);
     await expect(provider.getAvailableVideoModels()).resolves.toHaveLength(2);
     await expect(provider.getAvailableEmbeddingModels()).resolves.toHaveLength(
       3

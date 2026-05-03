@@ -370,6 +370,19 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     const updateCursorDocPosFromClient = useCallback(
       (clientX: number, clientY: number) => {
+        const displayCanvas = compositing.displayCanvasRef.current;
+        if (displayCanvas) {
+          const rect = displayCanvas.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) {
+            const p = {
+              x: ((clientX - rect.left) / rect.width) * doc.canvas.width,
+              y: ((clientY - rect.top) / rect.height) * doc.canvas.height
+            };
+            setCursorDocPos({ x: Math.floor(p.x), y: Math.floor(p.y) });
+            return;
+          }
+        }
+
         const container = containerRef.current;
         if (container) {
           const rect = container.getBoundingClientRect();
@@ -385,7 +398,14 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           setCursorDocPos({ x: Math.floor(p.x), y: Math.floor(p.y) });
         }
       },
-      [containerRef, zoom, pan, doc.canvas.width, doc.canvas.height]
+      [
+        compositing.displayCanvasRef,
+        doc.canvas.width,
+        doc.canvas.height,
+        containerRef,
+        zoom,
+        pan
+      ]
     );
 
     const handlePointerMoveWithCoords = useCallback(

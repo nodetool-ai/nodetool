@@ -54,6 +54,11 @@ jest.mock("../torchPlatformCache", () => ({
   getTorchIndexUrl: jest.fn().mockReturnValue(null),
 }));
 
+jest.mock("@nodetool-ai/protocol/bridge-protocol", () => ({
+  BRIDGE_PROTOCOL_VERSION: 1,
+  MIN_NODETOOL_CORE_VERSION: "0.7.0rc8",
+}));
+
 const { promises: fsPromises } = jest.requireMock("fs") as {
   promises: { access: jest.Mock };
 };
@@ -61,7 +66,7 @@ const { spawn } = jest.requireMock("child_process") as {
   spawn: jest.Mock;
 };
 
-function createMockProcess(exitCode: number) {
+function createMockProcess(exitCode: number, stdoutText?: string) {
   const proc = new EventEmitter() as EventEmitter & {
     stdout: EventEmitter;
     stderr: EventEmitter;
@@ -81,6 +86,9 @@ function createMockProcess(exitCode: number) {
   });
 
   process.nextTick(() => {
+    if (stdoutText !== undefined) {
+      proc.stdout.emit("data", Buffer.from(stdoutText));
+    }
     proc.emit("exit", exitCode);
   });
 
@@ -94,11 +102,22 @@ describe("python environment helpers", () => {
     fsPromises.access.mockResolvedValue(undefined);
   });
 
-  it("accepts an environment only when nodetool.worker is importable", async () => {
-    spawn.mockImplementation(() => createMockProcess(0));
+  it("accepts an environment when nodetool-core is installed and nodetool.worker is importable", async () => {
+    spawn
+      .mockImplementationOnce(() => createMockProcess(0, "0.7.0rc8\n"))
+      .mockImplementationOnce(() => createMockProcess(0));
 
     await expect(isCondaEnvironmentInstalled()).resolves.toBe(true);
-    expect(spawn).toHaveBeenCalledWith(
+    expect(spawn).toHaveBeenNthCalledWith(
+      1,
+      "/conda/bin/python",
+      expect.arrayContaining(["-c"]),
+      expect.objectContaining({
+        stdio: ["ignore", "pipe", "ignore"],
+      })
+    );
+    expect(spawn).toHaveBeenNthCalledWith(
+      2,
       "/conda/bin/python",
       ["-c", "import nodetool.worker"],
       expect.objectContaining({
@@ -107,13 +126,32 @@ describe("python environment helpers", () => {
     );
   });
 
-  it("treats the environment as incomplete when nodetool.worker import fails", async () => {
-    spawn.mockImplementation(() => createMockProcess(1));
+  it("accepts an older nodetool-core install (runtime protocol check handles compatibility)", async () => {
+    // App version 0.6.3-rc.42 in mock, installed core 0.6.3rc40 — mismatched
+    // but still considered installed. The runtime bridge handshake decides
+    // whether the protocol is actually compatible.
+    spawn
+      .mockImplementationOnce(() => createMockProcess(0, "0.6.3rc40\n"))
+      .mockImplementationOnce(() => createMockProcess(0));
+
+    await expect(isCondaEnvironmentInstalled()).resolves.toBe(true);
+  });
+
+  it("treats the environment as incomplete when nodetool-core is missing", async () => {
+    spawn.mockImplementationOnce(() => createMockProcess(2));
 
     await expect(isCondaEnvironmentInstalled()).resolves.toBe(false);
   });
 
-  it("installs the required Nodetool Python wheels pinned to the app version", async () => {
+  it("treats the environment as incomplete when nodetool.worker import fails", async () => {
+    spawn
+      .mockImplementationOnce(() => createMockProcess(0, "0.6.3rc42\n"))
+      .mockImplementationOnce(() => createMockProcess(1));
+
+    await expect(isCondaEnvironmentInstalled()).resolves.toBe(false);
+  });
+
+  it("installs nodetool-core with >=MIN pin and additional node packages unpinned (uv resolves via pyproject)", async () => {
     spawn.mockImplementation(() => createMockProcess(0));
 
     await installRequiredPythonPackages(["nodetool-ai/nodetool-huggingface"]);
@@ -125,12 +163,17 @@ describe("python environment helpers", () => {
         "install",
         "--prerelease=allow",
         "--system",
-        "nodetool-core==0.6.3rc42",
-        "nodetool-huggingface==0.6.3rc42",
+        "nodetool-core>=0.7.0rc8",
+        "nodetool-huggingface",
       ]),
       expect.objectContaining({
         stdio: "pipe",
       })
+    );
+
+    const argv = spawn.mock.calls[0][1] as string[];
+    expect(argv).not.toEqual(
+      expect.arrayContaining([expect.stringMatching(/^nodetool-huggingface==/)])
     );
   });
 });

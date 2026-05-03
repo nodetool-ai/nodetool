@@ -65,17 +65,31 @@ NodeTool provides access to high-quality generative AI models through cloud prov
 |-------|----------|-------------|--------------|
 | **OpenAI Sora 2 Pro** | <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> OpenAI | T2V/I2V up to 15s | Realistic motion, refined physics, synchronized native audio, 1080p output |
 | **Google Veo 3.1** | <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | T2V/I2V with references | Upgraded realistic motion, extended clip length, multi-image references, native 1080p with synced audio |
+| **ByteDance Seedance 2.0** | ByteDance | T2V/I2V | High-quality cinematic video with stable characters and smooth motion |
+| **Runway Gen-3 Alpha / Aleph** | Runway | T2V/I2V/Extend | Professional-grade video generation with precise motion control and high fidelity |
+| **Luma** | Luma AI | Video editing/modification | AI-powered video modification and creative editing |
 | **xAI Grok Imagine** | <img src="assets/icons/xai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> xAI | T2V/I2V/T2I | Multimodal text/image to short video with coherent motion and synchronized audio; also text-to-image |
 | **Alibaba Wan 2.6** | <img src="assets/icons/alibaba.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Alibaba | Multi-shot T2V/I2V | Affordable 1080p with stable characters and native audio; reference-guided generation |
 | **MiniMax Hailuo 2.3** | <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax | High-fidelity T2V/I2V | Expressive characters, complex motion and lighting effects |
-| **Kling 2.6** | <img src="assets/icons/kling.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Kling | T2V/I2V with audio | Text/image to synchronized video with speech, ambient sound, and effects; strong audio-visual coherence |
+| **Kling 3.0** | <img src="assets/icons/kling.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Kling | T2V/I2V with audio | Text/image to synchronized video with speech, ambient sound, and effects; strong audio-visual coherence |
 
 ### Top Image Generation Models
 
 | Model | Provider | Capabilities | Key Features |
 |-------|----------|-------------|--------------|
 | **Black Forest Labs FLUX.2** | <img src="assets/icons/bfl.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> BFL | T2I with control | Photoreal images, multi-reference consistency, accurate text rendering, flexible control |
-| **Google Nano Banana Pro** | <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | High-res T2I | Sharper 2K output, 4K upscaling, improved text rendering, better character consistency |
+| **Google Nano Banana 2.0** | <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | High-res T2I/Edit | Sharper 2K output, 4K upscaling, improved text rendering, better character consistency |
+| **GPT Image 2** | <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> OpenAI | T2I/Edit | High-quality photorealistic generation and instruction-based editing |
+| **Ideogram V3** | Ideogram | T2I/Edit | Exceptional typography rendering and artistic style control |
+| **Z-Image Turbo** | Z-AI | T2I | Fast high-quality text-to-image with strong prompt adherence |
+| **Seedream 4.5** | ByteDance | T2I/Edit | High-fidelity image generation and instruction-based editing |
+
+### Top Music & Audio Generation Models
+
+| Model | Provider | Capabilities | Key Features |
+|-------|----------|-------------|--------------|
+| **Suno** | Suno | Music generation/extension | Full song creation from text prompts, with extend, cover, and remix features |
+| **ElevenLabs V3 Dialogue** | <img src="assets/icons/elevenlabs.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> ElevenLabs | Text-to-dialogue | Multi-speaker dialogue generation with emotional control |
 
 ### Using These Models
 
@@ -84,8 +98,9 @@ Access these models through NodeTool's **generic nodes**:
 1. **For Video**: Use `nodetool.video.TextToVideo` or `nodetool.video.ImageToVideo`
 2. **For Images**: Use `nodetool.image.TextToImage`
 3. **For 3D**: Use `nodetool.3d.TextTo3D` or `nodetool.3d.ImageTo3D`
-4. **Select Provider**: Click the model dropdown in the node properties
-4. **Configure API**: Add provider API keys in `Settings → Providers`
+4. **For Music**: Use kie.ai-backed Suno nodes (Suno Generate, Extend, Cover)
+5. **Select Provider**: Click the model dropdown in the node properties
+6. **Configure API**: Add provider API keys in `Settings → Providers`
 
 **Access via kie.ai (recommended for broad model support):**
 Many of these models are available through [kie.ai](https://kie.ai/), an AI provider aggregator that often offers competitive or lower pricing compared to upstream providers.

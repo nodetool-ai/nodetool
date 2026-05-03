@@ -18,7 +18,6 @@ jest.mock("../../editor_ui/NodeSwitch", () => ({
 }));
 
 jest.mock("../../../config/data_types", () => ({}));
-jest.mock("../../../stores/ApiClient", () => ({ client: { GET: jest.fn() } }));
 
 import BoolProperty from "../BoolProperty";
 

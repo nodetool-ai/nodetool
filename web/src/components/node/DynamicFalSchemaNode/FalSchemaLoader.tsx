@@ -35,8 +35,12 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
 
   // Auto-load once if modelInfo is present but schema is not (fully) loaded
   const [autoLoadAttempted, setAutoLoadAttempted] = useState(false);
+  const existingDynamicPropsRef = React.useRef(data.dynamic_properties);
+  React.useEffect(() => {
+    existingDynamicPropsRef.current = data.dynamic_properties;
+  }, [data.dynamic_properties]);
 
-  const handleLoad = useCallback(async () => {
+  const handleLoad = useCallback(async (force = false) => {
     if (!modelInfo) {
       setError("Node definition not found.");
       return;
@@ -96,8 +100,11 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
           values: meta.values || (meta as typeof meta & { enum?: (string | number)[] }).enum,
         };
       }
+      const dynamic_properties = force
+        ? resolved.dynamic_properties
+        : { ...resolved.dynamic_properties, ...(existingDynamicPropsRef.current ?? {}) };
       updateNodeData(nodeId, {
-        dynamic_properties: resolved.dynamic_properties,
+        dynamic_properties,
         dynamic_inputs:
           Object.keys(dynamic_inputs).length > 0 ? dynamic_inputs : undefined,
         dynamic_outputs,
@@ -113,15 +120,15 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
   }, [nodeId, modelInfo, updateNodeData]);
 
   React.useEffect(() => {
-    // If we have an endpoint_id, it was successfully resolved via backend
-    const isResolved = !!data.endpoint_id;
+    // Need both endpoint_id AND dynamic_inputs — inputs are transient (not persisted) and must be re-fetched
+    const isResolved = !!data.endpoint_id && Object.keys(data.dynamic_inputs ?? {}).length > 0;
     if (modelInfo && !isResolved && !loading && !error && !autoLoadAttempted) {
       setAutoLoadAttempted(true);
-      handleLoad();
+      handleLoad(false); // auto-load: preserve existing values
     }
   }, [modelInfo, data.endpoint_id, loading, error, autoLoadAttempted, handleLoad]);
 
-  // Reset attempt if modelInfo changes
+  // Reset attempt if modelInfo changes (new model → will force-reload on next trigger)
   React.useEffect(() => {
     setAutoLoadAttempted(false);
   }, [modelInfo]);
@@ -132,7 +139,7 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
         <IconButton
           size="small"
           disabled={loading}
-          onClick={handleLoad}
+          onClick={() => void handleLoad(true)}
           sx={{
             padding: "4px",
             color: "rgba(255, 255, 255, 0.5)",

@@ -12,6 +12,9 @@
       "path": "../config"
     },
     {
+      "path": "../models"
+    },
+    {
       "path": "../security"
     }
   ]

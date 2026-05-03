@@ -1,15 +1,24 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo, memo, useEffect, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import {
   Button,
-  Select,
-  MenuItem,
   Menu,
+  MenuItem,
   IconButton,
   DialogTitle,
   DialogContent
 } from "@mui/material";
+import { AgentModelSelect } from "./AgentModelSelect";
+import MediaControlChip from "../chat/composer/MediaControlChip";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
@@ -20,31 +29,53 @@ import DesktopWindowsOutlinedIcon from "@mui/icons-material/DesktopWindowsOutlin
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import ChatView from "../chat/containers/ChatView";
 import useAgentStore from "../../stores/AgentStore";
-import type { Message, WorkspaceResponse } from "../../stores/ApiTypes";
+import type {
+  LanguageModel,
+  Message,
+  WorkspaceResponse
+} from "../../stores/ApiTypes";
 import type { AgentProvider, AgentModelDescriptor } from "../../stores/AgentStore";
-
-const PROVIDER_LABELS: Record<AgentProvider, string> = {
-  claude: "Claude",
-  codex: "Codex",
-  opencode: "OpenCode",
-};
+import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
 import {
   Text,
   Caption,
   Tooltip,
   SelectField,
-  ToggleGroup,
-  ToggleOption,
   FlexRow,
   Dialog,
   LoadingSpinner
 } from "../ui_primitives";
 
+const PROVIDER_LABELS: Record<AgentProvider, string> = {
+  claude: "Claude",
+  codex: "Codex",
+  opencode: "OpenCode",
+  pi: "Pi",
+  llm: "LLM"
+};
+
+const ALL_PROVIDERS: AgentProvider[] = [
+  "claude",
+  "codex",
+  "opencode",
+  "pi",
+  "llm"
+];
+
+function isAgentProvider(value: string): value is AgentProvider {
+  return (ALL_PROVIDERS as string[]).includes(value);
+}
+
 import { useQuery } from "@tanstack/react-query";
-import { client } from "../../stores/ApiClient";
-import { createErrorMessage } from "../../utils/errorHandling";
-import log from "loglevel";
+import { isLocalhost, isProduction } from "../../lib/env";
+import { getIsElectronDetails } from "../../utils/browser";
+import { trpcClient } from "../../trpc/client";
+import { useNavigate } from "react-router-dom";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { getAgentSocketClient } from "../../lib/agent/AgentSocketClient";
+
+const workspacesEnabled = getIsElectronDetails().isElectron || !isProduction;
 
 const containerStyles = (_theme: Theme) =>
   css({
@@ -96,7 +127,7 @@ const placeholderStyles = (theme: Theme) =>
     ".placeholder-icon": {
       width: "40px",
       height: "40px",
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -131,7 +162,7 @@ const placeholderStyles = (theme: Theme) =>
       color: theme.vars.palette.error.main,
       backgroundColor: `${theme.vars.palette.error.main}11`,
       border: `1px solid ${theme.vars.palette.error.main}33`,
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       padding: "6px 12px",
       maxWidth: "360px"
     },
@@ -178,29 +209,33 @@ const toolbarStyles = (theme: Theme) =>
     flexShrink: 0
   });
 
-const modelSelectStyles = (theme: Theme) =>
+const mcpWarningStyles = (theme: Theme) =>
   css({
-    height: "26px",
-    minWidth: "90px",
-    maxWidth: "180px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "4px 8px",
     fontSize: theme.fontSizeSmaller,
     fontFamily: theme.fontFamily2,
-    "& .MuiSelect-select": {
-      padding: "1px 22px 1px 6px"
+    color: theme.vars.palette.warning.main,
+    backgroundColor: `${theme.vars.palette.warning.main}0c`,
+    borderBottom: `1px solid ${theme.vars.palette.warning.main}33`,
+    flexShrink: 0,
+    cursor: "pointer",
+    transition: "background-color 0.15s ease",
+    "&:hover": {
+      backgroundColor: `${theme.vars.palette.warning.main}18`
     },
-    "& .MuiOutlinedInput-notchedOutline": {
-      borderColor: theme.vars.palette.divider
+    "& svg": {
+      fontSize: "14px",
+      flexShrink: 0
     }
   });
 
+
 const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
-  const { data, error } = await client.GET("/api/workspaces/", {
-    params: { query: { limit: 100 } }
-  });
-  if (error) {
-    throw createErrorMessage(error, "Failed to load workspaces");
-  }
-  return data.workspaces;
+  const { workspaces } = await trpcClient.workspace.list.query({ limit: 100 });
+  return workspaces as WorkspaceResponse[];
 };
 
 /**
@@ -221,6 +256,22 @@ const AgentPanel: React.FC = () => {
   const [draftModel, setDraftModel] = useState<string>("");
   const [draftModels, setDraftModels] = useState<AgentModelDescriptor[]>([]);
   const [draftModelsLoading, setDraftModelsLoading] = useState(false);
+  /**
+   * For provider === "llm" only: the underlying chat provider id of the
+   * currently-picked model, captured at the moment the user picks from
+   * `LanguageModelMenuDialog` (which returns full LanguageModels). The
+   * harness flow leaves this null and falls through to the existing
+   * descriptor-list lookup.
+   */
+  const [draftChatProviderId, setDraftChatProviderId] = useState<string | null>(
+    null
+  );
+  /** Anchor for the LLM language-model dialog opened from the new-session form. */
+  const draftLlmDialogAnchor = useRef<HTMLButtonElement | null>(null);
+  const [draftLlmDialogOpen, setDraftLlmDialogOpen] = useState(false);
+  /** Anchor for the LLM language-model dialog opened from the chat toolbar. */
+  const toolbarLlmDialogAnchor = useRef<HTMLButtonElement | null>(null);
+  const [toolbarLlmDialogOpen, setToolbarLlmDialogOpen] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
   const [resumeAnchorEl, setResumeAnchorEl] = useState<HTMLElement | null>(null);
 
@@ -244,6 +295,7 @@ const AgentPanel: React.FC = () => {
     setProvider,
     model,
     setModel,
+    chatProviderId,
     availableModels,
     modelsLoading,
     loadModels,
@@ -269,6 +321,7 @@ const AgentPanel: React.FC = () => {
         setProvider: state.setProvider,
         model: state.model,
         setModel: state.setModel,
+        chatProviderId: state.chatProviderId,
         availableModels: state.availableModels,
         modelsLoading: state.modelsLoading,
         loadModels: state.loadModels,
@@ -278,9 +331,42 @@ const AgentPanel: React.FC = () => {
   );
   const { data: workspaces } = useQuery({
     queryKey: ["workspaces"],
-    queryFn: fetchWorkspaces
+    queryFn: fetchWorkspaces,
+    enabled: workspacesEnabled
   });
+
+  const { data: mcpStatus } = useQuery({
+    queryKey: ["mcp-status"],
+    queryFn: async () => {
+      try {
+        return await trpcClient.mcpConfig.status.query();
+      } catch {
+        return null;
+      }
+    },
+    enabled: isLocalhost,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000
+  });
+
+  const mcpInstalledForProvider = useMemo(() => {
+    // The LLM provider runs in-process and doesn't need an MCP install on
+    // the host — its tools are dispatched directly over the agent socket.
+    if (provider === "llm") return true;
+    if (!mcpStatus?.targets) return true;
+    const entry = mcpStatus.targets.find((t) => t.target === provider);
+    return entry?.installed ?? true;
+  }, [mcpStatus, provider]);
+
+  const navigate = useNavigate();
+  const openSettingsApiKeys = useCallback(
+    () => navigate("/settings?tab=1"),
+    [navigate]
+  );
+
   const hasRunningSession = Boolean(sessionId);
+  const isLlmProvider = provider === "llm";
+  const isDraftLlmProvider = draftProvider === "llm";
 
   useEffect(() => {
     useAgentStore.getState().loadSessions();
@@ -299,17 +385,21 @@ const AgentPanel: React.FC = () => {
   }, [workspaces, workspaceId, setWorkspaceContext]);
 
   useEffect(() => {
-    if (!newSessionDialogOpen || !window.api?.agent || !draftWorkspacePath) {
+    // The harness providers' model lists depend on the workspace (e.g. Claude
+    // Code reads `~/.config`). The "llm" provider aggregates from registered
+    // chat providers and ignores the workspace, so we don't gate on it.
+    const isLlm = draftProvider === "llm";
+    if (!newSessionDialogOpen || (!isLlm && !draftWorkspacePath)) {
       setDraftModels([]);
       setDraftModelsLoading(false);
       return;
     }
     let cancelled = false;
     setDraftModelsLoading(true);
-    window.api.agent
+    getAgentSocketClient()
       .listModels({
         provider: draftProvider,
-        workspacePath: draftWorkspacePath
+        workspacePath: isLlm ? undefined : draftWorkspacePath ?? undefined
       })
       .then((models) => {
         if (cancelled) {
@@ -323,7 +413,7 @@ const AgentPanel: React.FC = () => {
       })
       .catch((err) => {
         if (!cancelled) {
-          log.error("Failed to load models:", err);
+          console.error("Failed to load models:", err);
           setDraftModels([]);
         }
       })
@@ -357,16 +447,18 @@ const AgentPanel: React.FC = () => {
     setDraftWorkspaceId(workspaceId);
     setDraftWorkspacePath(workspacePath);
     setDraftModel(model);
+    setDraftChatProviderId(chatProviderId);
     setNewSessionDialogOpen(true);
-  }, [provider, workspaceId, workspacePath, model]);
+  }, [provider, workspaceId, workspacePath, model, chatProviderId]);
 
   const handleCreateNewSession = useCallback(() => {
     setDraftProvider(provider);
     setDraftWorkspaceId(workspaceId);
     setDraftWorkspacePath(workspacePath);
     setDraftModel(model);
+    setDraftChatProviderId(chatProviderId);
     setNewSessionDialogOpen(true);
-  }, [provider, workspaceId, workspacePath, model]);
+  }, [provider, workspaceId, workspacePath, model, chatProviderId]);
 
   const handleResumeSession = useCallback(
     async (targetSessionId: string) => {
@@ -391,6 +483,11 @@ const AgentPanel: React.FC = () => {
         return "loading" as const;
       case "streaming":
         return "streaming" as const;
+      case "stopping":
+        // While the server acknowledges the stop we still treat the chat as
+        // busy so the user can't fire a new prompt before the agent actually
+        // halts.
+        return "loading" as const;
       case "error":
         return "error" as const;
       default:
@@ -401,7 +498,9 @@ const AgentPanel: React.FC = () => {
   const providerLabel = PROVIDER_LABELS[provider];
   const draftProviderLabel = PROVIDER_LABELS[draftProvider];
   const canCreateSession =
-    Boolean(draftWorkspacePath) &&
+    (isDraftLlmProvider
+      ? Boolean(draftChatProviderId)
+      : Boolean(draftWorkspacePath)) &&
     Boolean(draftModel) &&
     !draftModelsLoading &&
     !creatingSession;
@@ -418,36 +517,58 @@ const AgentPanel: React.FC = () => {
   );
 
   const handleConfirmNewSession = useCallback(async () => {
-    if (!draftWorkspacePath || !draftModel) {
+    if (!draftModel) {
+      return;
+    }
+    if (!isDraftLlmProvider && !draftWorkspacePath) {
+      return;
+    }
+    if (isDraftLlmProvider && !draftChatProviderId) {
       return;
     }
     setCreatingSession(true);
     try {
       setProvider(draftProvider);
-      setModel(draftModel);
-      setWorkspaceContext(draftWorkspaceId, draftWorkspacePath);
+      // For LLM, pass chatProviderId explicitly — the LanguageModelMenuDialog
+      // returns full LanguageModels that aren't in `availableModels` (which
+      // is populated from the AgentSdkProvider list, not the tRPC aggregate),
+      // so the descriptor-lookup branch inside setModel would resolve null.
+      setModel(
+        draftModel,
+        isDraftLlmProvider ? draftChatProviderId ?? undefined : undefined
+      );
+      if (!isDraftLlmProvider) {
+        setWorkspaceContext(draftWorkspaceId, draftWorkspacePath);
+      }
 
       if (hasRunningSession) {
         await startNewSession();
       } else {
         await createSession({
-          workspacePath: draftWorkspacePath,
-          workspaceId: draftWorkspaceId ?? undefined
+          workspacePath: isDraftLlmProvider
+            ? undefined
+            : draftWorkspacePath ?? undefined,
+          workspaceId: isDraftLlmProvider
+            ? undefined
+            : draftWorkspaceId ?? undefined
         });
       }
       setNewSessionDialogOpen(false);
     } catch (err) {
-      log.error("Failed to start Agent session:", err);
+      console.error("Failed to start Agent session:", err);
     } finally {
       setCreatingSession(false);
     }
   }, [
     createSession,
+    draftChatProviderId,
     draftModel,
+    draftModels,
     draftProvider,
     draftWorkspaceId,
     draftWorkspacePath,
     hasRunningSession,
+    isDraftLlmProvider,
     setModel,
     setProvider,
     setWorkspaceContext,
@@ -516,7 +637,7 @@ const AgentPanel: React.FC = () => {
               variant="outlined"
               size="small"
               onClick={handleStartSession}
-              disabled={!workspacePath}
+              disabled={!isLlmProvider && !workspacePath}
               startIcon={<PlayArrowRoundedIcon />}
               css={startButtonStyles(theme)}
             >
@@ -561,7 +682,7 @@ const AgentPanel: React.FC = () => {
     (entryId: string) => () => {
       setResumeAnchorEl(null);
       void handleResumeSession(entryId).catch((err) => {
-        log.error("Failed to resume Agent session:", err);
+        console.error("Failed to resume Agent session:", err);
       });
     },
     [handleResumeSession]
@@ -575,29 +696,26 @@ const AgentPanel: React.FC = () => {
   }, [creatingSession]);
 
   // Stable handler for provider change in dialog
-  const handleDraftProviderChange = useCallback(
-    (value: string) => {
-      if (value === "claude" || value === "codex" || value === "opencode") {
-        setDraftProvider(value);
-      }
-    },
-    []
-  );
+  const handleDraftProviderChange = useCallback((value: string) => {
+    if (isAgentProvider(value)) {
+      setDraftProvider(value);
+    }
+  }, []);
 
-  const handleProviderToggle = useCallback(
-    (_event: React.MouseEvent, value: string | null) => {
-      if (value === "claude" || value === "codex" || value === "opencode") {
+  const handleProviderSelectChange = useCallback(
+    (value: string) => {
+      if (isAgentProvider(value)) {
         setProvider(value);
       }
     },
     [setProvider]
   );
 
-  const handleHeaderModelChange = useCallback(
-    (event: { target: { value: string } }) => {
-      setModel(event.target.value);
-    },
-    [setModel]
+  const providerSelectOptions = useMemo<
+    Array<{ id: string; label: string }>
+  >(
+    () => ALL_PROVIDERS.map((id) => ({ id, label: PROVIDER_LABELS[id] })),
+    []
   );
 
   // Stable handler for model change in dialog
@@ -627,28 +745,46 @@ const AgentPanel: React.FC = () => {
     void handleConfirmNewSession();
   }, [handleConfirmNewSession]);
 
-  const toolbarButtonSx = {
-    borderRadius: "6px",
-    border: `1px solid ${theme.vars.palette.divider}`,
-    padding: "3px 8px",
-    gap: "4px",
-    fontSize: theme.fontSizeSmaller,
-    fontFamily: theme.fontFamily2,
-    color: theme.vars.palette.text.secondary,
-    textTransform: "none" as const,
-    "&:hover": {
-      borderColor: theme.vars.palette.primary.main,
-      color: theme.vars.palette.primary.light,
-      backgroundColor: `${theme.vars.palette.primary.main}0a`,
-    },
-  };
+  const dialogLlmModelButtonSx = useMemo(
+    () => ({
+      justifyContent: "flex-start",
+      width: "100%",
+      height: 32,
+      padding: "0 10px",
+      textTransform: "none" as const,
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmall,
+      color: theme.vars.palette.text.primary,
+      borderColor: theme.vars.palette.divider,
+      whiteSpace: "nowrap" as const,
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }),
+    [theme]
+  );
+
+  const toolbarButtonSx = useMemo(
+    () => ({
+      borderRadius: "var(--rounded-md)",
+      border: `1px solid ${theme.vars.palette.divider}`,
+      padding: "3px 8px",
+      gap: "4px",
+      fontSize: theme.fontSizeSmaller,
+      fontFamily: theme.fontFamily2,
+      color: theme.vars.palette.text.secondary,
+      textTransform: "none" as const,
+      "&:hover": {
+        borderColor: theme.vars.palette.primary.main,
+        color: theme.vars.palette.primary.light,
+        backgroundColor: `${theme.vars.palette.primary.main}0a`,
+      },
+    }),
+    [theme]
+  );
 
   const providerOptions = useMemo(
-    () => [
-      { value: "claude", label: "Claude" },
-      { value: "codex", label: "Codex" },
-      { value: "opencode", label: "OpenCode" }
-    ],
+    () =>
+      ALL_PROVIDERS.map((id) => ({ value: id, label: PROVIDER_LABELS[id] })),
     []
   );
 
@@ -668,54 +804,6 @@ const AgentPanel: React.FC = () => {
   return (
     <div css={containerStyles(theme)} className="agent-panel">
       <div css={toolbarStyles(theme)}>
-        <ToggleGroup
-          value={provider}
-          exclusive
-          onChange={handleProviderToggle}
-          compact
-          disabled={hasRunningSession}
-          sx={{
-            height: "26px",
-            "& .MuiToggleButton-root": {
-              fontSize: theme.fontSizeSmaller,
-              fontFamily: theme.fontFamily2,
-              padding: "1px 8px",
-              textTransform: "none",
-              border: `1px solid ${theme.vars.palette.divider}`,
-              color: theme.vars.palette.text.secondary,
-              "&.Mui-selected": {
-                backgroundColor: `${theme.vars.palette.primary.main}18`,
-                color: theme.vars.palette.primary.light,
-                borderColor: theme.vars.palette.primary.main,
-              },
-            },
-          }}
-        >
-          <ToggleOption value="claude">Claude</ToggleOption>
-          <ToggleOption value="codex">Codex</ToggleOption>
-          <ToggleOption value="opencode">OpenCode</ToggleOption>
-        </ToggleGroup>
-
-        <Select
-          value={availableModels.some((m) => m.id === model) ? model : ""}
-          onChange={handleHeaderModelChange}
-          size="small"
-          disabled={hasRunningSession || modelsLoading || availableModels.length === 0}
-          displayEmpty
-          variant="outlined"
-          css={modelSelectStyles(theme)}
-        >
-          {availableModels.map((entry) => (
-            <MenuItem
-              key={entry.id}
-              value={entry.id}
-              sx={{ fontSize: theme.fontSizeSmaller, fontFamily: theme.fontFamily2 }}
-            >
-              {entry.label}
-            </MenuItem>
-          ))}
-        </Select>
-
         <div style={{ flex: 1 }} />
 
         <Tooltip title="Resume a previous session">
@@ -737,7 +825,7 @@ const AgentPanel: React.FC = () => {
             <IconButton
               size="small"
               onClick={handleCreateNewSession}
-              disabled={!isAvailable || !workspacePath}
+              disabled={!isAvailable || (!isLlmProvider && !workspacePath)}
               aria-label="New session"
               sx={toolbarButtonSx}
             >
@@ -774,6 +862,26 @@ const AgentPanel: React.FC = () => {
         </Menu>
       </div>
 
+      {isLocalhost && !mcpInstalledForProvider && (
+        <div
+          css={mcpWarningStyles(theme)}
+          onClick={openSettingsApiKeys}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") openSettingsApiKeys();
+          }}
+        >
+          <WarningAmberIcon />
+          <span>
+            MCP not installed for {PROVIDER_LABELS[provider]}.{" "}
+            <span style={{ textDecoration: "underline" }}>
+              Configure in Settings
+            </span>
+          </span>
+        </div>
+      )}
+
       <Dialog
         open={newSessionDialogOpen}
         onClose={handleNewSessionDialogClose}
@@ -797,28 +905,76 @@ const AgentPanel: React.FC = () => {
             />
           </div>
 
-          <div css={dialogFieldStyles}>
-            <SelectField
-              label="Model"
-              value={draftModel}
-              onChange={handleDraftModelChange}
-              options={modelOptions}
-              disabled={draftModelsLoading || draftModels.length === 0}
-              size="small"
-              variant="outlined"
-            />
-          </div>
+          {isDraftLlmProvider ? (
+            // The non-harness "llm" provider runs against any registered
+            // chat provider, so its model catalog comes from the regular
+            // tRPC `models.llmByProvider` aggregate (with tool-call
+            // filtering) rather than the AgentSdkProvider list. Use the
+            // shared LanguageModelMenuDialog so users get the same rich
+            // picker the rest of the app uses.
+            <div css={dialogFieldStyles}>
+              <Caption size="smaller" sx={{ display: "block", mb: 0.5 }}>
+                Model
+              </Caption>
+              <Button
+                ref={draftLlmDialogAnchor}
+                size="small"
+                variant="outlined"
+                onClick={() => setDraftLlmDialogOpen(true)}
+                sx={dialogLlmModelButtonSx}
+              >
+                <span
+                  style={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap"
+                  }}
+                >
+                  {draftModel
+                    ? `${draftModel}${
+                        draftChatProviderId ? ` (${draftChatProviderId})` : ""
+                      }`
+                    : "Select model…"}
+                </span>
+              </Button>
+              <LanguageModelMenuDialog
+                open={draftLlmDialogOpen}
+                anchorEl={draftLlmDialogAnchor.current}
+                onClose={() => setDraftLlmDialogOpen(false)}
+                requireToolSupport
+                onModelChange={(m: LanguageModel) => {
+                  setDraftModel(m.id);
+                  setDraftChatProviderId(m.provider ?? null);
+                  setDraftLlmDialogOpen(false);
+                }}
+              />
+            </div>
+          ) : (
+            <div css={dialogFieldStyles}>
+              <SelectField
+                label="Model"
+                value={draftModel}
+                onChange={handleDraftModelChange}
+                options={modelOptions}
+                disabled={draftModelsLoading || draftModels.length === 0}
+                size="small"
+                variant="outlined"
+              />
+            </div>
+          )}
 
-          <div css={dialogFieldStyles}>
-            <SelectField
-              label="Workspace"
-              value={draftWorkspaceId ?? ""}
-              onChange={handleWorkspaceChange}
-              options={workspaceOptions}
-              size="small"
-              variant="outlined"
-            />
-          </div>
+          {!isDraftLlmProvider && (
+            <div css={dialogFieldStyles}>
+              <SelectField
+                label="Workspace"
+                value={draftWorkspaceId ?? ""}
+                onChange={handleWorkspaceChange}
+                options={workspaceOptions}
+                size="small"
+                variant="outlined"
+              />
+            </div>
+          )}
 
           {draftModelsLoading && (
             <FlexRow align="center" gap={1} sx={{ marginTop: "8px" }}>
@@ -850,6 +1006,59 @@ const AgentPanel: React.FC = () => {
         onStop={handleStop}
         onNewChat={handleNewChat}
         noMessagesPlaceholder={noMessagesPlaceholder}
+        composerVariant="simple"
+        composerToolbar={
+          <FlexRow gap={1} align="center">
+            <AgentModelSelect
+              value={provider}
+              options={providerSelectOptions}
+              onChange={handleProviderSelectChange}
+              disabled={hasRunningSession}
+              searchable={false}
+            />
+            {isLlmProvider ? (
+              // The non-harness "llm" provider uses the regular tRPC
+              // language-model catalog instead of the AgentSdkProvider list,
+              // so render the same picker the rest of the app uses.
+              <>
+                <MediaControlChip
+                  ref={toolbarLlmDialogAnchor}
+                  size="sm"
+                  icon={<AutoAwesomeIcon fontSize="small" />}
+                  label={
+                    model
+                      ? `${model}${
+                          chatProviderId ? ` (${chatProviderId})` : ""
+                        }`
+                      : "Select model…"
+                  }
+                  truncate
+                  active={toolbarLlmDialogOpen}
+                  disabled={hasRunningSession}
+                  onClick={() => setToolbarLlmDialogOpen(true)}
+                />
+                <LanguageModelMenuDialog
+                  open={toolbarLlmDialogOpen}
+                  anchorEl={toolbarLlmDialogAnchor.current}
+                  onClose={() => setToolbarLlmDialogOpen(false)}
+                  requireToolSupport
+                  onModelChange={(m: LanguageModel) => {
+                    setModel(m.id, m.provider ?? undefined);
+                    setToolbarLlmDialogOpen(false);
+                  }}
+                />
+              </>
+            ) : (
+              <AgentModelSelect
+                value={model}
+                options={availableModels}
+                onChange={setModel}
+                disabled={hasRunningSession || availableModels.length === 0}
+                loading={modelsLoading}
+              />
+            )}
+          </FlexRow>
+        }
       />
     </div>
   );

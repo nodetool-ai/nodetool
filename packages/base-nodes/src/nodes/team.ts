@@ -11,8 +11,8 @@
  * via processing context. Tasks have dependencies and belong to a team.
  */
 
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   TeamExecutor,
   DbTaskBoard,
@@ -21,8 +21,10 @@ import {
   type TeamConfig,
   type TeamEvent,
   type TeamStrategy,
-  type ITaskBoard
-} from "@nodetool/agents";
+  type ITaskBoard,
+  type Tool
+} from "@nodetool-ai/agents";
+import { resolveBuiltinAgentTool } from "./agent-tool-hydration.js";
 
 // ─── AgentNode ───
 
@@ -283,11 +285,18 @@ export class TeamLeadNode extends BaseNode {
       maxConcurrency
     };
 
+    const sharedTools: Tool[] = Array.from(
+      new Set(agents.flatMap((agent) => agent.tools))
+    )
+      .map((name) => resolveBuiltinAgentTool(name))
+      .filter((tool): tool is Tool => tool !== null);
+
     const executor = new TeamExecutor({
       config,
       context,
       taskBoard,
-      messageBus
+      messageBus,
+      sharedTools
     });
 
     const allEvents: TeamEvent[] = [];

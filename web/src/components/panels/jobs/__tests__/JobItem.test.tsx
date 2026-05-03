@@ -7,7 +7,7 @@ import { Job } from "../../../../stores/ApiTypes";
 import { useWorkflow } from "../../../../serverState/useWorkflow";
 import { useJobAssets } from "../../../../serverState/useJobAssets";
 import { getWorkflowRunnerStore } from "../../../../stores/WorkflowRunner";
-import { client } from "../../../../stores/ApiClient";
+import { trpcClient } from "../../../../trpc/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
@@ -28,9 +28,11 @@ jest.mock("../../../../stores/WorkflowRunner", () => ({
   getWorkflowRunnerStore: jest.fn()
 }));
 
-jest.mock("../../../../stores/ApiClient", () => ({
-  client: {
-    POST: jest.fn()
+jest.mock("../../../../trpc/client", () => ({
+  trpcClient: {
+    jobs: {
+      cancel: { mutate: jest.fn() }
+    }
   }
 }));
 
@@ -80,7 +82,7 @@ const mockRunnerStore = {
 const mockUseWorkflow = useWorkflow as jest.MockedFunction<typeof useWorkflow>;
 const mockUseJobAssets = useJobAssets as jest.MockedFunction<typeof useJobAssets>;
 const mockGetWorkflowRunnerStore = getWorkflowRunnerStore as jest.MockedFunction<typeof getWorkflowRunnerStore>;
-const mockClientPOST = client.POST as jest.MockedFunction<typeof client.POST>;
+const mockCancelJob = trpcClient.jobs.cancel.mutate as jest.Mock;
 const mockUseQueryClient = useQueryClient as jest.MockedFunction<typeof useQueryClient>;
 
 describe("JobItem", () => {
@@ -94,7 +96,7 @@ describe("JobItem", () => {
     mockUseWorkflow.mockReturnValue({ data: mockWorkflow } as any);
     mockUseJobAssets.mockReturnValue({ data: [], isLoading: false, error: null } as any);
     mockGetWorkflowRunnerStore.mockReturnValue(mockRunnerStore as any);
-    mockClientPOST.mockResolvedValue({} as any);
+    mockCancelJob.mockResolvedValue({} as any);
     mockUseQueryClient.mockReturnValue({ invalidateQueries: mockInvalidateQueries } as any);
   });
 

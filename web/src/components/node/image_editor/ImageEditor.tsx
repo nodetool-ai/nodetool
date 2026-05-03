@@ -9,14 +9,13 @@ import React, {
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { CircularProgress } from "@mui/material";
 
 // Icons
 import SaveIcon from "@mui/icons-material/Save";
 import DownloadIcon from "@mui/icons-material/Download";
 
 // UI Primitives
-import { CloseButton, Tooltip, Text } from "../../ui_primitives";
+import { CloseButton, LoadingSpinner, Tooltip, Text } from "../../ui_primitives";
 
 import { useCombo } from "../../../stores/KeyPressedStore";
 import ImageEditorToolbar from "./ImageEditorToolbar";
@@ -54,7 +53,6 @@ import {
     DEFAULT_ADJUSTMENTS,
     DEFAULT_SELECTION_SETTINGS
 } from "./types";
-import log from "loglevel";
 
 const styles = (theme: Theme) =>
     css({
@@ -97,7 +95,7 @@ const styles = (theme: Theme) =>
         ".title-badge": {
             fontSize: "11px",
             padding: "2px 8px",
-            borderRadius: "4px",
+            borderRadius: "var(--rounded-sm)",
             backgroundColor: theme.vars.palette.primary.main,
             color: theme.vars.palette.primary.contrastText
         },
@@ -111,7 +109,7 @@ const styles = (theme: Theme) =>
             alignItems: "center",
             gap: "6px",
             padding: "6px 12px",
-            borderRadius: "6px",
+            borderRadius: "var(--rounded-md)",
             fontSize: "13px",
             fontWeight: 500,
             cursor: "pointer",
@@ -612,7 +610,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
 
             onSave(dataUrl, blob);
         } catch (error) {
-            log.error("Failed to save image:", error);
+            console.error("Failed to save image:", error);
         } finally {
             setIsSaving(false);
         }
@@ -647,7 +645,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                             disabled={isSaving}
                         >
                             {isSaving ? (
-                                <CircularProgress size={16} color="inherit" />
+                                <LoadingSpinner inline size={16} color="inherit" />
                             ) : (
                                 <SaveIcon fontSize="small" />
                             )}

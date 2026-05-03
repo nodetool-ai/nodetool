@@ -6,6 +6,13 @@ export interface ChatSettings {
   provider: string;
   model: string;
   agentMode: boolean;
+  /**
+   * Which planner to use when agent mode is on:
+   * - "graph" — GraphPlanner builds a workflow graph (default; uses
+   *   `nodetool.*` core nodes plus the `find_model` tool).
+   * - "multi" — TaskPlanner builds a parallel task DAG of LLM steps.
+   */
+  agentPlanner: "multi" | "graph";
   enabledTools: string[];
   workspace: string;
 }
@@ -14,6 +21,7 @@ export const DEFAULT_SETTINGS: ChatSettings = {
   provider: detectDefaultProvider(),
   model: detectDefaultModel(),
   agentMode: false,
+  agentPlanner: "graph",
   enabledTools: [
     "read_file",
     "write_file",
@@ -23,11 +31,28 @@ export const DEFAULT_SETTINGS: ChatSettings = {
     "grep",
     "download_file",
     "http_request",
-    "http_get",
     "browser",
     "screenshot",
     "run_code",
-    "calculator"
+    "calculator",
+    // NodeTool MCP tools
+    "list_workflows",
+    "get_workflow",
+    "create_workflow",
+    "run_workflow",
+    "validate_workflow",
+    "get_example_workflow",
+    "export_workflow_digraph",
+    "list_nodes",
+    "search_nodes",
+    "get_node_info",
+    "list_jobs",
+    "get_job",
+    "get_job_logs",
+    "start_background_job",
+    "list_assets",
+    "get_asset",
+    "list_models"
   ],
   workspace: process.cwd()
 };

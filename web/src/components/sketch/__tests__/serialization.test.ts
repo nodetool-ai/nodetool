@@ -8,6 +8,7 @@ import {
   flattenDocument,
   exportMask,
   exportLayer,
+  exportSelectedRasterLayer,
   getLayerDataImageUrl
 } from "../serialization";
 import { createDefaultDocument, createDefaultLayer } from "../types";
@@ -327,6 +328,39 @@ describe("Sketch Serialization", () => {
         global.Image = originalImage;
         getContextSpy.mockRestore();
       }
+    });
+
+    it("exportSelectedRasterLayer preserves off-canvas bounds and source metadata", () => {
+      const doc = createDefaultDocument(64, 64);
+      doc.layers[0].data = encodeLayerData("data:image/png;base64,stub", {
+        x: -12,
+        y: 7,
+        width: 18,
+        height: 11
+      });
+      doc.layers[0].transform = { x: 5, y: -3 };
+      doc.layers[0].contentBounds = { x: -12, y: 7, width: 18, height: 11 };
+
+      const exported = exportSelectedRasterLayer(doc, doc.layers[0].id);
+
+      expect(exported).toEqual({
+        imageDataUrl: "data:image/png;base64,stub",
+        byteLength: 3,
+        sourceMetadata: {
+          layerId: doc.layers[0].id,
+          layerTransform: { x: 5, y: -3 },
+          contentBounds: { x: -12, y: 7, width: 18, height: 11 },
+          canvasSize: { width: 64, height: 64 },
+          documentOrigin: { x: -7, y: 4 }
+        }
+      });
+    });
+
+    it("exportSelectedRasterLayer returns null for non-raster layers", () => {
+      const doc = createDefaultDocument(64, 64);
+      doc.layers[0].type = "mask";
+
+      expect(exportSelectedRasterLayer(doc, doc.layers[0].id)).toBeNull();
     });
 
     it("exportMask draws serialized mask data using raster bounds plus transform", async () => {

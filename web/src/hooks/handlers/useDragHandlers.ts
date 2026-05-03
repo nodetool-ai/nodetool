@@ -13,6 +13,7 @@ import { useAddToGroup } from "../nodes/useAddToGroup";
 import { useRemoveFromGroup } from "../nodes/useRemoveFromGroup";
 import { useIsGroupable } from "../nodes/useIsGroupable";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
+import { shallow } from "zustand/shallow";
 // Removed comment creation via drag
 
 // Throttle interval for intersection checks (ms)
@@ -45,7 +46,7 @@ export default function useDragHandlers() {
     useNodes((state) => ({
       setHoveredNodes: state.setHoveredNodes,
       findNode: state.findNode
-    }));
+    }), shallow);
 
   // Refs for throttling and tracking last state to avoid unnecessary updates
   const lastIntersectionCheckRef = useRef<number>(0);
@@ -149,6 +150,13 @@ export default function useDragHandlers() {
   /* SELECTION DRAG START */
   const onSelectionDragStart = useCallback(
     (event: ReactMouseEvent, nodes: Node<NodeData>[]) => {
+      // Suppress transform transition on selected nodes for the duration of the drag.
+      // During a NodesSelection drag, ReactFlow never adds .dragging to individual
+      // nodes, so the CSS :not(.dragging) rule keeps the 0.18s transform transition
+      // active, making all nodes lag behind the cursor.
+      const rfContainer = (event.target as Element)?.closest(".react-flow");
+      rfContainer?.classList.add("nodesselection-dragging");
+
       // Clear potential parent from previous drag
       setLastParentNode(undefined);
       pause(); // pause history
@@ -236,6 +244,10 @@ export default function useDragHandlers() {
   /* SELECTION DRAG STOP */
   const onSelectionDragStop = useCallback(
     (event: ReactMouseEvent, nodes: Node<NodeData>[]) => {
+      // Remove the class that suppressed the transform transition during drag.
+      const rfContainer = (event.target as Element)?.closest(".react-flow");
+      rfContainer?.classList.remove("nodesselection-dragging");
+
       if (
         lastParentNode &&
         nodes.length > 0 &&

@@ -6,7 +6,7 @@
  * validates and produces a GraphData object for WorkflowRunner.
  */
 
-import type { NodeDescriptor, Edge, GraphData } from "@nodetool/protocol";
+import type { NodeDescriptor, Edge, GraphData } from "@nodetool-ai/protocol";
 
 /** The virtual node type used for LLM-driven agent steps. */
 export const AGENT_STEP_NODE_TYPE = "nodetool.agents.AgentStep";

@@ -1,22 +1,17 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { VideoRef, StreamingInputs, StreamingOutputs } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { VideoRef, StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { audioBytes, toBytes } from "../lib/audio-wav.js";
 
 type VideoRefLike = { uri?: string; data?: Uint8Array | string };
 type ImageRefLike = { uri?: string; data?: Uint8Array | string };
-type AudioRefLike = { uri?: string; data?: Uint8Array | string };
 const execFile = promisify(execFileCb);
-
-function toBytes(data: Uint8Array | string | undefined): Uint8Array {
-  if (!data) return new Uint8Array();
-  if (data instanceof Uint8Array) return data;
-  return Uint8Array.from(Buffer.from(data, "base64"));
-}
 
 function videoBytes(video: unknown): Uint8Array {
   if (!video || typeof video !== "object") return new Uint8Array();
@@ -43,18 +38,43 @@ async function videoBytesAsync(video: unknown, context?: ProcessingContext): Pro
   return new Uint8Array();
 }
 
-function imageBytes(image: unknown): Uint8Array {
+async function imageBytesAsync(
+  image: unknown,
+  context?: ProcessingContext
+): Promise<Uint8Array> {
   if (!image || typeof image !== "object") return new Uint8Array();
-  return toBytes((image as ImageRefLike).data);
-}
-
-function audioBytes(audio: unknown): Uint8Array {
-  if (!audio || typeof audio !== "object") return new Uint8Array();
-  return toBytes((audio as AudioRefLike).data);
+  const ref = image as ImageRefLike;
+  if (ref.data) return toBytes(ref.data);
+  if (typeof ref.uri === "string" && ref.uri) {
+    const uri = ref.uri;
+    const dataUriMatch = uri.match(/^data:[^;]*;base64,(.+)$/s);
+    if (dataUriMatch) {
+      return new Uint8Array(Buffer.from(dataUriMatch[1], "base64"));
+    }
+    if (context?.storage) {
+      const stored = await context.storage.retrieve(uri);
+      if (stored !== null) return new Uint8Array(stored);
+    }
+    if (uri.startsWith("file://")) {
+      return new Uint8Array(await fs.readFile(filePath(uri)));
+    }
+    if (uri.startsWith("http://") || uri.startsWith("https://")) {
+      const response = await fetch(uri);
+      return new Uint8Array(await response.arrayBuffer());
+    }
+  }
+  return new Uint8Array();
 }
 
 function filePath(uriOrPath: string): string {
-  if (uriOrPath.startsWith("file://")) return uriOrPath.slice("file://".length);
+  if (uriOrPath.startsWith("file://")) {
+    try {
+      return fileURLToPath(new URL(uriOrPath));
+    } catch {
+      // Fallback for non-standard URIs like file://C:\path
+      return uriOrPath.slice("file://".length);
+    }
+  }
   return uriOrPath;
 }
 
@@ -133,6 +153,17 @@ function canUseProvider(
   );
 }
 
+const VIDEO_ASPECT_RATIO_VALUES = [
+  "21:9",
+  "16:9",
+  "4:3",
+  "1:1",
+  "9:16",
+  "3:4"
+];
+const VIDEO_RESOLUTION_VALUES = ["720p", "1080p", "1440p", "4K"];
+const VIDEO_DURATION_VALUES = [2, 3, 4, 5, 6, 8];
+
 async function withTempFile(
   suffix: string,
   bytes: Uint8Array
@@ -191,7 +222,7 @@ export class TextToVideoNode extends BaseNode {
     "prompt",
     "aspect_ratio",
     "resolution",
-    "seed"
+    "duration"
   ];
   static readonly exposeAsTool = true;
 
@@ -227,61 +258,34 @@ export class TextToVideoNode extends BaseNode {
   declare negative_prompt: any;
 
   @prop({
-    type: "enum",
+    type: "str",
     default: "16:9",
     title: "Aspect Ratio",
     description: "Aspect ratio for the video",
-    values: ["16:9", "9:16", "1:1", "4:3", "3:4"]
+    values: VIDEO_ASPECT_RATIO_VALUES,
+    json_schema_extra: { type: "media_aspect_ratio_video" }
   })
   declare aspect_ratio: any;
 
   @prop({
-    type: "enum",
-    default: "720p",
+    type: "str",
+    default: "1080p",
     title: "Resolution",
     description: "Video resolution",
-    values: ["480p", "720p", "1080p"]
+    values: VIDEO_RESOLUTION_VALUES,
+    json_schema_extra: { type: "media_resolution_video" }
   })
   declare resolution: any;
 
   @prop({
     type: "int",
-    default: 60,
-    title: "Num Frames",
-    description: "Number of frames to generate (provider-specific)",
-    min: 1,
-    max: 300
+    default: 8,
+    title: "Duration",
+    description: "Video duration in seconds",
+    values: VIDEO_DURATION_VALUES,
+    json_schema_extra: { type: "media_duration" }
   })
-  declare num_frames: any;
-
-  @prop({
-    type: "float",
-    default: 7.5,
-    title: "Guidance Scale",
-    description: "Classifier-free guidance scale (higher = closer to prompt)",
-    min: 0,
-    max: 30
-  })
-  declare guidance_scale: any;
-
-  @prop({
-    type: "int",
-    default: 30,
-    title: "Num Inference Steps",
-    description: "Number of denoising steps",
-    min: 1,
-    max: 100
-  })
-  declare num_inference_steps: any;
-
-  @prop({
-    type: "int",
-    default: -1,
-    title: "Seed",
-    description: "Random seed for reproducibility (-1 for random)",
-    min: -1
-  })
-  declare seed: any;
+  declare duration: any;
 
   @prop({
     type: "int",
@@ -304,7 +308,7 @@ export class TextToVideoNode extends BaseNode {
         params: {
           prompt: text,
           negative_prompt: this.negative_prompt,
-          num_frames: this.num_frames,
+          duration_seconds: Number(this.duration ?? 0) || undefined,
           aspect_ratio: this.aspect_ratio,
           resolution: this.resolution
         }
@@ -330,7 +334,7 @@ export class ImageToVideoNode extends BaseNode {
     "prompt",
     "aspect_ratio",
     "resolution",
-    "seed"
+    "duration"
   ];
   static readonly exposeAsTool = true;
 
@@ -380,61 +384,34 @@ export class ImageToVideoNode extends BaseNode {
   declare negative_prompt: any;
 
   @prop({
-    type: "enum",
+    type: "str",
     default: "16:9",
     title: "Aspect Ratio",
     description: "Aspect ratio for the video",
-    values: ["16:9", "9:16", "1:1", "4:3", "3:4"]
+    values: VIDEO_ASPECT_RATIO_VALUES,
+    json_schema_extra: { type: "media_aspect_ratio_video" }
   })
   declare aspect_ratio: any;
 
   @prop({
-    type: "enum",
-    default: "720p",
+    type: "str",
+    default: "1080p",
     title: "Resolution",
     description: "Video resolution",
-    values: ["480p", "720p", "1080p"]
+    values: VIDEO_RESOLUTION_VALUES,
+    json_schema_extra: { type: "media_resolution_video" }
   })
   declare resolution: any;
 
   @prop({
     type: "int",
-    default: 60,
-    title: "Num Frames",
-    description: "Number of frames to generate (provider-specific)",
-    min: 1,
-    max: 300
+    default: 4,
+    title: "Duration",
+    description: "Video duration in seconds",
+    values: VIDEO_DURATION_VALUES,
+    json_schema_extra: { type: "media_duration" }
   })
-  declare num_frames: any;
-
-  @prop({
-    type: "float",
-    default: 7.5,
-    title: "Guidance Scale",
-    description: "Classifier-free guidance scale (higher = closer to prompt)",
-    min: 0,
-    max: 30
-  })
-  declare guidance_scale: any;
-
-  @prop({
-    type: "int",
-    default: 30,
-    title: "Num Inference Steps",
-    description: "Number of denoising steps",
-    min: 1,
-    max: 100
-  })
-  declare num_inference_steps: any;
-
-  @prop({
-    type: "int",
-    default: -1,
-    title: "Seed",
-    description: "Random seed for reproducibility (-1 for random)",
-    min: -1
-  })
-  declare seed: any;
+  declare duration: any;
 
   @prop({
     type: "int",
@@ -447,7 +424,7 @@ export class ImageToVideoNode extends BaseNode {
   declare timeout_seconds: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const img = imageBytes(this.image);
+    const img = await imageBytesAsync(this.image, context);
     const prompt = String(this.prompt ?? "");
     const { providerId, modelId } = modelConfig(this.serialize());
     if (canUseProvider(context, providerId, modelId)) {
@@ -459,7 +436,7 @@ export class ImageToVideoNode extends BaseNode {
           image: img,
           prompt,
           negative_prompt: this.negative_prompt,
-          num_frames: this.num_frames,
+          duration_seconds: Number(this.duration ?? 0) || undefined,
           aspect_ratio: this.aspect_ratio,
           resolution: this.resolution
         }
@@ -594,8 +571,23 @@ export class LoadVideoAssetsNode extends BaseNode {
     video: unknown;
     name: string;
   }> {
-    const folder = String(this.folder ?? ".");
-    const entries = await fs.readdir(folder, { withFileTypes: true });
+    const raw = this.folder;
+    const folder =
+      typeof raw === "string" && raw.length > 0
+        ? raw.startsWith("file:")
+          ? filePath(raw)
+          : raw
+        : typeof raw === "object" && raw !== null && typeof (raw as Record<string, unknown>).uri === "string" && ((raw as Record<string, unknown>).uri as string).length > 0
+          ? filePath((raw as Record<string, unknown>).uri as string)
+          : "";
+    if (!folder) return;
+    let entries;
+    try {
+      entries = await fs.readdir(folder, { withFileTypes: true });
+    } catch {
+      // folder does not exist or is not accessible
+      return;
+    }
     for (const entry of entries) {
       if (!entry.isFile()) continue;
       const ext = path.extname(entry.name).toLowerCase();
@@ -1032,6 +1024,7 @@ export class ConcatVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly isDynamic = true;
 
   @prop({
     type: "video",
@@ -1066,24 +1059,35 @@ export class ConcatVideoNode extends BaseNode {
   declare video_b: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const a = await videoBytesAsync(this.video_a, context);
-    const b = await videoBytesAsync(this.video_b, context);
-    if (a.length === 0) return { output: videoRef(b) };
-    if (b.length === 0) return { output: videoRef(a) };
+    const inputValues = [
+      this.video_a,
+      this.video_b,
+      ...Array.from(this.dynamicProps.values())
+    ];
+    const parts: Uint8Array[] = [];
+    for (const input of inputValues) {
+      const bytes = await videoBytesAsync(input, context);
+      if (bytes.length > 0) {
+        parts.push(bytes);
+      }
+    }
 
-    const inputA = await withTempFile(".mp4", a);
-    const inputB = await withTempFile(".mp4", b);
+    if (parts.length === 0) return { output: videoRef(new Uint8Array()) };
+    if (parts.length === 1) return { output: videoRef(parts[0]) };
+
+    const inputs = await Promise.all(parts.map((bytes) => withTempFile(".mp4", bytes)));
     const concatDir = await fs.mkdtemp(
       path.join(os.tmpdir(), "nodetool-concat-")
     );
     const listPath = path.join(concatDir, "list.txt");
     const outputPath = path.join(concatDir, "output.mp4");
     try {
+      const listEntries = inputs
+        .map((input) => `file '${input.path}'`)
+        .join("\n");
       await fs.writeFile(
         listPath,
-        `file '${inputA.path}'
-file '${inputB.path}'
-`
+        `${listEntries}\n`
       );
       await execFile(
         "ffmpeg",
@@ -1093,10 +1097,11 @@ file '${inputB.path}'
       const result = new Uint8Array(await fs.readFile(outputPath));
       return { output: videoRef(result) };
     } catch {
-      return { output: videoRef(bytesConcat([a, b])) };
+      return { output: videoRef(bytesConcat(parts)) };
     } finally {
-      await inputA.cleanup();
-      await inputB.cleanup();
+      for (const input of inputs) {
+        await input.cleanup();
+      }
       await fs.rm(concatDir, { recursive: true, force: true });
     }
   }

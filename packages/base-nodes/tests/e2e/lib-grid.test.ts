@@ -5,7 +5,7 @@ import {
   LIB_GRID_NODES,
   registerBaseNodes
 } from "../../src/index.js";
-import { NodeRegistry } from "@nodetool/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 
 async function solid(
   width: number,

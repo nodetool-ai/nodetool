@@ -13,7 +13,7 @@ export const createStyles = (theme: Theme) =>
       minHeight: "100px",
       flex: 1,
       overflow: "auto",
-      padding: `${theme.spacing(0.5)} ${theme.spacing(0.75)}`,
+      padding: `${theme.spacing(0.75)} ${theme.spacing(0.75)} ${theme.spacing(1.5)}`,
       margin: 0,
       listStyle: "none",
       scrollbarWidth: "thin",
@@ -33,12 +33,13 @@ export const createStyles = (theme: Theme) =>
     },
 
     ".thread-date-group": {
-      padding: "0.25em 0.75em",
-      marginTop: "0.75em",
-      fontSize: theme.fontSizeSmaller,
-      color: theme.vars.palette.grey[300],
+      padding: "0.4em 0.75em 0.3em",
+      marginTop: "1em",
+      fontSize: theme.fontSizeTiny,
+      color: theme.vars.palette.grey[400],
       textTransform: "uppercase",
-      letterSpacing: "0.06em",
+      letterSpacing: "0.08em",
+      fontWeight: 500,
       "&:first-of-type": {
         marginTop: 0
       }
@@ -46,29 +47,29 @@ export const createStyles = (theme: Theme) =>
 
     ".thread-item": {
       position: "relative",
-      padding: "0.4em 0.75em",
+      padding: "0.35em 0.6em",
+      margin: "1px 0",
       fontSize: theme.fontSizeSmall,
-      width: "calc(100% - 12px)",
-      borderLeft: `3px solid transparent`,
+      width: "100%",
       cursor: "pointer",
       transition:
-        "background 0.18s ease, opacity 0.25s ease-out, transform 0.25s ease-out, max-height 0.25s ease-out, border-color 0.2s ease",
-      borderRadius: 6,
+        "background-color 0.12s ease, opacity 0.25s ease-out, transform 0.25s ease-out, max-height 0.25s ease-out",
+      borderRadius: 5,
       overflow: "hidden",
       outline: "none",
+      backgroundColor: "transparent",
 
       "&:hover": {
+        backgroundColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.04)`,
         ".delete-button": { opacity: 1 }
       },
 
       "&:focus-visible": {
-        borderLeftColor: "var(--palette-primary-main)",
-        boxShadow: "0 0 0 2px rgba(96,165,250,0.25) inset"
+        backgroundColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`
       },
 
       "&.selected": {
-        backgroundColor: theme.vars.palette.grey[800],
-        borderLeft: `3px solid ${"var(--palette-primary-main)"}`
+        backgroundColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`
       },
 
       "&.deleting": {
@@ -88,9 +89,9 @@ export const createStyles = (theme: Theme) =>
 
     ".thread-title": {
       fontSize: theme.fontSizeSmall,
-      fontWeight: 500,
-      lineHeight: 1.3,
-      color: theme.vars.palette.grey[0],
+      fontWeight: 400,
+      lineHeight: 1.35,
+      color: theme.vars.palette.grey[100],
       margin: 0,
       display: "-webkit-box",
       WebkitLineClamp: 1,
@@ -104,7 +105,7 @@ export const createStyles = (theme: Theme) =>
       fontSize: theme.fontSizeTiny,
       lineHeight: 1.2,
       color: theme.vars.palette.grey[300],
-      margin: 0
+      margin: "0.25em 0 0"
     },
 
     // DeleteButton renders: Tooltip > span > IconButton.delete-button

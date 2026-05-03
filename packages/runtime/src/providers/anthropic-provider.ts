@@ -3,8 +3,8 @@ import type {
   MessageCreateParamsNonStreaming,
   MessageStreamParams
 } from "@anthropic-ai/sdk/resources/messages/messages.js";
-import type { Chunk } from "@nodetool/protocol";
-import { createLogger } from "@nodetool/config";
+import type { Chunk } from "@nodetool-ai/protocol";
+import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
 
 const log = createLogger("nodetool.runtime.providers.anthropic");
@@ -33,7 +33,7 @@ function isTextContent(content: MessageContent): content is MessageTextContent {
 function isImageContent(
   content: MessageContent
 ): content is MessageImageContent {
-  return content.type === "image";
+  return content.type === "image_url";
 }
 
 function bytesToBase64(data: Uint8Array | string | undefined): string {
@@ -329,17 +329,24 @@ export class AnthropicProvider extends BaseProvider {
             base64 = parsed.base64;
             mediaType = part.image.mimeType ?? parsed.mime;
           } else if (uri) {
-            const response = await this._fetch(uri);
-            if (!response.ok) {
-              throw new Error(`Failed to fetch URI: ${response.status}`);
+            const resolved = await this.resolveUri(uri);
+            if (resolved.startsWith("data:")) {
+              const parsed = parseDataUri(resolved);
+              base64 = parsed.base64;
+              mediaType = part.image.mimeType ?? parsed.mime;
+            } else {
+              const response = await this._fetch(resolved);
+              if (!response.ok) {
+                throw new Error(`Failed to fetch URI: ${response.status}`);
+              }
+              mediaType =
+                part.image.mimeType ??
+                response.headers.get("content-type") ??
+                "image/png";
+              base64 = Buffer.from(
+                new Uint8Array(await response.arrayBuffer())
+              ).toString("base64");
             }
-            mediaType =
-              part.image.mimeType ??
-              response.headers.get("content-type") ??
-              "image/png";
-            base64 = Buffer.from(
-              new Uint8Array(await response.arrayBuffer())
-            ).toString("base64");
           } else {
             throw new Error("Invalid image reference with no uri or data");
           }

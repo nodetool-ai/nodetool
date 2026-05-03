@@ -1,13 +1,12 @@
 import React, { useCallback } from "react";
 import {
-  Chip,
-  IconButton,
+  Box,
   List,
   ListItem,
   ListItemButton,
   ListItemText
 } from "@mui/material";
-import { Tooltip } from "../../ui_primitives";
+import { Chip, Text, ToolbarIconButton } from "../../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { IconForType } from "../../../config/data_types";
 import { prettifyModelType } from "../../../utils/modelFormatting";
@@ -46,6 +45,22 @@ const ModelTypeSidebar: React.FC = () => {
   }, []);
 
   return (
+    <Box>
+      <Text
+        size="small"
+        color="secondary"
+        sx={{
+          px: 1.5,
+          pb: 1.25,
+          fontSize: "0.7rem",
+          fontWeight: 700,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          opacity: 0.7
+        }}
+      >
+        Model Categories
+      </Text>
     <List className="model-type-list" sx={{ padding: 0 }}>
       {modelTypes
         .filter((type) => availableModelTypes.has(type))
@@ -59,30 +74,27 @@ const ModelTypeSidebar: React.FC = () => {
               key={type}
               sx={{ 
                 mb: 0.5,
-                borderRadius: "8px",
+                borderRadius: "var(--rounded-lg)",
                 overflow: "hidden"
               }}
               secondaryAction={
                 href ? (
-                  <Tooltip title="View on Hugging Face">
-                    <IconButton
-                      edge="end"
-                      component="a"
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      size="small"
-                      onClick={handleLinkClick}
-                      aria-label={`View ${prettifyModelType(type)} models on Hugging Face`}
-                      sx={{
-                        color: isSelected ? theme.vars.palette.text.primary : "inherit",
-                        opacity: 0.7,
-                        "&:hover": { opacity: 1 }
-                      }}
-                    >
-                      <OpenInNewIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
+                  <ToolbarIconButton
+                    icon={<OpenInNewIcon fontSize="small" />}
+                    tooltip="View on Hugging Face"
+                    edge="end"
+                    component="a"
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={handleLinkClick}
+                    ariaLabel={`View ${prettifyModelType(type)} models on Hugging Face`}
+                    sx={{
+                      color: isSelected ? theme.vars.palette.text.primary : "inherit",
+                      opacity: 0.7,
+                      "&:hover": { opacity: 1 }
+                    }}
+                  />
                 ) : undefined
               }
             >
@@ -91,42 +103,46 @@ const ModelTypeSidebar: React.FC = () => {
               selected={isSelected}
               onClick={createModelTypeChangeHandler(type)}
               sx={{
-                  borderRadius: "8px",
+                  borderRadius: "var(--rounded-lg)",
                   padding: "8px 12px",
-                  transition: "all 0.2s ease",
+                  transition: "background-color 0.15s ease, color 0.15s ease",
                   "&.Mui-selected": {
-                    backgroundColor: theme.vars.palette.action.selected,
-                    backdropFilter: theme.vars.palette.glass.blur,
-                    border: `1px solid ${theme.vars.palette.divider}`,
+                    backgroundColor:
+                      "rgba(var(--palette-primary-main-channel) / 0.12)",
+                    border: "none",
                     "&:hover": {
-                      backgroundColor: theme.vars.palette.action.activatedOpacity,
+                      backgroundColor:
+                        "rgba(var(--palette-primary-main-channel) / 0.18)"
                     }
                   },
                   "&:hover": {
-                    backgroundColor: theme.vars.palette.action.hover,
+                    backgroundColor: theme.vars.palette.action.hover
                   }
                 }}
               >
-                {type === "All" && (
-                  <IconForType
-                    iconName={"model"}
-                    containerStyle={{ marginRight: "0.75em" }}
-                    svgProps={{
-                      style: {
-                        width: "18px",
-                        height: "18px",
-                        opacity: isSelected ? 1 : 0.7
-                      }
-                    }}
-                    showTooltip={false}
-                  />
-                )}
+                <IconForType
+                  iconName={type === "All" ? "model" : type.replace(/^hf\./, "") || "model"}
+                  containerStyle={{ marginRight: "0.75em", display: "flex" }}
+                  svgProps={{
+                    style: {
+                      width: "20px",
+                      height: "20px",
+                      opacity: isSelected ? 1 : 0.6,
+                      color: isSelected
+                        ? theme.vars.palette.primary.main
+                        : theme.vars.palette.text.secondary
+                    }
+                  }}
+                  showTooltip={false}
+                />
                 <ListItemText
                   primary={prettifyModelType(type)}
                   primaryTypographyProps={{
                     fontSize: "0.9rem",
                     fontWeight: isSelected ? 600 : 400,
-                    color: isSelected ? theme.vars.palette.text.primary : "text.secondary"
+                    color: isSelected
+                      ? theme.vars.palette.primary.main
+                      : "text.secondary"
                   }}
                 />
                 {modelCountsByType[type] !== undefined && (
@@ -139,9 +155,7 @@ const ModelTypeSidebar: React.FC = () => {
                       fontSize: "0.75rem",
                       fontWeight: 600,
                       ml: 1,
-                      backgroundColor: isSelected
-                        ? "rgba(var(--palette-primary-main-channel) / 0.15)"
-                        : theme.vars.palette.action.hover,
+                      backgroundColor: "transparent",
                       color: isSelected
                         ? theme.vars.palette.primary.main
                         : theme.vars.palette.text.secondary,
@@ -156,6 +170,7 @@ const ModelTypeSidebar: React.FC = () => {
           );
         })}
     </List>
+    </Box>
   );
 };
 

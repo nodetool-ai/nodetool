@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import { OpenAIProvider } from "./openai-provider.js";
 import type {
   ImageModel,
@@ -175,9 +175,9 @@ export class OpenRouterProvider extends OpenAIProvider {
 
     log.debug("OpenRouter textToImage", { model: params.model.id });
 
-    const response = await this.getClient().images.generate(
+    const response = (await this.getClient().images.generate(
       request as unknown as OpenAI.Images.ImageGenerateParams
-    );
+    )) as OpenAI.Images.ImagesResponse;
 
     const item = response.data?.[0];
     if (!item) {

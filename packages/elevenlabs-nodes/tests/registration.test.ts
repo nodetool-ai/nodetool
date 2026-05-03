@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NodeRegistry } from "@nodetool/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { registerElevenLabsNodes } from "../src/index.js";
 import { RealtimeSpeechToTextNode } from "../src/nodes/realtime-stt.js";
 import { RealtimeTextToSpeechNode } from "../src/nodes/realtime-tts.js";

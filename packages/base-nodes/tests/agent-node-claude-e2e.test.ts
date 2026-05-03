@@ -9,8 +9,8 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { AgentNode, runAgentLoop } from "../src/nodes/agents.js";
-import type { ProcessingContext, BaseProvider } from "@nodetool/runtime";
-import { ClaudeAgentProvider } from "@nodetool/runtime";
+import type { ProcessingContext, BaseProvider } from "@nodetool-ai/runtime";
+import { ClaudeAgentProvider } from "@nodetool-ai/runtime";
 
 const MODEL = "claude-sonnet-4-20250514";
 const TIMEOUT = 120_000;

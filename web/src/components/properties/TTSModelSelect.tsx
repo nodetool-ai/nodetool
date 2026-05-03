@@ -2,8 +2,13 @@ import React, { memo, useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "fast-deep-equal";
 import TTSModelMenuDialog from "../model_menu/TTSModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { TTSModel, TTSModelValue } from "../../stores/ApiTypes";
-import { BASE_URL } from "../../stores/BASE_URL";
+import type {
+  ModelPack,
+  TTSModel,
+  TTSModelValue,
+  UnifiedModel
+} from "../../stores/ApiTypes";
+import { trpc } from "../../lib/trpc";
 import Select from "../inputs/Select";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
@@ -11,23 +16,22 @@ import ModelSelectButton from "./shared/ModelSelectButton";
 interface TTSModelSelectProps {
   onChange: (value: TTSModelValue) => void;
   value: string | TTSModelValue; // Can be string (legacy) or TTSModelValue object
+  recommendedModels?: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
-const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
+const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
+  onChange,
+  value,
+  recommendedModels,
+  modelPacks
+}) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
-  const loadTTSModels = useCallback(async () => {
-    const res = await fetch(`${BASE_URL}/api/models/tts`);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch TTS models: ${res.status}`);
-    }
-    return (await res.json()) as TTSModel[];
-  }, []);
-
   const { data: models } = useQuery({
     queryKey: ["tts-models"],
-    queryFn: async () => await loadTTSModels()
+    queryFn: () => trpc.models.tts.query() as Promise<TTSModel[]>
   });
 
   // Extract model ID from value (can be string or TTSModel object)
@@ -38,12 +42,33 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
     return value?.id || "";
   }, [value]);
 
+  const modelProvider = useMemo(
+    () => (typeof value === "object" ? value?.provider ?? "" : ""),
+    [value]
+  );
+
   const currentSelectedModelDetails = useMemo(() => {
     if (!models || !modelId) {
       return null;
     }
-    return models.find((m) => m.id === modelId);
-  }, [models, modelId]);
+    // Prefer (provider, id) match — same model id can exist across providers.
+    const exact = modelProvider
+      ? models.find((m) => m.id === modelId && m.provider === modelProvider)
+      : null;
+    return exact ?? models.find((m) => m.id === modelId) ?? null;
+  }, [models, modelId, modelProvider]);
+
+  // Voices come from the live model list when available, otherwise fall back
+  // to the voices stored on the value object (e.g. provider not configured
+  // in this session, or the model list hasn't loaded yet).
+  const availableVoices = useMemo(() => {
+    const live = currentSelectedModelDetails?.voices;
+    if (live && live.length > 0) return live;
+    if (typeof value === "object" && Array.isArray(value?.voices)) {
+      return value.voices;
+    }
+    return [] as string[];
+  }, [currentSelectedModelDetails, value]);
 
   // Get selected voice from value object
   const selectedVoice = useMemo(() => {
@@ -85,30 +110,37 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
 
   const handleVoiceChange = useCallback(
     (newVoice: string) => {
+      const baseProvider =
+        currentSelectedModelDetails?.provider ||
+        modelProvider ||
+        "empty";
+      const baseName =
+        currentSelectedModelDetails?.name ||
+        (typeof value === "object" ? value?.name ?? "" : "");
       const modelToPass = {
         type: "tts_model" as const,
         id: modelId,
-        provider: currentSelectedModelDetails?.provider || "empty",
-        name: currentSelectedModelDetails?.name || "",
-        voices: currentSelectedModelDetails?.voices || [],
+        provider: baseProvider,
+        name: baseName,
+        voices: availableVoices,
         selected_voice: newVoice
       };
       onChange(modelToPass);
     },
-    [onChange, modelId, currentSelectedModelDetails]
+    [
+      onChange,
+      modelId,
+      modelProvider,
+      currentSelectedModelDetails,
+      availableVoices,
+      value
+    ]
   );
-  const hasVoices =
-    currentSelectedModelDetails?.voices &&
-    currentSelectedModelDetails.voices.length > 0;
-  const voiceOptions = useMemo(() => {
-    if (!currentSelectedModelDetails?.voices) {
-      return [];
-    }
-    return currentSelectedModelDetails.voices.map((voice) => ({
-      value: voice,
-      label: voice
-    }));
-  }, [currentSelectedModelDetails?.voices]);
+  const hasVoices = availableVoices.length > 0;
+  const voiceOptions = useMemo(
+    () => availableVoices.map((voice) => ({ value: voice, label: voice })),
+    [availableVoices]
+  );
 
   const containerStyle = useMemo(() => ({
     display: "flex" as const,
@@ -131,9 +163,7 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
       {hasVoices && (
         <Select
           options={voiceOptions}
-          value={
-            selectedVoice || currentSelectedModelDetails?.voices?.[0] || ""
-          }
+          value={selectedVoice || availableVoices[0] || ""}
           onChange={handleVoiceChange}
           placeholder="Select voice"
           label="Voice"
@@ -145,6 +175,8 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
         anchorEl={anchorEl}
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
+        recommendedModels={recommendedModels}
+        modelPacks={modelPacks}
       />
     </div>
   );

@@ -19,7 +19,7 @@ interface ChainNodePropertiesProps {
   nodeType: string;
   properties: Property[];
   values: Record<string, unknown>;
-  connectedInput: string | null;
+  connectedInputs: string[];
   onUpdate: (name: string, value: unknown) => void;
 }
 
@@ -78,7 +78,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
   nodeType,
   properties,
   values,
-  connectedInput,
+  connectedInputs,
   onUpdate,
 }) => {
   const theme = useTheme();
@@ -99,7 +99,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
       <EditorUiProvider scope="inspector">
         <div css={chainPropertyStyles(theme)}>
           {properties.map((prop, i) => {
-            const isConnected = prop.name === connectedInput;
+            const isConnected = connectedInputs.includes(prop.name);
             const value = values[prop.name] ?? prop.default;
 
             if (isConnected) {

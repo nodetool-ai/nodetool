@@ -6,20 +6,9 @@ description: "Guide to HuggingFace nodes in NodeTool."
 
 # <img src="assets/icons/huggingface.svg" width="28" height="28" style="vertical-align: middle; display: inline-block;" alt="HuggingFace" /> HuggingFace Integration
 
-The HuggingFace integration connects NodeTool to the HuggingFace Hub, providing nodes for text, image, audio, and multimodal processing. With support for over 25 different model types and access to 500,000+ pre-trained models, you can build AI workflows using the latest open-source models.
+Nodes for running HuggingFace Hub models in NodeTool workflows. Supports text, image, audio, and multimodal tasks with optional quantization, CPU offload, and LoRA adapters.
 
-## Overview
-
-HuggingFace nodes in NodeTool allow you to:
-
-- **Access 500,000+ Models**: Use any model from the HuggingFace Hub
-- **Multi-Modal Processing**: Work with text, images, audio, and video
-- **Local & Cloud Execution**: Run models locally or use hosted services
-- **Memory Optimization**: Support for quantization and CPU offload
-- **Streaming Output**: Real-time generation for text and audio
-- **LoRA Customization**: Apply custom style adaptations to Stable Diffusion
-
-All HuggingFace nodes are available under the `huggingface.*` namespace with 27 sub-categories covering different AI capabilities.
+All HuggingFace nodes live in the `huggingface.*` namespace.
 
 ## Node Categories
 
@@ -62,11 +51,6 @@ All HuggingFace nodes are available under the `huggingface.*` namespace with 27 
 - Professional-quality color control
 - Attention slicing for memory optimization
 - Use cases: Professional photography effects, precise color grading
-
-**Qwen-Image** - High-quality general-purpose text-to-image generation
-- Nunchaku quantization support
-- True CFG scale control
-- Use cases: General-purpose image generation, quick prototyping
 
 **Text2Image (AutoPipeline)** - Automatic pipeline selection for any text-to-image model
 - Auto-detects best pipeline for given model
@@ -386,42 +370,6 @@ Build a multi-modal workflow:
 
 This workflow transcribes audio, generates a summary, and creates a matching image.
 
-## Key Features
-
-### Model Support
-
-- **27+ Node Types**: Coverage of HuggingFace model capabilities
-- **500,000+ Models**: Access to entire HuggingFace Hub
-- **Automatic Pipeline**: Auto-selects best pipeline for each model
-- **Custom Models**: Use any compatible HuggingFace model
-- **Fine-tuned Models**: Support for custom fine-tuned models
-
-### Performance & Optimization
-
-- **Streaming Output**: Real-time generation for text and audio
-- **Quantization**: Memory-efficient inference (FP16, FP4, INT4)
-- **CPU Offload**: Run large models on limited hardware
-- **GPU Acceleration**: Automatic CUDA/MPS detection
-- **Batch Processing**: Process multiple inputs efficiently
-- **Attention Optimization**: PyTorch 2 attention (automatic)
-
-### Advanced Capabilities
-
-- **LoRA Support**: Easy style customization for Stable Diffusion
-- **Multimodal Processing**: Combine text, image, and audio
-- **Zero-Shot Learning**: Classify without training data
-- **Control Nets**: Structural guidance for image generation
-- **Timestamp Support**: Word and sentence-level timestamps for ASR
-- **Multiple Languages**: 100+ languages for speech recognition
-
-### Developer-Friendly
-
-- **Type Safety**: Full Pydantic type validation
-- **Error Handling**: Clear error messages
-- **Progress Tracking**: Real-time progress for long operations
-- **Memory Management**: Automatic cleanup and optimization
-- **Documentation**: Detailed docstrings for all nodes
-
 ## Performance Tips
 
 ### Memory Optimization
@@ -542,17 +490,6 @@ Solutions:
 - **Content Moderation**: `Falconsai/nsfw_image_detection`
 - **Zero-Shot**: `openai/clip-vit-base-patch32`
 
-## Best Practices
-
-1. **Start Small**: Test with smaller models before scaling up
-2. **Monitor Resources**: Watch GPU memory and adjust settings
-3. **Cache Models**: Pre-download models for production workflows
-4. **Version Control**: Pin model versions for reproducibility
-5. **Error Handling**: Add fallback logic for model failures
-6. **Batch When Possible**: Process multiple items together for efficiency
-7. **Use Previews**: Enable node previews to debug intermediate results
-8. **Document Models**: Note which models work best for your use case
-
 ## Related Documentation
 
 - [Models Guide](models.md) - Overview of all model types in NodeTool
@@ -566,8 +503,3 @@ Solutions:
 - [HuggingFace Hub](https://huggingface.co/models) - Browse available models
 - [HuggingFace Transformers](https://huggingface.co/docs/transformers) - Library documentation
 - [Diffusers Documentation](https://huggingface.co/docs/diffusers) - Image generation library
-- [HuggingFace Spaces](https://huggingface.co/spaces) - Interactive model demos
-
-## Contributing
-
-Found an issue or want to contribute? Visit the [NodeTool GitHub repository](https://github.com/nodetool-ai/nodetool) to report issues or submit pull requests.

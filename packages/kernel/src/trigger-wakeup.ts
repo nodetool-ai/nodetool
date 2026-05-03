@@ -7,7 +7,7 @@
  * wakeup of suspended workflows when events arrive.
  */
 
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import {
   DurableInbox,
   type DurableInboxStore,

@@ -1771,7 +1771,7 @@ export const config: ModuleConfig = {
       ]
     },
 
-    "fal-ai/sam-3/image-rle": {
+    "fal-ai/sam-3-1/image-rle": {
       className: "Sam3ImageRle",
       docstring: "Sam 3",
       tags: ["editing", "transformation", "image-to-image", "img2img"],
@@ -1784,7 +1784,7 @@ export const config: ModuleConfig = {
       ]
     },
 
-    "fal-ai/sam-3/image": {
+    "fal-ai/sam-3-1/image": {
       className: "Sam3Image",
       docstring: "Segment Anything Model 3",
       tags: ["editing", "transformation", "image-to-image", "img2img"],
@@ -5207,6 +5207,54 @@ export const config: ModuleConfig = {
         "Batch image processing workflows",
         "Product photography refinement",
         "Automated image optimization"
+      ]
+    },
+    "fal-ai/nano-banana-2/edit": {
+      className: "NanoBanana2Edit",
+      docstring: "Edit images with Nano Banana 2.",
+      tags: ["editing", "image-to-image", "img2img", "nano-banana"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/flux-2-pro/edit": {
+      className: "Flux2ProEdit",
+      docstring: "Edit images with FLUX.2 Pro.",
+      tags: ["editing", "image-to-image", "img2img", "flux", "flux-2"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "openai/gpt-image-2/edit": {
+      className: "GptImage2Edit",
+      docstring: "Edit images with OpenAI GPT Image 2.",
+      tags: ["editing", "image-to-image", "img2img", "openai", "gpt-image"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/bytedance/seedream/v5/lite/edit": {
+      className: "BytedanceSeedreamV5LiteEdit",
+      docstring: "Edit images with ByteDance Seedream v5 Lite.",
+      tags: ["editing", "image-to-image", "img2img", "seedream", "bytedance"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
       ]
     }
   }

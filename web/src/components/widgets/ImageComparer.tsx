@@ -85,7 +85,7 @@ const styles = (theme: Theme) =>
       fontWeight: 600,
       color: theme.vars.palette.common.white,
       backgroundColor: "rgba(0, 0, 0, 0.6)",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       zIndex: 15,
       pointerEvents: "none"
     },
@@ -111,7 +111,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeTiny,
       color: theme.vars.palette.grey[300],
       backgroundColor: "rgba(0, 0, 0, 0.5)",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       zIndex: 15,
       pointerEvents: "none"
     },

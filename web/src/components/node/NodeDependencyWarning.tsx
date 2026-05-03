@@ -106,7 +106,7 @@ let cachedStatuses: Record<string, boolean> | null = null;
 let fetchPromise: Promise<void> | null = null;
 
 export async function refreshRuntimeStatuses(): Promise<void> {
-  const api = (window as any).api;
+  const api = window.api;
   if (!api?.packages?.getRuntimeStatuses) {return;}
   try {
     const statuses: Array<{ id: string; installed: boolean }> =
@@ -180,7 +180,7 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
   }, [missingRuntimes.length, checkRuntimes]);
 
   const handleInstall = useCallback(async () => {
-    const api = (window as any).api;
+    const api = window.api;
     if (!api?.packages?.installRuntime) {return;}
     setInstalling(true);
     try {

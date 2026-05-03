@@ -42,10 +42,41 @@ const styles = (theme: Theme) =>
       paddingBottom: "100%",
       top: 0,
       bottom: 0,
-      backgroundColor: "var(--palette-grey-800)",
-      borderRadius: "0.5em",
+      background: `linear-gradient(180deg, rgb(${theme.vars.palette.common.whiteChannel} / 0.045) 0%, rgb(${theme.vars.palette.common.blackChannel} / 0.18) 100%), ${theme.vars.palette.grey[800]}`,
+      borderRadius: "0.75em",
       overflow: "hidden",
-      contain: "layout style paint"
+      contain: "layout style paint",
+      border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`,
+      boxShadow: "0 8px 18px rgb(0 0 0 / 0.18)",
+      transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease"
+    },
+    "&.selected .asset": {
+      border: `2px solid ${theme.vars.palette.primary.main}`,
+      boxShadow: `0 8px 18px rgb(${theme.vars.palette.primary.mainChannel} / 0.25)`
+    },
+    "&.selected::before": {
+      content: '""',
+      position: "absolute",
+      top: "0.6em",
+      right: "0.6em",
+      width: "1.4em",
+      height: "1.4em",
+      borderRadius: "50%",
+      backgroundColor: theme.vars.palette.primary.main,
+      backgroundImage:
+        "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'><path d='M9 16.17 4.83 12l-1.41 1.41L9 19 21 7l-1.41-1.41z'/></svg>\")",
+      backgroundSize: "70% 70%",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+      zIndex: 2001,
+      boxShadow: "0 2px 6px rgb(0 0 0 / 0.4)"
+    },
+    ".asset::after": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      pointerEvents: "none",
+      background: "linear-gradient(180deg, rgb(255 255 255 / 0.06), transparent 32%)"
     },
     ".asset .image, .asset .image-aspect-ratio": {
       position: "absolute",
@@ -55,7 +86,7 @@ const styles = (theme: Theme) =>
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
-      transition: "opacity 0.3s"
+      transition: "opacity 0.3s, transform 0.35s ease"
     },
     ".asset .image-aspect-ratio": {
       opacity: 0,
@@ -63,11 +94,18 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[800],
       willChange: "opacity"
     },
+    "&:hover .asset": {
+      transform: "translateY(-2px)",
+      boxShadow: "0 16px 30px rgb(0 0 0 / 0.18)",
+      borderColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.1)`
+    },
     "&:hover .asset .image": {
-      opacity: 1
+      opacity: 1,
+      transform: "scale(1.02)"
     },
     "&:hover .asset .image-aspect-ratio": {
-      opacity: 1
+      opacity: 1,
+      transform: "scale(1.02)"
     },
     "& svg.placeholder": {
       position: "absolute",
@@ -88,37 +126,69 @@ const styles = (theme: Theme) =>
     ".info": {
       position: "absolute",
       pointerEvents: "none",
-      fontSize: theme.fontSizeSmaller,
+      fontSize: theme.fontSizeTiny,
+      fontWeight: 600,
+      letterSpacing: "0.02em",
       color: theme.vars.palette.grey[0],
-      backgroundColor: `rgba(${theme.vars.palette.grey[900]} / 0.53)`,
       margin: "0",
-      padding: "0.2em 0.5em",
+      padding: "0.15em 0.55em",
       wordBreak: "break-word",
       width: "fit-content"
     },
     ".name": {
       position: "relative",
-      padding: "0 0 0 .5em",
-      width: "95%",
-      height: "3em",
+      padding: "0.45em 0.25em 0.1em 0.35em",
+      width: "100%",
+      height: "auto",
+      maxHeight: "2.6em",
       overflow: "hidden",
       backgroundColor: "transparent",
-      textAlign: "center"
+      textAlign: "left",
+      fontSize: theme.fontSizeSmall,
+      fontWeight: 500,
+      lineHeight: "1.25em",
+      color: theme.vars.palette.grey[100],
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
     },
     ".name.large": {
       fontSize: theme.fontSizeSmall,
       lineHeight: "1.25em",
-      height: "5em",
-      marginTop: ".25em"
+      maxHeight: "2.6em",
+      marginTop: 0
+    },
+    ".date": {
+      position: "relative",
+      padding: "0 0.25em 0.1em 0.35em",
+      width: "100%",
+      textAlign: "left",
+      fontSize: theme.fontSizeTiny,
+      fontFamily: theme.fontFamily2,
+      lineHeight: "1.2em",
+      color: theme.vars.palette.grey[400],
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
     },
     ".filetype": {
-      top: "0"
+      top: "0.5em",
+      left: "0.5em",
+      borderTopRightRadius: "0.4em",
+      borderTopLeftRadius: "0.4em",
+      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      backdropFilter: "blur(4px)",
+      borderTop: "none !important"
     },
     ".filesize": {
-      top: "1.6em",
-      left: "0.25em",
-      color: "white",
-      fontSize: theme.fontSizeSmaller
+      top: "2em",
+      left: "0.5em",
+      borderBottomRightRadius: "0.4em",
+      borderBottomLeftRadius: "0.4em",
+      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      backdropFilter: "blur(4px)",
+      color: theme.vars.palette.grey[100],
+      fontSize: theme.fontSizeTiny,
+      fontWeight: 500
     },
     ".duration": {
       bottom: "2px",
@@ -177,14 +247,6 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller
     },
     // ITEM
-    "&.selected:after": {
-      border: `4px solid ${theme.vars.palette.grey[900]}`,
-      outline: `8px solid ${"var(--palette-primary-main)"}`,
-      backgroundColor: `rgba(${theme.vars.palette.grey[900]} / 0.33)`,
-      outlineOffset: "-2px",
-      borderRadius: ".75em",
-      zIndex: 2000
-    },
     "&:after": {
       content: '""',
       position: "absolute",
@@ -194,10 +256,6 @@ const styles = (theme: Theme) =>
       right: 0,
       bottom: 0,
       zIndex: 100
-    },
-    "&:hover:after": {
-      border: `2px solid ${theme.vars.palette.grey[600]}`,
-      backgroundColor: `rgba(${theme.vars.palette.info.mainChannel} / 0.13)`
     },
     // FOLDER UP BUTTON
     ".folder-up-button.enabled": {
@@ -227,6 +285,18 @@ const styles = (theme: Theme) =>
       height: "100%"
     }
   });
+
+const videoIconOverlayStyle: React.CSSProperties = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  color: "white",
+  fontSize: "3em",
+  opacity: 0.8,
+  filter: "drop-shadow(0px 0px 4px rgba(0,0,0,0.5))",
+  zIndex: 10
+};
 
 export type AssetItemProps = {
   asset: Asset;
@@ -270,6 +340,9 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
 
   const assetItemSize = useSettingsStore(
     (state) => state.settings.assetItemSize
+  );
+  const assetsOrder = useSettingsStore(
+    (state) => state.settings.assetsOrder
   );
 
   const {
@@ -430,19 +503,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
 
             {/* Always show icon overlay for video if we have a thumbnail to indicate it's playble/video */}
             {(asset.thumb_url || asset.get_url) && (
-              <VideoFileIcon
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  color: "white",
-                  fontSize: "3em",
-                  opacity: 0.8,
-                  filter: "drop-shadow(0px 0px 4px rgba(0,0,0,0.5))",
-                  zIndex: 10
-                }}
-              />
+              <VideoFileIcon style={videoIconOverlayStyle} />
             )}
 
             {showDuration && asset.duration && assetItemSize > 1 && (
@@ -506,15 +567,9 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               size="tiny"
               title={asset.content_type || "Unknown content type"}
               style={{
-                borderTop: `2px solid var(--c_${assetType})`,
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                textAlign: "center",
-                zIndex: 1000,
-                color: theme.vars.palette.grey[100],
-                backgroundColor: theme.vars.palette.grey[800]
+                color: `var(--c_${assetType}, var(--palette-grey-100))`,
+                textTransform: "uppercase",
+                zIndex: 1000
               }}
             >
               {assetFileEnding}
@@ -528,10 +583,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               <Text
                 className="filesize info"
                 title={`File size: ${formatFileSize(asset.size)}`}
-                style={{
-                  color: "white",
-                  backgroundColor: "var(--palette-grey-700)"
-                }}
               >
                 {formatFileSize(asset.size)}
               </Text>
@@ -545,6 +596,11 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             >
               {asset.name}
               {/* {asset.parent_id} */}
+            </Text>
+          )}
+          {assetsOrder === "date" && asset.created_at && assetItemSize > 2 && (
+            <Text className="date">
+              {new Date(asset.created_at).toLocaleDateString()}
             </Text>
           )}
         </>

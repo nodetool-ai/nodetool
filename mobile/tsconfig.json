@@ -17,7 +17,12 @@
     "types": [
       "jest",
       "node"
-    ]
+    ],
+    "paths": {
+      "@nodetool-ai/websocket/trpc": [
+        "../packages/websocket/dist/trpc/router.d.ts"
+      ]
+    }
   },
   "include": [
     "**/*.ts",

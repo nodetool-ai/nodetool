@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { authHeader } from "../lib/auth";
 import { BASE_URL } from "../stores/BASE_URL";
-import { authHeader } from "../stores/ApiClient";
 
 export interface Template {
   id: string;

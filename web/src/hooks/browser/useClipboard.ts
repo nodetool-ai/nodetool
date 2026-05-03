@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo } from "react";
-import log from "loglevel";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import { copyAssetToClipboard } from "../../utils/clipboardUtils";
 import type {} from "../../window.d";
@@ -46,7 +45,7 @@ export const useClipboard = () => {
     data: string | null;
     isValid: boolean;
   }> => {
-    log.info("Attempting to read from clipboard.");
+    console.info("Attempting to read from clipboard.");
     let data = "";
 
     if (isFirefox && clipboardData) {
@@ -55,7 +54,7 @@ export const useClipboard = () => {
       // Prefer new Electron API when available
       try {
         data = await window.api.clipboard.readText();
-        log.info("Clipboard read via Electron clipboard API.");
+        console.info("Clipboard read via Electron clipboard API.");
       } catch {
         if (document.hasFocus() && navigator.clipboard) {
           data = await navigator.clipboard.readText();
@@ -69,7 +68,7 @@ export const useClipboard = () => {
     } else {
       if (document.hasFocus() && navigator.clipboard) {
         data = await navigator.clipboard.readText();
-        log.info("Clipboard read successfully.");
+        console.info("Clipboard read successfully.");
       }
     }
 
@@ -95,36 +94,22 @@ export const useClipboard = () => {
       const isValid = allowArbitrary ? true : validateData(data);
 
       setIsClipboardValid(isValid);
-      if (!isValid) {
-        return;
-      }
-
-      log.info("Attempting to write to clipboard.");
-      let outputData: string;
-      try {
-        outputData = formatJson
+      if (isValid) {
+        console.info("Attempting to write to clipboard.");
+        const outputData = formatJson
           ? JSON.stringify(JSON.parse(data), null, 2)
           : data;
-      } catch (err) {
-        log.error("writeClipboard: could not prepare text", err);
-        throw new Error("Clipboard content is not valid JSON");
-      }
 
-      setClipboardData(outputData);
+        setClipboardData(outputData);
 
-      try {
+        // Prefer new Electron API when available
         if (window.api?.clipboard?.writeText) {
           await window.api.clipboard.writeText(outputData);
-          log.info("Clipboard written via Electron clipboard API.");
-        } else if (navigator.clipboard?.writeText) {
-          await navigator.clipboard.writeText(outputData);
-          log.info("Clipboard written via navigator API.");
+          console.info("Clipboard written via Electron clipboard API.");
         } else {
-          throw new Error("Clipboard API is not available");
+          await navigator.clipboard.writeText(outputData);
+          console.info("Clipboard written via navigator API.");
         }
-      } catch (err) {
-        log.error("writeClipboard: write failed", err);
-        throw err;
       }
     },
     [isFirefox, setClipboardData, setIsClipboardValid, validateData]

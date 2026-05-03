@@ -1,4 +1,4 @@
-import { globalShortcut, dialog } from "electron";
+import { globalShortcut } from "electron";
 import { logMessage } from "./logger";
 import { fetchWorkflows } from "./api";
 import { Workflow } from "./types";

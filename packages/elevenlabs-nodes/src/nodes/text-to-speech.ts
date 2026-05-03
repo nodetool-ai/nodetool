@@ -1,5 +1,5 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { NodeClass } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
   getElevenLabsApiKey,
   VOICE_ID_MAP,
@@ -19,6 +19,7 @@ export class TextToSpeechNode extends BaseNode {
     "- Create audiobooks";
   static readonly metadataOutputTypes = { output: "audio" };
   static readonly requiredSettings = ["ELEVENLABS_API_KEY"];
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "enum",

@@ -35,7 +35,7 @@ const styles = (theme: Theme) =>
     ".dataframe-action-buttons .MuiIconButton-root": {
       padding: "0.25em",
       color: theme.vars.palette.primary.main,
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       "&:hover": {
         color: theme.vars.palette.primary.light,
         backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.1)`
@@ -70,7 +70,7 @@ const DataframeRenderer: React.FC<DataframeRendererProps> = ({ dataframe }) => {
     <div css={styles(theme)} className="dataframe-renderer">
       <div className="dataframe-action-buttons">
         <Tooltip title="Open in Full View" placement="bottom">
-          <IconButton size="small" onClick={toggleExpand}>
+          <IconButton size="small" onClick={toggleExpand} aria-label="Open in Full View">
             <OpenInFullIcon />
           </IconButton>
         </Tooltip>

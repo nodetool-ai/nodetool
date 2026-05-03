@@ -1,4 +1,4 @@
-import type { NodeClass } from "@nodetool/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { TEXT_TO_SPEECH_NODES } from "./nodes/text-to-speech.js";
 import { SPEECH_TO_TEXT_NODES } from "./nodes/speech-to-text.js";
 import { REALTIME_TTS_NODES } from "./nodes/realtime-tts.js";

@@ -18,7 +18,6 @@ import { subgraph } from "../../core/graph";
 import useResultsStore from "../../stores/ResultsStore";
 import { NodeData } from "../../stores/NodeData";
 import { Node, Edge } from "@xyflow/react";
-import log from "loglevel";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import { useSettingsStore } from "../../stores/SettingsStore";
 
@@ -84,11 +83,10 @@ const findExternalInputEdges = (
 const collectCachedValuesForSubgraph = (
   externalEdges: Edge[],
   workflowId: string,
-  getResult: (workflowId: string, nodeId: string) => any,
+  getResult: (workflowId: string, nodeId: string) => unknown,
   findNode: (nodeId: string) => Node<NodeData> | undefined
-): Map<string, Record<string, any>> => {
-  // Map of nodeId -> { propertyName: value }
-  const nodePropertyOverrides = new Map<string, Record<string, any>>();
+): Map<string, Record<string, unknown>> => {
+  const nodePropertyOverrides = new Map<string, Record<string, unknown>>();
 
   for (const edge of externalEdges) {
     const sourceNodeId = edge.source;
@@ -116,7 +114,7 @@ const collectCachedValuesForSubgraph = (
     existing[targetHandle] = value;
     nodePropertyOverrides.set(targetNodeId, existing);
 
-    log.debug(
+    console.debug(
       `Auto-run: Caching property ${targetHandle} on node ${targetNodeId} from upstream node ${sourceNodeId}`,
       {
         sourceHandle,
@@ -133,7 +131,7 @@ const collectCachedValuesForSubgraph = (
  */
 const applyPropertyOverrides = (
   subgraphNodes: Node<NodeData>[],
-  propertyOverrides: Map<string, Record<string, any>>
+  propertyOverrides: Map<string, Record<string, unknown>>
 ): Node<NodeData>[] => {
   return subgraphNodes.map((node) => {
     const overrides = propertyOverrides.get(node.id);
@@ -238,7 +236,7 @@ export const useNodeAutoRun = (
       propertyOverrides.values()
     ).reduce((sum, props) => sum + Object.keys(props).length, 0);
 
-    log.info("Auto-run: Running downstream subgraph", {
+    console.info("Auto-run: Running downstream subgraph", {
       startNodeId: nodeId,
       nodeCount: nodesWithCachedValues.length,
       edgeCount: downstream.edges.length,

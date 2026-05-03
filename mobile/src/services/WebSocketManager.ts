@@ -15,10 +15,7 @@ import {
   WebSocketMessageData 
 } from '../types/chat';
 
-interface WebSocketMessage {
-  type: string;
-  [key: string]: any;
-}
+type WebSocketMessage = { type: string };
 
 interface WebSocketCallbacks {
   onStateChange?: (state: ConnectionState, previousState: ConnectionState) => void;
@@ -146,7 +143,7 @@ export class WebSocketManager {
     }
   }
 
-  public send(message: WebSocketMessage): void {
+  public send<T extends WebSocketMessage>(message: T): void {
     if (!this.isConnected()) {
       if (
         this.config.reconnect &&
@@ -175,7 +172,7 @@ export class WebSocketManager {
 
     this.ws.onopen = () => this.handleOpen();
     this.ws.onmessage = (event) => this.handleMessage(event);
-    this.ws.onerror = (event) => this.handleError(event as any);
+    this.ws.onerror = (event) => this.handleError(event as { message?: string });
     this.ws.onclose = (event) => this.handleClose(event);
   }
 
@@ -203,7 +200,7 @@ export class WebSocketManager {
 
   private async handleMessage(event: WebSocketMessageEvent): Promise<void> {
     try {
-      let data: any;
+      let data: unknown;
 
       if (event.data instanceof ArrayBuffer) {
         data = decode(new Uint8Array(event.data));
@@ -221,7 +218,7 @@ export class WebSocketManager {
       }
 
       console.log('[WS Receive]', data);
-      this.callbacks.onMessage?.(data);
+      this.callbacks.onMessage?.(data as WebSocketMessageData);
     } catch (error) {
       console.error('Failed to process message:', error);
       this.callbacks.onError?.(error as Error);

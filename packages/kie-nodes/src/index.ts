@@ -1,4 +1,4 @@
-import type { NodeClass } from "@nodetool/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { loadKieNodesFromManifest } from "./kie-factory.js";
 import type { KieManifestEntry } from "./kie-factory.js";
 import { readFileSync } from "node:fs";
@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 export { loadKieNodesFromManifest, createKieNodeClass } from "./kie-factory.js";
 export type { KieManifestEntry } from "./kie-factory.js";
-export { getApiKey, kieExecuteTask } from "./kie-base.js";
+export { getApiKey, kieExecuteTask, kieImageRef } from "./kie-base.js";
 
 function loadManifest(): KieManifestEntry[] {
   const dir = dirname(fileURLToPath(import.meta.url));

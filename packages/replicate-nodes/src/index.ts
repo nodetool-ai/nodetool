@@ -1,4 +1,4 @@
-import type { NodeClass, NodeRegistry } from "@nodetool/node-sdk";
+import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
 import { loadReplicateNodesFromManifest } from "./replicate-factory.js";
 import type { ReplicateManifestEntry } from "./replicate-factory.js";
 import { readFileSync } from "node:fs";

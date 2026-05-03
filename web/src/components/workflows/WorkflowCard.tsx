@@ -29,7 +29,7 @@ const cardStyles = (theme: Theme) =>
     width: "100%",
     height: "100%",
     minHeight: "260px",
-    borderRadius: "12px",
+    borderRadius: "var(--rounded-xl)",
     overflow: "hidden",
     cursor: "pointer",
     background: theme.vars.palette.grey[900],
@@ -62,7 +62,7 @@ const cardStyles = (theme: Theme) =>
       backgroundColor: "rgba(0, 0, 0, 0.75)",
       backdropFilter: "blur(4px)",
       zIndex: 10,
-      borderRadius: "12px"
+      borderRadius: "var(--rounded-xl)"
     },
     ".loading-text": {
       color: theme.vars.palette.primary.main,
@@ -99,7 +99,7 @@ const cardStyles = (theme: Theme) =>
       backdropFilter: "blur(4px)",
       color: theme.vars.palette.grey[200],
       padding: "4px 8px",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       textTransform: "uppercase"
     },
     ".matched-nodes": {
@@ -116,7 +116,7 @@ const cardStyles = (theme: Theme) =>
       fontSize: "0.7rem",
       fontWeight: 600,
       padding: "4px 8px",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       backgroundColor: theme.vars.palette.grey[100],
       color: theme.vars.palette.grey[900]
     },
@@ -198,7 +198,7 @@ const WorkflowCard = ({
             fontSize: "0.85rem",
             padding: "10px 14px",
             maxWidth: 300,
-            borderRadius: "8px",
+            borderRadius: "var(--rounded-lg)",
             boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)"
           }
         },

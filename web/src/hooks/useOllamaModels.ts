@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { client } from "../stores/ApiClient";
+import { trpc } from "../lib/trpc";
 
 /**
  * Hook to fetch available Ollama models from the backend.
@@ -38,18 +38,7 @@ export const useOllamaModels = () => {
     error: ollamaError
   } = useQuery({
     queryKey: ["ollamaModels"],
-    queryFn: async () => {
-      const { data, error } = await client.GET("/api/models/ollama", {});
-      if (error) {throw error;}
-      if (Array.isArray(data)) {
-        return data;
-      }
-      const responseData = data as { models?: unknown } | undefined;
-      if (Array.isArray(responseData?.models)) {
-        return responseData.models;
-      }
-      return [];
-    },
+    queryFn: () => trpc.models.ollama.query(),
     retry: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false

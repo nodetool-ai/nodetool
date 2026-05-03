@@ -1,4 +1,3 @@
-import log from "loglevel";
 import { BASE_URL } from "../stores/BASE_URL";
 
 /** fal.ai dashboard to create Admin API keys (billing endpoint requires admin scope). */
@@ -55,22 +54,22 @@ export async function fetchFalCredits(): Promise<FalCredits | null> {
   try {
     const res = await fetch(url);
     if (res.status === 204) {
-      log.info("[fal-credits] server 204 — no FAL_API_KEY configured on backend");
+      console.info("[fal-credits] server 204 — no FAL_API_KEY configured on backend");
       return null;
     }
     if (!res.ok) {
-      log.warn("[fal-credits] request failed", { url, status: res.status });
+      console.warn("[fal-credits] request failed", { url, status: res.status });
       return null;
     }
     const data = (await res.json()) as FalCredits;
     if (data.unavailable) {
-      log.info("[fal-credits] backend returned unavailable:", data.detail ?? "");
+      console.info("[fal-credits] backend returned unavailable:", data.detail ?? "");
     } else {
-      log.info("[fal-credits] ok — credit display:", formatCredits(data));
+      console.info("[fal-credits] ok — credit display:", formatCredits(data));
     }
     return data;
   } catch (err) {
-    log.warn("[fal-credits] fetch error", err);
+    console.warn("[fal-credits] fetch error", err);
     return null;
   }
 }

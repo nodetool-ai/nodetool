@@ -77,7 +77,7 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(({
     },
     "&::-webkit-scrollbar-thumb": {
       background: theme.vars.palette.grey[700],
-      borderRadius: "2px",
+      borderRadius: theme.rounded.xs,
     },
     "&::-webkit-scrollbar-thumb:hover": {
       background: theme.vars.palette.grey[600],

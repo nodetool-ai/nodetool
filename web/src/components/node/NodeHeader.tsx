@@ -1,9 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import useLogsStore from "../../stores/LogStore";
+import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import { shallow } from "zustand/shallow";
-import { useStoreWithEqualityFn } from "zustand/traditional";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import isEqual from "fast-deep-equal";
 import { NodeData } from "../../stores/NodeData";
@@ -11,6 +10,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { Badge } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { Visibility, InputOutlined, OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
@@ -43,6 +43,26 @@ export interface NodeHeaderProps {
   codeBadgeTooltip?: string;
 }
 
+// Stable empty array reference — prevents creating a new array instance each
+// render when a node has no logs, keeping Zustand's reference-equality check
+// from triggering unnecessary re-renders.
+const EMPTY_NODE_LOGS: ReturnType<typeof useLogsStore.getState>["logsByNode"][string] =
+  [];
+
+// Constant sx styles for header toggle buttons — defined outside the component
+// so the same object reference is reused across renders.
+const toggleIconButtonStyles = {
+  padding: "4px",
+  backgroundColor: "rgba(255, 255, 255, 0.05)",
+  color: "var(--palette-text-primary)",
+  border: "1px solid rgba(255, 255, 255, 0.1)",
+  borderRadius: "var(--rounded-circle)",
+  "&:hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: "var(--palette-primary-main)"
+  }
+};
+
 export const NodeHeader: React.FC<NodeHeaderProps> = ({
   id,
   metadataTitle,
@@ -66,6 +86,8 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   showCodeBadge = false,
   codeBadgeTooltip = "Code node"
 }: NodeHeaderProps) => {
+  const theme = useTheme();
+  const isLightMode = theme.palette.mode === "light";
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
@@ -77,15 +99,11 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     }),
     shallow
   );
-  // Use shallow equality to avoid re-rendering when logs for other nodes change
   const targetWorkflowId = workflowId || nodeWorkflowId || "";
-  const logs = useStoreWithEqualityFn(
-    useLogsStore,
-    (state) =>
-      state.logs.filter(
-        (log) => log.workflowId === targetWorkflowId && log.nodeId === id
-      ),
-    shallow
+  // O(1) lookup via pre-keyed map — avoids filtering the full logs array on
+  // every store update (which previously ran for every NodeHeader in the graph).
+  const logs = useLogsStore(
+    (state) => state.logsByNode[nodeLogKey(targetWorkflowId, id)] ?? EMPTY_NODE_LOGS
   );
   const [logsDialogOpen, setLogsDialogOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -98,19 +116,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       setDraftTitle(title ?? metadataTitle);
     }
   }, [isEditingTitle, metadataTitle, title]);
-
-  // Common icon button styles for toggle buttons
-  const toggleIconButtonStyles = {
-    padding: "4px",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    color: "var(--palette-text-primary)",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    borderRadius: "50%",
-    "&:hover": {
-      backgroundColor: "rgba(255, 255, 255, 0.1)",
-      borderColor: "var(--palette-primary-main)"
-    }
-  };
 
   const headerCss = useMemo(
     () =>
@@ -141,7 +146,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           width: "28px",
           minWidth: "28px",
           height: "28px",
-          borderRadius: "6px",
+          borderRadius: "var(--rounded-md)",
           display: "grid",
           placeItems: "center",
           boxShadow: "0 0 3px rgba(0, 0, 0, 0.1)",
@@ -157,8 +162,8 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           alignItems: "center",
           gap: "6px",
           flexGrow: 1,
+          minWidth: 0,
           textAlign: "left",
-          maxWidth: "250px",
           wordWrap: "break-word",
           lineHeight: "1.2em",
           fontSize: "var(--fontSizeNormal)",
@@ -226,21 +231,15 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     setLogsDialogOpen(true);
   }, []);
 
-  const handleShowResultsClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onShowResults?.();
-    },
-    [onShowResults]
-  );
+  const handleShowResultsClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onShowResults?.();
+  }, [onShowResults]);
 
-  const handleShowInputsClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onShowInputs?.();
-    },
-    [onShowInputs]
-  );
+  const handleShowInputsClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onShowInputs?.();
+  }, [onShowInputs]);
 
   const handleCloseLogsDialog = useCallback(() => {
     setLogsDialogOpen(false);
@@ -286,6 +285,20 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     if (backgroundColor === "transparent") {
       return { background: "transparent" } as React.CSSProperties;
     }
+    const hasCategoryColor = Boolean(backgroundColor);
+    if (isLightMode) {
+      if (!hasCategoryColor) {
+        return {
+          background: "var(--palette-grey-800)",
+          borderBottom: "1px solid var(--palette-divider)"
+        } as React.CSSProperties;
+      }
+      const flat = selected ? 0.32 : 0.2;
+      return {
+        background: hexToRgba(backgroundColor!, flat),
+        borderBottom: `1px solid ${hexToRgba(backgroundColor!, 0.28)}`
+      } as React.CSSProperties;
+    }
     const tint = backgroundColor || "var(--c_node_header_bg)";
     const baseOpacity = selected ? 0.55 : 0.35;
     const endOpacity = selected ? 0.22 : 0.12;
@@ -295,31 +308,26 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         endOpacity
       )})`
     } as React.CSSProperties;
-  }, [backgroundColor, selected]);
+  }, [backgroundColor, selected, isLightMode]);
 
   // Memoize icon background style to prevent recreation on every render
-  const iconBackgroundStyle = useMemo(
-    () => ({
-      background: iconBaseColor
-        ? hexToRgba(iconBaseColor, 0.22)
+  const iconBackgroundStyle = useMemo(() => ({
+    background: iconBaseColor
+      ? hexToRgba(iconBaseColor, isLightMode ? 0.14 : 0.22)
+      : isLightMode
+        ? "rgba(26,23,21,0.05)"
         : "rgba(255,255,255,0.08)"
-    }),
-    [iconBaseColor]
-  );
+  }), [iconBaseColor, isLightMode]);
 
   // Memoize title padding style to prevent recreation on every render
-  const titlePaddingStyle = useMemo(
-    () => ({
-      paddingLeft: hasIcon ? 0 : undefined
-    }),
-    [hasIcon]
-  );
+  const titlePaddingStyle = useMemo(() => ({
+    paddingLeft: hasIcon ? 0 : undefined
+  }), [hasIcon]);
 
   return (
     <FlexRow
-      className={`node-drag-handle node-header ${
-        hasParent ? "has-parent" : ""
-      }`}
+      className={`node-drag-handle node-header ${hasParent ? "has-parent" : ""
+        }`}
       css={headerCss}
       gap={1}
       justify="space-between"
@@ -330,7 +338,10 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     >
       <FlexRow className="header-left" gap={1} align="center">
         {hasIcon && showIcon && (
-          <div className="node-icon" style={iconBackgroundStyle}>
+          <div
+            className="node-icon"
+            style={iconBackgroundStyle}
+          >
             <IconForType
               iconName={iconType!}
               showTooltip={false}
@@ -383,7 +394,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             <OpenInNew sx={{ fontSize: "0.85rem" }} />
           </ToolbarIconButton>
         )}
-        {data.bypassed && <span className="bypass-badge">Bypassed</span>}
+        {data.bypassed && (
+          <span className="bypass-badge">Bypassed</span>
+        )}
         {logCount > 0 && !hideLogs && (
           <ToolbarIconButton
             title={`${logCount} logs`}

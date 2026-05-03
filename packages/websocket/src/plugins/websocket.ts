@@ -1,18 +1,17 @@
 import type { FastifyPluginAsync } from "fastify";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import { WsAdapter } from "../ws-adapter.js";
 import { UnifiedWebSocketRunner } from "../unified-websocket-runner.js";
-import { handleTerminalConnection } from "../terminal.js";
-import { createGraphNodeTypeResolver, type NodeRegistry } from "@nodetool/node-sdk";
-import type { PythonStdioBridge } from "@nodetool/runtime";
-import { PythonNodeExecutor, getProvider } from "@nodetool/runtime";
-import { Tool } from "@nodetool/agents";
-import type { NodeMetadata, PropertyMetadata } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { createGraphNodeTypeResolver, type NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { PythonStdioBridge } from "@nodetool-ai/runtime";
+import { PythonNodeExecutor, getProvider } from "@nodetool-ai/runtime";
+import { Tool } from "@nodetool-ai/agents";
+import type { NodeMetadata, PropertyMetadata } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { randomUUID } from "node:crypto";
-import { Workflow } from "@nodetool/models";
-import { WorkflowRunner } from "@nodetool/kernel";
-import type { NodeUpdate } from "@nodetool/protocol";
+import { Workflow } from "@nodetool-ai/models";
+import { WorkflowRunner } from "@nodetool-ai/kernel";
+import type { NodeUpdate } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.websocket.ws");
 
@@ -114,7 +113,7 @@ class WorkflowTool extends Tool {
       id: string;
       type: string;
       data?: Record<string, unknown>;
-    }) => import("@nodetool/kernel").NodeExecutor
+    }) => import("@nodetool-ai/kernel").NodeExecutor
   ) {
     super();
     this.name = sanitizeToolName(`workflow_${workflow.tool_name}`);
@@ -221,6 +220,101 @@ async function resolveProvider(providerId: string, userId: string) {
 
 const isProduction = process.env["NODETOOL_ENV"] === "production";
 
+/**
+ * Drive a Transformers.js download to completion, forwarding progress events
+ * to the connected websocket in the same shape the HF download manager emits.
+ *
+ * The TJS runtime gives us per-file progress (file/loaded/total). We sum
+ * loaded/total across files we've seen so the UI's aggregate bar tracks the
+ * total bytes pulled from the Hub.
+ */
+interface WsSendable {
+  send: (data: string) => void;
+}
+
+async function handleTjsDownload(
+  socket: WsSendable,
+  repoId: string,
+  modelType: string,
+  aborts: Map<string, AbortController>
+): Promise<void> {
+  const tjs = await import("@nodetool-ai/transformers-js-nodes");
+  const abort = new AbortController();
+  aborts.set(repoId, abort);
+
+  // Track total/loaded across all files the TJS runtime touches.
+  const fileTotals = new Map<string, { loaded: number; total: number }>();
+  const completedFiles = new Set<string>();
+
+  const sendProgress = (status: string, error?: string) => {
+    let downloadedBytes = 0;
+    let totalBytes = 0;
+    for (const { loaded, total } of fileTotals.values()) {
+      downloadedBytes += loaded;
+      totalBytes += total;
+    }
+    const payload: Record<string, unknown> = {
+      status,
+      repo_id: repoId,
+      path: null,
+      model_type: modelType,
+      downloaded_bytes: downloadedBytes,
+      total_bytes: totalBytes,
+      downloaded_files: completedFiles.size,
+      current_files: Array.from(fileTotals.keys()).filter(
+        (f) => !completedFiles.has(f)
+      ),
+      total_files: fileTotals.size
+    };
+    if (error) payload["error"] = error;
+    try {
+      socket.send(JSON.stringify(payload));
+    } catch {
+      /* socket gone */
+    }
+  };
+
+  sendProgress("start");
+
+  try {
+    await tjs.downloadTransformersJsModel(repoId, {
+      modelType,
+      signal: abort.signal,
+      onProgress: (info) => {
+        if (!info.file) return;
+        if (info.status === "initiate" || info.status === "download") {
+          if (!fileTotals.has(info.file)) {
+            fileTotals.set(info.file, { loaded: 0, total: info.total ?? 0 });
+          }
+        } else if (info.status === "progress") {
+          const entry = fileTotals.get(info.file) ?? { loaded: 0, total: 0 };
+          entry.loaded = info.loaded ?? entry.loaded;
+          entry.total = info.total ?? entry.total;
+          fileTotals.set(info.file, entry);
+        } else if (info.status === "done") {
+          const entry = fileTotals.get(info.file) ?? { loaded: 0, total: 0 };
+          if (entry.total > 0 && entry.loaded < entry.total) {
+            entry.loaded = entry.total;
+          }
+          fileTotals.set(info.file, entry);
+          completedFiles.add(info.file);
+        }
+        sendProgress("progress");
+      }
+    });
+    sendProgress("completed");
+  } catch (err) {
+    if (abort.signal.aborted) {
+      sendProgress("cancelled");
+    } else {
+      const message = err instanceof Error ? err.message : String(err);
+      sendProgress("error", message);
+    }
+  } finally {
+    aborts.delete(repoId);
+  }
+}
+
 const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
   app,
   opts
@@ -318,8 +412,23 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
           );
         }
         if (registry.getMetadata(node.type) && !registry.has(node.type)) {
+          const stderrSummary = (
+            pythonBridge as { getRecentStderrSummary?: () => string | null }
+          ).getRecentStderrSummary?.() ?? null;
+          const loadErrors = (
+            pythonBridge as {
+              getLoadErrors?: () => Array<{ module: string; error: string }>;
+            }
+          ).getLoadErrors?.() ?? [];
+          const matchingLoadError = loadErrors.find(
+            (entry) =>
+              entry.module.includes(node.type) ||
+              node.type.startsWith(entry.module.split(".").slice(2).join("."))
+          );
           throw new Error(
-            `Python node "${node.type}" cannot execute: Python worker is not connected.`
+            getPythonBridgeReady()
+              ? `Python node "${node.type}" cannot execute: it is declared in metadata but was not loaded by the Python worker.${matchingLoadError ? ` Load error: ${matchingLoadError.module}: ${matchingLoadError.error}.` : stderrSummary ? ` Recent Python worker stderr: ${stderrSummary}` : " Check Python worker status/load errors for import failures."}`
+              : `Python node "${node.type}" cannot execute: Python worker is not connected.${stderrSummary ? ` Recent Python worker stderr: ${stderrSummary}` : ""}`
           );
         }
         return registry.resolve(node);
@@ -327,7 +436,9 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       resolveNodeType: graphNodeTypeResolver,
       resolveProvider,
       resolveTools,
-      getNodeMetadata: (nodeType) => registry.getMetadata(nodeType)
+      getNodeMetadata: (nodeType) => registry.getMetadata(nodeType),
+      validateNode: registry.createNodeValidator(),
+      nodeRegistry: registry
     });
     log.info("WebSocket client connected");
     void runner.run(new WsAdapter(socket)).catch((error) => {
@@ -338,22 +449,8 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
     });
   });
 
-  // Terminal and Download WebSocket endpoints — local development only
+  // Download WebSocket endpoint — local development only
   if (!isProduction) {
-    // Terminal WebSocket — real PTY-backed shell
-    app.get("/ws/terminal", { websocket: true }, (socket, _req) => {
-      socket.on("error", (error: Error) => {
-        log.error("Terminal WebSocket error", error);
-      });
-      log.info("Terminal WebSocket client connected");
-      handleTerminalConnection(socket as any).catch((err) => {
-        log.error(
-          "Terminal handler failed",
-          err instanceof Error ? err : new Error(String(err))
-        );
-      });
-    });
-
     // Download WebSocket (HuggingFace model downloads)
     app.get("/ws/download", { websocket: true }, (socket, _req) => {
       socket.on("error", (error: Error) => {
@@ -361,19 +458,28 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       });
       log.info("Download WebSocket client connected");
 
-      import("@nodetool/huggingface")
+      import("@nodetool-ai/huggingface")
         .then(({ getDownloadManager }) => {
+          // TJS downloads are bookkept here so cancel can abort them.
+          const tjsAborts = new Map<string, AbortController>();
+
           socket.on("message", async (raw: Buffer | ArrayBuffer | Buffer[]) => {
             try {
               const msg = JSON.parse(raw.toString());
               if (msg.command === "start_download") {
+                const repoId: string = msg.repo_id ?? "";
+                const modelType: string | null = msg.model_type ?? null;
+                if (modelType && modelType.startsWith("tjs.")) {
+                  await handleTjsDownload(socket, repoId, modelType, tjsAborts);
+                  return;
+                }
                 const manager = await getDownloadManager();
-                await manager.startDownload(msg.repo_id ?? "", {
+                await manager.startDownload(repoId, {
                   path: msg.path ?? null,
                   allowPatterns: msg.allow_patterns ?? null,
                   ignorePatterns: msg.ignore_patterns ?? null,
                   cacheDir: msg.cache_dir ?? null,
-                  modelType: msg.model_type ?? null,
+                  modelType,
                   onProgress: (update) => {
                     try {
                       socket.send(JSON.stringify(update));
@@ -383,8 +489,15 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
                   }
                 });
               } else if (msg.command === "cancel_download") {
+                const id: string = msg.repo_id ?? msg.id ?? "";
+                const tjsAbort = tjsAborts.get(id);
+                if (tjsAbort) {
+                  tjsAbort.abort();
+                  tjsAborts.delete(id);
+                  return;
+                }
                 const manager = await getDownloadManager();
-                manager.cancelDownload(msg.repo_id ?? msg.id ?? "");
+                manager.cancelDownload(id);
               }
             } catch (err) {
               const error = err instanceof Error ? err.message : String(err);
@@ -398,7 +511,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
         })
         .catch((err: unknown) => {
           log.error(
-            "Failed to load @nodetool/huggingface",
+            "Failed to load @nodetool-ai/huggingface",
             err instanceof Error ? err : new Error(String(err))
           );
           try {

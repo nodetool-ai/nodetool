@@ -167,7 +167,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       transform: "translateX(-50%)",
       padding: "0.5em",
       backgroundColor: "rgba(0, 0, 0, 0.7)",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       zIndex: 100,
       gap: "0.5em",
       alignItems: "center"
@@ -195,7 +195,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       padding: "1em 1.5em",
       maxWidth: "90%",
       backgroundColor: "rgba(0, 0, 0, 0.8)",
-      borderRadius: "8px"
+      borderRadius: "var(--rounded-lg)"
     },
     ".fullscreen-close-button": {
       position: "absolute",

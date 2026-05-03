@@ -75,6 +75,10 @@ export interface DeleteButtonProps {
    */
   sx?: SxProps<Theme>;
   /**
+   * Explicit aria-label for accessibility (required when tooltip is not a string)
+   */
+  ariaLabel?: string;
+  /**
    * Tab index for keyboard navigation
    * @default 0
    */
@@ -94,7 +98,8 @@ export const DeleteButton = memo(
         disabled = false,
         className,
         sx,
-        tabIndex = 0
+        tabIndex = 0,
+        ariaLabel
       },
       ref
     ) => {
@@ -132,6 +137,8 @@ export const DeleteButton = memo(
         return <TrashIcon width={iconSize} height={iconSize} />;
       };
 
+      const label = ariaLabel || (typeof tooltip === "string" ? tooltip : "Delete");
+
       return (
         <Tooltip
           title={tooltip}
@@ -143,7 +150,7 @@ export const DeleteButton = memo(
           <IconButton
             ref={ref}
             tabIndex={tabIndex}
-            aria-label={typeof tooltip === "string" ? tooltip : "Delete"}
+            aria-label={label}
             className={cn(
               "delete-button",
               nodrag && editorClassNames.nodrag,

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { FinishStepTool } from "../src/tools/finish-step-tool.js";
 import { Tool } from "../src/tools/base-tool.js";
 

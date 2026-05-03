@@ -5,7 +5,7 @@ import { NodeMetadata } from "../stores/ApiTypes";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 import { NodeData } from "../stores/NodeData";
 
-const SKETCH_INPUT_NODE_TYPE = "nodetool.input.SketchInput";
+const SKETCH_INPUT_NODE_TYPE = "nodetool.image.ImageEditor";
 const SKETCH_LAYER_IO_SIG_KEY = "sketch_layer_io_sig";
 
 /**

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { CardContent } from "@mui/material";
 import { Text, FlexRow, Card, Chip } from "../ui_primitives";
 import { CalendarEvent, Datetime } from "../../stores/ApiTypes";
@@ -11,7 +11,9 @@ interface CalendarEventViewProps {
   event: CalendarEvent;
 }
 
-const formatDatetime = (dt: Datetime): string => {
+const formatDatetime = (dt: Datetime | string | null | undefined): string => {
+  if (!dt) return "";
+  if (typeof dt === "string") return dt;
   // Construct a date object. Note: Month is 1-indexed in the API but 0-indexed in JS Date
   const date = new Date(
     dt.year,
@@ -70,4 +72,4 @@ const CalendarEventView: React.FC<CalendarEventViewProps> = ({ event }) => {
   );
 };
 
-export default CalendarEventView;
+export default memo(CalendarEventView);

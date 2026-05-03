@@ -9,6 +9,8 @@ import {
   FlatList,
   StyleSheet,
   ListRenderItemInfo,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
   RefreshControl,
 } from 'react-native';
 import { Message } from '../../types';
@@ -57,7 +59,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
     }
   }, [isStreaming, messages]);
 
-  const handleScroll = useCallback((event: any) => {
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
     const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
     isNearBottomRef.current = distanceFromBottom < 150;

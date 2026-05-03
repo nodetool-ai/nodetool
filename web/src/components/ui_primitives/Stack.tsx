@@ -56,7 +56,8 @@ const getChildKey = (child: React.ReactNode, index: number): string | number => 
       return child.key;
     }
     // Generate a stable key based on element type and index
-    const type = typeof child.type === "string" ? child.type : (child.type as any)?.displayName || (child.type as any)?.name || "component";
+    const componentType = child.type as string | (React.FC & { displayName?: string });
+    const type = typeof componentType === "string" ? componentType : componentType?.displayName || componentType?.name || "component";
     return `${type}-${index}`;
   }
   // Fallback to index for non-element children

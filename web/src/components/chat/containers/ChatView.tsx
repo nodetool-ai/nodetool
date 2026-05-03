@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback, useRef, useState, memo } from "react";
+import { useCallback, memo } from "react";
 import {
   Node,
   Edge,
@@ -14,10 +14,13 @@ import {
   LanguageModel
 } from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
-import ChatInputSection from "./ChatInputSection";
-import log from "loglevel";
+import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
+import type {
+  ChatOutgoingMessage,
+  MediaGenerationRequest
+} from "../types/media.types";
 
-const styles = (_theme: Theme) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       position: "relative",
@@ -28,16 +31,24 @@ const styles = (_theme: Theme) =>
       flexDirection: "column",
       overflow: "hidden",
       minHeight: 0,
-      padding: "0 20px 20px 20px",
+      padding: "0 20px 20px 20px"
+    },
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      pointerEvents: "none",
+      background: `radial-gradient(circle at top center, rgb(${theme.vars.palette.common.whiteChannel} / 0.035), transparent 38%)`
     },
     ".chat-thread-container": {
       flex: 1,
-      overflow: "auto",
       minHeight: 0,
-      paddingBottom: "16px",
-      // Prevent scroll jumping on mobile keyboard
-      WebkitOverflowScrolling: "touch",
-      scrollBehavior: "smooth"
+      display: "flex",
+      flexDirection: "column",
+      paddingBottom: "20px",
+      width: "100%",
+      maxWidth: "1180px",
+      alignSelf: "center"
     },
     ".chat-controls": {
       padding: "0 16px 0 0",
@@ -49,8 +60,11 @@ const styles = (_theme: Theme) =>
     },
     ".chat-composer-wrapper": {
       flex: 1,
-      minWidth: 0
-    },
+      minWidth: 0,
+      width: "100%",
+      maxWidth: "1180px",
+      alignSelf: "center"
+    }
   });
 
 type ChatViewProps = {
@@ -84,6 +98,10 @@ type ChatViewProps = {
   onNewChat?: () => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
+  agentPlanner?: import("../composer/AgentModeSelector").AgentPlanner;
+  onAgentPlannerChange?: (
+    planner: import("../composer/AgentModeSelector").AgentPlanner
+  ) => void;
   helpMode?: boolean;
   workflowAssistant?: boolean;
   currentPlanningUpdate?: PlanningUpdate | null;
@@ -97,7 +115,27 @@ type ChatViewProps = {
   noMessagesPlaceholder?: React.ReactNode;
   onInsertCode?: (text: string, language?: string) => void;
   allowedProviders?: string[];
+  /**
+   * Hide non-tool-capable models in the composer's language model picker.
+   * The composer auto-enables this whenever `agentMode` is on; pass `true`
+   * here to force-filter regardless of agent mode.
+   */
+  requireToolSupport?: boolean;
   workflowId?: string | null;
+  /**
+   * Controls which composer is rendered below the thread.
+   * - "media" (default): full-featured MediaChatComposer with mode, model,
+   *   and media-generation parameter chips.
+   * - "simple": plain ChatComposer with just the textarea and action
+   *   buttons — used by the Agent panel where provider/model live in a
+   *   dedicated toolbar.
+   */
+  composerVariant?: ChatComposerVariant;
+  /**
+   * Extra node rendered in the composer footer (left of the action
+   * buttons). Only used when composerVariant is "simple".
+   */
+  composerToolbar?: React.ReactNode;
 };
 
 const ChatView = ({
@@ -118,6 +156,8 @@ const ChatView = ({
   onNewChat,
   agentMode,
   onAgentModeToggle,
+  agentPlanner,
+  onAgentPlannerChange,
   helpMode = false,
   currentPlanningUpdate,
   currentTaskUpdate,
@@ -128,33 +168,33 @@ const ChatView = ({
   runningToolCallId,
   runningToolMessage,
   allowedProviders,
-  workflowId
+  requireToolSupport,
+  workflowId,
+  composerVariant,
+  composerToolbar
 }: ChatViewProps) => {
   const theme = useTheme();
-  const chatThreadContainerRef = useRef<HTMLDivElement | null>(null);
-  const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(
-    null
-  );
-  const handleChatThreadContainerRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      chatThreadContainerRef.current = node;
-      setScrollContainer(node);
-    },
-    []
-  );
   const handleSendMessage = useCallback(
     async (
       content: MessageContent[],
       prompt: string,
-      messageAgentMode: boolean
+      messageAgentMode: boolean,
+      mediaGeneration?: MediaGenerationRequest
     ) => {
       try {
-        await sendMessage({
+        const outgoing: ChatOutgoingMessage = {
           type: "message",
           name: "",
           role: "user",
-          provider: model?.provider,
-          model: model?.id,
+          provider:
+            mediaGeneration && mediaGeneration.mode !== "chat"
+              ? ((mediaGeneration.provider ??
+                  model?.provider) as ChatOutgoingMessage["provider"])
+              : model?.provider,
+          model:
+            mediaGeneration && mediaGeneration.mode !== "chat"
+              ? mediaGeneration.model ?? model?.id
+              : model?.id,
           content: content,
           tools: selectedTools.length > 0 ? selectedTools : undefined,
           collections:
@@ -163,10 +203,15 @@ const ChatView = ({
           help_mode: helpMode,
           graph: graph,
           workflow_id: workflowId ?? undefined,
-          workflow_target: graph ? "workflow" : undefined
-        });
+          workflow_target: graph ? "workflow" : undefined,
+          media_generation:
+            mediaGeneration && mediaGeneration.mode !== "chat"
+              ? mediaGeneration
+              : null
+        };
+        await sendMessage(outgoing);
       } catch (error) {
-        log.error("Error sending message:", error);
+        console.error("Error sending message:", error);
       }
     },
     [
@@ -182,10 +227,7 @@ const ChatView = ({
 
   return (
     <div className="chat-view" css={styles(theme)}>
-      <div
-        className="chat-thread-container"
-        ref={handleChatThreadContainerRef}
-      >
+      <div className="chat-thread-container">
         {messages.length > 0 ? (
           <ChatThreadView
             messages={messages}
@@ -199,7 +241,6 @@ const ChatView = ({
             currentTaskUpdate={currentTaskUpdate}
             currentLogUpdate={currentLogUpdate}
             onInsertCode={onInsertCode}
-            scrollContainer={scrollContainer}
           />
         ) : (
           noMessagesPlaceholder ?? <div style={{ flex: 1 }} />
@@ -220,7 +261,12 @@ const ChatView = ({
         onModelChange={onModelChange}
         agentMode={agentMode}
         onAgentModeToggle={onAgentModeToggle}
+        agentPlanner={agentPlanner}
+        onAgentPlannerChange={onAgentPlannerChange}
         allowedProviders={allowedProviders}
+        requireToolSupport={requireToolSupport}
+        variant={composerVariant}
+        composerToolbar={composerToolbar}
       />
     </div>
   );

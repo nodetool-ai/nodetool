@@ -5,8 +5,8 @@
  * the registry directly instead of via REST API.
  */
 
-import type { ProcessingContext } from "@nodetool/runtime";
-import type { NodeRegistry, NodeMetadata } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { NodeRegistry, NodeMetadata } from "@nodetool-ai/node-sdk";
 import { Tool } from "./base-tool.js";
 
 function typeMetaToString(

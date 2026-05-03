@@ -1,4 +1,4 @@
-// @nodetool/huggingface — HuggingFace integration package
+// @nodetool-ai/huggingface — HuggingFace integration package
 // Cache scanning, model discovery, artifact inspection, and downloads
 
 export { getHfToken, resolveHfToken, clearHfTokenCache } from "./hf-auth.js";
@@ -8,6 +8,9 @@ export { HfFastCache, getDefaultHfCacheDir } from "./hf-cache.js";
 export type { UnifiedModel } from "./hf-models.js";
 export {
   RepoPackagingHint,
+  SUPPORTED_MODEL_TYPES,
+  GENERIC_HF_TYPES,
+  HF_SEARCH_TYPE_CONFIG,
   readCachedHfModels,
   searchCachedHfModels,
   getModelsByHfType,
@@ -15,6 +18,13 @@ export {
   getLlamaCppModelsFromCache,
   detectRepoPackaging
 } from "./hf-models.js";
+
+export type {
+  HfHubModel,
+  SearchHfHubOptions,
+  ListAllHfModelsOptions
+} from "./hf-hub-search.js";
+export { searchHfHub, listAllHfModels } from "./hf-hub-search.js";
 
 export type { DetectionResult } from "./safetensors-inspector.js";
 export { detectModel } from "./safetensors-inspector.js";
@@ -35,7 +45,6 @@ export { getHuggingfaceFileInfos } from "./hf-file-info.js";
 export {
   asyncHfDownload,
   hfHubFileUrl,
-  hfHeadMetadata,
   hfCacheRoot,
   hfRepoCacheDir
 } from "./hf-downloader.js";

@@ -136,7 +136,11 @@ const styles = (theme: Theme) =>
       width: "18px !important"
     },
     ".root-folder .folder-name": {
-      fontSize: theme.fontSizeNormal
+      fontSize: theme.fontSizeSmall,
+      textTransform: "uppercase",
+      letterSpacing: "0.08em",
+      fontWeight: 500,
+      color: theme.vars.palette.grey[400]
     },
     // No resize handle styles
     // Narrow sidebar tweaks

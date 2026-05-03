@@ -1,43 +1,48 @@
 /** @jsxImportSource @emotion/react */
-// Dialog-based settings menu (replacing MUI Menu)
-import React, { memo, useId } from "react";
+// Full-page settings (formerly a Dialog).
+import React, { memo, useId, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Tabs,
   Tab,
-  Box
+  Box,
+  useMediaQuery
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import SettingsIcon from "@mui/icons-material/Settings";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
 import {
-  CloseButton,
   SearchInput,
   TextInput,
   LabeledSwitch,
   SelectField,
-  Tooltip,
   Text,
+  Tooltip,
   EditorButton
 } from "../ui_primitives";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { isLocalhost, isElectron } from "../../stores/ApiClient";
+import { isLocalhost, isElectron, isProduction } from "../../lib/env";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import FoldersSettings from "./FoldersSettingsMenu";
 import SecretsMenu from "./SecretsMenu";
-import { getSecretsSidebarSections } from "./secretsSidebarUtils";
 import AboutMenu from "./AboutMenu";
+import ModelListIndex from "../hugging_face/model_list/ModelListIndex";
+import CollectionList from "../collections/CollectionList";
+import WorkspacesManager from "../workspaces/WorkspacesManager";
 import { getAboutSidebarSections } from "./aboutSidebarUtils";
 import DefaultModelsMenu from "./DefaultModelsMenu";
+import MCPSettingsMenu from "./MCPSettingsMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
 import useSecretsStore from "../../stores/SecretsStore";
 import { settingsStyles } from "./settingsMenuStyles";
-import { Dialog } from "../ui_primitives";
+
+const workspacesEnabled = !isProduction;
+const aboutTabIndex = workspacesEnabled ? 5 : 4;
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -62,15 +67,21 @@ const TabPanel = React.memo(function TabPanel(props: TabPanelProps) {
   );
 });
 
-interface SettingsMenuProps {
-  buttonText?: string;
-}
-
-function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
+function SettingsPage() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const session = useAuth((state) => state.session);
-  const isMenuOpen = useSettingsStore((state) => state.isMenuOpen);
-  const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
-  const settingsTab = useSettingsStore((state) => state.settingsTab);
+
+  const settingsTab = useMemo(() => {
+    const raw = Number(searchParams.get("tab") ?? 0);
+    if (Number.isNaN(raw)) return 0;
+    const bounded = Math.min(5, Math.max(0, raw));
+    if (!workspacesEnabled && bounded === 5) {
+      return aboutTabIndex;
+    }
+    return bounded;
+  }, [searchParams]);
+
   const setGridSnap = useSettingsStore((state) => state.setGridSnap);
   const setConnectionSnap = useSettingsStore(
     (state) => state.setConnectionSnap
@@ -131,19 +142,13 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   }, []);
 
   const handleTabChange = useCallback(
-    (event: React.SyntheticEvent, newValue: number) => {
-      setMenuOpen(true, newValue);
+    (_event: React.SyntheticEvent, newValue: number) => {
+      const next = new URLSearchParams(searchParams);
+      next.set("tab", String(newValue));
+      setSearchParams(next, { replace: true });
       setApiSearchTerm("");
     },
-    [setMenuOpen]
-  );
-
-  const handleClick = useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      event.preventDefault();
-      setMenuOpen(!isMenuOpen);
-    },
-    [isMenuOpen, setMenuOpen]
+    [searchParams, setSearchParams]
   );
 
   // Memoized handlers for settings controls to prevent re-renders
@@ -205,9 +210,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-  const handleClose = () => {
-    setMenuOpen(false);
-  };
+  const handleClose = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
 
   const copyAuthToken = async () => {
     const accessToken = session?.access_token;
@@ -265,29 +270,55 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     });
   };
 
-  // Tab 0: General sidebar sections
+  // Tab 0: General sidebar folders
   const generalSidebarSections = [
     {
-      category: "General",
+      category: "Workspace",
       items: [
         { id: "editor", label: "Editor" },
-        { id: "canvas-navigation", label: "Canvas & Navigation" },
-        { id: "default-models", label: "Default Models" },
-        { id: "autosave", label: "Autosave" },
         { id: "appearance", label: "Appearance" }
       ]
+    },
+    {
+      category: "Canvas",
+      items: [{ id: "canvas-navigation", label: "Canvas & Navigation" }]
+    },
+    {
+      category: "AI",
+      items: [{ id: "default-models", label: "Default Models" }]
+    },
+    {
+      category: "History",
+      items: [{ id: "autosave", label: "Autosave" }]
     }
   ];
 
-  // Tab 1: API & Keys sidebar sections
+  // Tab 1: API & Keys sidebar folders
   const apiKeysSidebarSections = [
     {
-      category: "API & Keys",
+      category: "Credentials",
       items: [
         { id: "api-keys", label: "API Keys" },
-        { id: "api-settings", label: "API Settings" },
-        { id: "folders", label: "Folders" }
+        ...(session?.access_token && !isLocalhost
+          ? [{ id: "nodetool-api-token", label: "Nodetool API Token" }]
+          : [])
       ]
+    },
+    {
+      category: "Configuration",
+      items: [{ id: "api-settings", label: "API Settings" }]
+    },
+    ...(isLocalhost
+      ? [
+          {
+            category: "Integrations",
+            items: [{ id: "mcp-integration", label: "MCP Servers" }]
+          }
+        ]
+      : []),
+    {
+      category: "Storage",
+      items: [{ id: "folders", label: "Folders" }]
     }
   ];
 
@@ -300,47 +331,37 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   void secrets;
 
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
-    <div className="settings">
-      <Tooltip title="Settings" delay={TOOLTIP_ENTER_DELAY}>
-        <EditorButton
-          tabIndex={-1}
-          className="settings-button command-icon"
-          aria-controls={isMenuOpen ? "basic-menu" : undefined}
-          aria-haspopup="true"
-          aria-expanded={isMenuOpen ? "true" : undefined}
-          onClick={handleClick}
-        >
-          <SettingsIcon />
-          {buttonText}
-        </EditorButton>
-      </Tooltip>
-      <Dialog
-        open={isMenuOpen}
-        onClose={handleClose}
-        fullWidth
-        maxWidth="lg"
-        sx={{
-          "& .MuiPaper-root": {
-            height: "85vh",
-            overflow: "hidden"
-          },
-          "& .dialog-content": {
-            padding: 0,
-            display: "flex",
-            flexDirection: "column",
-            flex: 1,
-            minHeight: 0,
-            overflow: "hidden"
-          }
-        }}
-      >
-        <div css={settingsStyles(theme)}>
-          <div className="top">
-            <Text size="bigger">Settings</Text>
-            <CloseButton onClick={handleClose} />
+    <Box
+      className={`settings-page${isMobile ? " settings-page--mobile" : ""}`}
+      sx={{
+        flex: 1,
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: theme.vars.palette.background.default
+      }}
+    >
+      <Box css={settingsStyles(theme)} sx={{ flex: 1, minHeight: 0 }}>
+        <header className="settings-page-header">
+          <EditorButton
+            className="settings-back"
+            density="normal"
+            onClick={handleClose}
+            startIcon={<ArrowBackRoundedIcon sx={{ fontSize: 16 }} />}
+            aria-label="Go back"
+          >
+            Back
+          </EditorButton>
+          <div className="settings-page-header__titles">
+            <h1 className="settings-page-header__title">Settings</h1>
+            <p className="settings-page-header__subtitle">
+              API keys, providers, and editor preferences.
+            </p>
           </div>
+        </header>
 
           <div className="settings-menu">
             <div className="sticky-header">
@@ -352,27 +373,39 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
               >
                 <Tab label="General" id="settings-tab-0" />
                 <Tab label="API & Keys" id="settings-tab-1" />
-                <Tab label="About" id="settings-tab-2" />
+                <Tab label="Models" id="settings-tab-2" />
+                <Tab label="Collections" id="settings-tab-3" />
+                {workspacesEnabled && <Tab label="Workspaces" id="settings-tab-4" />}
+                <Tab label="About" id={`settings-tab-${aboutTabIndex}`} />
               </Tabs>
             </div>
 
             <div className="settings-container">
-              <SettingsSidebar
-                key={`sidebar-${settingsTab}`}
-                activeSection={activeSection}
-                sections={
-                  settingsTab === 0
-                    ? generalSidebarSections
-                    : settingsTab === 1
-                      ? apiKeysSidebarSections
-                      : settingsTab === 2
-                        ? getAboutSidebarSections()
-                        : []
-                }
-                onSectionClick={scrollToSection}
-              />
+              {!isMobile && (settingsTab === 0 || settingsTab === 1 || settingsTab === aboutTabIndex) && (
+                <SettingsSidebar
+                  key={`sidebar-${settingsTab}`}
+                  activeSection={activeSection}
+                  sections={
+                    settingsTab === 0
+                      ? generalSidebarSections
+                      : settingsTab === 1
+                        ? apiKeysSidebarSections
+                        : settingsTab === aboutTabIndex
+                          ? getAboutSidebarSections()
+                          : []
+                  }
+                  onSectionClick={scrollToSection}
+                />
+              )}
 
-              <div className="settings-content" ref={settingsContentRef}>
+              <div
+                className={`settings-content${
+                  settingsTab === 2 || settingsTab === 3 || (settingsTab === 4 && workspacesEnabled)
+                    ? " settings-content--full"
+                    : ""
+                }`}
+                ref={settingsContentRef}
+              >
                 {/* Tab 0: General */}
                 <TabPanel value={settingsTab} index={0}>
                   <div id="editor" className="settings-section">
@@ -638,7 +671,10 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
                 {/* Tab 1: API & Keys */}
                 <TabPanel value={settingsTab} index={1}>
-                  <div style={{ marginBottom: "1.5em" }}>
+                  <div
+                    data-onboarding-target="provider-setup"
+                    style={{ marginBottom: "1.5em" }}
+                  >
                     <SearchInput
                       placeholder="Search API keys, settings, and folders..."
                       value={apiSearchTerm}
@@ -729,23 +765,52 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   </Text>
                   <RemoteSettingsMenuComponent />
 
+                  {isLocalhost && (
+                    <>
+                      <Text size="big" id="mcp-integration">
+                        MCP Integration
+                      </Text>
+                      <MCPSettingsMenu />
+                    </>
+                  )}
+
                   <Text size="big" id="folders">
                     Folders
                   </Text>
                   <FoldersSettings />
                 </TabPanel>
 
-                {/* Tab 2: About */}
+                {/* Tab 2: Models */}
                 <TabPanel value={settingsTab} index={2}>
+                  <ModelListIndex />
+                </TabPanel>
+
+                {/* Tab 3: Collections */}
+                <TabPanel value={settingsTab} index={3}>
+                  <Box className="settings-panel-padded">
+                    <CollectionList />
+                  </Box>
+                </TabPanel>
+
+                {/* Tab 4: Workspaces */}
+                {workspacesEnabled && (
+                  <TabPanel value={settingsTab} index={4}>
+                    <Box className="settings-panel-padded">
+                      <WorkspacesManager />
+                    </Box>
+                  </TabPanel>
+                )}
+
+                {/* About */}
+                <TabPanel value={settingsTab} index={aboutTabIndex}>
                   <AboutMenu />
                 </TabPanel>
               </div>
             </div>
           </div>
-        </div>
-      </Dialog>
-    </div>
+      </Box>
+    </Box>
   );
 }
 
-export default memo(SettingsMenu);
+export default memo(SettingsPage);

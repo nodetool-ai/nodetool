@@ -3,12 +3,21 @@
  */
 
 export { SamServiceStub, getSamService, setSamService } from "./SamService";
-export { DEFAULT_SAM_MODEL_ID, DEFAULT_SAM_MODEL_NAME } from "./SamService";
+export {
+  FAL_SAM_CAPABILITIES,
+  DEFAULT_SAM_MODEL_ID,
+  DEFAULT_SAM_MODEL_NAME,
+  getDefaultSamModelId,
+  LOCAL_SAM3_MODEL_ID,
+  LOCAL_SAM3_MODEL_NAME,
+  LOCAL_SAM3_CAPABILITIES
+} from "./SamService";
 
 export type {
   SamService,
   SamModelStatus,
   SamModelInfo,
+  SamBackendCapabilities,
   SegmentationRequest,
   SegmentationResponse
 } from "./SamService";
@@ -17,6 +26,11 @@ export { SamServiceFal, resizeForInference, MAX_INFERENCE_DIMENSION } from "./Sa
 
 export { SamServiceNode, SAM_NODE_CONFIGS, DEFAULT_SAM_NODE_BACKEND } from "./SamServiceNode";
 export type { SamNodeConfig } from "./SamServiceNode";
+export { normalizeSamMasks } from "./normalizeSamMasks";
+export {
+  rasterizeSegmentationToDocumentSpace,
+  projectSegmentationMasksToDocumentSpace
+} from "./segmentationDocumentSpace";
 
 export { WebSocketNodeExecutor, getNodeExecutor, setNodeExecutor } from "./NodeExecutor";
 export type { NodeExecutor, GraphNode, GraphEdge, InlineGraph, NodeExecutionResult } from "./NodeExecutor";

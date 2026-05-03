@@ -1,11 +1,12 @@
-import { createWithEqualityFn } from "zustand/traditional";
+import { create } from "zustand";
 import { Asset, AssetWithPath } from "./ApiTypes";
-import { SizeFilterKey } from "../utils/formatUtils";
+import { SizeFilterKey, TypeFilterKey } from "../utils/formatUtils";
 
 interface AssetGridState {
   assetItemSize: number;
   assetSearchTerm: string | null;
   sizeFilter: SizeFilterKey;
+  typeFilter: TypeFilterKey;
   viewMode: "grid" | "list";
   currentAudioAsset: Asset | null;
   currentFolder: Asset | null;
@@ -27,6 +28,7 @@ interface AssetGridState {
   setAssetItemSize: (size: number) => void;
   setAssetSearchTerm: (term: string) => void;
   setSizeFilter: (filter: SizeFilterKey) => void;
+  setTypeFilter: (filter: TypeFilterKey) => void;
   setViewMode: (mode: "grid" | "list") => void;
   setCurrentAudioAsset: (asset: Asset | null) => void;
   setCurrentFolder: (folder: Asset | null) => void;
@@ -47,6 +49,9 @@ interface AssetGridState {
   createFolderDialogOpen: boolean;
   setCreateFolderDialogOpen: (open: boolean) => void;
 
+  foldersVisible: boolean;
+  toggleFoldersVisible: () => void;
+
   isRenaming: string | null;
   setIsRenaming: (isRenaming: string | null) => void;
 
@@ -66,12 +71,16 @@ interface AssetGridState {
   setIsGlobalSearchActive: (active: boolean) => void;
   setGlobalSearchQuery: (query: string) => void;
   setIsGlobalSearchMode: (mode: boolean) => void;
+
+  // Workflow filter
+  workflowFilter: string | null;
+  setWorkflowFilter: (workflowId: string | null) => void;
 }
 
-export const useAssetGridStore = createWithEqualityFn<AssetGridState>()(
-  (set, get) => ({
+export const useAssetGridStore = create<AssetGridState>((set, get) => ({
   assetItemSize: 2,
   sizeFilter: "all",
+  typeFilter: "all",
   viewMode: "grid",
   currentFolder: null,
   currentFolderId: null,
@@ -106,6 +115,7 @@ export const useAssetGridStore = createWithEqualityFn<AssetGridState>()(
   assetSearchTerm: null,
   setAssetSearchTerm: (term: string) => set({ assetSearchTerm: term }),
   setSizeFilter: (filter: SizeFilterKey) => set({ sizeFilter: filter }),
+  setTypeFilter: (filter: TypeFilterKey) => set({ typeFilter: filter }),
   setViewMode: (mode: "grid" | "list") => set({ viewMode: mode }),
 
   // AUDIO ASSET
@@ -127,6 +137,10 @@ export const useAssetGridStore = createWithEqualityFn<AssetGridState>()(
 
   createFolderDialogOpen: false,
   setCreateFolderDialogOpen: (open) => set({ createFolderDialogOpen: open }),
+
+  foldersVisible: true,
+  toggleFoldersVisible: () =>
+    set((state) => ({ foldersVisible: !state.foldersVisible })),
   isRenaming: null,
   setIsRenaming: (isRenaming) => set({ isRenaming }),
 
@@ -145,6 +159,9 @@ export const useAssetGridStore = createWithEqualityFn<AssetGridState>()(
   setGlobalSearchResults: (results) => set({ globalSearchResults: results }),
   setIsGlobalSearchActive: (active) => set({ isGlobalSearchActive: active }),
   setGlobalSearchQuery: (query) => set({ globalSearchQuery: query }),
-  setIsGlobalSearchMode: (mode) => set({ isGlobalSearchMode: mode })
-  })
-);
+  setIsGlobalSearchMode: (mode) => set({ isGlobalSearchMode: mode }),
+
+  // Workflow filter
+  workflowFilter: null,
+  setWorkflowFilter: (workflowId) => set({ workflowFilter: workflowId })
+}));

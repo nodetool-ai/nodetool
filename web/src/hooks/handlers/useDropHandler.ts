@@ -14,7 +14,7 @@ import {
   extractFiles
 } from "../../lib/dragdrop";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
-import log from "loglevel";
+import { shallow } from "zustand/shallow";
 
 /** Horizontal spacing between nodes when dropping multiple assets */
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
@@ -113,7 +113,7 @@ export const useDropHandler = () => {
   const { addNode, createNode } = useNodes((state) => ({
     addNode: state.addNode,
     createNode: state.createNode
-  }));
+  }), shallow);
   const getAsset = useAssetStore((state) => state.get);
   const { user } = useAuth();
   const addNotification = useNotificationStore(
@@ -176,7 +176,7 @@ export const useDropHandler = () => {
 
             const failures = results.filter((r) => !r.success);
             if (failures.length > 0) {
-              log.error(
+              console.error(
                 `[drop] Failed to load ${failures.length} assets`,
                 failures
               );
@@ -193,7 +193,7 @@ export const useDropHandler = () => {
               const asset = await getAsset(selectedAssetIds[0]);
               addNodeFromAsset(asset, position);
             } catch (error) {
-              log.error(
+              console.error(
                 `[drop] Failed to load asset ${selectedAssetIds[0]}`,
                 error
               );
@@ -211,7 +211,7 @@ export const useDropHandler = () => {
             const fetchedAsset = await getAsset(asset.id);
             addNodeFromAsset(fetchedAsset, position);
           } catch (error) {
-            log.error(`[drop] Failed to load asset ${asset.id}`, error);
+            console.error(`[drop] Failed to load asset ${asset.id}`, error);
             addNotification({
               type: "error",
               content: `Failed to load asset: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -225,13 +225,13 @@ export const useDropHandler = () => {
       // Handle external file drops
       if (hasExternalFiles(event.dataTransfer) && user) {
         const files = extractFiles(event.dataTransfer);
-        log.info("[drop] External files detected", {
+        console.info("[drop] External files detected", {
           count: files.length,
           names: files.map((file) => file.name)
         });
         for (const file of files) {
           const fileType = detectFileType(file);
-          log.info("[drop] Processing file", {
+          console.info("[drop] Processing file", {
             name: file.name,
             mime: file.type || "(empty)",
             detectedType: fileType
@@ -262,14 +262,14 @@ export const useDropHandler = () => {
                 content: `Failed to process file: ${result.error}`,
                 alert: true
               });
-              log.error("[drop] File processing failed", {
+              console.error("[drop] File processing failed", {
                 name: file.name,
                 error: result.error
               });
             }
           }
       } else if (hasExternalFiles(event.dataTransfer) && !user) {
-        log.warn("[drop] Ignoring external file drop: no authenticated user");
+        console.warn("[drop] Ignoring external file drop: no authenticated user");
       }
     },
     [

@@ -4,26 +4,55 @@ import type { Theme } from "@mui/material/styles";
 const modelListItemStyles = (theme: Theme) =>
   css({
     "&.model-list-item": {
-      padding: "0.75em 1em",
-      marginBottom: "0.35em",
+      padding: "1em 1.25em",
+      marginBottom: "0.5em",
       boxSizing: "border-box",
       wordBreak: "break-word",
       maxHeight: "calc(100% - 0.75em)",
       overflow: "hidden",
-      borderLeft: "3px solid transparent",
-      borderRadius: "4px",
-      transition: "background-color 0.15s ease, border-color 0.15s ease",
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: "var(--rounded-lg)",
+      backgroundColor: "rgba(255,255,255,0.01)",
+      transition:
+        "background-color 0.15s ease, border-color 0.15s ease",
 
       "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover
+        backgroundColor: theme.vars.palette.action.hover,
+        borderColor:
+          "rgba(var(--palette-primary-main-channel) / 0.35)"
       },
 
       "&.downloaded": {
-        borderLeftColor: theme.vars.palette.success.main
+        borderColor: "rgba(var(--palette-success-main-channel) / 0.4)"
       },
 
       "&.compact": {
-        padding: ".5em .75em"
+        padding: ".5em .75em",
+
+        "& .model-top-row": {
+          gap: "0.5em",
+          minHeight: 0
+        },
+        "& .model-name": {
+          WebkitLineClamp: 1,
+          fontSize: "0.95rem",
+          wordBreak: "normal",
+          overflowWrap: "anywhere"
+        },
+        "& .model-owner": {
+          fontSize: "0.75rem"
+        },
+        "& .actions-container": {
+          minWidth: 0,
+          gap: "0.5em"
+        },
+        "& .model-size": {
+          minWidth: 0,
+          fontSize: "var(--fontSizeSmaller)"
+        },
+        "& .model-info-container > .model-details": {
+          display: "none"
+        }
       },
 
       "& .model-content": {
@@ -148,7 +177,7 @@ const modelListItemStyles = (theme: Theme) =>
         fontWeight: 500,
         marginLeft: "0.5em",
         padding: ".3em .8em",
-        borderRadius: "12px",
+        borderRadius: "var(--rounded-xl)",
         height: "auto",
         border: `1px solid ${theme.vars.palette.divider}`,
         transition: "all 0.2s",

@@ -1,7 +1,6 @@
 import React, { useCallback, useState, memo } from "react";
 import { StateIconButton } from "../ui_primitives";
 import ColorizeIcon from "@mui/icons-material/Colorize";
-import log from "loglevel";
 import type { Theme } from "@mui/material/styles";
 
 // EyeDropper API types (not yet in TypeScript standard library)
@@ -54,7 +53,7 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
         onColorPicked(result.sRGBHex);
       }
     } catch (error) {
-      log.debug("Eyedropper cancelled or error:", error);
+      console.debug("Eyedropper cancelled or error:", error);
     } finally {
       setIsPicking(false);
     }
@@ -74,7 +73,7 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
       size="small"
       className="eyedropper-button"
       sx={(theme: Theme) => ({
-        borderRadius: "4px",
+        borderRadius: "var(--rounded-sm)",
         backgroundColor: theme.vars.palette.grey[800],
         border: `1px solid ${theme.vars.palette.grey[700]}`,
         "&:hover": {

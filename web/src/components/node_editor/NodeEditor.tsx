@@ -140,14 +140,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
 
   return (
     <>
-      {/* {missingModelRepos.length > 0 && (
-        <ModelDownloadDialog
-          open={missingModelRepos.length > 0}
-          repos={missingModelRepos}
-          repoPaths={missingModelFiles}
-          onClose={clearMissingModels}
-        />
-      )} */}
       {showDocumentation && selectedNodeType && (
         <DraggableNodeDocumentation
           nodeType={selectedNodeType}
@@ -159,14 +151,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         <Box
           ref={reactFlowWrapperRef}
           className="node-editor"
-          style={
-            {
-              backgroundColor: theme.vars.palette.c_editor_bg_color,
-              // Used by structural CSS / node components (e.g. `nodes.base.css`, `BaseNode.tsx`)
-              // Keep it defined even if ThemeNodetool changes.
-              "--rounded-node": theme.rounded?.node ?? "8px"
-            } as React.CSSProperties
-          }
+          style={{
+            backgroundColor: theme.vars.palette.c_editor_bg_color
+          }}
         >
           {isUploading && (
             <div className="loading-overlay">

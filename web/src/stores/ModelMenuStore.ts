@@ -47,6 +47,24 @@ export interface ModelMenuState<
   setAllModels: (models: TModel[]) => void;
 }
 
+const isAkiProviderIdentifier = (provider: string): boolean => {
+  const normalized = provider.trim().toLowerCase();
+  if (normalized === "aki" || normalized === "aki.io") {
+    return true;
+  }
+
+  try {
+    const candidate = normalized.includes("://")
+      ? normalized
+      : `https://${normalized}`;
+    const host = new URL(candidate).hostname.toLowerCase();
+    return host === "aki.io" || host.endsWith(".aki.io");
+  } catch {
+    // Not a valid URL-like provider identifier, treat as non-AKI.
+    return false;
+  }
+};
+
 export const requiredSecretForProvider = (provider?: string): string | null => {
   const p = (provider || "").toLowerCase();
   if (p.includes("openai")) {return "OPENAI_API_KEY";}
@@ -63,30 +81,15 @@ export const requiredSecretForProvider = (provider?: string): string | null => {
   if (p.includes("replicate")) {return "REPLICATE_API_TOKEN";}
   if (p.includes("fal")) {return "FAL_API_KEY";}
   if (p.includes("aime")) {return "AIME_API_KEY";}
+  if (p.includes("moonshot") || p.includes("kimi")) {return "KIMI_API_KEY";}
+  if (p.includes("minimax")) {return "MINIMAX_API_KEY";}
+  if (p.includes("together")) {return "TOGETHER_API_KEY";}
+  if (p === "cohere") {return "COHERE_API_KEY";}
+  if (p === "voyage" || p === "voyage-ai" || p === "voyageai") {return "VOYAGE_API_KEY";}
+  if (p === "jina" || p === "jina-ai" || p === "jinaai") {return "JINA_API_KEY";}
+  if (isAkiProviderIdentifier(p)) {return "AKI_API_KEY";}
   return null;
 };
-
-export const ALL_PROVIDERS = [
-  "openai",
-  "anthropic",
-  "claude_agent",
-  "gemini",
-  "replicate",
-  "ollama",
-  "llama_cpp",
-  "mlx",
-  "fal_ai",
-  "huggingface",
-  "huggingface_black_forest_labs",
-  "huggingface_fal_ai",
-  "huggingface_hf_inference",
-  "huggingface_replicate",
-  "huggingface_nebius"
-  // "aime"
-];
-
-// Image-specific providers
-export const IMAGE_PROVIDERS = ALL_PROVIDERS;
 
 export const computeProvidersList = <TModel extends ModelSelectorModel>(
   models: TModel[] | undefined
@@ -259,53 +262,11 @@ export const createModelMenuStore = <TModel extends ModelSelectorModel>() =>
     setAllModels: (models: TModel[]) => set({ models: models })
   }));
 
-export const createModelMenuSelector = <
-  TModel extends ModelSelectorModel
->() => {
-  const store = createModelMenuStore<TModel>();
-  return {
-    useStore: store,
-    useData: (models?: TModel[]) => useModelMenuData<TModel>(models, store)
-  };
-};
-
-const languageModelMenu = createModelMenuSelector<LanguageModel>();
-export const useLanguageModelMenuStore = languageModelMenu.useStore;
-export const useLanguageModelMenuData = languageModelMenu.useData;
-
-const imageModelMenu = createModelMenuSelector<ImageModel>();
-export const useImageModelMenuStore = imageModelMenu.useStore;
-export const useImageModelMenuData = imageModelMenu.useData;
-
-// TTS-specific providers
-export const TTS_PROVIDERS = ALL_PROVIDERS;
-
-const ttsModelMenu = createModelMenuSelector<TTSModel>();
-export const useTTSModelMenuStore = ttsModelMenu.useStore;
-export const useTTSModelMenuData = ttsModelMenu.useData;
-
-// ASR-specific providers
-export const ASR_PROVIDERS = ALL_PROVIDERS;
-
-const asrModelMenu = createModelMenuSelector<ASRModel>();
-export const useASRModelMenuStore = asrModelMenu.useStore;
-export const useASRModelMenuData = asrModelMenu.useData;
-
-// Video-specific providers
-export const VIDEO_PROVIDERS = ALL_PROVIDERS;
-
-const videoModelMenu = createModelMenuSelector<VideoModel>();
-export const useVideoModelMenuStore = videoModelMenu.useStore;
-export const useVideoModelMenuData = videoModelMenu.useData;
-
-// HuggingFace image models use ImageModel type
-const huggingFaceImageModelMenu = createModelMenuSelector<ImageModel>();
-export const useHuggingFaceImageModelMenuStore =
-  huggingFaceImageModelMenu.useStore;
-export const useHuggingFaceImageModelMenuData =
-  huggingFaceImageModelMenu.useData;
-
-// Embedding models use EmbeddingModel type
-const embeddingModelMenu = createModelMenuSelector<EmbeddingModel>();
-export const useEmbeddingModelMenuStore = embeddingModelMenu.useStore;
-export const useEmbeddingModelMenuData = embeddingModelMenu.useData;
+export const useLanguageModelMenuStore = createModelMenuStore<LanguageModel>();
+export const useImageModelMenuStore = createModelMenuStore<ImageModel>();
+export const useTTSModelMenuStore = createModelMenuStore<TTSModel>();
+export const useASRModelMenuStore = createModelMenuStore<ASRModel>();
+export const useVideoModelMenuStore = createModelMenuStore<VideoModel>();
+export const useHuggingFaceImageModelMenuStore = createModelMenuStore<ImageModel>();
+export const useTransformersJsModelMenuStore = createModelMenuStore<ImageModel>();
+export const useEmbeddingModelMenuStore = createModelMenuStore<EmbeddingModel>();

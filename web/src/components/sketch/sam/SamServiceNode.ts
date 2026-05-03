@@ -1,64 +1,126 @@
 /**
- * SamServiceNode – SAM service that uses nodetool nodes for inference.
+ * SamServiceNode – SAM service backed by NodeTool node execution.
  *
- * Instead of calling the fal.ai API directly, this service builds a
- * mini-workflow graph with a SAM segmentation node and runs it through
- * the NodeExecutor abstraction.
- *
- * Benefits:
- * - Supports any SAM backend that has a nodetool node (fal.ai, HuggingFace local, etc.)
- * - Reuses the existing node execution infrastructure
- * - Can be swapped to API calls when sketch editor is standalone
- *
- * Supported node types:
- * - "fal.image_to_image.Sam2Image" – fal.ai cloud SAM 2 (requires FAL_API_KEY)
- * - "huggingface.image_segmentation.SAM2Segmentation" – local HuggingFace SAM 2
+ * Phase 3 starts with a curated Local SAM3 backend that reuses existing
+ * NodeTool metadata, model download, and execution infrastructure.
  */
 
+import useMetadataStore from "../../../stores/MetadataStore";
+import type { HuggingFaceModel } from "../../../stores/ApiTypes";
+import { useAssetStore } from "../../../stores/AssetStore";
+import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
+import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import type {
-  SamService,
+  SamBackendCapabilities,
   SamModelInfo,
+  NodeMetadataLike,
+  SamService,
   SegmentationRequest,
   SegmentationResponse
 } from "./SamService";
-import { DEFAULT_SAM_MODEL_ID } from "./SamService";
-import type { SegmentationMask } from "../types";
+import {
+  DEFAULT_SAM_MODEL_ID,
+  FAL_SAM_CAPABILITIES,
+  hasMetadataInputs,
+  LOCAL_SAM3_CAPABILITIES,
+  LOCAL_SAM3_MODEL_ID,
+  LOCAL_SAM3_MODEL_NAME,
+  resolveSamPromptCapabilityInputs,
+  SAM_INLINE_IMAGE_MAX_BYTES
+} from "./SamService";
+import type { SegmentBackend } from "../types";
 import { getNodeExecutor } from "./NodeExecutor";
 import type { GraphNode, GraphEdge } from "./NodeExecutor";
 import { resizeForInference, MAX_INFERENCE_DIMENSION } from "./SamServiceFal";
+import { normalizeSamMasks } from "./normalizeSamMasks";
+import { CoordinateMapper } from "../painting/CoordinateMapper";
 
-// ─── Supported Node Backends ──────────────────────────────────────────────────
+const LOCAL_SAM3_NODE_TYPE = "huggingface.image_segmentation.MaskGeneration";
+const LOCAL_SAM3_DOWNLOAD_TYPE = "hf.model";
+const LOCAL_SAM3_REQUIRED_INPUTS = [
+  "image",
+  "model",
+  "points_per_side",
+  "pred_iou_thresh"
+] as const;
+const LOCAL_SAM3_TEXT_PROMPT_INPUTS = ["prompt"] as const;
+const LOCAL_SAM3_POINT_PROMPT_INPUTS = ["point_prompts", "points"] as const;
+const LOCAL_SAM3_BOX_PROMPT_INPUTS = ["box_prompts", "boxes"] as const;
+const ACTIVE_DOWNLOAD_STATUSES = new Set([
+  // ModelDownloadStore uses both lifecycle states and streaming event statuses.
+  "pending",
+  "running",
+  "start",
+  "progress"
+]);
 
 export interface SamNodeConfig {
-  /** The nodetool node type to use for segmentation. */
+  backendId: SegmentBackend;
   nodeType: string;
-  /** Human-readable name for UI display. */
   displayName: string;
-  /** Whether this backend runs locally (no API key needed). */
+  modelId: string;
+  capabilities: SamBackendCapabilities;
   isLocal: boolean;
-  /** Required secret key name (e.g. "FAL_API_KEY"), or null for local. */
   requiredSecret: string | null;
 }
 
-/** Available SAM node backends. */
 export const SAM_NODE_CONFIGS: Record<string, SamNodeConfig> = {
-  "fal-sam2": {
-    nodeType: "fal.image_to_image.Sam2Image",
-    displayName: "SAM 2 (fal.ai Cloud)",
-    isLocal: false,
-    requiredSecret: "FAL_API_KEY"
-  },
-  "hf-sam2": {
-    nodeType: "huggingface.image_segmentation.SAM2Segmentation",
-    displayName: "SAM 2 (Local HuggingFace)",
+  "local-sam3": {
+    backendId: "local-sam3",
+    nodeType: LOCAL_SAM3_NODE_TYPE,
+    displayName: LOCAL_SAM3_MODEL_NAME,
+    modelId: LOCAL_SAM3_MODEL_ID,
+    capabilities: LOCAL_SAM3_CAPABILITIES,
     isLocal: true,
     requiredSecret: null
+  },
+  "fal-sam3-1": {
+    backendId: "fal",
+    nodeType: "fal.image_to_image.Sam3Image",
+    displayName: "SAM 3.1 (fal.ai Cloud)",
+    modelId: DEFAULT_SAM_MODEL_ID,
+    capabilities: FAL_SAM_CAPABILITIES,
+    isLocal: false,
+    requiredSecret: "FAL_API_KEY"
   }
 };
 
-export const DEFAULT_SAM_NODE_BACKEND = "fal-sam2";
+export const DEFAULT_SAM_NODE_BACKEND = "local-sam3";
 
-// ─── SamServiceNode Implementation ───────────────────────────────────────────
+interface LocalSam3PromptMetadata {
+  capabilities: SamBackendCapabilities;
+  pointPromptsInputName: string | null;
+  boxPromptsInputName: string | null;
+  textPromptInputName: string | null;
+}
+
+function getLocalSam3PromptMetadata(
+  metadata: NodeMetadataLike | undefined
+): LocalSam3PromptMetadata {
+  return resolveSamPromptCapabilityInputs({
+    metadata,
+    baseCapabilities: LOCAL_SAM3_CAPABILITIES,
+    textPromptInputs: LOCAL_SAM3_TEXT_PROMPT_INPUTS,
+    pointPromptInputs: LOCAL_SAM3_POINT_PROMPT_INPUTS,
+    boxPromptInputs: LOCAL_SAM3_BOX_PROMPT_INPUTS
+  });
+}
+
+function getDownloadProgress(modelId: string): number | undefined {
+  const download = useModelDownloadStore.getState().downloads[modelId];
+  if (!download || download.totalBytes <= 0) {
+    return undefined;
+  }
+  return Math.max(
+    0,
+    Math.min(1, download.downloadedBytes / download.totalBytes)
+  );
+}
+
+function isModelDownloadActive(modelId: string): boolean {
+  const download = useModelDownloadStore.getState().downloads[modelId];
+  return download ? ACTIVE_DOWNLOAD_STATUSES.has(download.status) : false;
+}
 
 export class SamServiceNode implements SamService {
   private config: SamNodeConfig;
@@ -74,23 +136,96 @@ export class SamServiceNode implements SamService {
   }
 
   async checkModelAvailability(): Promise<SamModelInfo> {
-    // For cloud models, check if the required API key is configured
-    if (this.config.requiredSecret) {
-      const hasKey = await this.checkSecret(this.config.requiredSecret);
-      if (!hasKey) {
-        return {
-          status: "not-installed",
-          modelId: DEFAULT_SAM_MODEL_ID,
-          modelName: this.config.displayName,
-          errorMessage: `${this.config.requiredSecret} not configured. Add it in Settings → Secrets.`
-        };
-      }
+    if (this.config.backendId !== "local-sam3") {
+      return {
+        status: "available",
+        backendId: this.config.backendId,
+        backendLabel: this.config.displayName,
+        capabilities: this.config.capabilities,
+        nodeType: this.config.nodeType,
+        modelId: this.config.modelId,
+        modelName: this.config.displayName
+      };
     }
 
-    // For local models, assume availability if the backend is running
+    const metadata = useMetadataStore
+      .getState()
+      .getMetadata(this.config.nodeType);
+
+    if (!metadata) {
+      return {
+        status: "not-installed",
+        backendId: this.config.backendId,
+        backendLabel: this.config.displayName,
+        capabilities: this.config.capabilities,
+        nodeType: this.config.nodeType,
+        modelId: this.config.modelId,
+        modelName: this.config.displayName,
+        errorMessage: "Install or enable the HuggingFace node pack"
+      };
+    }
+
+    if (!hasMetadataInputs(metadata, LOCAL_SAM3_REQUIRED_INPUTS)) {
+      return {
+        status: "error",
+        backendId: this.config.backendId,
+        backendLabel: this.config.displayName,
+        capabilities: this.config.capabilities,
+        nodeType: this.config.nodeType,
+        modelId: this.config.modelId,
+        modelName: this.config.displayName,
+        errorMessage: "Local SAM3 node metadata is missing required inputs"
+      };
+    }
+
+    const promptMetadata = getLocalSam3PromptMetadata(metadata);
+
+    if (isModelDownloadActive(this.config.modelId)) {
+      return {
+        status: "downloading",
+        backendId: this.config.backendId,
+        backendLabel: this.config.displayName,
+        capabilities: promptMetadata.capabilities,
+        nodeType: this.config.nodeType,
+        modelId: this.config.modelId,
+        modelName: this.config.displayName,
+        downloadProgress: getDownloadProgress(this.config.modelId),
+        errorMessage: "Local SAM3 is not ready"
+      };
+    }
+
+    await useHfCacheStatusStore.getState().ensureStatuses([
+      {
+        key: this.config.modelId,
+        repo_id: this.config.modelId,
+        model_type: LOCAL_SAM3_DOWNLOAD_TYPE
+      }
+    ]);
+
+    const isCached = Boolean(
+      useHfCacheStatusStore.getState().statuses[this.config.modelId]
+    );
+
+    if (!isCached) {
+      return {
+        status: "not-installed",
+        backendId: this.config.backendId,
+        backendLabel: this.config.displayName,
+        capabilities: promptMetadata.capabilities,
+        nodeType: this.config.nodeType,
+        modelId: this.config.modelId,
+        modelName: this.config.displayName,
+        errorMessage: "Local SAM3 is not ready"
+      };
+    }
+
     return {
       status: "available",
-      modelId: DEFAULT_SAM_MODEL_ID,
+      backendId: this.config.backendId,
+      backendLabel: this.config.displayName,
+      capabilities: promptMetadata.capabilities,
+      nodeType: this.config.nodeType,
+      modelId: this.config.modelId,
       modelName: this.config.displayName
     };
   }
@@ -99,7 +234,6 @@ export class SamServiceNode implements SamService {
     request: SegmentationRequest,
     signal?: AbortSignal
   ): Promise<SegmentationResponse> {
-    // 1. Resize image if needed (large image guardrail)
     const { dataUrl: resizedUrl, scale } = await resizeForInference(
       request.imageDataUrl,
       MAX_INFERENCE_DIMENSION
@@ -109,59 +243,268 @@ export class SamServiceNode implements SamService {
       throw new DOMException("Aborted", "AbortError");
     }
 
-    // 2. Build the graph for this specific node type
-    const { nodes, edges } = this.buildGraph(resizedUrl, request, scale);
-
-    // 3. Execute via NodeExecutor
     const executor = getNodeExecutor();
-    const result = await executor.execute({ nodes, edges }, {}, signal);
+    const graph = await this.buildGraph(resizedUrl, request, scale);
+    const result = await executor.execute(
+      graph,
+      {},
+      signal
+    );
 
     if (!result.success) {
       throw new Error(result.error ?? "Segmentation failed");
     }
 
-    // 4. Parse the result into masks
-    return this.parseResult(result.outputs, scale);
+    return normalizeSamMasks({
+      rawOutput: result.outputs.sam_node,
+      backendId: this.config.backendId,
+      modelId: this.config.modelId,
+      nodeType: this.config.nodeType,
+      scale,
+      sourceMetadata: request.sourceMetadata
+    });
   }
-
-  // ─── Graph Building ─────────────────────────────────────────────────────────
 
   private buildGraph(
     imageDataUrl: string,
     request: SegmentationRequest,
     scale: number
-  ): { nodes: GraphNode[]; edges: GraphEdge[] } {
-    if (this.config.nodeType === "fal.image_to_image.Sam2Image") {
-      return this.buildFalSam2Graph(imageDataUrl, request, scale);
+  ): Promise<{ nodes: GraphNode[]; edges: GraphEdge[] }> {
+    if (this.config.backendId === "local-sam3") {
+      const metadata = useMetadataStore
+        .getState()
+        .getMetadata(this.config.nodeType);
+      if (!metadata) {
+        throw new Error("Local SAM3 node metadata is unavailable");
+      }
+      if (!hasMetadataInputs(metadata, LOCAL_SAM3_REQUIRED_INPUTS)) {
+        throw new Error("Local SAM3 node metadata is missing required inputs");
+      }
+      return this.buildLocalSam3Graph(
+        imageDataUrl,
+        request,
+        scale,
+        getLocalSam3PromptMetadata(metadata)
+      );
     }
-    if (
-      this.config.nodeType ===
-      "huggingface.image_segmentation.SAM2Segmentation"
-    ) {
-      return this.buildHfSam2Graph(imageDataUrl);
-    }
-    throw new Error(`No graph builder for node type: ${this.config.nodeType}`);
+
+    return Promise.resolve(this.buildFalSam31Graph(imageDataUrl, request, scale));
   }
 
-  /**
-   * Build a graph for the fal.ai SAM 2 node.
-   * Node type: fal.image_to_image.Sam2Image
-   * Inputs: image, prompts, box_prompts, sync_mode, output_format, apply_mask
-   * Output: output (image)
-   */
-  private buildFalSam2Graph(
+  private async buildLocalSam3Graph(
+    imageDataUrl: string,
+    request: SegmentationRequest,
+    scale: number,
+    promptMetadata: LocalSam3PromptMetadata
+  ): Promise<{ nodes: GraphNode[]; edges: GraphEdge[] }> {
+    const nodeData: Record<string, unknown> = {
+      image: await this.buildLocalSam3ImageInput(imageDataUrl),
+      model: {
+        type: "hf.model",
+        repo_id: this.config.modelId
+      } as HuggingFaceModel,
+      points_per_side: request.settings.pointsPerSide,
+      pred_iou_thresh: request.settings.predIouThresh
+    };
+
+    if (
+      promptMetadata.textPromptInputName
+    ) {
+      const trimmedConceptPrompt = request.settings.conceptPrompt.trim();
+      if (trimmedConceptPrompt.length > 0) {
+        nodeData[promptMetadata.textPromptInputName] = trimmedConceptPrompt;
+      }
+    }
+
+    if (
+      promptMetadata.pointPromptsInputName &&
+      request.pointPrompts.length > 0
+    ) {
+      nodeData[promptMetadata.pointPromptsInputName] = this.buildLocalSam3PointPrompts(
+        request,
+        scale
+      );
+    }
+
+    if (promptMetadata.boxPromptsInputName && request.boxPrompt) {
+      nodeData[promptMetadata.boxPromptsInputName] = [
+        this.buildLocalSam3BoxPrompt(
+          request.boxPrompt,
+          request.sourceMetadata,
+          scale
+        )
+      ];
+    }
+
+    return {
+      nodes: [
+        {
+          id: "sam_node",
+          type: this.config.nodeType,
+          data: nodeData
+        }
+      ],
+      edges: []
+    };
+  }
+
+  private buildLocalSam3PointPrompts(
+    request: SegmentationRequest,
+    scale: number
+  ): Array<{ x: number; y: number; label: 0 | 1 }> {
+    const promptMapper = this.createPromptMapper(request.sourceMetadata);
+    return request.pointPrompts.map((point) => {
+      const mappedPoint = this.mapPromptPointToSourceImage(point, promptMapper);
+      return {
+        x: Math.round(mappedPoint.x * scale),
+        y: Math.round(mappedPoint.y * scale),
+        label: point.label === "positive" ? 1 : 0
+      };
+    });
+  }
+
+  private buildLocalSam3BoxPrompt(
+    boxPrompt: NonNullable<SegmentationRequest["boxPrompt"]>,
+    sourceMetadata: SegmentationRequest["sourceMetadata"],
+    scale: number
+  ): { x: number; y: number; width: number; height: number } {
+    const promptMapper = this.createPromptMapper(sourceMetadata);
+    // Map all four corners before taking min/max so rotated or affine-transformed
+    // source layers still produce a correct axis-aligned box in source-image space.
+    const corners = [
+      this.mapPromptPointToSourceImage({ x: boxPrompt.x, y: boxPrompt.y }, promptMapper),
+      this.mapPromptPointToSourceImage(
+        { x: boxPrompt.x + boxPrompt.width, y: boxPrompt.y },
+        promptMapper
+      ),
+      this.mapPromptPointToSourceImage(
+        { x: boxPrompt.x, y: boxPrompt.y + boxPrompt.height },
+        promptMapper
+      ),
+      this.mapPromptPointToSourceImage(
+        { x: boxPrompt.x + boxPrompt.width, y: boxPrompt.y + boxPrompt.height },
+        promptMapper
+      )
+    ];
+    const minX = Math.min(...corners.map((corner) => corner.x));
+    const minY = Math.min(...corners.map((corner) => corner.y));
+    const maxX = Math.max(...corners.map((corner) => corner.x));
+    const maxY = Math.max(...corners.map((corner) => corner.y));
+
+    return {
+      x: Math.round(minX * scale),
+      y: Math.round(minY * scale),
+      width: Math.round((maxX - minX) * scale),
+      height: Math.round((maxY - minY) * scale)
+    };
+  }
+
+  private mapPromptPointToSourceImage(
+    point: { x: number; y: number },
+    promptMapper: CoordinateMapper | null
+  ): { x: number; y: number } {
+    if (!promptMapper) {
+      return point;
+    }
+
+    return promptMapper.docToLayer(point);
+  }
+
+  private createPromptMapper(
+    sourceMetadata: SegmentationRequest["sourceMetadata"]
+  ): CoordinateMapper | null {
+    if (!sourceMetadata) {
+      return null;
+    }
+
+    return new CoordinateMapper({
+      layerTransform: sourceMetadata.layerTransform,
+      rasterBounds: {
+        x: sourceMetadata.contentBounds.x,
+        y: sourceMetadata.contentBounds.y
+      }
+    });
+  }
+
+  private async buildLocalSam3ImageInput(imageDataUrl: string): Promise<{
+    type: "image";
+    uri?: string;
+    asset_id?: string | null;
+    data?: string | null;
+    mimeType?: string;
+  }> {
+    const base64Data = imageDataUrl.includes(",")
+      ? imageDataUrl.split(",")[1]
+      : imageDataUrl;
+    const mimeType = this.getDataUrlMimeType(imageDataUrl);
+    const byteLength = this.getBase64ByteLength(base64Data);
+
+    if (byteLength <= SAM_INLINE_IMAGE_MAX_BYTES) {
+      return {
+        type: "image",
+        uri: "",
+        data: base64Data,
+        mimeType
+      };
+    }
+
+    const asset = await useAssetStore
+      .getState()
+      .createAsset(await this.createFileFromDataUrl(imageDataUrl));
+
+    return {
+      type: "image",
+      uri: asset.get_url ?? `asset://${asset.id}`,
+      asset_id: asset.id,
+      data: null,
+      mimeType
+    };
+  }
+
+  private async createFileFromDataUrl(dataUrl: string): Promise<File> {
+    const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) {
+      throw new Error(
+        "Invalid segmentation image data; expected data URL format: data:mime/type;base64,..."
+      );
+    }
+
+    const [, mimeType] = match;
+    const blob = await fetch(dataUrl).then((response) => {
+      if (!response.ok) {
+        throw new Error("Failed to convert segmentation image data into a blob");
+      }
+      return response.blob();
+    });
+
+    const extension = mimeType.split("/")[1] ?? "png";
+    return new File([blob], `sam-input.${extension}`, {
+      type: mimeType
+    });
+  }
+
+  private getDataUrlMimeType(dataUrl: string): string | undefined {
+    const match = dataUrl.match(/^data:([^;]+);base64,/);
+    return match?.[1];
+  }
+
+  private getBase64ByteLength(base64Data: string): number {
+    const padding =
+      base64Data.endsWith("==") ? 2 : base64Data.endsWith("=") ? 1 : 0;
+    return Math.max(0, Math.floor((base64Data.length * 3) / 4) - padding);
+  }
+
+  private buildFalSam31Graph(
     imageDataUrl: string,
     request: SegmentationRequest,
     scale: number
   ): { nodes: GraphNode[]; edges: GraphEdge[] } {
-    // Convert point prompts to fal format
-    const falPrompts = request.pointPrompts.map((p) => ({
-      x: Math.round(p.x * scale),
-      y: Math.round(p.y * scale),
-      label: p.label === "positive" ? 1 : 0
+    const falPrompts = request.pointPrompts.map((point) => ({
+      x: Math.round(point.x * scale),
+      y: Math.round(point.y * scale),
+      label: point.label === "positive" ? 1 : 0
     }));
 
-    // Convert box prompts to fal format
     const falBoxPrompts = request.boxPrompt
       ? [
           {
@@ -173,151 +516,34 @@ export class SamServiceNode implements SamService {
         ]
       : [];
 
-    // Extract base64 data from data URL
     const base64Data = imageDataUrl.includes(",")
       ? imageDataUrl.split(",")[1]
       : imageDataUrl;
-
-    const samNode: GraphNode = {
-      id: "sam_node",
-      type: "fal.image_to_image.Sam2Image",
-      data: {
-        image: { type: "image", uri: "", data: base64Data },
-        prompts: falPrompts,
-        box_prompts: falBoxPrompts,
-        sync_mode: true,
-        output_format: "png",
-        apply_mask: false
-      }
-    };
+    const trimmedConceptPrompt = request.settings.conceptPrompt.trim();
 
     return {
-      nodes: [samNode],
-      edges: []
-    };
-  }
-
-  /**
-   * Build a graph for the HuggingFace local SAM 2 node.
-   * Node type: huggingface.image_segmentation.SAM2Segmentation
-   * Inputs: image
-   * Output: output (list of images/masks)
-   */
-  private buildHfSam2Graph(
-    imageDataUrl: string
-  ): { nodes: GraphNode[]; edges: GraphEdge[] } {
-    const base64Data = imageDataUrl.includes(",")
-      ? imageDataUrl.split(",")[1]
-      : imageDataUrl;
-
-    const samNode: GraphNode = {
-      id: "sam_node",
-      type: "huggingface.image_segmentation.SAM2Segmentation",
-      data: {
-        image: { type: "image", uri: "", data: base64Data }
-      }
-    };
-
-    return {
-      nodes: [samNode],
-      edges: []
-    };
-  }
-
-  // ─── Result Parsing ─────────────────────────────────────────────────────────
-
-  private parseResult(
-    outputs: Record<string, unknown>,
-    scale: number
-  ): SegmentationResponse {
-    // The SAM node output is keyed by node ID
-    const samOutput = outputs["sam_node"];
-    if (!samOutput) {
-      return { masks: [] };
-    }
-
-    // Output can be:
-    // - { output: { type: "image", uri: "..." } }  (single image from fal)
-    // - { output: [{ type: "image", uri: "..." }, ...] }  (list from hf)
-    // - { type: "image", uri: "..." }  (direct image ref)
-    // - [{ type: "image", uri: "..." }, ...]  (direct list)
-
-    const raw = samOutput as Record<string, unknown>;
-    let images: Array<{
-      uri?: string;
-      url?: string;
-      width?: number;
-      height?: number;
-    }> = [];
-
-    if (raw.output) {
-      if (Array.isArray(raw.output)) {
-        images = raw.output;
-      } else if (typeof raw.output === "object" && raw.output !== null) {
-        images = [
-          raw.output as {
-            uri?: string;
-            width?: number;
-            height?: number;
+      nodes: [
+        {
+          id: "sam_node",
+          type: "fal.image_to_image.Sam3Image",
+          data: {
+            image: { type: "image", uri: "", data: base64Data },
+            point_prompts: falPrompts,
+            box_prompts: falBoxPrompts,
+            sync_mode: true,
+            output_format: "png",
+            apply_mask: false,
+            return_multiple_masks: request.settings.maxObjects > 1,
+            max_masks: request.settings.maxObjects,
+            include_scores: true,
+            include_boxes: true,
+            ...(trimmedConceptPrompt.length > 0
+              ? { prompt: trimmedConceptPrompt }
+              : {})
           }
-        ];
-      }
-    } else if (Array.isArray(raw)) {
-      images = raw;
-    } else if (raw.uri || raw.url) {
-      images = [
-        raw as {
-          uri?: string;
-          url?: string;
-          width?: number;
-          height?: number;
         }
-      ];
-    }
-
-    if (images.length === 0) {
-      return { masks: [] };
-    }
-
-    const invScale = scale > 0 ? 1 / scale : 1;
-
-    const masks: SegmentationMask[] = images.map((img, i) => {
-      const uri = img.uri ?? img.url ?? "";
-      const width = img.width ? Math.round(img.width * invScale) : 0;
-      const height = img.height ? Math.round(img.height * invScale) : 0;
-
-      return {
-        id: `mask_${i}`,
-        label: `Object ${i + 1}`,
-        maskDataUrl: uri,
-        confidence: 1.0,
-        bounds: {
-          x: 0,
-          y: 0,
-          width,
-          height
-        }
-      };
-    });
-
-    return { masks };
-  }
-
-  // ─── Helpers ────────────────────────────────────────────────────────────────
-
-  private async checkSecret(secretKey: string): Promise<boolean> {
-    try {
-      // Dynamic import to avoid circular deps
-      const SecretsStore = (await import("../../../stores/SecretsStore"))
-        .default;
-      const secrets = SecretsStore.getState().secrets;
-      return secrets.some(
-        (s: { key: string; value?: string }) =>
-          s.key === secretKey && s.value !== undefined && s.value !== ""
-      );
-    } catch {
-      // Store not available (e.g., in tests)
-      return false;
-    }
+      ],
+      edges: []
+    };
   }
 }

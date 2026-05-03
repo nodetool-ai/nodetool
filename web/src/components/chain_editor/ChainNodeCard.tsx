@@ -20,21 +20,21 @@ import { ChainNodeProperties } from "./ChainNodeProperties";
 import { OutputSelector } from "./OutputSelector";
 import { InputMappingSelector } from "./InputMappingSelector";
 import OutputRenderer from "../node/OutputRenderer";
-import useResultsStore from "../../stores/ResultsStore";
+import useResultsStore, { hashKey } from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
-import type { ChainNode } from "./chainTypes";
-import type { TypeMetadata } from "../../stores/ApiTypes";
+import { shallow } from "zustand/shallow";
+import type { ChainNode, InputSource } from "./chainTypes";
 
 interface ChainNodeCardProps {
   node: ChainNode;
   index: number;
   totalNodes: number;
   workflowId: string | null;
-  prevOutputType: TypeMetadata | null;
+  previousNodes: ChainNode[];
   onToggleExpanded: () => void;
   onUpdateProperty: (name: string, value: unknown) => void;
   onSetOutput: (name: string) => void;
-  onSetInputMapping: (name: string) => void;
+  onSetInputMapping: (inputName: string, source: InputSource | null) => void;
   onRemove: () => void;
   onDuplicate: () => void;
   onMoveUp: () => void;
@@ -86,15 +86,16 @@ function useNodeExecState(workflowId: string | null, nodeId: string) {
     (s) => (workflowId ? s.getStatus(workflowId, nodeId) : undefined)
   ) as NodeStatus | undefined;
 
-  const progress = useResultsStore(
-    (s) => (workflowId ? s.getProgress(workflowId, nodeId) : undefined)
-  );
-
-  const result = useResultsStore(
+  const { progress, result } = useResultsStore(
     (s) => {
-      if (!workflowId) return undefined;
-      return s.getOutputResult(workflowId, nodeId) ?? s.getResult(workflowId, nodeId);
-    }
+      if (!workflowId) return { progress: undefined, result: undefined };
+      const key = hashKey(workflowId, nodeId);
+      return {
+        progress: s.progress[key],
+        result: s.outputResults[key] ?? s.results[key]
+      };
+    },
+    shallow
   );
 
   const isRunning = status === "running" || status === "booting" || status === "starting";
@@ -113,7 +114,7 @@ function getOutputFromResult(result: unknown): unknown {
 }
 
 export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
-  node, index, totalNodes, workflowId, prevOutputType,
+  node, index, totalNodes, workflowId, previousNodes,
   onToggleExpanded, onUpdateProperty, onSetOutput, onSetInputMapping,
   onRemove, onDuplicate, onMoveUp, onMoveDown,
 }) => {
@@ -124,12 +125,6 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
     useNodeExecState(workflowId, node.id);
 
   const outputValue = useMemo(() => getOutputFromResult(result), [result]);
-
-  const configuredCount = useMemo(() => {
-    return Object.keys(node.properties).filter(
-      (k) => node.properties[k] !== undefined && node.properties[k] !== ""
-    ).length;
-  }, [node.properties]);
 
   const cardCss = isRunning
     ? runningCardStyles(nsColor)
@@ -187,16 +182,11 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
 
         <FlexColumn gap={0.25} sx={{ flex: 1, minWidth: 0 }}>
           <Text size="small" weight={700} truncate>{node.metadata.title}</Text>
-          <FlexRow gap={1} align="center">
+          {node.expanded && (
             <Text size="tiny" weight={600} sx={{ color: nsColor }}>
               {formatNs(node.metadata.namespace)}
             </Text>
-            {!node.expanded && node.metadata.properties.length > 0 && (
-              <Text size="tiny" color="secondary">
-                {configuredCount}/{node.metadata.properties.length} configured
-              </Text>
-            )}
-          </FlexRow>
+          )}
         </FlexColumn>
 
         {/* Status indicator */}
@@ -239,12 +229,12 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
             </Text>
           )}
 
-          {index > 0 && (
+          {index > 0 && previousNodes.length > 0 && (
             <InputMappingSelector
               properties={node.metadata.properties}
-              selectedInput={node.inputMapping}
-              sourceOutputType={prevOutputType}
-              onSelect={onSetInputMapping}
+              inputMappings={node.inputMappings}
+              previousNodes={previousNodes}
+              onSetMapping={onSetInputMapping}
             />
           )}
 
@@ -255,7 +245,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
             nodeType={node.nodeType}
             properties={node.metadata.properties}
             values={node.properties}
-            connectedInput={node.inputMapping}
+            connectedInputs={Object.keys(node.inputMappings)}
             onUpdate={onUpdateProperty}
           />
 
@@ -273,17 +263,17 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
 
           {/* Actions */}
           <FlexRow gap={0.5} align="center">
-            <IconButton size="small" onClick={onMoveUp} disabled={index === 0}>
+            <IconButton aria-label="Move node up" size="small" onClick={onMoveUp} disabled={index === 0}>
               <ArrowUpwardIcon sx={{ fontSize: 18 }} />
             </IconButton>
-            <IconButton size="small" onClick={onMoveDown} disabled={index === totalNodes - 1}>
+            <IconButton aria-label="Move node down" size="small" onClick={onMoveDown} disabled={index === totalNodes - 1}>
               <ArrowDownwardIcon sx={{ fontSize: 18 }} />
             </IconButton>
             <Box sx={{ flex: 1 }} />
-            <IconButton size="small" onClick={onDuplicate}>
+            <IconButton aria-label="Duplicate node" size="small" onClick={onDuplicate}>
               <ContentCopyIcon sx={{ fontSize: 18 }} />
             </IconButton>
-            <IconButton size="small" onClick={onRemove} sx={{ color: theme.vars.palette.error.main }}>
+            <IconButton aria-label="Remove node" size="small" onClick={onRemove} sx={{ color: theme.vars.palette.error.main }}>
               <DeleteOutlineIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </FlexRow>

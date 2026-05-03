@@ -8,7 +8,8 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-vi.mock("@nodetool/security", () => ({
+vi.mock("@nodetool-ai/models", () => ({
+  initDb: vi.fn(),
   getSecret: vi.fn(async (key: string) => {
     // Simulates looking up secrets from the DB
     const secrets: Record<string, string> = {};
@@ -16,11 +17,7 @@ vi.mock("@nodetool/security", () => ({
   })
 }));
 
-vi.mock("@nodetool/models", () => ({
-  initDb: vi.fn()
-}));
-
-vi.mock("@nodetool/config", () => ({
+vi.mock("@nodetool-ai/config", () => ({
   getDefaultDbPath: vi.fn(() => ":memory:")
 }));
 

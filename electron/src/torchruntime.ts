@@ -46,6 +46,8 @@ async function isTorchruntimeInstalled(): Promise<boolean> {
         {
           env: getProcessEnv(),
           stdio: "pipe",
+          // Prevent a console window from flashing on Windows.
+          windowsHide: true,
         }
       );
 
@@ -82,6 +84,8 @@ async function installTorchruntime(): Promise<void> {
       {
         env: getProcessEnv(),
         stdio: "pipe",
+        // Prevent a console window from flashing on Windows.
+        windowsHide: true,
       }
     );
 
@@ -144,6 +148,8 @@ except Exception as e:
       {
         env: getProcessEnv(),
         stdio: "pipe",
+        // Prevent a console window from flashing on Windows.
+        windowsHide: true,
       }
     );
 
@@ -233,8 +239,8 @@ export async function detectTorchPlatform(): Promise<TorchruntimeDetectionResult
       platform,
       indexUrl,
     };
-  } catch (error: any) {
-    const errorMsg = error?.message || String(error);
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
     logMessage(`GPU detection failed: ${errorMsg}`, "error");
     logMessage("Falling back to CPU-only installation", "warn");
     

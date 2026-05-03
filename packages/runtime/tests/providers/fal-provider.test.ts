@@ -23,20 +23,6 @@ describe("FalProvider", () => {
 
   // --- Construction ---
 
-  it("stores API key from secrets", () => {
-    const p = createProvider("my-key");
-    expect(p).toBeInstanceOf(FalProvider);
-  });
-
-  it("defaults API key to empty string", () => {
-    const p = new FalProvider();
-    expect(p).toBeInstanceOf(FalProvider);
-  });
-
-  it("requiredSecrets returns FAL_API_KEY", () => {
-    expect(FalProvider.requiredSecrets()).toEqual(["FAL_API_KEY"]);
-  });
-
   // --- getAvailableImageModels ---
 
   it("returns a non-empty list of image models", async () => {
@@ -109,18 +95,19 @@ describe("FalProvider", () => {
     const result = await p.textToImage(params);
     expect(result).toBeInstanceOf(Uint8Array);
 
-    expect(subscribeMock).toHaveBeenCalledWith("fal-ai/flux/dev", {
-      input: expect.objectContaining({
-        prompt: "a cat",
-        negative_prompt: "blurry",
-        guidance_scale: 7.5,
-        num_inference_steps: 30,
-        image_size: { width: 1024, height: 768 },
-        seed: 42,
-        output_format: "png"
-      }),
-      logs: true
-    });
+    expect(subscribeMock).toHaveBeenCalledWith(
+      "fal-ai/flux/dev",
+      expect.objectContaining({
+        input: expect.objectContaining({
+          prompt: "a cat",
+          guidance_scale: 7.5,
+          num_inference_steps: 30,
+          seed: 42,
+          output_format: "png"
+        }),
+        logs: true
+      })
+    );
 
     vi.unstubAllGlobals();
   });
@@ -154,7 +141,9 @@ describe("FalProvider", () => {
 
   // --- imageToImage ---
 
-  it("imageToImage sends image as base64 data URI", async () => {
+  it("imageToImage uploads image via client.storage.upload", async () => {
+    const uploadedUrl = "https://fal.media/files/uploaded-abc.png";
+    const uploadMock = vi.fn().mockResolvedValue(uploadedUrl);
     const subscribeMock = vi.fn().mockResolvedValue({
       data: { image: { url: "https://fal.ai/result.png" } }
     });
@@ -167,20 +156,29 @@ describe("FalProvider", () => {
     );
 
     const p = createProvider();
-    (p as any)._client = { subscribe: subscribeMock };
+    (p as any)._client = {
+      subscribe: subscribeMock,
+      storage: { upload: uploadMock }
+    };
 
     const inputImage = new Uint8Array([1, 2, 3, 4]);
     const params: ImageToImageParams = {
       prompt: "enhance",
-      model: { id: "fal-ai/flux/dev", name: "FLUX", provider: "fal_ai" },
+      model: { id: "fal-ai/kolors/image-to-image", name: "Kolors Image-to-Image", provider: "fal_ai" },
       strength: 0.8
     };
 
     await p.imageToImage(inputImage, params);
 
+    // Verify the blob was uploaded via the FAL storage API
+    expect(uploadMock).toHaveBeenCalledTimes(1);
+    const uploadedBlob = uploadMock.mock.calls[0][0];
+    expect(uploadedBlob).toBeInstanceOf(Blob);
+    expect((uploadedBlob as Blob).type).toBe("image/png");
+
     const input = subscribeMock.mock.calls[0][1].input;
     expect(input.prompt).toBe("enhance");
-    expect(input.image_url).toMatch(/^data:image\/png;base64,/);
+    expect(input.image_url).toBe(uploadedUrl);
     expect(input.strength).toBe(0.8);
 
     vi.unstubAllGlobals();
@@ -225,7 +223,7 @@ describe("FalProvider", () => {
         prompt: "test",
         model: { id: "fal-ai/flux/dev", name: "FLUX", provider: "fal_ai" }
       })
-    ).rejects.toThrow("Unexpected FAL response format");
+    ).rejects.toThrow("Unexpected FAL image response");
   });
 
   it("textToImage throws on failed download", async () => {

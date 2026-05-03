@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { uiGetGraphParams } from "@nodetool/protocol";
+import { uiGetGraphParams } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 

@@ -30,3 +30,19 @@
 ## 2026-03-27 - Adding ARIA labels to ToolbarIconButton with complex Tooltips
 **Learning:** `ToolbarIconButton` extracts an `aria-label` from its `tooltip` prop automatically (`typeof tooltip === 'string' ? tooltip : undefined`). However, when the `tooltip` prop receives a ReactNode (like a formatted complex tooltip with a title and shortcut), the `aria-label` becomes `undefined`, leaving the icon button inaccessible to screen readers.
 **Action:** When using `ToolbarIconButton` with a ReactNode tooltip, always explicitly provide the `ariaLabel` prop with a descriptive string. I've updated `ToolbarIconButton` to explicitly support the `ariaLabel` prop to fix this issue going forward.
+
+## 2026-03-27 - Adding ARIA labels to CircularActionButton and DeleteButton with complex Tooltips
+**Learning:** Similar to `ToolbarIconButton` and `StateIconButton`, `CircularActionButton` and `DeleteButton` try to automatically extract an `aria-label` from their `tooltip` prop. If the `tooltip` prop receives a ReactNode, the `aria-label` becomes `undefined` or falls back to generic text, leaving the icon button inaccessible to screen readers or lacking specific context.
+**Action:** When using `CircularActionButton` or `DeleteButton` with a ReactNode tooltip, always explicitly provide the `ariaLabel` prop with a descriptive string. I've updated these components to explicitly support the `ariaLabel` prop.
+## 2025-02-12 - Added missing `aria-label`s to `IconButton` components
+**Learning:** Found that custom/complex components wrapped in MUI `IconButton` often drop context needed for screen readers if only icon nodes are provided as children, creating empty access labels for crucial UI actions.
+**Action:** When creating action buttons consisting strictly of an icon, ensure to explicitly pass an `aria-label` attribute on the bounding `IconButton` component to preserve accessibility.
+## 2025-05-30 - Missing ARIA Labels on Icon-only Submit Buttons
+**Learning:** Icon-only submit buttons (like the send button in `PortalInput`) often omit `aria-label`s, rendering them inaccessible to screen readers. Relying solely on the visual icon to convey the button's purpose is a common pattern that breaks accessibility.
+**Action:** When auditing or creating input components with icon-only submission buttons, always ensure an explicit `aria-label` is provided to describe the action (e.g., "Send message").
+## 2024-06-25 - Using `LoadingSpinner` Primitive over Raw Material-UI
+**Learning:** Found instances of raw Material-UI `CircularProgress` usage in components like `CircularActionButton`, `DialogActionButtons`, `DownloadButton`, `RefreshButton`, `RunWorkflowButton`, and `StateIconButton`. This usage goes against `STRATEGY.md` standardizing UI primitives.
+**Action:** When working on UI components, use the explicit primitive `<LoadingSpinner inline />` over the raw `<CircularProgress>` to adhere to standardisation guidelines. Ensure proper test updates to reflect mock substitutions.
+## 2025-05-30 - Added missing aria-labels to scattered IconButtons
+**Learning:** Some custom UI interactions like NodeTestRow, DataframeRenderer, and ReplicateSchemaLoader were missing `aria-label` properties on their icon-only `IconButton` components, breaking accessibility for interactive elements, despite sometimes having `<Tooltip>` wrappers.
+**Action:** Always add an explicit `aria-label` matching the interactive intent whenever rendering an icon-only `<IconButton>`.

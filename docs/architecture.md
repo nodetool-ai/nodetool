@@ -4,19 +4,11 @@ title: "Architecture & Lifecycle"
 description: "How NodeTool's streaming architecture enables real-time feedback, cancellation, and deployment portability."
 ---
 
-## Why This Architecture Matters
+Three core principles:
 
-NodeTool's architecture is designed around three core principles that directly impact your experience:
-
-1. **Streaming-first execution** -- See results as they generate, not after everything completes. Cancel long-running jobs without waiting. Perfect for interactive debugging and user-facing applications.
-
-2. **Unified runtime** -- The same workflow JSON runs in desktop app, headless server, RunPod endpoint, or Cloud Run service. No platform-specific code. No rewrites when scaling.
-
-3. **Pluggable execution strategies** -- Run nodes in threads (fast iteration), subprocesses (isolation), or Docker containers (deployment). Switch strategies without changing your workflow.
-
-**For developers:** This design lets you prototype locally with instant feedback, then deploy to production infrastructure with confidence that behavior will be identical.
-
-**For teams:** Build workflows collaboratively in the visual editor, then let DevOps deploy them as APIs -- no translation layer needed.
+1. **Streaming-first execution** — results stream as they generate; long-running jobs can be cancelled.
+2. **Unified runtime** — the same workflow JSON runs in the desktop app, headless server, RunPod endpoint, or Cloud Run.
+3. **Pluggable execution strategies** — threads (fast iteration), subprocesses (isolation), or Docker (deployment), switchable without changing the workflow.
 
 ---
 
@@ -28,22 +20,22 @@ NodeTool is organized into distinct packages, each responsible for a specific la
 
 | Package | Purpose |
 |---------|---------|
-| **@nodetool/kernel** | DAG execution engine -- graph validation, node actors, inbox routing, edge counting |
-| **@nodetool/runtime** | Processing context, cache adapters, storage adapters, asset handling |
-| **@nodetool/protocol** | Shared message types (JobUpdate, NodeUpdate, EdgeUpdate, TaskUpdate) |
-| **@nodetool/agents** | Agent executor, task planner, step executor, multi-mode agent, 20+ tool types |
-| **@nodetool/dsl** | TypeScript DSL for building workflows programmatically with type-safe factories |
-| **@nodetool/config** | Settings management and environment configuration |
+| **@nodetool-ai/kernel** | DAG execution engine -- graph validation, node actors, inbox routing, edge counting |
+| **@nodetool-ai/runtime** | Processing context, cache adapters, storage adapters, asset handling |
+| **@nodetool-ai/protocol** | Shared message types (JobUpdate, NodeUpdate, EdgeUpdate, TaskUpdate) |
+| **@nodetool-ai/agents** | Agent executor, task planner, step executor, multi-mode agent, 20+ tool types |
+| **@nodetool-ai/dsl** | TypeScript DSL for building workflows programmatically with type-safe factories |
+| **@nodetool-ai/config** | Settings management and environment configuration |
 
 ### Infrastructure Packages
 
 | Package | Purpose |
 |---------|---------|
-| **@nodetool/deploy** | Deployment automation for self-hosted, RunPod, and GCP Cloud Run |
-| **@nodetool/storage** | Asset storage backends (local filesystem, S3, Supabase) |
-| **@nodetool/vectorstore** | Vector database integration (Chroma) for RAG workflows |
-| **@nodetool/cli** | Command-line interface for workflow execution, deployment, and package management |
-| **@nodetool/base-nodes** | Core node implementations and dynamic node generation |
+| **@nodetool-ai/deploy** | Deployment automation for self-hosted, RunPod, and GCP Cloud Run |
+| **@nodetool-ai/storage** | Asset storage backends (local filesystem, S3, Supabase) |
+| **@nodetool-ai/vectorstore** | Vector database integration (Chroma) for RAG workflows |
+| **@nodetool-ai/cli** | Command-line interface for workflow execution, deployment, and package management |
+| **@nodetool-ai/base-nodes** | Core node implementations and dynamic node generation |
 
 ### Frontend
 
@@ -207,6 +199,17 @@ The storage adapter is selected automatically based on environment configuration
 
 ---
 
+## Python Worker Bridge
+
+Python nodes and Python-only local providers run in a separate worker process. The TS backend spawns the worker with `python -m nodetool.worker --stdio` and communicates over a local stdio protocol:
+
+- binary-safe MessagePack payloads
+- 4-byte big-endian length framing
+- in-band discovery, execution, status, progress, chunk, and error messages
+- structured `load_errors` so import failures are visible without parsing logs
+
+See [Python Bridge Protocol](python-bridge-protocol.md) for the full wire protocol and lifecycle.
+
 ## Notes
 
 - All endpoints and examples use `http://127.0.0.1:7777` by default; update host/port when deploying.
@@ -217,5 +220,6 @@ The storage adapter is selected automatically based on environment configuration
 
 - [Key Concepts](key-concepts.md) -- High-level overview of workflows, nodes, and models
 - [API Reference](api-reference.md) -- REST and WebSocket API documentation
+- [Python Bridge Protocol](python-bridge-protocol.md) -- TS ↔ Python worker transport and message schemas
 - [Developer Guide](developer/) -- Building custom nodes and extensions
 - [Deployment Guide](deployment.md) -- Running NodeTool in production

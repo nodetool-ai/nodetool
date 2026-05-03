@@ -2,6 +2,7 @@
 
 import { temporal } from "zundo";
 import type { TemporalState } from "zundo";
+import { v4 as uuidv4 } from "uuid";
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { NodeMetadata, RepoPath, UnifiedModel, Workflow } from "./ApiTypes";
 import { NodeData } from "./NodeData";
@@ -24,11 +25,11 @@ import {
 import { customEquality } from "./customEquality";
 
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
-import log from "loglevel";
 import { autoLayout } from "../core/graph";
 import { isConnectable, isCollectType } from "../utils/TypeHandler";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 import { WorkflowAttributes } from "./ApiTypes";
+
 import { wouldCreateCycle } from "../utils/graphCycle";
 import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
@@ -236,9 +237,9 @@ const hydrateMissingComfyMetadata = (nodeTypes: string[]): void => {
           await comfyStore.connect();
         }
         // connect() registers metadata in MetadataStore, so we're done
-        log.info("[NodeStore] Hydrated ComfyUI metadata via backend proxy");
+        console.info("[NodeStore] Hydrated ComfyUI metadata via backend proxy");
       } catch (error) {
-        log.warn(
+        console.warn(
           "[NodeStore] Failed to hydrate missing ComfyUI metadata",
           error
         );
@@ -325,6 +326,13 @@ export const createNodeStore = (
 
         let lastNodesForSelectionCount: Node<NodeData>[] | null = null;
         let lastSelectionCount = 0;
+        let lastNodesForSelection: Node<NodeData>[] | null = null;
+        let lastSelectedNodes: Node<NodeData>[] = [];
+        let lastNodesForSelectionIds: Node<NodeData>[] | null = null;
+        let lastSelectedNodeIdsArray: string[] = [];
+        let lastNodesForGetSelection: Node<NodeData>[] | null = null;
+        let lastEdgesForGetSelection: Edge[] | null = null;
+        let lastSelection: NodeSelection = { nodes: [], edges: [] };
 
         return {
           shouldAutoLayout: state?.shouldAutoLayout || false,
@@ -334,8 +342,8 @@ export const createNodeStore = (
           workflow: workflow
             ? workflow
             : {
-                id: "",
-                name: "",
+                id: uuidv4(),
+                name: "New Workflow",
                 access: "private",
                 description: "",
                 thumbnail: "",
@@ -370,18 +378,36 @@ export const createNodeStore = (
           getOutputEdges: (nodeId: string): Edge[] =>
             get().edges.filter((e) => e.source === nodeId),
           getSelection: (): NodeSelection => {
-            const nodes = get().nodes.filter((node) => node.selected);
+            const state = get();
+            if (
+              state.nodes === lastNodesForGetSelection &&
+              state.edges === lastEdgesForGetSelection
+            ) {
+              return lastSelection;
+            }
+            const nodes = state.nodes.filter((node) => node.selected);
             const nodeIds: Record<string, boolean> = {};
             for (const node of nodes) {
               nodeIds[node.id] = true;
             }
-            const edges = get().edges.filter(
+            const edges = state.edges.filter(
               (edge) => edge.source in nodeIds && edge.target in nodeIds
             );
-            return { nodes, edges };
+
+            lastNodesForGetSelection = state.nodes;
+            lastEdgesForGetSelection = state.edges;
+            lastSelection = { nodes, edges };
+            return lastSelection;
           },
-          getSelectedNodes: (): Node<NodeData>[] =>
-            get().nodes.filter((node) => node.selected),
+          getSelectedNodes: (): Node<NodeData>[] => {
+            const nodes = get().nodes;
+            if (nodes === lastNodesForSelection) {
+              return lastSelectedNodes;
+            }
+            lastNodesForSelection = nodes;
+            lastSelectedNodes = nodes.filter((node) => node.selected);
+            return lastSelectedNodes;
+          },
           getSelectedNodeCount: (): number => {
             const nodes = get().nodes;
             if (nodes === lastNodesForSelectionCount) {
@@ -416,7 +442,7 @@ export const createNodeStore = (
                 (!!originalType && originalType === nodeType)
               );
             }).length;
-            log.info(
+            console.info(
               "[NodeStore] selectNodesByType",
               nodeType,
               "matching",
@@ -440,35 +466,49 @@ export const createNodeStore = (
             });
           },
           getSelectedNodeIds: (): string[] => {
-            const ids: string[] = [];
             const nodes = get().nodes;
+            if (nodes === lastNodesForSelectionIds) {
+              return lastSelectedNodeIdsArray;
+            }
+
+            const ids: string[] = [];
             for (const node of nodes) {
               if (node.selected) {
                 ids.push(node.id);
               }
             }
+
+            lastNodesForSelectionIds = nodes;
+            lastSelectedNodeIdsArray = ids;
             return ids;
           },
           setEdgeUpdateSuccessful: (value: boolean): void =>
             set({ edgeUpdateSuccessful: value }),
           onNodesChange: (changes: NodeChange<Node<NodeData>>[]): void => {
-            // Check if any dimension change is a user resize (has setAttributes set)
-            // This indicates the user intentionally resized the node via NodeResizeControl
+            // `resizing: true` is React Flow's signal for an active user resize
+            // via NodeResizer/NodeResizeControl. The `setAttributes` field is
+            // unreliable here because it also fires on initial measurement when
+            // a node has no explicit height, which would dirty every workflow
+            // on app start.
             const hasUserResize = changes.some(
               (change) =>
                 change.type === "dimensions" &&
-                "setAttributes" in change &&
-                change.setAttributes
+                "resizing" in change &&
+                change.resizing === true
             );
 
-            // Check if changes are only internal React Flow updates (dimensions, positions from ResizeObserver, selection)
+            // Treat as internal anything that React Flow emits without an explicit
+            // user drag (`dragging: true`). Position changes with `dragging: false`
+            // are drag-end frames; with `dragging: undefined` they come from
+            // programmatic adjustments like extent constraints or initial measurement
+            // and must not mark the workflow dirty.
             const isOnlyInternalChanges =
               !hasUserResize &&
               changes.every(
                 (change) =>
                   change.type === "dimensions" ||
                   change.type === "select" ||
-                  (change.type === "position" && change.dragging === false)
+                  (change.type === "position" && change.dragging !== true)
               );
 
             // Filter out selection changes for group nodes that have selectable: false
@@ -669,7 +709,7 @@ export const createNodeStore = (
             get().edges.find((e) => e.id === id),
           addNode: (node: Node<NodeData>): void => {
             if (get().findNode(node.id)) {
-              log.warn(`Node with id ${node.id} already exists`);
+              console.warn(`Node with id ${node.id} already exists`);
               return;
             }
             node.expandParent = true;
@@ -686,37 +726,40 @@ export const createNodeStore = (
               Object.keys(nodeUpdate).length === 1 && "selected" in nodeUpdate;
 
             set((state) => {
-              let newNodes = state.nodes.map((n) =>
-                n.id === id ? { ...n, ...nodeUpdate } : n
-              );
+              const nodeIndex = state.nodes.findIndex((n) => n.id === id);
+              if (nodeIndex === -1) {
+                return state;
+              }
+
+              const newNodes = [...state.nodes];
+              const updatedNode = { ...newNodes[nodeIndex], ...nodeUpdate };
+              newNodes[nodeIndex] = updatedNode;
 
               // If parentId is being set or changed, reorder nodes
               if (nodeUpdate.parentId !== undefined) {
-                const updatedNode = newNodes.find((n) => n.id === id);
-                if (updatedNode) {
-                  // Remove the node from its current position
-                  newNodes = newNodes.filter((n) => n.id !== id);
-                  const parentIndex = newNodes.findIndex(
-                    (n) => n.id === nodeUpdate.parentId
-                  );
+                // Remove the node from its current position
+                newNodes.splice(nodeIndex, 1);
 
-                  if (
-                    nodeUpdate.parentId === null ||
-                    nodeUpdate.parentId === undefined
-                  ) {
-                    // If removing parentId, add to the end (or handle as per existing logic for no parent)
-                    newNodes.push(updatedNode);
-                  } else if (parentIndex !== -1) {
-                    // Insert after the parent
-                    newNodes.splice(parentIndex + 1, 0, updatedNode);
-                  } else {
-                    // Parent not found (should not happen if data is consistent), add to end
-                    // Or, if parentId is set but parent is not in the list yet,
-                    // this might still cause issues.
-                    // For safety, add child to the end if parent not found.
-                    // React Flow might still complain if parent isn't rendered.
-                    newNodes.push(updatedNode);
-                  }
+                const parentIndex = newNodes.findIndex(
+                  (n) => n.id === nodeUpdate.parentId
+                );
+
+                if (
+                  nodeUpdate.parentId === null ||
+                  nodeUpdate.parentId === undefined
+                ) {
+                  // If removing parentId, add to the end (or handle as per existing logic for no parent)
+                  newNodes.push(updatedNode);
+                } else if (parentIndex !== -1) {
+                  // Insert after the parent
+                  newNodes.splice(parentIndex + 1, 0, updatedNode);
+                } else {
+                  // Parent not found (should not happen if data is consistent), add to end
+                  // Or, if parentId is set but parent is not in the list yet,
+                  // this might still cause issues.
+                  // For safety, add child to the end if parent not found.
+                  // React Flow might still complain if parent isn't rendered.
+                  newNodes.push(updatedNode);
                 }
               }
               return { ...state, nodes: newNodes };
@@ -793,7 +836,7 @@ export const createNodeStore = (
               .map((node) => node.id);
 
             if (foundIds.length === 0) {
-              log.warn(`Node(s) not found: ${ids.join(", ")}`);
+              console.warn(`Node(s) not found: ${ids.join(", ")}`);
               return;
             }
 
@@ -850,7 +893,7 @@ export const createNodeStore = (
             const targetNode = get().findNode(edge.target);
 
             if (!sourceNode || !targetNode) {
-              log.warn(
+              console.warn(
                 `Cannot add edge ${edge.id}: source or target node not found`
               );
               return;
@@ -861,7 +904,7 @@ export const createNodeStore = (
             const nodeMap = new Map(get().nodes.map((n) => [n.id, n]));
 
             if (!isValidEdge(edge, nodeMap, metadata)) {
-              log.warn(
+              console.warn(
                 `Cannot add edge ${edge.id}: edge validation failed`,
                 edge
               );
@@ -1319,35 +1362,38 @@ export const createNodeStore = (
             });
           },
           toggleBypass: (nodeId: string): void => {
-            const node = get().findNode(nodeId);
-            if (node) {
+            set((state) => {
+              const index = state.nodes.findIndex((n) => n.id === nodeId);
+              if (index === -1) {
+                return state;
+              }
+              const node = state.nodes[index];
               const newBypassed = !node.data.bypassed;
-              set((state) => ({
-                nodes: state.nodes.map((n) =>
-                  n.id === nodeId
-                    ? {
-                        ...n,
-                        className: newBypassed ? "bypassed" : undefined,
-                        data: { ...n.data, bypassed: newBypassed }
-                      }
-                    : n
-                )
-              }));
-              get().setWorkflowDirty(true);
-            }
+              const newNodes = [...state.nodes];
+              newNodes[index] = {
+                ...node,
+                className: newBypassed ? "bypassed" : undefined,
+                data: { ...node.data, bypassed: newBypassed }
+              };
+              return { nodes: newNodes };
+            });
+            get().setWorkflowDirty(true);
           },
           setBypass: (nodeId: string, bypassed: boolean): void => {
-            set((state) => ({
-              nodes: state.nodes.map((n) =>
-                n.id === nodeId
-                  ? {
-                      ...n,
-                      className: bypassed ? "bypassed" : undefined,
-                      data: { ...n.data, bypassed }
-                    }
-                  : n
-              )
-            }));
+            set((state) => {
+              const index = state.nodes.findIndex((n) => n.id === nodeId);
+              if (index === -1) {
+                return state;
+              }
+              const node = state.nodes[index];
+              const newNodes = [...state.nodes];
+              newNodes[index] = {
+                ...node,
+                className: bypassed ? "bypassed" : undefined,
+                data: { ...node.data, bypassed }
+              };
+              return { nodes: newNodes };
+            });
             get().setWorkflowDirty(true);
           },
           toggleBypassSelected: (): void => {

@@ -11,8 +11,8 @@
  * directly (same behavior as programmatic use).
  */
 
-import { createLogger } from "@nodetool/config";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { createLogger } from "@nodetool-ai/config";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { TaskBoard } from "./task-board.js";
 import type {
   AgentIdentity,

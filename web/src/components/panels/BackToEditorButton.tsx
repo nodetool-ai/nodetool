@@ -9,8 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { WorkflowList } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
-import { createErrorMessage } from "../../utils/errorHandling";
+import { trpcClient } from "../../trpc/client";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { Tooltip } from "../ui_primitives";
 
@@ -47,25 +46,14 @@ const BackToEditorButton = forwardRef<
   const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
   const navigate = useNavigate();
 
-  const loadWorkflows = async () => {
-    const { data, error } = await client.GET("/api/workflows/", {
-      params: {
-        query: {
-          cursor: "",
-          limit: 20,
-          columns: "name,id,updated_at,description,thumbnail_url"
-        }
-      }
-    });
-    if (error) {
-      throw createErrorMessage(error, "Failed to load workflows");
-    }
-    return data;
-  };
-
   const { data: workflowsData } = useQuery<WorkflowList>({
     queryKey: ["workflows"],
-    queryFn: loadWorkflows,
+    queryFn: async () => {
+      return trpcClient.workflows.list.query({
+        cursor: "",
+        limit: 20
+      }) as unknown as WorkflowList;
+    },
     enabled: !title && !!currentWorkflowId
   });
 

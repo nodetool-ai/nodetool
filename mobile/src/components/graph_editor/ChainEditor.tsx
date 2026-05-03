@@ -15,7 +15,6 @@ import {
   ActivityIndicator,
   StyleSheet,
   RefreshControl,
-  TextInput,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -27,7 +26,7 @@ import { ChainNodeCard } from "./ChainNodeCard";
 import { ChainConnector } from "./ChainConnector";
 import { AddNodeButton } from "./AddNodeButton";
 import { NodePickerModal } from "./NodePickerModal";
-import type { NodeMetadata, PropertyTypeMetadata } from "../../types/ApiTypes";
+import type { NodeMetadata } from "../../types/ApiTypes";
 
 export const ChainEditor: React.FC = () => {
   const { colors, shadows, isDark } = useTheme();
@@ -36,7 +35,6 @@ export const ChainEditor: React.FC = () => {
   // ── Store selectors ────────────────────────────────────────────────
   const chain = useGraphEditorStore((s) => s.chain);
   const workflowId = useGraphEditorStore((s) => s.workflowId);
-  const workflowName = useGraphEditorStore((s) => s.workflowName);
   const allMetadata = useGraphEditorStore((s) => s.allMetadata);
   const metadataLoading = useGraphEditorStore((s) => s.metadataLoading);
   const metadataError = useGraphEditorStore((s) => s.metadataError);
@@ -51,11 +49,11 @@ export const ChainEditor: React.FC = () => {
   const updateProperty = useGraphEditorStore((s) => s.updateProperty);
   const setSelectedOutput = useGraphEditorStore((s) => s.setSelectedOutput);
   const setInputMapping = useGraphEditorStore((s) => s.setInputMapping);
+  const addDynamicInput = useGraphEditorStore((s) => s.addDynamicInput);
+  const removeDynamicInput = useGraphEditorStore((s) => s.removeDynamicInput);
   const toggleExpanded = useGraphEditorStore((s) => s.toggleExpanded);
   const showNodePicker = useGraphEditorStore((s) => s.showNodePicker);
   const hideNodePicker = useGraphEditorStore((s) => s.hideNodePicker);
-  const setWorkflowName = useGraphEditorStore((s) => s.setWorkflowName);
-  const saveWorkflow = useGraphEditorStore((s) => s.saveWorkflow);
 
   // ── Fetch metadata on mount ────────────────────────────────────────
   useEffect(() => {
@@ -92,26 +90,6 @@ export const ChainEditor: React.FC = () => {
     [removeNode]
   );
 
-  const handleSave = useCallback(async () => {
-    const result = await saveWorkflow();
-    if (result) {
-      Alert.alert("Saved", "Workflow saved successfully.");
-    } else {
-      Alert.alert("Error", "Failed to save workflow.");
-    }
-  }, [saveWorkflow]);
-
-  // ── Compute previous output types for each node ────────────────────
-  const prevOutputTypes = useMemo((): Array<PropertyTypeMetadata | null> => {
-    return chain.map((node, i) => {
-      if (i === 0) return null;
-      const prev = chain[i - 1];
-      const output = prev.metadata.outputs.find(
-        (o) => o.name === prev.selectedOutput
-      );
-      return output?.type ?? null;
-    });
-  }, [chain]);
 
   // ── Render ─────────────────────────────────────────────────────────
 
@@ -152,44 +130,6 @@ export const ChainEditor: React.FC = () => {
       keyboardVerticalOffset={90}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {/* Toolbar */}
-        <View
-          style={[
-            styles.toolbar,
-            {
-              backgroundColor: colors.surfaceHeader,
-              borderBottomColor: colors.border,
-            },
-          ]}
-        >
-          <TextInput
-            style={[styles.workflowNameInput, { color: colors.text }]}
-            value={workflowName}
-            onChangeText={setWorkflowName}
-            placeholder="Workflow name"
-            placeholderTextColor={colors.textTertiary}
-          />
-          <View style={styles.toolbarActions}>
-            <TouchableOpacity
-              style={[
-                styles.toolbarButton,
-                { backgroundColor: colors.primaryMuted },
-              ]}
-              onPress={handleSave}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons
-                name="save-outline"
-                size={18}
-                color={colors.primary}
-              />
-              <Text style={[styles.toolbarButtonText, { color: colors.primary }]}>
-                Save
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Chain */}
         <ScrollView
           ref={scrollRef}
@@ -252,7 +192,11 @@ export const ChainEditor: React.FC = () => {
                       />
                       <ChainConnector
                         sourceOutput={chain[index - 1].selectedOutput}
-                        targetInput={node.inputMapping}
+                        targetInput={
+                          Object.keys(node.inputMappings).length > 0
+                            ? Object.keys(node.inputMappings).join(", ")
+                            : null
+                        }
                       />
                     </>
                   )}
@@ -263,14 +207,20 @@ export const ChainEditor: React.FC = () => {
                     index={index}
                     totalNodes={chain.length}
                     workflowId={workflowId}
-                    prevOutputType={prevOutputTypes[index]}
+                    previousNodes={chain.slice(0, index)}
                     onToggleExpanded={() => toggleExpanded(node.id)}
                     onUpdateProperty={(name, value) =>
                       updateProperty(node.id, name, value)
                     }
                     onSetOutput={(out) => setSelectedOutput(node.id, out)}
-                    onSetInputMapping={(inp) =>
-                      setInputMapping(node.id, inp)
+                    onSetInputMapping={(inp, source) =>
+                      setInputMapping(node.id, inp, source)
+                    }
+                    onAddDynamicInput={(name) =>
+                      addDynamicInput(node.id, name)
+                    }
+                    onRemoveDynamicInput={(name) =>
+                      removeDynamicInput(node.id, name)
                     }
                     onRemove={() => handleRemove(node.id)}
                     onDuplicate={() => duplicateNode(node.id)}
@@ -310,37 +260,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  toolbar: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    gap: 12,
-  },
-  workflowNameInput: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "600",
-    padding: 0,
-  },
-  toolbarActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  toolbarButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  toolbarButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  scrollContent: {
+scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 8,
     alignItems: "stretch",

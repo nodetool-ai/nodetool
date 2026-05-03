@@ -7,7 +7,7 @@ import React, {
   useCallback,
   memo
 } from "react";
-import { useMediaQuery, IconButton } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
 import {
   AlertBanner,
   Text,
@@ -15,7 +15,8 @@ import {
   FlexColumn,
   EditorButton,
   MobileBottomSheet,
-  ScrollArea
+  ScrollArea,
+  ToolbarIconButton
 } from "../../ui_primitives";
 import ForumIcon from "@mui/icons-material/Forum";
 import AddIcon from "@mui/icons-material/Add";
@@ -28,12 +29,11 @@ import useGlobalChatStore, {
   useThreadsQuery
 } from "../../../stores/GlobalChatStore";
 import type { ThreadInfo } from "../types/thread.types";
+import type { Message, MessageTextContent } from "../../../stores/ApiTypes";
 import { usePanelStore } from "../../../stores/PanelStore";
-import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
 import { useShallow } from "zustand/react/shallow";
-import log from "loglevel";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
@@ -67,6 +67,10 @@ const GlobalChat: React.FC = () => {
   // Agent mode and settings (change less frequently)
   const agentMode = useGlobalChatStore((state) => state.agentMode);
   const setAgentMode = useGlobalChatStore((state) => state.setAgentMode);
+  const agentPlanner = useGlobalChatStore((state) => state.agentPlanner);
+  const setAgentPlanner = useGlobalChatStore(
+    (state) => state.setAgentPlanner
+  );
 
   // Task updates (change during execution)
   const currentPlanningUpdate = useGlobalChatStore((state) => state.currentPlanningUpdate);
@@ -93,14 +97,14 @@ const GlobalChat: React.FC = () => {
   // Initialize GlobalChatStore connection on mount
   useEffect(() => {
     connect().catch((err) => {
-      log.error("Failed to connect GlobalChatStore:", err);
+      console.error("Failed to connect GlobalChatStore:", err);
     });
 
     return () => {
       try {
         disconnect();
       } catch (err) {
-        log.error("Error during GlobalChatStore disconnect:", err);
+        console.error("Error during GlobalChatStore disconnect:", err);
       }
     };
   }, [connect, disconnect]);
@@ -146,7 +150,6 @@ const GlobalChat: React.FC = () => {
 
   // Side panel states (for desktop spacing)
   const leftPanel = usePanelStore((s) => s.panel);
-  const rightPanel = useRightPanelStore((s) => s.panel);
 
   // Get messages from store
   const messages = getCurrentMessagesSync();
@@ -221,7 +224,7 @@ const GlobalChat: React.FC = () => {
       } catch (error) {
         // Only log errors if the operation wasn't cancelled
         if (!abortController.signal.aborted) {
-          log.error("Failed to handle thread logic:", error);
+          console.error("Failed to handle thread logic:", error);
         }
       }
     };
@@ -308,7 +311,7 @@ const GlobalChat: React.FC = () => {
       switchThread(newThreadId);
       navigate(`/chat/${newThreadId}`);
     } catch (error) {
-      log.error("Failed to create new thread:", error);
+      console.error("Failed to create new thread:", error);
     }
   }, [createNewThread, switchThread, navigate]);
 
@@ -340,7 +343,7 @@ const GlobalChat: React.FC = () => {
           selectedCollections.length > 0 ? selectedCollections : undefined,
         agent_mode: agentMode
       }).catch((err) => {
-        log.error("Failed to send suggestion:", err);
+        console.error("Failed to send suggestion:", err);
       });
     },
     [sendMessage, selectedModel, selectedTools, selectedCollections, agentMode]
@@ -354,7 +357,7 @@ const GlobalChat: React.FC = () => {
   const handleDeleteThread = useCallback(
     (id: string) => {
       deleteThread(id).catch((error) => {
-        log.error("Failed to delete thread:", error);
+        console.error("Failed to delete thread:", error);
       });
     },
     [deleteThread]
@@ -382,7 +385,7 @@ const GlobalChat: React.FC = () => {
       }
 
       const firstUserMessage = threadMessages.find(
-        (msg: any) => msg.role === "user"
+        (msg: Message) => msg.role === "user"
       );
       if (firstUserMessage) {
         const content =
@@ -390,7 +393,7 @@ const GlobalChat: React.FC = () => {
             ? firstUserMessage.content
             : Array.isArray(firstUserMessage.content) &&
               firstUserMessage.content[0]?.type === "text"
-              ? (firstUserMessage.content[0] as any).text
+              ? (firstUserMessage.content[0] as MessageTextContent).text
               : "[Media message]";
         return content?.substring(0, 50) + (content?.length > 50 ? "..." : "");
       }
@@ -464,15 +467,11 @@ const GlobalChat: React.FC = () => {
           : leftPanel.isVisible
             ? `${leftPanel.panelSize}px`
             : `${leftPanel.minWidth}px`,
-        paddingRight: isMobile
-          ? 0
-          : rightPanel.isVisible
-            ? `${rightPanel.panelSize}px`
-            : 0,
+        paddingRight: 0,
         overflow: "hidden",
         position: "relative",
         boxSizing: "border-box",
-        background: theme.vars.palette.background.default
+        background: `radial-gradient(circle at top, rgb(${theme.vars.palette.primary.mainChannel} / 0.08), transparent 32%), ${theme.vars.palette.background.default}`
         // Mobile styles handled via separate CSS file
       }}
     >
@@ -504,7 +503,7 @@ const GlobalChat: React.FC = () => {
                 onClick={() => {
                   setAlertDismissed(true);
                   connect().catch((err) => {
-                    log.error("Retry connection failed:", err);
+                    console.error("Retry connection failed:", err);
                   });
                 }}
                 variant="outlined"
@@ -525,7 +524,9 @@ const GlobalChat: React.FC = () => {
             minHeight: 0,
             flex: 1,
             overflow: "hidden",
-            maxHeight: "100%"
+            maxHeight: "100%",
+            px: isMobile ? 0 : 1.5,
+            pb: isMobile ? 0 : 1.5
           }}
         >
           {/* Chat Sidebar - desktop: inline panel, mobile: bottom sheet */}
@@ -542,28 +543,29 @@ const GlobalChat: React.FC = () => {
             />
           ) : (
             <>
-              <IconButton
+              <ToolbarIconButton
                 onClick={() => setMobileConversationsOpen(true)}
-                aria-label="Open conversations"
+                title="Open conversations"
+                tabIndex={-1}
                 sx={{
                   position: "absolute",
                   top: 8,
                   left: 8,
                   zIndex: 100,
-                  backgroundColor: theme.vars.palette.background.paper,
-                  border: `1px solid ${theme.vars.palette.divider}`,
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                  borderRadius: "10px",
+                  backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.9)`,
+                  backdropFilter: "blur(14px)",
+                  border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`,
+                  boxShadow: "0 10px 24px rgb(0 0 0 / 0.18)",
+                  borderRadius: 2.5,
                   padding: "8px",
                   "&:hover": {
-                    backgroundColor: theme.vars.palette.action.hover
+                    backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.98)`
                   },
                   "& svg": { fontSize: "1.25rem" }
                 }}
-                tabIndex={-1}
               >
                 <ForumIcon />
-              </IconButton>
+              </ToolbarIconButton>
               <MobileBottomSheet
                 open={mobileConversationsOpen}
                 onClose={() => setMobileConversationsOpen(false)}
@@ -571,14 +573,22 @@ const GlobalChat: React.FC = () => {
                 ariaLabel="Conversations"
                 headerExtras={
                   <FlexRow align="center" sx={{ px: 1.5 }}>
-                    <IconButton
+                    <ToolbarIconButton
                       onClick={handleMobileNewChat}
-                      aria-label="New chat"
+                      title="New chat"
                       size="small"
                       tabIndex={-1}
+                      sx={{
+                        borderRadius: 2,
+                        backgroundColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.12)`,
+                        color: "primary.main",
+                        "&:hover": {
+                          backgroundColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.18)`
+                        }
+                      }}
                     >
                       <AddIcon />
-                    </IconButton>
+                    </ToolbarIconButton>
                   </FlexRow>
                 }
               >
@@ -628,6 +638,8 @@ const GlobalChat: React.FC = () => {
               onNewChat={handleNewChat}
               agentMode={agentMode}
               onAgentModeToggle={setAgentMode}
+              agentPlanner={agentPlanner}
+              onAgentPlannerChange={setAgentPlanner}
               currentPlanningUpdate={currentPlanningUpdate}
               currentTaskUpdate={taskUpdateForDisplay}
               currentLogUpdate={currentLogUpdate}

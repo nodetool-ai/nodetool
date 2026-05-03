@@ -21,7 +21,7 @@ const styles = (theme: Theme) =>
     ".task-update-container": {
       marginBottom: "0.75rem",
       padding: "1rem",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       backgroundColor: theme.vars.palette.grey[900],
       border: `1px solid ${theme.vars.palette.primary.dark}`,
       borderLeft: `3px solid ${theme.vars.palette.primary.main}`
@@ -48,7 +48,7 @@ const styles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "center",
       padding: "0.25rem 0.625rem",
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       fontSize: "0.6875rem",
       fontWeight: 600,
       textTransform: "uppercase",

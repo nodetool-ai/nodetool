@@ -6,13 +6,13 @@
  * SubAgentConfig objects with specialized roles and skills.
  */
 
-import { createLogger } from "@nodetool/config";
-import type { BaseProvider, Message, ProviderTool } from "@nodetool/runtime";
+import { createLogger } from "@nodetool-ai/config";
+import type { BaseProvider, Message, ProviderTool } from "@nodetool-ai/runtime";
 import type {
   ProcessingMessage,
   LogUpdate,
   PlanningUpdate
-} from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
 import type { Tool } from "./tools/base-tool.js";
 import type { SubAgentConfig } from "./types.js";
 import { extractJSON } from "./utils/json-parser.js";
@@ -24,18 +24,19 @@ const MAX_RETRIES = 3;
 const SYSTEM_PROMPT = `You are a team architect that designs specialized AI agent teams.
 
 Given an objective, create a team of agents with complementary roles and skills.
-Each agent should have:
-- name: Short, descriptive name (e.g. "researcher", "writer", "analyst")
-- role: Clear role description explaining what this agent does
-- skills: Array of skill tags for task matching (e.g. ["web_search", "data_analysis"])
+Each agent must have:
+- \`name\`: Short, descriptive name (e.g. "researcher", "writer", "analyst").
+- \`role\`: Clear role description explaining what this agent does.
+- \`skills\`: Array of skill tags for task matching (e.g. ["web_search", "data_analysis"]).
 
-Requirements:
-- The first agent should be a coordinator/lead who can decompose the objective
-- Other agents should have distinct, non-overlapping specializations
-- Skills should match the available tools
-- Each agent should contribute uniquely to achieving the objective
+## Requirements
+- The first agent should be a coordinator/lead who can decompose the objective.
+- Other agents should have distinct, non-overlapping specializations.
+- Skills should match the available tools.
+- Each agent should contribute uniquely to achieving the objective.
+- Do not create overlapping roles (e.g., two "researchers").
 
-Call the create_team tool with your team design.`;
+Call the \`create_team\` tool with your team design.`;
 
 const CREATE_TEAM_SCHEMA: Record<string, unknown> = {
   type: "object",

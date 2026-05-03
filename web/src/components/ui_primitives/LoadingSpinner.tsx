@@ -31,7 +31,7 @@ const styles = (theme: Theme, variant: string, size: string) =>
     ".dot": {
       width: size === "small" ? 6 : size === "large" ? 12 : 8,
       height: size === "small" ? 6 : size === "large" ? 12 : 8,
-      borderRadius: "50%",
+      borderRadius: theme.rounded?.circle ?? "50%",
       backgroundColor: theme.vars?.palette?.primary?.main ?? theme.palette.primary.main,
       animation: `${pulse} 1.4s infinite ease-in-out`,
       "&:nth-of-type(1)": { animationDelay: "-0.32s" },
@@ -49,12 +49,18 @@ export type LoadingVariant = "circular" | "dots";
 export interface LoadingSpinnerProps {
   /** Loading variant */
   variant?: LoadingVariant;
-  /** Size of the spinner */
-  size?: "small" | "medium" | "large";
+  /** Size of the spinner. Preset strings map to fixed pixel sizes; a number
+   * overrides the preset (useful for inline spinners inside buttons, e.g. 16). */
+  size?: "small" | "medium" | "large" | number;
   /** Optional loading text */
   text?: string;
   /** Color override */
   color?: "primary" | "secondary" | "inherit";
+  /** Render just the spinner without the centered wrapper/role, for use inside
+   * buttons, chips, or other inline contexts. */
+  inline?: boolean;
+  /** CircularProgress stroke thickness (defaults to MUI default). */
+  thickness?: number;
   /** Custom class name */
   className?: string;
 }
@@ -64,11 +70,21 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   size = "medium",
   text,
   color = "primary",
+  inline = false,
+  thickness,
   className
 }) => {
   const theme = useTheme();
 
-  const circularSize = size === "small" ? 20 : size === "large" ? 48 : 32;
+  const circularSize =
+    typeof size === "number"
+      ? size
+      : size === "small"
+        ? 20
+        : size === "large"
+          ? 48
+          : 32;
+  const sizePreset = typeof size === "number" ? "small" : size;
 
   const renderContent = () => {
     switch (variant) {
@@ -82,13 +98,23 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         );
       case "circular":
       default:
-        return <CircularProgress size={circularSize} color={color} />;
+        return (
+          <CircularProgress
+            size={circularSize}
+            color={color}
+            thickness={thickness}
+          />
+        );
     }
   };
 
+  if (inline) {
+    return renderContent();
+  }
+
   return (
     <Box
-      css={styles(theme, variant, size)}
+      css={styles(theme, variant, sizePreset)}
       className={`loading-spinner ${className || ""}`}
       role="status"
       aria-live="polite"

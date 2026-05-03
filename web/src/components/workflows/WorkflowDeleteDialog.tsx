@@ -4,7 +4,6 @@ import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
-import log from "loglevel";
 
 interface WorkflowDeleteDialogProps {
   open: boolean;
@@ -53,7 +52,7 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
         }
       })
       .catch((error) => {
-        log.error("Error deleting workflows:", error);
+        console.error("Error deleting workflows:", error);
       });
   }, [
     deleteWorkflow,

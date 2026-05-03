@@ -214,7 +214,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
         fullWidth
         sx={{
           "& .MuiDialog-paper": {
-            borderRadius: "12px",
+            borderRadius: "var(--rounded-xl)",
             backgroundColor: theme.vars.palette.grey[1000]
           }
         }}

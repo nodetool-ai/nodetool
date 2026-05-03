@@ -34,6 +34,7 @@ export class Message extends DBModel {
   declare agent_execution_id: string | null;
   declare execution_event_type: string | null;
   declare workflow_target: string | null;
+  declare media_generation: Record<string, unknown> | null;
   declare created_at: string;
 
   constructor(data: Record<string, unknown>) {
@@ -57,6 +58,7 @@ export class Message extends DBModel {
     this.agent_execution_id ??= null;
     this.execution_event_type ??= null;
     this.workflow_target ??= null;
+    this.media_generation ??= null;
     this.created_at ??= now;
 
     // Drizzle handles JSON<->text via jsonText custom type, but handle
@@ -84,15 +86,14 @@ export class Message extends DBModel {
   ): Promise<[Message[], string]> {
     const { limit = 50, reverse = false } = opts;
     const db = getDb();
-    const rows = db
+    const rows = await db
       .select()
       .from(messages)
       .where(eq(messages.thread_id, threadId))
       .orderBy(reverse ? desc(messages.created_at) : asc(messages.created_at))
       .limit(limit + 1)
-      .all();
 
-    const items = rows.map((r) => new Message(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Message(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";

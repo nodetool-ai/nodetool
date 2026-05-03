@@ -6,9 +6,9 @@
  * Uses runAgentLoop() from agents.ts for the loop mechanics.
  */
 
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { NodeClass } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ToolLike } from "./agents.js";
 import { runAgentLoop } from "./agents.js";
 import { exec } from "node:child_process";
@@ -141,7 +141,7 @@ async function getAssetBytes(
     // Handle /api/storage/ paths — resolve to local asset files on disk
     if (asset.uri.startsWith("/api/storage/")) {
       try {
-        const { getDefaultAssetsPath } = await import("@nodetool/config");
+        const { getDefaultAssetsPath } = await import("@nodetool-ai/config");
         const isTemp = asset.uri.startsWith("/api/storage/temp/");
         const key = isTemp
           ? asset.uri.slice("/api/storage/temp/".length)
@@ -430,7 +430,7 @@ class ToolAgentNode extends BaseNode {
     const contentParts = assetParts.map((part) => {
       if (part.type === "image") {
         return {
-          type: "image" as const,
+          type: "image_url" as const,
           image: { data: part.image.data, mimeType: part.image.mimeType }
         };
       }
@@ -1537,7 +1537,7 @@ export class PdfLibAgentNode extends ToolAgentNode {
     "  Example text: page.get_text().\n" +
     "- pdf-lib (JS): PDFDocument.load/create, copyPages, addPage, drawText, drawRectangle, save.\n" +
     "  Use Node scripts for merge/split/edit and form-safe updates.\n" +
-    "- pdfjs-dist (JS): getDocument, getPage, getTextContent, getAnnotations for browser pipelines.\n" +
+    "- @llamaindex/liteparse (JS): LiteParse class, parse() for text/OCR extraction with bounding boxes.\n" +
     "- poppler-utils:\n" +
     "  pdftotext -bbox-layout for coordinates;\n" +
     "  pdftoppm for rasterization;\n" +

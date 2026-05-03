@@ -258,7 +258,7 @@ interface PricingRequestThrottle {
 
 async function fetchPricingBatchOnce(
   batch: string[],
-  headers: HeadersInit,
+  headers: Record<string, string>,
   requestThrottle: PricingRequestThrottle,
 ): Promise<Response> {
   if (requestThrottle.minGapMs > 0) {

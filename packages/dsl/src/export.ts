@@ -1,6 +1,6 @@
-import { ALL_BASE_NODES } from "@nodetool/base-nodes";
-import { getNodeMetadata, type NodeMetadata } from "@nodetool/node-sdk";
-import type { Edge } from "@nodetool/protocol";
+import { ALL_BASE_NODES } from "@nodetool-ai/base-nodes";
+import { getNodeMetadata, type NodeMetadata } from "@nodetool-ai/node-sdk";
+import type { Edge } from "@nodetool-ai/protocol";
 
 interface WorkflowLike {
   nodes: Array<Record<string, unknown>>;
@@ -622,7 +622,7 @@ export function workflowToDsl(
   const imports = [...helperImports, ...namespaceImports].sort();
   const terminalRefs = terminalNodes.map((node) => variableNames.get(node.id)!);
   const lines: string[] = [];
-  lines.push(`import { ${imports.join(", ")} } from "@nodetool/dsl";`);
+  lines.push(`import { ${imports.join(", ")} } from "@nodetool-ai/dsl";`);
   lines.push("");
 
   for (const node of orderedNodes) {

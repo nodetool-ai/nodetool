@@ -41,7 +41,7 @@ jest.mock("../../../stores/NotificationStore", () => ({
 }));
 
 // Mock as browser environment (default)
-jest.mock("../../../stores/ApiClient", () => ({
+jest.mock("../../../lib/env", () => ({
   isElectron: false
 }));
 

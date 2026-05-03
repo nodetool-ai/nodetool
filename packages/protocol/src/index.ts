@@ -1,5 +1,5 @@
 /**
- * @nodetool/protocol – Public API
+ * @nodetool-ai/protocol – Public API
  */
 
 export * from "./messages.js";
@@ -13,3 +13,4 @@ export {
   type WrappedPrimitive
 } from "./wrap-primitives.js";
 export * from "./toolSchemas.js";
+export * from "./agent-protocol.js";

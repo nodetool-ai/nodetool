@@ -16,27 +16,18 @@ import TabIcon from "@mui/icons-material/Tab";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../stores/AssetStore";
-import log from "loglevel";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useFileTabsStore } from "../../stores/FileTabsStore";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
 import AssetInfoPanel from "./AssetInfoPanel";
+import { shallow } from "zustand/shallow";
 
 const AssetItemContextMenu = () => {
-  // Combine multiple ContextMenuStore subscriptions into a single selector
-  const { menuPosition, closeContextMenu } = useContextMenuStore(
-    useCallback(
-      (state) => ({
-        menuPosition: state.menuPosition,
-        closeContextMenu: state.closeContextMenu
-      }),
-      []
-    )
-  );
+  const menuPosition = useContextMenuStore((state) => state.menuPosition);
+  const closeContextMenu = useContextMenuStore((state) => state.closeContextMenu);
 
-  // Combine multiple AssetGridStore subscriptions into a single selector
   const {
     setRenameDialogOpen,
     setMoveToFolderDialogOpen,
@@ -46,44 +37,23 @@ const AssetItemContextMenu = () => {
     openCompareView,
     setCreateFolderDialogOpen
   } = useAssetGridStore(
-    useCallback(
-      (state) => ({
-        setRenameDialogOpen: state.setRenameDialogOpen,
-        setMoveToFolderDialogOpen: state.setMoveToFolderDialogOpen,
-        setDeleteDialogOpen: state.setDeleteDialogOpen,
-        selectedAssetIds: state.selectedAssetIds,
-        selectedAssets: state.selectedAssets,
-        openCompareView: state.openCompareView,
-        setCreateFolderDialogOpen: state.setCreateFolderDialogOpen
-      }),
-      []
-    )
+    (state) => ({
+      setRenameDialogOpen: state.setRenameDialogOpen,
+      setMoveToFolderDialogOpen: state.setMoveToFolderDialogOpen,
+      setDeleteDialogOpen: state.setDeleteDialogOpen,
+      selectedAssetIds: state.selectedAssetIds,
+      selectedAssets: state.selectedAssets,
+      openCompareView: state.openCompareView,
+      setCreateFolderDialogOpen: state.setCreateFolderDialogOpen
+    }),
+    shallow
   );
 
-  // AssetStore subscription
-  const { download } = useAssetStore(
-    useCallback(
-      (state) => ({
-        download: state.download
-      }),
-      []
-    )
-  );
+  const download = useAssetStore((state) => state.download);
+  const addNotification = useNotificationStore((state) => state.addNotification);
 
-  // NotificationStore subscription
-  const { addNotification } = useNotificationStore(
-    useCallback(
-      (state) => ({
-        addNotification: state.addNotification
-      }),
-      []
-    )
-  );
-
-  // FileTabsStore subscription
   const openFileTab = useFileTabsStore((state) => state.openFileTab);
 
-  // Check if any selected items are folders
   const isFolder = selectedAssets.some(
     (asset) => asset.content_type === "folder"
   );
@@ -130,7 +100,7 @@ const AssetItemContextMenu = () => {
         alert: true
       });
     } catch (error) {
-      log.error("Failed to copy to clipboard", error);
+      console.error("Failed to copy to clipboard", error);
       addNotification({
         type: "error",
         content: "Failed to copy to clipboard",
@@ -153,7 +123,7 @@ const AssetItemContextMenu = () => {
         alert: true
       });
     } catch (error) {
-      log.error("Download failed", error);
+      console.error("Download failed", error);
       addNotification({
         type: "error",
         content: "Download failed. Please check the console for more details.",

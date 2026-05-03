@@ -4,7 +4,6 @@ import { NodeData } from "./NodeData";
 import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import useMetadataStore from "./MetadataStore";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
-import log from "loglevel";
 
 export function graphNodeToReactFlowNode(
   workflow: Workflow,
@@ -20,7 +19,7 @@ export function graphNodeToReactFlowNode(
     typeof node.data === "object" &&
     "workflow_id" in node.data
   ) {
-    log.warn(
+    console.warn(
       `[graphNodeToReactFlowNode] Node ${node.id} has stale workflow_id in data:`,
       (node.data as Record<string, unknown>).workflow_id,
       "will use:",
@@ -81,7 +80,9 @@ export function graphNodeToReactFlowNode(
       workflow_id: workflow.id,
       title: ui_properties?.title,
       color: ui_properties?.color,
-      originalType: node.type
+      originalType: node.type,
+      model_id: ui_properties?.model_id,
+      endpoint_id: ui_properties?.endpoint_id
     },
     position: ui_properties?.position || { x: 0, y: 0 },
     // Set both top-level width/height (used by ReactFlow after resize) and style (for initial render)

@@ -2,9 +2,10 @@
  * Tests for HandleTooltip component accessibility features
  */
 
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { HandleTooltip } from '../HandleTooltip';
 import { TypeMetadata } from '../../stores/ApiTypes';
+import useConnectionStore from '../../stores/ConnectionStore';
 
 // Mock the dependencies
 jest.mock('../../utils/MousePosition', () => ({
@@ -20,6 +21,10 @@ jest.mock('react-dom', () => ({
   ...jest.requireActual('react-dom'),
   createPortal: (node: React.ReactNode) => node
 }));
+
+jest.mock('../../stores/ConnectionStore');
+
+const mockUseConnectionStore = useConnectionStore as unknown as jest.Mock;
 
 describe('HandleTooltip', () => {
   const createMockTypeMetadata = (type: string): TypeMetadata => ({
@@ -37,6 +42,9 @@ describe('HandleTooltip', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseConnectionStore.mockImplementation((selector: (state: { connecting: boolean; isReconnecting: boolean }) => unknown) =>
+      selector({ connecting: false, isReconnecting: false })
+    );
   });
 
   describe('Accessibility Attributes', () => {
@@ -191,6 +199,52 @@ describe('HandleTooltip', () => {
       // Should not throw even with rapid events
       const button = screen.getByRole('button');
       expect(button).toBeInTheDocument();
+
+      jest.useRealTimers();
+    });
+
+    it('should wait longer before showing on hover', () => {
+      jest.useFakeTimers();
+
+      render(<HandleTooltip {...defaultProps} />);
+
+      const wrapper = screen.getByRole('button');
+
+      act(() => {
+        fireEvent.mouseEnter(wrapper);
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+
+      expect(document.querySelector('[role="tooltip"]')).not.toBeInTheDocument();
+
+      act(() => {
+        jest.advanceTimersByTime(200);
+      });
+
+      expect(document.querySelector('[role="tooltip"]')).toBeInTheDocument();
+
+      jest.useRealTimers();
+    });
+
+    it('should not show tooltip while a connection drag is active', () => {
+      jest.useFakeTimers();
+      mockUseConnectionStore.mockImplementation((selector: (state: { connecting: boolean; isReconnecting: boolean }) => unknown) =>
+        selector({ connecting: true, isReconnecting: false })
+      );
+
+      render(<HandleTooltip {...defaultProps} />);
+
+      const wrapper = screen.getByRole('button');
+
+      act(() => {
+        fireEvent.mouseEnter(wrapper);
+        jest.advanceTimersByTime(1500);
+      });
+
+      expect(document.querySelector('[role="tooltip"]')).not.toBeInTheDocument();
 
       jest.useRealTimers();
     });

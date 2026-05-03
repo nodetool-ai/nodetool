@@ -1,5 +1,5 @@
-import { workflow, createNode, type SingleOutput } from "@nodetool/dsl";
-import type { ImageRef } from "@nodetool/dsl";
+import { workflow, createNode, type SingleOutput } from "@nodetool-ai/dsl";
+import type { ImageRef } from "@nodetool-ai/dsl";
 
 function fluxDev(inputs: { prompt: string; image_size?: string }) {
   return createNode<SingleOutput<ImageRef>>("fal.text_to_image.FluxDev", inputs as Record<string, unknown>);

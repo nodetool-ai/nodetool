@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { WorkflowRunner } from "@nodetool/kernel";
-import { NodeRegistry } from "@nodetool/node-sdk";
-import type { NodeDescriptor, Edge } from "@nodetool/protocol";
-import { ProcessingContext } from "@nodetool/runtime";
+import { WorkflowRunner } from "@nodetool-ai/kernel";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
+import { ProcessingContext } from "@nodetool-ai/runtime";
 import { registerBaseNodes, WorkflowNode } from "../src/index.js";
 
 function makeRegistry(): NodeRegistry {

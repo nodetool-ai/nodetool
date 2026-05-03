@@ -8,7 +8,6 @@
  * GlobalChatStore via pure reducer helpers here so connection logic stays in
  * the store while message handling remains testable.
  */
-import log from "loglevel";
 
 /**
  * Chunk deduplication cache to prevent duplicate chunks from being processed
@@ -45,7 +44,7 @@ function isChunkDuplicate(
     cached.content === chunkContent &&
     cached.messageLength === currentMessageLength
   ) {
-    log.debug(
+    console.debug(
       `Chunk dedup: Skipping duplicate chunk for thread ${threadId}: "${chunkContent.substring(0, 50)}..."`
     );
     return true;
@@ -342,15 +341,15 @@ const applyNodeUpdate = (
 };
 
 const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
-  const threadId = state.currentThreadId;
+  const threadId = chunk.thread_id ?? state.currentThreadId;
   if (!threadId) {
-    log.warn("applyChunk: No currentThreadId, dropping chunk");
+    console.warn("applyChunk: No thread_id or currentThreadId, dropping chunk");
     return noopUpdate;
   }
 
   const thread = state.threads[threadId];
   if (!thread) {
-    log.warn(`applyChunk: Thread ${threadId} not found, dropping chunk`);
+    console.warn(`applyChunk: Thread ${threadId} not found, dropping chunk`);
     return noopUpdate;
   }
 
@@ -409,9 +408,16 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
   // Record this chunk as processed for deduplication
   recordProcessedChunk(threadId, chunk.content, newMessageLength);
 
+  // Preserve statusMessage during media generation (it's set from
+  // content_metadata.media_generation in the chunk handler above).
+  // Only clear it when the stream finishes (done=true) or when the
+  // chunk carries actual text content (regular LLM streaming).
+  const keepStatusMessage =
+    !chunk.done && !chunk.content && state.statusMessage;
+
   const baseUpdate: Partial<GlobalChatState> = {
     status: chunk.done ? "connected" : "streaming",
-    statusMessage: null,
+    statusMessage: keepStatusMessage ? state.statusMessage : null,
     messageCache: {
       ...state.messageCache,
       [threadId]: updatedMessages
@@ -430,7 +436,7 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
     const { selectedModel, summarizeThread, updateThreadTitle } = get();
     const messagesAfterUpdate = get().messageCache[threadId] || [];
     if (messagesAfterUpdate.length === 2) {
-      log.debug("Triggering thread summarization for thread:", threadId);
+      console.debug("Triggering thread summarization for thread:", threadId);
     }
 
     const assistantMessages = messagesAfterUpdate.filter(
@@ -649,7 +655,7 @@ const applyAgentExecutionMessage = (
   const agentMsg = msg as Message & {
     execution_event_type?: string;
   };
-  log.debug("applyAgentExecutionMessage:", {
+  console.debug("applyAgentExecutionMessage:", {
     execution_event_type: agentMsg.execution_event_type,
     content_type: typeof agentMsg.content,
     content_is_array: Array.isArray(agentMsg.content),
@@ -658,12 +664,12 @@ const applyAgentExecutionMessage = (
 
   if (agentMsg.execution_event_type === "planning_update") {
     const content = agentMsg.content;
-    log.debug("PlanningUpdate content:", content);
+    console.debug("PlanningUpdate content:", content);
     if (content && typeof content === "object" && !Array.isArray(content)) {
       update.currentPlanningUpdate = content as unknown as PlanningUpdate;
-      log.info("Set currentPlanningUpdate:", content);
+      console.info("Set currentPlanningUpdate:", content);
     } else {
-      log.warn("PlanningUpdate content is invalid:", content);
+      console.warn("PlanningUpdate content is invalid:", content);
     }
   } else if (agentMsg.execution_event_type === "task_update") {
     const content = agentMsg.content;
@@ -715,6 +721,13 @@ const applyAssistantMessage = (
   messages: Message[],
   msg: Message
 ) => {
+  const isCurrentThreadMessage = threadId === state.currentThreadId;
+  const shouldResetStatusOnAssistantMessage =
+    isCurrentThreadMessage &&
+    (state.status === "loading" ||
+      state.status === "streaming" ||
+      state.status === "stopping");
+
   const normalizeTextForComparison = (text: string) =>
     text.replace(/\r\n/g, "\n").replace(/\s+$/g, "");
 
@@ -850,7 +863,18 @@ const applyAssistantMessage = (
       },
       threads: state.threads[threadId]
         ? updateThreadTimestamp(threadId, state.threads)
-        : state.threads
+        : state.threads,
+      ...(shouldResetStatusOnAssistantMessage
+        ? {
+            status: "connected" as const,
+            progress: { current: 0, total: 0 },
+            statusMessage: null,
+            currentPlanningUpdate: null,
+            currentTaskUpdate: null,
+            currentTaskUpdateThreadId: null,
+            currentLogUpdate: null
+          }
+        : {})
     },
     postAction
   };
@@ -910,11 +934,17 @@ const applyNodeProgress = (
       );
   }
 
+  // Keep the existing statusMessage for heartbeat ticks (empty chunk, total=0)
+  // so the "Generating image…" label set from the chunk metadata stays visible.
+  const statusMessage =
+    progress.chunk
+      ? progress.chunk
+      : state.statusMessage;
   return {
     update: {
       status: "loading",
       progress: { current: progress.progress, total: progress.total },
-      statusMessage: null
+      statusMessage
     }
   };
 };
@@ -955,7 +985,7 @@ async function executeToolCall(
   });
 
   if (!FrontendToolRegistry.has(name)) {
-    log.warn(`Unknown tool: ${name}`);
+    console.warn(`Unknown tool: ${name}`);
     try {
       await wsManager.send({
         type: "tool_result",
@@ -966,7 +996,7 @@ async function executeToolCall(
         result: { error: `Unsupported tool: ${name}` }
       });
     } catch (error) {
-      log.error("Failed to send tool_result for unknown tool:", error);
+      console.error("Failed to send tool_result for unknown tool:", error);
     }
     return;
   }
@@ -979,7 +1009,7 @@ async function executeToolCall(
       try {
         await get().frontendToolState.fetchWorkflow(threadWorkflowId);
       } catch (e) {
-        log.warn("Failed to fetch workflow for tool call:", e);
+        console.warn("Failed to fetch workflow for tool call:", e);
       }
     }
 
@@ -1017,12 +1047,12 @@ async function executeToolCall(
         elapsed_ms: elapsedMs
       });
     } catch (error) {
-      log.error("Failed to send tool_result:", error);
+      console.error("Failed to send tool_result:", error);
     }
   } catch (error) {
     const elapsedMs = Date.now() - startTime;
     const message = error instanceof Error ? error.message : "Unknown error";
-    log.error(`Tool execution failed for ${name}:`, error);
+    console.error(`Tool execution failed for ${name}:`, error);
     try {
       await wsManager.send({
         type: "tool_result",
@@ -1034,7 +1064,7 @@ async function executeToolCall(
         elapsed_ms: elapsedMs
       });
     } catch (sendError) {
-      log.error("Failed to send tool_result after error:", sendError);
+      console.error("Failed to send tool_result after error:", sendError);
     }
   }
 }
@@ -1047,7 +1077,7 @@ export async function handleChatWebSocketMessage(
   const currentState = get();
 
   if (currentState.status === "stopping") {
-    if (!["generation_stopped", "error", "job_update"].includes(data.type)) {
+    if (!["generation_stopped", "error", "job_update"].includes(data.type ?? "")) {
       return;
     }
   }
@@ -1089,7 +1119,7 @@ export async function handleChatWebSocketMessage(
   } else if (data.type === "chunk") {
     const chunk = data as Chunk;
     if (chunk.done) {
-      log.info("Received final chunk (done=true), clearing timeout");
+      console.info("Received final chunk (done=true), clearing timeout");
       // Clear the safety timeout when generation completes
       const timeoutId = get().sendMessageTimeoutId;
       if (timeoutId !== null) {
@@ -1097,13 +1127,42 @@ export async function handleChatWebSocketMessage(
         set({ sendMessageTimeoutId: null });
       }
     }
+    // Surface a progress message for media generation chunks so the UI
+    // shows "Generating image…" / "Generating video…" instead of "Thinking…"
+    const mediaMeta = chunk.content_metadata?.media_generation as
+      | Record<string, unknown>
+      | undefined;
+    if (mediaMeta && !chunk.done) {
+      const mode = String(mediaMeta.mode ?? "");
+      const model = mediaMeta.model ? String(mediaMeta.model) : "";
+      const label =
+        mode === "image"
+          ? "Generating image"
+          : mode === "video"
+            ? "Generating video"
+            : "Generating";
+      set({ statusMessage: model ? `${label} with ${model}…` : `${label}…` });
+    }
     applyReducer(applyChunk, chunk);
   } else if (data.type === "output_update") {
     applyReducer(applyOutputUpdate, data as OutputUpdate);
   } else if (data.type === "tool_call_update") {
     applyReducer(applyToolCallUpdate, data as ToolCallUpdate);
   } else if (data.type === "message") {
-    applyReducer(applyMessage, data as Message);
+    const messageData = data as Message;
+    const currentThreadId = get().currentThreadId;
+    const messageThreadId = messageData.thread_id ?? currentThreadId;
+    if (
+      messageData.role === "assistant" &&
+      messageThreadId === currentThreadId
+    ) {
+      const timeoutId = get().sendMessageTimeoutId;
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        set({ sendMessageTimeoutId: null });
+      }
+    }
+    applyReducer(applyMessage, messageData);
   } else if (data.type === "node_progress") {
     applyReducer(applyNodeProgress, data as NodeProgress);
   } else if (data.type === "tool_call") {
@@ -1121,7 +1180,7 @@ export async function handleChatWebSocketMessage(
       data as GenerationStoppedUpdate
     );
     const stoppedData = data as GenerationStoppedUpdate;
-    log.info("Generation stopped:", stoppedData.message);
+    console.info("Generation stopped:", stoppedData.message);
   } else if (data.type === "workflow_created" || data.type === "workflow_updated") {
     const workflowData = data as WorkflowCreatedUpdate | WorkflowUpdatedUpdate;
     const threadId = get().currentThreadId;
@@ -1133,7 +1192,7 @@ export async function handleChatWebSocketMessage(
         }
       }));
     }
-    log.debug(`${data.type}:`, workflowData.workflow_id);
+    console.debug(`${data.type}:`, workflowData.workflow_id);
   } else if (data.type === "error") {
     const errorData = data as ErrorMessage;
     // Clear the safety timeout on error

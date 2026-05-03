@@ -118,15 +118,14 @@ export class Prediction extends DBModel {
     if (provider) conditions.push(eq(predictions.provider, provider));
     if (model) conditions.push(eq(predictions.model, model));
 
-    const rows = db
+    const rows = await db
       .select()
       .from(predictions)
       .where(and(...conditions))
       .orderBy(desc(predictions.created_at))
       .limit(limit + 1)
-      .all();
 
-    const items = rows.map((r) => new Prediction(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Prediction(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -143,12 +142,11 @@ export class Prediction extends DBModel {
       conditions.push(eq(predictions.provider, opts.provider));
     if (opts?.model) conditions.push(eq(predictions.model, opts.model));
 
-    const rows = db
+    const rows = await db
       .select()
       .from(predictions)
       .where(and(...conditions))
       .limit(10000)
-      .all();
 
     let total_cost = 0;
     let total_input_tokens = 0;
@@ -178,12 +176,11 @@ export class Prediction extends DBModel {
     userId: string
   ): Promise<ProviderAggregateResult[]> {
     const db = getDb();
-    const rows = db
+    const rows = await db
       .select()
       .from(predictions)
       .where(eq(predictions.user_id, userId))
       .limit(10000)
-      .all();
 
     const groups = new Map<string, ProviderAggregateResult>();
     for (const p of rows) {
@@ -219,12 +216,11 @@ export class Prediction extends DBModel {
     if (opts?.provider)
       conditions.push(eq(predictions.provider, opts.provider));
 
-    const rows = db
+    const rows = await db
       .select()
       .from(predictions)
       .where(and(...conditions))
       .limit(10000)
-      .all();
 
     const groups = new Map<string, ModelAggregateResult>();
     for (const p of rows) {

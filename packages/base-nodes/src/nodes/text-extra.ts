@@ -1,5 +1,5 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import { extname, join } from "node:path";
 
@@ -1648,7 +1648,8 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
       metadata: null
     },
     title: "Audio",
-    description: "The audio to transcribe"
+    description: "The audio to transcribe",
+    required: true
   })
   declare audio: any;
 
@@ -1786,9 +1787,12 @@ export class SaveTextFileNode extends BaseNode {
       throw new Error("folder cannot be empty");
     }
     await fs.mkdir(folder, { recursive: true });
-    const path = join(folder, name);
-    await fs.writeFile(path, text, "utf-8");
-    return { output: { uri: path, data: text } };
+    const fsPath = join(folder, name);
+    await fs.writeFile(fsPath, text, "utf-8");
+    // The output `uri` is a portable, URI-style path (forward slashes) so
+    // downstream nodes and the web UI never have to special-case Windows.
+    const uri = fsPath.replace(/\\/g, "/");
+    return { output: { uri, data: text } };
   }
 }
 
@@ -2199,10 +2203,11 @@ export class ConcatTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Concat";
   static readonly title = "Concatenate Text";
   static readonly description =
-    "Concatenates two text inputs into a single output.\n    text, combine, add, concatenate, merge, join, append";
+    "Concatenates text inputs into a single output.\n    text, combine, add, concatenate, merge, join, append";
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly isDynamic = true;
 
   @prop({ type: "str", default: "", title: "A", description: "First text input." })
   declare a: any;
@@ -2211,7 +2216,10 @@ export class ConcatTextNode extends BaseNode {
   declare b: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return { output: String(this.a ?? "") + String(this.b ?? "") };
+    const values = [this.a, this.b, ...Array.from(this.dynamicProps.values())].map(
+      (value) => String(value ?? "")
+    );
+    return { output: values.join("") };
   }
 }
 
@@ -2324,10 +2332,7 @@ export class FormatTextNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     let result = String(this.template ?? "");
-    const dynProps = (this as Record<string, unknown>)._dynamic_properties as
-      | Record<string, unknown>
-      | undefined;
-    const props: Record<string, unknown> = dynProps ? { ...dynProps } : {};
+    const props: Record<string, unknown> = Object.fromEntries(this.dynamicProps);
 
     // Handle {{ var|filter1|filter2 }} syntax
     result = result.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_match, expr: string) => {
@@ -2343,8 +2348,9 @@ export class FormatTextNode extends BaseNode {
     // Handle {variable} syntax (no filters)
     for (const [key, value] of Object.entries(props)) {
       const strValue = String(value ?? "");
-      const single = new RegExp(`(?<!\\{)\\{${key}\\}(?!\\})`, "g");
-      result = result.replace(single, strValue);
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const single = new RegExp(`(?<!\\{)\\{${escapedKey}\\}(?!\\})`, "g");
+      result = result.replace(single, () => strValue);
     }
     return { output: result };
   }
@@ -2371,17 +2377,15 @@ export class TemplateTextNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     let result = String(this.string ?? "");
-    const dynProps = (this as Record<string, unknown>)._dynamic_properties as
-      | Record<string, unknown>
-      | undefined;
-    const props: Record<string, unknown> = dynProps ? { ...dynProps } : {};
+    const props: Record<string, unknown> = Object.fromEntries(this.dynamicProps);
 
     for (const [key, value] of Object.entries(props)) {
       const strValue = String(value ?? "");
-      const jinja = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, "g");
-      result = result.replace(jinja, strValue);
-      const single = new RegExp(`(?<!\\{)\\{${key}\\}(?!\\})`, "g");
-      result = result.replace(single, strValue);
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const jinja = new RegExp(`\\{\\{\\s*${escapedKey}\\s*\\}\\}`, "g");
+      result = result.replace(jinja, () => strValue);
+      const single = new RegExp(`(?<!\\{)\\{${escapedKey}\\}(?!\\})`, "g");
+      result = result.replace(single, () => strValue);
     }
     return { output: result };
   }
@@ -2439,11 +2443,27 @@ export class ToStringNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const v = this.value;
     const mode = String(this.mode ?? "str");
+    const toJsonString = (value: unknown): string => {
+      if (value === undefined) {
+        return "";
+      }
+      try {
+        const json = JSON.stringify(value);
+        if (json === undefined) {
+          return "";
+        }
+        return json;
+      } catch (_error) {
+        // JSON.stringify can fail for non-serializable values (e.g. circular objects).
+        return String(value);
+      }
+    };
+
     if (mode === "repr") {
-      return { output: JSON.stringify(v) };
+      return { output: toJsonString(v) };
     }
     if (v === null || v === undefined) return { output: "" };
-    if (typeof v === "object") return { output: JSON.stringify(v) };
+    if (typeof v === "object") return { output: toJsonString(v) };
     return { output: String(v) };
   }
 }

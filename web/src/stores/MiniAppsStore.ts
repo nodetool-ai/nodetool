@@ -121,10 +121,13 @@ export const useMiniAppsStore = create<MiniAppsState>((set) => ({
     set((state) => {
       const current = ensureWorkflowState(state.apps, workflowId);
       const index = current.results.findIndex((item) => item.id === result.id);
-      const nextResults =
-        index >= 0
-          ? current.results.map((item, idx) => (idx === index ? result : item))
-          : [...current.results, result];
+      let nextResults;
+      if (index >= 0) {
+        nextResults = [...current.results];
+        nextResults[index] = result;
+      } else {
+        nextResults = [...current.results, result];
+      }
       return {
         apps: {
           ...state.apps,

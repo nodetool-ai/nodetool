@@ -2,7 +2,7 @@
  * Logging — matches Python's nodetool logging format.
  *
  * Usage:
- *   import { createLogger } from "@nodetool/config";
+ *   import { createLogger } from "@nodetool-ai/config";
  *   const log = createLogger("nodetool.kernel.runner");
  *   log.info("Workflow started", { jobId });
  *   log.debug("Node executing", { nodeId, type });
@@ -31,7 +31,24 @@ const LEVEL_NUM: Record<LogLevel, number> = {
   error: 3
 };
 
-let currentLevel: LogLevel = "info";
+/** Maps Python-style log level names to their JS equivalents. */
+const LEVEL_ALIASES: Record<string, LogLevel> = {
+  warning: "warn",
+  critical: "error"
+};
+
+function normalizeLevel(raw: string): LogLevel | null {
+  const lower = raw.toLowerCase();
+  if ((VALID_LEVELS as string[]).includes(lower)) return lower as LogLevel;
+  return LEVEL_ALIASES[lower] ?? null;
+}
+
+// Initialize eagerly from env so configureLogging() is optional for entry
+// points (e.g. the WebSocket server) that skip the explicit call.
+let currentLevel: LogLevel =
+  normalizeLevel(
+    process.env["NODETOOL_LOG_LEVEL"] ?? process.env["LOG_LEVEL"] ?? ""
+  ) ?? "info";
 
 /** File descriptor for log output. Defaults to stderr; set via NODETOOL_LOG_FILE. */
 let logFd: number | null = null;
@@ -47,12 +64,9 @@ export function configureLogging(opts: LoggingOptions = {}): void {
   if (opts.level) {
     currentLevel = opts.level;
   } else {
-    const envLevel = (
-      process.env["NODETOOL_LOG_LEVEL"] ??
-      process.env["LOG_LEVEL"] ??
-      "info"
-    ).toLowerCase() as LogLevel;
-    currentLevel = VALID_LEVELS.includes(envLevel) ? envLevel : "info";
+    const envRaw =
+      process.env["NODETOOL_LOG_LEVEL"] ?? process.env["LOG_LEVEL"] ?? "info";
+    currentLevel = normalizeLevel(envRaw) ?? "info";
   }
 
   // Open log file if configured (lazy import to keep module lightweight)
@@ -99,6 +113,22 @@ function timestamp(): string {
   return `${hh}:${mm}:${ss}`;
 }
 
+// JSON.stringify replacer that unwraps Error instances — their own fields
+// (`message`, `stack`, `name`) are non-enumerable, so the default serializer
+// produces "{}". Without this, nested errors like `{ provider, error }` lose
+// all diagnostic information in the log output.
+function jsonReplacer(_key: string, value: unknown): unknown {
+  if (value instanceof Error) {
+    return {
+      name: value.name,
+      message: value.message,
+      ...(value.stack ? { stack: value.stack } : {}),
+      ...(value.cause !== undefined ? { cause: value.cause } : {})
+    };
+  }
+  return value;
+}
+
 function formatArgs(args: unknown[]): string {
   if (args.length === 0) return "";
   return (
@@ -106,7 +136,13 @@ function formatArgs(args: unknown[]): string {
     args
       .map((a) => {
         if (a instanceof Error) return a.stack ?? a.message;
-        if (typeof a === "object" && a !== null) return JSON.stringify(a);
+        if (typeof a === "object" && a !== null) {
+          try {
+            return JSON.stringify(a, jsonReplacer);
+          } catch {
+            return String(a);
+          }
+        }
         return String(a);
       })
       .join(" ")

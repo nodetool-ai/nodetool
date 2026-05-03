@@ -51,7 +51,7 @@ export const config: ModuleConfig = {
       basicFields: ["text"]
     },
     "openrouter/router/openai/v1/responses": {
-      className: "OpenrouterRouterOpenaiV1Responses",
+      className: "RouterOpenaiV1Responses",
       docstring:
         "The OpenRouter Responses API with fal, powered by OpenRouter, provides unified access to a wide range of large language models - including GPT, Claude, Gemini, and many others through a single API interface.",
       tags: ["llm", "language-model", "text-generation", "ai"],
@@ -64,7 +64,7 @@ export const config: ModuleConfig = {
       ]
     },
     "openrouter/router/openai/v1/embeddings": {
-      className: "OpenrouterRouterOpenaiV1Embeddings",
+      className: "RouterOpenaiV1Embeddings",
       docstring:
         "The OpenRouter Embeddings API with fal, powered by OpenRouter, provides unified access to a wide range of large language models - including GPT, Claude, Gemini, and many others through a single API interface.",
       tags: ["llm", "language-model", "text-generation", "ai"],
@@ -87,6 +87,18 @@ export const config: ModuleConfig = {
         "Content summarization",
         "Code generation",
         "Creative writing assistance"
+      ]
+    },
+    "nvidia/nemotron-3-nano-omni": {
+      className: "Nemotron3NanoOmni",
+      docstring: "Nvidia Nemotron 3 Nano Omni multimodal LLM.",
+      tags: ["llm", "language-model", "text-generation", "nvidia", "nemotron"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
       ]
     }
   }

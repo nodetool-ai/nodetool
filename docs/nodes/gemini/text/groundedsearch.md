@@ -28,7 +28,7 @@ Search the web using Google's Gemini API with grounding capabilities.
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
 | query | `str` | The search query to execute | `` |
-| model | `Enum['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash']` | The Gemini model to use for search | `gemini-2.0-flash` |
+| model | `Enum['gemini-3.1-pro-preview', 'gemini-3.1-flash-image-preview', 'gemini-3-pro-image-preview', 'gemini-3-flash-preview', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']` | The Gemini model to use for search | `gemini-3-flash-preview` |
 
 ## Outputs
 
@@ -36,6 +36,7 @@ Search the web using Google's Gemini API with grounding capabilities.
 |--------|------|-------------|
 | results | `List[str]` |  |
 | sources | `List[source]` |  |
+| text | `str` |  |
 
 ## Metadata
 

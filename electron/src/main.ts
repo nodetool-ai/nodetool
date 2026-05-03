@@ -34,14 +34,22 @@ import {
   globalShortcut,
 } from "electron";
 import { createWindow, forceQuit, handleActivation } from "./window";
+import { hardenWebContents } from "./windowSecurity";
 import { setupAutoUpdater } from "./updater";
-import { setupWorkflowShortcuts } from "./shortcuts";
 import { logMessage, closeLogStream } from "./logger";
-import { initializeBackendServer, stopServer, serverState } from "./server";
+import {
+  initializeBackendServer,
+  stopServer,
+  serverState,
+  backendFailedDueToKeychain,
+} from "./server";
 import { verifyApplicationPaths, isCondaEnvironmentInstalled } from "./python";
-import { emitBootMessage, emitShowPackageManager } from "./events";
+import { emitBootMessage } from "./events";
+import {
+  KEYCHAIN_EXPLANATION_ACKNOWLEDGED_KEY,
+  showKeychainExplanationIfNeeded,
+} from "./keychainPrompt";
 import { createTray, cleanupTrayEvents } from "./tray";
-import { createWorkflowWindow } from "./workflowWindow";
 import { initializeIpcHandlers } from "./ipc";
 import { buildMenu } from "./menu";
 import assert from "assert";
@@ -51,8 +59,44 @@ import {
   checkExpectedPackageVersions,
 } from "./packageManager";
 import { IpcChannels } from "./types.d";
-import { readSettings, updateSetting, readSettingsAsync } from "./settings";
+import { updateSetting, readSettingsAsync } from "./settings";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
+
+async function initializeBackendServerWithKeychainRetry(): Promise<void> {
+  try {
+    await initializeBackendServer();
+    return;
+  } catch (error) {
+    if (!backendFailedDueToKeychain()) {
+      throw error;
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    logMessage(
+      `Backend startup failed due to keychain access. Re-prompting before one retry: ${message}`,
+      "warn"
+    );
+    // The first attempt may have left the watchdog/server subprocess partially
+    // alive. Tear it down before retrying so the second start is clean.
+    try {
+      await stopServer();
+    } catch (stopError) {
+      logMessage(
+        `Failed to stop backend before retry: ${stopError}`,
+        "warn"
+      );
+    }
+    try {
+      updateSetting(KEYCHAIN_EXPLANATION_ACKNOWLEDGED_KEY, false);
+    } catch (settingsError) {
+      logMessage(
+        `Failed to reset keychain acknowledgement: ${settingsError}`,
+        "warn"
+      );
+    }
+    await showKeychainExplanationIfNeeded({ force: true });
+    await initializeBackendServer();
+  }
+}
 
 /**
  * Global application state flags and objects
@@ -60,6 +104,40 @@ import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
 let isAppQuitting = false;
 let mainWindow: BrowserWindow | null = null;
 let isShowingUnexpectedError = false;
+
+/**
+ * Enforce single-instance semantics — a second launch surfaces the existing
+ * window instead of spawning a duplicate backend server. Skipped under
+ * `NODE_ENV=test` so automated tests can run in isolation without needing
+ * to coordinate a lock, and in dev mode where multiple developers may run
+ * concurrent Electron instances on the same machine.
+ */
+if (process.env.NODE_ENV !== "test" && !isElectronDevMode()) {
+  const gotLock = app.requestSingleInstanceLock();
+  if (!gotLock) {
+    app.quit();
+  } else {
+    app.on("second-instance", () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        if (mainWindow.isMinimized()) {
+          mainWindow.restore();
+        }
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+  }
+}
+
+/**
+ * Apply baseline hardening to every WebContents created by the app,
+ * including those spawned dynamically (e.g., devtools, OAuth popups we
+ * did not anticipate). This is the last line of defense behind the
+ * per-window hardening in `window.ts`.
+ */
+app.on("web-contents-created", (_event, contents) => {
+  hardenWebContents(contents);
+});
 
 function shouldForceQuit(error: unknown): boolean {
   // Treat only clearly fatal cases as requiring a full shutdown.
@@ -111,9 +189,10 @@ async function notifyPackageUpdates(): Promise<void> {
       return;
     }
     mainWindow.webContents.send(IpcChannels.PACKAGE_UPDATES_AVAILABLE, updates);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     logMessage(
-      `Failed to notify package updates: ${error.message ?? String(error)}`,
+      `Failed to notify package updates: ${message}`,
       "warn",
     );
   }
@@ -157,9 +236,10 @@ async function checkAndInstallExpectedPackages(): Promise<boolean> {
 
     logMessage("=== Expected Package Version Check Complete ===");
     return result.success && result.packagesUpdated > 0;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     logMessage(
-      `Failed to check/install expected packages: ${error.message ?? String(error)}`,
+      `Failed to check/install expected packages: ${message}`,
       "warn",
     );
     return false;
@@ -190,7 +270,7 @@ function assertActivatedCondaEnvironmentForDevMode(): void {
 
   const message =
     "Electron dev mode requires an activated conda environment. " +
-    "Please run `conda activate <env>` before starting `make electron-dev`.";
+    "Please run `conda activate <env>` before starting `npm run electron:dev`.";
   dialog.showErrorBox("Conda Environment Required", message);
   throw new Error(message);
 }
@@ -282,8 +362,10 @@ async function initialize(): Promise<void> {
 
     if (isDevMode) {
       logMessage("Skipping environment installation and package update checks");
+      // Explain the upcoming keychain prompt before the backend touches keytar.
+      await showKeychainExplanationIfNeeded();
       logMessage("Starting backend server");
-      await initializeBackendServer();
+      await initializeBackendServerWithKeychainRetry();
       logMessage("initializeBackendServer() completed");
       await waitForWebDevServerReady(getWebDevServerUrl());
       const timestamp = new Date().getTime();
@@ -302,9 +384,12 @@ async function initialize(): Promise<void> {
         );
       }
 
+      // Explain the upcoming keychain prompt before the backend touches keytar.
+      await showKeychainExplanationIfNeeded();
+
       // Start the backend server regardless of Python availability
       logMessage("Starting backend server");
-      await initializeBackendServer();
+      await initializeBackendServerWithKeychainRetry();
       logMessage("initializeBackendServer() completed");
 
       // Always load the web app — runtimes panel in the dashboard handles setup
@@ -426,13 +511,8 @@ app.on("ready", async () => {
       }
 
       await initialize();
-
-      // Start the MCP tool server so all agent providers can use UI tools
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        import("./mcpToolServer")
-          .then(({ startMcpToolServer }) => startMcpToolServer(mainWindow!.webContents))
-          .catch((err) => logMessage(`Failed to start MCP tool server: ${err}`, "warn"));
-      }
+      // The MCP tool server now lives on the NodeTool server alongside the
+      // agent runtime. The renderer connects via `/ws/agent`.
     }
   });
 });
@@ -536,15 +616,6 @@ app.on("will-quit", () => {
   globalShortcut.unregisterAll();
   cleanupTrayEvents();
   closeLogStream();
-
-  // Clean up Claude Agent sessions
-  import("./agent")
-    .then(({ closeAllAgentSessions }) => {
-      closeAllAgentSessions();
-    })
-    .catch(() => {
-      // Best-effort cleanup
-    });
 });
 
 export { mainWindow, isAppQuitting };

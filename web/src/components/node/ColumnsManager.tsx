@@ -2,9 +2,8 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useState, useEffect, useRef, memo, useCallback } from "react";
+import React, { useState, useEffect, useRef, memo, useCallback, useMemo } from "react";
 import { Grid, InputLabel } from "@mui/material";
-import log from "loglevel";
 import { ColumnDef } from "../../stores/ApiTypes";
 import isEqual from "fast-deep-equal";
 import Column from "./Column";
@@ -77,7 +76,7 @@ const styles = (theme: Theme) =>
       height: "1.75em"
     },
     ".textfield .MuiInputBase-root": {
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       height: "1.75em"
     },
     ".textfield input": {
@@ -90,10 +89,10 @@ const styles = (theme: Theme) =>
       margin: "0",
       padding: "0",
       border: 0,
-      borderRadius: "4px"
+      borderRadius: "var(--rounded-sm)"
     },
     ".select .MuiSelect-select": {
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       height: "1.75em",
       margin: "0",
       padding: "0.25em 0.5em",
@@ -111,7 +110,7 @@ const styles = (theme: Theme) =>
       width: "1em",
       minWidth: "1em",
       height: "1em",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
       "&:hover": {
@@ -143,10 +142,10 @@ const validDataTypes = ["string", "float", "int", "datetime"];
 
 interface ColumnsManagerProps {
   columns: ColumnDef[];
-  allData: { [key: string]: any }[];
+  allData: Record<string, unknown>[];
   onChange: (
     newColumns: ColumnDef[],
-    newData: { [key: string]: any }[]
+    newData: Record<string, unknown>[]
   ) => void;
 }
 
@@ -168,7 +167,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
       newName.trim() === "" ||
       localColumns.some((col) => col.name === newName)
     ) {
-      log.warn(
+      console.warn(
         "Invalid column name. Column names must be unique and non-empty."
       );
     }
@@ -229,6 +228,11 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
     onChange(newColumns, newData);
   }, [localColumns, allData, onChange]);
 
+  const deleteHandlers = useMemo(
+    () => localColumns.map((_, i) => () => handleDelete(i)),
+    [localColumns, handleDelete]
+  );
+
   return (
     <Grid container spacing={0} css={styles(theme)}>
       <div className="labels">
@@ -246,7 +250,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
           handleNameChange={handleNameChange}
           handleDataTypeChange={handleDataTypeChange}
           handleDescriptionChange={handleDescriptionChange}
-          onDelete={() => handleDelete(index)}
+          onDelete={deleteHandlers[index]}
           validDataTypes={validDataTypes}
         />
       ))}

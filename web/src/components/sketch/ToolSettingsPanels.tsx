@@ -5,7 +5,7 @@
  * Each panel is memoized and receives only the settings + onChange it needs.
  */
 
-import React, { memo, useState } from "react";
+import React, { memo, useEffect, useState } from "react";
 import {
   sketchSliderSx,
   toggleButtonSmallSx,
@@ -67,11 +67,27 @@ import {
   mergeRgbHexIntoColor
 } from "./types";
 import type { SamModelInfo } from "./sam";
+import {
+  FAL_SAM_CAPABILITIES,
+  LOCAL_SAM3_CAPABILITIES,
+  LOCAL_SAM3_MODEL_ID
+} from "./sam";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { TextInput } from "../ui_primitives";
+import { useSketchStore } from "./state";
+import { getLayerDataImageUrl } from "./serialization";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 /** Reusable no-op function to avoid allocations in optional prop fallbacks. */
 const noop = () => {};
+const LOCAL_SAM3_NODE_PACK_HINT = "Install or enable the HuggingFace node pack";
+const IN_PROGRESS_DOWNLOAD_STATES = [
+  "pending",
+  "running",
+  "start",
+  "progress"
+] as readonly string[];
 
 /** Matches {@link drawEraserStroke} / document migration so panel mode matches actual erase behavior. */
 function effectiveEraserMode(
@@ -1428,6 +1444,21 @@ function getSegmentationStatusMessage(status: SegmentationStatus): string {
   }
 }
 
+function getSegmentModelStatusText(
+  isLocalSam3: boolean,
+  localSam3Downloading: boolean | undefined,
+  localSam3Ready: boolean,
+  modelInfo: SamModelInfo | null
+): string | undefined {
+  if (isLocalSam3 && localSam3Downloading) {
+    return "Local SAM3 is downloading";
+  }
+  if (localSam3Ready) {
+    return "Local SAM3 is ready";
+  }
+  return modelInfo?.errorMessage;
+}
+
 interface SegmentSettingsPanelProps {
   settings: SegmentSettings;
   onChange: (settings: Partial<SegmentSettings>) => void;
@@ -1458,6 +1489,102 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
     segmentationStatus === "encoding" ||
     segmentationStatus === "checking-model";
   const isPreviewing = segmentationStatus === "previewing";
+  const localSam3Download = useModelDownloadStore(
+    (state) => state.downloads[LOCAL_SAM3_MODEL_ID]
+  );
+  const localSam3DownloadStatus = localSam3Download?.status;
+  const startDownload = useModelDownloadStore((state) => state.startDownload);
+  const cancelDownload = useModelDownloadStore((state) => state.cancelDownload);
+  const canSplitSelectedLayer = useSketchStore((state) => {
+    const selectedLayerIds =
+      state.selectedLayerIds.length > 0
+        ? state.selectedLayerIds
+        : [state.document.activeLayerId];
+    if (selectedLayerIds.length !== 1) {
+      return false;
+    }
+    const selectedLayer = state.document.layers.find(
+      (layer) => layer.id === selectedLayerIds[0]
+    );
+    return (
+      selectedLayer?.type === "raster" &&
+      !!getLayerDataImageUrl(selectedLayer.data)
+    );
+  });
+  const isLocalSam3 = settings.backend === "local-sam3";
+  const localSam3Downloading =
+    localSam3DownloadStatus !== undefined &&
+    IN_PROGRESS_DOWNLOAD_STATES.includes(localSam3DownloadStatus);
+  const localSam3Ready = isLocalSam3 && modelInfo?.status === "available";
+  const backendCapabilities =
+    modelInfo?.capabilities ??
+    (isLocalSam3
+      ? LOCAL_SAM3_CAPABILITIES
+      : {
+          ...FAL_SAM_CAPABILITIES,
+          textPrompts: false,
+          pointPrompts: false,
+          boxPrompts: false
+        });
+  const supportsPointPrompts = Boolean(backendCapabilities.pointPrompts);
+  const supportsBoxPrompts = Boolean(backendCapabilities.boxPrompts);
+  const supportsTextPrompts = Boolean(backendCapabilities.textPrompts);
+  const backendReady = modelInfo?.status === "available";
+  const canRunSegmentation =
+    backendReady &&
+    (settings.promptMode === "auto" ? canSplitSelectedLayer : true);
+  const canDownloadLocalSam3 =
+    isLocalSam3 &&
+    !!modelInfo &&
+    modelInfo.status === "not-installed" &&
+    modelInfo.errorMessage !== LOCAL_SAM3_NODE_PACK_HINT &&
+    localSam3DownloadStatus !== "completed" &&
+    !localSam3Downloading;
+  const visiblePromptModes: SegmentPromptMode[] = [
+    ...(supportsPointPrompts ? ["point" as const] : []),
+    ...(supportsBoxPrompts ? ["box" as const] : []),
+    "auto"
+  ];
+  const isCurrentPromptModeVisible =
+    settings.promptMode === "auto" ||
+    (settings.promptMode === "point" && supportsPointPrompts) ||
+    (settings.promptMode === "box" && supportsBoxPrompts);
+  const segmentActionLabel =
+    settings.promptMode === "auto"
+      ? "Split selected layer"
+      : "Segment";
+  const showClearPrompts = settings.promptMode !== "auto";
+  const backendLabel = modelInfo?.backendLabel ?? (isLocalSam3 ? "Local SAM3" : "Selected backend");
+  const modelStatusText = getSegmentModelStatusText(
+    isLocalSam3,
+    localSam3Downloading,
+    localSam3Ready,
+    modelInfo
+  );
+
+  useEffect(() => {
+    if (isCurrentPromptModeVisible) {
+      return;
+    }
+    onChange({ promptMode: "auto" });
+  }, [
+    isCurrentPromptModeVisible,
+    onChange,
+    settings.promptMode
+  ]);
+
+  useEffect(() => {
+    if (!isLocalSam3) {
+      return;
+    }
+    if (
+      localSam3DownloadStatus === "completed" ||
+      localSam3DownloadStatus === "cancelled" ||
+      localSam3DownloadStatus === "error"
+    ) {
+      onCheckModel();
+    }
+  }, [isLocalSam3, localSam3DownloadStatus, onCheckModel]);
 
   return (
     <>
@@ -1468,7 +1595,12 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           exclusive
           onChange={(_, v) => {
             if (v) {
-              onChange({ backend: v as SegmentBackend });
+              onChange({
+                backend: v as SegmentBackend,
+                // Default Local SAM3 to auto mode; prompted modes appear
+                // only when installed node metadata confirms them.
+                ...(v === "local-sam3" ? { promptMode: "auto" as const } : {})
+              });
               onCheckModel();
             }
           }}
@@ -1477,8 +1609,8 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           <ToggleButton value="fal" sx={toggleButtonSmallSx}>
             fal.ai
           </ToggleButton>
-          <ToggleButton value="node" sx={toggleButtonSmallSx}>
-            Node
+          <ToggleButton value="local-sam3" sx={toggleButtonSmallSx}>
+            Local SAM3
           </ToggleButton>
         </ToggleButtonGroup>
       </Box>
@@ -1498,14 +1630,15 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
                     : SKETCH_COLORS.textFaint
             }}
           >
-            {modelInfo.status === "available" && `✓ ${modelInfo.modelName}`}
+            {modelInfo.status === "available" &&
+              (modelStatusText ?? `✓ ${modelInfo.modelName}`)}
             {modelInfo.status === "not-installed" &&
-              (modelInfo.errorMessage ?? "Model not available")}
+              (modelStatusText ?? "Model not available")}
             {modelInfo.status === "error" &&
-              (modelInfo.errorMessage ?? "Connection failed")}
+              (modelStatusText ?? "Connection failed")}
             {modelInfo.status === "checking" && "Checking…"}
             {modelInfo.status === "downloading" &&
-              `Downloading… ${Math.round((modelInfo.downloadProgress ?? 0) * 100)}%`}
+              `${modelStatusText ?? "Downloading…"} ${Math.round((modelInfo.downloadProgress ?? 0) * 100)}%`}
           </Typography>
         </Box>
       )}
@@ -1521,12 +1654,16 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         size="small"
         sx={{ mb: "4px" }}
       >
-        <ToggleButton value="point" sx={toggleButtonSmallSx}>
-          Point
-        </ToggleButton>
-        <ToggleButton value="box" sx={toggleButtonSmallSx}>
-          Box
-        </ToggleButton>
+        {visiblePromptModes.includes("point") && (
+          <ToggleButton value="point" sx={toggleButtonSmallSx}>
+            Point
+          </ToggleButton>
+        )}
+        {visiblePromptModes.includes("box") && (
+          <ToggleButton value="box" sx={toggleButtonSmallSx}>
+            Box
+          </ToggleButton>
+        )}
         <ToggleButton value="auto" sx={toggleButtonSmallSx}>
           Auto
         </ToggleButton>
@@ -1633,25 +1770,109 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         sx={{ mt: "2px", ml: 0 }}
       />
 
+      {supportsTextPrompts && (
+        <Box className="setting-row" sx={{ alignItems: "flex-start" }}>
+          <Typography className="setting-label" sx={{ pt: "6px" }}>
+            Concept
+          </Typography>
+          <TextInput
+            compact
+            value={settings.conceptPrompt}
+            onChange={(event) => onChange({ conceptPrompt: event.target.value })}
+            placeholder="Describe the object to isolate"
+            fullWidth
+            inputProps={{ "aria-label": "Concept prompt" }}
+            sx={{
+              flex: 1,
+              "& .MuiInputBase-root": {
+                fontSize: SKETCH_FONT.xs
+              }
+            }}
+          />
+        </Box>
+      )}
+
+      {isLocalSam3 && (
+        <>
+          <Box className="setting-row">
+            <Typography className="setting-label">Points / Side</Typography>
+            <Slider
+              sx={sketchSliderSx}
+              size="small"
+              min={4}
+              max={128}
+              step={4}
+              value={settings.pointsPerSide}
+              onChange={(_, value) => onChange({ pointsPerSide: value as number })}
+            />
+            <Typography className="setting-value">{settings.pointsPerSide}</Typography>
+          </Box>
+
+          <Box className="setting-row">
+            <Typography className="setting-label">Pred IoU</Typography>
+            <Slider
+              sx={sketchSliderSx}
+              size="small"
+              min={0}
+              max={1}
+              step={0.01}
+              value={settings.predIouThresh}
+              onChange={(_, value) => onChange({ predIouThresh: value as number })}
+            />
+            <Typography className="setting-value">
+              {settings.predIouThresh.toFixed(2)}
+            </Typography>
+          </Box>
+        </>
+      )}
+
       <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: "4px" }}>
         {!isRunning && !isPreviewing && (
           <>
+            {canDownloadLocalSam3 && (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  startDownload(LOCAL_SAM3_MODEL_ID, "hf.model");
+                }}
+                sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
+              >
+                Download Local SAM3
+              </Button>
+            )}
+            {isLocalSam3 && localSam3Downloading && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="warning"
+                onClick={() => {
+                  cancelDownload(LOCAL_SAM3_MODEL_ID);
+                }}
+                sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
+              >
+                Cancel download
+              </Button>
+            )}
             <Button
               size="small"
               variant="contained"
               onClick={onRunSegmentation}
+              disabled={!canRunSegmentation}
               sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >
-              Segment
+              {segmentActionLabel}
             </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={onClearPrompts}
-              sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
-            >
-              Clear
-            </Button>
+            {showClearPrompts && (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={onClearPrompts}
+                sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
+              >
+                Clear
+              </Button>
+            )}
           </>
         )}
         {isRunning && (
@@ -1711,8 +1932,23 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           mt: "4px"
         }}
       >
-        {promptModeHelpText(settings.promptMode)}
+        {supportsPointPrompts || supportsBoxPrompts || supportsTextPrompts
+          ? promptModeHelpText(settings.promptMode)
+          : `${backendLabel} currently supports automatic layer split only.`}
       </Typography>
+
+      {settings.promptMode === "auto" && !canSplitSelectedLayer && (
+        <Typography
+          sx={{
+            fontSize: SKETCH_FONT.xs,
+            color: SKETCH_COLORS.textFaint,
+            lineHeight: 1.3,
+            mt: "2px"
+          }}
+        >
+          Select exactly one raster layer to split.
+        </Typography>
+      )}
 
       {segmentationStatus === "error" && (
         <Typography

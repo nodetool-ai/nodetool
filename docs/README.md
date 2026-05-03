@@ -60,6 +60,13 @@ Rebuild the node references with:
 nodetool package node-docs
 ```
 
+## Bridge Protocol Documentation
+
+The Python worker bridge is documented in:
+
+- `python-bridge-protocol.md` — public website page
+- `../nodetool-core/README.md` — repo-local overview for Python contributors
+
 
 ## Project Structure
 

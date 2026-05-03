@@ -205,6 +205,73 @@ const NodeItem = memo(
         []
       );
 
+      const iconForTypeContainerStyle = useMemo(
+        () => ({
+          borderRadius: "0 0 3px 0",
+          marginLeft: "0",
+          marginTop: "0"
+        }),
+        []
+      );
+
+      const iconForTypeBgStyle = useMemo(
+        () => ({
+          backgroundColor: theme.vars.palette.grey[900],
+          margin: "0",
+          padding: "1px",
+          borderRadius: "0 0 3px 0",
+          boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
+          width: "20px",
+          height: "20px"
+        }),
+        [theme.vars.palette.grey, theme.vars.palette.action.disabledBackground]
+      );
+
+      const iconForTypeSvgProps = useMemo(
+        () => ({ width: "15px", height: "15px" }),
+        []
+      );
+
+      const favoriteButtonSx = useMemo(
+        () => ({
+          padding: "2px",
+          marginLeft: "auto",
+          opacity: isFavorite ? 1 : 0.5,
+          color: isFavorite ? "warning.main" : "text.secondary",
+          "&:hover": {
+            backgroundColor: "action.hover",
+            opacity: 1
+          }
+        }),
+        [isFavorite]
+      );
+
+      const iconWithText = (
+        <>
+          <IconForType
+            iconName={outputType}
+            containerStyle={iconForTypeContainerStyle}
+            bgStyle={iconForTypeBgStyle}
+            svgProps={iconForTypeSvgProps}
+          />
+          <Text
+            size="small"
+            sx={{
+              lineHeight: 1.3,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis"
+            }}
+          >
+            <HighlightText
+              text={node.title}
+              query={searchTerm}
+              matchStyle="primary"
+            />
+          </Text>
+        </>
+      );
+
       return (
         <div
           ref={ref}
@@ -245,82 +312,12 @@ const NodeItem = memo(
                 }}
               >
                 <div style={iconContainerStyle}>
-                  <IconForType
-                    iconName={outputType}
-                    containerStyle={{
-                      borderRadius: "0 0 3px 0",
-                      marginLeft: "0",
-                      marginTop: "0"
-                    }}
-                    bgStyle={{
-                      backgroundColor: theme.vars.palette.grey[900],
-                      margin: "0",
-                      padding: "1px",
-                      borderRadius: "0 0 3px 0",
-                      boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
-                      width: "20px",
-                      height: "20px"
-                    }}
-                    svgProps={{
-                      width: "15px",
-                      height: "15px"
-                    }}
-                  />
-                  <Text
-                    size="small"
-                    sx={{
-                      lineHeight: 1.3,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis"
-                    }}
-                  >
-                    <HighlightText
-                      text={node.title}
-                      query={searchTerm}
-                      matchStyle="primary"
-                    />
-                  </Text>
+                  {iconWithText}
                 </div>
               </Tooltip>
             ) : (
               <div style={iconContainerStyle}>
-                <IconForType
-                  iconName={outputType}
-                  containerStyle={{
-                    borderRadius: "0 0 3px 0",
-                    marginLeft: "0",
-                    marginTop: "0"
-                  }}
-                  bgStyle={{
-                    backgroundColor: theme.vars.palette.grey[900],
-                    margin: "0",
-                    padding: "1px",
-                    borderRadius: "0 0 3px 0",
-                    boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
-                    width: "20px",
-                    height: "20px"
-                  }}
-                  svgProps={{
-                    width: "15px",
-                    height: "15px"
-                  }}
-                />
-                <Text
-                  size="small"
-                  sx={{
-                    lineHeight: 1.3,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis"
-                  }}
-                >
-                  <HighlightText
-                    text={node.title}
-                    query={searchTerm}
-                    matchStyle="primary"
-                  />
-                </Text>
+                {iconWithText}
               </div>
             )}
             {hasRuntimeDeps && (
@@ -379,16 +376,7 @@ const NodeItem = memo(
                 tooltipPlacement="top"
                 size="small"
                 onClick={handleFavoriteClick}
-                sx={{
-                  padding: "2px",
-                  marginLeft: "auto",
-                  opacity: isFavorite ? 1 : 0.5,
-                  color: isFavorite ? "warning.main" : "text.secondary",
-                  "&:hover": {
-                    backgroundColor: "action.hover",
-                    opacity: 1
-                  }
-                }}
+                sx={favoriteButtonSx}
                 aria-label={
                   isFavorite
                     ? `Remove ${node.title} from favorites`
@@ -405,4 +393,4 @@ const NodeItem = memo(
 
 NodeItem.displayName = "NodeItem";
 
-export default memo(NodeItem);
+export default NodeItem;

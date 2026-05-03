@@ -17,7 +17,7 @@ permalink: /search.json
         {%- assign entry_type = "Node" -%}
       {%- elsif url contains "api" or url contains "terminal-websocket" -%}
         {%- assign entry_type = "API" -%}
-      {%- elsif url contains "getting-started" or url contains "installation" or url contains "cookbook" or url contains "tips-and-tricks" or url contains "deployment-journeys" -%}
+      {%- elsif url contains "getting-started" or url contains "installation" or url contains "cookbook" or url contains "tips-and-tricks" -%}
         {%- assign entry_type = "Tutorial" -%}
       {%- elsif url contains "developer" or url contains "configuration" or url contains "storage" or url contains "deployment" or url contains "authentication" or url contains "agents" or url contains "architecture" -%}
         {%- assign entry_type = "Reference" -%}

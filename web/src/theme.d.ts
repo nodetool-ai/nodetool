@@ -37,6 +37,14 @@ declare module "@mui/material/styles" {
     fontFamily1?: string;
     fontFamily2?: string;
     rounded?: {
+      xs?: string;
+      sm?: string;
+      md?: string;
+      lg?: string;
+      xl?: string;
+      xxl?: string;
+      pill?: string;
+      circle?: string;
       dialog?: string;
       node?: string;
       buttonSmall?: string;
@@ -75,6 +83,14 @@ declare module "@mui/material/styles" {
      
     vars: any;
     rounded: {
+      xs: string;
+      sm: string;
+      md: string;
+      lg: string;
+      xl: string;
+      xxl: string;
+      pill: string;
+      circle: string;
       dialog: string;
       node: string;
       buttonSmall: string;
@@ -107,6 +123,14 @@ declare module "@mui/material/styles" {
     fontFamily1?: string;
     fontFamily2?: string;
     rounded?: {
+      xs?: string;
+      sm?: string;
+      md?: string;
+      lg?: string;
+      xl?: string;
+      xxl?: string;
+      pill?: string;
+      circle?: string;
       dialog?: string;
       node?: string;
       buttonSmall?: string;
@@ -136,6 +160,14 @@ declare module "@mui/material/styles" {
     fontFamily1: string;
     fontFamily2: string;
     rounded: {
+      xs: string;
+      sm: string;
+      md: string;
+      lg: string;
+      xl: string;
+      xxl: string;
+      pill: string;
+      circle: string;
       dialog: string;
       node: string;
       buttonSmall: string;

@@ -387,6 +387,30 @@ export const config: ModuleConfig = {
         "Brand-specific image generation",
         "Specialized domain adaptation"
       ]
+    },
+    "fal-ai/ideogram/custom-models": {
+      className: "IdeogramCustomModels",
+      docstring: "Train a custom Ideogram model.",
+      tags: ["training", "fine-tuning", "ideogram", "custom-model"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ernie-image-trainer": {
+      className: "ErnieImageTrainer",
+      docstring: "Train a LoRA for ERNIE Image.",
+      tags: ["training", "fine-tuning", "ernie", "lora"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };

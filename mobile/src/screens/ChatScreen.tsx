@@ -18,30 +18,55 @@ import { RootStackParamList } from '../navigation/types';
 import { ChatView } from '../components/chat';
 import { useChatStore } from '../stores/ChatStore';
 import { useTheme } from '../hooks/useTheme';
+import { useShallow } from 'zustand/react/shallow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
-export default function ChatScreen({ navigation }: Props) {
-  const status = useChatStore(state => state.status);
-  const error = useChatStore(state => state.error);
-  const statusMessage = useChatStore(state => state.statusMessage);
-  const currentThreadId = useChatStore(state => state.currentThreadId);
+export default function ChatScreen({ navigation, route }: Props) {
+  const {
+    status,
+    error,
+    statusMessage,
+    currentThreadId,
+    selectedModel,
+    agentMode,
+    helpMode,
+    selectedCollections
+  } = useChatStore(useShallow(state => ({
+    status: state.status,
+    error: state.error,
+    statusMessage: state.statusMessage,
+    currentThreadId: state.currentThreadId,
+    selectedModel: state.selectedModel,
+    agentMode: state.agentMode,
+    helpMode: state.helpMode,
+    selectedCollections: state.selectedCollections
+  })));
+
   const connect = useChatStore(state => state.connect);
   const createNewThread = useChatStore(state => state.createNewThread);
+  const loadThreadFromServer = useChatStore(state => state.loadThreadFromServer);
   const getCurrentMessages = useChatStore(state => state.getCurrentMessages);
-  const selectedModel = useChatStore(state => state.selectedModel);
   const sendMessage = useChatStore(state => state.sendMessage);
   const stopGeneration = useChatStore(state => state.stopGeneration);
+  const setAgentMode = useChatStore(state => state.setAgentMode);
+  const setHelpMode = useChatStore(state => state.setHelpMode);
+  const setSelectedCollections = useChatStore(state => state.setSelectedCollections);
 
   const { colors, mode } = useTheme();
 
   const messages = getCurrentMessages();
+  const requestedThreadId = route.params?.threadId;
 
   useEffect(() => {
     const initializeChat = async () => {
       try {
         await connect();
-        if (!currentThreadId) {
+        if (requestedThreadId) {
+          if (requestedThreadId !== currentThreadId) {
+            await loadThreadFromServer(requestedThreadId);
+          }
+        } else if (!currentThreadId) {
           await createNewThread();
         }
       } catch (err) {
@@ -50,7 +75,7 @@ export default function ChatScreen({ navigation }: Props) {
     };
 
     initializeChat();
-  }, [connect, currentThreadId, createNewThread]);
+  }, [connect, currentThreadId, createNewThread, loadThreadFromServer, requestedThreadId]);
 
   const handleNewChat = useCallback(async () => {
     try {
@@ -59,6 +84,10 @@ export default function ChatScreen({ navigation }: Props) {
       console.error('Failed to create new thread:', err);
     }
   }, [createNewThread]);
+
+  const handleOpenThreads = useCallback(() => {
+    navigation.navigate('Threads');
+  }, [navigation]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -75,16 +104,25 @@ export default function ChatScreen({ navigation }: Props) {
             <Ionicons name="chevron-down-outline" size={13} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
+            onPress={handleOpenThreads}
+            style={styles.headerButton}
+            activeOpacity={0.7}
+            accessibilityLabel="View past conversations"
+          >
+            <Ionicons name="time-outline" size={22} color={colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={handleNewChat}
             style={styles.headerButton}
             activeOpacity={0.7}
+            accessibilityLabel="Start new conversation"
           >
             <Ionicons name="add-circle-outline" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
       ),
     });
-  }, [navigation, handleNewChat, selectedModel, colors.text, colors.primary, colors.primaryMuted]);
+  }, [navigation, handleNewChat, handleOpenThreads, selectedModel, colors.text, colors.primary, colors.primaryMuted]);
 
   const handleRefresh = useCallback(async () => {
     try {
@@ -105,6 +143,12 @@ export default function ChatScreen({ navigation }: Props) {
         onRefresh={handleRefresh}
         error={error}
         statusMessage={statusMessage}
+        agentMode={agentMode}
+        helpMode={helpMode}
+        selectedCollections={selectedCollections}
+        onToggleAgentMode={setAgentMode}
+        onToggleHelpMode={setHelpMode}
+        onChangeCollections={setSelectedCollections}
       />
     </SafeAreaView>
   );

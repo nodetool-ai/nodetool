@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
-import { Secret } from "@nodetool/models";
+import { Secret } from "@nodetool-ai/models";
 
 const FAL_PRICING_URL = "https://api.fal.ai/v1/models/pricing";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour

@@ -21,11 +21,17 @@ const namespaceToSecretKey: Record<string, string> = {
   replicate: "REPLICATE_API_TOKEN",
   calendly: "CALENDLY_API_TOKEN",
   kie: "KIE_API_KEY",
-  fal: "FAL_API_KEY"
+  fal: "FAL_API_KEY",
+  elevenlabs: "ELEVENLABS_API_KEY",
+  search: "SERPAPI_API_KEY"
 };
 
 // API-backed namespaces that currently do not require a dedicated key in this map.
 const apiNamespacesWithoutSecret = new Set<string>(["messaging"]);
+
+// Namespaces that run locally but may require a token (e.g. for model download).
+// These override the default "has secret key → api" heuristic.
+const localNamespaces = new Set<string>(["huggingface"]);
 
 const secretKeyToDisplayName: Record<string, string> = {
   OPENAI_API_KEY: "OpenAI API Key",
@@ -45,7 +51,9 @@ const secretKeyToDisplayName: Record<string, string> = {
   CALENDLY_API_TOKEN: "Calendly API Token",
   HF_TOKEN: "HuggingFace Token",
   KIE_API_KEY: "Kie API Key",
-  FAL_API_KEY: "FAL API Key"
+  FAL_API_KEY: "FAL API Key",
+  ELEVENLABS_API_KEY: "ElevenLabs API Key",
+  SERPAPI_API_KEY: "SerpAPI Key"
 };
 
 export const getRootNamespace = (namespace: string): string =>
@@ -61,11 +69,12 @@ export const getRequiredSecretKeyForNamespace = (
 export const getSecretDisplayName = (secretKey: string): string =>
   secretKeyToDisplayName[secretKey] || secretKey;
 
-export const getProviderKindForNamespace = (namespace: string): ProviderKind =>
-  getRequiredSecretKeyForNamespace(namespace) ||
-  apiNamespacesWithoutSecret.has(getRootNamespace(namespace))
+export const getProviderKindForNamespace = (namespace: string): ProviderKind => {
+  const root = getRootNamespace(namespace);
+  if (localNamespaces.has(root)) return "local";
+  return getRequiredSecretKeyForNamespace(namespace) ||
+    apiNamespacesWithoutSecret.has(root)
     ? "api"
     : "local";
+};
 
-export const isApiNamespace = (namespace: string): boolean =>
-  getProviderKindForNamespace(namespace) === "api";

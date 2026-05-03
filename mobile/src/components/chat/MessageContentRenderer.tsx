@@ -11,9 +11,10 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { Audio, Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { MessageContent } from '../../types/ApiTypes';
 import { useTheme } from '../../hooks/useTheme';
+import { apiService } from '../../services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAX_MEDIA_WIDTH = SCREEN_WIDTH * 0.7;
@@ -108,12 +109,12 @@ interface AudioPlayerProps {
 }
 
 const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, colors }) => {
-  const [sound, setSound] = React.useState<any>(null);
+  const [sound, setSound] = React.useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [position, setPosition] = React.useState(0);
   const [duration, setDuration] = React.useState(0);
 
-  const onPlaybackStatusUpdate = React.useCallback((status: any) => {
+  const onPlaybackStatusUpdate = React.useCallback((status: AVPlaybackStatus) => {
     if (status.isLoaded) {
       setPosition(status.positionMillis || 0);
       setIsPlaying(status.isPlaying);
@@ -207,13 +208,13 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, colors }) => {
  * Extract URI from media content object
  */
 function getMediaUri(
-  media: { uri?: string; data?: any; type?: string } | undefined
+  media: { uri?: string; data?: unknown; type?: string } | undefined
 ): string | undefined {
   if (!media) {return undefined;}
   
-  // If URI exists and is not empty, use it
+  // If URI exists and is not empty, resolve it against the API host
   if (media.uri && media.uri !== '') {
-    return media.uri;
+    return apiService.resolveUrl(media.uri) ?? undefined;
   }
   
   // For binary data, we would need to convert to base64

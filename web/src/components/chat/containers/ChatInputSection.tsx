@@ -2,12 +2,14 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useMemo } from "react";
+import { memo } from "react";
+import MediaChatComposer from "../composer/MediaChatComposer";
 import ChatComposer from "../composer/ChatComposer";
-import ChatToolBar from "../controls/ChatToolBar";
-import MobileChatToolbar from "../controls/MobileChatToolbar";
 import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
-import useMediaQuery from "@mui/material/useMediaQuery";
+import type { MediaGenerationRequest } from "../types/media.types";
+import type { AgentPlanner } from "../composer/AgentModeSelector";
+
+export type ChatComposerVariant = "media" | "simple";
 
 const styles = (_theme: Theme) =>
   css({
@@ -21,13 +23,7 @@ const styles = (_theme: Theme) =>
     padding: "0",
     margin: "auto auto 0 auto", // Center horizontally, push to bottom
     flexShrink: 0,
-    // Mobile styles handled via separate CSS file
 
-    ".chat-controls": {
-      maxWidth: "100%",
-      width: "100%",
-      flexShrink: 0
-    },
     ".chat-composer-wrapper": {
       flex: 1,
       minWidth: 0,
@@ -53,7 +49,8 @@ type ChatInputSectionProps = {
   onSendMessage: (
     content: MessageContent[],
     prompt: string,
-    agentMode: boolean
+    agentMode: boolean,
+    mediaGeneration?: MediaGenerationRequest
   ) => Promise<void> | void;
   onStop?: () => void;
   onNewChat?: () => void;
@@ -65,7 +62,16 @@ type ChatInputSectionProps = {
   onModelChange?: (model: LanguageModel) => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
+  agentPlanner?: AgentPlanner;
+  onAgentPlannerChange?: (planner: AgentPlanner) => void;
   allowedProviders?: string[];
+  requireToolSupport?: boolean;
+  variant?: ChatComposerVariant;
+  /**
+   * Extra node rendered in the composer footer (left of the action
+   * buttons). Only used by the "simple" variant.
+   */
+  composerToolbar?: React.ReactNode;
 };
 
 const ChatInputSection = ({
@@ -73,64 +79,54 @@ const ChatInputSection = ({
   onSendMessage,
   onStop,
   onNewChat,
-  selectedTools,
-  onToolsChange,
-  selectedCollections,
-  onCollectionsChange,
   selectedModel,
   onModelChange,
   agentMode,
   onAgentModeToggle,
-  showToolbar = true,
-  allowedProviders
+  agentPlanner,
+  onAgentPlannerChange,
+  allowedProviders,
+  requireToolSupport,
+  variant = "media",
+  composerToolbar
 }: ChatInputSectionProps) => {
   const isLoading = status === "loading";
   const isStreaming = status === "streaming";
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
-  const toolbarNode = useMemo(() => (!isMobile && showToolbar) ? (
-    <ChatToolBar
-      selectedTools={selectedTools}
-      onToolsChange={onToolsChange}
-      selectedCollections={selectedCollections}
-      onCollectionsChange={onCollectionsChange}
-      selectedModel={selectedModel}
-      onModelChange={onModelChange}
-      agentMode={agentMode}
-      onAgentModeToggle={onAgentModeToggle}
-      allowedProviders={allowedProviders}
-      embedded={true}
-    />
-  ) : null, [isMobile, showToolbar, selectedTools, onToolsChange, selectedCollections, onCollectionsChange, selectedModel, onModelChange, agentMode, onAgentModeToggle, allowedProviders]);
-
   return (
-    <div className="chat-input-section" css={styles(theme)}>
-      {isMobile && showToolbar && (
-        <div className="chat-controls">
-          <MobileChatToolbar
-            selectedTools={selectedTools}
-            onToolsChange={onToolsChange}
-            selectedCollections={selectedCollections}
-            onCollectionsChange={onCollectionsChange}
+    <div
+      className="chat-input-section"
+      css={styles(theme)}
+      data-onboarding-target="chat-composer"
+    >
+      <div className="chat-composer-wrapper">
+        {variant === "simple" ? (
+          <ChatComposer
+            isLoading={isLoading}
+            isStreaming={isStreaming}
+            onSendMessage={onSendMessage}
+            onStop={onStop}
+            onNewChat={onNewChat}
+            agentMode={agentMode}
+            toolbarNode={composerToolbar}
+          />
+        ) : (
+          <MediaChatComposer
+            isLoading={isLoading}
+            isStreaming={isStreaming}
+            onSendMessage={onSendMessage}
+            onStop={onStop}
+            onNewChat={onNewChat}
             selectedModel={selectedModel}
             onModelChange={onModelChange}
             agentMode={agentMode}
             onAgentModeToggle={onAgentModeToggle}
+            agentPlanner={agentPlanner}
+            onAgentPlannerChange={onAgentPlannerChange}
             allowedProviders={allowedProviders}
+            requireToolSupport={requireToolSupport}
           />
-        </div>
-      )}
-      <div className="chat-composer-wrapper">
-        <ChatComposer
-          isLoading={isLoading}
-          isStreaming={isStreaming}
-          onSendMessage={onSendMessage}
-          onStop={onStop}
-          onNewChat={onNewChat}
-          agentMode={agentMode}
-          toolbarNode={toolbarNode}
-        />
+        )}
       </div>
     </div>
   );

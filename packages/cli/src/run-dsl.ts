@@ -1,13 +1,13 @@
 /**
  * runDslFile — dynamically import a TypeScript/JavaScript DSL file,
- * find all exported Workflow objects, and run each with run() from @nodetool/dsl.
+ * find all exported Workflow objects, and run each with run() from @nodetool-ai/dsl.
  *
  * Uses tsx/esm/api's tsImport() so TypeScript files can be loaded without
  * pre-compilation and without registering a global module loader.
  */
 
-import { run as runWorkflow } from "@nodetool/dsl";
-import type { Workflow } from "@nodetool/dsl";
+import { run as runWorkflow } from "@nodetool-ai/dsl";
+import type { Workflow } from "@nodetool-ai/dsl";
 import { tsImport } from "tsx/esm/api";
 
 export function isWorkflow(value: unknown): value is Workflow {

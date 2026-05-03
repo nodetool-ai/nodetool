@@ -1941,13 +1941,13 @@
       "currency": "USD"
     },
     "fal.image_to_image.Sam3Image": {
-      "endpoint_id": "fal-ai/sam-3/image",
+      "endpoint_id": "fal-ai/sam-3-1/image",
       "unit_price": 0.005,
       "billing_unit": "units",
       "currency": "USD"
     },
     "fal.image_to_image.Sam3ImageRle": {
-      "endpoint_id": "fal-ai/sam-3/image-rle",
+      "endpoint_id": "fal-ai/sam-3-1/image-rle",
       "unit_price": 0.005,
       "billing_unit": "units",
       "currency": "USD"

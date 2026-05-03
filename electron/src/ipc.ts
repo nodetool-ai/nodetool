@@ -18,6 +18,7 @@ import {
   stopServer,
   restartLlamaServer,
 } from "./server";
+import { assertSafeReadablePath } from "./utils";
 import { logMessage } from "./logger";
 import {
   IpcChannels,
@@ -95,8 +96,6 @@ const QUIET_CHANNELS = [
   "settings-get-close-behavior",
   "frontend-log",
 ];
-const FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS = 15000;
-
 const LOCALHOST_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);
 const LOCALHOST_PROXY_WS_STATES = new Map<
   string,
@@ -106,6 +105,39 @@ const LOCALHOST_PROXY_WS_STATES = new Map<
   }
 >();
 const LOCALHOST_PROXY_WS_IDS_BY_SENDER = new Map<number, Set<string>>();
+
+/**
+ * Defense-in-depth check for URLs passed to `shell.openExternal` / browser.
+ * The preload already filters schemes, but a compromised renderer could
+ * invoke the IPC channel directly. Only `http:`, `https:`, and `mailto:`
+ * are considered safe to hand to the OS.
+ */
+const SAFE_EXTERNAL_PROTOCOLS = new Set([
+  "http:",
+  "https:",
+  "mailto:",
+]);
+
+function isSafeExternalUrl(urlValue: unknown): boolean {
+  if (typeof urlValue !== "string" || urlValue.length === 0) {
+    return false;
+  }
+  // Allow well-known OS-preference deep links used by our own code paths.
+  // These are expected to come from the main process, not the renderer, so
+  // we accept them here for completeness and log any unexpected call.
+  if (
+    urlValue.startsWith("x-apple.systempreferences:") ||
+    urlValue.startsWith("ms-settings:")
+  ) {
+    return true;
+  }
+  try {
+    const parsed = new URL(urlValue);
+    return SAFE_EXTERNAL_PROTOCOLS.has(parsed.protocol);
+  } catch {
+    return false;
+  }
+}
 
 function assertLocalhostUrl(
   urlValue: string,
@@ -187,62 +219,6 @@ function closeAllLocalhostProxyWsForSender(senderId: number): void {
     }
     cleanupLocalhostProxyWsConnection(connectionId);
   }
-}
-
-function requestRendererEvent<T>(
-  event: Electron.IpcMainInvokeEvent,
-  requestChannel: string,
-  responseChannel: string,
-  requestPayload: Record<string, unknown>,
-): Promise<T> {
-  const requestId = randomUUID();
-
-  return new Promise<T>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      ipcMain.removeListener(responseChannel, onResponse);
-      reject(
-        new Error(`Timed out waiting for renderer response on ${responseChannel}`),
-      );
-    }, FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS);
-
-    const onResponse = (
-      responseEvent: Electron.IpcMainEvent,
-      response: { requestId?: string; error?: string; result?: T; manifest?: T },
-    ) => {
-      if (responseEvent.sender !== event.sender) {
-        return;
-      }
-      if (!response || response.requestId !== requestId) {
-        return;
-      }
-
-      clearTimeout(timeout);
-      ipcMain.removeListener(responseChannel, onResponse);
-
-      if (response.error) {
-        reject(new Error(response.error));
-        return;
-      }
-
-      if ("result" in response && response.result !== undefined) {
-        resolve(response.result);
-        return;
-      }
-
-      if ("manifest" in response && response.manifest !== undefined) {
-        resolve(response.manifest);
-        return;
-      }
-
-      reject(new Error(`Renderer response for ${responseChannel} had no payload`));
-    };
-
-    ipcMain.on(responseChannel, onResponse);
-    event.sender.send(requestChannel, {
-      requestId,
-      ...requestPayload,
-    });
-  });
 }
 
 /**
@@ -610,9 +586,19 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.FILE_READ_AS_DATA_URL,
     async (_event, filePath) => {
+      let safePath: string;
       try {
-        const buffer = await fs.readFile(filePath);
-        const ext = path.extname(filePath).toLowerCase().replace(".", "");
+        safePath = assertSafeReadablePath(filePath);
+      } catch (error) {
+        logMessage(
+          `Refusing FILE_READ_AS_DATA_URL for ${String(filePath)}: ${String(error)}`,
+          "warn",
+        );
+        return null;
+      }
+      try {
+        const buffer = await fs.readFile(safePath);
+        const ext = path.extname(safePath).toLowerCase().replace(".", "");
         
         // MIME type lookup map for better maintainability
         const mimeTypeMap: Record<string, string> = {
@@ -661,9 +647,19 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.FILE_READ_BUFFER,
     async (_event, filePath) => {
+      let safePath: string;
       try {
-        const buffer = await fs.readFile(filePath);
-        const ext = path.extname(filePath).toLowerCase().replace(".", "");
+        safePath = assertSafeReadablePath(filePath);
+      } catch (error) {
+        logMessage(
+          `Refusing FILE_READ_BUFFER for ${String(filePath)}: ${String(error)}`,
+          "warn",
+        );
+        return null;
+      }
+      try {
+        const buffer = await fs.readFile(safePath);
+        const ext = path.extname(safePath).toLowerCase().replace(".", "");
 
         // MIME type lookup map for better maintainability
         const mimeTypeMap: Record<string, string> = {
@@ -932,8 +928,15 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.PACKAGE_OPEN_EXTERNAL,
     async (_event, url) => {
+      if (!isSafeExternalUrl(url)) {
+        logMessage(
+          `Refusing PACKAGE_OPEN_EXTERNAL for unsafe URL: ${String(url)}`,
+          "warn",
+        );
+        return;
+      }
       logMessage(`Opening external URL: ${url}`);
-      shell.openExternal(url);
+      void shell.openExternal(url);
     },
   );
 
@@ -1007,7 +1010,11 @@ export function initializeIpcHandlers(): void {
 
   createIpcMainHandler(IpcChannels.FRONTEND_LOG, async (_event, data) => {
     const source = data.source?.trim() ? `[${data.source.trim()}] ` : "";
-    logMessage(`${source}${data.message}`, data.level);
+    const message =
+      data.message.length > 80
+        ? data.message.slice(0, 80) + "…"
+        : data.message;
+    logMessage(`${source}${message}`, data.level);
   });
 
   createIpcMainHandler(
@@ -1227,14 +1234,31 @@ export function initializeIpcHandlers(): void {
   );
 
   createIpcMainHandler(IpcChannels.SHELL_OPEN_PATH, async (_event, path) => {
-    logMessage(`Opening path: ${path}`);
-    const errorMessage = await shell.openPath(path);
+    let safePath: string;
+    try {
+      safePath = assertSafeReadablePath(path);
+    } catch (error) {
+      logMessage(
+        `Refusing SHELL_OPEN_PATH for ${String(path)}: ${String(error)}`,
+        "warn",
+      );
+      return `Refused: ${String(error)}`;
+    }
+    logMessage(`Opening path: ${safePath}`);
+    const errorMessage = await shell.openPath(safePath);
     return errorMessage;
   });
 
   createIpcMainHandler(
     IpcChannels.SHELL_OPEN_EXTERNAL,
     async (_event, request) => {
+      if (!isSafeExternalUrl(request.url)) {
+        logMessage(
+          `Refusing SHELL_OPEN_EXTERNAL for unsafe URL: ${String(request.url)}`,
+          "warn",
+        );
+        return;
+      }
       logMessage(`Opening external URL: ${request.url}`);
       await shell.openExternal(request.url, request.options);
     },
@@ -1375,125 +1399,7 @@ export function initializeIpcHandlers(): void {
     },
   );
 
-  // Claude Agent SDK handlers
-  createIpcMainHandler(
-    IpcChannels.AGENT_CREATE_SESSION,
-    async (_event, options) => {
-      const { createAgentSession } = await import("./agent");
-      return await createAgentSession(options);
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.AGENT_LIST_MODELS,
-    async (_event, options) => {
-      const { listAgentModels } = await import("./agent");
-      return await listAgentModels(options ?? {});
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.AGENT_SEND_MESSAGE,
-    async (event, request) => {
-      const { sendAgentMessageStreaming } = await import("./agent");
-      // Use streaming - messages will be sent via IPC events as they arrive
-      await sendAgentMessageStreaming(
-        request.sessionId,
-        request.message,
-        event.sender,
-      );
-      // Return empty array since messages are streamed via events
-      return [];
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.AGENT_STOP_EXECUTION,
-    async (_event, sessionId) => {
-      const { stopAgentExecution } = await import("./agent");
-      await stopAgentExecution(sessionId);
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.AGENT_CLOSE_SESSION,
-    async (_event, sessionId) => {
-      const { closeAgentSession } = await import("./agent");
-      closeAgentSession(sessionId);
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.AGENT_LIST_SESSIONS,
-    async (_event, options) => {
-      const { listAgentSessions } = await import("./agent");
-      return await listAgentSessions(options ?? {});
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.AGENT_GET_SESSION_MESSAGES,
-    async (_event, options) => {
-      const { getAgentSessionMessages } = await import("./agent");
-      return await getAgentSessionMessages(options);
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.AGENT_START_MCP_SERVER,
-    async (event) => {
-      const { startMcpToolServer } = await import("./mcpToolServer");
-      return await startMcpToolServer(event.sender);
-    },
-  );
-
-  // Frontend tools handlers
-  // Get the frontend tools manifest from the renderer
-  createIpcMainHandler(
-    IpcChannels.FRONTEND_TOOLS_GET_MANIFEST,
-    async (event, request) => {
-      logMessage(`Getting frontend tools manifest for session: ${request.sessionId}`);
-      const result = await requestRendererEvent<IpcResponse[IpcChannels.FRONTEND_TOOLS_GET_MANIFEST]>(
-        event,
-        IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_REQUEST,
-        IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_RESPONSE,
-        {
-          sessionId: request.sessionId,
-        },
-      );
-      return result;
-    },
-  );
-
-  // Call a frontend tool in the renderer process
-  createIpcMainHandler(
-    IpcChannels.FRONTEND_TOOLS_CALL,
-    async (event, request) => {
-      logMessage(
-        `Calling frontend tool: ${request.name} for session: ${request.sessionId}`
-      );
-      const result = await requestRendererEvent<IpcResponse[IpcChannels.FRONTEND_TOOLS_CALL]>(
-        event,
-        IpcChannels.FRONTEND_TOOLS_CALL_REQUEST,
-        IpcChannels.FRONTEND_TOOLS_CALL_RESPONSE,
-        {
-          sessionId: request.sessionId,
-          toolCallId: request.toolCallId,
-          name: request.name,
-          args: request.args,
-        },
-      );
-      return result;
-    },
-  );
-
-  // Abort any running frontend tool calls for a session
-  createIpcMainHandler(
-    IpcChannels.FRONTEND_TOOLS_ABORT,
-    async (event, sessionId) => {
-      logMessage(`Aborting frontend tools for session: ${sessionId}`);
-      // Notify the renderer to abort any running tool calls
-      event.sender.send(IpcChannels.FRONTEND_TOOLS_ABORT, { sessionId });
-    },
-  );
+  // The agent runtime moved out of the Electron main process; agent
+  // sessions now live on the NodeTool server. The renderer talks directly
+  // to the server over the `/ws/agent` WebSocket — no IPC bridge required.
 }

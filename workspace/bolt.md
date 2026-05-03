@@ -34,3 +34,15 @@
 ## 2025-01-31 - CommandMenu Zustand Selector Optimization
 **Learning:** Returning an object literal from a primitive Zustand selector in `useNodes` (e.g., `(state) => ({ nodes: state.nodes, edges: state.edges })`) defaults to strict equality (`===`), causing continuous re-renders whenever the underlying arrays are updated (e.g., at 60fps during ReactFlow dragging).
 **Action:** Always provide `shallow` from `zustand/shallow` as the second argument to `useNodes` when returning new object literals containing shallowly comparable elements to eliminate unnecessary `O(N)` re-renders.
+
+## 2024-04-14 - Zustand useNodes Compound Selectors Performance
+**Learning:** Using `useNodes` with object literal returns (e.g. `useNodes((state) => ({ x: state.x, y: state.y }))`) defaults to strict equality (`===`), causing continuous re-renders whenever the underlying arrays are updated (e.g., at 60fps during ReactFlow dragging). Even if the returned values inside the object don't change, the new object literal reference forces a re-render.
+**Action:** Always provide `shallow` from `zustand/shallow` as the second argument to `useNodes` when returning new object literals containing shallowly comparable elements to eliminate unnecessary `O(N)` re-renders. Added `shallow` equality to all instances of compound selectors in `useNodes` across the codebase.
+
+## 2024-05-24 - NodeStore `getSelectedNodes` `O(N)` Selection Optimization
+**Learning:** The `getSelectedNodes` function in the Zustand store currently filters the nodes array on every call (`get().nodes.filter((node) => node.selected)`). While `getSelectedNodeCount` is properly cached with an internal reference cache, `getSelectedNodes` is not. Since `getSelectedNodes` is an `O(N)` operation and is heavily called via `useNodes((state) => state.getSelectedNodes())` in several components, evaluating it without a reference cache on a 60fps loop during dragging creates performance issues, just like `getSelectedNodeCount` would.
+**Action:** Implement the same lightweight internal reference caching strategy for `getSelectedNodes` that is used for `getSelectedNodeCount`.
+
+## 2025-03-01 - Optimize Zustand array updates
+**Learning:** When updating a single known element in a state array (e.g., inside a Zustand store), using `.map()` iterates over the entire array, creating unnecessary callback allocations and full-array iteration overhead.
+**Action:** Replace `.map()` with a shallow copy and direct index assignment (`const newArr = [...arr]; newArr[idx] = val;`) to prevent unnecessary full-array traversals and reduce time complexity bottlenecks on the main thread.

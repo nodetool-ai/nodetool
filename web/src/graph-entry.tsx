@@ -29,7 +29,7 @@ import { NodeData } from "./stores/NodeData";
 import { graphNodeToReactFlowNode } from "./stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "./stores/graphEdgeToReactFlowEdge";
 import { autoLayout } from "./core/graph";
-import type { Workflow, NodeMetadata, Property, OutputSlot } from "./stores/ApiTypes";
+import type { Workflow, NodeMetadata, Property, OutputSlot, Node as GraphNode, Edge as GraphEdge } from "./stores/ApiTypes";
 
 // Real node components — imported so they are registered
 import BaseNode from "./components/node/BaseNode";
@@ -38,9 +38,6 @@ import CommentNode from "./components/node/CommentNode";
 import PlaceholderNode from "./components/node_types/PlaceholderNode";
 import CustomEdge from "./components/node_editor/CustomEdge";
 import ControlEdge from "./components/node_editor/ControlEdge";
-
-// Logging
-import log from "loglevel";
 
 // Node CSS
 import "./styles/base.css";
@@ -53,6 +50,7 @@ import "./styles/handle_edge_tooltip.css";
 // NodeContext — we provide a real zustand store so BaseNode's useNodes() works
 import { create } from "zustand";
 import { NodeContext } from "./contexts/NodeContext";
+import type { NodeStore } from "./stores/NodeStore";
 import { ContextMenuProvider } from "./providers/ContextMenuProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WorkflowManagerProvider } from "./contexts/WorkflowManagerContext";
@@ -174,10 +172,9 @@ function inferMetadata(
 
 function parseWorkflow(raw: unknown): Workflow {
   const obj = raw as Record<string, unknown>;
-  const rawNodes: any[] =
-    (obj.graph as any)?.nodes || (obj.nodes as any[]) || [];
-  const rawEdges: any[] =
-    (obj.graph as any)?.edges || (obj.edges as any[]) || [];
+  const graph = obj.graph as { nodes?: Record<string, unknown>[]; edges?: Record<string, unknown>[] } | undefined | null;
+  const rawNodes = graph?.nodes ?? (obj.nodes as Record<string, unknown>[] | undefined) ?? [];
+  const rawEdges = graph?.edges ?? (obj.edges as Record<string, unknown>[] | undefined) ?? [];
 
   return {
     id: (obj.id as string) || "inline",
@@ -191,21 +188,21 @@ function parseWorkflow(raw: unknown): Workflow {
     updated_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
     graph: {
-      nodes: rawNodes.map((n: any, i: number) => ({
-        id: n.id || `node_${i}`,
-        type: n.type || "default",
-        data: n.properties || n.data || {},
-        ui_properties: n.ui_properties || {},
+      nodes: rawNodes.map((n, i) => ({
+        id: (n.id as string) || `node_${i}`,
+        type: (n.type as string) || "default",
+        data: (n.properties ?? n.data ?? {}) as GraphNode["data"],
+        ui_properties: (n.ui_properties ?? {}) as GraphNode["ui_properties"],
         dynamic_properties: {},
         dynamic_outputs: {},
         sync_mode: "on_any"
       })),
-      edges: rawEdges.map((e: any, i: number) => ({
-        id: e.id || `edge_${i}`,
-        source: e.source,
-        sourceHandle: e.sourceHandle || "output",
-        target: e.target,
-        targetHandle: e.targetHandle || "input"
+      edges: rawEdges.map((e, i) => ({
+        id: (e.id as string) || `edge_${i}`,
+        source: e.source as string,
+        sourceHandle: (e.sourceHandle as string) || "output",
+        target: e.target as string,
+        targetHandle: (e.targetHandle as string) || "input"
       }))
     }
   } as unknown as Workflow;
@@ -215,12 +212,31 @@ function parseWorkflow(raw: unknown): Workflow {
 // BaseNode uses useNodes() which reads from NodeContext.
 // We create a minimal zustand store with just the fields BaseNode accesses.
 
+interface MinimalNodeStore {
+  nodes: Node<NodeData>[];
+  edges: Edge[];
+  workflow: Workflow;
+  viewport: null;
+  shouldFitToScreen: boolean;
+  setShouldFitToScreen: () => void;
+  onNodesChange: () => void;
+  onEdgesChange: () => void;
+  onEdgeUpdate: () => void;
+  deleteEdge: () => void;
+  setEdgeSelectionState: () => void;
+  updateNode: () => void;
+  updateNodeData: () => void;
+  getSelectedNodeCount: () => number;
+  findNode: (id: string) => Node<NodeData> | undefined;
+  getNodesByType: () => never[];
+}
+
 function createMinimalNodeStore(
   nodes: Node<NodeData>[],
   edges: Edge[],
   workflow: Workflow
 ) {
-  return create<any>((_set: any, _get: any) => ({
+  return create<MinimalNodeStore>(() => ({
     nodes,
     edges,
     workflow,
@@ -235,7 +251,7 @@ function createMinimalNodeStore(
     updateNode: () => {},
     updateNodeData: () => {},
     getSelectedNodeCount: () => 0,
-    findNode: (id: string) => nodes.find((n: any) => n.id === id),
+    findNode: (id: string) => nodes.find((n) => n.id === id),
     getNodesByType: () => [],
   }));
 }
@@ -324,7 +340,7 @@ function App() {
   const [graphData, setGraphData] = useState<{
     nodes: Node<NodeData>[];
     edges: Edge[];
-    store: any;
+    store: ReturnType<typeof createMinimalNodeStore>;
     workflow: Workflow;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -375,11 +391,11 @@ function App() {
         useMetadataStore.getState().setNodeTypes(nodeTypesMap);
 
         // 2. Convert to ReactFlow format
-        const rfNodes = (workflow.graph?.nodes || []).map((n: any) =>
-          graphNodeToReactFlowNode(workflow, n)
+        const rfNodes = (workflow.graph?.nodes || []).map((n) =>
+          graphNodeToReactFlowNode(workflow, n as GraphNode)
         );
-        const rfEdges = (workflow.graph?.edges || []).map((e: any) =>
-          graphEdgeToReactFlowEdge(e)
+        const rfEdges = (workflow.graph?.edges || []).map((e) =>
+          graphEdgeToReactFlowEdge(e as GraphEdge)
         );
 
         // 3. Auto-layout — set estimated sizes so ELK spaces them properly
@@ -408,7 +424,7 @@ function App() {
           workflow
         });
       } catch (err) {
-        log.error(err);
+        console.error(err);
         setError(String(err));
       }
     })();
@@ -461,7 +477,7 @@ function App() {
         <MenuProvider>
           <WorkflowManagerProvider queryClient={queryClient}>
             <ContextMenuProvider active={false}>
-              <NodeContext.Provider value={graphData.store}>
+              <NodeContext.Provider value={graphData.store as unknown as NodeStore}>
                 <ReactFlowProvider>
                   <GraphInner
                     nodes={graphData.nodes}

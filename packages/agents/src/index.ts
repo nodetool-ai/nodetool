@@ -1,5 +1,5 @@
 /**
- * @nodetool/agents -- Agent system for planning and executing multi-step LLM tasks.
+ * @nodetool-ai/agents -- Agent system for planning and executing multi-step LLM tasks.
  */
 
 // Types
@@ -115,11 +115,42 @@ export {
   WorkspaceListTool
 } from "./tools/workspace-tools.js";
 export { ListProviderModelsTool } from "./tools/model-tools.js";
+export { FindModelTool } from "./tools/find-model-tool.js";
+export {
+  GenerateImageTool,
+  EditImageTool,
+  GenerateVideoTool,
+  AnimateImageTool,
+  GenerateSpeechTool,
+  TranscribeAudioTool,
+  EmbedTextTool
+} from "./tools/media-tools.js";
+export {
+  GENERIC_AI_NODES,
+  CORE_BASELINE_NAMESPACES,
+  PROVIDER_NAMESPACES,
+  buildGraphPlannerSystemPrompt
+} from "./prompts/graph-planner-prompt.js";
+export type {
+  GenericAINode,
+  GenericNodeCapability,
+  BuildPromptOptions
+} from "./prompts/graph-planner-prompt.js";
 export { SaveAssetTool, ReadAssetTool } from "./tools/asset-tools.js";
 export { ControlNodeTool, sanitizeToolName } from "./tools/control-tool.js";
 export type { ControlNodeInfo } from "./tools/control-tool.js";
 export { CreatePlanTool } from "./tools/create-plan-tool.js";
 export { CreateTaskPlanTool } from "./tools/create-task-tool.js";
+export {
+  PlanBuilder,
+  AddTaskTool,
+  RemoveTaskTool,
+  FinishPlanTool
+} from "./tools/plan-builder-tools.js";
+export {
+  isAgenticProvider,
+  rejectAgenticProvider
+} from "./reject-agentic-provider.js";
 
 // Graph-native planner tools
 export { AddNodeTool } from "./tools/add-node-tool.js";

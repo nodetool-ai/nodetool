@@ -23,6 +23,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { useTheme } from "../../hooks/useTheme";
 import { useModelsForType } from "../../hooks/useModelsByProvider";
 import { ModelSelectModal } from "./ModelSelectModal";
+import { apiService } from "../../services/api";
 import type { Property } from "../../types/ApiTypes";
 
 // ── Shared types ────────────────────────────────────────────────────
@@ -64,30 +65,30 @@ type WidgetType =
 
 function resolveWidgetType(prop: Property): WidgetType {
   // Enum values on the property or nested in type metadata
-  if (prop.values && prop.values.length > 0) return "enum";
-  if (prop.type.values && prop.type.values.length > 0) return "enum";
+  if (prop.values && prop.values.length > 0) {return "enum";}
+  if (prop.type.values && prop.type.values.length > 0) {return "enum";}
   if (
     prop.type.type_args?.[0]?.values &&
     prop.type.type_args[0].values.length > 0
   )
-    return "enum";
+    {return "enum";}
 
   // json_schema_extra override
   const extra = prop.json_schema_extra?.type as string | undefined;
-  if (extra) return mapTypeString(extra);
+  if (extra) {return mapTypeString(extra);}
 
   const t = prop.type.type;
 
   // Union: resolve first type arg
   if (t === "union") {
     const first = prop.type.type_args?.[0]?.type;
-    if (first) return mapTypeString(first);
+    if (first) {return mapTypeString(first);}
   }
 
   // List: check inner type
   if (t === "list") {
     const inner = prop.type.type_args?.[0]?.type;
-    if (inner === "str") return "string_list";
+    if (inner === "str") {return "string_list";}
     return "list";
   }
 
@@ -146,7 +147,7 @@ function mapTypeString(t: string): WidgetType {
     default:
       // Model types: *_model, comfy.*, hf.*
       if (t.endsWith("_model") || t.startsWith("comfy.") || t.startsWith("hf."))
-        return "model";
+        {return "model";}
       // List subtypes
       if (
         [
@@ -157,7 +158,7 @@ function mapTypeString(t: string): WidgetType {
           "string_list",
         ].includes(t)
       )
-        return "string_list";
+        {return "string_list";}
       return "unsupported";
   }
 }
@@ -215,8 +216,8 @@ const IntegerWidget: React.FC<{
       value={String(value ?? "")}
       onChangeText={(text) => {
         const parsed = parseInt(text, 10);
-        if (!isNaN(parsed)) onChange(parsed);
-        else if (text === "" || text === "-") onChange(text);
+        if (!isNaN(parsed)) {onChange(parsed);}
+        else if (text === "" || text === "-") {onChange(text);}
       }}
       keyboardType="number-pad"
       placeholder="0"
@@ -256,7 +257,7 @@ const FloatWidget: React.FC<{
         return;
       }
       const parsed = parseFloat(text);
-      if (!isNaN(parsed)) onChange(parsed);
+      if (!isNaN(parsed)) {onChange(parsed);}
     },
     [onChange]
   );
@@ -297,7 +298,7 @@ const BoolWidget: React.FC<{
     value={Boolean(value)}
     onValueChange={onChange}
     trackColor={{ false: colors.border, true: colors.primary + "80" }}
-    thumbColor={Boolean(value) ? colors.primary : colors.textTertiary}
+    thumbColor={value ? colors.primary : colors.textTertiary}
   />
 );
 
@@ -410,6 +411,7 @@ const ImageWidget: React.FC<{
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const uri = extractUri(value);
+  const [uploading, setUploading] = useState(false);
 
   const pickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -417,7 +419,29 @@ const ImageWidget: React.FC<{
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
-      onChange({ type: "image", uri: result.assets[0].uri });
+      const picked = result.assets[0];
+      const fileName = picked.fileName ?? `image_${Date.now()}.jpg`;
+      const mimeType = picked.mimeType ?? "image/jpeg";
+      setUploading(true);
+      try {
+        const asset = await apiService.uploadAsset({
+          uri: picked.uri,
+          name: fileName,
+          contentType: mimeType,
+          parentId: "",
+        });
+        const ext = fileName.includes(".")
+          ? fileName.slice(fileName.lastIndexOf("."))
+          : ".jpg";
+        const storageUri = `${apiService.getApiHost()}/api/storage/${asset.id}${ext}`;
+        onChange({ type: "image", uri: storageUri, asset_id: asset.id });
+      } catch (err) {
+        console.error("Failed to upload image:", err);
+        // Fall back to local URI so the preview still works
+        onChange({ type: "image", uri: picked.uri });
+      } finally {
+        setUploading(false);
+      }
     }
   }, [onChange]);
 
@@ -475,6 +499,7 @@ const AudioWidget: React.FC<{
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const uri = extractUri(value);
+  const [uploading, setUploading] = useState(false);
 
   const pickAudio = useCallback(async () => {
     const result = await DocumentPicker.getDocumentAsync({
@@ -482,7 +507,28 @@ const AudioWidget: React.FC<{
       copyToCacheDirectory: true,
     });
     if (!result.canceled && result.assets?.[0]) {
-      onChange({ type: "audio", uri: result.assets[0].uri });
+      const picked = result.assets[0];
+      const fileName = picked.name ?? `audio_${Date.now()}.wav`;
+      const mimeType = picked.mimeType ?? "audio/wav";
+      setUploading(true);
+      try {
+        const asset = await apiService.uploadAsset({
+          uri: picked.uri,
+          name: fileName,
+          contentType: mimeType,
+          parentId: "",
+        });
+        const ext = fileName.includes(".")
+          ? fileName.slice(fileName.lastIndexOf("."))
+          : ".wav";
+        const storageUri = `${apiService.getApiHost()}/api/storage/${asset.id}${ext}`;
+        onChange({ type: "audio", uri: storageUri, asset_id: asset.id });
+      } catch (err) {
+        console.error("Failed to upload audio:", err);
+        onChange({ type: "audio", uri: picked.uri });
+      } finally {
+        setUploading(false);
+      }
     }
   }, [onChange]);
 
@@ -527,6 +573,7 @@ const VideoWidget: React.FC<{
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const uri = extractUri(value);
+  const [uploading, setUploading] = useState(false);
 
   const pickVideo = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -534,7 +581,28 @@ const VideoWidget: React.FC<{
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
-      onChange({ type: "video", uri: result.assets[0].uri });
+      const picked = result.assets[0];
+      const fileName = picked.fileName ?? `video_${Date.now()}.mp4`;
+      const mimeType = picked.mimeType ?? "video/mp4";
+      setUploading(true);
+      try {
+        const asset = await apiService.uploadAsset({
+          uri: picked.uri,
+          name: fileName,
+          contentType: mimeType,
+          parentId: "",
+        });
+        const ext = fileName.includes(".")
+          ? fileName.slice(fileName.lastIndexOf("."))
+          : ".mp4";
+        const storageUri = `${apiService.getApiHost()}/api/storage/${asset.id}${ext}`;
+        onChange({ type: "video", uri: storageUri, asset_id: asset.id });
+      } catch (err) {
+        console.error("Failed to upload video:", err);
+        onChange({ type: "video", uri: picked.uri });
+      } finally {
+        setUploading(false);
+      }
     }
   }, [onChange]);
 
@@ -574,12 +642,12 @@ const VideoWidget: React.FC<{
 
 /** Extract URI from value — handles {uri: ...}, {id: ...}, or raw string */
 function extractUri(value: unknown): string | null {
-  if (!value) return null;
-  if (typeof value === "string") return value;
+  if (!value) {return null;}
+  if (typeof value === "string") {return value;}
   if (typeof value === "object") {
     const v = value as Record<string, unknown>;
-    if (typeof v.uri === "string") return v.uri;
-    if (typeof v.id === "string") return v.id;
+    if (typeof v.uri === "string") {return v.uri;}
+    if (typeof v.id === "string") {return v.id;}
   }
   return null;
 }
@@ -1122,7 +1190,7 @@ const StringListWidget: React.FC<{
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const items = useMemo(() => {
-    if (Array.isArray(value)) return value.map(String);
+    if (Array.isArray(value)) {return value.map(String);}
     return [];
   }, [value]);
 
@@ -1241,7 +1309,7 @@ const ListWidget: React.FC<{
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const items = useMemo(() => {
-    if (Array.isArray(value)) return value;
+    if (Array.isArray(value)) {return value;}
     return [];
   }, [value]);
 
@@ -1250,14 +1318,14 @@ const ListWidget: React.FC<{
 
   const addItem = useCallback(() => {
     const trimmed = inputValue.trim();
-    if (!trimmed) return;
+    if (!trimmed) {return;}
     let parsed: unknown = trimmed;
     if (innerType === "int" || innerType === "integer") {
       parsed = parseInt(trimmed, 10);
-      if (isNaN(parsed as number)) return;
+      if (isNaN(parsed as number)) {return;}
     } else if (innerType === "float" || innerType === "number") {
       parsed = parseFloat(trimmed);
-      if (isNaN(parsed as number)) return;
+      if (isNaN(parsed as number)) {return;}
     }
     onChange([...items, parsed]);
     setInputValue("");
@@ -1447,8 +1515,8 @@ const ModelWidget: React.FC<{
 
   // Extract display info from current value
   const { modelId, modelName } = useMemo(() => {
-    if (!value) return { modelId: "", modelName: "" };
-    if (typeof value === "string") return { modelId: value, modelName: value };
+    if (!value) {return { modelId: "", modelName: "" };}
+    if (typeof value === "string") {return { modelId: value, modelName: value };}
     if (typeof value === "object") {
       const v = value as Record<string, unknown>;
       const id = String(v.id ?? v.name ?? v.repo_id ?? "");
@@ -1580,8 +1648,8 @@ const AssetRefWidget: React.FC<{
   const typeLabel = prop.type.type;
 
   const refId = useMemo(() => {
-    if (!value) return "";
-    if (typeof value === "string") return value;
+    if (!value) {return "";}
+    if (typeof value === "string") {return value;}
     if (typeof value === "object") {
       const v = value as Record<string, unknown>;
       return String(v.id ?? v.asset_id ?? v.name ?? v.uri ?? "");
@@ -1595,8 +1663,25 @@ const AssetRefWidget: React.FC<{
       copyToCacheDirectory: true,
     });
     if (!result.canceled && result.assets?.[0]) {
-      const asset = result.assets[0];
-      onChange({ type: typeLabel, uri: asset.uri, name: asset.name });
+      const picked = result.assets[0];
+      const fileName = picked.name ?? `file_${Date.now()}`;
+      const mimeType = picked.mimeType ?? "application/octet-stream";
+      try {
+        const uploaded = await apiService.uploadAsset({
+          uri: picked.uri,
+          name: fileName,
+          contentType: mimeType,
+          parentId: "",
+        });
+        const ext = fileName.includes(".")
+          ? fileName.slice(fileName.lastIndexOf("."))
+          : "";
+        const storageUri = `${apiService.getApiHost()}/api/storage/${uploaded.id}${ext}`;
+        onChange({ type: typeLabel, uri: storageUri, asset_id: uploaded.id, name: fileName });
+      } catch (err) {
+        console.error("Failed to upload document:", err);
+        onChange({ type: typeLabel, uri: picked.uri, name: fileName });
+      }
     }
   }, [onChange, typeLabel]);
 

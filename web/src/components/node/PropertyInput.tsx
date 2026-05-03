@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, createElement, memo } from "react";
+import { shallow } from "zustand/shallow";
 import { Property } from "../../stores/ApiTypes";
 import PropertyLabel from "./PropertyLabel";
 import useContextMenu from "../../stores/ContextMenuStore";
@@ -51,6 +52,14 @@ import TextListProperty from "../properties/TextListProperty";
 import SketchProperty from "../properties/SketchProperty";
 import useMetadataStore from "../../stores/MetadataStore";
 import InferenceProviderModelSelect from "../properties/InferenceProviderModelSelect";
+import {
+  MediaAspectRatioImageProperty,
+  MediaAspectRatioVideoProperty,
+  MediaResolutionImageProperty,
+  MediaResolutionVideoProperty,
+  MediaDurationProperty,
+  MediaStrengthProperty
+} from "../properties/MediaPickerProperties";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { NodeData } from "../../stores/NodeData";
 import { useInputNodeAutoRun } from "../../hooks/nodes/useInputNodeAutoRun";
@@ -70,7 +79,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       width: 2,
       backgroundColor: theme.vars.palette.primary.main,
       opacity: 0.2,
-      borderRadius: "2px",
+      borderRadius: "var(--rounded-xs)",
     },
 
     // ACTION ICONS — hidden by default, shown on hover
@@ -86,7 +95,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       transition: "opacity 0.15s ease",
       zIndex: 1,
       background: theme.vars.palette.background.paper,
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       padding: "2px 4px",
       boxShadow: `0 1px 4px ${theme.vars.palette.action.focus}`,
     },
@@ -196,28 +205,62 @@ export function getComponentForProperty(
     values?: (string | number)[];
     enum?: (string | number)[];
   };
-  // If property has predefined values, treat it as an enum/select 
+
+  // Explicit `json_schema_extra.type` opts into a custom renderer regardless
+  // of base type or attached enum values (e.g. media_aspect_ratio_image
+  // wants the chip-style picker even though `values` is set).
+  if (property.json_schema_extra?.type) {
+    const overrideComponent = customComponentForType(
+      property.json_schema_extra.type as string
+    );
+    if (overrideComponent) {
+      return overrideComponent;
+    }
+  }
+
+  // If property has predefined values, treat it as an enum/select
   // regardless of base type (often comes as 'str' from dynamic schemas)
-  const hasValues = (property.type.values && property.type.values.length > 0) || 
+  const hasValues = (property.type.values && property.type.values.length > 0) ||
                     (property.type.type_args?.[0]?.values && property.type.type_args[0].values.length > 0) ||
                     (propertyWithExtras.values && propertyWithExtras.values.length > 0) ||
                     (propertyWithExtras.enum && propertyWithExtras.enum.length > 0);
-  
+
   if (hasValues) {
     return EnumProperty;
   }
 
   if (property.json_schema_extra?.type) {
     return componentForType(property.json_schema_extra.type as string);
-  } else {
-    switch (property.type.type) {
-      case "union":
-        return handleUnionType(property);
-      case "list":
-        return handleListType(property);
-      default:
-        return componentForType(property.type.type);
-    }
+  }
+
+  switch (property.type.type) {
+    case "union":
+      return handleUnionType(property);
+    case "list":
+      return handleListType(property);
+    default:
+      return componentForType(property.type.type);
+  }
+}
+
+function customComponentForType(
+  type: string
+): React.ComponentType<PropertyProps> | null {
+  switch (type) {
+    case "media_aspect_ratio_image":
+      return MediaAspectRatioImageProperty;
+    case "media_aspect_ratio_video":
+      return MediaAspectRatioVideoProperty;
+    case "media_resolution_image":
+      return MediaResolutionImageProperty;
+    case "media_resolution_video":
+      return MediaResolutionVideoProperty;
+    case "media_duration":
+      return MediaDurationProperty;
+    case "media_strength":
+      return MediaStrengthProperty;
+    default:
+      return null;
   }
 }
 
@@ -343,7 +386,7 @@ function handleListType(
 }
 
 function handleModelTypes(type: string): React.ComponentType<PropertyProps> {
-  const modelPrefixes = ["comfy.", "hf."];
+  const modelPrefixes = ["comfy.", "hf.", "tjs."];
 
   if (type.endsWith("_model")) {
     return ModelProperty;
@@ -410,7 +453,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       updateNodeProperties: state.updateNodeProperties,
       updateNodeData: state.updateNodeData,
       findNode: state.findNode
-    })
+    }),
+    shallow
   );
   const metadata = useMetadataStore((state) => state.metadata);
 
@@ -650,7 +694,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   const [editedName, setEditedName] = React.useState(property.name);
   const { handleDeleteProperty, handleUpdatePropertyName } = useDynamicProperty(
     id,
-    (data?.dynamic_properties as Record<string, any>) || {}
+    (data?.dynamic_properties as Record<string, unknown>) || {}
   );
 
   const handleNameSubmit = useCallback(

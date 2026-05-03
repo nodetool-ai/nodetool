@@ -49,7 +49,7 @@ const styles = (theme: Theme) =>
     ".add-swatch-button": {
       width: "24px",
       height: "24px",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       border: `1px dashed ${theme.vars.palette.grey[600]}`,
       cursor: "pointer",
       color: theme.vars.palette.grey[500],
@@ -62,7 +62,7 @@ const styles = (theme: Theme) =>
       gap: "8px",
       padding: "8px",
       backgroundColor: theme.vars.palette.grey[900],
-      borderRadius: "6px"
+      borderRadius: "var(--rounded-md)"
     },
     ".palette-header": {
       alignItems: "center",

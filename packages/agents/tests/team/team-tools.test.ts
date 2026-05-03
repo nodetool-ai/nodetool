@@ -3,7 +3,7 @@ import { MessageBus } from "../../src/team/message-bus.js";
 import { TaskBoard } from "../../src/team/task-board.js";
 import { createTeamTools } from "../../src/team/team-tools.js";
 import type { AgentIdentity } from "../../src/team/types.js";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const alice: AgentIdentity = {
   id: "alice",

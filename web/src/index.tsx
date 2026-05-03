@@ -41,15 +41,16 @@ import "./styles/mobile.css";
 import "dockview/dist/styles/dockview.css";
 import "./styles/dockview.css";
 import "./lib/dragdrop/dragdrop.css";
-import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./queryClient";
+import { TRPCProvider } from "./trpc/Provider";
 import { useAssetStore } from "./stores/AssetStore";
 import Login from "./components/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
+import { isLocalhost } from "./lib/env";
 import { useSettingsStore } from "./stores/SettingsStore";
-import { isLocalhost } from "./stores/ApiClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
+import { HEADER_HEIGHT } from "./config/constants";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata } from "./serverState/useMetadata";
 import useMetadataStore from "./stores/MetadataStore";
@@ -65,7 +66,6 @@ const DownloadManagerDialog = React.lazy(
   () => import("./components/hugging_face/DownloadManagerDialog")
 );
 
-import log from "loglevel";
 import { installIpcLogBridge } from "./logging/ipcLogBridge";
 const Alert = React.lazy(() => import("./components/node_editor/Alert"));
 import MobileClassProvider from "./components/MobileClassProvider";
@@ -73,7 +73,9 @@ const AppHeader = React.lazy(() => import("./components/panels/AppHeader"));
 import { SkipLinks } from "./components/ui_primitives/SkipLinks";
 
 // Lazy-loaded route components for code splitting
-const _Dashboard = React.lazy(() => import("./components/dashboard/Dashboard"));
+const WelcomePage = React.lazy(
+  () => import("./components/dashboard/WelcomePage")
+);
 const GlobalChat = React.lazy(
   () => import("./components/chat/containers/GlobalChat")
 );
@@ -122,6 +124,9 @@ const CodeEditorDebug = React.lazy(
 const ComponentPreview = React.lazy(
   () => import("./components/preview/ComponentPreview")
 );
+const SettingsPage = React.lazy(
+  () => import("./components/menus/SettingsMenu")
+);
 
 // Defer frontend tool registrations until after initial render
 const registerFrontendTools = () => {
@@ -135,22 +140,24 @@ const registerFrontendTools = () => {
     import("./lib/tools/builtin/graph"),
     import("./lib/tools/builtin/getGraph"),
     import("./lib/tools/builtin/searchNodes"),
+    import("./lib/tools/builtin/searchModels"),
     import("./lib/tools/builtin/deleteNode"),
     import("./lib/tools/builtin/deleteEdge")
   ]).catch((error) => {
-    log.error("Failed to register frontend tools:", error);
+    console.error("Failed to register frontend tools:", error);
   });
 };
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
+import OnboardingRoot from "./components/onboarding/OnboardingRoot";
+import { useOnboardingStore } from "./stores/OnboardingStore";
 
-window.log = log;
 installIpcLogBridge();
 
 if (isLocalhost) {
   useRemoteSettingsStore
     .getState()
     .fetchSettings()
-    .catch((err) => log.error(err));
+    .catch((err) => console.error(err));
 }
 
 const NavigateToStart = () => {
@@ -180,11 +187,25 @@ const NavigateToStart = () => {
         return null;
       };
 
+      const isNewcomer = (() => {
+        const onboarding = useOnboardingStore.getState();
+        const hasProgress = Object.values(onboarding.completed).some(Boolean);
+        return !onboarding.dismissed && !hasProgress;
+      })();
+
       const navigateToEditor = async () => {
         // Check for existing workflow first
         const existingWorkflowId = getExistingWorkflowId();
         if (existingWorkflowId) {
           navigate(`/editor/${existingWorkflowId}`, { replace: true });
+          return;
+        }
+
+        // Brand-new users land on the guided welcome page rather than an
+        // empty new workflow — the onboarding hint overlay drives them
+        // through their first steps from there.
+        if (isNewcomer) {
+          navigate("/welcome", { replace: true });
           return;
         }
 
@@ -195,20 +216,19 @@ const NavigateToStart = () => {
             const workflow = await createNewWorkflow();
             navigate(`/editor/${workflow.id}`, { replace: true });
           } catch (error) {
-            log.error("Failed to create workflow:", error);
-            navigate("/dashboard", { replace: true });
+            console.error("Failed to create workflow:", error);
+            navigate("/welcome", { replace: true });
           }
         }
       };
 
-      if (isLocalhost) {
-        if (!showWelcomeOnStartup) {
-          await navigateToEditor();
-        } else {
-          navigate("/dashboard", { replace: true });
-        }
-      } else if (state === "logged_in") {
-        if (!showWelcomeOnStartup) {
+      if (isLocalhost || state === "logged_in") {
+        // Newcomers always start on /welcome, regardless of the
+        // showWelcomeOnStartup setting (which still controls the Portal
+        // for returning users).
+        if (isNewcomer) {
+          navigate("/welcome", { replace: true });
+        } else if (!showWelcomeOnStartup) {
           await navigateToEditor();
         } else {
           navigate("/dashboard", { replace: true });
@@ -241,6 +261,33 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <Portal />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/welcome",
+      element: (
+        <ProtectedRoute>
+          <WelcomePage />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/settings",
+      element: (
+        <ProtectedRoute>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%",
+              paddingTop: HEADER_HEIGHT
+            }}
+          >
+            <AppHeader />
+            <SettingsPage />
+          </div>
         </ProtectedRoute>
       )
     },
@@ -475,7 +522,16 @@ function getRoutes() {
     route.ErrorBoundary = ErrorBoundary;
   });
 
-  return routes;
+  // Wrap all routes in a layout that mounts the onboarding overlay and
+  // detector subscriptions, so the guided tour can render on top of any
+  // page and record progress as the user explores the real product.
+  return [
+    {
+      element: <OnboardingRoot />,
+      children: routes,
+      ErrorBoundary
+    }
+  ] satisfies RouteObject[];
 }
 
 useAssetStore.getState().setQueryClient(queryClient);
@@ -505,7 +561,7 @@ const preloadComfyMetadata = async (): Promise<void> => {
     const objectInfoModule =
       await import("./data/comfy-object-info.json").catch(() => null);
     if (!objectInfoModule) {
-      log.info("[startup] No bundled ComfyUI schema found, skipping preload");
+      console.info("[startup] No bundled ComfyUI schema found, skipping preload");
       return;
     }
     const objectInfo = (objectInfoModule.default ??
@@ -533,11 +589,11 @@ const preloadComfyMetadata = async (): Promise<void> => {
       });
     }
 
-    log.info(
+    console.info(
       `[startup] Loaded ${comfyMetadataCount} ComfyUI node metadata entries from bundled schema`
     );
   } catch (error) {
-    log.warn("[startup] ComfyUI metadata preload skipped", error);
+    console.warn("[startup] ComfyUI metadata preload skipped", error);
   }
 };
 
@@ -577,7 +633,7 @@ const AppWrapper = () => {
         }
       })
       .catch((error) => {
-        log.error("Failed to load metadata:", error);
+        console.error("Failed to load metadata:", error);
         setStatus("error");
       });
   }, [authState]);
@@ -587,7 +643,7 @@ const AppWrapper = () => {
 
   return (
     <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
+      <TRPCProvider>
         <InitColorSchemeScript attribute="class" defaultMode="dark" />
         <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
           <CssBaseline />
@@ -643,7 +699,7 @@ const AppWrapper = () => {
                         onClick={() => window.location.reload()}
                         style={{
                           padding: "8px 16px",
-                          borderRadius: "6px",
+                          borderRadius: "var(--rounded-md)",
                           border: "1px solid var(--palette-divider)",
                           backgroundColor: "transparent",
                           color: "var(--palette-text-primary)",
@@ -695,7 +751,7 @@ const AppWrapper = () => {
             </MenuProvider>
           </MobileClassProvider>
         </ThemeProvider>
-      </QueryClientProvider>
+      </TRPCProvider>
     </React.StrictMode>
   );
 };
@@ -709,4 +765,4 @@ const initialize = async () => {
   root.render(<AppWrapper />);
 };
 
-initialize().catch((err) => log.error(err));
+initialize().catch((err) => console.error(err));

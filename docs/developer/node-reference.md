@@ -7,7 +7,7 @@ description: "Copy-paste templates and common patterns for building TypeScript n
 ## Essential Node Templates
 
 ```ts
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
 
 // SIMPLE PROCESSING NODE
@@ -204,10 +204,10 @@ declare config: any;
 
 ## ProcessingContext Essentials
 
-The optional second argument to `process()` is a **`ProcessingContext`** from `@nodetool/runtime`. It provides access to secrets, provider predictions, and runtime services.
+The optional second argument to `process()` is a **`ProcessingContext`** from `@nodetool-ai/runtime`. It provides access to secrets, provider predictions, and runtime services.
 
 ```ts
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 async process(
   inputs: Record<string, unknown>,

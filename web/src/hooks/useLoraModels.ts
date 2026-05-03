@@ -40,9 +40,7 @@ export const useLoraModels = ({ modelType, enabled = true }: UseLoraModelsParams
 
       if (pairs.length === 0) {return [] as HuggingFaceModel[];}
 
-      const results = await tryCacheFiles(
-        pairs.map((p) => ({ ...p, downloaded: false }))
-      );
+      const results = await tryCacheFiles(pairs);
 
       return (
         results

@@ -1,8 +1,7 @@
 import React from "react";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { client } from "../../stores/ApiClient";
-import { ProviderInfo } from "../../stores/ApiTypes";
+import { trpc } from "../../lib/trpc";
 import {
   useProviders,
   useProvidersByCapability,
@@ -10,9 +9,15 @@ import {
   useTTSProviders
 } from "../useProviders";
 
-jest.mock("../../stores/ApiClient");
+jest.mock("../../lib/trpc", () => ({
+  trpc: {
+    models: {
+      providers: { query: jest.fn() }
+    }
+  }
+}));
 
-const mockClient = client as jest.Mocked<typeof client>;
+const mockQuery = trpc.models.providers.query as jest.Mock;
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = new QueryClient({
@@ -39,7 +44,7 @@ describe("useProviders", () => {
       capabilities: ["generate_message"],
     },
     {
-      provider: "elevenlabs",
+      provider: "openai",
       capabilities: ["text_to_speech"],
     },
   ];
@@ -50,10 +55,7 @@ describe("useProviders", () => {
 
   describe("useProviders hook", () => {
     it("fetches and returns providers", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockProviders,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockProviders as never);
 
       const { result } = renderHook(() => useProviders(), {
         wrapper: createWrapper(),
@@ -68,10 +70,7 @@ describe("useProviders", () => {
     });
 
     it("returns empty array when no providers", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: [],
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce([] as never);
 
       const { result } = renderHook(() => useProviders(), {
         wrapper: createWrapper(),
@@ -85,10 +84,7 @@ describe("useProviders", () => {
     });
 
     it("handles API error", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: null,
-        error: { detail: "Failed to fetch providers" },
-      });
+      mockQuery.mockRejectedValueOnce(new Error("Failed to fetch providers"));
 
       const { result } = renderHook(() => useProviders(), {
         wrapper: createWrapper(),
@@ -104,10 +100,7 @@ describe("useProviders", () => {
 
   describe("capability filtering", () => {
     it("filters providers by capability", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockProviders,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockProviders as never);
 
       const { result } = renderHook(() => useProvidersByCapability("generate_message"), {
         wrapper: createWrapper(),
@@ -118,15 +111,12 @@ describe("useProviders", () => {
       });
 
       expect(result.current.providers).toHaveLength(2);
-      expect(result.current.providers.map((p: ProviderInfo) => p.provider)).toContain("openai");
-      expect(result.current.providers.map((p: ProviderInfo) => p.provider)).toContain("anthropic");
+      expect(result.current.providers.map((p) => p.provider)).toContain("openai");
+      expect(result.current.providers.map((p) => p.provider)).toContain("anthropic");
     });
 
     it("returns empty array when no providers match capability", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockProviders,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockProviders as never);
 
       const { result } = renderHook(() => useProvidersByCapability("text_to_video"), {
         wrapper: createWrapper(),
@@ -142,10 +132,7 @@ describe("useProviders", () => {
 
   describe("specific provider type hooks", () => {
     it("useLanguageModelProviders returns correct providers", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockProviders,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockProviders as never);
 
       const { result } = renderHook(() => useLanguageModelProviders(), {
         wrapper: createWrapper(),
@@ -156,15 +143,12 @@ describe("useProviders", () => {
       });
 
       expect(result.current.providers).toHaveLength(2);
-      expect(result.current.providers.map((p: ProviderInfo) => p.provider)).toContain("openai");
-      expect(result.current.providers.map((p: ProviderInfo) => p.provider)).toContain("anthropic");
+      expect(result.current.providers.map((p) => p.provider)).toContain("openai");
+      expect(result.current.providers.map((p) => p.provider)).toContain("anthropic");
     });
 
     it("useTTSProviders returns correct providers", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockProviders,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockProviders as never);
 
       const { result } = renderHook(() => useTTSProviders(), {
         wrapper: createWrapper(),
@@ -175,7 +159,7 @@ describe("useProviders", () => {
       });
 
       expect(result.current.providers).toHaveLength(1);
-      expect(result.current.providers[0].provider).toBe("elevenlabs");
+      expect(result.current.providers[0].provider).toBe("openai");
     });
   });
 });

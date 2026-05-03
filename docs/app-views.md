@@ -6,8 +6,6 @@ description: "Visual index of every screen, panel, and dialog in NodeTool. Jump 
 
 Every user-facing view in NodeTool across the web app, desktop (Electron), and mobile. Each entry links to the detailed docs page and shows the current screenshot. Missing or pending screenshots are marked with a placeholder.
 
-> **Contributors:** See [SCREENSHOTS.md]({{ '/SCREENSHOTS' | relative_url }}) for the capture plan and guidelines.
-
 ---
 
 ## Top-Level Views (Web App)
@@ -586,11 +584,8 @@ Docs: [Developer Guide]({{ '/developer/' | relative_url }})
 
 If you're capturing a screenshot from this list:
 
-1. Launch NodeTool locally (`make dev` for web + backend; Electron dev via `make electron-dev`).
+1. Launch NodeTool locally (`npm run dev` for web + backend; Electron dev via `npm run electron:dev`).
 2. Navigate to the view and set up a clean example (no personal data, default theme).
 3. Capture at **1920×1080** minimum — use 2× resolution for retina displays.
 4. Save as PNG with a descriptive hyphenated name under `docs/assets/screenshots/`.
 5. Replace the placeholder reference on the view's docs page and in `app-views.md`.
-6. Tick the entry off in [`SCREENSHOTS.md`]({{ '/SCREENSHOTS' | relative_url }}).
-
-See the full guidelines in [`SCREENSHOTS.md`]({{ '/SCREENSHOTS' | relative_url }}).

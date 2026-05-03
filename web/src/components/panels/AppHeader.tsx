@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Toolbar, Box, Button } from "@mui/material";
+import { Toolbar, Box, Button, useMediaQuery } from "@mui/material";
+import AutoAwesomeMosaicIcon from "@mui/icons-material/AutoAwesomeMosaic";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY, HEADER_HEIGHT } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
@@ -11,7 +12,11 @@ import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { FlexRow, Tooltip } from "../ui_primitives";
-import log from "loglevel";
+import WorkspaceSelect from "../workspaces/WorkspaceSelect";
+import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
+import { isProduction } from "../../lib/env";
+
+const workspacesEnabled = !isProduction;
 
 const styles = (theme: Theme) =>
   css({
@@ -41,7 +46,7 @@ const styles = (theme: Theme) =>
       height: "28px",
       padding: "4px",
       color: theme.vars.palette.text.primary,
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       fontSize: theme.typography.body2.fontSize,
       transition: "all 0.2s ease-out",
       "&:hover": {
@@ -70,12 +75,12 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "2px",
       border: "1px solid var(--palette-grey-800)",
-      borderRadius: "1em",
+      borderRadius: "var(--rounded-md)",
       height: "1.6em",
     },
     ".mode-pill": {
       padding: "5px 14px",
-      borderRadius: "16px",
+      borderRadius: "var(--rounded-sm)",
       fontWeight: 500,
       letterSpacing: "0.02em",
       color: theme.vars.palette.text.secondary,
@@ -157,7 +162,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
         const workflow = await createNewWorkflow();
         navigate(`/editor/${workflow.id}`);
       } catch (error) {
-        log.error("Failed to create new workflow:", error);
+        console.error("Failed to create new workflow:", error);
       }
     }
   }, [navigate, currentWorkflowId, createNewWorkflow]);
@@ -250,8 +255,16 @@ const TemplatesButton = memo(function TemplatesButton({
         size="small"
         sx={{
           height: "1.75em",
+          minWidth: "auto",
+          borderRadius: "var(--rounded-md)",
           color: "var(--palette-text-default)",
           border: "1px solid transparent",
+          gap: "6px",
+          "& .templates-icon": {
+            width: "16px",
+            height: "16px",
+            fontSize: "16px"
+          },
           "&:hover": {
             backgroundColor: "var(--palette-action-hover)",
             color: "var(--palette-text-primary)",
@@ -268,9 +281,30 @@ const TemplatesButton = memo(function TemplatesButton({
         onClick={handleClick}
         tabIndex={-1}
         aria-current={isActive ? "page" : undefined}
+        aria-label="Templates"
       >
+        <AutoAwesomeMosaicIcon className="templates-icon" />
         <span className="nav-button-text">Templates</span>
       </Button>
+    </Tooltip>
+  );
+});
+
+const HeaderWorkspaceSelector = memo(function HeaderWorkspaceSelector() {
+  const { workspaceId, setWorkspaceId } = useCurrentWorkspace();
+  return (
+    <Tooltip
+      title="Current workspace"
+      delay={TOOLTIP_ENTER_DELAY}
+      placement="bottom"
+    >
+      <Box sx={{ width: 200 }}>
+        <WorkspaceSelect
+          value={workspaceId}
+          onChange={setWorkspaceId}
+          compact
+        />
+      </Box>
     </Tooltip>
   );
 });
@@ -280,6 +314,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
   const path = useLocation().pathname;
   const headerStyles = useMemo(() => styles(theme), [theme]);
   const navigate = useNavigate();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const handleLogoClick = useCallback(() => {
     navigate("/dashboard");
@@ -306,6 +341,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
           <Box sx={{ flexGrow: 1 }} />
         </FlexRow>
         <div className="buttons-right">
+          {workspacesEnabled && !isMobile && <HeaderWorkspaceSelector />}
           <TemplatesButton isActive={path.startsWith("/templates")} />
           <RightSideButtons />
         </div>

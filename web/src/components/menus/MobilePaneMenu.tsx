@@ -34,12 +34,13 @@ import {
   GROUP_NODE_METADATA,
   COMMENT_NODE_METADATA
 } from "../../utils/nodeUtils";
+import { shallow } from "zustand/shallow";
 
 const styles = (theme: Theme) =>
   css({
     padding: "0 8px 16px 8px",
     ".menu-item": {
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       margin: "2px 0",
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover
@@ -94,7 +95,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
   const { createNode, addNode } = useNodes((state) => ({
     createNode: state.createNode,
     addNode: state.addNode
-  }));
+  }), shallow);
 
   // Get center of viewport for node positioning
   const getViewportCenter = useCallback(() => {

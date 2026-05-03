@@ -10,7 +10,7 @@
 
 import { describe, it, expect } from "vitest";
 import { ClaudeAgentProvider } from "../../src/providers/claude-agent-provider.js";
-import type { Chunk } from "@nodetool/protocol";
+import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   ProviderTool,
   ToolCall,

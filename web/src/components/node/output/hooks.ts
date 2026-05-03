@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Asset, AssetRef } from "../../../stores/ApiTypes";
 import { BASE_URL } from "../../../stores/BASE_URL";
-import log from "loglevel";
-import { resolveAssetUri as resolveAssetUriBase } from "../../../utils/resolveAssetUri";
 
 /**
  * Base type for typed output values with a type discriminator
@@ -70,19 +68,27 @@ function toUint8Array(
 
 /**
  * Resolves asset URIs to their actual URLs.
- * Wraps the shared `resolveAssetUri` utility, returning empty string (not null)
- * for falsy inputs to maintain backward compatibility with existing consumers
- * that expect a string return type.
+ * Converts asset:// URIs to /api/storage/ URLs.
+ * Passes through other URI schemes unchanged.
  */
 export function resolveAssetUri(uri: string | undefined | null): string {
-  const resolved = resolveAssetUriBase(uri) ?? "";
-  if (!resolved) {
+  if (!uri) {
     return "";
   }
-  if (BASE_URL && resolved.startsWith("/api/storage/")) {
-    return `${BASE_URL}${resolved}`;
+
+  // Handle asset:// scheme - convert to API storage URL
+  if (uri.startsWith("asset://")) {
+    const assetId = uri.slice("asset://".length);
+    return `${BASE_URL}/api/storage/${assetId}`;
   }
-  return resolved;
+
+  // Handle /api/storage/ relative URLs — prefix with BASE_URL for Electron
+  if (uri.startsWith("/api/storage/")) {
+    const resolved = `${BASE_URL}${uri}`;
+    return resolved;
+  }
+
+  return uri;
 }
 
 export function getMimeTypeFromUri(
@@ -217,7 +223,7 @@ export function useRevokeBlobUrls(urls: string[]) {
             URL.revokeObjectURL(u);
           }
         } catch {
-          log.error("Error revoking blob URL", u);
+          console.error("Error revoking blob URL", u);
         }
       });
     };

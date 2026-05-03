@@ -23,7 +23,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "22"
+          node-version-file: ".nvmrc"
           cache: "npm"
 
       - name: Install all workspace dependencies
@@ -55,9 +55,9 @@ jobs:
         continue-on-error: true
         run: |
           TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
-          make typecheck 2>&1 || TYPECHECK_EXIT=1
-          make lint 2>&1 || LINT_EXIT=1
-          make test 2>&1 || TEST_EXIT=1
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
           echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
           echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
           echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
@@ -69,7 +69,9 @@ jobs:
           additional_permissions: |
             actions: read
           claude_args: |
+            --model claude-opus-4-6
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, useEffect+fetch instead of useQuery, and prose throat-clearing."
           prompt: |
             # Improve Test Coverage
 
@@ -114,7 +116,7 @@ jobs:
             ## Verification
             After adding tests, all checks must pass:
             ```bash
-            make typecheck && make lint && make test
+            npm run typecheck && npm run lint && npm run test
             ```
 
             ## Submit
@@ -124,9 +126,9 @@ jobs:
         if: always()
         run: |
           TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
-          make typecheck 2>&1 || TYPECHECK_EXIT=1
-          make lint 2>&1 || LINT_EXIT=1
-          make test 2>&1 || TEST_EXIT=1
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
 
           if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
             echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1

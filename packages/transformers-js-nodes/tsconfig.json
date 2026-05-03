@@ -1,0 +1,25 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "dist",
+    "tests",
+    "node_modules"
+  ],
+  "references": [
+    {
+      "path": "../node-sdk"
+    },
+    {
+      "path": "../config"
+    }
+  ]
+}

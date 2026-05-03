@@ -7,7 +7,7 @@
  * Uses a watchdog loop to detect and restart failed trigger workflows.
  */
 
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.kernel.trigger-manager");
 

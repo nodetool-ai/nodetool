@@ -14,7 +14,6 @@ jest.mock("../../themes/ThemeNodetool", () => ({
   }
 }));
 jest.mock("../../../config/data_types", () => ({}));
-jest.mock("../../../stores/ApiClient", () => ({ client: { GET: jest.fn() } }));
 jest.mock("../../../contexts/NodeContext", () => ({
   useNodes: jest.fn((selector) => {
     const state = { edges: [] };

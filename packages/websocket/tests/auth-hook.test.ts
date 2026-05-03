@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
-import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool/auth";
+import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool-ai/auth";
 
 // Helper: build a minimal Fastify app with the auth hook and a protected route
 async function buildApp(opts: {

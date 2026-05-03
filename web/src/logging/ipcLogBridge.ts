@@ -1,9 +1,6 @@
-import log from "loglevel";
-
 type FrontendLogLevel = "info" | "warn" | "error";
 
 let installed = false;
-let inLoglevelDispatch = false;
 
 const toStringSafe = (value: unknown): string => {
   if (typeof value === "string") {
@@ -30,6 +27,11 @@ const normalizeLevel = (level: string): FrontendLogLevel => {
 };
 
 const sendToMain = (level: FrontendLogLevel, source: string, args: unknown[]) => {
+  // Only forward errors and warnings to the main process — info/debug/log are
+  // noisy and the IPC round-trip is a real bottleneck during normal operation.
+  if (level !== "error" && level !== "warn") {
+    return;
+  }
   if (!window.api?.logging?.log) {
     return;
   }
@@ -46,24 +48,6 @@ export const installIpcLogBridge = () => {
   }
   installed = true;
 
-  const originalFactory = log.methodFactory;
-  log.methodFactory = (methodName, logLevel, loggerName) => {
-    const rawMethod = originalFactory(methodName, logLevel, loggerName);
-    return (...args: unknown[]) => {
-      inLoglevelDispatch = true;
-      try {
-        if (args[0] && /SystemStats/.test(args[0]?.toString())) {
-          return;
-        }
-        rawMethod(...args);
-      } finally {
-        inLoglevelDispatch = false;
-      }
-      sendToMain(normalizeLevel(methodName), "web/loglevel", args);
-    };
-  };
-  log.rebuild();
-
   const originalConsole = {
     log: console.log.bind(console),
     warn: console.warn.bind(console),
@@ -72,23 +56,14 @@ export const installIpcLogBridge = () => {
 
   console.log = (...args: unknown[]) => {
     originalConsole.log(...args);
-    if (inLoglevelDispatch) {
-      return;
-    }
     sendToMain("info", "web/console", args);
   };
   console.warn = (...args: unknown[]) => {
     originalConsole.warn(...args);
-    if (inLoglevelDispatch) {
-      return;
-    }
     sendToMain("warn", "web/console", args);
   };
   console.error = (...args: unknown[]) => {
     originalConsole.error(...args);
-    if (inLoglevelDispatch) {
-      return;
-    }
     sendToMain("error", "web/console", args);
   };
 };

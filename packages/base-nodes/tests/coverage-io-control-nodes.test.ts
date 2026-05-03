@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { mkdtemp, writeFile, readFile, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import {
   // control
@@ -30,6 +30,7 @@ import {
   DataframeInputNode,
   DocumentInputNode,
   ImageInputNode,
+  ImageEditorNode,
   ImageListInputNode,
   VideoListInputNode,
   AudioListInputNode,
@@ -359,6 +360,19 @@ describe("input nodes — full coverage", () => {
     });
   });
 
+  it("ImageEditorNode returns image and mask outputs", async () => {
+    const node = new ImageEditorNode();
+    node.assign({
+      image: { type: "image", uri: "data:image/png;base64,image" },
+      mask: { type: "image", uri: "data:image/png;base64,mask" }
+    });
+    const result = await node.process();
+    expect(result).toEqual({
+      image: { type: "image", uri: "data:image/png;base64,image" },
+      mask: { type: "image", uri: "data:image/png;base64,mask" }
+    });
+  });
+
   it("RealtimeAudioInputNode returns chunk", async () => {
     const node = new RealtimeAudioInputNode();
     node.assign({ value: "audio-data" });
@@ -412,7 +426,7 @@ describe("input nodes — full coverage", () => {
         thread_id: "t2",
         role: "assistant",
         content: [
-          { type: "image", image: { uri: "img.png" } },
+          { type: "image_url", image: { uri: "img.png" } },
           { type: "audio", audio: { uri: "clip.mp3" } },
           { type: "text", text: "hello" },
           null, // non-object item

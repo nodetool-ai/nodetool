@@ -290,7 +290,7 @@ const TabHeader = ({
         slotProps={{
           paper: {
             sx: {
-              borderRadius: "8px"
+              borderRadius: "var(--rounded-lg)"
             }
           }
         }}

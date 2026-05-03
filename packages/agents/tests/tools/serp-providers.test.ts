@@ -17,7 +17,7 @@ import type {
 } from "../../src/tools/serp-providers/index.js";
 import { GoogleSearchTool } from "../../src/tools/search-tools.js";
 import { DataForSEOSearchTool } from "../../src/tools/dataseo-tools.js";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Buffer } from "buffer";
 
 /* ------------------------------------------------------------------ */

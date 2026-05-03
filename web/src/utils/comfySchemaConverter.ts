@@ -6,7 +6,6 @@
 
 import { ComfyUINodeSchema, ComfyUIObjectInfo } from "../services/ComfyUIService";
 import { NodeMetadata, Property, OutputSlot } from "../stores/ApiTypes";
-import log from "loglevel";
 
 type ComfyInputSpec = [unknown, unknown?];
 
@@ -57,7 +56,7 @@ function mapComfyTypeToNodeToolType(comfyType: unknown): string {
   return "str";
 }
 
-function isRecord(value: unknown): value is Record<string, any> {
+function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -92,7 +91,7 @@ function mapComfyInputToProperty(
       optional: false,
       type_args: []
     },
-    description: config.tooltip || "",
+    description: typeof config.tooltip === "string" ? config.tooltip : "",
     default: config.default,
     required: false
   };
@@ -100,10 +99,10 @@ function mapComfyInputToProperty(
   // Handle number constraints
   if (comfyTypeName === "INT" || comfyTypeName === "FLOAT") {
     if (config.min !== undefined) {
-      property.min = config.min;
+      property.min = typeof config.min === "number" ? config.min : null;
     }
     if (config.max !== undefined) {
-      property.max = config.max;
+      property.max = typeof config.max === "number" ? config.max : null;
     }
   }
 
@@ -204,7 +203,7 @@ export function comfyObjectInfoToMetadataMap(
       const metadata = comfySchemaToNodeMetadata(nodeName, schema);
       metadataMap[metadata.node_type] = metadata;
     } catch (error) {
-      log.error(`Failed to convert ComfyUI schema for ${nodeName}:`, error);
+      console.error(`Failed to convert ComfyUI schema for ${nodeName}:`, error);
     }
   });
 

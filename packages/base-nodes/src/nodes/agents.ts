@@ -1,5 +1,5 @@
-import { createLogger } from "@nodetool/config";
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { createLogger } from "@nodetool-ai/config";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type {
   BaseProvider,
   Message,
@@ -9,9 +9,10 @@ import type {
   ProcessingContext,
   ProviderStreamItem,
   ToolCall
-} from "@nodetool/runtime";
-import type { Chunk, ProcessingMessage } from "@nodetool/protocol";
-import { MultiModeAgent, Tool as AgentTool } from "@nodetool/agents";
+} from "@nodetool-ai/runtime";
+import type { Chunk, ProcessingMessage } from "@nodetool-ai/protocol";
+import { MultiModeAgent, Tool as AgentTool } from "@nodetool-ai/agents";
+import { hydrateBuiltinAgentTool } from "./agent-tool-hydration.js";
 
 type MessagePart = { type?: string; text?: string };
 type ThreadLike = { id: string; title: string; messages: Message[] };
@@ -221,6 +222,32 @@ function normalizeProviderStreamItem(
   } as Chunk;
 }
 
+/**
+ * Render a tool-call streaming item as a Chunk so callers see tool dispatches
+ * inline with the assistant's text/thinking stream. The structured payload
+ * lives in `content_metadata`; `content` is a human-readable summary.
+ */
+function toolCallChunk(toolCall: ToolCall): Chunk {
+  const argsJson = (() => {
+    try {
+      return JSON.stringify(toolCall.args ?? {});
+    } catch {
+      return "{}";
+    }
+  })();
+  return {
+    type: "chunk",
+    content: `${toolCall.name}(${argsJson})`,
+    content_type: "tool_call",
+    content_metadata: {
+      tool_call_id: toolCall.id,
+      tool_name: toolCall.name,
+      args: toolCall.args ?? {}
+    },
+    done: false
+  } as Chunk;
+}
+
 export async function* streamProviderMessages(
   provider: BaseProvider,
   args: Parameters<BaseProvider["generateMessages"]>[0]
@@ -360,7 +387,7 @@ function normalizeMessageContent(value: unknown): Message["content"] {
         record.image ?? record.image_url ?? record.imageUrl
       );
       if (image)
-        parts.push({ type: "image", image } satisfies MessageImageContent);
+        parts.push({ type: "image_url", image } satisfies MessageImageContent);
       continue;
     }
     if (kind === "audio") {
@@ -445,7 +472,7 @@ function buildUserMessage(
   const content: MessageContent[] = [{ type: "text", text: prompt }];
   const imageRef = normalizeBinaryRef(image);
   if (imageRef) {
-    content.push({ type: "image", image: imageRef });
+    content.push({ type: "image_url", image: imageRef });
   }
   const audioRef = normalizeBinaryRef(audio);
   if (audioRef) {
@@ -585,12 +612,22 @@ export function isToolCallItem(item: ProviderStreamItem): item is ToolCall {
 
 function normalizeTools(value: unknown): ToolLike[] {
   if (!Array.isArray(value)) return [];
-  return value.filter(
-    (tool): tool is ToolLike =>
-      !!tool &&
-      typeof tool === "object" &&
-      typeof (tool as { name?: unknown }).name === "string"
-  );
+  return value
+    .filter(
+      (tool): tool is ToolLike =>
+        !!tool &&
+        typeof tool === "object" &&
+        typeof (tool as { name?: unknown }).name === "string"
+    )
+    .map((tool) => hydrateBuiltinAgentTool(tool) as ToolLike);
+}
+
+function uniqueToolName(baseName: string, existingNames: string[]): string {
+  const used = new Set(existingNames);
+  if (!used.has(baseName)) return baseName;
+  let suffix = 2;
+  while (used.has(`${baseName}_${suffix}`)) suffix += 1;
+  return `${baseName}_${suffix}`;
 }
 
 export function toProviderTools(tools: ToolLike[]): Array<{
@@ -644,6 +681,151 @@ function isControlTool(tool: ToolLike): tool is ControlToolLike {
     CONTROL_TOOL_MARKER in tool &&
     (tool as ControlToolLike)[CONTROL_TOOL_MARKER] === true
   );
+}
+
+/** Opening tag and closers models may emit (legacy `</think>` was a typo). */
+const REDACTED_THINKING_OPEN = "<think>";
+const REDACTED_THINKING_CLOSES = [
+  "</think>",
+  "</" + "think>"
+] as const;
+
+function findEarliestThinkClose(buf: string): { idx: number; len: number } | null {
+  let best: { idx: number; len: number } | null = null;
+  for (const c of REDACTED_THINKING_CLOSES) {
+    const i = buf.indexOf(c);
+    if (i !== -1 && (best === null || i < best.idx)) {
+      best = { idx: i, len: c.length };
+    }
+  }
+  return best;
+}
+
+/** Longest suffix of buf that is a proper prefix of one of the candidate strings (for streaming). */
+function holdSuffixForPartialTag(buf: string, candidates: readonly string[]): number {
+  const maxCheck = Math.max(
+    0,
+    ...candidates.map((c) => Math.max(0, c.length - 1))
+  );
+  const limit = Math.min(buf.length, maxCheck);
+  for (let len = limit; len >= 1; len--) {
+    const suf = buf.slice(-len);
+    if (candidates.some((c) => c.startsWith(suf))) return len;
+  }
+  return 0;
+}
+
+function extractThinkTags(text: string): { thinking: string; text: string } {
+  const parts: string[] = [];
+  const re = /<think>([\s\S]*?)<\/(?:redacted_thinking|think)>/g;
+  let cleaned = text.replace(re, (_, content: string) => {
+    parts.push(content.trim());
+    return "";
+  });
+  const orphan = cleaned.match(/<think>([\s\S]*)$/);
+  if (orphan && orphan.index !== undefined) {
+    parts.push(orphan[1].trim());
+    cleaned = cleaned.slice(0, orphan.index);
+  }
+  return { thinking: parts.filter((p) => p.length > 0).join("\n\n"), text: cleaned.trim() };
+}
+
+/**
+ * Splits streamed text so `<think>…` never appears on the text channel:
+ * reasoning goes to `thinking`, user-visible text to `text` chunks only.
+ */
+class RedactedThinkingStreamSplitter {
+  private buf = "";
+  private inThink = false;
+
+  *feed(incoming: string): Generator<
+    { kind: "text"; content: string } | { kind: "thinking"; content: string }
+  > {
+    if (!incoming) return;
+    this.buf += incoming;
+
+    while (true) {
+      if (!this.inThink) {
+        const openIdx = this.buf.indexOf(REDACTED_THINKING_OPEN);
+        if (openIdx === -1) {
+          const keep = holdSuffixForPartialTag(this.buf, [REDACTED_THINKING_OPEN]);
+          if (this.buf.length > keep) {
+            const emitEnd = this.buf.length - keep;
+            const out = this.buf.slice(0, emitEnd);
+            this.buf = this.buf.slice(emitEnd);
+            if (out) yield { kind: "text", content: out };
+          }
+          return;
+        }
+        if (openIdx > 0) {
+          const out = this.buf.slice(0, openIdx);
+          if (out) yield { kind: "text", content: out };
+        }
+        this.buf = this.buf.slice(
+          openIdx + REDACTED_THINKING_OPEN.length
+        );
+        this.inThink = true;
+        continue;
+      }
+
+      const close = findEarliestThinkClose(this.buf);
+      if (!close) {
+        const keep = holdSuffixForPartialTag(this.buf, REDACTED_THINKING_CLOSES);
+        if (this.buf.length > keep) {
+          const emitEnd = this.buf.length - keep;
+          const out = this.buf.slice(0, emitEnd);
+          this.buf = this.buf.slice(emitEnd);
+          if (out) yield { kind: "thinking", content: out };
+        }
+        return;
+      }
+      const thinkBody = this.buf.slice(0, close.idx);
+      this.buf = this.buf.slice(close.idx + close.len);
+      this.inThink = false;
+      if (thinkBody) yield { kind: "thinking", content: thinkBody };
+    }
+  }
+
+  *flush(): Generator<
+    { kind: "text"; content: string } | { kind: "thinking"; content: string }
+  > {
+    if (!this.buf && !this.inThink) return;
+    if (this.inThink) {
+      if (this.buf) yield { kind: "thinking", content: this.buf };
+    } else if (this.buf) {
+      yield { kind: "text", content: this.buf };
+    }
+    this.buf = "";
+    this.inThink = false;
+  }
+}
+
+function* yieldSplitThinkChunks(
+  item: Chunk,
+  rawPiece: string,
+  splitter: RedactedThinkingStreamSplitter
+): Generator<Record<string, unknown>> {
+  for (const part of splitter.feed(rawPiece)) {
+    if (part.kind === "text" && part.content.length > 0) {
+      yield {
+        chunk: { ...item, content: part.content },
+        thinking: null,
+        text: null,
+        audio: null
+      };
+    } else if (part.kind === "thinking" && part.content.length > 0) {
+      yield {
+        chunk: null,
+        thinking: {
+          type: "chunk",
+          content: part.content,
+          thinking: true
+        },
+        text: null,
+        audio: null
+      };
+    }
+  }
 }
 
 /**
@@ -730,7 +912,7 @@ function buildControlTools(controlContext: unknown): ControlToolLike[] {
 }
 
 /**
- * Adapter that wraps a ToolLike (from base-nodes) as an AgentTool (from @nodetool/agents).
+ * Adapter that wraps a ToolLike (from base-nodes) as an AgentTool (from @nodetool-ai/agents).
  * This bridges the tool systems so MultiModeAgent can use tools defined in the node graph.
  */
 class ToolLikeAdapter extends AgentTool {
@@ -963,6 +1145,7 @@ function getStructuredOutputSchema(
     else if (["dict", "object"].includes(declared)) type = "object";
     properties[name] = { type };
   }
+  if (required.length === 0) return null;
   return {
     type: "object",
     additionalProperties: false,
@@ -1690,9 +1873,9 @@ export class ClassifierNode extends BaseNode {
 }
 
 export class AgentNode extends BaseNode {
-  static readonly nodeType = "nodetool.agents.Agent";
-  static readonly title = "Agent";
-  static readonly description =
+  static readonly nodeType: string = "nodetool.agents.Agent";
+  static readonly title: string = "Agent";
+  static readonly description: string =
     "Generate natural language responses using LLM providers and streams output.\n    llm, text-generation, chatbot, question-answering, streaming";
   static readonly metadataOutputTypes = {
     text: "str",
@@ -2192,11 +2375,12 @@ export class AgentNode extends BaseNode {
   declare model: any;
 
   @prop({
-    type: "str",
+    type: "enum",
     default: "loop",
     title: "Mode",
     description:
-      "Agent execution mode: 'loop' for simple tool calling, 'plan' for automatic task planning, 'multi-agent' for parallel sub-agents"
+      "How the agent runs.\n\n• loop: standard tool‑calling loop — the LLM responds to the prompt and may iteratively call the connected tools until it produces a final answer. Use this for chat, Q&A, and most tool‑using tasks.\n• plan: the LLM first drafts a multi‑step task plan from the objective, then executes the steps in dependency order (independent steps run in parallel). Best for longer, structured jobs with clear sub‑tasks.\n• multi-agent: auto‑specialises a team of sub‑agents (count controlled by Num Agents) that collaborate on the objective using the chosen Team Strategy. Best for open‑ended objectives that benefit from different roles working together.",
+    values: ["loop", "plan", "multi-agent"]
   })
   declare mode: any;
 
@@ -2204,7 +2388,8 @@ export class AgentNode extends BaseNode {
     type: "str",
     default: "You are a friendly assistant",
     title: "System",
-    description: "The system prompt for the LLM"
+    description:
+      "Instructions that define the agent's persona, role, tone, and global behaviour. Sent to the model as the system message at the start of every run, before any history or user prompt. Use it for things that should always hold (e.g. \"You are a senior Python reviewer. Reply in Markdown.\"). Leave the prompt itself for the per‑run task."
   })
   declare system: any;
 
@@ -2212,7 +2397,8 @@ export class AgentNode extends BaseNode {
     type: "str",
     default: "",
     title: "Prompt",
-    description: "The prompt for the LLM"
+    description:
+      "The user message for this run — the actual question, task, or content the agent should act on. Appended after the system prompt and conversation history as the latest user turn. Any connected Image or Audio inputs are attached to this message. In plan and multi-agent modes this is treated as the objective for planning."
   })
   declare prompt: any;
 
@@ -2257,7 +2443,8 @@ export class AgentNode extends BaseNode {
     type: "list[message]",
     default: [],
     title: "Messages",
-    description: "The messages for the LLM"
+    description:
+      "Prior conversation turns to include before the current prompt, in chronological order (oldest first). Each item is a Message with a role (user/assistant/tool) and content. Use this to supply ad‑hoc context — for example, few‑shot examples, a previous chat transcript piped in from another node, or the messages output of an upstream Agent. Inserted between the system prompt and the new user prompt. If a Thread ID is also set, history loaded from the thread comes first, then this list, then the current prompt."
   })
   declare history: any;
 
@@ -2266,7 +2453,7 @@ export class AgentNode extends BaseNode {
     default: "",
     title: "Thread ID",
     description:
-      "Optional thread ID for persistent conversation history. If provided, messages will be loaded from and saved to this thread."
+      "Identifier for a persistent conversation thread. When set, the agent loads all earlier messages stored under this ID before this turn and saves the new user message, assistant reply, and any tool messages back to it — giving the agent long‑term memory across runs and across nodes that share the same ID. Leave empty for a stateless one‑shot call. Use the Create Thread node to mint a fresh ID, or wire in the same string from upstream to continue an existing conversation."
   })
   declare thread_id: any;
 
@@ -2274,6 +2461,8 @@ export class AgentNode extends BaseNode {
     type: "int",
     default: 8192,
     title: "Max Tokens",
+    description:
+      "Upper bound on the number of tokens the model may generate per response (the model's reply, not the prompt). Higher values allow longer answers but cost more and take longer; very low values may cause the model to truncate mid‑sentence. This is also the maxTokenLimit passed to plan and multi-agent executors. Typical values: 1024 for short answers, 4096–8192 for normal use, 16k+ for long‑form generation. Must be within the chosen model's context window.",
     min: 1,
     max: 100000
   })
@@ -2281,22 +2470,48 @@ export class AgentNode extends BaseNode {
 
   @prop({
     type: "int",
+    default: 100,
+    title: "Max Turns",
+    description:
+      "Upper bound on agentic turns — one turn is a model call plus any tool execution it triggers. Caps both the AgentNode tool-loop iteration count and the provider's internal multi-turn budget (e.g. Claude Agent SDK). Raise for long sandbox sessions; lower to fail fast on runaway loops.",
+    min: 1,
+    max: 1000
+  })
+  declare max_turns: any;
+
+  @prop({
+    type: "int",
     default: 3,
     title: "Num Agents",
-    description: "Number of sub-agents to auto-specialize in multi-agent mode",
+    description:
+      "Number of sub‑agents to auto‑specialise when Mode is multi-agent. The planner inspects the objective and creates this many distinct roles (e.g. researcher, writer, critic), each with its own skill set, that then collaborate via the Team Strategy. Ignored in loop and plan modes. More agents allow more division of labour but increase token usage and coordination overhead.",
     min: 2,
     max: 10
   })
   declare num_agents: any;
 
   @prop({
-    type: "str",
+    type: "enum",
     default: "coordinator",
     title: "Team Strategy",
     description:
-      "Team strategy for multi-agent mode: 'coordinator', 'autonomous', or 'hybrid'"
+      "How the auto‑specialised sub‑agents collaborate when Mode is multi-agent. Ignored in other modes.\n\n• coordinator: the first agent acts as a project manager — it decomposes the objective into tasks on a shared task board, and the remaining agents claim and execute them. Best for well‑defined goals where you want predictable orchestration.\n• autonomous: every agent sees the full objective and self‑organises, claiming tasks, posting messages, and creating new tasks as needed without a central planner. Best for open‑ended exploration.\n• hybrid: a coordinator seeds an initial plan, but worker agents may also create their own subtasks while executing. Balances structure with flexibility.",
+    values: ["coordinator", "autonomous", "hybrid"]
   })
   declare team_strategy: any;
+
+  /**
+   * Build the tool list for this run. Override in subclasses to inject
+   * additional tools (e.g. sandbox shell/file/browser tools) alongside the
+   * user-selected ones. Control tools from kernel control edges are
+   * appended separately by the genProcess paths and don't need to be
+   * handled here.
+   */
+  protected async buildTools(
+    _context?: ProcessingContext
+  ): Promise<ToolLike[]> {
+    return normalizeTools(this.tools ?? []);
+  }
 
   async *genProcess(
     context?: ProcessingContext
@@ -2345,7 +2560,7 @@ export class AgentNode extends BaseNode {
     }
 
     const prompt = asText(this.prompt ?? this.prompt ?? "");
-    const system = asText(this.system ?? this.system ?? DEFAULT_SYSTEM_PROMPT);
+    let system = asText(this.system ?? this.system ?? DEFAULT_SYSTEM_PROMPT);
     const image = this.image ?? this.image;
     const audio = this.audio ?? this.audio;
     const historyInput = this.history ?? this.history;
@@ -2356,12 +2571,13 @@ export class AgentNode extends BaseNode {
       : [];
     const threadId = String(this.thread_id ?? this.thread_id ?? "").trim();
     const maxTokens = Number(this.max_tokens ?? this.max_tokens ?? 8192);
-    const tools: ToolLike[] = normalizeTools(this.tools ?? this.tools);
+    const maxTurns = Math.max(1, Number(this.max_turns ?? 100));
+    const tools: ToolLike[] = await this.buildTools(context);
 
     // Build control tools from _control_context (injected by the kernel
     // for nodes that have outgoing control edges). This lets the LLM
     // call controlled nodes as tools.
-    const controlContext = (this as any)._control_context;
+    const controlContext = this.getDynamic<Record<string, unknown>>("_control_context");
     const controlTools = buildControlTools(controlContext);
     if (controlTools.length > 0) {
       tools.push(...controlTools);
@@ -2373,6 +2589,26 @@ export class AgentNode extends BaseNode {
     }
 
     const structuredSchema = getStructuredOutputSchema(this);
+    let structuredResult: Record<string, unknown> | null = null;
+    const structuredToolName = structuredSchema
+      ? uniqueToolName(
+          "submit_result",
+          tools.map((tool) => tool.name)
+        )
+      : null;
+    if (structuredSchema && structuredToolName) {
+      tools.push({
+        name: structuredToolName,
+        description:
+          "Submit the final structured result for this agent node's dynamic outputs. Call this exactly once when you have the final answer.",
+        inputSchema: structuredSchema,
+        process: async (_context, params) => {
+          structuredResult = params ?? {};
+          return { status: "completed" };
+        }
+      });
+      system = `${system}\n\nWhen the final answer is ready, call the ${structuredToolName} tool with values for the dynamic outputs. Do not format the final result as JSON text.`;
+    }
 
     const messages: Message[] = [
       { role: "system", content: system },
@@ -2389,7 +2625,7 @@ export class AgentNode extends BaseNode {
       historyCount: history.length,
       toolCount: tools.length,
       messageCount: messages.length,
-      hasImage: hasContentType(messages[messages.length - 1], "image"),
+      hasImage: hasContentType(messages[messages.length - 1], "image_url"),
       hasAudio: hasContentType(messages[messages.length - 1], "audio")
     });
 
@@ -2461,12 +2697,15 @@ export class AgentNode extends BaseNode {
 
       let assistantText = "";
       const assistantToolCalls: ToolCall[] = [];
+      const thinkSplitter = new RedactedThinkingStreamSplitter();
+      let streamedRedactedThinking = false;
 
       for await (const item of streamProviderMessages(provider, {
         messages,
         model: modelId,
         tools: providerTools,
         maxTokens,
+        maxTurns,
         threadId: threadId || undefined,
         onToolCall
       })) {
@@ -2485,8 +2724,12 @@ export class AgentNode extends BaseNode {
               audio: { data: new Uint8Array(audioBytes) }
             };
           } else {
-            assistantText += item.content ?? "";
-            yield { chunk: item, thinking: null, text: null, audio: null };
+            const rawPiece = item.content ?? "";
+            assistantText += rawPiece;
+            for (const y of yieldSplitThinkChunks(item, rawPiece, thinkSplitter)) {
+              if (y.thinking != null) streamedRedactedThinking = true;
+              yield y;
+            }
           }
         }
         if (isToolCallItem(item)) {
@@ -2495,12 +2738,56 @@ export class AgentNode extends BaseNode {
             nodeId: this.__node_id ?? null,
             toolName: item.name
           });
+          yield {
+            chunk: toolCallChunk(item),
+            thinking: null,
+            text: null,
+            audio: null
+          };
+        }
+      }
+
+      for (const part of thinkSplitter.flush()) {
+        if (part.kind === "thinking" && part.content.length > 0) {
+          streamedRedactedThinking = true;
+          yield {
+            chunk: null,
+            thinking: { type: "chunk", content: part.content, thinking: true },
+            text: null,
+            audio: null
+          };
+        } else if (part.kind === "text" && part.content.length > 0) {
+          yield {
+            chunk: {
+              type: "chunk",
+              content: part.content,
+              content_type: "text",
+              thinking: false,
+              done: false
+            } as Chunk,
+            thinking: null,
+            text: null,
+            audio: null
+          };
         }
       }
 
       if (assistantText) {
-        lastTextOutput = assistantText;
-        yield { chunk: null, thinking: null, text: assistantText, audio: null };
+        const { thinking: thinkingText, text: cleanText } =
+          extractThinkTags(assistantText);
+        const trimmed = cleanText.trim();
+        if (trimmed) {
+          lastTextOutput = trimmed;
+        }
+        if (thinkingText && !streamedRedactedThinking) {
+          yield {
+            chunk: null,
+            thinking: { type: "chunk", content: thinkingText, thinking: true },
+            text: null,
+            audio: null
+          };
+        }
+        yield { chunk: null, thinking: null, text: cleanText, audio: null };
       }
 
       // Save messages to thread
@@ -2523,28 +2810,35 @@ export class AgentNode extends BaseNode {
       // --- Standard multi-iteration loop (for non-agentic providers) ---
       let shouldContinue = false;
       let firstIteration = true;
+      let turn = 0;
 
-      while (firstIteration || shouldContinue) {
+      while ((firstIteration || shouldContinue) && turn < maxTurns) {
         firstIteration = false;
         shouldContinue = false;
+        turn += 1;
         log.info("AgentNode provider iteration starting", {
           nodeId: this.__node_id ?? null,
           providerId,
           modelId,
           threadId: threadId || null,
-          messageCount: messages.length
+          messageCount: messages.length,
+          turn,
+          maxTurns
         });
         const assistantToolCalls: ToolCall[] = [];
         let assistantText = "";
         let chunkCount = 0;
         let thinkingCount = 0;
         let audioChunkCount = 0;
+        const thinkSplitter = new RedactedThinkingStreamSplitter();
+        let streamedRedactedThinking = false;
 
         for await (const item of streamProviderMessages(provider, {
           messages,
           model: modelId,
           tools: providerTools,
           maxTokens,
+          maxTurns,
           threadId: threadId || undefined
         })) {
           if (isChunkItem(item)) {
@@ -2567,8 +2861,12 @@ export class AgentNode extends BaseNode {
                 audio: { data: new Uint8Array(audioBytes) }
               };
             } else {
-              assistantText += item.content ?? "";
-              yield { chunk: item, thinking: null, text: null, audio: null };
+              const rawPiece = item.content ?? "";
+              assistantText += rawPiece;
+              for (const y of yieldSplitThinkChunks(item, rawPiece, thinkSplitter)) {
+                if (y.thinking != null) streamedRedactedThinking = true;
+                yield y;
+              }
             }
             continue;
           }
@@ -2582,6 +2880,12 @@ export class AgentNode extends BaseNode {
               toolName: item.name,
               argKeys: Object.keys(item.args ?? {})
             });
+            yield {
+              chunk: toolCallChunk(item),
+              thinking: null,
+              text: null,
+              audio: null
+            };
           }
         }
 
@@ -2596,12 +2900,49 @@ export class AgentNode extends BaseNode {
           assistantTextLength: assistantText.length
         });
 
+        for (const part of thinkSplitter.flush()) {
+          if (part.kind === "thinking" && part.content.length > 0) {
+            streamedRedactedThinking = true;
+            yield {
+              chunk: null,
+              thinking: { type: "chunk", content: part.content, thinking: true },
+              text: null,
+              audio: null
+            };
+          } else if (part.kind === "text" && part.content.length > 0) {
+            yield {
+              chunk: {
+                type: "chunk",
+                content: part.content,
+                content_type: "text",
+                done: false
+              },
+              thinking: null,
+              text: null,
+              audio: null
+            };
+          }
+        }
+
         if (assistantText) {
-          lastTextOutput = assistantText;
+          const { thinking: thinkingText, text: cleanText } =
+            extractThinkTags(assistantText);
+          const trimmed = cleanText.trim();
+          if (trimmed) {
+            lastTextOutput = trimmed;
+          }
+          if (thinkingText && !streamedRedactedThinking) {
+            yield {
+              chunk: null,
+              thinking: { type: "chunk", content: thinkingText, thinking: true },
+              text: null,
+              audio: null
+            };
+          }
           yield {
             chunk: null,
             thinking: null,
-            text: assistantText,
+            text: cleanText,
             audio: null
           };
         }
@@ -2612,6 +2953,12 @@ export class AgentNode extends BaseNode {
             content: [{ type: "text", text: assistantText }],
             toolCalls: assistantToolCalls.length > 0 ? assistantToolCalls : null
           };
+          const rawParts = assistantToolCalls.find(
+            (tc) => tc._rawGeminiParts
+          )?._rawGeminiParts;
+          if (rawParts) {
+            assistantMessage._rawGeminiParts = rawParts as unknown[];
+          }
           messages.push(assistantMessage);
           await saveThreadMessage(context, threadId, assistantMessage);
         }
@@ -2621,12 +2968,21 @@ export class AgentNode extends BaseNode {
             (candidate) => candidate.name === toolCall.name
           );
           if (!tool || typeof tool.process !== "function") {
+            const message = `Unknown or non-executable tool: ${toolCall.name}`;
             log.warn("AgentNode tool call had no matching executable tool", {
               nodeId: this.__node_id ?? null,
               toolCallId: toolCall.id,
               toolName: toolCall.name,
               availableTools: tools.map((candidate) => candidate.name)
             });
+            const toolMessage: Message = {
+              role: "tool",
+              toolCallId: toolCall.id,
+              content: JSON.stringify({ status: "error", error: message })
+            };
+            messages.push(toolMessage);
+            await saveThreadMessage(context, threadId, toolMessage);
+            shouldContinue = true;
             continue;
           }
 
@@ -2674,7 +3030,18 @@ export class AgentNode extends BaseNode {
               toolCallId: toolCall.id,
               toolName: toolCall.name
             });
-            result = await tool.process(context, toolCall.args);
+            try {
+              result = await tool.process(context, toolCall.args);
+            } catch (err) {
+              const message = err instanceof Error ? err.message : String(err);
+              log.warn("AgentNode tool execution failed", {
+                nodeId: this.__node_id ?? null,
+                toolCallId: toolCall.id,
+                toolName: toolCall.name,
+                error: message
+              });
+              result = { status: "error", error: message };
+            }
           }
 
           const toolMessage: Message = {
@@ -2684,72 +3051,28 @@ export class AgentNode extends BaseNode {
           };
           messages.push(toolMessage);
           await saveThreadMessage(context, threadId, toolMessage);
+          if (structuredToolName && toolCall.name === structuredToolName) {
+            shouldContinue = false;
+            break;
+          }
           shouldContinue = true;
         }
       }
+      if (shouldContinue && turn >= maxTurns) {
+        log.warn("AgentNode hit max_turns cap with pending tool calls", {
+          nodeId: this.__node_id ?? null,
+          turn,
+          maxTurns
+        });
+      }
     }
 
-    if (structuredSchema) {
-      if (!lastTextOutput) {
-        log.error("AgentNode structured output missing text payload", {
-          nodeId: this.__node_id ?? null,
-          providerId,
-          modelId
-        });
-        throw new Error("Agent did not return structured output text");
-      }
-      let parsed = extractJson(lastTextOutput);
-      if (!parsed) {
-        // The LLM returned plain text instead of JSON. Rather than failing
-        // the workflow, build a best-effort result by assigning the raw text
-        // to each required string field in the schema.
-        log.warn(
-          "AgentNode structured output was not valid JSON, falling back to raw text",
-          {
-            nodeId: this.__node_id ?? null,
-            providerId,
-            modelId,
-            textPreview: lastTextOutput.slice(0, 200)
-          }
-        );
-        const props =
-          (
-            structuredSchema as {
-              properties?: Record<string, { type?: string }>;
-            }
-          ).properties ?? {};
-        const fallback: Record<string, unknown> = {};
-        for (const [name, spec] of Object.entries(props)) {
-          if (spec.type === "string") {
-            fallback[name] = lastTextOutput.trim();
-          } else {
-            fallback[name] = null;
-          }
-        }
-        parsed = fallback;
-      }
-      const required = Array.isArray(
-        (structuredSchema as { required?: unknown }).required
-      )
-        ? ((structuredSchema as { required: string[] }).required ?? [])
-        : [];
-      for (const name of required) {
-        if (!(name in parsed)) {
-          log.error("AgentNode structured output missing required field", {
-            nodeId: this.__node_id ?? null,
-            missingField: name,
-            parsedKeys: Object.keys(parsed)
-          });
-          throw new Error(
-            `Agent structured output is missing required field '${name}'`
-          );
-        }
-      }
-      log.info("AgentNode yielding structured output", {
+    if (structuredSchema && structuredResult) {
+      log.info("AgentNode yielding dynamic output tool result", {
         nodeId: this.__node_id ?? null,
-        keys: Object.keys(parsed)
+        keys: Object.keys(structuredResult)
       });
-      yield parsed;
+      yield structuredResult;
     }
 
     log.info("AgentNode completed", {
@@ -2757,7 +3080,7 @@ export class AgentNode extends BaseNode {
       providerId,
       modelId,
       finalTextLength: lastTextOutput?.length ?? 0,
-      returnedStructured: Boolean(structuredSchema)
+      returnedStructured: Boolean(structuredResult)
     });
   }
 
@@ -2818,10 +3141,10 @@ export class AgentNode extends BaseNode {
   ): AsyncGenerator<Record<string, unknown>> {
     const prompt = asText(this.prompt ?? "");
     const system = asText(this.system ?? DEFAULT_SYSTEM_PROMPT);
-    const rawTools: ToolLike[] = normalizeTools(this.tools ?? []);
+    const rawTools: ToolLike[] = await this.buildTools(context);
 
     // Build control tools
-    const controlContext = (this as any)._control_context;
+    const controlContext = this.getDynamic<Record<string, unknown>>("_control_context");
     const controlTools = buildControlTools(controlContext);
     if (controlTools.length > 0) {
       rawTools.push(...controlTools);

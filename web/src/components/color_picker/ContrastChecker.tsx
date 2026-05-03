@@ -28,7 +28,7 @@ const styles = (theme: Theme) =>
     },
     ".preview-box": {
       padding: "16px",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       display: "flex",
       flexDirection: "column",
@@ -63,7 +63,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "6px",
       padding: "6px 8px",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".compliance-label": {
@@ -90,7 +90,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       gap: "4px",
       padding: "8px",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".cb-label": {
@@ -106,7 +106,7 @@ const styles = (theme: Theme) =>
     ".cb-swatch": {
       width: "24px",
       height: "24px",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       border: `1px solid ${theme.vars.palette.grey[700]}`
     }
   });

@@ -5,7 +5,6 @@ import { shallow } from "zustand/shallow";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import type { NodeStore, NodeStoreState } from "../stores/NodeStore";
-import log from "loglevel";
 
 interface UseInputMinMaxOptions {
   nodeType?: string;
@@ -56,7 +55,7 @@ export const useInputMinMax = ({
     nodeMax = (node?.data?.properties as Record<string, unknown>)?.max as number | undefined;
 
     if (process.env.NODE_ENV === "development") {
-      log.info("useInputMinMax node data:", { nodeId, min: nodeMin, max: nodeMax, properties: node?.data?.properties });
+      console.info("useInputMinMax node data:", { nodeId, min: nodeMin, max: nodeMax, properties: node?.data?.properties });
     }
   }
 

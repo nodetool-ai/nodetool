@@ -92,7 +92,7 @@ const welcomeStyles = (theme: Theme) =>
       marginTop: "1em"
     },
     ".quick-start": {
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       padding: "10px 12px",
       border: `1px solid ${theme.vars.palette.grey[700]}`
     },
@@ -100,7 +100,7 @@ const welcomeStyles = (theme: Theme) =>
       marginTop: "2px"
     },
     ".quick-card": {
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       transition: "transform .15s ease, border-color .15s ease",
       "&:hover": {
         transform: "translateY(-2px)",
@@ -133,7 +133,7 @@ const welcomeStyles = (theme: Theme) =>
       display: "inline-block",
       padding: "4px 8px",
       textDecoration: "none",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       transition: "all 0.2s"
     },
     ".link:hover": {
@@ -214,7 +214,7 @@ const welcomeStyles = (theme: Theme) =>
     ".remote-settings-container": {
       backgroundColor: theme.vars.palette.grey[800],
       padding: "1.5em",
-      borderRadius: "8px"
+      borderRadius: "var(--rounded-lg)"
     },
     ul: {
       paddingLeft: "1.5em"

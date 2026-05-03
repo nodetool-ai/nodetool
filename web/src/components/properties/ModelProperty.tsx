@@ -5,6 +5,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import ComfyModelSelect from "./ComfyModelSelect";
 import LlamaModelSelect from "./LlamaModelSelect";
 import HuggingFaceModelSelect from "./HuggingFaceModelSelect";
+import TransformersJsModelSelect from "./TransformersJsModelSelect";
 import isEqual from "fast-deep-equal";
 import { memo, useMemo } from "react";
 import LanguageModelSelect from "./LanguageModelSelect";
@@ -16,6 +17,7 @@ import VideoModelSelect from "./VideoModelSelect";
 import Model3DModelSelect from "./Model3DModelSelect";
 import { useNodes } from "../../contexts/NodeContext";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
+import { useRecommendedModelsForNode } from "../../hooks/useRecommendedModelsForNode";
 import ConnectedBadge from "./ConnectedBadge";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -63,6 +65,10 @@ const ModelProperty = (props: PropertyProps) => {
   const isConnectedSelector = useIsConnectedSelector(props.nodeId, props.property.name);
   const isConnected = useNodes(isConnectedSelector);
 
+  const { recommendedModels, modelPacks } = useRecommendedModelsForNode(
+    props.nodeType
+  );
+
   const modelClass = useMemo(
     () => `model-type-${modelType.replace(/\./g, "-")}`,
     [modelType]
@@ -108,6 +114,8 @@ const ModelProperty = (props: PropertyProps) => {
         <LanguageModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
+          recommendedModels={recommendedModels}
+          modelPacks={modelPacks}
         />
       );
     } else if (modelType === "embedding_model") {
@@ -115,6 +123,8 @@ const ModelProperty = (props: PropertyProps) => {
         <EmbeddingModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
+          recommendedModels={recommendedModels}
+          modelPacks={modelPacks}
         />
       );
     } else if (modelType === "image_model") {
@@ -123,6 +133,8 @@ const ModelProperty = (props: PropertyProps) => {
           onChange={props.onChange}
           value={props.value?.id || ""}
           task={imageTask}
+          recommendedModels={recommendedModels}
+          modelPacks={modelPacks}
         />
       );
     } else if (modelType === "tts_model") {
@@ -130,6 +142,8 @@ const ModelProperty = (props: PropertyProps) => {
         <TTSModelSelect
           onChange={props.onChange}
           value={props.value || ""}
+          recommendedModels={recommendedModels}
+          modelPacks={modelPacks}
         />
       );
     } else if (modelType === "asr_model") {
@@ -137,6 +151,8 @@ const ModelProperty = (props: PropertyProps) => {
         <ASRModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
+          recommendedModels={recommendedModels}
+          modelPacks={modelPacks}
         />
       );
     } else if (modelType === "video_model") {
@@ -145,6 +161,8 @@ const ModelProperty = (props: PropertyProps) => {
           onChange={props.onChange}
           value={props.value?.id || ""}
           task={videoTask}
+          recommendedModels={recommendedModels}
+          modelPacks={modelPacks}
         />
       );
     } else if (modelType === "model_3d_model") {
@@ -165,14 +183,24 @@ const ModelProperty = (props: PropertyProps) => {
     } else if (modelType.startsWith("hf.")) {
       return (
         <HuggingFaceModelSelect
-          modelType={modelType as "hf.text_to_image" | "hf.image_to_image"}
+          modelType={modelType}
+          onChange={props.onChange}
+          value={props.value}
+          recommendedModels={recommendedModels}
+          modelPacks={modelPacks}
+        />
+      );
+    } else if (modelType.startsWith("tjs.")) {
+      return (
+        <TransformersJsModelSelect
+          modelType={modelType}
           onChange={props.onChange}
           value={props.value}
         />
       );
     }
     return null;
-  }, [modelType, props.nodeType, props.onChange, props.value, imageTask, videoTask, model3dTask]);
+  }, [modelType, props.nodeType, props.onChange, props.value, imageTask, videoTask, model3dTask, recommendedModels, modelPacks]);
 
   if (isConnected) {
     return (

@@ -83,6 +83,11 @@ export function useEditorCommands({
 }: UseEditorCommandsParams): EditorCommandsResult {
   // ─── Segmentation bridge callbacks ─────────────────────────────────
   const handleRunSegmentation = useCallback(() => {
+    const segmentSettings = useSketchStore.getState().document.toolSettings.segment;
+    if (segmentSettings.promptMode === "auto") {
+      void segmentation.splitSelectedLayer();
+      return;
+    }
     const handler = getToolHandler("segment") as SegmentTool;
     segmentation.runSegmentation(
       [...handler.getPointPrompts()],

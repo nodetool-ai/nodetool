@@ -1,6 +1,6 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { NodeClass } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
@@ -165,26 +165,10 @@ async function loadFromUri(uri: string, context?: ProcessingContext): Promise<Bu
 // ---------------------------------------------------------------------------
 
 async function pdfToText(inputBytes: Buffer): Promise<string> {
-  const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(inputBytes), useSystemFonts: true });
-  const doc = await loadingTask.promise;
-
-  let text = "";
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    let lastY: number | null = null;
-    for (const item of content.items as any[]) {
-      const y = item.transform[5];
-      if (lastY !== null && Math.abs(y - lastY) > 2) text += "\n";
-      text += item.str;
-      lastY = y;
-    }
-    text += "\n\n";
-  }
-
-  void doc.destroy();
-  return text.trim();
+  const { LiteParse } = await import("@llamaindex/liteparse");
+  const parser = new LiteParse({ ocrEnabled: false });
+  const result = await parser.parse(inputBytes, true);
+  return result.text;
 }
 
 // ---------------------------------------------------------------------------

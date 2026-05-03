@@ -17,8 +17,6 @@ import {
 } from "../src/nodes/lib-supabase.js";
 
 import {
-  // lib-compat
-  LIB_COMPAT_PY_NODES,
   // lib-pedalboard-extra
   PitchShiftNode,
   TimeStretchNode,
@@ -158,16 +156,6 @@ function makeNode<T>(Cls: new () => T, props: Record<string, unknown>): T {
   Object.assign(node, rest);
   return node;
 }
-
-// ── lib-compat: exercise createLibCompatNode via module internals ──
-
-describe("lib-compat coverage", () => {
-  it("module exports functions and empty array", async () => {
-    // Force the module to be fully loaded (all top-level code)
-    const mod = await import("../src/nodes/lib-compat.js");
-    expect(mod.LIB_COMPAT_PY_NODES).toEqual([]);
-  });
-});
 
 // ── lib-supabase: mock createClient for success paths ──────────
 
@@ -613,20 +601,6 @@ describe("lib-pedalboard-extra coverage", () => {
   });
 });
 
-// ── lib-pdf: use real minimal PDFs for table and markdown extraction ──
-
-describe("lib-pdf table extraction coverage", () => {
-  it.skip("ExtractTables with a multi-page PDF with tabular content (node class removed)", async () => {
-    // ExtractTablesPdfPlumberNode no longer exists
-  });
-});
-
-describe("lib-pdf markdown extraction coverage", () => {
-  it.skip("ExtractMarkdownPyMuPdf with varied font sizes (node class removed)", async () => {
-    // ExtractMarkdownPyMuPdfNode no longer exists
-  });
-});
-
 // ── lib-os: openPath ─────────────────────────────────────────────
 
 describe("lib-os OpenWorkspaceDirectory coverage", () => {
@@ -642,10 +616,6 @@ describe("lib-os OpenWorkspaceDirectory coverage", () => {
     expect(result).toEqual({});
   });
 
-  it.skip("OpenWorkspaceDirectory calls openPath with dir — skipped to avoid opening Finder", () => {
-    // This test spawns the platform "open" command which opens a Finder window.
-    // The early-return paths (no context, no workspaceDir) are covered above.
-  });
 });
 
 

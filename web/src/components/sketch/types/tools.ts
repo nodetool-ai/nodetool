@@ -338,7 +338,20 @@ export interface CloneStampSettings {
 export type SegmentPromptMode = "point" | "box" | "auto";
 
 /** Backend used for segmentation inference. */
-export type SegmentBackend = "fal" | "node";
+export type SegmentBackend = "fal" | "local-sam3";
+
+export const DEFAULT_LOCAL_SAM3_POINTS_PER_SIDE = 32;
+export const DEFAULT_LOCAL_SAM3_PRED_IOU_THRESH = 0.88;
+
+export function normalizeSegmentBackend(value: unknown): SegmentBackend {
+  if (value === "local-sam3" || value === "fal") {
+    return value;
+  }
+  if (value === "node") {
+    return "local-sam3";
+  }
+  return "fal";
+}
 
 /** What to do with the source layer after segmentation is applied. */
 export type SegmentSourceLayerAction = "keep" | "hide" | "lock";
@@ -361,18 +374,62 @@ export interface SegmentBoxPrompt {
   height: number;
 }
 
+/** Source-layer metadata preserved across segmentation runs. */
+export interface SegmentationSourceMetadata {
+  layerId: string;
+  layerTransform: {
+    x: number;
+    y: number;
+    scaleX?: number;
+    scaleY?: number;
+    rotation?: number;
+    matrix?: [number, number, number, number, number, number];
+    mode?: "distort" | "skew" | "perspective" | "warp";
+    quad?: [
+      { x: number; y: number },
+      { x: number; y: number },
+      { x: number; y: number },
+      { x: number; y: number }
+    ];
+  };
+  contentBounds: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  canvasSize: {
+    width: number;
+    height: number;
+  };
+  documentOrigin: {
+    x: number;
+    y: number;
+  };
+}
+
 /** A single mask returned from segmentation inference. */
 export interface SegmentationMask {
   /** Unique mask identifier within the segmentation run. */
   id: string;
+  /** Sketch SAM result kind. */
+  kind: "mask";
   /** Human-readable label (e.g. "Object 1"). */
   label: string;
-  /** PNG data URL of the mask (white = object, black = background). */
+  /** URI or data URL of the mask image (white = object, black = background). */
   maskDataUrl: string;
   /** Confidence score from the model (0–1). */
   confidence: number;
   /** Bounding box of the mask region in canvas space. */
   bounds: { x: number; y: number; width: number; height: number };
+  /** Backend that produced this mask. */
+  backendId: SegmentBackend;
+  /** Model identifier used for this mask. */
+  modelId: string;
+  /** Node type that produced this mask when known. */
+  nodeType?: string;
+  /** Original source-layer metadata when available. */
+  sourceMetadata?: SegmentationSourceMetadata;
 }
 
 /** Full result from a segmentation inference run. */
@@ -387,6 +444,12 @@ export interface SegmentationResult {
   timestamp: number;
   /** Model ID used for this run. */
   modelId: string;
+  /** Backend used for this run. */
+  backendId?: SegmentBackend;
+  /** Node type used for this run when known. */
+  nodeType?: string;
+  /** Original source-layer metadata when available. */
+  sourceMetadata?: SegmentationSourceMetadata;
 }
 
 /** Progress state of a segmentation operation. */
@@ -403,6 +466,8 @@ export type SegmentationStatus =
 export interface SegmentSettings {
   /** Current prompt mode: point clicks, box drag, or automatic separation. */
   promptMode: SegmentPromptMode;
+  /** Optional concept text used by backends that support text-guided object separation. */
+  conceptPrompt: string;
   /** Maximum number of objects to return. */
   maxObjects: number;
   /** Minimum mask area in pixels²; smaller fragments are discarded. */
@@ -415,8 +480,12 @@ export interface SegmentSettings {
   maskFeather: number;
   /** Whether the result should be cutout layers (true) or mask layers (false). */
   outputCutouts: boolean;
-  /** Inference backend: "fal" for fal.ai cloud API, "node" for nodetool node execution. */
+  /** Inference backend for sketch SAM actions. */
   backend: SegmentBackend;
+  /** Automatic mask generation density for Local SAM3. */
+  pointsPerSide: number;
+  /** Automatic mask IoU filter for Local SAM3. */
+  predIouThresh: number;
 }
 
 /** Metadata stored on layers created by segmentation. */
@@ -425,8 +494,12 @@ export interface SegmentationLayerMeta {
   segmentationRunId: string;
   /** Layer ID that was segmented. */
   sourceLayerId: string;
+  /** Backend used for segmentation. */
+  backendId?: SegmentBackend;
   /** Model identifier used for segmentation. */
   modelId: string;
+  /** Node type used for segmentation when known. */
+  nodeType?: string;
   /** Confidence score for this particular mask (0–1). */
   confidence: number;
   /** Mask index within the segmentation result. */
@@ -587,13 +660,16 @@ export const DEFAULT_SELECT_SETTINGS: SelectSettings = {
 
 export const DEFAULT_SEGMENT_SETTINGS: SegmentSettings = {
   promptMode: "point",
+  conceptPrompt: "",
   maxObjects: 5,
   minObjectSize: 100,
   confidenceThreshold: 0.5,
   sourceLayerAction: "keep",
   maskFeather: 0,
   outputCutouts: true,
-  backend: "fal"
+  backend: "fal",
+  pointsPerSide: DEFAULT_LOCAL_SAM3_POINTS_PER_SIDE,
+  predIouThresh: DEFAULT_LOCAL_SAM3_PRED_IOU_THRESH
 };
 
 export const DEFAULT_TOOL_SETTINGS: ToolSettings = {

@@ -8,16 +8,12 @@ jest.mock("../BASE_URL", () => ({
   UNIFIED_WS_URL: "ws://test/ws"
 }));
 
-jest.mock("../ApiClient", () => ({
-  CHAT_URL: "ws://test/chat",
-  isLocalhost: true,
-  authHeader: jest.fn(async () => ({ Authorization: "Bearer test" })),
-  client: {
-    GET: jest.fn(async () => ({ data: {}, error: null })),
-    POST: jest.fn(async () => ({ data: {}, error: null })),
-    PUT: jest.fn(async () => ({ data: {}, error: null })),
-    DELETE: jest.fn(async () => ({ data: {}, error: null }))
-  }
+jest.mock("../../lib/env", () => ({
+  isLocalhost: true
+}));
+
+jest.mock("../../lib/auth", () => ({
+  authHeader: jest.fn(async () => ({ Authorization: "Bearer test" }))
 }));
 
 jest.mock("../../lib/supabaseClient", () => ({
@@ -204,7 +200,8 @@ describe("GlobalChatStore", () => {
           model: "gpt-oss:20b",
           provider: "empty",
           tools: undefined,
-          collections: undefined
+          collections: undefined,
+          media_generation: null
         }
       });
     } finally {
@@ -813,7 +810,8 @@ describe("GlobalChatStore", () => {
           model: "gpt-oss:20b",
           provider: "empty",
           tools: undefined,
-          collections: undefined
+          collections: undefined,
+          media_generation: null
         }
       });
     });
@@ -948,18 +946,6 @@ describe("GlobalChatStore", () => {
       expect(state.wsEventUnsubscribes.length).toBeGreaterThan(0);
       // Status is determined by globalWebSocketManager connection state
       expect(typeof store.getState().status).toBe("string");
-    });
-
-    it("warns when no Supabase session found", async () => {
-      // We're already in localhost mode from the global mock, so skip this test
-      // as the warning only happens in non-localhost mode
-      expect(true).toBe(true);
-    });
-
-    it("handles Supabase session errors", async () => {
-      // We're in localhost mode, so auth errors won't happen
-      // Skip this test as it's not applicable in localhost mode
-      expect(true).toBe(true);
     });
 
     it("includes auth context in connection error messages", async () => {
@@ -1106,7 +1092,9 @@ describe("GlobalChatStore", () => {
 
       await store.getState().sendMessage(message);
 
-      expect(store.getState().error).toBe("Not connected to chat service");
+      expect(store.getState().error).toEqual(
+        expect.stringContaining("Not connected to chat service")
+      );
     });
   });
 

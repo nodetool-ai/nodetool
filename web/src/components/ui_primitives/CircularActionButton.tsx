@@ -35,7 +35,8 @@
  */
 
 import React, { memo, forwardRef, useCallback } from "react";
-import { IconButton, Tooltip, CircularProgress } from "@mui/material";
+import { IconButton, Tooltip } from "@mui/material";
+import { LoadingSpinner } from "./LoadingSpinner";
 import { useTheme, SxProps, Theme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
@@ -170,6 +171,10 @@ export interface CircularActionButtonProps {
    */
   disableRipple?: boolean;
   /**
+   * Explicit aria-label for accessibility (required when tooltip is not a string)
+   */
+  ariaLabel?: string;
+  /**
    * Tab index for keyboard navigation
    * @default 0
    */
@@ -229,7 +234,8 @@ export const CircularActionButton = memo(
         className,
         sx,
         disableRipple = false,
-        tabIndex = 0
+        tabIndex = 0,
+        ariaLabel
       },
       ref
     ) => {
@@ -262,7 +268,7 @@ export const CircularActionButton = memo(
         width: `${size}px`,
         height: `${size}px`,
         padding: 0,
-        borderRadius: "50%",
+        borderRadius: theme.rounded.circle,
         backgroundColor: bgColor,
         color: iconColor,
         transition: "all 0.15s ease",
@@ -294,16 +300,18 @@ export const CircularActionButton = memo(
       };
 
       const displayContent = isLoading ? (
-        <CircularProgress size={finalLoadingSize} />
+        <LoadingSpinner inline size={finalLoadingSize} />
       ) : (
         icon
       );
+
+      const label = ariaLabel || (typeof tooltip === "string" ? tooltip : undefined);
 
       const button = (
         <IconButton
           ref={ref}
           tabIndex={tabIndex}
-          aria-label={typeof tooltip === "string" ? tooltip : undefined}
+          aria-label={label}
           className={cn(
             "circular-action-button",
             nodrag && editorClassNames.nodrag,

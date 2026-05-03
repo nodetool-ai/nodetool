@@ -3,23 +3,15 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  DialogContent,
-  DialogTitle,
   Box,
   List,
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
-  IconButton,
-  Button,
-  TextField,
-  CircularProgress,
-  Chip,
   FormControlLabel,
   Checkbox
 } from "@mui/material";
-import React, { useCallback, useState, useEffect, memo } from "react";
-import CloseIcon from "@mui/icons-material/Close";
+import React, { useCallback, useState, memo } from "react";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
@@ -29,14 +21,20 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { client } from "../../stores/ApiClient";
+import { trpcClient } from "../../trpc/client";
 import { WorkspaceResponse } from "../../stores/ApiTypes";
-import { createErrorMessage } from "../../utils/errorHandling";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import FileBrowserDialog from "../dialogs/FileBrowserDialog";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
-import PanelHeadline from "../ui/PanelHeadline";
-import { Dialog, Text, Tooltip, FlexRow } from "../ui_primitives";
+import {
+  Chip,
+  EditorButton,
+  FlexRow,
+  LoadingSpinner,
+  Text,
+  TextInput,
+  ToolbarIconButton
+} from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -108,27 +106,6 @@ const styles = (theme: Theme) =>
       minWidth: "auto",
       padding: "6px 12px"
     },
-    ".dialog-title": {
-      position: "sticky",
-      top: 0,
-      zIndex: 2,
-      background: "transparent",
-      margin: 0,
-      padding: theme.spacing(2, 3),
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      backdropFilter: "blur(10px)",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    },
-    ".close-button": {
-      color: theme.vars.palette.text.secondary,
-      transition: "color 0.2s",
-      "&:hover": {
-        color: theme.vars.palette.text.primary,
-        backgroundColor: theme.vars.palette.action.hover
-      }
-    },
     ".empty-state": {
       display: "flex",
       flexDirection: "column",
@@ -147,13 +124,8 @@ const styles = (theme: Theme) =>
 
 // Fetch workspaces
 const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
-  const { data, error } = await client.GET("/api/workspaces/", {
-    params: { query: { limit: 100 } }
-  });
-  if (error) {
-    throw createErrorMessage(error, "Failed to load workspaces");
-  }
-  return data.workspaces;
+  const { workspaces } = await trpcClient.workspace.list.query({ limit: 100 });
+  return workspaces as WorkspaceResponse[];
 };
 
 // Check if native dialog API is available (running in Electron)
@@ -161,15 +133,7 @@ const hasNativeDialog = (): boolean => {
   return typeof window !== "undefined" && window.api?.dialog !== undefined;
 };
 
-interface WorkspacesManagerProps {
-  open: boolean;
-  onClose: () => void;
-}
-
-const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
-  open,
-  onClose
-}) => {
+const WorkspacesManager: React.FC = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const addNotification = useNotificationStore(
@@ -194,8 +158,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
     error
   } = useQuery({
     queryKey: ["workspaces"],
-    queryFn: fetchWorkspaces,
-    enabled: open
+    queryFn: fetchWorkspaces
   });
 
   // Memoized handlers
@@ -230,13 +193,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
       path: string;
       is_default: boolean;
     }) => {
-      const { data: result, error } = await client.POST("/api/workspaces/", {
-        body: data
-      });
-      if (error) {
-        throw createErrorMessage(error, "Failed to create workspace");
-      }
-      return result;
+      return trpcClient.workspace.create.mutate(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspaces"] });
@@ -268,24 +225,13 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
       name?: string;
       is_default?: boolean;
     }) => {
-      const body: { name?: string; is_default?: boolean } = {};
-      if (data.name !== undefined) {
-        body.name = data.name;
-      }
-      if (data.is_default !== undefined) {
-        body.is_default = data.is_default;
-      }
-      const { data: result, error } = await client.PUT(
-        "/api/workspaces/{workspace_id}",
-        {
-          params: { path: { workspace_id: data.id } },
-          body
-        }
-      );
-      if (error) {
-        throw createErrorMessage(error, "Failed to update workspace");
-      }
-      return result;
+      return trpcClient.workspace.update.mutate({
+        id: data.id,
+        ...(data.name !== undefined ? { name: data.name } : {}),
+        ...(data.is_default !== undefined
+          ? { is_default: data.is_default }
+          : {})
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspaces"] });
@@ -310,12 +256,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
   // Delete workspace mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await client.DELETE("/api/workspaces/{workspace_id}", {
-        params: { path: { workspace_id: id } }
-      });
-      if (error) {
-        throw createErrorMessage(error, "Failed to delete workspace");
-      }
+      await trpcClient.workspace.delete.mutate({ id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspaces"] });
@@ -335,17 +276,6 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
       });
     }
   });
-
-  // Reset form when dialog closes
-  useEffect(() => {
-    if (!open) {
-      setNewName("");
-      setNewPath("");
-      setIsDefault(false);
-      setIsAdding(false);
-      setEditingId(null);
-    }
-  }, [open]);
 
   const handleCreate = useCallback(() => {
     if (!newName.trim() || !newPath.trim()) {
@@ -465,38 +395,15 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
 
   return (
     <>
-      <Dialog
-        css={styles(theme)}
-        className="workspaces-manager-dialog"
-        open={open}
-        onClose={onClose}
-        minWidth={600}
-      >
-        <DialogTitle className="dialog-title">
-          <PanelHeadline
-            title="Workspaces Manager"
-            actions={
-              <Tooltip title="Close">
-                <IconButton
-                  aria-label="close"
-                  onClick={onClose}
-                  className="close-button"
-                >
-                  <CloseIcon />
-                </IconButton>
-              </Tooltip>
-            }
-          />
-        </DialogTitle>
-        <DialogContent>
-          <div className="workspaces-manager">
+      <Box css={styles(theme)} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        <div className="workspaces-manager">
             {isLoading ? (
               <FlexRow
                 justify="center"
                 align="center"
                 sx={{ py: 4 }}
               >
-                <CircularProgress size={30} />
+                <LoadingSpinner size={30} />
               </FlexRow>
             ) : error ? (
               <Box className="empty-state">
@@ -506,12 +413,12 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                 <Text size="small" color="secondary" sx={{ mb: 2 }}>
                   Check your connection and try again
                 </Text>
-                <Button
+                <EditorButton
                   variant="outlined"
                   onClick={handleRetry}
                 >
                   Retry
-                </Button>
+                </EditorButton>
               </Box>
             ) : workspaces && workspaces.length > 0 ? (
               <List className="workspace-list">
@@ -519,7 +426,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                   <ListItem key={workspace.id} className="workspace-item">
                     {editingId === workspace.id ? (
                       <div className="edit-form">
-                        <TextField
+                        <TextInput
                           size="small"
                           value={editName}
                           onChange={handleEditNameChange}
@@ -535,16 +442,17 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                             }
                           }}
                         />
-                        <IconButton
-                          size="small"
+                        <ToolbarIconButton
+                          icon={<CheckIcon />}
+                          tooltip="Save changes"
                           onClick={createUpdateHandler(workspace.id)}
-                          color="primary"
-                        >
-                          <CheckIcon />
-                        </IconButton>
-                        <IconButton size="small" onClick={handleCancelEdit}>
-                          <CancelIcon />
-                        </IconButton>
+                          variant="primary"
+                        />
+                        <ToolbarIconButton
+                          icon={<CancelIcon />}
+                          tooltip="Cancel"
+                          onClick={handleCancelEdit}
+                        />
                       </div>
                     ) : (
                       <>
@@ -581,48 +489,39 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                           />
                         </div>
                         <ListItemSecondaryAction>
-                          <Tooltip
-                            title={
+                          <ToolbarIconButton
+                            icon={
+                              workspace.is_default ? (
+                                <StarIcon fontSize="small" />
+                              ) : (
+                                <StarBorderIcon fontSize="small" />
+                              )
+                            }
+                            tooltip={
                               workspace.is_default
                                 ? "Default workspace"
                                 : "Set as default"
                             }
-                          >
-                            <IconButton
-                              size="small"
-                              onClick={createToggleDefaultHandler(workspace)}
-                              sx={{
-                                color: workspace.is_default
-                                  ? "warning.main"
-                                  : "text.secondary",
-                                "&:hover": {
-                                  color: "warning.main"
-                                }
-                              }}
-                            >
-                              {workspace.is_default ? (
-                                <StarIcon fontSize="small" />
-                              ) : (
-                                <StarBorderIcon fontSize="small" />
-                              )}
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Edit">
-                            <IconButton
-                              size="small"
-                              onClick={createStartEditHandler(workspace)}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton
-                              size="small"
-                              onClick={createDeleteWorkspaceHandler(workspace.id)}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                            onClick={createToggleDefaultHandler(workspace)}
+                            sx={{
+                              color: workspace.is_default
+                                ? "warning.main"
+                                : "text.secondary",
+                              "&:hover": {
+                                color: "warning.main"
+                              }
+                            }}
+                          />
+                          <ToolbarIconButton
+                            icon={<EditIcon fontSize="small" />}
+                            tooltip="Edit"
+                            onClick={createStartEditHandler(workspace)}
+                          />
+                          <ToolbarIconButton
+                            icon={<DeleteIcon fontSize="small" />}
+                            tooltip="Delete"
+                            onClick={createDeleteWorkspaceHandler(workspace.id)}
+                          />
                         </ListItemSecondaryAction>
                       </>
                     )}
@@ -643,7 +542,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
             <div className="add-workspace-section">
               {isAdding ? (
                 <div className="add-form">
-                  <TextField
+                  <TextInput
                     size="small"
                     label="Name"
                     value={newName}
@@ -653,7 +552,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                     autoFocus
                   />
                   <div className="form-row">
-                    <TextField
+                    <TextInput
                       size="small"
                       label="Path"
                       value={newPath}
@@ -661,13 +560,13 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                       placeholder="/path/to/folder"
                       fullWidth
                     />
-                    <Button
+                    <EditorButton
                       className="browse-button"
                       variant="outlined"
                       onClick={handleBrowse}
                     >
                       Browse
-                    </Button>
+                    </EditorButton>
                   </div>
                   <FormControlLabel
                     control={
@@ -684,34 +583,33 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                     gap={1}
                     sx={{ mt: 1 }}
                   >
-                    <Button
+                    <EditorButton
                       onClick={handleCancelAdd}
                       color="inherit"
                     >
                       Cancel
-                    </Button>
-                    <Button
+                    </EditorButton>
+                    <EditorButton
                       variant="contained"
                       onClick={handleCreate}
                       disabled={createMutation.isPending}
                     >
                       {createMutation.isPending ? "Adding..." : "Add Workspace"}
-                    </Button>
+                    </EditorButton>
                   </FlexRow>
                 </div>
               ) : (
-                <Button
+                <EditorButton
                   startIcon={<AddIcon />}
                   onClick={handleAddWorkspace}
                   fullWidth
                 >
                   Add Workspace
-                </Button>
+                </EditorButton>
               )}
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </Box>
 
       <FileBrowserDialog
         open={isFileBrowserOpen}
