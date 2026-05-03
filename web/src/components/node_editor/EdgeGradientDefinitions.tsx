@@ -1,51 +1,59 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { DataType } from "../../config/data_types";
 
 interface EdgeGradientDefinitionsProps {
   dataTypes: DataType[];
-  activeGradientKeys: string[]; // Changed from all dataTypes to specific keys
+  activeGradientKeys: string[];
 }
 
-const EdgeGradientDefinitions: React.FC<EdgeGradientDefinitionsProps> = memo(({
+const SVG_STYLE: React.CSSProperties = { height: 0, width: 0, position: "absolute" };
+
+const EdgeGradientDefinitions: React.FC<EdgeGradientDefinitionsProps> = ({
   dataTypes,
   activeGradientKeys
 }) => {
-  const gradients: React.JSX.Element[] = [];
+  const dataTypeBySlug = useMemo(
+    () => new Map(dataTypes.map((dt) => [dt.slug, dt])),
+    [dataTypes]
+  );
 
-  activeGradientKeys.forEach((key) => {
-    // key is like "gradient-slug1-slug2"
-    const parts = key.replace("gradient-", "").split("-");
-    if (parts.length !== 2) {return;} // Should not happen with correct keys
+  const gradients = useMemo(() => {
+    const elements: React.JSX.Element[] = [];
 
-    const slug1 = parts[0];
-    const slug2 = parts[1];
+    activeGradientKeys.forEach((key) => {
+      const parts = key.replace("gradient-", "").split("-");
+      if (parts.length !== 2) {return;}
 
-    const sourceType = dataTypes.find((dt) => dt.slug === slug1);
-    const targetType = dataTypes.find((dt) => dt.slug === slug2);
+      const sourceType = dataTypeBySlug.get(parts[0]);
+      const targetType = dataTypeBySlug.get(parts[1]);
 
-    if (!sourceType || !targetType) {return;} // Should find types if slugs are valid
+      if (!sourceType || !targetType) {return;}
 
-    gradients.push(
-      <linearGradient id={key} x1="0%" y1="0%" x2="100%" y2="0%" key={key}>
-        <stop
-          offset="0%"
-          style={{ stopColor: sourceType.color, stopOpacity: 1 }}
-        />
-        <stop
-          offset="100%"
-          style={{ stopColor: targetType.color, stopOpacity: 1 }}
-        />
-      </linearGradient>
-    );
-  });
+      elements.push(
+        <linearGradient id={key} x1="0%" y1="0%" x2="100%" y2="0%" key={key}>
+          <stop offset="0%" stopColor={sourceType.color} stopOpacity={1} />
+          <stop offset="100%" stopColor={targetType.color} stopOpacity={1} />
+        </linearGradient>
+      );
+    });
+
+    return elements;
+  }, [activeGradientKeys, dataTypeBySlug]);
 
   return (
-    <svg style={{ height: 0, width: 0, position: "absolute" }}>
+    <svg style={SVG_STYLE}>
       <defs>{gradients}</defs>
     </svg>
   );
-});
+};
 
 EdgeGradientDefinitions.displayName = "EdgeGradientDefinitions";
 
-export default EdgeGradientDefinitions;
+export default memo(EdgeGradientDefinitions, (prev, next) => {
+  if (prev.dataTypes !== next.dataTypes) return false;
+  if (prev.activeGradientKeys.length !== next.activeGradientKeys.length) return false;
+  for (let i = 0; i < prev.activeGradientKeys.length; i++) {
+    if (prev.activeGradientKeys[i] !== next.activeGradientKeys[i]) return false;
+  }
+  return true;
+});
