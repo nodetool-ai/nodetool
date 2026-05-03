@@ -13,7 +13,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { memo, useCallback, useState, useEffect, useRef } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
@@ -35,6 +35,7 @@ import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import DownloadIcon from "@mui/icons-material/Download";
+import UploadIcon from "@mui/icons-material/Upload";
 
 const styles = (theme: Theme) =>
   css({
@@ -724,6 +725,70 @@ const DownloadWorkflowButton = memo(function DownloadWorkflowButton() {
   );
 });
 
+const UploadWorkflowButton = memo(function UploadWorkflowButton() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const create = useWorkflowManager((state) => state.create);
+  const addNotification = useNotificationStore((state) => state.addNotification);
+  const navigate = useNavigate();
+
+  const handleClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text) as Workflow;
+        const imported = await create({
+          name: parsed.name ?? file.name.replace(/\.json$/, ""),
+          description: parsed.description ?? "",
+          access: "private",
+          graph: parsed.graph,
+          tags: parsed.tags,
+          settings: parsed.settings as Record<string, string | number | boolean | null> | null | undefined,
+          run_mode: parsed.run_mode,
+          html_app: parsed.html_app
+        });
+        navigate(`/editor/${imported.id}`);
+        addNotification({
+          type: "success",
+          alert: true,
+          content: `Imported workflow "${imported.name}"`
+        });
+      } catch {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: "Failed to import workflow — invalid JSON file"
+        });
+      }
+      // Reset so the same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    },
+    [create, navigate, addNotification]
+  );
+
+  return (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        style={{ display: "none" }}
+        onChange={handleFileChange}
+      />
+      <Tooltip title="Import Workflow from JSON" delay={TOOLTIP_ENTER_DELAY}>
+        <EditorButton className="action-button" onClick={handleClick} tabIndex={-1}>
+          <UploadIcon />
+        </EditorButton>
+      </Tooltip>
+    </>
+  );
+});
+
 interface AppToolbarProps {
   setWorkflowToEdit: (workflow: Workflow) => void;
 }
@@ -749,6 +814,7 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
             <EditWorkflowButton setWorkflowToEdit={setWorkflowToEdit} />
             <SaveWorkflowButton />
             <DownloadWorkflowButton />
+            <UploadWorkflowButton />
             <AutoLayoutButton autoLayout={autoLayout} />
             <WorkflowModeSelect />
             <RunWorkflowButton />
