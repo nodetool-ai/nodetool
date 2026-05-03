@@ -8,7 +8,11 @@ const mockResolveKieSchemaClient = jest.fn();
 
 jest.mock("../../../ui_primitives", () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Caption: ({ children }: { children: React.ReactNode }) => <>{children}</>
+  Caption: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  LoadingSpinner: () => <span data-testid="loading-spinner" />,
+  ToolbarIconButton: ({ children, onClick, disabled, ...props }: any) => (
+    <button onClick={onClick} disabled={disabled} {...props}>{children}</button>
+  )
 }));
 
 jest.mock("../../../../contexts/NodeContext", () => ({

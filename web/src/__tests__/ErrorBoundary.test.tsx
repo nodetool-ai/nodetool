@@ -33,7 +33,12 @@ jest.mock("../components/ui_primitives", () => ({
         {children}
       </Tag>
     );
-  }
+  },
+  EditorButton: ({ children, onClick, className, ...props }: any) => (
+    <button onClick={onClick} className={className} {...props}>
+      {children}
+    </button>
+  )
 }));
 
 describe("ErrorBoundary", () => {
