@@ -261,7 +261,7 @@ const focusNodeTool = handleActivation;
 
 /**
  * Gets menu items for the close behavior settings.
- * @param {Record<string, any>} settings - The current application settings
+ * @param {Record<string, unknown>} settings - The current application settings
  * @returns {Electron.MenuItemConstructorOptions[]} Menu items for close behavior
  */
 function getCloseBehaviorMenuItems(settings: Record<string, unknown>): Electron.MenuItemConstructorOptions[] {

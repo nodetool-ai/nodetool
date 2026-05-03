@@ -248,7 +248,7 @@ export class WebSocketManager extends EventEmitter {
           data = decoded;
         } else if (
           event.data instanceof Blob ||
-          (event.data && typeof (event.data as any).arrayBuffer === "function")
+          (event.data && typeof (event.data as Blob).arrayBuffer === "function")
         ) {
           const buf = await (event.data as Blob).arrayBuffer();
           data = decode(new Uint8Array(buf));

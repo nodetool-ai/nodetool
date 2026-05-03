@@ -319,7 +319,7 @@ export interface JSONSchema {
 export interface Node {
   id: string;
   type: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 export interface NodeProperty {
