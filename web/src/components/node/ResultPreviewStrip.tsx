@@ -3,7 +3,7 @@ import React, { memo, useMemo } from "react";
 import { Box } from "@mui/material";
 import { Caption, Tooltip } from "../ui_primitives";
 import { Visibility } from "@mui/icons-material";
-import { typeFor, resolveAssetUri } from "./output";
+import { typeFor, useSignedUrl } from "./output";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface ResultPreviewStripProps {
@@ -53,32 +53,23 @@ function getResultLabel(value: unknown): string {
 }
 
 /**
- * Extracts a thumbnail image URI from a result, if available.
+ * Extracts the raw asset URI from a result value (no URL resolution).
  */
-function getThumbnailUri(value: unknown): string | null {
+function getRawThumbnailUri(value: unknown): string | null {
   if (!value || typeof value !== "object") return null;
   const v = value as Record<string, unknown>;
 
-  // Direct image result
-  if (v.type === "image" && typeof v.uri === "string") {
-    return resolveAssetUri(v.uri);
+  if (v.type === "image" && typeof v.uri === "string") return v.uri;
+
+  if (v.output && typeof v.output === "object") {
+    const out = v.output as Record<string, unknown>;
+    if (out.type === "image" && typeof out.uri === "string") return out.uri;
   }
 
-  // Result with output that is an image
-  if (
-    v.output &&
-    typeof v.output === "object" &&
-    (v.output as Record<string, unknown>).type === "image"
-  ) {
-    const uri = (v.output as Record<string, unknown>).uri;
-    if (typeof uri === "string") return resolveAssetUri(uri);
-  }
-
-  // Array of images — use first
   if (Array.isArray(value) && value.length > 0) {
     const first = value[0];
     if (first && typeof first === "object" && first.type === "image" && typeof first.uri === "string") {
-      return resolveAssetUri(first.uri);
+      return first.uri;
     }
   }
 
@@ -106,7 +97,8 @@ const ResultPreviewStrip: React.FC<ResultPreviewStripProps> = ({
   }, [result]);
 
   const label = useMemo(() => getResultLabel(unwrapped), [unwrapped]);
-  const thumbnail = useMemo(() => getThumbnailUri(unwrapped), [unwrapped]);
+  const rawThumbnailUri = useMemo(() => getRawThumbnailUri(unwrapped), [unwrapped]);
+  const thumbnail = useSignedUrl(rawThumbnailUri);
 
   if (!label) return null;
 

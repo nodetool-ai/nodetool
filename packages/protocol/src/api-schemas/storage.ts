@@ -38,6 +38,19 @@ export const storageMetadataOutput = storageEntrySchema;
 export type StorageMetadataInput = z.infer<typeof storageMetadataInput>;
 export type StorageMetadataOutput = z.infer<typeof storageMetadataOutput>;
 
+// ── storage.signUrl ──────────────────────────────────────────────────────────
+
+export const signUrlInput = z.object({
+  key: z.string().min(1)
+});
+
+export const signUrlOutput = z.object({
+  url: z.string()
+});
+
+export type SignUrlInput = z.infer<typeof signUrlInput>;
+export type SignUrlOutput = z.infer<typeof signUrlOutput>;
+
 // ── storage.delete ───────────────────────────────────────────────────────────
 
 export const storageDeleteInput = z.object({
