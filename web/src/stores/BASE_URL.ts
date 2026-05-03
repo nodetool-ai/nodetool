@@ -36,3 +36,13 @@ export const DOWNLOAD_URL = getWebSocketUrl("/ws/download");
 
 /** WebSocket URL for the Claude/Codex/OpenCode agent endpoint. */
 export const AGENT_WS_URL = getWebSocketUrl("/ws/agent");
+
+/**
+ * Prefix a relative /api/* path with BASE_URL so it resolves to the correct
+ * API server in production (where the React app and API are on different origins).
+ */
+export function resolveApiUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  if (url.startsWith("/api/")) return `${BASE_URL}${url}`;
+  return url;
+}

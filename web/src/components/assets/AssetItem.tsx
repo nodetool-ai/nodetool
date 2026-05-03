@@ -17,6 +17,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { resolveApiUrl } from "../../stores/BASE_URL";
 
 
 const styles = (theme: Theme) =>
@@ -447,14 +448,14 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
                 <div
                   className="image"
                   style={{
-                    backgroundImage: `url(${asset.thumb_url || asset.get_url})`
+                    backgroundImage: `url(${resolveApiUrl(asset.thumb_url || asset.get_url)})`
                   }}
                   aria-label={asset.id}
                 />
                 <div
                   className="image-aspect-ratio"
                   style={{
-                    backgroundImage: `url(${asset.thumb_url || asset.get_url})`
+                    backgroundImage: `url(${resolveApiUrl(asset.thumb_url || asset.get_url)})`
                   }}
                   aria-label={asset.id}
                 />
@@ -495,7 +496,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               <div
                 className="image"
                 style={{
-                  backgroundImage: `url(${asset.thumb_url || asset.get_url})`
+                  backgroundImage: `url(${resolveApiUrl(asset.thumb_url || asset.get_url)})`
                 }}
                 aria-label={asset.id}
               />
@@ -524,7 +525,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               <div
                 className="image"
                 style={{
-                  backgroundImage: `url(${asset.get_url})`
+                  backgroundImage: `url(${resolveApiUrl(asset.get_url)})`
                 }}
                 aria-label={asset.id}
               />

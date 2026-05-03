@@ -82,10 +82,9 @@ export function resolveAssetUri(uri: string | undefined | null): string {
     return `${BASE_URL}/api/storage/${assetId}`;
   }
 
-  // Handle /api/storage/ relative URLs — prefix with BASE_URL for Electron
-  if (uri.startsWith("/api/storage/")) {
-    const resolved = `${BASE_URL}${uri}`;
-    return resolved;
+  // Handle relative /api/ URLs — prefix with BASE_URL for production/Electron
+  if (uri.startsWith("/api/")) {
+    return `${BASE_URL}${uri}`;
   }
 
   return uri;

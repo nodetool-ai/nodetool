@@ -10,6 +10,7 @@ import { formatFileSize } from "../../utils/formatUtils";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { resolveApiUrl } from "../../stores/BASE_URL";
 
 const styles = (theme: Theme) =>
   css({
@@ -94,7 +95,7 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({ asset }) => {
   }, [asset.workflow_id, getWorkflow]);
 
   const isImage = asset.content_type?.startsWith("image/");
-  const thumbSrc = asset.thumb_url || (isImage ? asset.get_url : null);
+  const thumbSrc = resolveApiUrl(asset.thumb_url || (isImage ? asset.get_url : null));
   const metadata = asset.metadata as Record<string, unknown> | null | undefined;
 
   return (

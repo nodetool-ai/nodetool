@@ -23,6 +23,7 @@ import {
   createAssetDragImage
 } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
+import { resolveApiUrl } from "../../stores/BASE_URL";
 
 interface GlobalSearchResultsProps {
   results: AssetWithPath[];
@@ -453,8 +454,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                   <div
                     className="global-search-result-thumbnail result-item-thumbnail"
                     style={{
-                      backgroundImage: `url(${asset.thumb_url || asset.get_url
-                        })`
+                      backgroundImage: `url(${resolveApiUrl(asset.thumb_url || asset.get_url)})`
                     }}
                     title={`${asset.content_type} thumbnail`}
                     data-testid="global-search-result-thumbnail"

@@ -15,6 +15,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { ExpandCollapseButton, EmptyState, Text } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import { resolveApiUrl } from "../../stores/BASE_URL";
 
 interface AssetListViewProps {
   assets: Asset[];
@@ -432,7 +433,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
           <div
             className="asset-item-thumbnail"
             style={{
-              backgroundImage: `url(${asset.thumb_url || asset.get_url})`
+              backgroundImage: `url(${resolveApiUrl(asset.thumb_url || asset.get_url)})`
             }}
             title={`${asset.content_type} thumbnail`}
           />
