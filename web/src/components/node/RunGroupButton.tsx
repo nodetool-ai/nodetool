@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { Tooltip, ToolbarIconButton, LoadingSpinner } from "../ui_primitives";
 import { PlayArrow } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 
 const styles = (theme: Theme, _isRunning: boolean) =>
   css({
@@ -99,4 +99,4 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
   );
 };
 
-export default RunGroupButton;
+export default memo(RunGroupButton);

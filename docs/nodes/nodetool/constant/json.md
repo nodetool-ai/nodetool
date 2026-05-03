@@ -17,8 +17,8 @@ Represents a JSON constant in the workflow.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| value | `json` |  | `{'type': 'json', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| value | `json` |  | `{"type":"json","uri":"","asset_id":null,"data":...` |
 
 ## Outputs
 
@@ -26,9 +26,6 @@ Represents a JSON constant in the workflow.
 |--------|------|-------------|
 | output | `json` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.constant](../) namespace.
-

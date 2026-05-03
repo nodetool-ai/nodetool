@@ -21,8 +21,8 @@ Joins path components.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| paths | `List[str]` | Path components to join | `[]` |
+|----------|------|-------------|---------|
+| paths | `list[str]` | Path components to join | `[]` |
 
 ## Outputs
 
@@ -30,9 +30,6 @@ Joins path components.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

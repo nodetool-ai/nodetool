@@ -4,6 +4,8 @@ import useResultsStore from "../../stores/ResultsStore";
 import isEqual from "fast-deep-equal";
 import { ProgressBar } from "../ui_primitives/ProgressBar";
 
+const PROGRESS_STYLE: React.CSSProperties = { margin: "0.75em 0 0.5em 0" };
+
 const NodeProgress = ({
   id,
   workflowId
@@ -39,7 +41,7 @@ const NodeProgress = ({
   const percentValue = (progress.progress * 100) / progress.total;
 
   return (
-    <div className="node-progress" style={{ margin: "0.75em 0 0.5em 0" }}>
+    <div className="node-progress" style={PROGRESS_STYLE}>
       <ProgressBar
         value={percentValue}
         color="secondary"

@@ -21,7 +21,8 @@ import {
 import AudioPlayer from "../audio/AudioPlayer";
 import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
-import { Container, List, ListItem, ListItemText } from "@mui/material";
+import { List, ListItem, ListItemText } from "@mui/material";
+import { Container } from "../ui_primitives";
 import ListTable from "./DataTable/ListTable";
 import ImageView from "./ImageView";
 import AssetViewer from "../assets/AssetViewer";

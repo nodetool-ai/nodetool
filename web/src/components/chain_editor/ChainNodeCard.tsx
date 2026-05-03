@@ -3,7 +3,7 @@ import React, { useMemo } from "react";
 import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Collapse, IconButton, LinearProgress } from "@mui/material";
+import { Box, Collapse, LinearProgress } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
@@ -16,6 +16,7 @@ import { FlexRow } from "../ui_primitives/FlexRow";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 import { Text } from "../ui_primitives/Text";
 import { Divider } from "../ui_primitives/Divider";
+import { ToolbarIconButton } from "../ui_primitives";
 import { ChainNodeProperties } from "./ChainNodeProperties";
 import { OutputSelector } from "./OutputSelector";
 import { InputMappingSelector } from "./InputMappingSelector";
@@ -263,19 +264,11 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
 
           {/* Actions */}
           <FlexRow gap={0.5} align="center">
-            <IconButton aria-label="Move node up" size="small" onClick={onMoveUp} disabled={index === 0}>
-              <ArrowUpwardIcon sx={{ fontSize: 18 }} />
-            </IconButton>
-            <IconButton aria-label="Move node down" size="small" onClick={onMoveDown} disabled={index === totalNodes - 1}>
-              <ArrowDownwardIcon sx={{ fontSize: 18 }} />
-            </IconButton>
+            <ToolbarIconButton ariaLabel="Move node up" size="small" onClick={onMoveUp} disabled={index === 0} tooltip="Move up" icon={<ArrowUpwardIcon sx={{ fontSize: 18 }} />} />
+            <ToolbarIconButton ariaLabel="Move node down" size="small" onClick={onMoveDown} disabled={index === totalNodes - 1} tooltip="Move down" icon={<ArrowDownwardIcon sx={{ fontSize: 18 }} />} />
             <Box sx={{ flex: 1 }} />
-            <IconButton aria-label="Duplicate node" size="small" onClick={onDuplicate}>
-              <ContentCopyIcon sx={{ fontSize: 18 }} />
-            </IconButton>
-            <IconButton aria-label="Remove node" size="small" onClick={onRemove} sx={{ color: theme.vars.palette.error.main }}>
-              <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-            </IconButton>
+            <ToolbarIconButton ariaLabel="Duplicate node" size="small" onClick={onDuplicate} tooltip="Duplicate" icon={<ContentCopyIcon sx={{ fontSize: 18 }} />} />
+            <ToolbarIconButton ariaLabel="Remove node" size="small" onClick={onRemove} tooltip="Remove" icon={<DeleteOutlineIcon sx={{ fontSize: 18 }} />} sx={{ color: theme.vars.palette.error.main }} />
           </FlexRow>
         </FlexColumn>
       </Collapse>

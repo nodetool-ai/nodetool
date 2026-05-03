@@ -14,10 +14,11 @@ namespace: "nodetool.workspace"
 Get the current workspace directory path.
     workspace, directory, path
 
-    Use cases:
-    - Get the workspace path for reference
-    - Display workspace location
-    - Pass workspace path to other nodes
+## Properties
+
+| Property | Type | Description | Default |
+|----------|------|-------------|---------|
+| workspace_dir | `str` | The workspace directory | `` |
 
 ## Outputs
 
@@ -25,9 +26,6 @@ Get the current workspace directory path.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.workspace](../) namespace.
-

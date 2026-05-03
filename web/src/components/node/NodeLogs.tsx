@@ -5,14 +5,13 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useRef, useEffect, useCallback, useState, useMemo } from "react";
 import {
   Stack,
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions
 } from "@mui/material";
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import isEqual from "fast-deep-equal";
-import { CopyButton, Text, Chip, EditorButton } from "../ui_primitives";
+import { CopyButton, Text, Chip, EditorButton, Dialog } from "../ui_primitives";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
 

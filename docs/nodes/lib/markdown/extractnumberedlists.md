@@ -22,18 +22,15 @@ Extracts numbered lists from markdown.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | markdown | `str` | The markdown text to analyze | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `List[str]` |  |
-
-## Metadata
+| output | `list[str]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.markdown](../) namespace.
-

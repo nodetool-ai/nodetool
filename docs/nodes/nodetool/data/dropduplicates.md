@@ -22,8 +22,8 @@ Remove duplicate rows from dataframe.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| df | `dataframe` | The input DataFrame. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+|----------|------|-------------|---------|
+| df | `dataframe` | The input DataFrame. | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 
 ## Outputs
 
@@ -31,9 +31,6 @@ Remove duplicate rows from dataframe.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

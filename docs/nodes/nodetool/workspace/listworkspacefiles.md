@@ -14,28 +14,21 @@ namespace: "nodetool.workspace"
 List files in the workspace directory matching a pattern.
     workspace, files, list, directory
 
-    Use cases:
-    - Get files for batch processing within workspace
-    - Filter workspace files by extension or pattern
-    - Discover generated files in workspace
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Relative path within workspace (use . for workspace root) | `.` |
 | pattern | `str` | File pattern to match (e.g. *.txt, *.json) | `*` |
-| recursive | `bool` | Search subdirectories recursively | `False` |
+| recursive | `bool` | Search subdirectories recursively | `false` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
 | file | `str` |  |
-
-## Metadata
+| files | `list` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.workspace](../) namespace.
-

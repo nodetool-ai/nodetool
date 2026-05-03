@@ -420,6 +420,12 @@ export default function DevelopersPage() {
             >
               Discord
             </a>
+            <a href="/privacy" className="hover:text-slate-300 transition-colors">
+              Privacy
+            </a>
+            <a href="/terms" className="hover:text-slate-300 transition-colors">
+              Terms
+            </a>
           </div>
         </div>
       </footer>

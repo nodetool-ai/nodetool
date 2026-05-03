@@ -22,7 +22,7 @@ Takes a screenshot of a web page or specific element.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | url | `str` | URL to navigate to before taking screenshot | `` |
 | selector | `str` | Optional CSS selector for capturing a specific element | `` |
 | output_file | `str` | Path to save the screenshot (relative to workspace) | `screenshot.png` |
@@ -32,11 +32,8 @@ Takes a screenshot of a web page or specific element.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `Dict[str, any]` |  |
-
-## Metadata
+| output | `dict[str, any]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.browser](../) namespace.
-

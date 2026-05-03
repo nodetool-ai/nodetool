@@ -22,8 +22,8 @@ Pivot dataframe to reshape data.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| dataframe | `dataframe` | The DataFrame to pivot. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+|----------|------|-------------|---------|
+| dataframe | `dataframe` | The DataFrame to pivot. | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 | index | `str` | Column name to use as index (rows). | `` |
 | columns | `str` | Column name to use as columns. | `` |
 | values | `str` | Column name to use as values. | `` |
@@ -35,9 +35,6 @@ Pivot dataframe to reshape data.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

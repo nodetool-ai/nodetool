@@ -22,7 +22,7 @@ Fetches and parses an RSS feed from a URL.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | url | `str` | URL of the RSS feed to fetch | `` |
 
 ## Outputs
@@ -34,10 +34,8 @@ Fetches and parses an RSS feed from a URL.
 | published | `datetime` |  |
 | summary | `str` |  |
 | author | `str` |  |
-
-## Metadata
+| items | `list` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.rss](../) namespace.
-

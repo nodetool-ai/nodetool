@@ -21,8 +21,8 @@ Automatically adjusts column widths to fit content.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| workbook | `excel` | The Excel workbook to format | `{'type': 'excel', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| workbook | `excel` | The Excel workbook to format | `{"type":"excel","uri":"","asset_id":null,"data"...` |
 | sheet_name | `str` | Target worksheet name | `Sheet1` |
 
 ## Outputs
@@ -31,9 +31,6 @@ Automatically adjusts column widths to fit content.
 |--------|------|-------------|
 | output | `any` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.excel](../) namespace.
-

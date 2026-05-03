@@ -22,14 +22,14 @@ Create linear or radial gradients for SVG elements.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| gradient_type | `Enum['linearGradient', 'radialGradient']` | Type of gradient | `linearGradient` |
+|----------|------|-------------|---------|
+| gradient_type | `enum` | Type of gradient | `linearGradient` |
 | x1 | `float` | Start X position (linear) or center X (radial) | `0` |
 | y1 | `float` | Start Y position (linear) or center Y (radial) | `0` |
 | x2 | `float` | End X position (linear) or radius X (radial) | `100` |
 | y2 | `float` | End Y position (linear) or radius Y (radial) | `100` |
-| color1 | `color` | Start color of gradient | `{'type': 'color', 'value': '#000000'}` |
-| color2 | `color` | End color of gradient | `{'type': 'color', 'value': '#FFFFFF'}` |
+| color1 | `color` | Start color of gradient | `{"type":"color","value":"#000000"}` |
+| color2 | `color` | End color of gradient | `{"type":"color","value":"#FFFFFF"}` |
 
 ## Outputs
 
@@ -37,9 +37,6 @@ Create linear or radial gradients for SVG elements.
 |--------|------|-------------|
 | output | `svg_element` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.svg](../) namespace.
-

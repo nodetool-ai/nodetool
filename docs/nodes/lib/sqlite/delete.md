@@ -22,7 +22,7 @@ Delete records from a SQLite table.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | database_name | `str` | Name of the SQLite database file | `memory.db` |
 | table_name | `str` | Name of the table to delete from | `flashcards` |
 | where | `str` | WHERE clause (without 'WHERE' keyword), e.g., 'id = 1'. REQUIRED for safety. | `` |
@@ -31,11 +31,8 @@ Delete records from a SQLite table.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `Dict[str, any]` |  |
-
-## Metadata
+| output | `dict[str, any]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.sqlite](../) namespace.
-

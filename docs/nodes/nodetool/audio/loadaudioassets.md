@@ -17,8 +17,8 @@ Load audio files from an asset folder.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| folder | `folder` | The asset folder to load the audio files from. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| folder | `folder` | The asset folder to load the audio files from. | `{"type":"folder","uri":"","asset_id":null,"data...` |
 
 ## Outputs
 
@@ -26,10 +26,8 @@ Load audio files from an asset folder.
 |--------|------|-------------|
 | audio | `audio` |  |
 | name | `str` |  |
-
-## Metadata
+| audios | `list` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.audio](../) namespace.
-

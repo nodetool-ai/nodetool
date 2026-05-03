@@ -17,7 +17,7 @@ Get file size in bytes.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Path to file | `` |
 
 ## Outputs
@@ -26,9 +26,6 @@ Get file size in bytes.
 |--------|------|-------------|
 | output | `int` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

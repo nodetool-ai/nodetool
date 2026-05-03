@@ -17,7 +17,7 @@ Get directory containing the file.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Path to file | `` |
 
 ## Outputs
@@ -26,9 +26,6 @@ Get directory containing the file.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

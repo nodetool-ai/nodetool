@@ -17,8 +17,8 @@ Sets document metadata properties
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| document | `document` | The document to modify | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| document | `document` | The document to modify | `{"type":"document","uri":"","asset_id":null,"da...` |
 | title | `str` | Document title | `` |
 | author | `str` | Document author | `` |
 | subject | `str` | Document subject | `` |
@@ -30,9 +30,6 @@ Sets document metadata properties
 |--------|------|-------------|
 | output | `document` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.docx](../) namespace.
-

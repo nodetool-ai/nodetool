@@ -17,20 +17,18 @@ List documents in a directory.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | folder | `str` | Directory to scan | `~` |
 | pattern | `str` | File pattern to match (e.g. *.txt) | `*` |
-| recursive | `bool` | Search subdirectories | `False` |
+| recursive | `bool` | Search subdirectories | `false` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
 | document | `document` |  |
-
-## Metadata
+| documents | `list` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.document](../) namespace.
-

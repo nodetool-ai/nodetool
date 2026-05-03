@@ -7,10 +7,6 @@
 import React, { useCallback, useMemo, useState, memo } from "react";
 import {
   List,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
   DialogContentText
 } from "@mui/material";
 import {
@@ -28,7 +24,8 @@ import PanelHeadline from "../ui/PanelHeadline";
 import {
   Caption,
   CloseButton,
-  DialogActionButtons,
+  Dialog,
+  EditorButton,
   FlexColumn,
   LoadingSpinner,
   Text,
@@ -315,32 +312,32 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
 
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
           <Tooltip title="Compare two versions side by side">
-            <Button
-              size="small"
+            <EditorButton
+              density="compact"
               variant={isCompareMode ? "contained" : "text"}
               onClick={handleToggleCompareMode}
-              startIcon={<CompareIcon sx={{ fontSize: "14px !important" }} />}
               sx={{
                 fontSize: "0.7rem",
                 py: 0.25,
                 px: 1,
                 minWidth: 0,
-                textTransform: "none",
                 color: isCompareMode ? undefined : "text.secondary"
               }}
             >
+              <CompareIcon sx={{ fontSize: "14px !important", mr: 0.5 }} />
               Compare
-            </Button>
+            </EditorButton>
           </Tooltip>
 
           {isCompareMode && (selectedVersionId || compareVersionId) && (
-            <Button
-              size="small"
+            <EditorButton
+              density="compact"
+              variant="text"
               onClick={handleClearComparison}
-              sx={{ fontSize: "0.7rem", py: 0.25, px: 0.5, minWidth: 0, textTransform: "none" }}
+              sx={{ fontSize: "0.7rem", py: 0.25, px: 0.5, minWidth: 0 }}
             >
               Clear
-            </Button>
+            </EditorButton>
           )}
         </div>
       </div>
@@ -432,20 +429,16 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
       <Dialog
         open={deleteDialogOpen}
         onClose={handleCloseDeleteDialog}
+        title="Delete Version"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCloseDeleteDialog}
+        confirmText="Delete"
+        destructive
       >
-        <DialogTitle>Delete Version</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete this version? This action cannot be
-            undone.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActionButtons
-          onConfirm={handleConfirmDelete}
-          onCancel={handleCloseDeleteDialog}
-          confirmText="Delete"
-          destructive
-        />
+        <DialogContentText>
+          Are you sure you want to delete this version? This action cannot be
+          undone.
+        </DialogContentText>
       </Dialog>
     </div>
   );

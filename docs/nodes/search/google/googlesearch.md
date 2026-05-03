@@ -11,13 +11,13 @@ namespace: "search.google"
 
 ## Description
 
-Search Google to retrieve organic search results.
-    google, search, serp, web
+Search Google to retrieve organic search results from the web.
+    google, search, serp, web, query
 
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | keyword | `str` | Search query or keyword to search for | `` |
 | num_results | `int` | Maximum number of results to return | `10` |
 
@@ -25,11 +25,9 @@ Search Google to retrieve organic search results.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `List[organic_result]` |  |
-
-## Metadata
+| results | `list[organic_result]` |  |
+| text | `str` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [search.google](../) namespace.
-

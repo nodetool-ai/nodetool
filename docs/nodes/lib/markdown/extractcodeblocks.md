@@ -22,18 +22,15 @@ Extracts code blocks and their languages from markdown.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | markdown | `str` | The markdown text to analyze | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `List[Dict[str, str]]` |  |
-
-## Metadata
+| output | `list[dict[str, str]]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.markdown](../) namespace.
-

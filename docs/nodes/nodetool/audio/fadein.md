@@ -14,16 +14,12 @@ namespace: "nodetool.audio"
 Applies a fade-in effect to the beginning of an audio file.
     audio, edit, transition
 
-    Use cases:
-    - Create smooth introductions to audio tracks
-    - Gradually increase volume at the start of a clip
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| audio | `audio` | The audio file to apply fade-in to. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| duration | `float` | Duration of the fade-in effect in seconds. | `1.0` |
+|----------|------|-------------|---------|
+| audio | `audio` | The audio file to apply fade-in to. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
+| duration | `float` | Duration of the fade-in effect in seconds. | `1` |
 
 ## Outputs
 
@@ -31,9 +27,6 @@ Applies a fade-in effect to the beginning of an audio file.
 |--------|------|-------------|
 | output | `audio` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.audio](../) namespace.
-

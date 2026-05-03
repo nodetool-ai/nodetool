@@ -22,6 +22,12 @@ interface MutableToolCall {
   arguments: string;
 }
 
+/** Shape of a native OpenAI tool call entry as returned by the SDK. */
+interface NativeToolCall {
+  id?: string | null;
+  function?: { name?: string | null; arguments?: string };
+}
+
 function parseKeywordArgs(raw: string): Record<string, unknown> {
   const args: Record<string, unknown> = {};
   const src = raw.trim();
@@ -463,9 +469,9 @@ export class LlamaProvider extends BaseProvider {
     const content = String(message?.content ?? "");
 
     let toolCalls: ToolCall[] = [];
-    const nativeToolCalls = message?.tool_calls ?? [];
+    const nativeToolCalls = (message?.tool_calls ?? []) as NativeToolCall[];
     if (nativeToolCalls.length > 0) {
-      toolCalls = nativeToolCalls.map((tc: any) =>
+      toolCalls = nativeToolCalls.map((tc) =>
         this.buildToolCall(
           String(tc.id ?? ""),
           String(tc.function?.name ?? ""),

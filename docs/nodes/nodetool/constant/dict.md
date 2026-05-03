@@ -22,18 +22,15 @@ Represents a dictionary constant in the workflow.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| value | `Dict[str, any]` |  | `{}` |
+|----------|------|-------------|---------|
+| value | `dict[str, any]` |  | `{}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `Dict[str, any]` |  |
-
-## Metadata
+| output | `dict[str, any]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.constant](../) namespace.
-

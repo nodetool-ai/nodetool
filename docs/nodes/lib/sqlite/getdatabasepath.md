@@ -22,7 +22,7 @@ Get the full path to a SQLite database file.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | database_name | `str` | Name of the SQLite database file | `memory.db` |
 
 ## Outputs
@@ -31,9 +31,6 @@ Get the full path to a SQLite database file.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.sqlite](../) namespace.
-

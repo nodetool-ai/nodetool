@@ -14,15 +14,11 @@ namespace: "nodetool.audio"
 Reverses an audio file.
     audio, edit, transform
 
-    Use cases:
-    - Create reverse audio effects
-    - Generate backwards speech or music
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| audio | `audio` | The audio file to reverse. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| audio | `audio` | The audio file to reverse. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 
@@ -30,9 +26,6 @@ Reverses an audio file.
 |--------|------|-------------|
 | output | `audio` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.audio](../) namespace.
-

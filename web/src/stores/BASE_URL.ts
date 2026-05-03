@@ -36,3 +36,16 @@ export const DOWNLOAD_URL = getWebSocketUrl("/ws/download");
 
 /** WebSocket URL for the Claude/Codex/OpenCode agent endpoint. */
 export const AGENT_WS_URL = getWebSocketUrl("/ws/agent");
+
+/**
+ * Prefix a relative URL with `BASE_URL` when it is set. Absolute URLs
+ * (http://, https://, blob:, data:, ws://, etc.) and empty values are
+ * returned unchanged.
+ */
+export const withApiBase = <T extends string | null | undefined>(url: T): T => {
+  if (!BASE_URL) return url;
+  if (!url) return url;
+  if (typeof url !== "string") return url;
+  if (!url.startsWith("/")) return url;
+  return `${BASE_URL}${url}` as T;
+};

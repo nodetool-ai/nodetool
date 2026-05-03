@@ -17,7 +17,7 @@ Make a date object from year, month, day.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | year | `int` | Year of the date | `1900` |
 | month | `int` | Month of the date | `1` |
 | day | `int` | Day of the date | `1` |
@@ -28,9 +28,6 @@ Make a date object from year, month, day.
 |--------|------|-------------|
 | output | `date` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.constant](../) namespace.
-

@@ -449,10 +449,21 @@ const ReactFlowWrapper = ({
     nodeStatuses,
     isSelecting
   });
-  const activeGradientKeysArray = useMemo(
-    () => Array.from(activeGradientKeys),
-    [activeGradientKeys]
-  );
+  const prevGradientKeysRef = useRef<Set<string>>(new Set());
+  const prevGradientKeysArrayRef = useRef<string[]>([]);
+  const activeGradientKeysArray = useMemo(() => {
+    const prev = prevGradientKeysRef.current;
+    if (
+      activeGradientKeys.size === prev.size &&
+      [...activeGradientKeys].every((k) => prev.has(k))
+    ) {
+      return prevGradientKeysArrayRef.current;
+    }
+    prevGradientKeysRef.current = activeGradientKeys;
+    const arr = Array.from(activeGradientKeys);
+    prevGradientKeysArrayRef.current = arr;
+    return arr;
+  }, [activeGradientKeys]);
 
   // Stable selector: only updates when the set of selected IDs actually changes,
   // not on every position update during drag.

@@ -22,8 +22,8 @@ Select specific columns from dataframe.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| dataframe | `dataframe` | a dataframe from which columns are to be selected | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+|----------|------|-------------|---------|
+| dataframe | `dataframe` | a dataframe from which columns are to be selected | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 | columns | `str` | comma separated list of column names | `` |
 
 ## Outputs
@@ -32,9 +32,6 @@ Select specific columns from dataframe.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

@@ -1,7 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box, IconButton, Button } from "@mui/material";
+import { Box } from "@mui/material";
+import { EditorButton } from "../editor_ui";
+import { ToolbarIconButton } from "../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 
@@ -15,7 +17,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({ onClick, isHero = 
 
   if (isHero) {
     return (
-      <Button
+      <EditorButton
         variant="contained"
         startIcon={<AddIcon />}
         onClick={onClick}
@@ -30,17 +32,19 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({ onClick, isHero = 
         }}
       >
         Add First Node
-      </Button>
+      </EditorButton>
     );
   }
 
   return (
     <FlexColumn align="center" sx={{ py: 0.25 }}>
       <Box sx={{ width: 2, height: 8, backgroundColor: theme.vars.palette.divider }} />
-      <IconButton
+      <ToolbarIconButton
         size="small"
-        aria-label="Add node"
+        ariaLabel="Add node"
+        tooltip="Add node"
         onClick={onClick}
+        icon={<AddIcon sx={{ fontSize: 16, color: theme.vars.palette.primary.main }} />}
         sx={{
           width: 28,
           height: 28,
@@ -52,9 +56,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({ onClick, isHero = 
           },
           transition: "all 0.15s",
         }}
-      >
-        <AddIcon sx={{ fontSize: 16, color: theme.vars.palette.primary.main }} />
-      </IconButton>
+      />
       <Box sx={{ width: 2, height: 8, backgroundColor: theme.vars.palette.divider }} />
     </FlexColumn>
   );

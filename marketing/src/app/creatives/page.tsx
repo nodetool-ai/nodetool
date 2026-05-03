@@ -961,6 +961,18 @@ export default function CreativesPage() {
               >
                 Docs
               </a>
+              <Link
+                href="/privacy"
+                className="hover:text-slate-300 transition-colors"
+              >
+                Privacy
+              </Link>
+              <Link
+                href="/terms"
+                className="hover:text-slate-300 transition-colors"
+              >
+                Terms
+              </Link>
             </div>
           </div>
         </div>

@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback, memo } from "react";
-import { Badge } from "@mui/material";
-import { Caption, Tooltip, FlexColumn, Divider, ToolbarIconButton } from "../ui_primitives";
+import { Caption, Tooltip, FlexColumn, Divider, ToolbarIconButton, NotificationBadge } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import HistoryIcon from "@mui/icons-material/History";
 import OutputRenderer from "./OutputRenderer";
@@ -111,21 +110,13 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
             }
           }}
         >
-          <Badge
-            badgeContent={sessionHistory.length}
+          <NotificationBadge
+            count={sessionHistory.length}
             color="primary"
             max={99}
-            sx={{
-              "& .MuiBadge-badge": {
-                fontSize: "0.6rem",
-                minWidth: 16,
-                height: 16,
-                padding: "0 3px"
-              }
-            }}
           >
             <HistoryIcon />
-          </Badge>
+          </NotificationBadge>
         </ToolbarIconButton>
       )}
 

@@ -21,11 +21,11 @@ Applies formatting to a range of cells.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| workbook | `excel` | The Excel workbook to format | `{'type': 'excel', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| workbook | `excel` | The Excel workbook to format | `{"type":"excel","uri":"","asset_id":null,"data"...` |
 | sheet_name | `str` | Target worksheet name | `Sheet1` |
 | cell_range | `str` | Cell range to format (e.g. 'A1:B10') | `A1:B10` |
-| bold | `bool` | Make text bold | `False` |
+| bold | `bool` | Make text bold | `false` |
 | background_color | `str` | Background color in hex format (e.g. 'FFFF00' for yellow) | `FFFF00` |
 | text_color | `str` | Text color in hex format | `000000` |
 
@@ -35,9 +35,6 @@ Applies formatting to a range of cells.
 |--------|------|-------------|
 | output | `any` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.excel](../) namespace.
-

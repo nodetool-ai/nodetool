@@ -21,7 +21,7 @@ Normalizes a path.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Path to normalize | `` |
 
 ## Outputs
@@ -30,9 +30,6 @@ Normalizes a path.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

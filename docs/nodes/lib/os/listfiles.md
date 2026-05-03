@@ -21,20 +21,18 @@ list files in a directory matching a pattern.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | folder | `str` | Directory to scan | `~` |
 | pattern | `str` | File pattern to match (e.g. *.txt) | `*` |
-| include_subdirectories | `bool` | Search subdirectories | `False` |
+| include_subdirectories | `bool` | Search subdirectories | `false` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
 | file | `str` |  |
-
-## Metadata
+| files | `list` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

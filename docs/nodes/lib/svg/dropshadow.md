@@ -11,17 +11,23 @@ namespace: "lib.svg"
 
 ## Description
 
-Apply drop shadow filter to SVG elements.
+Apply drop shadow filter effect to SVG elements for depth.
     svg, filter, shadow, effects
+
+    Use cases:
+    - Add depth and elevation to elements
+    - Create realistic shadow effects
+    - Enhance visual hierarchy
+    - Improve element separation and readability
 
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| std_deviation | `float` | Standard deviation for blur | `3.0` |
+|----------|------|-------------|---------|
+| std_deviation | `float` | Standard deviation for blur | `3` |
 | dx | `int` | X offset for shadow | `2` |
 | dy | `int` | Y offset for shadow | `2` |
-| color | `color` | Color for shadow | `{'type': 'color', 'value': '#000000'}` |
+| color | `color` | Color for shadow | `{"type":"color","value":"#000000"}` |
 
 ## Outputs
 
@@ -29,9 +35,6 @@ Apply drop shadow filter to SVG elements.
 |--------|------|-------------|
 | output | `svg_element` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.svg](../) namespace.
-
