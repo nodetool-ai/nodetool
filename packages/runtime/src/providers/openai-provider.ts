@@ -1228,7 +1228,6 @@ export class OpenAIProvider extends BaseProvider {
     const seconds = OpenAIProvider.secondsFromParams(params) ?? 4;
 
     const [targetW, targetH] = size.split("x").map(Number);
-    const sharp = (await import("sharp")).default;
     const resized =
       width === targetW && height === targetH
         ? image
