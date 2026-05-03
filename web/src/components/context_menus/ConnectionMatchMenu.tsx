@@ -3,10 +3,9 @@ import {
   Menu,
   MenuItem,
   ListItemText,
-  Box,
-  Divider
+  Box
 } from "@mui/material";
-import { Caption, Text } from "../ui_primitives";
+import { Caption, Divider, Text } from "../ui_primitives";
 import { Connection } from "@xyflow/react";
 import useContextMenu from "../../stores/ContextMenuStore";
 

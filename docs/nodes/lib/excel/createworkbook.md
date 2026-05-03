@@ -21,7 +21,7 @@ Creates a new Excel workbook.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | sheet_name | `str` | Name for the first worksheet | `Sheet1` |
 
 ## Outputs
@@ -30,9 +30,6 @@ Creates a new Excel workbook.
 |--------|------|-------------|
 | output | `excel` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.excel](../) namespace.
-

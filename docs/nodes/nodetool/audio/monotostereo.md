@@ -14,15 +14,11 @@ namespace: "nodetool.audio"
 Converts a mono audio signal to stereo.
     audio, convert, channels
 
-    Use cases:
-    - Expand mono recordings for stereo playback systems
-    - Prepare audio for further stereo processing
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| audio | `audio` | The mono audio file to convert. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| audio | `audio` | The mono audio file to convert. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 
@@ -30,9 +26,6 @@ Converts a mono audio signal to stereo.
 |--------|------|-------------|
 | output | `audio` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.audio](../) namespace.
-

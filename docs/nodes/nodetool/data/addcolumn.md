@@ -22,10 +22,10 @@ Add list of values as new column to dataframe.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| dataframe | `dataframe` | Dataframe object to add a new column to. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+|----------|------|-------------|---------|
+| dataframe | `dataframe` | Dataframe object to add a new column to. | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 | column_name | `str` | The name of the new column to be added to the dataframe. | `` |
-| values | `List[any]` | A list of any type of elements which will be the new column's values. | `[]` |
+| values | `list[any]` | A list of any type of elements which will be the new column's values. | `[]` |
 
 ## Outputs
 
@@ -33,9 +33,6 @@ Add list of values as new column to dataframe.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

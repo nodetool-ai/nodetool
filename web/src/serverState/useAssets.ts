@@ -8,6 +8,7 @@ import { useAssetGridStore } from "../stores/AssetGridStore";
 import { SIZE_FILTERS } from "../utils/formatUtils";
 import { getAssetCategory } from "../components/assets/assetGridUtils";
 import { trpcClient } from "../trpc/client";
+import { normalizeAssetList } from "../utils/normalizeAsset";
 
 type FilterOptions = {
   searchTerm: string;
@@ -80,7 +81,13 @@ export const useAssets = (_initialFolderId: string | null = null) => {
 
   // Fetch assets filtered by workflow_id when workflowFilter is active
   const fetchWorkflowAssets = useCallback(async () => {
-    return await trpcClient.assets.list.query({ workflow_id: workflowFilter! });
+    const data = await trpcClient.assets.list.query({
+      workflow_id: workflowFilter!
+    });
+    return {
+      ...data,
+      assets: normalizeAssetList(data.assets as unknown as Asset[])
+    };
   }, [workflowFilter]);
 
   const {

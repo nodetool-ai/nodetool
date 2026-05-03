@@ -1,11 +1,10 @@
 import React, { useCallback, useState, memo, useMemo, useEffect } from "react";
 import {
   Box,
-  CircularProgress,
   Autocomplete,
   TextField
 } from "@mui/material";
-import { Caption } from "../../ui_primitives";
+import { Caption, LoadingSpinner } from "../../ui_primitives";
 import { useQuery } from "@tanstack/react-query";
 import isEqual from "fast-deep-equal";
 import { useNodes } from "../../../contexts/NodeContext";
@@ -315,7 +314,7 @@ export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
                   endAdornment: (
                     <>
                       {(isLoadingList || loading) && (
-                        <CircularProgress size={16} color="inherit" />
+                        <LoadingSpinner size="small" />
                       )}
                       {params.InputProps.endAdornment}
                     </>

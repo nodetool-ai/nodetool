@@ -54,6 +54,7 @@ jest.mock('@mui/material/styles', () => {
   return {
     ...original,
     useTheme: () => ({
+      spacing: (factor: number) => `${factor * 8}px`,
       palette: {
         mode: 'dark',
         common: {

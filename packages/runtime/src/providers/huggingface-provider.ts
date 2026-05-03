@@ -21,14 +21,39 @@ const log = createLogger("nodetool.runtime.providers.huggingface");
 // HF Inference SDK (lazy-loaded)
 // ---------------------------------------------------------------------------
 
-let _hfModule: any = null;
+/** Minimal shape of the @huggingface/inference module (optional dependency). */
+interface HfInferenceModule {
+  HfInference?: new (apiKey: string) => HfClient;
+  default?: { HfInference?: new (apiKey: string) => HfClient };
+}
 
-async function getHfInference(apiKey: string): Promise<any> {
+interface HfChatChoice {
+  message?: { content?: string | null };
+  delta?: { content?: string | null };
+  finish_reason?: string;
+}
+
+interface HfChatResponse {
+  choices?: HfChatChoice[];
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
+}
+
+/** Minimal shape of the HfInference client used by this provider. */
+interface HfClient {
+  chatCompletion(params: Record<string, unknown>): Promise<HfChatResponse>;
+  chatCompletionStream(params: Record<string, unknown>): AsyncIterable<HfChatResponse>;
+  textToImage(params: Record<string, unknown>): Promise<Uint8Array | ArrayBuffer | { arrayBuffer(): Promise<ArrayBuffer> }>;
+  textToSpeech(params: Record<string, unknown>): Promise<Uint8Array | ArrayBuffer | { arrayBuffer(): Promise<ArrayBuffer> }>;
+}
+
+let _hfModule: HfInferenceModule | null = null;
+
+async function getHfInference(apiKey: string): Promise<HfClient> {
   if (!_hfModule) {
     try {
       _hfModule = await (Function(
         'return import("@huggingface/inference")'
-      )() as Promise<any>);
+      )() as Promise<HfInferenceModule>);
     } catch {
       throw new Error(
         "@huggingface/inference is required for HuggingFaceProvider. " +
@@ -140,7 +165,7 @@ async function getHfTTSModels(): Promise<TTSModel[]> {
 
 interface HuggingFaceProviderOptions {
   /** Override for testing — inject a mock HfInference instance. */
-  hfClient?: any;
+  hfClient?: HfClient;
 }
 
 function extractTextContent(
@@ -160,7 +185,7 @@ export class HuggingFaceProvider extends BaseProvider {
   }
 
   private readonly _apiKey: string;
-  private _hfClient: any = null;
+  private _hfClient: HfClient | null = null;
 
   constructor(
     secrets: { HF_TOKEN?: string },
@@ -189,7 +214,7 @@ export class HuggingFaceProvider extends BaseProvider {
     return false;
   }
 
-  private async getClient(): Promise<any> {
+  private async getClient(): Promise<HfClient> {
     if (!this._hfClient) {
       this._hfClient = await getHfInference(this._apiKey);
     }

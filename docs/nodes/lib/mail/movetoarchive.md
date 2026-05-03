@@ -17,7 +17,7 @@ Moves specified emails to Gmail archive.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | message_id | `str` | Message ID to archive | `` |
 
 ## Outputs
@@ -26,9 +26,6 @@ Moves specified emails to Gmail archive.
 |--------|------|-------------|
 | output | `bool` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.mail](../) namespace.
-

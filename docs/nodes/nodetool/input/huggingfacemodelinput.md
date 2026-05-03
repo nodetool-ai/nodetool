@@ -17,9 +17,9 @@ Accepts a Hugging Face model as a parameter for workflows.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | name | `str` | The parameter name for the workflow. | `` |
-| value | `hf.model` | The Hugging Face model to use as input. | `{'type': 'hf.model', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| value | `hf.model` | The Hugging Face model to use as input. | `{"type":"hf.model","repo_id":"","path":null,"va...` |
 | description | `str` | The description of the input for the workflow. | `` |
 
 ## Outputs
@@ -28,9 +28,6 @@ Accepts a Hugging Face model as a parameter for workflows.
 |--------|------|-------------|
 | output | `hf.model` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.input](../) namespace.
-

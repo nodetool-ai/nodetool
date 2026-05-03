@@ -22,8 +22,8 @@ Represents an image file constant in the workflow.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| value | `image` |  | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| value | `image` |  | `{"type":"image","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 
@@ -31,9 +31,6 @@ Represents an image file constant in the workflow.
 |--------|------|-------------|
 | output | `image` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.constant](../) namespace.
-

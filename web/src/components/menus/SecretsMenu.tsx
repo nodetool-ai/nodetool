@@ -2,7 +2,6 @@
 import DeleteIcon from "@mui/icons-material/Delete";
 import { EditButton } from "../ui_primitives/EditButton";
 import WarningIcon from "@mui/icons-material/Warning";
-import { Box } from "@mui/material";
 import { FlexColumn, FlexRow, TextInput, Text, Caption, Tooltip, Dialog, ToolbarIconButton, Divider } from "../ui_primitives";
 import { ExternalLink } from "../ui_primitives/ExternalLink";
 import LockIcon from "@mui/icons-material/Lock";
@@ -16,7 +15,7 @@ import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import { SecretResponse } from "../../stores/ApiTypes";
 
-const URL_PATTERN = /(https?:\/\/[^\s.,;:!?()]+)/g;
+const URL_PATTERN = /(https?:\/\/[^\s<>"']*[^\s<>"'.,;:!?()])/g;
 
 /** Renders a description string with any embedded URLs as clickable external links. */
 const DescriptionWithLinks: React.FC<{ text: string }> = ({ text }) => {
@@ -420,7 +419,7 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
           }
         }}
       >
-        <Box sx={{ marginTop: "1.5em" }}>
+        <FlexColumn sx={{ marginTop: "1.5em" }}>
           <TextInput
             label="Value"
             type="password"
@@ -443,7 +442,7 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
           >
             Keep this value secure and do not share it publicly.
           </Caption>
-        </Box>
+        </FlexColumn>
       </Dialog>
 
       <ConfirmDialog

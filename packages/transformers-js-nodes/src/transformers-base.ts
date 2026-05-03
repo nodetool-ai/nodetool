@@ -4,7 +4,10 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { tmpdir } from "node:os";
 import { join as joinPath } from "node:path";
-import { getDefaultTransformersJsCacheDir } from "@nodetool-ai/config";
+import {
+  getDefaultTransformersJsCacheDir,
+  importOptionalModule
+} from "@nodetool-ai/config";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const execFileP = promisify(execFile);
@@ -86,8 +89,9 @@ export async function loadTransformers(): Promise<TransformersModule> {
       let mod: TransformersModule;
       try {
         // Use a variable so bundlers don't try to resolve at build time.
-        const moduleName = "@huggingface/transformers";
-        mod = (await import(moduleName)) as TransformersModule;
+        mod = await importOptionalModule<TransformersModule>(
+          "@huggingface/transformers"
+        );
       } catch (err) {
         throw new Error(
           "The '@huggingface/transformers' package is required to run " +

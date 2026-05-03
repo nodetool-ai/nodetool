@@ -11,19 +11,15 @@ namespace: "nodetool.audio"
 
 ## Description
 
-Concatenates two audio files together.
+Concatenates audio files together.
     audio, edit, join, +
-
-    Use cases:
-    - Combine multiple audio clips into a single file
-    - Create longer audio tracks from shorter segments
 
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| a | `audio` | The first audio file. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| b | `audio` | The second audio file. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| a | `audio` | The first audio file. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
+| b | `audio` | The second audio file. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 
@@ -31,9 +27,6 @@ Concatenates two audio files together.
 |--------|------|-------------|
 | output | `audio` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.audio](../) namespace.
-

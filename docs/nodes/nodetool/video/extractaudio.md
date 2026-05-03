@@ -11,14 +11,14 @@ namespace: "nodetool.video"
 
 ## Description
 
-Separate audio from a video file.
-    video, audio, extract, separate
+Separate and extract audio track from a video file.
+    video, audio, extract, separate, split
 
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| video | `video` | The input video to separate. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+|----------|------|-------------|---------|
+| video | `video` | The input video to separate. | `{"type":"video","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 
@@ -26,9 +26,6 @@ Separate audio from a video file.
 |--------|------|-------------|
 | output | `audio` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.video](../) namespace.
-

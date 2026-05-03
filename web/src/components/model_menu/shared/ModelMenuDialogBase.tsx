@@ -1,6 +1,7 @@
 import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, useMemo, useState } from "react";
+import { isProduction } from "../../../lib/env";
 import {
   Popover,
   PopoverOrigin,
@@ -83,7 +84,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const [customView, setCustomView] = useState<
     "favorites" | "recent" | "downloads" | null
   >(null);
-  const hasDownloads = recommendedModels.length > 0 || modelPacks.length > 0;
+  const hasDownloads = !isProduction && (recommendedModels.length > 0 || modelPacks.length > 0);
 
   const isIconOnly = true;
 

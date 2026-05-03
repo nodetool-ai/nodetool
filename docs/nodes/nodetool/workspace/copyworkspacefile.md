@@ -14,15 +14,10 @@ namespace: "nodetool.workspace"
 Copy a file within the workspace.
     workspace, file, copy, duplicate
 
-    Use cases:
-    - Create file backups in workspace
-    - Duplicate files for different processing
-    - Copy files to subdirectories
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | source | `str` | Relative source path within workspace | `` |
 | destination | `str` | Relative destination path within workspace | `` |
 
@@ -32,9 +27,6 @@ Copy a file within the workspace.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.workspace](../) namespace.
-

@@ -22,8 +22,8 @@ Load dataframes from an asset folder.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| folder | `folder` | The asset folder to load the dataframes from. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| folder | `folder` | The asset folder to load the dataframes from. | `{"type":"folder","uri":"","asset_id":null,"data...` |
 
 ## Outputs
 
@@ -31,10 +31,9 @@ Load dataframes from an asset folder.
 |--------|------|-------------|
 | dataframe | `dataframe` |  |
 | name | `str` |  |
-
-## Metadata
+| dataframes | `list` |  |
+| names | `list` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

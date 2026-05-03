@@ -14,15 +14,10 @@ namespace: "nodetool.workspace"
 Check if a path in the workspace is a directory.
     workspace, directory, check, type
 
-    Use cases:
-    - Distinguish directories from files
-    - Validate directory paths
-    - Filter paths by type
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Relative path within workspace to check | `` |
 
 ## Outputs
@@ -31,9 +26,6 @@ Check if a path in the workspace is a directory.
 |--------|------|-------------|
 | output | `bool` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.workspace](../) namespace.
-

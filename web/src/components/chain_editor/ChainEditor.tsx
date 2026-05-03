@@ -7,14 +7,14 @@
 
 import React, { useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box, IconButton, TextField } from "@mui/material";
+import { Box, TextField } from "@mui/material";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import { FlexRow } from "../ui_primitives/FlexRow";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 import { Text } from "../ui_primitives/Text";
 import { EmptyState } from "../ui_primitives/EmptyState";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton } from "../ui_primitives";
 import { useChainEditorStore } from "./useChainEditorStore";
 import { ChainNodeCard } from "./ChainNodeCard";
 import { ChainConnector } from "./ChainConnector";
@@ -112,17 +112,15 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
           slotProps={{ input: { disableUnderline: true, sx: { fontWeight: 600, fontSize: theme.fontSizeNormal } } }}
           sx={{ flex: 1 }}
         />
-        <Tooltip title="Save workflow">
-          <IconButton
-            size="small"
-            aria-label="Save workflow"
-            onClick={handleSave}
-            disabled={saving}
-            sx={{ color: theme.vars.palette.text.secondary }}
-          >
-            <SaveOutlinedIcon sx={{ fontSize: 20 }} />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          size="small"
+          ariaLabel="Save workflow"
+          tooltip="Save workflow"
+          onClick={handleSave}
+          disabled={saving}
+          icon={<SaveOutlinedIcon sx={{ fontSize: 20 }} />}
+          sx={{ color: theme.vars.palette.text.secondary }}
+        />
       </FlexRow>
 
       {/* Chain content */}

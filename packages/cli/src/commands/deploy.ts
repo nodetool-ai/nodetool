@@ -4,6 +4,7 @@
  */
 
 import { Command } from "commander";
+import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as yaml from "js-yaml";
@@ -49,6 +50,41 @@ const SUPPORTED_TYPES: DeploymentType[] = [
   "railway",
   "huggingface"
 ];
+
+interface DeploymentWithEnvironment {
+  type: string;
+  container?: {
+    environment?: Record<string, string>;
+  };
+  environment?: Record<string, string>;
+}
+
+function generateDeploymentMasterKey(): string {
+  return crypto.randomBytes(32).toString("base64");
+}
+
+function ensureAddedDeploymentMasterKey(
+  deployment: DeploymentWithEnvironment
+): void {
+  if (deployment.type === "docker" && deployment.container) {
+    const env = deployment.container.environment ?? {};
+    if (!env["SECRETS_MASTER_KEY"]) {
+      deployment.container.environment = {
+        ...env,
+        SECRETS_MASTER_KEY: generateDeploymentMasterKey()
+      };
+    }
+    return;
+  }
+
+  const env = deployment.environment ?? {};
+  if (!env["SECRETS_MASTER_KEY"]) {
+    deployment.environment = {
+      ...env,
+      SECRETS_MASTER_KEY: generateDeploymentMasterKey()
+    };
+  }
+}
 
 /** Common GCP Cloud Run regions. Hardcoded because not exported by @nodetool-ai/deploy. */
 const GCP_REGIONS = [
@@ -390,6 +426,7 @@ function registerAdd(deploy: Command): void {
             break;
         }
 
+        ensureAddedDeploymentMasterKey(deployment);
         config.deployments[name] = deployment;
         await saveDeploymentConfig(config);
         console.log(`Added '${name}' to ${getDeploymentConfigPath()}`);

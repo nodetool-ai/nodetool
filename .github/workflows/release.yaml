@@ -127,7 +127,7 @@ jobs:
         run: npm run build --workspace=web
 
       - name: Create Web Build Archive
-        if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'ubuntu-latest'
         shell: bash
         id: create_archive
         run: |
@@ -240,7 +240,7 @@ jobs:
           echo "Moved signed exe to ${APP_EXE}"
 
       - name: Build NSIS installer from prepackaged app (Windows)
-        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest'
         shell: bash -l {0}
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
@@ -251,7 +251,7 @@ jobs:
           npx electron-builder --config electron-builder.json --win --x64 --prepackaged dist/win-unpacked --publish never
 
       - name: Locate built Windows installer
-        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest'
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -360,7 +360,7 @@ jobs:
           NODE
 
       - name: Upload Windows assets to GitHub Release (signed)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/') && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
@@ -522,6 +522,15 @@ jobs:
             electron/dist/latest-linux.yml
 
       # ── Workflow artifacts (downloadable from the Actions run page) ────
+      - name: Upload web build artifact
+        if: matrix.os == 'ubuntu-latest' && always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nodetool-web
+          retention-days: 7
+          if-no-files-found: ignore
+          path: nodetool-web-*.zip
+
       - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v7

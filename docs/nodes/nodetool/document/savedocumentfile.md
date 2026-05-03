@@ -21,14 +21,15 @@ Write a document to disk.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| document | `document` | The document to save | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| document | `document` | The document to save | `{"type":"document","uri":"","asset_id":null,"da...` |
 | folder | `str` | Folder where the file will be saved | `` |
 | filename | `str` | Name of the file to save. Supports strftime format codes. | `` |
 
-## Metadata
+## Outputs
+
+_(none)_
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.document](../) namespace.
-

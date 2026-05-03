@@ -7,7 +7,7 @@ import {
   getBezierPath,
   type EdgeProps
 } from "@xyflow/react";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 
 const CONTROL_EDGE_COLOR = "#f59e0b";
 
@@ -30,16 +30,21 @@ export function ControlEdge({
     targetPosition
   });
 
+  const style = useMemo(
+    () => ({
+      stroke: CONTROL_EDGE_COLOR,
+      strokeWidth: selected ? 3 : 2,
+      strokeDasharray: "8 4",
+      strokeOpacity: selected ? 1 : 0.7
+    }),
+    [selected]
+  );
+
   return (
     <BaseEdge
       id={id}
       path={edgePath}
-      style={{
-        stroke: CONTROL_EDGE_COLOR,
-        strokeWidth: selected ? 3 : 2,
-        strokeDasharray: "8 4",
-        strokeOpacity: selected ? 1 : 0.7
-      }}
+      style={style}
     />
   );
 }

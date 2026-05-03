@@ -22,8 +22,8 @@ Create an SVG document and convert it to a raster image in one step.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| content | `(str | svg_element | List[svg_element])` | SVG content | `[]` |
+|----------|------|-------------|---------|
+| elements | `list[svg_element]` | List of SVG elements | `[]` |
 | width | `int` | Document width | `800` |
 | height | `int` | Document height | `600` |
 | viewBox | `str` | SVG viewBox attribute | `0 0 800 600` |
@@ -35,9 +35,6 @@ Create an SVG document and convert it to a raster image in one step.
 |--------|------|-------------|
 | output | `image` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.svg](../) namespace.
-

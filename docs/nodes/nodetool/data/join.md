@@ -22,9 +22,9 @@ Join two dataframes on specified column.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| dataframe_a | `dataframe` | First DataFrame to be merged. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| dataframe_b | `dataframe` | Second DataFrame to be merged. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+|----------|------|-------------|---------|
+| dataframe_a | `dataframe` | First DataFrame to be merged. | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
+| dataframe_b | `dataframe` | Second DataFrame to be merged. | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 | join_on | `str` | The column name on which to join the two dataframes. | `` |
 
 ## Outputs
@@ -33,9 +33,6 @@ Join two dataframes on specified column.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

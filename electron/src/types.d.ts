@@ -275,6 +275,7 @@ export interface SystemInfo {
   condaEnvPath: string;
   dataPath: string;
   logsPath: string;
+  optionalNodePath: string;
   // Python and package versions
   pythonVersion: string | null;
   // Feature availability
@@ -318,7 +319,7 @@ export interface JSONSchema {
 export interface Node {
   id: string;
   type: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 export interface NodeProperty {
@@ -929,7 +930,11 @@ export type RuntimePackageId =
   | "ffmpeg"
   | "pandoc"
   | "pdftotext"
-  | "yt-dlp";
+  | "yt-dlp"
+  | "claude-agent-sdk"
+  | "codex-sdk"
+  | "transformers-js"
+  | "tensorflow-js";
 
 export interface RuntimePackageStatus {
   id: RuntimePackageId;

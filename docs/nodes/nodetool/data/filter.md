@@ -30,8 +30,8 @@ Filter dataframe based on condition.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| df | `dataframe` | The DataFrame to filter. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+|----------|------|-------------|---------|
+| df | `dataframe` | The DataFrame to filter. | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 | condition | `str` | The filtering condition to be applied to the DataFrame, e.g. column_name > 5. | `` |
 
 ## Outputs
@@ -40,9 +40,6 @@ Filter dataframe based on condition.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

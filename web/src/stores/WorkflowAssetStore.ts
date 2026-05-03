@@ -15,6 +15,7 @@
 import { create } from "zustand";
 import { Asset } from "./ApiTypes";
 import { trpcClient } from "../trpc/client";
+import { normalizeAssetList } from "../utils/normalizeAsset";
 
 interface WorkflowAssetState {
   // Assets grouped by workflow ID
@@ -73,7 +74,9 @@ export const useWorkflowAssetStore = create<WorkflowAssetStore>(
         const data = await trpcClient.assets.list.query({
           workflow_id: workflowId
         });
-        const assets = (data.assets ?? []) as unknown as Asset[];
+        const assets = normalizeAssetList(
+          (data.assets ?? []) as unknown as Asset[]
+        );
 
         // Update state
         set({

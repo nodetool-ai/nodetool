@@ -13,7 +13,7 @@ import {
 } from "../../stores/OnboardingStore";
 import { ONBOARDING_STEPS } from "../onboarding/steps";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { EditorButton } from "../ui_primitives";
+import { BORDER_RADIUS, EditorButton } from "../ui_primitives";
 
 const EDITOR_ROUTE_PREFIX = "/editor/";
 
@@ -98,14 +98,14 @@ const styles = (theme: Theme) =>
       position: "relative",
       flex: 1,
       height: 4,
-      borderRadius: 999,
+      borderRadius: BORDER_RADIUS.pill,
       backgroundColor: theme.vars.palette.grey[800],
       overflow: "hidden"
     },
     ".gs-progress-fill": {
       position: "absolute",
       inset: 0,
-      borderRadius: 999,
+      borderRadius: BORDER_RADIUS.pill,
       background: `linear-gradient(90deg, ${theme.vars.palette.primary.light} 0%, ${theme.vars.palette.secondary.dark} 50%, ${theme.vars.palette.primary.main} 100%)`,
       transition: "transform 480ms cubic-bezier(0.22, 0.61, 0.36, 1)",
       transformOrigin: "left center"

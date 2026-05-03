@@ -222,6 +222,9 @@ const getDefaultAssetsPath = (): string => {
   return getSystemDataPath("assets");
 };
 
+const getOptionalNodeModulesPath = (): string =>
+  path.join(app.getPath("userData"), "optional-node", "node_modules");
+
 const getProcessEnv = (): ProcessEnv => {
   const condaPath: string = getCondaEnvPath();
 
@@ -309,6 +312,7 @@ const getProcessEnv = (): ProcessEnv => {
     PYTHONNOUSERSITE: "1",
     UV_CACHE_DIR: uvCacheDir,
     XDG_CACHE_HOME: xdgCacheHome,
+    NODETOOL_OPTIONAL_NODE_MODULES: getOptionalNodeModulesPath(),
     PATH:
       process.platform === "win32"
         ? pathSegmentsWin.filter(Boolean).join(path.delimiter)
@@ -333,6 +337,7 @@ export {
   getProcessEnv,
   getSystemDataPath,
   getDefaultAssetsPath,
+  getOptionalNodeModulesPath,
   _resetCondaEnvCache,
   PID_FILE_PATH,
   PID_DIRECTORY,

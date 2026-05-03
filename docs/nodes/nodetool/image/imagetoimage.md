@@ -11,32 +11,22 @@ namespace: "nodetool.image"
 
 ## Description
 
-Transform images using text prompts with any supported image provider.
-    Automatically routes to the appropriate backend (HuggingFace, FAL, MLX).
+Transform images using text prompts with any supported image provider. Automatically routes to the appropriate backend (HuggingFace, FAL, MLX).
     image, transformation, AI, image-to-image, i2i
-
-    Use cases:
-    - Modify existing images with text instructions
-    - Style transfer and artistic modifications
-    - Image enhancement and refinement
-    - Creative image edits guided by prompts
 
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| model | `image_model` | The image generation model to use | `{'type': 'image_model', 'provider': 'huggingface_fal_ai', 'id': 'fal-ai/flux/dev', 'name': 'FLUX.1 Dev', 'path': None, 'supported_tasks': []}` |
-| image | `image` | Input image to transform | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| model | `image_model` | The image generation model to use | `{"type":"image_model","provider":"huggingface_f...` |
+| image | `image` | Input image to transform | `{"type":"image","uri":"","asset_id":null,"data"...` |
 | prompt | `str` | Text prompt describing the desired transformation | `A photorealistic version of the input image` |
 | negative_prompt | `str` | Text prompt describing what to avoid | `` |
-| strength | `float` | How much to transform the input image (0.0 = no change, 1.0 = maximum change) | `0.8` |
-| guidance_scale | `float` | Classifier-free guidance scale | `7.5` |
-| num_inference_steps | `int` | Number of denoising steps | `30` |
-| target_width | `int` | Target width of the output image | `512` |
-| target_height | `int` | Target height of the output image | `512` |
-| seed | `int` | Random seed for reproducibility (-1 for random) | `-1` |
+| strength | `float` | How much to transform the input image (subtle = minor edit, strong = major edit) | `0.65` |
+| aspect_ratio | `str` | Aspect ratio of the output image | `1:1` |
+| resolution | `str` | Output resolution (short edge in pixels) | `1K` |
 | scheduler | `str` | Scheduler to use (provider-specific) | `` |
-| safety_check | `bool` | Enable safety checker | `True` |
+| timeout_seconds | `int` | Timeout in seconds for API calls (0 = use provider default) | `0` |
 
 ## Outputs
 
@@ -44,9 +34,6 @@ Transform images using text prompts with any supported image provider.
 |--------|------|-------------|
 | output | `image` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.image](../) namespace.
-

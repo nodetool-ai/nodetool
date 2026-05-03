@@ -1,6 +1,6 @@
 import React, { useCallback, useState, memo } from "react";
-import { Box, CircularProgress, IconButton } from "@mui/material";
-import { Tooltip, Caption } from "../../ui_primitives";
+import { Box } from "@mui/material";
+import { Tooltip, Caption, LoadingSpinner, ToolbarIconButton } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNodes } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
@@ -136,7 +136,8 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
   return (
     <Box sx={{ display: "inline-flex", alignItems: "center" }}>
       <Tooltip title="Reload Schema" arrow delay={TOOLTIP_ENTER_DELAY}>
-        <IconButton
+        <ToolbarIconButton
+          title="Reload Schema"
           size="small"
           disabled={loading}
           onClick={() => void handleLoad(true)}
@@ -150,11 +151,11 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
           }}
         >
           {loading ? (
-            <CircularProgress size={14} color="inherit" />
+            <LoadingSpinner size="small" />
           ) : (
             <RefreshIcon sx={{ fontSize: 16 }} />
           )}
-        </IconButton>
+        </ToolbarIconButton>
       </Tooltip>
       {error && (
         <Caption

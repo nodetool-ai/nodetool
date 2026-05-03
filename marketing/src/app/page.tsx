@@ -670,7 +670,7 @@ export default function Home() {
               </span>
               Open source today. The future is yours to build.
             </p>
-            <div className="flex items-center gap-5 text-sm text-slate-400">
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-slate-400">
               <a
                 href="https://github.com/nodetool-ai/nodetool"
                 className="inline-flex items-center gap-1.5 transition-colors hover:text-slate-100"
@@ -701,6 +701,20 @@ export default function Home() {
                 className="transition-colors hover:text-slate-100"
               >
                 Community
+              </a>
+              <span className="text-slate-700">•</span>
+              <a
+                href="/privacy"
+                className="transition-colors hover:text-slate-100"
+              >
+                Privacy
+              </a>
+              <span className="text-slate-700">•</span>
+              <a
+                href="/terms"
+                className="transition-colors hover:text-slate-100"
+              >
+                Terms
               </a>
             </div>
           </div>

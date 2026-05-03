@@ -7,18 +7,15 @@
 import React, { memo } from "react";
 import {
   Box,
-  Typography,
-  Paper,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
-  Chip,
   Accordion,
   AccordionSummary,
-  AccordionDetails,
-  Divider
+  AccordionDetails
 } from "@mui/material";
+import { Caption, Chip, Divider, Surface, Text } from "../ui_primitives";
 import {
   Add as AddIcon,
   Remove as RemoveIcon,
@@ -57,16 +54,13 @@ const renderPropertyChange = (change: PropertyChange) => {
         pl: 2
       }}
     >
-      <Typography
-        variant="caption"
-        fontWeight="medium"
-        sx={{ minWidth: 80, color: "text.secondary" }}
+      <Caption
+        sx={{ minWidth: 80, color: "text.secondary", fontWeight: 500 }}
       >
         {change.key}:
-      </Typography>
+      </Caption>
       <Box sx={{ flex: 1 }}>
-        <Typography
-          variant="caption"
+        <Caption
           sx={{
             color: "error.main",
             textDecoration: "line-through",
@@ -74,13 +68,12 @@ const renderPropertyChange = (change: PropertyChange) => {
           }}
         >
           {formatValue(change.oldValue)}
-        </Typography>
-        <Typography
-          variant="caption"
+        </Caption>
+        <Caption
           sx={{ color: "success.main", display: "block" }}
         >
           {formatValue(change.newValue)}
-        </Typography>
+        </Caption>
       </Box>
     </Box>
   );
@@ -106,14 +99,14 @@ const NodeDiffItem: React.FC<{
     </ListItemIcon>
     <ListItemText
       primary={
-        <Typography variant="body2">
+        <Text size="small">
           {node.type?.split(".").pop() || "Node"}
-        </Typography>
+        </Text>
       }
       secondary={
-        <Typography variant="caption" color="text.secondary">
+        <Caption color="secondary">
           ID: {node.id.substring(0, 8)}...
-        </Typography>
+        </Caption>
       }
     />
     <Chip
@@ -149,9 +142,9 @@ const ModifiedNodeItem: React.FC<{ nodeChange: NodeChange }> = ({
         }}
       >
         <EditIcon color="warning" fontSize="small" />
-        <Typography variant="body2">
+        <Text size="small">
           {nodeChange.nodeType?.split(".").pop() || "Node"}
-        </Typography>
+        </Text>
         <Chip
           label={`${nodeChange.changes.length} change(s)`}
           size="small"
@@ -192,9 +185,9 @@ const EdgeDiffItem: React.FC<{
     </ListItemIcon>
     <ListItemText
       primary={
-        <Typography variant="caption">
+        <Caption>
           {edge.source?.substring(0, 8)}... → {edge.target?.substring(0, 8)}...
-        </Typography>
+        </Caption>
       }
     />
   </ListItem>
@@ -207,29 +200,27 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
 }) => {
   if (!diff.hasChanges) {
     return (
-      <Paper sx={{ p: 2, textAlign: "center" }}>
-        <Typography color="text.secondary">No changes detected</Typography>
-      </Paper>
+      <Surface sx={{ p: 2, textAlign: "center" }}>
+        <Text color="secondary">No changes detected</Text>
+      </Surface>
     );
   }
 
   return (
     <Box sx={{ p: 1 }}>
-      <Typography variant="subtitle2" gutterBottom>
+      <Text size="small" weight={600} sx={{ display: "block", mb: 1 }}>
         Changes: v{oldVersionNumber} → v{newVersionNumber}
-      </Typography>
+      </Text>
 
       {/* Added Nodes */}
       {diff.addedNodes.length > 0 && (
         <Box sx={{ mb: 2 }}>
-          <Typography
-            variant="caption"
-            color="success.main"
-            fontWeight="medium"
-            sx={{ display: "block", mb: 1 }}
+          <Caption
+            color="success"
+            sx={{ display: "block", mb: 1, fontWeight: 500 }}
           >
             Added Nodes ({diff.addedNodes.length})
-          </Typography>
+          </Caption>
           <List dense disablePadding>
             {diff.addedNodes.map((node) => (
               <NodeDiffItem key={node.id} node={node} type="added" />
@@ -241,14 +232,12 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
       {/* Removed Nodes */}
       {diff.removedNodes.length > 0 && (
         <Box sx={{ mb: 2 }}>
-          <Typography
-            variant="caption"
-            color="error.main"
-            fontWeight="medium"
-            sx={{ display: "block", mb: 1 }}
+          <Caption
+            color="error"
+            sx={{ display: "block", mb: 1, fontWeight: 500 }}
           >
             Removed Nodes ({diff.removedNodes.length})
-          </Typography>
+          </Caption>
           <List dense disablePadding>
             {diff.removedNodes.map((node) => (
               <NodeDiffItem key={node.id} node={node} type="removed" />
@@ -260,14 +249,12 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
       {/* Modified Nodes */}
       {diff.modifiedNodes.length > 0 && (
         <Box sx={{ mb: 2 }}>
-          <Typography
-            variant="caption"
-            color="warning.main"
-            fontWeight="medium"
-            sx={{ display: "block", mb: 1 }}
+          <Caption
+            color="warning"
+            sx={{ display: "block", mb: 1, fontWeight: 500 }}
           >
             Modified Nodes ({diff.modifiedNodes.length})
-          </Typography>
+          </Caption>
           {diff.modifiedNodes.map((nodeChange) => (
             <ModifiedNodeItem key={nodeChange.nodeId} nodeChange={nodeChange} />
           ))}
@@ -278,13 +265,11 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
       {(diff.addedEdges.length > 0 || diff.removedEdges.length > 0) && (
         <>
           <Divider sx={{ my: 1 }} />
-          <Typography
-            variant="caption"
-            fontWeight="medium"
-            sx={{ display: "block", mb: 1 }}
+          <Caption
+            sx={{ display: "block", mb: 1, fontWeight: 500 }}
           >
             Connection Changes
-          </Typography>
+          </Caption>
           <List dense disablePadding>
             {diff.addedEdges.map((edge) => (
               <EdgeDiffItem key={`added-${edge.source}-${edge.target}`} edge={edge} type="added" />

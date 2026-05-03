@@ -1,7 +1,8 @@
 /**
  * Codex SDK agent integration.
  *
- * Uses the official @openai/codex-sdk to manage threads and stream events.
+ * Uses the official @openai/codex-sdk to manage threads and stream events when
+ * the optional package is installed.
  */
 
 import { randomUUID } from "node:crypto";
@@ -12,12 +13,12 @@ import {
   existsSync,
 } from "node:fs";
 import { join } from "node:path";
-import { createLogger } from "@nodetool-ai/config";
-import {
-  Codex,
-  type ThreadEvent,
-  type ThreadItem,
-  type ThreadOptions,
+import { createLogger, importOptionalModule } from "@nodetool-ai/config";
+import type {
+  Codex as CodexClient,
+  ThreadEvent,
+  ThreadItem,
+  ThreadOptions,
 } from "@openai/codex-sdk";
 import type { AgentTransport } from "./transport.js";
 import type {
@@ -30,13 +31,16 @@ const log = createLogger("nodetool.websocket.agent.codex");
 const NODETOOL_MCP_BEGIN = "# BEGIN NODETOOL MCP";
 const NODETOOL_MCP_END = "# END NODETOOL MCP";
 
-let codexInstance: Codex | null = null;
+let codexInstance: CodexClient | null = null;
 
-function getCodex(): Codex {
+async function getCodex(): Promise<CodexClient> {
   if (!codexInstance) {
+    const { Codex } = await importOptionalModule<typeof import("@openai/codex-sdk")>(
+      "@openai/codex-sdk"
+    );
     codexInstance = new Codex();
   }
-  return codexInstance;
+  return codexInstance as CodexClient;
 }
 
 export async function listCodexModels(): Promise<AgentModelDescriptor[]> {
@@ -139,8 +143,8 @@ export class CodexQuerySession {
     }
   }
 
-  private getThread(): ReturnType<Codex["startThread"]> {
-    const codex = getCodex();
+  private async getThread(): Promise<ReturnType<CodexClient["startThread"]>> {
+    const codex = await getCodex();
     const threadOptions: ThreadOptions = {
       model: this.model,
       workingDirectory: this.workspacePath,
@@ -200,7 +204,7 @@ export class CodexQuerySession {
 
     try {
       await this.ensureMcpConfig(mcpServerUrl ?? null);
-      const thread = this.getThread();
+      const thread = await this.getThread();
       const prompt = this.buildPrompt(message, manifest);
       const { events } = await thread.runStreamed(prompt, {
         signal: this.abortController.signal,

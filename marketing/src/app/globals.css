@@ -432,3 +432,54 @@
     opacity: 1;
   }
 }
+
+/* Legal pages (Privacy / Terms) — minimal long-form prose styling */
+.legal-article {
+  color: rgb(203 213 225); /* slate-300 */
+  font-size: 1rem;
+  line-height: 1.7;
+}
+.legal-article > * + * {
+  margin-top: 1rem;
+}
+.legal-article h2 {
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+.legal-article h3 {
+  color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.legal-article p {
+  color: rgb(203 213 225);
+}
+.legal-article strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+.legal-article a {
+  color: rgb(96 165 250); /* blue-400 */
+  text-decoration: none;
+}
+.legal-article a:hover {
+  text-decoration: underline;
+}
+.legal-article ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.legal-article ul > li + li {
+  margin-top: 0.35rem;
+}
+.legal-article ul li::marker {
+  color: rgb(100 116 139); /* slate-500 */
+}

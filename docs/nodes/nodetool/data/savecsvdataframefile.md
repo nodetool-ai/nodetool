@@ -21,8 +21,8 @@ Write a pandas DataFrame to a CSV file.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| dataframe | `dataframe` | DataFrame to write to CSV | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+|----------|------|-------------|---------|
+| dataframe | `dataframe` | DataFrame to write to CSV | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 | folder | `str` | Folder where the file will be saved | `` |
 | filename | `str` | Name of the CSV file to save. Supports strftime format codes. | `` |
 
@@ -32,9 +32,6 @@ Write a pandas DataFrame to a CSV file.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

@@ -14,17 +14,12 @@ namespace: "nodetool.video"
 Adjust the sharpness of a video.
     video, sharpen, enhance, detail
 
-    Use cases:
-    1. Enhance detail in slightly out-of-focus footage
-    2. Correct softness introduced by video compression
-    3. Create stylistic effects by over-sharpening
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| video | `video` | The input video to sharpen. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| luma_amount | `float` | Amount of sharpening to apply to luma (brightness) channel. | `1.0` |
+|----------|------|-------------|---------|
+| video | `video` | The input video to sharpen. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| luma_amount | `float` | Amount of sharpening to apply to luma (brightness) channel. | `1` |
 | chroma_amount | `float` | Amount of sharpening to apply to chroma (color) channels. | `0.5` |
 
 ## Outputs
@@ -33,9 +28,6 @@ Adjust the sharpness of a video.
 |--------|------|-------------|
 | output | `video` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.video](../) namespace.
-

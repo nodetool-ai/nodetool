@@ -17,12 +17,12 @@ Overlay one video on top of another, including audio overlay when available.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| main_video | `video` | The main (background) video. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| overlay_video | `video` | The video to overlay on top. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+|----------|------|-------------|---------|
+| main_video | `video` | The main (background) video. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| overlay_video | `video` | The video to overlay on top. | `{"type":"video","uri":"","asset_id":null,"data"...` |
 | x | `int` | X-coordinate for overlay placement. | `0` |
 | y | `int` | Y-coordinate for overlay placement. | `0` |
-| scale | `float` | Scale factor for the overlay video. | `1.0` |
+| scale | `float` | Scale factor for the overlay video. | `1` |
 | overlay_audio_volume | `float` | Volume of the overlay audio relative to the main audio. | `0.5` |
 
 ## Outputs
@@ -31,9 +31,6 @@ Overlay one video on top of another, including audio overlay when available.
 |--------|------|-------------|
 | output | `video` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.video](../) namespace.
-

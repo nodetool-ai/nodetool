@@ -14,17 +14,12 @@ namespace: "nodetool.video"
 Rotate a video by a specified angle.
     video, rotate, orientation, transform
 
-    Use cases:
-    1. Correct orientation of videos taken with a rotated camera
-    2. Create artistic effects by rotating video content
-    3. Adjust video for different display orientations
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| video | `video` | The input video to rotate. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| angle | `float` | The angle of rotation in degrees. | `0.0` |
+|----------|------|-------------|---------|
+| video | `video` | The input video to rotate. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| angle | `float` | The angle of rotation in degrees. | `0` |
 
 ## Outputs
 
@@ -32,9 +27,6 @@ Rotate a video by a specified angle.
 |--------|------|-------------|
 | output | `video` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.video](../) namespace.
-

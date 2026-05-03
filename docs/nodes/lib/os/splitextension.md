@@ -22,18 +22,15 @@ Split a path into root and extension components.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Path to split | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `Dict[Any, Any]` |  |
-
-## Metadata
+| output | `dict` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

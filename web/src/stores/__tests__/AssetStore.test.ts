@@ -48,7 +48,8 @@ jest.mock("../../utils/errorHandling", () => ({
   AppError: Error
 }));
 jest.mock("../BASE_URL", () => ({
-  BASE_URL: "http://localhost:7777"
+  BASE_URL: "http://localhost:7777",
+  withApiBase: <T,>(url: T): T => url
 }));
 
 import { trpcClient } from "../../trpc/client";

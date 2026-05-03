@@ -11,13 +11,13 @@ namespace: "search.google"
 
 ## Description
 
-Search Google Images to retrieve live image results.
+Search Google Images to find visual content or perform reverse image search.
     google, images, serp, visual, reverse, search
 
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | keyword | `str` | Search query or keyword for images | `` |
 | image_url | `str` | URL of image for reverse image search | `` |
 | num_results | `int` | Maximum number of image results to return | `20` |
@@ -26,11 +26,8 @@ Search Google Images to retrieve live image results.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `Dict[str, any]` |  |
-
-## Metadata
+| results | `list[image]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [search.google](../) namespace.
-

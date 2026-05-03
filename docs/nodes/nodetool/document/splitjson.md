@@ -17,10 +17,10 @@ Split JSON content into semantic chunks.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| document | `document` | Document ID to associate with the JSON content | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
-| include_metadata | `bool` | Whether to include metadata in nodes | `True` |
-| include_prev_next_rel | `bool` | Whether to include prev/next relationships | `True` |
+|----------|------|-------------|---------|
+| document | `document` | Document ID to associate with the JSON content | `{"type":"document","uri":"","asset_id":null,"da...` |
+| include_metadata | `bool` | Whether to include metadata in nodes | `true` |
+| include_prev_next_rel | `bool` | Whether to include prev/next relationships | `true` |
 
 ## Outputs
 
@@ -29,10 +29,8 @@ Split JSON content into semantic chunks.
 | text | `str` |  |
 | source_id | `str` |  |
 | start_index | `int` |  |
-
-## Metadata
+| chunks | `list` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.document](../) namespace.
-

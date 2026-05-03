@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
 import { List } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { Text, BORDER_RADIUS } from "../ui_primitives";
 import RenderNamespaces from "./RenderNamespaces";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { shallow } from "zustand/shallow";
@@ -51,7 +51,7 @@ const namespacePanelStyles = (theme: Theme) =>
     "& .namespace-list::-webkit-scrollbar-track": { background: "transparent" },
     "& .namespace-list::-webkit-scrollbar-thumb": {
       backgroundColor: theme.vars.palette.action.disabledBackground,
-      borderRadius: "var(--rounded-lg)"
+      borderRadius: BORDER_RADIUS.lg
     },
     "& .namespace-list::-webkit-scrollbar-thumb:hover": {
       backgroundColor: theme.vars.palette.action.disabled
