@@ -280,8 +280,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
               nodeStore.getState().setWorkflowDirty(false);
             }
 
-            // Bolt Optimization: Use findIndex and shallow assignment instead of .map()
-            // to avoid O(N) array traversal overhead and prevent unnecessary re-renders when no item matches.
             const index = state.openWorkflows.findIndex((w) => w.id === persistedWorkflow.id);
             if (index === -1) return state;
 
@@ -627,8 +625,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        */
       updateWorkflow: (workflow: WorkflowAttributes) => {
         set((state) => {
-          // Bolt Optimization: Use findIndex and shallow assignment instead of .map()
-          // to avoid O(N) array traversal overhead and prevent unnecessary re-renders when no item matches.
           const index = state.openWorkflows.findIndex((w) => w.id === workflow.id);
           if (index === -1) return state;
 

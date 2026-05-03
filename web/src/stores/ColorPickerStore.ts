@@ -120,8 +120,6 @@ export const useColorPickerStore = create<ColorPickerState>()(
 
       updateSwatch: (id: string, updates: Partial<ColorSwatch>) => {
         set((state) => {
-          // Bolt Optimization: Use findIndex and shallow assignment instead of .map()
-          // to avoid O(N) array traversal overhead and prevent unnecessary re-renders when no item matches.
           const index = state.swatches.findIndex((s) => s.id === id);
           if (index === -1) return state;
 
@@ -157,8 +155,6 @@ export const useColorPickerStore = create<ColorPickerState>()(
 
       updatePalette: (id: string, updates: Partial<ColorPalette>) => {
         set((state) => {
-          // Bolt Optimization: Use findIndex and shallow assignment instead of .map()
-          // to avoid O(N) array traversal overhead and prevent unnecessary re-renders when no item matches.
           const index = state.palettes.findIndex((p) => p.id === id);
           if (index === -1) return state;
 
