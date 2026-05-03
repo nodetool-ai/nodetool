@@ -869,7 +869,9 @@ if (!isProduction) {
     const request = new Request(url, {
       method: req.method,
       headers,
-      body: requestBody,
+      body: Buffer.isBuffer(requestBody)
+        ? new Uint8Array(requestBody)
+        : requestBody,
       duplex: "half"
     });
 
