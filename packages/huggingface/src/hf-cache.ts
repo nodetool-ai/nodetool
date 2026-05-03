@@ -16,6 +16,8 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
 
+import { expandLeadingTildePath } from "./hf-expand-path.js";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -49,14 +51,14 @@ export function getDefaultHfCacheDir(): string {
   const envCache = process.env["HF_HUB_CACHE"];
   if (envCache) {
     return envCache.startsWith("~")
-      ? envCache.replace("~", os.homedir())
+      ? expandLeadingTildePath(envCache)
       : envCache;
   }
 
   const hfHome = process.env["HF_HOME"];
   if (hfHome) {
     const base = hfHome.startsWith("~")
-      ? hfHome.replace("~", os.homedir())
+      ? expandLeadingTildePath(hfHome)
       : hfHome;
     return path.join(base, "hub");
   }

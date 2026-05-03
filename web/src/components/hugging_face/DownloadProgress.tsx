@@ -4,7 +4,7 @@ import { keyframes } from "@emotion/react";
 
 import React, { useCallback, useMemo, useState, useEffect, memo } from "react";
 import { Box } from "@mui/material";
-import { Tooltip, Text, Caption, EditorButton, LoadingSpinner, Chip, CloseButton, FlexRow, FlexColumn } from "../ui_primitives";
+import { Tooltip, Text, Caption, EditorButton, LoadingSpinner, Chip, CloseButton, FlexRow, FlexColumn, CopyButton } from "../ui_primitives";
 import { ProgressBar } from "../ui_primitives/ProgressBar";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
@@ -311,18 +311,42 @@ export const DownloadProgress: React.FC<{
         />
       </FlexRow>
       {download.message && (
-        <Text
-          className="download-message"
-          size="small"
-          sx={{
-            color:
-              download.status === "error"
-                ? "var(--palette-error-main)"
-                : "var(--palette-info-main)"
-          }}
-        >
-          {download.message}
-        </Text>
+        <FlexRow align="flex-start" justify="space-between" gap={1} fullWidth>
+          <Box
+            component="div"
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              userSelect: "text",
+              cursor: "text",
+              WebkitUserSelect: "text"
+            }}
+          >
+            <Text
+              className="download-message"
+              component="div"
+              size="small"
+              sx={{
+                color:
+                  download.status === "error"
+                    ? "var(--palette-error-main)"
+                    : "var(--palette-info-main)",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                userSelect: "text"
+              }}
+            >
+              {download.message}
+            </Text>
+          </Box>
+          <CopyButton
+            value={download.message}
+            tooltip="Copy full message"
+            buttonSize="small"
+            nodrag={false}
+            sx={{ flexShrink: 0, mt: "-2px" }}
+          />
+        </FlexRow>
       )}
       {(download.status === "start" || download.status === "pending") && (
         <FlexRow align="center">

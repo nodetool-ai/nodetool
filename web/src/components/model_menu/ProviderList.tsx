@@ -10,7 +10,14 @@ import {
   Menu,
   MenuItem
 } from "@mui/material";
-import { Divider, EditorButton, LoadingSpinner, Tooltip } from "../ui_primitives";
+import {
+  Caption,
+  Divider,
+  EditorButton,
+  FlexColumn,
+  LoadingSpinner,
+  Tooltip
+} from "../ui_primitives";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useTheme } from "@mui/material/styles";
@@ -627,16 +634,36 @@ const ProviderList: React.FC<ProviderListProps> = ({
         selected={selected === null && !forceUnselect}
         onClick={handleSelectNull}
         sx={{
-          py: iconOnly ? 1 : 0.25,
-          justifyContent: iconOnly ? 'center' : 'flex-start',
+          py: iconOnly ? 0.75 : 0.25,
+          justifyContent: iconOnly ? "center" : "flex-start",
           px: iconOnly ? 0 : 2,
-          minHeight: iconOnly ? 40 : 'auto',
+          minHeight: iconOnly ? 52 : "auto",
           borderRadius: iconOnly ? 1 : 0
         }}
       >
         {iconOnly ? (
-          <Tooltip className="model-menu__all-providers-tooltip" title="All providers" placement="right">
-            <FormatListBulletedIcon className="model-menu__all-providers-icon" />
+          <Tooltip
+            className="model-menu__all-providers-tooltip"
+            title="All providers"
+            placement="right"
+          >
+            <FlexColumn align="center" gap={0.25} sx={{ py: 0.25 }}>
+              <FormatListBulletedIcon className="model-menu__all-providers-icon" />
+              <Caption
+                sx={{
+                  display: "block",
+                  maxWidth: 76,
+                  textAlign: "center",
+                  lineHeight: 1.15,
+                  fontSize: (t: Theme) => t.vars.fontSizeTiny,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                All
+              </Caption>
+            </FlexColumn>
           </Tooltip>
         ) : (
           <ListItemText
@@ -660,6 +687,9 @@ const ProviderList: React.FC<ProviderListProps> = ({
           const available = providerEnabled;
           const env = requiredSecretForProvider(p);
           const hasKey = env ? isApiKeySet(env) : true;
+          const providerLabel = isHuggingFaceProvider(p)
+            ? getProviderBaseName(p)
+            : formatGenericProviderName(p);
           const renderBadges = () => {
             const badges: Array<{ label: string }> = [];
             const isHF = isHuggingFaceProvider(p);
@@ -734,61 +764,89 @@ const ProviderList: React.FC<ProviderListProps> = ({
                 sx={{
                   gap: 0.1,
                   opacity: enabled && available ? 1 : 0.5,
-                  py: iconOnly ? 1 : 0.25,
-                  justifyContent: iconOnly ? 'center' : 'flex-start',
+                  py: iconOnly ? 0.75 : 0.25,
+                  justifyContent: iconOnly ? "center" : "flex-start",
                   px: iconOnly ? 0 : 2,
-                  minHeight: iconOnly ? 40 : 'auto',
+                  minHeight: iconOnly ? 68 : "auto",
                   borderRadius: iconOnly ? 1 : 0
                 }}
               >
                 {iconOnly ? (
                   <Tooltip
                     className="model-menu__provider-icon-tooltip"
-                    title={
-                      isHuggingFaceProvider(p)
-                        ? getProviderBaseName(p)
-                        : formatGenericProviderName(p)
-                    }
+                    title={providerLabel}
                     placement="right"
                   >
-                    <Box className="model-menu__provider-icon-circle" sx={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 'var(--rounded-circle)',
-                      bgcolor: (selected === p) ? 'primary.main' : (isProviderEnabled(p) ? 'action.selected' : 'transparent'),
-                      border: `1px solid ${selected === p ? 'transparent' : theme.vars.palette.divider}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 700,
-                      fontSize: '0.8rem',
-                      color: (selected === p) ? 'primary.contrastText' : (isProviderEnabled(p) ? 'text.primary' : 'text.disabled'),
-                      overflow: 'hidden',
-                    }}>
-                      {(() => {
-                        const iconUrl = getProviderIconUrl(p);
-                        if (iconUrl) {
-                          // Check if using HuggingFace logo (either base HF or unknown sub-provider)
-                          // In this case, don't invert in dark mode since HF logo has good contrast
-                          const isHFLogo = iconUrl === huggingfaceColorIcon;
-                          return (
-                            <img
-                              className="model-menu__provider-icon-image"
-                              src={iconUrl} 
-                              alt="" 
-                              style={{ 
-                                width: 24, 
-                                height: 24, 
-                                objectFit: 'contain',
-                                filter: selected === p ? 'brightness(0) invert(1)' : 
-                                  (isDarkMode && !isHFLogo) ? 'invert(1) brightness(1.1) contrast(0.9)' : 'none'
-                              }} 
-                            />
-                          );
-                        }
-                        return getProviderFallbackLabel(p);
-                      })()}
-                    </Box>
+                    <FlexColumn align="center" gap={0.25} sx={{ py: 0.25 }}>
+                      <Box
+                        className="model-menu__provider-icon-circle"
+                        sx={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: "var(--rounded-circle)",
+                          bgcolor:
+                            selected === p
+                              ? "primary.main"
+                              : isProviderEnabled(p)
+                                ? "action.selected"
+                                : "transparent",
+                          border: `1px solid ${selected === p ? "transparent" : theme.vars.palette.divider}`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: 700,
+                          fontSize: "0.8rem",
+                          color:
+                            selected === p
+                              ? "primary.contrastText"
+                              : isProviderEnabled(p)
+                                ? "text.primary"
+                                : "text.disabled",
+                          overflow: "hidden",
+                          flexShrink: 0
+                        }}
+                      >
+                        {(() => {
+                          const iconUrl = getProviderIconUrl(p);
+                          if (iconUrl) {
+                            const isHFLogo = iconUrl === huggingfaceColorIcon;
+                            return (
+                              <img
+                                className="model-menu__provider-icon-image"
+                                src={iconUrl}
+                                alt=""
+                                style={{
+                                  width: 24,
+                                  height: 24,
+                                  objectFit: "contain",
+                                  filter: selected === p
+                                    ? "brightness(0) invert(1)"
+                                    : isDarkMode && !isHFLogo
+                                      ? "invert(1) brightness(1.1) contrast(0.9)"
+                                      : "none"
+                                }}
+                              />
+                            );
+                          }
+                          return getProviderFallbackLabel(p);
+                        })()}
+                      </Box>
+                      <Caption
+                        sx={{
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          wordBreak: "break-word",
+                          maxWidth: 76,
+                          textAlign: "center",
+                          lineHeight: 1.15,
+                          fontSize: (th: Theme) => th.vars.fontSizeTiny
+                        }}
+                      >
+                        {providerLabel}
+                      </Caption>
+                    </FlexColumn>
                   </Tooltip>
                 ) : (
                   <>
@@ -842,9 +900,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                             );
                           })()}
                           <span className="model-menu__provider-name">
-                            {isHuggingFaceProvider(p)
-                              ? getProviderBaseName(p)
-                              : formatGenericProviderName(p)}
+                            {providerLabel}
                           </span>
                         </Box>
                       }

@@ -196,6 +196,11 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
         const data = JSON.parse(event.data);
         if (data.repo_id) {
           const id = data.path ? data.repo_id + "/" + data.path : data.repo_id;
+          // Ignore progress for dismissed rows — otherwise removeDownload + next WS
+          // tick recreates the entry via updateDownload's "missing entry" bootstrap.
+          if (!get().downloads[id]) {
+            return;
+          }
           get().updateDownload(id, {
             status: data.status,
             id,
