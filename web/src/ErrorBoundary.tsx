@@ -3,8 +3,8 @@ import { css } from "@emotion/react";
 
 import React, { useState } from "react";
 import { useRouteError } from "react-router-dom";
-import { Box, Button, ThemeProvider } from "@mui/material";
-import { CopyButton, Text } from "./components/ui_primitives";
+import { Box, ThemeProvider } from "@mui/material";
+import { CopyButton, Text, EditorButton } from "./components/ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -207,22 +207,22 @@ const ErrorBoundary: React.FC = () => {
 
         <Box className="actions">
           <Box className="button-row">
-            <Button
+            <EditorButton
               variant="contained"
               size="large"
               onClick={() => window.location.reload()}
               className="reload-button"
             >
               Reload page
-            </Button>
-            <Button
+            </EditorButton>
+            <EditorButton
               variant="outlined"
               size="large"
               onClick={handleCopy}
               className="copy-error-button"
             >
               {copied ? "Copied!" : "Copy error"}
-            </Button>
+            </EditorButton>
           </Box>
           <Box className="contact-row">
             <a
@@ -240,13 +240,13 @@ const ErrorBoundary: React.FC = () => {
         </Box>
 
         <Box className="details-section">
-          <Button
+          <EditorButton
             className="details-toggle"
             disableRipple
             onClick={() => setShowDetails((prev) => !prev)}
           >
             {showDetails ? "Hide details ▲" : "Show details ▼"}
-          </Button>
+          </EditorButton>
 
           {showDetails && (
             <>

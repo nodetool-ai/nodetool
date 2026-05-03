@@ -14,16 +14,12 @@ namespace: "nodetool.audio"
 Overlays two audio files together.
     audio, edit, transform
 
-    Use cases:
-    - Mix background music with voice recording
-    - Layer sound effects over an existing audio track
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| a | `audio` | The first audio file. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| b | `audio` | The second audio file. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| a | `audio` | The first audio file. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
+| b | `audio` | The second audio file. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 
@@ -31,9 +27,6 @@ Overlays two audio files together.
 |--------|------|-------------|
 | output | `audio` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.audio](../) namespace.
-

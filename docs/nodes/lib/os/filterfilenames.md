@@ -22,20 +22,17 @@ Filter a list of filenames using Unix shell-style wildcards.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| filenames | `List[str]` | list of filenames to filter | `[]` |
+|----------|------|-------------|---------|
+| filenames | `list[str]` | list of filenames to filter | `[]` |
 | pattern | `str` | Pattern to filter by (e.g. *.txt, data_*.csv) | `*` |
-| case_sensitive | `bool` | Whether the pattern matching should be case-sensitive | `True` |
+| case_sensitive | `bool` | Whether the pattern matching should be case-sensitive | `true` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `List[str]` |  |
-
-## Metadata
+| output | `list[str]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

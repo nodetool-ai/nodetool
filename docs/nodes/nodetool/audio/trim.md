@@ -14,18 +14,13 @@ namespace: "nodetool.audio"
 Trim an audio file to a specified duration.
     audio, trim, cut
 
-    Use cases:
-    - Remove silence from the beginning or end of audio files
-    - Extract specific segments from audio files
-    - Prepare audio data for machine learning models
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| audio | `audio` | The audio file to trim. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| start | `float` | The start time of the trimmed audio in seconds. | `0.0` |
-| end | `float` | The end time of the trimmed audio in seconds. | `0.0` |
+|----------|------|-------------|---------|
+| audio | `audio` | The audio file to trim. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
+| start | `float` | The start time of the trimmed audio in seconds. | `0` |
+| end | `float` | The end time of the trimmed audio in seconds. | `0` |
 
 ## Outputs
 
@@ -33,9 +28,6 @@ Trim an audio file to a specified duration.
 |--------|------|-------------|
 | output | `audio` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.audio](../) namespace.
-

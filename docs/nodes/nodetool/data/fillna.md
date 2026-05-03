@@ -22,8 +22,8 @@ Fill missing values in dataframe.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| dataframe | `dataframe` | The DataFrame with missing values. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+|----------|------|-------------|---------|
+| dataframe | `dataframe` | The DataFrame with missing values. | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 | value | `any` | Value to use for filling missing values. | `0` |
 | method | `str` | Method for filling: value, forward, backward, mean, median | `value` |
 | columns | `str` | Comma-separated column names to fill. Leave empty for all columns. | `` |
@@ -34,9 +34,6 @@ Fill missing values in dataframe.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

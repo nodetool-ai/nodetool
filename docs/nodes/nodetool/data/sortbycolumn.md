@@ -22,8 +22,8 @@ Sort dataframe by specified column.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| df | `dataframe` |  | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+|----------|------|-------------|---------|
+| df | `dataframe` |  | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 | column | `str` | The column to sort the DataFrame by. | `` |
 
 ## Outputs
@@ -32,9 +32,6 @@ Sort dataframe by specified column.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

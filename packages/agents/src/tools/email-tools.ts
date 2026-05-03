@@ -166,8 +166,8 @@ export class SearchEmailTool extends Tool {
       } finally {
         lock.release();
       }
-    } catch (e: any) {
-      return { error: e.message ?? String(e) };
+    } catch (e: unknown) {
+      return { error: e instanceof Error ? e.message : String(e) };
     } finally {
       if (client) {
         await client.logout().catch(() => {
@@ -232,8 +232,8 @@ export class ArchiveEmailTool extends Tool {
       } finally {
         lock.release();
       }
-    } catch (e: any) {
-      return { error: e.message ?? String(e) };
+    } catch (e: unknown) {
+      return { error: e instanceof Error ? e.message : String(e) };
     } finally {
       if (client) {
         await client.logout().catch(() => {
@@ -291,8 +291,8 @@ export class AddLabelToEmailTool extends Tool {
       } finally {
         lock.release();
       }
-    } catch (e: any) {
-      return { error: e.message ?? String(e) };
+    } catch (e: unknown) {
+      return { error: e instanceof Error ? e.message : String(e) };
     } finally {
       if (client) {
         await client.logout().catch(() => {

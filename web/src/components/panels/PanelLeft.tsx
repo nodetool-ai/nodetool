@@ -3,11 +3,11 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  IconButton,
   Box,
-  Button,
   useMediaQuery
 } from "@mui/material";
+import { EditorButton } from "../editor_ui";
+import { ToolbarIconButton } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "fast-deep-equal";
@@ -224,39 +224,40 @@ const VerticalToolbar = memo(function VerticalToolbar({
         placement="right-start"
         delay={TOOLTIP_ENTER_DELAY}
       >
-        <IconButton
+        <ToolbarIconButton
           tabIndex={-1}
-          aria-label="Show workflows"
+          ariaLabel="Show workflows"
           onClick={handleWorkflowViewClick}
           className={
             activeView === "workflowGrid" && panelVisible ? "active" : ""
           }
-        >
-          <GridViewIcon />
-        </IconButton>
+          icon={<GridViewIcon />}
+        />
       </Tooltip>
       <Tooltip
         title={getShortcutTooltip("toggleAssets")}
         placement="right-start"
         delay={TOOLTIP_ENTER_DELAY}
       >
-        <IconButton
+        <ToolbarIconButton
           tabIndex={-1}
-          aria-label="Show assets"
+          ariaLabel="Show assets"
           onClick={handleAssetsViewClick}
           className={activeView === "assets" && panelVisible ? "active" : ""}
-        >
-          <IconForType iconName="asset" showTooltip={false} iconSize="small" />
-        </IconButton>
+          icon={<IconForType iconName="asset" showTooltip={false} iconSize="small" />}
+        />
       </Tooltip>
 
 
       <div style={{ flexGrow: 1 }} />
       <ThemeToggle />
       <Tooltip title="Toggle Panel" placement="right-start">
-        <IconButton tabIndex={-1} aria-label="Toggle panel" onClick={handlePanelToggleClick}>
-          <CodeIcon />
-        </IconButton>
+        <ToolbarIconButton
+          tabIndex={-1}
+          ariaLabel="Toggle panel"
+          onClick={handlePanelToggleClick}
+          icon={<CodeIcon />}
+        />
       </Tooltip>
     </div>
   );
@@ -291,14 +292,12 @@ const PanelContent = memo(function PanelContent({
               title="Assets"
               actions={
                 <Tooltip title="Fullscreen" placement="right-start">
-                  <Button
+                  <ToolbarIconButton
                     className={`${path === "/assets" ? "active" : ""}`}
                     onClick={handleFullscreenClick}
                     tabIndex={-1}
-                    size="small"
-                  >
-                    <Fullscreen />
-                  </Button>
+                    icon={<Fullscreen />}
+                  />
                 </Tooltip>
               }
             />
@@ -421,16 +420,15 @@ const MobilePanelLeft: React.FC<{
 
     return (
       <>
-        <IconButton
+        <ToolbarIconButton
           className={`panel-left-mobile-launcher ${isVisible ? "active" : ""}`}
           css={mobileLauncherStyles(theme, hasHeader)}
           onClick={isVisible ? onClose : onOpen}
-          aria-label={isVisible ? "Close panel" : "Open workflows panel"}
+          ariaLabel={isVisible ? "Close panel" : "Open workflows panel"}
           aria-expanded={isVisible}
           tabIndex={-1}
-        >
-          <MenuIcon />
-        </IconButton>
+          icon={<MenuIcon />}
+        />
 
         <MobileBottomSheet
           open={isVisible}
@@ -440,28 +438,22 @@ const MobilePanelLeft: React.FC<{
           headerExtras={
             <div css={mobileHeaderExtrasStyles(theme)}>
               <Tooltip title="Workflows" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
-                <IconButton
+                <ToolbarIconButton
                   className={`tab-button ${activeView === "workflowGrid" ? "active" : ""}`}
                   onClick={() => handleSheetViewChange("workflowGrid")}
-                  aria-label="Show workflows"
+                  ariaLabel="Show workflows"
                   tabIndex={-1}
-                >
-                  <GridViewIcon />
-                </IconButton>
+                  icon={<GridViewIcon />}
+                />
               </Tooltip>
               <Tooltip title="Assets" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
-                <IconButton
+                <ToolbarIconButton
                   className={`tab-button ${activeView === "assets" ? "active" : ""}`}
                   onClick={() => handleSheetViewChange("assets")}
-                  aria-label="Show assets"
+                  ariaLabel="Show assets"
                   tabIndex={-1}
-                >
-                  <IconForType
-                    iconName="asset"
-                    showTooltip={false}
-                    iconSize="small"
-                  />
-                </IconButton>
+                  icon={<IconForType iconName="asset" showTooltip={false} iconSize="small" />}
+                />
               </Tooltip>
 
               <Box sx={{ flex: 1 }} />

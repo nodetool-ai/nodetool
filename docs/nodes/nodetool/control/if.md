@@ -22,9 +22,9 @@ Conditionally executes one of two branches based on a condition.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| condition | `bool` | The condition to evaluate | `False` |
-| value | `any` | The value to pass to the next node | - |
+|----------|------|-------------|---------|
+| condition | `bool` | The condition to evaluate | `false` |
+| value | `any` | The value to pass to the next node | `[]` |
 
 ## Outputs
 
@@ -33,9 +33,6 @@ Conditionally executes one of two branches based on a condition.
 | if_true | `any` |  |
 | if_false | `any` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.control](../) namespace.
-

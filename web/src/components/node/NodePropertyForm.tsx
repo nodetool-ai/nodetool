@@ -2,13 +2,12 @@
 import { css } from "@emotion/react";
 import {
   TextField,
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   MenuItem
 } from "@mui/material";
-import { Tooltip, FlexRow, ToolbarIconButton, EditorButton } from "../ui_primitives";
+import { Tooltip, FlexRow, ToolbarIconButton, EditorButton, Dialog } from "../ui_primitives";
 import { Add } from "@mui/icons-material";
 import { useState, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";

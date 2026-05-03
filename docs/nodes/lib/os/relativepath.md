@@ -22,7 +22,7 @@ Return a relative path to a target from a start directory.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | target_path | `str` | Target path to convert to relative | `` |
 | start_path | `str` | Start path for relative conversion | `.` |
 
@@ -32,9 +32,6 @@ Return a relative path to a target from a start directory.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

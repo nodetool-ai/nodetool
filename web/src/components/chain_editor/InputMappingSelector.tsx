@@ -9,6 +9,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { Box, Menu, MenuItem, ListItemText, ListItemIcon } from "@mui/material";
+import { ToolbarIconButton } from "../ui_primitives";
 import InputOutlinedIcon from "@mui/icons-material/InputOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -18,7 +19,6 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { FlexRow } from "../ui_primitives/FlexRow";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 import { Text } from "../ui_primitives/Text";
-import { IconButton } from "@mui/material";
 import type { Property, TypeMetadata } from "../../stores/ApiTypes";
 import type { ChainNode, InputMappings, InputSource } from "./chainTypes";
 import { areTypesCompatible } from "./chainTypes";
@@ -188,22 +188,17 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                   >
                     {sourceNode.metadata.title}.{mapping.sourceOutput}
                   </Text>
-                  <IconButton
+                  <ToolbarIconButton
                     size="small"
-                    aria-label="Remove mapping"
+                    ariaLabel="Remove mapping"
+                    tooltip="Remove mapping"
                     onClick={(e) => {
                       e.stopPropagation();
                       onSetMapping(prop.name, null);
                     }}
+                    icon={<CloseIcon sx={{ fontSize: 14, color: theme.vars.palette.secondary.main }} />}
                     sx={{ p: 0.25 }}
-                  >
-                    <CloseIcon
-                      sx={{
-                        fontSize: 14,
-                        color: theme.vars.palette.secondary.main,
-                      }}
-                    />
-                  </IconButton>
+                  />
                 </FlexRow>
               ) : (
                 <AddCircleOutlineIcon

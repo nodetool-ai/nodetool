@@ -69,6 +69,7 @@
     "workflow": "node ./scripts/run-workflow.mjs",
     "chat": "node ./packages/cli/dist/index.js",
     "nodetool": "node ./packages/cli/dist/nodetool.js",
+    "generate:node-docs": "node scripts/generate-node-docs.mjs",
     "generate:fal": "npm run generate --workspace=packages/fal-codegen",
     "generate:replicate": "npm run generate --workspace=packages/replicate-codegen -- --all && npm run extract-manifest --workspace=packages/replicate-nodes",
     "generate:kie": "npm run generate --workspace=packages/kie-codegen -- --all",

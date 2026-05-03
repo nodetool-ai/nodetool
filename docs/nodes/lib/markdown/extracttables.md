@@ -22,7 +22,7 @@ Extracts tables from markdown and converts them to structured data.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | markdown | `str` | The markdown text to analyze | `` |
 
 ## Outputs
@@ -31,9 +31,6 @@ Extracts tables from markdown and converts them to structured data.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.markdown](../) namespace.
-

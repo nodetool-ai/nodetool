@@ -21,7 +21,7 @@ Convert CSV string to dataframe.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | csv_data | `str` | String input of CSV formatted text. | `` |
 
 ## Outputs
@@ -30,9 +30,6 @@ Convert CSV string to dataframe.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

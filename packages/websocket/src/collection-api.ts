@@ -7,8 +7,8 @@
  */
 
 import {
-  getVecStore,
-  VecNotFoundError,
+  getDefaultVectorProvider,
+  CollectionNotFoundError,
   splitDocument
 } from "@nodetool-ai/vectorstore";
 import type { HttpApiOptions } from "./http-api.js";
@@ -55,9 +55,9 @@ export async function handleCollectionRequest(
   }
 
   try {
-    const store = await getVecStore();
+    const provider = getDefaultVectorProvider();
     const collectionName = decodeURIComponent(indexMatch[1]);
-    const collection = await store.getCollection({ name: collectionName });
+    const collection = await provider.getCollection({ name: collectionName });
 
     const formData = await request.formData();
     const file = formData.get("file");
@@ -69,14 +69,16 @@ export async function handleCollectionRequest(
     const chunks = splitDocument(text, file.name);
 
     if (chunks.length > 0) {
-      await collection.add({
-        ids: chunks.map((_, i) => `${file.name}#${i}`),
-        documents: chunks.map((c) => c.text),
-        metadatas: chunks.map((c) => ({
-          source: c.source_id,
-          start_index: String(c.start_index)
+      await collection.upsert(
+        chunks.map((c, i) => ({
+          id: `${file.name}#${i}`,
+          document: c.text,
+          metadata: {
+            source: c.source_id,
+            start_index: String(c.start_index)
+          }
         }))
-      });
+      );
     }
 
     return jsonResponse({
@@ -85,7 +87,7 @@ export async function handleCollectionRequest(
       error: null
     });
   } catch (err: unknown) {
-    if (err instanceof VecNotFoundError) {
+    if (err instanceof CollectionNotFoundError) {
       return errorResponse(404, "Collection not found");
     }
     const msg = err instanceof Error ? err.message : String(err);

@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import type { SxProps, Theme } from "@mui/material/styles";
 import { alpha } from "@mui/material/styles";
+import { BORDER_RADIUS } from "../ui_primitives";
 
 export const chipsContainerSx: SxProps<Theme> = {
   mt: 0.5,
@@ -24,7 +25,7 @@ export const chipSx = (
 
   return {
     height: 22,
-    borderRadius: "999px",
+    borderRadius: BORDER_RADIUS.pill,
     maxWidth,
     minWidth: 0,
     overflow: "hidden",

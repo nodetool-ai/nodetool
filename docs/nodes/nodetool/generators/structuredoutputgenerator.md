@@ -23,41 +23,19 @@ Generate structured JSON objects from instructions using LLM providers.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| system_prompt | `str` | The system prompt guiding JSON generation. | `
-You are a structured data generator focused on JSON outputs.
-
-Goal
-- Produce a high-quality JSON object that matches <JSON_SCHEMA> using the guidance in <INSTRUCTIONS> and any supplemental <CONTEXT>.
-
-Output format (MANDATORY)
-- Output exactly ONE fenced code block labeled json containing ONLY the JSON object:
-
-  ```json
-  { ...single JSON object matching <JSON_SCHEMA>... }
-  ```
-
-- No additional prose before or after the block.
-
-Generation rules
-- Invent plausible, internally consistent values when not explicitly provided.
-- Honor all constraints from <JSON_SCHEMA> (types, enums, ranges, formats).
-- Prefer ISO 8601 for dates/times when applicable.
-- Ensure numbers respect reasonable magnitudes and relationships described in <INSTRUCTIONS>.
-- Avoid referencing external sources; rely solely on the provided guidance.
-
-Validation
-- Ensure the final JSON validates against <JSON_SCHEMA> exactly.
-` |
-| model | `language_model` | Model to use for structured generation. | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
+|----------|------|-------------|---------|
+| system_prompt | `str` | The system prompt guiding JSON generation. | ` You are a structured data generator focused on...` |
+| model | `language_model` | Model to use for structured generation. | `{"type":"language_model","provider":"empty","id...` |
 | instructions | `str` | Detailed instructions for the structured output. | `` |
 | context | `str` | Optional context to ground the generation. | `` |
 | max_tokens | `int` | The maximum number of tokens to generate. | `4096` |
-| context_window | `int` |  | `4096` |
+| image | `image` | Optional image to include in the generation request. | `{"type":"image","uri":"","asset_id":null,"data"...` |
+| audio | `audio` | Optional audio to include in the generation request. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 
-## Metadata
+## Outputs
+
+_(none)_
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.generators](../) namespace.
-

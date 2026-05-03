@@ -17,19 +17,16 @@ Get a secret value from configuration.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | name | `str` | Secret key name | `` |
-| default | `Optional[str]` | Default value if not found | - |
+| default | `str` | Default value if not found | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `Optional[str]` |  |
-
-## Metadata
+| output | `str` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.secret](../) namespace.
-

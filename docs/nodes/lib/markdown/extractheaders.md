@@ -22,7 +22,7 @@ Extracts headers and creates a document structure/outline.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | markdown | `str` | The markdown text to analyze | `` |
 | max_level | `int` | Maximum header level to extract (1-6) | `6` |
 
@@ -30,11 +30,8 @@ Extracts headers and creates a document structure/outline.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `List[Dict[str, any]]` |  |
-
-## Metadata
+| output | `list[dict[str, any]]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.markdown](../) namespace.
-

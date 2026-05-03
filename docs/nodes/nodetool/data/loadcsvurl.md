@@ -17,7 +17,7 @@ Load CSV file from URL.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | url | `str` | The URL of the CSV file to load. | `` |
 
 ## Outputs
@@ -26,9 +26,6 @@ Load CSV file from URL.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

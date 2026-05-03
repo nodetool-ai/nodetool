@@ -22,8 +22,8 @@ Represents an audio file constant in the workflow.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| value | `audio` |  | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| value | `audio` |  | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 
@@ -31,9 +31,6 @@ Represents an audio file constant in the workflow.
 |--------|------|-------------|
 | output | `audio` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.constant](../) namespace.
-

@@ -17,7 +17,7 @@ Loads a Word document from disk
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Path to the document to load | `` |
 
 ## Outputs
@@ -26,9 +26,6 @@ Loads a Word document from disk
 |--------|------|-------------|
 | output | `document` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.docx](../) namespace.
-

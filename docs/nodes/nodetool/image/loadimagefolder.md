@@ -14,18 +14,13 @@ namespace: "nodetool.image"
 Load all images from a folder, optionally including subfolders.
     image, load, folder, files
 
-    Use cases:
-    - Batch import images for processing
-    - Build datasets from a directory tree
-    - Iterate over photo collections
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | folder | `str` | Folder to scan for images | `` |
-| include_subdirectories | `bool` | Include images in subfolders | `False` |
-| extensions | `List[str]` | Image file extensions to include | `['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp', '.tiff']` |
+| include_subdirectories | `bool` | Include images in subfolders | `false` |
+| extensions | `list[str]` | Image file extensions to include | `[".png",".jpg",".jpeg",".bmp",".gif",".webp","....` |
 | pattern | `str` | Pattern to match image files | `` |
 
 ## Outputs
@@ -34,10 +29,8 @@ Load all images from a folder, optionally including subfolders.
 |--------|------|-------------|
 | image | `image` |  |
 | path | `str` |  |
-
-## Metadata
+| images | `list` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.image](../) namespace.
-

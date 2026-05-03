@@ -3,7 +3,7 @@ import React, { useRef, useEffect, useState, useCallback, useMemo, memo } from "
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Checkbox, IconButton, Button, Box } from "@mui/material";
+import { Checkbox, Box } from "@mui/material";
 import CompareIcon from "@mui/icons-material/Compare";
 import ClearIcon from "@mui/icons-material/Clear";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
@@ -396,14 +396,14 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
     <div className="preview-image-grid" css={gridCss} ref={containerRef}>
       {/* Selection mode toggle button */}
       {showSelectionFeatures && (
-        <Button
+        <EditorButton
           className="select-mode-toggle"
           size="small"
           onClick={toggleSelectionMode}
           startIcon={selectionMode ? <CheckBoxIcon /> : <CheckBoxOutlineBlankIcon />}
         >
           {selectionMode ? "Exit Select" : "Select"}
-        </Button>
+        </EditorButton>
       )}
 
       <div
@@ -502,7 +502,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
         <Box className="action-bar">
           <Tooltip title="Compare the two selected images">
             <span>
-              <Button
+              <EditorButton
                 className="action-button"
                 size="small"
                 startIcon={<CompareIcon />}
@@ -510,14 +510,17 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                 disabled={selectedIndices.size !== 2}
               >
                 Compare
-              </Button>
+              </EditorButton>
             </span>
           </Tooltip>
-          <Tooltip title="Clear selection">
-            <IconButton size="small" onClick={clearSelection} sx={{ color: theme.vars.palette.common.white }} aria-label="Clear image selection">
-              <ClearIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            title="Clear selection"
+            size="small"
+            onClick={clearSelection}
+            sx={{ color: theme.vars.palette.common.white }}
+          >
+            <ClearIcon fontSize="small" />
+          </ToolbarIconButton>
           <Box sx={{ fontSize: 12, color: "grey.400", ml: 1 }}>
             {selectedIndices.size} selected
           </Box>
@@ -533,7 +536,8 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
           maxWidth={false}
         >
           <Box sx={{ width: "90vw", height: "90vh", position: "relative" }}>
-            <IconButton
+            <ToolbarIconButton
+              title="Close image comparison dialog"
               onClick={handleCloseCompare}
               sx={{
                 position: "absolute",
@@ -544,10 +548,9 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                 color: theme.vars.palette.common.white,
                 "&:hover": { backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.8)` }
               }}
-              aria-label="Close image comparison dialog"
             >
               <ClearIcon />
-            </IconButton>
+            </ToolbarIconButton>
             <ImageComparer
               imageA={compareImages[0]}
               imageB={compareImages[1]}

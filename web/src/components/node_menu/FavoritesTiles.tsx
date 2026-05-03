@@ -6,7 +6,7 @@ import { memo, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
 import { Box } from "@mui/material";
-import { Tooltip, Text, ToolbarIconButton } from "../ui_primitives";
+import { Tooltip, Text, ToolbarIconButton, thinScrollbarStyles } from "../ui_primitives";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -56,19 +56,7 @@ const tileStyles = (theme: Theme) =>
       alignContent: "start",
       overflowY: "auto",
       padding: "2px",
-      "&::-webkit-scrollbar": {
-        width: "6px"
-      },
-      "&::-webkit-scrollbar-track": {
-        background: "transparent"
-      },
-      "&::-webkit-scrollbar-thumb": {
-        backgroundColor: theme.vars.palette.action.disabledBackground,
-        borderRadius: "var(--rounded-lg)"
-      },
-      "&::-webkit-scrollbar-thumb:hover": {
-        backgroundColor: theme.vars.palette.action.disabled
-      }
+      ...thinScrollbarStyles(theme),
     },
     ".favorite-tile": {
       display: "flex",

@@ -9,20 +9,12 @@ namespace: "openai.agents"
 
 **Namespace:** `openai.agents`
 
-## Description
-
-Stream microphone or audio input to OpenAI Realtime and emit transcription.
-
-    Emits:
-      - `chunk` Chunk(content=..., done=False) for transcript deltas
-      - `chunk` Chunk(content="", done=True) to mark segment end
-      - `text` final aggregated transcript when input ends
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| model | `language_model` | Model to use | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
+|----------|------|-------------|---------|
+| model | `enum` | The realtime model to use. | `gpt-4o-mini-realtime-preview` |
+| chunk | `chunk` | Audio chunk input stream (base64-encoded PCM16 audio). | `{"type":"chunk","node_id":null,"thread_id":null...` |
 | system | `str` | System instructions (optional) | `` |
 | temperature | `float` | Decoding temperature | `0.8` |
 
@@ -33,9 +25,6 @@ Stream microphone or audio input to OpenAI Realtime and emit transcription.
 | text | `str` |  |
 | chunk | `chunk` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [openai.agents](../) namespace.
-

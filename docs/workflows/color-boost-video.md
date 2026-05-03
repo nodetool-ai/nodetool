@@ -5,21 +5,12 @@ title: "Color Boost Video"
 
 ## Overview
 
+Extracts frames from a video, amplifies color intensity, and reassembles them into a modified video.
 
-
-🎨 **Color Boost Video**
-
-This workflow processes a short segment of a video by extracting individual frames, enhancing their color intensity, and reassembling them into a modified video. Specifically:
-
-1.	**Video Input: **A video is loaded.
-
-2.	**Frame Iteration: **Only frames 0 to 2 are extracted.
-
-3.	**Color Enhancement: **Each frame’s color is amplified using a factor of 3.0 with Pillow’s Enhance module.
-
-4.	**Reassembly: **Enhanced frames are recompiled into a new video stream.
-
-5.	**Preview: **The resulting video is displayed in a preview window.
+1. **Video Input** - A video is loaded.
+2. **Frame Iteration** - Frames 0 to 2 are extracted.
+3. **Color Enhancement** - Each frame's color is amplified 3x using Pillow's Enhance module.
+4. **Reassembly** - Enhanced frames are recompiled into a new video stream.
 
 ## Tags
 
@@ -40,14 +31,3 @@ graph TD
   frameiterator_abb8ee --> frametovideo_4ca887
   frameiterator_abb8ee --> frametovideo_4ca887
 {% endmermaid %}
-
-## How to Use
-
-1. Open NodeTool and create a new workflow
-2. Import this workflow from the examples gallery or build it manually following the diagram above
-3. Configure the input nodes with your data
-4. Run the workflow to see results
-
-## Related Workflows
-
-Browse other [workflow examples](/cookbook.md) to discover more capabilities.

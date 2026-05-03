@@ -14,16 +14,11 @@ namespace: "nodetool.video"
 Get the frames per second (FPS) of a video file.
     video, analysis, frames, fps
 
-    Use cases:
-    1. Analyze video properties for quality assessment
-    2. Determine appropriate playback speed for video editing
-    3. Ensure compatibility with target display systems
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| video | `video` | The input video to analyze for FPS. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+|----------|------|-------------|---------|
+| video | `video` | The input video to analyze for FPS. | `{"type":"video","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 
@@ -31,9 +26,6 @@ Get the frames per second (FPS) of a video file.
 |--------|------|-------------|
 | output | `float` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.video](../) namespace.
-

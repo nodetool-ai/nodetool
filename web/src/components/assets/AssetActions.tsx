@@ -7,7 +7,6 @@ import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
 import {
-  Button,
   ButtonGroup,
   Popover,
   TextField,
@@ -18,6 +17,7 @@ import {
   MenuItem,
   Box
 } from "@mui/material";
+import { EditorButton } from "../editor_ui";
 
 import useAssets from "../../serverState/useAssets";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -355,39 +355,39 @@ const AssetActions = ({
           title="Create Folder"
           disableInteractive
         >
-          <Button
+          <EditorButton
             onClick={handleOpenCreateFolder}
             tabIndex={-1}
           >
             <CreateNewFolderIcon />
-          </Button>
+          </EditorButton>
         </Tooltip>
         <Tooltip
           delay={TOOLTIP_ENTER_DELAY}
           title="Select all"
           disableInteractive
         >
-          <Button onClick={handleSelectAllAssets} tabIndex={-1}>
+          <EditorButton onClick={handleSelectAllAssets} tabIndex={-1}>
             <SelectAllIcon />
-          </Button>
+          </EditorButton>
         </Tooltip>
         <Tooltip
           delay={TOOLTIP_ENTER_DELAY}
           title="Deselect"
           disableInteractive
         >
-          <Button onClick={handleDeselectAssets} tabIndex={-1}>
+          <EditorButton onClick={handleDeselectAssets} tabIndex={-1}>
             <DeselectIcon />
-          </Button>
+          </EditorButton>
         </Tooltip>
         <Tooltip
           delay={TOOLTIP_ENTER_DELAY}
           title={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
           disableInteractive
         >
-          <Button onClick={handleViewModeToggle} tabIndex={-1}>
+          <EditorButton onClick={handleViewModeToggle} tabIndex={-1}>
             {viewMode === "grid" ? <ViewListIcon /> : <ViewModuleIcon />}
-          </Button>
+          </EditorButton>
         </Tooltip>
 
         {isLoading && (
@@ -399,6 +399,7 @@ const AssetActions = ({
           </Box>
         )}
       </ButtonGroup>
+
 
       <Tooltip
         delay={TOOLTIP_ENTER_DELAY}
@@ -494,15 +495,15 @@ const AssetActions = ({
           </div>
         </DialogContent>
         <DialogActions className="dialog-actions">
-          <Button
+          <EditorButton
             className="button-cancel"
             onClick={handleCloseCreateFolder}
           >
             Cancel
-          </Button>
-          <Button className="button-confirm" onClick={handleCreateFolder}>
+          </EditorButton>
+          <EditorButton className="button-confirm" onClick={handleCreateFolder}>
             Create Folder
-          </Button>
+          </EditorButton>
         </DialogActions>
       </Popover>
     </div>

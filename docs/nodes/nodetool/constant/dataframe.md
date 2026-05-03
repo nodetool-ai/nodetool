@@ -22,8 +22,8 @@ Represents a fixed DataFrame constant in the workflow.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| value | `dataframe` |  | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+|----------|------|-------------|---------|
+| value | `dataframe` |  | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 
 ## Outputs
 
@@ -31,9 +31,6 @@ Represents a fixed DataFrame constant in the workflow.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.constant](../) namespace.
-

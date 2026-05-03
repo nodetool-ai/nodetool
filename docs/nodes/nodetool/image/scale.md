@@ -14,16 +14,12 @@ namespace: "nodetool.image"
 Enlarge or shrink an image by a scale factor.
     image, resize, scale
 
-    - Adjust image dimensions for display galleries
-    - Standardize image sizes for machine learning datasets
-    - Create thumbnail versions of images
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| image | `image` | The image to scale. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| scale | `float` | The scale factor. | `1.0` |
+|----------|------|-------------|---------|
+| image | `image` | The image to scale. | `{"type":"image","uri":"","asset_id":null,"data"...` |
+| scale | `float` | The scale factor. | `1` |
 
 ## Outputs
 
@@ -31,9 +27,6 @@ Enlarge or shrink an image by a scale factor.
 |--------|------|-------------|
 | output | `image` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.image](../) namespace.
-

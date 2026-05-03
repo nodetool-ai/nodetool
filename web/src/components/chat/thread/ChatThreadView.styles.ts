@@ -55,7 +55,7 @@ export const createStyles = (theme: Theme) => ({
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-start",
-      gap: "4px",
+      gap: theme.spacing(1),
       border: "1px solid transparent",
       transition: "border-color 0.25s ease"
     },
@@ -135,8 +135,8 @@ export const createStyles = (theme: Theme) => ({
     ".message-actions": {
       display: "flex",
       alignItems: "center",
-      gap: "6px",
-      marginTop: "4px",
+      gap: theme.spacing(1.5),
+      marginTop: theme.spacing(1),
       opacity: 0,
       pointerEvents: "none",
       transition: "opacity 0.15s ease",
@@ -197,7 +197,7 @@ export const createStyles = (theme: Theme) => ({
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      padding: "20px 0"
+      padding: theme.spacing(5, 0)
     },
 
     ".loading-dots": {
@@ -304,7 +304,7 @@ export const createStyles = (theme: Theme) => ({
     ".tool-call-header": {
       display: "flex",
       alignItems: "center",
-      gap: 4,
+      gap: theme.spacing(1),
       lineHeight: 1.25
     },
 
@@ -321,7 +321,7 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-expand-button": {
-      padding: 2,
+      padding: theme.spacing(0.5),
       marginRight: -2
     },
 
@@ -338,12 +338,12 @@ export const createStyles = (theme: Theme) => ({
     ".tool-section-title": {
       color: theme.vars.palette.text.disabled,
       display: "block",
-      marginBottom: 2
+      marginBottom: theme.spacing(0.5)
     },
 
     ".pretty-json": {
       margin: 0,
-      padding: "4px 6px",
+      padding: theme.spacing(1, 1.5),
       background: theme.vars.palette.background.default,
       borderRadius: 6,
       color: theme.vars.palette.text.secondary,
@@ -354,7 +354,7 @@ export const createStyles = (theme: Theme) => ({
     ".error-icon": {
       color: theme.vars.palette.error.main,
       fontSize: 20,
-      marginTop: 4,
+      marginTop: theme.spacing(1),
       flexShrink: 0
     },
 

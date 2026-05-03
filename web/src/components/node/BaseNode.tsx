@@ -17,8 +17,7 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import isEqual from "fast-deep-equal";
-import { Container } from "@mui/material";
-import { Tooltip, EditorButton } from "../ui_primitives";
+import { Tooltip, EditorButton, Container } from "../ui_primitives";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";

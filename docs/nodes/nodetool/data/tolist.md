@@ -22,18 +22,15 @@ Convert dataframe to list of dictionaries.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| dataframe | `dataframe` | The input dataframe to convert. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+|----------|------|-------------|---------|
+| dataframe | `dataframe` | The input dataframe to convert. | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `List[Dict[Any, Any]]` |  |
-
-## Metadata
+| output | `list[dict]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

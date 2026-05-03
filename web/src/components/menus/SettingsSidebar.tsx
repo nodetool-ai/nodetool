@@ -19,12 +19,14 @@ interface SettingsSidebarProps {
   activeSection: string;
   sections: SidebarSection[];
   onSectionClick: (sectionId: string) => void;
+  footer?: React.ReactNode;
 }
 
 const SettingsSidebar = ({
   activeSection,
   sections,
-  onSectionClick
+  onSectionClick,
+  footer
 }: SettingsSidebarProps) => {
   const handleItemClick = useCallback(
     (event: React.MouseEvent) => {
@@ -155,6 +157,7 @@ const SettingsSidebar = ({
           </div>
         );
       })}
+      {footer && <div className="settings-sidebar-footer">{footer}</div>}
     </div>
   );
 };

@@ -121,7 +121,7 @@ export class ValidateEmailNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "bool" };
 
   @prop({ type: "str", default: "", title: "Value" })
-  declare value: any;
+  declare value: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: isEmail(String(this.value ?? "")) };
@@ -136,7 +136,7 @@ export class ValidateURLNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "bool" };
 
   @prop({ type: "str", default: "", title: "Value" })
-  declare value: any;
+  declare value: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: isURL(String(this.value ?? "")) };
@@ -155,7 +155,7 @@ export class ValidateIPNode extends BaseNode {
   };
 
   @prop({ type: "str", default: "", title: "Value" })
-  declare value: any;
+  declare value: string;
 
   async process(): Promise<Record<string, unknown>> {
     const v = String(this.value ?? "");
@@ -183,7 +183,7 @@ export class ValidateStringNode extends BaseNode {
   };
 
   @prop({ type: "str", default: "", title: "Value" })
-  declare value: any;
+  declare value: string;
 
   async process(): Promise<Record<string, unknown>> {
     const v = String(this.value ?? "");
@@ -211,7 +211,7 @@ export class SanitizeStringNode extends BaseNode {
   };
 
   @prop({ type: "str", default: "", title: "Value" })
-  declare value: any;
+  declare value: string;
 
   async process(): Promise<Record<string, unknown>> {
     const v = String(this.value ?? "");

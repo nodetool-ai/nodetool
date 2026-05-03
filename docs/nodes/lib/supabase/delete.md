@@ -17,19 +17,16 @@ Delete records from a Supabase table.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | table_name | `str` | Table to delete from | `` |
-| filters | `List[Tuple[str, Enum['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'like', 'contains'], any]]` | Filters to select rows to delete (required for safety) | - |
+| filters | `list[tuple[str, enum, any]]` | Filters to select rows to delete (required for safety) | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `Dict[str, any]` |  |
-
-## Metadata
+| output | `dict[str, any]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.supabase](../) namespace.
-

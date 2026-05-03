@@ -5,7 +5,7 @@ title: "Story to Video Generator"
 
 ## Overview
 
-Transform story ideas into AI-generated videos. An agent crafts detailed visual prompts optimized for video generation, then creates the video using Gemini Veo.
+Transform story ideas into AI-generated videos. An agent crafts detailed visual prompts optimized for video generation, then Gemini Veo renders the video.
 
 ## How It Works
 
@@ -13,7 +13,6 @@ Transform story ideas into AI-generated videos. An agent crafts detailed visual 
 2. **FormatText** - Injects theme into the prompt template
 3. **AI Agent** - Crafts a video prompt with camera movements, lighting, and composition details
 4. **TextToVideo** - Gemini Veo generates your video
-5. **Preview** - View the crafted prompt and final video
 
 ## Example Story Themes
 
@@ -29,22 +28,17 @@ Transform story ideas into AI-generated videos. An agent crafts detailed visual 
 - "New York City street at night in the rain, neon reflections"
 - "Drone shot rising over Tokyo at golden hour"
 
-## Tips for Best Results
+## Tips
 
-✅ Be specific - Include setting, lighting, time of day  
-✅ Add motion - Describe camera movements or actions  
-✅ Set the mood - Mention atmosphere (peaceful, dramatic, mysterious)  
-✅ Keep it visual - Focus on what can be seen  
-
-❌ Avoid vague descriptions  
-❌ Don't include dialogue or sound effects  
-❌ Keep themes focused on a single scene
+- Be specific: include setting, lighting, time of day
+- Describe camera movements or subject motion
+- Keep themes focused on a single scene; omit dialogue and sound effects
 
 ## Configuration Options
 
 - **Aspect Ratio**: 16:9 (widescreen), 9:16 (vertical), 1:1 (square)
 - **Resolution**: 720p (faster), 1080p (higher quality)
-- **Seed**: Set to same number for consistent results, -1 for random
+- **Seed**: fixed number for consistent results, -1 for random
 
 ## Tags
 
@@ -65,14 +59,3 @@ graph TD
   agent_prompt --> texttovideo_video_
   texttovideo_video_ --> generated_video_video_
 {% endmermaid %}
-
-## How to Use
-
-1. Open NodeTool and create a new workflow
-2. Import this workflow from the examples gallery or build it manually following the diagram above
-3. Configure the input nodes with your data
-4. Run the workflow to see results
-
-## Related Workflows
-
-Browse other [workflow examples](/cookbook.md) to discover more capabilities.

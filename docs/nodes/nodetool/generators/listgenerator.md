@@ -21,8 +21,8 @@ LLM Agent to create a stream of strings based on a user prompt.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| model | `language_model` | The model to use for string generation. | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
+|----------|------|-------------|---------|
+| model | `language_model` | The model to use for string generation. | `{"type":"language_model","provider":"empty","id...` |
 | prompt | `str` | The user prompt | `` |
 | input_text | `str` | The input text to be analyzed by the agent. | `` |
 | max_tokens | `int` | The maximum number of tokens to generate. | `4096` |
@@ -34,9 +34,6 @@ LLM Agent to create a stream of strings based on a user prompt.
 | item | `str` |  |
 | index | `int` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.generators](../) namespace.
-

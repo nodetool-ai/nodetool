@@ -14,15 +14,16 @@ namespace: "lib.os"
 Open the workspace directory.
     files, workspace, directory
 
+## Properties
+
+_(none)_
+
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
 | output | `none` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

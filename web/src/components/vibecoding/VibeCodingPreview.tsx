@@ -3,14 +3,11 @@ import React, { useEffect, useMemo, useCallback, useRef, useState } from "react"
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import {
-  Box,
-  Typography,
-  IconButton,
-  Tooltip
+  Box
 } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import CodeIcon from "@mui/icons-material/Code";
-import { RefreshButton, LoadingSpinner } from "../ui_primitives";
+import { RefreshButton, LoadingSpinner, Text, ToolbarIconButton } from "../ui_primitives";
 import { BASE_URL, UNIFIED_WS_URL } from "../../stores/BASE_URL";
 import { injectRuntimeConfig } from "./utils/extractHtml";
 import type { Theme } from "@mui/material/styles";
@@ -142,17 +139,19 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
   return (
     <Box css={styles}>
       <div className="preview-header">
-        <Typography className="preview-title">
+        <Text className="preview-title">
           Preview
           {isGenerating && " (Generating...)"}
-        </Typography>
+        </Text>
         <div className="preview-actions">
           {onViewSource && (
-            <Tooltip title="View Source">
-              <IconButton size="small" onClick={onViewSource} aria-label="View Source">
-                <CodeIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+              tooltip="View Source"
+              size="small"
+              onClick={onViewSource}
+              icon={<CodeIcon fontSize="small" />}
+              nodrag={false}
+            />
           )}
           <RefreshButton
             onClick={handleRefresh}
@@ -160,11 +159,14 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
             tooltipPlacement="bottom"
             disabled={!html}
           />
-          <Tooltip title="Open in New Tab">
-            <IconButton size="small" onClick={handleOpenInNew} disabled={!html} aria-label="Open in New Tab">
-              <OpenInNewIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            tooltip="Open in New Tab"
+            size="small"
+            onClick={handleOpenInNew}
+            disabled={!html}
+            icon={<OpenInNewIcon fontSize="small" />}
+            nodrag={false}
+          />
         </div>
       </div>
 
@@ -178,12 +180,12 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
         {!html && !isGenerating && (
           <div className="preview-empty">
             <CodeIcon className="preview-empty-icon" />
-            <Typography variant="body1" gutterBottom>
+            <Text sx={{ mb: 1 }}>
               No preview available
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
+            </Text>
+            <Text size="small" color="secondary">
               Describe your desired UI in the chat to generate a custom app
-            </Typography>
+            </Text>
           </div>
         )}
 

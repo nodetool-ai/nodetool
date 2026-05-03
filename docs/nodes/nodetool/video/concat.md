@@ -17,9 +17,9 @@ Concatenate multiple video files into a single video, including audio when avail
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| video_a | `video` | The first video to concatenate. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| video_b | `video` | The second video to concatenate. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+|----------|------|-------------|---------|
+| video_a | `video` | The first video to concatenate. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video_b | `video` | The second video to concatenate. | `{"type":"video","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 
@@ -27,9 +27,6 @@ Concatenate multiple video files into a single video, including audio when avail
 |--------|------|-------------|
 | output | `video` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.video](../) namespace.
-

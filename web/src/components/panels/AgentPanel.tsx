@@ -9,13 +9,12 @@ import React, {
   useState
 } from "react";
 import {
-  Button,
   Menu,
   MenuItem,
-  IconButton,
   DialogTitle,
   DialogContent
 } from "@mui/material";
+import { EditorButton } from "../editor_ui";
 import { AgentModelSelect } from "./AgentModelSelect";
 import MediaControlChip from "../chat/composer/MediaControlChip";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
@@ -604,7 +603,7 @@ const AgentPanel: React.FC = () => {
             <span>{error}</span>
           </div>
           <div className="placeholder-action">
-            <Button
+            <EditorButton
               variant="outlined"
               size="small"
               onClick={handleStartSession}
@@ -612,7 +611,7 @@ const AgentPanel: React.FC = () => {
               css={startButtonStyles(theme)}
             >
               Retry
-            </Button>
+            </EditorButton>
           </div>
         </div>
       );
@@ -633,7 +632,7 @@ const AgentPanel: React.FC = () => {
         </Caption>
         {status === "disconnected" && !hasRunningSession && (
           <div className="placeholder-action">
-            <Button
+            <EditorButton
               variant="outlined"
               size="small"
               onClick={handleStartSession}
@@ -642,7 +641,7 @@ const AgentPanel: React.FC = () => {
               css={startButtonStyles(theme)}
             >
               Start Session
-            </Button>
+            </EditorButton>
           </div>
         )}
       </div>
@@ -808,7 +807,7 @@ const AgentPanel: React.FC = () => {
 
         <Tooltip title="Resume a previous session">
           <span>
-            <IconButton
+            <EditorButton
               size="small"
               onClick={handleResumeMenuOpen}
               disabled={!isAvailable || previousSessions.length === 0}
@@ -817,12 +816,12 @@ const AgentPanel: React.FC = () => {
             >
               <ReplayIcon sx={{ fontSize: "14px" }} />
               <span>Resume</span>
-            </IconButton>
+            </EditorButton>
           </span>
         </Tooltip>
         <Tooltip title={`Create a new ${providerLabel} session`}>
           <span>
-            <IconButton
+            <EditorButton
               size="small"
               onClick={handleCreateNewSession}
               disabled={!isAvailable || (!isLlmProvider && !workspacePath)}
@@ -831,7 +830,7 @@ const AgentPanel: React.FC = () => {
             >
               <AddIcon sx={{ fontSize: "14px" }} />
               <span>New</span>
-            </IconButton>
+            </EditorButton>
           </span>
         </Tooltip>
         <Menu
@@ -916,7 +915,7 @@ const AgentPanel: React.FC = () => {
               <Caption size="smaller" sx={{ display: "block", mb: 0.5 }}>
                 Model
               </Caption>
-              <Button
+              <EditorButton
                 ref={draftLlmDialogAnchor}
                 size="small"
                 variant="outlined"
@@ -936,7 +935,7 @@ const AgentPanel: React.FC = () => {
                       }`
                     : "Select model…"}
                 </span>
-              </Button>
+              </EditorButton>
               <LanguageModelMenuDialog
                 open={draftLlmDialogOpen}
                 anchorEl={draftLlmDialogAnchor.current}

@@ -5,19 +5,14 @@ title: "Categorize Mails"
 
 ## Overview
 
-Automatically categorize and organize emails using AI
+Classifies emails into predefined categories (Newsletter, Work, Family, Friends) using an LLM and applies matching Gmail labels.
 
-This workflow classifies emails into predefined categories (e.g., Newsletter, Work, Family, Friends) using a large language model and applies the matching Gmail labels.
+## Workflow Steps
 
-## Workflow Steps:
-
-2. **Gmail Search** - Fetches up to 10 recent emails using the specified filters (e.g., date, subject, sender).
-
-2. **Template** - Formats each email into a structured prompt including subject, sender, and a truncated body snippet.
-
-3. **Classifier** - Uses an LLM to classify the email into one or more of the categories: newsletter, work, family, friends.
-
-4. **Add Label** - Applies the determined label(s) to each email message in Gmail.
+1. **Gmail Search** - Fetches up to 10 recent emails using the specified filters (date, subject, sender).
+2. **Template** - Formats each email into a structured prompt with subject, sender, and body snippet.
+3. **Classifier** - Uses an LLM to classify the email into one or more categories.
+4. **Add Label** - Applies the determined label(s) to each email in Gmail.
 
 ## Tags
 
@@ -36,14 +31,3 @@ graph TD
   gmailsearch_b776a8 --> addlabel_663354
   gmailsearch_b776a8 --> template_29a39f
 {% endmermaid %}
-
-## How to Use
-
-1. Open NodeTool and create a new workflow
-2. Import this workflow from the examples gallery or build it manually following the diagram above
-3. Configure the input nodes with your data
-4. Run the workflow to see results
-
-## Related Workflows
-
-Browse other [workflow examples](/cookbook.md) to discover more capabilities.

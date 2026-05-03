@@ -31,11 +31,12 @@ function tryReadClipboardImage(workflow: Workflow): Record<string, unknown> {
     logMessage(`Found ${imageInputNodes.length} image input nodes`);
     if (imageInputNodes.length > 0) {
       const inputNode = imageInputNodes[0];
-      logMessage(`Using image input node: ${inputNode.data.name}`);
+      const nodeName = inputNode.data.name as string;
+      logMessage(`Using image input node: ${nodeName}`);
       const dataUri = `data:image/png;base64,${image
         .toPNG()
         .toString("base64")}`;
-      params[inputNode.data.name] = {
+      params[nodeName] = {
         type: "image",
         uri: dataUri,
       };
@@ -59,8 +60,9 @@ function tryReadClipboardText(workflow: Workflow): Record<string, unknown> {
     logMessage(`Found ${stringInputNodes.length} string input nodes`);
     if (stringInputNodes.length > 0) {
       const inputNode = stringInputNodes[0];
-      logMessage(`Using string input node: ${inputNode.data.name}`);
-      params[inputNode.data.name] = clipboardText;
+      const nodeName = inputNode.data.name as string;
+      logMessage(`Using string input node: ${nodeName}`);
+      params[nodeName] = clipboardText;
     }
   }
   return params;

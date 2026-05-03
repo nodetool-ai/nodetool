@@ -26,39 +26,18 @@ export default function TermsPage() {
         <article className="legal-article">
           <p>
             These Terms of Use govern your use of <strong>nodetool.ai</strong>,
-            <strong> NodeTool Studio</strong> (our open-source desktop
-            application), <strong>NodeTool Cloud</strong> (our hosted web
-            application), and related services we make available (together,
-            the &quot;Services&quot;). The Services are operated by{" "}
-            <strong>NodeTool B.V.</strong>, Prinsengracht 263, 1016 GV
-            Amsterdam, The Netherlands (KvK 87654321). By using the Services
-            you agree to these terms. If you do not agree, do not use the
-            Services.
+            the <strong>NodeTool</strong> desktop application, and related
+            services we make available (together, the &quot;Services&quot;). By using
+            the Services you agree to these terms. If you do not agree, do not
+            use the Services.
           </p>
 
           <h2>1. The Services</h2>
           <p>
-            NodeTool is a visual programming tool for building AI workflows.
-            It is offered in two editions:
-          </p>
-          <ul>
-            <li>
-              <strong>NodeTool Studio</strong> — open-source desktop
-              application that runs locally on your machine. Your content
-              stays on your device.
-            </li>
-            <li>
-              <strong>NodeTool Cloud</strong> — hosted web application that
-              runs on our infrastructure in Germany (Hetzner application
-              hosting and Supabase managed database, storage and
-              authentication, both in Frankfurt). We store your account,
-              workflows, chat messages and assets so that you can use them
-              across sessions and devices.
-            </li>
-          </ul>
-          <p>
-            The marketing website provides information about both editions
-            and links to downloads, documentation, and the source repository.
+            NodeTool is an open-source visual programming tool for building AI
+            workflows. The desktop application runs locally on your machine.
+            The marketing website provides information about the project and
+            links to downloads, documentation, and the source repository.
           </p>
 
           <h2>2. Open-source license</h2>
@@ -80,14 +59,11 @@ export default function TermsPage() {
 
           <h2>3. Eligibility and accounts</h2>
           <p>
-            You must be at least 16 years old to use the Services. No
-            account is required to download or run NodeTool Studio. To use
-            NodeTool Cloud you must register an account; you agree to
-            provide accurate information, to keep your credentials secure
-            and confidential, and to be responsible for all activity under
-            your account. Notify us promptly at{" "}
-            <a href="mailto:hello@nodetool.ai">hello@nodetool.ai</a> if you
-            suspect unauthorised access.
+            You must be at least 16 years old to use the Services. No account
+            is required to download or run the desktop application. Where an
+            account is offered for an optional service, you are responsible
+            for keeping your credentials secure and for activity under your
+            account.
           </p>
 
           <h2>4. Acceptable use</h2>
@@ -115,80 +91,11 @@ export default function TermsPage() {
 
           <h2>5. Your content</h2>
           <p>
-            <strong>Studio.</strong> Workflows, prompts, files and outputs
-            you create with NodeTool Studio stay on your device.
-          </p>
-          <p>
-            <strong>Cloud.</strong> When you use NodeTool Cloud, the content
-            you create or upload — including workflows, chat messages,
-            assets (images, audio, video, documents), execution history and
-            stored secrets — is transmitted to and stored on our
-            infrastructure in Germany (Hetzner for application hosting,
-            Supabase Frankfurt for database, object storage and
-            authentication) so we can deliver the service to you.
-          </p>
-          <p>
-            You retain all rights to your content. You grant us a limited,
-            non-exclusive, worldwide, royalty-free licence to host, store,
-            transmit, display, back up, and process your content solely as
-            necessary to operate the Services for you, to provide support
-            you initiate, to keep the Services secure, and to comply with
-            legal obligations. This licence terminates when you or we delete
-            the content, except for residual copies in encrypted backups
-            until they are rotated out (within 35 days of deletion).
-          </p>
-          <p>
-            We do not sell your content, share it with other users, or use
-            it to train machine-learning models.
-          </p>
-          <p>
-            You are responsible for ensuring that you have the necessary
-            rights to any inputs you process and that your use complies with
-            applicable law and the terms of any third-party model providers
-            you connect.
-          </p>
-
-          <h2>5a. Service rules for NodeTool Cloud</h2>
-          <p>
-            To keep Cloud reliable for everyone:
-          </p>
-          <ul>
-            <li>
-              we may apply reasonable rate limits, storage quotas, and
-              compute quotas — current limits are shown in your account or
-              plan description;
-            </li>
-            <li>
-              you must not upload content that is illegal, infringing,
-              malicious (malware), or that would expose us to liability;
-            </li>
-            <li>
-              you must not use Cloud to generate or distribute content that
-              sexualises minors, that is intended to harass or harm specific
-              individuals, or that violates export-control or sanctions law;
-            </li>
-            <li>
-              we may suspend or terminate access for material breach of
-              these Terms or where required by law, with reasonable notice
-              where possible and immediate notice where necessary to protect
-              the Services or other users;
-            </li>
-            <li>
-              you can delete individual workflows, chat threads and assets
-              from the application at any time, and you can close your
-              account from the settings — closure triggers deletion of your
-              content as described in our{" "}
-              <Link href="/privacy">Privacy Policy</Link>.
-            </li>
-          </ul>
-
-          <h2>5b. Data export</h2>
-          <p>
-            You can export your workflows from NodeTool Cloud at any time
-            via the application. On request to{" "}
-            <a href="mailto:hello@nodetool.ai">hello@nodetool.ai</a> we will
-            provide a copy of your account data in a structured,
-            commonly-used and machine-readable format (Art. 20 GDPR).
+            Workflows, prompts, files, and outputs you create with the
+            desktop application stay on your device. You retain all rights to
+            your content. You are responsible for ensuring that you have the
+            necessary rights to any inputs you process and for complying with
+            the terms of any third-party model providers you connect.
           </p>
 
           <h2>6. Third-party services and models</h2>
@@ -285,16 +192,10 @@ export default function TermsPage() {
       <footer className="relative border-t border-slate-800/50 bg-slate-950 py-8">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-3 sm:flex-row text-sm text-slate-500">
-            <p>© {new Date().getFullYear()} NodeTool B.V.</p>
+            <p>© {new Date().getFullYear()} NodeTool</p>
             <div className="flex gap-5">
               <Link href="/" className="hover:text-slate-200 transition-colors">
                 Home
-              </Link>
-              <Link
-                href="/imprint"
-                className="hover:text-slate-200 transition-colors"
-              >
-                Imprint
               </Link>
               <Link
                 href="/privacy"

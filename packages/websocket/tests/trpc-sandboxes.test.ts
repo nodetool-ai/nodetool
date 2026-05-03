@@ -147,10 +147,6 @@ describe("sandboxes router", () => {
 
   it("blocks actions for containers not owned by current user", async () => {
     const now = new Date().toISOString();
-    const ps = `${JSON.stringify({
-      ID: "abc123",
-      Names: "nodetool-sandbox-abc123"
-    })}\n`;
     const inspect = JSON.stringify([
       {
         ...ownedInspect("abc123", now),
@@ -162,10 +158,7 @@ describe("sandboxes router", () => {
         }
       }
     ]);
-    mockDockerSteps([
-      { kind: "ok", stdout: ps },
-      { kind: "ok", stdout: inspect }
-    ]);
+    mockDockerSteps([{ kind: "ok", stdout: inspect }]);
 
     const caller = createCaller(makeCtx());
     await expect(
@@ -177,13 +170,8 @@ describe("sandboxes router", () => {
 
   it("propagates docker failures for lifecycle actions", async () => {
     const now = new Date().toISOString();
-    const ps = `${JSON.stringify({
-      ID: "abc123",
-      Names: "nodetool-sandbox-abc123"
-    })}\n`;
     const inspect = JSON.stringify([ownedInspect("abc123", now)]);
     mockDockerSteps([
-      { kind: "ok", stdout: ps },
       { kind: "ok", stdout: inspect },
       { kind: "error", stderr: "No such container: abc123" }
     ]);
@@ -198,10 +186,6 @@ describe("sandboxes router", () => {
 
   it("parses live tool call log entries for owned sandbox", async () => {
     const now = new Date().toISOString();
-    const ps = `${JSON.stringify({
-      ID: "abc123",
-      Names: "nodetool-sandbox-abc123"
-    })}\n`;
     const inspect = JSON.stringify([ownedInspect("abc123", now)]);
     const logs = [
       "2026-04-19T22:00:00.000000000Z shell_exec running command",
@@ -210,7 +194,6 @@ describe("sandboxes router", () => {
     ].join("\n");
 
     mockDockerSteps([
-      { kind: "ok", stdout: ps },
       { kind: "ok", stdout: inspect },
       { kind: "ok", stdout: logs }
     ]);

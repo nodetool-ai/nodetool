@@ -21,18 +21,15 @@ Gets information about a path.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Path to analyze | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `Dict[Any, Any]` |  |
-
-## Metadata
+| output | `dict` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

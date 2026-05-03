@@ -22,8 +22,8 @@ Apply transformations to SVG elements.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| content | `svg_element` | SVG element to transform | - |
+|----------|------|-------------|---------|
+| content | `svg_element` | SVG element to transform | `{"type":"svg_element","name":"","attributes":{}...` |
 | translate_x | `float` | X translation | `0` |
 | translate_y | `float` | Y translation | `0` |
 | rotate | `float` | Rotation angle in degrees | `0` |
@@ -36,9 +36,6 @@ Apply transformations to SVG elements.
 |--------|------|-------------|
 | output | `svg_element` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.svg](../) namespace.
-

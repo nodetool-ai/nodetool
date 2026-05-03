@@ -17,7 +17,7 @@ Check if path is a directory.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Path to check | `` |
 
 ## Outputs
@@ -26,9 +26,6 @@ Check if path is a directory.
 |--------|------|-------------|
 | output | `bool` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-
