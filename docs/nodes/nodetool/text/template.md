@@ -11,7 +11,7 @@ namespace: "nodetool.text"
 
 ## Description
 
-Uses template syntax to format strings with variables. Supports {{ variable }} and {variable} patterns.
+Uses template syntax to format strings with variables. Supports `{{ variable }}` and `{variable}` patterns.
     text, template, formatting, format, combine, concatenate, variable, replace
 
     Use cases:
@@ -23,7 +23,7 @@ Uses template syntax to format strings with variables. Supports {{ variable }} a
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| string | `str` | Template string with {{ variable }} or {variable} placeholders. | `` |
+| string | `str` | Template string with `{{ variable }}` or `{variable}` placeholders. | `` |
 
 ## Outputs
 

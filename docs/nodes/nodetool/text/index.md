@@ -26,7 +26,7 @@ This namespace contains 50 node(s).
 - **[Filter String](filterstring.md)** - Filters a stream of strings based on various criteria.
 - **[Find All Regex Matches](findallregexmatches.md)** - Finds all regex matches in text as separate substrings.
 - **[Find Regex Matches](findregexmatches.md)** - Find all matches of a regex pattern in text.
-- **[Format Text](formattext.md)** - Replaces placeholders in a string with dynamic inputs using {{ variable }} or...
+- **[Format Text](formattext.md)** - Replaces placeholders in a string with dynamic inputs using `{{ variable }}` or `{variable}` syntax.
 - **[HTML to Text](htmltotext.md)** - Converts HTML content to plain text using html2text.
 - **[Index Of](indexof.md)** - Finds the position of a substring in text.
 - **[Is Empty](isempty.md)** - Checks if text is empty or contains only whitespace.
@@ -49,7 +49,7 @@ This namespace contains 50 node(s).
 - **[Starts With](startswith.md)** - Checks if text starts with a specified prefix.
 - **[Strip Accents](stripaccents.md)** - Removes accent marks while keeping base characters.
 - **[Surround With](surroundwith.md)** - Wraps text with the provided prefix and suffix.
-- **[Template](template.md)** - Uses template syntax to format strings with variables. Supports {{ variable }...
+- **[Template](template.md)** - Uses template syntax to format strings with variables. Supports `{{ variable }}` syntax.
 - **[To Lowercase](tolowercase.md)** - Converts text to lowercase.
 - **[To String](tostring.md)** - Converts any input value to its string representation.
 - **[To Title Case](totitlecase.md)** - Converts text to title case.

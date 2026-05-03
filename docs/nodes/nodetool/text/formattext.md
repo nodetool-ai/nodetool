@@ -11,9 +11,9 @@ namespace: "nodetool.text"
 
 ## Description
 
-Replaces placeholders in a string with dynamic inputs using {{ variable }} or {variable} syntax.
-    Supports Jinja2-style filters: {{ var|upper }}, {{ var|lower }}, {{ var|capitalize }},
-    {{ var|title }}, {{ var|trim }}, {{ var|truncate(n) }}, {{ var|default(val) }}.
+Replaces placeholders in a string with dynamic inputs using `{{ variable }}` or `{variable}` syntax.
+    Supports Jinja2-style filters: `{{ var|upper }}`, `{{ var|lower }}`, `{{ var|capitalize }}`,
+    `{{ var|title }}`, `{{ var|trim }}`, `{{ var|truncate(n) }}`, `{{ var|default(val) }}`.
     text, template, formatting, format, variable, replace
 
     Use cases:
@@ -24,7 +24,7 @@ Replaces placeholders in a string with dynamic inputs using {{ variable }} or {v
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| template | `str` | Template string with {{ variable }} or {variable} placeholders. | `` |
+| template | `str` | Template string with `{{ variable }}` or `{variable}` placeholders. | `` |
 
 ## Outputs
 
