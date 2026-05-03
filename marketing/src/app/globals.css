@@ -435,7 +435,7 @@
 
 /* Legal pages (Privacy / Terms) — minimal long-form prose styling */
 .legal-article {
-  color: rgb(203 213 225); /* slate-300 */
+  color: rgb(203 213 225);
   font-size: 1rem;
   line-height: 1.7;
 }
@@ -465,7 +465,7 @@
   font-weight: 600;
 }
 .legal-article a {
-  color: rgb(96 165 250); /* blue-400 */
+  color: rgb(96 165 250);
   text-decoration: none;
 }
 .legal-article a:hover {
@@ -481,5 +481,5 @@
   margin-top: 0.35rem;
 }
 .legal-article ul li::marker {
-  color: rgb(100 116 139); /* slate-500 */
+  color: rgb(100 116 139);
 }

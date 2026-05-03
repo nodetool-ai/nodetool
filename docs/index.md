@@ -17,6 +17,31 @@ description: "NodeTool documentation — build AI workflows visually. Connect no
   </div>
 </section>
 
+## Studio or Cloud?
+
+NodeTool ships in two editions, both 100% open source under AGPL-3.0 and built from the same codebase. Pick the one that fits how you want to work — workflows are portable between them.
+
+<div class="pattern-grid">
+  <article class="pattern-card">
+    <h5>NodeTool Studio — desktop, local-first</h5>
+    <p>
+      The desktop app for macOS, Windows, and Linux. Runs Ollama, MLX, and GGUF models on your hardware. Works offline. Your data, prompts, and outputs stay on your disk. BYOK for cloud providers when you want them.
+    </p>
+    <p><strong>Best for:</strong> privacy, offline work, free local inference, GPU owners.</p>
+    <a href="https://nodetool.ai/studio">Download Studio →</a>
+  </article>
+  <article class="pattern-card">
+    <h5>NodeTool Cloud — hosted, browser-based</h5>
+    <p>
+      The hosted version. Sign in from any browser — no install, no GPU, no driver setup. Always on the latest release. <strong>Doesn't run local models</strong>, but supports BYOK for every cloud provider (OpenAI, Anthropic, Gemini, Replicate, FAL, ElevenLabs, HuggingFace, …).
+    </p>
+    <p><strong>Best for:</strong> zero setup, working across devices, teams, no-GPU environments.</p>
+    <a href="https://nodetool.ai/cloud">Open Cloud →</a>
+  </article>
+</div>
+
+> **Always open source.** Cloud is just our managed hosting of the code in this repo. There is no separate proprietary version — you can self-host the same Docker images, CLI, and websocket server any time.
+
 ## What you can build
 
 <div class="pattern-grid">

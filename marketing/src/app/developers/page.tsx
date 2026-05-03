@@ -403,7 +403,7 @@ export default function DevelopersPage() {
               Built with ❤️ by the NodeTool team
             </span>
           </p>
-          <div className="mt-4 flex justify-center gap-6 text-xs text-slate-500">
+          <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-slate-500">
             <a
               href="https://github.com/nodetool-ai/nodetool"
               className="hover:text-slate-300 transition-colors"

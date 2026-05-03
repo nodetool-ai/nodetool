@@ -53,17 +53,21 @@ const ComparisonSection = dynamic(
   () => import("../components/ComparisonSection"),
   { ssr: false }
 );
+const EditionsCompareSection = dynamic(
+  () => import("../components/EditionsCompareSection"),
+  { ssr: false }
+);
 import { XMarkIcon, Bars3Icon } from "@heroicons/react/24/outline";
 
 import { Feature, features } from "./features";
 
 
 const navigation = [
+  { name: "Studio", href: "/studio" },
+  { name: "Cloud", href: "/cloud" },
   { name: "Agents", href: "/agents" },
-  { name: "Creatives", href: "/creatives" },
   { name: "Developers", href: "/developers" },
   { name: "Features", href: "#features" },
-  // { name: "Templates", href: "#templates" },
   { name: "Community", href: "#contact" },
   { name: "Docs", href: "https://docs.nodetool.ai" },
 ] as const;
@@ -575,6 +579,9 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Editions: Studio vs Cloud */}
+        <EditionsCompareSection reducedMotion={reducedMotion} />
+
         {/* Comparisons with alternatives */}
         <ComparisonSection reducedMotion={reducedMotion} />
 
@@ -701,6 +708,13 @@ export default function Home() {
                 className="transition-colors hover:text-slate-100"
               >
                 Community
+              </a>
+              <span className="text-slate-700">•</span>
+              <a
+                href="/imprint"
+                className="transition-colors hover:text-slate-100"
+              >
+                Imprint
               </a>
               <span className="text-slate-700">•</span>
               <a
