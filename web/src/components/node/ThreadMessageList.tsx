@@ -7,7 +7,7 @@ import { Message, ToolCall } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import ImageView from "./ImageView";
 import isEqual from "fast-deep-equal";
-import { BORDER_RADIUS } from "../../ui_primitives";
+import { BORDER_RADIUS } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
