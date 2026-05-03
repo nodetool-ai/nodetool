@@ -21,23 +21,15 @@ Saves an Excel workbook to disk.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| workbook | `excel` | The Excel workbook to save | `{'type': 'excel', 'uri': '', 'asset_id': None, 'data': None}` |
-| folder | `file_path` | The folder to save the file to. | `{'type': 'file_path', 'path': ''}` |
-| filename | `str` | 
-        The filename to save the file to.
-        You can use time and date variables to create unique names:
-        %Y - Year
-        %m - Month
-        %d - Day
-        %H - Hour
-        %M - Minute
-        %S - Second
-         | `` |
+|----------|------|-------------|---------|
+| workbook | `excel` | The Excel workbook to save | `{"type":"excel","uri":"","asset_id":null,"data"...` |
+| folder | `file_path` | The folder to save the file to. | `{"type":"file_path","path":""}` |
+| filename | `str` |          The filename to save the file to.         You can use time and date variables to create unique names:         %Y - Year         %m - Month         %d - Day         %H - Hour         %M - Minute         %S - Second          | `` |
 
-## Metadata
+## Outputs
+
+_(none)_
 
 ## Related Nodes
 
 Browse other nodes in the [lib.excel](../) namespace.
-

@@ -43,7 +43,8 @@ import {
   loadDeploymentConfig,
   saveDeploymentConfig,
   initDeploymentConfig,
-  mergeDefaultsWithEnv
+  mergeDefaultsWithEnv,
+  ensureDeploymentMasterKey
 } from "../src/deployment-config.js";
 
 // ============================================================================
@@ -539,6 +540,16 @@ describe("GCPDeploymentSchema", () => {
     expect(result.iam.allow_unauthenticated).toBe(false);
   });
 
+  it("parses environment variables", () => {
+    const result = GCPDeploymentSchema.parse({
+      project_id: "my-project",
+      service_name: "nodetool",
+      image: { repository: "proj/repo", tag: "v1" },
+      environment: { SECRETS_MASTER_KEY: "key" }
+    });
+    expect(result.environment).toEqual({ SECRETS_MASTER_KEY: "key" });
+  });
+
   it("rejects missing project_id", () => {
     expect(() =>
       GCPDeploymentSchema.parse({
@@ -700,6 +711,46 @@ describe("getDeploymentConfigPath", () => {
 describe("DEPLOYMENT_CONFIG_FILE constant", () => {
   it("is deployment.yaml", () => {
     expect(DEPLOYMENT_CONFIG_FILE).toBe("deployment.yaml");
+  });
+});
+
+// ============================================================================
+// ensureDeploymentMasterKey / mergeDefaultsWithEnv
+// ============================================================================
+
+describe("ensureDeploymentMasterKey", () => {
+  it("adds SECRETS_MASTER_KEY to Docker container environment", () => {
+    const deployment = DockerDeploymentSchema.parse({
+      host: "localhost",
+      image: { name: "ghcr.io/nodetool-ai/nodetool", tag: "latest" },
+      container: { name: "nodetool-dev", port: 8000 }
+    });
+
+    expect(ensureDeploymentMasterKey(deployment)).toBe(true);
+    const key = deployment.container.environment?.SECRETS_MASTER_KEY;
+    expect(Buffer.from(key ?? "", "base64")).toHaveLength(32);
+  });
+
+  it("preserves an existing master key", () => {
+    const deployment = RunPodDeploymentSchema.parse({
+      image: { name: "img", tag: "latest" },
+      environment: { SECRETS_MASTER_KEY: "existing" }
+    });
+
+    expect(ensureDeploymentMasterKey(deployment)).toBe(false);
+    expect(deployment.environment?.SECRETS_MASTER_KEY).toBe("existing");
+  });
+
+  it("adds SECRETS_MASTER_KEY to platform deployment environment", () => {
+    const deployment = GCPDeploymentSchema.parse({
+      project_id: "p",
+      service_name: "s",
+      image: { repository: "r", tag: "t" }
+    });
+
+    expect(ensureDeploymentMasterKey(deployment)).toBe(true);
+    const key = deployment.environment?.SECRETS_MASTER_KEY;
+    expect(Buffer.from(key ?? "", "base64")).toHaveLength(32);
   });
 });
 

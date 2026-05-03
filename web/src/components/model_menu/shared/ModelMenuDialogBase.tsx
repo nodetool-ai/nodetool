@@ -1,6 +1,7 @@
 import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, useMemo, useState } from "react";
+import { isProduction } from "../../../lib/env";
 import {
   Popover,
   PopoverOrigin,
@@ -45,6 +46,7 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
     error: unknown;
     providerErrors?: Array<{ provider: string; error: unknown }>;
     loadingProgress?: { total: number; loaded: number; loading: number };
+    providers?: string[];
     refetch?: () => Promise<unknown> | unknown;
   };
   onModelChange?: (model: TModel) => void;
@@ -82,12 +84,14 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const [customView, setCustomView] = useState<
     "favorites" | "recent" | "downloads" | null
   >(null);
-  const hasDownloads = recommendedModels.length > 0 || modelPacks.length > 0;
+  const hasDownloads = !isProduction && (recommendedModels.length > 0 || modelPacks.length > 0);
 
   const isIconOnly = true;
 
-  const { providers, filteredModels, favoriteModels, recentModels, totalCount } =
+  const { providers: providersFromModels, filteredModels, favoriteModels, recentModels, totalCount } =
     useModelMenuData<TModel>(models || [], storeHook);
+
+  const providers = modelData.providers ?? providersFromModels;
 
   // Advanced filters state snapshot
   const selectedTypes = useModelFiltersStore((s) => s.selectedTypes);

@@ -384,7 +384,8 @@ const Welcome = () => {
           key = item.key;
         } else if (React.isValidElement(item)) {
           // Use element type for components
-          const type = typeof item.type === "string" ? item.type : (item.type as any)?.displayName || (item.type as any)?.name || "component";
+          const componentType = item.type as string | (React.FC & { displayName?: string });
+          const type = typeof componentType === "string" ? componentType : componentType?.displayName || componentType?.name || "component";
           key = `${type}-${index}`;
         } else if (typeof item === "string" || typeof item === "number") {
           // Use the value itself for primitives

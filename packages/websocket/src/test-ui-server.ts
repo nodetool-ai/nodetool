@@ -3,10 +3,16 @@ import {
   type IncomingMessage,
   type ServerResponse
 } from "node:http";
-import { createLogger, getDefaultDbPath } from "@nodetool-ai/config";
+import {
+  createLogger,
+  getDefaultDbPath,
+  getPostgresDatabaseUrl,
+  loadEnvironment
+} from "@nodetool-ai/config";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
 import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
@@ -18,7 +24,9 @@ import {
 } from "./unified-websocket-runner.js";
 import { ScriptedProvider, autoScript } from "@nodetool-ai/runtime";
 import { handleNodeHttpRequest, type HttpApiOptions } from "./http-api.js";
-import { initDb } from "@nodetool-ai/models";
+import { initDb, initPostgresDb } from "@nodetool-ai/models";
+
+loadEnvironment(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.."));
 
 const log = createLogger("nodetool.websocket.server");
 
@@ -1170,7 +1178,17 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
   });
   registerBaseNodes(registry);
   registerElevenLabsNodes(registry);
-  registerTransformersJsNodes(registry);
+  if (process.env["NODETOOL_ENV"] !== "production") {
+    registerTransformersJsNodes(registry);
+  }
+  if (process.env["NODETOOL_ENV"] === "production") {
+    const skippedPrefixes = ["lib.tensorflow.", "transformers."];
+    for (const nodeType of registry.list()) {
+      if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
+        registry.unregister(nodeType);
+      }
+    }
+  }
   const resolvedApiOptions: HttpApiOptions = {
     ...options,
     metadataRoots,
@@ -1315,10 +1333,13 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  // Initialize SQLite adapter pointing at the same DB as the Python side
-  const dbPath = getDefaultDbPath();
   try {
-    initDb(dbPath);
+    const postgresDatabaseUrl = getPostgresDatabaseUrl();
+    if (postgresDatabaseUrl) {
+      await initPostgresDb(postgresDatabaseUrl);
+    } else {
+      initDb(getDefaultDbPath());
+    }
   } catch {
     // DB unavailable — secrets will appear unconfigured
   }

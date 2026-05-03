@@ -13,7 +13,13 @@ import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createServer as createHttpServer } from "node:http";
 import crypto from "node:crypto";
-import { createLogger, configureLogging, getDefaultDbPath } from "@nodetool-ai/config";
+import {
+  createLogger,
+  configureLogging,
+  getDefaultDbPath,
+  getPostgresDatabaseUrl,
+  loadEnvironment
+} from "@nodetool-ai/config";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
@@ -29,7 +35,7 @@ import {
   PythonStdioBridge
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
-import { initDb, getSecret } from "@nodetool-ai/models";
+import { initDb, initPostgresDb, getSecret } from "@nodetool-ai/models";
 import {
   Tool,
   GoogleSearchTool,
@@ -107,6 +113,8 @@ import { agentSocketRoute, getAgentRuntime } from "./agent/index.js";
     }
   }
 }
+
+loadEnvironment(resolve(dirname(fileURLToPath(import.meta.url)), "../../.."));
 
 const log = createLogger("nodetool.websocket.server");
 // Apply log level from NODETOOL_LOG_LEVEL / LOG_LEVEL env vars (the module
@@ -187,11 +195,32 @@ async function notifyPythonBridgeResourceChanges(
 // Database setup
 // ---------------------------------------------------------------------------
 
-const dbPath = getDefaultDbPath();
+function maskDatabaseUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.password) {
+      parsed.password = "***";
+    }
+    return parsed.toString();
+  } catch {
+    return "(provided)";
+  }
+}
+
 try {
-  mkdirSync(dirname(dbPath), { recursive: true });
-  initDb(dbPath);
-  log.info(`Database ready [${startupMs()}]`, { path: dbPath });
+  const postgresDatabaseUrl = getPostgresDatabaseUrl();
+  if (postgresDatabaseUrl) {
+    await initPostgresDb(postgresDatabaseUrl);
+    log.info(`PostgreSQL database ready [${startupMs()}]`, {
+      url: maskDatabaseUrl(postgresDatabaseUrl)
+    });
+  } else {
+    const dbPath = getDefaultDbPath();
+    mkdirSync(dirname(dbPath), { recursive: true });
+    initDb(dbPath);
+    log.info(`SQLite database ready [${startupMs()}]`, { path: dbPath });
+  }
+
   // Initialize master key from keychain before any secret access.
   // This must happen before setSecretResolver so that getMasterKey() (sync)
   // returns the keychain key rather than auto-generating a new one.
@@ -319,11 +348,26 @@ registry.loadPythonMetadata({ roots: metadataRoots, maxDepth: 8 });
 log.info(`Python metadata loaded [${startupMs()}]`);
 registerBaseNodes(registry);
 registerElevenLabsNodes(registry);
-registerTransformersJsNodes(registry);
+if (process.env["NODETOOL_ENV"] !== "production") {
+  registerTransformersJsNodes(registry);
+}
 registerFalNodes(registry);
 registerKieNodes(registry);
 registerReplicateNodes(registry);
-registerTransformersJsProvider();
+if (process.env["NODETOOL_ENV"] !== "production") {
+  registerTransformersJsProvider();
+}
+// In production, unregister optional JS-only nodes that require on-demand npm packages.
+if (process.env["NODETOOL_ENV"] === "production") {
+  const skippedPrefixes = ["lib.tensorflow.", "transformers.", "vector."];
+  for (const nodeType of registry.list()) {
+    if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
+      if (registry.unregister(nodeType)) {
+        log.info(`Unregistered ${nodeType} in production`);
+      }
+    }
+  }
+}
 log.info(`Node registry ready [${startupMs()}]`);
 
 // ---------------------------------------------------------------------------
@@ -607,10 +651,54 @@ app.addContentTypeParser("*", { parseAs: "buffer" }, (_req, body, done) => {
 });
 
 // ---------------------------------------------------------------------------
+// Examples directory detection
+// ---------------------------------------------------------------------------
+
+// Resolve examples directory so that example workflow JSON files can be served
+// without requiring a Python installation.
+//
+// Resolution order:
+//  1. NODETOOL_BASE_EXAMPLES_DIR env var (explicit override)
+//  2. Co-located with server entry point — used when the backend is bundled
+//     (e.g. resources/backend/server.mjs → resources/backend/examples/nodetool-base/)
+//  3. Monorepo layout — used in development and dist runs where server.js lives
+//     inside packages/websocket/src/ or packages/websocket/dist/
+const _serverDir = dirname(fileURLToPath(import.meta.url));
+const _envExamplesDir = process.env["NODETOOL_BASE_EXAMPLES_DIR"];
+const _bundledExamplesDir = resolve(_serverDir, "examples", "nodetool-base");
+const _monoExamplesDir = resolve(
+  _serverDir,
+  "..",
+  "..",
+  "..",
+  "packages",
+  "base-nodes",
+  "nodetool",
+  "examples",
+  "nodetool-base"
+);
+const _examplesDirCandidates: Array<string | null | undefined> = [
+  _envExamplesDir && existsSync(_envExamplesDir) ? _envExamplesDir : null,
+  existsSync(_bundledExamplesDir) ? _bundledExamplesDir : null,
+  existsSync(_monoExamplesDir) ? _monoExamplesDir : null
+];
+const _resolvedExamplesDir =
+  _examplesDirCandidates.find((d): d is string => Boolean(d)) ?? null;
+
+if (_resolvedExamplesDir) {
+  log.info(`Examples directory resolved: ${_resolvedExamplesDir}`);
+} else {
+  log.warn("Examples directory not found — template workflows will be unavailable");
+}
+
+// ---------------------------------------------------------------------------
 // API options for HTTP route handlers
 // ---------------------------------------------------------------------------
 
 const apiOptions: HttpApiOptions = { metadataRoots, registry };
+if (_resolvedExamplesDir) {
+  apiOptions.examplesDir = _resolvedExamplesDir;
+}
 const staticFolder = process.env["STATIC_FOLDER"];
 const hasStaticApp = Boolean(staticFolder && existsSync(staticFolder));
 
@@ -781,9 +869,13 @@ if (!isProduction) {
     const request = new Request(url, {
       method: req.method,
       headers,
-      body: requestBody,
-      duplex: "half"
-    });
+      body: Buffer.isBuffer(requestBody)
+        ? new Uint8Array(requestBody)
+        : requestBody,
+      // `duplex` is required by Node's fetch when streaming bodies but is
+      // missing from some `@types/node`/`undici-types` versions of RequestInit.
+      ...({ duplex: "half" } as object)
+    } as RequestInit);
 
     const response = await handleMcpHttpRequest(request, { metadataRoots });
     if (!response) {

@@ -9,7 +9,11 @@ import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions, fileExists } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
 import { getTorchIndexUrl } from "./torchPlatformCache";
-import { MIN_NODETOOL_CORE_VERSION } from "@nodetool-ai/runtime";
+// The bridge-protocol constants live in @nodetool-ai/protocol — a tiny
+// zod-only package — specifically so the Electron main bundle can read them
+// without dragging the @nodetool-ai/runtime barrel (and every provider's
+// heavy SDK) into the main process.
+import { MIN_NODETOOL_CORE_VERSION } from "@nodetool-ai/protocol/bridge-protocol";
 
 /**
  * Python environment manager for the Electron shell.

@@ -4,8 +4,8 @@ import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Edge, Node } from "@xyflow/react";
 import { uuidv4 } from "../../stores/uuidv4";
 import { NodeData } from "../../stores/NodeData";
-import { useCallback, useMemo } from "react";
-import { useNodes } from "../../contexts/NodeContext";
+import { useCallback } from "react";
+import { useNodeStoreRef } from "../../contexts/NodeContext";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import { useClipboardContentPaste } from "./useClipboardContentPaste";
 import { isTextInputActive } from "../../utils/browser";
@@ -23,7 +23,10 @@ const isValidEdge = (edge: unknown): edge is Edge =>
 
 export const useCopyPaste = () => {
   const reactFlow = useReactFlow();
-  const generateNodeIds = useNodes((state) => state.generateNodeIds);
+  // Use the live store ref so all callbacks always read the latest state,
+  // avoiding stale-closure bugs when the user acts faster than React's
+  // async effect scheduling (e.g. rubber-band select then immediately Ctrl+C).
+  const nodeStore = useNodeStoreRef();
   const { setClipboardData, setIsClipboardValid } = useSessionStateStore(
     (state) => ({
       setClipboardData: state.setClipboardData,
@@ -31,27 +34,26 @@ export const useCopyPaste = () => {
     })
   );
 
-  const { nodes, edges, setNodes, setEdges, workflowId } = useNodes(
-    (state) => ({
-      nodes: state.nodes,
-      edges: state.edges,
-      setNodes: state.setNodes,
-      setEdges: state.setEdges,
-      workflowId: state.workflow.id
-    })
-  );
-
   const { handleContentPaste, readClipboardContent, readClipboardText } =
     useClipboardContentPaste();
 
-  const selectedNodes = useMemo(() => {
-    return nodes.filter((node) => node.selected);
-  }, [nodes]);
-
   const handleCopy = useCallback(
     async (nodeId?: string) => {
-      if (!nodeId && (isTextInputActive() || (window.getSelection()?.toString().length ?? 0) > 0)) return { nodesToCopy: [], connectedEdges: [] };
-      let nodesToCopy: Node[];
+      if (!nodeId && isTextInputActive()) return { nodesToCopy: [], connectedEdges: [] };
+
+      // Always read fresh state to avoid stale closures.
+      const { nodes, edges, getSelectedNodes } = nodeStore.getState();
+      const selectedNodes = getSelectedNodes();
+
+      // Allow the browser to handle text copy when no nodes are selected and
+      // text is highlighted. But when nodes ARE selected, always copy them —
+      // rubber-band selection can accidentally create a text selection, which
+      // would otherwise silently block multi-node copy.
+      if (!nodeId && selectedNodes.length === 0 && (window.getSelection()?.toString().length ?? 0) > 0) {
+        return { nodesToCopy: [], connectedEdges: [] };
+      }
+
+      let nodesToCopy: Node<NodeData>[];
       if (nodeId && nodeId !== "") {
         const node = nodes.find((node) => node.id === nodeId);
         nodesToCopy = node ? [node] : [];
@@ -89,7 +91,7 @@ export const useCopyPaste = () => {
 
       return { nodesToCopy, connectedEdges };
     },
-    [nodes, edges, selectedNodes, setClipboardData, setIsClipboardValid]
+    [nodeStore, setClipboardData, setIsClipboardValid]
   );
 
   const handleCut = useCallback(
@@ -104,6 +106,9 @@ export const useCopyPaste = () => {
       const nodesToCopyIds = new Set(nodesToCopy.map((n) => n.id));
       const connectedEdgeIds = new Set(connectedEdges.map((e) => e.id));
 
+      // Read fresh state so we don't lose nodes added after the cut callback was created.
+      const { nodes, edges, setNodes, setEdges } = nodeStore.getState();
+
       const filteredNodes = nodes.filter(
         (node) => !nodesToCopyIds.has(node.id)
       );
@@ -114,7 +119,7 @@ export const useCopyPaste = () => {
       );
       setEdges(filteredEdges);
     },
-    [handleCopy, nodes, edges, setNodes, setEdges]
+    [handleCopy, nodeStore]
   );
 
   const handlePaste = useCallback(async () => {
@@ -202,9 +207,10 @@ export const useCopyPaste = () => {
       return;
     }
 
-    // At this point, no text input is focused, so we can proceed with node paste
-    // Previously we checked if cursor was over the flow pane, but that breaks
-    // paste from Electron's Edit menu where cursor is on the menu
+    // At this point, no text input is focused, so we can proceed with node paste.
+    // Read fresh state from the store so that cross-workflow paste always uses
+    // the current workflow's nodes/edges/workflowId rather than a stale snapshot
+    // captured when the callback was last created.
     const { nodes: copiedNodes, edges: copiedEdges } = parsedData as {
       nodes: Node<NodeData>[];
       edges: Edge[];
@@ -212,6 +218,16 @@ export const useCopyPaste = () => {
     const oldToNewIds = new Map<string, string>();
     const newNodes: Node<NodeData>[] = [];
     const newEdges: Edge[] = [];
+
+    const {
+      nodes,
+      edges,
+      setNodes,
+      setEdges,
+      generateNodeIds,
+      workflow
+    } = nodeStore.getState();
+    const workflowId = workflow.id;
 
     // Generate new sequential IDs for all copied nodes
     const newIds = generateNodeIds(copiedNodes.length);
@@ -256,7 +272,7 @@ export const useCopyPaste = () => {
         parentId: newParentId,
         data: {
           ...node.data,
-          // Fix: Update workflow_id to current workflow when pasting
+          // Update workflow_id to current workflow when pasting
           workflow_id: workflowId,
           positionAbsolute: positionAbsolute
             ? {
@@ -305,14 +321,8 @@ export const useCopyPaste = () => {
     setNodes([...deselectedNodes, ...newNodes]);
     setEdges([...deselectedEdges, ...newEdges]);
   }, [
-    generateNodeIds,
+    nodeStore,
     reactFlow,
-    nodes,
-    edges,
-    setNodes,
-    setEdges,
-
-    workflowId,
     handleContentPaste,
     readClipboardContent,
     readClipboardText

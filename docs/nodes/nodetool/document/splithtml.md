@@ -17,8 +17,8 @@ Split HTML content into semantic chunks based on HTML tags.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| document | `document` | Document ID to associate with the HTML content | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| document | `document` | Document ID to associate with the HTML content | `{"type":"document","uri":"","asset_id":null,"da...` |
 
 ## Outputs
 
@@ -27,10 +27,8 @@ Split HTML content into semantic chunks based on HTML tags.
 | text | `str` |  |
 | source_id | `str` |  |
 | start_index | `int` |  |
-
-## Metadata
+| chunks | `list` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.document](../) namespace.
-

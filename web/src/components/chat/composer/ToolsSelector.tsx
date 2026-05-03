@@ -4,11 +4,11 @@ import { useTheme, type Theme } from "@mui/material/styles";
 
 import React, { memo, useCallback, useMemo, useState, useRef } from "react";
 import {
-  Button,
   ListItemIcon,
   ListItemText,
   DialogContent
 } from "@mui/material";
+import { EditorButton } from "../../editor_ui";
 import { Dialog, Tooltip, Text, Caption, FlexRow, ToolbarIconButton } from "../../ui_primitives";
 import isEqual from "fast-deep-equal";
 import {
@@ -286,7 +286,7 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
         }
         delay={TOOLTIP_ENTER_DELAY}
       >
-        <Button
+        <EditorButton
           ref={buttonRef}
           className={`tools-button ${selectedTools.length > 0 ? "active" : ""}`}
           onClick={handleClick}
@@ -328,7 +328,7 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
               color: "var(--palette-primary-main)"
             }
           })}
-        ></Button>
+        />
       </Tooltip>
       <Dialog
         css={dialogStyles(theme)}

@@ -1,8 +1,14 @@
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import { app } from "electron";
 import { logMessage } from "./logger";
-import { getProcessEnv, getPythonPath, getCondaEnvPath } from "./config";
+import {
+  getOptionalNodeModulesPath,
+  getProcessEnv,
+  getPythonPath,
+  getCondaEnvPath,
+} from "./config";
 import * as path from "path";
+import * as fsp from "fs/promises";
 
 /** Extract the message from an unknown catch-clause error. */
 function errorMsg(error: unknown): string {
@@ -41,6 +47,34 @@ export function getPackageDescription(pkg: Pick<RegistryPackageItem, "repo_id" |
   return typeof pkg.description === "string" ? pkg.description.trim() : "";
 }
 
+export function needsTorchPlatformDetection(packageName: string): boolean {
+  return TORCH_DEPENDENT_PACKAGES.has(canonicalizePackageName(packageName));
+}
+
+async function ensureTorchPlatformDetectedForPackage(
+  packageName: string
+): Promise<void> {
+  if (!needsTorchPlatformDetection(packageName)) {
+    return;
+  }
+
+  const saved = getSavedTorchPlatform();
+  if (saved) {
+    logMessage(
+      `Using saved torch platform for ${packageName}: ${saved.platform}`
+    );
+    return;
+  }
+
+  const message = `Detecting GPU platform before installing ${packageName}...`;
+  logMessage(message);
+  emitServerLog(message);
+  emitBootMessage(message);
+
+  const result = await detectTorchPlatform();
+  saveTorchPlatform(result);
+}
+
 // TODO: Package manager needs to be rewritten for npm packages.
 // This is a temporary stub — uv/pip is no longer installed in the conda env.
 function getUVPath(): string {
@@ -59,7 +93,12 @@ import {
   PackageUpdateInfo,
 } from "./types";
 import * as https from "https";
-import { getTorchIndexUrl } from "./torchPlatformCache";
+import {
+  getSavedTorchPlatform,
+  getTorchIndexUrl,
+  saveTorchPlatform,
+} from "./torchPlatformCache";
+import { detectTorchPlatform } from "./torchruntime";
 import { fileExists } from "./utils";
 
 /**
@@ -79,6 +118,10 @@ const PYPI_SIMPLE_INDEX_URL = "https://pypi.org/simple";
 const REGISTRY_URL =
   "https://raw.githubusercontent.com/nodetool-ai/nodetool-registry/main/index.json";
 const METADATA_PATH = "src/nodetool/package_metadata";
+const TORCH_DEPENDENT_PACKAGES = new Set([
+  "nodetool-huggingface",
+  "nunchaku",
+]);
 
 // Get the app version dynamically from Electron's app.getVersion()
 function getAppVersion(): string {
@@ -101,16 +144,6 @@ async function getInstalledNodetoolPackages(): Promise<string[]> {
     logMessage(`Failed to list installed packages: ${errorMsg(error)}`, "error");
     return [];
   }
-}
-
-// Export a function to get expected version for a specific package
-export function getExpectedVersion(packageName: string): string | null {
-  return getAppVersion();
-}
-
-// Export a function to get all packages that need version checking
-export async function getPackagesWithVersionRequirements(): Promise<string[]> {
-  return await getInstalledNodetoolPackages();
 }
 
 // Simple in-memory cache for nodes
@@ -142,9 +175,10 @@ export async function fetchAvailablePackages(): Promise<PackageListResponse> {
               pkg.latest_version ??
               undefined,
           })) as PackageInfo[];
+          const npmPackages = getNpmAvailablePackages();
           resolve({
-            packages,
-            count: packages.length,
+            packages: [...packages, ...npmPackages],
+            count: packages.length + npmPackages.length,
           });
         } catch (error) {
           reject(new Error(`Failed to parse registry data: ${error}`));
@@ -156,6 +190,24 @@ export async function fetchAvailablePackages(): Promise<PackageListResponse> {
       });
     });
   });
+}
+
+function getNpmAvailablePackages(): PackageInfo[] {
+  return (Object.entries(RUNTIME_DEFINITIONS) as [RuntimePackageId, RuntimeDefinition][])
+    .filter(([, def]) => def.type === "npm")
+    .map(([id, def]) => {
+      const npmDef = def as NpmRuntimeDefinition;
+      const firstSpec = npmDef.npmPackages[0] || "";
+      const version = firstSpec.includes("@")
+        ? firstSpec.split("@").pop()
+        : undefined;
+      return {
+        name: def.name,
+        description: def.description,
+        repo_id: id,
+        version,
+      };
+    });
 }
 
 function httpsGet(url: string): Promise<string> {
@@ -503,6 +555,21 @@ export async function checkForPackageUpdates(): Promise<PackageUpdateInfo[]> {
     }
 
     const updateChecks = installedPackages.map(async (pkg) => {
+      // For npm runtime packages, compare installed version against pinned version
+      const runtimeDef = RUNTIME_DEFINITIONS[pkg.repo_id as RuntimePackageId];
+      if (runtimeDef?.type === "npm") {
+        const pinnedVersion = runtimeDef.npmPackages[0]?.split("@").pop();
+        if (pinnedVersion && pinnedVersion !== pkg.version) {
+          return {
+            name: pkg.name,
+            repo_id: pkg.repo_id,
+            installedVersion: pkg.version,
+            latestVersion: pinnedVersion,
+          };
+        }
+        return null;
+      }
+
       const keyCandidates = [
         pkg.name.toLowerCase(),
         canonicalizePackageName(pkg.name),
@@ -684,36 +751,84 @@ async function runUvCommand(
 }
 
 /**
+ * Internal function to list installed Python packages without version checking.
+ */
+async function listPythonInstalledPackages(): Promise<PackageModel[]> {
+  try {
+    const output = await runUvCommand(["pip", "list", "--format=json"], { silent: true });
+    const allPackages = JSON.parse(output) as PipPackage[];
+
+    return allPackages
+      .filter((pkg) => pkg.name.startsWith("nodetool-"))
+      .map((pkg) => ({
+        name: pkg.name,
+        description: "",
+        version: pkg.version,
+        authors: [],
+        repo_id: "nodetool-ai/" + pkg.name,
+        nodes: [],
+        examples: [],
+        assets: [],
+      } as PackageModel));
+  } catch (error: unknown) {
+    logMessage(`Failed to list installed Python packages: ${errorMsg(error)}`, "error");
+    return [];
+  }
+}
+
+/**
+ * List installed npm runtime packages from the optional-node directory.
+ */
+async function listNpmInstalledPackages(): Promise<PackageModel[]> {
+  try {
+    const packages: PackageModel[] = [];
+    for (const [id, def] of Object.entries(RUNTIME_DEFINITIONS) as [RuntimePackageId, RuntimeDefinition][]) {
+      if (def.type !== "npm") continue;
+      const packageChecks = await Promise.all(
+        def.packageNames.map((name) => isOptionalNodePackageInstalled(name))
+      );
+      if (packageChecks.every(Boolean)) {
+        const pkgJsonPath = path.join(
+          getOptionalNodeModulesPath(),
+          ...def.packageNames[0].split("/"),
+          "package.json"
+        );
+        let version = "unknown";
+        try {
+          const pkgJson = JSON.parse(await fsp.readFile(pkgJsonPath, "utf8"));
+          version = pkgJson.version || "unknown";
+        } catch {
+          // ignore
+        }
+        packages.push({
+          name: def.name,
+          description: def.description,
+          version,
+          authors: [],
+          repo_id: id,
+          nodes: [],
+          examples: [],
+          assets: [],
+        });
+      }
+    }
+    return packages;
+  } catch (error: unknown) {
+    logMessage(`Failed to list installed npm packages: ${errorMsg(error)}`, "warn");
+    return [];
+  }
+}
+
+/**
  * Internal function to list installed packages without version checking
  * Used by both listInstalledPackages and checkForPackageUpdates to avoid circular dependency
  */
 async function listInstalledPackagesInternal(): Promise<PackageModel[]> {
-  try {
-    // Use uv pip list to get all installed packages
-    const output = await runUvCommand(["pip", "list", "--format=json"], { silent: true });
-    const allPackages = JSON.parse(output) as PipPackage[];
-
-    // Filter for nodetool packages
-    const nodetoolPackages = allPackages
-      .filter((pkg) => pkg.name.startsWith("nodetool-"))
-      .map((pkg) => {
-        return {
-          name: pkg.name,
-          description: "", // uv pip list doesn't provide description
-          version: pkg.version,
-          authors: [],
-          repo_id: "nodetool-ai/" + pkg.name,
-          nodes: [],
-          examples: [],
-          assets: [],
-        } as PackageModel;
-      });
-
-    return nodetoolPackages;
-  } catch (error: unknown) {
-    logMessage(`Failed to list installed packages: ${errorMsg(error)}`, "error");
-    return [];
-  }
+  const [pythonPackages, npmPackages] = await Promise.all([
+    listPythonInstalledPackages(),
+    listNpmInstalledPackages(),
+  ]);
+  return [...pythonPackages, ...npmPackages];
 }
 
 /**
@@ -754,6 +869,12 @@ export async function listInstalledPackages(): Promise<InstalledPackageListRespo
  * Always fetches the latest version from the simple index and installs that specific version
  */
 export async function installPackage(repoId: string): Promise<PackageResponse> {
+  // Route npm runtime packages to the runtime installer
+  const runtimeDef = RUNTIME_DEFINITIONS[repoId as RuntimePackageId];
+  if (runtimeDef?.type === "npm") {
+    return installRuntimePackage(repoId as RuntimePackageId);
+  }
+
   try {
     const packageName = repoId.split("/")[1];
 
@@ -770,6 +891,8 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
     const message = `Installing ${packageName} v${latestVersion}...`;
     logMessage(message);
     emitServerLog(message);
+
+    await ensureTorchPlatformDetectedForPackage(packageName);
 
     const args = [
       "pip",
@@ -819,6 +942,11 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
 export async function uninstallPackage(
   repoId: string
 ): Promise<PackageResponse> {
+  const runtimeDef = RUNTIME_DEFINITIONS[repoId as RuntimePackageId];
+  if (runtimeDef?.type === "npm") {
+    return uninstallRuntimePackage(repoId as RuntimePackageId);
+  }
+
   try {
     // Extract project name from repo_id (e.g., "owner/project" -> "project")
     const projectName = repoId.split("/")[1];
@@ -849,6 +977,14 @@ export async function uninstallPackage(
  * Forces a true reinstall by clearing the uv cache and reinstalling the package
  */
 export async function updatePackage(repoId: string): Promise<PackageResponse> {
+  const runtimeDef = RUNTIME_DEFINITIONS[repoId as RuntimePackageId];
+  if (runtimeDef?.type === "npm") {
+    // For pinned npm packages, update = reinstall
+    const uninstallResult = await uninstallRuntimePackage(repoId as RuntimePackageId);
+    if (!uninstallResult.success) return uninstallResult;
+    return installRuntimePackage(repoId as RuntimePackageId);
+  }
+
   try {
     const packageName = repoId.split("/")[1];
 
@@ -866,6 +1002,8 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     logMessage(message);
     emitServerLog(message);
     emitBootMessage(message);
+
+    await ensureTorchPlatformDetectedForPackage(packageName);
 
     const args = [
       "pip",
@@ -916,7 +1054,7 @@ export { PACKAGE_INDEX_URL };
 export async function checkPackageVersion(
   packageName: string
 ): Promise<{ needsUpdate: boolean; currentVersion?: string; expectedVersion?: string }> {
-  const expectedVersion = getExpectedVersion(packageName);
+  const expectedVersion = getAppVersion();
 
   if (!expectedVersion) {
     return { needsUpdate: false };
@@ -1038,6 +1176,10 @@ export async function installExpectedPackages(): Promise<{
       emitServerLog(message);
       emitBootMessage(message);
 
+      for (const pkg of packagesNeedingUpdate) {
+        await ensureTorchPlatformDetectedForPackage(pkg.packageName);
+      }
+
       const args = [
         "pip",
         "install",
@@ -1120,13 +1262,15 @@ import type { RuntimePackageId, RuntimePackageStatus } from "./types.d";
 export const RUNTIME_PACKAGE_IDS: readonly RuntimePackageId[] = [
   "python", "nodejs", "bash", "ruby", "lua",
   "ffmpeg", "pandoc", "pdftotext", "yt-dlp",
+  "claude-agent-sdk", "codex-sdk", "transformers-js", "tensorflow-js",
 ] as const;
 
 /**
  * Maps each runtime to the conda package specs needed to provide it,
  * and the binary name used to verify installation.
  */
-const RUNTIME_DEFINITIONS: Record<RuntimePackageId, {
+type CondaRuntimeDefinition = {
+  type: "conda";
   name: string;
   description: string;
   condaPackages: string[];
@@ -1134,38 +1278,60 @@ const RUNTIME_DEFINITIONS: Record<RuntimePackageId, {
   verifyBinary: string;
   /** Windows subdirectory under conda env where the binary lives (default: root for .exe) */
   windowsBinSubdir?: string;
-}> = {
+};
+
+type NpmRuntimeDefinition = {
+  type: "npm";
+  name: string;
+  description: string;
+  npmPackages: string[];
+  packageNames: string[];
+};
+
+type ElectronRuntimeDefinition = {
+  type: "electron";
+  name: string;
+  description: string;
+};
+
+type RuntimeDefinition = CondaRuntimeDefinition | NpmRuntimeDefinition | ElectronRuntimeDefinition;
+
+const RUNTIME_DEFINITIONS: Record<RuntimePackageId, RuntimeDefinition> = {
   python: {
+    type: "conda",
     name: "Python",
     description: "Python interpreter and uv package manager. Required for AI and data processing nodes.",
     condaPackages: ["python=3.11", "uv"],
     verifyBinary: "python",
   },
   nodejs: {
+    type: "electron",
     name: "Node.js",
-    description: "JavaScript runtime for Node.js-based nodes.",
-    condaPackages: ["nodejs>=24"],
-    verifyBinary: "node",
+    description: "JavaScript runtime bundled with Electron. Required for Node.js-based nodes and npm packages.",
   },
   bash: {
+    type: "conda",
     name: "Bash",
     description: "Bash shell for script execution nodes.",
     condaPackages: ["bash"],
     verifyBinary: "bash",
   },
   ruby: {
+    type: "conda",
     name: "Ruby",
     description: "Ruby interpreter for Ruby-based nodes.",
     condaPackages: ["ruby"],
     verifyBinary: "ruby",
   },
   lua: {
+    type: "conda",
     name: "Lua",
     description: "Lua interpreter for Lua-based nodes.",
     condaPackages: ["lua"],
     verifyBinary: "lua",
   },
   ffmpeg: {
+    type: "conda",
     name: "FFmpeg & Codecs",
     description: "Audio/video processing toolkit. Required for video nodes and the FFmpeg Agent.",
     condaPackages: [
@@ -1177,27 +1343,168 @@ const RUNTIME_DEFINITIONS: Record<RuntimePackageId, {
     windowsBinSubdir: "Library\\bin",
   },
   pandoc: {
+    type: "conda",
     name: "Pandoc",
     description: "Universal document converter for text and file format conversion.",
     condaPackages: ["pandoc"],
     verifyBinary: "pandoc",
   },
   pdftotext: {
+    type: "conda",
     name: "PDF Tools (Poppler)",
     description: "PDF text extraction using pdftotext from poppler. Required for PDF-to-text conversion.",
     condaPackages: ["poppler"],
     verifyBinary: "pdftotext",
   },
   "yt-dlp": {
+    type: "conda",
     name: "yt-dlp",
     description: "Video/audio downloader from YouTube and other sites.",
     condaPackages: ["yt-dlp"],
     verifyBinary: "yt-dlp",
   },
+  "claude-agent-sdk": {
+    type: "npm",
+    name: "Claude Agent SDK",
+    description: "Optional Claude Code agent integration for the local NodeTool backend.",
+    npmPackages: ["@anthropic-ai/claude-agent-sdk@0.2.126"],
+    packageNames: ["@anthropic-ai/claude-agent-sdk"],
+  },
+  "codex-sdk": {
+    type: "npm",
+    name: "OpenAI Codex SDK",
+    description: "Optional OpenAI Codex agent integration for the local NodeTool backend.",
+    npmPackages: ["@openai/codex-sdk@0.128.0"],
+    packageNames: ["@openai/codex-sdk"],
+  },
+  "transformers-js": {
+    type: "npm",
+    name: "Transformers.js",
+    description: "Optional Hugging Face Transformers.js runtime for local JavaScript AI nodes.",
+    npmPackages: ["@huggingface/transformers@4.2.0", "kokoro-js@1.2.1"],
+    packageNames: ["@huggingface/transformers", "kokoro-js"],
+  },
+  "tensorflow-js": {
+    type: "npm",
+    name: "TensorFlow.js Models",
+    description: "Optional TensorFlow.js model packages for image classification, object detection, and Q&A nodes.",
+    npmPackages: [
+      "@tensorflow/tfjs@4.22.0",
+      "@tensorflow-models/mobilenet@2.1.1",
+      "@tensorflow-models/coco-ssd@2.2.3",
+      "@tensorflow-models/qna@1.0.2",
+    ],
+    packageNames: [
+      "@tensorflow/tfjs",
+      "@tensorflow-models/mobilenet",
+      "@tensorflow-models/coco-ssd",
+      "@tensorflow-models/qna",
+    ],
+  },
 };
 
 // Track which runtime packages are currently being installed
 const runtimeInstalling = new Set<RuntimePackageId>();
+
+function getOptionalNodeRuntimeRoot(): string {
+  return path.dirname(getOptionalNodeModulesPath());
+}
+
+/**
+ * Resolve the npm executable from PATH (not from the conda env).
+ * Electron bundles Node.js, so we use the system/npm-bundled npm CLI.
+ */
+function resolveNpmExecutable(): string {
+  const candidates =
+    process.platform === "win32"
+      ? ["npm.cmd", "npm"]
+      : ["npm"];
+
+  for (const candidate of candidates) {
+    try {
+      const result = spawnSync(candidate, ["--version"], {
+        stdio: "ignore",
+        shell: process.platform === "win32",
+      });
+      if (result.status === 0) {
+        return candidate;
+      }
+    } catch {
+      // continue searching
+    }
+  }
+  return "";
+}
+
+async function ensureOptionalNodePackageRoot(): Promise<void> {
+  const root = getOptionalNodeRuntimeRoot();
+  await fsp.mkdir(root, { recursive: true });
+  const packageJsonPath = path.join(root, "package.json");
+  try {
+    await fsp.access(packageJsonPath);
+  } catch {
+    await fsp.writeFile(
+      packageJsonPath,
+      JSON.stringify({ private: true, type: "module" }, null, 2),
+      "utf8"
+    );
+  }
+}
+
+async function isOptionalNodePackageInstalled(packageName: string): Promise<boolean> {
+  return fileExists(path.join(getOptionalNodeModulesPath(), ...packageName.split("/"), "package.json"));
+}
+
+async function runNpmCommand(args: string[]): Promise<string> {
+  const npmPath = resolveNpmExecutable();
+  if (!npmPath) {
+    throw new Error(
+      "npm not found in PATH. Please install Node.js (which includes npm) to install JavaScript packages."
+    );
+  }
+
+  await ensureOptionalNodePackageRoot();
+  const root = getOptionalNodeRuntimeRoot();
+  const cacheDir = path.join(app.getPath("userData"), "npm-cache");
+  await fsp.mkdir(cacheDir, { recursive: true });
+
+  const command = [npmPath, ...args, "--prefix", root, "--cache", cacheDir];
+  return new Promise((resolve, reject) => {
+    logMessage(`Running npm command: ${command.join(" ")}`);
+    const child = spawn(command[0], command.slice(1), {
+      env: getProcessEnv(),
+      stdio: "pipe",
+      windowsHide: true,
+    });
+
+    let stdout = "";
+    let stderr = "";
+    child.stdout?.on("data", (data: Buffer) => {
+      const output = data.toString();
+      stdout += output;
+      for (const line of output.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)) {
+        logMessage(line);
+        emitServerLog(line);
+      }
+    });
+    child.stderr?.on("data", (data: Buffer) => {
+      const output = data.toString();
+      stderr += output;
+      for (const line of output.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)) {
+        logMessage(line, "warn");
+        emitServerLog(line);
+      }
+    });
+    child.on("exit", (code: number | null) => {
+      if (code === 0) {
+        resolve(stdout);
+      } else {
+        reject(new Error(`npm failed with code ${code}: ${stderr}`));
+      }
+    });
+    child.on("error", (error) => reject(error));
+  });
+}
 
 /**
  * Check if a runtime binary exists in the conda environment.
@@ -1232,12 +1539,21 @@ export async function getRuntimePackageStatuses(): Promise<RuntimePackageStatus[
   const condaEnvPath = getCondaEnvPath();
   const envExists = await isCondaEnvPresent(condaEnvPath);
 
-  const entries = Object.entries(RUNTIME_DEFINITIONS) as [RuntimePackageId, typeof RUNTIME_DEFINITIONS[RuntimePackageId]][];
+  const entries = Object.entries(RUNTIME_DEFINITIONS) as [RuntimePackageId, RuntimeDefinition][];
 
   const checks = entries.map(async ([id, def]) => {
     let installed = false;
-    if (envExists) {
-      installed = await checkRuntimeBinary(condaEnvPath, def.verifyBinary, def.windowsBinSubdir);
+    if (def.type === "electron") {
+      installed = true;
+    } else if (def.type === "conda") {
+      if (envExists) {
+        installed = await checkRuntimeBinary(condaEnvPath, def.verifyBinary, def.windowsBinSubdir);
+      }
+    } else {
+      const packageChecks = await Promise.all(
+        def.packageNames.map((packageName) => isOptionalNodePackageInstalled(packageName))
+      );
+      installed = packageChecks.every(Boolean);
     }
     return {
       id,
@@ -1289,9 +1605,25 @@ export async function installRuntimePackage(
       setCondaInstallLocation(installLocation);
     }
 
-    // Auto-init conda env if not present (prompts user for folder)
     emitBootMessage(`Installing ${def.name}...`);
     logMessage(`Installing runtime: ${packageId}`);
+
+    if (def.type === "electron") {
+      return {
+        success: true,
+        message: `${def.name} is provided by Electron and does not need to be installed.`,
+      };
+    }
+
+    if (def.type === "npm") {
+      await runNpmCommand(["install", ...def.npmPackages]);
+      return {
+        success: true,
+        message: `${def.name} installed successfully. Restart the backend if it was already running.`,
+      };
+    }
+
+    // Auto-init conda env if not present (prompts user for folder)
     const condaEnvPath = await ensureCondaEnvironment(installLocation);
 
     // Determine packages to install
@@ -1329,11 +1661,26 @@ export async function uninstallRuntimePackage(
   }
 
   try {
-    const { removeCondaPackageBySpec } = await import("./installer");
-    const condaEnvPath = getCondaEnvPath();
-
     logMessage(`Uninstalling runtime: ${packageId}`);
     emitBootMessage(`Removing ${def.name}...`);
+
+    if (def.type === "electron") {
+      return {
+        success: true,
+        message: `${def.name} is provided by Electron and cannot be uninstalled.`,
+      };
+    }
+
+    if (def.type === "npm") {
+      await runNpmCommand(["uninstall", ...def.packageNames]);
+      return {
+        success: true,
+        message: `${def.name} removed successfully. Restart the backend if it was already running.`,
+      };
+    }
+
+    const { removeCondaPackageBySpec } = await import("./installer");
+    const condaEnvPath = getCondaEnvPath();
 
     await removeCondaPackageBySpec(condaEnvPath, def.condaPackages, `Removing ${def.name}`);
 

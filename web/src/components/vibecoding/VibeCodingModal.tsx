@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
-import { Dialog, DialogContent } from "@mui/material";
+import { Dialog } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import VibeCodingPanel from "./VibeCodingPanel";
 
@@ -25,17 +25,17 @@ const VibeCodingModal: React.FC<VibeCodingModalProps> = ({
       onClose={onClose}
       maxWidth={false}
       fullWidth
-      PaperProps={{
-        sx: {
-          width: "90vw",
-          height: "85vh",
-          maxWidth: "1600px"
+      slotProps={{
+        paper: {
+          sx: {
+            width: "90vw",
+            height: "85vh",
+            maxWidth: "1600px"
+          }
         }
       }}
     >
-      <DialogContent sx={{ p: 0, display: "flex", flexDirection: "column" }}>
-        <VibeCodingPanel workflow={workflow} onClose={onClose} />
-      </DialogContent>
+      <VibeCodingPanel workflow={workflow} onClose={onClose} />
     </Dialog>
   );
 };

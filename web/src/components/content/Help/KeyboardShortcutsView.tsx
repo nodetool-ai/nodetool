@@ -28,6 +28,12 @@ interface KeyboardShortcutsViewProps {
  * Renders an on-screen keyboard highlighting all keys involved in the provided shortcuts.
  * When hovering a key, browser-native `title` tooltips show the shortcut names.
  */
+interface HoverHandlers {
+  handleEnter: (event: MouseEvent) => void;
+  handleLeave: () => void;
+}
+const hoverHandlerMap = new WeakMap<HTMLElement, HoverHandlers>();
+
 const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   shortcuts = NODE_EDITOR_SHORTCUTS
 }) => {
@@ -234,18 +240,18 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         };
         btn.addEventListener("mouseenter", handleEnter);
         btn.addEventListener("mouseleave", handleLeave);
-        // store cleanup handler
-        (btn as any)._hoverHandlers = { handleEnter, handleLeave };
+        hoverHandlerMap.set(btn, { handleEnter, handleLeave });
       }
     });
 
     // cleanup on dependencies change
     return () => {
       btns.forEach((btn) => {
-        const handlers = (btn as any)._hoverHandlers;
+        const handlers = hoverHandlerMap.get(btn);
         if (handlers) {
           btn.removeEventListener("mouseenter", handlers.handleEnter);
           btn.removeEventListener("mouseleave", handlers.handleLeave);
+          hoverHandlerMap.delete(btn);
         }
       });
     };

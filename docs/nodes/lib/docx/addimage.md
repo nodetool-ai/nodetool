@@ -17,9 +17,9 @@ Adds an image to the document
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| document | `document` | The document to add the image to | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
-| image | `image` | The image to add | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| document | `document` | The document to add the image to | `{"type":"document","uri":"","asset_id":null,"da...` |
+| image | `image` | The image to add | `{"type":"image","uri":"","asset_id":null,"data"...` |
 | width | `float` | Image width in inches | `0` |
 | height | `float` | Image height in inches | `0` |
 
@@ -29,9 +29,6 @@ Adds an image to the document
 |--------|------|-------------|
 | output | `document` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.docx](../) namespace.
-

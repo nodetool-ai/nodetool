@@ -22,7 +22,7 @@ Fetches HTML content from a URL and converts it to text.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | url | `str` | URL to fetch content from | `` |
 | selector | `str` | CSS selector to extract specific elements | `body` |
 
@@ -32,9 +32,6 @@ Fetches HTML content from a URL and converts it to text.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.browser](../) namespace.
-

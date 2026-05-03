@@ -46,12 +46,11 @@ export class Secret extends DBModel {
   /** Find a secret by user_id and key. */
   static async find(userId: string, key: string): Promise<Secret | null> {
     const db = getDb();
-    const row = db
+    const [row] = await db
       .select()
       .from(secrets)
       .where(and(eq(secrets.user_id, userId), eq(secrets.key, key)))
-      .limit(1)
-      .get();
+      .limit(1);
     return row ? new Secret(row as Record<string, unknown>) : null;
   }
 
@@ -136,14 +135,13 @@ export class Secret extends DBModel {
     limit = 100
   ): Promise<[Secret[], string]> {
     const db = getDb();
-    const rows = db
+    const rows = await db
       .select()
       .from(secrets)
       .where(eq(secrets.user_id, userId))
-      .limit(limit + 1)
-      .all();
+      .limit(limit + 1);
 
-    const items = rows.map((r) => new Secret(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Secret(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -153,8 +151,8 @@ export class Secret extends DBModel {
   /** List all secrets across all users (admin only). */
   static async listAll(limit = 1000): Promise<Secret[]> {
     const db = getDb();
-    const rows = db.select().from(secrets).limit(limit).all();
-    return rows.map((r) => new Secret(r as Record<string, unknown>));
+    const rows = await db.select().from(secrets).limit(limit);
+    return rows.map((r: Record<string, unknown>) => new Secret(r as Record<string, unknown>));
   }
 
   /** Get the decrypted plaintext value. */

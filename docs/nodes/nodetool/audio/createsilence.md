@@ -14,16 +14,11 @@ namespace: "nodetool.audio"
 Creates a silent audio file with a specified duration.
     audio, silence, empty
 
-    Use cases:
-    - Generate placeholder audio files
-    - Create audio segments for padding or spacing
-    - Add silence to the beginning or end of audio files
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| duration | `float` | The duration of the silence in seconds. | `1.0` |
+|----------|------|-------------|---------|
+| duration | `float` | The duration of the silence in seconds. | `1` |
 
 ## Outputs
 
@@ -31,9 +26,6 @@ Creates a silent audio file with a specified duration.
 |--------|------|-------------|
 | output | `audio` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.audio](../) namespace.
-

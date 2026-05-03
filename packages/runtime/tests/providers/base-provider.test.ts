@@ -63,11 +63,16 @@ describe("BaseProvider – parseToolCallArgs", () => {
     expect(result).toEqual({ key: "value", n: 42 });
   });
 
-  it("returns {} for non-string input", () => {
+  it("returns {} for non-string/non-object input", () => {
     expect(provider.testParseToolCallArgs(123)).toEqual({});
     expect(provider.testParseToolCallArgs(null)).toEqual({});
     expect(provider.testParseToolCallArgs(undefined)).toEqual({});
-    expect(provider.testParseToolCallArgs({ key: "val" })).toEqual({});
+  });
+
+  it("returns object as-is for object input", () => {
+    expect(provider.testParseToolCallArgs({ key: "val" })).toEqual({
+      key: "val"
+    });
   });
 
   it("returns {} for invalid JSON", () => {

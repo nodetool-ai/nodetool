@@ -14,20 +14,14 @@ namespace: "openai.audio"
 Converts text to speech using OpenAI TTS models.
     audio, tts, text-to-speech, voice, synthesis
 
-    Use cases:
-    - Generate spoken content for videos or podcasts
-    - Create voice-overs for presentations
-    - Assist visually impaired users with text reading
-    - Produce audio versions of written content
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| model | `Enum['tts-1', 'tts-1-hd', 'gpt-4o-mini-tts']` |  | `tts-1` |
-| voice | `Enum['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer', 'verse']` |  | `alloy` |
+|----------|------|-------------|---------|
+| model | `enum` |  | `tts-1` |
+| voice | `enum` |  | `alloy` |
 | input | `str` |  | `` |
-| speed | `float` |  | `1.0` |
+| speed | `float` |  | `1` |
 
 ## Outputs
 
@@ -35,9 +29,6 @@ Converts text to speech using OpenAI TTS models.
 |--------|------|-------------|
 | output | `audio` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [openai.audio](../) namespace.
-

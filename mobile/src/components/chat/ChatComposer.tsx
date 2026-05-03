@@ -85,13 +85,13 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   const canSend = !disabled && (text.trim().length > 0 || hasFiles);
 
   const placeholder = useMemo(() => {
-    if (mode === 'image') return 'Describe the image you want to generate...';
-    if (mode === 'video') return 'Describe the video you want to create...';
+    if (mode === 'image') {return 'Describe the image you want to generate...';}
+    if (mode === 'video') {return 'Describe the video you want to create...';}
     return 'Type a message...';
   }, [mode]);
 
   const buildMediaGeneration = useCallback((): MediaGenerationRequest | undefined => {
-    if (mode === 'chat') return undefined;
+    if (mode === 'chat') {return undefined;}
     if (mode === 'image') {
       const { width, height } = resolveImageSize(imageParams.resolution, imageParams.aspectRatio);
       return {
@@ -115,7 +115,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   }, [mode, imageParams, videoParams]);
 
   const handleSend = useCallback(() => {
-    if (!canSend) return;
+    if (!canSend) {return;}
 
     const trimmedText = text.trim();
     const content: MessageContent[] = [];

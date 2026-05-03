@@ -85,13 +85,13 @@ export function areTypesCompatible(
   target: PropertyTypeMetadata
 ): boolean {
   // "any" is always compatible
-  if (source.type === "any" || target.type === "any") return true;
+  if (source.type === "any" || target.type === "any") {return true;}
 
   // Exact match
-  if (source.type === target.type) return true;
+  if (source.type === target.type) {return true;}
 
   // Numeric widening: int -> float
-  if (source.type === "int" && target.type === "float") return true;
+  if (source.type === "int" && target.type === "float") {return true;}
 
   // Union: source is compatible if it matches any member
   if (target.type === "union" && target.type_args.length > 0) {

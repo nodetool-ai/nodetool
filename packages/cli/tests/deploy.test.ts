@@ -168,8 +168,19 @@ vi.mock("@nodetool-ai/deploy", () => ({
   DataCenter: { US_TEXAS_1: "US-TX-1" }
 }));
 
+class CollectionNotFoundError extends Error {
+  constructor(name: string) {
+    super(name);
+    this.name = "CollectionNotFoundError";
+  }
+}
 vi.mock("@nodetool-ai/vectorstore", () => ({
-  getCollection: vi.fn(async () => null)
+  CollectionNotFoundError,
+  getDefaultVectorProvider: vi.fn(() => ({
+    getCollection: vi.fn(async ({ name }: { name: string }) => {
+      throw new CollectionNotFoundError(name);
+    })
+  }))
 }));
 
 vi.mock("@nodetool-ai/models", () => ({

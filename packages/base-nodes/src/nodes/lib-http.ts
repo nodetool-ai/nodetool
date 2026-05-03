@@ -43,7 +43,7 @@ export class HttpGetTextNode extends BaseNode {
   static readonly exposeAsTool = true;
 
   @prop({ type: "str", default: "", title: "URL", description: "URL to fetch" })
-  declare url: any;
+  declare url: string;
 
   @prop({
     type: "str",
@@ -51,7 +51,7 @@ export class HttpGetTextNode extends BaseNode {
     title: "Headers JSON",
     description: "Optional JSON object of request headers"
   })
-  declare headers: any;
+  declare headers: string;
 
   async process(): Promise<Record<string, unknown>> {
     const headers = parseHeaders(this.headers);
@@ -72,7 +72,7 @@ export class HttpGetJsonNode extends BaseNode {
   static readonly exposeAsTool = true;
 
   @prop({ type: "str", default: "", title: "URL", description: "URL to fetch" })
-  declare url: any;
+  declare url: string;
 
   @prop({
     type: "str",
@@ -80,7 +80,7 @@ export class HttpGetJsonNode extends BaseNode {
     title: "Headers JSON",
     description: "Optional JSON object of request headers"
   })
-  declare headers: any;
+  declare headers: string;
 
   async process(): Promise<Record<string, unknown>> {
     const headers = parseHeaders(this.headers);
@@ -103,7 +103,7 @@ export class HttpGetBytesNode extends BaseNode {
   static readonly exposeAsTool = true;
 
   @prop({ type: "str", default: "", title: "URL", description: "URL to fetch" })
-  declare url: any;
+  declare url: string;
 
   @prop({
     type: "str",
@@ -111,7 +111,7 @@ export class HttpGetBytesNode extends BaseNode {
     title: "Headers JSON",
     description: "Optional JSON object of request headers"
   })
-  declare headers: any;
+  declare headers: string;
 
   async process(): Promise<Record<string, unknown>> {
     const headers = parseHeaders(this.headers);
@@ -137,13 +137,13 @@ export class HttpPostNode extends BaseNode {
   static readonly exposeAsTool = true;
 
   @prop({ type: "str", default: "", title: "URL", description: "URL to send to" })
-  declare url: any;
+  declare url: string;
 
   @prop({ type: "any", default: null, title: "Body", description: "Request body (will be JSON-encoded)" })
-  declare body: any;
+  declare body: unknown;
 
   @prop({ type: "str", default: "", title: "Headers JSON", description: "Optional JSON object of request headers" })
-  declare headers: any;
+  declare headers: string;
 
   async process(): Promise<Record<string, unknown>> {
     const headers = parseHeaders(this.headers);
@@ -169,13 +169,13 @@ export class HttpPutNode extends BaseNode {
   static readonly exposeAsTool = true;
 
   @prop({ type: "str", default: "", title: "URL", description: "URL to update" })
-  declare url: any;
+  declare url: string;
 
   @prop({ type: "any", default: null, title: "Body", description: "Request body (will be JSON-encoded)" })
-  declare body: any;
+  declare body: unknown;
 
   @prop({ type: "str", default: "", title: "Headers JSON", description: "Optional JSON object of request headers" })
-  declare headers: any;
+  declare headers: string;
 
   async process(): Promise<Record<string, unknown>> {
     const headers = parseHeaders(this.headers);
@@ -201,13 +201,13 @@ export class HttpPatchNode extends BaseNode {
   static readonly exposeAsTool = true;
 
   @prop({ type: "str", default: "", title: "URL", description: "URL to patch" })
-  declare url: any;
+  declare url: string;
 
   @prop({ type: "any", default: null, title: "Body", description: "Request body (will be JSON-encoded)" })
-  declare body: any;
+  declare body: unknown;
 
   @prop({ type: "str", default: "", title: "Headers JSON", description: "Optional JSON object of request headers" })
-  declare headers: any;
+  declare headers: string;
 
   async process(): Promise<Record<string, unknown>> {
     const headers = parseHeaders(this.headers);
@@ -233,10 +233,10 @@ export class HttpDeleteNode extends BaseNode {
   static readonly exposeAsTool = true;
 
   @prop({ type: "str", default: "", title: "URL", description: "URL to delete" })
-  declare url: any;
+  declare url: string;
 
   @prop({ type: "str", default: "", title: "Headers JSON", description: "Optional JSON object of request headers" })
-  declare headers: any;
+  declare headers: string;
 
   async process(): Promise<Record<string, unknown>> {
     const headers = parseHeaders(this.headers);

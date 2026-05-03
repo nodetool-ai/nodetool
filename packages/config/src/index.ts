@@ -28,14 +28,22 @@ export {
   type DiagnosticResult
 } from "./diagnostics.js";
 
+export { importOptionalModule } from "./optional-modules.js";
+
 export {
   getNodetoolDataDir,
   getDefaultDbPath,
+  getPostgresDatabaseUrl,
   getDefaultVectorstoreDbPath,
   getDefaultAssetsPath,
   getDefaultTransformersJsCacheDir,
   getAssetFilePath,
-  getAssetDomain,
-  getTempDomain,
   buildAssetUrl
 } from "./paths.js";
+
+export {
+  loadAssetStorageConfig,
+  loadTempStorageConfig,
+  SIGNED_URL_TTL,
+  type StorageConfig
+} from "./storage-config.js";

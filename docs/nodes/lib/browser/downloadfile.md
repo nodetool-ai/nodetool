@@ -22,7 +22,7 @@ Downloads a file from a URL and saves it to disk.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | url | `str` | URL of the file to download | `` |
 
 ## Outputs
@@ -31,9 +31,6 @@ Downloads a file from a URL and saves it to disk.
 |--------|------|-------------|
 | output | `bytes` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.browser](../) namespace.
-

@@ -12,7 +12,7 @@ import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import SpeedIcon from "@mui/icons-material/Speed";
 import TuneIcon from "@mui/icons-material/Tune";
 import LayersIcon from "@mui/icons-material/Layers";
-import { FlexColumn, FlexRow, Text } from "../../ui_primitives";
+import { BORDER_RADIUS, FlexColumn, FlexRow, Text } from "../../ui_primitives";
 import ImageView from "../../node/ImageView";
 import type {
   Message,
@@ -94,7 +94,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: 4,
       padding: "2px 8px",
-      borderRadius: 999,
+      borderRadius: BORDER_RADIUS.pill,
       background: "rgba(255,255,255,0.04)",
       color: theme.vars.palette.text.secondary,
       fontSize: 12,

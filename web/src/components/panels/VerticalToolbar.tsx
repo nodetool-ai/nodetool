@@ -3,9 +3,9 @@ import { SxProps } from "@mui/material";
 import { Divider, ToolbarIconButton } from "../ui_primitives";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { isProduction } from "../../lib/env";
-import { getIsElectronDetails } from "../../utils/browser";
 
-const workspacesEnabled = getIsElectronDetails().isElectron || !isProduction;
+const workspacesEnabled = !isProduction;
+const sandboxesEnabled = !isProduction;
 
 const spacerStyle = { flexGrow: 1 } as const;
 const dividerSx: SxProps = { my: 1, mx: "6px", borderColor: "rgba(255, 255, 255, 0.15)" };
@@ -156,15 +156,17 @@ function VerticalToolbar({
                 active={isActive("logs")}
             />
 
-            <ToolbarIconButton
-                icon={<DesktopWindowsIcon />}
-                tooltip="Sandboxes"
-                tooltipPlacement="left-start"
-                onClick={handleSandboxesToggle}
-                ariaLabel="Toggle Sandboxes panel"
-                className="sandboxes"
-                active={isActive("sandboxes")}
-            />
+            {sandboxesEnabled && (
+                <ToolbarIconButton
+                    icon={<DesktopWindowsIcon />}
+                    tooltip="Sandboxes"
+                    tooltipPlacement="left-start"
+                    onClick={handleSandboxesToggle}
+                    ariaLabel="Toggle Sandboxes panel"
+                    className="sandboxes"
+                    active={isActive("sandboxes")}
+                />
+            )}
 
             <ToolbarIconButton
                 icon={<WorkHistoryIcon />}

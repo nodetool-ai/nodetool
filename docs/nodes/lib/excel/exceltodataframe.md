@@ -21,10 +21,10 @@ Reads an Excel worksheet into a pandas DataFrame.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| workbook | `excel` | The Excel workbook to read from | `{'type': 'excel', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| workbook | `excel` | The Excel workbook to read from | `{"type":"excel","uri":"","asset_id":null,"data"...` |
 | sheet_name | `str` | Source worksheet name | `Sheet1` |
-| has_header | `bool` | First row contains headers | `True` |
+| has_header | `bool` | First row contains headers | `true` |
 
 ## Outputs
 
@@ -32,9 +32,6 @@ Reads an Excel worksheet into a pandas DataFrame.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.excel](../) namespace.
-

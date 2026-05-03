@@ -95,9 +95,10 @@ describe("tRPC /trpc/settings.list over Fastify", () => {
 
 describe("tRPC /trpc/collections.list over Fastify", () => {
   it("returns the empty list shape when no collections exist", async () => {
-    vi.spyOn(vectorstore, "getVecStore").mockResolvedValue({
-      listCollections: vi.fn().mockResolvedValue([])
-    } as unknown as Awaited<ReturnType<typeof vectorstore.getVecStore>>);
+    vi.spyOn(vectorstore, "getDefaultVectorProvider").mockReturnValue({
+      listCollections: vi.fn().mockResolvedValue([]),
+      getCollection: vi.fn()
+    } as unknown as ReturnType<typeof vectorstore.getDefaultVectorProvider>);
 
     const app = buildTestApp();
     await app.ready();

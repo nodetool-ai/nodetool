@@ -3,8 +3,6 @@ import {
   darkenHexColor,
   lightenHexColor,
   adjustSaturation,
-  adjustHue,
-  adjustLightness,
   createLinearGradient,
   simulateOpacity
 } from "./ColorUtils";
@@ -64,28 +62,6 @@ describe("ColorUtils", () => {
 
     it("returns CSS variable unchanged", () => {
       expect(adjustSaturation("var(--color)", 10)).toBe("var(--color)");
-    });
-  });
-
-  describe("adjustHue", () => {
-    it("adjusts hue", () => {
-      const result = adjustHue("#ff0000", 90);
-      expect(result).toBeTruthy();
-    });
-
-    it("returns CSS variable unchanged", () => {
-      expect(adjustHue("var(--color)", 90)).toBe("var(--color)");
-    });
-  });
-
-  describe("adjustLightness", () => {
-    it("adjusts lightness", () => {
-      const result = adjustLightness("#ff0000", 10);
-      expect(result).toBeTruthy();
-    });
-
-    it("returns CSS variable unchanged", () => {
-      expect(adjustLightness("var(--color)", 10)).toBe("var(--color)");
     });
   });
 

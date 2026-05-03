@@ -1,5 +1,4 @@
-import React from "react";
-import { CardContent } from "@mui/material";
+import React, { memo } from "react";
 import { Text, FlexRow, Card, Chip } from "../ui_primitives";
 import { CalendarEvent, Datetime } from "../../stores/ApiTypes";
 import EventIcon from "@mui/icons-material/Event";
@@ -28,48 +27,46 @@ const formatDatetime = (dt: Datetime | string | null | undefined): string => {
 
 const CalendarEventView: React.FC<CalendarEventViewProps> = ({ event }) => {
   return (
-    <Card sx={{ minWidth: 275, maxWidth: 600, m: 1, boxShadow: 3 }}>
-      <CardContent>
-        <FlexRow align="center" sx={{ mb: 2 }}>
-          <EventIcon color="primary" sx={{ mr: 1 }} />
-          <Text size="normal" weight={600} component="div">
-            {event.title}
-          </Text>
-        </FlexRow>
+    <Card sx={{ minWidth: 275, maxWidth: 600, m: 1, boxShadow: 3 }} padding="normal">
+      <FlexRow align="center" sx={{ mb: 2 }}>
+        <EventIcon color="primary" sx={{ mr: 1 }} />
+        <Text size="normal" weight={600} component="div">
+          {event.title}
+        </Text>
+      </FlexRow>
 
+      <FlexRow align="center" sx={{ mb: 1 }}>
+        <AccessTimeIcon fontSize="small" color="action" sx={{ mr: 1 }} />
+        <Text size="small" color="secondary">
+          {formatDatetime(event.start_date)} - {formatDatetime(event.end_date)}
+        </Text>
+      </FlexRow>
+
+      {event.location && (
         <FlexRow align="center" sx={{ mb: 1 }}>
-          <AccessTimeIcon fontSize="small" color="action" sx={{ mr: 1 }} />
+          <LocationOnIcon fontSize="small" color="action" sx={{ mr: 1 }} />
           <Text size="small" color="secondary">
-            {formatDatetime(event.start_date)} - {formatDatetime(event.end_date)}
+            {event.location}
           </Text>
         </FlexRow>
+      )}
 
-        {event.location && (
-          <FlexRow align="center" sx={{ mb: 1 }}>
-            <LocationOnIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-            <Text size="small" color="secondary">
-              {event.location}
-            </Text>
-          </FlexRow>
-        )}
+      {event.calendar && (
+        <div style={{ marginBottom: 8, marginTop: 8 }}>
+          <Chip label={event.calendar} size="small" variant="outlined" />
+        </div>
+      )}
 
-        {event.calendar && (
-          <div style={{ marginBottom: 8, marginTop: 8 }}>
-            <Chip label={event.calendar} size="small" variant="outlined" />
-          </div>
-        )}
-
-        {event.notes && (
-          <FlexRow align="flex-start" sx={{ mt: 2 }}>
-            <NotesIcon fontSize="small" color="action" sx={{ mr: 1, mt: 0.5 }} />
-            <Text size="small" sx={{ whiteSpace: "pre-wrap" }}>
-              {event.notes}
-            </Text>
-          </FlexRow>
-        )}
-      </CardContent>
+      {event.notes && (
+        <FlexRow align="flex-start" sx={{ mt: 2 }}>
+          <NotesIcon fontSize="small" color="action" sx={{ mr: 1, mt: 0.5 }} />
+          <Text size="small" sx={{ whiteSpace: "pre-wrap" }}>
+            {event.notes}
+          </Text>
+        </FlexRow>
+      )}
     </Card>
   );
 };
 
-export default CalendarEventView;
+export default memo(CalendarEventView);

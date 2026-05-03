@@ -14,16 +14,11 @@ namespace: "nodetool.video"
 Resize a video to a specific width and height.
     video, resize, scale, dimensions
 
-    Use cases:
-    1. Adjust video resolution for different display requirements
-    2. Reduce file size by downscaling video
-    3. Prepare videos for specific platforms with size constraints
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| video | `video` | The input video to resize. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+|----------|------|-------------|---------|
+| video | `video` | The input video to resize. | `{"type":"video","uri":"","asset_id":null,"data"...` |
 | width | `int` | The target width. Use -1 to maintain aspect ratio. | `-1` |
 | height | `int` | The target height. Use -1 to maintain aspect ratio. | `-1` |
 
@@ -33,9 +28,6 @@ Resize a video to a specific width and height.
 |--------|------|-------------|
 | output | `video` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.video](../) namespace.
-

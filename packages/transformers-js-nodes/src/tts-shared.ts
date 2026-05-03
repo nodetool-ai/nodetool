@@ -1,5 +1,6 @@
-import { KokoroTTS } from "kokoro-js";
+import { importOptionalModule } from "@nodetool-ai/config";
 import { loadTransformers } from "./transformers-base.js";
+import type { KokoroTTS } from "kokoro-js";
 
 /** Voices supported by kokoro-js v1.2.1 (English only). */
 export const KOKORO_VOICES = [
@@ -43,6 +44,9 @@ export async function getKokoro(
   if (!pending) {
     pending = (async () => {
       await loadTransformers();
+      const { KokoroTTS } = await importOptionalModule<typeof import("kokoro-js")>(
+        "kokoro-js"
+      );
       const opts: Record<string, unknown> = {};
       if (dtype) opts.dtype = dtype;
       if (device) opts.device = device;

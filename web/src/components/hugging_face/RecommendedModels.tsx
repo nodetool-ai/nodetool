@@ -3,10 +3,9 @@ import {
   List,
   Box,
   TextField,
-  InputAdornment,
-  Button
+  InputAdornment
 } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { EditorButton, Text } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import ModelListItem from "./model_list/ModelListItem";
@@ -174,20 +173,22 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
       {/* Open folder buttons */}
       {isLocalhost && isFileExplorerAvailable() && (
         <Box mt={2} sx={{ display: "flex", gap: 2 }}>
-          <Button
+          <EditorButton
             variant="outlined"
-            startIcon={<FolderOutlined />}
+            density="normal"
             onClick={openHuggingfacePath}
           >
+            <FolderOutlined sx={{ mr: 0.5, fontSize: "1em" }} />
             Open HuggingFace folder
-          </Button>
-          <Button
+          </EditorButton>
+          <EditorButton
             variant="outlined"
-            startIcon={<FolderOutlined />}
+            density="normal"
             onClick={openOllamaPath}
           >
+            <FolderOutlined sx={{ mr: 0.5, fontSize: "1em" }} />
             Open Ollama folder
-          </Button>
+          </EditorButton>
         </Box>
       )}
     </>

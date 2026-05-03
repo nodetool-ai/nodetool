@@ -78,6 +78,38 @@ interface GeminiModelEntry {
   supportedGenerationMethods?: string[];
 }
 
+// Gemini's function-declaration schema is a strict subset of OpenAPI 3.0.
+// It rejects JSON-Schema-only fields like `additionalProperties`, `$schema`,
+// `$id`, `$ref`, `definitions`, `patternProperties`, etc. Any one of these
+// anywhere in the tree causes a 400 that aborts the entire tool batch, so we
+// recursively strip them before sending.
+const GEMINI_UNSUPPORTED_SCHEMA_KEYS = new Set([
+  "additionalProperties",
+  "$schema",
+  "$id",
+  "$ref",
+  "definitions",
+  "patternProperties",
+  "unevaluatedProperties",
+  "dependentSchemas",
+  "dependentRequired"
+]);
+
+function sanitizeGeminiSchema(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sanitizeGeminiSchema);
+  }
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (GEMINI_UNSUPPORTED_SCHEMA_KEYS.has(k)) continue;
+      out[k] = sanitizeGeminiSchema(v);
+    }
+    return out;
+  }
+  return value;
+}
+
 function sanitizeToolName(name: string): string {
   let sanitized = (name ?? "").trim();
   sanitized = sanitized.replace(/[^a-zA-Z0-9_.:-]/g, "_");
@@ -356,10 +388,12 @@ export class GeminiProvider extends BaseProvider {
       nameMap.set(original, unique);
       reverseMap.set(unique, original);
 
+      const rawParameters =
+        tool.inputSchema ?? { type: "object", properties: {} };
       declarations.push({
         name: unique,
         description: tool.description ?? "",
-        parameters: tool.inputSchema ?? { type: "object", properties: {} }
+        parameters: sanitizeGeminiSchema(rawParameters) as Record<string, unknown>
       });
     }
 

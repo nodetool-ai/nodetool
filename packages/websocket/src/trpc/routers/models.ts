@@ -996,6 +996,7 @@ export const modelsRouter = router({
   transformersJsList: protectedProcedure
     .output(modelsListOutput)
     .query(async () => {
+      if (isProduction()) return [];
       try {
         const cached = await scanTransformersJsCache(getTransformersJsCacheDir());
         return cached.map((c) =>
@@ -1024,6 +1025,7 @@ export const modelsRouter = router({
     .input(tjsByTypeInput)
     .output(modelsListOutput)
     .query(async ({ input }) => {
+      if (isProduction()) return [];
       const modelType = input.model_type;
       const recs = recommendedFor(modelType);
       const cacheDir = getTransformersJsCacheDir();
@@ -1078,6 +1080,7 @@ export const modelsRouter = router({
     .input(tjsByTypeInput)
     .output(modelsListOutput)
     .query(async ({ input }) => {
+      if (isProduction()) return [];
       const modelType = input.model_type;
       const recs = recommendedFor(modelType);
       if (recs.length === 0) return [];
@@ -1103,6 +1106,7 @@ export const modelsRouter = router({
     .input(z.object({ repo_id: z.string().min(1) }))
     .output(z.boolean())
     .query(async ({ input }) => {
+      if (isProduction()) return false;
       try {
         return await isRepoCached(getTransformersJsCacheDir(), input.repo_id);
       } catch {

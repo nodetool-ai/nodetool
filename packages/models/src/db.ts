@@ -1,50 +1,90 @@
 /**
  * Database connection manager for Drizzle ORM.
  *
- * Replaces SQLiteAdapterFactory + setGlobalAdapterResolver() with a
- * single module-level connection.
+ * Supports both SQLite (via better-sqlite3) and PostgreSQL (via postgres.js).
+ * Use initDb() for SQLite and initPostgresDb() for Supabase/PostgreSQL.
  */
 
 import Database from "better-sqlite3";
 import {
-  drizzle,
+  drizzle as drizzleSqlite,
   type BetterSQLite3Database
 } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema/index.js";
+import * as pgSchema from "./schema-pg/index.js";
 
-let _db: BetterSQLite3Database<typeof schema> | null = null;
+export type DbDialect = "sqlite" | "postgres";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- union of BetterSQLite3Database and PostgresJsDatabase
+let _db: any = null;
 let _sqlite: Database.Database | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- postgres.js Sql instance
+let _pgClient: any = null;
+let _dbType: DbDialect = "sqlite";
 
 /**
- * Initialize the database connection with a file path.
+ * Initialize a SQLite database connection with a file path.
  * Configures WAL mode, busy timeout, and synchronous mode.
  */
 export function initDb(dbPath: string): BetterSQLite3Database<typeof schema> {
-  if (_db) return _db;
+  if (_db && _dbType === "sqlite") return _db as BetterSQLite3Database<typeof schema>;
+  if (_db && _dbType === "postgres") {
+    throw new Error(
+      "A PostgreSQL connection is already active. Call closeDb() before switching to SQLite."
+    );
+  }
   const sqlite = new Database(dbPath);
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("busy_timeout = 30000");
   sqlite.pragma("synchronous = NORMAL");
   _sqlite = sqlite;
-  _db = drizzle(sqlite, { schema });
+  _db = drizzleSqlite(sqlite, { schema });
+  _dbType = "sqlite";
 
   sqlite.exec(getCreateTableStatementsSql());
-
-  // Add any columns that exist in the schema but are missing from existing tables.
-  // This preserves the old sqlite-adapter's additive migration behavior for upgrades.
   addMissingColumns(sqlite);
-
   sqlite.exec(getCreateIndexStatementsSql());
 
-  return _db;
+  return _db as BetterSQLite3Database<typeof schema>;
 }
 
 /**
- * Initialize an in-memory database for testing.
+ * Initialize a PostgreSQL database connection.
+ * Accepts a connection string (e.g. Supabase DATABASE_URL or DIRECT_URL).
+ *
+ * For Supabase, use the connection pooler URL (port 6543, transaction mode)
+ * for the application, and the direct URL (port 5432) for migrations.
+ * Migrations must be run separately via MigrationRunner + PostgresJsMigrationAdapter.
+ */
+export async function initPostgresDb(connectionString: string): Promise<void> {
+  if (_db && _dbType === "postgres") return;
+  if (_db && _dbType === "sqlite") {
+    throw new Error(
+      "A SQLite connection is already active. Call closeDb() before switching to PostgreSQL."
+    );
+  }
+
+  // Dynamic import so that the `postgres` package is only loaded when needed,
+  // keeping the SQLite-only path free of the extra dependency at runtime.
+  const { default: postgres } = await import("postgres");
+  const { drizzle: drizzlePg } = await import("drizzle-orm/postgres-js");
+
+  const client = postgres(connectionString, {
+    max: 10,
+    idle_timeout: 20,
+    connect_timeout: 10
+  });
+
+  _pgClient = client;
+  _db = drizzlePg(client, { schema: pgSchema });
+  _dbType = "postgres";
+}
+
+/**
+ * Initialize an in-memory SQLite database for testing.
  * Creates all tables from the Drizzle schema.
  */
 export function initTestDb(): BetterSQLite3Database<typeof schema> {
-  // Close existing connection if any
   if (_sqlite) {
     try {
       _sqlite.close();
@@ -54,41 +94,53 @@ export function initTestDb(): BetterSQLite3Database<typeof schema> {
   }
   const sqlite = new Database(":memory:");
   _sqlite = sqlite;
-  _db = drizzle(sqlite, { schema });
+  _db = drizzleSqlite(sqlite, { schema });
+  _dbType = "sqlite";
 
   sqlite.exec(getCreateTableStatementsSql());
   sqlite.exec(getCreateIndexStatementsSql());
 
-  return _db;
+  return _db as BetterSQLite3Database<typeof schema>;
 }
 
 /**
  * Get the current database instance.
+ * Returns `any` so callers work transparently with both SQLite and PostgreSQL.
  * Throws if not initialized.
  */
-export function getDb(): BetterSQLite3Database<typeof schema> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getDb(): any {
   if (!_db)
     throw new Error(
-      "Database not initialized."
+      "Database not initialized. Call initDb() or initPostgresDb() first."
     );
   return _db;
 }
 
 /**
+ * Get the current database dialect.
+ */
+export function getDbType(): DbDialect {
+  return _dbType;
+}
+
+/**
  * Get the underlying better-sqlite3 Database instance for raw queries.
+ * Only available when using SQLite.
  */
 export function getRawDb(): Database.Database {
   if (!_sqlite)
     throw new Error(
-      "Database not initialized."
+      "SQLite database not initialized. Raw access is only available for SQLite."
     );
   return _sqlite;
 }
 
 /**
  * Close the database connection and reset state.
+ * For PostgreSQL, returns a Promise that resolves once the connection pool is drained.
  */
-export function closeDb(): void {
+export async function closeDb(): Promise<void> {
   if (_sqlite) {
     try {
       _sqlite.close();
@@ -97,12 +149,20 @@ export function closeDb(): void {
     }
     _sqlite = null;
   }
+  if (_pgClient) {
+    try {
+      await _pgClient.end();
+    } catch {
+      /* ignore */
+    }
+    _pgClient = null;
+  }
   _db = null;
+  _dbType = "sqlite";
 }
 
 /**
- * Expected columns per table, used for additive migration on existing DBs.
- * Each entry maps column name → SQLite column type string (used in ALTER TABLE ADD COLUMN).
+ * Expected columns per table, used for additive migration on existing SQLite DBs.
  */
 const TABLE_COLUMNS: Record<string, Record<string, string>> = {
   nodetool_workflows: {
@@ -340,12 +400,6 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
   }
 };
 
-/**
- * For each table that already exists, add any columns defined in the schema
- * but missing from the on-disk table.  This replicates the old
- * `SQLiteAdapter.createTable()` behaviour that ran
- * `ALTER TABLE … ADD COLUMN` for every new column.
- */
 function addMissingColumns(sqlite: Database.Database): void {
   for (const [tableName, expectedCols] of Object.entries(TABLE_COLUMNS)) {
     const existingCols = new Set(
@@ -364,10 +418,6 @@ function addMissingColumns(sqlite: Database.Database): void {
   }
 }
 
-/**
- * Generate CREATE TABLE SQL for all schema tables.
- * Used by initTestDb to set up in-memory databases.
- */
 function getCreateSchemaSql(): string {
   return `
     CREATE TABLE IF NOT EXISTS "nodetool_workflows" (

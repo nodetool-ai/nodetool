@@ -37,6 +37,7 @@ const ENTRY_POINT = path.join(
 const REQUIRED_EXTERNAL_PACKAGES = [
   "sharp",
   "better-sqlite3",
+  "@jitl/quickjs-ng-wasmfile-release-sync",
 ];
 
 const EXTERNAL_PACKAGES = [
@@ -62,6 +63,20 @@ const EXTERNAL_PACKAGES = [
   "pdfjs-dist",
   "@napi-rs/canvas",
   "chart.js",
+  // Modules that source code lazy-imports but whose own top-level imports
+  // would be hoisted into server.mjs if inlined, defeating the lazy intent.
+  // pdf-parse hoisted `pdfjs-dist/legacy/build/pdf.mjs` and crashed on
+  // `new DOMMatrix()` at backend startup. Same trap waits for any package
+  // that side-effects at module init.
+  "office-text-extractor",
+  "pdf-parse",
+  "@llamaindex/liteparse",
+  "@hyzyla/pdfium",
+  "tesseract.js",
+  // Emscripten package with a package-relative .wasm asset. Keeping it external
+  // preserves import.meta.url so emscripten-module.wasm resolves next to the
+  // package's own JS instead of next to backend/server.mjs.
+  "@jitl/quickjs-ng-wasmfile-release-sync",
 
   // Cloud/optional services (dynamic import via variable + webpackIgnore)
   "@aws-sdk/*",
@@ -90,6 +105,7 @@ const EXTERNAL_PACKAGES = [
 const ESBUILD_ONLY_EXTERNAL_PACKAGES = [
   "canvas",
 ];
+const esbuildOnlyExternalSet = new Set(ESBUILD_ONLY_EXTERNAL_PACKAGES);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -279,6 +295,10 @@ async function copyExternalPackages() {
         ...(pkgJson.optionalDependencies ?? {}),
       };
       for (const depName of Object.keys(deps)) {
+        // Skip packages that are external for esbuild but must NOT be staged.
+        // These are loaded via runtime try/catch with a fallback (e.g. linkedom
+        // → canvas) and copying them would trigger a node-gyp rebuild.
+        if (esbuildOnlyExternalSet.has(depName)) continue;
         // Use a composite key to allow re-queuing from different resolve contexts
         const queueKey = `${depName}@${sourceRoot}`;
         if (!queued.has(queueKey)) {
@@ -380,6 +400,53 @@ async function main() {
     } else {
       console.warn(`  Warning: manifest not found, skipping: ${src}`);
     }
+  }
+
+  // --- Copy example workflows and thumbnail assets ---
+  // server.ts resolves examples relative to import.meta.url, so in the
+  // packaged app (resources/backend/server.mjs) it looks for:
+  //   resources/backend/examples/nodetool-base/   (workflow JSONs)
+  //   resources/backend/assets/nodetool-base/     (thumbnail JPGs)
+  console.log("\nCopying example workflows and thumbnail assets...");
+  const BASE_NODES_NODETOOL_DIR = path.join(
+    ROOT_DIR,
+    "packages",
+    "base-nodes",
+    "nodetool"
+  );
+  const examplesSrc = path.join(
+    BASE_NODES_NODETOOL_DIR,
+    "examples",
+    "nodetool-base"
+  );
+  const assetsSrc = path.join(
+    BASE_NODES_NODETOOL_DIR,
+    "assets",
+    "nodetool-base"
+  );
+  const examplesDest = path.join(BUNDLE_DIR, "examples", "nodetool-base");
+  const assetsDest = path.join(BUNDLE_DIR, "assets", "nodetool-base");
+
+  if (fs.existsSync(examplesSrc)) {
+    await fsp.mkdir(path.dirname(examplesDest), { recursive: true });
+    await copyDir(examplesSrc, examplesDest);
+    const exampleCount = (await fsp.readdir(examplesDest)).filter((f) =>
+      f.toLowerCase().endsWith(".json")
+    ).length;
+    console.log(`  Copied ${exampleCount} example workflow(s) to examples/nodetool-base/`);
+  } else {
+    console.warn(`  Warning: examples directory not found, skipping: ${examplesSrc}`);
+  }
+
+  if (fs.existsSync(assetsSrc)) {
+    await fsp.mkdir(path.dirname(assetsDest), { recursive: true });
+    await copyDir(assetsSrc, assetsDest);
+    const assetCount = (await fsp.readdir(assetsDest)).filter((f) =>
+      /\.(jpg|jpeg|png|gif|webp)$/i.test(f)
+    ).length;
+    console.log(`  Copied ${assetCount} thumbnail asset(s) to assets/nodetool-base/`);
+  } else {
+    console.warn(`  Warning: assets directory not found, skipping: ${assetsSrc}`);
   }
 
   // --- Generate minimal package.json ---

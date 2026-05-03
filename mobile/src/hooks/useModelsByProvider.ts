@@ -56,13 +56,13 @@ function useModelsByProvider<T extends BaseModel>(
     setError(null);
     try {
       const allProviders = await apiService.getProvidersByCapability(capability);
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {return;}
       setProviders(allProviders);
 
       const results = await Promise.allSettled(
         allProviders.map((p) => fetchModels(p.provider))
       );
-      if (!mountedRef.current) return;
+      if (!mountedRef.current) {return;}
 
       const allModels: T[] = [];
       for (const result of results) {

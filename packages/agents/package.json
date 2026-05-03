@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/agents",
-  "version": "0.7.0-rc.14",
+  "version": "0.7.0-rc.23",
   "description": "Agent system for planning and executing multi-step LLM tasks",
   "type": "module",
   "main": "dist/index.js",
@@ -20,6 +20,7 @@
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/vectorstore": "*",
     "@sebastianwessel/quickjs": "^3.0.1",
     "@types/mailparser": "^3.4.6",
     "imapflow": "^1.2.12",

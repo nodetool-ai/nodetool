@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/protocol",
-  "version": "0.7.0-rc.14",
+  "version": "0.7.0-rc.23",
   "description": "Shared message types and protocol definitions for the NodeTool workflow runtime",
   "type": "module",
   "main": "dist/index.js",
@@ -24,6 +24,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./bridge-protocol": {
+      "nodetool-dev": "./src/bridge-protocol.ts",
+      "types": "./dist/bridge-protocol.d.ts",
+      "import": "./dist/bridge-protocol.js",
+      "default": "./dist/bridge-protocol.js"
     },
     "./api-schemas": {
       "nodetool-dev": "./src/api-schemas/index.ts",

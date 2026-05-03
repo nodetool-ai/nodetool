@@ -41,7 +41,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "24"
+          node-version-file: ".nvmrc"
           cache: "npm"
 
       - name: Sync package versions to release tag
@@ -127,7 +127,7 @@ jobs:
         run: npm run build --workspace=web
 
       - name: Create Web Build Archive
-        if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'ubuntu-latest'
         shell: bash
         id: create_archive
         run: |
@@ -240,7 +240,7 @@ jobs:
           echo "Moved signed exe to ${APP_EXE}"
 
       - name: Build NSIS installer from prepackaged app (Windows)
-        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest'
         shell: bash -l {0}
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
@@ -251,7 +251,7 @@ jobs:
           npx electron-builder --config electron-builder.json --win --x64 --prepackaged dist/win-unpacked --publish never
 
       - name: Locate built Windows installer
-        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest'
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -360,7 +360,7 @@ jobs:
           NODE
 
       - name: Upload Windows assets to GitHub Release (signed)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/') && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
@@ -399,6 +399,109 @@ jobs:
           npm run prepare-backend
           npx electron-builder --config electron-builder.json --publish never
 
+      - name: Smoke-launch macOS .app
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Spawn the unpacked .app's main binary. We don't need a window —
+          # any dyld/library-validation/native-module load failure aborts
+          # the process within ~2 seconds, which is exactly what we want to
+          # catch (missing Electron Framework, sharp leak, broken sign, ...).
+          # If the process is still alive after the timeout it means the
+          # main bundle loaded cleanly.
+          fail=0
+          shopt -s nullglob
+          for app in electron/dist/mac-arm64/Nodetool.app electron/dist/mac/Nodetool.app; do
+            [ -d "$app" ] || continue
+            echo "::group::Smoke-launch $app"
+            bin="$app/Contents/MacOS/Nodetool"
+            log=$(mktemp)
+            # Force a quick exit path: --version / --help would short-circuit, but
+            # we want to actually run the main bundle. Launch in background, give
+            # it 15s to either die (= bad) or stay alive (= good), then SIGTERM.
+            "$bin" >"$log" 2>&1 &
+            pid=$!
+            alive=0
+            for _ in $(seq 1 15); do
+              sleep 1
+              if ! kill -0 $pid 2>/dev/null; then
+                alive=0
+                break
+              fi
+              alive=1
+            done
+            if [ "$alive" -eq 0 ]; then
+              wait $pid 2>/dev/null || true
+              rc=$?
+              echo "::error file=$app::App died at launch (exit $rc)"
+              echo "--- launch log ---"
+              tail -200 "$log" || true
+              fail=1
+            else
+              echo "  OK: process survived 15s, terminating"
+              kill -TERM $pid 2>/dev/null || true
+              wait $pid 2>/dev/null || true
+            fi
+            rm -f "$log"
+            echo "::endgroup::"
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::Smoke launch failed; refusing to upload."
+            exit 1
+          fi
+
+      - name: Verify macOS DMG/zip integrity
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Guard against electron-builder/dmgbuild regressions that silently
+          # drop files (e.g. the Electron Framework Mach-O) from the produced
+          # DMG. Mount each DMG, then assert the framework binary is present
+          # and large enough to be real (>50 MB).
+          fail=0
+          shopt -s nullglob
+          for dmg in electron/dist/Nodetool-*.dmg; do
+            echo "::group::Verify $dmg"
+            mountpoint=$(hdiutil attach -nobrowse -readonly -plist "$dmg" \
+              | /usr/bin/python3 -c "import sys,plistlib; p=plistlib.loads(sys.stdin.buffer.read()); print(next(e['mount-point'] for e in p['system-entities'] if 'mount-point' in e))")
+            fw="$mountpoint/Nodetool.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework"
+            if [ ! -f "$fw" ]; then
+              echo "::error file=$dmg::Missing Electron Framework binary at Versions/A/"
+              ls -la "$mountpoint/Nodetool.app/Contents/Frameworks/Electron Framework.framework/Versions/A/" || true
+              fail=1
+            else
+              size=$(stat -f %z "$fw")
+              if [ "$size" -lt 52428800 ]; then
+                echo "::error file=$dmg::Electron Framework binary suspiciously small: ${size} bytes"
+                fail=1
+              else
+                echo "  OK: Electron Framework $(($size / 1048576)) MB"
+              fi
+            fi
+            hdiutil detach -quiet "$mountpoint" || hdiutil detach -force "$mountpoint" || true
+            echo "::endgroup::"
+          done
+          # Also sanity-check the .zip (electron-updater consumes this).
+          for zip in electron/dist/Nodetool-*.zip; do
+            echo "::group::Verify $zip"
+            entry="Nodetool.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework"
+            # Path contains spaces, so don't use $NF — match the first numeric line in the listing body.
+            size=$(unzip -l "$zip" "$entry" 2>/dev/null | awk 'NR>3 && $1 ~ /^[0-9]+$/ {print $1; exit}')
+            if [ -z "${size:-}" ] || [ "${size:-0}" -lt 52428800 ]; then
+              echo "::error file=$zip::Electron Framework missing or too small in zip (size=${size:-0})"
+              fail=1
+            else
+              echo "  OK: Electron Framework $(($size / 1048576)) MB"
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::macOS artifact verification failed; refusing to upload."
+            exit 1
+          fi
+
       - name: Upload macOS assets to GitHub Release
         if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v3
@@ -419,6 +522,15 @@ jobs:
             electron/dist/latest-linux.yml
 
       # ── Workflow artifacts (downloadable from the Actions run page) ────
+      - name: Upload web build artifact
+        if: matrix.os == 'ubuntu-latest' && always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nodetool-web
+          retention-days: 7
+          if-no-files-found: ignore
+          path: nodetool-web-*.zip
+
       - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v7

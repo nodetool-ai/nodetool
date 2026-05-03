@@ -14,6 +14,7 @@ import {
   UploadValidationError,
   UploadSource
 } from "../utils/imageUploadValidation";
+import { normalizeAssetUrls, normalizeAssetList } from "../utils/normalizeAsset";
 
 type AssetCreatePayload = {
   workflow_id?: string;
@@ -88,7 +89,7 @@ const uploadAsset = async (
     }
 
     emitUploadProgress(onUploadProgress, total, total);
-    return data as Asset;
+    return normalizeAssetUrls(data as Asset);
   } catch (error) {
     const statusCode = (error as { status?: number })?.status;
     const normalizedError =
@@ -249,9 +250,10 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * @returns A promise that resolves to the asset.
    */
   get: async (id: string) => {
-    const data = (await trpcClient.assets.get.query({
+    const raw = (await trpcClient.assets.get.query({
       id
     })) as unknown as Asset;
+    const data = normalizeAssetUrls(raw);
     get().add(data);
     return data;
   },
@@ -271,10 +273,11 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       ...(query.content_type ? { content_type: query.content_type } : {}),
       ...(query.workflow_id ? { workflow_id: query.workflow_id } : {})
     });
-    for (const asset of data.assets) {
-      get().add(asset as unknown as Asset);
+    const normalized = normalizeAssetList(data.assets as unknown as Asset[]);
+    for (const asset of normalized) {
+      get().add(asset);
     }
-    return data as unknown as AssetList;
+    return { ...(data as unknown as AssetList), assets: normalized };
   },
 
   /**
@@ -287,7 +290,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       content_type: "folder"
     });
     return buildFolderTree(
-      data.assets as unknown as Asset[],
+      normalizeAssetList(data.assets as unknown as Asset[]),
       sortBy === "updated_at" ? "updated_at" : "name"
     );
   },
@@ -337,7 +340,8 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         ...(query.page_size ? { page_size: query.page_size } : {}),
         ...(query.cursor ? { cursor: query.cursor } : {})
       });
-      return data as unknown as AssetSearchResult;
+      const result = data as unknown as AssetSearchResult;
+      return { ...result, assets: normalizeAssetList(result.assets) };
     } catch (error) {
       if (
         error instanceof Error &&
@@ -541,12 +545,13 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         ? { data_encoding: req.data_encoding }
         : {})
     })) as unknown as Asset;
-    get().add(data);
+    const normalized = normalizeAssetUrls(data);
+    get().add(normalized);
     get().invalidateQueries(["assets", { parent_id: prev.parent_id }]);
     if (req.parent_id !== undefined && req.parent_id !== prev.parent_id) {
       get().invalidateQueries(["assets", { parent_id: req.parent_id }]);
     }
-    return data;
+    return normalized;
   },
 
   /**
@@ -594,6 +599,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     const data = await trpcClient.assets.recursive.query({ id: folderId });
     // The tRPC `recursive` procedure returns a flat array — convert it to the
     // tree shape expected by downstream code.
-    return (data.assets ?? []) as unknown as AssetTreeNode[];
+    return normalizeAssetList((data.assets ?? []) as unknown as AssetTreeNode[]);
   }
 }));

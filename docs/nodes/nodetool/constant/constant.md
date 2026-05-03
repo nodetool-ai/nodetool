@@ -20,9 +20,14 @@ Base class for fixed-value nodes.
     - Hold configuration values
     - Simplify testing with deterministic outputs
 
-## Metadata
+## Properties
+
+_(none)_
+
+## Outputs
+
+_(none)_
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.constant](../) namespace.
-

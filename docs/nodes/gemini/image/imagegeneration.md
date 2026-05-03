@@ -22,10 +22,10 @@ Generate an image using Google's Imagen model via the Gemini API.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | prompt | `str` | The text prompt describing the image to generate. | `` |
-| model | `Enum['gemini-2.0-flash-preview-image-generation', 'gemini-2.5-flash-image-preview', 'imagen-3.0-generate-001', 'imagen-3.0-generate-002', 'imagen-4.0-generate-preview-06-06', 'imagen-4.0-ultra-generate-preview-06-06']` | The image generation model to use | `imagen-3.0-generate-002` |
-| image | `image` | The image to use as a base for the generation. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| model | `enum` | The image generation model to use | `imagen-3.0-generate-002` |
+| image | `image` | The image to use as a base for the generation. | `{"type":"image","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 
@@ -33,9 +33,6 @@ Generate an image using Google's Imagen model via the Gemini API.
 |--------|------|-------------|
 | output | `image` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [gemini.image](../) namespace.
-

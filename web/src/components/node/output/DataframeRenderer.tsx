@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useState } from "react";
-import { IconButton } from "@mui/material";
-import { Tooltip } from "../../ui_primitives";
+import { Tooltip, ToolbarIconButton } from "../../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import isEqual from "fast-deep-equal";
 import { useTheme } from "@mui/material/styles";
@@ -69,11 +68,9 @@ const DataframeRenderer: React.FC<DataframeRendererProps> = ({ dataframe }) => {
   return (
     <div css={styles(theme)} className="dataframe-renderer">
       <div className="dataframe-action-buttons">
-        <Tooltip title="Open in Full View" placement="bottom">
-          <IconButton size="small" onClick={toggleExpand}>
-            <OpenInFullIcon />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton title="Open in Full View" size="small" onClick={toggleExpand}>
+          <OpenInFullIcon />
+        </ToolbarIconButton>
       </div>
       <DataTable dataframe={dataframe} editable={false} />
       {isExpanded && (

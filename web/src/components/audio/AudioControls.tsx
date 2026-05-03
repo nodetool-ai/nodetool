@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, ReactElement } from "react";
-import { Button } from "@mui/material";
-import { Text, Tooltip } from "../ui_primitives";
+import { Text, ToolbarIconButton } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
 import LoopIcon from "@mui/icons-material/Loop";
@@ -221,38 +220,33 @@ const AudioControls: React.FC<AudioControlsProps> = ({
               nodrag
               className="play-button"
             />
-            <Tooltip title="Loop" delay={TOOLTIP_ENTER_DELAY}>
-              <Button
-                className={`loop-button${loop ? "" : " disabled"}`}
-                size="small"
-                color="primary"
-                onClick={handleToggleLoop}
-              >
-                <LoopIcon />
-              </Button>
-            </Tooltip>
-            <Tooltip title="Mute" delay={TOOLTIP_ENTER_DELAY}>
-              <Button
-                className={`mute-button${mute ? "" : " disabled"}`}
-                size="small"
-                color="primary"
-                onClick={handleToggleMute}
-              >
-                {mute ? <OffIcon /> : <UpIcon />}
-              </Button>
-            </Tooltip>
-            <Tooltip title="Download" delay={TOOLTIP_ENTER_DELAY}>
-              <Button
-                className={`download-audio-button${
-                  filename !== "" ? "" : " disabled"
-                }`}
-                size="small"
-                color="primary"
-                onClick={handleDownload}
-              >
-                <DownloadIcon />
-              </Button>
-            </Tooltip>
+            <ToolbarIconButton
+              tooltip="Loop"
+              delay={TOOLTIP_ENTER_DELAY}
+              className={`loop-button${loop ? "" : " disabled"}`}
+              size="small"
+              onClick={handleToggleLoop}
+              icon={<LoopIcon />}
+              nodrag={false}
+            />
+            <ToolbarIconButton
+              tooltip="Mute"
+              delay={TOOLTIP_ENTER_DELAY}
+              className={`mute-button${mute ? "" : " disabled"}`}
+              size="small"
+              onClick={handleToggleMute}
+              icon={mute ? <OffIcon /> : <UpIcon />}
+              nodrag={false}
+            />
+            <ToolbarIconButton
+              tooltip="Download"
+              delay={TOOLTIP_ENTER_DELAY}
+              className={`download-audio-button${filename !== "" ? "" : " disabled"}`}
+              size="small"
+              onClick={handleDownload}
+              icon={<DownloadIcon />}
+              nodrag={false}
+            />
           </ActionButtonGroup>
         </div>
       )}

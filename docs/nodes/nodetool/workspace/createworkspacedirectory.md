@@ -14,15 +14,10 @@ namespace: "nodetool.workspace"
 Create a directory in the workspace.
     workspace, directory, create, folder
 
-    Use cases:
-    - Organize workspace files into directories
-    - Create output directories for generated files
-    - Set up workspace structure
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Relative path to directory within workspace | `` |
 
 ## Outputs
@@ -31,9 +26,6 @@ Create a directory in the workspace.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.workspace](../) namespace.
-

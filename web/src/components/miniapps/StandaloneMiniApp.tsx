@@ -4,10 +4,9 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
-  CircularProgress,
   LinearProgress
 } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { LoadingSpinner, Text } from "../ui_primitives";
 import { useParams } from "react-router-dom";
 
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
@@ -176,7 +175,7 @@ const StandaloneMiniApp: React.FC = () => {
               height: "100%"
             }}
           >
-            <CircularProgress />
+            <LoadingSpinner size="medium" />
           </div>
         )}
         {error && (

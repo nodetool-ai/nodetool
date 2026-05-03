@@ -50,6 +50,7 @@ import "./styles/handle_edge_tooltip.css";
 // NodeContext — we provide a real zustand store so BaseNode's useNodes() works
 import { create } from "zustand";
 import { NodeContext } from "./contexts/NodeContext";
+import type { NodeStore } from "./stores/NodeStore";
 import { ContextMenuProvider } from "./providers/ContextMenuProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WorkflowManagerProvider } from "./contexts/WorkflowManagerContext";
@@ -211,13 +212,31 @@ function parseWorkflow(raw: unknown): Workflow {
 // BaseNode uses useNodes() which reads from NodeContext.
 // We create a minimal zustand store with just the fields BaseNode accesses.
 
+interface MinimalNodeStore {
+  nodes: Node<NodeData>[];
+  edges: Edge[];
+  workflow: Workflow;
+  viewport: null;
+  shouldFitToScreen: boolean;
+  setShouldFitToScreen: () => void;
+  onNodesChange: () => void;
+  onEdgesChange: () => void;
+  onEdgeUpdate: () => void;
+  deleteEdge: () => void;
+  setEdgeSelectionState: () => void;
+  updateNode: () => void;
+  updateNodeData: () => void;
+  getSelectedNodeCount: () => number;
+  findNode: (id: string) => Node<NodeData> | undefined;
+  getNodesByType: () => never[];
+}
+
 function createMinimalNodeStore(
   nodes: Node<NodeData>[],
   edges: Edge[],
   workflow: Workflow
 ) {
-  // create<any> intentionally used — this is a minimal stub for NodeContext (full NodeStore is too complex)
-  return create<any>((_set: any, _get: any) => ({
+  return create<MinimalNodeStore>(() => ({
     nodes,
     edges,
     workflow,
@@ -458,7 +477,7 @@ function App() {
         <MenuProvider>
           <WorkflowManagerProvider queryClient={queryClient}>
             <ContextMenuProvider active={false}>
-              <NodeContext.Provider value={graphData.store}>
+              <NodeContext.Provider value={graphData.store as unknown as NodeStore}>
                 <ReactFlowProvider>
                   <GraphInner
                     nodes={graphData.nodes}

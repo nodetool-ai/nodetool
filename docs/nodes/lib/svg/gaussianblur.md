@@ -11,14 +11,20 @@ namespace: "lib.svg"
 
 ## Description
 
-Apply Gaussian blur filter to SVG elements.
+Apply Gaussian blur filter effect to SVG elements.
     svg, filter, blur, effects
+
+    Use cases:
+    - Create soft focus and depth effects
+    - Add subtle shadows and glows
+    - Simulate motion blur
+    - Soften edges in graphics
 
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| std_deviation | `float` | Standard deviation for blur | `3.0` |
+|----------|------|-------------|---------|
+| std_deviation | `float` | Standard deviation for blur | `3` |
 
 ## Outputs
 
@@ -26,9 +32,6 @@ Apply Gaussian blur filter to SVG elements.
 |--------|------|-------------|
 | output | `svg_element` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.svg](../) namespace.
-

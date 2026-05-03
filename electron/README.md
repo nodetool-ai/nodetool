@@ -83,32 +83,28 @@ Tests inherit `CONDA_PREFIX` from activated environment.
 
 ## GPU Detection
 
-Uses [torchruntime](https://github.com/easydiffusion/torchruntime) to detect GPU hardware and install correct PyTorch variant.
+Electron uses [torchruntime](https://github.com/easydiffusion/torchruntime) when a package needs a PyTorch-specific wheel index. This runs before installing or updating known torch-dependent packages such as `nodetool-huggingface` and `nunchaku`.
 
-**Supported:**
+If no torch platform is cached, the package manager:
 
-- **NVIDIA** - Auto CUDA selection (11.8, 12.4, 12.8, 12.9)
-  - 50xx, 40xx, 30xx, 20xx, 16xx, 10xx, datacenter
-- **AMD**
-  - Linux: ROCm 5.2, 5.7, 6.2, 6.4 (7xxx, 6xxx, 5xxx series, APUs)
-  - Windows: DirectML (all recent AMD GPUs)
-- **Intel** - Arc and integrated via XPU or DirectML
-- **Apple Silicon** - M1/M2/M3/M4 with MPS
-- **CPU-only** - Automatic fallback
+1. Installs `torchruntime~=2.0` into the Python environment if needed
+2. Detects the local GPU platform
+3. Saves the result as `TORCH_PLATFORM_DETECTED` in `~/.config/nodetool/settings.yaml` (or `%APPDATA%/nodetool/settings.yaml` on Windows)
+4. Adds the matching PyTorch wheel index to the `uv pip install` command
 
-**How it works:**
+If detection fails, it falls back to CPU wheels.
 
-During provisioning:
-1. Create Python environment with micromamba
-2. Install torchruntime from PyPI
-3. Run GPU detection via PCI database
-4. Determine PyTorch index URL
-5. Install packages with correct variant
-6. Cache results for future operations
+**Supported torch platforms:**
+
+- **NVIDIA CUDA**: `cu118`, `cu124`, `cu128`, `cu129`
+- **AMD ROCm**: `rocm5.2`, `rocm5.7`, `rocm6.2`, `rocm6.4`
+- **Apple Silicon**: `mps` (uses the default PyPI index)
+- **CPU-only**: `cpu`
 
 **Detection logs:**
 
-```
+```text
+Detecting GPU platform before installing nodetool-huggingface...
 Detecting GPU hardware...
 Detected torch platform: rocm6.2 (GPUs: 1)
 PyTorch index URL: https://download.pytorch.org/whl/rocm6.2
@@ -116,37 +112,24 @@ PyTorch index URL: https://download.pytorch.org/whl/rocm6.2
 
 Failure falls back to CPU:
 
-```
+```text
 GPU detection failed: No GPUs found
 Falling back to CPU-only installation
 ```
 
-**DirectML (AMD/Intel on Windows):**
-
-```
-DirectML support required for this platform
-```
-
-Note: ComfyUI nodes need `--directml` flag, auto-configured.
-
-**Manual override:**
-
-```bash
-# Force CPU
-TORCH_PLATFORM=cpu npm start
-
-# Force CUDA 12.9
-TORCH_PLATFORM=cu129 npm start
-
-# Force ROCm 6.2
-TORCH_PLATFORM=rocm6.2 npm start
-```
-
-Valid: `cu118`, `cu124`, `cu128`, `cu129`, `rocm5.2`, `rocm5.7`, `rocm6.2`, `rocm6.4`, `directml`, `xpu`, `mps`, `cpu`
-
 ## Building for Distribution
 
 ### Standard Builds
+
+From the repository root:
+
+```bash
+npm run build:packages
+npm run build:web
+npm run build:electron
+```
+
+From `electron/`:
 
 ```bash
 npm run build        # Build and package for current platform
@@ -154,6 +137,32 @@ npm run dist         # Create distribution packages
 ```
 
 Outputs to `dist/` directory.
+
+### Local Non-Release Builds
+
+The Electron build verifies that required Python wheels are published before packaging. For local test builds, you can skip this release-only registry check:
+
+```bash
+SKIP_PYTHON_REGISTRY_CHECK=1 npm run build:electron
+```
+
+or from `electron/`:
+
+```bash
+SKIP_PYTHON_REGISTRY_CHECK=1 npm run build
+```
+
+After packaging, verify the QuickJS WebAssembly asset is included with the externalized package:
+
+```bash
+find electron/dist -path "*/Resources/backend/node_modules/@jitl/quickjs-ng-wasmfile-release-sync/dist/emscripten-module.wasm" -print
+```
+
+Smoke-test the packaged app by running a `nodetool.code.Code` node:
+
+```js
+return { ok: true, answer: 42 };
+```
 
 ### Linux Packaging
 

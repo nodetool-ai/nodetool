@@ -17,8 +17,8 @@ Adds a heading to the document
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| document | `document` | The document to add the heading to | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+|----------|------|-------------|---------|
+| document | `document` | The document to add the heading to | `{"type":"document","uri":"","asset_id":null,"da...` |
 | text | `str` | The heading text | `` |
 | level | `int` | Heading level (1-9) | `1` |
 
@@ -28,9 +28,6 @@ Adds a heading to the document
 |--------|------|-------------|
 | output | `document` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.docx](../) namespace.
-

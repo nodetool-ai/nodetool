@@ -165,6 +165,8 @@ export interface GCPConfigParams {
   cpu?: string;
   /** Memory (default: "16Gi"). */
   memory?: string;
+  /** Environment variables to set on the Cloud Run service. */
+  environment?: Record<string, string>;
 }
 
 /**
@@ -190,6 +192,7 @@ export function configureGCP(
     resources: {
       cpu: params.cpu ?? "4",
       memory: params.memory ?? "16Gi"
-    }
+    },
+    environment: params.environment
   });
 }

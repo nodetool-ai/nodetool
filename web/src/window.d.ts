@@ -27,6 +27,7 @@ interface SystemInfo {
   condaEnvPath: string;
   dataPath: string;
   logsPath: string;
+  optionalNodePath: string;
   // Python and package versions
   pythonVersion: string | null;
   // Feature availability
@@ -449,6 +450,7 @@ declare global {
         ) => Promise<{ success: boolean; message: string }>;
         getInstallLocation: () => Promise<string>;
         selectInstallLocation: () => Promise<string | null>;
+        showManager?: () => void;
       };
 
       // Low-level IPC methods for registering handlers (available in Electron only)

@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Toolbar, Box, Button, useMediaQuery } from "@mui/material";
+import { Toolbar, Box, useMediaQuery } from "@mui/material";
+import { EditorButton } from "../editor_ui";
 import AutoAwesomeMosaicIcon from "@mui/icons-material/AutoAwesomeMosaic";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY, HEADER_HEIGHT } from "../../config/constants";
@@ -15,9 +16,8 @@ import { FlexRow, Tooltip } from "../ui_primitives";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 import { isProduction } from "../../lib/env";
-import { getIsElectronDetails } from "../../utils/browser";
 
-const workspacesEnabled = getIsElectronDetails().isElectron || !isProduction;
+const workspacesEnabled = !isProduction;
 
 const styles = (theme: Theme) =>
   css({
@@ -251,7 +251,7 @@ const TemplatesButton = memo(function TemplatesButton({
       delay={TOOLTIP_ENTER_DELAY}
       placement="bottom"
     >
-      <Button
+      <EditorButton
         variant="outlined"
         size="small"
         sx={{
@@ -286,7 +286,7 @@ const TemplatesButton = memo(function TemplatesButton({
       >
         <AutoAwesomeMosaicIcon className="templates-icon" />
         <span className="nav-button-text">Templates</span>
-      </Button>
+      </EditorButton>
     </Tooltip>
   );
 });

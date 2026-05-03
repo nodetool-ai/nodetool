@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { trpcClient } from "../trpc/client";
 import { Asset } from "../stores/ApiTypes";
+import { normalizeAssetList } from "../utils/normalizeAsset";
 
 const fetchJobAssets = async (jobId: string): Promise<Asset[]> => {
   const data = await trpcClient.assets.list.query({ job_id: jobId });
-  return (data.assets ?? []) as unknown as Asset[];
+  return normalizeAssetList((data.assets ?? []) as unknown as Asset[]);
 };
 
 export const useJobAssets = (jobId: string) => {

@@ -169,7 +169,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
     } else {
       idx = atIndex !== undefined ? atIndex : chain.length;
       const inputCount = chain.filter((n) => isInputNode(n.nodeType)).length;
-      if (idx < inputCount) idx = inputCount;
+      if (idx < inputCount) {idx = inputCount;}
     }
 
     const defaultOutput =
@@ -236,7 +236,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       toIndex < 0 ||
       toIndex >= chain.length
     )
-      return;
+      {return;}
 
     const updated = [...chain];
     const [moved] = updated.splice(fromIndex, 1);
@@ -263,7 +263,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
   duplicateNode: (nodeId) => {
     const { chain } = get();
     const idx = chain.findIndex((n) => n.id === nodeId);
-    if (idx === -1) return;
+    if (idx === -1) {return;}
     const original = chain[idx];
     const dup: ChainNode = {
       ...original,
@@ -294,7 +294,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
   setSelectedOutput: (nodeId, outputName) => {
     const { chain } = get();
     const updated = chain.map((n) => {
-      if (n.id !== nodeId) return n;
+      if (n.id !== nodeId) {return n;}
       return { ...n, selectedOutput: outputName };
     });
     set({ chain: updated, connections: buildConnections(updated) });
@@ -303,7 +303,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
   setInputMapping: (nodeId, inputName, source) => {
     set((state) => {
       const chain = state.chain.map((n) => {
-        if (n.id !== nodeId) return n;
+        if (n.id !== nodeId) {return n;}
         const mappings = { ...n.inputMappings };
         if (source) {
           mappings[inputName] = source;
@@ -328,7 +328,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
   addDynamicInput: (nodeId, inputName) => {
     set((state) => {
       const chain = state.chain.map((n) => {
-        if (n.id !== nodeId || !n.metadata.is_dynamic) return n;
+        if (n.id !== nodeId || !n.metadata.is_dynamic) {return n;}
         return {
           ...n,
           dynamicProperties: { ...n.dynamicProperties, [inputName]: null },
@@ -341,7 +341,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
   removeDynamicInput: (nodeId, inputName) => {
     set((state) => {
       const chain = state.chain.map((n) => {
-        if (n.id !== nodeId) return n;
+        if (n.id !== nodeId) {return n;}
         const dynamicProperties = { ...n.dynamicProperties };
         delete dynamicProperties[inputName];
         const inputMappings = { ...n.inputMappings };
@@ -411,23 +411,23 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
     const roots = workflow.graph.nodes.filter((n) => !targets.has(n.id));
 
     function visit(nodeId: string) {
-      if (visited.has(nodeId)) return;
+      if (visited.has(nodeId)) {return;}
       visited.add(nodeId);
       const node = nodeMap.get(nodeId);
-      if (node) ordered.push(node);
+      if (node) {ordered.push(node);}
       for (const e of workflow.graph.edges) {
-        if (e.source === nodeId) visit(e.target);
+        if (e.source === nodeId) {visit(e.target);}
       }
     }
-    for (const r of roots) visit(r.id);
+    for (const r of roots) {visit(r.id);}
     for (const n of workflow.graph.nodes) {
-      if (!visited.has(n.id)) ordered.push(n);
+      if (!visited.has(n.id)) {ordered.push(n);}
     }
 
     const chain: ChainNode[] = ordered
       .map((node) => {
         const meta = byType.get(node.type);
-        if (!meta) return null;
+        if (!meta) {return null;}
 
         // Build inputMappings from all incoming edges
         const incomingEdges = edgesByTarget.get(node.id) ?? [];

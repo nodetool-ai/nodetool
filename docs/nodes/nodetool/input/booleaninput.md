@@ -14,17 +14,12 @@ namespace: "nodetool.input"
 Accepts a boolean (true/false) value as a parameter for workflows.  This input is used for binary choices, enabling or disabling features, or controlling conditional logic paths.
     input, parameter, boolean, bool, toggle, switch, flag
 
-    Use cases:
-    - Toggle features or settings on or off.
-    - Set binary flags to control workflow behavior.
-    - Make conditional choices within a workflow (e.g., proceed if true).
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | name | `str` | The parameter name for the workflow. | `` |
-| value | `bool` |  | `False` |
+| value | `bool` |  | `false` |
 | description | `str` | The description of the input for the workflow. | `` |
 
 ## Outputs
@@ -33,9 +28,6 @@ Accepts a boolean (true/false) value as a parameter for workflows.  This input i
 |--------|------|-------------|
 | output | `bool` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.input](../) namespace.
-

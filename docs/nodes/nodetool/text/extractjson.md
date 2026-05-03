@@ -14,18 +14,13 @@ namespace: "nodetool.text"
 Extracts data from JSON using JSONPath expressions.
     json, extract, jsonpath
 
-    Use cases:
-    - Retrieving specific fields from complex JSON structures
-    - Filtering and transforming JSON data for analysis
-    - Extracting nested data from API responses or configurations
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | text | `str` |  | `` |
 | json_path | `str` |  | `$.*` |
-| find_all | `bool` |  | `False` |
+| find_all | `bool` |  | `false` |
 
 ## Outputs
 
@@ -33,9 +28,6 @@ Extracts data from JSON using JSONPath expressions.
 |--------|------|-------------|
 | output | `any` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.text](../) namespace.
-

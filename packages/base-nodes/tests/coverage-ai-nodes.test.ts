@@ -826,6 +826,63 @@ describe("AgentNode", () => {
     expect(result.thinking).toBeNull();
     expect(result.audio).toBeNull();
   });
+
+  it("dispatches control tools via sendControlEvent when _control_context is provided", async () => {
+    const n = new (AgentNode as any)();
+    n.setDynamic("_control_context", {
+      "node-ctrl-1": {
+        node_type: "nodetool.test.ControlledNode",
+        node_title: "Controlled Node",
+        control_actions: {
+          run: {
+            properties: {
+              message: { type: "string", description: "Message to send" }
+            }
+          }
+        }
+      }
+    });
+
+    let callCount = 0;
+    let capturedTools: any[] = [];
+    const mockProvider = {
+      async *generateMessages(args: any): AsyncGenerator<Record<string, unknown>> {
+        callCount += 1;
+        capturedTools = args.tools ?? [];
+        if (callCount === 1) {
+          yield {
+            id: "call_ctrl",
+            name: "controlled_node",
+            args: { message: "hello" }
+          };
+          return;
+        }
+        yield { type: "chunk", content: "done", content_type: "text", done: true };
+      }
+    };
+
+    const sentEvents: any[] = [];
+    const mockContext = {
+      getProvider: async () => mockProvider,
+      hasControlEventSupport: true,
+      sendControlEvent: async (targetNodeId: string, args: any) => {
+        sentEvents.push({ targetNodeId, args });
+        return { success: true, output: "controlled result" };
+      }
+    };
+
+    n.assign({
+      model: { provider: "test", id: "m1" },
+      prompt: "Use the control node"
+    });
+
+    const result = await n.process(mockContext as any);
+    expect(capturedTools.some((t: any) => t.name === "controlled_node")).toBe(true);
+    expect(result.text).toBe("done");
+    expect(sentEvents).toHaveLength(1);
+    expect(sentEvents[0].targetNodeId).toBe("node-ctrl-1");
+    expect(sentEvents[0].args).toEqual({ message: "hello" });
+  });
 });
 
 // ResearchAgentNode has been removed from agents.ts
@@ -1277,16 +1334,22 @@ describe("ListGeneratorNode", () => {
     expect(results[2].index).toBe(2);
   });
 
-  function makeMockContextWithToolCalls(items: string[]) {
+  function makeMockContextWithToolCallSequences(sequences: string[][]) {
+    let callIndex = 0;
     return {
       getProvider: async () => ({
         async *generateMessages() {
+          const items = sequences[callIndex++] ?? [];
           for (let i = 0; i < items.length; i++) {
-            yield { id: `call_${i}`, name: "add_item", args: { item: items[i] } };
+            yield { id: `call_${callIndex}_${i}`, name: "add_item", args: { item: items[i] } };
           }
         }
       })
     };
+  }
+
+  function makeMockContextWithToolCalls(items: string[]) {
+    return makeMockContextWithToolCallSequences([items]);
   }
 
   it("collects items emitted via add_item tool calls", async () => {
@@ -1326,11 +1389,29 @@ describe("ListGeneratorNode", () => {
     ]);
   });
 
+  it("continues the agent loop when one add_item call arrives per turn", async () => {
+    const n = new (ListGeneratorNode as any)();
+    const mockContext = makeMockContextWithToolCallSequences([
+      ["First item"],
+      ["Second item"],
+      ["Third item"]
+    ]);
+    n.assign({
+      prompt: "Generate 3 items",
+      model: { provider: "mock", id: "gpt-4" }
+    });
+    const result = await n.process(mockContext as any);
+    expect(result.output).toEqual(["First item", "Second item", "Third item"]);
+  });
+
   it("ignores prose chunks and only yields tool-call items", async () => {
     const n = new (ListGeneratorNode as any)();
+    let called = false;
     const mockContext = {
       getProvider: async () => ({
         async *generateMessages() {
+          if (called) return;
+          called = true;
           yield { type: "chunk", content: "ignored prose", content_type: "text" };
           yield { id: "call_0", name: "add_item", args: { item: "Only item" } };
           yield { type: "chunk", content: "more prose", content_type: "text", done: true };

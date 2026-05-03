@@ -1,13 +1,11 @@
 import React, { memo, useCallback, useMemo } from "react";
 import {
   ListItem,
-  CircularProgress,
   LinearProgress,
-  Button,
   Box
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import { DeleteButton, Text, Caption, Tooltip } from "../ui_primitives";
+import { DeleteButton, Text, Caption, Tooltip, LoadingSpinner, EditorButton } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 import {
   UseMutationResult,
@@ -55,7 +53,7 @@ const IndexingProgress = memo(function IndexingProgress({
         value={(indexProgress.current / indexProgress.total) * 100}
       />
       <br />
-      <CircularProgress size={16} sx={{ ml: 1, verticalAlign: "middle" }} />
+      <LoadingSpinner size={16} inline />
       <Caption sx={{ ml: 1 }}>
         Indexing {indexProgress.current}&nbsp;of&nbsp;
         {indexProgress.total} documents
@@ -192,7 +190,7 @@ const CollectionItem = ({
       secondaryAction={
         deleteMutation.isPending &&
           deleteMutation.variables === collection.name ? (
-          <CircularProgress size={20} />
+          <LoadingSpinner size={20} inline />
         ) : (
           <DeleteButton
             onClick={handleDeleteClick}
@@ -301,7 +299,7 @@ const CollectionItem = ({
           />
         ) : (
           <Tooltip title="Click to change the ingestion workflow for this collection">
-            <Button
+            <EditorButton
               variant="text"
               sx={{
                 color: "text.secondary",
@@ -320,7 +318,7 @@ const CollectionItem = ({
               onClick={handleEditWorkflow}
             >
               {collection.workflow_name || "No workflow"}
-            </Button>
+            </EditorButton>
           </Tooltip>
         )}
       </div>

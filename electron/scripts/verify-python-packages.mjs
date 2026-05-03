@@ -4,7 +4,7 @@
  *
  * Ensures the NodeTool registry has at least one published `nodetool-core`
  * wheel that satisfies `nodetool-core >= MIN_NODETOOL_CORE_VERSION` (read
- * from packages/runtime/src/bridge-protocol.ts). Without this, the Electron
+ * from packages/protocol/src/bridge-protocol.ts). Without this, the Electron
  * installer would pin to a constraint that resolves to nothing, leaving
  * users with a stale, incompatible Python environment.
  *
@@ -20,7 +20,7 @@ const REPO_ROOT = join(ELECTRON_DIR, "..");
 const BRIDGE_PROTOCOL_TS = join(
   REPO_ROOT,
   "packages",
-  "runtime",
+  "protocol",
   "src",
   "bridge-protocol.ts"
 );
@@ -244,7 +244,7 @@ async function main() {
     console.error(
       "Hint: publish a matching nodetool-core release that bumps " +
         "BRIDGE_PROTOCOL_VERSION (or update MIN_NODETOOL_CORE_VERSION in " +
-        "packages/runtime/src/bridge-protocol.ts to a published version). " +
+        "packages/protocol/src/bridge-protocol.ts to a published version). " +
         "Set SKIP_PYTHON_REGISTRY_CHECK=1 for local non-release builds."
     );
     process.exit(1);

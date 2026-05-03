@@ -395,7 +395,7 @@ class ApiService {
   }
 
   resolveUrl(urlOrPath: string | null | undefined): string | null {
-    if (!urlOrPath) return null;
+    if (!urlOrPath) {return null;}
     if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
       return urlOrPath;
     }

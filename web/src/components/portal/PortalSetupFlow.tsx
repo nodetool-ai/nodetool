@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useState, useCallback } from "react";
-import { TextField, Button, CircularProgress } from "@mui/material";
+import { TextInput, EditorButton, LoadingSpinner } from "../ui_primitives";
 import useSecretsStore from "../../stores/SecretsStore";
 
 const styles = (theme: Theme) =>
@@ -196,7 +196,7 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
 
             {expandedProvider === provider.id && (
               <div className="portal-setup-key-input">
-                <TextField
+                <TextInput
                   size="small"
                   type="password"
                   placeholder={`${provider.name} API Key`}
@@ -208,14 +208,14 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
                   fullWidth
                   autoFocus
                 />
-                <Button
+                <EditorButton
                   variant="contained"
-                  size="small"
+                  density="compact"
                   onClick={() => handleSaveKey(provider)}
                   disabled={saving || !keyValue.trim()}
                 >
-                  {saving ? <CircularProgress size={16} /> : "Save"}
-                </Button>
+                  {saving ? <LoadingSpinner size="small" inline /> : "Save"}
+                </EditorButton>
               </div>
             )}
           </div>

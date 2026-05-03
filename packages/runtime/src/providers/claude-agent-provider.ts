@@ -19,7 +19,7 @@
  */
 
 import { BaseProvider } from "./base-provider.js";
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, importOptionalModule } from "@nodetool-ai/config";
 import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   LanguageModel,
@@ -29,6 +29,11 @@ import type {
   ProviderTool,
   ToolCall
 } from "./types.js";
+// `@anthropic-ai/claude-agent-sdk` is loaded lazily inside generateMessages.
+// Importing it at module scope means anything that re-exports this provider
+// (notably the Electron main bundle) requires the SDK package at startup —
+// and on Windows the SDK isn't resolvable from inside the ASAR, crashing the
+// app. The `import type` is erased at compile time.
 import type * as SdkType from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 
@@ -251,7 +256,7 @@ function extractText(content: Message["content"]): string {
  * Convert a JSON Schema property to a Zod type.
  * Handles the common subset used by agent tools.
  */
-function jsonSchemaPropertyToZod(prop: Record<string, unknown>, z: any): any {
+function jsonSchemaPropertyToZod(prop: Record<string, unknown>): z.ZodTypeAny {
   const type = prop.type as string | undefined;
   const enumValues = prop.enum as unknown[] | undefined;
 
@@ -274,7 +279,7 @@ function jsonSchemaPropertyToZod(prop: Record<string, unknown>, z: any): any {
     case "array": {
       const items = prop.items as Record<string, unknown> | undefined;
       if (items) {
-        return z.array(jsonSchemaPropertyToZod(items, z));
+        return z.array(jsonSchemaPropertyToZod(items));
       }
       return z.array(z.any());
     }
@@ -283,10 +288,10 @@ function jsonSchemaPropertyToZod(prop: Record<string, unknown>, z: any): any {
         | Record<string, Record<string, unknown>>
         | undefined;
       if (properties) {
-        const shape: Record<string, unknown> = {};
+        const shape: Record<string, z.ZodTypeAny> = {};
         const required = (prop.required as string[]) ?? [];
         for (const [key, val] of Object.entries(properties)) {
-          let zodType = jsonSchemaPropertyToZod(val, z);
+          let zodType = jsonSchemaPropertyToZod(val);
           if (!required.includes(key)) {
             zodType = zodType.optional();
           }
@@ -306,9 +311,8 @@ function jsonSchemaPropertyToZod(prop: Record<string, unknown>, z: any): any {
  * suitable for the SDK's tool() function.
  */
 function jsonSchemaToZodShape(
-  schema: Record<string, unknown> | undefined,
-  z: any
-): Record<string, unknown> {
+  schema: Record<string, unknown> | undefined
+): Record<string, z.ZodTypeAny> {
   if (!schema) return {};
   const properties = schema.properties as
     | Record<string, Record<string, unknown>>
@@ -316,10 +320,10 @@ function jsonSchemaToZodShape(
   if (!properties) return {};
 
   const required = (schema.required as string[]) ?? [];
-  const shape: Record<string, unknown> = {};
+  const shape: Record<string, z.ZodTypeAny> = {};
 
   for (const [key, prop] of Object.entries(properties)) {
-    let zodType = jsonSchemaPropertyToZod(prop, z);
+    let zodType = jsonSchemaPropertyToZod(prop);
     if (!required.includes(key)) {
       zodType = zodType.optional();
     }
@@ -420,11 +424,10 @@ export class ClaudeAgentProvider extends BaseProvider {
     tools: ProviderTool[],
     onToolCall: OnToolCall,
     sdk: typeof SdkType,
-    z: any,
     toolCallTracker: ToolCall[]
   ) {
     const mcpTools = tools.map((t) => {
-      const zodShape = jsonSchemaToZodShape(t.inputSchema, z) as any;
+      const zodShape = jsonSchemaToZodShape(t.inputSchema);
       return sdk.tool(
         t.name,
         t.description ?? "",
@@ -503,14 +506,24 @@ export class ClaudeAgentProvider extends BaseProvider {
       );
     }
 
-    const sdk = await import("@anthropic-ai/claude-agent-sdk");
-
     log.info("Claude Agent generateMessages called", {
       toolCount,
       hasOnToolCall,
       hasTools,
       toolNames: args.tools?.map((t) => t.name) ?? []
     });
+
+    // Lazy-load the SDK only on first use. This keeps anything that imports
+    // the provider transitively (Electron main, CLI, tests) from requiring
+    // the SDK at startup.
+    let sdk: typeof SdkType;
+    try {
+      sdk = await importOptionalModule<typeof import("@anthropic-ai/claude-agent-sdk")>(
+        "@anthropic-ai/claude-agent-sdk"
+      );
+    } catch (err) {
+      throw classifyClaudeAgentError(err);
+    }
 
     // Track tool calls made during this query (populated by MCP handlers)
     const toolCallTracker: ToolCall[] = [];
@@ -524,7 +537,6 @@ export class ClaudeAgentProvider extends BaseProvider {
         args.tools,
         args.onToolCall,
         sdk,
-        z,
         toolCallTracker
       );
       allowedTools = args.tools.map(
@@ -660,9 +672,12 @@ export class ClaudeAgentProvider extends BaseProvider {
           if (Array.isArray(content)) {
             const text = content
               .filter(
-                (b: any) => b?.type === "text" && typeof b.text === "string"
+                (b): b is { type: string; text: string } =>
+                  typeof b === "object" && b !== null &&
+                  (b as Record<string, unknown>).type === "text" &&
+                  typeof (b as Record<string, unknown>).text === "string"
               )
-              .map((b: any) => b.text as string)
+              .map((b) => b.text)
               .join("");
             if (text.length > streamedTextLength) {
               const delta = text.slice(streamedTextLength);
@@ -681,9 +696,12 @@ export class ClaudeAgentProvider extends BaseProvider {
           if (Array.isArray(content)) {
             const text = content
               .filter(
-                (b: any) => b?.type === "text" && typeof b.text === "string"
+                (b): b is { type: string; text: string } =>
+                  typeof b === "object" && b !== null &&
+                  (b as Record<string, unknown>).type === "text" &&
+                  typeof (b as Record<string, unknown>).text === "string"
               )
-              .map((b: any) => b.text as string)
+              .map((b) => b.text)
               .join("");
             if (text.length > streamedTextLength) {
               const delta = text.slice(streamedTextLength);

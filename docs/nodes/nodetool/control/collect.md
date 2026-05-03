@@ -22,18 +22,15 @@ Collect items until the end of the stream and return them as a list.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| input_item | `any` | The input item to collect. | - |
+|----------|------|-------------|---------|
+| input_item | `any` | The input item to collect. | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `List[any]` |  |
-
-## Metadata
+| output | `list[any]` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [nodetool.control](../) namespace.
-

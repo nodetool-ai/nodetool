@@ -62,6 +62,11 @@ describe("ModelMenuStore", () => {
       expect(requiredSecretForProvider("https://evil.example/aki.io/path")).toBeNull();
     });
 
+    it("returns TOGETHER_API_KEY for Together provider", () => {
+      expect(requiredSecretForProvider("together")).toBe("TOGETHER_API_KEY");
+      expect(requiredSecretForProvider("Together")).toBe("TOGETHER_API_KEY");
+    });
+
     it("returns null for providers without required secrets", () => {
       expect(requiredSecretForProvider("ollama")).toBeNull();
       expect(requiredSecretForProvider("local")).toBeNull();

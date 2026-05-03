@@ -6,7 +6,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { VERSION } from "../../config/constants";
-import { isElectron } from "../../lib/env";
+import { isElectron, isProduction } from "../../lib/env";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { FlexRow, FlexColumn, Text, Caption, LoadingSpinner, Chip } from "../ui_primitives";
 
@@ -24,6 +24,7 @@ interface SystemInfoData {
   condaEnvPath: string;
   dataPath: string;
   logsPath: string;
+  optionalNodePath: string;
   pythonVersion: string | null;
   cudaAvailable: boolean;
   cudaVersion: string | null;
@@ -227,6 +228,7 @@ Application: ${systemInfo.installPath}
 Conda Environment: ${systemInfo.condaEnvPath}
 Data: ${systemInfo.dataPath}
 Logs: ${systemInfo.logsPath}
+NPM Packages: ${systemInfo.optionalNodePath}
 
 Features & Versions
 -------------------
@@ -311,8 +313,8 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
         )}
       </div>
 
-      {/* Installation Paths - only show in Electron */}
-      {systemInfo && (
+      {/* Installation Paths - hide in production */}
+      {systemInfo && !isProduction && (
         <>
           <Text size="big" id="installation-paths">
             Installation Paths
@@ -339,6 +341,12 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
             <InfoRow
               label="Logs"
               value={systemInfo.logsPath}
+              copyable
+              onCopy={handleCopy}
+            />
+            <InfoRow
+              label="NPM Packages"
+              value={systemInfo.optionalNodePath}
               copyable
               onCopy={handleCopy}
             />
@@ -439,6 +447,28 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
             }}
           >
             Website
+          </a>
+          <a
+            href="https://nodetool.ai/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: "var(--palette-primary-main)",
+              textDecoration: "none"
+            }}
+          >
+            Privacy Policy
+          </a>
+          <a
+            href="https://nodetool.ai/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: "var(--palette-primary-main)",
+              textDecoration: "none"
+            }}
+          >
+            Terms of Use
           </a>
         </FlexColumn>
       </div>

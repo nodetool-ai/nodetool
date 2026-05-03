@@ -22,8 +22,8 @@ Rename columns in dataframe.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| dataframe | `dataframe` | The DataFrame to rename columns. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+|----------|------|-------------|---------|
+| dataframe | `dataframe` | The DataFrame to rename columns. | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 | rename_map | `str` | Column rename mapping in format: old1:new1,old2:new2 | `` |
 
 ## Outputs
@@ -32,9 +32,6 @@ Rename columns in dataframe.
 |--------|------|-------------|
 | output | `dataframe` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.data](../) namespace.
-

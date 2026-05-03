@@ -26,7 +26,7 @@ export class Workspace extends DBModel {
     super(data);
     const now = new Date().toISOString();
     this.id ??= createTimeOrderedUuid();
-    // Drizzle handles boolean<->integer conversion, but handle raw DB reads too
+    // Handle raw integer booleans from legacy data
     if (typeof this.is_default === "number") {
       this.is_default = (this.is_default as unknown as number) !== 0;
     }
@@ -39,7 +39,6 @@ export class Workspace extends DBModel {
     this.updated_at = new Date().toISOString();
   }
 
-  /** Check if the workspace path exists and is writable. */
   isAccessible(): boolean {
     if (!existsSync(this.path)) return false;
     try {
@@ -50,78 +49,64 @@ export class Workspace extends DBModel {
     }
   }
 
-  /** Find a workspace by user_id and workspace id. */
   static async find(
     userId: string,
     workspaceId: string
   ): Promise<Workspace | null> {
     const db = getDb();
-    const row = db
+    const [row] = await db
       .select()
       .from(workspaces)
-      .where(
-        and(eq(workspaces.user_id, userId), eq(workspaces.id, workspaceId))
-      )
-      .limit(1)
-      .get();
+      .where(and(eq(workspaces.user_id, userId), eq(workspaces.id, workspaceId)))
+      .limit(1);
     return row ? new Workspace(row as Record<string, unknown>) : null;
   }
 
-  /** Paginate workspaces for a user. */
   static async paginate(
     userId: string,
     opts: { limit?: number; startKey?: string } = {}
   ): Promise<[Workspace[], string]> {
     const { limit = 50 } = opts;
     const db = getDb();
-    const rows = db
+    const rows = await db
       .select()
       .from(workspaces)
       .where(eq(workspaces.user_id, userId))
-      .limit(limit + 1)
-      .all();
+      .limit(limit + 1);
 
-    const items = rows.map((r) => new Workspace(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Workspace(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
     return [items, cursor];
   }
 
-  /** Get the default workspace for a user. */
   static async getDefault(userId: string): Promise<Workspace | null> {
     const db = getDb();
-    const row = db
+    const [row] = await db
       .select()
       .from(workspaces)
-      .where(
-        and(eq(workspaces.user_id, userId), eq(workspaces.is_default, true))
-      )
-      .limit(1)
-      .get();
+      .where(and(eq(workspaces.user_id, userId), eq(workspaces.is_default, true)))
+      .limit(1);
     return row ? new Workspace(row as Record<string, unknown>) : null;
   }
 
-  /** Check if any workflows are linked to a workspace. */
   static async hasLinkedWorkflows(workspaceId: string): Promise<boolean> {
     const db = getDb();
-    const row = db
+    const [row] = await db
       .select({ id: workflows.id })
       .from(workflows)
       .where(eq(workflows.workspace_id, workspaceId))
-      .limit(1)
-      .get();
+      .limit(1);
     return row != null;
   }
 
-  /** Unset is_default on all workspaces for a user. */
   static async unsetOtherDefaults(userId: string): Promise<void> {
     const db = getDb();
-    const rows = db
+    const rows = await db
       .select()
       .from(workspaces)
-      .where(eq(workspaces.user_id, userId))
-      .all();
+      .where(eq(workspaces.user_id, userId));
     for (const row of rows) {
       const ws = new Workspace(row as Record<string, unknown>);
       if (ws.is_default) {

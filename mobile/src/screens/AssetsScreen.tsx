@@ -208,7 +208,7 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
       allowsMultipleSelection: false,
       quality: 1,
     });
-    if (result.canceled || !result.assets[0]) return;
+    if (result.canceled || !result.assets[0]) {return;}
     const picked = result.assets[0];
     const name = picked.fileName ?? picked.uri.split('/').pop() ?? 'photo';
     const mimeType = picked.mimeType ?? (picked.type === 'video' ? 'video/mp4' : 'image/jpeg');
@@ -219,7 +219,7 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
     const result = await DocumentPicker.getDocumentAsync({
       copyToCacheDirectory: true,
     });
-    if (result.canceled || !result.assets[0]) return;
+    if (result.canceled || !result.assets[0]) {return;}
     const picked = result.assets[0];
     await doUpload(picked.uri, picked.name, picked.mimeType ?? 'application/octet-stream');
   }, [doUpload]);
@@ -241,11 +241,11 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
     const thumb = apiService.resolveUrl(rawThumb);
 
     let iconName: keyof typeof Ionicons.glyphMap = 'document-outline';
-    if (isFolder) iconName = 'folder';
-    else if (isImage) iconName = 'image-outline';
-    else if (isVideo) iconName = 'film-outline';
-    else if (isAudio) iconName = 'musical-notes-outline';
-    else if (item.content_type?.startsWith('text/')) iconName = 'document-text-outline';
+    if (isFolder) {iconName = 'folder';}
+    else if (isImage) {iconName = 'image-outline';}
+    else if (isVideo) {iconName = 'film-outline';}
+    else if (isAudio) {iconName = 'musical-notes-outline';}
+    else if (item.content_type?.startsWith('text/')) {iconName = 'document-text-outline';}
 
     return (
       <TouchableOpacity
@@ -298,7 +298,7 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
   }, [colors, shadows, itemSize, handleAssetPress, handleAssetLongPress]);
 
   const renderEmpty = () => {
-    if (isLoading) return null;
+    if (isLoading) {return null;}
     const searchActive = debouncedQuery.trim().length >= 2;
     return (
       <View style={styles.emptyContainer}>

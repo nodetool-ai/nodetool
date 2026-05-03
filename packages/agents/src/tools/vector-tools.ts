@@ -7,23 +7,30 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type {
+  VectorCollection,
+  VectorMatch
+} from "@nodetool-ai/vectorstore";
 import { Tool } from "./base-tool.js";
 
-export interface VecCollection {
-  query(params: {
-    queryTexts: string[];
-    nResults: number;
-    whereDocument?: Record<string, unknown>;
-    include?: string[];
-  }): Promise<{
-    ids: string[][];
-    documents: (string | null)[][];
-  }>;
-  add(params: {
-    ids: string[];
-    documents: string[];
-    metadatas?: Record<string, unknown>[] | null;
-  }): Promise<void>;
+/**
+ * Re-exported here under the legacy name so external code that imports
+ * `VecCollection` from `@nodetool-ai/agents` keeps compiling.
+ */
+export type VecCollection = VectorCollection;
+
+function flattenMetadata(
+  obj: Record<string, unknown>
+): Record<string, string | number | boolean> {
+  const out: Record<string, string | number | boolean> = {};
+  for (const [k, v] of Object.entries(obj ?? {})) {
+    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+      out[k] = v;
+    } else if (v !== null && v !== undefined) {
+      out[k] = String(v);
+    }
+  }
+  return out;
 }
 
 function generateDocumentId(sourceId: string): string {
@@ -51,9 +58,9 @@ export class VecTextSearchTool extends Tool {
     required: ["text"]
   };
 
-  private collection: VecCollection;
+  private collection: VectorCollection;
 
-  constructor(collection: VecCollection) {
+  constructor(collection: VectorCollection) {
     super();
     this.collection = collection;
   }
@@ -65,17 +72,11 @@ export class VecTextSearchTool extends Tool {
     const text = params.text as string;
     const nResults = (params.n_results as number) ?? 10;
 
-    const result = await this.collection.query({
-      queryTexts: [text],
-      nResults
-    });
-
-    if (!result.documents || !result.documents[0]) return {};
+    const matches = await this.collection.query({ text, topK: nResults });
 
     const out: Record<string, string> = {};
-    for (let i = 0; i < result.ids[0].length; i++) {
-      const doc = result.documents[0][i];
-      if (doc != null) out[result.ids[0][i]] = doc;
+    for (const m of matches) {
+      if (m.document != null) out[m.id] = m.document;
     }
     return out;
   }
@@ -111,9 +112,9 @@ export class VecIndexTool extends Tool {
     required: ["text", "source_id"]
   };
 
-  private collection: VecCollection;
+  private collection: VectorCollection;
 
-  constructor(collection: VecCollection) {
+  constructor(collection: VectorCollection) {
     super();
     this.collection = collection;
   }
@@ -130,11 +131,14 @@ export class VecIndexTool extends Tool {
 
     const documentId = generateDocumentId(sourceId);
 
-    await this.collection.add({
-      ids: [documentId],
-      documents: [text],
-      metadatas: Object.keys(metadata).length > 0 ? [metadata] : null
-    });
+    await this.collection.upsert([
+      {
+        id: documentId,
+        document: text,
+        metadata:
+          Object.keys(metadata).length > 0 ? flattenMetadata(metadata) : undefined
+      }
+    ]);
 
     return {
       status: "success",
@@ -181,14 +185,14 @@ export class VecHybridSearchTool extends Tool {
     required: ["text"]
   };
 
-  private collection: VecCollection;
+  private collection: VectorCollection;
 
-  constructor(collection: VecCollection) {
+  constructor(collection: VectorCollection) {
     super();
     this.collection = collection;
   }
 
-  private getKeywordQuery(
+  private getKeywordFilter(
     text: string,
     minLength: number
   ): Record<string, unknown> | null {
@@ -199,9 +203,12 @@ export class VecHybridSearchTool extends Tool {
       .filter((t) => t.length >= minLength);
 
     if (tokens.length === 0) return null;
-    if (tokens.length > 1)
-      return { $or: tokens.map((t) => ({ $contains: t })) };
-    return { $contains: tokens[0] };
+    if (tokens.length > 1) {
+      return {
+        $document: { $or: tokens.map((t) => ({ $contains: t })) }
+      };
+    }
+    return { $document: { $contains: tokens[0] } };
   }
 
   async process(
@@ -216,51 +223,32 @@ export class VecHybridSearchTool extends Tool {
       const kConstant = (params.k_constant as number) ?? 60.0;
       const minKeywordLength = (params.min_keyword_length as number) ?? 3;
 
-      // Semantic search
-      const semanticResults = await this.collection.query({
-        queryTexts: [text],
-        nResults: nResults * 2,
-        include: ["documents"]
+      const semanticMatches = await this.collection.query({
+        text,
+        topK: nResults * 2
       });
 
-      // Keyword search
-      const keywordQuery = this.getKeywordQuery(text, minKeywordLength);
-      let keywordResults = semanticResults;
-      if (keywordQuery) {
-        keywordResults = await this.collection.query({
-          queryTexts: [text],
-          nResults: nResults * 2,
-          whereDocument: keywordQuery,
-          include: ["documents"]
+      const keywordFilter = this.getKeywordFilter(text, minKeywordLength);
+      let keywordMatches: VectorMatch[] = semanticMatches;
+      if (keywordFilter) {
+        keywordMatches = await this.collection.query({
+          text,
+          topK: nResults * 2,
+          filter: keywordFilter
         });
       }
 
-      // Reciprocal rank fusion
       const combined: Record<string, { doc: string; score: number }> = {};
-
-      if (semanticResults.documents?.[0]) {
-        for (let rank = 0; rank < semanticResults.ids[0].length; rank++) {
-          const id = semanticResults.ids[0][rank];
-          const doc = semanticResults.documents[0][rank];
-          if (doc != null) {
-            combined[id] = { doc, score: 1 / (rank + kConstant) };
-          }
-        }
-      }
-
-      if (keywordResults.documents?.[0]) {
-        for (let rank = 0; rank < keywordResults.ids[0].length; rank++) {
-          const id = keywordResults.ids[0][rank];
-          const doc = keywordResults.documents[0][rank];
-          if (doc != null) {
-            if (combined[id]) {
-              combined[id].score += 1 / (rank + kConstant);
-            } else {
-              combined[id] = { doc, score: 1 / (rank + kConstant) };
-            }
-          }
-        }
-      }
+      const fuse = (matches: VectorMatch[]) => {
+        matches.forEach((m, rank) => {
+          const score = 1 / (rank + kConstant);
+          if (m.document == null) return;
+          if (combined[m.id]) combined[m.id].score += score;
+          else combined[m.id] = { doc: m.document, score };
+        });
+      };
+      fuse(semanticMatches);
+      fuse(keywordMatches);
 
       const sorted = Object.entries(combined)
         .sort((a, b) => b[1].score - a[1].score)
@@ -427,9 +415,9 @@ export class VecRecursiveSplitAndIndexTool extends Tool {
     required: ["text", "document_id"]
   };
 
-  private collection: VecCollection;
+  private collection: VectorCollection;
 
-  constructor(collection: VecCollection) {
+  constructor(collection: VectorCollection) {
     super();
     this.collection = collection;
   }
@@ -461,13 +449,11 @@ export class VecRecursiveSplitAndIndexTool extends Tool {
       for (let i = 0; i < rawChunks.length; i++) {
         const sourceId = `${documentId}:${i}`;
         const uniqueId = generateDocumentId(`${sourceId}:${i}`);
-        const metadata = { ...baseMetadata, start_index: i };
+        const metadata = flattenMetadata({ ...baseMetadata, start_index: i });
 
-        await this.collection.add({
-          ids: [uniqueId],
-          documents: [rawChunks[i]],
-          metadatas: [metadata]
-        });
+        await this.collection.upsert([
+          { id: uniqueId, document: rawChunks[i], metadata }
+        ]);
         indexedIds.push(uniqueId);
       }
     } catch (e: unknown) {
@@ -544,9 +530,9 @@ export class VecMarkdownSplitAndIndexTool extends Tool {
     required: []
   };
 
-  private collection: VecCollection;
+  private collection: VectorCollection;
 
-  constructor(collection: VecCollection) {
+  constructor(collection: VectorCollection) {
     super();
     this.collection = collection;
   }
@@ -593,10 +579,9 @@ export class VecMarkdownSplitAndIndexTool extends Tool {
     const indexedIds: string[] = [];
     for (let i = 0; i < allChunks.length; i++) {
       const uniqueId = `${docId}:${i}`;
-      await this.collection.add({
-        ids: [uniqueId],
-        documents: [allChunks[i]]
-      });
+      await this.collection.upsert([
+        { id: uniqueId, document: allChunks[i] }
+      ]);
       indexedIds.push(uniqueId);
     }
 
@@ -647,9 +632,9 @@ export class VecBatchIndexTool extends Tool {
     required: ["chunks"]
   };
 
-  private collection: VecCollection;
+  private collection: VectorCollection;
 
-  constructor(collection: VecCollection) {
+  constructor(collection: VectorCollection) {
     super();
     this.collection = collection;
   }
@@ -670,32 +655,23 @@ export class VecBatchIndexTool extends Tool {
 
     if (!chunks || chunks.length === 0) return { error: "No chunks provided" };
 
-    const ids: string[] = [];
-    const documents: string[] = [];
-    const metadatas: Record<string, unknown>[] = [];
+    const records = chunks
+      .filter((c) => c.text && c.source_id)
+      .map((c) => ({
+        id: generateDocumentId(c.source_id as string),
+        document: c.text as string,
+        metadata: flattenMetadata({ ...baseMetadata, ...(c.metadata ?? {}) })
+      }));
 
-    for (const chunk of chunks) {
-      if (!chunk.text || !chunk.source_id) continue;
-      const chunkId = generateDocumentId(chunk.source_id);
-      const combined = { ...baseMetadata, ...(chunk.metadata ?? {}) };
-      ids.push(chunkId);
-      documents.push(chunk.text);
-      metadatas.push(combined);
-    }
-
-    if (ids.length === 0) return { error: "No valid chunks to index" };
+    if (records.length === 0) return { error: "No valid chunks to index" };
 
     try {
-      await this.collection.add({
-        ids,
-        documents,
-        metadatas: metadatas.length > 0 ? metadatas : null
-      });
+      await this.collection.upsert(records);
 
       return {
         status: "success",
-        indexed_count: ids.length,
-        message: `Successfully indexed ${ids.length} chunks`
+        indexed_count: records.length,
+        message: `Successfully indexed ${records.length} chunks`
       };
     } catch (e: unknown) {
       return { error: `Indexing failed: ${String(e)}` };

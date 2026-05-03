@@ -6,12 +6,11 @@ import React from "react";
 import {
   DialogTitle,
   DialogContent,
-  IconButton,
   Grid
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { Dialog, FlexColumn, Tooltip, Text } from "../ui_primitives";
+import { Dialog, FlexColumn, Tooltip, Text, ToolbarIconButton } from "../ui_primitives";
 import ModelCard from "./model_card/ModelCard";
 import { useShallow } from "zustand/react/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
@@ -74,22 +73,21 @@ const RequiredModelsDialog: React.FC<RequiredModelsDialogProps> = ({
     >
       <DialogTitle className="model-title" style={{ marginBottom: 2 }}>
         Required Models Download
-        <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Close | ESC">
-          <IconButton
-            className="model-close"
-            aria-label="close"
-            onClick={onClose}
-            sx={{
-              position: "absolute",
-              right: 8,
-              top: 8,
-              ml: 4,
-              color: (theme) => theme.vars.palette.grey[500]
-            }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          className="model-close"
+          tooltip="Close | ESC"
+          delay={TOOLTIP_ENTER_DELAY}
+          onClick={onClose}
+          icon={<CloseIcon />}
+          sx={{
+            position: "absolute",
+            right: 8,
+            top: 8,
+            ml: 4,
+            color: (theme) => theme.vars.palette.grey[500]
+          }}
+          nodrag={false}
+        />
       </DialogTitle>
 
       <DialogContent sx={{ paddingBottom: "3em" }}>

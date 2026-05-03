@@ -150,7 +150,7 @@ export const NodePickerModal: React.FC<NodePickerModalProps> = ({
 
   // Filtered + grouped sections for search results
   const sections = useMemo((): Section[] => {
-    if (!hasSearch) return [];
+    if (!hasSearch) {return [];}
     const query = searchQuery.toLowerCase().trim();
     const tokens = query.split(/\s+/).filter((t) => t.length > 0);
 
@@ -171,7 +171,7 @@ export const NodePickerModal: React.FC<NodePickerModalProps> = ({
     const groups = new Map<string, NodeMetadata[]>();
     for (const m of filtered) {
       const ns = m.namespace;
-      if (!groups.has(ns)) groups.set(ns, []);
+      if (!groups.has(ns)) {groups.set(ns, []);}
       groups.get(ns)!.push(m);
     }
 
@@ -200,7 +200,7 @@ export const NodePickerModal: React.FC<NodePickerModalProps> = ({
   const handleQuickAction = useCallback(
     (nodeType: string) => {
       const m = metadataByType.get(nodeType);
-      if (m) handleSelect(m);
+      if (m) {handleSelect(m);}
     },
     [metadataByType, handleSelect]
   );

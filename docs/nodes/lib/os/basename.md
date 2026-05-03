@@ -22,9 +22,9 @@ Get the base name component of a file path.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | File path to get basename from | `` |
-| remove_extension | `bool` | Remove file extension from basename | `False` |
+| remove_extension | `bool` | Remove file extension from basename | `false` |
 
 ## Outputs
 
@@ -32,9 +32,6 @@ Get the base name component of a file path.
 |--------|------|-------------|
 | output | `str` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

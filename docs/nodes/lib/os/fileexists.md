@@ -21,7 +21,7 @@ Check if a file or directory exists at the specified path.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | path | `str` | Path to check for existence | `` |
 
 ## Outputs
@@ -30,9 +30,6 @@ Check if a file or directory exists at the specified path.
 |--------|------|-------------|
 | output | `bool` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [lib.os](../) namespace.
-

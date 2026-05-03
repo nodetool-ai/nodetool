@@ -14,16 +14,11 @@ namespace: "nodetool.audio"
 Concatenates multiple audio files together in sequence.
     audio, edit, join, multiple, +
 
-    Use cases:
-    - Combine multiple audio clips into a single file
-    - Create longer audio tracks from multiple segments
-    - Chain multiple audio files in order
-
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| audio_files | `List[audio]` | List of audio files to concatenate in sequence. | `[]` |
+|----------|------|-------------|---------|
+| audio_files | `list[audio]` | List of audio files to concatenate in sequence. | `[]` |
 
 ## Outputs
 
@@ -31,9 +26,6 @@ Concatenates multiple audio files together in sequence.
 |--------|------|-------------|
 | output | `audio` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.audio](../) namespace.
-

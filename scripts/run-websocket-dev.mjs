@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import net from "node:net";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
@@ -12,6 +13,54 @@ const scriptDir = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(scriptDir, "..");
 const websocketDir = resolve(rootDir, "packages", "websocket");
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+
+function parseEnvValue(value) {
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+function loadEnvironment(root) {
+  process.env.NODE_ENV = "development";
+  const systemEnv = { ...process.env };
+  const files = [
+    resolve(root, ".env"),
+    resolve(root, ".env.development"),
+    resolve(root, ".env.development.local")
+  ];
+
+  for (const file of files) {
+    if (!existsSync(file)) {
+      continue;
+    }
+    for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) {
+        continue;
+      }
+      const index = trimmed.indexOf("=");
+      if (index <= 0) {
+        continue;
+      }
+      const key = trimmed.slice(0, index).trim().replace(/^export\s+/, "");
+      process.env[key] = parseEnvValue(trimmed.slice(index + 1));
+    }
+  }
+
+  for (const [key, value] of Object.entries(systemEnv)) {
+    if (value !== undefined) {
+      process.env[key] = value;
+    }
+  }
+}
+
+loadEnvironment(rootDir);
+
 const host = process.env.HOST ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? 7777);
 

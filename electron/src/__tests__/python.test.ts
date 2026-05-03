@@ -54,7 +54,8 @@ jest.mock("../torchPlatformCache", () => ({
   getTorchIndexUrl: jest.fn().mockReturnValue(null),
 }));
 
-jest.mock("@nodetool-ai/runtime", () => ({
+jest.mock("@nodetool-ai/protocol/bridge-protocol", () => ({
+  BRIDGE_PROTOCOL_VERSION: 1,
   MIN_NODETOOL_CORE_VERSION: "0.7.0rc8",
 }));
 

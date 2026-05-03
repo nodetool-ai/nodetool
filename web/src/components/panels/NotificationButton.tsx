@@ -3,16 +3,14 @@ import { css } from "@emotion/react";
 
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  Badge,
   Box,
-  Button,
   Popover
 } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { CopyButton, Tooltip, Text, Caption } from "../ui_primitives";
+import { CopyButton, Tooltip, Text, Caption, NotificationBadge, ToolbarIconButton } from "../ui_primitives";
 
 const popoverStyles = css({
   paddingRight: "4em",
@@ -66,35 +64,20 @@ const NotificationButton: React.FC = React.memo(() => {
 
   return (
     <div className="notifications-container">
-      <Tooltip title="Notifications" delay={TOOLTIP_ENTER_DELAY}>
-        <Button
+      <NotificationBadge
+        count={unreadCount}
+        color="error"
+        tooltip="Notifications"
+        ariaLabel={getNotificationButtonLabel(unreadCount)}
+      >
+        <ToolbarIconButton
           className="notification-button command-button command-icon"
+          icon={<NotificationsIcon sx={{ fontSize: "18px" }} className="notification-icon" />}
+          tooltip=""
           onClick={handleNotificationClick}
-          aria-label={getNotificationButtonLabel(unreadCount)}
-          aria-live="polite"
-          aria-atomic="true"
-          sx={{
-            "& .MuiBadge-badge": {
-              fontSize: "0.75rem",
-              minWidth: "18px",
-              height: "18px",
-              padding: "0 4px"
-            }
-          }}
-        >
-          <Badge
-            badgeContent={unreadCount}
-            color="error"
-            className="notification-badge"
-            aria-label={`${unreadCount} unread`}
-          >
-            <NotificationsIcon
-              sx={{ fontSize: "18px" }}
-              className="notification-icon"
-            />
-          </Badge>
-        </Button>
-      </Tooltip>
+          ariaLabel={getNotificationButtonLabel(unreadCount)}
+        />
+      </NotificationBadge>
       <Popover
         css={popoverStyles}
         className="notification-popover"

@@ -1,7 +1,6 @@
 import React from "react";
-import { Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { AlertBanner, Chip, FlexColumn, FlexRow, Text } from "../../ui_primitives";
+import { AlertBanner, Chip, EditorButton, FlexColumn, FlexRow, Text } from "../../ui_primitives";
 import { useNavigate } from "react-router-dom";
 import {
   useProviderApiKeyValidation,
@@ -65,10 +64,9 @@ const ProviderApiKeyWarningBanner: React.FC<ProviderApiKeyWarningBannerProps> = 
         }
       }}
       action={
-        <Button
-          size="small"
+        <EditorButton
+          density="compact"
           variant="contained"
-          color="warning"
           onClick={() => navigate("/settings?tab=1")}
           sx={{
             fontSize: theme.vars.fontSizeSmaller,
@@ -76,7 +74,7 @@ const ProviderApiKeyWarningBanner: React.FC<ProviderApiKeyWarningBannerProps> = 
           }}
         >
           Open Settings
-        </Button>
+        </EditorButton>
       }
     >
       <FlexColumn gap={1}>

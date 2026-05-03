@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useRef, useState } from "react";
-import { IconButton } from "@mui/material";
+import { ToolbarIconButton } from "../ui_primitives";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 
 const styles = (theme: Theme) =>
@@ -119,15 +119,15 @@ const PortalInput: React.FC<PortalInputProps> = ({
         disabled={disabled}
         autoFocus
       />
-      <IconButton
+      <ToolbarIconButton
         className="portal-input-send"
         onClick={handleSend}
         disabled={disabled || !value.trim()}
         size="small"
-        aria-label="Send message"
-      >
-        <ArrowUpwardIcon sx={{ fontSize: 16 }} />
-      </IconButton>
+        ariaLabel="Send message"
+        icon={<ArrowUpwardIcon sx={{ fontSize: 16 }} />}
+        nodrag={false}
+      />
     </div>
   );
 };

@@ -22,8 +22,8 @@ Pass data through unchanged for tidier workflow layouts.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| input_value | `any` | Value to pass through unchanged | - |
+|----------|------|-------------|---------|
+| input_value | `any` | Value to pass through unchanged | `[]` |
 
 ## Outputs
 
@@ -31,9 +31,6 @@ Pass data through unchanged for tidier workflow layouts.
 |--------|------|-------------|
 | output | `any` |  |
 
-## Metadata
-
 ## Related Nodes
 
 Browse other nodes in the [nodetool.control](../) namespace.
-

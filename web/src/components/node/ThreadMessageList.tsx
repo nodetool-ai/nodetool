@@ -7,6 +7,7 @@ import { Message, ToolCall } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import ImageView from "./ImageView";
 import isEqual from "fast-deep-equal";
+import { BORDER_RADIUS } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -51,7 +52,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.primary.main,
       backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.15)`,
       padding: "0.2em 0.55em",
-      borderRadius: "999px"
+      borderRadius: BORDER_RADIUS.pill
     },
     ".messages li .tool-call__name": {
       color: theme.vars.palette.grey[50],

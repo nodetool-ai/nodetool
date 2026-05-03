@@ -10,11 +10,39 @@
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue)](https://nodetool.ai)
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange)](https://nodetool.ai)
 
-> Build AI Workflows. Run Them Locally.
+> Build AI Workflows. Run Them Anywhere.
 
-NodeTool is a node-based visual programming tool for building AI workflows and applications. Connect models and tools with visual nodes to create LLM agents, RAG systems, and multimodal pipelines. Runs locally on macOS, Windows, and Linux — use local models or cloud APIs. Your data stays on your machine.
+NodeTool is a node-based visual programming tool for building AI workflows and applications. Connect models and tools with visual nodes to create LLM agents, RAG systems, and multimodal pipelines.
+
+NodeTool ships in **two editions** — both 100% open source under AGPL-3.0, both built from the code in this repository:
+
+- **NodeTool Studio** — the local-first desktop app (macOS / Windows / Linux). Runs Ollama, MLX, and GGUF models on your hardware. Works offline. Your data never leaves your machine.
+- **NodeTool Cloud** — our hosted version. Open in any browser, no install, no GPU required. Doesn't run local models, but supports BYOK for every cloud provider (OpenAI, Anthropic, Gemini, Replicate, FAL, ElevenLabs, HuggingFace, …).
+
+Same workflows, same nodes, same agent system — pick whichever runtime fits how you want to work. Workflows are portable between both.
 
 ![NodeTool Interface](screen_canvas.png)
+
+## Studio vs. Cloud
+
+|   | **NodeTool Studio** (desktop) | **NodeTool Cloud** (hosted) |
+| :--- | :--- | :--- |
+| **Where it runs** | Your machine | Our managed servers, accessed via browser |
+| **Install** | Desktop app + ~20GB for local models | None — sign in and start |
+| **Local LLMs** (Ollama, MLX, GGUF) | ✅ Yes — runs entirely on your hardware | ❌ Not available — cloud APIs only |
+| **BYOK cloud providers** | ✅ All providers (keys stored on disk) | ✅ All providers (keys encrypted at rest) |
+| **Works offline** | ✅ Yes, fully offline with local models | ❌ Needs an internet connection |
+| **Where your data lives** | On your disk only | Our managed storage (encrypted) |
+| **GPU required** | Recommended for local models | None — we run the heavy lifting |
+| **Updates** | You install new releases | Always on the latest version |
+| **Cost** | Free; pay only for the cloud APIs you use | Subscription + your own API spend (BYOK) |
+| **Source code** | AGPL-3.0 (this repo) | AGPL-3.0 (this repo) — self-host any time |
+
+**Pick Studio if** you care about privacy, want to run open-weight models for free, work offline, or have a capable GPU / Apple Silicon machine.
+
+**Pick Cloud if** you want zero setup, work across multiple devices, build with a team, or don't want to manage local model files and GPU drivers.
+
+Either way, you're running the same open-source codebase. Cloud is just our hosting of it — there is **no separate "pro" or closed-source version**.
 
 ## Key Features
 
@@ -74,17 +102,21 @@ Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provid
 
 **vs LangChain:** LangChain is a Python framework for LLM apps. NodeTool is a visual, TypeScript-first platform with an async Node.js runtime and custom nodes in TypeScript or Python.
 
-## Download
+## Get NodeTool
+
+### NodeTool Studio (desktop, local-first)
 
 | Platform | Get It | Requirements |
 | :--- | :--- | :--- |
-| **Windows** | [Download](https://nodetool.ai) | NVIDIA GPU recommended, 4GB+ VRAM (local AI), 20GB space |
-| **macOS** | [Download](https://nodetool.ai) | M1+ Apple Silicon, 16GB+ RAM (local AI) |
-| **Linux** | [Download](https://nodetool.ai) | NVIDIA GPU recommended, 4GB+ VRAM (local AI) |
+| **Windows** | [Download](https://nodetool.ai/studio) | NVIDIA GPU recommended, 4GB+ VRAM (local AI), 20GB space |
+| **macOS** | [Download](https://nodetool.ai/studio) | M1+ Apple Silicon, 16GB+ RAM (local AI) |
+| **Linux** | [Download](https://nodetool.ai/studio) | NVIDIA GPU recommended, 4GB+ VRAM (local AI) |
 
 [Flatpak CI Builds](https://github.com/nodetool-ai/nodetool/actions/workflows/flatpak-ci.yml) are also available for Linux.
 
-*Cloud-only usage requires no GPU — just use API services.*
+### NodeTool Cloud (hosted, browser)
+
+Open [nodetool.ai/cloud](https://nodetool.ai/cloud) and sign in — no install, no GPU. Bring your own API keys for every provider.
 
 ______________________________________________________________________
 
@@ -181,6 +213,15 @@ npm run electron
 The Electron app auto-detects your active Conda environment. Settings are stored in:
 - **Linux/macOS**: `~/.config/nodetool/settings.yaml`
 - **Windows**: `%APPDATA%\nodetool\settings.yaml`
+
+> **Native module ABI caveat.** Electron 39 bundles its own Node.js (Node 24, ABI 140). Native modules such as `better-sqlite3` must be compiled against Electron's ABI, *not* the system Node ABI. If you see a `NODE_MODULE_VERSION` mismatch error at Electron startup, use `npm run electron:dev` (which automatically rebuilds native modules via `electron-builder install-app-deps`) or run the rebuild step manually:
+>
+> ```bash
+> # Rebuild native modules for Electron's embedded Node
+> cd electron && npx electron-builder install-app-deps
+> ```
+>
+> **Do not** use plain `npm rebuild` here — that compiles against your system Node ABI, which will not match Electron's embedded runtime and will produce the same mismatch error.
 
 ### Mobile App
 

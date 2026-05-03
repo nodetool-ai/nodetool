@@ -17,23 +17,15 @@ Writes the document to a file
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
-| document | `document` | The document to write | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
-| path | `file_path` | The folder to write the document to. | `{'type': 'file_path', 'path': ''}` |
-| filename | `str` | 
-        The filename to write the document to.
-        You can use time and date variables to create unique names:
-        %Y - Year
-        %m - Month
-        %d - Day
-        %H - Hour
-        %M - Minute
-        %S - Second
-         | `` |
+|----------|------|-------------|---------|
+| document | `document` | The document to write | `{"type":"document","uri":"","asset_id":null,"da...` |
+| path | `file_path` | The folder to write the document to. | `{"type":"file_path","path":""}` |
+| filename | `str` |          The filename to write the document to.         You can use time and date variables to create unique names:         %Y - Year         %m - Month         %d - Day         %H - Hour         %M - Minute         %S - Second          | `` |
 
-## Metadata
+## Outputs
+
+_(none)_
 
 ## Related Nodes
 
 Browse other nodes in the [lib.docx](../) namespace.
-

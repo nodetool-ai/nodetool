@@ -368,8 +368,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
           }
           threadSubscriptions[threadId] = globalWebSocketManager.subscribe(
             threadId,
-            (data: MsgpackData) => {
-              handleChatWebSocketMessage(data, set, get);
+            (data) => {
+              handleChatWebSocketMessage(data as MsgpackData, set, get);
             }
           );
         });
@@ -510,8 +510,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
         if (!get().wsThreadSubscriptions[threadId]) {
           const unsub = globalWebSocketManager.subscribe(
             threadId as string,
-            (data: MsgpackData) => {
-              handleChatWebSocketMessage(data, set, get);
+            (data) => {
+              handleChatWebSocketMessage(data as MsgpackData, set, get);
             }
           );
           set((state) => {
@@ -712,8 +712,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
         const newUnsub = globalWebSocketManager.subscribe(
           id,
-          (data: MsgpackData) => {
-            handleChatWebSocketMessage(data, set, get);
+          (data) => {
+            handleChatWebSocketMessage(data as MsgpackData, set, get);
           }
         );
 
@@ -750,8 +750,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
         if (!get().wsThreadSubscriptions[threadId]) {
           const unsub = globalWebSocketManager.subscribe(
             threadId,
-            (data: MsgpackData) => {
-              handleChatWebSocketMessage(data, set, get);
+            (data) => {
+              handleChatWebSocketMessage(data as MsgpackData, set, get);
             }
           );
           set((state) => {

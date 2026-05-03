@@ -27,6 +27,7 @@ import { Message, MessageContent, LanguageModel } from "../../stores/ApiTypes";
 import AppHeader from "../panels/AppHeader";
 import ChatInputSection from "../chat/containers/ChatInputSection";
 import SchoolIcon from "@mui/icons-material/School";
+import { BORDER_RADIUS } from "../ui_primitives";
 
 const KNOWN_PROVIDER_KEYS = [
   "OPENAI_API_KEY",
@@ -178,7 +179,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: 8,
       padding: "8px 16px",
-      borderRadius: 999,
+      borderRadius: BORDER_RADIUS.pill,
       border: `1px solid ${theme.vars.palette.divider}`,
       background: "transparent",
       color: theme.vars.palette.text.secondary,

@@ -86,12 +86,12 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
 
   // Build source options for the active input
   const sourceOptions = useMemo(() => {
-    if (!activeInput) return [];
+    if (!activeInput) {return [];}
     const inputProp = properties.find((p) => p.name === activeInput);
     // Dynamic inputs have no static type — treat all sources as compatible
     const isDynamicInput = !inputProp && dynamicInputNames.includes(activeInput);
 
-    if (!inputProp && !isDynamicInput) return [];
+    if (!inputProp && !isDynamicInput) {return [];}
 
     const options: Array<{
       node: ChainNode;
@@ -123,7 +123,7 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
   }, [newInputName, onAddDynamicInput]);
 
   if (properties.length === 0 && dynamicInputNames.length === 0 && !isDynamic)
-    return null;
+    {return null;}
 
   return (
     <>

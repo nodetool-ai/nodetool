@@ -190,7 +190,7 @@ describe("listAllHfModels", () => {
           text: async () => "boom"
         };
       }
-      const body = [{ id: `owner/ok-${call}` }];
+      const body = [{ id: `owner/ok-${call}`, library_name: "gguf" }];
       return {
         ok: true,
         status: 200,

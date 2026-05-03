@@ -26,20 +26,18 @@ Search the web using Google's Gemini API with grounding capabilities.
 ## Properties
 
 | Property | Type | Description | Default |
-|----------|------|-------------|----------|
+|----------|------|-------------|---------|
 | query | `str` | The search query to execute | `` |
-| model | `Enum['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash']` | The Gemini model to use for search | `gemini-2.0-flash` |
+| model | `enum` | The Gemini model to use for search | `gemini-3-flash-preview` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| results | `List[str]` |  |
-| sources | `List[source]` |  |
-
-## Metadata
+| results | `list[str]` |  |
+| sources | `list[source]` |  |
+| text | `str` |  |
 
 ## Related Nodes
 
 Browse other nodes in the [gemini.text](../) namespace.
-
