@@ -601,6 +601,18 @@ app.addHook("onRequest", async (req, reply) => {
     return;
   }
 
+  // Use req.socket.remoteAddress rather than req.ip because trustProxy: true
+  // makes req.ip reflect x-forwarded-for (spoofable).
+  const remoteAddr = req.socket.remoteAddress ?? "";
+  const isLocalhost = remoteAddr === "127.0.0.1" || remoteAddr === "::1";
+
+  // Localhost connections always bypass auth — Supabase creds may be
+  // configured for storage/remote features without requiring local login.
+  if (isLocalhost) {
+    req.userId = "1";
+    return;
+  }
+
   // Extract token from the appropriate source
   const isWs = req.headers["upgrade"]?.toLowerCase() === "websocket";
   const searchParams = new URLSearchParams(req.url.split("?")[1] ?? "");
@@ -626,16 +638,7 @@ app.addHook("onRequest", async (req, reply) => {
     return;
   }
 
-  // Dev mode: localhost only
-  // Use req.socket.remoteAddress rather than req.ip because trustProxy: true
-  // makes req.ip reflect x-forwarded-for (spoofable).
-  const remoteAddr = req.socket.remoteAddress ?? "";
-  const isLocalhost = remoteAddr === "127.0.0.1" || remoteAddr === "::1";
-  if (!isLocalhost) {
-    reply.status(401).send({ error: "Remote access requires authentication" });
-    return;
-  }
-  req.userId = "1";
+  reply.status(401).send({ error: "Remote access requires authentication" });
 });
 
 // CORS
