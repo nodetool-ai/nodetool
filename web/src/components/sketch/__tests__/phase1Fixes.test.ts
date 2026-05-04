@@ -113,7 +113,7 @@ describe("CropTool ESC cancel", () => {
 
     // Start a crop drag
     crop.onDown(ctx, makeToolPointerEvent({ x: 10, y: 10 }));
-    crop.onMove(ctx, makeToolPointerEvent({ x: 50, y: 50 }));
+    crop.onMove(ctx, makeToolPointerEvent({ x: 50, y: 50 }), []);
 
     // Cancel via ESC
     crop.onCancel!(ctx);

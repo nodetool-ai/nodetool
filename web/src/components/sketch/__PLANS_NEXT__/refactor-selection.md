@@ -9,8 +9,8 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 **Extend `WebGPURuntime`** — layer textures, ping-pong FBOs, blend pipelines, and dirty tracking already exist. The work is:
 
 1. Add an `r8unorm` mask texture (doc dimensions) derived lazily from the CPU `Uint8ClampedArray`.
-2. Add two new WGSL shaders + pipelines to `shaders.ts` / `WebGPURuntime`: ants overlay and brush mask multiply.
-3. Remove all CPU clipping and feather readback from the paint pipeline.
+2. Add two new WGSL shaders + pipelines to `shaders.ts` / `WebGPURuntime`: ants overlay and mask-multiply blit.
+3. Remove the two CPU hot paths: per-move clip scan and per-frame preview feather. Commit-time mask multiply stays CPU (once per stroke, not a hot path).
 
 **Undo contract:** CPU `Selection.data` (`Uint8ClampedArray`) stays canonical. GPU texture is a derived view, re-uploaded when `maskDirty`. Undo restores the CPU array → sets `maskDirty` → next composite re-uploads. No GPU readback needed for undo.
 
@@ -18,7 +18,9 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 
 **Brush strategy (important):** Phase 3 does *not* rewrite the brush engine to native GPU stamps — that is a separate future project. Instead: keep CPU stroke generation as-is, and after the stroke buffer is built, run a GPU mask-multiply pass on the uploaded texture (same mechanism as Phase 4's feather blit). This eliminates `clipContextToSelectionMask` without touching brush logic.
 
-**Coordinate contract (pin before writing shaders):** All mask-sampling shaders use the same doc-space UV formula: `uv = (fragDocPos - vec2(originX, originY)) / vec2(maskWidth, maskHeight)`. Pass `originX`, `originY`, `maskWidth`, `maskHeight` as uniforms in every mask-sampling pipeline. Clamp to `[0,1]` and treat out-of-bounds as fully selected (mask = 1.0) so tools work outside the mask bounds.
+**Coordinate contract (pin before writing shaders):** All mask-sampling shaders use the same doc-space UV formula: `uv = (fragDocPos - vec2(originX, originY)) / vec2(maskWidth, maskHeight)`. Pass `originX`, `originY`, `maskWidth`, `maskHeight` as uniforms in every mask-sampling pipeline. Out-of-bounds behavior differs by shader:
+- **Mask-multiply (paint tools):** out-of-bounds → `1.0` (fully selected) so brush/fill work freely outside the canvas boundary.
+- **Ants:** out-of-bounds → `0.0` (not selected) so the edge transition is visible when the selection reaches the canvas boundary. This also lets ants render correctly when the selection extends beyond the canvas (e.g. an ellipse with `originX/Y` offset) — the boundary appears in the padded viewport area outside the document.
 
 ---
 
@@ -35,7 +37,7 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 | `useOverlayRenderer.ts`: `setInterval` ants loop (line 338) + `antsPhaseRef` + path stroke | Marching ants animation | 2 |
 | `useOverlayRenderer.ts`: `outlinePathScratchRef` | Path2D cache ref | 2 |
 | `PaintSession.ts`: `clipSelectionForOffset` (lines 268, 335, 472) | Per-move clip in begin/move/end | 3 |
-| `PaintSession.ts`: `applySelectionMaskAlpha` (lines 536–541, 618–625) | Post-stroke feather in deferred commit + `flushShiftBuffer` | 4 |
+| `PaintSession.ts`: `applySelectionMaskAlpha` (lines 536–541, 618–625) | Post-stroke feather in deferred commit + `flushShiftBuffer` — **keep**: once per stroke, not a hot path; removing it would leave committed layer data unmasked | — |
 | `HelperToolSession.ts`: `clipSelectionForOffset` (lines 181, 241) | Symmetry/mirror clip | 3 |
 | `WebGPURuntime.ts`: `strokeMaskScratchCanvas` (line 123) | CPU scratch for preview feather | 4 |
 | `WebGPURuntime.ts`: `uploadStrokeMergePreview()` — calls `drawStrokeBufferForDisplayWithSelectionFeather` (line ~610) | Feather during stroke preview | 4 |
@@ -57,18 +59,17 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 - [ ] Implement `uploadMaskTexture()`: writes `Selection.data` (`Uint8ClampedArray`) to `maskTexture` via `device.queue.writeTexture`. Create/recreate texture when dimensions change.
 - [ ] Call `uploadMaskTexture()` at the top of the composite pass when `maskDirty`, then clear the flag.
 - [ ] After any selection mutation (all selection tools, invert, feather, combine ops), set `maskDirty = true` and call `DisplayFrameCoordinator.scheduleRaf()`.
-- [ ] Add `originX/Y` uniforms alongside existing layer transform uniforms — needed in all mask-sampling shaders.
 - [ ] Verify: change selection → next composite uploads correctly (console log or debugLabel).
 
 ### Phase 2 — Ants shader (validates texture pipeline before touching paint)
 
-- [ ] Add `SELECTION_ANTS_FRAGMENT` to `shaders.ts`: fullscreen quad, samples `maskTexture` at doc-space UV, edge-detects neighbors, emits animated dashes via `phase: f32` uniform. Reuse `FULLSCREEN_QUAD_VERTEX`.
+- [ ] Add `SELECTION_ANTS_FRAGMENT` to `shaders.ts`: fullscreen quad, converts screen fragment position → doc space using the same inverse-affine viewport uniforms as `LAYER_COMPOSITE_FRAGMENT` (reuse `SAMPLE_LAYER_WGSL` pattern), then samples `maskTexture` at `(docPos - origin) / maskDims`, edge-detects neighbors, emits animated dashes via `phase: f32` uniform. Reuse `FULLSCREEN_QUAD_VERTEX`.
 - [ ] Register `selectionAntsPipeline` in `WebGPURuntime` (alongside existing 5 pipelines). Add `drawSelectionAnts(phase: number)` method.
 - [ ] In `useOverlayRenderer.ts`: remove the `setInterval` ants loop (line 338), `antsPhaseRef`, and all `Path2D` ants stroke calls. Call `WebGPURuntime.drawSelectionAnts(phase)` from the existing rAF-driven composite instead — drive phase from a ref incremented in the compositor. Ants will now animate at rAF cadence (~60fps) instead of 72ms (~14fps); intentional improvement.
 - [ ] Delete from `selectionMask.ts`: `buildSelectionMaskOutlinePath`, `drawSelectionOutlinePath`, `getOrRebuildSelectionOutlinePath`, `SelectionOutlinePathCacheScratch`.
 - [ ] Delete from `useOverlayRenderer.ts`: `outlinePathScratchRef`.
 - [ ] Rect/ellipse/lasso live-preview outlines (not committed mask) stay CPU-drawn — they are not hot paths.
-- [ ] Verify: ants render correctly at various zoom levels and with `originX/Y` offset.
+- [ ] Verify: ants render correctly at various zoom levels; ants appear at the canvas boundary when selection reaches the edge; ants render outside the canvas when selection extends beyond doc bounds (ellipse with `originX/Y` offset).
 
 ### Phase 3 — Remove CPU clipping from paint session
 
@@ -81,14 +82,15 @@ CPU stroke buffer continues to build as-is (no stamp engine change). Clipping ca
 - [ ] Note: brush/eraser will paint outside selection until Phase 4 adds the GPU mask multiply — expected on a dev branch.
 - [ ] Verify: typecheck + lint clean; no runtime errors on brush stroke.
 
-### Phase 4 — Post-stroke feather → GPU alpha multiply
+### Phase 4 — GPU mask-multiply for stroke live preview
 
-- [ ] Add `MASK_MULTIPLY_BLIT_FRAGMENT` to `shaders.ts` (or extend existing blit): blits source texture to dest with `out.a *= textureSample(mask, uv)`. Used for stroke commit and live preview.
+Eliminates the per-frame CPU feather during an active stroke. Commit-time masking (`applySelectionMaskAlpha` at stroke end) is **not** touched here — it runs once per stroke and writes the actual layer data; removing it would leave committed pixels unmasked.
+
+- [ ] Add `MASK_MULTIPLY_BLIT_FRAGMENT` to `shaders.ts`: blits source texture to dest with `out.a *= textureSample(mask, uv)`. New shader, do not modify existing `BLIT_FRAGMENT`.
 - [ ] `WebGPURuntime.uploadStrokeMergePreview()` (line ~610): replace `drawStrokeBufferForDisplayWithSelectionFeather` call with a GPU mask-multiply blit pass. Remove `strokeMaskScratchCanvas` (line 123).
-- [ ] `canvas2d/composite.ts:229`: remove `drawStrokeBufferForDisplayWithSelectionFeather` call — Canvas2D path no longer needs selection feathering.
-- [ ] `PaintSession.ts`: remove `applySelectionMaskAlpha` calls at lines 536–541 (deferred commit) and 618–625 (`flushShiftBuffer`). Feather is now applied by the GPU pass above.
-- [ ] Delete `drawStrokeBufferForDisplayWithSelectionFeather` from `selectionMask.ts` (line 1378). Delete `applySelectionMaskAlpha` from `selectionMask.ts`.
-- [ ] Verify: feathered selection matches prior output visually (pixel probe test at known coords, binary + feathered mask).
+- [ ] `canvas2d/composite.ts:229`: remove `drawStrokeBufferForDisplayWithSelectionFeather` call.
+- [ ] Delete `drawStrokeBufferForDisplayWithSelectionFeather` from `selectionMask.ts` (line 1378).
+- [ ] Verify: feathered selection preview matches prior output during stroke; committed result after stroke end also correct (CPU path still applies mask at commit).
 
 ### Phase 5 — Remaining tools
 
@@ -103,7 +105,7 @@ CPU stroke buffer continues to build as-is (no stamp engine change). Clipping ca
 ### Phase 6 — Cleanup
 
 - [ ] Update `~10 test files` that mock `clipSelectionForOffset: jest.fn()` — remove the mock field now that it's gone from `ToolContext`. (`toolHandlers`, `shiftLineBufferReuse`, `sharedToolModules`, `helperToolSession`, `segmentation`, `samplingContract`, `previewSessionRegression`, `moveTransformUnification`, `phase2TransformLifecycle`, `phase1Fixes`, `phase1Enforcement`, `paintSession`.)
-- [ ] Delete any remaining dead code from `selectionMask.ts` (audit all exports).
+- [ ] Delete any remaining dead code from `selectionMask.ts` (audit all exports). `applySelectionMaskAlpha` is still called by `PaintSession` at commit — do not delete until/unless commit path is ported to GPU.
 - [ ] Run `npm run typecheck` + `npm run lint` — fix all errors.
 - [ ] Tests: mask parity (binary + feather pixel probes), ants visible at zoom extremes, brush/erase/gradient with selection.
 - [ ] `npm run test` sketch suite green.

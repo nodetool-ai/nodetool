@@ -34,6 +34,10 @@ import { useSketchStore } from "../state/useSketchStore";
 
 function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
   const doc = createDefaultDocument(64, 64);
+  const testContainer = window.document.createElement("div");
+  testContainer.getBoundingClientRect = (): DOMRect =>
+    new DOMRect(0, 0, 800, 600);
+
   return {
     doc,
     activeTool: "brush",
@@ -48,7 +52,7 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     overlayCanvasRef: { current: null },
     gizmoCanvasRef: { current: null },
     cursorCanvasRef: { current: null },
-    containerRef: { current: null },
+    containerRef: { current: testContainer },
     layerCanvasesRef: { current: new Map() },
     mousePositionRef: { current: { x: 0, y: 0 } },
     activeStrokeRef: { current: null },
