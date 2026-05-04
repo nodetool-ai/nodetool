@@ -22,6 +22,7 @@ import { deserializeLayerData, getLayerDataFromCanvas } from "../rendering/canva
 import { reconcileLayerToDocumentSpace } from "../rendering/canvas2d/reconcile";
 import { getCanvasRasterBounds } from "../painting";
 import { useSketchStore } from "../state";
+import { resolveTransformTargetLayerIds } from "../tools/transformTargetSet";
 import { cloneSelectionMask, selectionHasAnyPixels } from "../selection";
 import {
   compositeSelectionOverBase,
@@ -130,10 +131,18 @@ export function useTransformActions({
 
   /** Save the current layer transform as the baseline for cancel. */
   const saveTransformOriginal = useCallback(() => {
-    const handler = getToolHandler("transform");
-    if (handler instanceof TransformTool && handler.isMultiTarget()) {
+    const store = useSketchStore.getState();
+    const panelSelection =
+      store.selectedLayerIds.length > 0 ? store.selectedLayerIds : [];
+    const targetIds = resolveTransformTargetLayerIds(
+      document,
+      panelSelection,
+      document.activeLayerId
+    );
+
+    if (targetIds.length > 1) {
       const map: Record<string, LayerTransform> = {};
-      for (const id of handler.getMultiTargetLayerIds()) {
+      for (const id of targetIds) {
         const layer = document.layers.find((l) => l.id === id);
         if (layer) {
           map[id] = { ...layer.transform };
@@ -143,12 +152,15 @@ export function useTransformActions({
       transformOriginalRef.current = null;
       return;
     }
+
     multiTransformOriginalRef.current = null;
-    const activeLayer = document.layers.find(
-      (l) => l.id === document.activeLayerId
-    );
-    if (activeLayer) {
-      transformOriginalRef.current = { ...activeLayer.transform };
+    const soleId =
+      targetIds.length === 1 ? targetIds[0]! : document.activeLayerId;
+    const layer = soleId
+      ? document.layers.find((l) => l.id === soleId)
+      : undefined;
+    if (layer) {
+      transformOriginalRef.current = { ...layer.transform };
     }
   }, [document]);
 
@@ -499,9 +511,33 @@ export function useTransformActions({
 
   /** Reset: set transform to identity. */
   const handleTransformReset = useCallback(() => {
-    const activeLayerId = document.activeLayerId;
-    setLayerTransform(activeLayerId, { x: 0, y: 0 });
-  }, [document.activeLayerId, setLayerTransform]);
+    const handler = getToolHandler("transform");
+    if (handler instanceof TransformTool && handler.isMultiTarget()) {
+      for (const id of handler.getMultiTargetLayerIds()) {
+        setLayerTransform(id, { x: 0, y: 0 });
+      }
+      return;
+    }
+    const store = useSketchStore.getState();
+    const panelSelection =
+      store.selectedLayerIds.length > 0 ? store.selectedLayerIds : [];
+    const targetIds = resolveTransformTargetLayerIds(
+      document,
+      panelSelection,
+      document.activeLayerId
+    );
+    if (targetIds.length > 1) {
+      for (const id of targetIds) {
+        setLayerTransform(id, { x: 0, y: 0 });
+      }
+      return;
+    }
+    const soleId =
+      targetIds.length === 1 ? targetIds[0]! : document.activeLayerId;
+    if (soleId) {
+      setLayerTransform(soleId, { x: 0, y: 0 });
+    }
+  }, [document, setLayerTransform]);
 
   const handleCommitLayerTransform = useCallback(
     (layerId: string, transform: LayerTransform) => {
