@@ -219,6 +219,28 @@ describe("handleUtils", () => {
       expect(handle).toBeUndefined();
     });
 
+    it("should find instance dynamic_inputs on non-dynamic nodes (e.g. Image Editor layer_in_*)", () => {
+      const node = createMockNode(
+        "test",
+        {},
+        { layer_in_Base: "" },
+        { layer_in_Base: mockDynamicTypeMetadata }
+      );
+      const handle = findInputHandle(node, "layer_in_Base", mockNodeMetadata);
+
+      expect(handle).toEqual({
+        name: "layer_in_Base",
+        type: {
+          type: "bool",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
+        isDynamic: true
+      });
+    });
+
     it("should return undefined for non-existent handles", () => {
       const node = createMockNode();
       const handle = findInputHandle(node, "nonexistent", mockNodeMetadata);
@@ -361,12 +383,12 @@ describe("handleUtils", () => {
         }
       ]);
 
-      // Check dynamic handles
+      // Check dynamic handles (types come from dynamic_inputs when present)
       expect(handles.slice(2)).toEqual([
         {
           name: "dynamic1",
           type: {
-            type: "any",
+            type: "bool",
             optional: false,
             values: null,
             type_args: [],
@@ -377,7 +399,7 @@ describe("handleUtils", () => {
         {
           name: "dynamic2",
           type: {
-            type: "any",
+            type: "bool",
             optional: false,
             values: null,
             type_args: [],
@@ -419,6 +441,20 @@ describe("handleUtils", () => {
 
       expect(handles).toHaveLength(2); // Only static handles
       expect(handles.every((h) => !h.isDynamic)).toBe(true);
+    });
+
+    it("should include instance dynamic_inputs on non-dynamic nodes (sketch / Image Editor)", () => {
+      const node = createMockNode(
+        "test",
+        {},
+        { layer_in_Base: "" },
+        { layer_in_Base: mockDynamicTypeMetadata }
+      );
+      const handles = getAllInputHandles(node, mockNodeMetadata);
+      expect(handles.map((h) => h.name)).toContain("layer_in_Base");
+      const layerHandle = handles.find((h) => h.name === "layer_in_Base");
+      expect(layerHandle?.isDynamic).toBe(true);
+      expect(layerHandle?.type.type).toBe("bool");
     });
   });
 
