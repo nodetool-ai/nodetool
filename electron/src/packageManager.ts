@@ -947,7 +947,7 @@ export { PACKAGE_INDEX_URL };
 export async function checkPackageVersion(
   packageName: string
 ): Promise<{ needsUpdate: boolean; currentVersion?: string; expectedVersion?: string }> {
-  const expectedVersion = getAppVersion();
+  const expectedVersion = getExpectedVersion(packageName);
 
   if (!expectedVersion) {
     return { needsUpdate: false };
