@@ -218,7 +218,7 @@ export const createDocumentSlice: StateCreator<
     set({
       document: defaultDoc,
       toolSettings: defaultDoc.toolSettings,
-      activeTool: "brush",
+      activeTool: "select",
       transientMoveModifierHeld: false,
       zoom: 1,
       pan: { x: 0, y: 0 },

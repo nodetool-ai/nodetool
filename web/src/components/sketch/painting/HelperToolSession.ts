@@ -322,6 +322,7 @@ export class HelperToolSession {
           mapperOffset.x,
           mapperOffset.y
         );
+        ctx.invalidateLayer?.(activeLayer.id);
       }
     }
     this.selectionSnapshot = null;

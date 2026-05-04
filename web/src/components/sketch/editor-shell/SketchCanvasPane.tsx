@@ -87,7 +87,7 @@ export const SketchCanvasPane = memo(function SketchCanvasPane({
 
   const handleSelectionChange = useCallback((sel: import("../types").Selection | null) => {
     setSelection(sel);
-    pushHistory("selection");
+    pushHistory("selection", undefined, { selectionOnly: true });
   }, [setSelection, pushHistory]);
 
   useEffect(() => {

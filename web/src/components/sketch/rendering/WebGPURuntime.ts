@@ -1026,7 +1026,7 @@ export class WebGPURuntime implements SketchRuntime {
 
     // ── Pass 5: Selection marching ants → swapChain ───────────────────
     if (this.maskTexture && this.currentSelection) {
-      this.antsPhase = (this.antsPhase + 0.04) % 2.0;
+      this.antsPhase = (this.antsPhase + 0.06) % 2.0;
       this.drawSelectionAnts(encoder, swapChainView, fullW, fullH);
     }
 

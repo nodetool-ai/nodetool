@@ -991,7 +991,8 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         },
         select: {
           ...DEFAULT_SELECT_SETTINGS,
-          ...doc.toolSettings?.select
+          ...doc.toolSettings?.select,
+          mode: DEFAULT_SELECT_SETTINGS.mode
         },
         segment: {
           ...DEFAULT_SEGMENT_SETTINGS,

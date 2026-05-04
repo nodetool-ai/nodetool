@@ -61,7 +61,7 @@ export const createSelectionSlice: StateCreator<
     const m = createEmptyMask(cw, ch);
     m.data.fill(255);
     set({ selection: m, hasActiveSelection: true });
-    get().pushHistory("select all");
+    get().pushHistory("select all", undefined, { selectionOnly: true });
   },
 
   invertSelection: () => {
@@ -83,7 +83,7 @@ export const createSelectionSlice: StateCreator<
       const active = selectionHasAnyPixels(aligned);
       set({ selection: aligned, hasActiveSelection: active });
     }
-    get().pushHistory("invert selection");
+    get().pushHistory("invert selection", undefined, { selectionOnly: true });
   },
 
   reselectLastSelection: () => {
@@ -91,7 +91,7 @@ export const createSelectionSlice: StateCreator<
     if (last) {
       const clone = cloneSelectionMask(last);
       set({ selection: clone, hasActiveSelection: selectionHasAnyPixels(clone) });
-      get().pushHistory("reselect");
+      get().pushHistory("reselect", undefined, { selectionOnly: true });
     }
   },
 

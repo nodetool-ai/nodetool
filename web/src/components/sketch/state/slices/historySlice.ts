@@ -118,43 +118,56 @@ export const createHistorySlice: StateCreator<
 
     // Truncate future history first so prevEntry is accurate
     const newHistory = state.history.slice(0, state.historyIndex + 1);
-    const prevEntry = newHistory.length > 0 ? newHistory[newHistory.length - 1] : null;
 
-    // Build delta snapshot: only include layers whose data changed
-    const snapshot: Record<string, string | null> = {};
-    const changedLayerIds: string[] = [];
-
-    for (const layer of state.document.layers) {
-      if (!prevEntry) {
-        // First entry — full snapshot (baseline)
-        snapshot[layer.id] = layer.data;
-        changedLayerIds.push(layer.id);
-      } else {
-        // Delta: compare with the resolved data at the previous entry
-        const prevData = resolveLayerData(newHistory, newHistory.length - 1, layer.id);
-        if (prevData !== layer.data) {
-          snapshot[layer.id] = layer.data;
-          changedLayerIds.push(layer.id);
+    // Fast path: selection-only changes don't need layer data or structure.
+    // Undo/redo of these entries restores the selection without touching layers.
+    const entry: HistoryEntry = options?.selectionOnly
+      ? {
+          changedLayerIds: [],
+          layerSnapshots: {},
+          layerStructure: [],
+          documentCanvas: captureDocumentCanvas(state.document.canvas),
+          activeLayerId: state.document.activeLayerId,
+          maskLayerId: state.document.maskLayerId,
+          selection: state.selection,
+          restoreMode: "structure-only",
+          action,
+          timestamp: Date.now()
         }
-      }
-    }
+      : (() => {
+          const prevEntry = newHistory.length > 0 ? newHistory[newHistory.length - 1] : null;
 
-    const layerStructure = captureLayerStructure(state.document.layers);
-    const documentCanvas = captureDocumentCanvas(state.document.canvas);
+          // Build delta snapshot: only include layers whose data changed
+          const snapshot: Record<string, string | null> = {};
+          const changedLayerIds: string[] = [];
 
-    const entry: HistoryEntry = {
-      changedLayerIds,
-      layerSnapshots: snapshot,
-      layerCanvasSnapshots,
-      layerStructure,
-      documentCanvas,
-      activeLayerId: state.document.activeLayerId,
-      maskLayerId: state.document.maskLayerId,
-      selection: state.selection,
-      restoreMode,
-      action,
-      timestamp: Date.now()
-    };
+          for (const layer of state.document.layers) {
+            if (!prevEntry) {
+              snapshot[layer.id] = layer.data;
+              changedLayerIds.push(layer.id);
+            } else {
+              const prevData = resolveLayerData(newHistory, newHistory.length - 1, layer.id);
+              if (prevData !== layer.data) {
+                snapshot[layer.id] = layer.data;
+                changedLayerIds.push(layer.id);
+              }
+            }
+          }
+
+          return {
+            changedLayerIds,
+            layerSnapshots: snapshot,
+            layerCanvasSnapshots,
+            layerStructure: captureLayerStructure(state.document.layers),
+            documentCanvas: captureDocumentCanvas(state.document.canvas),
+            activeLayerId: state.document.activeLayerId,
+            maskLayerId: state.document.maskLayerId,
+            selection: state.selection,
+            restoreMode,
+            action,
+            timestamp: Date.now()
+          };
+        })();
 
     newHistory.push(entry);
 

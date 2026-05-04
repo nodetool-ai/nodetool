@@ -50,6 +50,13 @@ export interface PushHistoryOptions {
    * without replaying raster data into runtime canvases.
    */
   restoreMode?: HistoryRestoreMode;
+  /**
+   * When true, skip all layer data capture and structure snapshotting.
+   * Only `selection`, `activeLayerId`, `maskLayerId`, and `documentCanvas`
+   * are stored. Undo/redo of selection-only entries restores the selection
+   * without touching layer canvases.
+   */
+  selectionOnly?: boolean;
 }
 
 export interface HistoryEntry {
