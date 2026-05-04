@@ -60,7 +60,7 @@ const mainExternalModules = [
 export default defineConfig({
   base: "./",
   optimizeDeps: {
-    include: ["superjson", "@trpc/client", "@trpc/react-query"]
+    include: ["superjson", "@trpc/client"]
   },
   plugins: [
     react(),
