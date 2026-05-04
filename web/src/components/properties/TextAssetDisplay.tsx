@@ -50,7 +50,7 @@ const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
       }}
     >
       <Tooltip title="Open Editor" delay={TOOLTIP_ENTER_DELAY}>
-        <button className="button-expand" onClick={toggleExpand}>
+        <button className="button-expand" onClick={toggleExpand} aria-label="Open Editor">
           {isExpanded ? "↙" : "↗"}
         </button>
       </Tooltip>

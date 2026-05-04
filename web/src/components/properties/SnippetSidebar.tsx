@@ -345,6 +345,7 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
                       e.stopPropagation();
                       void copySnippet(snippet);
                     }}
+                    aria-label="Copy"
                   >
                     <ContentCopyIcon
                       sx={{ fontSize: "0.75rem", color: copied === snippet.id ? "success.main" : undefined }}
@@ -358,6 +359,7 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
                       e.stopPropagation();
                       insertSnippet(snippet);
                     }}
+                    aria-label="Insert"
                   >
                     <AddIcon sx={{ fontSize: "0.75rem" }} />
                   </button>

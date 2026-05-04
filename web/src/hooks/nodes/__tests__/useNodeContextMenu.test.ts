@@ -32,8 +32,8 @@ jest.mock("../../../components/node_types/PlaceholderNode", () => ({
   default: () => null
 }));
 
-jest.mock("lodash/debounce", () => {
-  return (fn: (...args: unknown[]) => unknown) => fn;
+jest.mock("../../../utils/lodashAlternatives", () => {
+  return { debounce: (fn: (...args: unknown[]) => unknown) => fn };
 });
 
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
