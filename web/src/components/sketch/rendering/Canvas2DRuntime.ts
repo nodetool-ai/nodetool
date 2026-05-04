@@ -612,6 +612,8 @@ export class Canvas2DRuntime implements SketchRuntime {
 
   // ─── Lifecycle ───────────────────────────────────────────────────────
 
+  setSelection(_sel: Selection | null): void {}
+
   dispose(): void {
     this.layerCanvases.clear();
     this.strokeTempCanvas = null;

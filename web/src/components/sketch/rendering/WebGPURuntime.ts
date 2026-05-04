@@ -122,6 +122,14 @@ export class WebGPURuntime implements SketchRuntime {
   private strokeMergeTexture: GPUTexture | null = null;
   private strokeMaskScratchCanvas: HTMLCanvasElement | null = null;
 
+  // ── Selection mask texture ────────────────────────────────────────────
+  /** GPU r8unorm texture derived from Selection.data. Recreated on dimension change. */
+  private maskTexture: GPUTexture | null = null;
+  /** True when maskTexture is stale and needs re-upload before next composite. */
+  private maskDirty = false;
+  /** Last selection passed to setSelection — canonical CPU source for the mask. */
+  private currentSelection: Selection | null = null;
+
   // ── FX evaluation ────────────────────────────────────────────────────
   /** Temp canvas for FX-evaluated layer content (reused across layers within a frame). */
   private fxTempCanvas: HTMLCanvasElement | null = null;
@@ -535,6 +543,65 @@ export class WebGPURuntime implements SketchRuntime {
     this.dirtyLayers.add(layerId);
   }
 
+  // ─── Selection mask texture ──────────────────────────────────────────
+
+  setSelection(sel: Selection | null): void {
+    const prev = this.currentSelection;
+    this.currentSelection = sel;
+    if (sel?.data !== prev?.data) {
+      this.maskDirty = sel !== null;
+    }
+  }
+
+  private uploadMaskTexture(): void {
+    const sel = this.currentSelection;
+    if (!sel || sel.width <= 0 || sel.height <= 0) {
+      return;
+    }
+    const { width, height, data } = sel;
+
+    if (
+      !this.maskTexture ||
+      this.maskTexture.width !== width ||
+      this.maskTexture.height !== height
+    ) {
+      this.maskTexture?.destroy();
+      this.maskTexture = this.device.createTexture({
+        label: "selection-mask",
+        size: { width: Math.max(1, width), height: Math.max(1, height) },
+        format: "r8unorm",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+      });
+    }
+
+    // writeTexture requires bytesPerRow to be a multiple of 256.
+    const alignedBytesPerRow = Math.ceil(width / 256) * 256;
+    if (alignedBytesPerRow === width) {
+      this.device.queue.writeTexture(
+        { texture: this.maskTexture },
+        data,
+        { bytesPerRow: width, rowsPerImage: height },
+        { width, height }
+      );
+    } else {
+      const padded = new Uint8Array(alignedBytesPerRow * height);
+      for (let row = 0; row < height; row++) {
+        padded.set(
+          data.subarray(row * width, (row + 1) * width),
+          row * alignedBytesPerRow
+        );
+      }
+      this.device.queue.writeTexture(
+        { texture: this.maskTexture },
+        padded,
+        { bytesPerRow: alignedBytesPerRow, rowsPerImage: height },
+        { width, height }
+      );
+    }
+
+    this.maskDirty = false;
+  }
+
   // ─── SketchRuntime: Layer canvas management ──────────────────────────
 
   getOrCreateLayerCanvas(
@@ -673,6 +740,10 @@ export class WebGPURuntime implements SketchRuntime {
     }
 
     this.syncLayerTextures();
+
+    if (this.maskDirty) {
+      this.uploadMaskTexture();
+    }
 
     const device = this.device;
     const swapChainView = this.context.getCurrentTexture().createView();
@@ -1251,6 +1322,9 @@ export class WebGPURuntime implements SketchRuntime {
     }
     this.strokeMergeCpuCanvas = null;
     this.strokeMaskScratchCanvas = null;
+    this.maskTexture?.destroy();
+    this.maskTexture = null;
+    this.currentSelection = null;
     this.pingPongA?.destroy();
     this.pingPongA = null;
     this.pingPongB?.destroy();

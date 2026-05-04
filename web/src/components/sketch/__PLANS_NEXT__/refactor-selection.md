@@ -44,11 +44,11 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 | `WebGPURuntime.ts`: `uploadStrokeMergePreview()` — calls `drawStrokeBufferForDisplayWithSelectionFeather` (line ~610) | Feather during stroke preview | 4 |
 | `canvas2d/composite.ts:229` — calls `drawStrokeBufferForDisplayWithSelectionFeather` | Canvas2D feather preview | 4 |
 | `usePointerHandlerUtils.ts`: `clipSelectionForOffset` function (line 273) | Wrapper — unused after Phase 3 | 3 |
-| `usePointerHandlers.ts`: `clipSelectionForOffset` (lines 309, 409) | Destructured into tool dispatch | 3 |
+| `usePointerHandlers.ts`: `clipSelectionForOffset` (lines **316, 416**) | Destructured into tool dispatch | 3 |
 | `tools/types.ts:156`: `clipSelectionForOffset` in `ToolContext` type | Type contract | 3 |
 | `tools/buildToolContext.ts:119,198`: `clipSelectionForOffset` wiring | Context builder | 3 |
 | `ShapeTool.ts:229`: `ctx.clipSelectionForOffset` | Shape clip | 5 |
-| `__tests__/*.test.ts`: `clipSelectionForOffset: jest.fn()` mocks (~10 files) | Stale mocks after type removal | 6 |
+| `__tests__/*.test.ts`: `clipSelectionForOffset: jest.fn()` mocks (**12 files**) | Stale mocks after type removal | 6 |
 
 ---
 
@@ -57,10 +57,9 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 ### Phase 1 — Mask texture upload
 
 - [ ] Add to `WebGPURuntime`: `maskTexture: GPUTexture | null` (`r8unorm`, `Selection.width × Selection.height`), `maskDirty = false`. Texture dimensions = selection dimensions, not doc dimensions — an ellipse mask extending beyond canvas bounds can be larger than the document.
-- [ ] Implement `uploadMaskTexture()`: writes `Selection.data` to `maskTexture`. Create/recreate texture when `Selection.width` or `Selection.height` changes.
-- [ ] **`bytesPerRow` alignment**: WebGPU `writeTexture` requires `bytesPerRow` to be a multiple of 256. For an R8 mask, `bytesPerRow = maskWidth × 1` — rarely aligned. Use a staging `GPUBuffer` with padded rows, or pre-pad the source data. This will throw a GPU error without the fix.
+- [ ] Implement `uploadMaskTexture()`: writes `Selection.data` to `maskTexture`. Create/recreate texture when `Selection.width` or `Selection.height` changes. **`bytesPerRow` alignment**: WebGPU requires `bytesPerRow` to be a multiple of 256; for R8, `bytesPerRow = maskWidth × 1` — rarely aligned. Pad rows in a staging buffer or pre-pad source data, or it will throw a GPU error.
 - [ ] Call `uploadMaskTexture()` at the top of the composite pass when `maskDirty`, then clear the flag.
-- [ ] After any mutation that changes `Selection.data` (combine ops, invert, feather, new selection), set `maskDirty = true` and schedule a redraw.
+- [ ] After any mutation that changes `Selection.data` (combine ops, invert, feather, new selection), set `maskDirty = true` and schedule a redraw. Find all callsites in `useSelectionStore` / selection operations.
 - [ ] `originX/Y` uniforms must be read fresh from `Selection.originX/Y` at every composite call — not cached or gated on `maskDirty`. A selection move only updates the origin, not `data`; the ants must track it in real-time without triggering a texture re-upload.
 - [ ] Verify: change selection → next composite uploads correctly (console log or debugLabel).
 
@@ -80,7 +79,7 @@ CPU stroke buffer continues to build as-is (no stamp engine change). Clipping ca
 
 - [ ] `PaintSession.ts` (`begin`, `move`, `end`): remove all three `clipSelectionForOffset` calls (lines 268, 335, 472).
 - [ ] `HelperToolSession.ts`: remove `clipSelectionForOffset` calls (lines 181, 241).
-- [ ] Remove `clipSelectionForOffset` from `usePointerHandlers.ts` (lines 309, 409). Delete the function from `usePointerHandlerUtils.ts`. Delete `clipContextToSelectionMask` from `selectionMask.ts`.
+- [ ] Remove `clipSelectionForOffset` from `usePointerHandlers.ts` (lines 316, 416). Delete the function from `usePointerHandlerUtils.ts`. Delete `clipContextToSelectionMask` from `selectionMask.ts`.
 - [ ] Remove `clipSelectionForOffset` from `ToolContext` type (`tools/types.ts:156`) and from `buildToolContext.ts` (lines 119, 198).
 - [ ] Note: brush/eraser will paint outside selection until Phase 4 adds the GPU mask multiply — expected on a dev branch.
 - [ ] Verify: typecheck + lint clean; no runtime errors on brush stroke.
@@ -107,7 +106,8 @@ Eliminates the per-frame CPU feather during an active stroke. Commit-time maskin
 
 ### Phase 6 — Cleanup
 
-- [ ] Update `~10 test files` that mock `clipSelectionForOffset: jest.fn()` — remove the mock field now that it's gone from `ToolContext`. (`toolHandlers`, `shiftLineBufferReuse`, `sharedToolModules`, `helperToolSession`, `segmentation`, `samplingContract`, `previewSessionRegression`, `moveTransformUnification`, `phase2TransformLifecycle`, `phase1Fixes`, `phase1Enforcement`, `paintSession`.)
+- [ ] Update **12 test files** that mock `clipSelectionForOffset: jest.fn()` — remove the mock field now that it's gone from `ToolContext`. (`toolHandlers`, `shiftLineBufferReuse`, `sharedToolModules`, `helperToolSession`, `segmentation`, `samplingContract`, `previewSessionRegression`, `moveTransformUnification`, `phase2TransformLifecycle`, `phase1Fixes`, `phase1Enforcement`, `paintSession`.)
+- [ ] `helperToolSession.test.ts` test "1.1.6" (`clipSelectionForOffset is called during move`, lines ~420–454): **rewrite or delete** — it asserts call count `>= 2`, which will fail after Phase 3 removes the calls. If selection-respect is tested elsewhere, delete it; otherwise replace with a GPU-path equivalent.
 - [ ] Delete any remaining dead code from `selectionMask.ts` (audit all exports). `applySelectionMaskAlpha` is still called by `PaintSession` at commit — do not delete until/unless commit path is ported to GPU.
 - [ ] Run `npm run typecheck` + `npm run lint` — fix all errors.
 - [ ] Tests: mask parity (binary + feather pixel probes), ants visible at zoom extremes, brush/erase/gradient with selection.

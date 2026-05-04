@@ -21,7 +21,7 @@
  * passed as `doc` / `docWithTools`.
  */
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type {
   SketchDocument,
   SketchTool,
@@ -202,6 +202,11 @@ export function useCanvasOrchestration(
   // Wire the preview bridge refs to compositing output.
   requestPreviewRedrawRef.current = compositing.requestRedraw;
   invalidateLayerRef.current = compositing.invalidateLayer;
+
+  // Sync active selection to the GPU runtime (WebGPU uploads r8unorm mask texture).
+  useEffect(() => {
+    compositing.runtime.setSelection(selection ?? null);
+  }, [compositing.runtime, selection]);
 
   // ─── Overlay and cursor rendering ──────────────────────────────────
 

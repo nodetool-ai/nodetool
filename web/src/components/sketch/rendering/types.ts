@@ -114,6 +114,14 @@ export interface SketchRuntime {
   invalidateLayer(layerId: string): void;
 
   // ─── Compositing ─────────────────────────────────────────────────────
+
+  /**
+   * Notify the runtime of the current selection mask. WebGPU uploads the
+   * `r8unorm` mask texture on the next composite when `data` identity changes.
+   * Canvas2D ignores this call — selection masking is handled per-tool on CPU.
+   */
+  setSelection(sel: Selection | null): void;
+
   /**
    * Composite all visible layers onto the target canvas.
    *
