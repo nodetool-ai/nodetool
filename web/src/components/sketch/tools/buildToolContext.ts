@@ -20,7 +20,7 @@ import type {
 } from "../types";
 import type { ActiveStrokeInfo } from "../rendering";
 import type { ToolContext, StrokeEndOptions } from "./types";
-import type { SelectionMoveAntsRef, GizmoDrawCallback } from "../sketchCanvasHooks/useOverlayRenderer";
+import type { GizmoDrawCallback } from "../sketchCanvasHooks/useOverlayRenderer";
 
 /** All dependencies needed to build a ToolContext. */
 export interface BuildToolContextParams {
@@ -120,7 +120,7 @@ export interface BuildToolContextParams {
   clearLayerTransformPreview?: (layerId?: string) => void;
 
   // ── Selection movement ──
-  selectionMoveAntsRef?: SelectionMoveAntsRef;
+  setSelectionOriginOverride?: (pos: { x: number; y: number } | null) => void;
   appendSelectionOverlay?: () => void;
 
   // ── Lasso / polygon refs ──
@@ -192,7 +192,7 @@ export function buildToolContext(params: BuildToolContextParams): ToolContext {
     foregroundColor: params.foregroundColor,
     setLayerTransformPreview: params.setLayerTransformPreview,
     clearLayerTransformPreview: params.clearLayerTransformPreview,
-    selectionMoveAntsRef: params.selectionMoveAntsRef,
+    setSelectionOriginOverride: params.setSelectionOriginOverride,
     appendSelectionOverlay: params.appendSelectionOverlay,
     selectStartRef: params.selectStartRef,
     lassoPointsRef: params.lassoPointsRef,

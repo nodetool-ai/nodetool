@@ -151,6 +151,12 @@ export class WebGPURuntime implements SketchRuntime {
   antsPhase = 0;
   /** Called after compositing when the runtime needs continuous redraws (ants animation). */
   onNeedsRedraw?: () => void;
+  /** Overrides currentSelection.originX/Y during a live move-drag, without committing to the store. */
+  private selectionOriginOverride: { x: number; y: number } | null = null;
+
+  setSelectionOriginOverride(pos: { x: number; y: number } | null): void {
+    this.selectionOriginOverride = pos;
+  }
 
   // ── Dirty tracking ───────────────────────────────────────────────────
   /** Layers whose CPU canvas changed and need re-upload to GPU. */
@@ -674,10 +680,12 @@ export class WebGPURuntime implements SketchRuntime {
       return;
     }
     const sel = this.currentSelection;
+    const originX = this.selectionOriginOverride?.x ?? sel.originX ?? 0;
+    const originY = this.selectionOriginOverride?.y ?? sel.originY ?? 0;
     // 8 floats: canvasSize(2) + maskOrigin(2) + maskDims(2) + phase(1) + pad(1)
     const uniformData = new Float32Array([
       canvasW, canvasH,
-      sel.originX ?? 0, sel.originY ?? 0,
+      originX, originY,
       sel.width, sel.height,
       this.antsPhase, 0.0
     ]);

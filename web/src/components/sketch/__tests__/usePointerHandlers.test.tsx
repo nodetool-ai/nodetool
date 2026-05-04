@@ -72,7 +72,6 @@ function makeParams(): UsePointerHandlersParams {
     onEyedropperPick: undefined,
     isolatedLayerId: null,
     onSelectionChange: jest.fn(),
-    selectionMoveAntsRef: { current: null },
     onAutoPickLayer: jest.fn(),
     foregroundColor: "#000000",
     onCanvasLeave: jest.fn(),

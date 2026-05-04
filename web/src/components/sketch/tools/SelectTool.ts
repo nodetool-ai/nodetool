@@ -32,6 +32,7 @@ import {
   applySelectionFinalization,
   scheduleSelectionFinalization
 } from "./selectionFinalization";
+import { getLayerCompositeOffset } from "../painting/layerBounds";
 
 /** Require this much document-space delta before commit. */
 const MARQUEE_MIN_DRAG_DOC_PX = 1;
@@ -45,6 +46,8 @@ export class SelectTool implements ToolHandler {
   private isMovingSelection = false;
   private moveSelectionOrigin: Point | null = null;
   private selectionAtMoveStart: Selection | null = null;
+  private moveSelectionDx = 0;
+  private moveSelectionDy = 0;
 
   // Internal selection state (also synced to ctx refs when available)
   private selectStart: Point | null = null;
@@ -115,9 +118,8 @@ export class SelectTool implements ToolHandler {
       this.moveSelectionOrigin = pt;
       const cloned = cloneSelectionMask(selection);
       this.selectionAtMoveStart = cloned;
-      if (ctx.selectionMoveAntsRef) {
-        ctx.selectionMoveAntsRef.current = { start: cloned, dx: 0, dy: 0 };
-      }
+      this.moveSelectionDx = 0;
+      this.moveSelectionDy = 0;
       return true;
     }
 
@@ -128,33 +130,44 @@ export class SelectTool implements ToolHandler {
         return false;
       }
       const wandSettings = doc.toolSettings.select;
+      const mods = captureModifiers(ctx.shiftHeldRef, ctx.altHeldRef);
       requestAnimationFrame(() => {
-        let id: ImageData | null = null;
+        const tol = wandSettings.magicWandTolerance;
+
         if (wandSettings.sampleAllLayers) {
-          id = ctx.getFullCompositeImageData?.() ?? null;
-        } else {
-          const activeCanvas = ctx.layerCanvasesRef.current.get(doc.activeLayerId);
-          if (activeCanvas) {
-            const actx = activeCanvas.getContext("2d");
-            id = actx ? actx.getImageData(0, 0, activeCanvas.width, activeCanvas.height) : null;
-          }
-        }
-        if (!id) {
+          // Composite sampling: pt is already in doc/pixel space, result is doc-sized.
+          const id = ctx.getFullCompositeImageData?.() ?? null;
+          if (!id) return;
+          const bin = wandSettings.contiguous
+            ? magicWandFromRgba(id, pt.x, pt.y, tol)
+            : magicWandNonContiguousFromRgba(id, pt.x, pt.y, tol);
+          const overlay: Selection = { width: cw, height: ch, data: bin };
+          applySelectionFinalization({ overlay, modifiers: mods, currentSelection: selection, onSelectionChange, drawSelectionOverlay: ctx.drawSelectionOverlay });
           return;
         }
-        const tol = wandSettings.magicWandTolerance;
+
+        // Active-layer sampling: convert doc-space pt to canvas-local space.
+        const activeLayer = doc.layers.find(l => l.id === doc.activeLayerId);
+        const activeCanvas = ctx.layerCanvasesRef.current.get(doc.activeLayerId);
+        if (!activeLayer || !activeCanvas) return;
+        const offset = getLayerCompositeOffset(activeLayer, undefined, activeCanvas);
+        const seedX = pt.x - offset.x;
+        const seedY = pt.y - offset.y;
+        const actx = activeCanvas.getContext("2d");
+        if (!actx) return;
+        const id = actx.getImageData(0, 0, activeCanvas.width, activeCanvas.height);
         const bin = wandSettings.contiguous
-          ? magicWandFromRgba(id, pt.x, pt.y, tol)
-          : magicWandNonContiguousFromRgba(id, pt.x, pt.y, tol);
-        const overlay: Selection = { width: cw, height: ch, data: bin };
-        const mods = captureModifiers(ctx.shiftHeldRef, ctx.altHeldRef);
-        applySelectionFinalization({
-          overlay,
-          modifiers: mods,
-          currentSelection: selection,
-          onSelectionChange,
-          drawSelectionOverlay: ctx.drawSelectionOverlay
-        });
+          ? magicWandFromRgba(id, seedX, seedY, tol)
+          : magicWandNonContiguousFromRgba(id, seedX, seedY, tol);
+        // Overlay is layer-sized with origin set — combineMasks handles the placement.
+        const overlay: Selection = {
+          width: activeCanvas.width,
+          height: activeCanvas.height,
+          data: bin,
+          originX: offset.x,
+          originY: offset.y
+        };
+        applySelectionFinalization({ overlay, modifiers: mods, currentSelection: selection, onSelectionChange, drawSelectionOverlay: ctx.drawSelectionOverlay });
       });
       return false;
     }
@@ -241,11 +254,14 @@ export class SelectTool implements ToolHandler {
     ) {
       const dx = Math.round(pt.x - this.moveSelectionOrigin.x);
       const dy = Math.round(pt.y - this.moveSelectionOrigin.y);
+      this.moveSelectionDx = dx;
+      this.moveSelectionDy = dy;
       const start = this.selectionAtMoveStart;
-      if (start && ctx.selectionMoveAntsRef) {
-        ctx.selectionMoveAntsRef.current = { start, dx, dy };
-        ctx.drawSelectionOverlay();
-      }
+      ctx.setSelectionOriginOverride?.({
+        x: (start.originX ?? 0) + dx,
+        y: (start.originY ?? 0) + dy
+      });
+      ctx.requestRedraw();
       return;
     }
 
@@ -307,20 +323,16 @@ export class SelectTool implements ToolHandler {
 
     // Finalize selection movement
     if (this.isMovingSelection) {
-      const ants = ctx.selectionMoveAntsRef?.current;
       const start = this.selectionAtMoveStart;
       if (start && ctx.onSelectionChange) {
-        const dx = ants?.dx ?? 0;
-        const dy = ants?.dy ?? 0;
-        ctx.onSelectionChange(offsetSelectionByDocumentDelta(start, dx, dy));
+        ctx.onSelectionChange(offsetSelectionByDocumentDelta(start, this.moveSelectionDx, this.moveSelectionDy));
       }
-      if (ctx.selectionMoveAntsRef) {
-        ctx.selectionMoveAntsRef.current = null;
-      }
+      ctx.setSelectionOriginOverride?.(null);
       this.isMovingSelection = false;
       this.moveSelectionOrigin = null;
       this.selectionAtMoveStart = null;
-      ctx.drawSelectionOverlay();
+      this.moveSelectionDx = 0;
+      this.moveSelectionDy = 0;
       return;
     }
 

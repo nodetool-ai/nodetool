@@ -182,11 +182,10 @@ export function useCanvasOrchestration(
   const altHeldRef = useRef(false);
   const selectStartRef = useRef<Point | null>(null);
   const lassoPointsRef = useRef<Point[]>([]);
-  const selectionMoveAntsRef = useRef<{
-    start: Selection;
-    dx: number;
-    dy: number;
-  } | null>(null);
+  const setSelectionOriginOverride = (pos: { x: number; y: number } | null) => {
+    const rt = compositing.runtime as { setSelectionOriginOverride?: (pos: { x: number; y: number } | null) => void };
+    rt.setSelectionOriginOverride?.(pos);
+  };
 
   // ─── Compositing (layer canvases, redraw) ──────────────────────────
 
@@ -204,9 +203,11 @@ export function useCanvasOrchestration(
   invalidateLayerRef.current = compositing.invalidateLayer;
 
   // Sync active selection to the GPU runtime (WebGPU uploads r8unorm mask texture).
+  // Also request a redraw so the mask texture is uploaded and ants animation starts.
   useEffect(() => {
     compositing.runtime.setSelection(selection ?? null);
-  }, [compositing.runtime, selection]);
+    compositing.requestRedraw();
+  }, [compositing.runtime, compositing.requestRedraw, selection]);
 
   // Wire continuous redraw callback so the GPU ants can animate at rAF rate.
   useEffect(() => {
@@ -289,7 +290,7 @@ export function useCanvasOrchestration(
     onEyedropperPick,
     isolatedLayerId,
     onSelectionChange,
-    selectionMoveAntsRef,
+    setSelectionOriginOverride,
     onAutoPickLayer,
     foregroundColor,
     onCanvasLeave,

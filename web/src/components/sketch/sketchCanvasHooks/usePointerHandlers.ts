@@ -30,7 +30,7 @@ import type { ToolContext, ToolPointerEvent, StrokeEndOptions } from "../tools/t
 import { buildToolContext } from "../tools/buildToolContext";
 import { useKeyboardModifiers } from "./useKeyboardModifiers";
 import { usePointerHandlerUtils } from "./usePointerHandlerUtils";
-import type { SelectionMoveAntsRef, GizmoDrawCallback } from "./useOverlayRenderer";
+import type { GizmoDrawCallback } from "./useOverlayRenderer";
 import {
   SKETCH_ZOOM_MAX,
   SKETCH_ZOOM_MIN
@@ -105,8 +105,8 @@ export interface UsePointerHandlersParams {
   lassoPointsRef: React.MutableRefObject<Point[]>;
   mousePositionRef: React.MutableRefObject<Point>;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
-  /** Shared with `useOverlayRenderer` for marching ants while moving selection (unclipped until pointer up). */
-  selectionMoveAntsRef: SelectionMoveAntsRef;
+  /** Updates the GPU ants origin during a live selection move drag, without committing to the store. */
+  setSelectionOriginOverride?: (pos: { x: number; y: number } | null) => void;
 
   // ── Canvas element refs ────────────────────────────────────────────
   // Stable after mount. Used for hit-testing and direct pixel access.
@@ -259,7 +259,7 @@ export function usePointerHandlers({
   onEyedropperPick,
   isolatedLayerId,
   onSelectionChange,
-  selectionMoveAntsRef,
+  setSelectionOriginOverride,
   onAutoPickLayer,
   foregroundColor = "#000000",
   onCanvasLeave,
@@ -415,7 +415,7 @@ export function usePointerHandlers({
     foregroundColor,
     setLayerTransformPreview,
     clearLayerTransformPreview,
-    selectionMoveAntsRef,
+    setSelectionOriginOverride,
     appendSelectionOverlay,
     selectStartRef,
     lassoPointsRef,

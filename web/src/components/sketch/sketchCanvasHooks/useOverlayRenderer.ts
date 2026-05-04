@@ -33,12 +33,7 @@ import {
   marqueeRectFromDocPoints
 } from "../selection";
 
-/** While dragging a selection, marching ants use `start` + `translate(dx,dy)` so the outline is not clipped before commit. */
-export type SelectionMoveAntsRef = React.MutableRefObject<{
-  start: Selection;
-  dx: number;
-  dy: number;
-} | null>;
+
 
 /**
  * Extra CSS pixels around the sketch viewport for the selection marching-ants bitmap.

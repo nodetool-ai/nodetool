@@ -39,7 +39,6 @@ export {
   selectionAntCanvasMarginCssPx
 } from "./useOverlayRenderer";
 export type {
-  SelectionMoveAntsRef,
   UseOverlayRendererParams,
   UseOverlayRendererResult
 } from "./useOverlayRenderer";

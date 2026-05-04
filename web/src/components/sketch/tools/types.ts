@@ -31,7 +31,7 @@ export interface ToolDefinition {
   Icon: ToolIconComponent;
   group: "painting" | "shape";
 }
-import type { SelectionMoveAntsRef, GizmoDrawCallback } from "../sketchCanvasHooks/useOverlayRenderer";
+import type { GizmoDrawCallback } from "../sketchCanvasHooks/useOverlayRenderer";
 
 /** Optional flags for `onStrokeEnd` when raster data is read back from the CPU canvas. */
 export interface StrokeEndOptions {
@@ -160,7 +160,7 @@ export interface ToolContext {
   clearLayerTransformPreview?: (layerId?: string) => void;
 
   // ── Selection movement overlay (marching ants during drag) ──────────
-  selectionMoveAntsRef?: SelectionMoveAntsRef;
+  setSelectionOriginOverride?: (pos: { x: number; y: number } | null) => void;
   appendSelectionOverlay?: () => void;
 
   // ── Lasso / polygon selection refs ──────────────────────────────────

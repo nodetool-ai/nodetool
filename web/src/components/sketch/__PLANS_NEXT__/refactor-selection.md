@@ -80,15 +80,16 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 - [x] Rect/ellipse/lasso live-preview outlines (not committed mask) stay CPU-drawn — they are not hot paths.
 - [ ] Verify: ants render correctly at various zoom levels; ants appear at canvas boundary; ants render outside canvas when selection extends beyond doc bounds.
 
-### Phase 2b — Selection move drag with GPU ants
+### Phase 2b — Selection move drag with GPU ants ✅
 
 When a selection is being moved (`SelectTool.onMove`), the GPU ants must follow the drag before commit.
 
-- [ ] Add `setSelectionOriginOverride(pos: {x:number;y:number} | null): void` to `WebGPURuntime` (not in interface). In `drawSelectionAnts`, use override instead of `currentSelection.originX/Y` when set.
-- [ ] Add `setSelectionOriginOverride?` to `ToolContext` (optional). Wire in `buildToolContext` from params + `usePointerHandlerUtils` (via runtime duck-typed access).
-- [ ] `SelectTool.onMove` (move-selection branch): call `ctx.setSelectionOriginOverride?.({ x: (start.originX??0)+dx, y: (start.originY??0)+dy })` instead of updating `selectionMoveAntsRef`.
-- [ ] `SelectTool.onUp` (finalize move): call `ctx.setSelectionOriginOverride?.(null)` then `ctx.onSelectionChange(...)`.
-- [ ] Remove `selectionMoveAntsRef` from `ToolContext`, `buildToolContext`, `useCanvasOrchestration`, `usePointerHandlers`, `SelectTool`. Remove `SelectionMoveAntsRef` type.
+- [x] Add `setSelectionOriginOverride(pos: {x:number;y:number} | null): void` to `WebGPURuntime`. In `drawSelectionAnts`, use override instead of `currentSelection.originX/Y` when set.
+- [x] Add `setSelectionOriginOverride?` to `ToolContext` and `BuildToolContextParams`. Wired via duck-typed callback in `useCanvasOrchestration` → `usePointerHandlers` → `buildToolContext`.
+- [x] `SelectTool.onMove` (move-selection branch): stores delta on instance, calls `ctx.setSelectionOriginOverride?.(...)` + `ctx.requestRedraw()`.
+- [x] `SelectTool.onUp` (finalize move): calls `ctx.setSelectionOriginOverride?.(null)` then `ctx.onSelectionChange(...)`.
+- [x] Removed `selectionMoveAntsRef` from `ToolContext`, `BuildToolContextParams`, `buildToolContext`, `useCanvasOrchestration`, `usePointerHandlers`, `SelectTool`. Removed `SelectionMoveAntsRef` type.
+- [x] **Fix**: `setSelection` useEffect in `useCanvasOrchestration` now also calls `requestRedraw()` so the mask uploads and ants start immediately (was only visible after zoom).
 
 ### Phase 3 — Remove CPU clipping from paint session ✅
 
