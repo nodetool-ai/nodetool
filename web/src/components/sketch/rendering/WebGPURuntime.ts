@@ -34,7 +34,8 @@ import {
   LAYER_COMPOSITE_FRAGMENT,
   BLEND_COMPOSITE_FRAGMENT,
   BLIT_FRAGMENT,
-  BORDER_FRAGMENT
+  BORDER_FRAGMENT,
+  SELECTION_ANTS_FRAGMENT
 } from "./shaders";
 
 // ─── Blend mode ID mapping (must match shader switch cases) ──────────────
@@ -101,6 +102,8 @@ export class WebGPURuntime implements SketchRuntime {
   private blitBindGroupLayout: GPUBindGroupLayout | null = null;
   private borderPipeline: GPURenderPipeline | null = null;
   private borderBindGroupLayout: GPUBindGroupLayout | null = null;
+  private selectionAntsPipeline: GPURenderPipeline | null = null;
+  private selectionAntsBindGroupLayout: GPUBindGroupLayout | null = null;
 
   // ── Intermediate compositing textures (ping-pong pair) ─────────────
   /**
@@ -145,6 +148,11 @@ export class WebGPURuntime implements SketchRuntime {
    * the visual size stays constant on screen.
    */
   zoom = 1;
+
+  /** Animating phase for marching-ants shader (increments each composite). */
+  antsPhase = 0;
+  /** Called after compositing when the runtime needs continuous redraws (ants animation). */
+  onNeedsRedraw?: () => void;
 
   // ── Dirty tracking ───────────────────────────────────────────────────
   /** Layers whose CPU canvas changed and need re-upload to GPU. */
@@ -380,6 +388,50 @@ export class WebGPURuntime implements SketchRuntime {
       primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
     });
 
+    // ── Selection marching ants ────────────────────────────────────────
+    const antsModule = device.createShaderModule({
+      label: "ants-frag",
+      code: FULLSCREEN_QUAD_VERTEX + SELECTION_ANTS_FRAGMENT
+    });
+
+    this.selectionAntsBindGroupLayout = device.createBindGroupLayout({
+      label: "ants-bgl",
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.FRAGMENT,
+          buffer: { type: "uniform" }
+        },
+        {
+          binding: 1,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" }
+        }
+      ]
+    });
+
+    this.selectionAntsPipeline = device.createRenderPipeline({
+      label: "ants-pipeline",
+      layout: device.createPipelineLayout({
+        bindGroupLayouts: [this.selectionAntsBindGroupLayout]
+      }),
+      vertex: {
+        module: antsModule,
+        entryPoint: "vs_main"
+      },
+      fragment: {
+        module: antsModule,
+        entryPoint: "fs_ants",
+        targets: [
+          {
+            format: this.presentationFormat,
+            blend: SOURCE_OVER_BLEND
+          }
+        ]
+      },
+      primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
+    });
+
   }
 
   // ─── Canvas context management ───────────────────────────────────────
@@ -549,7 +601,13 @@ export class WebGPURuntime implements SketchRuntime {
     const prev = this.currentSelection;
     this.currentSelection = sel;
     if (sel?.data !== prev?.data) {
-      this.maskDirty = sel !== null;
+      if (sel !== null) {
+        this.maskDirty = true;
+      } else {
+        this.maskTexture?.destroy();
+        this.maskTexture = null;
+        this.maskDirty = false;
+      }
     }
   }
 
@@ -576,10 +634,11 @@ export class WebGPURuntime implements SketchRuntime {
 
     // writeTexture requires bytesPerRow to be a multiple of 256.
     const alignedBytesPerRow = Math.ceil(width / 256) * 256;
+    const u8Data = new Uint8Array(data.buffer as ArrayBuffer, data.byteOffset, data.byteLength);
     if (alignedBytesPerRow === width) {
       this.device.queue.writeTexture(
         { texture: this.maskTexture },
-        data,
+        u8Data,
         { bytesPerRow: width, rowsPerImage: height },
         { width, height }
       );
@@ -600,6 +659,57 @@ export class WebGPURuntime implements SketchRuntime {
     }
 
     this.maskDirty = false;
+  }
+
+  private drawSelectionAnts(
+    encoder: GPUCommandEncoder,
+    targetView: GPUTextureView,
+    canvasW: number,
+    canvasH: number
+  ): void {
+    if (
+      !this.selectionAntsPipeline ||
+      !this.selectionAntsBindGroupLayout ||
+      !this.maskTexture ||
+      !this.currentSelection
+    ) {
+      return;
+    }
+    const sel = this.currentSelection;
+    // 8 floats: canvasSize(2) + maskOrigin(2) + maskDims(2) + phase(1) + pad(1)
+    const uniformData = new Float32Array([
+      canvasW, canvasH,
+      sel.originX ?? 0, sel.originY ?? 0,
+      sel.width, sel.height,
+      this.antsPhase, 0.0
+    ]);
+    const uniformBuffer = this.device.createBuffer({
+      size: uniformData.byteLength,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    });
+    this.device.queue.writeBuffer(uniformBuffer, 0, uniformData);
+
+    const bindGroup = this.device.createBindGroup({
+      layout: this.selectionAntsBindGroupLayout,
+      entries: [
+        { binding: 0, resource: { buffer: uniformBuffer } },
+        { binding: 1, resource: this.maskTexture.createView() }
+      ]
+    });
+
+    const pass = encoder.beginRenderPass({
+      colorAttachments: [
+        {
+          view: targetView,
+          loadOp: "load",
+          storeOp: "store"
+        }
+      ]
+    });
+    pass.setPipeline(this.selectionAntsPipeline);
+    pass.setBindGroup(0, bindGroup);
+    pass.draw(4);
+    pass.end();
   }
 
   // ─── SketchRuntime: Layer canvas management ──────────────────────────
@@ -913,7 +1023,17 @@ export class WebGPURuntime implements SketchRuntime {
       pass.end();
     }
 
+    // ── Pass 5: Selection marching ants → swapChain ───────────────────
+    if (this.maskTexture && this.currentSelection) {
+      this.antsPhase = (this.antsPhase + 0.1) % 2.0;
+      this.drawSelectionAnts(encoder, swapChainView, fullW, fullH);
+    }
+
     device.queue.submit([encoder.finish()]);
+
+    if (this.maskTexture && this.currentSelection) {
+      this.onNeedsRedraw?.();
+    }
   }
 
   // ─── Ping-pong blend pass ───────────────────────────────────────────

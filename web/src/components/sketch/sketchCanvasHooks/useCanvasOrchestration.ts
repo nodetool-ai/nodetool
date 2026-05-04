@@ -208,6 +208,13 @@ export function useCanvasOrchestration(
     compositing.runtime.setSelection(selection ?? null);
   }, [compositing.runtime, selection]);
 
+  // Wire continuous redraw callback so the GPU ants can animate at rAF rate.
+  useEffect(() => {
+    const rt = compositing.runtime as { onNeedsRedraw?: () => void };
+    rt.onNeedsRedraw = compositing.requestRedraw;
+    return () => { rt.onNeedsRedraw = undefined; };
+  }, [compositing.runtime, compositing.requestRedraw]);
+
   // ─── Overlay and cursor rendering ──────────────────────────────────
 
   const overlay = useOverlayRenderer({
@@ -217,7 +224,6 @@ export function useCanvasOrchestration(
     zoom,
     pan,
     selection,
-    selectionMoveAntsRef,
     overlayCanvasRef: compositing.overlayCanvasRef,
     selectionCanvasRef,
     cursorCanvasRef,

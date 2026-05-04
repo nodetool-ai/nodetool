@@ -27,15 +27,10 @@ import {
   documentCanvasToClient
 } from "../tools/transform/handleGeometry";
 import {
-  createSelectionOutlinePathCacheScratch,
   drawSelectionEllipseOutline,
-  drawSelectionOutlinePath,
   drawSelectionPolylineOutline,
   drawSelectionRectOutline,
-  getOrRebuildSelectionOutlinePath,
-  invalidateSelectionOutlinePathCache,
-  marqueeRectFromDocPoints,
-  selectionHasAnyPixels
+  marqueeRectFromDocPoints
 } from "../selection";
 
 /** While dragging a selection, marching ants use `start` + `translate(dx,dy)` so the outline is not clipped before commit. */
@@ -62,8 +57,6 @@ export interface UseOverlayRendererParams {
   zoom: number;
   pan: Point;
   selection?: Selection | null;
-  /** Non-null during select-tool move drag; overlay reads this instead of clipping the mask each move. */
-  selectionMoveAntsRef: SelectionMoveAntsRef;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   selectionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   cursorCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -120,7 +113,6 @@ export function useOverlayRenderer({
   zoom,
   pan,
   selection,
-  selectionMoveAntsRef,
   overlayCanvasRef,
   selectionCanvasRef,
   cursorCanvasRef,
@@ -131,9 +123,6 @@ export function useOverlayRenderer({
   selectStartRef,
   lassoPointsRef
 }: UseOverlayRendererParams): UseOverlayRendererResult {
-
-  const antsPhaseRef = useRef(0);
-  const outlinePathScratchRef = useRef(createSelectionOutlinePathCacheScratch());
 
   // ─── Screen-resolution canvas sizing (cursor + selection + gizmo) ───
 
@@ -235,62 +224,14 @@ export function useOverlayRenderer({
     return ctx;
   }, [selectionCanvasRef, containerRef, zoom, pan, doc.canvas.width, doc.canvas.height]);
 
-  /** Pixel grid (when zoom allows) plus marching ants when applicable. */
+  /** Pixel grid (when zoom allows). Committed-selection ants are rendered by the GPU. */
   const paintSelectionCanvas = useCallback(() => {
     const ctx = beginSelectionLayerPaint();
     if (!ctx) {
       return;
     }
-    const moveAnts = selectionMoveAntsRef.current;
-    const marqueeActive =
-      selectStartRef.current != null || lassoPointsRef.current.length > 0;
-
-    const scratch = outlinePathScratchRef.current;
-    let outlineMask: Selection | null = null;
-    let outlineMoveDx = 0;
-    let outlineMoveDy = 0;
-
-    if (moveAnts && selectionHasAnyPixels(moveAnts.start)) {
-      outlineMask = moveAnts.start;
-      outlineMoveDx = moveAnts.dx;
-      outlineMoveDy = moveAnts.dy;
-    } else if (
-      !marqueeActive &&
-      selection &&
-      selectionHasAnyPixels(selection)
-    ) {
-      outlineMask = selection;
-    }
-
-    if (!outlineMask) {
-      invalidateSelectionOutlinePathCache(scratch);
-    } else {
-      const ox = outlineMask.originX ?? 0;
-      const oy = outlineMask.originY ?? 0;
-      const pathLocal = getOrRebuildSelectionOutlinePath(scratch, outlineMask);
-      ctx.save();
-      if (outlineMoveDx !== 0 || outlineMoveDy !== 0) {
-        ctx.translate(outlineMoveDx, outlineMoveDy);
-      }
-      drawSelectionOutlinePath(
-        ctx,
-        pathLocal,
-        ox,
-        oy,
-        antsPhaseRef.current,
-        zoom
-      );
-      ctx.restore();
-    }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [
-    beginSelectionLayerPaint,
-    selection,
-    zoom,
-    selectionMoveAntsRef,
-    selectStartRef,
-    lassoPointsRef
-  ]);
+  }, [beginSelectionLayerPaint]);
 
   const paintSelectionCanvasRef = useRef(paintSelectionCanvas);
   paintSelectionCanvasRef.current = paintSelectionCanvas;
@@ -307,46 +248,12 @@ export function useOverlayRenderer({
   }, [overlayCanvasRef, paintSelectionCanvas]);
 
   const appendSelectionOverlay = useCallback(() => {
-    const moveAnts = selectionMoveAntsRef.current;
-    const hasAnts =
-      (selection && selectionHasAnyPixels(selection)) ||
-      (moveAnts != null && selectionHasAnyPixels(moveAnts.start));
-    if (!hasAnts) {
-      return;
-    }
-    if (selectStartRef.current || lassoPointsRef.current.length > 0) {
-      return;
-    }
     paintSelectionCanvas();
-  }, [selection, selectStartRef, lassoPointsRef, paintSelectionCanvas, selectionMoveAntsRef]);
+  }, [paintSelectionCanvas]);
 
   useEffect(() => {
     drawSelectionOverlay();
   }, [drawSelectionOverlay]);
-
-  /** Marching-ants dash phase: staggered repaint (~14fps, cached outline path stroked only). */
-  const ANT_ANIMATION_INTERVAL_MS = 72;
-
-  useEffect(() => {
-    if (!selection || !selectionHasAnyPixels(selection)) {
-      return;
-    }
-    const repaint = (): void => {
-      paintSelectionCanvasRef.current();
-    };
-    repaint();
-    const intervalId = window.setInterval(() => {
-      if (selectStartRef.current || lassoPointsRef.current.length > 0) {
-        return;
-      }
-      antsPhaseRef.current = (antsPhaseRef.current + 1) % 256;
-      repaint();
-    }, ANT_ANIMATION_INTERVAL_MS);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [selection, selectStartRef, lassoPointsRef]);
 
   // ─── Screen-resolution gizmo canvas API ─────────────────────────────
 
@@ -482,27 +389,13 @@ export function useOverlayRenderer({
       if (!selCtx) {
         return;
       }
-      if (selection && selectionHasAnyPixels(selection)) {
-        const scr = outlinePathScratchRef.current;
-        const ox = selection.originX ?? 0;
-        const oy = selection.originY ?? 0;
-        const pathLocal = getOrRebuildSelectionOutlinePath(scr, selection);
-        drawSelectionOutlinePath(
-          selCtx,
-          pathLocal,
-          ox,
-          oy,
-          antsPhaseRef.current,
-          zoom
-        );
-      }
       const { x, y, w, h } = marqueeRectFromDocPoints(start, end);
       if (w >= 1 && h >= 1) {
         if (doc.toolSettings.select.mode === "ellipse") {
           // Draw ellipse path directly so the preview is not clipped to canvas bounds.
-          drawSelectionEllipseOutline(selCtx, x, y, w, h, antsPhaseRef.current, zoom);
+          drawSelectionEllipseOutline(selCtx, x, y, w, h, 0, zoom);
         } else {
-          drawSelectionRectOutline(selCtx, x, y, w, h, antsPhaseRef.current, zoom);
+          drawSelectionRectOutline(selCtx, x, y, w, h, 0, zoom);
         }
       }
       selCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -510,7 +403,6 @@ export function useOverlayRenderer({
     [
       overlayCanvasRef,
       zoom,
-      selection,
       doc.toolSettings.select.mode,
       beginSelectionLayerPaint
     ]
@@ -532,27 +424,13 @@ export function useOverlayRenderer({
       if (!selCtx) {
         return;
       }
-      if (selection && selectionHasAnyPixels(selection)) {
-        const scr = outlinePathScratchRef.current;
-        const ox = selection.originX ?? 0;
-        const oy = selection.originY ?? 0;
-        const pathLocal = getOrRebuildSelectionOutlinePath(scr, selection);
-        drawSelectionOutlinePath(
-          selCtx,
-          pathLocal,
-          ox,
-          oy,
-          antsPhaseRef.current,
-          zoom
-        );
-      }
       const path: Point[] = cursor ? [...points, cursor] : [...points];
       if (path.length >= 2) {
-        drawSelectionPolylineOutline(selCtx, path, antsPhaseRef.current, zoom);
+        drawSelectionPolylineOutline(selCtx, path, 0, zoom);
       }
       selCtx.setTransform(1, 0, 0, 1, 0, 0);
     },
-    [overlayCanvasRef, zoom, selection, beginSelectionLayerPaint]
+    [overlayCanvasRef, zoom, beginSelectionLayerPaint]
   );
 
   // ─── Cursor rendering ──────────────────────────────────────────────

@@ -54,24 +54,41 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 
 ## Phases
 
-### Phase 1 — Mask texture upload
+### Phase 1 — Mask texture upload ✅
 
-- [ ] Add to `WebGPURuntime`: `maskTexture: GPUTexture | null` (`r8unorm`, `Selection.width × Selection.height`), `maskDirty = false`. Texture dimensions = selection dimensions, not doc dimensions — an ellipse mask extending beyond canvas bounds can be larger than the document.
-- [ ] Implement `uploadMaskTexture()`: writes `Selection.data` to `maskTexture`. Create/recreate texture when `Selection.width` or `Selection.height` changes. **`bytesPerRow` alignment**: WebGPU requires `bytesPerRow` to be a multiple of 256; for R8, `bytesPerRow = maskWidth × 1` — rarely aligned. Pad rows in a staging buffer or pre-pad source data, or it will throw a GPU error.
-- [ ] Call `uploadMaskTexture()` at the top of the composite pass when `maskDirty`, then clear the flag.
-- [ ] After any mutation that changes `Selection.data` (combine ops, invert, feather, new selection), set `maskDirty = true` and schedule a redraw. Find all callsites in `useSelectionStore` / selection operations.
-- [ ] `originX/Y` uniforms must be read fresh from `Selection.originX/Y` at every composite call — not cached or gated on `maskDirty`. A selection move only updates the origin, not `data`; the ants must track it in real-time without triggering a texture re-upload.
-- [ ] Verify: change selection → next composite uploads correctly (console log or debugLabel).
+- [x] Add to `WebGPURuntime`: `maskTexture: GPUTexture | null` (`r8unorm`), `maskDirty = false`, `currentSelection: Selection | null`.
+- [x] Implement `uploadMaskTexture()` with `bytesPerRow` padding to 256-byte alignment.
+- [x] Call `uploadMaskTexture()` at top of composite pass when `maskDirty`, then clear the flag.
+- [x] Add `setSelection(sel)` to `SketchRuntime` interface. `WebGPURuntime` sets `maskDirty = true` when `data` identity changes; clears `maskTexture` when `sel = null`. `Canvas2DRuntime` is a no-op.
+- [x] Wire via `useEffect` in `useCanvasOrchestration`: `compositing.runtime.setSelection(selection ?? null)` when `selection` changes. Reads `currentSelection.originX/Y` fresh each composite (no caching).
+- [x] Verify: typecheck passes (exit 0).
 
 ### Phase 2 — Ants shader (validates texture pipeline before touching paint)
 
-- [ ] Add `SELECTION_ANTS_FRAGMENT` to `shaders.ts`: fullscreen quad, converts screen fragment position → doc space using the same inverse-affine viewport uniforms as `LAYER_COMPOSITE_FRAGMENT` (reuse `SAMPLE_LAYER_WGSL` pattern), then samples `maskTexture` at `(docPos - origin) / maskDims`, edge-detects neighbors, emits animated dashes via `phase: f32` uniform. Reuse `FULLSCREEN_QUAD_VERTEX`.
-- [ ] Register `selectionAntsPipeline` in `WebGPURuntime` (alongside existing 5 pipelines). Add `drawSelectionAnts(phase: number)` method.
-- [ ] In `useOverlayRenderer.ts`: remove the `setInterval` ants loop (line 338), `antsPhaseRef`, and all `Path2D` ants stroke calls. Call `WebGPURuntime.drawSelectionAnts(phase)` from the existing rAF-driven composite instead — drive phase from a ref incremented in the compositor. Ants will now animate at rAF cadence (~60fps) instead of 72ms (~14fps); intentional improvement.
-- [ ] Delete from `selectionMask.ts`: `buildSelectionMaskOutlinePath`, `drawSelectionOutlinePath`, `getOrRebuildSelectionOutlinePath`, `SelectionOutlinePathCacheScratch`.
-- [ ] Delete from `useOverlayRenderer.ts`: `outlinePathScratchRef`, `selectionMoveAntsRef` (selection move is handled automatically by fresh `originX/Y` uniforms each frame).
+**Coordinate note:** display canvas is rendered at doc resolution (doc pixel = canvas pixel); CSS zoom/pan handled externally. `uv * canvasSize` in WGSL IS doc-pixel coordinates. No viewport transform needed in the ants shader.
+
+**Continuous animation:** `WebGPURuntime` exposes `onNeedsRedraw?: () => void`. Set from `useCanvasOrchestration` to `compositing.requestRedraw`. Called at end of `compositeToDisplay` when ants are active, driving 60fps rAF loop.
+
+**Move-drag known regression (Phase 2b):** During a selection-move drag, `SelectTool` updates `selectionMoveAntsRef` (not the store). GPU ants will show original `originX/Y` until move is committed. Fix in Phase 2b below.
+
+- [ ] Add `SELECTION_ANTS_FRAGMENT` to `shaders.ts`: `docPos = uv * canvasSize`, `maskCoord = floor(docPos - maskOrigin)`, 4-neighbor edge detect (out-of-bounds = 0), animated dashes via `phase: f32`. Reuse `FULLSCREEN_QUAD_VERTEX`. No sampler — use `textureLoad`.
+- [ ] Add `selectionAntsPipeline` (6th pipeline) + `selectionAntsBindGroupLayout` to `WebGPURuntime`. Add `antsPhase: number = 0` and `onNeedsRedraw?: () => void` public fields. Add private `drawSelectionAnts(encoder, targetView, W, H)`.
+- [ ] In `compositeToDisplay`: after the blit pass, if `maskTexture && currentSelection`, increment `antsPhase`, call `drawSelectionAnts` on swapChain view (`loadOp: "load"`), then call `onNeedsRedraw?.()`.
+- [ ] Wire `onNeedsRedraw` in `useCanvasOrchestration`: `(compositing.runtime as {onNeedsRedraw?: () => void}).onNeedsRedraw = compositing.requestRedraw`.
+- [ ] Delete from `useOverlayRenderer.ts`: `antsPhaseRef`, `outlinePathScratchRef`, `setInterval` ants loop (lines 330–349). Remove `createSelectionOutlinePathCacheScratch`, `drawSelectionOutlinePath`, `getOrRebuildSelectionOutlinePath`, `invalidateSelectionOutlinePathCache` from imports and all callsites. Remove `selectionMoveAntsRef` from `UseOverlayRendererParams` and hook internals.
+- [ ] Delete from `selectionMask.ts`: `buildSelectionMaskOutlinePath`, `drawSelectionOutlinePath`, `getOrRebuildSelectionOutlinePath`, `SelectionOutlinePathCacheScratch`, `invalidateSelectionOutlinePathCache`.
 - [ ] Rect/ellipse/lasso live-preview outlines (not committed mask) stay CPU-drawn — they are not hot paths.
-- [ ] Verify: ants render correctly at various zoom levels; ants appear at the canvas boundary when selection reaches the edge; ants render outside the canvas when selection extends beyond doc bounds (ellipse with `originX/Y` offset).
+- [ ] Verify: ants render correctly at various zoom levels; ants appear at canvas boundary; ants render outside canvas when selection extends beyond doc bounds.
+
+### Phase 2b — Selection move drag with GPU ants
+
+When a selection is being moved (`SelectTool.onMove`), the GPU ants must follow the drag before commit.
+
+- [ ] Add `setSelectionOriginOverride(pos: {x:number;y:number} | null): void` to `WebGPURuntime` (not in interface). In `drawSelectionAnts`, use override instead of `currentSelection.originX/Y` when set.
+- [ ] Add `setSelectionOriginOverride?` to `ToolContext` (optional). Wire in `buildToolContext` from params + `usePointerHandlerUtils` (via runtime duck-typed access).
+- [ ] `SelectTool.onMove` (move-selection branch): call `ctx.setSelectionOriginOverride?.({ x: (start.originX??0)+dx, y: (start.originY??0)+dy })` instead of updating `selectionMoveAntsRef`.
+- [ ] `SelectTool.onUp` (finalize move): call `ctx.setSelectionOriginOverride?.(null)` then `ctx.onSelectionChange(...)`.
+- [ ] Remove `selectionMoveAntsRef` from `ToolContext`, `buildToolContext`, `useCanvasOrchestration`, `usePointerHandlers`, `SelectTool`. Remove `SelectionMoveAntsRef` type.
 
 ### Phase 3 — Remove CPU clipping from paint session
 

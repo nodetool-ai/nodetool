@@ -261,6 +261,66 @@ fn fs_blit(@location(0) uv: vec2f) -> @location(0) vec4f {
 }
 `;
 
+// ─── Selection marching-ants fragment shader ─────────────────────────────
+//
+// Renders animated ants on selected-region boundaries.
+// The display canvas is at doc resolution (doc pixel = canvas pixel).
+// `uv * canvasSize` gives doc-pixel coordinates directly — no viewport
+// transform needed; CSS zoom/pan are handled externally.
+//
+// Bind group:
+//   0 — AntsUniforms (uniform buffer)
+//   1 — maskTexture (r8unorm, textureLoad — no sampler needed)
+
+export const SELECTION_ANTS_FRAGMENT = /* wgsl */ `
+struct AntsUniforms {
+  canvasSize: vec2f,
+  maskOrigin: vec2f,
+  maskDims:   vec2f,
+  phase:      f32,
+  _pad:       f32,
+};
+
+@group(0) @binding(0) var<uniform> u: AntsUniforms;
+@group(0) @binding(1) var maskTex: texture_2d<f32>;
+
+fn sampleMask(coord: vec2i, dims: vec2i) -> f32 {
+  if (coord.x < 0 || coord.y < 0 || coord.x >= dims.x || coord.y >= dims.y) {
+    return 0.0;
+  }
+  return textureLoad(maskTex, coord, 0).r;
+}
+
+@fragment
+fn fs_ants(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let docPos   = uv * u.canvasSize;
+  let local    = docPos - u.maskOrigin;
+  let maskCoord = vec2i(i32(floor(local.x)), i32(floor(local.y)));
+  let dims     = vec2i(textureDimensions(maskTex));
+
+  let center = sampleMask(maskCoord, dims);
+  let THRESH = 0.5;
+  let isSel  = center >= THRESH;
+
+  // Only draw on selected pixels that border an unselected pixel
+  let n = sampleMask(maskCoord + vec2i( 0, -1), dims);
+  let s = sampleMask(maskCoord + vec2i( 0,  1), dims);
+  let e = sampleMask(maskCoord + vec2i( 1,  0), dims);
+  let w = sampleMask(maskCoord + vec2i(-1,  0), dims);
+  let isEdge = isSel && (n < THRESH || s < THRESH || e < THRESH || w < THRESH);
+
+  if (!isEdge) { return vec4f(0.0); }
+
+  // Marching dashes: diagonal stripe pattern animated by phase
+  let DASH = 6.0;
+  let t = ((local.x + local.y) / DASH + u.phase) % 2.0;
+  if (t < 1.0) {
+    return vec4f(1.0, 1.0, 1.0, 1.0);
+  }
+  return vec4f(0.0, 0.0, 0.0, 1.0);
+}
+`;
+
 // ─── Border fragment shader ───────────────────────────────────────────────
 
 export const BORDER_FRAGMENT = /* wgsl */ `
