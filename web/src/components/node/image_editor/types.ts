@@ -56,17 +56,6 @@ export interface TextSettings {
   italic: boolean;
 }
 
-/**
- * Represents a shape being drawn or already drawn
- */
-export interface ShapeData {
-  type: "rectangle" | "ellipse" | "line" | "arrow" | "text";
-  startPoint: Point;
-  endPoint: Point;
-  settings: ShapeSettings | TextSettings;
-  text?: string; // For text tool
-}
-
 export interface AdjustmentSettings {
   brightness: number;
   contrast: number;

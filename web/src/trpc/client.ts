@@ -2,8 +2,7 @@ import { createTRPCReact } from "@trpc/react-query";
 import {
   createTRPCClient,
   httpBatchLink,
-  loggerLink,
-  type TRPCClientErrorLike
+  loggerLink
 } from "@trpc/client";
 import superjson from "superjson";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
@@ -47,5 +46,3 @@ export function createTRPCHttpClient() {
  * contexts. React components should use the `trpc` React-query client instead.
  */
 export const trpcClient = createTRPCHttpClient();
-
-export type TRPCClientError = TRPCClientErrorLike<AppRouter>;

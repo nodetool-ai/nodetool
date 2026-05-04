@@ -47,11 +47,6 @@ export interface DictTableRow {
 }
 
 /**
- * Union type for table row data (either list or dict format)
- */
-export type TableDataRow = DictTableRow;
-
-/**
  * New data passed to onChangeRows callback
  */
 export type TableDataChange = DictTableRow[] | Record<string, DictTableRow>;

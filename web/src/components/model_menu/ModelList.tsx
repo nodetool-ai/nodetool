@@ -12,7 +12,6 @@ import {
 import { Tooltip, EmptyState } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import FavoriteStar from "./FavoriteStar";
-import type { ImageModel, LanguageModel } from "../../stores/ApiTypes";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import {
   isLocalProvider,
@@ -445,13 +444,5 @@ function ModelList<TModel extends ModelSelectorModel>({
     </Box>
   );
 }
-
-export const LanguageModelList: React.FC<ModelListProps<LanguageModel>> = (
-  props
-) => <ModelList<LanguageModel> {...props} />;
-
-export const ImageModelList: React.FC<ModelListProps<ImageModel>> = (props) => (
-  <ModelList<ImageModel> {...props} />
-);
 
 export default ModelList;

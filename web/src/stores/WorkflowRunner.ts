@@ -41,17 +41,6 @@ import { shallow } from "zustand/shallow";
 import { createRunnerMessageHandler } from "../core/workflow/runnerProtocol";
 import { getNodeStore } from "./workflowUpdates";
 
-export type ProcessingContext = {
-  edges: Edge[];
-  nodes: Node<NodeData>[];
-  processed: Record<string, boolean>;
-};
-
-export type NodeState = {
-  id: string;
-  error: string | null;
-};
-
 export type MessageHandler = (
   workflow: WorkflowAttributes,
   data: MsgpackData

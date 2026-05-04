@@ -263,10 +263,4 @@ export interface AssetSearchResult {
   is_global_search: boolean;
 }
 
-// Convenience aliases
-export type Image = ImageRef;
-export type Document = DocumentRef;
-export type Audio = AudioRef;
-export type Video = VideoRef;
-export type Job = JobResponse;
 

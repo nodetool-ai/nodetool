@@ -285,10 +285,6 @@ export interface SystemInfo {
   llamaServerVersion: string | null;
 }
 
-export interface IntervalRef {
-  current: NodeJS.Timeout | null;
-}
-
 export interface JSONSchema {
   type: string;
   title?: string;
