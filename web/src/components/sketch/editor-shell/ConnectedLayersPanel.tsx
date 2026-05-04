@@ -23,7 +23,7 @@ export interface ConnectedLayersPanelProps {
   onCropCanvasToActiveLayerExtents: () => void;
   onCanvasResize: (width: number, height: number) => void;
   onToggleVisibility: (layerId: string) => void;
-  onAddLayer: () => void;
+  onAddLayer: (fillColor?: string | null) => void;
   onRemoveLayer: (layerId: string) => void;
   onDuplicateLayer: (layerId: string) => void;
   onReorderLayers: (fromIndex: number, toIndex: number) => void;

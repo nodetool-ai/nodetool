@@ -193,7 +193,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         }
         onCanvasResize={session.canvasActions.handleCanvasResize}
         onToggleVisibility={session.layerActions.handleToggleVisibility}
-        onAddLayer={session.layerActions.handleAddLayer}
+        onAddLayer={(fillColor) => session.layerActions.handleAddLayer({ fillColor: fillColor ?? undefined })}
         onRemoveLayer={session.layerActions.handleRemoveLayer}
         onDuplicateLayer={session.layerActions.handleDuplicateLayer}
         onReorderLayers={session.layerActions.handleReorderLayers}

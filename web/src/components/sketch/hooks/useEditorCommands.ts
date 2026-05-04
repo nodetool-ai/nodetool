@@ -160,6 +160,7 @@ export function useEditorCommands({
     setShapeSettings: colorStore.setShapeSettings,
     setBlurSettings: colorStore.setBlurSettings,
     setCloneStampSettings: colorStore.setCloneStampSettings,
+    setSelectSettings: colorStore.setSelectSettings,
     swapColors: colorStore.swapColors,
     resetColors: colorStore.resetColors,
     togglePanelsHidden: sessionStore.togglePanelsHidden,

@@ -132,6 +132,7 @@ export function useColorStoreActions() {
   const setCloneStampSettings = useSketchStore((s) => s.setCloneStampSettings);
   const setShapeSettings = useSketchStore((s) => s.setShapeSettings);
   const setGradientSettings = useSketchStore((s) => s.setGradientSettings);
+  const setSelectSettings = useSketchStore((s) => s.setSelectSettings);
   const swapColors = useSketchStore((s) => s.swapColors);
   const resetColors = useSketchStore((s) => s.resetColors);
   return {
@@ -144,6 +145,7 @@ export function useColorStoreActions() {
     setCloneStampSettings,
     setShapeSettings,
     setGradientSettings,
+    setSelectSettings,
     swapColors,
     resetColors
   };

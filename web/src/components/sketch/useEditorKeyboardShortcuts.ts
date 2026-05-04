@@ -15,7 +15,8 @@ import type {
   EraserSettings,
   BlurSettings,
   CloneStampSettings,
-  ShapeSettings
+  ShapeSettings,
+  SelectSettings
 } from "./types";
 
 type ArrowKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
@@ -107,6 +108,7 @@ export interface UseEditorKeyboardShortcutsParams {
   setShapeSettings: (settings: Partial<ShapeSettings>) => void;
   setBlurSettings: (settings: Partial<BlurSettings>) => void;
   setCloneStampSettings: (settings: Partial<CloneStampSettings>) => void;
+  setSelectSettings: (settings: Partial<SelectSettings>) => void;
   swapColors: () => void;
   resetColors: () => void;
   togglePanelsHidden: () => void;
@@ -493,10 +495,12 @@ export function useEditorKeyboardShortcuts(
               paramsRef.current.setActiveTool("clone_stamp");
               break;
             case "w":
-              paramsRef.current.setActiveTool("segment");
+              paramsRef.current.setActiveTool("select");
+              paramsRef.current.setSelectSettings({ mode: "magic_wand" });
               break;
             case "m":
-              paramsRef.current.setMirrorX(!useSketchStore.getState().mirrorX);
+              paramsRef.current.setActiveTool("select");
+              paramsRef.current.setSelectSettings({ mode: "rectangle" });
               break;
             case "v":
               paramsRef.current.setActiveTool("move");

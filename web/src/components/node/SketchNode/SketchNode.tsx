@@ -1160,7 +1160,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             </div>
 
             <div className="sketch-input-handles">
-              {exposedInputLayers.map((layer) => (
+              {[...exposedInputLayers].reverse().map((layer) => (
                 <HandleTooltip
                   key={`input-${layer.id}`}
                   typeMetadata={imageTypeMetadata}
