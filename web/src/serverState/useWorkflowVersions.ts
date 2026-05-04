@@ -29,7 +29,7 @@ const fetchWorkflowVersions = async (
   );
   await handleApiError(response);
   const result = await response.json();
-  return result as Promise<WorkflowVersionList>;
+  return result as WorkflowVersionList;
 };
 
 const createWorkflowVersion = async (
@@ -42,7 +42,8 @@ const createWorkflowVersion = async (
     body: JSON.stringify(request)
   });
   await handleApiError(response);
-  return response.json() as Promise<WorkflowVersion>;
+  const result = await response.json();
+  return result as WorkflowVersion;
 };
 
 const restoreWorkflowVersion = async (

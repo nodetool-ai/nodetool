@@ -14,7 +14,7 @@ export const useWorkflowTools = () => {
 
   return {
     workflowTools: data ?? [],
-    workflowToolsError: error as Error | null,
+    workflowToolsError: error,
     workflowToolsLoading: isLoading
   };
 };
