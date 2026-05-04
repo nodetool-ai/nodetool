@@ -34,6 +34,7 @@ import { usePanelStore } from "../../stores/PanelStore";
 // Icons — Workflow
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
+import FileUploadRoundedIcon from "@mui/icons-material/FileUploadRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
@@ -133,6 +134,8 @@ const WorkflowCommands = memo(function WorkflowCommands() {
   const createNew = useWorkflowManager((state) => state.createNew);
   const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
   const openWorkflows = useWorkflowManager((state) => state.openWorkflows);
+  const createWorkflow = useWorkflowManager((state) => state.create);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const runWorkflow = useCallback(() => {
     run({}, currentWorkflow, nodes, edges);
@@ -206,7 +209,54 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     }
   }, [removeWorkflow, getCurrentWorkflow, openWorkflows, navigate]);
 
+  const handleImportWorkflow = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleImportFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text) as Workflow;
+        const imported = await createWorkflow({
+          name: parsed.name ?? file.name.replace(/\.json$/, ""),
+          description: parsed.description ?? "",
+          access: "private",
+          graph: parsed.graph,
+          tags: parsed.tags,
+          settings: parsed.settings as Record<string, string | number | boolean | null> | null | undefined,
+          run_mode: parsed.run_mode,
+          html_app: parsed.html_app
+        });
+        navigate(`/editor/${imported.id}`);
+        addNotification({
+          type: "success",
+          alert: true,
+          content: `Imported workflow "${imported.name}"`
+        });
+      } catch {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: "Failed to import workflow — invalid JSON file"
+        });
+      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    },
+    [createWorkflow, navigate, addNotification]
+  );
+
   return (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        style={{ display: "none" }}
+        onChange={handleImportFileChange}
+      />
     <Command.Group heading="Workflow">
       <Command.Item onSelect={() => executeAndClose(runWorkflow)}>
         <PlayArrowRoundedIcon /> Run Workflow
@@ -226,6 +276,9 @@ const WorkflowCommands = memo(function WorkflowCommands() {
       <Command.Item onSelect={() => executeAndClose(exportAsComfyWorkflow)}>
         <FileDownloadRoundedIcon /> Export as ComfyUI Workflow
       </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(handleImportWorkflow)}>
+        <FileUploadRoundedIcon /> Import Workflow from JSON
+      </Command.Item>
       <Command.Item onSelect={() => executeAndClose(copyWorkflow)}>
         <ContentCopyRoundedIcon /> Copy Workflow as JSON
       </Command.Item>
@@ -241,6 +294,7 @@ const WorkflowCommands = memo(function WorkflowCommands() {
         </Command.Item>
       )}
     </Command.Group>
+    </>
   );
 });
 
