@@ -50,6 +50,7 @@ interface NodeResultHistoryStore {
 }
 
 const MAX_HISTORY_PER_NODE = 100; // Limit history to prevent memory issues
+export const EMPTY_HISTORY: HistoricalResult[] = [];
 
 export const useNodeResultHistoryStore = create<NodeResultHistoryStore>(
   (set, get) => ({
@@ -87,7 +88,7 @@ export const useNodeResultHistoryStore = create<NodeResultHistoryStore>(
      */
     getHistory: (workflowId: string, nodeId: string) => {
       const key = hashKey(workflowId, nodeId);
-      return get().history[key] || [];
+      return get().history[key] ?? EMPTY_HISTORY;
     },
 
     /**

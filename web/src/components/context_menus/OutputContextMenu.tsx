@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, memo } from "react";
+import React, { useCallback, useMemo, memo } from "react";
 import { shallow } from "zustand/shallow";
 //mui
 import { Menu } from "@mui/material";
@@ -54,8 +54,20 @@ const OutputContextMenu: React.FC = () => {
   );
   const reactFlowInstance = useReactFlow();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
-  const [outputNodeMetadata, setOutputNodeMetadata] = useState<unknown>();
-  const [saveNodeMetadata, setSaveNodeMetadata] = useState<unknown>();
+
+  const outputNodeMetadata = useMemo(
+    () => getMetadata("nodetool.output.Output"),
+    [getMetadata]
+  );
+
+  const saveNodeMetadata = useMemo(() => {
+    if (!sourceType || sourceType.type === "") return undefined;
+    const datatypeLabel = labelForType(sourceType.type).replaceAll(" ", "");
+    const adjustedLabel = datatypeLabel === "String" ? "Text" : datatypeLabel;
+    const saveNodePath = `nodetool.${adjustedLabel.toLowerCase()}.Save${adjustedLabel}`;
+    return getMetadata(saveNodePath);
+  }, [sourceType, getMetadata]);
+
   const {
     showMenu,
     setSourceHandle,
@@ -88,30 +100,6 @@ const OutputContextMenu: React.FC = () => {
     },
     []
   );
-
-  const fetchMetadata = useCallback(
-    (nodeType: string) => {
-      console.info(`Fetching metadata for node type: ${nodeType}`);
-      const datatypeLabel = labelForType(nodeType || "").replaceAll(" ", "");
-      const adjustedLabel = datatypeLabel === "String" ? "Text" : datatypeLabel;
-      
-      // Use the generic Output node that handles all types
-      const outputNodePath = "nodetool.output.Output";
-      const outputMetadata = getMetadata(outputNodePath);
-      setOutputNodeMetadata(outputMetadata);
-
-      const saveNodePath = `nodetool.${adjustedLabel.toLowerCase()}.Save${adjustedLabel}`;
-      const saveMetadata = getMetadata(saveNodePath);
-      setSaveNodeMetadata(saveMetadata);
-    },
-    [getMetadata]
-  );
-
-  useEffect(() => {
-    if (sourceType && sourceType.type !== "") {
-      fetchMetadata(sourceType.type);
-    }
-  }, [sourceType, fetchMetadata]);
 
   const createNodeWithEdge = useCallback(
     (
@@ -345,7 +333,7 @@ const OutputContextMenu: React.FC = () => {
     closeContextMenu();
   }, [createConstantNode, closeContextMenu]);
 
-  const handleShowConnectableNodes = (
+  const handleShowConnectableNodes = useCallback((
     event?: React.MouseEvent<HTMLElement>
   ) => {
     if (event) {
@@ -353,16 +341,14 @@ const OutputContextMenu: React.FC = () => {
       event.stopPropagation();
     }
     if (menuPosition) {
-      // When showing connectable nodes from an output handle,
-      // we're looking for nodes with compatible inputs
-      setSourceHandle(sourceHandle); // This output handle will be the source
+      setSourceHandle(sourceHandle);
       setNodeId(nodeId);
       setFilterType("input");
       setConnectableType(sourceType);
       showMenu({ x: menuPosition.x, y: menuPosition.y });
     }
     closeContextMenu();
-  };
+  }, [menuPosition, sourceHandle, nodeId, sourceType, setSourceHandle, setNodeId, setFilterType, setConnectableType, showMenu, closeContextMenu]);
 
   if (!menuPosition) {return null;}
   return (
