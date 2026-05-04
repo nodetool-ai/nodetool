@@ -10,6 +10,7 @@ import {
   buildAssetUrl
 } from "@nodetool-ai/config";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
+import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
 import { resolveContentUrls, resolveContentForProvider } from "./resolve-media-urls.js";
 import {
   Graph,
@@ -348,7 +349,7 @@ async function autoSaveAssets(
 
     const fileName = `${asset.id}.${ext}`;
     try {
-      await getAssetAdapter().store(fileName, bytes, contentType);
+      await storeAssetWithThumbnail(asset.id, fileName, bytes, contentType);
       asset.size = bytes.length;
       await asset.save();
 
@@ -2787,7 +2788,7 @@ export class UnifiedWebSocketRunner {
         parent_id: null
       });
       const fileName = `${asset.id}.${ext}`;
-      await getAssetAdapter().store(fileName, bytes, contentType);
+      await storeAssetWithThumbnail(asset.id, fileName, bytes, contentType);
       asset.size = bytes.length;
       await asset.save();
       return asset.id;

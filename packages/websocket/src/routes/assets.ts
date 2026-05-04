@@ -1,10 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { bridge } from "../lib/bridge.js";
 import type { HttpApiOptions } from "../http-api.js";
-import {
-  handleAssetsRoot,
-  handleAssetThumbnail
-} from "../http-api.js";
+import { handleAssetsRoot } from "../http-api.js";
 import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
 import { ApiErrorCode, apiError } from "../error-codes.js";
 
@@ -19,8 +16,6 @@ interface RouteOptions {
  *
  * Still served via REST:
  *   - POST   /api/assets                            — multipart file upload
- *   - GET    /api/assets/:id/thumbnail              — binary thumbnail
- *   - POST   /api/assets/:id/thumbnail              — 501 stub
  *   - POST   /api/assets/download                   — 501 stub (ZIP download)
  *   - GET    /api/assets/packages                   — empty list stub
  *   - GET    /api/assets/packages/:package          — empty list stub
@@ -198,20 +193,6 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       });
     }
   );
-
-  // Binary thumbnail serving + POST stub.
-  app.get("/api/assets/:id/thumbnail", async (req, reply) => {
-    const { id } = req.params as { id: string };
-    await bridge(req, reply, (request) =>
-      handleAssetThumbnail(request, decodeURIComponent(id), apiOptions)
-    );
-  });
-  app.post("/api/assets/:id/thumbnail", async (req, reply) => {
-    const { id } = req.params as { id: string };
-    await bridge(req, reply, (request) =>
-      handleAssetThumbnail(request, decodeURIComponent(id), apiOptions)
-    );
-  });
 
   // Multipart asset upload (file POST). The handler also accepts JSON bodies,
   // but the tRPC `assets.create` procedure is the preferred path for JSON.

@@ -21,7 +21,10 @@ import {
 const log = createLogger("nodetool.assets");
 import { createAssetUrlBuilder } from "@nodetool-ai/storage";
 import { getAssetFileName } from "../../lib/asset-paths.js";
-import { getAssetAdapter } from "../../lib/storage.js";
+import {
+  storeAssetWithThumbnail,
+  thumbnailKey
+} from "../../lib/thumbnail.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -70,12 +73,11 @@ async function toAssetResponse(asset: AssetModel): Promise<AssetResponse> {
 
   const hasThumbnail =
     asset.content_type.startsWith("image/") ||
-    asset.content_type.startsWith("video/");
-  const updatedTs = asset.updated_at
-    ? Math.floor(new Date(asset.updated_at).getTime() / 1000)
-    : 0;
+    asset.content_type.startsWith("video/") ||
+    asset.content_type.startsWith("audio/") ||
+    asset.content_type === "application/pdf";
   const thumbUrl = hasThumbnail
-    ? `/api/assets/${asset.id}/thumbnail?t=${updatedTs}`
+    ? await getUrlBuilder()(thumbnailKey(asset.id)).catch(() => null)
     : null;
 
   return {
@@ -245,7 +247,12 @@ export const assetsRouter = router({
           contentType: asset.content_type,
           bytes: buf.byteLength
         });
-        await getAssetAdapter().store(fileName, new Uint8Array(buf), asset.content_type);
+        await storeAssetWithThumbnail(
+          asset.id,
+          fileName,
+          new Uint8Array(buf),
+          asset.content_type
+        );
       }
 
       await asset.save();

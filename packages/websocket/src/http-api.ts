@@ -44,7 +44,7 @@ import {
   type StorageHandlerOptions
 } from "./storage-api.js";
 import { handleFileRequest } from "./file-api.js";
-import { getAssetAdapter } from "./lib/storage.js";
+import { storeAssetWithThumbnail, thumbnailKey } from "./lib/thumbnail.js";
 
 const log = createLogger("nodetool.websocket.http");
 
@@ -1548,12 +1548,11 @@ export async function toAssetResponse(asset: Asset): Promise<JsonObject> {
 
   const hasThumbnail =
     asset.content_type.startsWith("image/") ||
-    asset.content_type.startsWith("video/");
-  const updatedTs = asset.updated_at
-    ? Math.floor(new Date(asset.updated_at).getTime() / 1000)
-    : 0;
+    asset.content_type.startsWith("video/") ||
+    asset.content_type.startsWith("audio/") ||
+    asset.content_type === "application/pdf";
   const thumbUrl = hasThumbnail
-    ? `/api/assets/${asset.id}/thumbnail?t=${updatedTs}`
+    ? await getHttpUrlBuilder()(thumbnailKey(asset.id)).catch(() => null)
     : null;
 
   return {
@@ -1659,7 +1658,8 @@ export async function handleAssetsRoot(
         contentType: asset.content_type,
         bytes: fileBuffer.byteLength
       });
-      await getAssetAdapter().store(
+      await storeAssetWithThumbnail(
+        asset.id,
         fileName,
         new Uint8Array(fileBuffer),
         asset.content_type
@@ -1672,62 +1672,6 @@ export async function handleAssetsRoot(
   return errorResponse(405, "Method not allowed");
 }
 
-export async function handleAssetThumbnail(
-  request: Request,
-  assetId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method === "POST") {
-    return errorResponse(501, "Thumbnail generation not available");
-  }
-  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  const asset = await Asset.find(userId, assetId);
-  if (!asset) return errorResponse(404, "Asset not found");
-
-  if (!asset.hasThumbnail) {
-    return errorResponse(
-      400,
-      `Asset type '${asset.content_type}' does not support thumbnails`
-    );
-  }
-
-  const adapter = getAssetAdapter();
-
-  // Try to serve a pre-generated thumbnail ({id}_thumb.jpg)
-  const thumbData = await adapter.retrieve(
-    adapter.uriForKey(`${asset.id}_thumb.jpg`)
-  );
-  if (thumbData) {
-    return new Response(Buffer.from(thumbData), {
-      status: 200,
-      headers: {
-        "Content-Type": "image/jpeg",
-        "Content-Length": String(thumbData.byteLength),
-        "Cache-Control": "no-cache"
-      }
-    });
-  }
-
-  // Fall back to serving the original file (for images)
-  if (asset.content_type.startsWith("image/")) {
-    const fileName = getAssetFileName(asset.id, asset.content_type);
-    const imageData = await adapter.retrieve(adapter.uriForKey(fileName));
-    if (imageData) {
-      return new Response(Buffer.from(imageData), {
-        status: 200,
-        headers: {
-          "Content-Type": asset.content_type,
-          "Content-Length": String(imageData.byteLength),
-          "Cache-Control": "no-cache"
-        }
-      });
-    }
-  }
-
-  return errorResponse(404, "No thumbnail available");
-}
 
 export async function handleApiRequest(
   request: Request,

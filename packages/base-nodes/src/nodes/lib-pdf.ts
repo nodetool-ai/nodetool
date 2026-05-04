@@ -856,6 +856,147 @@ export class PdfScreenshotNode extends BaseNode {
 }
 
 // ---------------------------------------------------------------------------
+// Pdftoppm (poppler CLI rasterization)
+// ---------------------------------------------------------------------------
+
+export class PdfToppmNode extends BaseNode {
+  static readonly nodeType = "lib.pdf.Pdftoppm";
+  static readonly title = "PDF Rasterize (pdftoppm)";
+  static readonly description =
+    "Rasterize PDF pages with poppler's pdftoppm. Higher fidelity than the PDFium-based Screenshot node for some PDFs and supports anti-aliasing controls.\n    pdf, pdftoppm, poppler, rasterize, render, image, pages";
+  static readonly metadataOutputTypes = { output: "list[image]" };
+  static readonly requiredRuntimes = ["pdftotext"];
+
+  @prop(PDF_INPUT)
+  declare pdf: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Start Page",
+    description: "First page to render (0-based)"
+  })
+  declare start_page: any;
+
+  @prop({
+    type: "int",
+    default: -1,
+    title: "End Page",
+    description: "Last page to render (-1 for all)"
+  })
+  declare end_page: any;
+
+  @prop({
+    type: "int",
+    default: 150,
+    title: "DPI",
+    description: "Rendering resolution in dots per inch",
+    min: 36,
+    max: 600
+  })
+  declare dpi: any;
+
+  @prop({
+    type: "enum",
+    default: "png",
+    values: ["png", "jpeg", "tiff"],
+    title: "Format",
+    description: "Output image format"
+  })
+  declare format: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Scale To (px)",
+    description:
+      "If > 0, scale the longest side to this many pixels (overrides DPI)",
+    min: 0,
+    max: 8192
+  })
+  declare scale_to: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const { execFile } = await import("node:child_process");
+    const { promisify } = await import("node:util");
+    const { promises: fs } = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const execFileAsync = promisify(execFile);
+
+    const pdfBuffer = await resolvePdfBuffer(
+      (this.pdf ?? {}) as DocumentRefLike,
+      context
+    );
+    const dpi = Number(this.dpi ?? 150);
+    const scaleTo = Number(this.scale_to ?? 0);
+    const format = String(this.format ?? "png").toLowerCase();
+    const formatFlag =
+      format === "jpeg" ? "-jpeg" : format === "tiff" ? "-tiff" : "-png";
+    const ext = format === "jpeg" ? "jpg" : format;
+
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-pdftoppm-"));
+    const inputPath = path.join(dir, "input.pdf");
+    const outputPrefix = path.join(dir, "page");
+    try {
+      await fs.writeFile(inputPath, pdfBuffer);
+
+      // pdftoppm uses 1-based page numbers.
+      const totalPages = await countPdfPages(pdfBuffer);
+      const [start, end] = resolvePageRange(
+        Number(this.start_page ?? 0),
+        Number(this.end_page ?? -1),
+        totalPages
+      );
+
+      const args: string[] = [formatFlag];
+      if (scaleTo > 0) {
+        args.push("-scale-to", String(scaleTo));
+      } else {
+        args.push("-r", String(dpi));
+      }
+      args.push(
+        "-f", String(start + 1),
+        "-l", String(end + 1),
+        inputPath,
+        outputPrefix
+      );
+
+      await execFileAsync("pdftoppm", args, { maxBuffer: 64 * 1024 * 1024 });
+
+      const entries = await fs.readdir(dir);
+      const images: { type: string; data: string }[] = [];
+      const pageFiles = entries
+        .filter((n) => n.startsWith("page-") && n.endsWith(`.${ext}`))
+        .sort();
+      for (const name of pageFiles) {
+        const buf = await fs.readFile(path.join(dir, name));
+        images.push({
+          type: "image",
+          data: Buffer.from(buf).toString("base64")
+        });
+      }
+      return { output: images };
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  }
+}
+
+async function countPdfPages(pdf: Buffer): Promise<number> {
+  const { PDFiumLibrary } = await import("@hyzyla/pdfium");
+  const lib = await PDFiumLibrary.init();
+  let doc: Awaited<ReturnType<typeof lib.loadDocument>> | null = null;
+  try {
+    doc = await lib.loadDocument(pdf);
+    return doc.getPageCount();
+  } finally {
+    if (doc) doc.destroy();
+    lib.destroy();
+  }
+}
+
+// ---------------------------------------------------------------------------
 // SearchText
 // ---------------------------------------------------------------------------
 
@@ -1039,6 +1180,7 @@ export const LIB_PDF_NODES = [
   PdfExtractStyledTextNode,
   PdfPageMetadataNode,
   PdfScreenshotNode,
+  PdfToppmNode,
   PdfSearchTextNode,
   PdfExtractOcrNode
 ] as const;
