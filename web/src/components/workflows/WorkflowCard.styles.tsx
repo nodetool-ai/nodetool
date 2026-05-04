@@ -3,13 +3,6 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import { alpha } from "@mui/material/styles";
 import { BORDER_RADIUS } from "../ui_primitives";
 
-export const chipsContainerSx: SxProps<Theme> = {
-  mt: 0.5,
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 0.5
-};
-
 type Tone = "primary" | "secondary" | "info";
 
 export const chipSx = (

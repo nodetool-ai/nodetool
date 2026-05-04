@@ -1,12 +1,5 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { SerializedDockview } from "dockview";
-
-export interface UserLayout {
-  id: string;
-  name: string;
-  layout: SerializedDockview;
-}
 
 export interface AutosaveSettings {
   enabled: boolean;

@@ -491,16 +491,3 @@ export class WebSocketManager extends EventEmitter {
   }
 }
 
-export class ReconnectingWebSocket extends WebSocketManager {
-  constructor(url: string, protocols?: string | string[]) {
-    super({
-      url,
-      protocols,
-      reconnect: true,
-      reconnectInterval: 1000,
-      reconnectDecay: 1.5,
-      reconnectAttempts: 10,
-      timeoutInterval: 30000
-    });
-  }
-}

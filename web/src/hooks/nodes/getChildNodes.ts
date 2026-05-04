@@ -1,8 +1,6 @@
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 
-export type NodesByParent = Record<string, Node<NodeData>[]>;
-
 export const getChildNodes = (
   allNodes: Node<NodeData>[],
   parentNodeId: string

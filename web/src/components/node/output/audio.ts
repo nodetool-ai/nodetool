@@ -83,6 +83,3 @@ export function playPcm16Base64(
   };
 }
 
-export function resetAudioScheduler(): void {
-  sharedNextStartTime = 0;
-}

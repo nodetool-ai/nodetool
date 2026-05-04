@@ -145,10 +145,3 @@ export const useOnboardingStore = create<OnboardingState>()(
   )
 );
 
-export const getActiveStepId = (state: OnboardingState): OnboardingStepId =>
-  ONBOARDING_STEP_ORDER[
-    Math.max(
-      0,
-      Math.min(state.currentStep, ONBOARDING_STEP_ORDER.length - 1)
-    )
-  ];
