@@ -45,6 +45,7 @@ import {
   type StorageHandlerOptions
 } from "./storage-api.js";
 import { handleFileRequest } from "./file-api.js";
+import { getAssetAdapter } from "./lib/storage.js";
 
 const log = createLogger("nodetool.websocket.http");
 
@@ -87,6 +88,7 @@ export interface HttpApiOptions {
 let _storageHandler: ((request: Request) => Promise<Response>) | null = null;
 let _storageOpts: StorageHandlerOptions | undefined;
 let workflowRuntimePromise: Promise<WorkflowRuntimeEnvironment> | null = null;
+
 
 function getStorageHandler(
   opts?: StorageHandlerOptions
@@ -1541,7 +1543,9 @@ export async function toAssetResponse(asset: Asset): Promise<JsonObject> {
   const fileName = isFolder
     ? null
     : getAssetFileName(asset.id, asset.content_type);
-  const getUrl = fileName ? await getHttpUrlBuilder()(fileName) : null;
+  const getUrl = fileName
+    ? await getHttpUrlBuilder()(fileName).catch(() => null)
+    : null;
 
   const hasThumbnail =
     asset.content_type.startsWith("image/") ||
@@ -1648,13 +1652,19 @@ export async function handleAssetsRoot(
       size: fileSize ?? body.size ?? null
     })) as Asset;
 
-    // Write file to storage directory so it's accessible via /api/storage/
     if (fileBuffer) {
-      const storagePath = getAssetStoragePath(options.storage);
       const fileName = getAssetFileName(asset.id, asset.content_type);
-      const filePath = nodePath.join(storagePath, fileName);
-      await mkdir(storagePath, { recursive: true });
-      await writeFile(filePath, fileBuffer);
+      log.info("asset upload (multipart)", {
+        assetId: asset.id,
+        fileName,
+        contentType: asset.content_type,
+        bytes: fileBuffer.byteLength
+      });
+      await getAssetAdapter().store(
+        fileName,
+        new Uint8Array(fileBuffer),
+        asset.content_type
+      );
     }
 
     return jsonResponse(await toAssetResponse(asset));
@@ -1684,45 +1694,36 @@ export async function handleAssetThumbnail(
     );
   }
 
-  const storagePath = getAssetStoragePath(options.storage);
+  const adapter = getAssetAdapter();
 
   // Try to serve a pre-generated thumbnail ({id}_thumb.jpg)
-  const thumbFileName = `${asset.id}_thumb.jpg`;
-  const thumbFilePath = nodePath.join(storagePath, thumbFileName);
-  try {
-    const thumbStat = await stat(thumbFilePath);
-    const data = await readFile(thumbFilePath);
-    return new Response(data, {
+  const thumbData = await adapter.retrieve(
+    adapter.uriForKey(`${asset.id}_thumb.jpg`)
+  );
+  if (thumbData) {
+    return new Response(thumbData, {
       status: 200,
       headers: {
         "Content-Type": "image/jpeg",
-        "Content-Length": String(thumbStat.size),
-        "Cache-Control": "no-cache",
-        "Last-Modified": thumbStat.mtime.toUTCString()
+        "Content-Length": String(thumbData.byteLength),
+        "Cache-Control": "no-cache"
       }
     });
-  } catch {
-    // No pre-generated thumbnail, fall through
   }
 
   // Fall back to serving the original file (for images)
   if (asset.content_type.startsWith("image/")) {
     const fileName = getAssetFileName(asset.id, asset.content_type);
-    const filePath = nodePath.join(storagePath, fileName);
-    try {
-      const fileStat = await stat(filePath);
-      const data = await readFile(filePath);
-      return new Response(data, {
+    const imageData = await adapter.retrieve(adapter.uriForKey(fileName));
+    if (imageData) {
+      return new Response(imageData, {
         status: 200,
         headers: {
           "Content-Type": asset.content_type,
-          "Content-Length": String(fileStat.size),
-          "Cache-Control": "no-cache",
-          "Last-Modified": fileStat.mtime.toUTCString()
+          "Content-Length": String(imageData.byteLength),
+          "Cache-Control": "no-cache"
         }
       });
-    } catch {
-      // File not found on disk
     }
   }
 

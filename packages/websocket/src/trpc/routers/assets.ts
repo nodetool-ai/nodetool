@@ -9,20 +9,19 @@
  * preserved; recursive folder listing is preserved.
  */
 
-import { mkdir, writeFile } from "node:fs/promises";
-import nodePath from "node:path";
 import { Buffer } from "node:buffer";
 import { Asset } from "@nodetool-ai/models";
 import type { Asset as AssetModel } from "@nodetool-ai/models";
 import {
+  createLogger,
   loadAssetStorageConfig,
   type StorageConfig
 } from "@nodetool-ai/config";
+
+const log = createLogger("nodetool.assets");
 import { createAssetUrlBuilder } from "@nodetool-ai/storage";
-import {
-  getAssetFileName,
-  getAssetStoragePath
-} from "../../lib/asset-paths.js";
+import { getAssetFileName } from "../../lib/asset-paths.js";
+import { getAssetAdapter } from "../../lib/storage.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -65,7 +64,9 @@ async function toAssetResponse(asset: AssetModel): Promise<AssetResponse> {
   const fileName = isFolder
     ? null
     : getAssetFileName(asset.id, asset.content_type);
-  const getUrl = fileName ? await getUrlBuilder()(fileName) : null;
+  const getUrl = fileName
+    ? await getUrlBuilder()(fileName).catch(() => null)
+    : null;
 
   const hasThumbnail =
     asset.content_type.startsWith("image/") ||
@@ -237,12 +238,14 @@ export const assetsRouter = router({
             ? Buffer.from(input.data, "base64")
             : Buffer.from(input.data, "utf-8");
         asset.size = buf.byteLength;
-
-        const storagePath = getAssetStoragePath(ctx.apiOptions.storage);
         const fileName = getAssetFileName(asset.id, asset.content_type);
-        const filePath = nodePath.join(storagePath, fileName);
-        await mkdir(storagePath, { recursive: true });
-        await writeFile(filePath, buf);
+        log.info("asset upload (update)", {
+          assetId: asset.id,
+          fileName,
+          contentType: asset.content_type,
+          bytes: buf.byteLength
+        });
+        await getAssetAdapter().store(fileName, new Uint8Array(buf), asset.content_type);
       }
 
       await asset.save();

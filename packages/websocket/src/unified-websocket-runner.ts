@@ -7,11 +7,9 @@ import { pack, unpack } from "msgpackr";
 import {
   createLogger,
   getDefaultAssetsPath,
-  buildAssetUrl,
-  loadAssetStorageConfig,
-  loadTempStorageConfig
+  buildAssetUrl
 } from "@nodetool-ai/config";
-import { createStorageAdapter } from "@nodetool-ai/storage";
+import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import { resolveContentUrls, resolveContentForProvider } from "./resolve-media-urls.js";
 import {
   Graph,
@@ -211,20 +209,6 @@ function extractCloudKey(uri: string): string | null {
   return null;
 }
 
-// Cached storage adapters — created once on first use, shared across all contexts.
-let _assetAdapter: ReturnType<typeof createStorageAdapter> | null = null;
-let _tempAdapter: ReturnType<typeof createStorageAdapter> | null = null;
-
-function getAssetAdapter() {
-  if (!_assetAdapter) _assetAdapter = createStorageAdapter(loadAssetStorageConfig());
-  return _assetAdapter;
-}
-
-function getTempAdapter() {
-  if (!_tempAdapter) _tempAdapter = createStorageAdapter(loadTempStorageConfig());
-  return _tempAdapter;
-}
-
 // ---------------------------------------------------------------------------
 // Auto-save assets — persists generated media as Asset records
 // ---------------------------------------------------------------------------
@@ -306,12 +290,8 @@ async function autoSaveAssets(
     workflowId: string | null;
     jobId: string;
     nodeId: string;
-    storagePath: string;
   }
 ): Promise<void> {
-  const { join } = await import("node:path");
-  const { writeFile, mkdir } = await import("node:fs/promises");
-
   const queue: Record<string, unknown>[] = [];
 
   // Collect all asset-like values from the result (may be nested)
@@ -368,8 +348,7 @@ async function autoSaveAssets(
 
     const fileName = `${asset.id}.${ext}`;
     try {
-      await mkdir(opts.storagePath, { recursive: true });
-      await writeFile(join(opts.storagePath, fileName), bytes);
+      await getAssetAdapter().store(fileName, bytes, contentType);
       asset.size = bytes.length;
       await asset.save();
 
@@ -1607,7 +1586,6 @@ export class UnifiedWebSocketRunner {
                     workflowId: active.workflowId,
                     jobId: active.jobId,
                     nodeId: String(outbound.node_id ?? ""),
-                    storagePath: getAssetStoragePath()
                   }
                 );
               } catch (err) {
@@ -2796,16 +2774,11 @@ export class UnifiedWebSocketRunner {
     // Store generated media as a proper Asset record and return the
     // asset ID.  The DB message stores only `asset_id` — URLs are
     // resolved at serve time by resolveContentUrls / sendMessage.
-    const storagePath = getAssetStoragePath();
     const storeMediaAsset = async (
       bytes: Uint8Array,
       contentType: string,
       ext: string
     ): Promise<string> => {
-      const { join } = await import("node:path");
-      const { writeFile: fsWrite, mkdir: fsMkdir } = await import(
-        "node:fs/promises"
-      );
       const asset = new Asset({
         user_id: userId,
         workflow_id: workflowId ?? null,
@@ -2814,8 +2787,7 @@ export class UnifiedWebSocketRunner {
         parent_id: null
       });
       const fileName = `${asset.id}.${ext}`;
-      await fsMkdir(storagePath, { recursive: true });
-      await fsWrite(join(storagePath, fileName), bytes);
+      await getAssetAdapter().store(fileName, bytes, contentType);
       asset.size = bytes.length;
       await asset.save();
       return asset.id;
@@ -3351,11 +3323,8 @@ export class UnifiedWebSocketRunner {
         const asset = await Asset.find(userId, assetId);
         if (!asset) return null;
         const ext = (asset.content_type ?? "image/png").split("/")[1] ?? "png";
-        const { join } = await import("node:path");
-        const { readFile } = await import("node:fs/promises");
-        return new Uint8Array(
-          await readFile(join(getAssetStoragePath(), `${assetId}.${ext}`))
-        );
+        const adapter = getAssetAdapter();
+        return await adapter.retrieve(adapter.uriForKey(`${assetId}.${ext}`));
       } catch (err) {
         log.warn("resolveSourceImageBytes: asset load failed", {
           assetId,

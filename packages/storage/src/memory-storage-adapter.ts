@@ -31,4 +31,8 @@ export class InMemoryStorageAdapter implements StorageAdapter {
     const key = uri.slice("memory://".length);
     return this._store.has(key);
   }
+
+  uriForKey(key: string): string {
+    return `memory://${normalizeStorageKey(key)}`;
+  }
 }

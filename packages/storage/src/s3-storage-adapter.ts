@@ -80,6 +80,11 @@ export class S3StorageAdapter implements StorageAdapter {
     return `s3://${this.bucket}/${objectKey}`;
   }
 
+  uriForKey(key: string): string {
+    const objectKey = joinStorageKey(this.prefix ?? undefined, key);
+    return `s3://${this.bucket}/${objectKey}`;
+  }
+
   async retrieve(uri: string): Promise<Uint8Array | null> {
     const parsed = this.parseUri(uri);
     if (!parsed || parsed.bucket !== this.bucket) return null;

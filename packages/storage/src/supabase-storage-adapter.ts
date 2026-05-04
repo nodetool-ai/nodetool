@@ -69,6 +69,10 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     return `supabase://${this.bucket}/${key}`;
   }
 
+  uriForKey(key: string): string {
+    return `supabase://${this.bucket}/${key}`;
+  }
+
   async retrieve(uri: string): Promise<Uint8Array | null> {
     const parsed = this.parseUri(uri);
     if (!parsed || parsed.bucket !== this.bucket) return null;

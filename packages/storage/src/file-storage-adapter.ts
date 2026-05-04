@@ -92,4 +92,8 @@ export class FileStorageAdapter implements StorageAdapter {
       return false;
     }
   }
+
+  uriForKey(key: string): string {
+    return pathToFileURL(this.resolvePathFromKey(key)).toString();
+  }
 }
