@@ -61,15 +61,19 @@ The original PR built parallel infrastructure for things NodeTool already has. T
 | Image preview | `web/src/components/asset_viewer/ImageViewer.tsx` | Pan/zoom container if needed |
 | Output dispatch | `web/src/components/node/OutputRenderer.tsx` | — |
 | Asset library | `AssetExplorer`, `AssetGrid`, `Dropzone`, `WorkflowAssetStore` | Drag-to-clip adapter |
+| **Per-clip graph** | **`Workflow` model — each generated clip is a workflow row** with `run_mode = "clip"` | — |
+| **Exposed parameters** | **Existing `*InputNode` classes** (`FloatInputNode`, `StringInputNode`, `IntegerInputNode`, `BooleanInputNode`, `SelectInputNode`, `ImageSizeInputNode`, `ColorInputNode`, `LanguageModelInputNode`, etc.) — the workflow's `Input*` nodes ARE the exposed parameters | — |
 | Inspector frame | `web/src/components/Inspector.tsx`, `InspectedNodeStore` | Slim wrapper that swaps target between clip / clip-bound node |
-| Property editing | `web/src/components/node/PropertyField.tsx`, `web/src/components/properties/*` | "Exposed parameter" filter |
-| Execution | `WorkflowRunner`, `GlobalWebSocketManager`, `Job` | Clip-scoped subscription, hash-based stale detection |
+| Property editing | `web/src/components/node/PropertyField.tsx`, `web/src/components/properties/*` | — (Input-node properties already render through these) |
+| Workflow templates | Existing template/preset infrastructure | Three timeline-targeted seeded workflows with `run_mode = "template-clip"` |
+| Open in Node Editor | Existing workflow editor at `/editor/:workflowId` | Just navigate; no remap |
+| Execution | `WorkflowRunner.run(workflow, paramOverrides)`, `GlobalWebSocketManager`, `Job` | Clip-scoped subscription, hash-based stale detection |
 | Status / errors | `StatusStore`, `ErrorStore`, `StatusIndicator`, `WarningBanner` | Clip-status mapping |
-| Past outputs | `ResultsStore`, `NodeResultHistoryStore`, `MediaGenerationStore` | Clip-version index |
+| Past outputs | `ResultsStore`, `NodeResultHistoryStore`, `MediaGenerationStore`, `Job.outputs` | Clip-version index (jobId + assetId per version) |
 | Top bar | `AppHeader`, `AppToolbar` | Timeline-scoped action set |
 | Undo/redo | `NodeStore` zundo pattern | Apply same pattern in `TimelineStore` |
 | UI primitives | `web/src/components/ui_primitives/*` (mandatory; no raw MUI) | — |
-| Data models | `Workflow`, `Job`, `Asset`, `Prediction` in `packages/models` | New `TimelineSequence`, `TimelineTrack`, `TimelineClip`, `ClipVersion`, `GenerationBinding` |
+| Data models | `Workflow`, `Job`, `Asset`, `Prediction` in `packages/models` | New `TimelineSequence` only |
 
 PR #309 is **not** kept in-tree. All timeline code is written from scratch using primitives and existing stores.
 
@@ -78,12 +82,18 @@ PR #309 is **not** kept in-tree. All timeline code is written from scratch using
 ### 4.1 Packages
 
 - **New: `packages/timeline/`** — pure types and pure functions.
-  - `types.ts` — `TimelineSequence`, `TimelineTrack`, `TimelineClip`, `GenerationBinding`, `NodeTimelineState`, `ClipVersion`, `ClipStatus`.
-  - `dependencyHash.ts` — deterministic hash over node type + params + input asset ids/hashes + model + provider + seed.
-  - `invalidation.ts` — given a clip's `GenerationBinding` and an edited node, return the set of stale node ids (target + downstream by edge order).
+  - `types.ts` — `TimelineSequence`, `TimelineTrack`, `TimelineClip`, `ClipInvocation`, `ClipVersion`, `ClipStatus`. (Graph state lives in the bound `Workflow`, not duplicated here.)
+  - `dependencyHash.ts` — deterministic hash over `{ workflowId, workflow.updated_at, paramOverrides, currentInputAssetHashes }`. The bound workflow's `updated_at` is the only fingerprint of the graph itself; if the user edits the workflow in the Node Editor, every clip pointing to it goes stale.
   - `splitClip.ts`, `trimClip.ts`, `snap.ts` — pure timeline math.
   - No React, no Zustand, no MUI. Vitest unit tests.
-- **`packages/models/`** — add `timeline_sequence` table, Drizzle schema, repo functions:
+- **`packages/models/`** —
+  - **Reuse `Workflow`**. Each generated clip references an existing `Workflow` row via `workflowId`. Workflows are filtered/discriminated by the existing `run_mode` field:
+    - `"workflow"` — standalone workflow (existing default; unchanged).
+    - `"clip"` — clip-private workflow owned by a single clip; hidden from the standalone workflow list.
+    - `"template-clip"` — seeded reusable clip template (e.g. Text-to-Image); listed in the timeline's "Add Generated Clip" menu, not the standalone workflow list.
+    - `"sequence"` — reserved for Slice 3 (whole-timeline export workflow).
+    The standalone workflow listing filters to `run_mode IN ("workflow", null)`. No schema migration needed for `run_mode`; it already exists.
+  - **Add `timeline_sequence` table**:
   ```
   timeline_sequence (
     id text primary key,
@@ -144,22 +154,40 @@ PR #309 is **not** kept in-tree. All timeline code is written from scratch using
   - `POST /api/timeline/:id/clips/:clipId/versions` (record successful generation)
   - `GET /api/timeline/:id/clips/:clipId/versions`
 
-### 4.3 Generation flow
+### 4.3 Clip → Workflow binding
 
-1. User edits an exposed parameter in `NodePropertyEditor`.
-2. `TimelineStore.setBindingParam(clipId, nodeId, param, value)`:
-   - Updates the param.
-   - Recomputes `dependencyHash` for the affected node and downstream nodes via `invalidation.ts`.
-   - Marks affected `nodeStates[*].status = "dirty"` (target) or `"stale"` (downstream).
-   - Sets clip `status = "stale"`.
+Every generated clip is backed by exactly one `Workflow` row.
+
+- **Imported clips** have `workflowId === null`. They reference an `Asset` directly and have no inspector node-stack.
+- **Generated clips** have `workflowId` set. The workflow's graph contains its own `Input*` nodes (`StringInputNode`, `FloatInputNode`, `IntegerInputNode`, `BooleanInputNode`, `SelectInputNode`, `ImageSizeInputNode`, `ColorInputNode`, `LanguageModelInputNode`, etc.). **The Input nodes ARE the exposed parameters** — no parallel `ExposedParameter` declaration on the clip.
+- The clip stores **`paramOverrides: Record<inputNodeName, value>`** — the inputs to feed the workflow on each invocation. The inspector renders one `PropertyField` per `Input*` node in the bound workflow, sourced from the existing node metadata. This is the same path the standalone workflow editor already uses for "run with inputs" dialogs.
+- The clip stores **`selectedOutputNodeId`** — which terminal node's output becomes the clip's media. Workflows with one obvious output node default to it; multi-output workflows force a choice on creation.
+
+**Lifecycle**:
+- Creating a generated clip from a `template-clip` workflow: the timeline clones that template into a new `run_mode = "clip"` workflow owned by the clip. The clone is independent — editing the template later does not affect existing clips.
+- Creating a generated clip from a standalone workflow ("Use as clip" from a workflow context menu): same — a clone with `run_mode = "clip"` is created. The standalone workflow is unchanged.
+- **Duplicate as Variation** clones the clip's workflow into another `run_mode = "clip"` workflow row.
+- **Duplicate Linked** keeps the same `workflowId` for both clips; both regenerate together.
+- **Save as Reusable Template** flips `run_mode` from `"clip"` to `"template-clip"`. The clip retains its reference; the workflow now also appears in the Add-Generated-Clip menu.
+- **Deleting a clip** with a `run_mode = "clip"` workflow: if no other clip references that `workflowId`, the workflow row is deleted. Otherwise (linked duplicates), the row is kept and the clip reference is removed.
+- **Open in Node Editor** navigates to `/editor/:workflowId`. Returning to the timeline picks up the new `workflow.updated_at`, which automatically marks all referencing clips stale (see §4.4).
+
+### 4.4 Generation flow
+
+1. User edits an `Input*` node's value in the inspector.
+2. `TimelineStore.setParamOverride(clipId, inputNodeName, value)`:
+   - Updates `paramOverrides`.
+   - Recomputes the clip's `dependencyHash` (workflowId + workflow.updated_at + paramOverrides + input-asset hashes).
+   - If `dependencyHash !== lastGeneratedHash`, sets clip `status = "stale"`.
 3. UI updates: clip badge shows `Stale`; preview keeps showing last successful version with stale overlay.
-4. User clicks **Generate** (clip) or **Generate node + downstream**:
-   - Build a workflow execution request: clone the bound graph, override params on stale nodes, set the selected output node.
-   - Submit via `WorkflowRunner.run(graph, params)`.
+4. User clicks **Generate Clip**:
+   - `WorkflowRunner.run(workflow, { params: paramOverrides })` — exactly the same call the standalone editor uses.
    - Subscribe via `GlobalWebSocketManager` keyed by `jobId`.
-   - On `NodeUpdate`/`Prediction`/`JobUpdate` events, update `TimelineGenerationStore` → propagate to `TimelineStore.nodeStates` → re-render badges, progress.
-   - On success: write a new `ClipVersion`, set `currentAssetId` (only after success — see §6 open question 1, decided: replace on success), set all node states to `clean`, clear `dirty`/`stale`.
-5. Failure: clip status `failed`, error attached to the failing node; primary action becomes **Retry**.
+   - On `NodeUpdate`/`Prediction`/`JobUpdate` events, `TimelineGenerationStore` updates per-clip status; the inspector's node-stack reads existing `StatusStore`/`ResultsStore` keyed on the bound workflow's nodes — no duplication.
+   - On success: append a `ClipVersion { jobId, assetId, hash, … }`, set `currentAssetId = assetId`, `lastGeneratedHash = dependencyHash`, clip `status = "generated"`.
+5. Failure: clip `status = "failed"`, error pulled from existing `ErrorStore` keyed by jobId+nodeId; primary action becomes **Retry**.
+
+There is no "Generate node + downstream" command at the clip level — partial-graph execution is a workflow-runner concern. If a user needs that level of control, they open the workflow in the Node Editor.
 
 ### 4.4 Reuse rules and migration
 
@@ -218,15 +246,17 @@ Badges use `StatusIndicator` and tokenized colors.
 ## 6. Decisions on open questions
 
 1. **Auto-replace on success.** Successful generation replaces `currentAssetId` immediately; previous version stays in `versions[]`. Locked clips do not replace.
-2. **Embedded copy of graph.** Each clip stores a graph snapshot (`graphVersionId` references a content-addressed copy). Clips are independent; templates seed copies.
-3. **Inspector exposes `exposedParameters`.** Graphs declare which node params are user-editable. Internal/debug params are hidden unless an "Advanced" toggle is on. Custom-exposed params per clip: out of scope for this PRD.
-4. **Timeline format.** New `timeline_sequence` table (decided). Not stored as a workflow.
-5. **Sequence-as-graph.** Out of scope.
-6. **Variants.** Stored in `versions[]` on the clip. Separate-clip variants are produced by Duplicate as Variation.
+2. **Cloned workflow per clip, not embedded snapshot.** Each generated clip points to its own `Workflow` row with `run_mode = "clip"`. Cloning happens at clip creation. Editing one clip's workflow does not affect others. This replaces the original "embedded graph snapshot" plan.
+3. **Inspector exposes the bound workflow's `Input*` nodes.** No parallel exposed-parameter declaration. The author of a clip-template workflow chooses what's exposed by which `Input*` nodes they place in the graph — exactly like the standalone workflow runner.
+4. **Timeline format.** New `timeline_sequence` table (decided). Sequences themselves are not workflows in Slice 1+2.
+5. **Sequence-as-graph.** Reserved as `run_mode = "sequence"` for Slice 3 (the export compiler emits one of these). Not implemented in Slice 1+2.
+6. **Variants.** Stored in `versions[]` on the clip (each version = `{ jobId, assetId, hash }`). Separate-clip variants are produced by Duplicate as Variation, which clones the clip's workflow into a new `run_mode = "clip"` row.
 7. **Render All** opens a preflight dialog listing stale/missing/failed clips with Generate Stale / Export Anyway / Cancel.
 8. **Local vs cloud per node.** Backend decides via existing provider routing; UI shows `Local` / `Cloud` / `Requires API key` indicators.
-9. **Custom exposed parameters.** Out of scope.
-10. **Multi-output clips.** Out of scope. One selected output node per clip; alpha/audio side outputs are future work.
+9. **Custom exposed parameters.** Out of scope. The clip-template workflow author chooses exposure by which `Input*` nodes are placed.
+10. **Multi-output clips.** Out of scope. One `selectedOutputNodeId` per clip; alpha/audio side outputs are future work. Workflows with multiple terminal output nodes force a choice at clip creation.
+11. **Workflow listing filter.** Standalone workflow listings filter to `run_mode IN ("workflow", null)`. `"clip"` and `"template-clip"` workflows are visible only inside their owning timeline (clip workflows) or in the Add-Generated-Clip menu (template-clip workflows).
+12. **Clip-workflow lifecycle.** Deleting the last clip referencing a `run_mode = "clip"` workflow deletes that workflow. Promoting via "Save as Reusable Template" flips `run_mode` to `"template-clip"`, which retains the row regardless of clip references.
 
 ## 7. Data model
 
@@ -271,9 +301,17 @@ interface TimelineClip {
   durationMs: number;
   inPointMs?: number;
   outPointMs?: number;
-  mediaType: "image" | "video" | "audio" | "overlay" | "workflow";
+  mediaType: "image" | "video" | "audio" | "overlay";
   sourceType: "imported" | "generated";
-  generation?: GenerationBinding;
+
+  // Imported clips: assetId is set, workflowId is null.
+  // Generated clips: workflowId references a Workflow row (run_mode "clip" or shared "template-clip").
+  workflowId?: string;
+  selectedOutputNodeId?: string;
+  paramOverrides?: Record<string, unknown>; // keyed by Input-node name
+  dependencyHash?: string;
+  lastGeneratedHash?: string;
+
   currentAssetId?: string;
   thumbnailAssetId?: string;
   waveformAssetId?: string;
@@ -282,6 +320,7 @@ interface TimelineClip {
   muted?: boolean;
   hidden?: boolean;
   versions: ClipVersion[];
+
   // rendering transforms — consumed by preview compositor (§11.1) and export compiler (§11.2)
   opacity?: number;            // 0..1, default 1
   blendMode?: BlendMode;       // overlay tracks; default "normal"
@@ -294,50 +333,14 @@ interface TimelineClip {
 
 type BlendMode = "normal" | "screen" | "multiply" | "add" | "overlay";
 
-interface GenerationBinding {
-  graphId: string;
-  graphVersionId: string;
-  selectedOutputNodeId: string;
-  nodeStates: Record<string, NodeTimelineState>;
-  exposedParameters: ExposedParameter[];
-  dependencyHash: string;
-  lastGeneratedHash?: string;
-}
-
-interface NodeTimelineState {
-  nodeId: string;
-  nodeType: string;
-  displayName: string;
-  provider?: string;
-  model?: string;
-  params: Record<string, unknown>;
-  inputAssetIds: string[];
-  outputAssetIds: string[];
-  status: "clean" | "dirty" | "stale" | "queued" | "generating" | "failed";
-  error?: string;
-}
-
-interface ExposedParameter {
-  nodeId: string;
-  paramName: string;
-  label: string;
-  controlType: "text" | "textarea" | "slider" | "select" | "asset" | "toggle" | "number";
-  defaultValue: unknown;
-  min?: number;
-  max?: number;
-  step?: number;
-  group?: string;
-}
-
 interface ClipVersion {
   id: string;
   createdAt: string;
-  assetId: string;
-  graphVersionId: string;
+  jobId: string;             // FK to existing Job model
+  assetId: string;           // FK to existing Asset model
+  workflowUpdatedAt: string; // snapshot of workflow.updated_at at generation time
   dependencyHash: string;
-  seed?: number;
-  modelSummary: string;
-  paramsSummary: Record<string, unknown>;
+  paramOverridesSnapshot: Record<string, unknown>;
   costCredits?: number;
   durationMs?: number;
   status: "success" | "failed" | "cancelled";
@@ -355,13 +358,17 @@ interface TimelineMarker {
 
 ## 8. Predefined clip templates (Slice 2)
 
-| Template | Node stack | Exposed params |
-| --- | --- | --- |
-| Text-to-Image | `TextToImage` | model, prompt, negativePrompt, aspect, steps, cfg, seed |
-| Image-to-Video | `InputImage → ImageToVideo` | model, prompt, motion, durationMs, fps, seed |
-| Text-to-Speech | `Text → TextToSpeech` | text, voice, model, rate |
+Each template is a seeded `Workflow` row with `run_mode = "template-clip"`. Exposed parameters are simply the `Input*` nodes placed in the graph. When a user adds a clip from a template, the template workflow is cloned into a `run_mode = "clip"` workflow owned by the new clip.
 
-All three use existing `base-nodes` / provider nodes. New code is a small registry mapping `templateId → graph factory`.
+| Template workflow | Graph (Input nodes → processing → output) |
+| --- | --- |
+| **Text-to-Image** | `StringInputNode("prompt") → TextToImageNode → ImageOutputNode`<br>plus optional `StringInputNode("negative_prompt")`, `IntegerInputNode("steps")`, `FloatInputNode("cfg")`, `IntegerInputNode("seed")`, `LanguageModelInputNode("model")` |
+| **Image-to-Video** | `StringInputNode("prompt") + ImageInputNode("source_image") + IntegerInputNode("duration_ms") → ImageToVideoNode → VideoOutputNode` |
+| **Text-to-Speech** | `StringInputNode("text") + SelectInputNode("voice") → TextToSpeechNode → AudioOutputNode` |
+
+These workflows are seeded in a new migration in `packages/models/`. No `templateId → graph factory` registry is needed — the templates are ordinary workflow rows discovered via `WHERE run_mode = "template-clip"`. The Add-Generated-Clip menu lists them by querying the workflow table.
+
+Authors can publish their own clip templates by creating a workflow and setting `run_mode = "template-clip"` from the workflow editor (a new toggle in workflow settings).
 
 ## 9. Performance targets
 
@@ -383,7 +390,7 @@ The combined Slice 1 + 2 ships when:
 6. Editing a property marks the clip stale; downstream nodes are marked stale; preview keeps the previous version.
 7. User can generate the selected clip, observe progress, and see the new output in preview and timeline thumbnail.
 8. The previous version is preserved in `versions[]` and restorable.
-9. "Open in Node Editor" opens the bound graph; on return, the inspector reflects structural changes.
+9. "Open in Node Editor" navigates to `/editor/:workflowId`. On return, the clip is automatically marked stale if `workflow.updated_at` advanced; the inspector reflects any added/removed `Input*` nodes.
 10. Failed generations show error UI and a Retry action; errors are attached to the failing node.
 11. No raw MUI imports anywhere in `web/src/components/timeline/`.
 12. `npm run check` passes (typecheck + lint + tests) for `packages/timeline/`, `packages/models/` migrations, and `web/`.
@@ -469,12 +476,13 @@ These fields are added to §7 above.
 
 ## 13. Implementation phases inside this PRD
 
-1. **P1.A** — `packages/timeline/` types, hashing, invalidation, math, tests. No UI.
-2. **P1.B** — `timeline_sequence` schema, repo, REST endpoints, autosave.
-3. **P1.C** — `TimelineEditor` shell, tracks, ruler, playhead, preview, imported-clip CRUD with `TimelineStore` + zundo.
+1. **P1.A** — `packages/timeline/` types, dependency hashing, timeline math, tests. No UI.
+2. **P1.B** — `timeline_sequence` schema, repo, REST endpoints, autosave. Seed three `template-clip` workflows in a migration.
+3. **P1.C** — `TimelineEditor` shell, tracks, ruler, playhead, preview compositor (DOM + WebAudio), imported-clip CRUD with `TimelineStore` + zundo.
 4. **P1.D** — Imported-clip inspector wired to existing `Inspector` patterns.
-5. **P2.A** — `GenerationBinding` plumbing; clip templates; node-stack inspector with reused `PropertyField`.
-6. **P2.B** — Generate / regenerate wired to `WorkflowRunner` + `GlobalWebSocketManager`; status propagation.
-7. **P2.C** — Versions, restore, duplicate-as-variation, lock; "Open in Node Editor" round-trip.
+5. **P2.A** — Clip-workflow binding: clone-on-create from `template-clip` to `run_mode = "clip"`; lifecycle (delete cascading, promote-to-template); workflow-list filter for `run_mode`.
+6. **P2.B** — Inspector node-stack reads the bound workflow's `Input*` nodes and renders existing `PropertyField`s into `paramOverrides`. Dirty/stale via dependency hash incl. `workflow.updated_at`.
+7. **P2.C** — Generate / regenerate via `WorkflowRunner.run(workflow, paramOverrides)`; status propagation through existing `StatusStore`/`ResultsStore`/`ErrorStore` keyed by jobId.
+8. **P2.D** — Versions (jobId+assetId per version), restore, Duplicate-as-Variation (clone clip workflow), Duplicate-Linked, Lock; "Open in Node Editor" round-trip and stale-on-return behavior.
 
 Each phase ends with passing `npm run check` and a self-contained PR.
