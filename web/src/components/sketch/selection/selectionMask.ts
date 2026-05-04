@@ -1074,10 +1074,61 @@ export function applySelectionMaskAlpha(
 }
 
 /**
- * Draw `buffer` into `targetCtx` (caller sets globalAlpha / compositeOp).
- * When `preview` is set and the mask has pixels, copies through a reusable
- * scratch canvas and runs `applySelectionMaskAlpha` so the preview matches commit.
+ * Blend the current canvas pixels with `originalData` using `mask` as a lerp.
+ * Pixels outside the selection are restored to their original values; pixels
+ * inside are kept as modified. Used for destructive tools (blur, clone stamp)
+ * that alter existing pixel colors rather than compositing new paint on top.
  */
+export function applySelectionBlendRestore(
+  canvas: HTMLCanvasElement,
+  originalData: ImageData,
+  mask: Selection,
+  offsetX: number,
+  offsetY: number
+): void {
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) {
+    return;
+  }
+  const cw = canvas.width;
+  const ch = canvas.height;
+  const { data: mdata, width: mw, height: mh } = mask;
+  const mox = mask.originX ?? 0;
+  const moy = mask.originY ?? 0;
+  const imgData = ctx.getImageData(0, 0, cw, ch);
+  const m = imgData.data;
+  const o = originalData.data;
+
+  for (let ly = 0; ly < ch; ly++) {
+    const by = ly + offsetY - moy;
+    const inY = by >= 0 && by < mh;
+    const rowOff = inY ? by * mw : 0;
+    for (let lx = 0; lx < cw; lx++) {
+      const bx = lx + offsetX - mox;
+      let maskVal = 0;
+      if (inY && bx >= 0 && bx < mw) {
+        maskVal = mdata[rowOff + bx];
+      }
+      if (maskVal === 255) continue;
+      const pi = (ly * cw + lx) * 4;
+      if (maskVal === 0) {
+        m[pi]     = o[pi];
+        m[pi + 1] = o[pi + 1];
+        m[pi + 2] = o[pi + 2];
+        m[pi + 3] = o[pi + 3];
+      } else {
+        const t = maskVal / 255;
+        const t1 = 1 - t;
+        m[pi]     = (m[pi]     * t + o[pi]     * t1 + 0.5) | 0;
+        m[pi + 1] = (m[pi + 1] * t + o[pi + 1] * t1 + 0.5) | 0;
+        m[pi + 2] = (m[pi + 2] * t + o[pi + 2] * t1 + 0.5) | 0;
+        m[pi + 3] = (m[pi + 3] * t + o[pi + 3] * t1 + 0.5) | 0;
+      }
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
 function binaryDilateOnce8(
   width: number,
   height: number,

@@ -49,7 +49,7 @@ export const createSelectionSlice: StateCreator<
     const current = get().selection;
     const active = selectionHasAnyPixels(sel);
     if (current && !sel) {
-      set({ selection: sel, lastSelection: cloneSelectionMask(current), hasActiveSelection: false });
+      set({ selection: sel, lastSelection: current, hasActiveSelection: false });
     } else {
       set({ selection: sel, hasActiveSelection: active });
     }

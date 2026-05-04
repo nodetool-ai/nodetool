@@ -682,12 +682,12 @@ export class WebGPURuntime implements SketchRuntime {
     const sel = this.currentSelection;
     const originX = this.selectionOriginOverride?.x ?? sel.originX ?? 0;
     const originY = this.selectionOriginOverride?.y ?? sel.originY ?? 0;
-    // 8 floats: canvasSize(2) + maskOrigin(2) + maskDims(2) + phase(1) + pad(1)
+    // 8 floats: canvasSize(2) + maskOrigin(2) + maskDims(2) + phase(1) + zoom(1)
     const uniformData = new Float32Array([
       canvasW, canvasH,
       originX, originY,
       sel.width, sel.height,
-      this.antsPhase, 0.0
+      this.antsPhase, this.zoom
     ]);
     const uniformBuffer = this.device.createBuffer({
       size: uniformData.byteLength,
@@ -1026,7 +1026,7 @@ export class WebGPURuntime implements SketchRuntime {
 
     // ── Pass 5: Selection marching ants → swapChain ───────────────────
     if (this.maskTexture && this.currentSelection) {
-      this.antsPhase = (this.antsPhase + 0.1) % 2.0;
+      this.antsPhase = (this.antsPhase + 0.04) % 2.0;
       this.drawSelectionAnts(encoder, swapChainView, fullW, fullH);
     }
 

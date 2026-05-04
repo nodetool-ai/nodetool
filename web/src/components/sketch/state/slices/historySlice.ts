@@ -21,7 +21,7 @@ import type {
   SketchDocument
 } from "../../types";
 import { MAX_HISTORY_SIZE } from "../../types";
-import { cloneSelectionMask, selectionHasAnyPixels } from "../../selection";
+import { selectionHasAnyPixels } from "../../selection";
 
 function cloneHistoryValue<T>(value: T): T {
   if (value === null || value === undefined) {
@@ -150,7 +150,7 @@ export const createHistorySlice: StateCreator<
       documentCanvas,
       activeLayerId: state.document.activeLayerId,
       maskLayerId: state.document.maskLayerId,
-      selection: state.selection ? cloneSelectionMask(state.selection) : null,
+      selection: state.selection,
       restoreMode,
       action,
       timestamp: Date.now()
@@ -201,7 +201,7 @@ export const createHistorySlice: StateCreator<
         documentCanvas: captureDocumentCanvas(state.document.canvas),
         activeLayerId: state.document.activeLayerId,
         maskLayerId: state.document.maskLayerId,
-        selection: state.selection ? cloneSelectionMask(state.selection) : null,
+        selection: state.selection,
         restoreMode: "full",
         action: "current state",
         timestamp: Date.now()

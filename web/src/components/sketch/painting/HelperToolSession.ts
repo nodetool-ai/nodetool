@@ -23,6 +23,7 @@ import {
   coalescedStrokePressure,
   normalizePointerPressure
 } from "../pointerPen";
+import { applySelectionBlendRestore, selectionHasAnyPixels } from "../selection";
 
 // ─── Callback interfaces ────────────────────────────────────────────────────
 
@@ -81,6 +82,9 @@ export class HelperToolSession {
 
   // Alpha lock
   private alphaSnapshot: ImageData | null = null;
+
+  // Selection masking: snapshot taken at stroke begin for blend-restore at end
+  private selectionSnapshot: ImageData | null = null;
 
   // Dirty rect tracking
   private strokeDirtyRect: DirtyRectTracker = { current: null };
@@ -152,16 +156,28 @@ export class HelperToolSession {
 
     ctx.onStrokeStart();
 
+    // Get drawing context (shared between alpha/selection snapshot and setup)
+    const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
+
     // Alpha lock snapshot
     if (activeLayer.alphaLock) {
-      const lc = ctx.getOrCreateLayerCanvas(activeLayer.id);
-      this.alphaSnapshot = captureAlphaSnapshot(lc);
+      this.alphaSnapshot = captureAlphaSnapshot(layerCanvas);
     } else {
       this.alphaSnapshot = null;
     }
 
-    // Get drawing context
-    const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
+    // Selection snapshot: capture full pixel data so we can blend-restore
+    // at commit time. Blur/clone modify existing RGB values, so we can't
+    // use applySelectionMaskAlpha (which only touches alpha).
+    const sel = ctx.selection;
+    if (sel && selectionHasAnyPixels(sel)) {
+      const lc2d = layerCanvas.getContext("2d");
+      this.selectionSnapshot = lc2d
+        ? lc2d.getImageData(0, 0, layerCanvas.width, layerCanvas.height)
+        : null;
+    } else {
+      this.selectionSnapshot = null;
+    }
     const paintCtx = layerCanvas.getContext("2d");
     if (!paintCtx) {
       return false;
@@ -275,6 +291,7 @@ export class HelperToolSession {
     // Tool-specific teardown
     this.onTeardown();
 
+    const mapperOffset = this.mapper?.offset ?? null;
     this.lastPoint = null;
     this.hasMoved = false;
     this.mapper = null;
@@ -291,6 +308,23 @@ export class HelperToolSession {
       }
       this.alphaSnapshot = null;
     }
+
+    // Selection masking: blend-restore pixels outside the active selection.
+    // Done after alpha-lock so the final pixel values are correct.
+    const sel = ctx.selection;
+    if (this.selectionSnapshot && sel && selectionHasAnyPixels(sel) && activeLayer && mapperOffset) {
+      const layerCanvas = ctx.layerCanvasesRef.current.get(activeLayer.id);
+      if (layerCanvas) {
+        applySelectionBlendRestore(
+          layerCanvas,
+          this.selectionSnapshot,
+          sel,
+          mapperOffset.x,
+          mapperOffset.y
+        );
+      }
+    }
+    this.selectionSnapshot = null;
 
     this.strokeDirtyRect = { current: null };
     this.activeLayerId = null;

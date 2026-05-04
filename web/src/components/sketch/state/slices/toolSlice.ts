@@ -121,7 +121,7 @@ export interface ToolSlice {
 export const createToolSlice: StateCreator<SketchStore, [], [], ToolSlice> = (
   set
 ) => ({
-  activeTool: "brush",
+  activeTool: "select",
   setActiveTool: (tool: SketchTool) => set({ activeTool: tool }),
 
   // Runtime source of truth for tool settings — NOT inside `document` so that

@@ -278,7 +278,7 @@ struct AntsUniforms {
   maskOrigin: vec2f,
   maskDims:   vec2f,
   phase:      f32,
-  _pad:       f32,
+  zoom:       f32,
 };
 
 @group(0) @binding(0) var<uniform> u: AntsUniforms;
@@ -311,8 +311,9 @@ fn fs_ants(@location(0) uv: vec2f) -> @location(0) vec4f {
 
   if (!isEdge) { return vec4f(0.0); }
 
-  // Marching dashes: diagonal stripe pattern animated by phase
-  let DASH = 6.0;
+  // Marching dashes: dash length scales inversely with zoom so ants appear
+  // at a constant screen size regardless of zoom level (6 screen pixels).
+  let DASH = 6.0 / max(0.01, u.zoom);
   let t = ((local.x + local.y) / DASH + u.phase) % 2.0;
   if (t < 1.0) {
     return vec4f(1.0, 1.0, 1.0, 1.0);
