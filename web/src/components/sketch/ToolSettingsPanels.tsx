@@ -335,6 +335,7 @@ interface SelectSettingsPanelProps {
   onChange: (settings: Partial<SelectSettings>) => void;
   hasActiveSelection: boolean;
   onInvertSelection: () => void;
+  onCropCanvasToSelection?: () => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
   onStrokeSelectionBorder: () => void;
@@ -1301,6 +1302,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
   onChange,
   hasActiveSelection,
   onInvertSelection,
+  onCropCanvasToSelection,
   onFeatherSelection,
   onSmoothSelectionBorders,
   onStrokeSelectionBorder
@@ -1411,6 +1413,17 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
         >
           Shrink
         </Button>
+        {onCropCanvasToSelection && (
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={!hasActiveSelection}
+            onClick={onCropCanvasToSelection}
+            sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
+          >
+            Crop
+          </Button>
+        )}
         <Button
           size="small"
           variant="outlined"
@@ -2026,6 +2039,7 @@ export interface ToolSettingsPanelProps {
   onCloneStampSettingsChange: (settings: Partial<CloneStampSettings>) => void;
   onSelectSettingsChange: (settings: Partial<SelectSettings>) => void;
   onInvertSelection: () => void;
+  onCropCanvasToSelection?: () => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
   onStrokeSelectionBorder: () => void;
@@ -2083,6 +2097,7 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   onCloneStampSettingsChange,
   onSelectSettingsChange,
   onInvertSelection,
+  onCropCanvasToSelection,
   onFeatherSelection,
   onSmoothSelectionBorders,
   onStrokeSelectionBorder,
@@ -2206,6 +2221,7 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
         onChange={onSelectSettingsChange}
         hasActiveSelection={hasActiveSelection}
         onInvertSelection={onInvertSelection}
+        onCropCanvasToSelection={onCropCanvasToSelection}
         onFeatherSelection={onFeatherSelection}
         onSmoothSelectionBorders={onSmoothSelectionBorders}
         onStrokeSelectionBorder={onStrokeSelectionBorder}

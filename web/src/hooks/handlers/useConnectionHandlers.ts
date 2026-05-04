@@ -258,19 +258,34 @@ export default function useConnectionHandlers() {
   /* CONNECT END */
   const onConnectEnd: OnConnectEnd = useCallback(
     (event, _connectionState) => {
+      const resetConnectingState = (): void => {
+        connectionCreated.current = true;
+        setConnectionAttempted(false);
+        endConnecting();
+      };
+
       // Only handle mouse events, not touch events
       // Note: In tests, event may be a mock object that doesn't inherit from MouseEvent
       if (event instanceof TouchEvent) {
+        resetConnectingState();
         return;
       }
 
       const { connectDirection, connectNodeId, connectHandleId, connectType } =
         useConnectionStore.getState();
-      if (!connectNodeId || !connectHandleId || !connectType) {
+      if (!connectNodeId || !connectHandleId) {
+        return;
+      }
+      // Missing connectType (e.g. drag from Image Editor layer_in_* before handleUtils
+      // knew about instance dynamic_inputs) used to return here without endConnecting —
+      // leaving connectable-handle highlight stuck until reload.
+      if (!connectType) {
+        resetConnectingState();
         return;
       }
       const connectNode = findNode(connectNodeId);
       if (!connectNode) {
+        resetConnectingState();
         return;
       }
 
@@ -279,6 +294,7 @@ export default function useConnectionHandlers() {
       // For tests, we check if target has the necessary properties
       const target = event.target;
       if (!target) {
+        resetConnectingState();
         return;
       }
       // Check if target is an HTMLElement OR has the necessary properties for tests
@@ -290,6 +306,7 @@ export default function useConnectionHandlers() {
         typeof target.closest === "function";
 
       if (!isHTMLElement && !hasTestProperties) {
+        resetConnectingState();
         return;
       }
 
@@ -310,16 +327,19 @@ export default function useConnectionHandlers() {
         const closestNode = htmlTarget.closest(".react-flow__node") as HTMLElement | null;
         const nodeId = closestNode?.dataset.id;
         if (!nodeId) {
+          resetConnectingState();
           return;
         }
         const node = findNode(nodeId);
         if (!node) {
+          resetConnectingState();
           return;
         }
 
         const nodeMetadata = getMetadata(node.type || "");
         if (!nodeMetadata) {
           console.warn(`Metadata for node type ${node.type} not found`);
+          resetConnectingState();
           return;
         }
 

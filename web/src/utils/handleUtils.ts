@@ -164,6 +164,33 @@ export function findInputHandle(
     };
   }
 
+  // Image Editor / sketch: per-layer handles (`layer_in_*`) live in dynamic_inputs
+  // while API metadata may omit is_dynamic.
+  const earlyDynamicInputs = node.data.dynamic_inputs || {};
+  if (earlyDynamicInputs[handleName] !== undefined) {
+    const inputMeta = earlyDynamicInputs[handleName];
+    const type = inputMeta
+      ? {
+          type: inputMeta.type,
+          optional: inputMeta.optional ?? false,
+          values: inputMeta.values ?? null,
+          type_args: inputMeta.type_args ?? [],
+          type_name: inputMeta.type_name ?? null
+        }
+      : {
+          type: "any",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        };
+    return {
+      name: handleName,
+      type,
+      isDynamic: true
+    };
+  }
+
   if (metadata.is_dynamic) {
     const dynamicProperties = node.data.dynamic_properties || {};
     const dynamicInputs = node.data.dynamic_inputs || {};
@@ -318,6 +345,43 @@ export function getAllInputHandles(
         isDynamic: true
       });
     });
+  } else {
+    // Image Editor / sketch: `layer_in_*` handles exist in dynamic_inputs while API metadata
+    // keeps is_dynamic false (see SketchNode.updateNodeData).
+    const instanceDynamicInputs = node.data.dynamic_inputs || {};
+    const dynamicOutputs = node.data.dynamic_outputs || {};
+    for (const name of Object.keys(instanceDynamicInputs)) {
+      if (handles.some((h) => h.name === name)) {
+        continue;
+      }
+      const isDynamicOutputOnly =
+        dynamicOutputs[name] !== undefined &&
+        instanceDynamicInputs[name] === undefined;
+      if (isDynamicOutputOnly) {
+        continue;
+      }
+      const inputMeta = instanceDynamicInputs[name];
+      const type = inputMeta
+        ? {
+            type: inputMeta.type,
+            optional: inputMeta.optional ?? false,
+            values: inputMeta.values ?? null,
+            type_args: inputMeta.type_args ?? [],
+            type_name: inputMeta.type_name ?? null
+          }
+        : {
+            type: "any",
+            optional: false,
+            values: null,
+            type_args: [],
+            type_name: null
+          };
+      handles.push({
+        name,
+        type,
+        isDynamic: true
+      });
+    }
   }
 
   return handles;
