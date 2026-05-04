@@ -428,3 +428,57 @@ export function drawCropOverlay(
     gc.stroke();
   }
 }
+
+const CROP_RESIZE_HANDLES: ReadonlySet<TransformHandle> = new Set([
+  "top-left",
+  "top-right",
+  "bottom-left",
+  "bottom-right",
+  "top",
+  "bottom",
+  "left",
+  "right"
+]);
+
+/**
+ * Crop overlay plus eight resize handles (corners + edge midpoints).
+ * Handle positions are in gizmo pixel space (same as {@link drawCropOverlay}).
+ */
+export function drawCropGizmoWithHandles(
+  gc: CanvasRenderingContext2D,
+  topLeft: Point,
+  cropW: number,
+  cropH: number,
+  canvasW: number,
+  canvasH: number,
+  dpr: number,
+  activeOrHoveredHandle: TransformHandle | null
+): void {
+  drawCropOverlay(gc, topLeft, cropW, cropH, canvasW, canvasH, dpr);
+
+  const hl =
+    activeOrHoveredHandle &&
+    CROP_RESIZE_HANDLES.has(activeOrHoveredHandle)
+      ? activeOrHoveredHandle
+      : null;
+
+  const midX = topLeft.x + cropW / 2;
+  const midY = topLeft.y + cropH / 2;
+  const right = topLeft.x + cropW;
+  const bottom = topLeft.y + cropH;
+
+  const handles: Array<{ pos: Point; handle: TransformHandle }> = [
+    { pos: { x: topLeft.x, y: topLeft.y }, handle: "top-left" },
+    { pos: { x: right, y: topLeft.y }, handle: "top-right" },
+    { pos: { x: topLeft.x, y: bottom }, handle: "bottom-left" },
+    { pos: { x: right, y: bottom }, handle: "bottom-right" },
+    { pos: { x: midX, y: topLeft.y }, handle: "top" },
+    { pos: { x: midX, y: bottom }, handle: "bottom" },
+    { pos: { x: topLeft.x, y: midY }, handle: "left" },
+    { pos: { x: right, y: midY }, handle: "right" }
+  ];
+
+  for (const { pos, handle } of handles) {
+    drawSquareHandle(gc, pos, hl === handle, dpr);
+  }
+}

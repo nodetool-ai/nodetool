@@ -18,6 +18,9 @@ import type { Point, SketchTool } from "./types";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
 import { SKETCH_Z_INDEX, SKETCH_FONT } from "./sketchStyles";
 import { selectionAntCanvasMarginCssPx } from "./sketchCanvasHooks";
+import { cursorStyleForTool } from "./sketchCursorStyle";
+
+export { cursorStyleForTool } from "./sketchCursorStyle";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -55,26 +58,6 @@ const styles = (theme: Theme) =>
       imageRendering: "auto"
     }
   });
-
-// ─── Cursor style helper ─────────────────────────────────────────────────────
-
-export function cursorStyleForTool(interactionTool: SketchTool): string {
-  if (interactionTool === "move" || interactionTool === "transform") {
-    return "move";
-  }
-  if (interactionTool === "crop" || interactionTool === "select") {
-    return "crosshair";
-  }
-  if (
-    interactionTool === "brush" ||
-    interactionTool === "pencil" ||
-    interactionTool === "eraser" ||
-    interactionTool === "blur"
-  ) {
-    return "none";
-  }
-  return "crosshair";
-}
 
 // ─── Canvas transform style helper ──────────────────────────────────────────
 

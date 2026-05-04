@@ -680,6 +680,50 @@ describe("CropTool", () => {
     tool.onMove!(ctx, makePointerEvent({ point: { x: 30, y: 30 } }), []);
     expect(ctx.drawGizmo).toHaveBeenCalled();
   });
+
+  it("defers onCropComplete until commitPending after pointer up", () => {
+    const tool = new CropTool();
+    const onCropComplete = jest.fn();
+    const ctx = makeToolContext({ onCropComplete });
+    tool.onDown(ctx, makePointerEvent({ point: { x: 5, y: 5 } }));
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 40, y: 40 } }), []);
+    tool.onUp(ctx, makePointerEvent({ point: { x: 40, y: 40 } }));
+    expect(onCropComplete).not.toHaveBeenCalled();
+    tool.commitPending(ctx);
+    expect(onCropComplete).toHaveBeenCalledTimes(1);
+    expect(onCropComplete).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(Number)
+    );
+  });
+
+  it("commitPending finalizes marquee and crops when Enter runs before pointer up", () => {
+    const tool = new CropTool();
+    const onCropComplete = jest.fn();
+    const ctx = makeToolContext({ onCropComplete });
+    tool.onDown(ctx, makePointerEvent({ point: { x: 5, y: 5 } }));
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 40, y: 40 } }), []);
+    expect(onCropComplete).not.toHaveBeenCalled();
+    tool.commitPending(ctx);
+    expect(onCropComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it("commitPending commits during edge resize without pointer up", () => {
+    const tool = new CropTool();
+    const onCropComplete = jest.fn();
+    const ctx = makeToolContext({ onCropComplete });
+    tool.onDown(ctx, makePointerEvent({ point: { x: 8, y: 8 } }));
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 48, y: 48 } }), []);
+    tool.onUp(ctx, makePointerEvent({ point: { x: 48, y: 48 } }));
+    expect(onCropComplete).not.toHaveBeenCalled();
+
+    tool.onDown(ctx, makePointerEvent({ point: { x: 8, y: 8 } }));
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 12, y: 12 } }), []);
+    tool.commitPending(ctx);
+    expect(onCropComplete).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("ShapeTool", () => {

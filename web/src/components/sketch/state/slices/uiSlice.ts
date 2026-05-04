@@ -30,6 +30,12 @@ export interface UiSlice {
 
   isolatedLayerId: string | null;
   toggleIsolateLayer: (layerId: string) => void;
+
+  /** Document-space crop preview while the crop tool is active (not persisted). */
+  cropPreviewBounds: { x: number; y: number; width: number; height: number } | null;
+  setCropPreviewBounds: (
+    bounds: { x: number; y: number; width: number; height: number } | null
+  ) => void;
 }
 
 export const createUiSlice: StateCreator<SketchStore, [], [], UiSlice> = (
@@ -116,5 +122,8 @@ export const createUiSlice: StateCreator<SketchStore, [], [], UiSlice> = (
   toggleIsolateLayer: (layerId: string) =>
     set((state) => ({
       isolatedLayerId: state.isolatedLayerId === layerId ? null : layerId
-    }))
+    })),
+
+  cropPreviewBounds: null,
+  setCropPreviewBounds: (bounds) => set({ cropPreviewBounds: bounds })
 });

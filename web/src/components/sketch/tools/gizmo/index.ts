@@ -43,5 +43,6 @@ export {
   drawPivotHandle,
   drawTransformGizmo,
   drawOffCanvasIndicator,
-  drawCropOverlay
+  drawCropOverlay,
+  drawCropGizmoWithHandles
 } from "./gizmoPrimitives";

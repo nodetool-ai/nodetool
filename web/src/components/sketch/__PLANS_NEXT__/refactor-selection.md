@@ -16,6 +16,10 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 
 **Selection is not persisted** — cleared on reload, no `sketch_data` serialization.
 
+**Brush strategy (important):** Phase 3 does *not* rewrite the brush engine to native GPU stamps — that is a separate future project. Instead: keep CPU stroke generation as-is, and after the stroke buffer is built, run a GPU mask-multiply pass on the uploaded texture (same mechanism as Phase 4's feather blit). This eliminates `clipContextToSelectionMask` without touching brush logic.
+
+**Coordinate contract (pin before writing shaders):** All mask-sampling shaders use the same doc-space UV formula: `uv = (fragDocPos - vec2(originX, originY)) / vec2(maskWidth, maskHeight)`. Pass `originX`, `originY`, `maskWidth`, `maskHeight` as uniforms in every mask-sampling pipeline. Clamp to `[0,1]` and treat out-of-bounds as fully selected (mask = 1.0) so tools work outside the mask bounds.
+
 ---
 
 ## Migration table
@@ -60,22 +64,22 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 
 - [ ] Add `SELECTION_ANTS_FRAGMENT` to `shaders.ts`: fullscreen quad, samples `maskTexture` at doc-space UV, edge-detects neighbors, emits animated dashes via `phase: f32` uniform. Reuse `FULLSCREEN_QUAD_VERTEX`.
 - [ ] Register `selectionAntsPipeline` in `WebGPURuntime` (alongside existing 5 pipelines). Add `drawSelectionAnts(phase: number)` method.
-- [ ] In `useOverlayRenderer.ts`: remove the `setInterval` ants loop (line 338), `antsPhaseRef`, and all `Path2D` ants stroke calls. Call `WebGPURuntime.drawSelectionAnts(phase)` from the existing rAF-driven composite instead — drive phase from a ref incremented in the compositor.
+- [ ] In `useOverlayRenderer.ts`: remove the `setInterval` ants loop (line 338), `antsPhaseRef`, and all `Path2D` ants stroke calls. Call `WebGPURuntime.drawSelectionAnts(phase)` from the existing rAF-driven composite instead — drive phase from a ref incremented in the compositor. Ants will now animate at rAF cadence (~60fps) instead of 72ms (~14fps); intentional improvement.
 - [ ] Delete from `selectionMask.ts`: `buildSelectionMaskOutlinePath`, `drawSelectionOutlinePath`, `getOrRebuildSelectionOutlinePath`, `SelectionOutlinePathCacheScratch`.
 - [ ] Delete from `useOverlayRenderer.ts`: `outlinePathScratchRef`.
 - [ ] Rect/ellipse/lasso live-preview outlines (not committed mask) stay CPU-drawn — they are not hot paths.
 - [ ] Verify: ants render correctly at various zoom levels and with `originX/Y` offset.
 
-### Phase 3 — Brush + eraser clip → GPU mask multiply
+### Phase 3 — Remove CPU clipping from paint session
 
-- [ ] Add `BRUSH_MASK_FRAGMENT` to `shaders.ts`: stamps brush quad into layer FBO, samples `maskTexture` at doc-space UV, `out.a *= mask_sample`. Uniforms: `originX/Y`, layer offset, brush transform. Reuse existing inverse-affine pattern from `LAYER_COMPOSITE_FRAGMENT`.
-- [ ] Register `brushMaskPipeline` in `WebGPURuntime`. Expose via `drawBrushStampWithMask(...)`.
-- [ ] `PaintSession.ts` (`begin`, `move`, `end`): remove all three `clipSelectionForOffset` calls (lines 268, 335, 472). Route brush stamp through `drawBrushStampWithMask` when mask is active.
+CPU stroke buffer continues to build as-is (no stamp engine change). Clipping calls are removed; the mask is enforced at composite time in Phase 4. This phase is purely deletion — no new shader or pipeline.
+
+- [ ] `PaintSession.ts` (`begin`, `move`, `end`): remove all three `clipSelectionForOffset` calls (lines 268, 335, 472).
 - [ ] `HelperToolSession.ts`: remove `clipSelectionForOffset` calls (lines 181, 241).
 - [ ] Remove `clipSelectionForOffset` from `usePointerHandlers.ts` (lines 309, 409). Delete the function from `usePointerHandlerUtils.ts`. Delete `clipContextToSelectionMask` from `selectionMask.ts`.
 - [ ] Remove `clipSelectionForOffset` from `ToolContext` type (`tools/types.ts:156`) and from `buildToolContext.ts` (lines 119, 198).
-- [ ] Eraser: same pipeline, different blend equation.
-- [ ] Verify: brush/eraser respects selection boundary; symmetry/mirror parity correct.
+- [ ] Note: brush/eraser will paint outside selection until Phase 4 adds the GPU mask multiply — expected on a dev branch.
+- [ ] Verify: typecheck + lint clean; no runtime errors on brush stroke.
 
 ### Phase 4 — Post-stroke feather → GPU alpha multiply
 
@@ -88,10 +92,12 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 
 ### Phase 5 — Remaining tools
 
-- [ ] Pencil / blur / clone / flood fill: same GPU mask multiply contract as brush (Phase 3 pipeline or shared uniform).
+- [ ] Pencil: same GPU mask-multiply pass in composite path as brush (Phase 4).
+- [ ] Flood fill: writes directly to the layer canvas (not through PaintSession). Apply mask as a CPU multiply on the filled region before committing — same pattern as blur/clone dirty-rect multiply.
 - [ ] Gradient fill: render gradient into staging FBO → GPU mask-multiply blit (reuse Phase 4 pass). No CPU canvas readback.
 - [ ] Shape fill: same GPU blit approach.
-- [ ] Remove remaining `clipSelectionForOffset` calls from shape and gradient commit paths.
+- [ ] Remove remaining `clipSelectionForOffset` calls from `ShapeTool.ts:229` and gradient commit paths.
+- [ ] Blur / clone: these are CPU-bound (`getImageData` / `putImageData`). Apply mask as a CPU multiply on the result buffer before `putImageData` — same pattern as the old `applySelectionMaskAlpha` but scoped to dirty rect only. Not a hot path (no per-move call); acceptable.
 - [ ] Ctrl+C / cut: readback CPU `Selection.data` (already canonical) + GPU layer readback on copy action only — not a hot path, acceptable cost.
 
 ### Phase 6 — Cleanup
@@ -101,6 +107,13 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 - [ ] Run `npm run typecheck` + `npm run lint` — fix all errors.
 - [ ] Tests: mask parity (binary + feather pixel probes), ants visible at zoom extremes, brush/erase/gradient with selection.
 - [ ] `npm run test` sketch suite green.
+
+### Future (out of scope, keep in mind)
+
+- [ ] **Selection serialization**: Persist active selection in `sketch_data` for project export / reload parity. CPU array is already canonical so serialization is trivial when needed.
+- [ ] **Blur / clone GPU port**: Move `getImageData` / `putImageData` tools to GPU compute shaders if they become a measured bottleneck. No urgency — dirty-rect-scoped CPU multiply is fast enough at current canvas sizes.
+
+**Note — GPU brush stamps: not recommended.** Lazy assist (stroke stabilization) and painterly effects (wet mixing, color bleed between stamps) both require per-stamp CPU access to stroke state and canvas readback. Moving stamp generation to GPU would block these. The CPU-generates / GPU-composites split is the right architecture; the hot paths this refactor eliminates were the actual problem.
 
 ---
 

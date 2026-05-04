@@ -167,6 +167,7 @@ export function useEditorCommands({
     cancelActiveTool: () => canvasRef.current?.cancelActiveTool(),
     handleInvertLayerColors: canvasActions.handleInvertLayerColors,
     handleTransformCommit: canvasActions.handleTransformCommit,
+    handleCropCommit: canvasActions.handleCropCommit,
     handleTransformCancel: canvasActions.handleTransformCancel,
     handleTransformUndo: canvasActions.handleTransformUndo,
     handleTransformRedo: canvasActions.handleTransformRedo,

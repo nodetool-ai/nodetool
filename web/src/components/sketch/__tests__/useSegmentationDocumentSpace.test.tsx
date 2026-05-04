@@ -125,7 +125,8 @@ function createCanvasRef(layerData: string): React.RefObject<SketchCanvasRef | n
       drainPendingStrokeCommit: jest.fn(),
       getOverlayCanvas: jest.fn(),
       getPasteAnchorDocumentPoint: jest.fn(),
-      cancelActiveTool: jest.fn()
+      cancelActiveTool: jest.fn(),
+      commitPendingCrop: jest.fn()
     } as unknown as SketchCanvasRef
   };
 }

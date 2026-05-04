@@ -19,7 +19,7 @@ export {
 } from "./geometryEffectsPanels";
 export {
   AdjustmentsSettingsPanel,
-  CropSettingsMessage,
+  CropSettingsPanel,
   MoveSettingsPanel,
   NoSettingsMessage,
   TransformSettingsPanel

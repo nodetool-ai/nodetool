@@ -38,6 +38,7 @@ function makeParams(): UseEditorKeyboardShortcutsParams {
     resetColors: jest.fn(),
     togglePanelsHidden: jest.fn(),
     cancelActiveTool: jest.fn(),
+    handleCropCommit: jest.fn(),
     handleInvertLayerColors: jest.fn(),
     handleTransformCommit: jest.fn(),
     handleTransformCancel: jest.fn(),
@@ -177,5 +178,26 @@ describe("useEditorKeyboardShortcuts", () => {
     expect(event.defaultPrevented).toBe(true);
     expect(params.handleRepeatLastTransformOnCopy).toHaveBeenCalledTimes(1);
     expect(params.handleRepeatLastTransform).not.toHaveBeenCalled();
+  });
+
+  it("calls handleCropCommit on Enter when crop tool is active", () => {
+    const params = makeParams();
+    renderHook(() => useEditorKeyboardShortcuts(params));
+
+    act(() => {
+      useSketchStore.getState().setActiveTool("crop");
+    });
+
+    const event = new KeyboardEvent("keydown", {
+      key: "Enter",
+      bubbles: true,
+      cancelable: true
+    });
+    act(() => {
+      window.dispatchEvent(event);
+    });
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(params.handleCropCommit).toHaveBeenCalledTimes(1);
   });
 });

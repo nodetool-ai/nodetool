@@ -443,6 +443,66 @@ export function documentCanvasToClient(
 }
 
 /**
+ * Map a document canvas point (bitmap space 0…canvas dimensions) to gizmo–canvas
+ * device pixels. Mirrors {@link usePointerHandlerUtils}' `screenToCanvas`: uses the
+ * display canvas UV mapping when available, otherwise {@link documentCanvasToClient}.
+ *
+ * Use this when painting crop overlays on the gizmo layer so they align with
+ * pointer-derived document coordinates (see `screenToCanvas` in
+ * `usePointerHandlerUtils.ts`).
+ */
+export function canvasDocPointToGizmoDevicePixels(
+  docX: number,
+  docY: number,
+  docCanvasWidth: number,
+  docCanvasHeight: number,
+  zoom: number,
+  pan: Point,
+  displayCanvas: HTMLCanvasElement | null,
+  containerRect: ContainerRect,
+  dpr: number
+): Point {
+  let clientX: number;
+  let clientY: number;
+
+  if (displayCanvas) {
+    const rect = displayCanvas.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      clientX = rect.left + (docX / docCanvasWidth) * rect.width;
+      clientY = rect.top + (docY / docCanvasHeight) * rect.height;
+    } else {
+      const c = documentCanvasToClient(
+        docX,
+        docY,
+        containerRect,
+        zoom,
+        pan,
+        docCanvasWidth,
+        docCanvasHeight
+      );
+      clientX = c.x;
+      clientY = c.y;
+    }
+  } else {
+    const c = documentCanvasToClient(
+      docX,
+      docY,
+      containerRect,
+      zoom,
+      pan,
+      docCanvasWidth,
+      docCanvasHeight
+    );
+    clientX = c.x;
+    clientY = c.y;
+  }
+
+  const mx = clientX - containerRect.left;
+  const my = clientY - containerRect.top;
+  return { x: mx * dpr, y: my * dpr };
+}
+
+/**
  * Convert a document-space rect (AABB) to gizmo canvas pixel coordinates.
  */
 export function docRectToScreen(

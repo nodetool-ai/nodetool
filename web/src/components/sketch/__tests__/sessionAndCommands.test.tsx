@@ -107,6 +107,44 @@ describe("useEditorSession", () => {
     expect(result.current.interactionTool).toBe("move");
   });
 
+  it("does not spring-load move when activeTool is select", () => {
+    const { result } = renderHook(() =>
+      useEditorSession({
+        initialDocument: undefined,
+        onDocumentChange: undefined,
+        onExportImage: undefined,
+        onExportMask: undefined
+      })
+    );
+
+    act(() => {
+      useSketchStore.getState().setActiveTool("select");
+      useSketchStore.getState().setTransientMoveModifierHeld(true);
+    });
+
+    expect(result.current.activeTool).toBe("select");
+    expect(result.current.interactionTool).toBe("select");
+  });
+
+  it("does not spring-load move when activeTool is crop", () => {
+    const { result } = renderHook(() =>
+      useEditorSession({
+        initialDocument: undefined,
+        onDocumentChange: undefined,
+        onExportImage: undefined,
+        onExportMask: undefined
+      })
+    );
+
+    act(() => {
+      useSketchStore.getState().setActiveTool("crop");
+      useSketchStore.getState().setTransientMoveModifierHeld(true);
+    });
+
+    expect(result.current.activeTool).toBe("crop");
+    expect(result.current.interactionTool).toBe("crop");
+  });
+
   it("returns stable store bundle references across rerenders", () => {
     const { result, rerender } = renderHook(() =>
       useEditorSession({

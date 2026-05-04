@@ -100,6 +100,9 @@ export interface SketchToolTopBarProps {
   onTransformModeChange?: (mode: TransformMode) => void;
   moveAutoSelect?: boolean;
   onMoveAutoSelectChange?: (enabled: boolean) => void;
+  cropHasPendingRect?: boolean;
+  onCropApply?: () => void;
+  onCropCancelPreview?: () => void;
   segmentSettings?: SegmentSettings;
   onSegmentSettingsChange?: (settings: Partial<SegmentSettings>) => void;
   segmentationStatus?: SegmentationStatus;
@@ -158,6 +161,9 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   onTransformModeChange,
   moveAutoSelect,
   onMoveAutoSelectChange,
+  cropHasPendingRect,
+  onCropApply,
+  onCropCancelPreview,
   segmentSettings,
   onSegmentSettingsChange,
   segmentationStatus,
@@ -219,6 +225,9 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         onTransformModeChange={onTransformModeChange}
         moveAutoSelect={moveAutoSelect}
         onMoveAutoSelectChange={onMoveAutoSelectChange}
+        cropHasPendingRect={cropHasPendingRect}
+        onCropApply={onCropApply}
+        onCropCancelPreview={onCropCancelPreview}
         segmentSettings={segmentSettings}
         onSegmentSettingsChange={onSegmentSettingsChange}
         segmentationStatus={segmentationStatus}

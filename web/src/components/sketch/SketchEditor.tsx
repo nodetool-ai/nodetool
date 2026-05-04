@@ -137,6 +137,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           onRunSegmentation={commands.handleRunSegmentation}
           onClearSegmentPrompts={commands.handleClearSegmentPrompts}
           onCropCanvasToSelection={session.canvasActions.handleCropCanvasToSelection}
+          onCropCommit={session.canvasActions.handleCropCommit}
+          onCropCancelPreview={session.canvasActions.handleCropCancelPreview}
         />
 
         <Box

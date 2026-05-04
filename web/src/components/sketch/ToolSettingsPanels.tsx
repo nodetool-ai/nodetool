@@ -7,7 +7,7 @@ export {
   AdjustmentsSettingsPanel,
   BrushSettingsPanel,
   CloneStampSettingsPanel,
-  CropSettingsMessage,
+  CropSettingsPanel,
   EraserSettingsPanel,
   FillSettingsPanel,
   getToolSettingsLabel,

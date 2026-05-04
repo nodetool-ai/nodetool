@@ -23,6 +23,7 @@ import { getToolHandler } from "../tools";
 import { CloneStampTool } from "../tools/CloneStampTool";
 import { SelectTool } from "../tools/SelectTool";
 import { TransformTool } from "../tools/TransformTool";
+import { CropTool } from "../tools/CropTool";
 import { sampleColorHex } from "../tools/EyedropperTool";
 import type { ToolContext, ToolPointerEvent, StrokeEndOptions } from "../tools/types";
 import { buildToolContext } from "../tools/buildToolContext";
@@ -37,6 +38,7 @@ import {
   normalizePointerPressure,
   pointerHasPaintContact
 } from "../pointerPen";
+import { cursorStyleForTool } from "../sketchCursorStyle";
 
 /** Matches `useOverlayRenderer` brush-ring tools (software cursor).
  * @deprecated Prefer querying `handler.showsBrushCursor` from the tool handler. */
@@ -200,6 +202,8 @@ export interface UsePointerHandlersResult {
   selectStartRef: React.MutableRefObject<Point | null>;
   /** Cancel the active tool's in-progress operation (e.g. crop drag, transform). */
   cancelActiveTool: () => void;
+  /** Apply pending crop rectangle (crop tool). */
+  commitPendingCrop: () => void;
 }
 
 export function usePointerHandlers({
@@ -274,7 +278,9 @@ export function usePointerHandlers({
   const clearPanningCursor = useCallback(() => {
     const container = containerRef.current;
     if (container) {
-      container.style.cursor = "";
+      container.style.cursor = cursorStyleForTool(
+        interactionToolCursorRef.current
+      );
     }
   }, [containerRef]);
 
@@ -1018,6 +1024,13 @@ export function usePointerHandlers({
     handler.onCancel?.(toolCtxRef.current);
   }, [activeTool]);
 
+  const commitPendingCrop = useCallback(() => {
+    const crop = getToolHandler("crop");
+    if (crop instanceof CropTool) {
+      crop.commitPending(toolCtxRef.current);
+    }
+  }, []);
+
   return {
     handlePointerDown,
     handlePointerMove,
@@ -1031,6 +1044,7 @@ export function usePointerHandlers({
     shiftHeldRef,
     altHeldRef,
     selectStartRef,
-    cancelActiveTool
+    cancelActiveTool,
+    commitPendingCrop
   };
 }

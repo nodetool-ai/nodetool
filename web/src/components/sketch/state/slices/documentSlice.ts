@@ -49,6 +49,64 @@ function setLayerTransformInDocument(
   });
 }
 
+/** True if `layerId` is nested under `folderId` (direct or indirect child). */
+function isDescendantOfGroupFolder(
+  layers: Layer[],
+  layerId: string,
+  folderId: string
+): boolean {
+  let current: Layer | undefined = layers.find((l) => l.id === layerId);
+  let depth = 0;
+  while (current && depth++ < 20) {
+    const parentId = current.parentId;
+    if (!parentId) {
+      break;
+    }
+    if (parentId === folderId) {
+      return true;
+    }
+    current = layers.find((l) => l.id === parentId);
+  }
+  return false;
+}
+
+/**
+ * Where to splice a new layer: above the active layer in panel/stack order, with
+ * correct group membership. Higher flat-array index = visually higher.
+ */
+function computeNewLayerInsertion(
+  layers: Layer[],
+  activeLayerId: string | undefined
+): { insertAt: number; parentId: string | undefined } {
+  if (!activeLayerId) {
+    return { insertAt: layers.length, parentId: undefined };
+  }
+  const activeIdx = layers.findIndex((l) => l.id === activeLayerId);
+  const activeLayer = activeIdx >= 0 ? layers[activeIdx] : undefined;
+  if (!activeLayer) {
+    return { insertAt: layers.length, parentId: undefined };
+  }
+
+  if (activeLayer.type === "group") {
+    let subtreeEnd = activeIdx;
+    for (let i = activeIdx + 1; i < layers.length; i++) {
+      if (!isDescendantOfGroupFolder(layers, layers[i].id, activeLayer.id)) {
+        break;
+      }
+      subtreeEnd = i;
+    }
+    return {
+      insertAt: subtreeEnd + 1,
+      parentId: activeLayer.id
+    };
+  }
+
+  return {
+    insertAt: activeIdx + 1,
+    parentId: activeLayer.parentId ?? undefined
+  };
+}
+
 function offsetLayerTransformInDocument(
   document: SketchDocument,
   layerId: string,
@@ -181,18 +239,19 @@ export const createDocumentSlice: StateCreator<
 
   addLayer: (name?: string, type: "raster" | "mask" = "raster") => {
     const { width, height } = get().document.canvas;
-    const layer = createDefaultLayer(
-      name || `Layer ${get().document.layers.length + 1}`,
-      type,
-      width,
-      height
-    );
+    const baseName =
+      name || `Layer ${get().document.layers.length + 1}`;
+    const layerBase = createDefaultLayer(baseName, type, width, height);
+    const newLayerId = layerBase.id;
     set((state) => {
       const layers = state.document.layers;
-      const activeIdx = layers.findIndex(
-        (l) => l.id === state.document.activeLayerId
+      const { insertAt, parentId } = computeNewLayerInsertion(
+        layers,
+        state.document.activeLayerId
       );
-      const insertAt = activeIdx >= 0 ? activeIdx + 1 : layers.length;
+      const layer: Layer = parentId
+        ? { ...layerBase, parentId }
+        : layerBase;
       const newLayers = [
         ...layers.slice(0, insertAt),
         layer,
@@ -202,17 +261,17 @@ export const createDocumentSlice: StateCreator<
         document: {
           ...state.document,
           layers: newLayers,
-          activeLayerId: layer.id,
+          activeLayerId: newLayerId,
           metadata: {
             ...state.document.metadata,
             updatedAt: new Date().toISOString()
           }
         },
         selectedLayerIds: [],
-        layerShiftRangeAnchorId: layer.id
+        layerShiftRangeAnchorId: newLayerId
       };
     });
-    return layer.id;
+    return newLayerId;
   },
 
   removeLayer: (layerId: string) =>

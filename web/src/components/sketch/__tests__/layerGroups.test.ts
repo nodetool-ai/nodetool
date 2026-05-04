@@ -275,6 +275,79 @@ describe("Store: addGroup", () => {
   });
 });
 
+describe("Store: addLayer placement relative to active layer", () => {
+  it("when active is an empty group, new layer is a direct child of that group", () => {
+    let groupId: string;
+    let childId: string;
+    act(() => {
+      groupId = useSketchStore.getState().addGroup("Folder");
+    });
+    act(() => {
+      childId = useSketchStore.getState().addLayer("Inside");
+    });
+    const layers = useSketchStore.getState().document.layers;
+    const groupIdx = layers.findIndex((l) => l.id === groupId!);
+    const child = layers.find((l) => l.id === childId!);
+    expect(child?.parentId).toBe(groupId!);
+    expect(layers.indexOf(child!)).toBe(groupIdx + 1);
+  });
+
+  it("when active is a raster inside a group, new layer is sibling above (higher index)", () => {
+    let groupId: string;
+    act(() => {
+      groupId = useSketchStore.getState().addGroup("Folder");
+    });
+    const bgId = useSketchStore.getState().document.layers[0].id;
+    act(() => {
+      useSketchStore.getState().moveLayerToGroup(bgId, groupId!);
+    });
+    act(() => {
+      useSketchStore.getState().setActiveLayer(bgId);
+    });
+    let newId: string;
+    act(() => {
+      newId = useSketchStore.getState().addLayer("Above BG");
+    });
+    const layers = useSketchStore.getState().document.layers;
+    const bgIdx = layers.findIndex((l) => l.id === bgId);
+    const newIdx = layers.findIndex((l) => l.id === newId!);
+    const added = layers.find((l) => l.id === newId!);
+    expect(added?.parentId).toBe(groupId!);
+    expect(newIdx).toBe(bgIdx + 1);
+  });
+
+  it("when active group has nested content, new layer is appended after subtree as direct child", () => {
+    let groupId: string;
+    let subgroupId: string;
+    act(() => {
+      groupId = useSketchStore.getState().addGroup("Outer");
+    });
+    const bgId = useSketchStore.getState().document.layers[0].id;
+    act(() => {
+      useSketchStore.getState().moveLayerToGroup(bgId, groupId!);
+    });
+    act(() => {
+      subgroupId = useSketchStore.getState().addGroup("Inner");
+    });
+    act(() => {
+      useSketchStore.getState().moveLayerToGroup(subgroupId!, groupId!);
+    });
+    act(() => {
+      useSketchStore.getState().setActiveLayer(groupId!);
+    });
+    let newId: string;
+    act(() => {
+      newId = useSketchStore.getState().addLayer("Top of folder");
+    });
+    const layers = useSketchStore.getState().document.layers;
+    const newIdx = layers.findIndex((l) => l.id === newId!);
+    const innerIdx = layers.findIndex((l) => l.id === subgroupId!);
+    const added = layers.find((l) => l.id === newId!);
+    expect(added?.parentId).toBe(groupId!);
+    expect(newIdx).toBeGreaterThan(innerIdx);
+  });
+});
+
 describe("Store: toggleGroupCollapsed", () => {
   it("toggles collapsed state of a group", () => {
     let groupId: string;

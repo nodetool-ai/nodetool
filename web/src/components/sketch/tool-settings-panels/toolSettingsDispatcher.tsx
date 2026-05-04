@@ -18,7 +18,7 @@ import type {
 import type { SamModelInfo } from "../sam";
 import {
   AdjustmentsSettingsPanel,
-  CropSettingsMessage,
+  CropSettingsPanel,
   MoveSettingsPanel,
   NoSettingsMessage,
   TransformSettingsPanel
@@ -85,6 +85,9 @@ export interface ToolSettingsPanelProps {
   transformMode?: TransformMode;
   onTransformAutoSelectChange?: (enabled: boolean) => void;
   onTransformModeChange?: (mode: TransformMode) => void;
+  cropHasPendingRect?: boolean;
+  onCropApply?: () => void;
+  onCropCancelPreview?: () => void;
   segmentSettings?: SegmentSettings;
   onSegmentSettingsChange?: (settings: Partial<SegmentSettings>) => void;
   segmentationStatus?: SegmentationStatus;
@@ -143,6 +146,9 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   transformMode,
   onTransformAutoSelectChange,
   onTransformModeChange,
+  cropHasPendingRect,
+  onCropApply,
+  onCropCancelPreview,
   segmentSettings,
   onSegmentSettingsChange,
   segmentationStatus,
@@ -229,7 +235,13 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
     );
   }
   if (activeTool === "crop") {
-    return <CropSettingsMessage />;
+    return (
+      <CropSettingsPanel
+        hasPendingCrop={cropHasPendingRect ?? false}
+        onApply={onCropApply ?? noop}
+        onCancel={onCropCancelPreview ?? noop}
+      />
+    );
   }
   if (activeTool === "clone_stamp") {
     return (

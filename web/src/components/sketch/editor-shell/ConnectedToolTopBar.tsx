@@ -29,12 +29,15 @@ export interface ConnectedToolTopBarProps {
   onRunSegmentation: () => void;
   onClearSegmentPrompts: () => void;
   onCropCanvasToSelection: () => void;
+  onCropCommit: () => void;
+  onCropCancelPreview: () => void;
 }
 
 export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
   props: ConnectedToolTopBarProps
 ) {
   const activeTool = useSketchStore((s) => s.activeTool);
+  const cropPreviewBounds = useSketchStore((s) => s.cropPreviewBounds);
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
   const toolSettings = useResolvedToolSettings();
@@ -120,6 +123,11 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
       onMoveAutoSelectChange={(enabled: boolean) =>
         setMoveSettings({ autoSelect: enabled })
       }
+      cropHasPendingRect={
+        activeTool === "crop" && cropPreviewBounds !== null
+      }
+      onCropApply={props.onCropCommit}
+      onCropCancelPreview={props.onCropCancelPreview}
       segmentSettings={toolSettings.segment}
       onSegmentSettingsChange={setSegmentSettings}
       segmentationStatus={props.segmentation.status}

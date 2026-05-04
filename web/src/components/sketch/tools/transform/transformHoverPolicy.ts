@@ -14,6 +14,7 @@
 
 import type { ToolContext } from "../types";
 import type { Point, LayerTransform, LayerContentBounds } from "../../types";
+import { cursorStyleForTool } from "../../sketchCursorStyle";
 import type { TransformHandle } from "./handleGeometry";
 import { hitTestHandles, isInRotateZone } from "./handleGeometry";
 import { cursorForHandle } from "./cursorMapping";
@@ -67,6 +68,6 @@ export function applyCursorFeedback(
 ): void {
   const el = ctx.containerRef.current;
   if (el) {
-    el.style.cursor = cursor ?? "default";
+    el.style.cursor = cursor ?? cursorStyleForTool(ctx.activeTool);
   }
 }

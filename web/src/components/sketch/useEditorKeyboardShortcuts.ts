@@ -118,6 +118,8 @@ export interface UseEditorKeyboardShortcutsParams {
   handleInvertLayerColors: () => void;
   /** Commit the current transform (bake into pixels). */
   handleTransformCommit?: () => void;
+  /** Apply pending crop rectangle (crop tool). */
+  handleCropCommit?: () => void;
   /** Cancel the current transform (restore original). */
   handleTransformCancel?: () => void;
   /** Undo the last handle adjustment while still in transform mode. */
@@ -445,6 +447,9 @@ export function useEditorKeyboardShortcuts(
                 // Commit the current transform (bake into pixels)
                 paramsRef.current.handleTransformCommit?.();
                 paramsRef.current.setActiveTool("move");
+              } else if (currentTool === "crop") {
+                e.preventDefault();
+                paramsRef.current.handleCropCommit?.();
               }
               break;
             }

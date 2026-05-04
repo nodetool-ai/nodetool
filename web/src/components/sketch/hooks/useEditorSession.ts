@@ -70,7 +70,10 @@ export function useEditorSession({
 
   const interactionTool = useMemo<SketchTool>(
     () =>
-      transientMoveModifierHeld && activeTool !== "move"
+      transientMoveModifierHeld &&
+      activeTool !== "move" &&
+      activeTool !== "select" &&
+      activeTool !== "crop"
         ? "move"
         : activeTool,
     [transientMoveModifierHeld, activeTool]

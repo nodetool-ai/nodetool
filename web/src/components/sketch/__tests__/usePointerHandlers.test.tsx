@@ -112,7 +112,7 @@ describe("usePointerHandlers", () => {
       } as unknown as React.PointerEvent);
     });
 
-    expect(params.containerRef.current?.style.cursor).toBe("");
+    expect(params.containerRef.current?.style.cursor).toBe("none");
   });
 
   it("re-syncs TransformTool state when the active layer changes while transform stays active", () => {

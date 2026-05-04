@@ -284,10 +284,45 @@ export const NoSettingsMessage = memo(function NoSettingsMessage() {
   );
 });
 
-export const CropSettingsMessage = memo(function CropSettingsMessage() {
+export const CropSettingsPanel = memo(function CropSettingsPanel({
+  hasPendingCrop,
+  onApply,
+  onCancel
+}: {
+  hasPendingCrop: boolean;
+  onApply: () => void;
+  onCancel: () => void;
+}) {
   return (
-    <Typography sx={{ ...sketchHintTextSx }}>
-      Drag on canvas to select crop area.
-    </Typography>
+    <>
+      <Typography sx={{ ...sketchHintTextSx }}>
+        Drag to outline the crop. Drag edges or corners to adjust. Press Enter
+        or Apply to crop the canvas.
+      </Typography>
+      <Box sx={{ display: "flex", gap: "2px", ml: 1 }}>
+        <Tooltip title="Apply crop (Enter)" placement="bottom">
+          <IconButton
+            size="small"
+            color="success"
+            disabled={!hasPendingCrop}
+            onClick={onApply}
+            sx={{ padding: "3px" }}
+          >
+            <CheckIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Cancel crop preview (Esc)" placement="bottom">
+          <IconButton
+            size="small"
+            color="error"
+            disabled={!hasPendingCrop}
+            onClick={onCancel}
+            sx={{ padding: "3px" }}
+          >
+            <CloseIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+    </>
   );
 });

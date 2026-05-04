@@ -112,6 +112,8 @@ export interface SketchCanvasRef {
   getPasteAnchorDocumentPoint: () => Point | null;
   /** Cancel the active tool's in-progress operation (e.g. crop drag, transform). */
   cancelActiveTool: () => void;
+  /** Apply pending crop (crop tool — Enter / Apply). */
+  commitPendingCrop: () => void;
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -350,7 +352,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       drainPendingStrokeCommit: compositing.drainPendingStrokeCommit,
       zoom,
       lastPointerClientRef,
-      cancelActiveTool: pointerHandlers.cancelActiveTool
+      cancelActiveTool: pointerHandlers.cancelActiveTool,
+      commitPendingCrop: pointerHandlers.commitPendingCrop
     });
 
     // ─── Redraw cursor when tool settings change ──────────────────────

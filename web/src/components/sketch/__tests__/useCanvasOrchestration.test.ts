@@ -57,7 +57,8 @@ const mockPointerHandlers = {
   shiftHeldRef: { current: false },
   altHeldRef: { current: false },
   selectStartRef: { current: null },
-  cancelActiveTool: jest.fn()
+  cancelActiveTool: jest.fn(),
+  commitPendingCrop: jest.fn()
 };
 
 jest.mock("../sketchCanvasHooks", () => {

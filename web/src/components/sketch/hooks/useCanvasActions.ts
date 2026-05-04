@@ -148,6 +148,14 @@ export function useCanvasActions({
     syncSketchOutputsNow: exportSync.syncSketchOutputsNow
   });
 
+  const handleCropCommit = useCallback(() => {
+    canvasRef.current?.commitPendingCrop();
+  }, [canvasRef]);
+
+  const handleCropCancelPreview = useCallback(() => {
+    canvasRef.current?.cancelActiveTool();
+  }, [canvasRef]);
+
   // ─── Load layer alpha as selection mask ────────────────────────
   const handleLoadLayerAsSelection = useCallback((layerId: string) => {
     const layer = document.layers.find((l) => l.id === layerId);
@@ -204,6 +212,8 @@ export function useCanvasActions({
     handleZoomOut: geometryActions.handleZoomOut,
     handleZoomReset: geometryActions.handleZoomReset,
     handleCropComplete: geometryActions.handleCropComplete,
+    handleCropCommit,
+    handleCropCancelPreview,
     handleCropCanvasToActiveLayerVisiblePixels:
       geometryActions.handleCropCanvasToActiveLayerVisiblePixels,
     handleCropCanvasToActiveLayerExtents:
