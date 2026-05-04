@@ -215,6 +215,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         onCanvasResizeHandlesEnabledChange={
           session.handleCanvasResizeHandlesEnabledChange
         }
+        onLoadLayerAsSelection={session.canvasActions.handleLoadLayerAsSelection}
       />
 
       <ConnectedContextMenu

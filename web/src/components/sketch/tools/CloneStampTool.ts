@@ -7,7 +7,7 @@
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import ControlPointDuplicateIcon from "@mui/icons-material/ControlPointDuplicate";
 import {
   getAncestorGroupOpacityProduct,
   isLayerCompositeVisible,
@@ -222,6 +222,6 @@ export const definition: ToolDefinition = {
   tool: "clone_stamp",
   label: "Clone Stamp",
   shortcut: "S",
-  Icon: ContentCopyIcon,
+  Icon: ControlPointDuplicateIcon,
   group: "painting"
 };

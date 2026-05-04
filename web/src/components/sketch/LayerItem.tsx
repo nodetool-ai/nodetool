@@ -61,6 +61,7 @@ export interface LayerItemProps {
   onToggleExposedInput: (layerId: string) => void;
   onToggleExposedOutput: (layerId: string) => void;
   onContextMenu: (e: React.MouseEvent, layerId: string) => void;
+  onThumbnailCtrlClick?: (layerId: string) => void;
   onStartRename: (layerId: string, currentName: string) => void;
   onFinishRename: (layerId: string) => void;
   onEditNameChange: (value: string) => void;
@@ -92,6 +93,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
   onToggleExposedInput: _onToggleExposedInput,
   onToggleExposedOutput: _onToggleExposedOutput,
   onContextMenu,
+  onThumbnailCtrlClick,
   onStartRename,
   onFinishRename,
   onEditNameChange,
@@ -190,6 +192,12 @@ const LayerItem: React.FC<LayerItemProps> = ({
             src={thumbnailSrc}
             alt={layer.name}
             draggable={false}
+            onClick={(e) => {
+              if (e.ctrlKey || e.metaKey) {
+                e.stopPropagation();
+                onThumbnailCtrlClick?.(layer.id);
+              }
+            }}
           />
         ) : (
           <Box className="layer-thumbnail-empty" />

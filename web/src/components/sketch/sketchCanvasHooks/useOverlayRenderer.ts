@@ -21,6 +21,7 @@ import {
   drawPixelGrid,
   PENCIL_PIXEL_CURSOR_MIN_ZOOM
 } from "../drawingUtils";
+import { SKETCH_FULL_OPACITY_THRESHOLD } from "../painting/strokeRendering";
 import {
   clientToDocumentCanvas,
   documentCanvasToClient
@@ -568,6 +569,15 @@ export function useOverlayRenderer({
           // Show the approximate 25% opacity contour as the cursor edge
           hardnessScale = innerStop + (1 - innerStop) * 0.5;
         }
+        // At size ≤ 1.25 with full opacity the stroke snaps each dab to an integer pixel;
+        // show the same pixel-aligned square cursor so cursor and ink land at the same spot.
+        if (
+          size <= 1.25 &&
+          doc.toolSettings.brush.opacity >= SKETCH_FULL_OPACITY_THRESHOLD &&
+          zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM
+        ) {
+          isPencilHighZoom = true;
+        }
       } else if (interactionTool === "pencil") {
         size = doc.toolSettings.pencil.size;
         isPencilHighZoom = zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM;
@@ -596,6 +606,15 @@ export function useOverlayRenderer({
           if (effectiveHardness < 0.999) {
             const innerStop = Math.max(0, Math.min(1, effectiveHardness * 0.85 + 0.1));
             hardnessScale = innerStop + (1 - innerStop) * 0.5;
+          }
+        } else {
+          // Pencil-mode eraser snaps dabs to integer pixels for size ≤ 1.25.
+          if (
+            size <= 1.25 &&
+            eraser.opacity >= SKETCH_FULL_OPACITY_THRESHOLD &&
+            zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM
+          ) {
+            isPencilHighZoom = true;
           }
         }
       }

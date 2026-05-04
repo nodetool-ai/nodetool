@@ -43,6 +43,7 @@ export interface ConnectedLayersPanelProps {
   onDeleteSelectedLayers: () => void;
   canvasResizeHandlesEnabled: boolean;
   onCanvasResizeHandlesEnabledChange: (enabled: boolean) => void;
+  onLoadLayerAsSelection: (layerId: string) => void;
 }
 
 export const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
@@ -123,6 +124,7 @@ export const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
       onGroupSelectedLayers={props.onGroupSelectedLayers}
       onMergeSelectedLayers={props.onMergeSelectedLayers}
       onDeleteSelectedLayers={props.onDeleteSelectedLayers}
+      onLoadLayerAsSelection={props.onLoadLayerAsSelection}
     />
   );
 });

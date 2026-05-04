@@ -55,7 +55,7 @@ import type {
   TransformMode
 } from "../types";
 import { layerAllowsTransformWhilePixelLocked } from "../types";
-import TransformIcon from "@mui/icons-material/Transform";
+import AspectRatioIcon from "@mui/icons-material/AspectRatio";
 import {
   getTransformedCenter,
   getTransformedCorners
@@ -246,7 +246,8 @@ export class TransformTool implements ToolHandler {
     if (handle === "move") {
       const storeSettings = useSketchStore.getState().toolSettings;
       const autoSelect = storeSettings?.transform?.autoSelect ?? true;
-      if (autoSelect) {
+      // Only auto-select a different layer when there is no active selection mask
+      if (autoSelect && !ctx.selection) {
         const picked = this.peekAutoSelectPick(ctx, pt);
         if (picked && picked.id !== doc.activeLayerId) {
           this.tryAutoSelectPick(ctx, event, picked);
@@ -260,7 +261,8 @@ export class TransformTool implements ToolHandler {
     if (!handle) {
       const storeSettings = useSketchStore.getState().toolSettings;
       const autoSelect = storeSettings?.transform?.autoSelect ?? true;
-      if (autoSelect) {
+      // Only auto-select a different layer when there is no active selection mask
+      if (autoSelect && !ctx.selection) {
         const picked = this.tryAutoSelectPick(ctx, event);
         if (picked) {
           return false; // Layer retargeted, no drag started
@@ -270,6 +272,10 @@ export class TransformTool implements ToolHandler {
       if (isInRotateZone(currentTransform, this.rasterBounds, pt, ctx.zoom)) {
         handle = "rotate";
       } else {
+        // Click outside the gizmo: clear any active selection
+        if (ctx.selection) {
+          ctx.onSelectionChange?.(null);
+        }
         return false;
       }
     }
@@ -732,6 +738,6 @@ export const definition: ToolDefinition = {
   tool: "transform",
   label: "Transform",
   shortcut: "F",
-  Icon: TransformIcon,
+  Icon: AspectRatioIcon,
   group: "painting"
 };

@@ -33,6 +33,7 @@ function makeParams(): UseEditorKeyboardShortcutsParams {
     setShapeSettings: jest.fn(),
     setBlurSettings: jest.fn(),
     setCloneStampSettings: jest.fn(),
+    setSelectSettings: jest.fn(),
     swapColors: jest.fn(),
     resetColors: jest.fn(),
     togglePanelsHidden: jest.fn(),

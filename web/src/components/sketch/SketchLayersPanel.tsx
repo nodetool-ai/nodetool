@@ -387,6 +387,7 @@ export interface SketchLayersPanelProps {
   onGroupSelectedLayers: () => void;
   onMergeSelectedLayers: () => void;
   onDeleteSelectedLayers: () => void;
+  onLoadLayerAsSelection?: (layerId: string) => void;
 }
 
 const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
@@ -432,7 +433,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onUngroupLayer,
   onGroupSelectedLayers,
   onMergeSelectedLayers,
-  onDeleteSelectedLayers
+  onDeleteSelectedLayers,
+  onLoadLayerAsSelection
 }) => {
   const theme = useTheme();
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
@@ -1183,6 +1185,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               onToggleExposedInput={onToggleExposedInput}
               onToggleExposedOutput={onToggleExposedOutput}
               onContextMenu={handleLayerContextMenu}
+              onThumbnailCtrlClick={onLoadLayerAsSelection}
               onStartRename={handleStartRename}
               onFinishRename={handleFinishRename}
               onEditNameChange={handleEditNameChange}

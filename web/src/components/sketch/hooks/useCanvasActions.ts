@@ -47,6 +47,8 @@ import { useExportSyncActions } from "./useExportSyncActions";
 import { useStrokeLifecycleActions } from "./useStrokeLifecycleActions";
 import { useTransformActions } from "./useTransformActions";
 import { useCanvasGeometryActions } from "./useCanvasGeometryActions";
+import { getLayerCompositeOffset } from "../painting/layerBounds";
+import { useSketchStore } from "../state";
 
 export interface UseCanvasActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
@@ -146,6 +148,37 @@ export function useCanvasActions({
     syncSketchOutputsNow: exportSync.syncSketchOutputsNow
   });
 
+  // ─── Load layer alpha as selection mask ────────────────────────
+  const handleLoadLayerAsSelection = useCallback((layerId: string) => {
+    const layer = document.layers.find((l) => l.id === layerId);
+    if (!layer || layer.type === "group") return;
+    const snapshot = canvasRef.current?.snapshotLayerCanvas(layerId);
+    if (!snapshot) return;
+
+    const tmpCtx = snapshot.getContext("2d", { willReadFrequently: true });
+    if (!tmpCtx) return;
+
+    const { width: docW, height: docH } = document.canvas;
+    const offset = getLayerCompositeOffset(layer, { width: snapshot.width, height: snapshot.height }, snapshot);
+    const imgData = tmpCtx.getImageData(0, 0, snapshot.width, snapshot.height);
+    const selData = new Uint8ClampedArray(docW * docH);
+
+    for (let py = 0; py < snapshot.height; py++) {
+      for (let px = 0; px < snapshot.width; px++) {
+        const alpha = imgData.data[(py * snapshot.width + px) * 4 + 3];
+        if (alpha > 0) {
+          const docX = Math.round(px + offset.x);
+          const docY = Math.round(py + offset.y);
+          if (docX >= 0 && docX < docW && docY >= 0 && docY < docH) {
+            selData[docY * docW + docX] = alpha;
+          }
+        }
+      }
+    }
+
+    useSketchStore.getState().setSelection({ width: docW, height: docH, data: selData });
+  }, [document, canvasRef]);
+
   // ─── Combined flush (stroke finalization + export sync) ─────────
   const flushPendingCanvasSync = useCallback(() => {
     strokeLifecycle.flushPendingStrokeFinalization();
@@ -206,6 +239,7 @@ export function useCanvasActions({
     handleTransformFlipV: transformActions.handleTransformFlipV,
     handleRepeatLastTransform: transformActions.handleRepeatLastTransform,
     handleRepeatLastTransformOnCopy:
-      transformActions.handleRepeatLastTransformOnCopy
+      transformActions.handleRepeatLastTransformOnCopy,
+    handleLoadLayerAsSelection
   };
 }
