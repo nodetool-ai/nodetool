@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "packages/timeline" },
     { "path": "packages/protocol" },
     { "path": "packages/config" },
     { "path": "packages/auth" },

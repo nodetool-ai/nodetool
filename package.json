@@ -2,6 +2,7 @@
   "name": "nodetool",
   "private": true,
   "workspaces": [
+    "packages/timeline",
     "packages/protocol",
     "packages/kernel",
     "packages/runtime",
