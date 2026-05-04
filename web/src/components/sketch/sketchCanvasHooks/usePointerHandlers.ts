@@ -313,7 +313,6 @@ export function usePointerHandlers({
   const {
     screenToCanvas,
     withMirror,
-    clipSelectionForOffset,
     drawActiveStrokePreview
   } = usePointerHandlerUtils({
     zoom,
@@ -413,7 +412,6 @@ export function usePointerHandlers({
     shiftHeldRef,
     altHeldRef,
     withMirror,
-    clipSelectionForOffset,
     foregroundColor,
     setLayerTransformPreview,
     clearLayerTransformPreview,

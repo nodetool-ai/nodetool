@@ -152,12 +152,6 @@ export interface ToolContext {
     to: Point
   ) => void;
 
-  // ── Selection clipping ───────────────────────────────────────────────
-  clipSelectionForOffset: (
-    ctx: CanvasRenderingContext2D,
-    offset: Point
-  ) => boolean;
-
   // ── Foreground color ───────────────────────────────────────────────
   foregroundColor?: string;
 

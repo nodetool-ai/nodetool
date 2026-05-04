@@ -983,58 +983,6 @@ export function drawSelectionPolylineOutline(
 }
 
 
-/**
- * Clip layer-space context to document selection.
- * Uses `> 0` threshold so feathered edges (values 1–254) are included in the
- * clip region.  The actual alpha modulation for feathered edges happens at
- * stroke commit time via `applySelectionMaskAlpha`.
- */
-export function clipContextToSelectionMask(
-  ctx: CanvasRenderingContext2D,
-  mask: Selection,
-  offsetX: number,
-  offsetY: number
-): void {
-  const lw = ctx.canvas.width;
-  const lh = ctx.canvas.height;
-  const { width: mw, height: mh, data } = mask;
-  const mox = mask.originX ?? 0;
-  const moy = mask.originY ?? 0;
-  ctx.save();
-  ctx.beginPath();
-  for (let ly = 0; ly < lh; ly++) {
-    const docY = ly + offsetY;
-    const by = docY - moy;
-    if (by < 0 || by >= mh) {
-      continue;
-    }
-    const rowOff = by * mw;
-    let lx = 0;
-    while (lx < lw) {
-      const docX = lx + offsetX;
-      const bx = docX - mox;
-      if (bx < 0 || bx >= mw) {
-        lx++;
-        continue;
-      }
-      if (data[rowOff + bx] === 0) {
-        lx++;
-        continue;
-      }
-      let lx2 = lx + 1;
-      while (lx2 < lw) {
-        const ddx = lx2 + offsetX - mox;
-        if (ddx >= mw || data[rowOff + ddx] === 0) {
-          break;
-        }
-        lx2++;
-      }
-      ctx.rect(lx, ly, lx2 - lx, 1);
-      lx = lx2;
-    }
-  }
-  ctx.clip();
-}
 
 /**
  * Modulate canvas pixel alpha by the selection mask.

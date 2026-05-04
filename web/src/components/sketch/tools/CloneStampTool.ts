@@ -38,8 +38,7 @@ export class CloneStampTool implements ToolHandler {
   private session = new HelperToolSession({
     onSetup: (ctx, info) => this.handleSetup(ctx, info),
     onDraw: (info) => this.handleDraw(info),
-    onTeardown: () => this.handleTeardown(),
-    useSelectionClipOnMove: true
+    onTeardown: () => this.handleTeardown()
   });
 
   // ── Helpers ───────────────────────────────────────────────────────────

@@ -115,12 +115,6 @@ export interface BuildToolContextParams {
     to: Point
   ) => void;
 
-  // ── Selection clipping ──
-  clipSelectionForOffset: (
-    ctx: CanvasRenderingContext2D,
-    offset: Point
-  ) => boolean;
-
   // ── Transform preview ──
   setLayerTransformPreview?: (layerId: string, transform: LayerTransform) => void;
   clearLayerTransformPreview?: (layerId?: string) => void;
@@ -195,7 +189,6 @@ export function buildToolContext(params: BuildToolContextParams): ToolContext {
     shiftHeldRef: params.shiftHeldRef,
     altHeldRef: params.altHeldRef,
     withMirror: params.withMirror,
-    clipSelectionForOffset: params.clipSelectionForOffset,
     foregroundColor: params.foregroundColor,
     setLayerTransformPreview: params.setLayerTransformPreview,
     clearLayerTransformPreview: params.clearLayerTransformPreview,

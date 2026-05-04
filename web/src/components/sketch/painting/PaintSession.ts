@@ -265,7 +265,6 @@ export class PaintSession {
     }
 
     const offset = this.mapper.offset;
-    const hasSelClip = ctx.clipSelectionForOffset(paintCtx, offset);
 
     // ── Shift+click: straight line from last stroke end ──────────────
     if (ctx.shiftHeldRef.current && this.lastStrokeEnd) {
@@ -292,10 +291,6 @@ export class PaintSession {
           localPt
         );
       }
-    }
-
-    if (hasSelClip) {
-      paintCtx.restore();
     }
 
     // For direct mode, notify runtime that layer pixels changed
@@ -332,7 +327,6 @@ export class PaintSession {
     }
 
     const offset = this.mapper.offset;
-    const hasSelClip = ctx.clipSelectionForOffset(paintCtx, offset);
 
     const useShiftRubber =
       ctx.shiftHeldRef.current &&
@@ -368,9 +362,6 @@ export class PaintSession {
           const to = this.mapper.docToLayer(pt);
           this.drawStraightLine(ctx, bctx, from, to);
           this.lastPoint = pt;
-        }
-        if (hasSelClip) {
-          paintCtx.restore();
         }
         this.syncActiveStrokeSelectionPreview(ctx);
         ctx.requestRedraw();
@@ -425,10 +416,6 @@ export class PaintSession {
       this.lastPoint = pt;
     }
 
-    if (hasSelClip) {
-      paintCtx.restore();
-    }
-
     // For direct mode, notify runtime that layer pixels changed
     if (this.engine.bufferMode === "direct") {
       ctx.invalidateLayer?.(this.layer.id);
@@ -469,7 +456,6 @@ export class PaintSession {
       const bufferCtx = activeStroke.buffer.getContext("2d");
       if (bufferCtx) {
         const offset = this.mapper.offset;
-        const hasSelClip = ctx.clipSelectionForOffset(bufferCtx, offset);
         ctx.withMirror(
           bufferCtx,
           (f, t, c, branchIdx) =>
@@ -483,9 +469,6 @@ export class PaintSession {
           localPt,
           localPt
         );
-        if (hasSelClip) {
-          bufferCtx.restore();
-        }
       }
     }
 

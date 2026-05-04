@@ -71,13 +71,13 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 
 **Move-drag known regression (Phase 2b):** During a selection-move drag, `SelectTool` updates `selectionMoveAntsRef` (not the store). GPU ants will show original `originX/Y` until move is committed. Fix in Phase 2b below.
 
-- [ ] Add `SELECTION_ANTS_FRAGMENT` to `shaders.ts`: `docPos = uv * canvasSize`, `maskCoord = floor(docPos - maskOrigin)`, 4-neighbor edge detect (out-of-bounds = 0), animated dashes via `phase: f32`. Reuse `FULLSCREEN_QUAD_VERTEX`. No sampler — use `textureLoad`.
-- [ ] Add `selectionAntsPipeline` (6th pipeline) + `selectionAntsBindGroupLayout` to `WebGPURuntime`. Add `antsPhase: number = 0` and `onNeedsRedraw?: () => void` public fields. Add private `drawSelectionAnts(encoder, targetView, W, H)`.
-- [ ] In `compositeToDisplay`: after the blit pass, if `maskTexture && currentSelection`, increment `antsPhase`, call `drawSelectionAnts` on swapChain view (`loadOp: "load"`), then call `onNeedsRedraw?.()`.
-- [ ] Wire `onNeedsRedraw` in `useCanvasOrchestration`: `(compositing.runtime as {onNeedsRedraw?: () => void}).onNeedsRedraw = compositing.requestRedraw`.
-- [ ] Delete from `useOverlayRenderer.ts`: `antsPhaseRef`, `outlinePathScratchRef`, `setInterval` ants loop (lines 330–349). Remove `createSelectionOutlinePathCacheScratch`, `drawSelectionOutlinePath`, `getOrRebuildSelectionOutlinePath`, `invalidateSelectionOutlinePathCache` from imports and all callsites. Remove `selectionMoveAntsRef` from `UseOverlayRendererParams` and hook internals.
-- [ ] Delete from `selectionMask.ts`: `buildSelectionMaskOutlinePath`, `drawSelectionOutlinePath`, `getOrRebuildSelectionOutlinePath`, `SelectionOutlinePathCacheScratch`, `invalidateSelectionOutlinePathCache`.
-- [ ] Rect/ellipse/lasso live-preview outlines (not committed mask) stay CPU-drawn — they are not hot paths.
+- [x] Add `SELECTION_ANTS_FRAGMENT` to `shaders.ts`: `docPos = uv * canvasSize`, `maskCoord = floor(docPos - maskOrigin)`, 4-neighbor edge detect (out-of-bounds = 0), animated dashes via `phase: f32`. Reuse `FULLSCREEN_QUAD_VERTEX`. No sampler — use `textureLoad`.
+- [x] Add `selectionAntsPipeline` (6th pipeline) + `selectionAntsBindGroupLayout` to `WebGPURuntime`. Add `antsPhase: number = 0` and `onNeedsRedraw?: () => void` public fields. Add private `drawSelectionAnts(encoder, targetView, W, H)`.
+- [x] In `compositeToDisplay`: after the blit pass, if `maskTexture && currentSelection`, increment `antsPhase`, call `drawSelectionAnts` on swapChain view (`loadOp: "load"`), then call `onNeedsRedraw?.()`.
+- [x] Wire `onNeedsRedraw` in `useCanvasOrchestration`: `(compositing.runtime as {onNeedsRedraw?: () => void}).onNeedsRedraw = compositing.requestRedraw`.
+- [x] Delete from `useOverlayRenderer.ts`: `antsPhaseRef`, `outlinePathScratchRef`, `setInterval` ants loop. Remove `createSelectionOutlinePathCacheScratch`, `drawSelectionOutlinePath`, `getOrRebuildSelectionOutlinePath`, `invalidateSelectionOutlinePathCache` from imports and all callsites. Remove `selectionMoveAntsRef` from `UseOverlayRendererParams` and hook internals.
+- [x] Delete from `selectionMask.ts`: `buildSelectionMaskOutlinePath`, `drawSelectionOutlinePath`, `getOrRebuildSelectionOutlinePath`, `SelectionOutlinePathCacheScratch`, `invalidateSelectionOutlinePathCache`, `createSelectionOutlinePathCacheScratch`, `drawSelectionMaskOutline`.
+- [x] Rect/ellipse/lasso live-preview outlines (not committed mask) stay CPU-drawn — they are not hot paths.
 - [ ] Verify: ants render correctly at various zoom levels; ants appear at canvas boundary; ants render outside canvas when selection extends beyond doc bounds.
 
 ### Phase 2b — Selection move drag with GPU ants

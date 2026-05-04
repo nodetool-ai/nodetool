@@ -5,7 +5,6 @@
  * - Coordinate transform (screenToCanvas)
  * - Mirror / symmetry drawing helper (withMirror)
  * - Color helpers (rgbToHex)
- * - Selection clipping (clipSelectionForOffset)
  * - Layer helpers (ensureLayerViewportStorage, getLayerPaintOffset)
  * - Clone stamp helpers (getCloneSourceSignature, buildCloneSourceCanvas, drawCloneStampStroke)
  * - Blur helper (drawBlurStroke)
@@ -41,10 +40,6 @@ import {
   getLayerCompositeOffset
 } from "../painting";
 import { clientToDocumentCanvas } from "../tools/transform/handleGeometry";
-import {
-  clipContextToSelectionMask,
-  selectionHasAnyPixels
-} from "../selection";
 
 export interface UsePointerHandlerUtilsParams {
   zoom: number;
@@ -269,18 +264,6 @@ export function usePointerHandlerUtils({
     []
   );
 
-  // ─── Selection clipping ────────────────────────────────────────────
-  const clipSelectionForOffset = useCallback(
-    (ctx: CanvasRenderingContext2D, offset: Point) => {
-      if (!selection || !selectionHasAnyPixels(selection)) {
-        return false;
-      }
-      clipContextToSelectionMask(ctx, selection, offset.x, offset.y);
-      return true;
-    },
-    [selection]
-  );
-
   // ─── Layer helpers ─────────────────────────────────────────────────
   const ensureLayerViewportStorage = useCallback(
     (layerId: string) => {
@@ -470,7 +453,6 @@ export function usePointerHandlerUtils({
     screenToCanvas,
     withMirror,
     rgbToHex,
-    clipSelectionForOffset,
     ensureLayerViewportStorage,
     getLayerPaintOffset,
     getCloneSourceSignature,

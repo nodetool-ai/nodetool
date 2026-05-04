@@ -226,8 +226,6 @@ export class ShapeTool implements ToolHandler {
     const shiftHeld = ctx.shiftHeldRef.current;
     const altHeld = ctx.altHeldRef.current;
 
-    const clipped = ctx.clipSelectionForOffset(layerCtx, mapper.offset);
-
     ctx.withMirror(
       layerCtx,
       (fromDoc, toDoc, c, _branch) => {
@@ -246,10 +244,6 @@ export class ShapeTool implements ToolHandler {
       this.shapeStart,
       endDoc
     );
-
-    if (clipped) {
-      layerCtx.restore();
-    }
 
     ctx.onStrokeEnd(activeLayer.id, null);
     const committedBounds = getCanvasRasterBounds(layerCanvas);

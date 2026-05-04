@@ -42,7 +42,6 @@ export interface HelperSetupInfo {
   pressure: number;
   layerCanvas: HTMLCanvasElement;
   paintCtx: CanvasRenderingContext2D;
-  hasSelectionClip: boolean;
   isShiftLine: boolean;
   lastStrokeEnd: Point | null;
 }
@@ -94,22 +93,14 @@ export class HelperToolSession {
   private onDraw: HelperOnDraw;
   private onTeardown: HelperOnTeardown;
 
-  /**
-   * Whether selection clipping is applied during onMove.
-   * BlurTool needs it, CloneStampTool does not currently.
-   */
-  private useSelectionClipOnMove: boolean;
-
   constructor(opts: {
     onSetup: HelperOnSetup;
     onDraw: HelperOnDraw;
     onTeardown: HelperOnTeardown;
-    useSelectionClipOnMove?: boolean;
   }) {
     this.onSetup = opts.onSetup;
     this.onDraw = opts.onDraw;
     this.onTeardown = opts.onTeardown;
-    this.useSelectionClipOnMove = opts.useSelectionClipOnMove ?? false;
   }
 
   /** The last stroke endpoint, used for Shift+click straight lines. */
@@ -176,10 +167,6 @@ export class HelperToolSession {
       return false;
     }
 
-    // Selection clipping
-    const offset = this.mapper.offset;
-    const hasSelClip = ctx.clipSelectionForOffset(paintCtx, offset);
-
     // Shift+click detection
     const isShiftLine = !!(ctx.shiftHeldRef.current && this._lastStrokeEnd);
 
@@ -192,14 +179,9 @@ export class HelperToolSession {
       pressure: this.currentPressure,
       layerCanvas,
       paintCtx,
-      hasSelectionClip: hasSelClip,
       isShiftLine,
       lastStrokeEnd: this._lastStrokeEnd
     });
-
-    if (hasSelClip) {
-      paintCtx.restore();
-    }
 
     if (!setupOk) {
       this.lastPoint = null;
@@ -235,12 +217,6 @@ export class HelperToolSession {
       return;
     }
 
-    // Selection clipping
-    const offset = this.mapper.offset;
-    const hasSelClip = this.useSelectionClipOnMove
-      ? ctx.clipSelectionForOffset(paintCtx, offset)
-      : false;
-
     for (const ep of coalescedPoints) {
       const pt = ep.point;
       if (
@@ -274,10 +250,6 @@ export class HelperToolSession {
       });
 
       this.lastPoint = pt;
-    }
-
-    if (hasSelClip) {
-      paintCtx.restore();
     }
 
     // Dirty-rect compositing (map from layer-space back to doc-space)
