@@ -14,9 +14,6 @@ import {
   getAncestorGroupOpacityProduct,
   isLayerCompositeVisible
 } from "../../types";
-import {
-  drawStrokeBufferForDisplayWithSelectionFeather
-} from "../../selection";
 import { blendModeToComposite, drawCheckerboard } from "../../drawingUtils";
 import { getLayerCompositeOffset } from "../../painting/layerBounds";
 import type { ActiveStrokeInfo, DirtyRect, ResolvedLayerBitmap } from "../types";
@@ -145,7 +142,6 @@ export function drawLayerToContext(
 
 export interface StrokeTempState {
   strokeTempCanvas: HTMLCanvasElement | null;
-  strokeMaskScratchCanvas: HTMLCanvasElement | null;
 }
 
 /**
@@ -162,7 +158,7 @@ export function renderDocumentComposite(
   evaluateLayerEffects: EvaluateLayerEffectsFn,
   strokeState: StrokeTempState
 ): StrokeTempState {
-  let { strokeTempCanvas, strokeMaskScratchCanvas } = strokeState;
+  let { strokeTempCanvas } = strokeState;
 
   for (const layer of doc.layers) {
     if (layer.type === "mask" || layer.type === "group") {
@@ -225,13 +221,7 @@ export function renderDocumentComposite(
         tempCtx.save();
         tempCtx.globalAlpha = activeStroke.opacity;
         tempCtx.globalCompositeOperation = activeStroke.compositeOp;
-        strokeMaskScratchCanvas =
-          drawStrokeBufferForDisplayWithSelectionFeather(
-            tempCtx,
-            activeStroke.buffer,
-            activeStroke.selectionMaskForPreview,
-            strokeMaskScratchCanvas
-          );
+        tempCtx.drawImage(activeStroke.buffer, 0, 0);
         tempCtx.restore();
 
         ctx.save();
@@ -253,7 +243,7 @@ export function renderDocumentComposite(
     }
   }
 
-  return { strokeTempCanvas, strokeMaskScratchCanvas };
+  return { strokeTempCanvas };
 }
 
 // ─── Display compositing (with chrome) ───────────────────────────────────────

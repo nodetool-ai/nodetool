@@ -62,8 +62,6 @@ export class Canvas2DRuntime implements SketchRuntime {
 
   /** Reusable temp canvas for stroke compositing. */
   private strokeTempCanvas: HTMLCanvasElement | null = null;
-  /** Scratch for feathered selection preview (stroke buffer × mask alpha). */
-  private strokeMaskScratchCanvas: HTMLCanvasElement | null = null;
   /** Temp canvas for FX-evaluated layer content. */
   private fxTempCanvas: HTMLCanvasElement | null = null;
 
@@ -196,15 +194,11 @@ export class Canvas2DRuntime implements SketchRuntime {
   // ─── Internal compositing helpers ────────────────────────────────────
 
   private getStrokeTempState(): StrokeTempState {
-    return {
-      strokeTempCanvas: this.strokeTempCanvas,
-      strokeMaskScratchCanvas: this.strokeMaskScratchCanvas
-    };
+    return { strokeTempCanvas: this.strokeTempCanvas };
   }
 
   private applyStrokeTempState(state: StrokeTempState): void {
     this.strokeTempCanvas = state.strokeTempCanvas;
-    this.strokeMaskScratchCanvas = state.strokeMaskScratchCanvas;
   }
 
   /**
@@ -617,7 +611,6 @@ export class Canvas2DRuntime implements SketchRuntime {
   dispose(): void {
     this.layerCanvases.clear();
     this.strokeTempCanvas = null;
-    this.strokeMaskScratchCanvas = null;
     this.fxTempCanvas = null;
     this.fxCache.clear();
     this.readbackCanvas = null;

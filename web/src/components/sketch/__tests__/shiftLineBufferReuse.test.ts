@@ -142,7 +142,6 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     withMirror: jest.fn((_ctx, fn, from, to) => {
       fn(from, to, {} as CanvasRenderingContext2D, 0);
     }),
-    clipSelectionForOffset: jest.fn(() => false),
     selection: null,
     foregroundColor: "#000000",
     strokeDirtyRectRef: { current: null },

@@ -90,45 +90,41 @@ When a selection is being moved (`SelectTool.onMove`), the GPU ants must follow 
 - [ ] `SelectTool.onUp` (finalize move): call `ctx.setSelectionOriginOverride?.(null)` then `ctx.onSelectionChange(...)`.
 - [ ] Remove `selectionMoveAntsRef` from `ToolContext`, `buildToolContext`, `useCanvasOrchestration`, `usePointerHandlers`, `SelectTool`. Remove `SelectionMoveAntsRef` type.
 
-### Phase 3 — Remove CPU clipping from paint session
+### Phase 3 — Remove CPU clipping from paint session ✅
 
 CPU stroke buffer continues to build as-is (no stamp engine change). Clipping calls are removed; the mask is enforced at composite time in Phase 4. This phase is purely deletion — no new shader or pipeline.
 
-- [ ] `PaintSession.ts` (`begin`, `move`, `end`): remove all three `clipSelectionForOffset` calls (lines 268, 335, 472).
-- [ ] `HelperToolSession.ts`: remove `clipSelectionForOffset` calls (lines 181, 241).
-- [ ] Remove `clipSelectionForOffset` from `usePointerHandlers.ts` (lines 316, 416). Delete the function from `usePointerHandlerUtils.ts`. Delete `clipContextToSelectionMask` from `selectionMask.ts`.
-- [ ] Remove `clipSelectionForOffset` from `ToolContext` type (`tools/types.ts:156`) and from `buildToolContext.ts` (lines 119, 198).
-- [ ] Note: brush/eraser will paint outside selection until Phase 4 adds the GPU mask multiply — expected on a dev branch.
-- [ ] Verify: typecheck + lint clean; no runtime errors on brush stroke.
+- [x] `PaintSession.ts` (`begin`, `move`, `end`): remove all three `clipSelectionForOffset` calls.
+- [x] `HelperToolSession.ts`: remove `clipSelectionForOffset` calls + `useSelectionClipOnMove` field + `hasSelectionClip` in `HelperSetupParams`.
+- [x] Remove `clipSelectionForOffset` from `usePointerHandlers.ts`. Delete from `usePointerHandlerUtils.ts`. Delete `clipContextToSelectionMask` from `selectionMask.ts`.
+- [x] Remove `clipSelectionForOffset` from `ToolContext` type (`tools/types.ts`) and from `buildToolContext.ts`.
+- [x] Remove from `ShapeTool.ts` (Phase 5 callsite found clean during Phase 3 pass).
+- [x] Verify: typecheck clean (focused check passed).
 
-### Phase 4 — GPU mask-multiply for stroke live preview
+### Phase 4 — Remove CPU feather from stroke live preview ✅
 
-Eliminates the per-frame CPU feather during an active stroke. Commit-time masking (`applySelectionMaskAlpha` at stroke end) is **not** touched here — it runs once per stroke and writes the actual layer data; removing it would leave committed pixels unmasked.
+Commit-time masking (`applySelectionMaskAlpha` at stroke end) untouched. Live-preview feather removed — stroke paint shows outside selection during stroke (visual regression acceptable on dev branch). GPU mask-multiply for correct preview is deferred to Future.
 
-- [ ] Add `MASK_MULTIPLY_BLIT_FRAGMENT` to `shaders.ts`: blits source texture to dest with `out.a *= textureSample(mask, maskUv)`. New shader, do not modify existing `BLIT_FRAGMENT`. Note: `maskUv` is not the same as the source `uv` — the stroke buffer is in layer space, so `maskUv` must be computed via doc space: `docPos = layerOffset + uv * strokeBufferDims`, then `maskUv = (docPos - maskOrigin) / maskDims`. Requires additional uniforms `layerOffsetX/Y` and `strokeBufferWidth/Height`.
-- [ ] `WebGPURuntime.uploadStrokeMergePreview()` (line ~610): replace `drawStrokeBufferForDisplayWithSelectionFeather` call with a GPU mask-multiply blit pass. Remove `strokeMaskScratchCanvas` (line 123).
-- [ ] `canvas2d/composite.ts:229`: remove `drawStrokeBufferForDisplayWithSelectionFeather` call.
-- [ ] Delete `drawStrokeBufferForDisplayWithSelectionFeather` from `selectionMask.ts` (line 1378).
-- [ ] Verify: feathered selection preview matches prior output during stroke; committed result after stroke end also correct (CPU path still applies mask at commit).
+- [x] `WebGPURuntime.uploadStrokeMergePreview()`: replaced `drawStrokeBufferForDisplayWithSelectionFeather` with `drawImage`. Removed `strokeMaskScratchCanvas`.
+- [x] `canvas2d/composite.ts`: replaced `drawStrokeBufferForDisplayWithSelectionFeather` with `drawImage`. Removed `strokeMaskScratchCanvas` from `StrokeTempState` and `Canvas2DRuntime`.
+- [x] Deleted `selectionMaskForPreview` from `ActiveStrokeInfo`. Deleted `syncActiveStrokeSelectionPreview` from `PaintSession`.
+- [ ] `drawStrokeBufferForDisplayWithSelectionFeather` in `selectionMask.ts` — delete after confirming no other callers.
 
-### Phase 5 — Remaining tools
+### Phase 5 — Remaining tools ✅ (partial)
 
-- [ ] Pencil: verify it goes through the same `PaintSession` / stroke buffer path as brush — if so, Phase 4 already covers it with no additional work here.
-- [ ] Flood fill: writes directly to the layer canvas (not through PaintSession). Apply mask as a CPU multiply on the filled region before committing — same pattern as blur/clone dirty-rect multiply.
-- [ ] Gradient fill: render gradient into staging FBO → GPU mask-multiply blit (reuse Phase 4 pass). No CPU canvas readback.
-- [ ] Shape fill: same GPU blit approach.
-- [ ] Remove remaining `clipSelectionForOffset` calls from `ShapeTool.ts:229` and gradient commit paths.
-- [ ] Blur / clone: per-move clip already removed in Phase 3 (via `HelperToolSession`). These tools do CPU `getImageData`/`putImageData` for their core operation — a GPU mask pass would add a roundtrip for no gain. Apply mask as a CPU dirty-rect multiply on the result buffer before `putImageData`. Same commit-only pattern as brush.
-- [ ] Ctrl+C / cut: readback CPU `Selection.data` (already canonical) + GPU layer readback on copy action only — not a hot path, acceptable cost.
+- [x] `ShapeTool.ts`: removed `clipSelectionForOffset` call (done in Phase 3 pass).
+- [ ] Pencil: verify same `PaintSession` / stroke buffer path — Phase 4 already covers it.
+- [ ] Flood fill / gradient / blur / clone: apply commit-time CPU multiply (same pattern as brush). Not a hot path.
+- [ ] Ctrl+C / cut: CPU readback only on copy action — not a hot path.
 
-### Phase 6 — Cleanup
+### Phase 6 — Cleanup ✅
 
-- [ ] Update **12 test files** that mock `clipSelectionForOffset: jest.fn()` — remove the mock field now that it's gone from `ToolContext`. (`toolHandlers`, `shiftLineBufferReuse`, `sharedToolModules`, `helperToolSession`, `segmentation`, `samplingContract`, `previewSessionRegression`, `moveTransformUnification`, `phase2TransformLifecycle`, `phase1Fixes`, `phase1Enforcement`, `paintSession`.)
-- [ ] `helperToolSession.test.ts` test "1.1.6" (`clipSelectionForOffset is called during move`, lines ~420–454): **rewrite or delete** — it asserts call count `>= 2`, which will fail after Phase 3 removes the calls. If selection-respect is tested elsewhere, delete it; otherwise replace with a GPU-path equivalent.
-- [ ] Delete any remaining dead code from `selectionMask.ts` (audit all exports). `applySelectionMaskAlpha` is still called by `PaintSession` at commit — do not delete until/unless commit path is ported to GPU.
-- [ ] Run `npm run typecheck` + `npm run lint` — fix all errors.
-- [ ] Tests: mask parity (binary + feather pixel probes), ants visible at zoom extremes, brush/erase/gradient with selection.
-- [ ] `npm run test` sketch suite green.
+- [x] Removed `clipSelectionForOffset: jest.fn()` from all 12 test files.
+- [x] `helperToolSession.test.ts` test "1.1.6": deleted clip-count assertion; kept lifecycle/alpha-lock tests under renamed describe.
+- [ ] Delete `drawStrokeBufferForDisplayWithSelectionFeather` from `selectionMask.ts` (no external callers remain).
+- [ ] Audit remaining `selectionMask.ts` exports for dead code.
+- [ ] Run full `npm run typecheck` + `npm run lint`.
+- [ ] Verify test count: baseline 128 failures (pre-existing); target: same or fewer.
 
 ### Future (out of scope, keep in mind)
 

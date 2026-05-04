@@ -297,7 +297,6 @@ export class PaintSession {
     if (this.engine.bufferMode === "direct") {
       ctx.invalidateLayer?.(activeLayer.id);
     }
-    this.syncActiveStrokeSelectionPreview(ctx);
 
     // Defer composite to the next rAF instead of blocking the pointer-down
     // handler with a synchronous full-document composite. The stroke buffer
@@ -363,8 +362,7 @@ export class PaintSession {
           this.drawStraightLine(ctx, bctx, from, to);
           this.lastPoint = pt;
         }
-        this.syncActiveStrokeSelectionPreview(ctx);
-        ctx.requestRedraw();
+            ctx.requestRedraw();
         return;
       }
     }
@@ -421,7 +419,6 @@ export class PaintSession {
       ctx.invalidateLayer?.(this.layer.id);
     }
 
-    this.syncActiveStrokeSelectionPreview(ctx);
 
     // ── Dirty-rect compositing ──────────────────────────────────────
     const dirtyRect = this.engine.getDirtyRect();
@@ -571,23 +568,6 @@ export class PaintSession {
   }
 
   // ─── Internals ────────────────────────────────────────────────────
-
-  /** Keep `activeStrokeRef.selectionMaskForPreview` in sync for live compositing. */
-  private syncActiveStrokeSelectionPreview(ctx: ToolContext): void {
-    const stroke = ctx.activeStrokeRef.current;
-    if (!stroke || this.engine.bufferMode !== "buffered") {
-      return;
-    }
-    if (this.selectionMask && selectionHasAnyPixels(this.selectionMask)) {
-      stroke.selectionMaskForPreview = {
-        mask: this.selectionMask,
-        offsetX: this.mapper.offset.x,
-        offsetY: this.mapper.offset.y
-      };
-    } else {
-      stroke.selectionMaskForPreview = null;
-    }
-  }
 
   /**
    * Immediately merge and finalize a shift-chain buffer that was kept alive

@@ -99,7 +99,6 @@ function makeMinimalCtx(overrides: Partial<ToolContext> = {}): ToolContext {
     shiftHeldRef: { current: false },
     altHeldRef: { current: false },
     withMirror: jest.fn((ctx, fn, from, to) => fn(from, to, ctx, 0)),
-    clipSelectionForOffset: jest.fn(() => false),
     ...overrides
   };
 }

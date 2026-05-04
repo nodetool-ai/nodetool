@@ -94,7 +94,6 @@ function makeMinimalToolContext(overrides?: Partial<ToolContext>): ToolContext {
     shiftHeldRef: { current: false },
     altHeldRef: { current: false },
     withMirror: jest.fn(),
-    clipSelectionForOffset: jest.fn(() => false),
     ...overrides
   };
 }

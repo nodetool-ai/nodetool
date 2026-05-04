@@ -1175,38 +1175,3 @@ export function buildSelectionBorderStrokeMask(
   return ring;
 }
 
-export function drawStrokeBufferForDisplayWithSelectionFeather(
-  targetCtx: CanvasRenderingContext2D,
-  buffer: HTMLCanvasElement,
-  preview: { mask: Selection; offsetX: number; offsetY: number } | null | undefined,
-  scratch: HTMLCanvasElement | null
-): HTMLCanvasElement | null {
-  const w = buffer.width;
-  const h = buffer.height;
-  const useFeather =
-    preview != null &&
-    preview.mask != null &&
-    selectionHasAnyPixels(preview.mask);
-
-  if (!useFeather) {
-    targetCtx.drawImage(buffer, 0, 0);
-    return scratch;
-  }
-
-  let sc = scratch;
-  if (!sc || sc.width !== w || sc.height !== h) {
-    sc = document.createElement("canvas");
-    sc.width = w;
-    sc.height = h;
-  }
-  const sctx = sc.getContext("2d", { willReadFrequently: true });
-  if (!sctx) {
-    targetCtx.drawImage(buffer, 0, 0);
-    return scratch;
-  }
-  sctx.clearRect(0, 0, w, h);
-  sctx.drawImage(buffer, 0, 0);
-  applySelectionMaskAlpha(sc, preview.mask, preview.offsetX, preview.offsetY);
-  targetCtx.drawImage(sc, 0, 0);
-  return sc;
-}

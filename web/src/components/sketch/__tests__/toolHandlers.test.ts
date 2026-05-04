@@ -121,7 +121,6 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     withMirror: jest.fn((ctx, drawFn, from, to) => {
       drawFn(from, to, ctx, 0);
     }),
-    clipSelectionForOffset: jest.fn(() => false),
     ...overrides
   };
 }

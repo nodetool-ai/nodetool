@@ -88,7 +88,6 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     withMirror: jest.fn((ctx, drawFn, from, to) => {
       drawFn(from, to, ctx, 0);
     }),
-    clipSelectionForOffset: jest.fn(() => false),
     ...overrides
   };
 }
@@ -415,44 +414,9 @@ describe("1.1.5 – clone stamp anchoring", () => {
   });
 });
 
-// ─── 1.1.6: Selection parity for blur vs clone ─────────────────────────────
+// ─── 1.1.6: Session lifecycle parity for blur vs clone ──────────────────────
 
-describe("1.1.6 – selection parity: blur and clone follow the same clipping rule", () => {
-  it("both BlurTool and CloneStampTool use HelperToolSession with selection clipping", () => {
-    // Both tools should use useSelectionClipOnMove: true
-    // Verify by checking that clipSelectionForOffset is called during move
-    const cloneTool = new CloneStampTool();
-
-    // Setup clone — clone tool doesn't need ImageData so it reliably works
-    const cloneCtx = makeToolContext();
-    cloneTool.setCloneSource({ x: 5, y: 5 });
-    cloneTool.onDown(cloneCtx, makePointerEvent(20, 20));
-    cloneTool.onMove(cloneCtx, makePointerEvent(25, 25), [makePointerEvent(25, 25)]);
-    cloneTool.onUp(cloneCtx, makePointerEvent(25, 25));
-
-    const cloneClipCalls = (cloneCtx.clipSelectionForOffset as jest.Mock).mock.calls.length;
-    // Clone should apply selection clipping (at least during begin and move)
-    expect(cloneClipCalls).toBeGreaterThanOrEqual(2);
-
-    // Verify blur also uses selection clipping via HelperToolSession constructor.
-    // We test indirectly: both tools use HelperToolSession with useSelectionClipOnMove=true.
-    // BlurTool rendering needs ImageData not available in jsdom, so we verify via
-    // a standalone HelperToolSession that mirrors blur's config.
-    const blurLikeSession = new HelperToolSession({
-      onSetup: () => true,
-      onDraw: () => {},
-      onTeardown: () => {},
-      useSelectionClipOnMove: true
-    });
-    const blurCtx = makeToolContext();
-    blurLikeSession.begin(blurCtx, makePointerEvent(20, 20));
-    blurLikeSession.move(blurCtx, makePointerEvent(25, 25), [makePointerEvent(25, 25)]);
-    blurLikeSession.end(blurCtx, makePointerEvent(25, 25));
-
-    const blurClipCalls = (blurCtx.clipSelectionForOffset as jest.Mock).mock.calls.length;
-    expect(blurClipCalls).toBeGreaterThanOrEqual(2);
-  });
-
+describe("1.1.6 – session parity: blur and clone share HelperToolSession lifecycle", () => {
   it("both tools invoke onStrokeStart and onStrokeEnd", () => {
     const cloneTool = new CloneStampTool();
 

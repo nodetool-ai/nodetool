@@ -62,7 +62,6 @@ function makeMockCtx(): ToolContext {
     shiftHeldRef: { current: false },
     altHeldRef: { current: false },
     withMirror: jest.fn(),
-    clipSelectionForOffset: jest.fn(),
     setLayerTransformPreview: jest.fn(),
     clearLayerTransformPreview: jest.fn()
   } as unknown as ToolContext;

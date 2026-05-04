@@ -247,7 +247,6 @@ describe("previewSession", () => {
       shiftHeldRef: { current: false },
       altHeldRef: { current: false },
       withMirror: jest.fn(),
-      clipSelectionForOffset: jest.fn(),
       setLayerTransformPreview: jest.fn(),
       clearLayerTransformPreview: jest.fn(),
       ...overrides
