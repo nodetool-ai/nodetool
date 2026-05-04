@@ -106,20 +106,47 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
         </ToggleButton>
       </ToggleButtonGroup>
       {settings.mode === "magic_wand" ? (
-        <Box className="setting-row">
-          <Typography className="setting-label">Tol.</Typography>
-          <Slider
-            sx={sketchSliderSx}
-            size="small"
-            min={0}
-            max={255}
-            value={settings.magicWandTolerance}
-            onChange={(_, v) => onChange({ magicWandTolerance: v as number })}
-          />
-          <Typography className="setting-value">
-            {settings.magicWandTolerance}
-          </Typography>
-        </Box>
+        <>
+          <Box className="setting-row">
+            <Typography className="setting-label">Tol.</Typography>
+            <Slider
+              sx={sketchSliderSx}
+              size="small"
+              min={0}
+              max={255}
+              value={settings.magicWandTolerance}
+              onChange={(_, v) => onChange({ magicWandTolerance: v as number })}
+            />
+            <Typography className="setting-value">
+              {settings.magicWandTolerance}
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 0.5,
+              flexWrap: "wrap",
+              width: "100%"
+            }}
+          >
+            <Button
+              size="small"
+              variant={settings.contiguous ? "contained" : "outlined"}
+              onClick={() => onChange({ contiguous: !settings.contiguous })}
+              sx={{ ...sketchButtonSmallSx, minWidth: "90px" }}
+            >
+              Contiguous
+            </Button>
+            <Button
+              size="small"
+              variant={settings.sampleAllLayers ? "contained" : "outlined"}
+              onClick={() => onChange({ sampleAllLayers: !settings.sampleAllLayers })}
+              sx={{ ...sketchButtonSmallSx, minWidth: "100px" }}
+            >
+              All Layers
+            </Button>
+          </Box>
+        </>
       ) : null}
       <Box className="setting-row">
         <Typography className="setting-label">Feather</Typography>

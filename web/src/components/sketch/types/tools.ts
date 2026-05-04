@@ -654,6 +654,8 @@ export const DEFAULT_CLONE_STAMP_SETTINGS: CloneStampSettings = {
 export const DEFAULT_SELECT_SETTINGS: SelectSettings = {
   mode: "rectangle",
   magicWandTolerance: 32,
+  contiguous: true,
+  sampleAllLayers: false,
   featherRadius: 4,
   borderWidth: 3
 };

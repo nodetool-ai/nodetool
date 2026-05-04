@@ -35,6 +35,10 @@ export interface SelectSettings {
   mode: SelectToolMode;
   /** 0–255, same perceptual scale as fill tolerance */
   magicWandTolerance: number;
+  /** When true, wand selects connected pixels only (flood fill). When false, selects all matching pixels regardless of adjacency. */
+  contiguous: boolean;
+  /** When true, wand samples the full composite. When false (default), samples the active layer only. */
+  sampleAllLayers: boolean;
   /** Pixels — used by "Feather" / "Smooth" post-actions */
   featherRadius: number;
   /** Stroke thickness (px) for "Border" — paints along the selection edge in the foreground color */

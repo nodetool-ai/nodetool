@@ -661,6 +661,47 @@ export function magicWandFromRgba(
   return out;
 }
 
+/**
+ * Non-contiguous magic wand: selects ALL pixels whose color is within tolerance of
+ * the seed pixel, regardless of adjacency. Uses the same perceptual distance as
+ * `magicWandFromRgba`. Returns binary mask (0 / 255), same dimensions as imageData.
+ */
+export function magicWandNonContiguousFromRgba(
+  imageData: ImageData,
+  seedX: number,
+  seedY: number,
+  tolerance: number
+): Uint8ClampedArray {
+  const w = imageData.width;
+  const h = imageData.height;
+  const d = imageData.data;
+  const out = new Uint8ClampedArray(w * h);
+  const sx = Math.round(seedX);
+  const sy = Math.round(seedY);
+  if (sx < 0 || sy < 0 || sx >= w || sy >= h) {
+    return out;
+  }
+  const idx0 = (sy * w + sx) * 4;
+  const targetR = d[idx0];
+  const targetG = d[idx0 + 1];
+  const targetB = d[idx0 + 2];
+  const targetA = d[idx0 + 3];
+  const tol = Math.max(0, Math.min(255, tolerance));
+  const tol2 = tol * tol;
+  const n = w * h;
+  for (let i = 0; i < n; i++) {
+    const pi = i * 4;
+    const dr = d[pi] - targetR;
+    const dg = d[pi + 1] - targetG;
+    const db = d[pi + 2] - targetB;
+    const da = d[pi + 3] - targetA;
+    if (dr * dr * 0.299 + dg * dg * 0.587 + db * db * 0.114 + da * da * 0.5 <= tol2) {
+      out[i] = 255;
+    }
+  }
+  return out;
+}
+
 export function writeBinaryIntoMask(
   mask: Selection,
   binary: Uint8ClampedArray,

@@ -18,6 +18,7 @@ import {
   offsetSelectionByDocumentDelta,
   cloneSelectionMask,
   magicWandFromRgba,
+  magicWandNonContiguousFromRgba,
   polygonToBinaryMask,
   marqueeAdjustedDocPoints,
   marqueeRectFromDocPoints,
@@ -126,17 +127,25 @@ export class SelectTool implements ToolHandler {
       if (!onSelectionChange) {
         return false;
       }
+      const wandSettings = doc.toolSettings.select;
       requestAnimationFrame(() => {
-        const id = ctx.getFullCompositeImageData?.();
+        let id: ImageData | null = null;
+        if (wandSettings.sampleAllLayers) {
+          id = ctx.getFullCompositeImageData?.() ?? null;
+        } else {
+          const activeCanvas = ctx.layerCanvasesRef.current.get(doc.activeLayerId);
+          if (activeCanvas) {
+            const actx = activeCanvas.getContext("2d");
+            id = actx ? actx.getImageData(0, 0, activeCanvas.width, activeCanvas.height) : null;
+          }
+        }
         if (!id) {
           return;
         }
-        const bin = magicWandFromRgba(
-          id,
-          pt.x,
-          pt.y,
-          doc.toolSettings.select.magicWandTolerance
-        );
+        const tol = wandSettings.magicWandTolerance;
+        const bin = wandSettings.contiguous
+          ? magicWandFromRgba(id, pt.x, pt.y, tol)
+          : magicWandNonContiguousFromRgba(id, pt.x, pt.y, tol);
         const overlay: Selection = { width: cw, height: ch, data: bin };
         const mods = captureModifiers(ctx.shiftHeldRef, ctx.altHeldRef);
         applySelectionFinalization({

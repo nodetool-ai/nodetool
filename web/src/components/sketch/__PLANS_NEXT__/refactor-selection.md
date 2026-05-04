@@ -117,6 +117,14 @@ Commit-time masking (`applySelectionMaskAlpha` at stroke end) untouched. Live-pr
 - [ ] Flood fill / gradient / blur / clone: apply commit-time CPU multiply (same pattern as brush). Not a hot path.
 - [ ] Ctrl+C / cut: CPU readback only on copy action — not a hot path.
 
+### Phase 7 — Magic wand enhancements ✅
+
+- [x] Add `contiguous: boolean` and `sampleAllLayers: boolean` to `SelectSettings` (defaults: `true`, `false`).
+- [x] Update `DEFAULT_SELECT_SETTINGS` in `tools.ts`.
+- [x] Add `magicWandNonContiguousFromRgba` to `selectionMask.ts` (scan all matching pixels, no flood fill).
+- [x] `SelectTool.ts` wand branch: branch on `sampleAllLayers` (composite vs active-layer canvas) and `contiguous` (flood fill vs global scan).
+- [x] Add Contiguous / All Layers toggle buttons to `selectSettingsPanel.tsx` (visible in magic_wand mode only).
+
 ### Phase 6 — Cleanup ✅
 
 - [x] Removed `clipSelectionForOffset: jest.fn()` from all 12 test files.
