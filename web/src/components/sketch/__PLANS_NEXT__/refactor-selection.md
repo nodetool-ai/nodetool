@@ -8,7 +8,7 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 
 **Extend `WebGPURuntime`** — layer textures, ping-pong FBOs, blend pipelines, and dirty tracking already exist. The work is:
 
-1. Add an `r8unorm` mask texture (doc dimensions) derived lazily from the CPU `Uint8ClampedArray`.
+1. Add an `r8unorm` mask texture (`Selection.width × Selection.height`) derived lazily from the CPU `Uint8ClampedArray`.
 2. Add two new WGSL shaders + pipelines to `shaders.ts` / `WebGPURuntime`: ants overlay and mask-multiply blit.
 3. Remove the two CPU hot paths: per-move clip scan and per-frame preview feather. Commit-time mask multiply stays CPU (once per stroke, not a hot path).
 
@@ -89,7 +89,7 @@ CPU stroke buffer continues to build as-is (no stamp engine change). Clipping ca
 
 Eliminates the per-frame CPU feather during an active stroke. Commit-time masking (`applySelectionMaskAlpha` at stroke end) is **not** touched here — it runs once per stroke and writes the actual layer data; removing it would leave committed pixels unmasked.
 
-- [ ] Add `MASK_MULTIPLY_BLIT_FRAGMENT` to `shaders.ts`: blits source texture to dest with `out.a *= textureSample(mask, uv)`. New shader, do not modify existing `BLIT_FRAGMENT`.
+- [ ] Add `MASK_MULTIPLY_BLIT_FRAGMENT` to `shaders.ts`: blits source texture to dest with `out.a *= textureSample(mask, maskUv)`. New shader, do not modify existing `BLIT_FRAGMENT`. Note: `maskUv` is not the same as the source `uv` — the stroke buffer is in layer space, so `maskUv` must be computed via doc space: `docPos = layerOffset + uv * strokeBufferDims`, then `maskUv = (docPos - maskOrigin) / maskDims`. Requires additional uniforms `layerOffsetX/Y` and `strokeBufferWidth/Height`.
 - [ ] `WebGPURuntime.uploadStrokeMergePreview()` (line ~610): replace `drawStrokeBufferForDisplayWithSelectionFeather` call with a GPU mask-multiply blit pass. Remove `strokeMaskScratchCanvas` (line 123).
 - [ ] `canvas2d/composite.ts:229`: remove `drawStrokeBufferForDisplayWithSelectionFeather` call.
 - [ ] Delete `drawStrokeBufferForDisplayWithSelectionFeather` from `selectionMask.ts` (line 1378).
@@ -97,7 +97,7 @@ Eliminates the per-frame CPU feather during an active stroke. Commit-time maskin
 
 ### Phase 5 — Remaining tools
 
-- [ ] Pencil: same GPU mask-multiply pass in composite path as brush (Phase 4).
+- [ ] Pencil: verify it goes through the same `PaintSession` / stroke buffer path as brush — if so, Phase 4 already covers it with no additional work here.
 - [ ] Flood fill: writes directly to the layer canvas (not through PaintSession). Apply mask as a CPU multiply on the filled region before committing — same pattern as blur/clone dirty-rect multiply.
 - [ ] Gradient fill: render gradient into staging FBO → GPU mask-multiply blit (reuse Phase 4 pass). No CPU canvas readback.
 - [ ] Shape fill: same GPU blit approach.
