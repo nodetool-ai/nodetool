@@ -47,6 +47,7 @@ function renderContextMenu() {
         hasActiveSelection
         onSelectSettingsChange={jest.fn()}
         onInvertSelection={jest.fn()}
+        onCropCanvasToSelection={jest.fn()}
         onFeatherSelection={jest.fn()}
         onSmoothSelectionBorders={jest.fn()}
         onStrokeSelectionBorder={jest.fn()}
