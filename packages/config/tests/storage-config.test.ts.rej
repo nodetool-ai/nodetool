@@ -1,0 +1,50 @@
+--- packages/config/tests/storage-config.test.ts
++++ packages/config/tests/storage-config.test.ts
+@@ -1,40 +1,40 @@
+ import { afterEach, beforeEach, describe, expect, it } from "vitest";
+-import { loadStorageConfig } from "../src/storage-config.js";
++import { loadAssetStorageConfig } from "../src/storage-config.js";
+
+ const STORAGE_ENV_KEYS = [
+   "NODETOOL_STORAGE_BACKEND",
+-  "S3_BUCKET",
+   "S3_REGION",
+   "S3_ENDPOINT",
+   "S3_PREFIX",
+-  "SUPABASE_STORAGE_URL",
+-  "SUPABASE_STORAGE_SERVICE_KEY",
+-  "SUPABASE_STORAGE_BUCKET",
+-  "SUPABASE_STORAGE_PREFIX",
++  "SUPABASE_URL",
++  "SUPABASE_KEY",
++  "ASSET_BUCKET",
+   "ASSET_FOLDER",
+   "STORAGE_PATH"
+ ];
+
+-describe("loadStorageConfig", () => {
++describe("loadAssetStorageConfig", () => {
+   let saved: Record<string, string | undefined>;
+
+   beforeEach(() => {
+     saved = Object.fromEntries(STORAGE_ENV_KEYS.map((k) => [k, process.env[k]]));
+     for (const k of STORAGE_ENV_KEYS) delete process.env[k];
++    process.env.ASSET_BUCKET = "default-asset-bucket";
+   });
+
+   afterEach(() => {
+     for (const [k, v] of Object.entries(saved)) {
+       if (v === undefined) delete process.env[k];
+       else process.env[k] = v;
+     }
++    delete process.env.ASSET_BUCKET;
+   });
+
+   it("defaults to file backend with default assets path", () => {
+-    const config = loadStorageConfig();
++    const config = loadAssetStorageConfig();
+     expect(config.kind).toBe("file");
+     if (config.kind === "file") {
+       expect(config.rootDir).toMatch(/assets$/);
+     }
+   });
