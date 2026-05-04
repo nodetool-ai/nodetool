@@ -120,11 +120,14 @@ export class SelectTool implements ToolHandler {
       return true;
     }
 
-    // Magic wand: immediate selection
+    // Magic wand: defer heavy composite + flood-fill to next frame so the pointer stays responsive.
     if (mode === "magic_wand") {
       if (ctx.onSelectionChange) {
-        const id = ctx.getFullCompositeImageData?.();
-        if (id) {
+        requestAnimationFrame(() => {
+          const id = ctx.getFullCompositeImageData?.();
+          if (!id) {
+            return;
+          }
           const bin = magicWandFromRgba(
             id,
             pt.x,
@@ -140,7 +143,7 @@ export class SelectTool implements ToolHandler {
             onSelectionChange: ctx.onSelectionChange,
             drawSelectionOverlay: ctx.drawSelectionOverlay
           });
-        }
+        });
       }
       return false;
     }

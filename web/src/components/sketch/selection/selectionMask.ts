@@ -41,14 +41,23 @@ function setupScreenAnts(
 function strokeDualAnts(
   ctx: CanvasRenderingContext2D,
   dashLen: number,
-  offset: number
+  offset: number,
+  path?: Path2D | null
 ): void {
   ctx.strokeStyle = ANT_ON;
   ctx.lineDashOffset = offset;
-  ctx.stroke();
+  if (path) {
+    ctx.stroke(path);
+  } else {
+    ctx.stroke();
+  }
   ctx.strokeStyle = ANT_OFF;
   ctx.lineDashOffset = offset + dashLen;
-  ctx.stroke();
+  if (path) {
+    ctx.stroke(path);
+  } else {
+    ctx.stroke();
+  }
 }
 
 /**
@@ -58,7 +67,8 @@ function strokeDualAnts(
  */
 function strokeSoftOuterSelectionHalo(
   ctx: CanvasRenderingContext2D,
-  zoom: number
+  zoom: number,
+  path?: Path2D | null
 ): void {
   const z = Math.max(0.02, zoom);
   ctx.save();
@@ -73,7 +83,11 @@ function strokeSoftOuterSelectionHalo(
   for (const [screenPx, rgba] of layers) {
     ctx.lineWidth = screenPx / z;
     ctx.strokeStyle = rgba;
-    ctx.stroke();
+    if (path) {
+      ctx.stroke(path);
+    } else {
+      ctx.stroke();
+    }
   }
   ctx.restore();
 }
@@ -910,9 +924,34 @@ export function drawSelectionEllipseOutline(
   ctx.save();
   ctx.beginPath();
   ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-  strokeSoftOuterSelectionHalo(ctx, zoom);
+  strokeSoftOuterSelectionHalo(ctx, zoom, null);
   const { dashLen, offset } = setupScreenAnts(ctx, phase, zoom);
-  strokeDualAnts(ctx, dashLen, offset);
+  strokeDualAnts(ctx, dashLen, offset, null);
+  ctx.restore();
+}
+
+/**
+ * Marching ants rectangular outline for live marquee preview (cheap path;
+ * avoids scanning a full-document binary mask).
+ */
+export function drawSelectionRectOutline(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  phase: number,
+  zoom = 1
+): void {
+  if (w < 1 || h < 1) {
+    return;
+  }
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  strokeSoftOuterSelectionHalo(ctx, zoom, null);
+  const { dashLen, offset } = setupScreenAnts(ctx, phase, zoom);
+  strokeDualAnts(ctx, dashLen, offset, null);
   ctx.restore();
 }
 
@@ -944,26 +983,18 @@ export function drawSelectionPolylineOutline(
 }
 
 /**
- * Marching ants on mask boundary edges.
- * Traces horizontal and vertical pixel-boundary contour segments (merged into
- * runs) and strokes them.  Expects a context with a document→screen transform
- * so lines render at screen pixel resolution regardless of zoom. A soft outer
- * halo is drawn under the marching ants.
+ * Build marching-ants contour as a reusable path (mask-local coordinates;
+ * excludes {@link Selection.originX} / `originY` — callers translate before stroke).
+ *
+ * Prefer {@link drawSelectionOutlinePath} + {@link getOrRebuildSelectionOutlinePath}
+ * so the contour runs once per committed mask rather than every animation frame.
  */
-export function drawSelectionMaskOutline(
-  ctx: CanvasRenderingContext2D,
-  mask: Selection,
-  phase: number,
-  zoom = 1
-): void {
+export function buildSelectionMaskOutlinePath(mask: Selection): Path2D {
+  const path = new Path2D();
+  if (!validateSelectionMask(mask)) {
+    return path;
+  }
   const { width: w, height: h, data } = mask;
-  const ox = mask.originX ?? 0;
-  const oy = mask.originY ?? 0;
-
-  ctx.save();
-  ctx.translate(ox, oy);
-
-  ctx.beginPath();
 
   for (let y = 0; y <= h; y++) {
     let runStart = -1;
@@ -975,14 +1006,14 @@ export function drawSelectionMaskOutline(
           runStart = x;
         }
       } else if (runStart >= 0) {
-        ctx.moveTo(runStart, y);
-        ctx.lineTo(x, y);
+        path.moveTo(runStart, y);
+        path.lineTo(x, y);
         runStart = -1;
       }
     }
     if (runStart >= 0) {
-      ctx.moveTo(runStart, y);
-      ctx.lineTo(w, y);
+      path.moveTo(runStart, y);
+      path.lineTo(w, y);
     }
   }
 
@@ -996,21 +1027,108 @@ export function drawSelectionMaskOutline(
           runStart = y;
         }
       } else if (runStart >= 0) {
-        ctx.moveTo(x, runStart);
-        ctx.lineTo(x, y);
+        path.moveTo(x, runStart);
+        path.lineTo(x, y);
         runStart = -1;
       }
     }
     if (runStart >= 0) {
-      ctx.moveTo(x, runStart);
-      ctx.lineTo(x, h);
+      path.moveTo(x, runStart);
+      path.lineTo(x, h);
     }
   }
 
-  strokeSoftOuterSelectionHalo(ctx, zoom);
+  return path;
+}
+
+/**
+ * Stroke a cached contour path with halo + marching ants (`path` is mask-local coords).
+ */
+export function drawSelectionOutlinePath(
+  ctx: CanvasRenderingContext2D,
+  pathLocal: Path2D,
+  originX: number,
+  originY: number,
+  phase: number,
+  zoom = 1
+): void {
+  ctx.save();
+  ctx.translate(originX, originY);
+  strokeSoftOuterSelectionHalo(ctx, zoom, pathLocal);
   const { dashLen, offset } = setupScreenAnts(ctx, phase, zoom);
-  strokeDualAnts(ctx, dashLen, offset);
+  strokeDualAnts(ctx, dashLen, offset, pathLocal);
   ctx.restore();
+}
+
+export interface SelectionOutlinePathCacheScratch {
+  maskDataRef: Uint8ClampedArray | null;
+  width: number;
+  height: number;
+  originX: number;
+  originY: number;
+  pathLocal: Path2D | null;
+}
+
+/** Mutable cache for marching-ants paths (reuse when `selection.data` is unchanged). */
+export function createSelectionOutlinePathCacheScratch(): SelectionOutlinePathCacheScratch {
+  return {
+    maskDataRef: null,
+    width: 0,
+    height: 0,
+    originX: 0,
+    originY: 0,
+    pathLocal: null
+  };
+}
+
+export function invalidateSelectionOutlinePathCache(
+  scratch: SelectionOutlinePathCacheScratch
+): void {
+  scratch.maskDataRef = null;
+  scratch.pathLocal = null;
+}
+
+export function getOrRebuildSelectionOutlinePath(
+  scratch: SelectionOutlinePathCacheScratch,
+  mask: Selection
+): Path2D {
+  const ox = mask.originX ?? 0;
+  const oy = mask.originY ?? 0;
+  if (
+    scratch.maskDataRef === mask.data &&
+    scratch.width === mask.width &&
+    scratch.height === mask.height &&
+    scratch.originX === ox &&
+    scratch.originY === oy &&
+    scratch.pathLocal != null
+  ) {
+    return scratch.pathLocal;
+  }
+  const pathLocal = buildSelectionMaskOutlinePath(mask);
+  scratch.maskDataRef = mask.data;
+  scratch.width = mask.width;
+  scratch.height = mask.height;
+  scratch.originX = ox;
+  scratch.originY = oy;
+  scratch.pathLocal = pathLocal;
+  return pathLocal;
+}
+
+/**
+ * Marching ants on mask boundary edges.
+ * Traces horizontal and vertical pixel-boundary contour segments (merged into
+ * runs) and strokes them.  Expects a context with a document→screen transform
+ * so lines render at screen pixel resolution regardless of zoom. A soft outer
+ * halo is drawn under the marching ants.
+ */
+export function drawSelectionMaskOutline(
+  ctx: CanvasRenderingContext2D,
+  mask: Selection,
+  phase: number,
+  zoom = 1
+): void {
+  const pathLocal = buildSelectionMaskOutlinePath(mask);
+  drawSelectionOutlinePath(ctx, pathLocal, mask.originX ?? 0, mask.originY ?? 0, phase, zoom);
 }
 
 /**
