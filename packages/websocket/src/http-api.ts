@@ -5,7 +5,6 @@ import {
   type ServerResponse
 } from "node:http";
 import { gzipSync } from "node:zlib";
-import { mkdir, writeFile, stat, readFile } from "node:fs/promises";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import nodePath from "node:path";
 import {
@@ -1701,7 +1700,7 @@ export async function handleAssetThumbnail(
     adapter.uriForKey(`${asset.id}_thumb.jpg`)
   );
   if (thumbData) {
-    return new Response(thumbData, {
+    return new Response(Buffer.from(thumbData), {
       status: 200,
       headers: {
         "Content-Type": "image/jpeg",
@@ -1716,7 +1715,7 @@ export async function handleAssetThumbnail(
     const fileName = getAssetFileName(asset.id, asset.content_type);
     const imageData = await adapter.retrieve(adapter.uriForKey(fileName));
     if (imageData) {
-      return new Response(imageData, {
+      return new Response(Buffer.from(imageData), {
         status: 200,
         headers: {
           "Content-Type": asset.content_type,
