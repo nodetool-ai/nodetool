@@ -47,7 +47,6 @@ function useSignedImageSources(
   const results = trpc.useQueries((t) =>
     uriItems.map((item) => {
       const key = extractStorageKey(item.uri);
-      // @ts-expect-error useQueries ProcedureRecord typings omit nested storage.signUrl (tRPC v11 + merged routers).
       return t.storage.signUrl(
         { key: key ?? "" },
         { enabled: Boolean(key), staleTime }
