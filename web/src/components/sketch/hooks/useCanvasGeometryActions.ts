@@ -563,6 +563,17 @@ export function useCanvasGeometryActions({
     finalizeCanvasCrop
   ]);
 
+  const handleCropCanvasToSelection = useCallback(() => {
+    const sel = useSketchStore.getState().selection;
+    if (!sel) return;
+    const bounds = getSelectionBounds(sel);
+    if (!bounds || bounds.width <= 0 || bounds.height <= 0) return;
+
+    reconcileAllLayerTransforms();
+    finalizeCanvasCrop(bounds.x, bounds.y, bounds.width, bounds.height);
+    pushHistory("crop to selection");
+  }, [reconcileAllLayerTransforms, finalizeCanvasCrop, pushHistory]);
+
   // ─── Context menu ──────────────────────────────────────────────
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -883,6 +894,7 @@ export function useCanvasGeometryActions({
     handleCropComplete,
     handleCropCanvasToActiveLayerVisiblePixels,
     handleCropCanvasToActiveLayerExtents,
+    handleCropCanvasToSelection,
     finalizeCanvasCrop,
     handleClearLayer,
     handleFillLayerWithColor,

@@ -8,7 +8,9 @@ import type { Selection } from "../../types";
 import {
   buildSelectionBorderStrokeMask,
   cloneSelectionMask,
+  contractSelectionMask,
   createEmptyMask,
+  expandSelectionMask,
   featherMaskAlpha,
   invertMaskInPlace,
   selectionHasAnyPixels,
@@ -29,6 +31,8 @@ export interface SelectionSlice {
   smoothCurrentSelectionBorders: () => void;
   /** Replace the filled selection with a border ring of width from tool settings. */
   convertSelectionToBorderOutline: () => void;
+  expandCurrentSelection: (px: number) => void;
+  contractCurrentSelection: (px: number) => void;
 }
 
 export const createSelectionSlice: StateCreator<
@@ -121,5 +125,21 @@ export const createSelectionSlice: StateCreator<
       return;
     }
     get().setSelection(ring);
+  },
+
+  expandCurrentSelection: (px: number) => {
+    const sel = get().selection;
+    if (!selectionHasAnyPixels(sel)) return;
+    const copy = cloneSelectionMask(sel!);
+    expandSelectionMask(copy, px);
+    get().setSelection(copy);
+  },
+
+  contractCurrentSelection: (px: number) => {
+    const sel = get().selection;
+    if (!selectionHasAnyPixels(sel)) return;
+    const copy = cloneSelectionMask(sel!);
+    contractSelectionMask(copy, px);
+    get().setSelection(copy);
   }
 });

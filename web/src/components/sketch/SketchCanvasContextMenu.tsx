@@ -26,6 +26,7 @@ import ContentCutIcon from "@mui/icons-material/ContentCut";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import TransformIcon from "@mui/icons-material/Transform";
 import HighlightAltIcon from "@mui/icons-material/HighlightAlt";
+import CropIcon from "@mui/icons-material/Crop";
 import {
   BrushSettings,
   BlurSettings,
@@ -267,6 +268,7 @@ export interface SketchCanvasContextMenuProps {
   adjustSaturation?: number;
   onSelectSettingsChange: (settings: Partial<SelectSettings>) => void;
   onInvertSelection: () => void;
+  onCropCanvasToSelection: () => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
   onStrokeSelectionBorder: () => void;
@@ -342,6 +344,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   adjustSaturation,
   onSelectSettingsChange,
   onInvertSelection,
+  onCropCanvasToSelection,
   onFeatherSelection,
   onSmoothSelectionBorders,
   onStrokeSelectionBorder,
@@ -728,6 +731,12 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     label="Reselect"
                     shortcut={`${cmdKey}⇧D`}
                     onClick={() => { onReselectSelection(); onClose(); }}
+                  />
+                  <SelectionMenuItem
+                    icon={<CropIcon sx={{ fontSize: 16 }} />}
+                    label="Crop to Selection"
+                    disabled={!hasActiveSelection}
+                    onClick={() => { onCropCanvasToSelection(); onClose(); }}
                   />
                   <Divider sx={{ my: 0.5, borderColor: surfaceSoft }} />
                   <SelectionMenuItem

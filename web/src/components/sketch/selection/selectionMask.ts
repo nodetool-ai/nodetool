@@ -792,6 +792,90 @@ function verticalBoxBlurFloat(
   }
 }
 
+/**
+ * Grow (expand) the selection by `radiusPx` pixels using a two-pass sliding
+ * maximum (Chebyshev / square structuring element — close to circular for
+ * radii ≤ 20px and fast regardless of canvas size).
+ * Mutates `mask` in place.
+ */
+export function expandSelectionMask(mask: Selection, radiusPx: number): void {
+  const r = Math.max(0, Math.round(radiusPx));
+  if (r <= 0) return;
+  const { width: w, height: h, data } = mask;
+  const tmp = new Uint8ClampedArray(w * h);
+
+  // Horizontal sliding max
+  for (let y = 0; y < h; y++) {
+    const row = y * w;
+    for (let x = 0; x < w; x++) {
+      let maxVal = 0;
+      const x0 = Math.max(0, x - r);
+      const x1 = Math.min(w - 1, x + r);
+      for (let xx = x0; xx <= x1; xx++) {
+        const v = data[row + xx];
+        if (v > maxVal) maxVal = v;
+        if (maxVal === 255) break;
+      }
+      tmp[row + x] = maxVal;
+    }
+  }
+  // Vertical sliding max
+  for (let x = 0; x < w; x++) {
+    for (let y = 0; y < h; y++) {
+      let maxVal = 0;
+      const y0 = Math.max(0, y - r);
+      const y1 = Math.min(h - 1, y + r);
+      for (let yy = y0; yy <= y1; yy++) {
+        const v = tmp[yy * w + x];
+        if (v > maxVal) maxVal = v;
+        if (maxVal === 255) break;
+      }
+      data[y * w + x] = maxVal;
+    }
+  }
+}
+
+/**
+ * Shrink (contract) the selection by `radiusPx` pixels using a two-pass
+ * sliding minimum.  Mutates `mask` in place.
+ */
+export function contractSelectionMask(mask: Selection, radiusPx: number): void {
+  const r = Math.max(0, Math.round(radiusPx));
+  if (r <= 0) return;
+  const { width: w, height: h, data } = mask;
+  const tmp = new Uint8ClampedArray(w * h);
+
+  // Horizontal sliding min
+  for (let y = 0; y < h; y++) {
+    const row = y * w;
+    for (let x = 0; x < w; x++) {
+      let minVal = 255;
+      const x0 = Math.max(0, x - r);
+      const x1 = Math.min(w - 1, x + r);
+      for (let xx = x0; xx <= x1; xx++) {
+        const v = data[row + xx];
+        if (v < minVal) minVal = v;
+        if (minVal === 0) break;
+      }
+      tmp[row + x] = minVal;
+    }
+  }
+  // Vertical sliding min
+  for (let x = 0; x < w; x++) {
+    for (let y = 0; y < h; y++) {
+      let minVal = 255;
+      const y0 = Math.max(0, y - r);
+      const y1 = Math.min(h - 1, y + r);
+      for (let yy = y0; yy <= y1; yy++) {
+        const v = tmp[yy * w + x];
+        if (v < minVal) minVal = v;
+        if (minVal === 0) break;
+      }
+      data[y * w + x] = minVal;
+    }
+  }
+}
+
 /** Mild edge smoothing: blur then re-threshold. */
 export function smoothSelectionBorders(mask: Selection, strength: number): void {
   const s = Math.max(1, Math.min(8, Math.round(strength)));

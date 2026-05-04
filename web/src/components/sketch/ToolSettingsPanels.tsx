@@ -1305,6 +1305,9 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
   onSmoothSelectionBorders,
   onStrokeSelectionBorder
 }: SelectSettingsPanelProps) {
+  const [modifyPx, setModifyPx] = useState(1);
+  const expandCurrentSelection = useSketchStore((s) => s.expandCurrentSelection);
+  const contractCurrentSelection = useSketchStore((s) => s.contractCurrentSelection);
   return (
     <>
       <ToggleButtonGroup
@@ -1377,12 +1380,42 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           {settings.borderWidth}
         </Typography>
       </Box>
+      <Box className="setting-row">
+        <Typography className="setting-label">Modify</Typography>
+        <Slider
+          sx={sketchSliderSx}
+          size="small"
+          min={1}
+          max={64}
+          value={modifyPx}
+          onChange={(_, v) => setModifyPx(v as number)}
+        />
+        <Typography className="setting-value">{modifyPx}</Typography>
+      </Box>
       <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
         <Button
           size="small"
           variant="outlined"
+          disabled={!hasActiveSelection}
+          onClick={() => expandCurrentSelection(modifyPx)}
+          sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
+        >
+          Grow
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          disabled={!hasActiveSelection}
+          onClick={() => contractCurrentSelection(modifyPx)}
+          sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
+        >
+          Shrink
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
           onClick={onInvertSelection}
-          sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
+          sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
         >
           Invert
         </Button>
@@ -1391,7 +1424,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           variant="outlined"
           disabled={!hasActiveSelection}
           onClick={onFeatherSelection}
-          sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
+          sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
         >
           Feather
         </Button>
@@ -1400,7 +1433,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           variant="outlined"
           disabled={!hasActiveSelection}
           onClick={onSmoothSelectionBorders}
-          sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
+          sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
         >
           Smooth
         </Button>
@@ -1409,7 +1442,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           variant="outlined"
           disabled={!hasActiveSelection}
           onClick={onStrokeSelectionBorder}
-          sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
+          sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
         >
           Border
         </Button>

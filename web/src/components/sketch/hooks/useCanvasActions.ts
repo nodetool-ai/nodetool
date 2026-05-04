@@ -208,6 +208,7 @@ export function useCanvasActions({
       geometryActions.handleCropCanvasToActiveLayerVisiblePixels,
     handleCropCanvasToActiveLayerExtents:
       geometryActions.handleCropCanvasToActiveLayerExtents,
+    handleCropCanvasToSelection: geometryActions.handleCropCanvasToSelection,
     contextMenu: geometryActions.contextMenu,
     handleContextMenu: geometryActions.handleContextMenu,
     handleContextMenuClose: geometryActions.handleContextMenuClose,

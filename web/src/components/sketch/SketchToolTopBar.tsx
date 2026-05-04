@@ -79,6 +79,7 @@ export interface SketchToolTopBarProps {
   onCloneStampSettingsChange: (settings: Partial<CloneStampSettings>) => void;
   onSelectSettingsChange: (settings: Partial<SelectSettings>) => void;
   onInvertSelection: () => void;
+  onCropCanvasToSelection: () => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
   onStrokeSelectionBorder: () => void;
@@ -136,6 +137,7 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   onCloneStampSettingsChange,
   onSelectSettingsChange,
   onInvertSelection,
+  onCropCanvasToSelection,
   onFeatherSelection,
   onSmoothSelectionBorders,
   onStrokeSelectionBorder,
@@ -196,6 +198,7 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         onCloneStampSettingsChange={onCloneStampSettingsChange}
         onSelectSettingsChange={onSelectSettingsChange}
         onInvertSelection={onInvertSelection}
+        onCropCanvasToSelection={onCropCanvasToSelection}
         onFeatherSelection={onFeatherSelection}
         onSmoothSelectionBorders={onSmoothSelectionBorders}
         onStrokeSelectionBorder={onStrokeSelectionBorder}
