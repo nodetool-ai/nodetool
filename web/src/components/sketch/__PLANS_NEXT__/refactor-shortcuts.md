@@ -65,7 +65,7 @@ Ad-hoc hooks sometimes pass explicit `["meta","k"]` vs `["control","k"]` — sam
    `ignore (IME / form-like control)` → **`mode` (transform, crop, segment; future on-canvas text)** → **`panel` (focused panel)** → **`tool:<name>`** → **`global`**.  
    Document this in the dispatcher; do not scatter ad-hoc `if (activeTool)` ahead of mode checks.
 
-   **Affinity behaviors to mirror conceptually:** spring/temporary tool on **held** key (e.g. View/Zoom in their tables); **modifier + pointer** rows (Alt-click, Shift-drag); optional **customize shortcuts** per workspace ([Serif help](https://affinity.help/photo2/en-US.lproj/pages/Workspace/shortcuts.html), [customizing](https://affinity.help/photo2/en-US.lproj/pages/Workspace/customizingShortcuts.html)).
+   **Affinity behaviors to mirror conceptually:** spring/temporary tool on **held** key (e.g. View/Zoom in their tables); **modifier + pointer** rows (Alt-click, Shift-drag); **customize shortcuts** app-wide or **per Persona** (workspace), with optional “Apply to all” — parallel to our **`mode` / `tool:`** scopes when we reach user overrides ([Serif help](https://affinity.help/photo2/en-US.lproj/pages/Workspace/shortcuts.html), [customizing shortcuts](https://affinity.help/photo2/en-US.lproj/pages/Workspace/customizingShortcuts.html)).
 
 5. **Spring-loaded and held modifiers** — Affinity-style: temporary tool / mode while key(s) held, clear rules for which tools allow spring move vs. block it (already partially encoded). Refactor should **centralize the rule table** instead of scattering `if (activeTool === …)` through the handler. These may stay **implementation-defined** (not in user overrides) at first; catalog flags them as `rebindable: false` when you add prefs.
 
@@ -81,7 +81,7 @@ Ship **after** catalog + dispatcher + scopes are stable.
 
 | Piece | Recommendation |
 |-------|----------------|
-| **Identity** | One **action id** per command (`undo`, `tool.brush`, `transform.commit`, …). Catalog is the **source of truth** for title, description, default chord(s), scope, and **`rebindable`** / **`requiresChord`** metadata. |
+| **Identity** | One **action id** per command (`undo`, `tool.brush`, `transform.commit`, …). Catalog is the **source of truth** for title, description, default chord(s), scope, and metadata such as **`rebindable`**. |
 | **Overrides** | `SketchShortcutPrefs`: e.g. `Record<ActionId, KeyChord[]>` — multiple chords per action allowed if desired; **or** single chord with “add alternate” in UI later. Store **normalized chord** (modifiers + `code` or stable key) — same philosophy as NodeTool’s combo arrays, but sketch-local types. |
 | **Resolution** | `effectiveBindings = merge(defaultCatalog, userOverrides)` with clear rules documented when Phase E starts. **TBD:** full *replace* of default chord vs *additive* alternates — see **Decisions (record)**. Dispatcher always consults **effective** table for the active scope. |
 | **Conflicts** | Detect duplicate `(scope, normalizedChord)` when saving prefs; surface in settings UI. Global vs tool scope reduces accidental clashes. |
@@ -111,7 +111,7 @@ This stays **sketch-only** (no shared prefs with node editor shortcuts).
 | **`e.repeat`** | Locked: catalog/metadata per action class (one-shot vs repeat). |
 | **Capture listener** | Locked: **one sketch dispatcher** (capture phase), consistent with today. |
 | **`actionId` shape** | Locked: **namespaced dot ids** (`tool.brush`, `transform.commit`, …). |
-| **Arrow nudge / opacity digits** | **Catalog entries** that delegate to shared action handlers; **repeat/hold** and digit sequences stay **thin adapter code** referenced from metadata (`handlerKind` or equivalent) so the table stays the index of truth. |
+| **Arrow nudge / opacity digits** | **Catalog entries** that delegate to shared action handlers; **repeat/hold** and digit sequences stay **thin adapter code** referenced from metadata (`handlerKind` or equivalent) so the table remains the **single source of truth**. |
 | **Panel shortcuts (layers)** | **Phase C:** fold into **`panel` scope** in the same catalog + conflict surface for future remapping; until then local capture is acceptable. |
 | **Cmd / Ctrl / Meta** | **Locked:** catalog **`Control`** = semantic primary modifier; expand with sketch **`mapSketchComboForOS`** using **`isMac()`**; matching uses **`ctrlKey` / `metaKey`** consistently with expanded chord (or **`ctrlKey || metaKey`** when using `e.key`-style checks). Tooltip display mirrors **`mapKeyForMac`**. Standardize **`isMac()`**; drop ad-hoc **`navigator.platform`** in sketch shortcut code unless one **documented** exception (e.g. spring-loaded **physical** key). |
 | **User overrides merge (Phase E+)** | **Decide later**; add UX note: *replace-default* is simpler for conflicts; *additive alternates* is nicer for power users. |
@@ -161,7 +161,6 @@ This stays **sketch-only** (no shared prefs with node editor shortcuts).
 - **Browser/OS reserved chords:** Some combos never reach the page (tab close, find, devtools). **Never** make mission-critical actions *only* available via those chords; treat unreliable shortcuts as convenience only.
 - **Embedded surfaces:** Sketch may run in **modal** vs **inline** (`AssetEditor`, node preview). Same catalog/dispatcher; confirm **when** shortcuts are armed (open + focused) and **`active: false`** for workflow shortcuts is consistent everywhere sketch mounts.
 - **Prefs schema (Phase E+):** Version **`SketchShortcutPrefs`** and migrate or strip unknown **`actionId`** keys when the catalog changes.
-- **`isMac()` quirks:** iPad / “desktop mode” may report Mac-like UA; behavior is acceptable if it matches user expectations; note in tests if something breaks.
 
 ---
 
