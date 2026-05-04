@@ -122,29 +122,31 @@ export class SelectTool implements ToolHandler {
 
     // Magic wand: defer heavy composite + flood-fill to next frame so the pointer stays responsive.
     if (mode === "magic_wand") {
-      if (ctx.onSelectionChange) {
-        requestAnimationFrame(() => {
-          const id = ctx.getFullCompositeImageData?.();
-          if (!id) {
-            return;
-          }
-          const bin = magicWandFromRgba(
-            id,
-            pt.x,
-            pt.y,
-            doc.toolSettings.select.magicWandTolerance
-          );
-          const overlay: Selection = { width: cw, height: ch, data: bin };
-          const mods = captureModifiers(ctx.shiftHeldRef, ctx.altHeldRef);
-          applySelectionFinalization({
-            overlay,
-            modifiers: mods,
-            currentSelection: selection,
-            onSelectionChange: ctx.onSelectionChange,
-            drawSelectionOverlay: ctx.drawSelectionOverlay
-          });
-        });
+      const onSelectionChange = ctx.onSelectionChange;
+      if (!onSelectionChange) {
+        return false;
       }
+      requestAnimationFrame(() => {
+        const id = ctx.getFullCompositeImageData?.();
+        if (!id) {
+          return;
+        }
+        const bin = magicWandFromRgba(
+          id,
+          pt.x,
+          pt.y,
+          doc.toolSettings.select.magicWandTolerance
+        );
+        const overlay: Selection = { width: cw, height: ch, data: bin };
+        const mods = captureModifiers(ctx.shiftHeldRef, ctx.altHeldRef);
+        applySelectionFinalization({
+          overlay,
+          modifiers: mods,
+          currentSelection: selection,
+          onSelectionChange,
+          drawSelectionOverlay: ctx.drawSelectionOverlay
+        });
+      });
       return false;
     }
 

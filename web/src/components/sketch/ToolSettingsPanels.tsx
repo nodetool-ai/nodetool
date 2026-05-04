@@ -11,6 +11,7 @@ import {
   toggleButtonSmallSx,
   sketchButtonSmallSx,
   sketchHintTextSx,
+  iconButtonCompactSx,
   SKETCH_FONT,
   SKETCH_COLORS,
   colorSwatchSx
@@ -27,10 +28,17 @@ import {
   FormControlLabel,
   Button,
   IconButton,
-  Tooltip
+  Tooltip,
+  Divider
 } from "@mui/material";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
+import CropIcon from "@mui/icons-material/Crop";
+import GestureOutlinedIcon from "@mui/icons-material/GestureOutlined";
+import PentagonOutlinedIcon from "@mui/icons-material/PentagonOutlined";
+import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+import RectangleOutlinedIcon from "@mui/icons-material/RectangleOutlined";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import {
   SketchTool,
@@ -88,6 +96,15 @@ const IN_PROGRESS_DOWNLOAD_STATES = [
   "start",
   "progress"
 ] as readonly string[];
+
+/** Icon-only select-mode toggles; tooltips carry the descriptive label. */
+const selectModeToggleButtonSx = {
+  ...toggleButtonSmallSx,
+  minWidth: 28,
+  px: 0.375,
+  py: 0.375,
+  "& .MuiSvgIcon-root": { fontSize: 18 }
+};
 
 /** Matches {@link drawEraserStroke} / document migration so panel mode matches actual erase behavior. */
 function effectiveEraserMode(
@@ -1322,20 +1339,45 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           }
         }}
       >
-        <ToggleButton value="rectangle" sx={toggleButtonSmallSx}>
-          Rect
+        <ToggleButton
+          value="rectangle"
+          sx={selectModeToggleButtonSx}
+          aria-label="Rectangular marquee"
+          title="Rectangular marquee"
+        >
+          <RectangleOutlinedIcon fontSize="inherit" />
         </ToggleButton>
-        <ToggleButton value="ellipse" sx={toggleButtonSmallSx}>
-          Ellipse
+        <ToggleButton
+          value="ellipse"
+          sx={selectModeToggleButtonSx}
+          aria-label="Elliptical marquee"
+          title="Elliptical marquee"
+        >
+          <RadioButtonUncheckedIcon fontSize="inherit" />
         </ToggleButton>
-        <ToggleButton value="lasso" sx={toggleButtonSmallSx}>
-          Lasso
+        <ToggleButton
+          value="lasso"
+          sx={selectModeToggleButtonSx}
+          aria-label="Freehand lasso"
+          title="Freehand (lasso)"
+        >
+          <GestureOutlinedIcon fontSize="inherit" />
         </ToggleButton>
-        <ToggleButton value="lasso_polygon" sx={toggleButtonSmallSx}>
-          Polygon
+        <ToggleButton
+          value="lasso_polygon"
+          sx={selectModeToggleButtonSx}
+          aria-label="Polygon selection"
+          title="Polygon"
+        >
+          <PentagonOutlinedIcon fontSize="inherit" />
         </ToggleButton>
-        <ToggleButton value="magic_wand" sx={toggleButtonSmallSx}>
-          Wand
+        <ToggleButton
+          value="magic_wand"
+          sx={selectModeToggleButtonSx}
+          aria-label="Magic wand"
+          title="Magic wand (click to sample)"
+        >
+          <AutoAwesomeOutlinedIcon fontSize="inherit" />
         </ToggleButton>
       </ToggleButtonGroup>
       {settings.mode === "magic_wand" ? (
@@ -1394,71 +1436,102 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
         />
         <Typography className="setting-value">{modifyPx}</Typography>
       </Box>
-      <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-        <Button
-          size="small"
-          variant="outlined"
-          disabled={!hasActiveSelection}
-          onClick={() => expandCurrentSelection(modifyPx)}
-          sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
+      <Box
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          gap: 0.5,
+          rowGap: 0.75,
+          width: "100%"
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            gap: 0.5,
+            flexWrap: "wrap",
+            flex: 1,
+            minWidth: 0
+          }}
         >
-          Grow
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          disabled={!hasActiveSelection}
-          onClick={() => contractCurrentSelection(modifyPx)}
-          sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
-        >
-          Shrink
-        </Button>
-        {onCropCanvasToSelection && (
           <Button
             size="small"
             variant="outlined"
             disabled={!hasActiveSelection}
-            onClick={onCropCanvasToSelection}
+            onClick={() => expandCurrentSelection(modifyPx)}
             sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
           >
-            Crop
+            Grow
           </Button>
-        )}
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={onInvertSelection}
-          sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
-        >
-          Invert
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          disabled={!hasActiveSelection}
-          onClick={onFeatherSelection}
-          sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
-        >
-          Feather
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          disabled={!hasActiveSelection}
-          onClick={onSmoothSelectionBorders}
-          sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
-        >
-          Smooth
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          disabled={!hasActiveSelection}
-          onClick={onStrokeSelectionBorder}
-          sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
-        >
-          Border
-        </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={!hasActiveSelection}
+            onClick={() => contractCurrentSelection(modifyPx)}
+            sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
+          >
+            Shrink
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={onInvertSelection}
+            sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
+          >
+            Invert
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={!hasActiveSelection}
+            onClick={onFeatherSelection}
+            sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
+          >
+            Feather
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={!hasActiveSelection}
+            onClick={onSmoothSelectionBorders}
+            sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
+          >
+            Smooth
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={!hasActiveSelection}
+            onClick={onStrokeSelectionBorder}
+            sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
+          >
+            Border
+          </Button>
+        </Box>
+        {onCropCanvasToSelection ? (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexShrink: 0, ml: "auto" }}>
+            <Divider orientation="vertical" variant="middle" flexItem sx={{ alignSelf: "stretch", borderColor: "grey.700" }} />
+            <Tooltip title="Crop canvas to selection" placement="top">
+              <span>
+                <IconButton
+                  size="small"
+                  disabled={!hasActiveSelection}
+                  onClick={onCropCanvasToSelection}
+                  aria-label="Crop canvas to selection"
+                  sx={{
+                    ...iconButtonCompactSx,
+                    border: `1px solid ${SKETCH_COLORS.border}`,
+                    borderRadius: 1,
+                    color: SKETCH_COLORS.textSecondary
+                  }}
+                >
+                  <CropIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
+        ) : null}
       </Box>
     </>
   );
