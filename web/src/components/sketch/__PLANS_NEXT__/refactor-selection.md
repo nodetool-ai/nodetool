@@ -18,9 +18,9 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 
 **Brush strategy (important):** Phase 3 does *not* rewrite the brush engine to native GPU stamps — that is a separate future project. Instead: keep CPU stroke generation as-is, and after the stroke buffer is built, run a GPU mask-multiply pass on the uploaded texture (same mechanism as Phase 4's feather blit). This eliminates `clipContextToSelectionMask` without touching brush logic.
 
-**Coordinate contract (pin before writing shaders):** All mask-sampling shaders use the same doc-space UV formula: `uv = (fragDocPos - vec2(originX, originY)) / vec2(maskWidth, maskHeight)`. Pass `originX`, `originY`, `maskWidth`, `maskHeight` as uniforms in every mask-sampling pipeline. Out-of-bounds behavior differs by shader:
-- **Mask-multiply (paint tools):** out-of-bounds → `1.0` (fully selected) so brush/fill work freely outside the canvas boundary.
-- **Ants:** out-of-bounds → `0.0` (not selected) so the edge transition is visible when the selection reaches the canvas boundary. This also lets ants render correctly when the selection extends beyond the canvas (e.g. an ellipse with `originX/Y` offset) — the boundary appears in the padded viewport area outside the document.
+**Coordinate contract (pin before writing shaders):** All mask-sampling shaders use the same doc-space UV formula: `uv = (fragDocPos - vec2(originX, originY)) / vec2(maskWidth, maskHeight)`. Pass `originX`, `originY`, `maskWidth`, `maskHeight` as uniforms in every mask-sampling pipeline. Out-of-bounds behavior and sampler filter differ by shader:
+- **Mask-multiply (paint tools):** out-of-bounds → `1.0` (fully selected) so brush/fill work freely outside the canvas boundary. Sampler: `linear` — feathered masks are smooth gradients; nearest would produce a blocky edge.
+- **Ants:** out-of-bounds → `0.0` (not selected) so the edge transition is visible when the selection reaches the canvas boundary; ants also render outside the canvas when selection extends beyond doc bounds. Sampler: `nearest` — edge detection requires a binary threshold, linear interpolation would blur the boundary.
 
 ---
 
@@ -29,13 +29,14 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 | Callsite | Purpose | Phase |
 |----------|---------|-------|
 | `selectionMask.ts`: `clipContextToSelectionMask` | CPU clip scan on every move | 3 |
-| `selectionMask.ts`: `applySelectionMaskAlpha` | Full canvas readback + pixel multiply | 4 |
+| `selectionMask.ts`: `applySelectionMaskAlpha` | Full canvas readback + pixel multiply — **keep**: still called by `PaintSession` at commit; delete only if commit path is later ported to GPU | — |
 | `selectionMask.ts`: `buildSelectionMaskOutlinePath` | Edge-scan → Path2D | 2 |
 | `selectionMask.ts`: `drawSelectionOutlinePath` | Stroke Path2D with dashes | 2 |
 | `selectionMask.ts`: `drawStrokeBufferForDisplayWithSelectionFeather` (line 1378) | Feather preview — calls `applySelectionMaskAlpha` | 4 |
 | `selectionMask.ts`: `getOrRebuildSelectionOutlinePath` + `SelectionOutlinePathCacheScratch` | Path2D cache | 2 |
 | `useOverlayRenderer.ts`: `setInterval` ants loop (line 338) + `antsPhaseRef` + path stroke | Marching ants animation | 2 |
 | `useOverlayRenderer.ts`: `outlinePathScratchRef` | Path2D cache ref | 2 |
+| `useOverlayRenderer.ts`: `selectionMoveAntsRef` | Translates ants during live move drag — replaced by fresh `originX/Y` uniforms | 2 |
 | `PaintSession.ts`: `clipSelectionForOffset` (lines 268, 335, 472) | Per-move clip in begin/move/end | 3 |
 | `PaintSession.ts`: `applySelectionMaskAlpha` (lines 536–541, 618–625) | Post-stroke feather in deferred commit + `flushShiftBuffer` — **keep**: once per stroke, not a hot path; removing it would leave committed layer data unmasked | — |
 | `HelperToolSession.ts`: `clipSelectionForOffset` (lines 181, 241) | Symmetry/mirror clip | 3 |
@@ -55,10 +56,12 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 
 ### Phase 1 — Mask texture upload
 
-- [ ] Add to `WebGPURuntime`: `maskTexture: GPUTexture | null` (`r8unorm`, doc dimensions), `maskDirty = false`.
-- [ ] Implement `uploadMaskTexture()`: writes `Selection.data` (`Uint8ClampedArray`) to `maskTexture` via `device.queue.writeTexture`. Create/recreate texture when dimensions change.
+- [ ] Add to `WebGPURuntime`: `maskTexture: GPUTexture | null` (`r8unorm`, `Selection.width × Selection.height`), `maskDirty = false`. Texture dimensions = selection dimensions, not doc dimensions — an ellipse mask extending beyond canvas bounds can be larger than the document.
+- [ ] Implement `uploadMaskTexture()`: writes `Selection.data` to `maskTexture`. Create/recreate texture when `Selection.width` or `Selection.height` changes.
+- [ ] **`bytesPerRow` alignment**: WebGPU `writeTexture` requires `bytesPerRow` to be a multiple of 256. For an R8 mask, `bytesPerRow = maskWidth × 1` — rarely aligned. Use a staging `GPUBuffer` with padded rows, or pre-pad the source data. This will throw a GPU error without the fix.
 - [ ] Call `uploadMaskTexture()` at the top of the composite pass when `maskDirty`, then clear the flag.
-- [ ] After any selection mutation (all selection tools, invert, feather, combine ops), set `maskDirty = true` and call `DisplayFrameCoordinator.scheduleRaf()`.
+- [ ] After any mutation that changes `Selection.data` (combine ops, invert, feather, new selection), set `maskDirty = true` and schedule a redraw.
+- [ ] `originX/Y` uniforms must be read fresh from `Selection.originX/Y` at every composite call — not cached or gated on `maskDirty`. A selection move only updates the origin, not `data`; the ants must track it in real-time without triggering a texture re-upload.
 - [ ] Verify: change selection → next composite uploads correctly (console log or debugLabel).
 
 ### Phase 2 — Ants shader (validates texture pipeline before touching paint)
@@ -67,7 +70,7 @@ Move selection masking fully onto the GPU. Eliminate the two CPU hot paths — `
 - [ ] Register `selectionAntsPipeline` in `WebGPURuntime` (alongside existing 5 pipelines). Add `drawSelectionAnts(phase: number)` method.
 - [ ] In `useOverlayRenderer.ts`: remove the `setInterval` ants loop (line 338), `antsPhaseRef`, and all `Path2D` ants stroke calls. Call `WebGPURuntime.drawSelectionAnts(phase)` from the existing rAF-driven composite instead — drive phase from a ref incremented in the compositor. Ants will now animate at rAF cadence (~60fps) instead of 72ms (~14fps); intentional improvement.
 - [ ] Delete from `selectionMask.ts`: `buildSelectionMaskOutlinePath`, `drawSelectionOutlinePath`, `getOrRebuildSelectionOutlinePath`, `SelectionOutlinePathCacheScratch`.
-- [ ] Delete from `useOverlayRenderer.ts`: `outlinePathScratchRef`.
+- [ ] Delete from `useOverlayRenderer.ts`: `outlinePathScratchRef`, `selectionMoveAntsRef` (selection move is handled automatically by fresh `originX/Y` uniforms each frame).
 - [ ] Rect/ellipse/lasso live-preview outlines (not committed mask) stay CPU-drawn — they are not hot paths.
 - [ ] Verify: ants render correctly at various zoom levels; ants appear at the canvas boundary when selection reaches the edge; ants render outside the canvas when selection extends beyond doc bounds (ellipse with `originX/Y` offset).
 
@@ -99,7 +102,7 @@ Eliminates the per-frame CPU feather during an active stroke. Commit-time maskin
 - [ ] Gradient fill: render gradient into staging FBO → GPU mask-multiply blit (reuse Phase 4 pass). No CPU canvas readback.
 - [ ] Shape fill: same GPU blit approach.
 - [ ] Remove remaining `clipSelectionForOffset` calls from `ShapeTool.ts:229` and gradient commit paths.
-- [ ] Blur / clone: these are CPU-bound (`getImageData` / `putImageData`). Apply mask as a CPU multiply on the result buffer before `putImageData` — same pattern as the old `applySelectionMaskAlpha` but scoped to dirty rect only. Not a hot path (no per-move call); acceptable.
+- [ ] Blur / clone: per-move clip already removed in Phase 3 (via `HelperToolSession`). These tools do CPU `getImageData`/`putImageData` for their core operation — a GPU mask pass would add a roundtrip for no gain. Apply mask as a CPU dirty-rect multiply on the result buffer before `putImageData`. Same commit-only pattern as brush.
 - [ ] Ctrl+C / cut: readback CPU `Selection.data` (already canonical) + GPU layer readback on copy action only — not a hot path, acceptable cost.
 
 ### Phase 6 — Cleanup
@@ -123,7 +126,7 @@ Eliminates the per-frame CPU feather during an active stroke. Commit-time maskin
 
 - [ ] No CPU mask scan in `pointermove` while painting.
 - [ ] Feathered selections match prior `applySelectionMaskAlpha` output within tolerance.
-- [ ] All paint tools (brush, eraser, pencil, blur, clone, gradient, shape, flood fill) respect active selection via GPU mask.
-- [ ] Marching ants rendered via shader — no Path2D stroke in animation loop.
+- [ ] All paint tools respect active selection: GPU mask-multiply for brush/eraser/pencil/gradient/shape; CPU dirty-rect multiply for blur/clone/flood fill.
+- [ ] Marching ants rendered via shader — no Path2D stroke in animation loop; ants visible outside canvas bounds when selection extends beyond doc.
 - [ ] Undo/redo of selection changes correct: CPU array restored → GPU re-uploads on next composite.
 - [ ] `npm run test` green; manual smoke: brush/erase/gradient/wand with feathered selection.

@@ -47,3 +47,11 @@ export {
   computeWarpTransform,
   resolveTransformGestureMode
 } from "./computeTransform";
+export {
+  affineMultiply,
+  affineInvert,
+  rasterSpaceToDocAffine,
+  unionOfDocumentExtents,
+  layerTransformFromDocAffine,
+  fitAffineRectangleCorners
+} from "./multiLayerTransformMath";

@@ -28,12 +28,12 @@
  *   - An optional auto-select toggle (stored in `TransformSettings`) controls
  *     whether clicking opaque pixels targets the topmost visible transformable
  *     layer without requiring a panel switch.
- *   - The tool currently operates on a single transform target. Shift+click
- *     retargets that single layer; it does not build a multi-layer union gizmo.
- *   - The transform gizmo, transform UI, and live preview all use the current
- *     single-target bounds source.
- *   - This transform target is intentionally separate from the layers-panel
- *     multi-select (`selectedLayerIds`).
+ *   - With layers-panel multi-select (2+ layers) or a selected/active **group**,
+ *     targets expand to all eligible raster/mask descendants and share one union
+ *     gizmo; a single document-space affine delta applies to every target layer.
+ *     Advanced per-layer modes (distort/skew/perspective/warp) are excluded from
+ *     multi-target sets.
+ *   - Auto-pick under the pointer is disabled while multiple targets are active.
  *
  * Responsibilities are split across dedicated modules:
  *   - Gizmo paint/layout: `transform/transformGizmoPainter.ts`
@@ -52,13 +52,16 @@ import type {
   LayerTransform,
   LayerContentBounds,
   Layer,
-  TransformMode
+  TransformMode,
+  AffineMatrix
 } from "../types";
-import { layerAllowsTransformWhilePixelLocked } from "../types";
+import { layerAllowsTransformWhilePixelLocked, composeAffineMatrix } from "../types";
 import AspectRatioIcon from "@mui/icons-material/AspectRatio";
 import {
+  resolveGizmoBounds,
   getTransformedCenter,
-  getTransformedCorners
+  getTransformedCorners,
+  getTransformedExtents
 } from "../painting/resolvedLayerGeometry";
 import {
   type TransformHandle,
@@ -81,12 +84,19 @@ import {
   applyCursorFeedback
 } from "./transform/transformHoverPolicy";
 import { createPreviewSession, type PreviewSession } from "./previewSession";
-import { resolveGizmoBounds } from "../painting/resolvedLayerGeometry";
 import {
   TransformTargetSet,
   pickTopmostTransformableLayer,
-  resolveTargetEntry
+  resolveTransformTargetLayerIds,
+  type TransformTargetEntry
 } from "./transformTargetSet";
+import {
+  affineInvert,
+  affineMultiply,
+  layerTransformFromDocAffine,
+  rasterSpaceToDocAffine,
+  unionOfDocumentExtents
+} from "./transform/multiLayerTransformMath";
 import { useSketchStore } from "../state/useSketchStore";
 import { cursorForHandle } from "./transform/cursorMapping";
 
@@ -131,8 +141,17 @@ export class TransformTool implements ToolHandler {
   private pivotPoint: Point | null = null;
 
   // ── Transform target set ──────────────────────────────────────────────────
-  /** Current transform target (separate from layers-panel multi-select). */
+  /** Current transform target (separate from raw panel multi-select expansion). */
   private readonly targetSet = new TransformTargetSet();
+
+  /** Expanded target layers (union transform); stack order. */
+  private multiTargetLayerIds: string[] = [];
+
+  /** Per-layer doc affine at pointer-down (multi-target gestures). */
+  private multiGestureBaselineDocMatrices: Map<string, AffineMatrix> | null = null;
+
+  /** Union doc affine at pointer-down (multi-target gestures). */
+  private multiGestureUnionDocMatrixStart: AffineMatrix | null = null;
 
   // ── In-transform undo/redo stacks ─────────────────────────────────────────
   /** Stack of transforms recorded before each handle adjustment (for in-transform undo). */
@@ -147,12 +166,10 @@ export class TransformTool implements ToolHandler {
     // without explicit deactivation, or singleton reuse across tests).
     this.session.clear(ctx);
     this.targetSet.clear();
+    this.multiGestureBaselineDocMatrices = null;
+    this.multiGestureUnionDocMatrixStart = null;
 
-    const layer = this.getActiveLayer(ctx);
-    if (!layer) {
-      return;
-    }
-    this.syncStateToLayer(ctx, layer);
+    this.syncTransformTargets(ctx);
 
     this.activeHandle = null;
     this.hoveredHandle = null;
@@ -169,10 +186,6 @@ export class TransformTool implements ToolHandler {
     if (this.gestureActive || this.session.isActive()) {
       return;
     }
-    const layer = this.getActiveLayer(ctx);
-    if (!layer) {
-      return;
-    }
     this.activeHandle = null;
     this.hoveredHandle = null;
     this.pivotPoint = null;
@@ -180,7 +193,7 @@ export class TransformTool implements ToolHandler {
     this.dragStartCorners = null;
     this.adjustmentUndoStack = [];
     this.adjustmentRedoStack = [];
-    this.syncStateToLayer(ctx, layer);
+    this.syncTransformTargets(ctx);
     this.drawGizmo(ctx);
   }
 
@@ -192,6 +205,12 @@ export class TransformTool implements ToolHandler {
     this.activeTransformMode = "auto";
     this.dragStartCorners = null;
     this.session.clear(ctx);
+    for (const id of this.multiTargetLayerIds) {
+      ctx.clearLayerTransformPreview?.(id);
+    }
+    this.multiTargetLayerIds = [];
+    this.multiGestureBaselineDocMatrices = null;
+    this.multiGestureUnionDocMatrixStart = null;
     this.targetSet.clear();
     this.adjustmentUndoStack = [];
     this.adjustmentRedoStack = [];
@@ -209,18 +228,25 @@ export class TransformTool implements ToolHandler {
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
     const { doc } = ctx;
-    const layer = doc.layers.find((l) => l.id === doc.activeLayerId);
-    if (!layer) {
+    if (this.multiTargetLayerIds.length === 0) {
       return false;
     }
-    if (layer.locked && !layerAllowsTransformWhilePixelLocked(layer)) {
-      return false;
+    for (const id of this.multiTargetLayerIds) {
+      const lyr = doc.layers.find((l) => l.id === id);
+      if (!lyr || (lyr.locked && !layerAllowsTransformWhilePixelLocked(lyr))) {
+        return false;
+      }
     }
 
+    const primaryLayer = doc.layers.find(
+      (l) => l.id === this.multiTargetLayerIds[0]
+    )!;
     const pt = event.point;
     const currentTransform = this.session.isActive()
       ? this.session.state.currentTransform
-      : layer.transform;
+      : this.isMultiTarget()
+        ? this.originalTransform
+        : primaryLayer.transform;
 
     // 1. Check edge/corner/rotation handles first (highest geometric priority)
     let handle = hitTestHandles(
@@ -247,7 +273,11 @@ export class TransformTool implements ToolHandler {
       const storeSettings = useSketchStore.getState().toolSettings;
       const autoSelect = storeSettings?.transform?.autoSelect ?? true;
       // Only auto-select a different layer when there is no active selection mask
-      if (autoSelect && !ctx.selection) {
+      if (
+        !this.isMultiTarget() &&
+        autoSelect &&
+        !ctx.selection
+      ) {
         const picked = this.peekAutoSelectPick(ctx, pt);
         if (picked && picked.id !== doc.activeLayerId) {
           this.tryAutoSelectPick(ctx, event, picked);
@@ -262,7 +292,11 @@ export class TransformTool implements ToolHandler {
       const storeSettings = useSketchStore.getState().toolSettings;
       const autoSelect = storeSettings?.transform?.autoSelect ?? true;
       // Only auto-select a different layer when there is no active selection mask
-      if (autoSelect && !ctx.selection) {
+      if (
+        !this.isMultiTarget() &&
+        autoSelect &&
+        !ctx.selection
+      ) {
         const picked = this.tryAutoSelectPick(ctx, event);
         if (picked) {
           return false; // Layer retargeted, no drag started
@@ -286,15 +320,29 @@ export class TransformTool implements ToolHandler {
     this.dragStartCorners =
       handle === "move" || handle === "rotate"
         ? null
-        : this.getCurrentCorners(currentTransform);
+        : this.isMultiTarget()
+          ? null
+          : this.getCurrentCorners(currentTransform);
     this.activeTransformMode = this.getConfiguredTransformMode();
     this.center = getTransformedCenter(currentTransform, this.rasterBounds);
     this.gestureActive = true;
     // Record the pre-drag transform for in-transform undo; clear redo stack.
     this.adjustmentUndoStack.push({ ...currentTransform });
     this.adjustmentRedoStack = [];
+
+    this.multiGestureBaselineDocMatrices = null;
+    this.multiGestureUnionDocMatrixStart = null;
+    if (this.isMultiTarget()) {
+      this.captureMultiGestureBaselines(ctx);
+      this.multiGestureUnionDocMatrixStart = rasterSpaceToDocAffine(
+        this.dragStartTransform,
+        this.rasterBounds
+      );
+    }
+
+    const sessionLayerId = this.multiTargetLayerIds[0]!;
     // Start the shared preview session for compositing + UI.
-    this.session.start(ctx, layer.id, { ...currentTransform });
+    this.session.start(ctx, sessionLayerId, { ...currentTransform });
     return true;
   }
 
@@ -319,8 +367,11 @@ export class TransformTool implements ToolHandler {
       return;
     }
 
-    const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
-    if (!layer) {
+    const primaryId = this.multiTargetLayerIds[0];
+    if (
+      !primaryId ||
+      !ctx.doc.layers.some((l) => l.id === primaryId)
+    ) {
       return;
     }
 
@@ -422,9 +473,12 @@ export class TransformTool implements ToolHandler {
         delete newTransform.mode;
       }
     }
-    // Update through the shared preview session — writes to both compositing
-    // pipeline and the UI singleton in one call.
-    this.session.update(ctx, newTransform);
+    if (this.isMultiTarget()) {
+      this.session.update(ctx, newTransform, { skipCanvasPreview: true });
+      this.applyMultiLayerPreviews(ctx, newTransform);
+    } else {
+      this.session.update(ctx, newTransform);
+    }
 
     // Batch gizmo redraws with rAF to avoid redundant per-event paints
     this.gizmoScheduler.scheduleRedraw(() => this.drawGizmo(ctx));
@@ -447,17 +501,23 @@ export class TransformTool implements ToolHandler {
     const committedTransform = this.session.isActive()
       ? { ...this.session.state.currentTransform }
       : null;
-    // Commit the final transform through the shared session.
-    this.session.commit(ctx);
+
+    if (this.isMultiTarget() && this.session.isActive()) {
+      this.commitMultiLayerGesture(ctx);
+    } else {
+      this.session.commit(ctx);
+    }
+
+    this.multiGestureBaselineDocMatrices = null;
+    this.multiGestureUnionDocMatrixStart = null;
 
     this.activeHandle = null;
     this.dragStart = null;
     this.dragStartCorners = null;
     this.activeTransformMode = "auto";
 
-    const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
-    if (layer) {
-      ctx.onStrokeEnd(layer.id, null, undefined, {
+    for (const id of this.multiTargetLayerIds) {
+      ctx.onStrokeEnd(id, null, undefined, {
         syncDocumentFromCanvas: false
       });
     }
@@ -482,6 +542,9 @@ export class TransformTool implements ToolHandler {
     event: ToolPointerEvent,
     pickedOverride?: Layer | null
   ): boolean {
+    if (this.isMultiTarget()) {
+      return false;
+    }
     const { doc } = ctx;
 
     const picked = pickedOverride ?? this.peekAutoSelectPick(ctx, event.point);
@@ -489,11 +552,6 @@ export class TransformTool implements ToolHandler {
     if (!picked) {
       return false;
     }
-
-    const pickedCanvas = ctx.layerCanvasesRef.current.get(picked.id);
-    const entry = resolveTargetEntry(picked, pickedCanvas, doc.canvas);
-
-    this.targetSet.setSingle(picked.id, entry.bounds);
 
     // Switch the active layer to the picked layer so the gizmo and
     // preview session operate on it.
@@ -503,29 +561,182 @@ export class TransformTool implements ToolHandler {
       ctx.onAutoPickLayer?.(picked.id);
     }
 
-    // Update the gizmo bounds to match the new target
-    this.rasterBounds = entry.bounds;
-    this.originalTransform = {
-      x: picked.transform.x,
-      y: picked.transform.y,
-      scaleX: picked.transform.scaleX ?? 1,
-      scaleY: picked.transform.scaleY ?? 1,
-      rotation: picked.transform.rotation ?? 0
-    };
+    this.syncSingleLayer(ctx, picked);
 
     this.drawGizmo(ctx);
     return true;
   }
 
-  private getActiveLayer(ctx: ToolContext): Layer | undefined {
-    return ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
+  isMultiTarget(): boolean {
+    return this.multiTargetLayerIds.length > 1;
   }
 
-  private syncStateToLayer(ctx: ToolContext, layer: Layer): void {
+  /** Layer IDs participating in the current union transform (stack order). */
+  getMultiTargetLayerIds(): readonly string[] {
+    return this.multiTargetLayerIds;
+  }
+
+  private syncTransformTargets(ctx: ToolContext): void {
+    const store = useSketchStore.getState();
+    const ids = resolveTransformTargetLayerIds(
+      ctx.doc,
+      store.selectedLayerIds,
+      ctx.doc.activeLayerId
+    );
+    this.multiTargetLayerIds = ids;
+
+    if (ids.length === 0) {
+      this.targetSet.clear();
+      return;
+    }
+
+    if (ids.length === 1) {
+      const layer = ctx.doc.layers.find((l) => l.id === ids[0]);
+      if (!layer) {
+        this.targetSet.clear();
+        return;
+      }
+      this.syncSingleLayer(ctx, layer);
+      return;
+    }
+
+    const entries: TransformTargetEntry[] = [];
+    const extentRects: Array<ReturnType<typeof getTransformedExtents>> = [];
+    for (const id of ids) {
+      const layer = ctx.doc.layers.find((l) => l.id === id);
+      if (!layer) {
+        continue;
+      }
+      const canvas = ctx.layerCanvasesRef.current.get(id);
+      const rb = resolveGizmoBounds(layer, canvas, ctx.doc.canvas);
+      entries.push({ layerId: id, bounds: rb });
+      extentRects.push(getTransformedExtents(layer.transform, rb));
+    }
+
+    if (entries.length === 0) {
+      this.targetSet.clear();
+      return;
+    }
+
+    const union = unionOfDocumentExtents(extentRects);
+    if (!union) {
+      this.targetSet.clear();
+      return;
+    }
+
+    this.rasterBounds = {
+      x: 0,
+      y: 0,
+      width: union.width,
+      height: union.height
+    };
+    this.originalTransform = {
+      x: union.x,
+      y: union.y,
+      scaleX: 1,
+      scaleY: 1,
+      rotation: 0,
+      matrix: composeAffineMatrix(union.x, union.y, 1, 1, 0)
+    };
+    this.targetSet.setTargets(entries);
+  }
+
+  private syncSingleLayer(ctx: ToolContext, layer: Layer): void {
+    this.multiTargetLayerIds = [layer.id];
     this.originalTransform = { ...layer.transform };
     const layerCanvas = ctx.layerCanvasesRef.current.get(layer.id);
     this.rasterBounds = resolveGizmoBounds(layer, layerCanvas, ctx.doc.canvas);
     this.targetSet.setSingle(layer.id, this.rasterBounds);
+  }
+
+  private captureMultiGestureBaselines(ctx: ToolContext): void {
+    const map = new Map<string, AffineMatrix>();
+    for (const id of this.multiTargetLayerIds) {
+      const layer = ctx.doc.layers.find((l) => l.id === id);
+      if (!layer) {
+        continue;
+      }
+      const rb = resolveGizmoBounds(
+        layer,
+        ctx.layerCanvasesRef.current.get(id),
+        ctx.doc.canvas
+      );
+      const m = rasterSpaceToDocAffine(layer.transform, rb);
+      if (m) {
+        map.set(id, m);
+      }
+    }
+    this.multiGestureBaselineDocMatrices = map;
+  }
+
+  private applyMultiLayerPreviews(
+    ctx: ToolContext,
+    unionTransform: LayerTransform
+  ): void {
+    if (
+      !this.multiGestureBaselineDocMatrices ||
+      !this.multiGestureUnionDocMatrixStart
+    ) {
+      return;
+    }
+    const M_live = rasterSpaceToDocAffine(unionTransform, this.rasterBounds);
+    const invStart = affineInvert(this.multiGestureUnionDocMatrixStart);
+    if (!M_live || !invStart) {
+      return;
+    }
+    const D = affineMultiply(M_live, invStart);
+    for (const id of this.multiTargetLayerIds) {
+      const Mi0 = this.multiGestureBaselineDocMatrices.get(id);
+      if (!Mi0) {
+        continue;
+      }
+      const Mi1 = affineMultiply(D, Mi0);
+      ctx.setLayerTransformPreview?.(id, layerTransformFromDocAffine(Mi1));
+    }
+  }
+
+  private commitMultiLayerGesture(ctx: ToolContext): void {
+    const unionFinal = this.session.state.currentTransform;
+    const M_end = rasterSpaceToDocAffine(unionFinal, this.rasterBounds);
+    const invStart = this.multiGestureUnionDocMatrixStart
+      ? affineInvert(this.multiGestureUnionDocMatrixStart)
+      : null;
+    const baseline = this.multiGestureBaselineDocMatrices;
+    if (!M_end || !invStart || !baseline) {
+      this.session.cancel(ctx);
+      return;
+    }
+    const D = affineMultiply(M_end, invStart);
+    for (const id of this.multiTargetLayerIds) {
+      const Mi0 = baseline.get(id);
+      if (!Mi0) {
+        continue;
+      }
+      const Mi1 = affineMultiply(D, Mi0);
+      ctx.onLayerTransformChange?.(id, layerTransformFromDocAffine(Mi1));
+      ctx.clearLayerTransformPreview?.(id);
+    }
+    this.session.cancel(ctx);
+  }
+
+  /**
+   * Transform driving the union gizmo (session preview, or synthetic union /
+   * primary layer transform when idle).
+   */
+  private resolveDisplayedUnionTransform(ctx: ToolContext): LayerTransform | null {
+    if (this.multiTargetLayerIds.length === 0) {
+      return null;
+    }
+    if (this.session.isActive()) {
+      return this.session.state.currentTransform;
+    }
+    if (this.isMultiTarget()) {
+      return this.originalTransform;
+    }
+    const primary = ctx.doc.layers.find(
+      (l) => l.id === this.multiTargetLayerIds[0]
+    );
+    return primary ? primary.transform : null;
   }
 
   private getConfiguredTransformMode(): TransformMode {
@@ -611,13 +822,10 @@ export class TransformTool implements ToolHandler {
    * Used by the pointer handler to decide whether to show the transform context menu.
    */
   isPointInsideBoundingBox(ctx: ToolContext, docPoint: Point): boolean {
-    const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
-    if (!layer) {
+    const transform = this.resolveDisplayedUnionTransform(ctx);
+    if (!transform) {
       return false;
     }
-    const transform = this.session.isActive()
-      ? this.session.state.currentTransform
-      : layer.transform;
     const handle = hitTestHandles(
       transform,
       this.rasterBounds,
@@ -631,9 +839,13 @@ export class TransformTool implements ToolHandler {
 
   /** Get the current live transform (for external undo/redo consumers). */
   getLiveTransform(): LayerTransform | null {
-    return this.session.isActive()
-      ? { ...this.session.state.currentTransform }
-      : null;
+    if (this.session.isActive()) {
+      return { ...this.session.state.currentTransform };
+    }
+    if (this.isMultiTarget()) {
+      return { ...this.originalTransform };
+    }
+    return null;
   }
 
   /** Get the current preview session (for external consumers). */
@@ -646,13 +858,10 @@ export class TransformTool implements ToolHandler {
    * Returns the CSS cursor string, or null if no handle is under the pointer.
    */
   getHoverCursor(ctx: ToolContext, docPoint: Point): string | null {
-    const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
-    if (!layer) {
+    const transform = this.resolveDisplayedUnionTransform(ctx);
+    if (!transform) {
       return null;
     }
-    const transform = this.session.isActive()
-      ? this.session.state.currentTransform
-      : layer.transform;
     const handle = hitTestHandles(transform, this.rasterBounds, docPoint, ctx.zoom);
     // Let the visible pivot win over move-zone and rotate-zone hover, while
     // still preserving direct hits on concrete gizmo handles.
@@ -721,13 +930,11 @@ export class TransformTool implements ToolHandler {
     ctx: ToolContext,
     overrideTransform: LayerTransform | null
   ): void {
-    const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
-    if (!layer) {
+    const transform =
+      overrideTransform ?? this.resolveDisplayedUnionTransform(ctx);
+    if (!transform) {
       return;
     }
-    const transform = this.session.isActive()
-      ? this.session.state.currentTransform
-      : overrideTransform ?? layer.transform;
     const hoveredHandle = this.activeHandle ?? this.hoveredHandle;
     const pivotDoc = this.pivotPoint ?? null;
     paintTransformGizmo(ctx, transform, this.rasterBounds, hoveredHandle, pivotDoc);

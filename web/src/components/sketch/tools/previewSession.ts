@@ -44,7 +44,11 @@ export interface PreviewSession {
   start(ctx: ToolContext, layerId: string, baselineTransform: LayerTransform): void;
 
   /** Update the live preview transform. Does NOT commit to the store. */
-  update(ctx: ToolContext, transform: LayerTransform): void;
+  update(
+    ctx: ToolContext,
+    transform: LayerTransform,
+    options?: { skipCanvasPreview?: boolean }
+  ): void;
 
   /** Commit the current preview to the store and end the gesture. */
   commit(ctx: ToolContext): void;
@@ -100,12 +104,14 @@ export function createPreviewSession(): PreviewSession {
       ctx.onStrokeStart();
     },
 
-    update(ctx: ToolContext, transform: LayerTransform): void {
+    update(ctx: ToolContext, transform: LayerTransform, options?: { skipCanvasPreview?: boolean }): void {
       if (!state.active || !state.layerId) {
         return;
       }
       state.currentTransform = { ...transform };
-      ctx.setLayerTransformPreview?.(state.layerId, transform);
+      if (!options?.skipCanvasPreview) {
+        ctx.setLayerTransformPreview?.(state.layerId, transform);
+      }
     },
 
     commit(ctx: ToolContext): void {

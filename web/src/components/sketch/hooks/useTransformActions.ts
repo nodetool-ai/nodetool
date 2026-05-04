@@ -95,6 +95,10 @@ export function useTransformActions({
 }: UseTransformActionsParams) {
   /** Original transform saved when the transform tool activates. */
   const transformOriginalRef = useRef<LayerTransform | null>(null);
+  const multiTransformOriginalRef = useRef<Record<
+    string,
+    LayerTransform
+  > | null>(null);
   const selectionFreeTransformRef = useRef<SelectionFreeTransformSession | null>(null);
   const lastCommittedTransformRef = useRef<RepeatableTransformRecord | null>(null);
   const selection = useSketchStore((state) => state.selection);
@@ -126,6 +130,20 @@ export function useTransformActions({
 
   /** Save the current layer transform as the baseline for cancel. */
   const saveTransformOriginal = useCallback(() => {
+    const handler = getToolHandler("transform");
+    if (handler instanceof TransformTool && handler.isMultiTarget()) {
+      const map: Record<string, LayerTransform> = {};
+      for (const id of handler.getMultiTargetLayerIds()) {
+        const layer = document.layers.find((l) => l.id === id);
+        if (layer) {
+          map[id] = { ...layer.transform };
+        }
+      }
+      multiTransformOriginalRef.current = map;
+      transformOriginalRef.current = null;
+      return;
+    }
+    multiTransformOriginalRef.current = null;
     const activeLayer = document.layers.find(
       (l) => l.id === document.activeLayerId
     );
@@ -344,14 +362,51 @@ export function useTransformActions({
 
   /** Commit: bake the current scale/rotation into the pixel data and reset transform fields. */
   const handleTransformCommit = useCallback(() => {
-    const activeLayerId = document.activeLayerId;
-    const activeLayer = document.layers.find((l) => l.id === activeLayerId);
-    if (!activeLayer) {
+    const canvas = canvasRef.current;
+    if (!canvas) {
       return;
     }
 
-    const canvas = canvasRef.current;
-    if (!canvas) {
+    const transformToolHandler = getToolHandler("transform");
+    if (
+      transformToolHandler instanceof TransformTool &&
+      transformToolHandler.isMultiTarget()
+    ) {
+      const ids = [...transformToolHandler.getMultiTargetLayerIds()];
+      const primary =
+        document.layers.find((l) => l.id === document.activeLayerId) ??
+        document.layers.find((l) => l.id === ids[0]);
+      if (primary) {
+        storeLastCommittedTransform(primary.transform, false);
+      }
+      const fallbackBounds = {
+        x: 0,
+        y: 0,
+        width: document.canvas.width,
+        height: document.canvas.height
+      };
+      for (const layerId of ids) {
+        const lyr = document.layers.find((l) => l.id === layerId);
+        if (!lyr) {
+          continue;
+        }
+        const newData = canvas.reconcileLayerToDocumentSpace(layerId);
+        if (newData !== null) {
+          updateLayerData(layerId, newData);
+          const { bounds } = deserializeLayerData(newData, fallbackBounds);
+          setLayerContentBounds(layerId, bounds);
+        }
+        setLayerTransform(layerId, { x: 0, y: 0 });
+      }
+      transformOriginalRef.current = null;
+      multiTransformOriginalRef.current = null;
+      syncSketchOutputsNow();
+      return;
+    }
+
+    const activeLayerId = document.activeLayerId;
+    const activeLayer = document.layers.find((l) => l.id === activeLayerId);
+    if (!activeLayer) {
       return;
     }
 
@@ -385,6 +440,7 @@ export function useTransformActions({
       setSelection(transformedSelection);
       clearSelectionFreeTransformSession();
       transformOriginalRef.current = null;
+      multiTransformOriginalRef.current = null;
       return;
     }
 
@@ -407,6 +463,7 @@ export function useTransformActions({
     setLayerTransform(activeLayerId, { x: 0, y: 0 });
 
     transformOriginalRef.current = null;
+    multiTransformOriginalRef.current = null;
   }, [
     document,
     canvasRef,
@@ -416,13 +473,23 @@ export function useTransformActions({
     setLayerContentBounds,
     restoreSelectionFreeTransformState,
     clearSelectionFreeTransformSession,
-    setSelection
+    setSelection,
+    syncSketchOutputsNow
   ]);
 
   /** Cancel: restore the original transform. */
   const handleTransformCancel = useCallback(() => {
-    const activeLayerId = document.activeLayerId;
     restoreSelectionFreeTransformState();
+    const multi = multiTransformOriginalRef.current;
+    if (multi) {
+      for (const [layerId, transform] of Object.entries(multi)) {
+        setLayerTransform(layerId, transform);
+      }
+      multiTransformOriginalRef.current = null;
+      transformOriginalRef.current = null;
+      return;
+    }
+    const activeLayerId = document.activeLayerId;
     const original = transformOriginalRef.current;
     if (original) {
       setLayerTransform(activeLayerId, original);
@@ -543,6 +610,9 @@ export function useTransformActions({
     if (!state) {
       return;
     }
+    if (state.handler.isMultiTarget()) {
+      return;
+    }
     const restored = state.handler.undoLastAdjustment(state.currentTransform);
     if (restored) {
       setLayerTransform(state.activeLayerId, restored);
@@ -553,6 +623,9 @@ export function useTransformActions({
   const handleTransformRedo = useCallback(() => {
     const state = getTransformToolState();
     if (!state) {
+      return;
+    }
+    if (state.handler.isMultiTarget()) {
       return;
     }
     const restored = state.handler.redoLastAdjustment(state.currentTransform);

@@ -1,28 +1,35 @@
 /**
- * transformTargetSet – Tracks the current single transform target.
+ * transformTargetSet – Tracks transform targets (single layer or multi-layer union).
  *
- * The transform-target set is **separate** from the layers-panel multi-select
- * (`selectedLayerIds` in the UI slice). This is intentional: layers-panel
- * selection is a general-purpose UI concept, while the transform-target set
- * is a tool-specific concept for "which layers should this transform gesture
- * affect?"
+ * Layers-panel multi-select seeds which raster/mask descendants participate when
+ * the transform tool activates. Group layers expand to their transformable
+ * descendants. Advanced per-layer modes (distort/skew/perspective/warp/quad) are
+ * excluded from multi-target sets.
  *
- * Current tool behavior:
- *   - The target state is owned by the TransformTool instance (not global state).
- *   - Only one layer is transformable at a time.
- *   - When auto-select is enabled, clicking opaque pixels retargets the tool to
- *     the topmost visible transformable layer.
- *   - Shift+click follows the same single-target retargeting behavior; it does
- *     not build a multi-layer union gizmo.
+ * Auto-pick under the pointer still retargets a single layer when only one target
+ * is active; it is disabled while a multi-target session is in progress.
  *
  * @module tools/transformTargetSet
  */
 
-import type { Layer, LayerContentBounds, LayerTransform, Point } from "../types";
-import { isLayerCompositeVisible, layerAllowsTransformWhilePixelLocked } from "../types";
+import type {
+  Layer,
+  LayerContentBounds,
+  LayerTransform,
+  Point,
+  SketchDocument
+} from "../types";
+import {
+  getDescendantIds,
+  isLayerCompositeVisible,
+  isQuadTransformMode,
+  layerAllowsTransformWhilePixelLocked
+} from "../types";
 import { hitTestLayerAtDocPoint } from "../painting/sampleDocument";
-import { resolveGizmoBounds } from "../painting/resolvedLayerGeometry";
-import { getTransformedExtents } from "../painting/resolvedLayerGeometry";
+import {
+  resolveGizmoBounds,
+  getTransformedExtents
+} from "../painting/resolvedLayerGeometry";
 
 // ─── Target set ──────────────────────────────────────────────────────────────
 
@@ -32,69 +39,166 @@ export interface TransformTargetEntry {
   bounds: LayerContentBounds;
 }
 
+/** True when the layer can participate in a multi-layer union transform. */
+export function isMultiTransformEligibleLayer(layer: Layer): boolean {
+  if (layer.type !== "raster" && layer.type !== "mask") {
+    return false;
+  }
+  if (layer.locked && !layerAllowsTransformWhilePixelLocked(layer)) {
+    return false;
+  }
+  const mode = layer.transform.mode;
+  if (
+    mode === "distort" ||
+    mode === "skew" ||
+    mode === "perspective" ||
+    mode === "warp"
+  ) {
+    return false;
+  }
+  if (layer.transform.quad && isQuadTransformMode(mode)) {
+    return false;
+  }
+  if (layer.transform.matrix && mode && !isQuadTransformMode(mode)) {
+    return false;
+  }
+  return true;
+}
+
 /**
- * Mutable single-target state held by the TransformTool.
+ * Resolve raster/mask layer IDs for the transform tool from panel selection +
+ * active layer. Groups expand to eligible descendants. Order follows document
+ * layer stack (bottom → top).
+ */
+export function resolveTransformTargetLayerIds(
+  doc: SketchDocument,
+  selectedLayerIds: readonly string[],
+  activeLayerId: string | null | undefined
+): string[] {
+  let seeds: string[];
+  if (selectedLayerIds.length >= 2) {
+    seeds = [...selectedLayerIds];
+  } else if (selectedLayerIds.length === 1) {
+    seeds = [selectedLayerIds[0]!];
+  } else if (activeLayerId) {
+    seeds = [activeLayerId];
+  } else {
+    return [];
+  }
+
+  const expanded = new Set<string>();
+  for (const id of seeds) {
+    const layer = doc.layers.find((l) => l.id === id);
+    if (!layer) {
+      continue;
+    }
+    if (layer.type === "group") {
+      for (const descId of getDescendantIds(doc.layers, id)) {
+        const child = doc.layers.find((l) => l.id === descId);
+        if (child && isMultiTransformEligibleLayer(child)) {
+          expanded.add(descId);
+        }
+      }
+    } else if (isMultiTransformEligibleLayer(layer)) {
+      expanded.add(id);
+    }
+  }
+
+  return doc.layers.filter((l) => expanded.has(l.id)).map((l) => l.id);
+}
+
+/**
+ * Mutable target list held by the TransformTool (one or many layers).
  */
 export class TransformTargetSet {
-  private entry: TransformTargetEntry | null = null;
+  private entries: TransformTargetEntry[] = [];
 
-  /** Current target entries (read-only view). */
+  /** Current target entries (read-only shallow copy). */
   getEntries(): readonly TransformTargetEntry[] {
-    return this.entry ? [this.entry] : [];
+    return this.entries.map((e) => ({
+      layerId: e.layerId,
+      bounds: { ...e.bounds }
+    }));
   }
 
   /** All targeted layer IDs. */
   getIds(): string[] {
-    return this.entry ? [this.entry.layerId] : [];
+    return this.entries.map((e) => e.layerId);
   }
 
   /** Number of targeted layers. */
   get size(): number {
-    return this.entry ? 1 : 0;
+    return this.entries.length;
   }
 
-  /** Whether the current target matches a specific layer. */
+  /** Whether the current targets include a specific layer. */
   has(layerId: string): boolean {
-    return this.entry?.layerId === layerId;
+    return this.entries.some((e) => e.layerId === layerId);
   }
 
-  /** Current target entry, if any. */
+  /** Single-target accessor; null when empty or multi-target. */
   getEntry(): TransformTargetEntry | null {
-    return this.entry ? { ...this.entry, bounds: { ...this.entry.bounds } } : null;
+    if (this.entries.length !== 1) {
+      return null;
+    }
+    const e = this.entries[0]!;
+    return { layerId: e.layerId, bounds: { ...e.bounds } };
   }
 
-  /** Replace the current target with a single layer. */
+  /** Replace targets with exactly one layer. */
   setSingle(layerId: string, bounds: LayerContentBounds): void {
-    this.entry = { layerId, bounds: { ...bounds } };
+    this.entries = [{ layerId, bounds: { ...bounds } }];
   }
 
-  /** Clear the current target. */
+  /** Replace targets with an ordered list (typically stack order). */
+  setTargets(entries: TransformTargetEntry[]): void {
+    this.entries = entries.map((e) => ({
+      layerId: e.layerId,
+      bounds: { ...e.bounds }
+    }));
+  }
+
   clear(): void {
-    this.entry = null;
+    this.entries = [];
   }
 
   /**
-   * Resolve the current target extents in document space.
-   *
-   * @param getLayerTransform  Callback to look up the current transform for
-   *                           the targeted layer ID (may be a preview transform).
-   * @returns The target bounds in document space, or null if no target exists.
+   * Union of targeted extents in document space (axis-aligned),
+   * or null if empty.
    */
   computeTargetExtents(
     getLayerTransform: (layerId: string) => LayerTransform
   ): LayerContentBounds | null {
-    if (!this.entry) {
+    if (this.entries.length === 0) {
       return null;
     }
-    const transform = getLayerTransform(this.entry.layerId);
-    return getTransformedExtents(transform, this.entry.bounds);
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const e of this.entries) {
+      const transform = getLayerTransform(e.layerId);
+      const ext = getTransformedExtents(transform, e.bounds);
+      minX = Math.min(minX, ext.x);
+      minY = Math.min(minY, ext.y);
+      maxX = Math.max(maxX, ext.x + ext.width);
+      maxY = Math.max(maxY, ext.y + ext.height);
+    }
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY
+    };
   }
 
   /**
-   * Current target raster bounds (layer-local space) for gizmo sizing.
+   * First target raster bounds (layer-local), or null when empty.
+   * Multi-target callers should use per-entry bounds instead.
    */
   getRasterBounds(): LayerContentBounds | null {
-    return this.entry ? { ...this.entry.bounds } : null;
+    const first = this.entries[0];
+    return first ? { ...first.bounds } : null;
   }
 }
 
