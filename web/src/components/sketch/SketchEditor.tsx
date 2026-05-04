@@ -136,6 +136,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           segmentation={session.segmentation}
           onRunSegmentation={commands.handleRunSegmentation}
           onClearSegmentPrompts={commands.handleClearSegmentPrompts}
+          onCropCanvasToSelection={session.canvasActions.handleCropCanvasToSelection}
         />
 
         <Box
@@ -242,6 +243,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         onClearLayer={session.canvasActions.handleClearLayer}
         onExportPng={session.canvasActions.handleExportPng}
         onFillSelectionWithForeground={commands.handleFillSelectionWithForeground}
+        onCropCanvasToSelection={session.canvasActions.handleCropCanvasToSelection}
         onNewLayer={commands.handleNewLayerFromContextMenu}
         onLayerViaCopy={commands.handleLayerViaCopy}
         onLayerViaCut={commands.handleLayerViaCut}

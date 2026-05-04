@@ -40,6 +40,7 @@ export interface ConnectedContextMenuProps {
   onClearLayer: () => void;
   onExportPng: () => void;
   onFillSelectionWithForeground: () => void;
+  onCropCanvasToSelection: () => void;
   onNewLayer: (type?: Extract<LayerType, "raster" | "mask">) => void;
   onLayerViaCopy: () => void;
   onLayerViaCut: () => void;
@@ -122,6 +123,7 @@ export const ConnectedContextMenu = memo(function ConnectedContextMenu(
       onCloneStampSettingsChange={setCloneStampSettings}
       onSelectSettingsChange={setSelectSettings}
       onInvertSelection={invertSelection}
+      onCropCanvasToSelection={props.onCropCanvasToSelection}
       onFeatherSelection={featherCurrentSelection}
       onSmoothSelectionBorders={smoothCurrentSelectionBorders}
       onStrokeSelectionBorder={convertSelectionToBorderOutline}

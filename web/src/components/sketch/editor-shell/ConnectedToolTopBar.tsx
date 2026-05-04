@@ -28,6 +28,7 @@ export interface ConnectedToolTopBarProps {
   segmentation: ReturnType<typeof useSegmentation>;
   onRunSegmentation: () => void;
   onClearSegmentPrompts: () => void;
+  onCropCanvasToSelection: () => void;
 }
 
 export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
@@ -92,6 +93,7 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
       onCloneStampSettingsChange={setCloneStampSettings}
       onSelectSettingsChange={setSelectSettings}
       onInvertSelection={invertSelection}
+      onCropCanvasToSelection={props.onCropCanvasToSelection}
       onFeatherSelection={featherCurrentSelection}
       onSmoothSelectionBorders={smoothCurrentSelectionBorders}
       onStrokeSelectionBorder={convertSelectionToBorderOutline}
