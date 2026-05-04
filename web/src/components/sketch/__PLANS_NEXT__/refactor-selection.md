@@ -109,12 +109,12 @@ Commit-time masking (`applySelectionMaskAlpha` at stroke end) untouched. Live-pr
 - [x] `WebGPURuntime.uploadStrokeMergePreview()`: replaced `drawStrokeBufferForDisplayWithSelectionFeather` with `drawImage`. Removed `strokeMaskScratchCanvas`.
 - [x] `canvas2d/composite.ts`: replaced `drawStrokeBufferForDisplayWithSelectionFeather` with `drawImage`. Removed `strokeMaskScratchCanvas` from `StrokeTempState` and `Canvas2DRuntime`.
 - [x] Deleted `selectionMaskForPreview` from `ActiveStrokeInfo`. Deleted `syncActiveStrokeSelectionPreview` from `PaintSession`.
-- [ ] `drawStrokeBufferForDisplayWithSelectionFeather` in `selectionMask.ts` — delete after confirming no other callers.
+- [x] `drawStrokeBufferForDisplayWithSelectionFeather` in `selectionMask.ts` — confirmed deleted (no callers found).
 
 ### Phase 5 — Remaining tools ✅ (partial)
 
 - [x] `ShapeTool.ts`: removed `clipSelectionForOffset` call (done in Phase 3 pass).
-- [ ] Pencil: verify same `PaintSession` / stroke buffer path — Phase 4 already covers it.
+- [x] Pencil: same `PaintSession` / stroke buffer path — Phase 4 already covers it.
 - [ ] Flood fill / gradient / blur / clone: apply commit-time CPU multiply (same pattern as brush). Not a hot path.
 - [ ] Ctrl+C / cut: CPU readback only on copy action — not a hot path.
 
@@ -126,12 +126,20 @@ Commit-time masking (`applySelectionMaskAlpha` at stroke end) untouched. Live-pr
 - [x] `SelectTool.ts` wand branch: branch on `sampleAllLayers` (composite vs active-layer canvas) and `contiguous` (flood fill vs global scan).
 - [x] Add Contiguous / All Layers toggle buttons to `selectSettingsPanel.tsx` (visible in magic_wand mode only).
 
+### Phase 8 — Selection history ✅
+
+- [x] Added `selection?: Selection | null` to `HistoryEntry` in `types/history.ts`.
+- [x] `pushHistory` snapshots current selection; tip snapshot in `undo` also captures it.
+- [x] `undo`/`redo` restore selection + `hasActiveSelection` from entry.
+- [x] `SketchCanvasPane.onSelectionChange` wraps `setSelection` with `pushHistory("selection")`.
+- [x] `selectAll`, `invertSelection`, `reselectLastSelection` in `selectionSlice` call `pushHistory`.
+
 ### Phase 6 — Cleanup ✅
 
 - [x] Removed `clipSelectionForOffset: jest.fn()` from all 12 test files.
 - [x] `helperToolSession.test.ts` test "1.1.6": deleted clip-count assertion; kept lifecycle/alpha-lock tests under renamed describe.
-- [ ] Delete `drawStrokeBufferForDisplayWithSelectionFeather` from `selectionMask.ts` (no external callers remain).
-- [ ] Audit remaining `selectionMask.ts` exports for dead code.
+- [x] `drawStrokeBufferForDisplayWithSelectionFeather` already deleted from `selectionMask.ts`.
+- [x] Audited all exports — deleted dead `selectionMaskByteLength` (0 callers).
 - [ ] Run full `npm run typecheck` + `npm run lint`.
 - [ ] Verify test count: baseline 128 failures (pre-existing); target: same or fewer.
 

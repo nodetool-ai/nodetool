@@ -21,6 +21,7 @@ import type {
   SketchDocument
 } from "../../types";
 import { MAX_HISTORY_SIZE } from "../../types";
+import { cloneSelectionMask, selectionHasAnyPixels } from "../../selection";
 
 function cloneHistoryValue<T>(value: T): T {
   if (value === null || value === undefined) {
@@ -149,6 +150,7 @@ export const createHistorySlice: StateCreator<
       documentCanvas,
       activeLayerId: state.document.activeLayerId,
       maskLayerId: state.document.maskLayerId,
+      selection: state.selection ? cloneSelectionMask(state.selection) : null,
       restoreMode,
       action,
       timestamp: Date.now()
@@ -199,6 +201,7 @@ export const createHistorySlice: StateCreator<
         documentCanvas: captureDocumentCanvas(state.document.canvas),
         activeLayerId: state.document.activeLayerId,
         maskLayerId: state.document.maskLayerId,
+        selection: state.selection ? cloneSelectionMask(state.selection) : null,
         restoreMode: "full",
         action: "current state",
         timestamp: Date.now()
@@ -236,6 +239,7 @@ export const createHistorySlice: StateCreator<
       layerSnapshots: resolvedSnapshots
     };
 
+    const restoredSelection = entry.selection !== undefined ? entry.selection : null;
     set({
       document: {
         ...state.document,
@@ -248,6 +252,8 @@ export const createHistorySlice: StateCreator<
             ? entry.maskLayerId
             : state.document.maskLayerId
       },
+      selection: restoredSelection,
+      hasActiveSelection: selectionHasAnyPixels(restoredSelection),
       history,
       historyIndex: newIndex
     });
@@ -286,6 +292,7 @@ export const createHistorySlice: StateCreator<
       layerSnapshots: resolvedSnapshots
     };
 
+    const restoredSelection = entry.selection !== undefined ? entry.selection : null;
     set({
       document: {
         ...state.document,
@@ -298,6 +305,8 @@ export const createHistorySlice: StateCreator<
             ? entry.maskLayerId
             : state.document.maskLayerId
       },
+      selection: restoredSelection,
+      hasActiveSelection: selectionHasAnyPixels(restoredSelection),
       historyIndex: newIndex
     });
     return resolvedEntry;

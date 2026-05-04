@@ -116,10 +116,6 @@ export function cloneSelectionMask(src: Selection): Selection {
   return out;
 }
 
-export function selectionMaskByteLength(sel: Selection): number {
-  return sel.width * sel.height;
-}
-
 export function validateSelectionMask(sel: Selection | null): sel is Selection {
   if (!sel) {
     return false;

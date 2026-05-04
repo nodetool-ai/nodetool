@@ -61,6 +61,7 @@ export const createSelectionSlice: StateCreator<
     const m = createEmptyMask(cw, ch);
     m.data.fill(255);
     set({ selection: m, hasActiveSelection: true });
+    get().pushHistory("select all");
   },
 
   invertSelection: () => {
@@ -71,17 +72,18 @@ export const createSelectionSlice: StateCreator<
       const m = createEmptyMask(cw, ch);
       m.data.fill(255);
       set({ selection: m, hasActiveSelection: true });
-      return;
+    } else {
+      const ox = cur.originX ?? 0;
+      const oy = cur.originY ?? 0;
+      const aligned =
+        ox === 0 && oy === 0 && cur.width === cw && cur.height === ch
+          ? cloneSelectionMask(cur)
+          : selectionToDocumentAligned(cur, cw, ch);
+      invertMaskInPlace(aligned);
+      const active = selectionHasAnyPixels(aligned);
+      set({ selection: aligned, hasActiveSelection: active });
     }
-    const ox = cur.originX ?? 0;
-    const oy = cur.originY ?? 0;
-    const aligned =
-      ox === 0 && oy === 0 && cur.width === cw && cur.height === ch
-        ? cloneSelectionMask(cur)
-        : selectionToDocumentAligned(cur, cw, ch);
-    invertMaskInPlace(aligned);
-    const active = selectionHasAnyPixels(aligned);
-    set({ selection: aligned, hasActiveSelection: active });
+    get().pushHistory("invert selection");
   },
 
   reselectLastSelection: () => {
@@ -89,6 +91,7 @@ export const createSelectionSlice: StateCreator<
     if (last) {
       const clone = cloneSelectionMask(last);
       set({ selection: clone, hasActiveSelection: selectionHasAnyPixels(clone) });
+      get().pushHistory("reselect");
     }
   },
 

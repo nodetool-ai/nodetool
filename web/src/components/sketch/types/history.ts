@@ -16,6 +16,7 @@ import type {
   LayerEffect,
   SketchDocument
 } from "./document";
+import type { Selection } from "./selection";
 import type { SketchTool } from "./tools";
 
 // ─── History ──────────────────────────────────────────────────────────────────
@@ -71,6 +72,8 @@ export interface HistoryEntry {
   activeLayerId: string;
   /** Mask layer ID at the time of the snapshot */
   maskLayerId: string | null;
+  /** Selection mask at the time of this entry. Restored by undo/redo. */
+  selection?: Selection | null;
   /** Controls whether undo/redo must replay raster data or only restore structure. */
   restoreMode: HistoryRestoreMode;
   action: string;

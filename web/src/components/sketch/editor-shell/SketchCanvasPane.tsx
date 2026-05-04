@@ -3,7 +3,7 @@
  * and canvas-specific state (mirror, symmetry, selection, foreground, isolated)
  * so the parent SketchEditor doesn't need to forward them.
  */
-import React, { memo, useEffect } from "react";
+import React, { memo, useCallback, useEffect } from "react";
 import SketchCanvas, { type SketchCanvasRef } from "../SketchCanvas";
 import { useSketchStore } from "../state";
 import type { LayerContentBounds, LayerTransform, Point } from "../types";
@@ -83,6 +83,12 @@ export const SketchCanvasPane = memo(function SketchCanvasPane({
   const foregroundColor =
     useSketchStore((s) => s.foregroundColor) || "#ffffff";
   const setSelection = useSketchStore((s) => s.setSelection);
+  const pushHistory = useSketchStore((s) => s.pushHistory);
+
+  const handleSelectionChange = useCallback((sel: import("../types").Selection | null) => {
+    setSelection(sel);
+    pushHistory("selection");
+  }, [setSelection, pushHistory]);
 
   useEffect(() => {
     if (segmentation.status !== "previewing" || !segmentation.result) {
@@ -130,7 +136,7 @@ export const SketchCanvasPane = memo(function SketchCanvasPane({
       onCropComplete={onCropComplete}
       onEyedropperPick={onEyedropperPick}
       selection={selection}
-      onSelectionChange={setSelection}
+      onSelectionChange={handleSelectionChange}
       onAutoPickLayer={onAutoPickLayer}
       foregroundColor={foregroundColor}
       onDropImage={onDropImage}
