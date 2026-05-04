@@ -282,7 +282,17 @@ interface TimelineClip {
   muted?: boolean;
   hidden?: boolean;
   versions: ClipVersion[];
+  // rendering transforms — consumed by preview compositor (§11.1) and export compiler (§11.2)
+  opacity?: number;            // 0..1, default 1
+  blendMode?: BlendMode;       // overlay tracks; default "normal"
+  speedMultiplier?: number;    // default 1; affects timeline duration; source-time refs unchanged
+  speedBaked?: boolean;        // true if generated asset already encodes speed; export skips speed step
+  volumeDb?: number;           // audio clips; default 0
+  fadeInMs?: number;
+  fadeOutMs?: number;
 }
+
+type BlendMode = "normal" | "screen" | "multiply" | "add" | "overlay";
 
 interface GenerationBinding {
   graphId: string;
@@ -378,7 +388,78 @@ The combined Slice 1 + 2 ships when:
 11. No raw MUI imports anywhere in `web/src/components/timeline/`.
 12. `npm run check` passes (typecheck + lint + tests) for `packages/timeline/`, `packages/models/` migrations, and `web/`.
 
-## 11. Risks and mitigations
+## 11. Rendering
+
+The timeline has two rendering pipelines. They share nothing.
+
+### 11.1 Preview rendering (in-browser, real-time)
+
+Goal: play the timeline at the playhead with all visible tracks composited and all unmuted audio mixed, at 24–30 fps for typical projects (≤6 video tracks, ≤8 audio tracks). Not frame-accurate, not for delivery.
+
+**Approach**: DOM-based compositing, not canvas. Each video track owns a pool of `<video>` elements; each image clip is an `<img>`; each audio clip is an `<audio>` (or a `WebAudio` `AudioBufferSourceNode` for sample-accurate mixing). `TimelinePlaybackStore` advances `currentTimeMs` on `requestAnimationFrame`. For each track/clip whose time range covers the current time, the corresponding media element is mounted with its `currentTime` set to `(now − clip.startMs + clip.inPointMs) / 1000` and its `playbackRate` set; out-of-range elements unmount. Overlay tracks stack via z-index with `mix-blend-mode` from clip metadata.
+
+**Audio mixing**: a single shared `AudioContext`. Each audio clip routes through a per-clip `GainNode` (volume, fades) → per-track `GainNode` (track volume, mute/solo) → master. Solo on any audio track mutes all non-solo audio tracks. WaveSurfer is **not** used for playback — only for waveform visualization in clip bodies (its render path is decoupled from playback).
+
+**Components**:
+- `web/src/components/timeline/preview/PreviewCompositor.tsx` — owns the element pool and z-index stack; reads `TimelineStore` (clips at time t) via a memoized selector + `shallow`.
+- `web/src/components/timeline/preview/AudioGraph.ts` — pure TS module; constructs and updates the WebAudio graph from clip lists.
+- `web/src/components/timeline/preview/PlaybackClock.ts` — RAF-driven clock; emits `currentTimeMs` to `TimelinePlaybackStore`. Drift-corrected against `AudioContext.currentTime` so audio stays the master clock.
+
+**Reuse**:
+- Existing `OutputRenderer` is used only for "single clip preview" (e.g. preview of an unplaced asset), not the playhead compositor.
+- Existing `AudioPlayer` (WaveSurfer) is the visualization source for clip-body waveforms; its peaks are extracted once per asset and cached on the clip.
+
+**Limits accepted**:
+- Generated overlays declared as compositing-only (e.g. fog, light leaks) play directly via DOM blending.
+- Color grade / LUT effects are previewed approximately via CSS `filter` if the node type maps to a CSS-expressible transform; otherwise they are baked into the generated asset and displayed as-is. No WebGL pipeline in Slice 1+2.
+- Speed > 4× or < 0.25× falls back to "scrub still frame" instead of resampled playback.
+- Video element pool target size: 8 hot, 4 cold (preloaded for upcoming clips). Beyond that, brief gaps are allowed at clip boundaries.
+- Frame-stepping uses `currentTime` snapping; not frame-accurate for variable-FPS sources.
+
+**Stale and missing clips during preview**:
+- `stale` clips play their last successful asset with a "stale" overlay.
+- `failed` / `missing` / `draft` clips render the placeholder body; audio is silent for that range.
+- `generating` clips show progress overlay; if a previous asset exists, it plays, otherwise placeholder.
+
+### 11.2 Export rendering (server-side, deterministic)
+
+Goal: produce a final video file (MP4 H.264 in Slice 3) that matches what preview shows, frame-accurate.
+
+**Strategy**: the timeline does not ship its own ffmpeg code. NodeTool already exposes a complete ffmpeg-backed node set in `packages/base-nodes/src/nodes/video.ts` and `audio.ts` (`ConcatVideoNode`, `TrimVideoNode`, `ResizeVideoNode`, `OverlayVideoNode`, `RotateVideoNode`, `SetSpeedVideoNode`, `ColorBalanceVideoNode`, `FrameToVideoNode`, `ConcatAudioNode`, `OverlayAudioNode`, `AudioMixerNode`, `FadeInAudioNode`, `FadeOutAudioNode`, `NormalizeAudioNode`, `CreateSilenceNode`, `TrimAudioNode`, etc.). Export compiles the timeline into a graph of these nodes and runs it through the existing `WorkflowRunner`. Reuses cost tracking, status streaming, error handling, OTel spans, and provider routing for free.
+
+**Compiler**: `packages/timeline/src/compileExport.ts` — pure function `compile(sequence: TimelineSequence, opts: ExportOptions): Graph`. Produces a graph with this shape:
+
+```
+                  per-track-V                              per-track-V
+clips on V1 ──► Trim ──► Resize ──► [pad to track length with CreateSilence/black] ──► Concat ┐
+clips on V2 ──► Trim ──► Resize ──► ...                                                  Concat ──► Overlay (V1 base, V2..Vn opacity/blend) ┐
+clips on Vn ──► ...                                                                       ─┘                                                Resize ──► (mux)
+                                                                                                                                              ┘
+clips on A1 ──► Trim ──► Fade ──► Concat ┐                                                                                                   ┘
+clips on A2 ──► Trim ──► Fade ──► Concat ┼──► AudioMixer ──► Normalize ────────────────────────────────────────────────────────────────────► (mux)
+clips on A3 ──► Trim ──► Fade ──► Concat ┘
+```
+
+Final mux step: a new `MuxVideoAudioNode` in `packages/base-nodes` (single ffmpeg `-c copy` for video + audio streams; ~40 lines) — the only new ffmpeg code. If a target codec/container differs from the source, the existing transcode-on-Concat path is sufficient.
+
+**Inputs**: `currentAssetId` for each clip's selected version. Locked clips use their locked version; unlocked stale clips force a preflight check (§5.5 / §10 acceptance #11 — extended to "Stale clips listed before export with Generate Stale / Export Anyway / Cancel").
+
+**Outputs**: a `Job` (existing `packages/models` `Job`) producing a `VideoRef` asset. The export job appears in the existing job list; cancel/retry/log access works without timeline-specific code.
+
+**Determinism and caching**:
+- Each compiled subgraph is content-hashed by clip's `dependencyHash` + transform params; if an export was previously run with the same hashes, the existing `ResultsStore`/`Asset` cache returns the prior intermediate (per-track concatenated video/audio).
+- Re-export after editing only one clip rebuilds that clip's track lane and the final mux; the other track lanes hit cache.
+
+**Out of scope for Slice 1+2**: the export *graph compiler*, the preflight dialog, and `MuxVideoAudioNode` are Slice 3. Slice 1+2 ship preview only. The compiler is specified here so Slice 1+2 designs the data model with export in mind (e.g. clip transforms must be representable as ffmpeg-expressible parameters; opacity/blend modes must round-trip; speed changes carry a flag for whether the generated asset is already speed-baked).
+
+**Constraints flowing back into Slice 1+2 data model**:
+- `TimelineClip` must carry `transformMs` fields (`opacity`, `blendMode`, `speedMultiplier`, `volumeDb`) even though export consumes them in Slice 3. Adding them later would force a migration of every saved sequence.
+- `TimelineTrack.type === "overlay"` clips must declare `blendMode: "normal" | "screen" | "multiply" | "add" | "overlay"` — a fixed enum that maps to both CSS `mix-blend-mode` (preview) and ffmpeg `blend=` (export).
+- `TimelineClip.speedMultiplier` is multiplicative on `durationMs` and `inPointMs`/`outPointMs` reference source-time, not timeline-time. The compiler and the preview use the same convention.
+
+These fields are added to §7 above.
+
+## 12. Risks and mitigations
 
 - **Scope creep from PRD.** Mitigation: this PRD freezes Slice 1 + 2; further phases need their own PRDs.
 - **WebSocket message volume during generation.** Mitigation: subscribe per clip's active job id; drop all other traffic at the timeline-store boundary.
@@ -386,7 +467,7 @@ The combined Slice 1 + 2 ships when:
 - **Graph-structure drift on Open in Node Editor round-trip.** Mitigation: on return, diff node ids; if `selectedOutputNodeId` is gone, force user confirmation dialog before any subsequent generation.
 - **Reuse boundary slipping.** Mitigation: PR review checklist enforces "no raw MUI", "no parallel waveform/preview/inspector code", "stores via selectors with `shallow`".
 
-## 12. Implementation phases inside this PRD
+## 13. Implementation phases inside this PRD
 
 1. **P1.A** — `packages/timeline/` types, hashing, invalidation, math, tests. No UI.
 2. **P1.B** — `timeline_sequence` schema, repo, REST endpoints, autosave.
