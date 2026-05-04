@@ -267,7 +267,6 @@ export default function useConnectionHandlers() {
       // Only handle mouse events, not touch events
       // Note: In tests, event may be a mock object that doesn't inherit from MouseEvent
       if (event instanceof TouchEvent) {
-        resetConnectingState();
         return;
       }
 
