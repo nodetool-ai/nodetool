@@ -73,7 +73,8 @@ export function useEditorSession({
       transientMoveModifierHeld &&
       activeTool !== "move" &&
       activeTool !== "select" &&
-      activeTool !== "crop"
+      activeTool !== "crop" &&
+      activeTool !== "segment"
         ? "move"
         : activeTool,
     [transientMoveModifierHeld, activeTool]

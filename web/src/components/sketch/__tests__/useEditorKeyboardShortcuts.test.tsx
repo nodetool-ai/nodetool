@@ -200,4 +200,36 @@ describe("useEditorKeyboardShortcuts", () => {
     expect(event.defaultPrevented).toBe(true);
     expect(params.handleCropCommit).toHaveBeenCalledTimes(1);
   });
+
+  it("does not arm spring-loaded move when Control is pressed while select tool is active", () => {
+    const params = makeParams();
+    const origPlatform = navigator.platform;
+    Object.defineProperty(navigator, "platform", {
+      configurable: true,
+      value: "Win32"
+    });
+
+    renderHook(() => useEditorKeyboardShortcuts(params));
+
+    act(() => {
+      useSketchStore.getState().setActiveTool("select");
+    });
+
+    const event = new KeyboardEvent("keydown", {
+      code: "ControlLeft",
+      key: "Control",
+      bubbles: true,
+      cancelable: true
+    });
+    act(() => {
+      window.dispatchEvent(event);
+    });
+
+    expect(useSketchStore.getState().transientMoveModifierHeld).toBe(false);
+
+    Object.defineProperty(navigator, "platform", {
+      configurable: true,
+      value: origPlatform
+    });
+  });
 });

@@ -1,3 +1,4 @@
+import { alpha, type SxProps, type Theme } from "@mui/material/styles";
 import type { EraserMode, EraserSettings } from "../types";
 import { toggleButtonSmallSx } from "../sketchStyles";
 
@@ -15,13 +16,23 @@ export const IN_PROGRESS_DOWNLOAD_STATES = [
 ] as readonly string[];
 
 /** Icon-only select-mode toggles; tooltips carry the descriptive label. */
-export const selectModeToggleButtonSx = {
+export const selectModeToggleButtonSx: SxProps<Theme> = (theme) => ({
   ...toggleButtonSmallSx,
-  minWidth: 28,
-  px: 0.375,
-  py: 0.375,
-  "& .MuiSvgIcon-root": { fontSize: 18 }
-};
+  minWidth: 30,
+  px: 0.5,
+  py: 0.5,
+  "& .MuiSvgIcon-root": { fontSize: 18 },
+  color: theme.vars?.palette?.text?.secondary ?? theme.palette.text.secondary,
+  "&.Mui-selected": {
+    color:
+      theme.vars?.palette?.primary?.light ?? theme.palette.primary.light,
+    backgroundColor: alpha(theme.palette.primary.main, 0.22),
+    boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.45)}`,
+    "&:hover": {
+      backgroundColor: alpha(theme.palette.primary.main, 0.3)
+    }
+  }
+});
 
 /** Matches {@link drawEraserStroke} / document migration so panel mode matches actual erase behavior. */
 export function effectiveEraserMode(settings: EraserSettings): EraserMode {

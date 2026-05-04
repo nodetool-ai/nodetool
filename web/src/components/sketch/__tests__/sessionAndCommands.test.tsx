@@ -145,6 +145,25 @@ describe("useEditorSession", () => {
     expect(result.current.interactionTool).toBe("crop");
   });
 
+  it("does not spring-load move when activeTool is segment", () => {
+    const { result } = renderHook(() =>
+      useEditorSession({
+        initialDocument: undefined,
+        onDocumentChange: undefined,
+        onExportImage: undefined,
+        onExportMask: undefined
+      })
+    );
+
+    act(() => {
+      useSketchStore.getState().setActiveTool("segment");
+      useSketchStore.getState().setTransientMoveModifierHeld(true);
+    });
+
+    expect(result.current.activeTool).toBe("segment");
+    expect(result.current.interactionTool).toBe("segment");
+  });
+
   it("returns stable store bundle references across rerenders", () => {
     const { result, rerender } = renderHook(() =>
       useEditorSession({

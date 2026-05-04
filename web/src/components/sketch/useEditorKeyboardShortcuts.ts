@@ -218,6 +218,16 @@ export function useEditorKeyboardShortcuts(
       e.stopPropagation();
 
       if (!e.repeat && isMoveSpringModifierPhysicalKey(e)) {
+        const tool = useSketchStore.getState().activeTool;
+        // Selection / crop / segment workflows use modifiers on the canvas; never
+        // arm spring-loaded move while those tools are active (matches interactionTool).
+        if (
+          tool === "select" ||
+          tool === "crop" ||
+          tool === "segment"
+        ) {
+          return;
+        }
         e.preventDefault();
         useSketchStore.getState().setTransientMoveModifierHeld(true);
         return;
