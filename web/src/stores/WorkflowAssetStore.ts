@@ -17,6 +17,8 @@ import { Asset } from "./ApiTypes";
 import { trpcClient } from "../trpc/client";
 import { normalizeAssetList } from "../utils/normalizeAsset";
 
+const EMPTY_ASSETS: Asset[] = [];
+
 interface WorkflowAssetState {
   // Assets grouped by workflow ID
   assetsByWorkflow: Record<string, Asset[]>;
@@ -115,7 +117,7 @@ export const useWorkflowAssetStore = create<WorkflowAssetStore>(
      * Get cached assets for a workflow.
      */
     getWorkflowAssets: (workflowId: string) => {
-      return get().assetsByWorkflow[workflowId] || [];
+      return get().assetsByWorkflow[workflowId] ?? EMPTY_ASSETS;
     },
 
     /**

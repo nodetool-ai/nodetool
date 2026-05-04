@@ -5,7 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import HistoryIcon from "@mui/icons-material/History";
 import OutputRenderer from "./OutputRenderer";
 import NodeHistoryPanel from "./NodeHistoryPanel";
-import { useNodeResultHistoryStore } from "../../stores/NodeResultHistoryStore";
+import { useNodeResultHistoryStore, EMPTY_HISTORY } from "../../stores/NodeResultHistoryStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { typeFor } from "./output";
 
@@ -55,7 +55,7 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
 
   // Get session history for this node
   const sessionHistory = useNodeResultHistoryStore((state) =>
-    workflowId && nodeId ? state.getHistory(workflowId, nodeId) : []
+    workflowId && nodeId ? state.getHistory(workflowId, nodeId) : EMPTY_HISTORY
   );
 
   const handleOpenHistory = useCallback(() => {

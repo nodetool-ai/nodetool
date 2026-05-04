@@ -8,6 +8,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkflowAssetStore } from "../stores/WorkflowAssetStore";
 import { useAssetStore } from "../stores/AssetStore";
+import type { Asset } from "../stores/ApiTypes";
+
+const EMPTY_ASSETS: Asset[] = [];
 
 export const useWorkflowAssets = (workflowId: string | null) => {
   const queryClient = useQueryClient();
@@ -15,7 +18,7 @@ export const useWorkflowAssets = (workflowId: string | null) => {
     (state) => state.loadWorkflowAssets
   );
   const workflowAssets = useWorkflowAssetStore((state) =>
-    workflowId ? state.getWorkflowAssets(workflowId) : []
+    workflowId ? state.getWorkflowAssets(workflowId) : EMPTY_ASSETS
   );
   const createAsset = useAssetStore((state) => state.createAsset);
 

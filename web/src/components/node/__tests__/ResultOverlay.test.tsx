@@ -21,6 +21,7 @@ jest.mock("../NodeHistoryPanel", () => ({
 
 // Mock NodeResultHistoryStore
 jest.mock("../../../stores/NodeResultHistoryStore", () => ({
+  EMPTY_HISTORY: [],
   useNodeResultHistoryStore: (selector: any) => {
     const mockState = {
       getHistory: () => []
