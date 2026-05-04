@@ -208,6 +208,7 @@ const PackageManager: React.FC = () => {
     if (!api?.packages?.installRuntime) return;
     setInstallingRuntimes(prev => new Set(prev).add(runtimeId));
     setError(null);
+    setIsConsoleCollapsed(false);
     try {
       const result = await api.packages.installRuntime(runtimeId);
       if (result.success) {
@@ -353,6 +354,7 @@ const PackageManager: React.FC = () => {
     setIsProcessing(true);
     setActivePackageId(repoId);
     setError(null);
+    setIsConsoleCollapsed(false);
     try {
       let result: PackageResponse;
       if (installed) {
@@ -387,6 +389,7 @@ const PackageManager: React.FC = () => {
     setIsProcessing(true);
     setActivePackageId(repoId);
     setError(null);
+    setIsConsoleCollapsed(false);
     try {
       const result = await window.electronAPI.packages.update(repoId);
       if (!result.success) {

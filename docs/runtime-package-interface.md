@@ -1,6 +1,6 @@
-# Runtime Package Interface (Design)
+# Runtime Package Interface
 
-Status: **proposal** — not yet implemented.
+Status: **implemented** — see `electron/src/runtime/packages/`.
 
 The Package Manager (`electron/src/packageManager.ts`) currently branches per
 install backend (`conda` / `npm` / `electron`) for status, install, uninstall,
