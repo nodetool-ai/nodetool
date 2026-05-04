@@ -16,7 +16,8 @@ import LinkIcon from "@mui/icons-material/Link";
 import LockIcon from "@mui/icons-material/Lock";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import FolderIcon from "@mui/icons-material/Folder";
+import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
+import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import type { Layer } from "./types";
 import { summarizeLayerImageReference } from "./types";
 import { getLayerDataImageUrl } from "./serialization";
@@ -26,6 +27,14 @@ import { SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
 const BASE_PADDING = 8;
 /** Additional left padding per nesting depth level (px). */
 const DEPTH_INDENT = 20;
+
+/** Group rows: override MUI IconButton default min touch target so rows stay compact. */
+const GROUP_LAYER_ICON_BUTTON_SX = {
+  padding: "2px",
+  minWidth: 26,
+  minHeight: 26,
+  flexShrink: 0
+} as const;
 
 /** Where a dragged layer will be inserted relative to the drop target. */
 export type DropPosition = "before" | "after" | "into" | null;
@@ -166,26 +175,39 @@ const LayerItem: React.FC<LayerItemProps> = ({
               e.stopPropagation();
               onToggleGroupCollapsed?.(layer.id);
             }}
-            sx={{ padding: SKETCH_SPACING.xs, flexShrink: 0 }}
+            sx={GROUP_LAYER_ICON_BUTTON_SX}
           >
             {layer.collapsed ? (
-              <ChevronRightIcon sx={{ fontSize: "1rem" }} />
+              <ChevronRightIcon sx={{ fontSize: "0.875rem" }} />
             ) : (
-              <ExpandMoreIcon sx={{ fontSize: "1rem" }} />
+              <ExpandMoreIcon sx={{ fontSize: "0.875rem" }} />
             )}
           </IconButton>
         ) : null}
 
         {/* Thumbnail or group folder icon */}
         {isGroup ? (
-          <FolderIcon
-            sx={{
-              fontSize: "1.25rem",
-              color: isPaintTarget ? "primary.contrastText" : "grey.400",
-              flexShrink: 0,
-              mr: "2px"
-            }}
-          />
+          layer.collapsed ? (
+            <FolderOutlinedIcon
+              sx={{
+                fontSize: "0.95rem",
+                color: isPaintTarget ? "primary.contrastText" : "grey.500",
+                flexShrink: 0,
+                mr: "2px",
+                opacity: isPaintTarget ? 1 : 0.9
+              }}
+            />
+          ) : (
+            <FolderOpenOutlinedIcon
+              sx={{
+                fontSize: "0.95rem",
+                color: isPaintTarget ? "primary.contrastText" : "grey.400",
+                flexShrink: 0,
+                mr: "2px",
+                opacity: isPaintTarget ? 1 : 0.95
+              }}
+            />
+          )
         ) : thumbnailSrc ? (
           <img
             className="layer-thumbnail"
@@ -237,12 +259,20 @@ const LayerItem: React.FC<LayerItemProps> = ({
             }
           }}
           onClick={(e) => onVisibilityButtonClick(e, layer.id)}
-          sx={{ padding: SKETCH_SPACING.sm, flexShrink: 0 }}
+          sx={
+            isGroup
+              ? GROUP_LAYER_ICON_BUTTON_SX
+              : { padding: SKETCH_SPACING.sm, flexShrink: 0 }
+          }
         >
           {layer.visible ? (
-            <VisibilityIcon sx={{ fontSize: "1.125rem" }} />
+            <VisibilityIcon
+              sx={{ fontSize: isGroup ? "0.9rem" : "1.125rem" }}
+            />
           ) : (
-            <VisibilityOffIcon sx={{ fontSize: "1.125rem", opacity: 0.65 }} />
+            <VisibilityOffIcon
+              sx={{ fontSize: isGroup ? "0.9rem" : "1.125rem", opacity: 0.65 }}
+            />
           )}
         </IconButton>
 

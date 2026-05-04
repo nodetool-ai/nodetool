@@ -238,7 +238,10 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(0.75),
-      padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
+      /* Vertical + right only; left padding comes from LayerItem sx (depth indent). */
+      paddingTop: theme.spacing(0.5),
+      paddingBottom: theme.spacing(0.5),
+      paddingRight: theme.spacing(1),
       borderRadius: SKETCH_SIZE.borderRadius,
       cursor: "pointer",
       fontSize: SKETCH_FONT.md,
@@ -284,6 +287,21 @@ const styles = (theme: Theme) =>
       },
       "&.alpha-lock.selected-secondary:hover": {
         backgroundColor: theme.vars.palette.grey[600]
+      },
+      "&.group-layer": {
+        /* Shorter than raster rows: parent `.layer-item` min-height cleared here. */
+        minHeight: "unset",
+        gap: theme.spacing(0.375),
+        paddingTop: theme.spacing(0.125),
+        paddingBottom: theme.spacing(0.125),
+        backgroundColor: alpha(theme.palette.common.white, 0.04),
+        borderLeft: `2px solid ${theme.vars.palette.grey[600]}`,
+        "&:hover": {
+          backgroundColor: alpha(theme.palette.common.white, 0.075)
+        },
+        "&.active": {
+          borderLeftColor: theme.vars.palette.primary.light
+        }
       }
     },
     "& .layer-thumbnail": {
@@ -314,6 +332,15 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
+    },
+    "& .layer-item.group-layer .layer-name": {
+      fontSize: SKETCH_FONT.sm,
+      fontWeight: 600,
+      letterSpacing: "0.02em",
+      color: theme.vars.palette.grey[400]
+    },
+    "& .layer-item.group-layer.active .layer-name": {
+      color: "inherit"
     },
     "& .layer-actions": {
       display: "flex",
