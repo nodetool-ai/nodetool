@@ -249,6 +249,35 @@ describe("MoveTool", () => {
     });
   });
 
+  it("syncActiveLayer refreshes gizmo when idle", () => {
+    const tool = new MoveTool();
+    const doc = createDefaultDocument(64, 64);
+    const layer2 = {
+      ...doc.layers[0],
+      id: "layer-2",
+      name: "Layer 2"
+    };
+    doc.layers = [doc.layers[0], layer2];
+    const ctx = makeToolContext({ doc });
+    tool.onActivate!(ctx);
+    (ctx.clearGizmo as jest.Mock).mockClear();
+
+    tool.syncActiveLayer({
+      ...ctx,
+      doc: { ...doc, activeLayerId: layer2.id }
+    });
+    expect(ctx.clearGizmo).toHaveBeenCalled();
+  });
+
+  it("syncActiveLayer is a no-op while a move gesture is active", () => {
+    const tool = new MoveTool();
+    const ctx = makeToolContext();
+    tool.onDown(ctx, makePointerEvent());
+    (ctx.clearGizmo as jest.Mock).mockClear();
+    tool.syncActiveLayer(ctx);
+    expect(ctx.clearGizmo).not.toHaveBeenCalled();
+  });
+
   it("returns false when the active layer is locked without an image reference", () => {
     const tool = new MoveTool();
     const doc = createDefaultDocument(64, 64);
@@ -386,6 +415,30 @@ describe("TransformTool", () => {
       doc.activeLayerId,
       expect.objectContaining({ x: 10, y: 5 })
     );
+  });
+
+  it("clears gestureActive on pointer up so syncActiveLayer follows a new active layer", () => {
+    const tool = new TransformTool();
+    const doc = createDefaultDocument(64, 64);
+    const layer2 = {
+      ...doc.layers[0],
+      id: "layer-2",
+      name: "Layer 2",
+      transform: { x: 100, y: 50, scaleX: 1, scaleY: 1, rotation: 0 }
+    };
+    doc.layers = [doc.layers[0], layer2];
+
+    const ctx = makeToolContext({ doc });
+    tool.onActivate!(ctx);
+    tool.onDown(ctx, makePointerEvent({ point: { x: 15, y: 15 } }));
+    tool.onUp!(ctx);
+
+    tool.syncActiveLayer({
+      ...ctx,
+      doc: { ...doc, activeLayerId: layer2.id }
+    });
+    expect(tool.getOriginalTransform().x).toBe(100);
+    expect(tool.getOriginalTransform().y).toBe(50);
   });
 
   it("calls onStrokeEnd on pointer up", () => {

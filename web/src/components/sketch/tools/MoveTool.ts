@@ -102,6 +102,14 @@ export class MoveTool implements ToolHandler {
     this.refreshGizmo(ctx);
   }
 
+  /** Resync off-canvas gizmo when the layers panel changes the active layer. */
+  syncActiveLayer(ctx: ToolContext): void {
+    if (this.session.isActive()) {
+      return;
+    }
+    this.refreshGizmo(ctx);
+  }
+
   onDeactivate(ctx: ToolContext): void {
     // If a spring-loaded move was in progress when deactivating, commit it
     // so the layer keeps the committed transform and we don't leave stale

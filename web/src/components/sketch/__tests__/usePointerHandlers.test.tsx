@@ -6,6 +6,7 @@ import { act, renderHook } from "@testing-library/react";
 import { usePointerHandlers } from "../sketchCanvasHooks/usePointerHandlers";
 import { getToolHandler } from "../tools";
 import { TransformTool } from "../tools/TransformTool";
+import { MoveTool } from "../tools/MoveTool";
 import { createDefaultDocument } from "../types";
 import type { UsePointerHandlersParams } from "../sketchCanvasHooks/usePointerHandlers";
 
@@ -158,5 +159,45 @@ describe("usePointerHandlers", () => {
 
     expect(transformTool.getOriginalTransform().x).toBe(40);
     expect(params.drawGizmo).toHaveBeenCalled();
+  });
+
+  it("re-syncs MoveTool gizmo when the active layer changes while move stays active", () => {
+    const initialDoc = createDefaultDocument(64, 64);
+    const nextLayer = {
+      ...initialDoc.layers[0],
+      id: "layer-2",
+      name: "Layer 2"
+    };
+    initialDoc.layers = [initialDoc.layers[0], nextLayer];
+
+    const params = makeParams();
+    params.doc = initialDoc;
+
+    const { rerender } = renderHook((hookParams: UsePointerHandlersParams) => usePointerHandlers(hookParams), {
+      initialProps: params
+    });
+
+    rerender({
+      ...params,
+      activeTool: "move",
+      interactionTool: "move"
+    });
+
+    const moveTool = getToolHandler("move") as MoveTool;
+    expect(moveTool).toBeInstanceOf(MoveTool);
+
+    (params.clearGizmo as jest.Mock).mockClear();
+    const updatedDoc = {
+      ...initialDoc,
+      activeLayerId: nextLayer.id
+    };
+    rerender({
+      ...params,
+      activeTool: "move",
+      interactionTool: "move",
+      doc: updatedDoc
+    });
+
+    expect(params.clearGizmo).toHaveBeenCalled();
   });
 });

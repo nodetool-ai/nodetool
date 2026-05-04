@@ -22,6 +22,7 @@ import type { ActiveStrokeInfo } from "./useCompositing";
 import { getToolHandler } from "../tools";
 import { CloneStampTool } from "../tools/CloneStampTool";
 import { SelectTool } from "../tools/SelectTool";
+import { MoveTool } from "../tools/MoveTool";
 import { TransformTool } from "../tools/TransformTool";
 import { CropTool } from "../tools/CropTool";
 import { sampleColorHex } from "../tools/EyedropperTool";
@@ -1004,17 +1005,24 @@ export function usePointerHandlers({
     }
   }, [zoom, pan, interactionTool]);
 
-  // ─── Active layer change sync for transform ────────────────────────
+  // ─── Active layer change: refresh transform/move gizmos ─────────────
   const prevActiveLayerIdRef = useRef(doc.activeLayerId);
   useEffect(() => {
     const prev = prevActiveLayerIdRef.current;
     prevActiveLayerIdRef.current = doc.activeLayerId;
-    if (prev === doc.activeLayerId || interactionTool !== "transform") {
+    if (prev === doc.activeLayerId) {
       return;
     }
-    const handler = getToolHandler("transform");
-    if (handler instanceof TransformTool) {
-      handler.syncActiveLayer(toolCtxRef.current);
+    if (interactionTool === "transform") {
+      const handler = getToolHandler("transform");
+      if (handler instanceof TransformTool) {
+        handler.syncActiveLayer(toolCtxRef.current);
+      }
+    } else if (interactionTool === "move") {
+      const handler = getToolHandler("move");
+      if (handler instanceof MoveTool) {
+        handler.syncActiveLayer(toolCtxRef.current);
+      }
     }
   }, [doc.activeLayerId, interactionTool]);
 

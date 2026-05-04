@@ -228,6 +228,11 @@ export class TransformTool implements ToolHandler {
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
     const { doc } = ctx;
+    // Keep targets aligned with panel selection + active layer (multi union vs single).
+    // Without this, rasterBounds/originalTransform can stay stale after leaving multi-select.
+    if (!this.gestureActive && !this.session.isActive()) {
+      this.syncTransformTargets(ctx);
+    }
     if (this.multiTargetLayerIds.length === 0) {
       return false;
     }
@@ -515,6 +520,8 @@ export class TransformTool implements ToolHandler {
     this.dragStart = null;
     this.dragStartCorners = null;
     this.activeTransformMode = "auto";
+    // Without this, idle draw/sync skip retargeting until tool reactivation.
+    this.gestureActive = false;
 
     for (const id of this.multiTargetLayerIds) {
       ctx.onStrokeEnd(id, null, undefined, {
@@ -593,6 +600,7 @@ export class TransformTool implements ToolHandler {
     if (ids.length === 1) {
       const layer = ctx.doc.layers.find((l) => l.id === ids[0]);
       if (!layer) {
+        this.multiTargetLayerIds = [];
         this.targetSet.clear();
         return;
       }
@@ -614,12 +622,14 @@ export class TransformTool implements ToolHandler {
     }
 
     if (entries.length === 0) {
+      this.multiTargetLayerIds = [];
       this.targetSet.clear();
       return;
     }
 
     const union = unionOfDocumentExtents(extentRects);
     if (!union) {
+      this.multiTargetLayerIds = [];
       this.targetSet.clear();
       return;
     }
@@ -845,6 +855,11 @@ export class TransformTool implements ToolHandler {
     if (this.isMultiTarget()) {
       return { ...this.originalTransform };
     }
+    if (this.multiTargetLayerIds.length === 1) {
+      const doc = useSketchStore.getState().document;
+      const layer = doc.layers.find((l) => l.id === this.multiTargetLayerIds[0]);
+      return layer ? { ...layer.transform } : null;
+    }
     return null;
   }
 
@@ -930,6 +945,17 @@ export class TransformTool implements ToolHandler {
     ctx: ToolContext,
     overrideTransform: LayerTransform | null
   ): void {
+    // Don't sync targets when drawing with an explicit transform: right after
+    // commit, ctx.doc can still be one React render behind the committed
+    // transform — recomputing rasterBounds/originalTransform from stale doc
+    // would mismatch overrideTransform and drift the gizmo.
+    if (
+      overrideTransform === null &&
+      !this.gestureActive &&
+      !this.session.isActive()
+    ) {
+      this.syncTransformTargets(ctx);
+    }
     const transform =
       overrideTransform ?? this.resolveDisplayedUnionTransform(ctx);
     if (!transform) {
