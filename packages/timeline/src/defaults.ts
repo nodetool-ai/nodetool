@@ -63,7 +63,7 @@ export function makeClipVersion(
     createdAt: nowIso(),
     jobId: "",
     assetId: "",
-    workflowUpdatedAt: nowIso(),
+    workflowUpdatedAt: nowIso(), // placeholder — callers should supply the actual workflow updated-at timestamp
     dependencyHash: "",
     paramOverridesSnapshot: {},
     status: "success",
