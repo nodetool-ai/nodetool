@@ -1,8 +1,8 @@
 /**
- * Browser tools — Playwright-driven Chromium with element-index + coordinate
- * addressing.
+ * Browser tools — Chrome DevTools Protocol (CDP) driven Chromium with
+ * element-index + coordinate addressing.
  *
- * A single Browser/Context/Page is kept alive for the lifetime of the
+ * A single Chrome process + CDP session is kept alive for the lifetime of the
  * container; the agent shares one session across calls so cookies and auth
  * persist. `browser_restart` tears down and re-creates the page.
  *
@@ -13,16 +13,11 @@
  * but IS rebuilt each time the DOM changes, so callers should always call
  * browser_view before relying on an index.
  *
- * Console capture: page.on("console") pushes into an in-memory ring buffer
- * so browser_console_view can return recent messages.
+ * Console capture: a console listener wired through CDP's Runtime domain
+ * pushes into an in-memory ring buffer so browser_console_view can return
+ * recent messages.
  */
 
-import type {
-  Browser,
-  BrowserContext,
-  ConsoleMessage,
-  Page
-} from "playwright";
 import type {
   BrowserViewInput,
   BrowserViewOutput,
@@ -49,59 +44,61 @@ import type {
   BrowserElement,
   BrowserConsoleMessage
 } from "@nodetool-ai/sandbox/schemas";
+import type { CdpPage } from "../lib/cdp-page.js";
 
 const CONSOLE_BUFFER_MAX = 500;
 
 interface BrowserState {
-  browser: Browser;
-  context: BrowserContext;
-  page: Page;
+  page: CdpPage;
+  close: () => Promise<void>;
   consoleMessages: BrowserConsoleMessage[];
 }
 
 let state: BrowserState | null = null;
 
-/** Injectable for tests: replace the Playwright launcher. */
-export interface PlaywrightAdapter {
-  launch(): Promise<Browser>;
+/**
+ * Injectable for tests: replace the browser launcher. Returning your own
+ * fake page (typed as CdpPage) lets tests skip launching real Chrome.
+ */
+export interface BrowserAdapter {
+  launch(): Promise<{ page: CdpPage; close: () => Promise<void> }>;
 }
 
-let adapter: PlaywrightAdapter | null = null;
+let adapter: BrowserAdapter | null = null;
 
-/** Test hook — override the Playwright launcher. */
-export function setPlaywrightAdapter(a: PlaywrightAdapter | null): void {
+/** Test hook — override the browser launcher. */
+export function setBrowserAdapter(a: BrowserAdapter | null): void {
   adapter = a;
 }
+
+/** Backwards-compatible alias for older test code. */
+export const setPlaywrightAdapter = setBrowserAdapter;
 
 async function ensureState(): Promise<BrowserState> {
   if (state) return state;
 
-  let browser: Browser;
+  let page: CdpPage;
+  let close: () => Promise<void>;
   if (adapter) {
-    browser = await adapter.launch();
+    const launched = await adapter.launch();
+    page = launched.page;
+    close = launched.close;
   } else {
-    const { chromium } = await import("playwright");
-    browser = await chromium.launch({
-      headless: process.env.NODETOOL_BROWSER_HEADLESS === "true",
-      args: [
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--window-size=1280,900"
-      ]
+    const { launchBrowser, CdpPage: CdpPageCls } = await import("../lib/cdp-page.js");
+    const headless = process.env.NODETOOL_BROWSER_HEADLESS === "true";
+    const session = await launchBrowser({
+      headless,
+      viewport: { width: 1280, height: 900 }
     });
+    page = await CdpPageCls.create(session.client, { width: 1280, height: 900 });
+    close = session.close;
   }
 
-  const context = await browser.newContext({
-    viewport: { width: 1280, height: 900 }
-  });
-  const page = await context.newPage();
-
   const consoleMessages: BrowserConsoleMessage[] = [];
-  page.on("console", (msg: ConsoleMessage) => {
+  page.on("console", (msg) => {
     consoleMessages.push({
-      type: msg.type(),
-      text: msg.text(),
+      type: msg.type,
+      text: msg.text,
       timestamp: Date.now()
     });
     if (consoleMessages.length > CONSOLE_BUFFER_MAX) {
@@ -109,7 +106,7 @@ async function ensureState(): Promise<BrowserState> {
     }
   });
 
-  state = { browser, context, page, consoleMessages };
+  state = { page, close, consoleMessages };
   return state;
 }
 
@@ -154,7 +151,7 @@ export async function browserView(
     });
   })) as BrowserElement[];
 
-  const viewport = page.viewportSize() ?? { width: 1280, height: 900 };
+  const viewport = page.viewportSize();
   const url = page.url();
   const title = await page.title();
 
@@ -162,7 +159,7 @@ export async function browserView(
     input.include_screenshot === undefined ? true : input.include_screenshot;
   let screenshot: string | null = null;
   if (want) {
-    const buf = await page.screenshot({ type: "png", fullPage: false });
+    const buf = await page.screenshot({ fullPage: false });
     screenshot = buf.toString("base64");
   }
 
@@ -184,7 +181,7 @@ export async function browserNavigate(
   return {
     url: s.page.url(),
     title: await s.page.title(),
-    status: res?.status() ?? null
+    status: res.status
   };
 }
 
@@ -193,7 +190,7 @@ export async function browserRestart(
 ): Promise<BrowserRestartOutput> {
   if (state) {
     try {
-      await state.browser.close();
+      await state.close();
     } catch {
       // ignore
     }
@@ -267,42 +264,38 @@ export async function browserScroll(
   input: BrowserScrollInput
 ): Promise<BrowserScrollOutput> {
   const s = await ensureState();
-  const scrollY = (await s.page.evaluate(
-    (args: { top: boolean; bottom: boolean; pixels: number | null }) => {
-      if (args.top) {
+  const args = {
+    top: input.to_top === true,
+    bottom: input.to_bottom === true,
+    pixels: input.pixels ?? null
+  };
+  const scrollY = await s.page.evaluate(
+    (a: { top: boolean; bottom: boolean; pixels: number | null }) => {
+      if (a.top) {
         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-      } else if (args.bottom) {
+      } else if (a.bottom) {
         window.scrollTo({
           top: document.documentElement.scrollHeight,
           behavior: "instant" as ScrollBehavior
         });
-      } else if (args.pixels !== null) {
+      } else if (a.pixels !== null) {
         window.scrollBy({
-          top: args.pixels,
+          top: a.pixels,
           behavior: "instant" as ScrollBehavior
         });
       }
       return window.scrollY;
     },
-    {
-      top: input.to_top === true,
-      bottom: input.to_bottom === true,
-      pixels: input.pixels ?? null
-    }
-  )) as number;
-  return { scroll_y: scrollY };
+    args
+  );
+  return { scroll_y: scrollY as number };
 }
 
 export async function browserConsoleExec(
   input: BrowserConsoleExecInput
 ): Promise<BrowserConsoleExecOutput> {
   const s = await ensureState();
-  const result = await s.page.evaluate(
-    (code: string) =>
-      // eslint-disable-next-line no-new-func
-      new Function(`return (async () => { return (${code}); })()`)(),
-    input.javascript
-  );
+  const result = await s.page.evaluate(input.javascript);
   return { result_json: JSON.stringify(result ?? null) };
 }
 
@@ -319,7 +312,7 @@ export async function browserConsoleView(
 export async function _shutdownForTests(): Promise<void> {
   if (state) {
     try {
-      await state.browser.close();
+      await state.close();
     } catch {
       // ignore
     }

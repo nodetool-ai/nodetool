@@ -17,8 +17,9 @@
   "dependencies": {
     "@fastify/multipart": "^9.0.0",
     "@nodetool-ai/sandbox": "*",
+    "chrome-launcher": "^1.2.0",
+    "chrome-remote-interface": "^0.34.0",
     "fastify": "^5.1.0",
-    "playwright": "^1.49.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {

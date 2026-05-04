@@ -1,10 +1,10 @@
 /**
  * Browser tool unit tests.
  *
- * The tests install a fake PlaywrightAdapter that returns a scripted Browser
- * / Context / Page — this keeps the test suite off Chromium (which isn't
- * available in CI by default) while still exercising the full route handling
- * and DOM-shaping logic.
+ * The tests install a fake BrowserAdapter that returns a scripted CDP-like
+ * page — this keeps the test suite off Chromium (which isn't available in CI
+ * by default) while still exercising the full route handling and DOM-shaping
+ * logic.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -14,7 +14,7 @@ import {
   browserClick,
   browserInput,
   browserConsoleView,
-  setPlaywrightAdapter,
+  setBrowserAdapter,
   _shutdownForTests
 } from "../src/tools/browser.js";
 
@@ -25,8 +25,8 @@ interface RecordedCall {
 
 function makeFakeBrowser(): {
   calls: RecordedCall[];
-  adapter: { launch: () => Promise<unknown> };
-  emitConsole: (msg: { type(): string; text(): string }) => void;
+  adapter: { launch: () => Promise<{ page: unknown; close: () => Promise<void> }> };
+  emitConsole: (msg: { type: string; text: string }) => void;
   setViewState: (state: {
     url: string;
     title: string;
@@ -34,7 +34,7 @@ function makeFakeBrowser(): {
   }) => void;
 } {
   const calls: RecordedCall[] = [];
-  let onConsole: ((msg: { type(): string; text(): string }) => void) | null = null;
+  let onConsole: ((msg: { type: string; text: string }) => void) | null = null;
   const viewState = {
     url: "about:blank",
     title: "",
@@ -51,7 +51,7 @@ function makeFakeBrowser(): {
       calls.push({ method: "goto", args: [url] });
       viewState.url = url;
       viewState.title = `title of ${url}`;
-      return { status: () => 200 };
+      return { status: 200 };
     },
     click: async (selector: string) => {
       calls.push({ method: "click", args: [selector] });
@@ -78,28 +78,19 @@ function makeFakeBrowser(): {
       press: async (key: string) =>
         calls.push({ method: "keyboard.press", args: [key] })
     },
-    on: (event: string, handler: (msg: unknown) => void) => {
-      if (event === "console") {
-        onConsole = handler as (m: { type(): string; text(): string }) => void;
-      }
+    on: (event: string, handler: (msg: { type: string; text: string }) => void) => {
+      if (event === "console") onConsole = handler;
     }
   };
 
-  const context = {
-    newPage: async () => page
-  };
-
-  const browser = {
-    newContext: async () => context,
-    close: async () => {
-      calls.push({ method: "browser.close", args: [] });
-    }
+  const close = async () => {
+    calls.push({ method: "close", args: [] });
   };
 
   return {
     calls,
     adapter: {
-      launch: async () => browser
+      launch: async () => ({ page, close })
     },
     emitConsole: (msg) => {
       if (onConsole) onConsole(msg);
@@ -116,12 +107,12 @@ let harness: ReturnType<typeof makeFakeBrowser>;
 
 beforeEach(async () => {
   harness = makeFakeBrowser();
-  setPlaywrightAdapter(harness.adapter as never);
+  setBrowserAdapter(harness.adapter as never);
 });
 
 afterEach(async () => {
   await _shutdownForTests();
-  setPlaywrightAdapter(null);
+  setBrowserAdapter(null);
 });
 
 describe("browserNavigate", () => {
@@ -220,8 +211,8 @@ describe("browserConsoleView", () => {
   it("captures console messages and returns the latest N", async () => {
     // Force state creation so the console listener is wired up.
     await browserNavigate({ url: "https://x.test" });
-    harness.emitConsole({ type: () => "log", text: () => "hello" });
-    harness.emitConsole({ type: () => "warn", text: () => "warn!" });
+    harness.emitConsole({ type: "log", text: "hello" });
+    harness.emitConsole({ type: "warn", text: "warn!" });
     const out = await browserConsoleView({ max_lines: 10 });
     expect(out.messages.map((m) => m.text)).toEqual(["hello", "warn!"]);
     expect(out.messages[0].type).toBe("log");

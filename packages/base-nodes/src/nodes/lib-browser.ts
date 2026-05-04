@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import { withPage } from "../lib/cdp-page.js";
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
@@ -150,12 +151,8 @@ export class BrowserLibNode extends BaseNode {
     const timeout = Number(this.timeout ?? 20000);
     if (!url) throw new Error("URL is required");
 
-    const { chromium } = await import("playwright");
     const TurndownService = (await import("turndown")).default;
-    const browser = await chromium.launch({ headless: true });
-    try {
-      const ctx = await browser.newContext({ bypassCSP: true });
-      const page = await ctx.newPage();
+    return withPage({ headless: true }, async (page) => {
       await page.goto(url, { waitUntil: "networkidle", timeout });
       const html = await page.content();
 
@@ -168,9 +165,7 @@ export class BrowserLibNode extends BaseNode {
         content,
         metadata: { title }
       };
-    } finally {
-      await browser.close();
-    }
+    });
   }
 }
 
@@ -222,19 +217,13 @@ export class ScreenshotLibNode extends BaseNode {
     const timeout = Number(this.timeout ?? 30000);
     if (!url) throw new Error("URL is required");
 
-    const { chromium } = await import("playwright");
-    const browser = await chromium.launch({ headless: true });
-    try {
-      const ctx = await browser.newContext({ bypassCSP: true });
-      const page = await ctx.newPage();
+    return withPage({ headless: true }, async (page) => {
       await page.goto(url, { waitUntil: "domcontentloaded", timeout });
 
       let buffer: Buffer;
       if (selector) {
-        const el = await page.waitForSelector(selector, { timeout });
-        if (!el)
-          throw new Error(`No element found matching selector: ${selector}`);
-        buffer = await el.screenshot();
+        await page.waitForSelector(selector, { timeout });
+        buffer = await page.screenshotOfElement(selector);
       } else {
         buffer = await page.screenshot();
       }
@@ -245,9 +234,7 @@ export class ScreenshotLibNode extends BaseNode {
         output: { type: "image", data },
         url
       };
-    } finally {
-      await browser.close();
-    }
+    });
   }
 }
 
@@ -339,12 +326,7 @@ export class BrowserNavigationLibNode extends BaseNode {
     if (action === "goto" && !url)
       throw new Error("URL is required for goto action");
 
-    const { chromium } = await import("playwright");
-    const browser = await chromium.launch({ headless: true });
-    try {
-      const ctx = await browser.newContext({ bypassCSP: true });
-      const page = await ctx.newPage();
-
+    return withPage({ headless: true }, async (page) => {
       if (action === "goto") {
         await page.goto(url, { waitUntil: "domcontentloaded", timeout });
       } else if (action === "reload") {
@@ -352,9 +334,8 @@ export class BrowserNavigationLibNode extends BaseNode {
         await page.reload({ waitUntil: "domcontentloaded", timeout });
       } else if (action === "click") {
         await page.goto(url, { waitUntil: "domcontentloaded", timeout });
-        const el = await page.waitForSelector(selector, { timeout });
-        if (!el) throw new Error(`Element not found: ${selector}`);
-        await el.click();
+        await page.waitForSelector(selector, { timeout });
+        await page.click(selector);
       } else if (action === "extract") {
         await page.goto(url, { waitUntil: "domcontentloaded", timeout });
       } else if (action === "back") {
@@ -370,40 +351,39 @@ export class BrowserNavigationLibNode extends BaseNode {
       let extracted: unknown = null;
       if (action === "extract") {
         if (selector) {
-          const el = await page.waitForSelector(selector, { timeout });
-          if (!el) throw new Error(`Element not found: ${selector}`);
+          await page.waitForSelector(selector, { timeout });
+          const sel = JSON.stringify(selector);
           if (extractType === "html") {
-            extracted = await el.evaluate((e: Element) => e.outerHTML);
+            extracted = await page.evaluate(
+              `document.querySelector(${sel}).outerHTML`
+            );
           } else if (extractType === "value") {
-            extracted = await el.evaluate(
-              (e: HTMLInputElement) => e.value ?? ""
+            extracted = await page.evaluate(
+              `document.querySelector(${sel}).value ?? ""`
             );
           } else if (extractType === "attribute") {
-            extracted = await el.evaluate(
-              (e: Element, a: string) => e.getAttribute(a),
-              attribute
+            const attr = JSON.stringify(attribute);
+            extracted = await page.evaluate(
+              `document.querySelector(${sel}).getAttribute(${attr})`
             );
           } else {
-            extracted = await el.evaluate(
-              (e: Element) =>
-                (e as HTMLElement).innerText ?? e.textContent ?? ""
+            extracted = await page.evaluate(
+              `(() => { const el = document.querySelector(${sel}); return el.innerText ?? el.textContent ?? ""; })()`
             );
           }
         } else {
           if (extractType === "html") {
             extracted = await page.content();
           } else {
-            extracted = await page.evaluate(() =>
-              document.body ? document.body.innerText : ""
+            extracted = await page.evaluate(
+              `document.body ? document.body.innerText : ""`
             );
           }
         }
       }
 
       return { success: true, action, extracted };
-    } finally {
-      await browser.close();
-    }
+    });
   }
 }
 
