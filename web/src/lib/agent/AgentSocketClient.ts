@@ -80,48 +80,74 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
     if (this.connecting) return this.connecting;
     this.intentionalClose = false;
 
-    this.connecting = new Promise<void>((resolve, reject) => {
-      let socket: WebSocket;
-      try {
-        socket = new WebSocket(this.url);
-      } catch (error) {
-        this.connecting = null;
-        reject(error instanceof Error ? error : new Error(String(error)));
-        return;
-      }
-      this.socket = socket;
-      let resolved = false;
-      socket.onopen = () => {
-        console.info(`[agent-ws] connected to ${this.url}`);
-        this.connecting = null;
-        resolved = true;
-        this.emit("open");
-        resolve();
-      };
-      socket.onmessage = (ev: MessageEvent) => {
-        this.handleMessage(ev.data);
-      };
-      socket.onerror = (event: Event) => {
-        console.warn("[agent-ws] socket error", event);
-      };
-      socket.onclose = () => {
-        console.info("[agent-ws] socket closed");
-        this.socket = null;
-        this.connecting = null;
-        this.failAllPending(new Error("Agent WebSocket closed"));
-        this.emit("close");
-        // If the connection never reached OPEN, reject the pending
-        // connect() promise so callers don't hang forever.
-        if (!resolved) {
-          reject(new Error(`Agent WebSocket failed to connect to ${this.url}`));
-        }
-        if (!this.intentionalClose) {
-          this.scheduleReconnect();
-        }
-      };
-    });
+    this.connecting = this.buildAuthenticatedUrl().then(
+      (authenticatedUrl) =>
+        new Promise<void>((resolve, reject) => {
+          this.connectWithUrl(authenticatedUrl, resolve, reject);
+        }),
+    );
 
     return this.connecting;
+  }
+
+  private connectWithUrl(
+    authenticatedUrl: string,
+    resolve: () => void,
+    reject: (err: Error) => void,
+  ): void {
+    let socket: WebSocket;
+    let resolved = false;
+    try {
+      socket = new WebSocket(authenticatedUrl);
+    } catch (error) {
+      this.connecting = null;
+      reject(error instanceof Error ? error : new Error(String(error)));
+      return;
+    }
+    this.socket = socket;
+    socket.onopen = () => {
+      console.info(`[agent-ws] connected to ${authenticatedUrl}`);
+      this.connecting = null;
+      resolved = true;
+      this.emit("open");
+      resolve();
+    };
+    socket.onmessage = (ev: MessageEvent) => {
+      this.handleMessage(ev.data);
+    };
+    socket.onerror = (event: Event) => {
+      console.warn("[agent-ws] socket error", event);
+    };
+    socket.onclose = () => {
+      console.info("[agent-ws] socket closed");
+      this.socket = null;
+      this.connecting = null;
+      this.failAllPending(new Error("Agent WebSocket closed"));
+      this.emit("close");
+      if (!resolved) {
+        reject(
+          new Error(`Agent WebSocket failed to connect to ${authenticatedUrl}`),
+        );
+      }
+      if (!this.intentionalClose) {
+        this.scheduleReconnect();
+      }
+    };
+  }
+
+  private async buildAuthenticatedUrl(): Promise<string> {
+    try {
+      const { supabase } = await import("../supabaseClient");
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        return `${this.url}?api_key=${session.access_token}`;
+      }
+    } catch {
+      // fall through to unauthenticated URL
+    }
+    return this.url;
   }
 
   /** Close the socket and stop reconnecting. */

@@ -1,5 +1,4 @@
 import { EventEmitter } from "../EventEmitter";
-import { isLocalhost } from "../env";
 import { UNIFIED_WS_URL } from "../../stores/BASE_URL";
 import { handleResourceChange } from "../../stores/resourceChangeHandler";
 import { handleSystemStats } from "../../stores/systemStatsHandler";
@@ -389,10 +388,6 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   }
 
   private async buildAuthenticatedUrl(): Promise<string> {
-    if (isLocalhost) {
-      return UNIFIED_WS_URL;
-    }
-
     try {
       const { supabase } = await import("../supabaseClient");
       const {
