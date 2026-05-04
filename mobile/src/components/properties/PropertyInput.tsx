@@ -11,8 +11,8 @@ import { useTheme } from '../../hooks/useTheme';
 
 export type PropertyProps = {
   definition: MiniAppInputDefinition;
-  value: any;
-  onChange: (value: any) => void;
+  value: unknown;
+  onChange: (value: unknown) => void;
 };
 
 export const PropertyRenderer: React.FC<PropertyProps> = (props) => {

@@ -125,7 +125,7 @@ const decodeBase64 = (value: string): Uint8Array => {
 const isUsableBinary = (val: unknown): boolean => {
   if (val instanceof Uint8Array) return val.length > 0;
   if (val instanceof ArrayBuffer) return val.byteLength > 0;
-  if (ArrayBuffer.isView(val)) return (val as ArrayBufferView).byteLength > 0;
+  if (ArrayBuffer.isView(val)) return val.byteLength > 0;
   if (Array.isArray(val))
     return val.length > 0 && val.every((v) => typeof v === "number");
   if (typeof val === "string") return val.trim() !== "";
@@ -168,10 +168,9 @@ const toUint8Array = (input: unknown): Uint8Array => {
     const record = input as Record<string, unknown>;
     if (record.data instanceof Uint8Array) return record.data;
     if (record.data instanceof ArrayBuffer) return new Uint8Array(record.data);
-    if (ArrayBuffer.isView(record.data as object | null)) {
-      const view = record.data as ArrayBufferView;
+    if (ArrayBuffer.isView(record.data)) {
       return new Uint8Array(
-        view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength)
+        record.data.buffer.slice(record.data.byteOffset, record.data.byteOffset + record.data.byteLength)
       );
     }
     if ("content" in record) {

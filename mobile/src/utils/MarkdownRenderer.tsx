@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { StyleSheet, View, ScrollView, Platform } from 'react-native';
+import { StyleSheet, View, ScrollView, Platform, ViewStyle } from 'react-native';
 import Markdown, { ASTNode, RenderRules } from 'react-native-markdown-display';
 import SyntaxHighlighter from 'react-native-syntax-highlighter';
 import { atomDark, tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -15,7 +15,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
   const codeTheme = mode === 'dark' ? atomDark : tomorrow;
 
   const rules: RenderRules = {
-    fence: (node: ASTNode, _children: ReactNode[], _parent: ASTNode[], styles: any) => {
+    fence: (node: ASTNode, _children: ReactNode[], _parent: ASTNode[], styles: Record<string, ViewStyle>) => {
       const language = (node as ASTNode & { sourceInfo?: string }).sourceInfo || node.attributes['lang'] as string | undefined || 'text';
 
       return (
@@ -41,7 +41,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
         </View>
       );
     },
-    code_block: (node: ASTNode, _children: ReactNode[], _parent: ASTNode[], styles: any) => {
+    code_block: (node: ASTNode, _children: ReactNode[], _parent: ASTNode[], styles: Record<string, ViewStyle>) => {
       return (
         <View key={node.key} style={styles.code_block}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
