@@ -65,7 +65,7 @@ The original PR built parallel infrastructure for things NodeTool already has. T
 | **Exposed parameters** | **Existing `*InputNode` classes** (`FloatInputNode`, `StringInputNode`, `IntegerInputNode`, `BooleanInputNode`, `SelectInputNode`, `ImageSizeInputNode`, `ColorInputNode`, `LanguageModelInputNode`, etc.) — the workflow's `Input*` nodes ARE the exposed parameters | — |
 | Inspector frame | `web/src/components/Inspector.tsx`, `InspectedNodeStore` | Slim wrapper that swaps target between clip / clip-bound node |
 | Property editing | `web/src/components/node/PropertyField.tsx`, `web/src/components/properties/*` | — (Input-node properties already render through these) |
-| Workflow templates | Existing template/preset infrastructure | Three timeline-targeted seeded workflows with `run_mode = "template-clip"` |
+| Workflow templates | Existing template/preset infrastructure + `tags` | Three timeline-targeted seeded workflows tagged `"timeline-template"` |
 | Open in Node Editor | Existing workflow editor at `/editor/:workflowId` | Just navigate; no remap |
 | Execution | `WorkflowRunner.run(workflow, paramOverrides)`, `GlobalWebSocketManager`, `Job` | Clip-scoped subscription, hash-based stale detection |
 | Status / errors | `StatusStore`, `ErrorStore`, `StatusIndicator`, `WarningBanner` | Clip-status mapping |
@@ -88,11 +88,11 @@ PR #309 is **not** kept in-tree. All timeline code is written from scratch using
   - No React, no Zustand, no MUI. Vitest unit tests.
 - **`packages/models/`** —
   - **Reuse `Workflow`**. Each generated clip references an existing `Workflow` row via `workflowId`. Workflows are filtered/discriminated by the existing `run_mode` field:
-    - `"workflow"` — standalone workflow (existing default; unchanged).
-    - `"clip"` — clip-private workflow owned by a single clip; hidden from the standalone workflow list.
-    - `"template-clip"` — seeded reusable clip template (e.g. Text-to-Image); listed in the timeline's "Add Generated Clip" menu, not the standalone workflow list.
+    - `"workflow"` — standalone workflow (existing default; unchanged). Any standalone workflow whose graph terminates in an `ImageOutputNode` / `VideoOutputNode` / `AudioOutputNode` can be used as a clip source.
+    - `"clip"` — clip-private clone owned by a single clip; hidden from the standalone workflow list.
     - `"sequence"` — reserved for Slice 3 (whole-timeline export workflow).
     The standalone workflow listing filters to `run_mode IN ("workflow", null)`. No schema migration needed for `run_mode`; it already exists.
+    Curated clip templates are tagged (existing `tags` field), e.g. `"timeline-template"`. The Add-Generated-Clip menu shows tagged workflows by default with an "All workflows" option to browse the rest.
   - **Add `timeline_sequence` table**:
   ```
   timeline_sequence (
@@ -161,15 +161,14 @@ Every generated clip is backed by exactly one `Workflow` row.
 - **Imported clips** have `workflowId === null`. They reference an `Asset` directly and have no inspector node-stack.
 - **Generated clips** have `workflowId` set. The workflow's graph contains its own `Input*` nodes (`StringInputNode`, `FloatInputNode`, `IntegerInputNode`, `BooleanInputNode`, `SelectInputNode`, `ImageSizeInputNode`, `ColorInputNode`, `LanguageModelInputNode`, etc.). **The Input nodes ARE the exposed parameters** — no parallel `ExposedParameter` declaration on the clip.
 - The clip stores **`paramOverrides: Record<inputNodeName, value>`** — the inputs to feed the workflow on each invocation. The inspector renders one `PropertyField` per `Input*` node in the bound workflow, sourced from the existing node metadata. This is the same path the standalone workflow editor already uses for "run with inputs" dialogs.
-- The clip stores **`selectedOutputNodeId`** — which terminal node's output becomes the clip's media. Workflows with one obvious output node default to it; multi-output workflows force a choice on creation.
+- The clip stores **`selectedOutputNodeId`** — which terminal node's output becomes the clip's media. Workflows with one obvious media-output node default to it; multi-output workflows force a choice on creation.
 
 **Lifecycle**:
-- Creating a generated clip from a `template-clip` workflow: the timeline clones that template into a new `run_mode = "clip"` workflow owned by the clip. The clone is independent — editing the template later does not affect existing clips.
-- Creating a generated clip from a standalone workflow ("Use as clip" from a workflow context menu): same — a clone with `run_mode = "clip"` is created. The standalone workflow is unchanged.
-- **Duplicate as Variation** clones the clip's workflow into another `run_mode = "clip"` workflow row.
+- Creating a generated clip from any standalone workflow (via the Add-Generated-Clip menu, or "Use as clip" from a workflow's context menu): the timeline **clones** that workflow into a new `run_mode = "clip"` row owned by the clip. The clone is independent — editing the source workflow later does not affect existing clips. (Linked-duplicate behavior is opt-in per clip-pair, see below.)
+- **Duplicate as Variation** clones the clip's workflow into another `run_mode = "clip"` row.
 - **Duplicate Linked** keeps the same `workflowId` for both clips; both regenerate together.
-- **Save as Reusable Template** flips `run_mode` from `"clip"` to `"template-clip"`. The clip retains its reference; the workflow now also appears in the Add-Generated-Clip menu.
-- **Deleting a clip** with a `run_mode = "clip"` workflow: if no other clip references that `workflowId`, the workflow row is deleted. Otherwise (linked duplicates), the row is kept and the clip reference is removed.
+- **Save as Reusable Template** flips `run_mode` from `"clip"` to `"workflow"` and adds the `"timeline-template"` tag, promoting the clone into a normal standalone workflow that appears in the curated clip menu. The clip retains its reference. Once promoted, ordinary workflow-listing rules apply.
+- **Deleting a clip** with a `run_mode = "clip"` workflow: if no other clip references that `workflowId`, the workflow row is deleted. Otherwise (linked duplicates), the row is kept and only the clip reference is removed. Standalone (`run_mode = "workflow"`) sources are never deleted by clip operations.
 - **Open in Node Editor** navigates to `/editor/:workflowId`. Returning to the timeline picks up the new `workflow.updated_at`, which automatically marks all referencing clips stale (see §4.4).
 
 ### 4.4 Generation flow
@@ -246,7 +245,7 @@ Badges use `StatusIndicator` and tokenized colors.
 ## 6. Decisions on open questions
 
 1. **Auto-replace on success.** Successful generation replaces `currentAssetId` immediately; previous version stays in `versions[]`. Locked clips do not replace.
-2. **Cloned workflow per clip, not embedded snapshot.** Each generated clip points to its own `Workflow` row with `run_mode = "clip"`. Cloning happens at clip creation. Editing one clip's workflow does not affect others. This replaces the original "embedded graph snapshot" plan.
+2. **Cloned workflow per clip, not embedded snapshot.** Each generated clip points to its own `Workflow` row with `run_mode = "clip"`. Cloning happens at clip creation, regardless of whether the source was a curated template or a user's standalone workflow. Editing one clip's workflow does not affect others. This replaces the original "embedded graph snapshot" plan.
 3. **Inspector exposes the bound workflow's `Input*` nodes.** No parallel exposed-parameter declaration. The author of a clip-template workflow chooses what's exposed by which `Input*` nodes they place in the graph — exactly like the standalone workflow runner.
 4. **Timeline format.** New `timeline_sequence` table (decided). Sequences themselves are not workflows in Slice 1+2.
 5. **Sequence-as-graph.** Reserved as `run_mode = "sequence"` for Slice 3 (the export compiler emits one of these). Not implemented in Slice 1+2.
@@ -255,8 +254,8 @@ Badges use `StatusIndicator` and tokenized colors.
 8. **Local vs cloud per node.** Backend decides via existing provider routing; UI shows `Local` / `Cloud` / `Requires API key` indicators.
 9. **Custom exposed parameters.** Out of scope. The clip-template workflow author chooses exposure by which `Input*` nodes are placed.
 10. **Multi-output clips.** Out of scope. One `selectedOutputNodeId` per clip; alpha/audio side outputs are future work. Workflows with multiple terminal output nodes force a choice at clip creation.
-11. **Workflow listing filter.** Standalone workflow listings filter to `run_mode IN ("workflow", null)`. `"clip"` and `"template-clip"` workflows are visible only inside their owning timeline (clip workflows) or in the Add-Generated-Clip menu (template-clip workflows).
-12. **Clip-workflow lifecycle.** Deleting the last clip referencing a `run_mode = "clip"` workflow deletes that workflow. Promoting via "Save as Reusable Template" flips `run_mode` to `"template-clip"`, which retains the row regardless of clip references.
+11. **Workflow listing filter.** Standalone workflow listings filter to `run_mode IN ("workflow", null)`. `"clip"` workflows are visible only inside their owning timeline. The Add-Generated-Clip menu queries `run_mode IN ("workflow", null)` and prefers entries tagged `"timeline-template"`, with an "All workflows" expander to browse the rest.
+12. **Clip-workflow lifecycle.** Deleting the last clip referencing a `run_mode = "clip"` workflow deletes that workflow. Promoting via "Save as Reusable Template" flips `run_mode` from `"clip"` to `"workflow"` and adds the `"timeline-template"` tag — the row becomes an ordinary standalone workflow.
 
 ## 7. Data model
 
@@ -305,7 +304,9 @@ interface TimelineClip {
   sourceType: "imported" | "generated";
 
   // Imported clips: assetId is set, workflowId is null.
-  // Generated clips: workflowId references a Workflow row (run_mode "clip" or shared "template-clip").
+  // Generated clips: workflowId references a Workflow row, normally run_mode = "clip"
+  // (clip-private clone). May reference a shared standalone workflow when the user
+  // explicitly chose Duplicate Linked.
   workflowId?: string;
   selectedOutputNodeId?: string;
   paramOverrides?: Record<string, unknown>; // keyed by Input-node name
@@ -356,19 +357,17 @@ interface TimelineMarker {
 }
 ```
 
-## 8. Predefined clip templates (Slice 2)
+## 8. Curated clip templates (Slice 2)
 
-Each template is a seeded `Workflow` row with `run_mode = "template-clip"`. Exposed parameters are simply the `Input*` nodes placed in the graph. When a user adds a clip from a template, the template workflow is cloned into a `run_mode = "clip"` workflow owned by the new clip.
+Three ordinary `Workflow` rows (`run_mode = "workflow"`) are seeded with the tag `"timeline-template"` so they surface in the Add-Generated-Clip menu by default. Authors publish their own clip templates by adding the `"timeline-template"` tag to any workflow they own. Untagged standalone workflows that produce media output are still selectable via the menu's "All workflows" expander.
 
-| Template workflow | Graph (Input nodes → processing → output) |
+| Seeded workflow | Graph (Input nodes → processing → output) |
 | --- | --- |
 | **Text-to-Image** | `StringInputNode("prompt") → TextToImageNode → ImageOutputNode`<br>plus optional `StringInputNode("negative_prompt")`, `IntegerInputNode("steps")`, `FloatInputNode("cfg")`, `IntegerInputNode("seed")`, `LanguageModelInputNode("model")` |
 | **Image-to-Video** | `StringInputNode("prompt") + ImageInputNode("source_image") + IntegerInputNode("duration_ms") → ImageToVideoNode → VideoOutputNode` |
 | **Text-to-Speech** | `StringInputNode("text") + SelectInputNode("voice") → TextToSpeechNode → AudioOutputNode` |
 
-These workflows are seeded in a new migration in `packages/models/`. No `templateId → graph factory` registry is needed — the templates are ordinary workflow rows discovered via `WHERE run_mode = "template-clip"`. The Add-Generated-Clip menu lists them by querying the workflow table.
-
-Authors can publish their own clip templates by creating a workflow and setting `run_mode = "template-clip"` from the workflow editor (a new toggle in workflow settings).
+When a user picks a template, the timeline clones it into a new `run_mode = "clip"` workflow owned by the clip. No template registry; the menu is just a tag-filtered query against the workflow table.
 
 ## 9. Performance targets
 
@@ -477,10 +476,10 @@ These fields are added to §7 above.
 ## 13. Implementation phases inside this PRD
 
 1. **P1.A** — `packages/timeline/` types, dependency hashing, timeline math, tests. No UI.
-2. **P1.B** — `timeline_sequence` schema, repo, REST endpoints, autosave. Seed three `template-clip` workflows in a migration.
+2. **P1.B** — `timeline_sequence` schema, repo, REST endpoints, autosave. Seed three tagged `"timeline-template"` workflows in a migration.
 3. **P1.C** — `TimelineEditor` shell, tracks, ruler, playhead, preview compositor (DOM + WebAudio), imported-clip CRUD with `TimelineStore` + zundo.
 4. **P1.D** — Imported-clip inspector wired to existing `Inspector` patterns.
-5. **P2.A** — Clip-workflow binding: clone-on-create from `template-clip` to `run_mode = "clip"`; lifecycle (delete cascading, promote-to-template); workflow-list filter for `run_mode`.
+5. **P2.A** — Clip-workflow binding: clone-on-create from any standalone workflow into `run_mode = "clip"`; lifecycle (delete cascading, promote-to-template via tag + `run_mode` flip); workflow-list filter for `run_mode`.
 6. **P2.B** — Inspector node-stack reads the bound workflow's `Input*` nodes and renders existing `PropertyField`s into `paramOverrides`. Dirty/stale via dependency hash incl. `workflow.updated_at`.
 7. **P2.C** — Generate / regenerate via `WorkflowRunner.run(workflow, paramOverrides)`; status propagation through existing `StatusStore`/`ResultsStore`/`ErrorStore` keyed by jobId.
 8. **P2.D** — Versions (jobId+assetId per version), restore, Duplicate-as-Variation (clone clip workflow), Duplicate-Linked, Lock; "Open in Node Editor" round-trip and stale-on-return behavior.
