@@ -17,7 +17,7 @@ import {
   ListItemText,
   ListItemIcon
 } from "@mui/material";
-import { Tooltip, Text, ToolbarIconButton, FlexRow } from "../ui_primitives";
+import { Text, ToolbarIconButton, FlexRow } from "../ui_primitives";
 import PaletteIcon from "@mui/icons-material/Palette";
 import LegendToggleIcon from "@mui/icons-material/LegendToggle";
 import CheckIcon from "@mui/icons-material/Check";

@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { Dialog, FlexColumn, Tooltip, Text, ToolbarIconButton } from "../ui_primitives";
+import { Dialog, FlexColumn, Text, ToolbarIconButton } from "../ui_primitives";
 import ModelCard from "./model_card/ModelCard";
 import { useShallow } from "zustand/react/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";

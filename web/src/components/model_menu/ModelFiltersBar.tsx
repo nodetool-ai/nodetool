@@ -7,7 +7,7 @@ import {
   MenuItem,
   ListItemText
 } from "@mui/material";
-import { Tooltip, ToolbarIconButton, Checkbox } from "../ui_primitives";
+import { ToolbarIconButton, Checkbox } from "../ui_primitives";
 import CategoryIcon from "@mui/icons-material/Category";
 import StraightenIcon from "@mui/icons-material/Straighten";
 import useModelFiltersStore, {
