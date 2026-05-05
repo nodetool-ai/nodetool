@@ -60,6 +60,8 @@ export class TimelineSequence extends DBModel {
 
   override beforeSave(): void {
     this.updated_at = new Date().toISOString();
+    // Validate document JSON before persisting — don't write garbage.
+    JSON.parse(this.document);
   }
 
   // ── Document helpers ──────────────────────────────────────────────

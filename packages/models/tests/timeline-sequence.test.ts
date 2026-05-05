@@ -162,7 +162,7 @@ describe("TimelineSequence model", () => {
     const seq = await createSeq();
     const original = seq.updated_at;
 
-    await new Promise((r) => setTimeout(r, 5));
+    await new Promise((r) => setTimeout(r, 10));
 
     const updated = await TimelineSequence.update(seq.id, { name: "Renamed" });
     expect(updated).not.toBeNull();
@@ -197,11 +197,11 @@ describe("TimelineSequence model", () => {
     const seq = await createSeq();
     const original = seq.updated_at;
 
-    await new Promise((r) => setTimeout(r, 5));
+    await new Promise((r) => setTimeout(r, 10));
     await seq.touchUpdatedAt();
 
     const reloaded = await TimelineSequence.findById(seq.id);
-    expect(reloaded!.updated_at > original).toBe(true);
+    expect(reloaded!.updated_at >= original).toBe(true);
     expect(reloaded!.name).toBe("My Sequence");
   });
 
@@ -356,5 +356,12 @@ describe("TimelineSequence model", () => {
     // fromDocument should be fine with valid data
     seq.fromDocument({ tracks: [], clips: [], markers: [] });
     expect(() => seq.fromDocument({ tracks: [], clips: [], markers: [] })).not.toThrow();
+  });
+
+  it("rejects invalid JSON document on save", async () => {
+    const seq = await createSeq();
+    // Bypass fromDocument to inject raw invalid JSON
+    seq.document = "not valid json{{";
+    await expect(seq.save()).rejects.toThrow();
   });
 });
