@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": [
     "packages/protocol",
+    "packages/timeline",
     "packages/kernel",
     "packages/runtime",
     "packages/models",
