@@ -77,7 +77,7 @@ const AVAILABLE_TOOLS: ToolEntry[] = [
   },
   {
     id: "browser",
-    description: "Browse the web (navigate, view, click, input, JS)",
+    description: "Browse the web",
     icon: <Language fontSize="small" sx={{ mr: 0.5 }} />,
     toolIds: BROWSER_TOOL_IDS
   }
