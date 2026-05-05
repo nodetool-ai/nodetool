@@ -580,7 +580,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
             {
               type: "text" as const,
               text: JSON.stringify({
-                assets: assets.map((asset) => toAssetResponse(asset)),
+                assets: await Promise.all(assets.map(toAssetResponse)),
                 next: next || null
               })
             }
@@ -625,7 +625,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(toAssetResponse(asset))
+              text: JSON.stringify(await toAssetResponse(asset))
             }
           ]
         };
