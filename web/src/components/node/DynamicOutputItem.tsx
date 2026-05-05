@@ -1,10 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { Box } from "@mui/material";
 import { EditButton, DeleteButton, Text, FlexRow } from "../ui_primitives";
 import NodeOutput from "./NodeOutput";
+import HandleTooltip from "../HandleTooltip";
 import { Property } from "../../stores/ApiTypes";
 import isEqual from "fast-deep-equal";
+import { useTheme } from "@mui/material/styles";
 
 type OutputItem = Property & { isDynamic?: boolean };
 
@@ -27,6 +29,22 @@ const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
   onStartEdit,
   onDelete
 }) => {
+  const theme = useTheme();
+  const labelSx = useMemo(
+    () => ({
+      color: theme.vars.palette.text.secondary,
+      fontSize: theme.fontSizeSmall,
+      fontWeight: 500,
+      letterSpacing: "0.01em",
+      lineHeight: "1em",
+      minHeight: "13px",
+      textAlign: "right",
+      textTransform: "capitalize",
+      userSelect: "none"
+    }),
+    [theme]
+  );
+
   const handleRename = useCallback(
     () => onStartEdit(output.name),
     [onStartEdit, output.name]
@@ -67,7 +85,15 @@ const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
               tabIndex={-1}
             />
           </FlexRow>
-          <Text sx={{ textAlign: "right" }}>{output.name}</Text>
+          <HandleTooltip
+            typeMetadata={output.type}
+            paramName={output.name}
+            handlePosition="right"
+            isStreamingOutput={isStreamingOutput}
+            variant="property"
+          >
+            <Text sx={labelSx}>{output.name}</Text>
+          </HandleTooltip>
         </FlexRow>
       )}
       {!supportsDynamicOutputs && (
@@ -84,7 +110,15 @@ const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
           }}
         >
           {showLabel && (
-            <Text sx={{ textAlign: "right" }}>{output.name}</Text>
+            <HandleTooltip
+              typeMetadata={output.type}
+              paramName={output.name}
+              handlePosition="right"
+              isStreamingOutput={isStreamingOutput}
+              variant="property"
+            >
+              <Text sx={labelSx}>{output.name}</Text>
+            </HandleTooltip>
           )}
         </Box>
       )}

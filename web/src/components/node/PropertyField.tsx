@@ -137,6 +137,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             className={classConnectable}
             handlePosition="left"
             isCollectInput={isCollectHandle}
+            enableHover={false}
           >
             <Handle
               type="target"
@@ -175,6 +176,9 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             description={property.description ?? undefined}
             isDynamicProperty={isDynamicProperty ?? false}
             density="compact"
+            handleTooltipType={property.type}
+            handleTooltipPosition="left"
+            isCollectInput={isCollectHandle}
           />
         </div>
       )}

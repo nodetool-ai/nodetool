@@ -173,6 +173,7 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
             typeMetadata={imageTypeMetadata}
             paramName="image_a"
             handlePosition="left"
+            enableHover={false}
           >
             <Handle
               type="target"
@@ -190,6 +191,7 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
             typeMetadata={imageTypeMetadata}
             paramName="image_b"
             handlePosition="left"
+            enableHover={false}
           >
             <Handle
               type="target"

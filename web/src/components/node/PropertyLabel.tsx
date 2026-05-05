@@ -5,6 +5,8 @@ import { titleizeString } from "../../utils/titleizeString";
 import isEqual from "fast-deep-equal";
 import { Tooltip } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TypeMetadata } from "../../stores/ApiTypes";
+import HandleTooltip from "../HandleTooltip";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "../editor_ui";
 
@@ -29,6 +31,9 @@ interface PropertyLabelProps {
    * of only in a tooltip. Useful in the Inspector where there is more space.
    */
   showDescriptionInline?: boolean;
+  handleTooltipType?: TypeMetadata;
+  handleTooltipPosition?: "left" | "right";
+  isCollectInput?: boolean;
 }
 
 const PropertyLabel: React.FC<PropertyLabelProps> = ({
@@ -38,7 +43,10 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   showTooltip = true,
   isDynamicProperty = false,
   density = "normal",
-  showDescriptionInline = false
+  showDescriptionInline = false,
+  handleTooltipType,
+  handleTooltipPosition = "left",
+  isCollectInput = false
 }) => {
   const theme = useTheme();
   const scope = useEditorScope();
@@ -54,6 +62,52 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   const labelMarginBottom = density === "compact" ? 0 : theme.spacing(0.25);
   // Only show inline descriptions when explicitly requested, not automatically in inspector
   const shouldShowInlineDescription = showDescriptionInline && !isInspector;
+
+  const label = (
+    <label draggable={false} htmlFor={id}>
+      {formattedName}
+    </label>
+  );
+
+  const labelWithTooltip = handleTooltipType ? (
+    <HandleTooltip
+      typeMetadata={handleTooltipType}
+      paramName={name}
+      handlePosition={handleTooltipPosition}
+      isCollectInput={isCollectInput}
+      variant="property"
+    >
+      {label}
+    </HandleTooltip>
+  ) : (
+    <Tooltip
+      title={showTooltip ? description || "" : ""}
+      delay={TOOLTIP_ENTER_DELAY * 2}
+      nextDelay={TOOLTIP_ENTER_DELAY}
+      placement="left"
+      slotProps={{
+        tooltip: {
+          sx: {
+            fontSize: theme.fontSizeSmall + " !important",
+            color: theme.vars.palette.common.white
+          }
+        },
+        popper: {
+          modifiers: [
+            {
+              name: "offset",
+              options: {
+                offset: density === "compact" ? [0, 64] : [0, 16]
+              }
+            }
+          ]
+        }
+      }}
+      disableInteractive
+    >
+      {label}
+    </Tooltip>
+  );
 
   return (
     <div
@@ -85,35 +139,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
         }
       })}
     >
-      <Tooltip
-        title={showTooltip ? description || "" : ""}
-        delay={TOOLTIP_ENTER_DELAY * 2}
-        nextDelay={TOOLTIP_ENTER_DELAY}
-        placement="left"
-        slotProps={{
-          tooltip: {
-            sx: {
-              fontSize: theme.fontSizeSmall + " !important",
-              color: theme.vars.palette.common.white
-            }
-          },
-          popper: {
-            modifiers: [
-              {
-                name: "offset",
-                options: {
-                  offset: density === "compact" ? [0, 64] : [0, 16] // [skidding, distance] - distance pushes tooltip further left
-                }
-              }
-            ]
-          }
-        }}
-        disableInteractive
-      >
-        <label draggable={false} htmlFor={id}>
-          {formattedName}
-        </label>
-      </Tooltip>
+      {labelWithTooltip}
       {shouldShowInlineDescription && description && (
         <span
           css={css({

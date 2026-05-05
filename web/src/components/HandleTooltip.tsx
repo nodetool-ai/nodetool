@@ -46,6 +46,8 @@ type HandleTooltipProps = {
   handlePosition: "left" | "right";
   isStreamingOutput?: boolean;
   isCollectInput?: boolean;
+  enableHover?: boolean;
+  variant?: "handle" | "property";
 };
 
 const HandleTooltip = memo(function HandleTooltip({
@@ -55,7 +57,9 @@ const HandleTooltip = memo(function HandleTooltip({
   children,
   handlePosition,
   isStreamingOutput,
-  isCollectInput
+  isCollectInput,
+  enableHover = true,
+  variant = "handle"
 }: HandleTooltipProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -99,7 +103,7 @@ const HandleTooltip = memo(function HandleTooltip({
   const typeString = displayType === "number" ? "float" : typeMetadata.type;
 
   const handleMouseEnter = useCallback(() => {
-    if (isConnecting) {
+    if (!enableHover || isConnecting) {
       return;
     }
     const position = getMousePosition();
@@ -108,7 +112,7 @@ const HandleTooltip = memo(function HandleTooltip({
       setTooltipPosition(position);
       setShowTooltip(true);
     }, ENTER_DELAY);
-  }, [isConnecting]);
+  }, [enableHover, isConnecting]);
 
   const handleMouseLeave = useCallback(() => {
     // Cancel pending timer if it exists
@@ -120,6 +124,9 @@ const HandleTooltip = memo(function HandleTooltip({
   }, []);
 
   const handleFocus = useCallback(() => {
+    if (!enableHover) {
+      return;
+    }
     // Show tooltip immediately on keyboard focus for accessibility
     if (wrapperRef.current) {
       const rect = wrapperRef.current.getBoundingClientRect();
@@ -129,11 +136,13 @@ const HandleTooltip = memo(function HandleTooltip({
       });
     }
     setShowTooltip(true);
-  }, []);
+  }, [enableHover]);
 
   const handleBlur = useCallback(() => {
     setShowTooltip(false);
   }, []);
+
+  const isPropertyVariant = variant === "property";
 
   const tooltipContent = (
     <div
@@ -150,8 +159,12 @@ const HandleTooltip = memo(function HandleTooltip({
       <div
         className="handle-tooltip-content"
         style={{
-          backgroundColor: colorForType(typeString),
-          color: textColorForType(typeString)
+          backgroundColor: isPropertyVariant
+            ? "var(--palette-grey-800)"
+            : colorForType(typeString),
+          color: isPropertyVariant
+            ? "var(--palette-grey-100)"
+            : textColorForType(typeString)
         }}
       >
         <div className="handle-tooltip-name">

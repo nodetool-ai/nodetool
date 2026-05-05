@@ -300,6 +300,7 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             paramName="value"
             className="is-connectable"
             handlePosition="left"
+            enableHover={false}
           >
             <Handle
               type="target"

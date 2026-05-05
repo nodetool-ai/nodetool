@@ -148,6 +148,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
         className={classConnectable}
         handlePosition="right"
         isStreamingOutput={isStreamingOutput}
+        enableHover={false}
       >
         <Handle
           type="source"

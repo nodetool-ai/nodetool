@@ -190,6 +190,8 @@ function InputProperty(props: PropertyProps) {
         name={props.property.name}
         description={props.property.description}
         id={id}
+        handleTooltipType={props.property.type}
+        handleTooltipPosition="left"
       />
     </>
   );
