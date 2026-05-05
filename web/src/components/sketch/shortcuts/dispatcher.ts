@@ -2,16 +2,23 @@ import type { SketchActionId } from "./actionRegistry";
 import type { SketchTool } from "../types";
 import { buildComboString, GLOBAL_MAP, TRANSFORM_MAP, CROP_MAP } from "./normalize";
 
-const TYPING_ROLES = new Set(["textbox", "searchbox", "spinbutton"]);
-const TYPING_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"]);
+const INTERACTIVE_SELECTOR = [
+  "input",
+  "textarea",
+  "select",
+  "[contenteditable='true']",
+  "[role='textbox']",
+  "[role='combobox']",
+  "[role='listbox']",
+  "[role='option']",
+  "[role='menuitem']",
+  "[role='slider']",
+  "[role='spinbutton']",
+].join(",");
 
-function isTypingTarget(el: Element | null): boolean {
+export function isInteractiveTarget(el: Element | null): boolean {
   if (!el) return false;
-  if (TYPING_TAGS.has(el.tagName)) return true;
-  const role = el.getAttribute("role");
-  if (role && TYPING_ROLES.has(role)) return true;
-  if ((el as HTMLElement).isContentEditable) return true;
-  return false;
+  return el.closest(INTERACTIVE_SELECTOR) !== null;
 }
 
 export interface DispatcherState {
@@ -29,7 +36,7 @@ export function resolveAction(
   e: KeyboardEvent,
   state: DispatcherState
 ): SketchActionId | null {
-  if (isTypingTarget(document.activeElement)) return null;
+  if (isInteractiveTarget(document.activeElement)) return null;
 
   const combo = buildComboString(e);
 

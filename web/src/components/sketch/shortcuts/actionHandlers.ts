@@ -55,16 +55,19 @@ export const ACTION_HANDLERS: ActionHandlerMap = {
     p.handleFillLayerWithColor(foregroundColor);
   },
   "invert-colors": (_e, p) => p.handleInvertLayerColors(),
-  "cancel-or-deselect": (_e, p) => p.cancelActiveTool?.(),
+  "cancel-or-deselect": (_e, p) => {
+    p.cancelActiveTool?.();
+    useSketchStore.getState().setSelection(null);
+  },
 
   // Nudge actions are handled specially in the hook (RAF loop with held-key tracking).
   // They are intentionally absent from this map.
 
   // Selection
-  "select-all": (_e, p) => useSketchStore.getState().selectAll?.(),
+  "select-all": (_e, _p) => useSketchStore.getState().selectAll(),
   "deselect": (_e, _p) => useSketchStore.getState().setSelection(null),
-  "reselect": (_e, _p) => useSketchStore.getState().reselectLastSelection?.(),
-  "invert-selection": (_e, _p) => useSketchStore.getState().invertSelection?.(),
+  "reselect": (_e, _p) => useSketchStore.getState().reselectLastSelection(),
+  "invert-selection": (_e, _p) => useSketchStore.getState().invertSelection(),
 
   // Canvas
   "export-png": (_e, p) => p.handleExportPng(),
@@ -72,7 +75,7 @@ export const ACTION_HANDLERS: ActionHandlerMap = {
   "zoom-100": (_e, p) => p.setZoom(1),
   "zoom-in": (_e, p) => p.handleZoomIn(),
   "zoom-out": (_e, p) => p.handleZoomOut(),
-  "toggle-panels": (_e, _p) => useSketchStore.getState().togglePanelsHidden(),
+  "toggle-panels": (_e, p) => p.togglePanelsHidden(),
 
   // Color
   "swap-colors": (_e, p) => p.swapColors(),
@@ -139,8 +142,14 @@ export const ACTION_HANDLERS: ActionHandlerMap = {
   // Mode: transform (fired by dispatcher when activeTool === "transform")
   "transform-undo": (_e, p) => p.handleTransformUndo?.(),
   "transform-redo": (_e, p) => p.handleTransformRedo?.(),
-  "transform-commit": (_e, p) => p.handleTransformCommit?.(),
-  "transform-cancel": (_e, p) => p.handleTransformCancel?.(),
+  "transform-commit": (_e, p) => {
+    p.handleTransformCommit?.();
+    p.setActiveTool("move");
+  },
+  "transform-cancel": (_e, p) => {
+    p.handleTransformCancel?.();
+    p.setActiveTool("move");
+  },
 
   // Mode: crop
   "crop-commit": (_e, p) => p.handleCropCommit?.(),

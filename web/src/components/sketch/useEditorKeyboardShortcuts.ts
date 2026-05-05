@@ -1,15 +1,7 @@
-/**
- * useEditorKeyboardShortcuts
- *
- * Custom hook that manages all keyboard shortcuts for the SketchEditor.
- * Extracted from SketchEditor.tsx to reduce component size.
- */
-
 import { useEffect, useRef } from "react";
 import { useSketchStore } from "./state";
 import type {
   SketchTool,
-  ShapeToolType,
   BrushSettings,
   PencilSettings,
   EraserSettings,
@@ -18,65 +10,12 @@ import type {
   ShapeSettings,
   SelectSettings
 } from "./types";
+import { resolveAction, isInteractiveTarget, ACTION_HANDLERS, useSpringLoadedModifiers } from "./shortcuts";
 
 type ArrowKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
 
-/** True on macOS / iOS / iPadOS-style platforms where Cmd replaces Ctrl for spring shortcuts. */
-function isAppleLikePlatform(): boolean {
-  if (typeof navigator === "undefined") {
-    return false;
-  }
-  return /Mac|iPhone|iPad|iPod/i.test(navigator.platform ?? "");
-}
-
-/** Physical Ctrl (Win/Linux) or Cmd (Mac) key for spring-loaded move tool. */
-function isMoveSpringModifierPhysicalKey(e: KeyboardEvent): boolean {
-  if (isAppleLikePlatform()) {
-    return e.code === "MetaLeft" || e.code === "MetaRight";
-  }
-  return e.code === "ControlLeft" || e.code === "ControlRight";
-}
-
-function moveSpringModifierStillHeld(e: KeyboardEvent): boolean {
-  return isAppleLikePlatform()
-    ? e.getModifierState("Meta")
-    : e.getModifierState("Control");
-}
-
 function isArrowKey(key: string): key is ArrowKey {
-  return (
-    key === "ArrowUp" ||
-    key === "ArrowDown" ||
-    key === "ArrowLeft" ||
-    key === "ArrowRight"
-  );
-}
-
-function isUiFormLikeElement(value: unknown): value is Element {
-  if (!(value instanceof Element)) {
-    return false;
-  }
-  return Boolean(
-    value.closest(
-      [
-        "input",
-        "textarea",
-        "select",
-        "[contenteditable='true']",
-        "[role='textbox']",
-        "[role='combobox']",
-        "[role='listbox']",
-        "[role='option']",
-        "[role='menuitem']",
-        "[role='slider']",
-        "[role='spinbutton']"
-      ].join(",")
-    )
-  );
-}
-
-function shouldIgnoreForUiControl(target: EventTarget | null): boolean {
-  return isUiFormLikeElement(target) || isUiFormLikeElement(document.activeElement);
+  return key === "ArrowUp" || key === "ArrowDown" || key === "ArrowLeft" || key === "ArrowRight";
 }
 
 export interface UseEditorKeyboardShortcutsParams {
@@ -96,11 +35,12 @@ export interface UseEditorKeyboardShortcutsParams {
     dy: number,
     options?: { recordHistory?: boolean; syncOutputs?: boolean }
   ) => void;
-  /** Run once after a held-arrow nudge ends so parent node gets a final PNG/mask. */
   syncSketchOutputsNow: () => void;
   setActiveTool: (tool: SketchTool) => void;
   setZoom: (zoom: number) => void;
+  /** @deprecated Mirror removed from keyboard shortcuts. Kept for API compatibility. */
   setMirrorX: (v: boolean) => void;
+  /** @deprecated Mirror removed from keyboard shortcuts. Kept for API compatibility. */
   setMirrorY: (v: boolean) => void;
   setBrushSettings: (settings: Partial<BrushSettings>) => void;
   setPencilSettings: (settings: Partial<PencilSettings>) => void;
@@ -112,29 +52,17 @@ export interface UseEditorKeyboardShortcutsParams {
   swapColors: () => void;
   resetColors: () => void;
   togglePanelsHidden: () => void;
-  /** Cancel the active tool's in-progress operation (e.g. crop drag). */
   cancelActiveTool?: () => void;
-  /** Invert all color channels of the active layer. */
   handleInvertLayerColors: () => void;
-  /** Commit the current transform (bake into pixels). */
   handleTransformCommit?: () => void;
-  /** Apply pending crop rectangle (crop tool). */
   handleCropCommit?: () => void;
-  /** Cancel the current transform (restore original). */
   handleTransformCancel?: () => void;
-  /** Undo the last handle adjustment while still in transform mode. */
   handleTransformUndo?: () => void;
-  /** Redo the last undone handle adjustment while still in transform mode. */
   handleTransformRedo?: () => void;
-  /** Layer via Copy: duplicate selected region to a new layer. */
   handleLayerViaCopy?: () => void;
-  /** Layer via Cut: move selected region to a new layer. */
   handleLayerViaCut?: () => void;
-  /** Enter free transform, optionally preparing a selection-only session first. */
   handleFreeTransform?: () => void;
-  /** Repeat the last committed transform. */
   handleRepeatLastTransform?: () => void;
-  /** Duplicate the active layer/selection target, then repeat the last transform. */
   handleRepeatLastTransformOnCopy?: () => void;
 }
 
@@ -144,19 +72,25 @@ export function useEditorKeyboardShortcuts(
   const paramsRef = useRef(params);
   paramsRef.current = params;
 
+  useSpringLoadedModifiers();
+
   const heldArrowsRef = useRef<Record<ArrowKey, boolean>>({
     ArrowUp: false,
     ArrowDown: false,
     ArrowLeft: false,
-    ArrowRight: false
+    ArrowRight: false,
   });
   const shiftHeldRef = useRef(false);
   const nudgeRafRef = useRef<number | null>(null);
-  /** True until the first applied nudge of the current hold session (for one undo step). */
   const nudgeHistoryPendingRef = useRef(false);
 
   useEffect(() => {
-    const stopLayerNudgeLoop = () => {
+    const anyArrowHeld = (): boolean => {
+      const h = heldArrowsRef.current;
+      return h.ArrowUp || h.ArrowDown || h.ArrowLeft || h.ArrowRight;
+    };
+
+    const stopNudgeLoop = (): void => {
       if (nudgeRafRef.current !== null) {
         cancelAnimationFrame(nudgeRafRef.current);
         nudgeRafRef.current = null;
@@ -165,471 +99,67 @@ export function useEditorKeyboardShortcuts(
       paramsRef.current.syncSketchOutputsNow();
     };
 
-    const anyArrowHeld = (): boolean => {
-      const h = heldArrowsRef.current;
-      return h.ArrowUp || h.ArrowDown || h.ArrowLeft || h.ArrowRight;
-    };
-
-    const runNudgeFrame = () => {
+    const runNudgeFrame = (): void => {
       nudgeRafRef.current = null;
-      if (!anyArrowHeld()) {
-        return;
-      }
+      if (!anyArrowHeld()) return;
 
       const step = shiftHeldRef.current ? 10 : 1;
       let dx = 0;
       let dy = 0;
       const held = heldArrowsRef.current;
-      if (held.ArrowLeft) {
-        dx -= step;
-      }
-      if (held.ArrowRight) {
-        dx += step;
-      }
-      if (held.ArrowUp) {
-        dy -= step;
-      }
-      if (held.ArrowDown) {
-        dy += step;
-      }
+      if (held.ArrowLeft) dx -= step;
+      if (held.ArrowRight) dx += step;
+      if (held.ArrowUp) dy -= step;
+      if (held.ArrowDown) dy += step;
 
       if (dx !== 0 || dy !== 0) {
         const recordHistory = nudgeHistoryPendingRef.current;
         nudgeHistoryPendingRef.current = false;
-        paramsRef.current.handleNudgeLayer(dx, dy, {
-          recordHistory,
-          syncOutputs: false
-        });
+        paramsRef.current.handleNudgeLayer(dx, dy, { recordHistory, syncOutputs: false });
       }
 
       if (anyArrowHeld()) {
         nudgeRafRef.current = requestAnimationFrame(runNudgeFrame);
       } else {
-        stopLayerNudgeLoop();
+        stopNudgeLoop();
       }
     };
 
-    const keydownHandler = (e: KeyboardEvent) => {
-      if (shouldIgnoreForUiControl(e.target)) {
-        return;
-      }
+    const keydownHandler = (e: KeyboardEvent): void => {
+      // Let interactive controls (inputs, comboboxes, etc.) handle their own events.
+      if (isInteractiveTarget(document.activeElement)) return;
 
-      // Prevent sketch shortcuts from bleeding to node editor
+      // Prevent all sketch key events from bleeding into the node editor.
       e.stopPropagation();
 
-      if (!e.repeat && isMoveSpringModifierPhysicalKey(e)) {
-        const tool = useSketchStore.getState().activeTool;
-        // Selection / crop / segment workflows use modifiers on the canvas; never
-        // arm spring-loaded move while those tools are active (matches interactionTool).
-        if (
-          tool === "select" ||
-          tool === "crop" ||
-          tool === "segment"
-        ) {
-          return;
-        }
-        e.preventDefault();
-        useSketchStore.getState().setTransientMoveModifierHeld(true);
+      // Track Shift for the nudge step multiplier.
+      if (e.key === "Shift" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
+        shiftHeldRef.current = true;
         return;
       }
 
-      if (e.key === "Shift" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
-        shiftHeldRef.current = true;
-      }
-
-      if (
-        isArrowKey(e.key) &&
-        !e.ctrlKey &&
-        !e.metaKey &&
-        !e.altKey
-      ) {
+      // Arrow keys drive the held-nudge RAF loop — handled here, not via the catalog.
+      if (isArrowKey(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
-        if (e.shiftKey) {
-          shiftHeldRef.current = true;
-        }
+        if (e.shiftKey) shiftHeldRef.current = true;
         heldArrowsRef.current[e.key] = true;
         if (nudgeRafRef.current === null) {
           nudgeHistoryPendingRef.current = true;
-          // Run immediately so a quick tap still moves one step before keyup cancels rAF.
           runNudgeFrame();
         }
         return;
       }
 
-      if (e.ctrlKey || e.metaKey) {
-        const currentTool = useSketchStore.getState().activeTool;
-        if (e.key === "z") {
-          e.preventDefault();
-          if (currentTool === "transform") {
-            // In transform mode, undo/redo operates on handle adjustments
-            if (e.shiftKey) {
-              paramsRef.current.handleTransformRedo?.();
-            } else {
-              paramsRef.current.handleTransformUndo?.();
-            }
-          } else if (e.shiftKey) {
-            paramsRef.current.handleRedo();
-          } else {
-            paramsRef.current.handleUndo();
-          }
-        }
-        if (e.key === "y") {
-          e.preventDefault();
-          if (currentTool === "transform") {
-            paramsRef.current.handleTransformRedo?.();
-          } else {
-            paramsRef.current.handleRedo();
-          }
-        }
-        if (e.key === "0") {
-          e.preventDefault();
-          paramsRef.current.handleZoomReset();
-        }
-        if (e.key === "1") {
-          e.preventDefault();
-          paramsRef.current.setZoom(1);
-        }
-        if (e.key === "s") {
-          e.preventDefault();
-          paramsRef.current.handleExportPng();
-        }
-        if (e.key === "a") {
-          e.preventDefault();
-          useSketchStore.getState().selectAll();
-        }
-        // Ctrl+Shift+D → reselect last selection
-        if (e.key.toLowerCase() === "d" && e.shiftKey) {
-          e.preventDefault();
-          useSketchStore.getState().reselectLastSelection();
-        }
-        // Ctrl+D → deselect (only when Shift is NOT held)
-        else if (e.key.toLowerCase() === "d" && !e.shiftKey) {
-          e.preventDefault();
-          useSketchStore.getState().setSelection(null);
-        }
-        // Ctrl+Shift+I → invert selection
-        if (e.key.toLowerCase() === "i" && e.shiftKey) {
-          e.preventDefault();
-          useSketchStore.getState().invertSelection();
-        }
-        // Ctrl+I → invert layer colors
-        if (e.key.toLowerCase() === "i" && !e.shiftKey) {
-          e.preventDefault();
-          paramsRef.current.handleInvertLayerColors();
-        }
-        // Ctrl+Backspace → fill with background color (common editor convention)
-        if (e.key === "Backspace") {
-          e.preventDefault();
-          paramsRef.current.handleFillLayerWithColor(
-            useSketchStore.getState().backgroundColor
-          );
-        }
-        // Ctrl+C → copy
-        if (e.key === "c" && !e.shiftKey) {
-          e.preventDefault();
-          paramsRef.current.handleCopy();
-        }
-        // Ctrl+X → cut
-        if (e.key === "x" && !e.shiftKey) {
-          e.preventDefault();
-          paramsRef.current.handleCut();
-        }
-        // Ctrl+V → paste (OS clipboard first, other apps). Ctrl+Shift+V → in-app buffer first (masked alpha).
-        if (e.key === "v") {
-          e.preventDefault();
-          paramsRef.current.handlePaste(e.shiftKey);
-        }
-        // Ctrl+J → Layer via Copy, Ctrl+Shift+J → Layer via Cut
-        if (e.key.toLowerCase() === "j") {
-          e.preventDefault();
-          if (e.shiftKey) {
-            paramsRef.current.handleLayerViaCut?.();
-          } else {
-            paramsRef.current.handleLayerViaCopy?.();
-          }
-        }
-        // Ctrl+Shift+T / Cmd+Shift+T → repeat last transform
-        if (e.key.toLowerCase() === "t" && e.shiftKey) {
-          e.preventDefault();
-          if (e.altKey) {
-            paramsRef.current.handleRepeatLastTransformOnCopy?.();
-          } else {
-            paramsRef.current.handleRepeatLastTransform?.();
-          }
-        }
-        // Ctrl+T / Cmd+T → enter Free Transform mode
-        if (e.key.toLowerCase() === "t" && !e.shiftKey && !e.altKey) {
-          e.preventDefault();
-          if (paramsRef.current.handleFreeTransform) {
-            paramsRef.current.handleFreeTransform();
-          } else {
-            paramsRef.current.setActiveTool("transform");
-          }
-        }
-      } else if (e.altKey) {
-        // Alt+Backspace → fill with foreground color (common editor convention)
-        if (e.key === "Backspace") {
-          e.preventDefault();
-          paramsRef.current.handleFillLayerWithColor(
-            useSketchStore.getState().foregroundColor
-          );
-        }
-      } else if (e.shiftKey) {
-        // Shift+M → toggle vertical mirror
-        if (e.key === "M") {
-          paramsRef.current.setMirrorY(!useSketchStore.getState().mirrorY);
-        }
-        // Shift+[ / Shift+] → decrease / increase hardness (common editor convention)
-        if (e.key === "{") {
-          const store = useSketchStore.getState();
-          const tool = store.activeTool;
-          if (tool === "brush") {
-            const newHardness = Math.max(
-              0,
-              store.toolSettings.brush.hardness - 0.1
-            );
-            paramsRef.current.setBrushSettings({
-              hardness: Math.round(newHardness * 100) / 100
-            });
-          } else if (tool === "eraser") {
-            const newHardness = Math.max(
-              0,
-              store.toolSettings.brush.hardness - 0.1
-            );
-            paramsRef.current.setBrushSettings({
-              hardness: Math.round(newHardness * 100) / 100
-            });
-          }
-        } else if (e.key === "}") {
-          const store = useSketchStore.getState();
-          const tool = store.activeTool;
-          if (tool === "brush") {
-            const newHardness = Math.min(
-              1,
-              store.toolSettings.brush.hardness + 0.1
-            );
-            paramsRef.current.setBrushSettings({
-              hardness: Math.round(newHardness * 100) / 100
-            });
-          } else if (tool === "eraser") {
-            const newHardness = Math.min(
-              1,
-              store.toolSettings.brush.hardness + 0.1
-            );
-            paramsRef.current.setBrushSettings({
-              hardness: Math.round(newHardness * 100) / 100
-            });
-          }
-        }
-      } else {
-        // Number keys 0-9 → set brush opacity (common editor convention)
-        // 1=10%, 2=20%, ..., 9=90%, 0=100%
-        if (/^[0-9]$/.test(e.key)) {
-          const store = useSketchStore.getState();
-          const tool = store.activeTool;
-          const digit = parseInt(e.key, 10);
-          const opacity = digit === 0 ? 1 : digit / 10;
-          if (tool === "brush") {
-            paramsRef.current.setBrushSettings({ opacity });
-          } else if (tool === "pencil") {
-            paramsRef.current.setPencilSettings({ opacity });
-          } else if (tool === "eraser") {
-            paramsRef.current.setEraserSettings({ opacity });
-          }
-        } else {
-          switch (e.key) {
-            case "Escape": {
-              const currentTool = useSketchStore.getState().activeTool;
-              if (currentTool === "transform") {
-                // Cancel the transform and switch back to a neutral tool
-                paramsRef.current.handleTransformCancel?.();
-                paramsRef.current.setActiveTool("move");
-              } else {
-                paramsRef.current.cancelActiveTool?.();
-                useSketchStore.getState().setSelection(null);
-              }
-              break;
-            }
-            case "Enter": {
-              const currentTool = useSketchStore.getState().activeTool;
-              if (currentTool === "transform") {
-                e.preventDefault();
-                // Commit the current transform (bake into pixels)
-                paramsRef.current.handleTransformCommit?.();
-                paramsRef.current.setActiveTool("move");
-              } else if (currentTool === "crop") {
-                e.preventDefault();
-                paramsRef.current.handleCropCommit?.();
-              }
-              break;
-            }
-            case "b":
-              paramsRef.current.setActiveTool("brush");
-              break;
-            case "p":
-              paramsRef.current.setActiveTool("pencil");
-              break;
-            case "e":
-              paramsRef.current.setActiveTool("eraser");
-              break;
-            case "i":
-              paramsRef.current.setActiveTool("eyedropper");
-              break;
-            case "g":
-              paramsRef.current.setActiveTool("fill");
-              break;
-            case "u":
-              paramsRef.current.setActiveTool("shape");
-              break;
-            case "l":
-            case "r":
-            case "o":
-            case "a": {
-              const shapeTypeMap: Record<string, ShapeToolType> = {
-                l: "line", r: "rectangle", o: "ellipse", a: "arrow"
-              };
-              paramsRef.current.setActiveTool("shape");
-              paramsRef.current.setShapeSettings({
-                shapeType: shapeTypeMap[e.key]
-              });
-              break;
-            }
-            case "q":
-              paramsRef.current.setActiveTool("blur");
-              break;
-            case "t":
-              paramsRef.current.setActiveTool("gradient");
-              break;
-            case "c":
-              paramsRef.current.setActiveTool("crop");
-              break;
-            case "j":
-              paramsRef.current.setActiveTool("adjust");
-              break;
-            case "s":
-              paramsRef.current.setActiveTool("clone_stamp");
-              break;
-            case "w":
-              paramsRef.current.setActiveTool("select");
-              paramsRef.current.setSelectSettings({ mode: "magic_wand" });
-              break;
-            case "m":
-              paramsRef.current.setActiveTool("select");
-              paramsRef.current.setSelectSettings({ mode: "rectangle" });
-              break;
-            case "v":
-              paramsRef.current.setActiveTool("move");
-              break;
-            case "f":
-              paramsRef.current.setActiveTool("transform");
-              break;
-            case "x":
-              paramsRef.current.swapColors();
-              break;
-            case "d":
-              paramsRef.current.resetColors();
-              break;
-            case "Tab":
-              e.preventDefault();
-              paramsRef.current.togglePanelsHidden();
-              break;
-            case "[": {
-              const store = useSketchStore.getState();
-              const tool = store.activeTool;
-              if (tool === "brush") {
-                const newSize = Math.max(
-                  1,
-                  store.toolSettings.brush.size - 5
-                );
-                paramsRef.current.setBrushSettings({ size: newSize });
-              } else if (tool === "pencil") {
-                const newSize = Math.max(
-                  1,
-                  store.toolSettings.pencil.size - 1
-                );
-                paramsRef.current.setPencilSettings({ size: newSize });
-              } else if (tool === "eraser") {
-                const newSize = Math.max(
-                  1,
-                  store.toolSettings.eraser.size - 5
-                );
-                paramsRef.current.setEraserSettings({ size: newSize });
-              } else if (tool === "blur") {
-                const newSize = Math.max(
-                  1,
-                  store.toolSettings.blur.size - 5
-                );
-                paramsRef.current.setBlurSettings({ size: newSize });
-              } else if (tool === "clone_stamp") {
-                const newSize = Math.max(
-                  1,
-                  store.toolSettings.cloneStamp.size - 5
-                );
-                paramsRef.current.setCloneStampSettings({ size: newSize });
-              }
-              break;
-            }
-            case "]": {
-              const store = useSketchStore.getState();
-              const tool = store.activeTool;
-              if (tool === "brush") {
-                const newSize = Math.min(
-                  200,
-                  store.toolSettings.brush.size + 5
-                );
-                paramsRef.current.setBrushSettings({ size: newSize });
-              } else if (tool === "pencil") {
-                const newSize = Math.min(
-                  10,
-                  store.toolSettings.pencil.size + 1
-                );
-                paramsRef.current.setPencilSettings({ size: newSize });
-              } else if (tool === "eraser") {
-                const newSize = Math.min(
-                  200,
-                  store.toolSettings.eraser.size + 5
-                );
-                paramsRef.current.setEraserSettings({ size: newSize });
-              } else if (tool === "blur") {
-                const newSize = Math.min(
-                  200,
-                  store.toolSettings.blur.size + 5
-                );
-                paramsRef.current.setBlurSettings({ size: newSize });
-              } else if (tool === "clone_stamp") {
-                const newSize = Math.min(
-                  200,
-                  store.toolSettings.cloneStamp.size + 5
-                );
-                paramsRef.current.setCloneStampSettings({ size: newSize });
-              }
-              break;
-            }
-            case "=":
-            case "+":
-              paramsRef.current.handleZoomIn();
-              break;
-            case "-":
-              paramsRef.current.handleZoomOut();
-              break;
-            case "Delete":
-            case "Backspace":
-              paramsRef.current.handleClearLayer();
-              break;
-          }
-        }
-      }
+      const actionId = resolveAction(e, { activeTool: useSketchStore.getState().activeTool });
+      if (!actionId) return;
+
+      e.preventDefault();
+      ACTION_HANDLERS[actionId]?.(e, paramsRef.current);
     };
 
-    const keyupHandler = (e: KeyboardEvent) => {
-      if (shouldIgnoreForUiControl(e.target)) {
-        return;
-      }
+    const keyupHandler = (e: KeyboardEvent): void => {
+      if (isInteractiveTarget(document.activeElement)) return;
       e.stopPropagation();
-
-      if (isMoveSpringModifierPhysicalKey(e) && !moveSpringModifierStillHeld(e)) {
-        useSketchStore.getState().setTransientMoveModifierHeld(false);
-      }
 
       if (e.key === "Shift" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
         shiftHeldRef.current = false;
@@ -638,47 +168,23 @@ export function useEditorKeyboardShortcuts(
       if (isArrowKey(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         heldArrowsRef.current[e.key] = false;
-        if (!anyArrowHeld()) {
-          if (nudgeRafRef.current !== null) {
-            cancelAnimationFrame(nudgeRafRef.current);
-            nudgeRafRef.current = null;
-          }
-          nudgeHistoryPendingRef.current = false;
-          paramsRef.current.syncSketchOutputsNow();
-        }
+        if (!anyArrowHeld()) stopNudgeLoop();
       }
-    };
-
-    const blurHandler = () => {
-      useSketchStore.getState().setTransientMoveModifierHeld(false);
     };
 
     window.addEventListener("keydown", keydownHandler, true);
     window.addEventListener("keyup", keyupHandler, true);
-    window.addEventListener("blur", blurHandler);
+
     return () => {
       window.removeEventListener("keydown", keydownHandler, true);
       window.removeEventListener("keyup", keyupHandler, true);
-      window.removeEventListener("blur", blurHandler);
-      useSketchStore.getState().setTransientMoveModifierHeld(false);
       if (nudgeRafRef.current !== null) {
         cancelAnimationFrame(nudgeRafRef.current);
         nudgeRafRef.current = null;
       }
-      const hadArrowHeld =
-        heldArrowsRef.current.ArrowUp ||
-        heldArrowsRef.current.ArrowDown ||
-        heldArrowsRef.current.ArrowLeft ||
-        heldArrowsRef.current.ArrowRight;
-      heldArrowsRef.current = {
-        ArrowUp: false,
-        ArrowDown: false,
-        ArrowLeft: false,
-        ArrowRight: false
-      };
-      if (hadArrowHeld) {
-        paramsRef.current.syncSketchOutputsNow();
-      }
+      const hadArrowHeld = anyArrowHeld();
+      heldArrowsRef.current = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+      if (hadArrowHeld) paramsRef.current.syncSketchOutputsNow();
     };
   }, []);
 }

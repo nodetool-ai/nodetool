@@ -7,7 +7,7 @@ export { BINDING_CATALOG } from "./bindingCatalog";
 export { isMac, displayCombo, buildComboString } from "./normalize";
 
 export type { DispatcherState } from "./dispatcher";
-export { resolveAction } from "./dispatcher";
+export { resolveAction, isInteractiveTarget } from "./dispatcher";
 
 export type { ActionHandler, ActionHandlerMap } from "./actionHandlers";
 export { ACTION_HANDLERS } from "./actionHandlers";
