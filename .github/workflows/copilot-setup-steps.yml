@@ -30,11 +30,21 @@ jobs:
         with:
           node-version-file: ".nvmrc"
           cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            mobile/package-lock.json
 
-      - name: Install all workspace dependencies
-        run: npm ci
+      - name: Configure npm for faster setup
+        run: |
+          npm config set audit false
+          npm config set fund false
+          npm config set prefer-offline true
+
+      - name: Install workspace dependencies
+        run: npm ci --prefer-offline --no-audit --fund=false
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
 
       - name: Install mobile dependencies
-        run: cd mobile && npm ci
+        run: npm ci --prefix mobile --prefer-offline --no-audit --fund=false
