@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@nodetool-ai/config": "*",
-    "dockerode": "^4.0.4"
+    "dockerode": "^5.0.0"
   },
   "devDependencies": {
     "@types/dockerode": "^3.3.34",
