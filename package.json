@@ -2,8 +2,8 @@
   "name": "nodetool",
   "private": true,
   "workspaces": [
-    "packages/timeline",
     "packages/protocol",
+    "packages/timeline",
     "packages/kernel",
     "packages/runtime",
     "packages/models",
