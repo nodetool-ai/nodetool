@@ -352,23 +352,33 @@ export class BrowserNavigationLibNode extends BaseNode {
       if (action === "extract") {
         if (selector) {
           await page.waitForSelector(selector, { timeout });
-          const sel = JSON.stringify(selector);
           if (extractType === "html") {
             extracted = await page.evaluate(
-              `document.querySelector(${sel}).outerHTML`
+              (sel: string) =>
+                (document.querySelector(sel) as HTMLElement | null)?.outerHTML ?? null,
+              selector
             );
           } else if (extractType === "value") {
             extracted = await page.evaluate(
-              `document.querySelector(${sel}).value ?? ""`
+              (sel: string) =>
+                (document.querySelector(sel) as HTMLInputElement | null)?.value ?? "",
+              selector
             );
           } else if (extractType === "attribute") {
-            const attr = JSON.stringify(attribute);
             extracted = await page.evaluate(
-              `document.querySelector(${sel}).getAttribute(${attr})`
+              (sel: string, attr: string) =>
+                document.querySelector(sel)?.getAttribute(attr) ?? null,
+              selector,
+              attribute
             );
           } else {
             extracted = await page.evaluate(
-              `(() => { const el = document.querySelector(${sel}); return el.innerText ?? el.textContent ?? ""; })()`
+              (sel: string) => {
+                const el = document.querySelector(sel) as HTMLElement | null;
+                if (!el) return "";
+                return el.innerText ?? el.textContent ?? "";
+              },
+              selector
             );
           }
         } else {
@@ -376,7 +386,7 @@ export class BrowserNavigationLibNode extends BaseNode {
             extracted = await page.content();
           } else {
             extracted = await page.evaluate(
-              `document.body ? document.body.innerText : ""`
+              () => (document.body ? document.body.innerText : "")
             );
           }
         }

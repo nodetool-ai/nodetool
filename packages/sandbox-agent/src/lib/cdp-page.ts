@@ -179,19 +179,57 @@ export class CdpPage {
     return r.result?.value ?? "";
   }
 
+  /**
+   * Run a function in the page context with arguments marshalled out-of-band
+   * via CDP's `Runtime.callFunctionOn`. Argument values are passed in the
+   * `arguments` array (serialised by the protocol) and never concatenated into
+   * source, so untrusted strings cannot escape into executable code.
+   */
+  private async callFn<T = unknown>(
+    fn: (...args: any[]) => any,
+    ...args: any[]
+  ): Promise<T> {
+    const Runtime = this.client.Runtime;
+    const globalRef = await Runtime.evaluate({ expression: "globalThis" });
+    const objectId = globalRef.result?.objectId;
+    if (!objectId) {
+      throw new Error("Failed to obtain global object reference");
+    }
+    try {
+      const r = await Runtime.callFunctionOn({
+        objectId,
+        functionDeclaration: fn.toString(),
+        arguments: args.map((value) => ({ value })),
+        returnByValue: true,
+        awaitPromise: true,
+        userGesture: true
+      });
+      if (r.exceptionDetails) {
+        throw new Error(
+          r.exceptionDetails.exception?.description ??
+            r.exceptionDetails.text ??
+            "evaluation failed"
+        );
+      }
+      return r.result?.value as T;
+    } finally {
+      try {
+        await Runtime.releaseObject({ objectId });
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   async evaluate<T = unknown>(
     fnOrExpr: string | ((...args: any[]) => any),
     ...args: any[]
   ): Promise<T> {
-    let expression: string;
     if (typeof fnOrExpr === "function") {
-      const argsJson = JSON.stringify(args ?? []);
-      expression = `(async () => { const __args = ${argsJson}; const __fn = ${fnOrExpr.toString()}; return await __fn(...__args); })()`;
-    } else {
-      expression = `(async () => { return (${fnOrExpr}); })()`;
+      return this.callFn<T>(fnOrExpr, ...args);
     }
     const r = await this.client.Runtime.evaluate({
-      expression,
+      expression: `(async () => { return (${fnOrExpr}); })()`,
       returnByValue: true,
       awaitPromise: true,
       userGesture: true
@@ -212,10 +250,10 @@ export class CdpPage {
   ): Promise<{ exists: true }> {
     const timeout = opts.timeout ?? 30000;
     const start = Date.now();
-    const escaped = JSON.stringify(selector);
     while (Date.now() - start < timeout) {
-      const found = await this.evaluate<boolean>(
-        `!!document.querySelector(${escaped})`
+      const found = await this.callFn<boolean>(
+        (sel: string) => !!document.querySelector(sel),
+        selector
       );
       if (found) return { exists: true };
       await new Promise((r) => setTimeout(r, 100));
@@ -224,18 +262,34 @@ export class CdpPage {
   }
 
   async click(selector: string): Promise<void> {
-    const escaped = JSON.stringify(selector);
-    const ok = await this.evaluate<boolean>(
-      `(() => { const el = document.querySelector(${escaped}); if (!el) return false; el.scrollIntoView({block:'center'}); el.click(); return true; })()`
+    const ok = await this.callFn<boolean>(
+      (sel: string) => {
+        const el = document.querySelector(sel) as HTMLElement | null;
+        if (!el) return false;
+        el.scrollIntoView({ block: "center" });
+        el.click();
+        return true;
+      },
+      selector
     );
     if (!ok) throw new Error(`Element not found: ${selector}`);
   }
 
   async fill(selector: string, text: string): Promise<void> {
-    const sel = JSON.stringify(selector);
-    const val = JSON.stringify(text);
-    const ok = await this.evaluate<boolean>(
-      `(() => { const el = document.querySelector(${sel}); if (!el) return false; el.focus(); el.value = ${val}; el.dispatchEvent(new Event('input', {bubbles:true})); el.dispatchEvent(new Event('change', {bubbles:true})); return true; })()`
+    const ok = await this.callFn<boolean>(
+      (sel: string, val: string) => {
+        const el = document.querySelector(sel) as
+          | (HTMLElement & { value?: string })
+          | null;
+        if (!el) return false;
+        el.focus();
+        el.value = val;
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+        return true;
+      },
+      selector,
+      text
     );
     if (!ok) throw new Error(`Element not found: ${selector}`);
   }
@@ -246,10 +300,16 @@ export class CdpPage {
   }
 
   async selectOption(selector: string, value: string): Promise<string[]> {
-    const sel = JSON.stringify(selector);
-    const val = JSON.stringify(value);
-    const out = await this.evaluate<string[] | null>(
-      `(() => { const el = document.querySelector(${sel}); if (!el) return null; el.value = ${val}; el.dispatchEvent(new Event('change', {bubbles:true})); return [el.value]; })()`
+    const out = await this.callFn<string[] | null>(
+      (sel: string, val: string) => {
+        const el = document.querySelector(sel) as HTMLSelectElement | null;
+        if (!el) return null;
+        el.value = val;
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+        return [el.value];
+      },
+      selector,
+      value
     );
     if (!out) throw new Error(`Element not found: ${selector}`);
     return out;
@@ -264,9 +324,15 @@ export class CdpPage {
   }
 
   async screenshotOfElement(selector: string): Promise<Buffer> {
-    const sel = JSON.stringify(selector);
-    const rect = await this.evaluate<{ x: number; y: number; width: number; height: number } | null>(
-      `(() => { const el = document.querySelector(${sel}); if (!el) return null; el.scrollIntoView({block:'center'}); const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; })()`
+    const rect = await this.callFn<{ x: number; y: number; width: number; height: number } | null>(
+      (sel: string) => {
+        const el = document.querySelector(sel) as HTMLElement | null;
+        if (!el) return null;
+        el.scrollIntoView({ block: "center" });
+        const r = el.getBoundingClientRect();
+        return { x: r.x, y: r.y, width: r.width, height: r.height };
+      },
+      selector
     );
     if (!rect) throw new Error(`Element not found: ${selector}`);
     const { data } = await this.client.Page.captureScreenshot({
