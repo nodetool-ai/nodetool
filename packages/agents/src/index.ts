@@ -126,6 +126,14 @@ export {
   EmbedTextTool
 } from "./tools/media-tools.js";
 export {
+  persistOutput,
+  workspaceDir as workspaceDirFromContext,
+  inferImageMime,
+  timestampedName,
+  MIME_TO_EXT,
+  type SavedOutput
+} from "./tools/asset-persist.js";
+export {
   GENERIC_AI_NODES,
   CORE_BASELINE_NAMESPACES,
   PROVIDER_NAMESPACES,

@@ -7,7 +7,8 @@ import {
 } from "@nodetool-ai/sandbox";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { randomUUID } from "node:crypto";
-import { Tool } from "@nodetool-ai/agents";
+import { Tool, persistOutput } from "@nodetool-ai/agents";
+import { Buffer } from "node:buffer";
 import { buildBrowserAgentToolClasses } from "../lib/browser-agent-tools.js";
 import { registerBuiltinAgentToolClasses } from "./agent-tool-hydration.js";
 
@@ -469,7 +470,7 @@ export class SandboxBrowserViewNode extends BaseNode {
     title: "str",
     viewport: "dict[str, any]",
     elements: "list[dict[str, any]]",
-    screenshot_png_b64: "union[str, none]"
+    screenshot: "image"
   };
   static readonly exposeAsTool = true;
 
@@ -477,7 +478,7 @@ export class SandboxBrowserViewNode extends BaseNode {
     type: "bool",
     default: false,
     title: "Include Screenshot",
-    description: "Capture a base64-encoded PNG screenshot of the viewport."
+    description: "Capture a screenshot of the viewport and persist it as an asset."
   })
   declare include_screenshot: boolean;
 
@@ -486,14 +487,48 @@ export class SandboxBrowserViewNode extends BaseNode {
     const out = await client.browserView({
       include_screenshot: Boolean(this.include_screenshot)
     });
+    const screenshot = await screenshotToImageRef(
+      context,
+      out.screenshot_png_b64,
+      "sandbox-browser-screenshot"
+    );
     return {
       url: out.url,
       title: out.title,
       viewport: out.viewport,
       elements: out.elements,
-      screenshot_png_b64: out.screenshot_png_b64
+      screenshot
     };
   }
+}
+
+/**
+ * Convert a base64-encoded PNG screenshot into a NodeTool ImageRef.
+ * When the context exposes an asset model interface the bytes are
+ * persisted to storage and the ref carries `asset_id` + `asset_uri`;
+ * otherwise the data is inlined as base64 so the workflow still has
+ * a usable image.
+ */
+async function screenshotToImageRef(
+  context: ProcessingContext | undefined,
+  b64: string | null | undefined,
+  namePrefix: string
+): Promise<Record<string, unknown> | null> {
+  if (typeof b64 !== "string" || b64.length === 0) return null;
+  if (!context) {
+    return { type: "image", data: b64, mime_type: "image/png" };
+  }
+  const bytes = new Uint8Array(Buffer.from(b64, "base64"));
+  const saved = await persistOutput(context, bytes, {
+    namePrefix,
+    mime: "image/png"
+  });
+  return {
+    type: "image",
+    asset_id: saved.asset_id ?? null,
+    uri: saved.asset_uri ?? saved.path ?? "",
+    mime_type: saved.mime_type
+  };
 }
 
 export class SandboxBrowserNavigateNode extends BaseNode {

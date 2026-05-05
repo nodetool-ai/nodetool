@@ -14,9 +14,10 @@
  * version lazily launches Chrome on first use.
  */
 
-import { Tool } from "@nodetool-ai/agents";
+import { Tool, persistOutput } from "@nodetool-ai/agents";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ToolClient } from "@nodetool-ai/sandbox";
+import { Buffer } from "node:buffer";
 import {
   browserView as localView,
   browserNavigate as localNavigate,
@@ -230,6 +231,43 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
 
 type ToolCtor = new () => Tool;
 
+/**
+ * Replace the raw `screenshot_png_b64` string field of a `view` result with
+ * a proper `screenshot` ImageRef. When the context exposes `createAsset`
+ * the bytes are persisted as an asset and the ref carries `asset_id` +
+ * `asset_uri`; otherwise a workspace file path is returned. The original
+ * base64 field is dropped so downstream consumers always see one shape.
+ */
+async function persistViewScreenshot(
+  ctx: ProcessingContext,
+  result: unknown,
+  namePrefix: string
+): Promise<unknown> {
+  if (!result || typeof result !== "object") return result;
+  const view = result as Record<string, unknown>;
+  const b64 = view.screenshot_png_b64;
+  if (typeof b64 !== "string" || b64.length === 0) {
+    const { screenshot_png_b64: _drop, ...rest } = view;
+    return { ...rest, screenshot: null };
+  }
+  const bytes = new Uint8Array(Buffer.from(b64, "base64"));
+  const saved = await persistOutput(ctx, bytes, {
+    namePrefix,
+    mime: "image/png"
+  });
+  const screenshot = {
+    type: "image" as const,
+    asset_id: saved.asset_id,
+    asset_uri: saved.asset_uri,
+    uri: saved.asset_uri ?? saved.path,
+    path: saved.path,
+    mime_type: saved.mime_type,
+    bytes: saved.bytes
+  };
+  const { screenshot_png_b64: _drop, ...rest } = view;
+  return { ...rest, screenshot };
+}
+
 function makeLocalToolClass(spec: BrowserActionSpec): ToolCtor {
   return class extends Tool {
     readonly name = `browser_${spec.key}`;
@@ -237,11 +275,15 @@ function makeLocalToolClass(spec: BrowserActionSpec): ToolCtor {
     readonly inputSchema = spec.inputSchema;
 
     async process(
-      _ctx: ProcessingContext,
+      ctx: ProcessingContext,
       params: Record<string, unknown>
     ): Promise<unknown> {
       try {
-        return await spec.local(params ?? {});
+        const out = await spec.local(params ?? {});
+        if (spec.key === "view") {
+          return await persistViewScreenshot(ctx, out, "browser-screenshot");
+        }
+        return out;
       } catch (e) {
         return { error: e instanceof Error ? e.message : String(e) };
       }
@@ -264,7 +306,15 @@ function makeSandboxToolClass(
     ): Promise<unknown> {
       try {
         const client = await acquireClient(ctx);
-        return await spec.sandbox(client, params ?? {});
+        const out = await spec.sandbox(client, params ?? {});
+        if (spec.key === "view") {
+          return await persistViewScreenshot(
+            ctx,
+            out,
+            "sandbox-browser-screenshot"
+          );
+        }
+        return out;
       } catch (e) {
         return { error: e instanceof Error ? e.message : String(e) };
       }
