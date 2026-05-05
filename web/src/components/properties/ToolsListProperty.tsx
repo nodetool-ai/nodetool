@@ -24,7 +24,8 @@ import {
   Add,
   Description,
   EditNote,
-  Folder
+  Folder,
+  Lock
 } from "@mui/icons-material";
 
 const BROWSER_TOOL_IDS = [
@@ -39,6 +40,33 @@ const BROWSER_TOOL_IDS = [
   "browser_scroll",
   "browser_console_exec",
   "browser_console_view"
+];
+
+const SANDBOX_TOOL_IDS = [
+  // Shell
+  "sandbox_shell_exec",
+  "sandbox_shell_wait",
+  "sandbox_shell_view",
+  "sandbox_shell_write",
+  "sandbox_shell_kill",
+  // Files
+  "sandbox_file_read",
+  "sandbox_file_write",
+  "sandbox_file_str_replace",
+  "sandbox_file_find_in_content",
+  "sandbox_file_find_by_name",
+  // Browser
+  "sandbox_browser_view",
+  "sandbox_browser_navigate",
+  "sandbox_browser_restart",
+  "sandbox_browser_click",
+  "sandbox_browser_input_text",
+  "sandbox_browser_move_mouse",
+  "sandbox_browser_press_key",
+  "sandbox_browser_select_option",
+  "sandbox_browser_scroll",
+  "sandbox_browser_console_exec",
+  "sandbox_browser_console_view"
 ];
 
 interface ToolEntry {
@@ -80,6 +108,12 @@ const AVAILABLE_TOOLS: ToolEntry[] = [
     description: "Browse the web",
     icon: <Language fontSize="small" sx={{ mr: 0.5 }} />,
     toolIds: BROWSER_TOOL_IDS
+  },
+  {
+    id: "sandbox",
+    description: "Sandbox shell, files, and browser",
+    icon: <Lock fontSize="small" sx={{ mr: 0.5 }} />,
+    toolIds: SANDBOX_TOOL_IDS
   }
 ];
 

@@ -655,7 +655,6 @@ export {
   SandboxBrowserNavigateNode,
   SandboxBrowserConsoleExecNode,
   SandboxFileNode,
-  SandboxAgentNode,
   SANDBOX_NODES
 } from "./nodes/sandbox.js";
 export { ANTHROPIC_NODES } from "./nodes/anthropic.js";

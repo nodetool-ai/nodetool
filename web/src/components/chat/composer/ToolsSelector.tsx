@@ -16,7 +16,8 @@ import {
   Language,
   Image,
   VolumeUp,
-  Build
+  Build,
+  Lock
 } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
@@ -120,6 +121,30 @@ const BROWSER_TOOL_IDS = [
   "browser_console_view"
 ];
 
+const SANDBOX_TOOL_IDS = [
+  "sandbox_shell_exec",
+  "sandbox_shell_wait",
+  "sandbox_shell_view",
+  "sandbox_shell_write",
+  "sandbox_shell_kill",
+  "sandbox_file_read",
+  "sandbox_file_write",
+  "sandbox_file_str_replace",
+  "sandbox_file_find_in_content",
+  "sandbox_file_find_by_name",
+  "sandbox_browser_view",
+  "sandbox_browser_navigate",
+  "sandbox_browser_restart",
+  "sandbox_browser_click",
+  "sandbox_browser_input_text",
+  "sandbox_browser_move_mouse",
+  "sandbox_browser_press_key",
+  "sandbox_browser_select_option",
+  "sandbox_browser_scroll",
+  "sandbox_browser_console_exec",
+  "sandbox_browser_console_view"
+];
+
 const TOOLS: Tool[] = [
   {
     id: "google_search",
@@ -161,6 +186,14 @@ const TOOLS: Tool[] = [
     category: "Utility",
     icon: <Language />,
     toolIds: BROWSER_TOOL_IDS
+  },
+  {
+    id: "sandbox",
+    name: "Sandbox",
+    description: "Shell, files, and browser running in an isolated container.",
+    category: "Utility",
+    icon: <Lock />,
+    toolIds: SANDBOX_TOOL_IDS
   }
 ];
 

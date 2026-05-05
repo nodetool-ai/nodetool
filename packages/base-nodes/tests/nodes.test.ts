@@ -71,8 +71,7 @@ import {
   SandboxBrowserViewNode,
   SandboxBrowserNavigateNode,
   SandboxBrowserConsoleExecNode,
-  SandboxFileNode,
-  SandboxAgentNode
+  SandboxFileNode
 } from "../src/index.js";
 
 describe("base node registration", () => {
@@ -110,7 +109,6 @@ describe("base node registration", () => {
     expect(registry.has(SandboxBrowserNavigateNode.nodeType)).toBe(true);
     expect(registry.has(SandboxBrowserConsoleExecNode.nodeType)).toBe(true);
     expect(registry.has(SandboxFileNode.nodeType)).toBe(true);
-    expect(registry.has(SandboxAgentNode.nodeType)).toBe(true);
   });
 });
 

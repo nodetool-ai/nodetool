@@ -4,7 +4,6 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 let SandboxShellNode: (typeof import("../src/nodes/sandbox.js"))["SandboxShellNode"];
 let SandboxBrowserNavigateNode: (typeof import("../src/nodes/sandbox.js"))["SandboxBrowserNavigateNode"];
 let SandboxFileNode: (typeof import("../src/nodes/sandbox.js"))["SandboxFileNode"];
-let SandboxAgentNode: (typeof import("../src/nodes/sandbox.js"))["SandboxAgentNode"];
 
 const mocks = vi.hoisted(() => {
   const client = {
@@ -74,7 +73,6 @@ describe("sandbox nodes", () => {
     SandboxShellNode = mod.SandboxShellNode;
     SandboxBrowserNavigateNode = mod.SandboxBrowserNavigateNode;
     SandboxFileNode = mod.SandboxFileNode;
-    SandboxAgentNode = mod.SandboxAgentNode;
   });
 
   beforeEach(() => {
@@ -241,20 +239,26 @@ describe("sandbox nodes", () => {
     }
   });
 
-  it("SandboxAgent wires sandbox tools into buildTools", async () => {
-    const node = new SandboxAgentNode();
-    node.assign({
-      prompt: "do work",
-      model: { provider: "openai", id: "gpt-5" }
-    });
-
-    const context = {} as unknown as ProcessingContext;
-    // buildTools is protected but we can access it via cast to verify
-    // that SandboxAgentNode augments the tool list with sandbox tools
-    const tools = await (node as unknown as { buildTools(ctx: unknown): Promise<unknown[]> }).buildTools(context);
-
-    expect(mocks.acquire).toHaveBeenCalledTimes(1);
-    expect(Array.isArray(tools)).toBe(true);
-    expect(tools.length).toBeGreaterThan(10);
+  it("registers sandbox shell + file agent tools globally", async () => {
+    const { resolveBuiltinAgentTool } = await import(
+      "../src/nodes/agent-tool-hydration.js"
+    );
+    const shellNames = [
+      "sandbox_shell_exec",
+      "sandbox_shell_wait",
+      "sandbox_shell_view",
+      "sandbox_shell_write",
+      "sandbox_shell_kill"
+    ];
+    const fileNames = [
+      "sandbox_file_read",
+      "sandbox_file_write",
+      "sandbox_file_str_replace",
+      "sandbox_file_find_in_content",
+      "sandbox_file_find_by_name"
+    ];
+    for (const n of [...shellNames, ...fileNames]) {
+      expect(resolveBuiltinAgentTool(n)).not.toBeNull();
+    }
   });
 });
