@@ -13,12 +13,6 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-if [[ -z "${CONDA_PREFIX:-}" ]]; then
-  echo "ERROR: CONDA_PREFIX is not set."
-  echo "Activate your conda environment first, e.g. 'conda activate nodetool'."
-  exit 1
-fi
-
 # Native modules are loaded inside Electron's utilityProcess.fork(), whose ABI
 # matches the installed Electron's embedded Node. Rebuild against Electron
 # headers. Use the *installed* Electron version (not the range in package.json)
