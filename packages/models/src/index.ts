@@ -105,8 +105,7 @@ export {
   seedTimelineTemplates,
   SEED_IDS,
   SYSTEM_USER_ID,
-  TIMELINE_TEMPLATE_TAG,
-  TIMELINE_TEMPLATE_WORKFLOWS
+  TIMELINE_TEMPLATE_TAG
 } from "./seeds/index.js";
 
 // ── API Graph ───────────────────────────────────────────────────────

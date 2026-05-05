@@ -22,6 +22,13 @@ function setup(): void {
   initTestDb();
 }
 
+/** Fetch a workflow by ID and assert it exists. */
+async function getWorkflowOrFail(id: string): Promise<Workflow> {
+  const wf = await Workflow.get(id);
+  expect(wf).not.toBeNull();
+  return wf as Workflow;
+}
+
 describe("Timeline template seeds", () => {
   beforeEach(setup);
 
@@ -36,21 +43,16 @@ describe("Timeline template seeds", () => {
 
   it("creates workflows with deterministic IDs", async () => {
     await runSeeds();
-    const tti = await Workflow.get(SEED_IDS.textToImage);
-    const i2v = await Workflow.get(SEED_IDS.imageToVideo);
-    const tts = await Workflow.get(SEED_IDS.textToSpeech);
-
-    expect(tti).not.toBeNull();
-    expect(i2v).not.toBeNull();
-    expect(tts).not.toBeNull();
+    await getWorkflowOrFail(SEED_IDS.textToImage);
+    await getWorkflowOrFail(SEED_IDS.imageToVideo);
+    await getWorkflowOrFail(SEED_IDS.textToSpeech);
   });
 
   it("sets access=public and tags include timeline-template", async () => {
     await runSeeds();
 
     for (const id of Object.values(SEED_IDS)) {
-      const wf = await Workflow.get(id) as Workflow;
-      expect(wf).not.toBeNull();
+      const wf = await getWorkflowOrFail(id);
       expect(wf.access).toBe("public");
       expect(wf.run_mode).toBe("workflow");
       expect(wf.user_id).toBe(SYSTEM_USER_ID);
@@ -74,8 +76,7 @@ describe("Timeline template seeds", () => {
 
   it("Text-to-Image graph exposes prompt and model inputs", async () => {
     await seedTimelineTemplates();
-    const wf = await Workflow.get(SEED_IDS.textToImage) as Workflow;
-    expect(wf).not.toBeNull();
+    const wf = await getWorkflowOrFail(SEED_IDS.textToImage);
 
     const { nodes, edges } = wf.graph as { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] };
     expect(Array.isArray(nodes)).toBe(true);
@@ -87,14 +88,12 @@ describe("Timeline template seeds", () => {
     expect(types).toContain("nodetool.image.TextToImage");
     expect(types).toContain("nodetool.output.Output");
 
-    // Edges connect inputs to the generation node
     expect(edges.length).toBeGreaterThan(0);
   });
 
   it("Image-to-Video graph exposes source_image and duration inputs", async () => {
     await seedTimelineTemplates();
-    const wf = await Workflow.get(SEED_IDS.imageToVideo) as Workflow;
-    expect(wf).not.toBeNull();
+    const wf = await getWorkflowOrFail(SEED_IDS.imageToVideo);
 
     const { nodes, edges } = wf.graph as { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] };
     const types = nodes.map((n) => n.type as string);
@@ -108,8 +107,7 @@ describe("Timeline template seeds", () => {
 
   it("Text-to-Speech graph exposes text and voice inputs", async () => {
     await seedTimelineTemplates();
-    const wf = await Workflow.get(SEED_IDS.textToSpeech) as Workflow;
-    expect(wf).not.toBeNull();
+    const wf = await getWorkflowOrFail(SEED_IDS.textToSpeech);
 
     const { nodes, edges } = wf.graph as { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] };
     const types = nodes.map((n) => n.type as string);
@@ -125,7 +123,7 @@ describe("Timeline template seeds", () => {
     await seedTimelineTemplates();
 
     for (const id of Object.values(SEED_IDS)) {
-      const wf = await Workflow.get(id) as Workflow;
+      const wf = await getWorkflowOrFail(id);
       const { nodes } = wf.graph as { nodes: Record<string, unknown>[] };
 
       for (const n of nodes) {

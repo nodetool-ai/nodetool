@@ -17,4 +17,4 @@ export async function runSeeds(): Promise<void> {
   await seedTimelineTemplates();
 }
 
-export { seedTimelineTemplates, SEED_IDS, SYSTEM_USER_ID, TIMELINE_TEMPLATE_TAG, TIMELINE_TEMPLATE_WORKFLOWS } from "./timeline_templates.js";
+export { seedTimelineTemplates, SEED_IDS, SYSTEM_USER_ID, TIMELINE_TEMPLATE_TAG } from "./timeline_templates.js";

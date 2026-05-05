@@ -263,70 +263,33 @@ function textToSpeechGraph(): { nodes: Record<string, unknown>[]; edges: Record<
   return { nodes, edges };
 }
 
-// ── Seed data ─────────────────────────────────────────────────────────────────
+// ── Seed data builders ────────────────────────────────────────────────────────
 
-const now = new Date().toISOString();
+type WorkflowSeedDef = {
+  id: string;
+  name: string;
+  description: string;
+  graph: ReturnType<typeof textToImageGraph>;
+};
 
-export const TIMELINE_TEMPLATE_WORKFLOWS: ReadonlyArray<Record<string, unknown>> = [
+const WORKFLOW_SEED_DEFS: ReadonlyArray<WorkflowSeedDef> = [
   {
     id: SEED_IDS.textToImage,
-    user_id: SYSTEM_USER_ID,
     name: "Text to Image",
     description: "Generate an image from a text prompt using an AI image model.",
-    tags: [TIMELINE_TEMPLATE_TAG],
-    access: "public",
-    run_mode: "workflow",
-    graph: textToImageGraph(),
-    settings: null,
-    tool_name: null,
-    package_name: null,
-    path: null,
-    workspace_id: null,
-    html_app: null,
-    thumbnail: null,
-    thumbnail_url: null,
-    created_at: now,
-    updated_at: now
+    graph: textToImageGraph()
   },
   {
     id: SEED_IDS.imageToVideo,
-    user_id: SYSTEM_USER_ID,
     name: "Image to Video",
     description: "Animate a source image into a short video clip using an AI video model.",
-    tags: [TIMELINE_TEMPLATE_TAG],
-    access: "public",
-    run_mode: "workflow",
-    graph: imageToVideoGraph(),
-    settings: null,
-    tool_name: null,
-    package_name: null,
-    path: null,
-    workspace_id: null,
-    html_app: null,
-    thumbnail: null,
-    thumbnail_url: null,
-    created_at: now,
-    updated_at: now
+    graph: imageToVideoGraph()
   },
   {
     id: SEED_IDS.textToSpeech,
-    user_id: SYSTEM_USER_ID,
     name: "Text to Speech",
     description: "Convert text into spoken audio using OpenAI's TTS voices.",
-    tags: [TIMELINE_TEMPLATE_TAG],
-    access: "public",
-    run_mode: "workflow",
-    graph: textToSpeechGraph(),
-    settings: null,
-    tool_name: null,
-    package_name: null,
-    path: null,
-    workspace_id: null,
-    html_app: null,
-    thumbnail: null,
-    thumbnail_url: null,
-    created_at: now,
-    updated_at: now
+    graph: textToSpeechGraph()
   }
 ];
 
@@ -339,8 +302,28 @@ export const TIMELINE_TEMPLATE_WORKFLOWS: ReadonlyArray<Record<string, unknown>>
  * re-running on an existing database updates rather than duplicates.
  */
 export async function seedTimelineTemplates(): Promise<void> {
-  for (const wfData of TIMELINE_TEMPLATE_WORKFLOWS) {
-    const wf = new Workflow(wfData);
+  const now = new Date().toISOString();
+  for (const def of WORKFLOW_SEED_DEFS) {
+    const wf = new Workflow({
+      id: def.id,
+      user_id: SYSTEM_USER_ID,
+      name: def.name,
+      description: def.description,
+      tags: [TIMELINE_TEMPLATE_TAG],
+      access: "public",
+      run_mode: "workflow",
+      graph: def.graph,
+      settings: null,
+      tool_name: null,
+      package_name: null,
+      path: null,
+      workspace_id: null,
+      html_app: null,
+      thumbnail: null,
+      thumbnail_url: null,
+      created_at: now,
+      updated_at: now
+    });
     await wf.save();
   }
 }
