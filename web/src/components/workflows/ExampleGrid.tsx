@@ -228,13 +228,7 @@ const TemplateGrid = memo(function TemplateGrid() {
     queryKey: ["", searchQuery],
     queryFn: () => searchTemplates(searchQuery),
     enabled: searchQuery.trim().length > 1 && nodesOnlySearch,
-    placeholderData: (previousData, previousQueryInstance) => {
-      if (
-        previousQueryInstance &&
-        previousQueryInstance.queryKey[1] !== searchQuery
-      ) {
-        return undefined;
-      }
+    placeholderData: (previousData: WorkflowList | undefined) => {
       return previousData;
     }
   });
@@ -247,7 +241,7 @@ const TemplateGrid = memo(function TemplateGrid() {
     return () => clearTimeout(handler);
   }, [inputValue]);
 
-  const groupedWorkflows = useMemo(() => {
+  const groupedWorkflows = useMemo((): Record<string, Workflow[]> => {
     if (!data) { return {}; }
     return data.workflows.reduce(
       (acc: Record<string, Workflow[]>, workflow: Workflow) => {

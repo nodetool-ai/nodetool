@@ -6,7 +6,7 @@ export const escapeHtml = (text: string): string => {
 };
 
 // Convert hex color to RGB values
-export const hexToRgb = (hex: string) => {
+export const hexToRgb = (hex: string): string | null => {
   const normalizedHex = hex.trim();
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(
     normalizedHex

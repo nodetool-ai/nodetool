@@ -26,9 +26,9 @@ if (typeof document !== "undefined") {
   document.addEventListener("mousemove", updateMousePosition);
 }
 
-export const getMousePosition = () => mousePosition;
+export const getMousePosition = (): { x: number; y: number } => mousePosition;
 
-export const getMouseDelta = () => {
+export const getMouseDelta = (): { dx: number; dy: number } => {
   const dx = mousePosition.x - previousPositionForDelta.x;
   const dy = mousePosition.y - previousPositionForDelta.y;
   // Update previousPositionForDelta to the current mouse position for the next call

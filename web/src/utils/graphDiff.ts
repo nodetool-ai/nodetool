@@ -117,8 +117,8 @@ const findModifiedNodes = (
 ): NodeChange[] => {
   const modifiedNodes: NodeChange[] = [];
 
-  const oldNodesMap = new Map(oldGraph.nodes.map((n: Node) => [n.id, n]));
-  const newNodesMap = new Map(newGraph.nodes.map((n: Node) => [n.id, n]));
+  const oldNodesMap = new Map<string, Node>(oldGraph.nodes.map((n) => [n.id, n]));
+  const newNodesMap = new Map<string, Node>(newGraph.nodes.map((n) => [n.id, n]));
 
   // Check nodes that exist in both
   for (const [nodeId, newNode] of newNodesMap) {

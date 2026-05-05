@@ -8,7 +8,7 @@ import { useAuth } from "../stores/useAuth";
  */
 const fetchRunningJobs = async (): Promise<Job[]> => {
   const data = await trpcClient.jobs.list.query({ limit: 20 });
-  return (data.jobs ?? []) as unknown as Job[];
+  return data.jobs ?? [];
 };
 
 /**
