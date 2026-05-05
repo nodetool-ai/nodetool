@@ -1,138 +1,79 @@
 /**
- * TanStack Query hooks for timeline sequences.
+ * Thin re-exports of the timeline tRPC hooks.
  *
- * - useTimelines(projectId?)      → list query
- * - useTimeline(id)               → single sequence query
- * - useCreateTimeline()           → create mutation
- * - usePatchTimeline()            → patch mutation
- * - useDeleteTimeline()           → delete mutation
- * - useClipVersions(id, clipId)   → list clip versions
- * - useAppendClipVersion()        → append clip version mutation
+ * Components can also call `trpc.timeline.*` directly; these wrappers exist for
+ * call-sites that previously used the REST-flavoured names.
  */
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import * as timelineApi from "../lib/api/timeline";
-import type {
-  CreateTimelineRequest,
-  PatchTimelineRequest,
-  AppendClipVersionRequest
-} from "../lib/api/timeline";
-
-// ── Query keys ───────────────────────────────────────────────────────────────
-
-export const timelineKeys = {
-  all: ["timeline"] as const,
-  lists: (projectId?: string) =>
-    ["timeline", "list", projectId ?? "all"] as const,
-  detail: (id: string) => ["timeline", id] as const,
-  clipVersions: (id: string, clipId: string) =>
-    ["timeline", id, "clips", clipId, "versions"] as const
-};
-
-// ── Queries ──────────────────────────────────────────────────────────────────
+import { trpc } from "../trpc/client";
 
 /** List sequences, optionally filtered by projectId. */
 export const useTimelines = (projectId?: string) =>
-  useQuery({
-    queryKey: timelineKeys.lists(projectId),
-    queryFn: () => timelineApi.listTimelines(projectId),
-    staleTime: 30_000
-  });
+  trpc.timeline.list.useQuery(
+    { projectId },
+    { staleTime: 30_000 }
+  );
 
 /** Fetch a single sequence by id. */
 export const useTimeline = (id: string | null | undefined) =>
-  useQuery({
-    queryKey: timelineKeys.detail(id ?? ""),
-    queryFn: () => timelineApi.getTimeline(id as string),
-    enabled: !!id,
-    staleTime: 30_000
-  });
+  trpc.timeline.get.useQuery(
+    { id: id ?? "" },
+    { enabled: !!id, staleTime: 30_000 }
+  );
 
 /** Fetch versions for a specific clip inside a sequence. */
 export const useClipVersions = (
   sequenceId: string | null | undefined,
   clipId: string | null | undefined
 ) =>
-  useQuery({
-    queryKey: timelineKeys.clipVersions(sequenceId ?? "", clipId ?? ""),
-    queryFn: () =>
-      timelineApi.getClipVersions(sequenceId as string, clipId as string),
-    enabled: !!(sequenceId && clipId),
-    staleTime: 30_000
-  });
+  trpc.timeline.versions.list.useQuery(
+    { id: sequenceId ?? "", clipId: clipId ?? "" },
+    { enabled: !!(sequenceId && clipId), staleTime: 30_000 }
+  );
 
-// ── Mutations ────────────────────────────────────────────────────────────────
-
-/** Create a new timeline sequence. */
+/** Create a new timeline sequence. List + detail caches refresh automatically. */
 export const useCreateTimeline = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (body: CreateTimelineRequest) =>
-      timelineApi.createTimeline(body),
+  const utils = trpc.useUtils();
+  return trpc.timeline.create.useMutation({
     onSuccess: (created) => {
-      // Invalidate all list queries so the new item appears
-      queryClient.invalidateQueries({ queryKey: timelineKeys.all });
-      // Seed the detail cache immediately to avoid a round-trip
-      queryClient.setQueryData(timelineKeys.detail(created.id), created);
+      utils.timeline.list.invalidate();
+      utils.timeline.get.setData({ id: created.id }, created);
     }
   });
 };
 
-/** Patch (partially update) a timeline sequence. */
-export const usePatchTimeline = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      body,
-      ifMatch
-    }: {
-      id: string;
-      body: PatchTimelineRequest;
-      ifMatch?: string;
-    }) => timelineApi.patchTimeline(id, body, { ifMatch }),
+/** Update (partially) a timeline sequence. */
+export const useUpdateTimeline = () => {
+  const utils = trpc.useUtils();
+  return trpc.timeline.update.useMutation({
     onSuccess: (updated) => {
-      queryClient.setQueryData(timelineKeys.detail(updated.id), updated);
-      queryClient.invalidateQueries({
-        queryKey: timelineKeys.lists(updated.projectId)
-      });
+      utils.timeline.get.setData({ id: updated.id }, updated);
+      utils.timeline.list.invalidate({ projectId: updated.projectId });
     }
   });
 };
 
 /** Delete a timeline sequence. */
 export const useDeleteTimeline = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => timelineApi.deleteTimeline(id),
-    onSuccess: (_data, id) => {
-      queryClient.removeQueries({ queryKey: timelineKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: timelineKeys.all });
+  const utils = trpc.useUtils();
+  return trpc.timeline.delete.useMutation({
+    onSuccess: (_data, vars) => {
+      utils.timeline.get.reset({ id: vars.id });
+      utils.timeline.list.invalidate();
     }
   });
 };
 
 /** Append a new clip version inside a sequence document. */
 export const useAppendClipVersion = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      sequenceId,
-      clipId,
-      body
-    }: {
-      sequenceId: string;
-      clipId: string;
-      body: AppendClipVersionRequest;
-    }) => timelineApi.appendClipVersion(sequenceId, clipId, body),
-    onSuccess: (_version, { sequenceId, clipId }) => {
-      queryClient.invalidateQueries({
-        queryKey: timelineKeys.clipVersions(sequenceId, clipId)
+  const utils = trpc.useUtils();
+  return trpc.timeline.versions.append.useMutation({
+    onSuccess: (_version, vars) => {
+      utils.timeline.versions.list.invalidate({
+        id: vars.id,
+        clipId: vars.clipId
       });
-      // The sequence document has changed too — invalidate the detail
-      queryClient.invalidateQueries({
-        queryKey: timelineKeys.detail(sequenceId)
-      });
+      utils.timeline.get.invalidate({ id: vars.id });
     }
   });
 };

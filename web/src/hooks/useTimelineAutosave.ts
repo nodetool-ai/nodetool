@@ -1,11 +1,10 @@
 /**
  * useTimelineAutosave
  *
- * Debounced autosave for timeline sequences.  Subscribes to document changes
- * (passed in as a dependency) and sends a PATCH after 800 ms of inactivity.
- *
- * On 409 Conflict (stale `updated_at`), the sequence is refetched and a
- * non-blocking banner is surfaced via NotificationStore.
+ * Debounced autosave for timeline sequences. Subscribes to document changes
+ * (passed in as a dependency) and sends `trpc.timeline.update` after 800 ms of
+ * inactivity. On `ALREADY_EXISTS` (stale `baseUpdatedAt`), the sequence is
+ * refetched and a non-blocking banner is surfaced via `NotificationStore`.
  *
  * Usage:
  *   const { status, lastSavedAt } = useTimelineAutosave({
@@ -16,11 +15,9 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { patchTimeline } from "../lib/api/timeline";
-import { timelineKeys } from "./useTimelineSequence";
+import type { TimelineDocument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
+import { trpc } from "../trpc/client";
 import { useNotificationStore } from "../stores/NotificationStore";
-import type { TimelineDocument } from "../lib/api/timeline";
 
 export type AutosaveStatus = "saved" | "saving" | "unsaved" | "conflict";
 
@@ -29,7 +26,7 @@ export interface UseTimelineAutosaveOptions {
   sequenceId: string | null | undefined;
   /** The latest document value. Changes trigger the debounce. */
   document: TimelineDocument | null | undefined;
-  /** The current `updatedAt` from the server — sent as If-Match header. */
+  /** The current `updatedAt` from the server — sent as `baseUpdatedAt`. */
   updatedAt?: string;
   /** Debounce delay in milliseconds. Defaults to 800. */
   debounceMs?: number;
@@ -52,19 +49,18 @@ export const useTimelineAutosave = ({
   updatedAt,
   debounceMs = DEBOUNCE_MS
 }: UseTimelineAutosaveOptions): UseTimelineAutosaveReturn => {
-  const queryClient = useQueryClient();
+  const utils = trpc.useUtils();
+  const updateMutation = trpc.timeline.update.useMutation();
 
   const [status, setStatus] = useState<AutosaveStatus>("saved");
   const [lastSavedAt, setLastSavedAt] = useState(0);
 
-  // Track the latest values in refs so timer callbacks don't close over stale state
   const documentRef = useRef(document);
   const updatedAtRef = useRef(updatedAt);
   const sequenceIdRef = useRef(sequenceId);
   const isSavingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Keep refs up-to-date
   useEffect(() => {
     documentRef.current = document;
   }, [document]);
@@ -84,22 +80,18 @@ export const useTimelineAutosave = ({
     setStatus("saving");
 
     try {
-      const saved = await patchTimeline(
+      const saved = await updateMutation.mutateAsync({
         id,
-        { document: doc },
-        { ifMatch: updatedAtRef.current }
-      );
-      // Update the cached sequence so the new updatedAt is available
-      queryClient.setQueryData(timelineKeys.detail(id), saved);
+        document: doc,
+        baseUpdatedAt: updatedAtRef.current
+      });
+      utils.timeline.get.setData({ id }, saved);
       setStatus("saved");
       setLastSavedAt(Date.now());
     } catch (err: unknown) {
-      const status = (err as { status?: number }).status;
-      if (status === 409) {
-        // Stale — refetch the latest version and show a banner
-        await queryClient.invalidateQueries({
-          queryKey: timelineKeys.detail(id)
-        });
+      const code = (err as { data?: { code?: string } }).data?.code;
+      if (code === "ALREADY_EXISTS") {
+        await utils.timeline.get.invalidate({ id });
         setStatus("conflict");
         useNotificationStore.getState().addNotification({
           content:
@@ -115,9 +107,8 @@ export const useTimelineAutosave = ({
     } finally {
       isSavingRef.current = false;
     }
-  }, [queryClient]);
+  }, [updateMutation, utils.timeline.get]);
 
-  // Mark unsaved and (re-)schedule debounced save whenever document changes
   useEffect(() => {
     if (!sequenceId || !document) return;
 

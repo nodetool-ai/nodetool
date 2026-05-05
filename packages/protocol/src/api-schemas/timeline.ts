@@ -81,8 +81,7 @@ export const timelineClip = z
     volumeDb: z.number().optional(),
     fadeInMs: z.number().optional(),
     fadeOutMs: z.number().optional()
-  })
-  .passthrough();
+  });
 export type TimelineClip = z.infer<typeof timelineClip>;
 
 export const timelineDocument = z.object({
