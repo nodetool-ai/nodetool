@@ -100,7 +100,7 @@ function EditionHeader({
   const title = isStudio ? "NodeTool Studio" : "NodeTool Cloud";
   const tagline = isStudio
     ? "Local-first desktop app"
-    : "Hosted in the browser";
+    : "Hosted in the browser · Alpha preview";
   const ringColor = isStudio
     ? "ring-amber-500/40 border-amber-500/30"
     : "ring-blue-500/40 border-blue-500/30";
@@ -119,6 +119,11 @@ function EditionHeader({
         <div>
           <h3 className="text-base font-semibold tracking-tight text-white flex items-center gap-2">
             {title}
+            {!isStudio && (
+              <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-200">
+                Alpha
+              </span>
+            )}
             {highlighted && (
               <span
                 className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-200 bg-slate-800/80 border border-slate-700`}
