@@ -351,17 +351,24 @@ describe("TimelineSequence model", () => {
     expect(roundTripped.durationMs).toBe(original.durationMs);
   });
 
-  it("fromDocument validates JSON on save", async () => {
+  it("fromDocument sets document from a valid TimelineDocument", async () => {
     const seq = await createSeq();
-    // fromDocument should be fine with valid data
-    seq.fromDocument({ tracks: [], clips: [], markers: [] });
-    expect(() => seq.fromDocument({ tracks: [], clips: [], markers: [] })).not.toThrow();
+    const doc = { tracks: [], clips: [], markers: [] };
+    seq.fromDocument(doc);
+    expect(seq.toDocument()).toEqual(doc);
   });
 
   it("rejects invalid JSON document on save", async () => {
     const seq = await createSeq();
-    // Bypass fromDocument to inject raw invalid JSON
     seq.document = "not valid json{{";
     await expect(seq.save()).rejects.toThrow();
+  });
+
+  it("rejects structurally invalid document on save", async () => {
+    const seq = await createSeq();
+    seq.document = JSON.stringify({ tracks: [], clips: "not-an-array" });
+    await expect(seq.save()).rejects.toThrow(
+      "document must contain tracks, clips, and markers arrays"
+    );
   });
 });

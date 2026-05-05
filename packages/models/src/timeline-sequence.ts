@@ -1,11 +1,3 @@
-/**
- * TimelineSequence model – stores timeline sequence documents.
- *
- * Sequences contain tracks, clips and markers serialised as JSON in the
- * `document` column.  Top-level mutable fields (name, fps, etc.) are also
- * promoted to dedicated columns so they can be queried without parsing JSON.
- */
-
 import { eq, desc } from "drizzle-orm";
 import type {
   TimelineSequence as TimelineSequenceDoc,
@@ -17,15 +9,11 @@ import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
 
-// ── Types ─────────────────────────────────────────────────────────────
-
 export interface TimelineDocument {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
 }
-
-// ── Model ─────────────────────────────────────────────────────────────
 
 export class TimelineSequence extends DBModel {
   static override table = timelineSequences;
@@ -39,7 +27,6 @@ export class TimelineSequence extends DBModel {
   declare width: number;
   declare height: number;
   declare duration_ms: number;
-  /** Raw JSON stored in the DB. Accessed via toDocument() / fromDocument(). */
   declare document: string;
   declare created_at: string;
   declare updated_at: string;
@@ -60,32 +47,26 @@ export class TimelineSequence extends DBModel {
 
   override beforeSave(): void {
     this.updated_at = new Date().toISOString();
-    // Validate document JSON before persisting — don't write garbage.
-    JSON.parse(this.document);
+    const doc = JSON.parse(this.document);
+    if (
+      !Array.isArray(doc.tracks) ||
+      !Array.isArray(doc.clips) ||
+      !Array.isArray(doc.markers)
+    ) {
+      throw new Error(
+        "document must contain tracks, clips, and markers arrays"
+      );
+    }
   }
 
-  // ── Document helpers ──────────────────────────────────────────────
-
-  /** Parse `document` JSON and return the structured timeline payload. */
   toDocument(): TimelineDocument {
     return JSON.parse(this.document) as TimelineDocument;
   }
 
-  /**
-   * Populate `document` from a structured `TimelineDocument`.
-   * Throws if the value cannot be serialised back to valid JSON.
-   */
   fromDocument(doc: TimelineDocument): void {
-    const json = JSON.stringify(doc);
-    // Validate the round-trip before committing.
-    JSON.parse(json);
-    this.document = json;
+    this.document = JSON.stringify(doc);
   }
 
-  /**
-   * Convert this DB row to the canonical `TimelineSequence` shape used by
-   * the `@nodetool-ai/timeline` package.
-   */
   toTimelineSequence(): TimelineSequenceDoc {
     const doc = this.toDocument();
     return {
@@ -105,11 +86,6 @@ export class TimelineSequence extends DBModel {
     };
   }
 
-  /**
-   * Create a `TimelineSequence` DB row from a canonical timeline sequence
-   * document.  `userId` is required because the document type does not carry
-   * it (it is a server-side concept).
-   */
   static fromTimelineSequence(
     userId: string,
     seq: TimelineSequenceDoc
@@ -135,14 +111,10 @@ export class TimelineSequence extends DBModel {
     });
   }
 
-  // ── Static queries ───────────────────────────────────────────────
-
-  /** Find a sequence by id. */
   static async findById(id: string): Promise<TimelineSequence | null> {
     return TimelineSequence.get<TimelineSequence>(id);
   }
 
-  /** List all sequences for a given user ordered by most-recently updated. */
   static async listByUser(
     userId: string,
     limit = 50
@@ -159,7 +131,6 @@ export class TimelineSequence extends DBModel {
     );
   }
 
-  /** List all sequences for a given project ordered by most-recently updated. */
   static async listByProject(
     projectId: string,
     limit = 50
