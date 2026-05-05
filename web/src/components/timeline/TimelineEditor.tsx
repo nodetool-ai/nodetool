@@ -164,6 +164,12 @@ const TracksRegion: React.FC<{ heightPx: number }> = ({ heightPx }) => {
   );
 };
 
+// ── Stable no-op callbacks ─────────────────────────────────────────────────
+
+const noop = () => {
+  /* placeholder — wired by NOD-311 */
+};
+
 // ── Main component ─────────────────────────────────────────────────────────
 
 export const TimelineEditor: React.FC = memo(() => {
@@ -246,9 +252,7 @@ export const TimelineEditor: React.FC = memo(() => {
       <TopBar
         sequenceName={sequence?.name}
         saveStatus={isLoading ? undefined : "Saved"}
-        onRenderAll={() => {
-          /* TODO: NOD-311 */
-        }}
+        onRenderAll={noop}
       />
 
       {/* ── Middle: preview + inspector ───────────────────────────── */}

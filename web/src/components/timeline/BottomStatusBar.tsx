@@ -60,6 +60,8 @@ export interface BottomStatusBarProps {
   onZoomChange?: (zoom: number) => void;
 }
 
+const noop = () => {};
+
 export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
   ({
     mode = "local",
@@ -117,7 +119,7 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
 
           <ZoomControls
             zoom={zoom}
-            onZoomChange={onZoomChange ?? (() => {})}
+            onZoomChange={onZoomChange ?? noop}
             minZoom={0.1}
             maxZoom={5}
             step={0.25}
