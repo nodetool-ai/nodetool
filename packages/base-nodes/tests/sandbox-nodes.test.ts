@@ -218,6 +218,29 @@ describe("sandbox nodes", () => {
     expect(result.output).toEqual({ bytes_written: 1, file: "a.txt" });
   });
 
+  it("registers 22 browser agent tools (11 local + 11 sandbox)", async () => {
+    const { resolveBuiltinAgentTool } = await import(
+      "../src/nodes/agent-tool-hydration.js"
+    );
+    const actions = [
+      "view",
+      "navigate",
+      "restart",
+      "click",
+      "input_text",
+      "move_mouse",
+      "press_key",
+      "select_option",
+      "scroll",
+      "console_exec",
+      "console_view"
+    ];
+    for (const a of actions) {
+      expect(resolveBuiltinAgentTool(`browser_${a}`)).not.toBeNull();
+      expect(resolveBuiltinAgentTool(`sandbox_browser_${a}`)).not.toBeNull();
+    }
+  });
+
   it("SandboxAgent wires sandbox tools into buildTools", async () => {
     const node = new SandboxAgentNode();
     node.assign({

@@ -8,6 +8,8 @@ import {
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { randomUUID } from "node:crypto";
 import { AgentNode, type ToolLike } from "./agents.js";
+import { buildBrowserAgentToolClasses } from "../lib/browser-agent-tools.js";
+import { registerBuiltinAgentToolClasses } from "./agent-tool-hydration.js";
 
 const DEFAULT_SCOPE_USER = "no-user";
 const DEFAULT_SCOPE_WORKFLOW = "no-workflow";
@@ -511,6 +513,18 @@ async function getClient(
   return sandbox.client;
 }
 
+/**
+ * Public hook used by `agent-tool-hydration.ts` to acquire a sandbox tool
+ * client for the current ProcessingContext, scoped per workflow run. Browser
+ * agent tools (sandbox flavour) reuse whatever container the workflow's
+ * SandboxShell/SandboxFile nodes opened.
+ */
+export async function acquireSandboxClient(
+  context: ProcessingContext
+): Promise<ToolClient> {
+  return getClient(toEffectiveSessionId(DEFAULT_SESSION_ID, context), "", context);
+}
+
 function createAgentTools(client: ToolClient): ToolLike[] {
   const defs: ActionDef[] = [
     ...SHELL_AGENT_TOOLS,
@@ -814,3 +828,9 @@ export const SANDBOX_NODES: readonly NodeClass[] = [
   SandboxFileNode,
   SandboxAgentNode
 ];
+
+// Register the 22 browser agent tools (11 local + 11 sandbox-proxied) into
+// the shared agent-tool registry. Done here, after the sandbox module body
+// has fully evaluated, so the cycle through agent-tool-hydration -> sandbox
+// is broken by inversion of control.
+registerBuiltinAgentToolClasses(buildBrowserAgentToolClasses(acquireSandboxClient));
