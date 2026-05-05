@@ -21,6 +21,7 @@ import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import ExternalLink from "../common/ExternalLink";
 import { isElectron } from "../../lib/env";
 import { restFetch } from "../../lib/rest-fetch";
+import SearchProviderSection from "./SearchProviderSection";
 
 const SETTING_LINKS: Record<string, string> = {
   OPENAI_API_KEY: "https://platform.openai.com/api-keys",
@@ -35,6 +36,8 @@ const SETTING_LINKS: Record<string, string> = {
   FAL_API_KEY: "https://fal.ai/dashboard/keys",
   SERPAPI_API_KEY: "https://serpapi.com/manage-api-key",
   DATA_FOR_SEO_LOGIN: "https://app.dataforseo.com/api-dashboard",
+  BRAVE_API_KEY: "https://api-dashboard.search.brave.com/",
+  APIFY_API_KEY: "https://console.apify.com/account/integrations",
   KIMI_API_KEY: "https://platform.moonshot.ai/console/api-keys",
   AKI_API_KEY: "https://aki.io"
 };
@@ -52,6 +55,8 @@ const SETTING_BUTTON_TITLES: Record<string, string> = {
   FAL_API_KEY: "Get Fal API Key",
   SERPAPI_API_KEY: "Get SerpAPI API Key",
   DATA_FOR_SEO_LOGIN: "Get DataForSEO Credentials",
+  BRAVE_API_KEY: "Get Brave API Key",
+  APIFY_API_KEY: "Get Apify API Key",
   KIMI_API_KEY: "Get Moonshot API Key",
   AKI_API_KEY: "Get AKI.IO API Key"
 };
@@ -69,6 +74,8 @@ const SETTING_TOOLTIPS: Record<string, string> = {
   FAL_API_KEY: "Go to Fal.ai dashboard",
   SERPAPI_API_KEY: "Go to SerpAPI key management page",
   DATA_FOR_SEO_LOGIN: "Go to DataForSEO dashboard",
+  BRAVE_API_KEY: "Go to Brave Search API dashboard",
+  APIFY_API_KEY: "Go to Apify console integrations page",
   KIMI_API_KEY: "Go to Moonshot (Kimi) platform API keys page",
   AKI_API_KEY: "Go to AKI.IO to sign up and get your API key"
 };
@@ -275,14 +282,23 @@ const RemoteSettings = () => {
     }
 
     const filteredEntries: [string, SettingWithValue[]][] = [];
+    const searchRelatedSettings = new Set([
+      "SERP_PROVIDER",
+      "SERPAPI_API_KEY",
+      "DATA_FOR_SEO_LOGIN",
+      "DATA_FOR_SEO_PASSWORD",
+      "BRAVE_API_KEY",
+      "APIFY_API_KEY"
+    ]);
 
     settingsByGroup.forEach((groupSettings, groupName) => {
-      if (groupName === "Folders") {
+      if (groupName === "Folders" || groupName === "Search") {
         return;
       }
 
       const allowedSettings = groupSettings.filter(
-        (setting) => !setting.is_secret
+        (setting) =>
+          !setting.is_secret && !searchRelatedSettings.has(setting.env_var)
       );
 
       if (allowedSettings.length > 0) {
@@ -422,6 +438,15 @@ const RemoteSettings = () => {
                   </EditorButton>
                 </div>
               </div>
+
+              {/* Search Provider Section */}
+              {data && (
+                <SearchProviderSection
+                  allSettings={data}
+                  settingValues={settingValues}
+                  onChange={handleChange}
+                />
+              )}
 
               {/* Render settings grouped by their group field */}
               {Array.from(displayedSettingsByGroup.entries()).map(

@@ -840,3 +840,262 @@ describe("GoogleSearchTool userMessage", () => {
     expect(msg).toBe("Searching Google for 'cats'...");
   });
 });
+
+/* ------------------------------------------------------------------ */
+/*  BraveProvider                                                     */
+/* ------------------------------------------------------------------ */
+
+describe("BraveProvider", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("normalises Brave results into SearchResult[]", async () => {
+    const rawResponse = {
+      web: {
+        results: [
+          {
+            title: "Brave Result 1",
+            url: "https://example1.com",
+            description: "First result"
+          },
+          {
+            title: "Brave Result 2",
+            url: "https://example2.com",
+            description: "Second result"
+          }
+        ]
+      }
+    };
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = mockFetch(rawResponse);
+    try {
+      const { BraveProvider } =
+        await import("../../src/tools/serp-providers/brave-provider.js");
+      const provider = new BraveProvider("test-key");
+      const results = await provider.search("test query");
+
+      expect(results).toHaveLength(2);
+      expect(results[0]).toEqual({
+        title: "Brave Result 1",
+        url: "https://example1.com",
+        snippet: "First result",
+        position: 1
+      });
+      expect(results[1].position).toBe(2);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("handles missing web.results gracefully", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = mockFetch({ web: { results: undefined } });
+    try {
+      const { BraveProvider } =
+        await import("../../src/tools/serp-providers/brave-provider.js");
+      const provider = new BraveProvider("test-key");
+      const results = await provider.search("test");
+      expect(results).toEqual([]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("throws on HTTP error", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = mockFetch("error", false, 401);
+    try {
+      const { BraveProvider } =
+        await import("../../src/tools/serp-providers/brave-provider.js");
+      const provider = new BraveProvider("test-key");
+      await expect(provider.search("test")).rejects.toThrow(
+        "Brave Search request failed"
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  ApifyProvider                                                     */
+/* ------------------------------------------------------------------ */
+
+describe("ApifyProvider", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("polls actor run and returns results", async () => {
+    const originalFetch = globalThis.fetch;
+
+    let callCount = 0;
+    globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
+      callCount++;
+      const urlStr = typeof url === "string" ? url : url.toString();
+
+      // First call: start actor
+      if (urlStr.includes("/runs") && callCount === 1) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ id: "run-123" }),
+          text: async () => "{}"
+        } as Response;
+      }
+
+      // Second call: check status
+      if (urlStr.includes("run-123") && callCount === 2) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ status: "SUCCEEDED", id: "run-123" }),
+          text: async () => "{}"
+        } as Response;
+      }
+
+      // Third call: get results
+      if (urlStr.includes("dataset/items")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => [
+            {
+              title: "Apify Result 1",
+              url: "https://apify1.com",
+              description: "Apify desc 1",
+              position: 1
+            }
+          ],
+          text: async () => "[]"
+        } as Response;
+      }
+
+      return {
+        ok: false,
+        status: 404,
+        json: async () => ({}),
+        text: async () => ""
+      } as Response;
+    });
+
+    try {
+      const { ApifyProvider } =
+        await import("../../src/tools/serp-providers/apify-provider.js");
+      const provider = new ApifyProvider("test-key");
+      const results = await provider.search("test query", { numResults: 5 });
+
+      expect(results).toHaveLength(1);
+      expect(results[0].title).toBe("Apify Result 1");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("throws on actor failure", async () => {
+    const originalFetch = globalThis.fetch;
+
+    let callCount = 0;
+    globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
+      callCount++;
+      if (callCount === 1) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ id: "run-123" }),
+          text: async () => "{}"
+        } as Response;
+      }
+      // Subsequent calls: return FAILED status
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: "FAILED",
+          statusMessage: "Out of memory"
+        }),
+        text: async () => "{}"
+      } as Response;
+    });
+
+    try {
+      const { ApifyProvider } =
+        await import("../../src/tools/serp-providers/apify-provider.js");
+      const provider = new ApifyProvider("test-key");
+      await expect(provider.search("test")).rejects.toThrow(
+        "Apify actor failed"
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  SERP Provider Factory                                             */
+/* ------------------------------------------------------------------ */
+
+describe("createSerpProvider factory", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("creates SerpApiProvider for 'serpapi'", async () => {
+    const { createSerpProvider } =
+      await import("../../src/tools/serp-providers/index.js");
+    const provider = await createSerpProvider("serpapi", {
+      getSecret: async () => "test-key"
+    });
+    expect(provider.constructor.name).toBe("SerpApiProvider");
+  });
+
+  it("creates DataForSeoProvider for 'dataforseo'", async () => {
+    const { createSerpProvider } =
+      await import("../../src/tools/serp-providers/index.js");
+    const mockGetSecret = vi.fn(async (key: string) => {
+      if (key === "DATA_FOR_SEO_LOGIN") return "login";
+      if (key === "DATA_FOR_SEO_PASSWORD") return "password";
+      return null;
+    });
+    const provider = await createSerpProvider("dataforseo", {
+      getSecret: mockGetSecret
+    });
+    expect(provider.constructor.name).toBe("DataForSeoProvider");
+  });
+
+  it("creates BraveProvider for 'brave'", async () => {
+    const { createSerpProvider } =
+      await import("../../src/tools/serp-providers/index.js");
+    const provider = await createSerpProvider("brave", {
+      getSecret: async () => "test-key"
+    });
+    expect(provider.constructor.name).toBe("BraveProvider");
+  });
+
+  it("creates ApifyProvider for 'apify'", async () => {
+    const { createSerpProvider } =
+      await import("../../src/tools/serp-providers/index.js");
+    const provider = await createSerpProvider("apify", {
+      getSecret: async () => "test-key"
+    });
+    expect(provider.constructor.name).toBe("ApifyProvider");
+  });
+
+  it("throws on unknown provider", async () => {
+    const { createSerpProvider } =
+      await import("../../src/tools/serp-providers/index.js");
+    await expect(
+      createSerpProvider("unknown", { getSecret: async () => null })
+    ).rejects.toThrow("Unknown SERP provider");
+  });
+
+  it("throws when required credentials are missing", async () => {
+    const { createSerpProvider } =
+      await import("../../src/tools/serp-providers/index.js");
+    await expect(
+      createSerpProvider("serpapi", { getSecret: async () => null })
+    ).rejects.toThrow("SERPAPI_API_KEY is required");
+  });
+});

@@ -203,12 +203,12 @@ s(
   ["true", "false"]
 );
 
-// SERP
+// Search
 s(
   "SERP_PROVIDER",
-  "SERP",
-  "Select which SERP provider to use for search operations. Options: 'serpapi', 'apify', 'dataforseo'.",
-  ["serpapi", "apify", "dataforseo"]
+  "Search",
+  "Select which search provider to use for web search operations.",
+  ["serpapi", "dataforseo", "brave", "apify"]
 );
 s(
   "ZAI_USE_CODING_PLAN",
@@ -326,13 +326,18 @@ sec(
 );
 sec(
   "SERPAPI_API_KEY",
-  "SerpAPI",
-  "API key for accessing SerpAPI scraping infrastructure. Get yours at https://serpapi.com/manage-api-key"
+  "Search",
+  "SerpAPI API key for web search. Get yours at https://serpapi.com/manage-api-key"
 );
 sec(
   "APIFY_API_KEY",
-  "Apify",
-  "API key for accessing Apify's web scraping and automation platform. Get yours at https://console.apify.com/account/integrations"
+  "Search",
+  "Apify API key for web search via Google Search Scraper. Get yours at https://console.apify.com/account/integrations"
+);
+sec(
+  "BRAVE_API_KEY",
+  "Search",
+  "Brave Search API key for web search. Get yours at https://api-dashboard.search.brave.com/"
 );
 sec("BROWSER_URL", "Browser", "Browser URL for accessing a browser instance");
 sec(
@@ -347,13 +352,13 @@ sec(
 );
 sec(
   "DATA_FOR_SEO_LOGIN",
-  "DataForSEO",
-  "DataForSEO login for accessing DataForSEO's API. Sign up at https://app.dataforseo.com/register"
+  "Search",
+  "DataForSEO login for web search. Sign up at https://app.dataforseo.com/register"
 );
 sec(
   "DATA_FOR_SEO_PASSWORD",
-  "DataForSEO",
-  "DataForSEO password for accessing DataForSEO's API. Sign up at https://app.dataforseo.com/register"
+  "Search",
+  "DataForSEO password for web search. Sign up at https://app.dataforseo.com/register"
 );
 sec(
   "TRACELOOP_API_KEY",
