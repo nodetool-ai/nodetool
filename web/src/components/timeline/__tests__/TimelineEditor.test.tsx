@@ -24,6 +24,13 @@ jest.mock("../../../hooks/useTimelineSequence", () => ({
   useTimeline: jest.fn()
 }));
 
+// ── TracksRegion mock ────────────────────────────────────────────────────────
+
+jest.mock("../Tracks/TracksRegion", () => ({
+  TracksRegion: ({ heightPx }: { heightPx: number }) =>
+    React.createElement("div", { "data-testid": "tracks-region", style: { height: heightPx } }, "Tracks")
+}));
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useTimeline } from "../../../hooks/useTimelineSequence";
 

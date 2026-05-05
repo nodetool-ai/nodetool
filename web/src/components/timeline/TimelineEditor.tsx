@@ -30,6 +30,7 @@ import {
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
 import { useTimeline } from "../../hooks/useTimelineSequence";
+import { TracksRegion } from "./Tracks/TracksRegion";
 
 // ── Drag-handle constants ──────────────────────────────────────────────────
 
@@ -90,14 +91,6 @@ const dragHandleStyles = (theme: Theme) =>
     }
   });
 
-const tracksRegionStyles = (theme: Theme) =>
-  css({
-    overflow: "hidden",
-    backgroundColor: theme.vars.palette.background.paper,
-    alignItems: "center",
-    justifyContent: "center"
-  });
-
 // ── Sub-region placeholder components ─────────────────────────────────────
 
 const PreviewRegion: React.FC<{ isLoading: boolean }> = ({ isLoading }) => {
@@ -140,22 +133,8 @@ const InspectorRegion: React.FC = () => {
   );
 };
 
-const TracksRegion: React.FC<{ heightPx: number }> = ({ heightPx }) => {
-  const theme = useTheme();
-  return (
-    <FlexColumn
-      css={tracksRegionStyles(theme)}
-      fullWidth
-      sx={{ height: heightPx }}
-    >
-      <EmptyState
-        variant="empty"
-        size="small"
-        title="Tracks"
-        description="Tracks, ruler & playhead (NOD-302)"
-      />
-    </FlexColumn>
-  );
+const TracksAreaRegion: React.FC<{ heightPx: number }> = ({ heightPx }) => {
+  return <TracksRegion heightPx={heightPx} />;
 };
 
 // ── Main component ─────────────────────────────────────────────────────────
@@ -298,7 +277,7 @@ export const TimelineEditor: React.FC = memo(() => {
       />
 
       {/* ── Tracks ────────────────────────────────────────────────── */}
-      <TracksRegion heightPx={tracksHeight} />
+      <TracksAreaRegion heightPx={tracksHeight} />
 
       {/* ── Bottom status bar ─────────────────────────────────────── */}
       <BottomStatusBar

@@ -24,6 +24,7 @@
     "@mui/x-date-pickers": "^7.29.4",
     "@mui/x-tree-view": "^7.29.10",
     "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/timeline": "*",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@supabase/supabase-js": "^2.105.1",
