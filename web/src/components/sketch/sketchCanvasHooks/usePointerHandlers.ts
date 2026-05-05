@@ -41,17 +41,6 @@ import {
 } from "../pointerPen";
 import { cursorStyleForTool } from "../sketchCursorStyle";
 
-/** Matches `useOverlayRenderer` brush-ring tools (software cursor).
- * @deprecated Prefer querying `handler.showsBrushCursor` from the tool handler. */
-function interactionToolShowsBrushCursor(t: SketchTool): boolean {
-  return (
-    t === "brush" ||
-    t === "pencil" ||
-    t === "eraser" ||
-    t === "blur" ||
-    t === "clone_stamp"
-  );
-}
 
 /**
  * Params for `usePointerHandlers`.
@@ -287,9 +276,6 @@ export function usePointerHandlers({
 
   // ─── Core interaction state refs ────────────────────────────────────
   const isDrawingRef = useRef(false);
-  const _paintStrokeHasMovedRef = useRef(false);
-  const _lastPointRef = useRef<Point | null>(null);
-  const _lastSmoothedPointRef = useRef<Point | null>(null);
   const isPanningRef = useRef(false);
   const isSpacePanningRef = useRef(false);
   const panStartRef = useRef<Point>({ x: 0, y: 0 });
@@ -297,8 +283,6 @@ export function usePointerHandlers({
   const isSizeDraggingRef = useRef(false);
   const sizeDragStartRef = useRef<Point>({ x: 0, y: 0 });
   const sizeDragInitialSize = useRef(0);
-
-  // Tool-specific state (now managed by tool handlers; only kept for legacy refs)
 
   // Keep pan offset in sync
   useEffect(() => {
@@ -550,10 +534,9 @@ export function usePointerHandlers({
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
 
       // Post-delegation: active stroke preview for tools that declare the capability
-      const downHandler = getToolHandler(interactionTool);
       if (
         started &&
-        downHandler.showsActiveStrokePreview &&
+        handler.showsActiveStrokePreview &&
         activeStrokeRef.current
       ) {
         drawActiveStrokePreview();
@@ -611,16 +594,16 @@ export function usePointerHandlers({
         drawCursor(e.clientX, e.clientY);
       }
 
+      const handler = getToolHandler(interactionTool);
+
       // ─── Non-drawing hover dispatches ─────────────────────────────────
       if (!isDrawingRef.current) {
         // Generic hover dispatch: any tool with onHoverMove receives hover events
-        const handler = getToolHandler(interactionTool);
         handler.onHoverMove?.(toolCtxRef.current, buildToolPointerEvent(e));
         return;
       }
 
       // ─── Active drawing: delegate to tool handler ─────────────────────
-      const handler = getToolHandler(interactionTool);
       handler.onMove?.(
         toolCtxRef.current,
         buildToolPointerEvent(e),
@@ -628,13 +611,12 @@ export function usePointerHandlers({
       );
 
       // Post-delegation: active stroke preview for tools that declare the capability
-      const moveHandler = getToolHandler(interactionTool);
-      if (moveHandler.showsActiveStrokePreview && activeStrokeRef.current) {
+      if (handler.showsActiveStrokePreview && activeStrokeRef.current) {
         drawActiveStrokePreview();
       }
 
       // Post-delegation: cursor update for brush-cursor tools during drawing
-      if (moveHandler.showsBrushCursor) {
+      if (handler.showsBrushCursor) {
         const r = containerRef.current?.getBoundingClientRect();
         if (r) {
           mousePositionRef.current = {
@@ -700,8 +682,7 @@ export function usePointerHandlers({
       }
 
       // Post-delegation: active stroke preview for tools that declare the capability
-      const upHandler = getToolHandler(interactionTool);
-      if (upHandler.showsActiveStrokePreview) {
+      if (handler.showsActiveStrokePreview) {
         // Shift-line continuation keeps `activeStrokeRef` until the next non-shift
         // stroke; WebGPU hides the active layer while it is set, so the 2D overlay
         // must keep showing the merged preview — do not clear it in that case.
@@ -870,11 +851,10 @@ export function usePointerHandlers({
         return;
       }
       const handler = getToolHandler("select");
+      const rect = containerRef.current?.getBoundingClientRect();
       const pt = screenToCanvas(
-        mousePositionRef.current.x +
-          (containerRef.current?.getBoundingClientRect().left ?? 0),
-        mousePositionRef.current.y +
-          (containerRef.current?.getBoundingClientRect().top ?? 0)
+        mousePositionRef.current.x + (rect?.left ?? 0),
+        mousePositionRef.current.y + (rect?.top ?? 0)
       );
       handler.onDoubleClick?.(toolCtxRef.current, pt);
     },
@@ -931,7 +911,7 @@ export function usePointerHandlers({
     }
     const onRaw: EventListener = (ev) => {
       const e = ev as PointerEvent;
-      if (!interactionToolShowsBrushCursor(interactionToolCursorRef.current)) {
+      if (!getToolHandler(interactionToolCursorRef.current).showsBrushCursor) {
         return;
       }
       const rect = el.getBoundingClientRect();
