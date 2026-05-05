@@ -92,7 +92,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = memo(({
   const containerClassName = `nodrag zoom-controls${className ? ` ${className}` : ""}`;
 
   return (
-    <Box css={styles(theme)} className={containerClassName}>
+    <Box css={styles(theme)} className={containerClassName} role="group" aria-label="Zoom controls">
       <Tooltip title="Zoom out" placement={tooltipPlacement} enterDelay={TOOLTIP_ENTER_DELAY}>
         <span>
           <IconButton

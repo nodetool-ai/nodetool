@@ -171,4 +171,37 @@ describe("SelectionControls", () => {
     expect(screen.getByText("Select All").closest("button")).toBeDisabled();
     expect(screen.getByText("Clear").closest("button")).toBeDisabled();
   });
+
+  it("has group role and aria-label for accessibility (buttons variant)", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <SelectionControls
+          selectedCount={0}
+          totalCount={10}
+          onSelectAll={mockOnSelectAll}
+          onClear={mockOnClear}
+        />
+      </ThemeProvider>
+    );
+
+    const group = screen.getByRole("group");
+    expect(group).toHaveAttribute("aria-label", "Selection controls");
+  });
+
+  it("has group role and aria-label for accessibility (toggle variant)", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <SelectionControls
+          selectedCount={0}
+          totalCount={10}
+          onSelectAll={mockOnSelectAll}
+          onClear={mockOnClear}
+          variant="toggle"
+        />
+      </ThemeProvider>
+    );
+
+    const group = screen.getByRole("group");
+    expect(group).toHaveAttribute("aria-label", "Selection controls");
+  });
 });

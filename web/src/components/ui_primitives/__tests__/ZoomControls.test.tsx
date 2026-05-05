@@ -217,6 +217,17 @@ describe("ZoomControls", () => {
     expect(buttons[2]).toHaveAttribute("aria-label", "Reset zoom");
   });
 
+  it("has group role and aria-label for accessibility", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ZoomControls zoom={1} onZoomChange={mockOnZoomChange} />
+      </ThemeProvider>
+    );
+
+    const group = screen.getByRole("group");
+    expect(group).toHaveAttribute("aria-label", "Zoom controls");
+  });
+
   it("applies custom className", () => {
     render(
       <ThemeProvider theme={mockTheme}>
