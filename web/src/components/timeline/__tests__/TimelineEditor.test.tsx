@@ -31,6 +31,13 @@ jest.mock("../Tracks/TracksRegion", () => ({
     React.createElement("div", { "data-testid": "tracks-region", style: { height: heightPx } }, "Tracks")
 }));
 
+// ── PreviewArea mock ─────────────────────────────────────────────────────────
+
+jest.mock("../preview/PreviewArea", () => ({
+  PreviewArea: () =>
+    React.createElement("div", { "data-testid": "preview-area" }, "Preview")
+}));
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useTimeline } from "../../../hooks/useTimelineSequence";
 
