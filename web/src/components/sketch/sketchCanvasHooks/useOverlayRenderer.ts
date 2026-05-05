@@ -227,8 +227,12 @@ export function useOverlayRenderer({
   // Cache keyed by selection reference — rebuilt only when selection identity changes.
   const selectionPathCacheRef = useRef<{ sel: Selection; path: Path2D } | null>(null);
   const selectionOriginOverrideRef = useRef<{ x: number; y: number } | null>(null);
+  // In-progress drag preview (start+end in doc coords). Kept in a ref so the
+  // animation loop can composite it on top of committed ants each frame —
+  // prevents the loop from overwriting a preview drawn in a separate pass.
+  const selectionDragPreviewRef = useRef<{ start: Point; end: Point } | null>(null);
 
-  /** Pixel grid (when zoom allows) + committed-selection marching ants. */
+  /** Pixel grid (when zoom allows) + committed-selection marching ants + drag preview. */
   const paintSelectionCanvas = useCallback(() => {
     const ctx = beginSelectionLayerPaint();
     if (!ctx) {
@@ -253,8 +257,21 @@ export function useOverlayRenderer({
         drawSelectionAntsFromPath(ctx, selectionPathCacheRef.current.path, antsPhaseRef.current, zoom);
       }
     }
+    // Composite the in-progress drag preview on top so the animation loop
+    // doesn't overwrite it (combine ops keep the loop running while dragging).
+    const preview = selectionDragPreviewRef.current;
+    if (preview) {
+      const { x, y, w, h } = marqueeRectFromDocPoints(preview.start, preview.end);
+      if (w >= 1 && h >= 1) {
+        if (doc.toolSettings.select.mode === "ellipse") {
+          drawSelectionEllipseOutline(ctx, x, y, w, h, 0, zoom);
+        } else {
+          drawSelectionRectOutline(ctx, x, y, w, h, 0, zoom);
+        }
+      }
+    }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [beginSelectionLayerPaint, selection, zoom]);
+  }, [beginSelectionLayerPaint, selection, zoom, doc.toolSettings.select.mode]);
 
   const paintSelectionCanvasRef = useRef(paintSelectionCanvas);
   paintSelectionCanvasRef.current = paintSelectionCanvas;
@@ -279,6 +296,7 @@ export function useOverlayRenderer({
   }, [hasSelection]);
 
   const drawSelectionOverlay = useCallback(() => {
+    selectionDragPreviewRef.current = null;
     const overlay = overlayCanvasRef.current;
     if (overlay) {
       const ctx = overlay.getContext("2d");
@@ -418,36 +436,19 @@ export function useOverlayRenderer({
   const drawOverlaySelection = useCallback(
     (start: Point, end: Point) => {
       const overlay = overlayCanvasRef.current;
-      if (!overlay) {
-        return;
-      }
-      const ovCtx = overlay.getContext("2d");
-      if (!ovCtx) {
-        return;
-      }
-      ovCtx.clearRect(0, 0, overlay.width, overlay.height);
-
-      const selCtx = beginSelectionLayerPaint();
-      if (!selCtx) {
-        return;
-      }
-      const { x, y, w, h } = marqueeRectFromDocPoints(start, end);
-      if (w >= 1 && h >= 1) {
-        if (doc.toolSettings.select.mode === "ellipse") {
-          // Draw ellipse path directly so the preview is not clipped to canvas bounds.
-          drawSelectionEllipseOutline(selCtx, x, y, w, h, 0, zoom);
-        } else {
-          drawSelectionRectOutline(selCtx, x, y, w, h, 0, zoom);
+      if (overlay) {
+        const ovCtx = overlay.getContext("2d");
+        if (ovCtx) {
+          ovCtx.clearRect(0, 0, overlay.width, overlay.height);
         }
       }
-      selCtx.setTransform(1, 0, 0, 1, 0, 0);
+      // Store in ref so paintSelectionCanvas composites it on top of committed
+      // ants — the animation loop (running during combine ops) would otherwise
+      // overwrite a preview drawn in a separate canvas pass.
+      selectionDragPreviewRef.current = { start, end };
+      paintSelectionCanvasRef.current();
     },
-    [
-      overlayCanvasRef,
-      zoom,
-      doc.toolSettings.select.mode,
-      beginSelectionLayerPaint
-    ]
+    [overlayCanvasRef]
   );
 
   const drawOverlayLassoPreview = useCallback(
