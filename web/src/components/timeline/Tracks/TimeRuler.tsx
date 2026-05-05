@@ -104,6 +104,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
     const setCurrentTimeMs = useTimelinePlaybackStore(
       (s) => s.setCurrentTimeMs
     );
+    const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
 
     // ── Draw ────────────────────────────────────────────────────────────────
 
@@ -229,7 +230,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
           aria-label="Time ruler — click or drag to set playhead"
           role="slider"
           aria-valuemin={0}
-          aria-valuenow={0}
+          aria-valuenow={Math.round(currentTimeMs)}
         />
       </div>
     );

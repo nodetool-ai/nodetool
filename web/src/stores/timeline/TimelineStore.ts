@@ -25,7 +25,6 @@
 import { create } from "zustand";
 import { temporal } from "zundo";
 import type { TemporalState } from "zundo";
-import { shallow } from "zustand/shallow";
 import {
   splitClip,
   trimClip,
@@ -98,6 +97,7 @@ export interface TimelineStoreState {
    */
   moveSelectedClips: (
     primaryClipId: string,
+    selectedIds: Set<string>,
     deltaMs: number,
     toTrackId?: string,
     snapCandidates?: number[],
@@ -116,7 +116,7 @@ export interface TimelineStoreState {
   splitClipAtTime: (clipId: string, atMs: number) => void;
 
   /** Split all selected clips at the current playhead (passed as argument). */
-  splitSelectedAtPlayhead: (currentTimeMs: number) => void;
+  splitSelectedAtPlayhead: (currentTimeMs: number, selectedIds: Set<string>) => void;
 
   /**
    * Duplicate selected clips (offset by `offsetMs`, default 0 = placed at same
@@ -302,6 +302,7 @@ export const createTimelineStore = (
 
         moveSelectedClips: (
           primaryClipId,
+          selectedIds,
           deltaMs,
           toTrackId,
           snapCandidates,
@@ -329,6 +330,9 @@ export const createTimelineStore = (
 
             return {
               clips: state.clips.map((c) => {
+                if (!selectedIds.has(c.id)) {
+                  return c;
+                }
                 if (c.id === primaryClipId) {
                   return {
                     ...c,
@@ -400,12 +404,13 @@ export const createTimelineStore = (
             }
           }),
 
-        splitSelectedAtPlayhead: (currentTimeMs) =>
+        splitSelectedAtPlayhead: (currentTimeMs, selectedIds) =>
           set((state) => {
-            // Collect clips that contain the playhead (start < time < end)
+            // Collect only selected clips that contain the playhead
             let nextClips = [...state.clips];
             const toSplit = nextClips.filter(
               (c) =>
+                (selectedIds.size === 0 || selectedIds.has(c.id)) &&
                 currentTimeMs > c.startMs &&
                 currentTimeMs < c.startMs + c.durationMs
             );
@@ -489,6 +494,8 @@ export const getTimelineTemporal = (): TemporalState<PartializedState> =>
 
 /** Returns only the clips belonging to a specific track (selector-stable). */
 export const useTrackClips = (trackId: string): TimelineClip[] =>
-  useTimelineStore((state) =>
-    state.clips.filter((c) => c.trackId === trackId)
+  useTimelineStore(
+    (state) => state.clips.filter((c) => c.trackId === trackId),
+    // Prevent re-renders when the filtered result contains the same clip objects
+    (a, b) => a.length === b.length && a.every((c, i) => c === b[i])
   );

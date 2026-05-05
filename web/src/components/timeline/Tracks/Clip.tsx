@@ -132,7 +132,6 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const isSelected = useIsClipSelected(clipId);
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
   const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
-  const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
 
   const selectClip = useTimelineUIStore((s) => s.selectClip);
   const addToSelection = useTimelineUIStore((s) => s.addToSelection);
@@ -143,34 +142,11 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const trimClipStart = useTimelineStore((s) => s.trimClipStart);
   const trimClipEnd = useTimelineStore((s) => s.trimClipEnd);
 
-  const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
-  const allClips = useTimelineStore((s) => s.clips);
-
   // ── Drag (move) ─────────────────────────────────────────────────────────
 
   const dragStartXRef = useRef(0);
   const dragStartMsRef = useRef(0);
   const isDraggingRef = useRef(false);
-
-  const buildSnapCandidates = useCallback(
-    (excludeId: string): number[] => {
-      const candidates = new Set<number>();
-      candidates.add(currentTimeMs);
-      // 1-s ticks
-      for (let t = 0; t <= 600_000; t += 1000) {
-        candidates.add(t);
-      }
-      for (const c of allClips) {
-        if (c.id === excludeId) {
-          continue;
-        }
-        candidates.add(c.startMs);
-        candidates.add(c.startMs + c.durationMs);
-      }
-      return Array.from(candidates);
-    },
-    [allClips, currentTimeMs]
-  );
 
   const handleDragPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -198,7 +174,23 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       }
       isDraggingRef.current = true;
       const disableSnap = e.altKey;
-      const snapCandidates = buildSnapCandidates(clip.id);
+
+      // Build snap candidates lazily — avoids subscribing to allClips/currentTimeMs
+      // in render, which would re-render every Clip on any clip state change.
+      const { clips: allClips, durationMs } = useTimelineStore.getState();
+      const { currentTimeMs } = useTimelinePlaybackStore.getState();
+      const snapCandidatesSet = new Set<number>();
+      snapCandidatesSet.add(currentTimeMs);
+      for (let t = 0; t <= durationMs + 1000; t += 1000) {
+        snapCandidatesSet.add(t);
+      }
+      for (const c of allClips) {
+        if (c.id !== clip.id) {
+          snapCandidatesSet.add(c.startMs);
+          snapCandidatesSet.add(c.startMs + c.durationMs);
+        }
+      }
+      const snapCandidates = Array.from(snapCandidatesSet);
 
       // Compute a position-independent delta: how many ms the pointer has moved
       // from drag-start, minus any drift already applied to clip.startMs by
@@ -208,9 +200,13 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       const alreadyAppliedMs = clip.startMs - dragStartMsRef.current;
       const adjustedDeltaMs = pointerMs - alreadyAppliedMs;
 
+      // Read selection lazily to avoid re-subscribing the entire Clip on selection changes.
+      const { selectedClipIds } = useTimelineUIStore.getState();
+
       if (isSelected && selectedClipIds.size > 1) {
         moveSelectedClips(
           clip.id,
+          selectedClipIds,
           adjustedDeltaMs,
           undefined,
           snapCandidates,
@@ -232,10 +228,8 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       clip,
       msPerPx,
       isSelected,
-      selectedClipIds.size,
       moveClip,
-      moveSelectedClips,
-      buildSnapCandidates
+      moveSelectedClips
     ]
   );
 

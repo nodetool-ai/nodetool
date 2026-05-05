@@ -164,10 +164,14 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           duplicateSelected(selectedClipIds, DUPLICATE_OFFSET_MS);
         }
 
-        // Ctrl+S → split at playhead
-        if (isCtrl && e.key === "s") {
+        // S → split at playhead (no modifier; avoid hijacking browser Ctrl+S)
+        if (e.key === "s" && !isCtrl && !e.shiftKey && !e.altKey) {
+          // Don't fire when focus is inside a text input (e.g. track name editor)
+          if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+            return;
+          }
           e.preventDefault();
-          splitSelectedAtPlayhead(currentTimeMs);
+          splitSelectedAtPlayhead(currentTimeMs, selectedClipIds);
         }
 
         // Ctrl+Z → undo

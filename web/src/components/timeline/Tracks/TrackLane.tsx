@@ -94,9 +94,6 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
   const clearSelection = useTimelineUIStore((s) => s.clearSelection);
   const setSelection = useTimelineUIStore((s) => s.setSelection);
-  const allClips = useTimelineStore((s) =>
-    s.clips.filter((c) => c.trackId === track.id)
-  );
 
   const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
 
@@ -153,7 +150,11 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       const rbStartMs = (left + e.currentTarget.scrollLeft) * msPerPx;
       const rbEndMs = rbStartMs + width * msPerPx;
 
-      const selected = allClips
+      // Read clips lazily to avoid subscribing to the full array in render
+      const clips = useTimelineStore.getState().clips.filter(
+        (c) => c.trackId === track.id
+      );
+      const selected = clips
         .filter((c) => {
           const clipStart = c.startMs;
           const clipEnd = c.startMs + c.durationMs;
@@ -163,7 +164,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
       setSelection(selected);
     },
-    [msPerPx, allClips, setSelection]
+    [msPerPx, track.id, setSelection]
   );
 
   const handleLanePointerUp = useCallback(() => {
@@ -173,7 +174,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
   return (
     <div
-      css={laneStyles(theme, heightPx, track.visible, isRubberBandingRef.current)}
+      css={laneStyles(theme, heightPx, track.visible, rubberBand !== null)}
       data-testid={`track-lane-${track.id}`}
       onPointerDown={handleLanePointerDown}
       onPointerMove={handleLanePointerMove}

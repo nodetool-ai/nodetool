@@ -31,6 +31,7 @@ import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
 import { useTimeline } from "../../hooks/useTimelineSequence";
 import { TracksRegion } from "./Tracks/TracksRegion";
+import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 
 // ── Drag-handle constants ──────────────────────────────────────────────────
 
@@ -40,6 +41,11 @@ const MIN_TRACKS_HEIGHT_PX = 80;
 const MAX_TRACKS_HEIGHT_PX = 600;
 /** Arrow-key step for keyboard resizing (px) */
 const KEYBOARD_RESIZE_STEP_PX = 20;
+/**
+ * Default msPerPx when zoom = 1. Matches TimelineUIStore default.
+ * zoom = DEFAULT_MS_PER_PX / msPerPx  →  msPerPx = DEFAULT_MS_PER_PX / zoom
+ */
+const DEFAULT_MS_PER_PX = 10;
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -133,10 +139,6 @@ const InspectorRegion: React.FC = () => {
   );
 };
 
-const TracksAreaRegion: React.FC<{ heightPx: number }> = ({ heightPx }) => {
-  return <TracksRegion heightPx={heightPx} />;
-};
-
 // ── Main component ─────────────────────────────────────────────────────────
 
 export const TimelineEditor: React.FC = memo(() => {
@@ -147,8 +149,15 @@ export const TimelineEditor: React.FC = memo(() => {
   // Data fetching ─────────────────────────────────────────────────────────
   const { data: sequence, isLoading, isError } = useTimeline(sequenceId);
 
-  // Zoom state ────────────────────────────────────────────────────────────
-  const [zoom, setZoom] = useState(1);
+  // Zoom ← wired to TimelineUIStore so TracksRegion + BottomStatusBar stay in sync
+  const msPerPx = useTimelineUIStore((s) => s.msPerPx);
+  const setZoom = useTimelineUIStore((s) => s.setZoom);
+  // Convert msPerPx to a dimensionless ratio for ZoomControls (1 = default zoom)
+  const zoom = DEFAULT_MS_PER_PX / msPerPx;
+  const handleZoomChange = useCallback(
+    (nextZoom: number) => setZoom(DEFAULT_MS_PER_PX / nextZoom),
+    [setZoom]
+  );
 
   // Tracks resize ─────────────────────────────────────────────────────────
   const [tracksHeight, setTracksHeight] = useState(DEFAULT_TRACKS_HEIGHT_PX);
@@ -277,13 +286,13 @@ export const TimelineEditor: React.FC = memo(() => {
       />
 
       {/* ── Tracks ────────────────────────────────────────────────── */}
-      <TracksAreaRegion heightPx={tracksHeight} />
+      <TracksRegion heightPx={tracksHeight} />
 
       {/* ── Bottom status bar ─────────────────────────────────────── */}
       <BottomStatusBar
         mode="local"
         zoom={zoom}
-        onZoomChange={setZoom}
+        onZoomChange={handleZoomChange}
       />
     </FlexColumn>
   );

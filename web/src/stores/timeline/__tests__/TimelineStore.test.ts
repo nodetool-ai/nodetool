@@ -235,13 +235,29 @@ describe("TimelineStore — splitSelectedAtPlayhead", () => {
     const c3 = makeClip({ trackId: track.id, startMs: 6000, durationMs: 2000 }); // not split
     store.setState({ tracks: [track], clips: [c1, c2, c3] });
 
-    store.getState().splitSelectedAtPlayhead(3000);
+    // Empty selection = split all clips at playhead
+    store.getState().splitSelectedAtPlayhead(3000, new Set());
 
     const clips = store.getState().clips;
     // c1 (0-5000) splits at 3000 → 2 clips
     // c2 (2000-5000) splits at 3000 → 2 clips
     // c3 (6000-8000) not affected
     expect(clips).toHaveLength(5);
+  });
+
+  it("splits only selected clips when selection is non-empty", () => {
+    const track = makeTrack({ type: "video" });
+    const c1 = makeClip({ trackId: track.id, startMs: 0, durationMs: 5000 });
+    const c2 = makeClip({ trackId: track.id, startMs: 2000, durationMs: 3000 });
+    store.setState({ tracks: [track], clips: [c1, c2] });
+
+    // Only split c1 (c2 is excluded from selection)
+    store.getState().splitSelectedAtPlayhead(3000, new Set([c1.id]));
+
+    const clips = store.getState().clips;
+    expect(clips).toHaveLength(3); // c1 → 2 pieces + c2 unchanged
+    const remainingC2 = clips.find((c) => c.id === c2.id);
+    expect(remainingC2).toBeDefined();
   });
 });
 
