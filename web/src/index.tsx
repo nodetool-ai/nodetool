@@ -127,6 +127,9 @@ const ComponentPreview = React.lazy(
 const SettingsPage = React.lazy(
   () => import("./components/menus/SettingsMenu")
 );
+const TimelineEditor = React.lazy(
+  () => import("./components/timeline/TimelineEditor")
+);
 
 // Defer frontend tool registrations until after initial render
 const registerFrontendTools = () => {
@@ -482,6 +485,28 @@ function getRoutes() {
             <SkipLinks />
             <AppHeader />
             <ChainEditorPage />
+          </div>
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/timeline/:sequenceId",
+      element: (
+        <ProtectedRoute>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%",
+              paddingTop: HEADER_HEIGHT
+            }}
+          >
+            <SkipLinks />
+            <AppHeader />
+            <React.Suspense fallback={<LoadingSpinner />}>
+              <TimelineEditor />
+            </React.Suspense>
           </div>
         </ProtectedRoute>
       )
