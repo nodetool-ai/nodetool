@@ -280,12 +280,14 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
               nodeStore.getState().setWorkflowDirty(false);
             }
 
+            const index = state.openWorkflows.findIndex((w) => w.id === persistedWorkflow.id);
+            if (index === -1) return state;
+
+            const newWorkflows = [...state.openWorkflows];
+            newWorkflows[index] = omit(persistedWorkflow, ["graph"]);
+
             return {
-              openWorkflows: state.openWorkflows.map((w) =>
-                w.id === persistedWorkflow.id
-                  ? omit(persistedWorkflow, ["graph"])
-                  : w
-              )
+              openWorkflows: newWorkflows
             };
           });
 
@@ -622,11 +624,15 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {WorkflowAttributes} workflow The workflow attributes to update
        */
       updateWorkflow: (workflow: WorkflowAttributes) => {
-        set((state) => ({
-          openWorkflows: state.openWorkflows.map((w) =>
-            w.id === workflow.id ? { ...w, ...workflow } : w
-          )
-        }));
+        set((state) => {
+          const index = state.openWorkflows.findIndex((w) => w.id === workflow.id);
+          if (index === -1) return state;
+
+          const newWorkflows = [...state.openWorkflows];
+          newWorkflows[index] = { ...newWorkflows[index], ...workflow };
+
+          return { openWorkflows: newWorkflows };
+        });
       },
 
       // ---------------------------------------------------------------------------------
