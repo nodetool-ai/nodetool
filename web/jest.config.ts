@@ -11,6 +11,7 @@ export default {
   moduleNameMapper: {
     "^@nodetool-ai/protocol$": "<rootDir>/../packages/protocol/src/index.ts",
     "^@nodetool-ai/protocol/(.*)$": "<rootDir>/../packages/protocol/src/$1",
+    "^@nodetool-ai/timeline$": "<rootDir>/../packages/timeline/src/index.ts",
     // Strip .js extensions from TypeScript ESM imports (packages use .js in source imports per ESM convention)
     "^(\\.{1,2}/.+)\\.js$": "$1",
     canvas: "<rootDir>/src/__mocks__/canvas.ts",

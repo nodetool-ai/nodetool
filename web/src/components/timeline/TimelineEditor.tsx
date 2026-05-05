@@ -30,6 +30,8 @@ import {
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
 import { useTimeline } from "../../hooks/useTimelineSequence";
+import { TracksRegion } from "./Tracks/TracksRegion";
+import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 
 // ── Drag-handle constants ──────────────────────────────────────────────────
 
@@ -39,6 +41,11 @@ const MIN_TRACKS_HEIGHT_PX = 80;
 const MAX_TRACKS_HEIGHT_PX = 600;
 /** Arrow-key step for keyboard resizing (px) */
 const KEYBOARD_RESIZE_STEP_PX = 20;
+/**
+ * Default msPerPx when zoom = 1. Matches TimelineUIStore default.
+ * zoom = DEFAULT_MS_PER_PX / msPerPx  →  msPerPx = DEFAULT_MS_PER_PX / zoom
+ */
+const DEFAULT_MS_PER_PX = 10;
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -90,14 +97,6 @@ const dragHandleStyles = (theme: Theme) =>
     }
   });
 
-const tracksRegionStyles = (theme: Theme) =>
-  css({
-    overflow: "hidden",
-    backgroundColor: theme.vars.palette.background.paper,
-    alignItems: "center",
-    justifyContent: "center"
-  });
-
 // ── Sub-region placeholder components ─────────────────────────────────────
 
 const PreviewRegion: React.FC<{ isLoading: boolean }> = ({ isLoading }) => {
@@ -140,24 +139,6 @@ const InspectorRegion: React.FC = () => {
   );
 };
 
-const TracksRegion: React.FC<{ heightPx: number }> = ({ heightPx }) => {
-  const theme = useTheme();
-  return (
-    <FlexColumn
-      css={tracksRegionStyles(theme)}
-      fullWidth
-      sx={{ height: heightPx }}
-    >
-      <EmptyState
-        variant="empty"
-        size="small"
-        title="Tracks"
-        description="Tracks, ruler & playhead (NOD-302)"
-      />
-    </FlexColumn>
-  );
-};
-
 // ── Main component ─────────────────────────────────────────────────────────
 
 export const TimelineEditor: React.FC = memo(() => {
@@ -168,8 +149,15 @@ export const TimelineEditor: React.FC = memo(() => {
   // Data fetching ─────────────────────────────────────────────────────────
   const { data: sequence, isLoading, isError } = useTimeline(sequenceId);
 
-  // Zoom state ────────────────────────────────────────────────────────────
-  const [zoom, setZoom] = useState(1);
+  // Zoom ← wired to TimelineUIStore so TracksRegion + BottomStatusBar stay in sync
+  const msPerPx = useTimelineUIStore((s) => s.msPerPx);
+  const setZoom = useTimelineUIStore((s) => s.setZoom);
+  // Convert msPerPx to a dimensionless ratio for ZoomControls (1 = default zoom)
+  const zoom = DEFAULT_MS_PER_PX / msPerPx;
+  const handleZoomChange = useCallback(
+    (nextZoom: number) => setZoom(DEFAULT_MS_PER_PX / nextZoom),
+    [setZoom]
+  );
 
   // Tracks resize ─────────────────────────────────────────────────────────
   const [tracksHeight, setTracksHeight] = useState(DEFAULT_TRACKS_HEIGHT_PX);
@@ -304,7 +292,7 @@ export const TimelineEditor: React.FC = memo(() => {
       <BottomStatusBar
         mode="local"
         zoom={zoom}
-        onZoomChange={setZoom}
+        onZoomChange={handleZoomChange}
       />
     </FlexColumn>
   );
