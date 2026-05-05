@@ -114,6 +114,8 @@ export interface SketchCanvasRef {
   cancelActiveTool: () => void;
   /** Apply pending crop (crop tool — Enter / Apply). */
   commitPendingCrop: () => void;
+  /** Get the raw layer canvas element for offset/bounds lookups (authoritative over layer.contentBounds). */
+  getLayerCanvas: (layerId: string) => HTMLCanvasElement | null;
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────

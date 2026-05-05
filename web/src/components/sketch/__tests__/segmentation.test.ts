@@ -1305,7 +1305,8 @@ describe("SketchCanvasRef interface", () => {
       getOverlayCanvas: jest.fn().mockReturnValue(null),
       getPasteAnchorDocumentPoint: jest.fn().mockReturnValue(null),
       cancelActiveTool: jest.fn(),
-      commitPendingCrop: jest.fn()
+      commitPendingCrop: jest.fn(),
+      getLayerCanvas: jest.fn().mockReturnValue(null)
     };
 
     expect(mockRef.getOverlayCanvas).toBeDefined();

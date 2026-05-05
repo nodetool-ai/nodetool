@@ -206,7 +206,10 @@ export function useCanvasImperativeHandle({
         return { x: Math.floor(dx), y: Math.floor(dy) };
       },
       cancelActiveTool,
-      commitPendingCrop
+      commitPendingCrop,
+      getLayerCanvas: (layerId: string): HTMLCanvasElement | null => {
+        return runtime.getLayerCanvas(layerId) ?? null;
+      }
     }),
     [
       doc,

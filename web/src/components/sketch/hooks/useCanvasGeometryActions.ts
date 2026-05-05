@@ -247,6 +247,7 @@ export function useCanvasGeometryActions({
     const sel = useSketchStore.getState().selection;
     if (sel && selectionHasAnyPixels(sel)) {
       pushHistory("clear selection");
+      const layerCanvas = canvasRef.current.getLayerCanvas(activeLayerId);
       const offset = getLayerCompositeOffset(layer, {
         width: Math.max(
           1,
@@ -256,7 +257,7 @@ export function useCanvasGeometryActions({
           1,
           layer.contentBounds?.height ?? document.canvas.height
         )
-      });
+      }, layerCanvas);
       canvasRef.current.clearLayerBySelectionMask(
         activeLayerId,
         offset.x,
@@ -291,6 +292,7 @@ export function useCanvasGeometryActions({
       const sel = useSketchStore.getState().selection;
       if (sel && selectionHasAnyPixels(sel)) {
         pushHistory("fill selection");
+        const layerCanvas = canvasRef.current.getLayerCanvas(activeLayerId);
         const offset = getLayerCompositeOffset(layer, {
           width: Math.max(
             1,
@@ -300,7 +302,7 @@ export function useCanvasGeometryActions({
             1,
             layer.contentBounds?.height ?? document.canvas.height
           )
-        });
+        }, layerCanvas);
         canvasRef.current.fillLayerBySelectionMask(
           activeLayerId,
           offset.x,
