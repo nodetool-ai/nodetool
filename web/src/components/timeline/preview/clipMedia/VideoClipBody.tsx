@@ -81,7 +81,7 @@ export const VideoClipBody: React.FC<VideoClipBodyProps> = memo(
         />
         {showSpeed && (
           <Text css={speedBadgeStyles(theme)}>
-            {speed! > 0 ? `${speed}×` : `${speed}×`}
+            {speed}×
           </Text>
         )}
       </div>

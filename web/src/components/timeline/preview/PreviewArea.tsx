@@ -66,10 +66,6 @@ import { PreviewCompositor } from "./PreviewCompositor";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-/** Speed thresholds beyond which we fall back to still-frame scrubbing. */
-const MAX_REALTIME_RATE = 4;
-const MIN_REALTIME_RATE = 0.25;
-
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 /**
@@ -428,11 +424,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         durationMs
       ]
     );
-
-    // ── Scrub mode (high-rate fallback for rate > 4x or < 0.25x) ──────────
-
-    const isHighRate = (r: number) =>
-      r > MAX_REALTIME_RATE || (r > 0 && r < MIN_REALTIME_RATE);
 
     // ── Timecode & FPS ────────────────────────────────────────────────────
 
