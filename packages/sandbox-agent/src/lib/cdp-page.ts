@@ -15,7 +15,9 @@ const DEFAULT_FLAGS = [
   "--headless=new",
   "--disable-gpu",
   "--no-sandbox",
+  "--disable-setuid-sandbox",
   "--disable-dev-shm-usage",
+  "--disable-software-rasterizer",
   "--hide-scrollbars",
   "--mute-audio",
   "--window-size=1280,900"
@@ -100,6 +102,36 @@ export class CdpPage {
     return r.result?.value ?? this.currentTitle;
   }
 
+  /**
+   * Wait for a one-shot CDP page event. chrome-remote-interface's domain
+   * namespace methods (`client.Page.loadEventFired(fn)`) subscribe and
+   * return an unsubscribe function — there is no `.once()` like Playwright.
+   * This helper subscribes, resolves on the first emission, and unsubscribes.
+   */
+  private waitForLoadEvent(
+    waitUntil: WaitUntil,
+    timeout: number,
+    label: string
+  ): Promise<void> {
+    if (waitUntil === "networkidle") {
+      return waitForNetworkIdle(this.client, timeout);
+    }
+    const eventName =
+      waitUntil === "domcontentloaded" ? "domContentEventFired" : "loadEventFired";
+    return new Promise<void>((resolve, reject) => {
+      let off: (() => void) | null = null;
+      const t = setTimeout(() => {
+        off?.();
+        reject(new Error(`Timed out after ${timeout}ms ${label}`));
+      }, timeout);
+      off = this.client.Page[eventName](() => {
+        clearTimeout(t);
+        off?.();
+        resolve();
+      });
+    });
+  }
+
   async goto(
     url: string,
     opts: { waitUntil?: WaitUntil; timeout?: number } = {}
@@ -107,24 +139,7 @@ export class CdpPage {
     const waitUntil: WaitUntil = opts.waitUntil ?? "load";
     const timeout = opts.timeout ?? 30000;
     this.lastNavStatus = null;
-
-    const loadEventName =
-      waitUntil === "domcontentloaded" ? "domContentEventFired" : "loadEventFired";
-
-    const loadPromise: Promise<void> =
-      waitUntil === "networkidle"
-        ? waitForNetworkIdle(this.client, timeout)
-        : new Promise<void>((resolve, reject) => {
-            const t = setTimeout(
-              () => reject(new Error(`Timed out after ${timeout}ms loading ${url}`)),
-              timeout
-            );
-            this.client.Page.once(loadEventName, () => {
-              clearTimeout(t);
-              resolve();
-            });
-          });
-
+    const loadPromise = this.waitForLoadEvent(waitUntil, timeout, `loading ${url}`);
     await this.client.Page.navigate({ url });
     await loadPromise;
     this.currentUrl = url;
@@ -132,23 +147,9 @@ export class CdpPage {
   }
 
   async reload(opts: { waitUntil?: WaitUntil; timeout?: number } = {}): Promise<void> {
-    const waitUntil = opts.waitUntil ?? "load";
+    const waitUntil: WaitUntil = opts.waitUntil ?? "load";
     const timeout = opts.timeout ?? 30000;
-    const loadEventName =
-      waitUntil === "domcontentloaded" ? "domContentEventFired" : "loadEventFired";
-    const loadPromise =
-      waitUntil === "networkidle"
-        ? waitForNetworkIdle(this.client, timeout)
-        : new Promise<void>((resolve, reject) => {
-            const t = setTimeout(
-              () => reject(new Error(`Timed out after ${timeout}ms reloading`)),
-              timeout
-            );
-            this.client.Page.once(loadEventName, () => {
-              clearTimeout(t);
-              resolve();
-            });
-          });
+    const loadPromise = this.waitForLoadEvent(waitUntil, timeout, "reloading");
     await this.client.Page.reload({});
     await loadPromise;
   }
@@ -393,10 +394,6 @@ async function waitForNetworkIdle(client: CDPClient, timeout: number): Promise<v
   return new Promise((resolve, reject) => {
     let inflight = 0;
     let idleTimer: NodeJS.Timeout | null = null;
-    const overall = setTimeout(() => {
-      cleanup();
-      reject(new Error(`Timed out after ${timeout}ms waiting for network idle`));
-    }, timeout);
 
     const onLoad = () => {
       if (inflight === 0) armIdle();
@@ -412,6 +409,21 @@ async function waitForNetworkIdle(client: CDPClient, timeout: number): Promise<v
       inflight = Math.max(0, inflight - 1);
       if (inflight === 0) armIdle();
     };
+
+    // Subscribe first so the unsubscribers exist before any timer can fire.
+    const offLoad = client.Page.loadEventFired(onLoad);
+    const offReq = client.Network.requestWillBeSent(onReq);
+    const offFinished = client.Network.loadingFinished(onDone);
+    const offFailed = client.Network.loadingFailed(onDone);
+
+    const cleanup = () => {
+      clearTimeout(overall);
+      if (idleTimer) clearTimeout(idleTimer);
+      offLoad?.();
+      offReq?.();
+      offFinished?.();
+      offFailed?.();
+    };
     const armIdle = () => {
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
@@ -419,18 +431,11 @@ async function waitForNetworkIdle(client: CDPClient, timeout: number): Promise<v
         resolve();
       }, 500);
     };
-    const cleanup = () => {
-      clearTimeout(overall);
-      if (idleTimer) clearTimeout(idleTimer);
-      client.Page.removeListener?.("loadEventFired", onLoad);
-      client.Network.removeListener?.("requestWillBeSent", onReq);
-      client.Network.removeListener?.("loadingFinished", onDone);
-      client.Network.removeListener?.("loadingFailed", onDone);
-    };
-    client.Page.loadEventFired(onLoad);
-    client.Network.requestWillBeSent(onReq);
-    client.Network.loadingFinished(onDone);
-    client.Network.loadingFailed(onDone);
+    const overall = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Timed out after ${timeout}ms waiting for network idle`));
+    }, timeout);
+
     armIdle();
   });
 }
@@ -474,7 +479,11 @@ export async function launchBrowser(opts: LaunchOptions = {}): Promise<{
     if (opts.extraFlags) flags.push(...opts.extraFlags);
     chrome = await launch({
       chromeFlags: flags,
-      ignoreDefaultFlags: false
+      ignoreDefaultFlags: false,
+      // CHROME_PATH (set by the sandbox Dockerfile) takes precedence; if it
+      // isn't set, fall through to chrome-launcher's own discovery so local
+      // dev still works on macOS/Linux without env config.
+      chromePath: process.env.CHROME_PATH || undefined
     });
     port = chrome.port;
   }

@@ -85,7 +85,10 @@ async function ensureState(): Promise<BrowserState> {
     close = launched.close;
   } else {
     const { launchBrowser, CdpPage: CdpPageCls } = await import("../lib/cdp-page.js");
-    const headless = process.env.NODETOOL_BROWSER_HEADLESS === "true";
+    // Headless by default — the sandbox image's Xvfb/VNC stack is for
+    // observability, not a hard dependency. Set NODETOOL_BROWSER_HEADLESS=false
+    // to attach the browser to the X server (visible via noVNC).
+    const headless = process.env.NODETOOL_BROWSER_HEADLESS !== "false";
     const session = await launchBrowser({
       headless,
       viewport: { width: 1280, height: 900 }
