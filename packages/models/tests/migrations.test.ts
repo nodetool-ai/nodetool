@@ -423,7 +423,7 @@ describe("MigrationRunner", () => {
 // ── Built-in migrations smoke test ───────────────────────────────────
 
 describe("Built-in migrations", () => {
-  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 32;
+  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 33;
 
   it("should have correct count of migrations", () => {
     expect(migrations.length).toBe(EXPECTED_BUILT_IN_MIGRATION_COUNT);
@@ -464,6 +464,7 @@ describe("Built-in migrations", () => {
     expect(await adapter.tableExists("trigger_inputs")).toBe(true);
     expect(await adapter.tableExists("run_events")).toBe(true);
     expect(await adapter.tableExists("run_leases")).toBe(true);
+    expect(await adapter.tableExists("timeline_sequences")).toBe(true);
   });
 
   it("should be idempotent (running twice produces same result)", async () => {
