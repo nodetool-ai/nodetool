@@ -15,6 +15,6 @@ describe("snap", () => {
   });
 
   it("breaks ties deterministically toward the smaller candidate", () => {
-    expect(snap(100, [97, 103], 1, 3)).toBe(97);
+    expect(snap(100, [103, 97], 1, 3)).toBe(97);
   });
 });
