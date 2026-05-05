@@ -50,12 +50,21 @@ export {
 export type {
   SerpProvider,
   SearchResult,
-  SearchOptions
+  SearchOptions,
+  SerpProviderType
 } from "./tools/serp-providers/index.js";
 export {
   SerpApiProvider,
-  DataForSeoProvider
+  DataForSeoProvider,
+  BraveProvider,
+  ApifyProvider,
+  createSerpProvider
 } from "./tools/serp-providers/index.js";
+export {
+  createSearchTool,
+  getConfiguredSerpProvider,
+  resolveSerpProvider
+} from "./tools/serp-tool-factory.js";
 export {
   BrowserTool,
   ScreenshotTool,
