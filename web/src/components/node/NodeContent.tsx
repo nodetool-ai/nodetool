@@ -117,25 +117,9 @@ const arePropsEqual = (
     return false;
   }
 
-  // For result, we need a deeper check since it changes frequently
-  // Use shallow comparison for objects, deep for primitives
-  const prevResult = prevProps.result;
-  const nextResult = nextProps.result;
-  if (prevResult === nextResult) {
-    // Same reference or both primitives are equal
-    // Continue to check other props
-  } else if (
-    typeof prevResult === "object" &&
-    typeof nextResult === "object" &&
-    prevResult !== null &&
-    nextResult !== null
-  ) {
-    // Both are objects - shallow check keys
-    if (Object.keys(prevResult).length !== Object.keys(nextResult).length) {
-      return false;
-    }
-  } else {
-    // Different types or different primitive values
+  // Results from the store are always a new reference when they change,
+  // so reference equality is both correct and avoids O(n) key enumeration.
+  if (prevProps.result !== nextProps.result) {
     return false;
   }
 
