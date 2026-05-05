@@ -185,6 +185,7 @@ export function useCanvasOrchestration(
   const setSelectionOriginOverride = (pos: { x: number; y: number } | null) => {
     const rt = compositing.runtime as { setSelectionOriginOverride?: (pos: { x: number; y: number } | null) => void };
     rt.setSelectionOriginOverride?.(pos);
+    overlay.setSelectionOriginOverride(pos);
   };
 
   // ─── Compositing (layer canvases, redraw) ──────────────────────────

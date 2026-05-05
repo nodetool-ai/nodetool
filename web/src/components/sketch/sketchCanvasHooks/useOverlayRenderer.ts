@@ -27,6 +27,8 @@ import {
   documentCanvasToClient
 } from "../tools/transform/handleGeometry";
 import {
+  buildSelectionMaskOutlinePath,
+  drawSelectionAntsFromPath,
   drawSelectionEllipseOutline,
   drawSelectionPolylineOutline,
   drawSelectionRectOutline,
@@ -79,6 +81,8 @@ export type GizmoDrawCallback = (
 export interface UseOverlayRendererResult {
   clearOverlay: () => void;
   drawSelectionOverlay: () => void;
+  /** Update the visual origin of the committed selection ants during a drag (no store update). */
+  setSelectionOriginOverride: (pos: { x: number; y: number } | null) => void;
   /** Draw marching ants on top without clearing (e.g. after `drawActiveStrokePreview`). */
   appendSelectionOverlay: () => void;
   drawOverlayShape: (start: Point, end: Point) => void;
@@ -219,17 +223,60 @@ export function useOverlayRenderer({
     return ctx;
   }, [selectionCanvasRef, containerRef, zoom, pan, doc.canvas.width, doc.canvas.height]);
 
-  /** Pixel grid (when zoom allows). Committed-selection ants are rendered by the GPU. */
+  const antsPhaseRef = useRef(0);
+  // Cache keyed by selection reference — rebuilt only when selection identity changes.
+  const selectionPathCacheRef = useRef<{ sel: Selection; path: Path2D } | null>(null);
+  const selectionOriginOverrideRef = useRef<{ x: number; y: number } | null>(null);
+
+  /** Pixel grid (when zoom allows) + committed-selection marching ants. */
   const paintSelectionCanvas = useCallback(() => {
     const ctx = beginSelectionLayerPaint();
     if (!ctx) {
       return;
     }
+    if (selection) {
+      if (!selectionPathCacheRef.current || selectionPathCacheRef.current.sel !== selection) {
+        selectionPathCacheRef.current = {
+          sel: selection,
+          path: buildSelectionMaskOutlinePath(selection)
+        };
+      }
+      const override = selectionOriginOverrideRef.current;
+      if (override !== null) {
+        const dx = override.x - (selection.originX ?? 0);
+        const dy = override.y - (selection.originY ?? 0);
+        ctx.save();
+        ctx.translate(dx, dy);
+        drawSelectionAntsFromPath(ctx, selectionPathCacheRef.current.path, antsPhaseRef.current, zoom);
+        ctx.restore();
+      } else {
+        drawSelectionAntsFromPath(ctx, selectionPathCacheRef.current.path, antsPhaseRef.current, zoom);
+      }
+    }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [beginSelectionLayerPaint]);
+  }, [beginSelectionLayerPaint, selection, zoom]);
 
   const paintSelectionCanvasRef = useRef(paintSelectionCanvas);
   paintSelectionCanvasRef.current = paintSelectionCanvas;
+
+  const setSelectionOriginOverride = useCallback((pos: { x: number; y: number } | null) => {
+    selectionOriginOverrideRef.current = pos;
+    paintSelectionCanvasRef.current();
+  }, []);
+
+  // Animate marching ants while a selection is active.
+  const hasSelection = !!selection;
+  useEffect(() => {
+    if (!hasSelection) return;
+    let animId: number;
+    const animate = () => {
+      antsPhaseRef.current = (antsPhaseRef.current + 1) % 256;
+      paintSelectionCanvasRef.current();
+      animId = requestAnimationFrame(animate);
+    };
+    animId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animId);
+  }, [hasSelection]);
 
   const drawSelectionOverlay = useCallback(() => {
     const overlay = overlayCanvasRef.current;
@@ -696,6 +743,7 @@ export function useOverlayRenderer({
   return {
     clearOverlay,
     drawSelectionOverlay,
+    setSelectionOriginOverride,
     appendSelectionOverlay,
     drawOverlayShape,
     drawOverlayGradient,

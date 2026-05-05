@@ -946,6 +946,88 @@ export function smoothSelectionBorders(mask: Selection, strength: number): void 
 }
 
 /**
+ * Build a Path2D tracing the pixel-aligned boundary of an arbitrary selection
+ * mask. Coordinates are in document space (mask origin applied). The returned
+ * path can be stroked on a context that has a doc→screen transform applied, so
+ * ants appear at exactly 1 screen pixel regardless of zoom level.
+ *
+ * The algorithm scans horizontal and vertical pixel boundaries, grouping
+ * consecutive edge segments into single moveTo/lineTo pairs for efficiency.
+ */
+export function buildSelectionMaskOutlinePath(mask: Selection): Path2D {
+  const path = new Path2D();
+  const { width: w, height: h, data } = mask;
+  const ox = mask.originX ?? 0;
+  const oy = mask.originY ?? 0;
+
+  // Horizontal edges: boundaries between row y-1 and row y
+  for (let y = 0; y <= h; y++) {
+    let inRun = false;
+    let runStart = 0;
+    for (let x = 0; x < w; x++) {
+      const above = y > 0 && data[(y - 1) * w + x] >= THRESH;
+      const below = y < h && data[y * w + x] >= THRESH;
+      const isEdge = above !== below;
+      if (isEdge && !inRun) {
+        runStart = x;
+        inRun = true;
+      } else if (!isEdge && inRun) {
+        path.moveTo(ox + runStart, oy + y);
+        path.lineTo(ox + x, oy + y);
+        inRun = false;
+      }
+    }
+    if (inRun) {
+      path.moveTo(ox + runStart, oy + y);
+      path.lineTo(ox + w, oy + y);
+    }
+  }
+
+  // Vertical edges: boundaries between column x-1 and column x
+  for (let x = 0; x <= w; x++) {
+    let inRun = false;
+    let runStart = 0;
+    for (let y = 0; y < h; y++) {
+      const left = x > 0 && data[y * w + (x - 1)] >= THRESH;
+      const right = x < w && data[y * w + x] >= THRESH;
+      const isEdge = left !== right;
+      if (isEdge && !inRun) {
+        runStart = y;
+        inRun = true;
+      } else if (!isEdge && inRun) {
+        path.moveTo(ox + x, oy + runStart);
+        path.lineTo(ox + x, oy + y);
+        inRun = false;
+      }
+    }
+    if (inRun) {
+      path.moveTo(ox + x, oy + runStart);
+      path.lineTo(ox + x, oy + h);
+    }
+  }
+
+  return path;
+}
+
+/**
+ * Draw marching-ants over a pre-built Path2D (from {@link buildSelectionMaskOutlinePath}).
+ * Expects the context to already have a doc→screen transform applied so that
+ * line widths and dash lengths in doc units map to exact screen pixels.
+ */
+export function drawSelectionAntsFromPath(
+  ctx: CanvasRenderingContext2D,
+  path: Path2D,
+  phase: number,
+  zoom: number
+): void {
+  ctx.save();
+  strokeSoftOuterSelectionHalo(ctx, zoom, path);
+  const { dashLen, offset } = setupScreenAnts(ctx, phase, zoom);
+  strokeDualAnts(ctx, dashLen, offset, path);
+  ctx.restore();
+}
+
+/**
  * Marching ants ellipse outline for live preview (not clipped to canvas).
  * Draws directly as a canvas path so the ellipse can extend beyond document
  * bounds — unlike ellipseSelectionMask which clips to canvas dimensions.

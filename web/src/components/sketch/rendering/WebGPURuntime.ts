@@ -1024,17 +1024,7 @@ export class WebGPURuntime implements SketchRuntime {
       pass.end();
     }
 
-    // ── Pass 5: Selection marching ants → swapChain ───────────────────
-    if (this.maskTexture && this.currentSelection) {
-      this.antsPhase = (this.antsPhase + 0.06) % 2.0;
-      this.drawSelectionAnts(encoder, swapChainView, fullW, fullH);
-    }
-
     device.queue.submit([encoder.finish()]);
-
-    if (this.maskTexture && this.currentSelection) {
-      this.onNeedsRedraw?.();
-    }
   }
 
   // ─── Ping-pong blend pass ───────────────────────────────────────────
