@@ -1358,5 +1358,49 @@ export const migrations: MigrationDef[] = [
     async down() {
       // no-op: dropping columns is unsafe across dialects and versions
     }
+  },
+
+  // ── Create timeline_sequences ──────────────────────────────────────
+  {
+    version: "20260505_000000",
+    name: "create_timeline_sequences",
+    createsTables: ["timeline_sequences"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS timeline_sequences (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          workflow_id TEXT,
+          name TEXT NOT NULL,
+          fps INTEGER NOT NULL DEFAULT 30,
+          width INTEGER NOT NULL DEFAULT 1920,
+          height INTEGER NOT NULL DEFAULT 1080,
+          duration_ms INTEGER NOT NULL DEFAULT 0,
+          document TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_timeline_sequence_user
+        ON timeline_sequences (user_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_timeline_sequence_project
+        ON timeline_sequences (project_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_timeline_sequence_updated
+        ON timeline_sequences (updated_at)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_timeline_sequence_user");
+      await db.execute("DROP INDEX IF EXISTS idx_timeline_sequence_project");
+      await db.execute("DROP INDEX IF EXISTS idx_timeline_sequence_updated");
+      await db.execute("DROP TABLE IF EXISTS timeline_sequences");
+    }
   }
 ];

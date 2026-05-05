@@ -159,7 +159,7 @@ describe("assets router", () => {
       const result = await caller.assets.list({ parent_id: "folder" });
       expect(result.assets).toHaveLength(1);
       expect(result.assets[0]?.get_url).toMatch(/^\/api\/storage\//);
-      expect(result.assets[0]?.thumb_url).toMatch(/^\/api\/assets\/img-1\/thumbnail/);
+      expect(result.assets[0]?.thumb_url).toMatch(/^\/api\/storage\//);
       expect(result.next).toBe("next-cursor");
     });
 

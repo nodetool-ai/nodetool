@@ -33,7 +33,8 @@ export {
   runEvents,
   runLeases,
   teamTasks,
-  appSettings
+  appSettings,
+  timelineSequences
 } from "./schema/index.js";
 
 // ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────
@@ -75,6 +76,9 @@ export {
 } from "./secret-helper.js";
 
 export { Setting } from "./setting.js";
+
+export { TimelineSequence } from "./timeline-sequence.js";
+export type { TimelineDocument } from "./timeline-sequence.js";
 
 export { OAuthCredential } from "./oauth-credential.js";
 
