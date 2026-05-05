@@ -12,19 +12,10 @@ import { EditorButton } from "../../editor_ui";
 import { Dialog, Tooltip, Text, Caption, FlexRow, ToolbarIconButton } from "../../ui_primitives";
 import isEqual from "fast-deep-equal";
 import {
-  MailOutline,
   Search,
-  Newspaper,
-  ImageSearch,
   Language,
-  ManageSearch,
   Image,
   VolumeUp,
-  Camera,
-  Map,
-  ShoppingCart,
-  Analytics,
-  Work,
   Build
 } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
@@ -105,114 +96,71 @@ const dialogStyles = (theme: Theme) =>
   });
 
 interface Tool {
+  /** Synthetic UI id; identical to `toolIds[0]` for single-tool entries. */
   id: string;
   name: string;
   description: string;
   category: string;
   icon: React.JSX.Element;
+  /** Backend tool ids this entry expands to. A group selects/deselects them all together. */
+  toolIds: string[];
 }
 
+const BROWSER_TOOL_IDS = [
+  "browser_view",
+  "browser_navigate",
+  "browser_restart",
+  "browser_click",
+  "browser_input_text",
+  "browser_move_mouse",
+  "browser_press_key",
+  "browser_select_option",
+  "browser_scroll",
+  "browser_console_exec",
+  "browser_console_view"
+];
+
 const TOOLS: Tool[] = [
-  // Search Tools
   {
     id: "google_search",
-    name: "Google Search",
+    name: "Web Search",
     description: "Search the web with Google",
     category: "Search",
-    icon: <Search />
+    icon: <Search />,
+    toolIds: ["google_search"]
   },
-  {
-    id: "google_news",
-    name: "Google News",
-    description: "Search for news articles",
-    category: "Search",
-    icon: <Newspaper />
-  },
-  {
-    id: "google_images",
-    name: "Google Images",
-    description: "Search for images",
-    category: "Search",
-    icon: <ImageSearch />
-  },
-  {
-    id: "google_lens",
-    name: "Google Lens",
-    description: "Visual search with Google Lens",
-    category: "Search",
-    icon: <Camera />
-  },
-  {
-    id: "google_maps",
-    name: "Google Maps",
-    description: "Search locations and directions",
-    category: "Search",
-    icon: <Map />
-  },
-  {
-    id: "google_shopping",
-    name: "Google Shopping",
-    description: "Search for products",
-    category: "Search",
-    icon: <ShoppingCart />
-  },
-  {
-    id: "google_finance",
-    name: "Google Finance",
-    description: "Search financial information",
-    category: "Search",
-    icon: <Analytics />
-  },
-  {
-    id: "google_jobs",
-    name: "Google Jobs",
-    description: "Search for job listings",
-    category: "Search",
-    icon: <Work />
-  },
-  {
-    id: "search_email",
-    name: "Email Search",
-    description: "Search through emails",
-    category: "Search",
-    icon: <MailOutline />
-  },
-  {
-    id: "vector_hybrid_search",
-    name: "Document Search",
-    description: "Search documents in vector database",
-    category: "Search",
-    icon: <ManageSearch />
-  },
-  // Generation Tools
   {
     id: "google_image_generation",
     name: "Google Image Gen",
     description: "Generate images with Google Gemini",
     category: "Generation",
-    icon: <Image />
+    icon: <Image />,
+    toolIds: ["google_image_generation"]
   },
   {
     id: "openai_image_generation",
     name: "OpenAI Image Gen",
     description: "Generate images with DALL-E",
     category: "Generation",
-    icon: <Image />
+    icon: <Image />,
+    toolIds: ["openai_image_generation"]
   },
   {
     id: "openai_text_to_speech",
     name: "Text to Speech",
     description: "Convert text to spoken audio",
     category: "Generation",
-    icon: <VolumeUp />
+    icon: <VolumeUp />,
+    toolIds: ["openai_text_to_speech"]
   },
-  // Utility Tools
   {
     id: "browser",
     name: "Web Browser",
-    description: "Browse and interact with web pages",
+    description:
+      "Full browser control: navigate, view, click, input, scroll, run JS, and read the console.",
     category: "Utility",
-    icon: <Language />
+    icon: <Language />,
+    toolIds: BROWSER_TOOL_IDS
   }
 ];
 
@@ -223,14 +171,18 @@ interface ToolsSelectorProps {
   onChange: (tools: string[]) => void;
 }
 
+const isToolSelected = (tool: Tool, value: string[]): boolean =>
+  tool.toolIds.every((id) => value.includes(id));
+
 const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const selectedTools = useMemo(() => {
-    const toolIds = new Set(TOOLS.map((tool) => tool.id));
-    return (value || []).filter((toolId) => toolIds.has(toolId));
-  }, [value]);
+
+  const selectedToolEntries = useMemo(
+    () => TOOLS.filter((tool) => isToolSelected(tool, value || [])),
+    [value]
+  );
 
   const handleClick = useCallback(() => {
     setIsOpen(true);
@@ -242,12 +194,17 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
 
   const handleToggleTool = useCallback(
     (toolId: string) => {
-      const newTools = selectedTools.includes(toolId)
-        ? selectedTools.filter((id) => id !== toolId)
-        : [...selectedTools, toolId];
-      onChange(newTools);
+      const tool = TOOLS.find((t) => t.id === toolId);
+      if (!tool) return;
+      const current = value || [];
+      const isSelected = isToolSelected(tool, current);
+      const memberSet = new Set(tool.toolIds);
+      const next = isSelected
+        ? current.filter((id) => !memberSet.has(id))
+        : [...current.filter((id) => !memberSet.has(id)), ...tool.toolIds];
+      onChange(next);
     },
-    [selectedTools, onChange]
+    [value, onChange]
   );
 
   // Memoize toggle handlers for each tool to prevent re-renders
@@ -269,26 +226,26 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
     }, {});
   }, []);
 
-  const selectedToolIcons = useMemo(() => {
-    return selectedTools
-      .map((toolId) => TOOLS.find((tool) => tool.id === toolId))
-      .filter((tool): tool is Tool => tool !== undefined)
-      .slice(0, 3);
-  }, [selectedTools]);
+  const selectedToolIcons = useMemo(
+    () => selectedToolEntries.slice(0, 3),
+    [selectedToolEntries]
+  );
 
   return (
     <>
       <Tooltip
         title={
-          selectedTools.length > 0
-            ? `${selectedTools.length} tools selected`
+          selectedToolEntries.length > 0
+            ? `${selectedToolEntries.length} tools selected`
             : "Select Tools"
         }
         delay={TOOLTIP_ENTER_DELAY}
       >
         <EditorButton
           ref={buttonRef}
-          className={`tools-button ${selectedTools.length > 0 ? "active" : ""}`}
+          className={`tools-button ${
+            selectedToolEntries.length > 0 ? "active" : ""
+          }`}
           onClick={handleClick}
           size="small"
           startIcon={
@@ -305,11 +262,9 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
                     {tool.icon}
                   </FlexRow>
                 ))}
-                {selectedTools.length > 3 && (
-                  <Caption
-                    sx={{ fontSize: "12px", ml: 0.5 }}
-                  >
-                    +{selectedTools.length - 3}
+                {selectedToolEntries.length > 3 && (
+                  <Caption sx={{ fontSize: "12px", ml: 0.5 }}>
+                    +{selectedToolEntries.length - 3}
                   </Caption>
                 )}
               </FlexRow>
@@ -359,7 +314,7 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
                 <div className="category-header">{category}</div>
                 <div className="tools-list">
                   {groupedTools[category]?.map((tool) => {
-                    const isSelected = selectedTools.includes(tool.id);
+                    const isSelected = isToolSelected(tool, value || []);
                     return (
                       <div
                         key={tool.id}

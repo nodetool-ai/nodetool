@@ -19,79 +19,84 @@ interface Tool {
   name: string;
 }
 import {
-  MailOutline,
   Search,
-  Newspaper,
-  ImageSearch,
   Language,
-  ManageSearch,
-  Camera,
-  Map,
-  ShoppingCart,
-  Analytics,
-  Work,
   Add,
   Description,
   EditNote,
   Folder
 } from "@mui/icons-material";
 
-const AVAILABLE_TOOLS = [
-  "read_file",
-  "write_file",
-  "list_directory",
-  "search_email",
-  "google_search",
-  "google_news",
-  "google_images",
-  "google_lens",
-  "google_maps",
-  "google_shopping",
-  "google_finance",
-  "google_jobs",
-  "browser",
-  "vector_hybrid_search",
+const BROWSER_TOOL_IDS = [
+  "browser_view",
+  "browser_navigate",
+  "browser_restart",
+  "browser_click",
+  "browser_input_text",
+  "browser_move_mouse",
+  "browser_press_key",
+  "browser_select_option",
+  "browser_scroll",
+  "browser_console_exec",
+  "browser_console_view"
 ];
 
-const TOOL_DESCRIPTIONS: Record<string, string> = {
-  read_file: "Read file in workspace",
-  write_file: "Write file in workspace",
-  list_directory: "List files in workspace",
-  search_email: "Search for emails",
-  google_search: "Search Google",
-  google_news: "Search Google News",
-  google_images: "Search Google Images",
-  google_lens: "Search Google Lens",
-  google_maps: "Search Google Maps",
-  google_shopping: "Search Google Shopping",
-  google_finance: "Search Google Finance",
-  google_jobs: "Search Google Jobs",
-  browser: "Browse the web",
-  vector_hybrid_search: "Search for documents in the vector database",
-};
+interface ToolEntry {
+  /** Synthetic id for the menu row. */
+  id: string;
+  description: string;
+  icon: React.JSX.Element;
+  /** Underlying tool names this entry expands to. */
+  toolIds: string[];
+}
 
-const TOOL_ICONS: Record<string, React.JSX.Element> = {
-  read_file: <Description fontSize="small" sx={{ mr: 0.5 }} />,
-  write_file: <EditNote fontSize="small" sx={{ mr: 0.5 }} />,
-  list_directory: <Folder fontSize="small" sx={{ mr: 0.5 }} />,
-  google_search: <Search fontSize="small" sx={{ mr: 0.5 }} />,
-  google_news: <Newspaper fontSize="small" sx={{ mr: 0.5 }} />,
-  google_images: <ImageSearch fontSize="small" sx={{ mr: 0.5 }} />,
-  google_lens: <Camera fontSize="small" sx={{ mr: 0.5 }} />,
-  google_maps: <Map fontSize="small" sx={{ mr: 0.5 }} />,
-  google_shopping: <ShoppingCart fontSize="small" sx={{ mr: 0.5 }} />,
-  google_finance: <Analytics fontSize="small" sx={{ mr: 0.5 }} />,
-  google_jobs: <Work fontSize="small" sx={{ mr: 0.5 }} />,
-  browser: <Language fontSize="small" sx={{ mr: 0.5 }} />,
-  vector_hybrid_search: <ManageSearch fontSize="small" sx={{ mr: 0.5 }} />,
-  search_email: <MailOutline fontSize="small" sx={{ mr: 0.5 }} />
-};
+const AVAILABLE_TOOLS: ToolEntry[] = [
+  {
+    id: "read_file",
+    description: "Read file in workspace",
+    icon: <Description fontSize="small" sx={{ mr: 0.5 }} />,
+    toolIds: ["read_file"]
+  },
+  {
+    id: "write_file",
+    description: "Write file in workspace",
+    icon: <EditNote fontSize="small" sx={{ mr: 0.5 }} />,
+    toolIds: ["write_file"]
+  },
+  {
+    id: "list_directory",
+    description: "List files in workspace",
+    icon: <Folder fontSize="small" sx={{ mr: 0.5 }} />,
+    toolIds: ["list_directory"]
+  },
+  {
+    id: "google_search",
+    description: "Search the web",
+    icon: <Search fontSize="small" sx={{ mr: 0.5 }} />,
+    toolIds: ["google_search"]
+  },
+  {
+    id: "browser",
+    description: "Browse the web (navigate, view, click, input, JS)",
+    icon: <Language fontSize="small" sx={{ mr: 0.5 }} />,
+    toolIds: BROWSER_TOOL_IDS
+  }
+];
 
 const ToolsListProperty = (props: PropertyProps) => {
   const id = `tools-list-${props.property.name}-${props.propertyIndex}`;
   const toolNames: string[] = useMemo(
     () => props.value?.map((tool: Tool) => tool.name) || [],
     [props.value]
+  );
+  const toolNameSet = useMemo(() => new Set(toolNames), [toolNames]);
+
+  const selectedEntries = useMemo(
+    () =>
+      AVAILABLE_TOOLS.filter((entry) =>
+        entry.toolIds.every((tid) => toolNameSet.has(tid))
+      ),
+    [toolNameSet]
   );
 
   // Anchor element for the add/select menu
@@ -111,16 +116,18 @@ const ToolsListProperty = (props: PropertyProps) => {
 
   const handleToolClick = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
-      const toolName = event.currentTarget.dataset.tool;
-      if (!toolName) {
-        return;
-      }
-      const newToolNames = toolNames.includes(toolName)
-        ? toolNames.filter((name) => name !== toolName)
-        : [...toolNames, toolName];
-      onChange(newToolNames);
+      const entryId = event.currentTarget.dataset.tool;
+      if (!entryId) return;
+      const entry = AVAILABLE_TOOLS.find((t) => t.id === entryId);
+      if (!entry) return;
+      const isSelected = entry.toolIds.every((tid) => toolNameSet.has(tid));
+      const memberSet = new Set(entry.toolIds);
+      const next = isSelected
+        ? toolNames.filter((n) => !memberSet.has(n))
+        : [...toolNames.filter((n) => !memberSet.has(n)), ...entry.toolIds];
+      onChange(next);
     },
-    [toolNames, onChange]
+    [toolNames, toolNameSet, onChange]
   );
 
   return (
@@ -137,15 +144,15 @@ const ToolsListProperty = (props: PropertyProps) => {
         gap={1}
         sx={{ mt: 1, flexWrap: "wrap" }}
       >
-        {toolNames.map((tool) => (
+        {selectedEntries.map((entry) => (
           <ToolbarIconButton
-            key={tool}
-            tooltip={TOOL_DESCRIPTIONS[tool] || tool}
+            key={entry.id}
+            tooltip={entry.description}
             tooltipPlacement="top"
-            icon={TOOL_ICONS[tool] || <Search fontSize="small" />}
+            icon={entry.icon}
             size="small"
             onClick={handleToolClick}
-            data-tool={tool}
+            data-tool={entry.id}
             sx={{
               padding: "1px",
               marginLeft: "0 !important",
@@ -188,14 +195,19 @@ const ToolsListProperty = (props: PropertyProps) => {
         open={Boolean(menuAnchor)}
         onClose={() => setMenuAnchor(null)}
       >
-        {AVAILABLE_TOOLS.map((tool) => {
-          const selected = toolNames.includes(tool);
+        {AVAILABLE_TOOLS.map((entry) => {
+          const selected = entry.toolIds.every((tid) =>
+            toolNameSet.has(tid)
+          );
           return (
-            <MenuItem key={tool} onClick={handleToolClick} data-tool={tool} dense>
-              <ListItemIcon sx={{ minWidth: 24 }}>
-                {TOOL_ICONS[tool] || <Search fontSize="small" />}
-              </ListItemIcon>
-              <ListItemText>{TOOL_DESCRIPTIONS[tool] || tool}</ListItemText>
+            <MenuItem
+              key={entry.id}
+              onClick={handleToolClick}
+              data-tool={entry.id}
+              dense
+            >
+              <ListItemIcon sx={{ minWidth: 24 }}>{entry.icon}</ListItemIcon>
+              <ListItemText>{entry.description}</ListItemText>
               <Checkbox
                 checked={selected}
                 size="small"
