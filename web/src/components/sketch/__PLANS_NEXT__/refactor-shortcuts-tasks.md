@@ -235,7 +235,6 @@ These are not dispatched by the central dispatcher — they fire from `onKeyDown
 
 - [x] Delete the old monolithic keydown handler body, any leftover `isAppleLikePlatform()` local copies, and the now-unused inline mirror toggle branches.
 
-
 ## Problematic parts (for reference during migration)
 
 - `useEditorKeyboardShortcuts.ts` mixes binding lookup, scope logic, side effects, repeat-loop management, and handler execution in one 600+ line capture listener.
