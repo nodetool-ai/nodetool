@@ -6,7 +6,7 @@
  * Covers all property types from the web editor with mobile-appropriate UIs.
  */
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -241,9 +241,11 @@ const FloatWidget: React.FC<{
   const [localValue, setLocalValue] = useState(
     value !== undefined ? String(value) : ""
   );
+  const localValueRef = useRef(localValue);
+  localValueRef.current = localValue;
 
   React.useEffect(() => {
-    const parsedLocal = parseFloat(localValue);
+    const parsedLocal = parseFloat(localValueRef.current);
     if (value !== undefined && value !== parsedLocal) {
       setLocalValue(String(value));
     }

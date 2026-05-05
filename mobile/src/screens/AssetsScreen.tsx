@@ -139,21 +139,6 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
     }
   }, [navigation]);
 
-  const handleAssetLongPress = useCallback((asset: Asset) => {
-    Alert.alert(
-      asset.name,
-      asset.content_type,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => confirmDelete(asset),
-        },
-      ]
-    );
-  }, []);
-
   const confirmDelete = useCallback((asset: Asset) => {
     Alert.alert(
       'Delete asset?',
@@ -176,6 +161,21 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
       ]
     );
   }, []);
+
+  const handleAssetLongPress = useCallback((asset: Asset) => {
+    Alert.alert(
+      asset.name,
+      asset.content_type,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => confirmDelete(asset),
+        },
+      ]
+    );
+  }, [confirmDelete]);
 
   const [isUploading, setIsUploading] = useState(false);
   const user = useAuthStore((s) => s.user);
