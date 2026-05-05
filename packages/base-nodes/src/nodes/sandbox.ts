@@ -597,69 +597,415 @@ export class SandboxShellNode extends BaseNode {
   }
 }
 
-export class SandboxBrowserNode extends BaseNode {
-  static readonly nodeType = "nodetool.sandbox.SandboxBrowser";
-  static readonly title = "SandboxBrowser";
+/**
+ * Browser nodes share a single sandbox session per workflow run; they don't
+ * own a workspace mount, so the workspace_dir prop is intentionally absent.
+ * The session is acquired without a workspaceDir override — if the workflow
+ * already has a SandboxShell/SandboxFile node mounting one, that mount is
+ * reused; otherwise the sandbox runs without a mount.
+ */
+async function browserClient(context?: ProcessingContext): Promise<ToolClient> {
+  const sessionId = toEffectiveSessionId(DEFAULT_SESSION_ID, context);
+  return getClient(sessionId, "", context);
+}
+
+function optionalInt(value: unknown): number | undefined {
+  if (value === null || value === undefined || value === "") return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.trunc(n) : undefined;
+}
+
+function optionalString(value: unknown): string | undefined {
+  const s = asTrimmedString(value);
+  return s.length > 0 ? s : undefined;
+}
+
+export class SandboxBrowserViewNode extends BaseNode {
+  static readonly nodeType = "nodetool.sandbox.SandboxBrowserView";
+  static readonly title = "SandboxBrowserView";
   static readonly description =
-    "Control the sandbox browser (navigate, inspect, click, input, and console actions).";
+    "Inspect the sandbox browser page: URL, title, viewport, indexed elements, and an optional screenshot.";
   static readonly metadataOutputTypes = {
-    output: "dict[str, any]"
+    url: "str",
+    title: "str",
+    viewport: "dict[str, any]",
+    elements: "list[dict[str, any]]",
+    screenshot_png_b64: "union[str, none]"
+  };
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Include Screenshot",
+    description: "Capture a base64-encoded PNG screenshot of the viewport."
+  })
+  declare include_screenshot: boolean;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const client = await browserClient(context);
+    const out = await client.browserView({
+      include_screenshot: Boolean(this.include_screenshot)
+    });
+    return {
+      url: out.url,
+      title: out.title,
+      viewport: out.viewport,
+      elements: out.elements,
+      screenshot_png_b64: out.screenshot_png_b64
+    };
+  }
+}
+
+export class SandboxBrowserNavigateNode extends BaseNode {
+  static readonly nodeType = "nodetool.sandbox.SandboxBrowserNavigate";
+  static readonly title = "SandboxBrowserNavigate";
+  static readonly description = "Navigate the sandbox browser to a URL.";
+  static readonly metadataOutputTypes = {
+    url: "str",
+    title: "str",
+    status: "union[int, none]"
   };
   static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
     default: "",
-    title: "Workspace Dir",
-    description: "Optional sandbox workspace directory."
+    title: "URL",
+    description: "Absolute URL to navigate to."
   })
-  declare workspace_dir: string;
+  declare url: string;
 
   @prop({
     type: "enum",
-    default: "view",
-    title: "Action",
-    description: "Browser action to execute.",
-    values: [
-      "view",
-      "navigate",
-      "restart",
-      "click",
-      "input_text",
-      "move_mouse",
-      "press_key",
-      "select_option",
-      "scroll",
-      "console_exec",
-      "console_view"
-    ]
+    default: "load",
+    title: "Wait Until",
+    description: "Page lifecycle event to wait for after navigation.",
+    values: ["load", "domcontentloaded", "networkidle"]
   })
-  declare action: string;
-
-  @prop({
-    type: "dict",
-    default: {},
-    title: "Params",
-    description: "Action parameters validated by the sandbox browser tool."
-  })
-  declare params: Record<string, unknown>;
+  declare wait_until: string;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const effectiveSessionId = toEffectiveSessionId(DEFAULT_SESSION_ID, context);
-    const workspaceDir = resolveSandboxWorkspaceDir(this.workspace_dir, context);
-    const action = asTrimmedString(this.action || "view") as BrowserAction;
-    const params = asRecord(this.params);
-    const client = await getClient(effectiveSessionId, workspaceDir, context);
+    const url = asTrimmedString(this.url);
+    if (url.length === 0) throw new Error("URL is required");
+    const client = await browserClient(context);
+    const out = await client.browserNavigate({
+      url,
+      wait_until: this.wait_until as
+        | "load"
+        | "domcontentloaded"
+        | "networkidle"
+    });
+    return { url: out.url, title: out.title, status: out.status };
+  }
+}
 
-    const actionDef = BROWSER_ACTIONS[action];
-    if (!actionDef) {
-      throw new Error(`Unsupported browser action: ${action}`);
+export class SandboxBrowserRestartNode extends BaseNode {
+  static readonly nodeType = "nodetool.sandbox.SandboxBrowserRestart";
+  static readonly title = "SandboxBrowserRestart";
+  static readonly description =
+    "Restart the sandbox browser context, optionally landing on a URL.";
+  static readonly metadataOutputTypes = {
+    url: "str"
+  };
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "URL",
+    description: "Optional URL to load after restart."
+  })
+  declare url: string;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const client = await browserClient(context);
+    const out = await client.browserRestart({ url: optionalString(this.url) });
+    return { url: out.url };
+  }
+}
+
+export class SandboxBrowserClickNode extends BaseNode {
+  static readonly nodeType = "nodetool.sandbox.SandboxBrowserClick";
+  static readonly title = "SandboxBrowserClick";
+  static readonly description =
+    "Click an element by its index from SandboxBrowserView, or by viewport coordinates.";
+  static readonly metadataOutputTypes = {
+    clicked: "bool"
+  };
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "int",
+    default: null,
+    title: "Index",
+    description: "Element index from SandboxBrowserView. Leave empty to click by coordinates."
+  })
+  declare index: any;
+
+  @prop({
+    type: "int",
+    default: null,
+    title: "Coordinate X",
+    description: "Viewport x coordinate, used when no index is provided."
+  })
+  declare coordinate_x: any;
+
+  @prop({
+    type: "int",
+    default: null,
+    title: "Coordinate Y",
+    description: "Viewport y coordinate, used when no index is provided."
+  })
+  declare coordinate_y: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const client = await browserClient(context);
+    const out = await client.browserClick({
+      index: optionalInt(this.index),
+      coordinate_x: optionalInt(this.coordinate_x),
+      coordinate_y: optionalInt(this.coordinate_y)
+    } as Parameters<ToolClient["browserClick"]>[0]);
+    return { clicked: out.clicked };
+  }
+}
+
+export class SandboxBrowserInputTextNode extends BaseNode {
+  static readonly nodeType = "nodetool.sandbox.SandboxBrowserInputText";
+  static readonly title = "SandboxBrowserInputText";
+  static readonly description =
+    "Type text into an element by index or coordinates, optionally submitting with Enter.";
+  static readonly metadataOutputTypes = {
+    typed: "bool"
+  };
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Text",
+    description: "Text to type into the focused element."
+  })
+  declare text: string;
+
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Press Enter",
+    description: "Press Enter after typing."
+  })
+  declare press_enter: boolean;
+
+  @prop({
+    type: "int",
+    default: null,
+    title: "Index",
+    description: "Element index from SandboxBrowserView."
+  })
+  declare index: any;
+
+  @prop({
+    type: "int",
+    default: null,
+    title: "Coordinate X",
+    description: "Viewport x coordinate, used when no index is provided."
+  })
+  declare coordinate_x: any;
+
+  @prop({
+    type: "int",
+    default: null,
+    title: "Coordinate Y",
+    description: "Viewport y coordinate, used when no index is provided."
+  })
+  declare coordinate_y: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const client = await browserClient(context);
+    const out = await client.browserInput({
+      text: asString(this.text),
+      press_enter: Boolean(this.press_enter),
+      index: optionalInt(this.index),
+      coordinate_x: optionalInt(this.coordinate_x),
+      coordinate_y: optionalInt(this.coordinate_y)
+    } as Parameters<ToolClient["browserInput"]>[0]);
+    return { typed: out.typed };
+  }
+}
+
+export class SandboxBrowserMoveMouseNode extends BaseNode {
+  static readonly nodeType = "nodetool.sandbox.SandboxBrowserMoveMouse";
+  static readonly title = "SandboxBrowserMoveMouse";
+  static readonly description = "Move the mouse to viewport coordinates.";
+  static readonly metadataOutputTypes = {
+    moved: "bool"
+  };
+  static readonly exposeAsTool = true;
+
+  @prop({ type: "int", default: 0, title: "Coordinate X" })
+  declare coordinate_x: number;
+
+  @prop({ type: "int", default: 0, title: "Coordinate Y" })
+  declare coordinate_y: number;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const client = await browserClient(context);
+    const out = await client.browserMoveMouse({
+      coordinate_x: Math.trunc(Number(this.coordinate_x)),
+      coordinate_y: Math.trunc(Number(this.coordinate_y))
+    });
+    return { moved: out.moved };
+  }
+}
+
+export class SandboxBrowserPressKeyNode extends BaseNode {
+  static readonly nodeType = "nodetool.sandbox.SandboxBrowserPressKey";
+  static readonly title = "SandboxBrowserPressKey";
+  static readonly description =
+    "Press a keyboard key (e.g. Enter, Tab, Escape, ArrowDown, single character).";
+  static readonly metadataOutputTypes = {
+    pressed: "bool"
+  };
+  static readonly exposeAsTool = true;
+
+  @prop({ type: "str", default: "", title: "Key" })
+  declare key: string;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const key = asTrimmedString(this.key);
+    if (key.length === 0) throw new Error("Key is required");
+    const client = await browserClient(context);
+    const out = await client.browserPressKey({ key });
+    return { pressed: out.pressed };
+  }
+}
+
+export class SandboxBrowserSelectOptionNode extends BaseNode {
+  static readonly nodeType = "nodetool.sandbox.SandboxBrowserSelectOption";
+  static readonly title = "SandboxBrowserSelectOption";
+  static readonly description =
+    "Select an option in a <select> element identified by its index.";
+  static readonly metadataOutputTypes = {
+    selected: "list[str]"
+  };
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Index",
+    description: "Element index of the <select> from SandboxBrowserView."
+  })
+  declare index: number;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Option",
+    description: "Option value or visible text to select."
+  })
+  declare option: string;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const option = asString(this.option);
+    if (option.length === 0) throw new Error("Option is required");
+    const client = await browserClient(context);
+    const out = await client.browserSelectOption({
+      index: Math.trunc(Number(this.index)),
+      option
+    });
+    return { selected: out.selected };
+  }
+}
+
+export class SandboxBrowserScrollNode extends BaseNode {
+  static readonly nodeType = "nodetool.sandbox.SandboxBrowserScroll";
+  static readonly title = "SandboxBrowserScroll";
+  static readonly description =
+    "Scroll the page to top, bottom, or by a relative pixel amount.";
+  static readonly metadataOutputTypes = {
+    scroll_y: "float"
+  };
+  static readonly exposeAsTool = true;
+
+  @prop({ type: "bool", default: false, title: "To Top" })
+  declare to_top: boolean;
+
+  @prop({ type: "bool", default: false, title: "To Bottom" })
+  declare to_bottom: boolean;
+
+  @prop({
+    type: "int",
+    default: null,
+    title: "Pixels",
+    description: "Relative scroll in pixels (negative scrolls up). Ignored if to_top/to_bottom is set."
+  })
+  declare pixels: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const client = await browserClient(context);
+    const out = await client.browserScroll({
+      to_top: Boolean(this.to_top),
+      to_bottom: Boolean(this.to_bottom),
+      pixels: optionalInt(this.pixels)
+    });
+    return { scroll_y: out.scroll_y };
+  }
+}
+
+export class SandboxBrowserConsoleExecNode extends BaseNode {
+  static readonly nodeType = "nodetool.sandbox.SandboxBrowserConsoleExec";
+  static readonly title = "SandboxBrowserConsoleExec";
+  static readonly description =
+    "Execute a JavaScript expression in the page and return the JSON-serialised result.";
+  static readonly metadataOutputTypes = {
+    result_json: "str"
+  };
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "JavaScript",
+    description: "Expression evaluated in the page context."
+  })
+  declare javascript: string;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const javascript = asString(this.javascript);
+    if (javascript.trim().length === 0) {
+      throw new Error("JavaScript is required");
     }
-    const output = await actionDef.invoke(client, params);
+    const client = await browserClient(context);
+    const out = await client.browserConsoleExec({ javascript });
+    return { result_json: out.result_json };
+  }
+}
 
-    return {
-      output
-    };
+export class SandboxBrowserConsoleViewNode extends BaseNode {
+  static readonly nodeType = "nodetool.sandbox.SandboxBrowserConsoleView";
+  static readonly title = "SandboxBrowserConsoleView";
+  static readonly description =
+    "Read recent browser console messages captured by the sandbox.";
+  static readonly metadataOutputTypes = {
+    messages: "list[dict[str, any]]"
+  };
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "int",
+    default: null,
+    title: "Max Lines",
+    description: "Maximum number of console lines to return (most recent first)."
+  })
+  declare max_lines: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const client = await browserClient(context);
+    const out = await client.browserConsoleView({
+      max_lines: optionalInt(this.max_lines)
+    });
+    return { messages: out.messages };
   }
 }
 
@@ -753,7 +1099,17 @@ export class SandboxAgentNode extends AgentNode {
 
 export const SANDBOX_NODES: readonly NodeClass[] = [
   SandboxShellNode,
-  SandboxBrowserNode,
+  SandboxBrowserViewNode,
+  SandboxBrowserNavigateNode,
+  SandboxBrowserRestartNode,
+  SandboxBrowserClickNode,
+  SandboxBrowserInputTextNode,
+  SandboxBrowserMoveMouseNode,
+  SandboxBrowserPressKeyNode,
+  SandboxBrowserSelectOptionNode,
+  SandboxBrowserScrollNode,
+  SandboxBrowserConsoleExecNode,
+  SandboxBrowserConsoleViewNode,
   SandboxFileNode,
   SandboxAgentNode
 ];

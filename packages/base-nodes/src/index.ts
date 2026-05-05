@@ -651,7 +651,17 @@ export { SEARCH_NODES } from "./nodes/search.js";
 export { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
 export {
   SandboxShellNode,
-  SandboxBrowserNode,
+  SandboxBrowserViewNode,
+  SandboxBrowserNavigateNode,
+  SandboxBrowserRestartNode,
+  SandboxBrowserClickNode,
+  SandboxBrowserInputTextNode,
+  SandboxBrowserMoveMouseNode,
+  SandboxBrowserPressKeyNode,
+  SandboxBrowserSelectOptionNode,
+  SandboxBrowserScrollNode,
+  SandboxBrowserConsoleExecNode,
+  SandboxBrowserConsoleViewNode,
   SandboxFileNode,
   SandboxAgentNode,
   SANDBOX_NODES

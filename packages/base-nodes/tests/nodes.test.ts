@@ -68,7 +68,10 @@ import {
   TextTo3DNode,
   GetModel3DMetadataNode,
   SandboxShellNode,
-  SandboxBrowserNode,
+  SandboxBrowserViewNode,
+  SandboxBrowserNavigateNode,
+  SandboxBrowserClickNode,
+  SandboxBrowserInputTextNode,
   SandboxFileNode,
   SandboxAgentNode
 } from "../src/index.js";
@@ -104,7 +107,10 @@ describe("base node registration", () => {
     expect(registry.has("nodetool.code.RunRubyCommandDocker")).toBe(true);
     expect(registry.has("nodetool.code.RunShellCommandDocker")).toBe(true);
     expect(registry.has(SandboxShellNode.nodeType)).toBe(true);
-    expect(registry.has(SandboxBrowserNode.nodeType)).toBe(true);
+    expect(registry.has(SandboxBrowserViewNode.nodeType)).toBe(true);
+    expect(registry.has(SandboxBrowserNavigateNode.nodeType)).toBe(true);
+    expect(registry.has(SandboxBrowserClickNode.nodeType)).toBe(true);
+    expect(registry.has(SandboxBrowserInputTextNode.nodeType)).toBe(true);
     expect(registry.has(SandboxFileNode.nodeType)).toBe(true);
     expect(registry.has(SandboxAgentNode.nodeType)).toBe(true);
   });

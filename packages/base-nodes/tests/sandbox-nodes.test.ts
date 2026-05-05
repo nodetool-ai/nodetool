@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 let SandboxShellNode: (typeof import("../src/nodes/sandbox.js"))["SandboxShellNode"];
-let SandboxBrowserNode: (typeof import("../src/nodes/sandbox.js"))["SandboxBrowserNode"];
+let SandboxBrowserNavigateNode: (typeof import("../src/nodes/sandbox.js"))["SandboxBrowserNavigateNode"];
 let SandboxFileNode: (typeof import("../src/nodes/sandbox.js"))["SandboxFileNode"];
 let SandboxAgentNode: (typeof import("../src/nodes/sandbox.js"))["SandboxAgentNode"];
 
@@ -72,7 +72,7 @@ describe("sandbox nodes", () => {
   beforeAll(async () => {
     const mod = await import("../src/nodes/sandbox.js");
     SandboxShellNode = mod.SandboxShellNode;
-    SandboxBrowserNode = mod.SandboxBrowserNode;
+    SandboxBrowserNavigateNode = mod.SandboxBrowserNavigateNode;
     SandboxFileNode = mod.SandboxFileNode;
     SandboxAgentNode = mod.SandboxAgentNode;
   });
@@ -184,11 +184,11 @@ describe("sandbox nodes", () => {
     );
   });
 
-  it("SandboxBrowser dispatches browser actions", async () => {
-    const node = new SandboxBrowserNode();
+  it("SandboxBrowserNavigate calls the navigate tool with the URL and wait_until", async () => {
+    const node = new SandboxBrowserNavigateNode();
     node.assign({
-      action: "navigate",
-      params: { url: "https://example.com", wait_until: "load" }
+      url: "https://example.com",
+      wait_until: "load"
     });
 
     const result = await node.process();
@@ -196,7 +196,11 @@ describe("sandbox nodes", () => {
       url: "https://example.com",
       wait_until: "load"
     });
-    expect(result.output).toEqual({ url: "https://example.com" });
+    expect(result).toEqual({
+      url: "https://example.com",
+      title: undefined,
+      status: undefined
+    });
   });
 
   it("SandboxFile dispatches file actions", async () => {
