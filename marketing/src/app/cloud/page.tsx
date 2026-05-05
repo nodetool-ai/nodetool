@@ -94,6 +94,10 @@ const proPoints = [
 
 const consPoints = [
   {
+    title: "Alpha — not yet GA",
+    body: "Cloud is in active alpha. Expect breaking changes, missing polish, and occasional downtime. SLAs and production guarantees come with general availability, which we haven't reached yet.",
+  },
+  {
     title: "No local LLMs",
     body: "Cloud doesn't run Ollama, MLX, or GGUF models — those need access to your hardware. Use Studio if you need open-weight models running locally.",
   },
@@ -225,6 +229,9 @@ export default function CloudPage() {
                   <span className="text-xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">
                     nodetool <span className="text-sm font-normal opacity-70">/ cloud</span>
                   </span>
+                  <span className="ml-1 hidden sm:inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-200">
+                    Alpha
+                  </span>
                 </a>
               </div>
               <ul className="hidden md:flex items-center gap-2 lg:gap-4 mx-auto rounded-full bg-slate-900/40 ring-1 ring-white/5 px-2 py-1 border border-slate-800/50">
@@ -343,10 +350,16 @@ export default function CloudPage() {
           <div className={sectionContainer}>
             <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12 py-12 md:py-20">
               <div className="lg:col-span-5">
-                <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-blue-200">
-                  <Cloud className="h-3.5 w-3.5" />
-                  Cloud · Browser · Open source
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-blue-200">
+                    <Cloud className="h-3.5 w-3.5" />
+                    Cloud · Browser · Open source
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-amber-200">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-300 animate-pulse" />
+                    Alpha — not generally available
+                  </span>
+                </div>
                 <h1
                   id="cloud-hero-title"
                   className="mt-6 text-4xl md:text-6xl font-bold tracking-tight text-white leading-[1.05]"
@@ -363,17 +376,31 @@ export default function CloudPage() {
                   and start building. Bring your own API keys for every cloud
                   provider you want to use.
                 </p>
+                <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-4 text-sm text-amber-100/90 max-w-xl">
+                  <strong className="text-amber-200">Heads up:</strong> Cloud is
+                  in <strong className="text-amber-200">alpha</strong> and not
+                  yet generally available. Expect rough edges, breaking changes,
+                  and occasional downtime while we harden it. For production
+                  workloads today, use{" "}
+                  <a
+                    href="/studio"
+                    className="underline underline-offset-2 hover:text-amber-50"
+                  >
+                    NodeTool Studio
+                  </a>{" "}
+                  or self-host.
+                </div>
                 <div className="mt-8 flex flex-col gap-4">
                   <a
                     href="https://app.nodetool.ai"
                     className="inline-flex w-fit items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-blue-900/40 transition-all"
                   >
-                    Open NodeTool Cloud
+                    Try the Cloud alpha
                     <ArrowRight className="h-4 w-4" />
                   </a>
                   <p className="text-xs text-slate-400">
-                    AGPL-3.0 source · BYOK for every provider · Self-host any
-                    time
+                    Alpha preview · AGPL-3.0 source · BYOK for every provider ·
+                    Self-host any time
                   </p>
                 </div>
                 <div className="mt-6 inline-flex items-center gap-2 text-sm text-slate-400">
