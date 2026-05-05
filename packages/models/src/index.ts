@@ -99,6 +99,16 @@ export type { EventType } from "./run-event.js";
 
 export { RunLease } from "./run-lease.js";
 
+// ── Seeds ────────────────────────────────────────────────────────────
+export {
+  runSeeds,
+  seedTimelineTemplates,
+  SEED_IDS,
+  SYSTEM_USER_ID,
+  TIMELINE_TEMPLATE_TAG,
+  TIMELINE_TEMPLATE_WORKFLOWS
+} from "./seeds/index.js";
+
 // ── API Graph ───────────────────────────────────────────────────────
 export {
   toApiNode,

@@ -35,7 +35,7 @@ import {
   PythonStdioBridge
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
-import { initDb, initPostgresDb, getSecret } from "@nodetool-ai/models";
+import { initDb, initPostgresDb, getSecret, runSeeds } from "@nodetool-ai/models";
 import {
   Tool,
   GoogleSearchTool,
@@ -228,6 +228,10 @@ try {
   setSecretResolver((key, userId) =>
     getSecret(key, userId).then((v) => v ?? undefined)
   );
+
+  // Seed built-in workflows (idempotent upserts — safe to run on every start).
+  await runSeeds();
+  log.info(`Seeds applied [${startupMs()}]`);
 } catch (err) {
   log.error(
     "Database setup failed",
