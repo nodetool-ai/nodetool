@@ -26,8 +26,7 @@
     "dist": "electron-builder",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:integration": "npm run test:integration --workspace=packages/websocket"
+    "test:coverage": "jest --coverage"
   },
   "author": "matti.georgi@gmail.com",
   "license": "AGPL-3.0-only",
