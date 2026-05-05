@@ -18,9 +18,6 @@ import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
 import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
 import ApiIcon from "@mui/icons-material/Api";
 import CodeIcon from "@mui/icons-material/Code";
-import { DYNAMIC_FAL_NODE_TYPE } from "../node/DynamicFalSchemaNode";
-import { DYNAMIC_KIE_NODE_TYPE } from "../node/DynamicKieSchemaNode";
-import { DYNAMIC_REPLICATE_NODE_TYPE } from "../node/DynamicReplicateNode";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { shallow } from "zustand/shallow";
@@ -30,6 +27,7 @@ import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { IconForType, colorForType } from "../../config/data_types";
+import { QUICK_ACTION_NODE_TYPES } from "../../config/quickActionNodeTypes";
 
 export type QuickActionDefinition = {
   key: string;
@@ -70,18 +68,21 @@ const buildQuickAction = (
 /** Shorthand: pass rgb values (no alpha) as "rgb(r, g, b)" */
 const rgb = (r: number, g: number, b: number) => `rgba(${r}, ${g}, ${b}`;
 
+const QUICK_ACTION_AI_NODE_TYPES = QUICK_ACTION_NODE_TYPES.slice(0, 11);
+const QUICK_ACTION_CONSTANT_NODE_TYPES = QUICK_ACTION_NODE_TYPES.slice(11);
+
 export const QUICK_ACTION_BUTTONS: QuickActionDefinition[] = [
-  buildQuickAction("agent", "Agent", "nodetool.agents.Agent", <SupportAgentIcon />, rgb(79, 70, 229), rgb(99, 102, 241), "#4f46e5"),
-  buildQuickAction("code", "Code", "nodetool.code.Code", <CodeIcon />, rgb(34, 197, 94), rgb(74, 222, 128), "#16a34a"),
-  buildQuickAction("text-to-image", "Text to Image", "nodetool.image.TextToImage", <ImageIcon />, rgb(236, 72, 153), rgb(244, 114, 182), "#db2777"),
-  buildQuickAction("image-to-image", "Image to Image", "nodetool.image.ImageToImage", <AutoFixHighIcon />, rgb(16, 185, 129), rgb(52, 211, 153), "#059669"),
-  buildQuickAction("text-to-video", "Text to Video", "nodetool.video.TextToVideo", <VideoLibraryIcon />, rgb(168, 85, 247), rgb(192, 132, 252), "#9333ea"),
-  buildQuickAction("image-to-video", "Image to Video", "nodetool.video.ImageToVideo", <OndemandVideoIcon />, rgb(249, 115, 22), rgb(251, 146, 60), "#ea580c"),
-  buildQuickAction("text-to-speech", "Text to Speech", "nodetool.audio.TextToSpeech", <RecordVoiceOverIcon />, rgb(6, 182, 212), rgb(34, 211, 238), "#0891b2"),
-  buildQuickAction("speech-to-text", "Speech to Text", "nodetool.text.AutomaticSpeechRecognition", <KeyboardVoiceIcon />, rgb(14, 165, 233), rgb(56, 189, 248), "#0284c7"),
-  buildQuickAction("fal-dynamic", "FalAI", DYNAMIC_FAL_NODE_TYPE, <ApiIcon />, rgb(139, 92, 246), rgb(167, 139, 250), "#7c3aed"),
-  buildQuickAction("kie-dynamic", "KieAI", DYNAMIC_KIE_NODE_TYPE, <ApiIcon />, rgb(229, 92, 32), rgb(255, 140, 66), "#d94a12"),
-  buildQuickAction("replicate-dynamic", "Replicate", DYNAMIC_REPLICATE_NODE_TYPE, <ApiIcon />, rgb(59, 130, 246), rgb(129, 140, 248), "#2563eb")
+  buildQuickAction("agent", "Agent", QUICK_ACTION_AI_NODE_TYPES[0], <SupportAgentIcon />, rgb(79, 70, 229), rgb(99, 102, 241), "#4f46e5"),
+  buildQuickAction("code", "Code", QUICK_ACTION_AI_NODE_TYPES[1], <CodeIcon />, rgb(34, 197, 94), rgb(74, 222, 128), "#16a34a"),
+  buildQuickAction("text-to-image", "Text to Image", QUICK_ACTION_AI_NODE_TYPES[2], <ImageIcon />, rgb(236, 72, 153), rgb(244, 114, 182), "#db2777"),
+  buildQuickAction("image-to-image", "Image to Image", QUICK_ACTION_AI_NODE_TYPES[3], <AutoFixHighIcon />, rgb(16, 185, 129), rgb(52, 211, 153), "#059669"),
+  buildQuickAction("text-to-video", "Text to Video", QUICK_ACTION_AI_NODE_TYPES[4], <VideoLibraryIcon />, rgb(168, 85, 247), rgb(192, 132, 252), "#9333ea"),
+  buildQuickAction("image-to-video", "Image to Video", QUICK_ACTION_AI_NODE_TYPES[5], <OndemandVideoIcon />, rgb(249, 115, 22), rgb(251, 146, 60), "#ea580c"),
+  buildQuickAction("text-to-speech", "Text to Speech", QUICK_ACTION_AI_NODE_TYPES[6], <RecordVoiceOverIcon />, rgb(6, 182, 212), rgb(34, 211, 238), "#0891b2"),
+  buildQuickAction("speech-to-text", "Speech to Text", QUICK_ACTION_AI_NODE_TYPES[7], <KeyboardVoiceIcon />, rgb(14, 165, 233), rgb(56, 189, 248), "#0284c7"),
+  buildQuickAction("fal-dynamic", "FalAI", QUICK_ACTION_AI_NODE_TYPES[8], <ApiIcon />, rgb(139, 92, 246), rgb(167, 139, 250), "#7c3aed"),
+  buildQuickAction("kie-dynamic", "KieAI", QUICK_ACTION_AI_NODE_TYPES[9], <ApiIcon />, rgb(229, 92, 32), rgb(255, 140, 66), "#d94a12"),
+  buildQuickAction("replicate-dynamic", "Replicate", QUICK_ACTION_AI_NODE_TYPES[10], <ApiIcon />, rgb(59, 130, 246), rgb(129, 140, 248), "#2563eb")
 ];
 
 const hexToRgba = (hex: string, alpha: number) => {
@@ -140,91 +141,91 @@ export const CONSTANT_NODES: QuickActionDefinition[] = [
   buildConstantNode({
     key: "constant-bool",
     label: "Bool",
-    nodeType: "nodetool.constant.Bool",
+    nodeType: QUICK_ACTION_CONSTANT_NODE_TYPES[0],
     iconType: "bool"
   }),
   buildConstantNode({
     key: "constant-dataframe",
     label: "Data Frame",
-    nodeType: "nodetool.constant.DataFrame",
+    nodeType: QUICK_ACTION_CONSTANT_NODE_TYPES[1],
     iconType: "dataframe"
   }),
   buildConstantNode({
     key: "constant-date",
     label: "Date",
-    nodeType: "nodetool.constant.Date",
+    nodeType: QUICK_ACTION_CONSTANT_NODE_TYPES[2],
     iconType: "date"
   }),
   buildConstantNode({
     key: "constant-datetime",
     label: "Date Time",
-    nodeType: "nodetool.constant.DateTime",
+    nodeType: QUICK_ACTION_CONSTANT_NODE_TYPES[3],
     iconType: "datetime"
   }),
   buildConstantNode({
     key: "constant-dict",
     label: "Dict",
-    nodeType: "nodetool.constant.Dict",
+    nodeType: QUICK_ACTION_CONSTANT_NODE_TYPES[4],
     iconType: "dict"
   }),
   buildConstantNode({
     key: "constant-audio",
     label: "Audio",
-    nodeType: "nodetool.constant.Audio",
+    nodeType: QUICK_ACTION_CONSTANT_NODE_TYPES[5],
     iconType: "audio"
   }),
   buildConstantNode({
     key: "constant-document",
     label: "Document",
-    nodeType: "nodetool.constant.Document",
+    nodeType: QUICK_ACTION_CONSTANT_NODE_TYPES[6],
     iconType: "document"
   }),
   buildConstantNode({
     key: "constant-float",
     label: "Float",
-    nodeType: "nodetool.constant.Float",
+    nodeType: QUICK_ACTION_CONSTANT_NODE_TYPES[7],
     iconType: "float"
   }),
   buildConstantNode({
     key: "constant-image",
     label: "Image",
-    nodeType: "nodetool.constant.Image",
+    nodeType: QUICK_ACTION_CONSTANT_NODE_TYPES[8],
     iconType: "image"
   }),
   buildConstantNode({
     key: "constant-integer",
     label: "Integer",
-    nodeType: "nodetool.constant.Integer",
+    nodeType: QUICK_ACTION_CONSTANT_NODE_TYPES[9],
     iconType: "int"
   }),
   buildConstantNode({
     key: "constant-json",
     label: "JSON",
-    nodeType: "nodetool.constant.JSON",
+    nodeType: QUICK_ACTION_CONSTANT_NODE_TYPES[10],
     iconType: "json"
   }),
   buildConstantNode({
     key: "constant-list",
     label: "List",
-    nodeType: "nodetool.constant.List",
+    nodeType: QUICK_ACTION_CONSTANT_NODE_TYPES[11],
     iconType: "list"
   }),
   buildConstantNode({
     key: "constant-model-3d",
     label: "Model 3D",
-    nodeType: "nodetool.constant.Model3D",
+    nodeType: QUICK_ACTION_CONSTANT_NODE_TYPES[12],
     iconType: "model_3d"
   }),
   buildConstantNode({
     key: "constant-string",
     label: "String",
-    nodeType: "nodetool.constant.String",
+    nodeType: QUICK_ACTION_CONSTANT_NODE_TYPES[13],
     iconType: "str"
   }),
   buildConstantNode({
     key: "constant-video",
     label: "Video",
-    nodeType: "nodetool.constant.Video",
+    nodeType: QUICK_ACTION_CONSTANT_NODE_TYPES[14],
     iconType: "video"
   })
 ].sort((a, b) => a.label.localeCompare(b.label));

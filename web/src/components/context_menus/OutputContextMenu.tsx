@@ -1,29 +1,31 @@
-import React, { useCallback, useMemo, memo } from "react";
+import React, { useCallback, useEffect, useMemo, memo, useRef, useState } from "react";
 import { shallow } from "zustand/shallow";
 //mui
-import { Menu } from "@mui/material";
-import { Divider } from "../ui_primitives";
+import { Box, InputAdornment, Menu, TextField } from "@mui/material";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { Divider, Text, ToolbarIconButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
-import ContextMenuItem from "./ContextMenuItem";
 //icons
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import AltRouteIcon from "@mui/icons-material/AltRoute";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
-import HubIcon from "@mui/icons-material/Hub";
-import ListAltIcon from "@mui/icons-material/ListAlt";
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { labelForType } from "../../config/data_types";
-import { Slugify } from "../../utils/TypeHandler";
-import { constantForType } from "../../utils/NodeTypeMapping";
-import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
+import { isConnectable, Slugify } from "../../utils/TypeHandler";
 import { useNodes } from "../../contexts/NodeContext";
+import { filterTypesByInputType } from "../node_menu/typeFilterUtils";
+import { rankSearchNodes } from "../../utils/nodeSearch";
+import { useRecentNodesStore } from "../../stores/RecentNodesStore";
+import NodeItem from "../node_menu/NodeItem";
+
+const NODE_ROW_HEIGHT = 28;
 
 const OutputContextMenu: React.FC = () => {
   const theme = useTheme();
@@ -40,7 +42,6 @@ const OutputContextMenu: React.FC = () => {
     type: state.type,
     handleId: state.handleId
   }));
-  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
   const { createNode, addNode, addEdge, generateEdgeId } = useNodes(
@@ -54,6 +55,13 @@ const OutputContextMenu: React.FC = () => {
   );
   const reactFlowInstance = useReactFlow();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
+  const allMetadata = useMetadataStore((state) => state.metadata);
+  const [searchTerm, setSearchTerm] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const recentNodeTypes = useRecentNodesStore((state) =>
+    state.recentNodes.map((node) => node.nodeType)
+  );
 
   const outputNodeMetadata = useMemo(
     () => getMetadata("nodetool.output.Output"),
@@ -68,19 +76,7 @@ const OutputContextMenu: React.FC = () => {
     return getMetadata(saveNodePath);
   }, [sourceType, getMetadata]);
 
-  const {
-    showMenu,
-    setSourceHandle,
-    setNodeId,
-    setFilterType,
-    setConnectableType
-  } = useConnectableNodesStore((state) => ({
-    showMenu: state.showMenu,
-    setSourceHandle: state.setSourceHandle,
-    setNodeId: state.setNodeId,
-    setFilterType: state.setFilterType,
-    setConnectableType: state.setTypeMetadata
-  }));
+
 
   type HandleType = "value" | "image" | "df" | "values";
   const getTargetHandle = useCallback(
@@ -247,47 +243,6 @@ const OutputContextMenu: React.FC = () => {
     [saveNodeMetadata, createNodeWithEdge]
   );
 
-  const constantNodeType = sourceType?.type ? constantForType(sourceType.type) : null;
-
-  const createConstantNode = useCallback(
-    (event: React.MouseEvent) => {
-      if (!constantNodeType) {
-        return;
-      }
-      const metadata = getMetadata(constantNodeType);
-      if (!metadata) {
-        return;
-      }
-      const targetHandle =
-        metadata.properties?.[0]?.name ??
-        getTargetHandle(sourceType?.type || "", "constant");
-      createNodeWithEdge(
-        metadata,
-        {
-          x: event.clientX - 230,
-          y: event.clientY - 170
-        },
-        "constant",
-        targetHandle
-      );
-    },
-    [constantNodeType, getMetadata, getTargetHandle, sourceType, createNodeWithEdge]
-  );
-
-  const handleOpenNodeMenu = useCallback((event?: React.MouseEvent<HTMLElement>) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    openNodeMenu({
-      x: getMousePosition().x,
-      y: getMousePosition().y,
-      dropType: sourceType?.type || "",
-      connectDirection: "source"
-    });
-    closeContextMenu();
-  }, [openNodeMenu, sourceType, closeContextMenu]);
-
   const handleCreatePreviewNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
@@ -324,31 +279,145 @@ const OutputContextMenu: React.FC = () => {
     closeContextMenu();
   }, [createSaveNode, closeContextMenu]);
 
-  const handleCreateConstantNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      createConstantNode(event);
+  const connectableNodes = useMemo(() => {
+    if (!sourceType) {
+      return [];
     }
-    closeContextMenu();
-  }, [createConstantNode, closeContextMenu]);
+    return filterTypesByInputType(Object.values(allMetadata), sourceType);
+  }, [allMetadata, sourceType]);
 
-  const handleShowConnectableNodes = useCallback((
-    event?: React.MouseEvent<HTMLElement>
-  ) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
+  const rankedConnectableNodes = useMemo(
+    () => rankSearchNodes(connectableNodes, searchTerm, recentNodeTypes),
+    [connectableNodes, recentNodeTypes, searchTerm]
+  );
+
+  const virtualizer = useVirtualizer({
+    count: rankedConnectableNodes.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => NODE_ROW_HEIGHT,
+    initialRect: { height: 160, width: 320 },
+    overscan: 12,
+    getItemKey: (index) => rankedConnectableNodes[index]?.node_type ?? index
+  });
+
+  const getPreferredConnectableInput = useCallback(
+    (metadata: NodeMetadata) => {
+      if (!sourceType) {
+        return null;
+      }
+      const compatibleProperties = (metadata.properties || []).filter(
+        (property) => isConnectable(sourceType, property.type, true)
+      );
+      if (compatibleProperties.length === 0) {
+        return null;
+      }
+      const basicFields = metadata.basic_fields || [];
+      return (
+        compatibleProperties.find((property) =>
+          basicFields.includes(property.name)
+        ) || compatibleProperties[0]
+      );
+    },
+    [sourceType]
+  );
+
+  const handleSearchChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchTerm(event.target.value);
+    },
+    []
+  );
+
+  const handleSearchKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeContextMenu();
+      } else {
+        event.stopPropagation();
+      }
+    },
+    [closeContextMenu]
+  );
+
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm("");
+  }, []);
+
+  const handleDragStart = useCallback(
+    (_node: NodeMetadata, _event: React.DragEvent<HTMLDivElement>) => {},
+    []
+  );
+
+  const handleConnectableNodeClick = useCallback(
+    (metadata: NodeMetadata) => {
+      if (!menuPosition) {
+        return;
+      }
+      const property = getPreferredConnectableInput(metadata);
+      if (!property) {
+        return;
+      }
+      createNodeWithEdge(metadata, menuPosition, "connectable", property.name);
+      closeContextMenu();
+    },
+    [closeContextMenu, createNodeWithEdge, getPreferredConnectableInput, menuPosition]
+  );
+
+  useEffect(() => {
+    if (!menuPosition) {
+      return;
     }
-    if (menuPosition) {
-      setSourceHandle(sourceHandle);
-      setNodeId(nodeId);
-      setFilterType("input");
-      setConnectableType(sourceType);
-      showMenu({ x: menuPosition.x, y: menuPosition.y });
+    const timeout = window.setTimeout(() => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [menuPosition]);
+
+  const saveLabel = `Save${
+    sourceType?.type === "string"
+      ? "Text"
+      : sourceType?.type_name
+      ? sourceType.type_name?.charAt(0).toUpperCase() +
+        sourceType.type_name?.slice(1)
+      : ""
+  }`;
+  const showStaticActions = searchTerm.trim().length === 0;
+
+  const actionRowStyles = {
+    alignItems: "center",
+    backgroundColor: "transparent",
+    border: 0,
+    borderRadius: "var(--rounded-md)",
+    color: "text.primary",
+    cursor: "pointer",
+    display: "flex",
+    font: "inherit",
+    gap: "0.5em",
+    margin: 0,
+    minHeight: "28px",
+    padding: "1px 6px",
+    textAlign: "left",
+    width: "100%",
+    "&:hover": { backgroundColor: theme.vars.palette.action.hover },
+    ".icon-bg": {
+      alignItems: "center",
+      backgroundColor: theme.vars.palette.grey[900],
+      borderRadius: "0 0 3px 0",
+      boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
+      display: "flex",
+      flexShrink: 0,
+      height: "18px",
+      justifyContent: "center",
+      padding: "1px",
+      width: "18px"
+    },
+    ".icon-bg svg": {
+      color: theme.vars.palette.grey[100],
+      height: "13px",
+      width: "13px"
     }
-    closeContextMenu();
-  }, [menuPosition, sourceHandle, nodeId, sourceType, setSourceHandle, setNodeId, setFilterType, setConnectableType, showMenu, closeContextMenu]);
+  };
 
   if (!menuPosition) {return null;}
   return (
@@ -364,6 +433,8 @@ const OutputContextMenu: React.FC = () => {
             ? { top: menuPosition.y, left: menuPosition.x }
             : undefined
         }
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        marginThreshold={0}
         slotProps={{
           paper: {
             sx: {
@@ -371,7 +442,9 @@ const OutputContextMenu: React.FC = () => {
               backgroundColor: theme.vars.palette.background.paper,
               border: `1px solid ${theme.vars.palette.divider}`,
               boxShadow: theme.shadows[8],
-              minWidth: "220px",
+              maxHeight: `calc(100vh - ${menuPosition.y}px)`,
+              minWidth: "320px",
+              overflow: "hidden",
               padding: "4px",
               "& .MuiDivider-root": {
                 margin: "4px 0",
@@ -382,62 +455,176 @@ const OutputContextMenu: React.FC = () => {
         }}
         transitionDuration={200}
       >
-        <ContextMenuItem
-          onClick={handleCreatePreviewNode}
-          label="Create Preview Node"
-          addButtonClassName="create-preview-node"
-          IconComponent={<VisibilityIcon />}
-        />
-        {outputNodeMetadata != null && (
-          <ContextMenuItem
-            onClick={handleCreateOutputNode}
-            label="Create Output Node"
-            addButtonClassName="create-output-node"
-            IconComponent={<DataObjectIcon />}
+        <Box sx={{ px: 0.75, py: 0.25 }}>
+          <TextField
+            inputRef={searchInputRef}
+            size="small"
+            fullWidth
+            placeholder="Search nodes..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={handleSearchKeyDown}
+            aria-label="Search connectable nodes"
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                backgroundColor: "action.disabledBackground",
+                borderRadius: "var(--rounded-md)",
+                fontSize: "var(--fontSizeSmall)",
+                height: 30,
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "action.selected"
+                },
+                "&:hover .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "action.focus"
+                },
+                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                  borderColor: theme.vars.palette.primary.main
+                }
+              },
+              "& .MuiInputBase-input": {
+                fontSize: "var(--fontSizeSmall)",
+                py: 0.25
+              }
+            }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon
+                      sx={{ color: "action.disabled", fontSize: 16 }}
+                    />
+                  </InputAdornment>
+                ),
+                endAdornment: searchTerm ? (
+                  <InputAdornment position="end">
+                    <ToolbarIconButton
+                      aria-label="clear search"
+                      onClick={handleClearSearch}
+                      size="small"
+                      icon={<ClearIcon sx={{ fontSize: 16 }} />}
+                      nodrag={false}
+                    />
+                  </InputAdornment>
+                ) : null
+              }
+            }}
           />
+        </Box>
+        {showStaticActions && (
+          <Box sx={{ px: 0.75, py: 0.1 }}>
+            <Box
+            component="button"
+            type="button"
+            className="create-preview-node"
+            onClick={handleCreatePreviewNode}
+            sx={actionRowStyles}
+          >
+            <span className="icon-bg"><VisibilityIcon /></span>
+            <Text size="small">Preview</Text>
+          </Box>
+          {outputNodeMetadata != null && (
+            <Box
+              component="button"
+              type="button"
+              className="create-output-node"
+              onClick={handleCreateOutputNode}
+              sx={actionRowStyles}
+            >
+              <span className="icon-bg"><DataObjectIcon /></span>
+              <Text size="small">Output</Text>
+            </Box>
+          )}
+          <Box
+            component="button"
+            type="button"
+            className="create-reroute-node"
+            onClick={handleCreateRerouteNode}
+            sx={actionRowStyles}
+          >
+            <span className="icon-bg"><AltRouteIcon /></span>
+            <Text size="small">Reroute</Text>
+          </Box>
+            {saveNodeMetadata != null && (
+              <Box
+                component="button"
+                type="button"
+                className="create-save-node"
+                onClick={handleCreateSaveNode}
+                sx={actionRowStyles}
+              >
+                <span className="icon-bg"><SaveAltIcon /></span>
+                <Text size="small">{saveLabel}</Text>
+              </Box>
+            )}
+          </Box>
         )}
-        <ContextMenuItem
-          onClick={handleCreateRerouteNode}
-          label="Create Reroute Node"
-          addButtonClassName="create-reroute-node"
-          IconComponent={<AltRouteIcon />}
-        />
-        {saveNodeMetadata != null && (
-          <ContextMenuItem
-            onClick={handleCreateSaveNode}
-            label={`Create Save${
-              sourceType?.type === "string"
-                ? "Text"
-                : sourceType?.type_name
-                ? sourceType.type_name?.charAt(0).toUpperCase() +
-                  sourceType.type_name?.slice(1)
-                : ""
-            } Node`}
-            addButtonClassName="create-save-node"
-            IconComponent={<SaveAltIcon />}
-          />
-        )}
-        {constantNodeType && (
-          <ContextMenuItem
-            onClick={handleCreateConstantNode}
-            label="Create Constant Node"
-            addButtonClassName="create-constant-node"
-            IconComponent={<DataObjectIcon />}
-          />
-        )}
-        <Divider />
-        <ContextMenuItem
-          onClick={handleShowConnectableNodes}
-          label="Show Connectable Nodes"
-          addButtonClassName="show-connectable-nodes"
-          IconComponent={<HubIcon />}
-        />
-        <ContextMenuItem
-          onClick={handleOpenNodeMenu}
-          label="Open Filtered Menu"
-          addButtonClassName="open-node-menu"
-          IconComponent={<ListAltIcon />}
-        />
+        {showStaticActions && <Divider />}
+        <Box
+          ref={scrollRef}
+          sx={{
+            maxHeight: 360,
+            minHeight: rankedConnectableNodes.length === 0 ? 80 : 160,
+            overflowX: "hidden",
+            overflowY: "auto",
+            px: 0,
+            "& .node-item-container": { py: 0 },
+            "& .node": {
+              margin: 0,
+              padding: "0 2px",
+              borderRadius: "var(--rounded-md)",
+              cursor: "pointer",
+              "&:hover": { backgroundColor: theme.vars.palette.action.hover },
+              ".node-button": { padding: 0 },
+              ".icon-bg": { padding: 0, width: "16px", height: "16px" },
+              ".icon-bg svg": { fontSize: "0.75rem", width: "12px", height: "12px" }
+            }
+          }}
+        >
+          {rankedConnectableNodes.length === 0 ? (
+            <Box sx={{ p: 2, textAlign: "center", color: "text.secondary" }}>
+              <Text size="small">
+                No nodes match &quot;{searchTerm}&quot;.
+              </Text>
+            </Box>
+          ) : (
+            <Box
+              sx={{
+                height: virtualizer.getTotalSize(),
+                position: "relative",
+                width: "100%"
+              }}
+            >
+              {virtualizer.getVirtualItems().map((virtualItem) => {
+                const nodeMetadata = rankedConnectableNodes[virtualItem.index];
+                if (!nodeMetadata) {
+                  return null;
+                }
+                return (
+                  <div
+                    className="node-item-container"
+                    key={virtualItem.key}
+                    style={{
+                      height: virtualItem.size,
+                      left: 0,
+                      position: "absolute",
+                      top: 0,
+                      transform: `translateY(${virtualItem.start}px)`,
+                      width: "100%"
+                    }}
+                  >
+                    <NodeItem
+                      node={nodeMetadata}
+                      onDragStart={handleDragStart}
+                      onClick={handleConnectableNodeClick}
+                      showFavoriteButton={false}
+                    />
+                  </div>
+                );
+              })}
+            </Box>
+          )}
+        </Box>
       </Menu>
     </>
   );

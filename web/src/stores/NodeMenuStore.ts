@@ -7,6 +7,7 @@ import { NodeMetadata, TypeName } from "./ApiTypes";
 import { ConnectDirection } from "./ConnectionStore";
 import useMetadataStore from "./MetadataStore";
 import { useComfyUIStore } from "./ComfyUIStore";
+import { useRecentNodesStore } from "./RecentNodesStore";
 import {
   computeSearchResults,
   filterNodesUtil,
@@ -231,12 +232,16 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         const selectedInputType = get().selectedInputType;
         const selectedOutputType = get().selectedOutputType;
         const selectedProviderType = get().selectedProviderType;
+        const recentNodeTypes = useRecentNodesStore
+          .getState()
+          .recentNodes.map((node) => node.nodeType);
         const cacheKey = JSON.stringify({
           path: newPath,
           searchTerm,
           selectedInputType,
           selectedOutputType,
-          selectedProviderType
+          selectedProviderType,
+          recentNodeTypes
         });
         const cache = get().searchResultsCache;
         if (cache[cacheKey]) {
@@ -273,7 +278,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
             selectedInputType as TypeName,
             selectedOutputType as TypeName,
             true,
-            selectedProviderType
+            selectedProviderType,
+            recentNodeTypes
           );
         // Store in cache
         set((state) => ({
@@ -321,6 +327,9 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
 
         const store = get();
         const metadata = getFilteredMetadata();
+        const recentNodeTypes = useRecentNodesStore
+          .getState()
+          .recentNodes.map((node) => node.nodeType);
 
         if (metadata.length === 0) {
           set({ searchResults: [], highlightedNamespaces: [] });
@@ -335,7 +344,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
             store.selectedInputType as TypeName,
             store.selectedOutputType as TypeName,
             true,
-            store.selectedProviderType
+            store.selectedProviderType,
+            recentNodeTypes
           );
 
         set({

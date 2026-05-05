@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { shallow } from "zustand/shallow";
 import {
   Menu,
@@ -13,29 +14,18 @@ import useConnectableNodesStore, { ConnectableNodesState } from "../../stores/Co
 import { useReactFlow } from "@xyflow/react";
 import { isConnectable, Slugify } from "../../utils/TypeHandler";
 import { NodeMetadata } from "../../stores/ApiTypes";
+import { rankSearchNodes } from "../../utils/nodeSearch";
 
 import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
 import NodeItem from "../node_menu/NodeItem";
-import { ScrollArea, Text, Caption, FlexRow, ToolbarIconButton } from "../ui_primitives";
+import { Text, ToolbarIconButton } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
+import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-interface GroupedNodes {
-  [namespace: string]: NodeMetadata[];
-}
-
-const groupNodesByNamespace = (nodes: NodeMetadata[]): GroupedNodes => {
-  return nodes.reduce((acc: GroupedNodes, node) => {
-    const namespace = node.namespace || "Other";
-    if (!acc[namespace]) {
-      acc[namespace] = [];
-    }
-    acc[namespace].push(node);
-    return acc;
-  }, {});
-};
+const NODE_ROW_HEIGHT = 34;
 
 const menuStyles = (theme: Theme) =>
   css({
@@ -58,29 +48,22 @@ const scrollableContentStyles = (theme: Theme) =>
     backgroundColor: "transparent",
     "&.connectable-nodes-content": {
       minHeight: 0,
-      maxHeight: "calc(70vh - 130px)",
+      maxHeight: "calc(70vh - 78px)",
       padding: "0"
     },
-    ".namespace": {
-      backgroundColor: theme.vars.palette.action.hover,
-      padding: "4px 0 4px 12px",
-      borderTop: `1px solid ${theme.vars.palette.divider}`,
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      minHeight: "32px"
-    },
     ".node-item-container": {
-        padding: "2px 8px",
+      padding: "1px 6px"
     },
     ".node": {
       display: "flex",
       alignItems: "center",
-      margin: "2px 0",
-      padding: "6px 8px",
+      margin: 0,
+      padding: "3px 6px",
       borderRadius: "var(--rounded-md)",
       cursor: "pointer",
       transition: "background-color 0.2s ease",
       ".node-button": {
-        padding: "0 8px",
+        padding: "0 6px",
         flexGrow: 1,
         "& .MuiTypography-root": {
           fontSize: theme.fontSizeSmall,
@@ -90,18 +73,18 @@ const scrollableContentStyles = (theme: Theme) =>
       ".icon-bg": {
         backgroundColor: "rgba(255,255,255,0.05) !important",
         borderRadius: "var(--rounded-sm)",
-        padding: "4px",
+        padding: "2px",
         display: "flex",
         alignItems: "center",
         justifyContent: "center"
       },
       ".icon-bg svg": {
         color: theme.vars.palette.grey[400],
-        fontSize: "1.2rem"
+        fontSize: "1rem"
       }
     },
     ".node:hover": {
-      backgroundColor: "action.hover"
+      backgroundColor: theme.vars.palette.action.hover
     },
     ".node.focused": {
       color: "var(--palette-primary-main)",
@@ -136,14 +119,30 @@ const fixedHeaderStyles = (theme: Theme) =>
 
 const searchNodesHelper = (
   nodes: NodeMetadata[],
-  searchTerm: string
+  searchTerm: string,
+  recentNodeTypes: readonly string[]
 ): NodeMetadata[] => {
-  const term = searchTerm.toLowerCase();
-  return nodes.filter(
-    (node) =>
-      node.title.toLowerCase().includes(term) ||
-      node.description?.toLowerCase().includes(term) ||
-      node.node_type.toLowerCase().includes(term)
+  return rankSearchNodes(nodes, searchTerm, recentNodeTypes);
+};
+
+const getPreferredConnectableInput = (
+  metadata: NodeMetadata,
+  typeMetadata: NonNullable<ConnectableNodesState["typeMetadata"]>
+) => {
+  const properties = metadata.properties || [];
+  const compatibleProperties = properties.filter((property) =>
+    isConnectable(typeMetadata, property.type, true)
+  );
+
+  if (compatibleProperties.length === 0) {
+    return null;
+  }
+
+  const basicFields = metadata.basic_fields || [];
+  return (
+    compatibleProperties.find((property) =>
+      basicFields.includes(property.name)
+    ) || compatibleProperties[0]
   );
 };
 
@@ -151,6 +150,10 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
   const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const reactFlowInstance = useReactFlow();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const recentNodeTypes = useRecentNodesStore((state) =>
+    state.recentNodes.map((node) => node.nodeType)
+  );
 
   // Memoize store selector function to prevent re-renders
   const storeSelector = useCallback(
@@ -181,19 +184,20 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
   } = useConnectableNodesStore(storeSelector);
 
   const filteredNodes = useMemo(
-    () =>
-      searchTerm
-        ? searchNodesHelper(connectableNodes, searchTerm)
-        : connectableNodes,
-    [connectableNodes, searchTerm]
-  );
-
-  const groupedNodes = useMemo(
-    () => groupNodesByNamespace(filteredNodes),
-    [filteredNodes]
+    () => searchNodesHelper(connectableNodes, searchTerm, recentNodeTypes),
+    [connectableNodes, recentNodeTypes, searchTerm]
   );
 
   const totalCount = filteredNodes.length;
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: totalCount,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => NODE_ROW_HEIGHT,
+    overscan: 12,
+    getItemKey: (index) => filteredNodes[index]?.node_type ?? index
+  });
 
   const { createNode, addNode, addEdge, generateEdgeId } = useNodes(
     (state) => ({
@@ -228,9 +232,9 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
         // When filterType is "input", we're looking at nodes with compatible inputs
         // because we started from an output handle
         if (filterType === "input" && typeMetadata) {
-          const properties = metadata?.properties || [];
-          const property = properties.find((property) =>
-            isConnectable(typeMetadata, property.type, true)
+          const property = getPreferredConnectableInput(
+            metadata,
+            typeMetadata
           );
           if (!property) {return;}
           const edge = {
@@ -306,6 +310,19 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     []
   );
 
+  useEffect(() => {
+    if (!isVisible) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [isVisible]);
+
   if (!menuPosition || !isVisible) {return null;}
 
   return (
@@ -326,20 +343,6 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
       }}
     >
       <Box css={fixedHeaderStyles} className="connectable-nodes-header">
-        <MenuItem disabled sx={{ opacity: "1 !important", p: 0, mb: 1 }}>
-          <FlexRow
-            align="center"
-            justify="space-between"
-            fullWidth
-          >
-            <Text size="small" weight={600}>
-              Connectable Nodes
-            </Text>
-            <Caption sx={{ bgcolor: "action.selected", px: 1, py: 0.5, borderRadius: 1 }}>
-              {totalCount}
-            </Caption>
-          </FlexRow>
-        </MenuItem>
         <MenuItem sx={{ p: 0, "&:hover": { bgcolor: "transparent" }, cursor: "default" }} disableRipple>
           <TextField
             className="connectable-nodes-search"
@@ -351,6 +354,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
             onClick={(e) => e.stopPropagation()}
             onKeyDown={handleSearchKeyDown}
             autoFocus={isVisible}
+            inputRef={searchInputRef}
             aria-label="Search nodes"
             sx={{
                 "& .MuiOutlinedInput-root": {
@@ -388,7 +392,12 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
         </MenuItem>
       </Box>
 
-      <ScrollArea css={scrollableContentStyles} className="connectable-nodes-content" direction="vertical">
+      <div
+        ref={scrollRef}
+        css={scrollableContentStyles}
+        className="connectable-nodes-content"
+        style={{ overflowY: "auto", overflowX: "hidden" }}
+      >
         {totalCount === 0 ? (
           <Box sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
             <Text size="small">
@@ -396,29 +405,44 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
             </Text>
           </Box>
         ) : (
-          Object.entries(groupedNodes).map(([namespace, nodes]) => (
-            <React.Fragment key={namespace}>
-              <MenuItem className="namespace" disabled sx={{ opacity: "1 !important" }}>
-                <Caption
-                  color="secondary"
-                  sx={{ fontSize: 10, fontWeight: 700 }}
+          <div
+            style={{
+              height: virtualizer.getTotalSize(),
+              position: "relative",
+              width: "100%"
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualItem) => {
+              const nodeMetadata = filteredNodes[virtualItem.index];
+              if (!nodeMetadata) {
+                return null;
+              }
+
+              return (
+                <div
+                  className="node-item-container"
+                  key={virtualItem.key}
+                  style={{
+                    height: virtualItem.size,
+                    left: 0,
+                    position: "absolute",
+                    top: 0,
+                    transform: `translateY(${virtualItem.start}px)`,
+                    width: "100%"
+                  }}
                 >
-                  {namespace.toUpperCase()}
-                </Caption>
-              </MenuItem>
-              {nodes.map((nodeMetadata: NodeMetadata) => (
-                <div className="node-item-container" key={nodeMetadata.node_type}>
                   <NodeItem
                     node={nodeMetadata}
                     onDragStart={handleDragStart}
                     onClick={handleNodeClick}
+                    showFavoriteButton={false}
                   />
                 </div>
-              ))}
-            </React.Fragment>
-          ))
+              );
+            })}
+          </div>
         )}
-      </ScrollArea>
+      </div>
     </Menu>
   );
 });

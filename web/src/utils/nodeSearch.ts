@@ -8,6 +8,8 @@ import { formatNodeDocumentation } from "../stores/formatNodeDocumentation";
 import { fuseOptions, ExtendedFuseOptions, FuseMatch } from "../stores/fuseOptions";
 import { PrefixTreeSearch, SearchField } from "./PrefixTreeSearch";
 import { getProviderKindForNamespace } from "./nodeProvider";
+import { rankNodeMetadata, searchTermsFromQuery } from "./nodeRanking";
+import { QUICK_ACTION_NODE_TYPES } from "../config/quickActionNodeTypes";
 
 /** Stop words to filter from multi-word queries */
 const QUERY_STOP_WORDS = new Set([
@@ -70,6 +72,29 @@ interface SearchEntry {
   tags: string;
   metadata: NodeMetadata;
 }
+
+const PREFIX_FIELD_BOOSTS: Record<string, number> = {
+  title: 8,
+  namespace: 4,
+  description: 2,
+  tags: 3
+};
+
+const FUSE_FIELD_BOOSTS: Record<string, number> = {
+  title: 6,
+  namespace: 3,
+  tags: 3,
+  description: 1.5,
+  use_cases: 1.5
+};
+
+const addCandidateBoost = (
+  boosts: Map<string, number>,
+  nodeType: string,
+  boost: number
+) => {
+  boosts.set(nodeType, Math.max(boosts.get(nodeType) ?? 0, boost));
+};
 
 // Global prefix tree instance for fast prefix searches
 // Cache is keyed by the metadata array to enable proper reuse
@@ -417,23 +442,118 @@ export function performGroupedSearch(
   return [{ title: "Results", nodes: rankedNodes }];
 }
 
-export function computeSearchResults(
-  metadata: NodeMetadata[],
-  term: string,
-  selectedPath: string[],
-  selectedInputType?: TypeName,
-  selectedOutputType?: TypeName,
-  strictMatch: boolean = false,
-  selectedProviderType: "all" | "api" | "local" = "all"
-) {
-  const selectedPathString = selectedPath.join(".");
-  const hasSearchTerm = term.trim().length > 0;
-  const hasTypeFilters = selectedInputType || selectedOutputType;
-  const searchTerms = [term];
+const createSearchEntries = (nodes: NodeMetadata[]): SearchEntry[] =>
+  nodes.map((node: NodeMetadata) => {
+    const { description, tags, useCases } = formatNodeDocumentation(
+      node.description
+    );
+    return {
+      title: node.title,
+      node_type: node.node_type,
+      namespace: node.namespace,
+      description,
+      use_cases: useCases.raw,
+      tags: tags.join(", "),
+      metadata: node
+    };
+  });
 
-  // If the user types a full namespace,
-  // also search using the last segment so results are found even when the full
-  // dotted path doesn't fuzzy-match well.
+const MIN_RESULTS_BEFORE_FUSE = 100;
+const MIN_FUSE_QUERY_LENGTH = 3;
+
+function collectPrefixCandidateBoosts(
+  nodes: NodeMetadata[],
+  terms: string[]
+): Map<string, number> {
+  const boosts = new Map<string, number>();
+  const normalizedTerms = terms
+    .map((searchTerm) => searchTerm.trim())
+    .filter((searchTerm) => searchTerm.length > 0);
+
+  if (normalizedTerms.length === 0) {
+    return boosts;
+  }
+
+  const prefixTree = ensurePrefixTree(nodes);
+  normalizedTerms.forEach((searchTerm) => {
+    prefixTree.search(searchTerm, { maxResults: 150 }).forEach((result) => {
+      const fieldBoost = PREFIX_FIELD_BOOSTS[result.matchedField] ?? 1;
+      const matchBoost = result.matchType === "exact" ? 2 : 1;
+      addCandidateBoost(
+        boosts,
+        result.node.node_type,
+        fieldBoost * result.score * matchBoost
+      );
+    });
+  });
+
+  return boosts;
+}
+
+function collectFuseCandidateBoosts(
+  entries: SearchEntry[],
+  terms: string[]
+): Map<string, number> {
+  const boosts = new Map<string, number>();
+  const normalizedTerms = terms
+    .map((searchTerm) => searchTerm.trim())
+    .filter((searchTerm) => searchTerm.length >= MIN_FUSE_QUERY_LENGTH);
+
+  if (normalizedTerms.length === 0) {
+    return boosts;
+  }
+
+  const fuse = new Fuse(entries, {
+    ...fuseOptions,
+    threshold: 0.35,
+    distance: 80,
+    minMatchCharLength: 2,
+    ignoreLocation: true,
+    includeMatches: true,
+    keys: [
+      { name: "title", weight: 1.0 },
+      { name: "node_type", weight: 0.9 },
+      { name: "namespace", weight: 0.65 },
+      { name: "tags", weight: 0.55 },
+      { name: "description", weight: 0.25 },
+      { name: "use_cases", weight: 0.25 }
+    ]
+  });
+
+  normalizedTerms.forEach((searchTerm) => {
+    fuse.search(searchTerm).forEach((result) => {
+      const fuseScore = result.score ?? 1;
+      const bestFieldBoost = Math.max(
+        1,
+        ...(result.matches ?? []).map(
+          (match) => FUSE_FIELD_BOOSTS[match.key ?? ""] ?? 1
+        )
+      );
+      addCandidateBoost(
+        boosts,
+        result.item.metadata.node_type,
+        Math.max(0, 1 - fuseScore) * bestFieldBoost
+      );
+    });
+  });
+
+  return boosts;
+}
+
+const mergeCandidateBoosts = (
+  target: Map<string, number>,
+  source: Map<string, number>
+) => {
+  source.forEach((boost, nodeType) => addCandidateBoost(target, nodeType, boost));
+};
+
+export function rankSearchNodes(
+  nodes: NodeMetadata[],
+  term: string,
+  recentNodeTypes: readonly string[] = [],
+  boostedNodeTypes: readonly string[] = QUICK_ACTION_NODE_TYPES
+): NodeMetadata[] {
+  const searchTerms = [term];
   if (term.includes(".")) {
     const parts = term.split(".").filter(Boolean);
     const lastPart = parts[parts.length - 1];
@@ -442,6 +562,52 @@ export function computeSearchResults(
     }
   }
 
+  const expandedSearchTerms = searchTerms.flatMap(searchTermsFromQuery);
+  const candidateBoosts = term.trim()
+    ? collectPrefixCandidateBoosts(nodes, expandedSearchTerms)
+    : new Map<string, number>();
+
+  let ranked = rankNodeMetadata(nodes, expandedSearchTerms, {
+    boostedNodeTypes,
+    candidateBoosts,
+    includeCandidateOnlyMatches: true,
+    includeProviderNodes: true,
+    recentNodeTypes
+  });
+
+  if (term.trim().length >= MIN_FUSE_QUERY_LENGTH && ranked.length < MIN_RESULTS_BEFORE_FUSE) {
+    mergeCandidateBoosts(
+      candidateBoosts,
+      collectFuseCandidateBoosts(createSearchEntries(nodes), expandedSearchTerms)
+    );
+    ranked = rankNodeMetadata(nodes, expandedSearchTerms, {
+      boostedNodeTypes,
+      candidateBoosts,
+      includeCandidateOnlyMatches: true,
+      includeProviderNodes: true,
+      recentNodeTypes
+    });
+  }
+
+  return ranked.map(({ meta, score }) => ({
+    ...meta,
+    searchInfo: { score: -score, matches: [] }
+  }));
+}
+
+export function computeSearchResults(
+  metadata: NodeMetadata[],
+  term: string,
+  selectedPath: string[],
+  selectedInputType?: TypeName,
+  selectedOutputType?: TypeName,
+  strictMatch: boolean = false,
+  selectedProviderType: "all" | "api" | "local" = "all",
+  recentNodeTypes: readonly string[] = []
+) {
+  const selectedPathString = selectedPath.join(".");
+  const hasSearchTerm = term.trim().length > 0;
+  const hasTypeFilters = selectedInputType || selectedOutputType;
   // Filter out default namespace nodes
   const filteredMetadata = metadata.filter(
     (node) => node.namespace !== "default"
@@ -487,14 +653,13 @@ export function computeSearchResults(
     });
   }
 
-  // If no search term, we can skip the expensive search operations
+  // If no search term, still rank with recent and quick-action boosts.
   if (!hasSearchTerm) {
-    const sortedResults = pathFilteredMetadata.sort((a, b) => {
-      const namespaceComparison = a.namespace.localeCompare(b.namespace);
-      return namespaceComparison !== 0
-        ? namespaceComparison
-        : a.title.localeCompare(b.title);
-    });
+    const sortedResults = rankSearchNodes(
+      pathFilteredMetadata,
+      "",
+      recentNodeTypes
+    );
 
     return {
       sortedResults,
@@ -505,115 +670,16 @@ export function computeSearchResults(
     };
   }
 
-  // Only perform search operations if we have a search term
-  const allEntries: SearchEntry[] = pathFilteredMetadata.map(
-    (node: NodeMetadata) => {
-      const { description, tags, useCases } = formatNodeDocumentation(
-        node.description
-      );
-      return {
-        title: node.title,
-        node_type: node.node_type,
-        namespace: node.namespace,
-        description: description,
-        use_cases: useCases.raw,
-        tags: tags.join(", "),
-        metadata: node
-      };
-    }
-  );
-
-  // Run searches for each derived term and merge results while preserving order
-  const groupedResultsMap = new Map<string, Map<string, NodeMetadata>>();
-
-  const addToGroup = (title: string, node: NodeMetadata) => {
-    if (!groupedResultsMap.has(title)) {
-      groupedResultsMap.set(title, new Map<string, NodeMetadata>());
-    }
-    const group = groupedResultsMap.get(title)!;
-    if (!group.has(node.node_type)) {
-      group.set(node.node_type, node);
-    }
-  };
-
-  searchTerms.forEach((searchTerm) => {
-    const groups = performGroupedSearch(allEntries, searchTerm);
-    groups.forEach((group) => {
-      group.nodes.forEach((node) => addToGroup(group.title, node));
-    });
-
-    // Add exact namespace matches explicitly so full namespaces work even if Fuse misses
-    const exactNamespaceMatches = allEntries
-      .filter((entry) => entry.namespace === searchTerm)
-      .map((entry) => ({
-        ...entry.metadata,
-        searchInfo: { score: 0, matches: [] }
-      }));
-
-    exactNamespaceMatches.forEach((node) =>
-      addToGroup("Namespace + Tags", node)
-    );
-  });
-
-  const groupedResults: SearchResultGroup[] = Array.from(
-    groupedResultsMap.entries()
-  )
-    .map(([title, nodes]) => ({
-      title,
-      nodes: Array.from(nodes.values())
-    }))
-    .filter((group) => group.nodes.length > 0);
-
-  const rankedNodes = new Map<
-    string,
-    { node: NodeMetadata; priority: number; score: number; index: number }
-  >();
-  let insertionIndex = 0;
-
-  groupedResults.forEach((group) => {
-    const priority = GROUP_PRIORITY[group.title] ?? 99;
-    group.nodes.forEach((node) => {
-      const candidate = {
-        node,
-        priority,
-        score: node.searchInfo?.score ?? 1,
-        index: insertionIndex++
-      };
-      const existing = rankedNodes.get(node.node_type);
-      if (
-        !existing ||
-        candidate.priority < existing.priority ||
-        (candidate.priority === existing.priority &&
-          candidate.score < existing.score) ||
-        (candidate.priority === existing.priority &&
-          candidate.score === existing.score &&
-          candidate.index < existing.index)
-      ) {
-        rankedNodes.set(node.node_type, candidate);
-      }
-    });
-  });
-
-  const sortedResults = Array.from(rankedNodes.values())
-    .sort((a, b) => {
-      if (a.priority !== b.priority) {
-        return a.priority - b.priority;
-      }
-      if (a.score !== b.score) {
-        return a.score - b.score;
-      }
-      return a.index - b.index;
-    })
-    .map((entry) => entry.node);
-
-  const allMatches = Array.from(rankedNodes.values()).map(
-    (entry) => entry.node
+  const sortedResults = rankSearchNodes(
+    pathFilteredMetadata,
+    term,
+    recentNodeTypes
   );
 
   return {
     sortedResults,
     groupedResults: [{ title: "Results", nodes: sortedResults }],
-    allMatches
+    allMatches: sortedResults
   };
 }
 
