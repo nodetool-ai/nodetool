@@ -493,9 +493,21 @@ function getRoutes() {
       path: "/timeline/:sequenceId",
       element: (
         <ProtectedRoute>
-          <React.Suspense fallback={<LoadingSpinner />}>
-            <TimelineEditor />
-          </React.Suspense>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%",
+              paddingTop: HEADER_HEIGHT
+            }}
+          >
+            <SkipLinks />
+            <AppHeader />
+            <React.Suspense fallback={<LoadingSpinner />}>
+              <TimelineEditor />
+            </React.Suspense>
+          </div>
         </ProtectedRoute>
       )
     }
