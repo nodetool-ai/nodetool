@@ -7,8 +7,7 @@ import {
 } from "@nodetool-ai/sandbox";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { randomUUID } from "node:crypto";
-import { Tool, persistOutput } from "@nodetool-ai/agents";
-import { Buffer } from "node:buffer";
+import { Tool } from "@nodetool-ai/agents";
 import { buildBrowserAgentToolClasses } from "../lib/browser-agent-tools.js";
 import { registerBuiltinAgentToolClasses } from "./agent-tool-hydration.js";
 
@@ -448,161 +447,6 @@ export class SandboxShellNode extends BaseNode {
   }
 }
 
-/**
- * Browser nodes share a single sandbox session per workflow run; they don't
- * own a workspace mount, so the workspace_dir prop is intentionally absent.
- * The session is acquired without a workspaceDir override — if the workflow
- * already has a SandboxShell/SandboxFile node mounting one, that mount is
- * reused; otherwise the sandbox runs without a mount.
- */
-async function browserClient(context?: ProcessingContext): Promise<ToolClient> {
-  const sessionId = toEffectiveSessionId(DEFAULT_SESSION_ID, context);
-  return getClient(sessionId, "", context);
-}
-
-export class SandboxBrowserViewNode extends BaseNode {
-  static readonly nodeType = "nodetool.sandbox.SandboxBrowserView";
-  static readonly title = "SandboxBrowserView";
-  static readonly description =
-    "Inspect the sandbox browser page: URL, title, viewport, indexed elements, and an optional screenshot.";
-  static readonly metadataOutputTypes = {
-    url: "str",
-    title: "str",
-    viewport: "dict[str, any]",
-    elements: "list[dict[str, any]]",
-    screenshot: "image"
-  };
-  static readonly exposeAsTool = true;
-
-  @prop({
-    type: "bool",
-    default: false,
-    title: "Include Screenshot",
-    description: "Capture a screenshot of the viewport and persist it as an asset."
-  })
-  declare include_screenshot: boolean;
-
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const client = await browserClient(context);
-    const out = await client.browserView({
-      include_screenshot: Boolean(this.include_screenshot)
-    });
-    const screenshot = await screenshotToImageRef(
-      context,
-      out.screenshot_png_b64,
-      "sandbox-browser-screenshot"
-    );
-    return {
-      url: out.url,
-      title: out.title,
-      viewport: out.viewport,
-      elements: out.elements,
-      screenshot
-    };
-  }
-}
-
-/**
- * Convert a base64-encoded PNG screenshot into a NodeTool ImageRef.
- * When the context exposes an asset model interface the bytes are
- * persisted to storage and the ref carries `asset_id` + `asset_uri`;
- * otherwise the data is inlined as base64 so the workflow still has
- * a usable image.
- */
-async function screenshotToImageRef(
-  context: ProcessingContext | undefined,
-  b64: string | null | undefined,
-  namePrefix: string
-): Promise<Record<string, unknown> | null> {
-  if (typeof b64 !== "string" || b64.length === 0) return null;
-  if (!context) {
-    return { type: "image", data: b64, mime_type: "image/png" };
-  }
-  const bytes = new Uint8Array(Buffer.from(b64, "base64"));
-  const saved = await persistOutput(context, bytes, {
-    namePrefix,
-    mime: "image/png"
-  });
-  return {
-    type: "image",
-    asset_id: saved.asset_id ?? null,
-    uri: saved.asset_uri ?? saved.path ?? "",
-    mime_type: saved.mime_type
-  };
-}
-
-export class SandboxBrowserNavigateNode extends BaseNode {
-  static readonly nodeType = "nodetool.sandbox.SandboxBrowserNavigate";
-  static readonly title = "SandboxBrowserNavigate";
-  static readonly description = "Navigate the sandbox browser to a URL.";
-  static readonly metadataOutputTypes = {
-    url: "str",
-    title: "str",
-    status: "union[int, none]"
-  };
-  static readonly exposeAsTool = true;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "URL",
-    description: "Absolute URL to navigate to."
-  })
-  declare url: string;
-
-  @prop({
-    type: "enum",
-    default: "load",
-    title: "Wait Until",
-    description: "Page lifecycle event to wait for after navigation.",
-    values: ["load", "domcontentloaded", "networkidle"]
-  })
-  declare wait_until: string;
-
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const url = asTrimmedString(this.url);
-    if (url.length === 0) throw new Error("URL is required");
-    const client = await browserClient(context);
-    const out = await client.browserNavigate({
-      url,
-      wait_until: this.wait_until as
-        | "load"
-        | "domcontentloaded"
-        | "networkidle"
-    });
-    return { url: out.url, title: out.title, status: out.status };
-  }
-}
-
-export class SandboxBrowserConsoleExecNode extends BaseNode {
-  static readonly nodeType = "nodetool.sandbox.SandboxBrowserConsoleExec";
-  static readonly title = "SandboxBrowserConsoleExec";
-  static readonly description =
-    "Execute a JavaScript expression in the page and return the JSON-serialised result.";
-  static readonly metadataOutputTypes = {
-    result_json: "str"
-  };
-  static readonly exposeAsTool = true;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "JavaScript",
-    description: "Expression evaluated in the page context."
-  })
-  declare javascript: string;
-
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const javascript = asString(this.javascript);
-    if (javascript.trim().length === 0) {
-      throw new Error("JavaScript is required");
-    }
-    const client = await browserClient(context);
-    const out = await client.browserConsoleExec({ javascript });
-    return { result_json: out.result_json };
-  }
-}
-
 export class SandboxFileNode extends BaseNode {
   static readonly nodeType = "nodetool.sandbox.SandboxFile";
   static readonly title = "SandboxFile";
@@ -659,9 +503,6 @@ export class SandboxFileNode extends BaseNode {
 
 export const SANDBOX_NODES: readonly NodeClass[] = [
   SandboxShellNode,
-  SandboxBrowserViewNode,
-  SandboxBrowserNavigateNode,
-  SandboxBrowserConsoleExecNode,
   SandboxFileNode
 ];
 

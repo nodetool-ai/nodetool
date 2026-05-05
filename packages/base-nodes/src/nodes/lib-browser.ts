@@ -175,7 +175,7 @@ export class ScreenshotLibNode extends BaseNode {
   static readonly description =
     "Takes a screenshot of a web page or specific element.\n    browser, screenshot, capture, image\n\n    Use cases:\n    - Capture visual representation of web pages\n    - Document specific UI elements\n    - Create visual records of web content";
   static readonly metadataOutputTypes = {
-    output: "dict[str, any]"
+    output: "image"
   };
   static readonly exposeAsTool = true;
 
@@ -194,14 +194,6 @@ export class ScreenshotLibNode extends BaseNode {
     description: "Optional CSS selector for capturing a specific element"
   })
   declare selector: any;
-
-  @prop({
-    type: "str",
-    default: "screenshot.png",
-    title: "Output File",
-    description: "Path to save the screenshot (relative to workspace)"
-  })
-  declare output_file: any;
 
   @prop({
     type: "int",
@@ -228,174 +220,17 @@ export class ScreenshotLibNode extends BaseNode {
         buffer = await page.screenshot();
       }
 
-      const data = buffer.toString("base64");
       return {
-        success: true,
-        output: { type: "image", data },
-        url
+        output: {
+          type: "image",
+          data: buffer.toString("base64"),
+          mime_type: "image/png"
+        }
       };
     });
   }
 }
 
-type BrowserAction =
-  | "click"
-  | "goto"
-  | "back"
-  | "forward"
-  | "reload"
-  | "extract";
-type ExtractType = "text" | "html" | "value" | "attribute";
-
-export class BrowserNavigationLibNode extends BaseNode {
-  static readonly nodeType = "lib.browser.BrowserNavigation";
-  static readonly title = "Browser Navigation";
-  static readonly description =
-    "Navigates and interacts with web pages in a browser session.\n    browser, navigation, interaction, click, extract\n\n    Use cases:\n    - Perform complex web interactions\n    - Navigate through multi-step web processes\n    - Extract content after interaction";
-  static readonly metadataOutputTypes = {
-    output: "dict[str, any]"
-  };
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Url",
-    description: "URL to navigate to (required for 'goto' action)"
-  })
-  declare url: any;
-
-  @prop({
-    type: "enum",
-    default: "goto",
-    title: "Action",
-    description: "Navigation or extraction action to perform",
-    values: ["click", "goto", "back", "forward", "reload", "extract"]
-  })
-  declare action: any;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Selector",
-    description: "CSS selector for the element to interact with or extract from"
-  })
-  declare selector: any;
-
-  @prop({
-    type: "int",
-    default: 30000,
-    title: "Timeout",
-    description: "Timeout in milliseconds for the action"
-  })
-  declare timeout: any;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Wait For",
-    description: "Optional selector to wait for after performing the action"
-  })
-  declare wait_for: any;
-
-  @prop({
-    type: "enum",
-    default: "text",
-    title: "Extract Type",
-    description: "Type of content to extract (for 'extract' action)",
-    values: ["text", "html", "value", "attribute"]
-  })
-  declare extract_type: any;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Attribute",
-    description: "Attribute name to extract (when extract_type is 'attribute')"
-  })
-  declare attribute: any;
-
-  async process(): Promise<Record<string, unknown>> {
-    const url = String(this.url ?? "");
-    const action = String(this.action ?? "goto") as BrowserAction;
-    const selector = String(this.selector ?? "");
-    const timeout = Number(this.timeout ?? 30000);
-    const waitFor = String(this.wait_for ?? "");
-    const extractType = String(this.extract_type ?? "text") as ExtractType;
-    const attribute = String(this.attribute ?? "");
-
-    if (action === "goto" && !url)
-      throw new Error("URL is required for goto action");
-
-    return withPage({ headless: true }, async (page) => {
-      if (action === "goto") {
-        await page.goto(url, { waitUntil: "domcontentloaded", timeout });
-      } else if (action === "reload") {
-        await page.goto(url, { waitUntil: "domcontentloaded", timeout });
-        await page.reload({ waitUntil: "domcontentloaded", timeout });
-      } else if (action === "click") {
-        await page.goto(url, { waitUntil: "domcontentloaded", timeout });
-        await page.waitForSelector(selector, { timeout });
-        await page.click(selector);
-      } else if (action === "extract") {
-        await page.goto(url, { waitUntil: "domcontentloaded", timeout });
-      } else if (action === "back") {
-        await page.goBack({ timeout, waitUntil: "domcontentloaded" });
-      } else if (action === "forward") {
-        await page.goForward({ timeout, waitUntil: "domcontentloaded" });
-      }
-
-      if (waitFor) {
-        await page.waitForSelector(waitFor, { timeout });
-      }
-
-      let extracted: unknown = null;
-      if (action === "extract") {
-        if (selector) {
-          await page.waitForSelector(selector, { timeout });
-          if (extractType === "html") {
-            extracted = await page.evaluate(
-              (sel: string) =>
-                (document.querySelector(sel) as HTMLElement | null)?.outerHTML ?? null,
-              selector
-            );
-          } else if (extractType === "value") {
-            extracted = await page.evaluate(
-              (sel: string) =>
-                (document.querySelector(sel) as HTMLInputElement | null)?.value ?? "",
-              selector
-            );
-          } else if (extractType === "attribute") {
-            extracted = await page.evaluate(
-              (sel: string, attr: string) =>
-                document.querySelector(sel)?.getAttribute(attr) ?? null,
-              selector,
-              attribute
-            );
-          } else {
-            extracted = await page.evaluate(
-              (sel: string) => {
-                const el = document.querySelector(sel) as HTMLElement | null;
-                if (!el) return "";
-                return el.innerText ?? el.textContent ?? "";
-              },
-              selector
-            );
-          }
-        } else {
-          if (extractType === "html") {
-            extracted = await page.content();
-          } else {
-            extracted = await page.evaluate(
-              () => (document.body ? document.body.innerText : "")
-            );
-          }
-        }
-      }
-
-      return { success: true, action, extracted };
-    });
-  }
-}
 
 export class SpiderCrawlLibNode extends BaseNode {
   static readonly nodeType = "lib.browser.SpiderCrawl";
@@ -726,6 +561,5 @@ export const LIB_BROWSER_NODES: readonly NodeClass[] = [
   DownloadFileLibNode,
   BrowserLibNode,
   ScreenshotLibNode,
-  BrowserNavigationLibNode,
   SpiderCrawlLibNode
 ] as const;

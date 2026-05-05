@@ -2,7 +2,6 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 let SandboxShellNode: (typeof import("../src/nodes/sandbox.js"))["SandboxShellNode"];
-let SandboxBrowserNavigateNode: (typeof import("../src/nodes/sandbox.js"))["SandboxBrowserNavigateNode"];
 let SandboxFileNode: (typeof import("../src/nodes/sandbox.js"))["SandboxFileNode"];
 
 const mocks = vi.hoisted(() => {
@@ -71,7 +70,6 @@ describe("sandbox nodes", () => {
   beforeAll(async () => {
     const mod = await import("../src/nodes/sandbox.js");
     SandboxShellNode = mod.SandboxShellNode;
-    SandboxBrowserNavigateNode = mod.SandboxBrowserNavigateNode;
     SandboxFileNode = mod.SandboxFileNode;
   });
 
@@ -180,25 +178,6 @@ describe("sandbox nodes", () => {
       "user-1:workflow-1:workflow",
       { env: { NODETOOL_USER_ID: "user-1" } }
     );
-  });
-
-  it("SandboxBrowserNavigate calls the navigate tool with the URL and wait_until", async () => {
-    const node = new SandboxBrowserNavigateNode();
-    node.assign({
-      url: "https://example.com",
-      wait_until: "load"
-    });
-
-    const result = await node.process();
-    expect(mocks.client.browserNavigate).toHaveBeenCalledWith({
-      url: "https://example.com",
-      wait_until: "load"
-    });
-    expect(result).toEqual({
-      url: "https://example.com",
-      title: undefined,
-      status: undefined
-    });
   });
 
   it("SandboxFile dispatches file actions", async () => {
