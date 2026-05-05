@@ -20,7 +20,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl wget git sudo tmux \
       python3 python3-pip python3-venv \
-      xvfb fluxbox x11vnc websockify novnc \
+      xvfb fluxbox x11vnc websockify novnc xterm \
       xdotool scrot imagemagick tesseract-ocr \
       ffmpeg pandoc weasyprint \
       chromium fonts-liberation fonts-noto-color-emoji \
