@@ -1,21 +1,14 @@
 /**
- * Browser tools — Chrome DevTools Protocol (CDP) driven Chromium with
- * element-index + coordinate addressing.
+ * Local browser-action functions backed by Chrome DevTools Protocol.
  *
- * A single Chrome process + CDP session is kept alive for the lifetime of the
- * container; the agent shares one session across calls so cookies and auth
- * persist. `browser_restart` tears down and re-creates the page.
+ * Mirrors `packages/sandbox-agent/src/tools/browser.ts` but runs inside the
+ * host process — the agent shares a single Chrome instance across calls so
+ * cookies, navigation history, and indexed elements persist between actions.
  *
- * Element indexing: on each browser_view, a JS expression runs in the page
- * that selects all interactive elements (button, link, input, select,
- * textarea, [role="button"], [onclick], [tabindex]) and assigns a numeric
- * data-nt-idx attribute. The assignment is deterministic within a view call
- * but IS rebuilt each time the DOM changes, so callers should always call
- * browser_view before relying on an index.
- *
- * Console capture: a console listener wired through CDP's Runtime domain
- * pushes into an in-memory ring buffer so browser_console_view can return
- * recent messages.
+ * Element indexing on `browser_view`: a JS expression assigns a sequential
+ * `data-nt-idx` attribute to interactive elements; subsequent click/input/
+ * select_option tools address by that index. Indexes are rebuilt on every
+ * view, so callers must view before relying on an index.
  */
 
 import type {
@@ -44,7 +37,7 @@ import type {
   BrowserElement,
   BrowserConsoleMessage
 } from "@nodetool-ai/sandbox/schemas";
-import type { CdpPage } from "../lib/cdp-page.js";
+import type { CdpPage } from "./cdp-page.js";
 
 const CONSOLE_BUFFER_MAX = 500;
 
@@ -55,54 +48,35 @@ interface BrowserState {
 }
 
 let state: BrowserState | null = null;
+let shutdownHooked = false;
 
-/**
- * Injectable for tests: replace the browser launcher. Returning your own
- * fake page (typed as CdpPage) lets tests skip launching real Chrome.
- */
-export interface BrowserAdapter {
-  launch(): Promise<{ page: CdpPage; close: () => Promise<void> }>;
+function hookShutdown(): void {
+  if (shutdownHooked || typeof process === "undefined") return;
+  shutdownHooked = true;
+  const onExit = (): void => {
+    if (state) {
+      // Best-effort, synchronous fire-and-forget — process is exiting.
+      state.close().catch(() => undefined);
+      state = null;
+    }
+  };
+  process.once("SIGINT", onExit);
+  process.once("SIGTERM", onExit);
+  process.once("exit", onExit);
 }
-
-let adapter: BrowserAdapter | null = null;
-
-/** Test hook — override the browser launcher. */
-export function setBrowserAdapter(a: BrowserAdapter | null): void {
-  adapter = a;
-}
-
-/** Backwards-compatible alias for older test code. */
-export const setPlaywrightAdapter = setBrowserAdapter;
 
 async function ensureState(): Promise<BrowserState> {
   if (state) return state;
-
-  let page: CdpPage;
-  let close: () => Promise<void>;
-  if (adapter) {
-    const launched = await adapter.launch();
-    page = launched.page;
-    close = launched.close;
-  } else {
-    const { launchBrowser, CdpPage: CdpPageCls } = await import("../lib/cdp-page.js");
-    // Default policy: render to the X display when one is available so the
-    // browser is visible via noVNC; fall back to headless when no display
-    // is attached (NODETOOL_HEADLESS=1 or non-sandbox host runs). Explicit
-    // NODETOOL_BROWSER_HEADLESS=true|false overrides the auto-detection.
-    const explicit = process.env.NODETOOL_BROWSER_HEADLESS;
-    const headless =
-      explicit === "true"
-        ? true
-        : explicit === "false"
-          ? false
-          : !process.env.DISPLAY;
-    const session = await launchBrowser({
-      headless,
-      viewport: { width: 1280, height: 900 }
-    });
-    page = await CdpPageCls.create(session.client, { width: 1280, height: 900 });
-    close = session.close;
-  }
+  const { launchBrowser, CdpPage: CdpPageCls } = await import("./cdp-page.js");
+  const headless = process.env.NODETOOL_BROWSER_HEADLESS !== "false";
+  const session = await launchBrowser({
+    headless,
+    viewport: { width: 1280, height: 900 }
+  });
+  const page = await CdpPageCls.create(session.client, {
+    width: 1280,
+    height: 900
+  });
 
   const consoleMessages: BrowserConsoleMessage[] = [];
   page.on("console", (msg) => {
@@ -112,11 +86,15 @@ async function ensureState(): Promise<BrowserState> {
       timestamp: Date.now()
     });
     if (consoleMessages.length > CONSOLE_BUFFER_MAX) {
-      consoleMessages.splice(0, consoleMessages.length - CONSOLE_BUFFER_MAX);
+      consoleMessages.splice(
+        0,
+        consoleMessages.length - CONSOLE_BUFFER_MAX
+      );
     }
   });
 
-  state = { page, close, consoleMessages };
+  state = { page, close: session.close, consoleMessages };
+  hookShutdown();
   return state;
 }
 
@@ -126,7 +104,6 @@ export async function browserView(
   const s = await ensureState();
   const { page } = s;
 
-  // Index interactive elements and pull their geometry.
   const elements = (await page.evaluate(() => {
     const SELECTOR =
       "a, button, input, select, textarea, [role='button'], [role='link'], [role='checkbox'], [role='radio'], [role='menuitem'], [role='tab'], [onclick], [tabindex]";
@@ -173,13 +150,7 @@ export async function browserView(
     screenshot = buf.toString("base64");
   }
 
-  return {
-    url,
-    title,
-    viewport,
-    elements,
-    screenshot_png_b64: screenshot
-  };
+  return { url, title, viewport, elements, screenshot_png_b64: screenshot };
 }
 
 export async function browserNavigate(
@@ -318,8 +289,7 @@ export async function browserConsoleView(
   return { messages };
 }
 
-/** Test hook — tear down the browser singleton. */
-export async function _shutdownForTests(): Promise<void> {
+export async function _shutdownLocalBrowser(): Promise<void> {
   if (state) {
     try {
       await state.close();

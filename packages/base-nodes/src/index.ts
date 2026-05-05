@@ -447,7 +447,6 @@ export {
   DownloadFileLibNode,
   BrowserLibNode,
   ScreenshotLibNode,
-  BrowserNavigationLibNode,
   SpiderCrawlLibNode,
   LIB_BROWSER_NODES
 } from "./nodes/lib-browser.js";
@@ -651,9 +650,7 @@ export { SEARCH_NODES } from "./nodes/search.js";
 export { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
 export {
   SandboxShellNode,
-  SandboxBrowserNode,
   SandboxFileNode,
-  SandboxAgentNode,
   SANDBOX_NODES
 } from "./nodes/sandbox.js";
 export { ANTHROPIC_NODES } from "./nodes/anthropic.js";

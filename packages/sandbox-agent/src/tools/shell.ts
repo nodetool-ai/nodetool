@@ -58,6 +58,7 @@ export async function shellExec(input: ShellExecInput): Promise<ShellExecOutput>
       marker: null,
       lastExitCode: null
     });
+    spawnVisibleTerminal(input.id, tmuxName);
   } else if (input.exec_dir && input.exec_dir !== existing.workDir) {
     // Change directory in the existing session before running the new command.
     await sendKeys(existing.tmuxName, `cd ${shellQuote(input.exec_dir)}`);
@@ -313,4 +314,47 @@ function runCapture(cmd: string, args: string[]): Promise<Buffer> {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * If an X display is attached (the sandbox image's Xvfb stack), open an
+ * xterm attached to the freshly created tmux session so anyone watching
+ * via noVNC sees the agent's keystrokes and output live. The xterm is
+ * detached from the tool server — when shellKill tears down the tmux
+ * session, the xterm exits on its own.
+ *
+ * Set NODETOOL_SHELL_VNC=0 to disable (e.g. when running headless).
+ */
+function spawnVisibleTerminal(id: string, tmuxName: string): void {
+  if (!process.env.DISPLAY) return;
+  if (process.env.NODETOOL_SHELL_VNC === "0") return;
+  try {
+    const child = spawn(
+      "xterm",
+      [
+        "-maximized",
+        "-T",
+        `sandbox: ${id}`,
+        "-fa",
+        "Monospace",
+        "-fs",
+        "11",
+        "-bg",
+        "black",
+        "-fg",
+        "white",
+        "-e",
+        "tmux",
+        "attach-session",
+        "-t",
+        tmuxName
+      ],
+      { detached: true, stdio: "ignore", env: process.env }
+    );
+    child.on("error", () => undefined);
+    child.unref();
+  } catch {
+    // xterm not installed or failed to spawn — fall back silently; the
+    // shell tools still work, just without VNC visibility.
+  }
 }

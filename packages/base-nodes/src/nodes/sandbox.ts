@@ -7,24 +7,13 @@ import {
 } from "@nodetool-ai/sandbox";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { randomUUID } from "node:crypto";
-import { AgentNode, type ToolLike } from "./agents.js";
+import { Tool } from "@nodetool-ai/agents";
+import { buildBrowserAgentToolClasses } from "../lib/browser-agent-tools.js";
+import { registerBuiltinAgentToolClasses } from "./agent-tool-hydration.js";
 
 const DEFAULT_SCOPE_USER = "no-user";
 const DEFAULT_SCOPE_WORKFLOW = "no-workflow";
 const DEFAULT_SESSION_ID = "workflow";
-
-type BrowserAction =
-  | "view"
-  | "navigate"
-  | "restart"
-  | "click"
-  | "input_text"
-  | "move_mouse"
-  | "press_key"
-  | "select_option"
-  | "scroll"
-  | "console_exec"
-  | "console_view";
 
 type FileAction =
   | "read"
@@ -40,172 +29,6 @@ type ActionDef = {
   invoke: (client: ToolClient, params: Record<string, unknown>) => Promise<unknown>;
 };
 
-const BROWSER_ACTIONS: Record<BrowserAction, ActionDef> = {
-  view: {
-    toolName: "sandbox_browser_view",
-    description: "Inspect current sandbox browser page and elements.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        include_screenshot: { type: "boolean" }
-      }
-    },
-    invoke: (client, params) =>
-      client.browserView(params as Parameters<ToolClient["browserView"]>[0])
-  },
-  navigate: {
-    toolName: "sandbox_browser_navigate",
-    description: "Navigate the sandbox browser to a URL.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        url: { type: "string" },
-        wait_until: {
-          type: "string",
-          enum: ["load", "domcontentloaded", "networkidle"]
-        }
-      },
-      required: ["url"]
-    },
-    invoke: (client, params) =>
-      client.browserNavigate(
-        params as Parameters<ToolClient["browserNavigate"]>[0]
-      )
-  },
-  restart: {
-    toolName: "sandbox_browser_restart",
-    description: "Restart sandbox browser context.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        url: { type: "string" }
-      }
-    },
-    invoke: (client, params) =>
-      client.browserRestart(params as Parameters<ToolClient["browserRestart"]>[0])
-  },
-  click: {
-    toolName: "sandbox_browser_click",
-    description: "Click an element in the sandbox browser.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        index: { type: "integer" },
-        coordinate_x: { type: "integer" },
-        coordinate_y: { type: "integer" }
-      }
-    },
-    invoke: (client, params) =>
-      client.browserClick(params as Parameters<ToolClient["browserClick"]>[0])
-  },
-  input_text: {
-    toolName: "sandbox_browser_input_text",
-    description: "Type into an element in the sandbox browser.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        text: { type: "string" },
-        press_enter: { type: "boolean" },
-        index: { type: "integer" },
-        coordinate_x: { type: "integer" },
-        coordinate_y: { type: "integer" }
-      },
-      required: ["text"]
-    },
-    invoke: (client, params) =>
-      client.browserInput(params as Parameters<ToolClient["browserInput"]>[0])
-  },
-  move_mouse: {
-    toolName: "sandbox_browser_move_mouse",
-    description: "Move mouse in sandbox browser viewport.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        coordinate_x: { type: "integer" },
-        coordinate_y: { type: "integer" }
-      },
-      required: ["coordinate_x", "coordinate_y"]
-    },
-    invoke: (client, params) =>
-      client.browserMoveMouse(
-        params as Parameters<ToolClient["browserMoveMouse"]>[0]
-      )
-  },
-  press_key: {
-    toolName: "sandbox_browser_press_key",
-    description: "Press a keyboard key in the sandbox browser.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        key: { type: "string" }
-      },
-      required: ["key"]
-    },
-    invoke: (client, params) =>
-      client.browserPressKey(
-        params as Parameters<ToolClient["browserPressKey"]>[0]
-      )
-  },
-  select_option: {
-    toolName: "sandbox_browser_select_option",
-    description: "Select an option in a sandbox browser select element.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        index: { type: "integer" },
-        option: { type: "string" }
-      },
-      required: ["index", "option"]
-    },
-    invoke: (client, params) =>
-      client.browserSelectOption(
-        params as Parameters<ToolClient["browserSelectOption"]>[0]
-      )
-  },
-  scroll: {
-    toolName: "sandbox_browser_scroll",
-    description: "Scroll the sandbox browser page.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        to_top: { type: "boolean" },
-        to_bottom: { type: "boolean" },
-        pixels: { type: "integer" }
-      }
-    },
-    invoke: (client, params) =>
-      client.browserScroll(params as Parameters<ToolClient["browserScroll"]>[0])
-  },
-  console_exec: {
-    toolName: "sandbox_browser_console_exec",
-    description: "Execute JavaScript in sandbox browser console.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        javascript: { type: "string" }
-      },
-      required: ["javascript"]
-    },
-    invoke: (client, params) =>
-      client.browserConsoleExec(
-        params as Parameters<ToolClient["browserConsoleExec"]>[0]
-      )
-  },
-  console_view: {
-    toolName: "sandbox_browser_console_view",
-    description: "View sandbox browser console messages.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        max_lines: { type: "integer" }
-      }
-    },
-    invoke: (client, params) =>
-      client.browserConsoleView(
-        params as Parameters<ToolClient["browserConsoleView"]>[0]
-      )
-  }
-};
 
 const FILE_ACTIONS: Record<FileAction, ActionDef> = {
   read: {
@@ -511,19 +334,46 @@ async function getClient(
   return sandbox.client;
 }
 
-function createAgentTools(client: ToolClient): ToolLike[] {
-  const defs: ActionDef[] = [
-    ...SHELL_AGENT_TOOLS,
-    ...Object.values(FILE_ACTIONS),
-    ...Object.values(BROWSER_ACTIONS)
-  ];
+/**
+ * Public hook used by `agent-tool-hydration.ts` to acquire a sandbox tool
+ * client for the current ProcessingContext, scoped per workflow run. The
+ * workflow's `workspaceDir` is bind-mounted into the container at /workspace
+ * automatically — sandbox tools selected on a regular AgentNode see the
+ * project files without any node-level configuration.
+ */
+export async function acquireSandboxClient(
+  context: ProcessingContext
+): Promise<ToolClient> {
+  const workspaceDir = asTrimmedString(context?.workspaceDir);
+  return getClient(
+    toEffectiveSessionId(DEFAULT_SESSION_ID, context),
+    workspaceDir,
+    context
+  );
+}
 
-  return defs.map((def) => ({
-    name: def.toolName,
-    description: def.description,
-    inputSchema: def.inputSchema,
-    process: async (_context, params) => def.invoke(client, params)
-  }));
+/**
+ * Wrap a sandbox ActionDef as a Tool subclass. Used to register sandbox
+ * shell/file tools globally so they're selectable on a regular AgentNode.
+ */
+function makeSandboxActionToolClass(def: ActionDef): new () => Tool {
+  return class extends Tool {
+    readonly name = def.toolName;
+    readonly description = def.description;
+    readonly inputSchema = def.inputSchema;
+
+    async process(
+      ctx: ProcessingContext,
+      params: Record<string, unknown>
+    ): Promise<unknown> {
+      try {
+        const client = await acquireSandboxClient(ctx);
+        return await def.invoke(client, params ?? {});
+      } catch (e) {
+        return { error: e instanceof Error ? e.message : String(e) };
+      }
+    }
+  };
 }
 
 export class SandboxShellNode extends BaseNode {
@@ -597,72 +447,6 @@ export class SandboxShellNode extends BaseNode {
   }
 }
 
-export class SandboxBrowserNode extends BaseNode {
-  static readonly nodeType = "nodetool.sandbox.SandboxBrowser";
-  static readonly title = "SandboxBrowser";
-  static readonly description =
-    "Control the sandbox browser (navigate, inspect, click, input, and console actions).";
-  static readonly metadataOutputTypes = {
-    output: "dict[str, any]"
-  };
-  static readonly exposeAsTool = true;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Workspace Dir",
-    description: "Optional sandbox workspace directory."
-  })
-  declare workspace_dir: string;
-
-  @prop({
-    type: "enum",
-    default: "view",
-    title: "Action",
-    description: "Browser action to execute.",
-    values: [
-      "view",
-      "navigate",
-      "restart",
-      "click",
-      "input_text",
-      "move_mouse",
-      "press_key",
-      "select_option",
-      "scroll",
-      "console_exec",
-      "console_view"
-    ]
-  })
-  declare action: string;
-
-  @prop({
-    type: "dict",
-    default: {},
-    title: "Params",
-    description: "Action parameters validated by the sandbox browser tool."
-  })
-  declare params: Record<string, unknown>;
-
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const effectiveSessionId = toEffectiveSessionId(DEFAULT_SESSION_ID, context);
-    const workspaceDir = resolveSandboxWorkspaceDir(this.workspace_dir, context);
-    const action = asTrimmedString(this.action || "view") as BrowserAction;
-    const params = asRecord(this.params);
-    const client = await getClient(effectiveSessionId, workspaceDir, context);
-
-    const actionDef = BROWSER_ACTIONS[action];
-    if (!actionDef) {
-      throw new Error(`Unsupported browser action: ${action}`);
-    }
-    const output = await actionDef.invoke(client, params);
-
-    return {
-      output
-    };
-  }
-}
-
 export class SandboxFileNode extends BaseNode {
   static readonly nodeType = "nodetool.sandbox.SandboxFile";
   static readonly title = "SandboxFile";
@@ -717,43 +501,23 @@ export class SandboxFileNode extends BaseNode {
   }
 }
 
-/**
- * SandboxAgent — same as the standard Agent node, but augments the tool
- * list with the sandbox shell/browser/file actions and auto-mounts the
- * workflow workspace into the container. Inherits streaming, mode
- * dispatch (loop/plan/multi-agent), history, threads, image/audio,
- * structured outputs, control tools, and the agentic-provider fast-path
- * from AgentNode.
- */
-export class SandboxAgentNode extends AgentNode {
-  static readonly nodeType = "nodetool.sandbox.SandboxAgent";
-  static readonly title = "SandboxAgent";
-  static readonly description =
-    "Agent with access to sandbox shell, browser, and file tools alongside any user-selected tools.";
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Workspace Dir",
-    description:
-      "Host directory bind-mounted into the sandbox at /workspace. Defaults to the workflow's workspace."
-  })
-  declare workspace_dir: string;
-
-  protected override async buildTools(
-    context?: ProcessingContext
-  ): Promise<ToolLike[]> {
-    const userTools = await super.buildTools(context);
-    const sessionId = toEffectiveSessionId(DEFAULT_SESSION_ID, context);
-    const workspaceDir = resolveSandboxWorkspaceDir(this.workspace_dir, context);
-    const client = await getClient(sessionId, workspaceDir, context);
-    return [...createAgentTools(client), ...userTools];
-  }
-}
-
 export const SANDBOX_NODES: readonly NodeClass[] = [
   SandboxShellNode,
-  SandboxBrowserNode,
-  SandboxFileNode,
-  SandboxAgentNode
+  SandboxFileNode
 ];
+
+// Register the full sandbox tool surface into the shared agent-tool registry
+// so a plain AgentNode can pick any sandbox_* tool by name without needing
+// a dedicated SandboxAgent node. The container is acquired lazily, scoped per
+// workflow run, with workspaceDir taken from ProcessingContext.
+//   - 11 local browser tools (`browser_*`) drive a host-process Chrome.
+//   - 11 sandbox browser tools (`sandbox_browser_*`) drive the container's Chrome.
+//   - 5 sandbox shell tools (`sandbox_shell_*`).
+//   - 5 sandbox file tools (`sandbox_file_*`).
+// Registration runs after this module's body so the cycle through
+// agent-tool-hydration -> sandbox is broken by inversion of control.
+registerBuiltinAgentToolClasses([
+  ...buildBrowserAgentToolClasses(acquireSandboxClient),
+  ...SHELL_AGENT_TOOLS.map(makeSandboxActionToolClass),
+  ...Object.values(FILE_ACTIONS).map(makeSandboxActionToolClass)
+]);
