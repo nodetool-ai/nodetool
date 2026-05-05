@@ -197,14 +197,21 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         return;
       }
       isDraggingRef.current = true;
-      const deltaMs = deltaPx * msPerPx;
       const disableSnap = e.altKey;
       const snapCandidates = buildSnapCandidates(clip.id);
+
+      // Compute a position-independent delta: how many ms the pointer has moved
+      // from drag-start, minus any drift already applied to clip.startMs by
+      // previous frames. This avoids accumulating floating-point error across
+      // many intermediate PointerMove events.
+      const pointerMs = deltaPx * msPerPx;
+      const alreadyAppliedMs = clip.startMs - dragStartMsRef.current;
+      const adjustedDeltaMs = pointerMs - alreadyAppliedMs;
 
       if (isSelected && selectedClipIds.size > 1) {
         moveSelectedClips(
           clip.id,
-          deltaMs - (clip.startMs - dragStartMsRef.current),
+          adjustedDeltaMs,
           undefined,
           snapCandidates,
           msPerPx,
@@ -213,7 +220,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       } else {
         moveClip(
           clip.id,
-          deltaMs - (clip.startMs - dragStartMsRef.current),
+          adjustedDeltaMs,
           undefined,
           snapCandidates,
           msPerPx,
@@ -279,10 +286,11 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       }
       const deltaPx = e.clientX - trimStartRef.current.startX;
       const deltaMs = deltaPx * msPerPx;
-      // trimClipStart: negative deltaMs extends clip start earlier
-      // positive deltaMs shrinks from start
-      // The utility expects: edge="start", deltaMs = amount to EXTEND (positive = extend start earlier)
-      // So we negate: moving pointer right (deltaPx > 0) means shrinking start
+      // trimClip(edge="start", deltaMs) convention (from packages/timeline/src/trimClip.ts):
+      //   nextStartMs   = clip.startMs  - deltaMs   (positive = move start right = shrink)
+      //   nextDurationMs = clip.durationMs + deltaMs  (positive = grow from start)
+      // So: pointer moving right (+deltaPx) should shrink the clip from the start.
+      // We negate so that dragging the handle right correctly shrinks the clip start.
       trimClipStart(clip.id, -deltaMs);
       trimStartRef.current.startX = e.clientX;
     },

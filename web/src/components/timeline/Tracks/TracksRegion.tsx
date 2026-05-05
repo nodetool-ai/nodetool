@@ -43,6 +43,8 @@ import { FlexColumn, FlexRow } from "../../ui_primitives";
 
 const DEFAULT_TRACK_HEIGHT_PX = 64;
 const ZOOM_SENSITIVITY = 0.001;
+/** Offset applied to duplicated clips when using Ctrl+Shift+D (ms). */
+const DUPLICATE_OFFSET_MS = 1000;
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -159,7 +161,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         // Ctrl+Shift+D → duplicate + shift by a fixed offset (1 s)
         if (isCtrl && e.shiftKey && e.key === "D") {
           e.preventDefault();
-          duplicateSelected(selectedClipIds, 1000);
+          duplicateSelected(selectedClipIds, DUPLICATE_OFFSET_MS);
         }
 
         // Ctrl+S → split at playhead
