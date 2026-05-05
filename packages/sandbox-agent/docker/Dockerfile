@@ -3,7 +3,7 @@
 #
 # Debian Bookworm (via node:24-bookworm-slim) + Node 24 + Chromium +
 # Xvfb/fluxbox + x11vnc + websockify.
-# The in-container tool server (@nodetool/sandbox-agent) listens on :7788
+# The in-container tool server (@nodetool-ai/sandbox-agent) listens on :7788
 # and exposes file/shell/browser/desktop tools over HTTP.
 # ------------------------------------------------------------------------------
 
@@ -38,7 +38,7 @@ RUN userdel node 2>/dev/null || true \
     && chown ubuntu:ubuntu /workspace
 
 # -----------------------------------------------------------------------------
-# Build stage: compile @nodetool/sandbox-agent and its deps.
+# Build stage: compile @nodetool-ai/sandbox-agent and its deps.
 # -----------------------------------------------------------------------------
 FROM base AS build
 WORKDIR /build
@@ -53,17 +53,12 @@ COPY packages/sandbox-agent ./packages/sandbox-agent
 
 # Install workspace deps (scoped to what sandbox-agent needs).
 RUN npm install --workspaces=false --include-workspace-root=true \
-    && npm install -w @nodetool/config -w @nodetool/sandbox -w @nodetool/sandbox-agent
+    && npm install -w @nodetool-ai/config -w @nodetool-ai/sandbox -w @nodetool-ai/sandbox-agent
 
 RUN npx tsc --build \
       packages/config \
       packages/sandbox \
       packages/sandbox-agent
-
-# Install Playwright browsers during build so they're baked into the image.
-# Uses the already-installed playwright from node_modules (no extra npm download).
-ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers
-RUN npx playwright install chromium
 
 # -----------------------------------------------------------------------------
 # Runtime stage.
@@ -72,21 +67,21 @@ FROM base AS runtime
 WORKDIR /opt/sandbox-agent
 
 # Copy built JS and production node_modules for the agent.
-COPY --from=build /build/packages/config/dist ./node_modules/@nodetool/config/dist
-COPY --from=build /build/packages/config/package.json ./node_modules/@nodetool/config/package.json
-COPY --from=build /build/packages/sandbox/dist ./node_modules/@nodetool/sandbox/dist
-COPY --from=build /build/packages/sandbox/package.json ./node_modules/@nodetool/sandbox/package.json
+COPY --from=build /build/packages/config/dist ./node_modules/@nodetool-ai/config/dist
+COPY --from=build /build/packages/config/package.json ./node_modules/@nodetool-ai/config/package.json
+COPY --from=build /build/packages/sandbox/dist ./node_modules/@nodetool-ai/sandbox/dist
+COPY --from=build /build/packages/sandbox/package.json ./node_modules/@nodetool-ai/sandbox/package.json
 COPY --from=build /build/packages/sandbox-agent/dist ./dist
 COPY --from=build /build/packages/sandbox-agent/package.json ./package.json
 COPY --from=build /build/node_modules ./vendor_modules
 
 # Merge vendor modules (fastify, zod, etc.) into local node_modules, skipping
-# the @nodetool/* packages we've already laid down.
+# the @nodetool-ai/* packages we've already laid down.
 RUN set -eux; \
     for d in vendor_modules/*; do \
       name=$(basename "$d"); \
       case "$name" in \
-        @nodetool) cp -rn "$d"/* ./node_modules/@nodetool/ 2>/dev/null || true ;; \
+        @nodetool-ai) cp -rn "$d"/* ./node_modules/@nodetool-ai/ 2>/dev/null || true ;; \
         *) cp -rn "$d" ./node_modules/ 2>/dev/null || true ;; \
       esac; \
     done; \
@@ -95,10 +90,8 @@ RUN set -eux; \
 COPY packages/sandbox-agent/docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Copy pre-installed Playwright browsers from the build stage.
-ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers
-COPY --from=build /opt/pw-browsers /opt/pw-browsers
-RUN chown -R ubuntu:ubuntu /opt/pw-browsers
+# chrome-launcher locates the system Chromium installed via apt.
+ENV CHROME_PATH=/usr/bin/chromium
 
 USER ubuntu
 WORKDIR /home/ubuntu
