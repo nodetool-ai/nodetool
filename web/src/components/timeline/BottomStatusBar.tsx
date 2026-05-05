@@ -88,8 +88,8 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
         <FlexRow gap={2} align="center">
           <FlexRow gap={0.75} align="center">
             <ModeIcon
-              sx={{ fontSize: 14, color: "text.secondary" }}
-              aria-hidden
+              sx={{ fontSize: 14, color: theme.vars.palette.text.secondary }}
+              aria-hidden={true}
             />
             <StatusIndicator status={modeStatus} label={modeLabel} size="small" />
           </FlexRow>

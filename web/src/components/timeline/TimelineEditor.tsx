@@ -6,15 +6,15 @@
  *   TopBar (48 px)
  *   ─── resizable split ─────────────────────────
  *   FlexRow: PreviewArea (55 %) | InspectorArea (45 %)
- *   ─── horizontal drag handle ──────────────────
- *   TracksArea (user-resizable, default ≈ 33 % of remaining height)
+ *   ─── horizontal drag handle (mouse + keyboard resizable) ────
+ *   TracksArea (user-resizable, default 240 px)
  *   BottomStatusBar (32 px)
  *
  * Loading: shows LoadingSpinner centred in the preview region.
- * Not-found / error: shows EmptyState with a "Go back" action.
+ * Not-found / error: shows EmptyState with a "Go to dashboard" action.
  */
 
-import React, { memo, useCallback, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
@@ -37,6 +37,8 @@ const HANDLE_HEIGHT_PX = 6;
 const DEFAULT_TRACKS_HEIGHT_PX = 240;
 const MIN_TRACKS_HEIGHT_PX = 80;
 const MAX_TRACKS_HEIGHT_PX = 600;
+/** Arrow-key step for keyboard resizing (px) */
+const KEYBOARD_RESIZE_STEP_PX = 20;
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -54,22 +56,21 @@ const middleAreaStyles = (theme: Theme) =>
     borderBottom: `1px solid ${theme.vars.palette.divider}`
   });
 
-const regionStyles = (theme: Theme) =>
+const previewRegionStyles = (theme: Theme) =>
   css({
     overflow: "hidden",
     backgroundColor: theme.vars.palette.background.default,
-    ".region-inner": {
-      width: "100%",
-      height: "100%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    }
+    borderRight: `1px solid ${theme.vars.palette.divider}`,
+    alignItems: "center",
+    justifyContent: "center"
   });
 
-const previewBorderStyle = (theme: Theme) =>
+const inspectorRegionStyles = (theme: Theme) =>
   css({
-    borderRight: `1px solid ${theme.vars.palette.divider}`
+    overflow: "hidden",
+    backgroundColor: theme.vars.palette.background.default,
+    alignItems: "center",
+    justifyContent: "center"
   });
 
 const dragHandleStyles = (theme: Theme) =>
@@ -79,23 +80,22 @@ const dragHandleStyles = (theme: Theme) =>
     flexShrink: 0,
     backgroundColor: theme.vars.palette.divider,
     transition: "background-color 0.15s ease",
-    userSelect: "none",
+    outline: "none",
     "&:hover, &.dragging": {
       backgroundColor: theme.vars.palette.primary.main
+    },
+    "&:focus-visible": {
+      backgroundColor: theme.vars.palette.primary.main,
+      boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}`
     }
   });
 
-const tracksStyles = (theme: Theme) =>
+const tracksRegionStyles = (theme: Theme) =>
   css({
     overflow: "hidden",
     backgroundColor: theme.vars.palette.background.paper,
-    ".region-inner": {
-      width: "100%",
-      height: "100%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    }
+    alignItems: "center",
+    justifyContent: "center"
   });
 
 // ── Sub-region placeholder components ─────────────────────────────────────
@@ -104,22 +104,20 @@ const PreviewRegion: React.FC<{ isLoading: boolean }> = ({ isLoading }) => {
   const theme = useTheme();
   return (
     <FlexColumn
-      css={[regionStyles(theme), previewBorderStyle(theme)]}
+      css={previewRegionStyles(theme)}
       fullHeight
-      sx={{ flex: "0 0 55%", maxWidth: "55%" }}
+      sx={{ flex: "0 0 55%" }}
     >
-      <div className="region-inner">
-        {isLoading ? (
-          <LoadingSpinner text="Loading sequence…" />
-        ) : (
-          <EmptyState
-            variant="empty"
-            size="small"
-            title="Preview"
-            description="Preview compositor (NOD-303)"
-          />
-        )}
-      </div>
+      {isLoading ? (
+        <LoadingSpinner text="Loading sequence…" />
+      ) : (
+        <EmptyState
+          variant="empty"
+          size="small"
+          title="Preview"
+          description="Preview compositor (NOD-303)"
+        />
+      )}
     </FlexColumn>
   );
 };
@@ -128,18 +126,16 @@ const InspectorRegion: React.FC = () => {
   const theme = useTheme();
   return (
     <FlexColumn
-      css={regionStyles(theme)}
+      css={inspectorRegionStyles(theme)}
       fullHeight
       sx={{ flex: "1 1 45%" }}
     >
-      <div className="region-inner">
-        <EmptyState
-          variant="empty"
-          size="small"
-          title="Inspector"
-          description="Inspector (NOD-305 / NOD-308)"
-        />
-      </div>
+      <EmptyState
+        variant="empty"
+        size="small"
+        title="Inspector"
+        description="Inspector (NOD-305 / NOD-308)"
+      />
     </FlexColumn>
   );
 };
@@ -148,26 +144,18 @@ const TracksRegion: React.FC<{ heightPx: number }> = ({ heightPx }) => {
   const theme = useTheme();
   return (
     <FlexColumn
-      css={tracksStyles(theme)}
+      css={tracksRegionStyles(theme)}
       fullWidth
       sx={{ height: heightPx }}
     >
-      <div className="region-inner">
-        <EmptyState
-          variant="empty"
-          size="small"
-          title="Tracks"
-          description="Tracks, ruler & playhead (NOD-302)"
-        />
-      </div>
+      <EmptyState
+        variant="empty"
+        size="small"
+        title="Tracks"
+        description="Tracks, ruler & playhead (NOD-302)"
+      />
     </FlexColumn>
   );
-};
-
-// ── Stable no-op callbacks ─────────────────────────────────────────────────
-
-const noop = () => {
-  /* placeholder — wired by NOD-311 */
 };
 
 // ── Main component ─────────────────────────────────────────────────────────
@@ -185,42 +173,75 @@ export const TimelineEditor: React.FC = memo(() => {
 
   // Tracks resize ─────────────────────────────────────────────────────────
   const [tracksHeight, setTracksHeight] = useState(DEFAULT_TRACKS_HEIGHT_PX);
-  const isDraggingRef = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
   const dragStartYRef = useRef(0);
   const dragStartHeightRef = useRef(DEFAULT_TRACKS_HEIGHT_PX);
   const handleRef = useRef<HTMLDivElement>(null);
 
-  const handleDragMouseDown = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      isDraggingRef.current = true;
-      dragStartYRef.current = e.clientY;
-      dragStartHeightRef.current = tracksHeight;
-      handleRef.current?.classList.add("dragging");
+  /** Begin mouse drag — capture start position and activate drag state. */
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    dragStartYRef.current = e.clientY;
+    dragStartHeightRef.current = tracksHeight;
+    setIsDragging(true);
+  }, [tracksHeight]);
 
-      const onMouseMove = (ev: MouseEvent) => {
-        if (!isDraggingRef.current) {
-          return;
-        }
-        const deltaY = dragStartYRef.current - ev.clientY; // drag up → taller
-        const newHeight = Math.min(
+  /**
+   * Register / unregister window-level mouse listeners for the duration of a
+   * drag. Cleanup runs on unmount, preventing listener leaks if the user
+   * navigates away mid-drag.
+   */
+  useEffect(() => {
+    if (!isDragging) {
+      return;
+    }
+
+    // Prevent text selection in adjacent regions during drag.
+    document.body.style.userSelect = "none";
+    const handleEl = handleRef.current;
+    handleEl?.classList.add("dragging");
+
+    const onMouseMove = (ev: MouseEvent) => {
+      const deltaY = dragStartYRef.current - ev.clientY; // drag up → taller
+      setTracksHeight(
+        Math.min(
           MAX_TRACKS_HEIGHT_PX,
           Math.max(MIN_TRACKS_HEIGHT_PX, dragStartHeightRef.current + deltaY)
+        )
+      );
+    };
+
+    const onMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      document.body.style.userSelect = "";
+      handleEl?.classList.remove("dragging");
+    };
+  }, [isDragging]);
+
+  /** Keyboard resize: ↑ enlarges, ↓ shrinks the tracks panel. */
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setTracksHeight((h) =>
+          Math.min(MAX_TRACKS_HEIGHT_PX, h + KEYBOARD_RESIZE_STEP_PX)
         );
-        setTracksHeight(newHeight);
-      };
-
-      const onMouseUp = () => {
-        isDraggingRef.current = false;
-        handleRef.current?.classList.remove("dragging");
-        window.removeEventListener("mousemove", onMouseMove);
-        window.removeEventListener("mouseup", onMouseUp);
-      };
-
-      window.addEventListener("mousemove", onMouseMove);
-      window.addEventListener("mouseup", onMouseUp);
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setTracksHeight((h) =>
+          Math.max(MIN_TRACKS_HEIGHT_PX, h - KEYBOARD_RESIZE_STEP_PX)
+        );
+      }
     },
-    [tracksHeight]
+    []
   );
 
   // Not-found / error ─────────────────────────────────────────────────────
@@ -239,8 +260,8 @@ export const TimelineEditor: React.FC = memo(() => {
           variant="error"
           title="Sequence not found"
           description="The timeline sequence you requested does not exist or you do not have access to it."
-          actionText="Go back"
-          onAction={() => navigate(-1)}
+          actionText="Go to dashboard"
+          onAction={() => navigate("/dashboard")}
         />
       </FlexColumn>
     );
@@ -249,11 +270,7 @@ export const TimelineEditor: React.FC = memo(() => {
   return (
     <FlexColumn fullWidth fullHeight css={editorStyles(theme)}>
       {/* ── Top bar ───────────────────────────────────────────────── */}
-      <TopBar
-        sequenceName={sequence?.name}
-        saveStatus={isLoading ? undefined : "Saved"}
-        onRenderAll={noop}
-      />
+      <TopBar sequenceName={sequence?.name} />
 
       {/* ── Middle: preview + inspector ───────────────────────────── */}
       <FlexRow
@@ -265,14 +282,19 @@ export const TimelineEditor: React.FC = memo(() => {
         <InspectorRegion />
       </FlexRow>
 
-      {/* ── Horizontal drag handle ────────────────────────────────── */}
+      {/* ── Horizontal drag handle (mouse + keyboard resizable) ───── */}
       <div
         ref={handleRef}
         role="separator"
         aria-orientation="horizontal"
         aria-label="Resize tracks panel"
+        aria-valuenow={tracksHeight}
+        aria-valuemin={MIN_TRACKS_HEIGHT_PX}
+        aria-valuemax={MAX_TRACKS_HEIGHT_PX}
+        tabIndex={0}
         css={dragHandleStyles(theme)}
-        onMouseDown={handleDragMouseDown}
+        onMouseDown={handleMouseDown}
+        onKeyDown={handleKeyDown}
       />
 
       {/* ── Tracks ────────────────────────────────────────────────── */}

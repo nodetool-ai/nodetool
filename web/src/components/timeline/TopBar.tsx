@@ -98,6 +98,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
             onClick={onProjectNameClick}
             role="button"
             tabIndex={0}
+            aria-haspopup="menu"
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") onProjectNameClick?.();
             }}
@@ -105,7 +106,9 @@ export const TopBar: React.FC<TopBarProps> = memo(
             <Text size="small" weight={500}>
               {sequenceName}
             </Text>
-            <ArrowDropDownIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+            <ArrowDropDownIcon
+              sx={{ fontSize: 16, color: theme.vars.palette.text.secondary }}
+            />
           </FlexRow>
 
           {saveStatus && (
@@ -145,7 +148,6 @@ export const TopBar: React.FC<TopBarProps> = memo(
             onClick={onRenderAll}
             startIcon={<PlayArrowIcon />}
             size="small"
-            aria-label="Render All"
           >
             Render All
           </EditorButton>
