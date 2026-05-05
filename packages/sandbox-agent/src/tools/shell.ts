@@ -332,6 +332,7 @@ function spawnVisibleTerminal(id: string, tmuxName: string): void {
     const child = spawn(
       "xterm",
       [
+        "-fullscreen",
         "-T",
         `sandbox: ${id}`,
         "-fa",
