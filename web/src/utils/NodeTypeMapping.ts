@@ -106,7 +106,7 @@ export const contentTypeToNodeType = (
 /**
  * Maps internal types to input node types
  */
-export const inputForType = (type: TypeName) => {
+export const inputForType = (type: TypeName): string | null => {
   switch (type) {
     case "str":
       return "nodetool.input.StringInput";
@@ -196,7 +196,7 @@ export const inputToConstantType = (inputType: string): string | null => {
 /**
  * Maps internal types to constant/input node types for drag and drop
  */
-export const constantForType = (type: TypeName) => {
+export const constantForType = (type: TypeName): string | null => {
   switch (type) {
     case "str":
       return "nodetool.constant.String";
