@@ -233,7 +233,7 @@ These are not dispatched by the central dispatcher — they fire from `onKeyDown
 
 - [ ] Add or update tests: dispatcher scope resolution, mode override behavior, blocked-input bypass, nudge with Shift multiplier, `Ctrl+I` vs `Ctrl+Shift+I` no-collision, spring-loaded modifier lifecycle (activate, window-blur cleanup).
 
-- [ ] Delete the old monolithic keydown handler body, any leftover `isAppleLikePlatform()` local copies, and the now-unused inline mirror toggle branches.
+- [x] Delete the old monolithic keydown handler body, any leftover `isAppleLikePlatform()` local copies, and the now-unused inline mirror toggle branches.
 
 ---
 
