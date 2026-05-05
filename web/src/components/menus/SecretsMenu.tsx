@@ -2,7 +2,7 @@
 import DeleteIcon from "@mui/icons-material/Delete";
 import { EditButton } from "../ui_primitives/EditButton";
 import WarningIcon from "@mui/icons-material/Warning";
-import { FlexColumn, FlexRow, TextInput, Text, Caption, Tooltip, Dialog, ToolbarIconButton, Divider } from "../ui_primitives";
+import { FlexColumn, FlexRow, TextInput, Text, Caption, Dialog, ToolbarIconButton, Divider } from "../ui_primitives";
 import { ExternalLink } from "../ui_primitives/ExternalLink";
 import LockIcon from "@mui/icons-material/Lock";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";

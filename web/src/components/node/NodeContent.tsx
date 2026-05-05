@@ -7,7 +7,6 @@ import { NodeData } from "../../stores/NodeData";
 import NodeProgress from "./NodeProgress";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
-import ResultOverlay from "./ResultOverlay";
 
 interface NodeContentProps {
   id: string;
@@ -171,15 +170,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
     id,
     data.dynamic_properties
   );
-
-  const isEmptyObject = (obj: unknown): boolean => {
-    return !!obj && typeof obj === "object" && Object.keys(obj).length === 0;
-  };
-
-  // For output nodes, always show overlay when result is available
-  const shouldShowOverlay = isOutputNode
-    ? Boolean(result && !isEmptyObject(result))
-    : Boolean(showResultOverlay && result && !isEmptyObject(result));
 
   return (
     <FlexColumn

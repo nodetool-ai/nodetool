@@ -8,7 +8,7 @@ import React, {
 import { useTheme } from "@mui/material/styles";
 import { Collapse } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import { Tooltip, Caption, FlexRow, ToolbarIconButton } from "../../ui_primitives";
+import { Caption, FlexRow, ToolbarIconButton } from "../../ui_primitives";
 import SendIcon from "@mui/icons-material/Send";
 import ClearIcon from "@mui/icons-material/Clear";
 import { MessageContent } from "../../../stores/ApiTypes";

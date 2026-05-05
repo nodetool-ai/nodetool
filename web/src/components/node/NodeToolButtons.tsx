@@ -8,7 +8,7 @@ import {
   ListItemIcon,
   ListItemText
 } from "@mui/material";
-import { Tooltip, Divider, ToolbarIconButton } from "../ui_primitives";
+import { Divider, ToolbarIconButton } from "../ui_primitives";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import { DeleteButton } from "../ui_primitives";
 import InfoIcon from "@mui/icons-material/Info";

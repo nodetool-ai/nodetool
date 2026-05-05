@@ -9,7 +9,7 @@ import {
   DialogContent
 } from "@mui/material";
 import { EditorButton } from "../../editor_ui";
-import { Dialog, Tooltip, Text, Caption, FlexRow, ToolbarIconButton } from "../../ui_primitives";
+import { Dialog, Tooltip, Caption, FlexRow } from "../../ui_primitives";
 import isEqual from "fast-deep-equal";
 import {
   MailOutline,

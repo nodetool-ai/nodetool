@@ -7,7 +7,7 @@ import {
   DialogActions,
   MenuItem
 } from "@mui/material";
-import { Tooltip, FlexRow, ToolbarIconButton, EditorButton, Dialog } from "../ui_primitives";
+import { FlexRow, ToolbarIconButton, EditorButton, Dialog } from "../ui_primitives";
 import { Add } from "@mui/icons-material";
 import { useState, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";

@@ -1,12 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback, memo } from "react";
-import { Caption, Tooltip, FlexColumn, Divider, ToolbarIconButton, NotificationBadge } from "../ui_primitives";
+import { Caption, FlexColumn, Divider, ToolbarIconButton, NotificationBadge } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import HistoryIcon from "@mui/icons-material/History";
 import OutputRenderer from "./OutputRenderer";
 import NodeHistoryPanel from "./NodeHistoryPanel";
 import { useNodeResultHistoryStore, EMPTY_HISTORY } from "../../stores/NodeResultHistoryStore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { typeFor } from "./output";
 
 /**
