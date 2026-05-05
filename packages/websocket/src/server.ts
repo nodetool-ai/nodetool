@@ -228,16 +228,23 @@ try {
   setSecretResolver((key, userId) =>
     getSecret(key, userId).then((v) => v ?? undefined)
   );
-
-  // Seed built-in workflows (idempotent upserts — safe to run on every start).
-  await runSeeds();
-  log.info(`Seeds applied [${startupMs()}]`);
 } catch (err) {
   log.error(
     "Database setup failed",
     err instanceof Error ? err : new Error(String(err))
   );
   process.exit(1);
+}
+
+// Seed built-in workflows — non-fatal; a seed failure should not prevent startup.
+try {
+  await runSeeds();
+  log.info(`Seeds applied [${startupMs()}]`);
+} catch (err) {
+  log.warn(
+    "Seeds failed (non-fatal)",
+    err instanceof Error ? err : new Error(String(err))
+  );
 }
 
 // ---------------------------------------------------------------------------

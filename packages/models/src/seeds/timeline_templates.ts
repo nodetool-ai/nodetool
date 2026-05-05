@@ -1,33 +1,12 @@
-/**
- * Timeline template seeds — NOD-300
- *
- * Seeds three Workflow rows tagged "timeline-template" so they appear in
- * the timeline's Add-Generated-Clip menu (PRD §8).  Each workflow exposes
- * its parameters as Input* nodes, which the timeline reads to build the
- * per-clip override form.
- *
- * Deterministic IDs ensure re-running the seed is idempotent (the Workflow
- * model's save() uses INSERT … ON CONFLICT DO UPDATE).
- */
-
 import { Workflow } from "../workflow.js";
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-/** The local system user that owns seeded content. */
 export const SYSTEM_USER_ID = "1";
-
-/** Tag that marks a workflow as a timeline clip template. */
 export const TIMELINE_TEMPLATE_TAG = "timeline-template";
-
-/** Deterministic workflow IDs — stable across re-runs. */
 export const SEED_IDS = {
   textToImage: "seed-tt-image-000000000001",
   imageToVideo: "seed-tt-video-000000000001",
   textToSpeech: "seed-tt-speech-000000000001"
 } as const;
-
-// ── Graph helpers ─────────────────────────────────────────────────────────────
 
 type NodeDef = {
   id: string;
@@ -68,8 +47,6 @@ function edge(def: EdgeDef): Record<string, unknown> {
     edge_type: "data"
   };
 }
-
-// ── Workflow 1: Text-to-Image ─────────────────────────────────────────────────
 
 function textToImageGraph(): { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] } {
   const nodes = [
@@ -144,8 +121,6 @@ function textToImageGraph(): { nodes: Record<string, unknown>[]; edges: Record<s
   return { nodes, edges };
 }
 
-// ── Workflow 2: Image-to-Video ────────────────────────────────────────────────
-
 function imageToVideoGraph(): { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] } {
   const nodes = [
     node({
@@ -210,9 +185,6 @@ function imageToVideoGraph(): { nodes: Record<string, unknown>[]; edges: Record<
   return { nodes, edges };
 }
 
-// ── Workflow 3: Text-to-Speech ────────────────────────────────────────────────
-
-/** OpenAI TTS voices available for SelectInput options. */
 const TTS_VOICES = ["alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer", "verse"];
 
 function textToSpeechGraph(): { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] } {
@@ -263,13 +235,11 @@ function textToSpeechGraph(): { nodes: Record<string, unknown>[]; edges: Record<
   return { nodes, edges };
 }
 
-// ── Seed data builders ────────────────────────────────────────────────────────
-
 type WorkflowSeedDef = {
   id: string;
   name: string;
   description: string;
-  graph: ReturnType<typeof textToImageGraph>;
+  graphFn: () => { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] };
 };
 
 const WORKFLOW_SEED_DEFS: ReadonlyArray<WorkflowSeedDef> = [
@@ -277,30 +247,22 @@ const WORKFLOW_SEED_DEFS: ReadonlyArray<WorkflowSeedDef> = [
     id: SEED_IDS.textToImage,
     name: "Text to Image",
     description: "Generate an image from a text prompt using an AI image model.",
-    graph: textToImageGraph()
+    graphFn: textToImageGraph
   },
   {
     id: SEED_IDS.imageToVideo,
     name: "Image to Video",
     description: "Animate a source image into a short video clip using an AI video model.",
-    graph: imageToVideoGraph()
+    graphFn: imageToVideoGraph
   },
   {
     id: SEED_IDS.textToSpeech,
     name: "Text to Speech",
     description: "Convert text into spoken audio using OpenAI's TTS voices.",
-    graph: textToSpeechGraph()
+    graphFn: textToSpeechGraph
   }
 ];
 
-// ── Seed function ─────────────────────────────────────────────────────────────
-
-/**
- * Upsert all timeline template workflows.
- *
- * Safe to call multiple times — uses INSERT … ON CONFLICT DO UPDATE so
- * re-running on an existing database updates rather than duplicates.
- */
 export async function seedTimelineTemplates(): Promise<void> {
   const now = new Date().toISOString();
   for (const def of WORKFLOW_SEED_DEFS) {
@@ -312,7 +274,7 @@ export async function seedTimelineTemplates(): Promise<void> {
       tags: [TIMELINE_TEMPLATE_TAG],
       access: "public",
       run_mode: "workflow",
-      graph: def.graph,
+      graph: def.graphFn(),
       settings: null,
       tool_name: null,
       package_name: null,
@@ -327,3 +289,4 @@ export async function seedTimelineTemplates(): Promise<void> {
     await wf.save();
   }
 }
+

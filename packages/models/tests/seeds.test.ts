@@ -1,12 +1,3 @@
-/**
- * Tests for the timeline template seed — NOD-300.
- *
- * Validates:
- * 1. Seed runs cleanly on a fresh DB and produces three workflows.
- * 2. Re-running the seed updates rather than duplicates.
- * 3. Each seeded workflow has the expected shape (tags, access, graph nodes).
- */
-
 import { describe, it, expect, beforeEach } from "vitest";
 import { initTestDb } from "../src/db.js";
 import { Workflow } from "../src/workflow.js";
@@ -22,7 +13,6 @@ function setup(): void {
   initTestDb();
 }
 
-/** Fetch a workflow by ID and assert it exists. */
 async function getWorkflowOrFail(id: string): Promise<Workflow> {
   const wf = await Workflow.get(id);
   expect(wf).not.toBeNull();
@@ -65,7 +55,7 @@ describe("Timeline template seeds", () => {
 
   it("is idempotent — re-running seed does not duplicate rows", async () => {
     await runSeeds();
-    await runSeeds(); // second run
+    await runSeeds();
 
     const [all] = await Workflow.paginate(SYSTEM_USER_ID);
     const templates = all.filter(
