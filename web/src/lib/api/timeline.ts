@@ -40,12 +40,30 @@ export interface TimelineClip {
   name: string;
   startMs: number;
   durationMs: number;
+  inPointMs?: number;
+  outPointMs?: number;
   mediaType: "image" | "video" | "audio" | "overlay";
   sourceType: "imported" | "generated";
+  workflowId?: string;
+  selectedOutputNodeId?: string;
+  paramOverrides?: Record<string, unknown>;
+  dependencyHash?: string;
+  lastGeneratedHash?: string;
+  currentAssetId?: string;
+  thumbnailAssetId?: string;
+  waveformAssetId?: string;
   status: string;
   locked: boolean;
+  muted?: boolean;
+  hidden?: boolean;
   versions: ClipVersion[];
-  [key: string]: unknown;
+  opacity?: number;
+  blendMode?: string;
+  speedMultiplier?: number;
+  speedBaked?: boolean;
+  volumeDb?: number;
+  fadeInMs?: number;
+  fadeOutMs?: number;
 }
 
 export interface TimelineMarker {

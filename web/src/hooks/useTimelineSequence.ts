@@ -42,7 +42,7 @@ export const useTimelines = (projectId?: string) =>
 /** Fetch a single sequence by id. */
 export const useTimeline = (id: string | null | undefined) =>
   useQuery({
-    queryKey: id ? timelineKeys.detail(id) : ["timeline", "none"],
+    queryKey: timelineKeys.detail(id ?? ""),
     queryFn: () => timelineApi.getTimeline(id as string),
     enabled: !!id,
     staleTime: 30_000
@@ -54,10 +54,7 @@ export const useClipVersions = (
   clipId: string | null | undefined
 ) =>
   useQuery({
-    queryKey:
-      sequenceId && clipId
-        ? timelineKeys.clipVersions(sequenceId, clipId)
-        : ["timeline", "none", "clips", "none", "versions"],
+    queryKey: timelineKeys.clipVersions(sequenceId ?? "", clipId ?? ""),
     queryFn: () =>
       timelineApi.getClipVersions(sequenceId as string, clipId as string),
     enabled: !!(sequenceId && clipId),

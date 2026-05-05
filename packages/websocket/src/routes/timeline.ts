@@ -71,7 +71,8 @@ function serializeListItem(seq: TimelineSequence): unknown {
 const timelineRoutes: FastifyPluginAsync<RouteOptions> = async (app) => {
   // ── GET /api/timeline?projectId=… ───────────────────────────────────
   app.get("/api/timeline", async (req, reply) => {
-    const userId = req.userId ?? "1";
+    const userId = req.userId;
+    if (!userId) return reply.status(401).send({ detail: "Unauthorized" });
     const { projectId } = req.query as Record<string, string | undefined>;
 
     let seqs: TimelineSequence[];
@@ -88,7 +89,8 @@ const timelineRoutes: FastifyPluginAsync<RouteOptions> = async (app) => {
 
   // ── POST /api/timeline ──────────────────────────────────────────────
   app.post("/api/timeline", async (req, reply) => {
-    const userId = req.userId ?? "1";
+    const userId = req.userId;
+    if (!userId) return reply.status(401).send({ detail: "Unauthorized" });
     const parsed = createInput.safeParse(req.body);
     if (!parsed.success) {
       return reply
@@ -110,7 +112,8 @@ const timelineRoutes: FastifyPluginAsync<RouteOptions> = async (app) => {
 
   // ── GET /api/timeline/:id ───────────────────────────────────────────
   app.get("/api/timeline/:id", async (req, reply) => {
-    const userId = req.userId ?? "1";
+    const userId = req.userId;
+    if (!userId) return reply.status(401).send({ detail: "Unauthorized" });
     const { id } = req.params as { id: string };
     const seq = await TimelineSequence.findById(id);
     if (!seq || seq.user_id !== userId) {
@@ -121,7 +124,8 @@ const timelineRoutes: FastifyPluginAsync<RouteOptions> = async (app) => {
 
   // ── PATCH /api/timeline/:id ─────────────────────────────────────────
   app.patch("/api/timeline/:id", async (req, reply) => {
-    const userId = req.userId ?? "1";
+    const userId = req.userId;
+    if (!userId) return reply.status(401).send({ detail: "Unauthorized" });
     const { id } = req.params as { id: string };
 
     const seq = await TimelineSequence.findById(id);
@@ -130,7 +134,8 @@ const timelineRoutes: FastifyPluginAsync<RouteOptions> = async (app) => {
     }
 
     // Optimistic concurrency: if client sends If-Match header, check it
-    const ifMatch = (req.headers as Record<string, string | undefined>)["if-match"];
+    const ifMatchRaw = req.headers["if-match"];
+    const ifMatch = Array.isArray(ifMatchRaw) ? ifMatchRaw[0] : ifMatchRaw;
     if (ifMatch !== undefined && ifMatch !== seq.updated_at) {
       return reply
         .status(409)
@@ -180,7 +185,8 @@ const timelineRoutes: FastifyPluginAsync<RouteOptions> = async (app) => {
 
   // ── DELETE /api/timeline/:id ────────────────────────────────────────
   app.delete("/api/timeline/:id", async (req, reply) => {
-    const userId = req.userId ?? "1";
+    const userId = req.userId;
+    if (!userId) return reply.status(401).send({ detail: "Unauthorized" });
     const { id } = req.params as { id: string };
     const seq = await TimelineSequence.findById(id);
     if (!seq || seq.user_id !== userId) {
@@ -192,7 +198,8 @@ const timelineRoutes: FastifyPluginAsync<RouteOptions> = async (app) => {
 
   // ── GET /api/timeline/:id/clips/:clipId/versions ────────────────────
   app.get("/api/timeline/:id/clips/:clipId/versions", async (req, reply) => {
-    const userId = req.userId ?? "1";
+    const userId = req.userId;
+    if (!userId) return reply.status(401).send({ detail: "Unauthorized" });
     const { id, clipId } = req.params as { id: string; clipId: string };
 
     const seq = await TimelineSequence.findById(id);
@@ -211,7 +218,8 @@ const timelineRoutes: FastifyPluginAsync<RouteOptions> = async (app) => {
 
   // ── POST /api/timeline/:id/clips/:clipId/versions ───────────────────
   app.post("/api/timeline/:id/clips/:clipId/versions", async (req, reply) => {
-    const userId = req.userId ?? "1";
+    const userId = req.userId;
+    if (!userId) return reply.status(401).send({ detail: "Unauthorized" });
     const { id, clipId } = req.params as { id: string; clipId: string };
 
     const seq = await TimelineSequence.findById(id);

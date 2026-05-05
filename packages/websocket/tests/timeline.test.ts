@@ -41,11 +41,57 @@ async function buildApp(): Promise<FastifyInstance> {
   return app;
 }
 
+/** App with no auth (userId stays null) — used to test 401 responses. */
+async function buildUnauthApp(): Promise<FastifyInstance> {
+  const app = Fastify({ logger: false });
+  app.decorateRequest("userId", null);
+  app.addContentTypeParser(
+    "application/json",
+    { parseAs: "string" },
+    (_req, body, done) => {
+      try {
+        done(null, JSON.parse(body as string));
+      } catch (err) {
+        done(err as Error, undefined);
+      }
+    }
+  );
+  await app.register(timelineRoutes);
+  await app.ready();
+  return app;
+}
+
 async function json(res: { body: string }): Promise<unknown> {
   return JSON.parse(res.body);
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
+
+describe("401 Unauthorized (missing auth)", () => {
+  let app: FastifyInstance;
+
+  beforeEach(async () => {
+    initTestDb();
+    app = await buildUnauthApp();
+  });
+
+  afterEach(() => app.close());
+
+  it("GET /api/timeline returns 401 when userId is not set", async () => {
+    const res = await app.inject({ method: "GET", url: "/api/timeline" });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("POST /api/timeline returns 401 when userId is not set", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/timeline",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "X", projectId: "p" })
+    });
+    expect(res.statusCode).toBe(401);
+  });
+});
 
 describe("GET /api/timeline (list)", () => {
   let app: FastifyInstance;
@@ -91,7 +137,7 @@ describe("GET /api/timeline (list)", () => {
     expect(res.statusCode).toBe(200);
     const items = (await json(res)) as Array<{ name: string }>;
     expect(items).toHaveLength(1);
-    expect(items[0]!.name).toBe("Seq A");
+    expect(items[0].name).toBe("Seq A");
   });
 });
 

@@ -19,6 +19,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { patchTimeline } from "../lib/api/timeline";
 import { timelineKeys } from "./useTimelineSequence";
+import { useNotificationStore } from "../stores/NotificationStore";
 import type { TimelineDocument } from "../lib/api/timeline";
 
 export type AutosaveStatus = "saved" | "saving" | "unsaved" | "conflict";
@@ -100,19 +101,13 @@ export const useTimelineAutosave = ({
           queryKey: timelineKeys.detail(id)
         });
         setStatus("conflict");
-        // Surface a non-blocking notification
-        // Using dynamic import to avoid coupling to NotificationStore at module level
-        import("../stores/NotificationStore").then(({ useNotificationStore }) => {
-          useNotificationStore.getState().addNotification({
-            content:
-              "Timeline was modified elsewhere — your local changes have not been saved. Refresh to see the latest version.",
-            type: "warning",
-            alert: false,
-            dedupeKey: `timeline-conflict-${id}`,
-            replaceExisting: true
-          });
-        }).catch(() => {
-          // Notification is best-effort; ignore import failures
+        useNotificationStore.getState().addNotification({
+          content:
+            "Timeline was modified elsewhere — your local changes have not been saved. Refresh to see the latest version.",
+          type: "warning",
+          alert: false,
+          dedupeKey: `timeline-conflict-${id}`,
+          replaceExisting: true
         });
       } else {
         setStatus("unsaved");
