@@ -179,13 +179,31 @@ export class CdpPage {
     return r.result?.value ?? "";
   }
 
+  private escapeUnsafeChars(str: string): string {
+    const charMap: Record<string, string> = {
+      "<": "\\u003C",
+      ">": "\\u003E",
+      "/": "\\u002F",
+      "\\": "\\\\",
+      "\b": "\\b",
+      "\f": "\\f",
+      "\n": "\\n",
+      "\r": "\\r",
+      "\t": "\\t",
+      "\0": "\\0",
+      "\u2028": "\\u2028",
+      "\u2029": "\\u2029"
+    };
+    return str.replace(/[<>\/\\\b\f\n\r\t\0\u2028\u2029]/g, (x) => charMap[x]);
+  }
+
   async evaluate<T = unknown>(
     fnOrExpr: string | ((...args: any[]) => any),
     ...args: any[]
   ): Promise<T> {
     let expression: string;
     if (typeof fnOrExpr === "function") {
-      const argsJson = JSON.stringify(args ?? []);
+      const argsJson = this.escapeUnsafeChars(JSON.stringify(args ?? []));
       expression = `(async () => { const __args = ${argsJson}; const __fn = ${fnOrExpr.toString()}; return await __fn(...__args); })()`;
     } else {
       expression = `(async () => { return (${fnOrExpr}); })()`;
