@@ -223,7 +223,7 @@ export function fillRectMask(
   }
 }
 
-/** New mask covering a solid rectangle (rest zero). */
+/** New mask covering a solid rectangle (rest zero). Uses a sub-rect buffer. */
 export function rectSelectionMask(
   canvasW: number,
   canvasH: number,
@@ -232,9 +232,18 @@ export function rectSelectionMask(
   rw: number,
   rh: number
 ): Selection {
-  const m = createEmptyMask(canvasW, canvasH);
-  fillRectMask(m, x, y, rw, rh, 255);
-  return m;
+  const x0 = Math.max(0, Math.floor(x));
+  const y0 = Math.max(0, Math.floor(y));
+  const x1 = Math.min(canvasW, Math.ceil(x + rw));
+  const y1 = Math.min(canvasH, Math.ceil(y + rh));
+  const maskW = x1 - x0;
+  const maskH = y1 - y0;
+  if (maskW <= 0 || maskH <= 0) {
+    return createEmptyMask(1, 1);
+  }
+  const data = new Uint8ClampedArray(maskW * maskH);
+  data.fill(255);
+  return { width: maskW, height: maskH, data, originX: x0, originY: y0 };
 }
 
 /**

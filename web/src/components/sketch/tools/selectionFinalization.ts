@@ -63,8 +63,16 @@ export function applySelectionFinalization(
 
   const op: SelectionCombineOp = selectionCombineModeFromSnapshot(modifiers);
   const base = op === "replace" ? null : currentSelection ?? null;
-  onSelectionChange(combineMasks(base, overlay, op));
+
+  const _t0 = performance.now();
+  const combined = combineMasks(base, overlay, op);
+  const _t1 = performance.now();
+  onSelectionChange(combined);
+  const _t2 = performance.now();
   drawSelectionOverlay();
+  const _t3 = performance.now();
+  console.log(`[sel] combine:${(_t1-_t0).toFixed(0)}ms onSelChange:${(_t2-_t1).toFixed(0)}ms drawOverlay:${(_t3-_t2).toFixed(0)}ms mask:${overlay.width}x${overlay.height}`);
+
   return true;
 }
 
@@ -88,7 +96,11 @@ export function scheduleSelectionFinalization(
 ): void {
   clearOverlay();
   requestAnimationFrame(() => {
+    const _rafStart = performance.now();
     const overlay = generateMask();
+    const _afterMask = performance.now();
+    console.log(`[sel] rAF start, maskGen:${(_afterMask-_rafStart).toFixed(0)}ms`);
     applySelectionFinalization({ ...params, overlay });
+    console.log(`[sel] rAF done, total:${(performance.now()-_rafStart).toFixed(0)}ms`);
   });
 }
