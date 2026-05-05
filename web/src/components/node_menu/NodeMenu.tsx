@@ -20,7 +20,6 @@ import Draggable from "react-draggable";
 import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
-import isEqual from "fast-deep-equal";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { FlexColumn, FlexRow, Chip } from "../ui_primitives";
 
@@ -123,46 +122,23 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     Object.is
   );
 
-  // Use lazy initialization for the rest of the state
-  const {
-    closeNodeMenu,
-    menuHeight,
-    menuPosition,
-    searchResults,
-    selectedInputType,
-    setSelectedInputType,
-    selectedOutputType,
-    setSelectedOutputType,
-    selectedProviderType,
-    setSelectedProviderType,
-    searchTerm,
-    setSearchTerm,
-    setMenuSize,
-    moveSelectionUp,
-    moveSelectionDown,
-    getSelectedNode
-  } = useStoreWithEqualityFn(
-    useNodeMenuStore,
-    (state) => ({
-      closeNodeMenu: state.closeNodeMenu,
-      menuHeight: state.menuHeight,
-      menuPosition: state.menuPosition,
-      searchResults: state.searchResults,
-      selectedInputType: state.selectedInputType,
-      setSelectedInputType: state.setSelectedInputType,
-      selectedOutputType: state.selectedOutputType,
-      setSelectedOutputType: state.setSelectedOutputType,
-      selectedProviderType: state.selectedProviderType,
-      setSelectedProviderType: state.setSelectedProviderType,
-      searchTerm: state.searchTerm,
-      setSearchTerm: state.setSearchTerm,
-      setMenuSize: state.setMenuSize,
-      moveSelectionUp: state.moveSelectionUp,
-      moveSelectionDown: state.moveSelectionDown,
-      getSelectedNode: state.getSelectedNode
-    }),
-    isEqual
-  );
+  // Subscribe to individual state slices to avoid deep-equality overhead
+  const menuHeight = useNodeMenuStore((state) => state.menuHeight);
+  const menuPosition = useNodeMenuStore((state) => state.menuPosition);
+  const searchResults = useNodeMenuStore((state) => state.searchResults);
+  const selectedInputType = useNodeMenuStore((state) => state.selectedInputType);
+  const selectedOutputType = useNodeMenuStore((state) => state.selectedOutputType);
+  const searchTerm = useNodeMenuStore((state) => state.searchTerm);
+
+  // Actions are stable references in Zustand — no equality check needed
+  const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
+  const setSelectedInputType = useNodeMenuStore((state) => state.setSelectedInputType);
+  const setSelectedOutputType = useNodeMenuStore((state) => state.setSelectedOutputType);
+  const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
+  const setMenuSize = useNodeMenuStore((state) => state.setMenuSize);
+  const moveSelectionUp = useNodeMenuStore((state) => state.moveSelectionUp);
+  const moveSelectionDown = useNodeMenuStore((state) => state.moveSelectionDown);
+  const getSelectedNode = useNodeMenuStore((state) => state.getSelectedNode);
 
   const namespaceTree = useNamespaceTree();
   const theme = useTheme();

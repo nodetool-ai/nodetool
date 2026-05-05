@@ -33,6 +33,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useReactFlow } from "@xyflow/react";
 import isEqual from "fast-deep-equal";
 import { useStoreWithEqualityFn } from "zustand/traditional";
+import { shallow } from "zustand/shallow";
 
 const styles = (theme: Theme) =>
   css({
@@ -158,7 +159,7 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
   const searchResults = useStoreWithEqualityFn(
     useQuickAddNodeStore,
     (state) => state.searchResults,
-    (a, b) => a === b || a.length === b.length
+    shallow
   );
   const selectedIndex = useStoreWithEqualityFn(
     useQuickAddNodeStore,
