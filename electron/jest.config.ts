@@ -1,4 +1,10 @@
+const isCi = process.env.CI === 'true';
+
 export default {
+  // GitHub-hosted runners can OOM when ts-jest compiles many Electron test
+  // workers concurrently. Keep CI parallelism bounded while preserving the
+  // default local Jest behavior.
+  ...(isCi ? { maxWorkers: 2 } : {}),
   preset: 'ts-jest',
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/src/__mocks__/setup.ts'],
