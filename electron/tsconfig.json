@@ -4,10 +4,6 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
-    "baseUrl": ".",
-    "paths": {
-      "*": ["*", "node_modules/*"]
-    },
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "allowJs": true,
@@ -35,4 +31,4 @@
     "**/*.test.ts",
     "**/*.spec.ts"
   ]
-} 
+}
