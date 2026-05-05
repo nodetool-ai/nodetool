@@ -35,7 +35,7 @@ import {
   PythonStdioBridge
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
-import { initDb, initPostgresDb, getSecret } from "@nodetool-ai/models";
+import { initDb, initPostgresDb, getSecret, runSeeds } from "@nodetool-ai/models";
 import {
   Tool,
   GoogleSearchTool,
@@ -234,6 +234,17 @@ try {
     err instanceof Error ? err : new Error(String(err))
   );
   process.exit(1);
+}
+
+// Seed built-in workflows — non-fatal; a seed failure should not prevent startup.
+try {
+  await runSeeds();
+  log.info(`Seeds applied [${startupMs()}]`);
+} catch (err) {
+  log.warn(
+    "Seeds failed (non-fatal)",
+    err instanceof Error ? err : new Error(String(err))
+  );
 }
 
 // ---------------------------------------------------------------------------
