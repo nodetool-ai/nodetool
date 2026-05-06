@@ -1,30 +1,50 @@
+import { FsSafeError, root, type Root } from "@openclaw/fs-safe";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { AbstractStorage } from "./abstract-storage.js";
+import { normalizeStorageKey } from "./storage-keys.js";
 
+/**
+ * File-backed `AbstractStorage` that holds caller-controlled keys inside a
+ * single trusted directory. Path resolution and all reads/writes go through
+ * `@openclaw/fs-safe` so symlinked or hardlinked aliases pointing outside the
+ * base directory are rejected, and writes are verified to land inside the
+ * boundary.
+ */
 export class FileStorage implements AbstractStorage {
-  constructor(private readonly baseDir: string) {}
+  private readonly rootPromise: Promise<Root>;
 
-  private resolvePath(key: string): string {
-    const resolved = path.resolve(this.baseDir, key);
-    if (!resolved.startsWith(path.resolve(this.baseDir))) {
-      throw new Error(`Path traversal detected: ${key}`);
-    }
-    return resolved;
+  constructor(private readonly baseDir: string) {
+    this.rootPromise = root(baseDir, {
+      hardlinks: "reject",
+      symlinks: "reject",
+      mkdir: true
+    });
+  }
+
+  private async getRoot(): Promise<Root> {
+    return this.rootPromise;
   }
 
   async upload(key: string, data: Buffer | Uint8Array): Promise<void> {
-    const filePath = this.resolvePath(key);
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, data);
+    const r = await this.getRoot();
+    const rel = normalizeStorageKey(key);
+    await r.write(rel, Buffer.isBuffer(data) ? data : Buffer.from(data), {
+      mkdir: true,
+      overwrite: true
+    });
   }
 
   async download(key: string): Promise<Buffer> {
-    const filePath = this.resolvePath(key);
+    const r = await this.getRoot();
+    const rel = normalizeStorageKey(key);
     try {
-      return await fs.readFile(filePath);
+      return await r.readBytes(rel);
     } catch (err: any) {
-      if (err.code === "ENOENT") {
+      if (
+        err?.code === "ENOENT" ||
+        (err instanceof FsSafeError && err.code === "not-found")
+      ) {
         throw new Error(`Key not found: ${key}`, { cause: err });
       }
       throw err;
@@ -32,22 +52,23 @@ export class FileStorage implements AbstractStorage {
   }
 
   async delete(key: string): Promise<void> {
-    const filePath = this.resolvePath(key);
-    await fs.unlink(filePath);
+    const rel = normalizeStorageKey(key);
+    // fs-safe's `remove` is idempotent, but the storage contract expects
+    // missing-key deletes to throw — fall back to fs.unlink after the path
+    // has been resolved through the safe root.
+    const r = await this.getRoot();
+    const resolved = await r.resolve(rel);
+    await fs.unlink(resolved);
   }
 
   getUrl(key: string): string {
-    const filePath = this.resolvePath(key);
-    return `file://${filePath}`;
+    const rel = normalizeStorageKey(key);
+    return `file://${path.resolve(this.baseDir, rel)}`;
   }
 
   async exists(key: string): Promise<boolean> {
-    const filePath = this.resolvePath(key);
-    try {
-      await fs.access(filePath);
-      return true;
-    } catch {
-      return false;
-    }
+    const r = await this.getRoot();
+    const rel = normalizeStorageKey(key);
+    return r.exists(rel);
   }
 }

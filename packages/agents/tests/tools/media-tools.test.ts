@@ -54,6 +54,7 @@ function makeContext(stub: {
 }): ProcessingContext {
   const ctx: Record<string, unknown> = {
     workspaceDir,
+    resolveWorkspacePath: (p: string) => path.resolve(workspaceDir, p),
     runProviderPrediction: vi.fn(async (req: PredictCall) => {
       if (!stub.run) throw new Error("runProviderPrediction not stubbed");
       return stub.run(req);
