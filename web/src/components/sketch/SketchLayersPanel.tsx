@@ -67,6 +67,7 @@ import {
   ACTION_REGISTRY,
   BINDING_CATALOG,
   displayBinding,
+  type BindingEntry,
   type DisplayGroup,
   type SketchActionId
 } from "./shortcuts";
@@ -166,9 +167,7 @@ const PANEL_SHORTCUT_NOTES: Partial<Record<SketchActionId, string>> = {
   "canvas-preset-next": "Canvas preset dropdown"
 };
 
-function formatShortcutCombos(
-  entries: typeof BINDING_CATALOG
-): string {
+function formatShortcutCombos(entries: ReadonlyArray<BindingEntry>): string {
   const digitEntries = entries
     .filter(
       (entry) =>

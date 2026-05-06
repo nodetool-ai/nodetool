@@ -118,7 +118,7 @@ describe("useEditorKeyboardShortcuts", () => {
     expect(params.syncSketchOutputsNow).toHaveBeenCalled();
   });
 
-  it("uses the Shift multiplier for nudges", () => {
+  it("nudges by 10 pixels when Shift is held", () => {
     const params = makeParams();
     renderHook(() => useEditorKeyboardShortcuts(params));
 
