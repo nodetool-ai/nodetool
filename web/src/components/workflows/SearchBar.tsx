@@ -2,11 +2,13 @@
 import {
   Box,
   TextField,
-  Switch,
-  FormControlLabel,
   InputAdornment
 } from "@mui/material";
-import { Clear as ClearIcon } from "@mui/icons-material";
+import {
+  Clear as ClearIcon,
+  Search as SearchIcon,
+  AccountTree as NodeSearchIcon
+} from "@mui/icons-material";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY
@@ -33,63 +35,76 @@ const SearchBar = memo(({
     onInputChange(e.target.value);
   }, [onInputChange]);
 
-  const handleToggleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onToggleNodeSearch(e.target.checked);
-  }, [onToggleNodeSearch]);
+  const toggleNodeSearch = useCallback(() => {
+    onToggleNodeSearch(!nodesOnlySearch);
+  }, [nodesOnlySearch, onToggleNodeSearch]);
 
   return (
     <Box className="search-container">
       <TextField
         className="search-field"
-        style={{
-          transition: "background-color 0.3s ease",
-          backgroundColor: nodesOnlySearch
-            ? "var(--palette-primary-dark)"
-            : "transparent"
-        }}
         placeholder={
           nodesOnlySearch
-            ? "Find examples that use a specific node..."
-            : "Find examples by name or description..."
+            ? "Find templates by node type (e.g. nodetool.email.GmailSearch)"
+            : "Search templates by name, description, or tag…"
         }
         variant="outlined"
         size="small"
         value={inputValue}
         onChange={handleInputChange}
+        autoFocus
         slotProps={{
           input: {
-            endAdornment: inputValue && (
-              <InputAdornment position="end">
-                <ToolbarIconButton
-                  aria-label="clear search"
-                  onClick={onClear}
-                  size="small"
-                  icon={<ClearIcon />}
-                  nodrag={false}
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon
+                  fontSize="small"
+                  sx={{ color: "text.secondary" }}
                 />
+              </InputAdornment>
+            ),
+            endAdornment: (
+              <InputAdornment position="end" sx={{ gap: 0.5 }}>
+                {inputValue && (
+                  <ToolbarIconButton
+                    aria-label="clear search"
+                    onClick={onClear}
+                    size="small"
+                    icon={<ClearIcon />}
+                    nodrag={false}
+                  />
+                )}
+                <Tooltip
+                  title={
+                    nodesOnlySearch
+                      ? "Searching node types — click to switch to text search"
+                      : "Advanced: search by node type"
+                  }
+                  delay={TOOLTIP_ENTER_DELAY}
+                  leaveDelay={TOOLTIP_LEAVE_DELAY}
+                >
+                  <ToolbarIconButton
+                    aria-label="Toggle node search"
+                    aria-pressed={nodesOnlySearch}
+                    onClick={toggleNodeSearch}
+                    size="small"
+                    icon={
+                      <NodeSearchIcon
+                        sx={{
+                          color: nodesOnlySearch
+                            ? "primary.main"
+                            : "text.secondary"
+                        }}
+                      />
+                    }
+                    nodrag={false}
+                  />
+                </Tooltip>
               </InputAdornment>
             )
           }
         }}
       />
-      <Tooltip
-        title="Search for Nodes used in the example workflows"
-        delay={TOOLTIP_ENTER_DELAY}
-        leaveDelay={TOOLTIP_LEAVE_DELAY}
-      >
-        <FormControlLabel
-          className="search-switch"
-          control={
-            <Switch
-              checked={nodesOnlySearch}
-              onChange={handleToggleChange}
-              inputProps={{ "aria-label": "Toggle Node Search" }}
-              size="small"
-            />
-          }
-          label="Node Search"
-        />
-      </Tooltip>
     </Box>
   );
 });

@@ -19,8 +19,13 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import SearchBar from "./SearchBar";
 import TagFilter from "./TagFilter";
 import WorkflowCard from "./WorkflowCard";
+import GettingStartedStrip from "./GettingStartedStrip";
 import AppHeader from "../panels/AppHeader";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import {
+  isGettingStarted,
+  workflowsForCategory
+} from "../../utils/templateCategories";
 
 const styles = (theme: Theme) =>
   css({
@@ -126,13 +131,13 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "flex-start",
-      padding: "0 1.25em",
+      padding: "0 1.25em 12px",
       gap: "2em"
     },
     ".search-field": {
       width: "100%",
       marginBottom: "0",
-      maxWidth: "400px",
+      maxWidth: "640px",
       "& .MuiOutlinedInput-root": {
         background: theme.vars.palette.action.hover,
         borderRadius: "var(--rounded-xl)",
@@ -182,7 +187,7 @@ const TemplateGrid = memo(function TemplateGrid() {
   const createWorkflow = useWorkflowManager((state) => state.create);
   const closePanel = usePanelStore((state) => state.closePanel);
 
-  const [selectedTag, setSelectedTag] = useState<string | null>("start");
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<FrontendSearchResult[]>(
@@ -297,10 +302,18 @@ const TemplateGrid = memo(function TemplateGrid() {
       searchQuery.trim().length > 1 &&
       data?.workflows
     ) {
-      const baseWorkflowsForGeneralSearch =
-        !selectedTag || !groupedWorkflows[selectedTag]
-          ? data.workflows
-          : groupedWorkflows[selectedTag] || [];
+      const baseWorkflowsForGeneralSearch = (() => {
+        if (!selectedTag) {
+          return data.workflows;
+        }
+        if (selectedTag.startsWith("cat:")) {
+          return workflowsForCategory(
+            data.workflows,
+            selectedTag.slice("cat:".length)
+          );
+        }
+        return groupedWorkflows[selectedTag] || data.workflows;
+      })();
       // Use the memoized Fuse instance for efficient search
       const generalResults = searchWorkflowsWithFuse(
         fuse,
@@ -328,10 +341,18 @@ const TemplateGrid = memo(function TemplateGrid() {
       workflowsToDisplay = searchResults.map((r) => r.workflow);
     } else {
       const base = data?.workflows || [];
-      workflowsToDisplay =
-        !selectedTag || !groupedWorkflows[selectedTag]
-          ? base
-          : groupedWorkflows[selectedTag] || [];
+      if (!selectedTag) {
+        // Hide getting-started picks from the main grid — they live in the
+        // dedicated strip above. Showing them in both places is visual noise.
+        workflowsToDisplay = base.filter((w) => !isGettingStarted(w));
+      } else if (selectedTag.startsWith("cat:")) {
+        workflowsToDisplay = workflowsForCategory(
+          base,
+          selectedTag.slice("cat:".length)
+        );
+      } else {
+        workflowsToDisplay = groupedWorkflows[selectedTag] || [];
+      }
     }
     return [...workflowsToDisplay].sort((a, b) =>
       a.name.toLowerCase().localeCompare(b.name.toLowerCase())
@@ -492,11 +513,6 @@ const TemplateGrid = memo(function TemplateGrid() {
         <AppHeader />
       </Box>
       <Box className="workflow-grid">
-        <TagFilter
-          tags={filteredTags}
-          selectedTag={selectedTag}
-          onSelectTag={setSelectedTag}
-        />
         <SearchBar
           inputValue={inputValue}
           nodesOnlySearch={nodesOnlySearch}
@@ -504,6 +520,19 @@ const TemplateGrid = memo(function TemplateGrid() {
           onToggleNodeSearch={setNodesOnlySearch}
           onClear={handleClearSearch}
         />
+        <TagFilter
+          groupedTags={filteredTags}
+          workflows={data?.workflows || []}
+          selectedTag={selectedTag}
+          onSelectTag={setSelectedTag}
+        />
+        {!searchQuery.trim() && !selectedTag && data?.workflows && (
+          <GettingStartedStrip
+            workflows={data.workflows}
+            loadingWorkflowId={loadingWorkflowId}
+            onClick={onClickWorkflow}
+          />
+        )}
         {showLoading && (
           <div className="loading-indicator">
             <LoadingSpinner
