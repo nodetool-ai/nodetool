@@ -31,14 +31,37 @@ const ALLOWED_TEXTAREA_COMBOS: Array<{
   { key: "Escape" } // Allow Escape to close modals/editors
 ];
 
+type ComboScope = "global" | "canvas";
+
 interface ComboOptions {
   preventDefault?: boolean;
   callback?: () => void;
   active?: boolean;
+  /**
+   * Where the combo should fire.
+   * - "canvas" (default): suppressed while typing in inputs/editors.
+   * - "global": always fires regardless of focus (for app-wide shortcuts
+   *   like the command menu).
+   */
+  scope?: ComboScope;
 }
 
 // Module-level variables and functions
 const comboCallbacks = new Map<string, ComboOptions>();
+
+/**
+ * Is this element a text-editing target the platform itself treats as editable?
+ * Covers <input>, <textarea>, and any element under contentEditable=true (Slate,
+ * Lexical, Monaco, ProseMirror, custom rich-text editors). Far more robust than
+ * matching class names.
+ */
+const isEditable = (node: Element | null | undefined): boolean => {
+  if (!(node instanceof HTMLElement)) return false;
+  if (node instanceof HTMLInputElement) return true;
+  if (node instanceof HTMLTextAreaElement) return true;
+  if (node.isContentEditable) return true;
+  return false;
+};
 
 const registerComboCallback = (combo: string, options: ComboOptions = {}) => {
   // Normalize 'ctrl' to 'control' for consistency
@@ -71,32 +94,28 @@ const executeComboCallbacks = (
   // An active callback exists for the pressed keys.
   // Now, check if we should suppress it due to input focus.
   
-  // Check if focus is specifically on the workflow canvas/editor
-  const isCanvasFocused =
-    activeElement?.classList?.contains("react-flow__pane") ||
-    activeElement?.closest(".react-flow__renderer") ||
-    activeElement?.closest("[data-workflow-editor]");
-  
   const isInputFocused =
-    (activeElement &&
-      (activeElement.tagName === "INPUT" ||
-        activeElement.tagName === "TEXTAREA" ||
-        activeElement.closest('[data-slate-editor="true"]') ||
-        activeElement.closest(".text-editor-container") ||
-        activeElement.closest(".monaco-editor") ||
-        activeElement.closest(".editor-input"))) ||
-    (event?.target instanceof HTMLElement &&
-      (event.target.tagName === "INPUT" ||
-        event.target.tagName === "TEXTAREA" ||
-        event.target.closest(".MuiInputBase-input") ||
-        event.target.closest(".MuiTextField-root")));
+    isEditable(activeElement) ||
+    (event?.target instanceof Element && isEditable(event.target));
 
-  if (isInputFocused) {
+  // Canvas focus = focus is somewhere inside the workflow editor *and not*
+  // inside an editable child. Without the input-focus exclusion, a Lexical
+  // editor (or any contentEditable) inside a node would still match
+  // `.react-flow__renderer` via `closest()` and re-enable Backspace-to-delete
+  // while the user is typing.
+  const isCanvasFocused =
+    !isInputFocused &&
+    (activeElement?.classList?.contains("react-flow__pane") ||
+      activeElement?.closest(".react-flow__renderer") ||
+      activeElement?.closest("[data-workflow-editor]"));
+
+  if (isInputFocused && options.scope !== "global") {
     // --- Input Focus Handling ---
+    // Combos registered with scope: "global" bypass this entirely and fire
+    // regardless of focus. Everything else falls through the existing rules.
 
     // 1. Always allow "shift+enter", "control+enter", and "meta+enter" to proceed to execution.
     //    These are commonly used for multiline input and running actions.
-    //    (Add other universally allowed input combos here if needed)
     if (
       pressedKeysString === "shift+enter" ||
       pressedKeysString === "control+enter" ||
@@ -269,62 +288,39 @@ const initKeyListeners = () => {
     const normalizedKey = key.toLowerCase();
 
     const eventTarget = event.target as HTMLElement;
-    const targetIsInput = eventTarget instanceof HTMLInputElement;
-    const targetIsSelectHeader =
-      eventTarget.classList?.contains("select-header");
-    const targetIsSlateEditor = eventTarget.closest(
-      '[data-slate-editor="true"]'
-    );
-    const targetIsLexicalEditor = eventTarget.closest(".text-editor-container");
-    const targetIsMonacoEditor = eventTarget.closest(".monaco-editor");
     const targetIsTextarea = eventTarget instanceof HTMLTextAreaElement;
 
-    if (
-      targetIsInput ||
-      targetIsSelectHeader ||
-      targetIsSlateEditor ||
-      targetIsLexicalEditor ||
-      targetIsMonacoEditor ||
-      targetIsTextarea
-    ) {
-      if (isPressed) {
-        // KeyDown
-        if (targetIsTextarea) {
-          const isEventKeyAModifier = [
-            "shift",
-            "control",
-            "alt",
-            "meta"
-          ].includes(normalizedKey);
-          if (!isEventKeyAModifier) {
-            // Allow modifier key combos (Ctrl+C, Cmd+V, etc.) to pass through
-            // so the browser can handle native clipboard and other system shortcuts.
-            const hasModifier = event.ctrlKey || event.metaKey;
-
-            if (!hasModifier) {
-              const isCombinationAllowed = ALLOWED_TEXTAREA_COMBOS.some(
-                (combo) =>
-                  event.key === combo.key &&
-                  event.shiftKey === (combo.shiftKey || false) &&
-                  event.ctrlKey === (combo.ctrlKey || false) &&
-                  event.altKey === (combo.altKey || false) &&
-                  event.metaKey === (combo.metaKey || false)
-              );
-              if (!isCombinationAllowed) {
-                return; // Block unallowed keydown in textarea
-              }
-            }
+    // For textareas, block unallowed keydowns at the source so they never reach
+    // setKeysPressed (and thus never fire any combo). This preserves typing
+    // (which is the browser's native handling of the keydown) without polluting
+    // the global pressed-keys state. Other editable targets (input,
+    // contentEditable) fall through; suppression is handled inside
+    // executeComboCallbacks via the isEditable() check on activeElement/target.
+    if (isPressed && targetIsTextarea) {
+      const isEventKeyAModifier = [
+        "shift",
+        "control",
+        "alt",
+        "meta"
+      ].includes(normalizedKey);
+      if (!isEventKeyAModifier) {
+        // Allow modifier combos (Ctrl+C, Cmd+V, etc.) to pass through so the
+        // browser can handle native clipboard and other system shortcuts.
+        const hasModifier = event.ctrlKey || event.metaKey;
+        if (!hasModifier) {
+          const isCombinationAllowed = ALLOWED_TEXTAREA_COMBOS.some(
+            (combo) =>
+              event.key === combo.key &&
+              event.shiftKey === (combo.shiftKey || false) &&
+              event.ctrlKey === (combo.ctrlKey || false) &&
+              event.altKey === (combo.altKey || false) &&
+              event.metaKey === (combo.metaKey || false)
+          );
+          if (!isCombinationAllowed) {
+            return; // Block unallowed keydown in textarea
           }
-          // Allow modifier keydowns in textarea to be processed
         }
-        // For other input types (HTMLInputElement, select-header, slate),
-        // allow keydown to proceed to setKeysPressed.
-        // The `executeComboCallbacks` function will be responsible for preventing
-        // unwanted *combo execution* if an input is focused.
       }
-      // For KeyUp (isPressed === false) from any input-like element,
-      // we allow it to proceed to `setKeysPressed` to ensure the key state is cleared.
-      // No 'return' here for keyup.
     }
 
     // Prevent key repeat events to avoid excessive state updates when a key is held down
@@ -387,9 +383,11 @@ const useCombo = (
   combo: string[],
   callback: () => void,
   preventDefault: boolean = true,
-  active: boolean = true
+  active: boolean = true,
+  options?: { scope?: ComboScope }
 ) => {
   const keyboardActive = useContext(KeyboardContext);
+  const scope = options?.scope;
   const memoizedCombo = useMemo(
     () =>
       combo
@@ -405,11 +403,12 @@ const useCombo = (
       registerComboCallback(memoizedCombo, {
         callback,
         preventDefault,
-        active
+        active,
+        scope
       });
       return () => unregisterComboCallback(memoizedCombo);
     }
-  }, [memoizedCombo, callback, preventDefault, active, keyboardActive]);
+  }, [memoizedCombo, callback, preventDefault, active, keyboardActive, scope]);
 };
 
 const assistantCallback = () => {
