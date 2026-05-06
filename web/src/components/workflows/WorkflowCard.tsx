@@ -150,16 +150,24 @@ const cardStyles = (theme: Theme) =>
       WebkitLineClamp: 1,
       WebkitBoxOrient: "vertical",
       overflow: "hidden",
+      textOverflow: "ellipsis",
+      // Lock to one line of height so the flex parent can't clip the
+      // descender of the line and swallow the ellipsis.
+      maxHeight: "calc(0.9rem * 1.25)",
       margin: 0
     },
     ".card-description": {
       fontSize: "0.75rem",
       color: theme.vars.palette.text.secondary,
-      lineHeight: 1.35,
+      lineHeight: 1.4,
       display: "-webkit-box",
-      WebkitLineClamp: 2,
+      WebkitLineClamp: 3,
       WebkitBoxOrient: "vertical",
       overflow: "hidden",
+      textOverflow: "ellipsis",
+      // Lock the visible description to N full lines so the parent flex
+      // container can't shave the bottom of the last line.
+      maxHeight: "calc(0.75rem * 1.4 * 3)",
       margin: 0
     },
     ".chips-container": {
