@@ -4,11 +4,22 @@ import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { Edge, NodeDescriptor } from "@nodetool-ai/protocol";
 import {
   registerBaseNodes,
+  ChunkNode,
   CollectNode,
+  CountStreamNode,
+  DistinctNode,
+  DropNode,
+  DropWhileNode,
+  FilterCodeNode,
+  FilterEqualNode,
   ForEachNode,
   IfNode,
+  LastNode,
   OutputNode,
-  RerouteNode
+  RerouteNode,
+  TakeNode,
+  TakeWhileNode,
+  TapNode
 } from "../src/index.js";
 
 function makeRegistry(): NodeRegistry {
@@ -234,7 +245,7 @@ describe("control parity: If node", () => {
     expect(falseValues).toEqual([null, null, "C"]);
   });
 
-  it("reuses the last condition for unmatched trailing values when zip_all lengths differ", async () => {
+  it("zip_all halts when one streaming input EOSs early and drops unmatched trailing values", async () => {
     const result = await runWorkflow(
       [
         {
@@ -282,8 +293,10 @@ describe("control parity: If node", () => {
     );
 
     expect(result.status).toBe("completed");
-    expect(outputUpdatesForNode(result, "true_out")).toEqual(["A", null, null]);
-    expect(outputUpdatesForNode(result, "false_out")).toEqual([null, "B", "C"]);
+    // After cond EOSs (2 items) and val has C left, zip_all stops.
+    // Use sync_mode: "on_any" if you want broadcast/fan-out semantics.
+    expect(outputUpdatesForNode(result, "true_out")).toEqual(["A", null]);
+    expect(outputUpdatesForNode(result, "false_out")).toEqual([null, "B"]);
   });
 });
 
@@ -428,5 +441,581 @@ describe("control parity: Reroute node", () => {
 
     expect(result.status).toBe("completed");
     expect(result.outputs.items).toEqual([[0, 1, 2]]);
+  });
+
+  it("ForEach respects the limit prop and stops emitting after N items", async () => {
+    const result = await runWorkflow(
+      [
+        {
+          id: "src",
+          type: ForEachNode.nodeType,
+          is_streaming_output: true,
+          properties: { input_list: [10, 20, 30, 40, 50], limit: 2 }
+        },
+        { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
+        { id: "out", type: OutputNode.nodeType, name: "items" }
+      ],
+      [
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "collect",
+          targetHandle: "input_item"
+        },
+        {
+          source: "collect",
+          sourceHandle: "output",
+          target: "out",
+          targetHandle: "value"
+        }
+      ]
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.items).toEqual([[10, 20]]);
+  });
+
+  it("Drop skips the first N stream items and forwards the rest", async () => {
+    const result = await runWorkflow(
+      [
+        {
+          id: "src",
+          type: ForEachNode.nodeType,
+          is_streaming_output: true,
+          properties: { input_list: ["a", "b", "c", "d"] }
+        },
+        {
+          id: "drop",
+          type: DropNode.nodeType,
+          is_streaming_input: true,
+          is_streaming_output: true,
+          properties: { n: 2 }
+        },
+        { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
+        { id: "out", type: OutputNode.nodeType, name: "rest" }
+      ],
+      [
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "drop",
+          targetHandle: "input_item"
+        },
+        {
+          source: "drop",
+          sourceHandle: "output",
+          target: "collect",
+          targetHandle: "input_item"
+        },
+        {
+          source: "collect",
+          sourceHandle: "output",
+          target: "out",
+          targetHandle: "value"
+        }
+      ]
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.rest).toEqual([["c", "d"]]);
+  });
+
+  it("FilterEqual passes only items equal to the target value", async () => {
+    const result = await runWorkflow(
+      [
+        {
+          id: "src",
+          type: ForEachNode.nodeType,
+          is_streaming_output: true,
+          properties: { input_list: [1, 2, 1, 3, 1] }
+        },
+        {
+          id: "f",
+          type: FilterEqualNode.nodeType,
+          is_streaming_input: true,
+          is_streaming_output: true,
+          properties: { value: 1 }
+        },
+        { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
+        { id: "out", type: OutputNode.nodeType, name: "kept" }
+      ],
+      [
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "f",
+          targetHandle: "input_item"
+        },
+        {
+          source: "f",
+          sourceHandle: "output",
+          target: "collect",
+          targetHandle: "input_item"
+        },
+        {
+          source: "collect",
+          sourceHandle: "output",
+          target: "out",
+          targetHandle: "value"
+        }
+      ]
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.kept).toEqual([[1, 1, 1]]);
+  });
+
+  it("FilterCode evaluates a JS predicate per item", async () => {
+    const result = await runWorkflow(
+      [
+        {
+          id: "src",
+          type: ForEachNode.nodeType,
+          is_streaming_output: true,
+          properties: { input_list: [1, 2, 3, 4, 5] }
+        },
+        {
+          id: "f",
+          type: FilterCodeNode.nodeType,
+          is_streaming_input: true,
+          is_streaming_output: true,
+          properties: { predicate: "item % 2 === 0" }
+        },
+        { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
+        { id: "out", type: OutputNode.nodeType, name: "evens" }
+      ],
+      [
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "f",
+          targetHandle: "input_item"
+        },
+        {
+          source: "f",
+          sourceHandle: "output",
+          target: "collect",
+          targetHandle: "input_item"
+        },
+        {
+          source: "collect",
+          sourceHandle: "output",
+          target: "out",
+          targetHandle: "value"
+        }
+      ]
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.evens).toEqual([[2, 4]]);
+  });
+
+  it("Chunk groups items into batches of size N including a trailing partial", async () => {
+    const result = await runWorkflow(
+      [
+        {
+          id: "src",
+          type: ForEachNode.nodeType,
+          is_streaming_output: true,
+          properties: { input_list: [1, 2, 3, 4, 5] }
+        },
+        {
+          id: "chunk",
+          type: ChunkNode.nodeType,
+          is_streaming_input: true,
+          is_streaming_output: true,
+          properties: { size: 2 }
+        },
+        { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
+        { id: "out", type: OutputNode.nodeType, name: "batches" }
+      ],
+      [
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "chunk",
+          targetHandle: "input_item"
+        },
+        {
+          source: "chunk",
+          sourceHandle: "output",
+          target: "collect",
+          targetHandle: "input_item"
+        },
+        {
+          source: "collect",
+          sourceHandle: "output",
+          target: "out",
+          targetHandle: "value"
+        }
+      ]
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.batches).toEqual([[[1, 2], [3, 4], [5]]]);
+  });
+
+  it("Last emits only the final stream item", async () => {
+    const result = await runWorkflow(
+      [
+        {
+          id: "src",
+          type: ForEachNode.nodeType,
+          is_streaming_output: true,
+          properties: { input_list: ["a", "b", "c"] }
+        },
+        {
+          id: "last",
+          type: LastNode.nodeType,
+          is_streaming_input: true
+        },
+        { id: "out", type: OutputNode.nodeType, name: "final" }
+      ],
+      [
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "last",
+          targetHandle: "input_item"
+        },
+        {
+          source: "last",
+          sourceHandle: "output",
+          target: "out",
+          targetHandle: "value"
+        }
+      ]
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.final).toEqual(["c"]);
+  });
+
+  it("Count emits the total number of stream items", async () => {
+    const result = await runWorkflow(
+      [
+        {
+          id: "src",
+          type: ForEachNode.nodeType,
+          is_streaming_output: true,
+          properties: { input_list: [10, 20, 30, 40] }
+        },
+        {
+          id: "count",
+          type: CountStreamNode.nodeType,
+          is_streaming_input: true
+        },
+        { id: "out", type: OutputNode.nodeType, name: "total" }
+      ],
+      [
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "count",
+          targetHandle: "input_item"
+        },
+        {
+          source: "count",
+          sourceHandle: "output",
+          target: "out",
+          targetHandle: "value"
+        }
+      ]
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.total).toEqual([4]);
+  });
+
+  it("Distinct drops duplicates by value", async () => {
+    const result = await runWorkflow(
+      [
+        {
+          id: "src",
+          type: ForEachNode.nodeType,
+          is_streaming_output: true,
+          properties: { input_list: [1, 2, 2, 3, 1, 3, 4] }
+        },
+        {
+          id: "d",
+          type: DistinctNode.nodeType,
+          is_streaming_input: true,
+          is_streaming_output: true
+        },
+        { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
+        { id: "out", type: OutputNode.nodeType, name: "uniq" }
+      ],
+      [
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "d",
+          targetHandle: "input_item"
+        },
+        {
+          source: "d",
+          sourceHandle: "output",
+          target: "collect",
+          targetHandle: "input_item"
+        },
+        {
+          source: "collect",
+          sourceHandle: "output",
+          target: "out",
+          targetHandle: "value"
+        }
+      ]
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.uniq).toEqual([[1, 2, 3, 4]]);
+  });
+
+  it("Distinct uses an optional key expression", async () => {
+    const result = await runWorkflow(
+      [
+        {
+          id: "src",
+          type: ForEachNode.nodeType,
+          is_streaming_output: true,
+          properties: {
+            input_list: [
+              { id: 1, x: "a" },
+              { id: 2, x: "b" },
+              { id: 1, x: "c" },
+              { id: 3, x: "d" }
+            ]
+          }
+        },
+        {
+          id: "d",
+          type: DistinctNode.nodeType,
+          is_streaming_input: true,
+          is_streaming_output: true,
+          properties: { key: "item.id" }
+        },
+        { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
+        { id: "out", type: OutputNode.nodeType, name: "uniq" }
+      ],
+      [
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "d",
+          targetHandle: "input_item"
+        },
+        {
+          source: "d",
+          sourceHandle: "output",
+          target: "collect",
+          targetHandle: "input_item"
+        },
+        {
+          source: "collect",
+          sourceHandle: "output",
+          target: "out",
+          targetHandle: "value"
+        }
+      ]
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.uniq).toEqual([
+      [
+        { id: 1, x: "a" },
+        { id: 2, x: "b" },
+        { id: 3, x: "d" }
+      ]
+    ]);
+  });
+
+  it("TakeWhile passes a prefix and stops at the first failure", async () => {
+    const result = await runWorkflow(
+      [
+        {
+          id: "src",
+          type: ForEachNode.nodeType,
+          is_streaming_output: true,
+          properties: { input_list: [1, 2, 3, 1, 4] }
+        },
+        {
+          id: "tw",
+          type: TakeWhileNode.nodeType,
+          is_streaming_input: true,
+          is_streaming_output: true,
+          properties: { predicate: "item < 3" }
+        },
+        { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
+        { id: "out", type: OutputNode.nodeType, name: "prefix" }
+      ],
+      [
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "tw",
+          targetHandle: "input_item"
+        },
+        {
+          source: "tw",
+          sourceHandle: "output",
+          target: "collect",
+          targetHandle: "input_item"
+        },
+        {
+          source: "collect",
+          sourceHandle: "output",
+          target: "out",
+          targetHandle: "value"
+        }
+      ]
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.prefix).toEqual([[1, 2]]);
+  });
+
+  it("DropWhile drops a leading run and forwards the suffix", async () => {
+    const result = await runWorkflow(
+      [
+        {
+          id: "src",
+          type: ForEachNode.nodeType,
+          is_streaming_output: true,
+          properties: { input_list: [0, 0, 1, 0, 2] }
+        },
+        {
+          id: "dw",
+          type: DropWhileNode.nodeType,
+          is_streaming_input: true,
+          is_streaming_output: true,
+          properties: { predicate: "item === 0" }
+        },
+        { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
+        { id: "out", type: OutputNode.nodeType, name: "suffix" }
+      ],
+      [
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "dw",
+          targetHandle: "input_item"
+        },
+        {
+          source: "dw",
+          sourceHandle: "output",
+          target: "collect",
+          targetHandle: "input_item"
+        },
+        {
+          source: "collect",
+          sourceHandle: "output",
+          target: "out",
+          targetHandle: "value"
+        }
+      ]
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.suffix).toEqual([[1, 0, 2]]);
+  });
+
+  it("Tap forwards each item unchanged while logging", async () => {
+    const logs: unknown[] = [];
+    const original = console.log;
+    console.log = (..._args: unknown[]) => {
+      logs.push(_args);
+    };
+    try {
+      const result = await runWorkflow(
+        [
+          {
+            id: "src",
+            type: ForEachNode.nodeType,
+            is_streaming_output: true,
+            properties: { input_list: ["a", "b"] }
+          },
+          {
+            id: "tap",
+            type: TapNode.nodeType,
+            is_streaming_input: true,
+            is_streaming_output: true,
+            properties: { label: "trace" }
+          },
+          { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
+          { id: "out", type: OutputNode.nodeType, name: "passed" }
+        ],
+        [
+          {
+            source: "src",
+            sourceHandle: "output",
+            target: "tap",
+            targetHandle: "input_item"
+          },
+          {
+            source: "tap",
+            sourceHandle: "output",
+            target: "collect",
+            targetHandle: "input_item"
+          },
+          {
+            source: "collect",
+            sourceHandle: "output",
+            target: "out",
+            targetHandle: "value"
+          }
+        ]
+      );
+
+      expect(result.status).toBe("completed");
+      expect(result.outputs.passed).toEqual([["a", "b"]]);
+      expect(logs.length).toBe(2);
+    } finally {
+      console.log = original;
+    }
+  });
+
+  it("Take forwards the first N stream items and stops", async () => {
+    const result = await runWorkflow(
+      [
+        {
+          id: "src",
+          type: ForEachNode.nodeType,
+          is_streaming_output: true,
+          properties: { input_list: ["a", "b", "c", "d"] }
+        },
+        {
+          id: "take",
+          type: TakeNode.nodeType,
+          is_streaming_input: true,
+          is_streaming_output: true,
+          properties: { n: 2 }
+        },
+        { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
+        { id: "out", type: OutputNode.nodeType, name: "taken" }
+      ],
+      [
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "take",
+          targetHandle: "input_item"
+        },
+        {
+          source: "take",
+          sourceHandle: "output",
+          target: "collect",
+          targetHandle: "input_item"
+        },
+        {
+          source: "collect",
+          sourceHandle: "output",
+          target: "out",
+          targetHandle: "value"
+        }
+      ]
+    );
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.taken).toEqual([["a", "b"]]);
   });
 });
