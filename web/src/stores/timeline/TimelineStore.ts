@@ -39,6 +39,7 @@ import type {
   TimelineClip,
   TimelineMarker
 } from "@nodetool-ai/timeline";
+import { trpcClient } from "../../trpc/client";
 
 // ── Snap threshold ─────────────────────────────────────────────────────────
 
@@ -135,6 +136,41 @@ export interface TimelineStoreState {
 
   /** Update an arbitrary subset of fields on a clip. */
   patchClip: (clipId: string, patch: Partial<TimelineClip>) => void;
+
+  /**
+   * Duplicate a clip maintaining the same `workflowId` (shared graph, independent
+   * overrides). Both clips run from the same workflow row; editing `paramOverrides`
+   * on either is independent.
+   *
+   * Tooltip hint: "Shared graph — edits to either clip's params are independent."
+   */
+  duplicateClipLinked: (clipId: string, deltaMs?: number) => void;
+
+  /**
+   * Duplicate a clip as a variation — clones the associated workflow so the new clip
+   * gets its own independent graph. Calls the workflow creation API and resolves once
+   * the new clip has been added to the store.
+   *
+   * Tooltip hint: "For trying a different look — graph is fully independent."
+   *
+   * @returns Promise that resolves with the new clip id, or rejects if the API fails.
+   */
+  duplicateClipAsVariation: (clipId: string, deltaMs?: number) => Promise<string>;
+
+  /**
+   * Toggle the `locked` flag on a clip.
+   * When locked, successful generations record a ClipVersion but do NOT replace
+   * `currentAssetId`. The lock icon appears on the clip body (top-right) and the
+   * inspector header badge shows "locked".
+   */
+  setClipLocked: (clipId: string, locked: boolean) => void;
+
+  /**
+   * Replace the visible output asset without regenerating.
+   * Sets `currentAssetId` to the user-picked asset and leaves `paramOverrides`
+   * and `lastGeneratedHash` untouched. Clip status is unchanged.
+   */
+  replaceClipOutput: (clipId: string, assetId: string) => void;
 }
 
 // ── Partialized type for zundo (only document state is undo-able) ──────────
@@ -460,6 +496,83 @@ export const createTimelineStore = (
           set((state) => ({
             clips: state.clips.map((c) =>
               c.id === clipId ? { ...c, ...patch } : c
+            )
+          })),
+
+        duplicateClipLinked: (clipId, deltaMs = 0) =>
+          set((state) => {
+            const src = state.clips.find((c) => c.id === clipId);
+            if (!src) {
+              return state;
+            }
+            const newClip = makeClip({
+              ...src,
+              id: createTimeOrderedUuid(),
+              startMs: src.startMs + deltaMs,
+              // Independent overrides — start with a shallow copy
+              paramOverrides: src.paramOverrides
+                ? { ...src.paramOverrides }
+                : undefined,
+              // Reset generation state; the shared workflow still applies
+              status: "draft",
+              currentAssetId: undefined,
+              lastGeneratedHash: undefined,
+              versions: []
+            });
+            return { clips: [...state.clips, newClip] };
+          }),
+
+        duplicateClipAsVariation: async (clipId, deltaMs = 0) => {
+          const src = get().clips.find((c) => c.id === clipId);
+          if (!src) {
+            throw new Error(`Clip ${clipId} not found`);
+          }
+
+          let newWorkflowId: string | undefined;
+
+          if (src.workflowId) {
+            // Fetch the original workflow and create a deep clone via the API
+            const original = await trpcClient.workflows.get.query({ id: src.workflowId });
+            const cloned = await trpcClient.workflows.create.mutate({
+              name: `${original.name} (variation)`,
+              access: original.access ?? "private",
+              graph: original.graph as Parameters<typeof trpcClient.workflows.create.mutate>[0]["graph"],
+              description: original.description,
+              tags: original.tags,
+              run_mode: "clip"
+            });
+            newWorkflowId = (cloned as { id: string }).id;
+          }
+
+          const newClip = makeClip({
+            ...src,
+            id: createTimeOrderedUuid(),
+            startMs: src.startMs + deltaMs,
+            workflowId: newWorkflowId,
+            paramOverrides: src.paramOverrides
+              ? { ...src.paramOverrides }
+              : undefined,
+            status: "draft",
+            currentAssetId: undefined,
+            lastGeneratedHash: undefined,
+            versions: []
+          });
+
+          set((state) => ({ clips: [...state.clips, newClip] }));
+          return newClip.id;
+        },
+
+        setClipLocked: (clipId, locked) =>
+          set((state) => ({
+            clips: state.clips.map((c) =>
+              c.id === clipId ? { ...c, locked } : c
+            )
+          })),
+
+        replaceClipOutput: (clipId, assetId) =>
+          set((state) => ({
+            clips: state.clips.map((c) =>
+              c.id === clipId ? { ...c, currentAssetId: assetId } : c
             )
           }))
       }),
