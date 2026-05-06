@@ -22,6 +22,7 @@
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import nodePath from "node:path";
+import { withCacheBuster } from "../../lib/example-thumbnail.js";
 import { Workflow, WorkflowVersion, Job } from "@nodetool-ai/models";
 import type {
   Workflow as WorkflowModel,
@@ -205,9 +206,15 @@ function buildExamplesFromDir(examplesDir: string): unknown[] {
         typeof parsed.name === "string"
           ? parsed.name
           : file.replace(/\.json$/i, "");
+      // Append ?v=<md5-8> via withCacheBuster so the browser invalidates
+      // its cached thumbnail whenever the JPG is regenerated on disk.
       const jpgFile = `${name}.jpg`;
-      const thumbnailUrl = existsSync(nodePath.join(assetsDir, jpgFile))
-        ? `${EXAMPLES_THUMBNAILS_PREFIX}${encodeURIComponent(jpgFile)}`
+      const jpgPath = nodePath.join(assetsDir, jpgFile);
+      const thumbnailUrl = existsSync(jpgPath)
+        ? withCacheBuster(
+            `${EXAMPLES_THUMBNAILS_PREFIX}${encodeURIComponent(jpgFile)}`,
+            jpgPath
+          )
         : null;
       workflows.push({
         id: file,
