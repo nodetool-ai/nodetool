@@ -5,9 +5,9 @@ import {
   type ServerResponse
 } from "node:http";
 import { gzipSync } from "node:zlib";
-import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
-import { createHash } from "node:crypto";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import nodePath from "node:path";
+import { withCacheBuster } from "./lib/example-thumbnail.js";
 import {
   createLogger,
   loadAssetStorageConfig,
@@ -802,36 +802,6 @@ export async function handleWorkflowTools(
 /** URL prefix for example workflow thumbnail images served by this API. */
 const EXAMPLES_THUMBNAILS_PREFIX = "/api/workflows/examples/thumbnails/";
 
-/**
- * Cache of `thumbnail-path → { mtimeMs, md5 }` so we hash each JPG once and
- * only recompute when it's been regenerated on disk. md5 is appended to
- * `thumbnail_url` as a `?v=<hash>` query string so the browser drops its
- * cached copy whenever the file content changes.
- */
-const thumbnailHashCache = new Map<string, { mtimeMs: number; hash: string }>();
-
-function thumbnailHash(absPath: string): string | null {
-  let stat: ReturnType<typeof statSync>;
-  try {
-    stat = statSync(absPath);
-  } catch {
-    return null;
-  }
-  const cached = thumbnailHashCache.get(absPath);
-  if (cached && cached.mtimeMs === stat.mtimeMs) return cached.hash;
-  let hash: string;
-  try {
-    hash = createHash("md5")
-      .update(readFileSync(absPath))
-      .digest("hex")
-      .slice(0, 8);
-  } catch {
-    return null;
-  }
-  thumbnailHashCache.set(absPath, { mtimeMs: stat.mtimeMs, hash });
-  return hash;
-}
-
 interface ExampleMetadata {
   id?: string;
   name: string;
@@ -883,18 +853,17 @@ function buildExamplesFromDir(examplesDir: string): unknown[] {
         typeof parsed.name === "string"
           ? parsed.name
           : file.replace(/\.json$/i, "");
-      // Point thumbnail_url to the served JPG when the file exists in assets.
-      // Append ?v=<md5-8> so the browser cache invalidates whenever the JPG
-      // is regenerated.
+      // Point thumbnail_url to the served JPG when the file exists in
+      // assets. withCacheBuster() appends ?v=<md5-8> so the browser cache
+      // invalidates whenever the JPG is regenerated.
       const jpgFile = `${name}.jpg`;
       const jpgPath = nodePath.join(assetsDir, jpgFile);
-      let thumbnailUrl: string | null = null;
-      if (existsSync(jpgPath)) {
-        const hash = thumbnailHash(jpgPath);
-        thumbnailUrl =
-          `${EXAMPLES_THUMBNAILS_PREFIX}${encodeURIComponent(jpgFile)}` +
-          (hash ? `?v=${hash}` : "");
-      }
+      const thumbnailUrl = existsSync(jpgPath)
+        ? withCacheBuster(
+            `${EXAMPLES_THUMBNAILS_PREFIX}${encodeURIComponent(jpgFile)}`,
+            jpgPath
+          )
+        : null;
       workflows.push({
         id: file,
         access: "public",
