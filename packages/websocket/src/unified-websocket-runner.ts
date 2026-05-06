@@ -3747,13 +3747,18 @@ export class UnifiedWebSocketRunner {
     if (cached) return cached;
 
     const providersMod = await import("@nodetool-ai/runtime");
+    const { getSecret: getStoredSecret } = await import(
+      "@nodetool-ai/models"
+    );
+    const getSecret = (key: string) =>
+      getStoredSecret(key, userId).then((v) => v ?? undefined);
     const ids: string[] = providersMod.listRegisteredProviderIds();
     const result: Record<string, BaseProvider> = {};
     await Promise.all(
       ids.map(async (id) => {
         try {
-          if (await providersMod.isProviderConfigured(id, userId)) {
-            result[id] = await providersMod.getProvider(id, userId);
+          if (await providersMod.isProviderConfigured(id, getSecret)) {
+            result[id] = await providersMod.getProvider(id, getSecret);
           }
         } catch (err) {
           log.debug("Skipping provider for find_model", {

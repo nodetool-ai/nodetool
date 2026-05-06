@@ -1,11 +1,9 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   registerProvider,
   getRegisteredProvider,
   getProvider,
-  clearProviderCache,
-  listRegisteredProviderIds,
-  setSecretResolver
+  listRegisteredProviderIds
 } from "../../src/providers/provider-registry.js";
 import { FakeProvider } from "../../src/providers/fake-provider.js";
 
@@ -18,18 +16,12 @@ class SecretAwareFakeProvider extends FakeProvider {
   }
 }
 
-// We need to clear state between tests. The registry is module-level.
-// We'll use unique IDs per test to avoid cross-contamination.
+const uniqueId = () =>
+  `test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+const noSecrets = async () => undefined;
 
 describe("provider-registry", () => {
-  const uniqueId = () =>
-    `test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-  beforeEach(() => {
-    clearProviderCache();
-    setSecretResolver((_key, _userId) => undefined);
-  });
-
   it("registerProvider and getRegisteredProvider", () => {
     const id = uniqueId();
     registerProvider(id, FakeProvider as any);
@@ -50,31 +42,22 @@ describe("provider-registry", () => {
     expect(getRegisteredProvider("nonexistent-" + Date.now())).toBeNull();
   });
 
-  it("getProvider creates and caches instance", async () => {
+  it("getProvider builds a fresh instance per call (no module cache)", async () => {
     const id = uniqueId();
     registerProvider(id, FakeProvider as any);
-    const provider = await getProvider(id);
-    expect(provider).toBeInstanceOf(FakeProvider);
-    // Second call should return same instance
-    const provider2 = await getProvider(id);
-    expect(provider2).toBe(provider);
+    const a = await getProvider(id, noSecrets);
+    const b = await getProvider(id, noSecrets);
+    expect(a).toBeInstanceOf(FakeProvider);
+    expect(b).toBeInstanceOf(FakeProvider);
+    // No module-level cache: each call constructs anew. Per-job reuse is the
+    // ProcessingContext's responsibility.
+    expect(a).not.toBe(b);
   });
 
   it("getProvider throws for unregistered provider", async () => {
-    await expect(getProvider("nonexistent-" + Date.now())).rejects.toThrow(
-      /No provider registered/
-    );
-  });
-
-  it("clearProviderCache returns count and clears", async () => {
-    const id = uniqueId();
-    registerProvider(id, FakeProvider as any);
-    await getProvider(id); // populate cache
-    const count = clearProviderCache();
-    expect(count).toBeGreaterThanOrEqual(1);
-    // After clearing, a new instance should be created
-    const provider = await getProvider(id);
-    expect(provider).toBeInstanceOf(FakeProvider);
+    await expect(
+      getProvider("nonexistent-" + Date.now(), noSecrets)
+    ).rejects.toThrow(/No provider registered/);
   });
 
   it("listRegisteredProviderIds includes registered ids", () => {
@@ -84,26 +67,20 @@ describe("provider-registry", () => {
     expect(ids).toContain(id);
   });
 
-  it("scopes provider cache and secret resolution by user id", async () => {
+  it("getProvider resolves empty kwargs through the supplied getSecret", async () => {
     const id = uniqueId();
     registerProvider(id, SecretAwareFakeProvider as any, {
       TEST_SECRET: undefined
     });
-    setSecretResolver((key, userId) => `${key}-${userId}`);
 
-    const provider1 = (await getProvider(
-      id,
-      "user-1"
-    )) as SecretAwareFakeProvider;
-    const provider2 = (await getProvider(
-      id,
-      "user-2"
-    )) as SecretAwareFakeProvider;
+    const calls: string[] = [];
+    const getSecret = async (key: string) => {
+      calls.push(key);
+      return `value-of-${key}`;
+    };
 
-    expect(provider1).toBeInstanceOf(SecretAwareFakeProvider);
-    expect(provider2).toBeInstanceOf(SecretAwareFakeProvider);
-    expect(provider1).not.toBe(provider2);
-    expect(provider1.receivedOptions.TEST_SECRET).toBe("TEST_SECRET-user-1");
-    expect(provider2.receivedOptions.TEST_SECRET).toBe("TEST_SECRET-user-2");
+    const p = (await getProvider(id, getSecret)) as SecretAwareFakeProvider;
+    expect(p.receivedOptions.TEST_SECRET).toBe("value-of-TEST_SECRET");
+    expect(calls).toEqual(["TEST_SECRET"]);
   });
 });

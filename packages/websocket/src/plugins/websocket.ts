@@ -5,6 +5,7 @@ import { UnifiedWebSocketRunner } from "../unified-websocket-runner.js";
 import { createGraphNodeTypeResolver, type NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonStdioBridge } from "@nodetool-ai/runtime";
 import { PythonNodeExecutor, getProvider } from "@nodetool-ai/runtime";
+import { getSecret as getStoredSecret } from "@nodetool-ai/models";
 import { Tool } from "@nodetool-ai/agents";
 import type { NodeMetadata, PropertyMetadata } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -215,7 +216,9 @@ export interface WebSocketPluginOptions {
 }
 
 async function resolveProvider(providerId: string, userId: string) {
-  return getProvider(providerId.toLowerCase(), userId);
+  return getProvider(providerId.toLowerCase(), (key) =>
+    getStoredSecret(key, userId).then((v) => v ?? undefined)
+  );
 }
 
 const isProduction = process.env["NODETOOL_ENV"] === "production";
