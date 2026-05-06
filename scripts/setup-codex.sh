@@ -42,28 +42,38 @@ step "Installing Linux build dependencies"
 if [[ "${SKIP_APT:-0}" != "1" ]]; then
   if have apt-get; then
     sudo apt-get update
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      build-essential \
-      ca-certificates \
-      curl \
-      git \
-      pkg-config \
-      python3 \
-      python3-dev \
-      python3-pip \
-      python3-venv \
-      libsecret-1-dev \
-      libnss3 \
-      libatk-bridge2.0-0 \
-      libgtk-3-0 \
-      libgbm1 \
-      libasound2 \
-      libxss1 \
-      libxtst6 \
-      libdrm2 \
-      libxkbcommon0 \
-      ffmpeg \
+    apt_packages=(
+      build-essential
+      ca-certificates
+      curl
+      git
+      pkg-config
+      python3
+      python3-dev
+      python3-pip
+      python3-venv
+      libsecret-1-dev
+      libnss3
+      libatk-bridge2.0-0
+      libgtk-3-0
+      libgbm1
+      libxss1
+      libxtst6
+      libdrm2
+      libxkbcommon0
+      ffmpeg
       pandoc
+    )
+
+    # Ubuntu 24.04 renamed libasound2 to libasound2t64. Older images still use
+    # libasound2, so select whichever package exists in the current container.
+    if apt-cache show libasound2t64 >/dev/null 2>&1; then
+      apt_packages+=(libasound2t64)
+    else
+      apt_packages+=(libasound2)
+    fi
+
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${apt_packages[@]}"
   else
     warn "apt-get not found; assuming OS dependencies are already installed"
   fi
