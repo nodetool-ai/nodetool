@@ -1,23 +1,4 @@
 /** @jsxImportSource @emotion/react */
-/**
- * PreviewCompositor
- *
- * DOM-based preview compositor for the timeline editor.
- *
- * For each track / clip whose time range covers `currentTimeMs`:
- *  - **Video / overlay** — one of up to 8 pooled `<video>` elements is
- *    assigned; `currentTime` and `playbackRate` are set every frame.
- *  - **Image** — an `<img>` element is rendered absolutely in the layer.
- *  - **Audio** — registered with `AudioGraph` (no DOM rendering here).
- *  - **Overlay tracks** — `mix-blend-mode` from `clip.blendMode` + `opacity`
- *    from `clip.opacity`. Stacked via `z-index = trackIndex`.
- *
- * Stale clips are rendered with a "stale" overlay badge.
- * Failed / missing / draft clips show a placeholder overlay.
- * Generating clips show a progress overlay (or prior asset if available).
- *
- * Element pool: 8 hot slots (active) + 4 cold slots (upcoming, preloaded).
- */
 
 import React, {
   memo,
@@ -33,11 +14,21 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { shallow } from "zustand/shallow";
 
-import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
+import type { TimelineClip } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 
+function getAssetUrl(asset: unknown): string | null {
+  return (asset as { get_url?: string | null })?.get_url ?? null;
+}
+
+interface PlaceholderLayer {
+  clipId: string;
+  trackIndex: number;
+  status: TimelineClip["status"];
+  name: string;
+}
 
 const HOT_POOL_SIZE = 8;
 const COLD_POOL_SIZE = 4;
@@ -160,9 +151,7 @@ function toBlendMode(b: TimelineClip["blendMode"]): string {
 /**
  * Determine the effective clip media URL.
  *
- * - `generated` / `stale` / `locked` → use the current asset (if any).
- * - `generating` → use the prior asset if available (graceful degradation).
- * - `failed` / `missing` / `draft` → no URL (placeholder will be shown).
+ * `failed` / `missing` / `draft` clips have no asset (placeholder shown).
  */
 function effectiveAssetId(clip: TimelineClip): string | undefined {
   switch (clip.status) {
@@ -176,26 +165,8 @@ function effectiveAssetId(clip: TimelineClip): string | undefined {
   }
 }
 
-export interface PreviewCompositorProps {
-  /** Pixel width of the preview area (for aspect-ratio correction). */
-  width?: number;
-  /** Pixel height of the preview area. */
-  height?: number;
-  /** Sequence output width in pixels (used to size the inner stage). */
-  sequenceWidth?: number;
-  /** Sequence output height in pixels. */
-  sequenceHeight?: number;
-}
-
-/**
- * PreviewCompositor renders the composited timeline preview.
- *
- * It subscribes to `TimelinePlaybackStore.currentTimeMs` at high frequency
- * (every frame during playback) but uses shallow selectors + memoisation to
- * avoid cascading re-renders in the tracks tree.
- */
-export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
-  ({ sequenceWidth = 1920, sequenceHeight = 1080 }) => {
+export const PreviewCompositor: React.FC = memo(
+  () => {
     const theme = useTheme();
 
     const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
@@ -207,9 +178,9 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
     );
 
     const assetUrlCache = useRef<Map<string, string>>(new Map());
+    const [urlCacheVersion, setUrlCacheVersion] = useState(0);
     const getAsset = useAssetStore((s) => s.get);
 
-    // Resolve asset URL from cache, else schedule a fetch.
     const resolveUrl = useCallback(
       (assetId: string | undefined): string | undefined => {
         if (!assetId) {
@@ -220,12 +191,10 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
         }
         getAsset(assetId)
           .then((asset) => {
-            // asset is the normalized response from AssetStore; get_url is
-            // present at runtime even though the TS type chain is incomplete
-            // when the websocket package dist is absent.
-            const url = (asset as unknown as { get_url?: string | null })?.get_url;
+            const url = getAssetUrl(asset);
             if (url) {
               assetUrlCache.current.set(assetId, url);
+              setUrlCacheVersion((v) => v + 1);
             }
           })
           .catch(() => {
@@ -262,117 +231,82 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
       };
     }, []);
 
-    const trackById = useMemo(
-      () => new Map(tracks.map((t) => [t.id, t])),
-      [tracks]
-    );
-
     const sortedTracks = useMemo(
       () => [...tracks].sort((a, b) => a.index - b.index),
       [tracks]
     );
 
-    const activeVideoSlots = useMemo((): ActiveVideoSlot[] => {
-      const result: ActiveVideoSlot[] = [];
+    const clipsByTrackId = useMemo(() => {
+      const m = new Map<string, TimelineClip[]>();
+      for (const c of clips) {
+        const arr = m.get(c.trackId);
+        if (arr) arr.push(c);
+        else m.set(c.trackId, [c]);
+      }
+      return m;
+    }, [clips]);
+
+    const clipById = useMemo(
+      () => new Map(clips.map((c) => [c.id, c])),
+      [clips]
+    );
+
+    const { activeVideoSlots, activeImageLayers, placeholderLayers } = useMemo(() => {
+      const videoSlots: ActiveVideoSlot[] = [];
+      const imageLayers: ActiveImageLayer[] = [];
+      const placeholders: PlaceholderLayer[] = [];
+
       for (const track of sortedTracks) {
-        if (
-          !track.visible ||
-          (track.type !== "video" && track.type !== "overlay")
-        ) {
-          continue;
-        }
-        const clip = clips.find(
-          (c) => c.trackId === track.id && isClipActive(c, currentTimeMs)
-        );
-        if (!clip) {
-          continue;
-        }
+        if (!track.visible) continue;
+        const trackClips = clipsByTrackId.get(track.id) ?? [];
+        const clip = trackClips.find((c) => isClipActive(c, currentTimeMs));
+        if (!clip || clip.mediaType === "audio") continue;
+
         const assetId = effectiveAssetId(clip);
         const url = resolveUrl(assetId);
-        if (!url) {
-          continue; // will render placeholder layer instead
-        }
-        if (result.length >= HOT_POOL_SIZE) {
-          break; // pool exhausted
-        }
-        result.push({
-          clipId: clip.id,
-          trackIndex: track.index,
-          blendMode: toBlendMode(clip.blendMode),
-          opacity: clip.opacity ?? 1,
-          assetUrl: url
-        });
-      }
-      return result;
-    }, [sortedTracks, clips, currentTimeMs, resolveUrl]);
 
-    // Active image clips.
-    const activeImageLayers = useMemo((): ActiveImageLayer[] => {
-      const result: ActiveImageLayer[] = [];
-      for (const track of sortedTracks) {
-        if (!track.visible || track.type !== "video") {
-          continue;
-        }
-        const clip = clips.find(
-          (c) =>
-            c.trackId === track.id &&
-            c.mediaType === "image" &&
-            isClipActive(c, currentTimeMs)
-        );
-        if (!clip) {
-          continue;
-        }
-        const assetId = effectiveAssetId(clip);
-        result.push({
-          clipId: clip.id,
-          trackIndex: track.index,
-          blendMode: toBlendMode(clip.blendMode),
-          opacity: clip.opacity ?? 1,
-          assetUrl: resolveUrl(assetId) ?? "",
-          status: clip.status
-        });
-      }
-      return result;
-    }, [sortedTracks, clips, currentTimeMs, resolveUrl]);
-
-    // Clips that need a placeholder (no asset URL, in active range).
-    const placeholderLayers = useMemo(() => {
-      const result: Array<{
-        clipId: string;
-        trackIndex: number;
-        status: TimelineClip["status"];
-        name: string;
-      }> = [];
-      for (const track of sortedTracks) {
-        if (!track.visible) {
-          continue;
-        }
-        const clip = clips.find(
-          (c) => c.trackId === track.id && isClipActive(c, currentTimeMs)
-        );
-        if (!clip) {
-          continue;
-        }
-        if (
-          clip.mediaType === "audio"
+        if (clip.mediaType === "image" && track.type === "video") {
+          imageLayers.push({
+            clipId: clip.id,
+            trackIndex: track.index,
+            blendMode: toBlendMode(clip.blendMode),
+            opacity: clip.opacity ?? 1,
+            assetUrl: url ?? "",
+            status: clip.status
+          });
+          if (!url) {
+            placeholders.push({
+              clipId: clip.id,
+              trackIndex: track.index,
+              status: clip.status,
+              name: clip.name
+            });
+          }
+        } else if (
+          (clip.mediaType === "video" || clip.mediaType === "overlay") &&
+          (track.type === "video" || track.type === "overlay")
         ) {
-          continue;
+          if (url && videoSlots.length < HOT_POOL_SIZE) {
+            videoSlots.push({
+              clipId: clip.id,
+              trackIndex: track.index,
+              blendMode: toBlendMode(clip.blendMode),
+              opacity: clip.opacity ?? 1,
+              assetUrl: url
+            });
+          } else if (!url) {
+            placeholders.push({
+              clipId: clip.id,
+              trackIndex: track.index,
+              status: clip.status,
+              name: clip.name
+            });
+          }
         }
-        // Only show placeholder if we have no asset URL.
-        const assetId = effectiveAssetId(clip);
-        const url = resolveUrl(assetId);
-        if (url) {
-          continue;
-        }
-        result.push({
-          clipId: clip.id,
-          trackIndex: track.index,
-          status: clip.status,
-          name: clip.name
-        });
       }
-      return result;
-    }, [sortedTracks, clips, currentTimeMs, resolveUrl]);
+
+      return { activeVideoSlots: videoSlots, activeImageLayers: imageLayers, placeholderLayers: placeholders };
+    }, [sortedTracks, clipsByTrackId, currentTimeMs, resolveUrl, urlCacheVersion]);
 
     useLayoutEffect(() => {
       if (!poolReady) {
@@ -397,10 +331,9 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
           el.setAttribute("data-asset", slot.assetUrl);
         }
 
+        const clip = clipById.get(slot.clipId);
         const clipOffsetMs =
-          currentTimeMs -
-          (clips.find((c) => c.id === slot.clipId)?.startMs ?? 0) +
-          (clips.find((c) => c.id === slot.clipId)?.inPointMs ?? 0);
+          currentTimeMs - (clip?.startMs ?? 0) + (clip?.inPointMs ?? 0);
         const targetSec = Math.max(0, clipOffsetMs / 1000);
 
         // Only seek if the video is not actively playing (avoid stuttering).
@@ -415,8 +348,7 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
           }
         }
 
-        const speed = clips.find((c) => c.id === slot.clipId)?.speedMultiplier ?? 1;
-        el.playbackRate = speed;
+        el.playbackRate = clip?.speedMultiplier ?? 1;
 
         el.style.zIndex = String(slot.trackIndex);
         el.style.mixBlendMode = slot.blendMode;
@@ -461,6 +393,7 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
       currentTimeMs,
       isPlaying,
       clips,
+      clipById,
       resolveUrl
     ]);
 

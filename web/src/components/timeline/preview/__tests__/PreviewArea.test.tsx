@@ -1,25 +1,13 @@
-/**
- * PreviewArea tests.
- *
- * Covers transport controls, keyboard shortcuts, and timecode / FPS display.
- * The PreviewCompositor is mocked so these tests focus on the transport UI
- * without involving DOM media APIs.
- */
-
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 
-// ── Module mocks ─────────────────────────────────────────────────────────────
-
-// Prevent the compositor from mounting video elements in jsdom.
 jest.mock("../PreviewCompositor", () => ({
   PreviewCompositor: () =>
     React.createElement("div", { "data-testid": "preview-compositor" })
 }));
 
-// Provide stable store state so tests don't need a full Zustand provider.
 const mockPlay = jest.fn();
 const mockPause = jest.fn();
 const mockStop = jest.fn();
@@ -28,19 +16,22 @@ const mockSetCurrentTimeMs = jest.fn();
 let mockCurrentTimeMs = 0;
 let mockIsPlaying = false;
 
-jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => ({
-  useTimelinePlaybackStore: (selector: (s: unknown) => unknown) => {
-    const state = {
-      currentTimeMs: mockCurrentTimeMs,
-      isPlaying: mockIsPlaying,
-      play: mockPlay,
-      pause: mockPause,
-      stop: mockStop,
-      setCurrentTimeMs: mockSetCurrentTimeMs
-    };
+jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => {
+  const getState = () => ({
+    currentTimeMs: mockCurrentTimeMs,
+    isPlaying: mockIsPlaying,
+    play: mockPlay,
+    pause: mockPause,
+    stop: mockStop,
+    setCurrentTimeMs: mockSetCurrentTimeMs
+  });
+  const useTimelinePlaybackStore = (selector: (s: unknown) => unknown) => {
+    const state = getState();
     return selector ? selector(state) : state;
-  }
-}));
+  };
+  useTimelinePlaybackStore.getState = getState;
+  return { useTimelinePlaybackStore };
+});
 
 jest.mock("../../../../stores/timeline/TimelineStore", () => ({
   useTimelineStore: (selector: (s: unknown) => unknown) => {
@@ -62,11 +53,7 @@ jest.mock("../../../../stores/AssetStore", () => ({
   }
 }));
 
-// ── Import after mocks ────────────────────────────────────────────────────────
-
 import { PreviewArea } from "../PreviewArea";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const renderPreview = (props = {}) =>
   render(
@@ -74,8 +61,6 @@ const renderPreview = (props = {}) =>
       <PreviewArea fps={30} {...props} />
     </ThemeProvider>
   );
-
-// ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("PreviewArea", () => {
   beforeEach(() => {

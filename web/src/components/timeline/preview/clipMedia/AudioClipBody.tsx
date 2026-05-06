@@ -44,10 +44,6 @@ const barStyles = (theme: Theme, height: number) =>
 
 const BARS = 40;
 
-/**
- * Generates a deterministic fake waveform from the clip id.
- * Real WaveSurfer peaks can be substituted here in a future iteration.
- */
 function deterministicBars(seed: string): number[] {
   const bars: number[] = [];
   for (let i = 0; i < BARS; i++) {
@@ -70,14 +66,12 @@ export const AudioClipBody: React.FC<AudioClipBodyProps> = memo(({ clip }) => {
 
   return (
     <div css={rootStyles(theme)}>
-      {/* Waveform bars (visual only) */}
       <div css={waveformStyles(theme)}>
         {bars.map((h, i) => (
           <div key={i} css={barStyles(theme, h)} />
         ))}
       </div>
 
-      {/* Clip label */}
       <FlexRow gap={0.5} align="center" sx={{ position: "relative", zIndex: 1 }}>
         {isMuted && (
           <Text

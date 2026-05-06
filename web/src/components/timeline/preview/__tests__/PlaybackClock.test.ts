@@ -1,14 +1,3 @@
-/**
- * PlaybackClock unit tests.
- *
- * Tests the RAF-driven clock logic in isolation by mocking:
- *  - `requestAnimationFrame` / `cancelAnimationFrame`
- *  - `performance.now()`
- *  - `TimelinePlaybackStore`
- */
-
-// ── Globals ───────────────────────────────────────────────────────────────────
-
 let rafCallback: (() => void) | null = null;
 let rafId = 1;
 
@@ -16,8 +5,6 @@ const mockSetCurrentTimeMs = jest.fn();
 const mockPause = jest.fn();
 
 let mockIsPlaying = true;
-
-// ── Mock requestAnimationFrame ────────────────────────────────────────────────
 
 global.requestAnimationFrame = jest.fn((cb: () => void) => {
   rafCallback = cb;
@@ -27,8 +14,6 @@ global.requestAnimationFrame = jest.fn((cb: () => void) => {
 global.cancelAnimationFrame = jest.fn(() => {
   rafCallback = null;
 }) as unknown as typeof cancelAnimationFrame;
-
-// ── Mock TimelinePlaybackStore ────────────────────────────────────────────────
 
 jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => ({
   useTimelinePlaybackStore: {
@@ -40,11 +25,7 @@ jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => ({
   }
 }));
 
-// ── Import AFTER mocks ────────────────────────────────────────────────────────
-
 import { PlaybackClock } from "../PlaybackClock";
-
-// ── Helper: flush pending RAF ─────────────────────────────────────────────────
 
 function flushRAF() {
   if (rafCallback) {
@@ -53,8 +34,6 @@ function flushRAF() {
     cb();
   }
 }
-
-// ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("PlaybackClock", () => {
   let clock: PlaybackClock;

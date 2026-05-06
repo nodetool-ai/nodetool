@@ -1,22 +1,3 @@
-/**
- * AudioGraph
- *
- * Manages the WebAudio mixing graph for timeline preview playback.
- *
- * Graph topology per audio clip:
- *   AudioBufferSourceNode
- *     → per-clip GainNode  (volume, fade-in / fade-out)
- *     → per-track GainNode (track volume, mute, solo)
- *     → master GainNode
- *     → AudioContext.destination
- *
- * Solo rule: when any audio track has `solo = true`, all non-solo tracks
- * are silenced via their track GainNode.
- *
- * Buffers are loaded from asset URLs via `fetch + decodeAudioData` and
- * cached by assetId so repeated seeks never re-download the same file.
- */
-
 import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 
 export interface ScheduledAudioClip {
@@ -154,9 +135,16 @@ export class AudioGraph {
 
       const now = ctx.currentTime;
       if (clip.fadeInMs && clip.fadeInMs > 0) {
-        const fadeSec = clip.fadeInMs / 1000;
-        clipGain.gain.setValueAtTime(0, now);
-        clipGain.gain.linearRampToValueAtTime(volumeLinear, now + fadeSec);
+        const fadeEndMs = clip.startMs + clip.fadeInMs;
+        if (currentTimeMs < fadeEndMs) {
+          // Ramp from the interpolated in-progress gain to full volume.
+          const offsetInFadeMs = Math.max(0, currentTimeMs - clip.startMs);
+          const startGain = volumeLinear * (offsetInFadeMs / clip.fadeInMs);
+          const remainingSec = (fadeEndMs - currentTimeMs) / 1000;
+          clipGain.gain.setValueAtTime(startGain, now);
+          clipGain.gain.linearRampToValueAtTime(volumeLinear, now + remainingSec);
+        }
+        // else: past the fade-in region — start at full volume (default)
       }
 
       // Fade-out envelope.
