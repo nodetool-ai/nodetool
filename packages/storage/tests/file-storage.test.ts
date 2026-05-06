@@ -65,7 +65,7 @@ describe("FileStorage", () => {
   it("rejects path traversal", async () => {
     await setup();
     expect(() => storage.getUrl("../../etc/passwd")).toThrow(
-      "Path traversal detected"
+      /Invalid storage key/
     );
   });
 
