@@ -22,7 +22,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_ENV="${PYTHON_ENV:-${ROOT_DIR}/.venv}"
-NODE_VERSION="${NODE_VERSION:-24}"
+NODE_VERSION="${NODE_VERSION:-$(tr -d '[:space:]' < "${ROOT_DIR}/.nvmrc" 2>/dev/null || printf '24')}"
 
 if [[ -t 1 ]]; then
   BOLD='\033[1m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; RED='\033[0;31m'; NC='\033[0m'
@@ -81,7 +81,7 @@ else
   warn "Skipping apt package installation"
 fi
 
-step "Ensuring Node.js ${NODE_VERSION}.x"
+step "Ensuring Node.js ${NODE_VERSION}"
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 if [[ -s "${NVM_DIR}/nvm.sh" ]]; then
   # shellcheck source=/dev/null
@@ -97,19 +97,24 @@ node --version
 npm --version
 
 step "Installing JavaScript dependencies"
+npm config set audit false
+npm config set fund false
+npm config set prefer-offline true
+export ELECTRON_SKIP_BINARY_DOWNLOAD="${ELECTRON_SKIP_BINARY_DOWNLOAD:-1}"
+export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD:-1}"
 if [[ -f package-lock.json ]]; then
-  npm ci
+  npm ci --prefer-offline --no-audit --fund=false
 else
-  npm install
+  npm install --prefer-offline --no-audit --fund=false
 fi
 
 # The mobile app is kept as a separate npm project in this repo.
 if [[ -f mobile/package.json ]]; then
   step "Installing mobile dependencies"
   if [[ -f mobile/package-lock.json ]]; then
-    npm --prefix mobile ci
+    npm --prefix mobile ci --prefer-offline --no-audit --fund=false
   else
-    npm --prefix mobile install
+    npm --prefix mobile install --prefer-offline --no-audit --fund=false
   fi
 fi
 
