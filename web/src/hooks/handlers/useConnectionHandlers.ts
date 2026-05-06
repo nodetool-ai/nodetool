@@ -579,7 +579,7 @@ export default function useConnectionHandlers() {
           openContextMenu(
             "input-context-menu",
             connectNodeId || "",
-            event.clientX + 25,
+            event.clientX - 220,
             event.clientY - 50,
             "react-flow__pane",
             connectType ?? undefined,
