@@ -97,7 +97,6 @@ function latestSuccessfulWorkflowUpdatedAt(
 export function useWorkflowFreshnessCheck(
   sequenceId: string | null | undefined
 ): UseWorkflowFreshnessCheckReturn {
-  const clips = useTimelineStore((s) => s.clips);
   const markClipsStaleForWorkflow = useTimelineStore(
     (s) => s.markClipsStaleForWorkflow
   );
@@ -112,6 +111,10 @@ export function useWorkflowFreshnessCheck(
 
   const runCheck = useCallback(async () => {
     if (!sequenceId) return;
+
+    // Read clips once at call-time via getState() — the hook is one-shot per
+    // sequenceId, so a reactive subscription would only add churn.
+    const clips = useTimelineStore.getState().clips;
 
     // Collect unique workflowIds from generated clips that have at least one
     // successful version (draft/never-generated clips don't need freshness checks).
@@ -228,7 +231,7 @@ export function useWorkflowFreshnessCheck(
     );
 
     setDriftItems(newDriftItems);
-  }, [sequenceId, clips, markClipsStaleForWorkflow, applyInputDrift]);
+  }, [sequenceId, markClipsStaleForWorkflow, applyInputDrift]);
 
   useEffect(() => {
     if (!sequenceId || lastCheckedSequenceId.current === sequenceId) return;
