@@ -1,5 +1,5 @@
 /**
- * ConnectedToolbar — subscribes to activeTool + colors only.
+ * ConnectedToolbar — subscribes to activeTool, select mode, and colors only.
  * Does NOT re-render on document, toolSettings, selection, or viewport changes.
  */
 import React, { memo } from "react";
@@ -9,6 +9,7 @@ import { useColorIntentRouter } from "../hooks";
 
 export const ConnectedToolbar = memo(function ConnectedToolbar() {
   const activeTool = useSketchStore((s) => s.activeTool);
+  const selectMode = useSketchStore((s) => s.toolSettings.select.mode);
   const foregroundColor = useSketchStore((s) => s.foregroundColor) || "#ffffff";
   const backgroundColor = useSketchStore((s) => s.backgroundColor) || "#000000";
   const setActiveTool = useSketchStore((s) => s.setActiveTool);
@@ -20,6 +21,7 @@ export const ConnectedToolbar = memo(function ConnectedToolbar() {
   return (
     <SketchToolbar
       activeTool={activeTool}
+      selectMode={selectMode}
       onToolChange={setActiveTool}
       foregroundColor={foregroundColor}
       backgroundColor={backgroundColor}

@@ -1,6 +1,6 @@
 import { isMac } from "../../../utils/platform";
 import type { SketchActionId } from "./actionRegistry";
-import { BINDING_CATALOG } from "./bindingCatalog";
+import { BINDING_CATALOG, type BindingEntry } from "./bindingCatalog";
 
 export { isMac };
 
@@ -33,13 +33,26 @@ export function buildComboString(e: KeyboardEvent): string {
   return parts.join("+");
 }
 
-function entryToComboString(entry: { key: string; modifiers: { ctrl?: true; shift?: true; alt?: true } }): string {
+function entryToComboString(entry: {
+  key: string;
+  modifiers: { ctrl?: true; shift?: true; alt?: true };
+}): string {
   const parts: string[] = [];
   if (entry.modifiers.ctrl) parts.push("ctrl");
   if (entry.modifiers.shift) parts.push("shift");
   if (entry.modifiers.alt) parts.push("alt");
   parts.push(entry.key);
   return parts.join("+");
+}
+
+export function displayBinding(entry: Pick<BindingEntry, "key" | "modifiers">): string {
+  const parts: string[] = [];
+  if (entry.modifiers.ctrl) parts.push(isMac() ? "⌘" : "Ctrl");
+  if (entry.modifiers.shift) parts.push(isMac() ? "⇧" : "Shift");
+  if (entry.modifiers.alt) parts.push(isMac() ? "⌥" : "Alt");
+  const key = entry.key.length === 1 ? entry.key.toUpperCase() : entry.key;
+  parts.push(key);
+  return isMac() ? parts.join("") : parts.join("+");
 }
 
 // Precomputed combo → actionId maps per scope for O(1) dispatch.
@@ -65,11 +78,5 @@ export const CROP_MAP = buildScopeMap("mode:crop");
 export function displayCombo(actionId: SketchActionId): string {
   const entry = BINDING_CATALOG.find((b) => b.actionId === actionId && b.scope !== "panel:layers");
   if (!entry) return "";
-  const parts: string[] = [];
-  if (entry.modifiers.ctrl) parts.push(isMac() ? "⌘" : "Ctrl");
-  if (entry.modifiers.shift) parts.push(isMac() ? "⇧" : "Shift");
-  if (entry.modifiers.alt) parts.push(isMac() ? "⌥" : "Alt");
-  const key = entry.key.length === 1 ? entry.key.toUpperCase() : entry.key;
-  parts.push(key);
-  return isMac() ? parts.join("") : parts.join("+");
+  return displayBinding(entry);
 }

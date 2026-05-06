@@ -109,7 +109,6 @@ export class BlurTool implements ToolHandler {
 export const definition: ToolDefinition = {
   tool: "blur",
   label: "Blur",
-  shortcut: "Q",
   Icon: BlurOnIcon,
   group: "painting"
 };

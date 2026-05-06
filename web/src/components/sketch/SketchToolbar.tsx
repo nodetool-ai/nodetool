@@ -18,8 +18,13 @@ import {
   ToggleButton,
   Divider
 } from "@mui/material";
-import { SketchTool } from "./types";
-import { TOOLBAR_TOOL_GROUPS, type ToolDefinition } from "./toolDefinitions";
+import type { SelectToolMode, SketchTool } from "./types";
+import {
+  getToolShortcutActionId,
+  TOOLBAR_TOOL_GROUPS,
+  type ToolDefinition
+} from "./toolDefinitions";
+import { displayCombo } from "./shortcuts";
 import ColorSwatchPair from "./ColorSwatchPair";
 import { SKETCH_SPACING, SKETCH_SIZE, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
 
@@ -77,12 +82,14 @@ const styles = (theme: Theme) =>
     },
   });
 
-function renderToolButton(def: ToolDefinition) {
-  const { tool, label, shortcut, Icon } = def;
+function renderToolButton(def: ToolDefinition, selectMode: SelectToolMode) {
+  const { tool, label, Icon } = def;
+  const actionId = getToolShortcutActionId(tool, selectMode);
+  const shortcut = actionId ? displayCombo(actionId) : "";
   const tooltipText = shortcut ? `${label} (${shortcut})` : label;
   const tooltip =
     tool === "clone_stamp"
-      ? `Clone Stamp (S) — Alt+click to set source`
+      ? `${tooltipText} — Alt+click to set source`
       : tooltipText;
 
   return (
@@ -96,6 +103,7 @@ function renderToolButton(def: ToolDefinition) {
 
 export interface SketchToolbarProps {
   activeTool: SketchTool;
+  selectMode: SelectToolMode;
   onToolChange: (tool: SketchTool) => void;
   foregroundColor: string;
   backgroundColor: string;
@@ -107,6 +115,7 @@ export interface SketchToolbarProps {
 
 const SketchToolbar: React.FC<SketchToolbarProps> = ({
   activeTool,
+  selectMode,
   onToolChange,
   foregroundColor,
   backgroundColor,
@@ -132,7 +141,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
         {TOOLBAR_TOOL_GROUPS.map((group, index) => (
           <Box key={group.map((def) => def.tool).join("-")} className="tool-section">
             <ToggleButtonGroup value={activeTool} exclusive onChange={handleToolChange} size="small" className="tool-group">
-              {group.map(renderToolButton)}
+              {group.map((definition) => renderToolButton(definition, selectMode))}
             </ToggleButtonGroup>
             {index < TOOLBAR_TOOL_GROUPS.length - 1 ? <Divider flexItem /> : null}
           </Box>

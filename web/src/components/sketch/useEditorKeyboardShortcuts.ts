@@ -38,10 +38,6 @@ export interface UseEditorKeyboardShortcutsParams {
   syncSketchOutputsNow: () => void;
   setActiveTool: (tool: SketchTool) => void;
   setZoom: (zoom: number) => void;
-  /** @deprecated Mirror removed from keyboard shortcuts. Kept for API compatibility. */
-  setMirrorX: (v: boolean) => void;
-  /** @deprecated Mirror removed from keyboard shortcuts. Kept for API compatibility. */
-  setMirrorY: (v: boolean) => void;
   setBrushSettings: (settings: Partial<BrushSettings>) => void;
   setPencilSettings: (settings: Partial<PencilSettings>) => void;
   setEraserSettings: (settings: Partial<EraserSettings>) => void;

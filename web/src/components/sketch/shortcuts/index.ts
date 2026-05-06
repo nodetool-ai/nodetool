@@ -4,7 +4,7 @@ export { SKETCH_ACTION_IDS, ACTION_REGISTRY, ACTION_MAP } from "./actionRegistry
 export type { ShortcutScope, BindingEntry } from "./bindingCatalog";
 export { BINDING_CATALOG } from "./bindingCatalog";
 
-export { isMac, displayCombo, buildComboString } from "./normalize";
+export { isMac, displayBinding, displayCombo, buildComboString } from "./normalize";
 
 export type { DispatcherState } from "./dispatcher";
 export { resolveAction, isInteractiveTarget } from "./dispatcher";

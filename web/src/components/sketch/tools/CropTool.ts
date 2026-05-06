@@ -362,7 +362,6 @@ export class CropTool implements ToolHandler {
 export const definition: ToolDefinition = {
   tool: "crop",
   label: "Crop",
-  shortcut: "C",
   Icon: CropIcon,
   group: "shape"
 };

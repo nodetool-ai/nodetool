@@ -25,8 +25,6 @@ function makeParams(): UseEditorKeyboardShortcutsParams {
     syncSketchOutputsNow: jest.fn(),
     setActiveTool: jest.fn(),
     setZoom: jest.fn(),
-    setMirrorX: jest.fn(),
-    setMirrorY: jest.fn(),
     setBrushSettings: jest.fn(),
     setPencilSettings: jest.fn(),
     setEraserSettings: jest.fn(),
@@ -120,6 +118,32 @@ describe("useEditorKeyboardShortcuts", () => {
     expect(params.syncSketchOutputsNow).toHaveBeenCalled();
   });
 
+  it("uses the Shift multiplier for nudges", () => {
+    const params = makeParams();
+    renderHook(() => useEditorKeyboardShortcuts(params));
+
+    const root = document.createElement("div");
+    root.className = "sketch-editor";
+    const surface = document.createElement("div");
+    surface.tabIndex = 0;
+    root.appendChild(surface);
+    document.body.appendChild(root);
+    surface.focus();
+
+    act(() => {
+      dispatchKey(surface, "Shift");
+      dispatchKey(surface, "ArrowRight");
+      dispatchKey(surface, "ArrowRight", "keyup");
+      dispatchKey(surface, "Shift", "keyup");
+    });
+
+    expect(params.handleNudgeLayer).toHaveBeenCalledWith(10, 0, {
+      recordHistory: true,
+      syncOutputs: false
+    });
+    expect(params.syncSketchOutputsNow).toHaveBeenCalled();
+  });
+
   it("routes Ctrl+T through handleFreeTransform", () => {
     const params = makeParams();
     renderHook(() => useEditorKeyboardShortcuts(params));
@@ -203,12 +227,6 @@ describe("useEditorKeyboardShortcuts", () => {
 
   it("does not arm spring-loaded move when Control is pressed while select tool is active", () => {
     const params = makeParams();
-    const origPlatform = navigator.platform;
-    Object.defineProperty(navigator, "platform", {
-      configurable: true,
-      value: "Win32"
-    });
-
     renderHook(() => useEditorKeyboardShortcuts(params));
 
     act(() => {
@@ -226,10 +244,29 @@ describe("useEditorKeyboardShortcuts", () => {
     });
 
     expect(useSketchStore.getState().transientMoveModifierHeld).toBe(false);
+  });
 
-    Object.defineProperty(navigator, "platform", {
-      configurable: true,
-      value: origPlatform
+  it("arms spring-loaded move on Control and clears it on window blur", () => {
+    const params = makeParams();
+    renderHook(() => useEditorKeyboardShortcuts(params));
+
+    const event = new KeyboardEvent("keydown", {
+      code: "ControlLeft",
+      key: "Control",
+      bubbles: true,
+      cancelable: true
     });
+
+    act(() => {
+      window.dispatchEvent(event);
+    });
+
+    expect(useSketchStore.getState().transientMoveModifierHeld).toBe(true);
+
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+    });
+
+    expect(useSketchStore.getState().transientMoveModifierHeld).toBe(false);
   });
 });

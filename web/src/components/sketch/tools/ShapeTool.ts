@@ -262,7 +262,6 @@ export class ShapeTool implements ToolHandler {
 export const definition: ToolDefinition = {
   tool: "shape",
   label: "Shape",
-  shortcut: "U",
   Icon: CategoryIcon,
   group: "shape"
 };
