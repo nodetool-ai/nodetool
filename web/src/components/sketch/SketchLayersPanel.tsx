@@ -167,16 +167,19 @@ const PANEL_SHORTCUT_NOTES: Partial<Record<SketchActionId, string>> = {
   "canvas-preset-next": "Canvas preset dropdown"
 };
 
+function isUnmodifiedGlobalDigitBinding(entry: BindingEntry): boolean {
+  return (
+    entry.scope === "global" &&
+    !entry.modifiers.ctrl &&
+    !entry.modifiers.shift &&
+    !entry.modifiers.alt &&
+    /^\d$/.test(entry.key)
+  );
+}
+
 function formatShortcutCombos(entries: ReadonlyArray<BindingEntry>): string {
   const digitEntries = entries
-    .filter(
-      (entry) =>
-        entry.scope === "global" &&
-        !entry.modifiers.ctrl &&
-        !entry.modifiers.shift &&
-        !entry.modifiers.alt &&
-        /^\d$/.test(entry.key)
-    )
+    .filter(isUnmodifiedGlobalDigitBinding)
     .map((entry) => Number(entry.key))
     .sort((a, b) => a - b);
 
@@ -193,35 +196,35 @@ function formatShortcutCombos(entries: ReadonlyArray<BindingEntry>): string {
   return [...new Set(entries.map((entry) => displayBinding(entry)))].join(" / ");
 }
 
+const SHORTCUT_REFERENCE_GROUPS = SHORTCUT_DISPLAY_GROUPS.map((displayGroup) => {
+  const rows = ACTION_REGISTRY.flatMap((action) => {
+    if (action.displayGroup !== displayGroup) {
+      return [];
+    }
+
+    const entries = BINDING_CATALOG.filter((entry) => entry.actionId === action.id);
+    if (entries.length === 0) {
+      return [];
+    }
+
+    return [{
+      actionId: action.id,
+      combo: formatShortcutCombos(entries),
+      label: action.label,
+      note: PANEL_SHORTCUT_NOTES[action.id]
+    }];
+  });
+
+  return {
+    displayGroup,
+    rows
+  };
+}).filter((group) => group.rows.length > 0);
+
 const ShortcutReference = memo(function ShortcutReference() {
-  const groups = SHORTCUT_DISPLAY_GROUPS.map((displayGroup) => {
-    const rows = ACTION_REGISTRY.flatMap((action) => {
-      if (action.displayGroup !== displayGroup) {
-        return [];
-      }
-
-      const entries = BINDING_CATALOG.filter((entry) => entry.actionId === action.id);
-      if (entries.length === 0) {
-        return [];
-      }
-
-      return [{
-        actionId: action.id,
-        combo: formatShortcutCombos(entries),
-        label: action.label,
-        note: PANEL_SHORTCUT_NOTES[action.id]
-      }];
-    });
-
-    return {
-      displayGroup,
-      rows
-    };
-  }).filter((group) => group.rows.length > 0);
-
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      {groups.map((group) => (
+      {SHORTCUT_REFERENCE_GROUPS.map((group) => (
         <Box key={group.displayGroup}>
           <Typography
             sx={{

@@ -33,10 +33,9 @@ export function buildComboString(e: KeyboardEvent): string {
   return parts.join("+");
 }
 
-function entryToComboString(entry: {
-  key: string;
-  modifiers: { ctrl?: true; shift?: true; alt?: true };
-}): string {
+function entryToComboString(
+  entry: Pick<BindingEntry, "key" | "modifiers">
+): string {
   const parts: string[] = [];
   if (entry.modifiers.ctrl) parts.push("ctrl");
   if (entry.modifiers.shift) parts.push("shift");
