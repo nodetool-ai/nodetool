@@ -21,11 +21,13 @@ const ASSETS_DIR = resolve(__dirname, "../nodetool/assets/nodetool-base");
 const TARGET_WIDTH = 1280;
 const TARGET_HEIGHT = 720;
 const JPEG_QUALITY = 85;
-// gpt-image-1 returns very saturated neon-on-black; on the small thumbnail
-// card the magentas in particular bloom and clip. Pull the saturation down
-// to keep them readable without losing the brand colour cue. Applied to the
-// JPGs only — PNG masters keep the original saturation.
-const SATURATION = 0.6;
+
+// gpt-image-1 leans hard into the neon cyan/magenta we ask for, so every
+// thumbnail looks identical and very "AI" out of the box. Tone it down at
+// conversion time instead of regenerating: pull saturation down and shift
+// the hue slightly off pure neon toward warmer/less synthetic colour.
+const SATURATION = 0.55;
+const HUE_SHIFT_DEG = 18;
 
 async function convertOne(name: string): Promise<{ kb: number; w: number; h: number }> {
   const srcPath = join(ASSETS_DIR, name);
@@ -38,9 +40,10 @@ async function convertOne(name: string): Promise<{ kb: number; w: number; h: num
 
   // Center-crop to 16:9 then resize. sharp's resize with `fit: "cover"`
   // does both in one step and matches the UI's objectFit: "cover".
+  // modulate() desaturates and shifts hue to mute the AI-neon look.
   await sharp(srcPath)
     .resize(TARGET_WIDTH, TARGET_HEIGHT, { fit: "cover", position: "centre" })
-    .modulate({ saturation: SATURATION })
+    .modulate({ saturation: SATURATION, hue: HUE_SHIFT_DEG })
     .jpeg({ quality: JPEG_QUALITY, progressive: true, mozjpeg: true })
     .toFile(dstPath);
 
