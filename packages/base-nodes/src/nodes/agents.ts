@@ -68,6 +68,22 @@ function asText(value: unknown): string {
   return "";
 }
 
+/**
+ * Substitute {{variable}} placeholders in `template` from a map of values.
+ * Used by AgentNode so users can parameterize the prompt/system text from
+ * dynamic properties wired into the node. Unknown variables are left intact.
+ */
+function substituteDynamicVars(
+  template: string,
+  vars: Map<string, unknown>
+): string {
+  if (vars.size === 0 || !template) return template;
+  return template.replace(/\{\{\s*([^}\s|]+)\s*\}\}/g, (match, name: string) => {
+    if (!vars.has(name)) return match;
+    return asText(vars.get(name));
+  });
+}
+
 function summarize(text: string, maxSentences: number): string {
   const parts = text
     .split(/(?<=[.!?])\s+/)
@@ -1780,7 +1796,7 @@ export class AgentNode extends BaseNode {
   static readonly nodeType: string = "nodetool.agents.Agent";
   static readonly title: string = "Agent";
   static readonly description: string =
-    "Generate natural language responses using LLM providers and streams output.\n    llm, text-generation, chatbot, question-answering, streaming";
+    "Generate natural language responses using LLM providers and streams output.\n    llm, text-generation, chatbot, question-answering, streaming\n\n    Dynamic properties are substituted as {{variable}} placeholders in both\n    the prompt and system text. Add a property named `subject` and write\n    `Classify: {{subject}}` in the prompt — the wired value replaces the\n    placeholder at run time. Unknown placeholders are left intact. For\n    Jinja-style filters (truncate, upper, etc.), chain a Format Text node\n    upstream instead.";
   static readonly metadataOutputTypes = {
     text: "str",
     chunk: "chunk",
@@ -1789,6 +1805,10 @@ export class AgentNode extends BaseNode {
   };
   static readonly basicFields = ["prompt", "model", "tools", "image", "audio"];
   static readonly supportsDynamicOutputs = true;
+  // Dynamic properties become {{variable}} placeholders the user can wire
+  // into the prompt and system prompt — e.g. add `subject` and `body`
+  // properties, then write `Classify: {{subject}} — {{body}}` in the prompt.
+  static readonly isDynamic = true;
   static readonly recommendedModels = [
     {
       id: "gpt-oss:20b",
@@ -2412,8 +2432,14 @@ export class AgentNode extends BaseNode {
       return;
     }
 
-    const prompt = asText(this.prompt ?? this.prompt ?? "");
-    let system = asText(this.system ?? this.system ?? DEFAULT_SYSTEM_PROMPT);
+    const prompt = substituteDynamicVars(
+      asText(this.prompt ?? ""),
+      this.dynamicProps
+    );
+    let system = substituteDynamicVars(
+      asText(this.system ?? DEFAULT_SYSTEM_PROMPT),
+      this.dynamicProps
+    );
     const image = this.image ?? this.image;
     const audio = this.audio ?? this.audio;
     const historyInput = this.history ?? this.history;

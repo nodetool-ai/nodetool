@@ -149,6 +149,10 @@ export class GmailSearchLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     email: "dict",
     message_id: "str",
+    subject: "str",
+    sender: "str",
+    date: "str",
+    body: "str",
     emails: "list",
     message_ids: "list"
   };
@@ -331,11 +335,17 @@ export class GmailSearchLibNode extends BaseNode {
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
     const results = await this._fetchEmails();
 
-    // Stream individual emails
+    // Stream individual emails with the email dict plus its decomposed fields
+    // so downstream nodes can wire to subject/sender/body/date directly without
+    // an EmailFields step.
     for (const item of results) {
       yield {
         email: item.email,
-        message_id: item.message_id
+        message_id: item.message_id,
+        subject: String(item.email.subject ?? ""),
+        sender: String(item.email.from ?? ""),
+        date: String(item.email.date ?? ""),
+        body: String(item.email.body ?? "")
       };
     }
 
@@ -348,9 +358,14 @@ export class GmailSearchLibNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const results = await this._fetchEmails();
+    const first = results[0]?.email ?? {};
     return {
-      email: results[0]?.email ?? {},
+      email: first,
       message_id: results[0]?.message_id ?? "",
+      subject: String(first.subject ?? ""),
+      sender: String(first.from ?? ""),
+      date: String(first.date ?? ""),
+      body: String(first.body ?? ""),
       emails: results.map((r) => r.email),
       message_ids: results.map((r) => r.message_id)
     };
