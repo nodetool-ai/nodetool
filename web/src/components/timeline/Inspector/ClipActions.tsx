@@ -22,7 +22,7 @@ import LockOpenIcon from "@mui/icons-material/LockOpen";
 import ImageIcon from "@mui/icons-material/Image";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { ToolbarIconButton, FlexRow, Text, Dialog } from "../../ui_primitives";
+import { ToolbarIconButton, FlexRow, Text, Dialog, TextInput } from "../../ui_primitives";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -195,21 +195,13 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
             Enter the asset ID to use as the clip&apos;s current output. The
             generation state and param overrides will not be changed.
           </Text>
-          <input
-            type="text"
+          <TextInput
             value={assetIdInput}
             onChange={(e) => setAssetIdInput(e.target.value)}
             placeholder="Asset ID"
-            aria-label="Asset ID"
-            style={{
-              width: "100%",
-              padding: "6px 8px",
-              borderRadius: 4,
-              border: `1px solid ${theme.vars.palette.divider}`,
-              background: theme.vars.palette.background.paper,
-              color: theme.vars.palette.text.primary,
-              fontSize: 13
-            }}
+            inputProps={{ "aria-label": "Asset ID" }}
+            fullWidth
+            size="small"
           />
         </Dialog>
       </>
