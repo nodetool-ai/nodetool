@@ -223,15 +223,15 @@ These are not dispatched by the central dispatcher — they fire from `onKeyDown
 
 - [x] Rewrite `useEditorKeyboardShortcuts.ts` to: (1) attach a single `keydown` listener, (2) call `dispatcher()` to get the action id, (3) look up and call the handler from `actionHandlers.ts`. Remove all inline key-string comparisons and tool-context branches from the listener body.
 
-- [ ] Replace hard-coded shortcut display strings in `SketchModal.tsx` (undo/redo/export/close tooltips) and `SketchToolbar.tsx` (tool tooltips) with `displayCombo(actionId)` from the normalize helpers. In the toolbar, map each tool definition to its action id using the convention `"tool-" + definition.tool` (e.g. `tool-brush`, `tool-crop`) — no special lookup needed. Update `hooks/useEditorCommands.ts` to pass the updated params shape to the rewritten keyboard hook.
+- [x] Replace hard-coded shortcut display strings in `SketchModal.tsx` (undo/redo/export/close tooltips) and `SketchToolbar.tsx` (tool tooltips) with `displayCombo(actionId)` from the normalize helpers. In the toolbar, map each tool definition to its action id using the convention `"tool-" + definition.tool` (e.g. `tool-brush`, `tool-crop`) — no special lookup needed. Update `hooks/useEditorCommands.ts` to pass the updated params shape to the rewritten keyboard hook.
 
-- [ ] Replace the static shortcut reference block in `SketchLayersPanel.tsx` (the hardcoded `<dl>`) with a component that reads the binding catalog and groups entries by `displayGroup`.
+- [x] Replace the static shortcut reference block in `SketchLayersPanel.tsx` (the hardcoded `<dl>`) with a component that reads the binding catalog and groups entries by `displayGroup`.
 
-- [ ] Remove mirror-horizontal and mirror-vertical keyboard shortcuts (`M` and `Shift+M`). Confirm mirror UI is accessible via toolbar buttons only. Remove the dead binding from any remaining code.
+- [x] Remove mirror-horizontal and mirror-vertical keyboard shortcuts (`M` and `Shift+M`). Confirm mirror UI is accessible via toolbar buttons only. Remove the dead binding from any remaining code.
 
-- [ ] Remove the `shortcut` field from every individual tool definition file (`tools/BrushTool.ts`, `PencilTool.ts`, `EraserTool.ts`, `MoveTool.ts`, `TransformTool.ts`, `ShapeTool.ts`, `FillTool.ts`, `EyedropperTool.ts`, `BlurTool.ts`, `CloneStampTool.ts`, `GradientTool.ts`, `CropTool.ts`, `AdjustTool.ts`). Also clear the `shortcut: "W"` field from `SegmentTool.ts` — this binding was already shadowed by magic-wand and the decision is that segment gets no keyboard shortcut until production-ready. Remove the `shortcut` field from the `ToolDefinition` type once all usages are gone.
+- [x] Remove the `shortcut` field from every individual tool definition file (`tools/BrushTool.ts`, `PencilTool.ts`, `EraserTool.ts`, `MoveTool.ts`, `TransformTool.ts`, `ShapeTool.ts`, `FillTool.ts`, `EyedropperTool.ts`, `BlurTool.ts`, `CloneStampTool.ts`, `GradientTool.ts`, `CropTool.ts`, `AdjustTool.ts`). Also clear the `shortcut: "W"` field from `SegmentTool.ts` — this binding was already shadowed by magic-wand and the decision is that segment gets no keyboard shortcut until production-ready. Remove the `shortcut` field from the `ToolDefinition` type once all usages are gone.
 
-- [ ] Add or update tests: dispatcher scope resolution, mode override behavior, blocked-input bypass, nudge with Shift multiplier, `Ctrl+I` vs `Ctrl+Shift+I` no-collision, spring-loaded modifier lifecycle (activate, window-blur cleanup).
+- [x] Add or update tests: dispatcher scope resolution, mode override behavior, blocked-input bypass, nudge with Shift multiplier, `Ctrl+I` vs `Ctrl+Shift+I` no-collision, spring-loaded modifier lifecycle (activate, window-blur cleanup).
 
 - [x] Delete the old monolithic keydown handler body, any leftover `isAppleLikePlatform()` local copies, and the now-unused inline mirror toggle branches.
 
