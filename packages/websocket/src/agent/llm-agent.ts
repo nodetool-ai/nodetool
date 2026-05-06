@@ -45,6 +45,7 @@ import type { BaseProvider, Message, ToolCall } from "@nodetool-ai/runtime";
 import {
   Message as DbMessage,
   Thread as DbThread,
+  getSecret as getStoredSecret,
 } from "@nodetool-ai/models";
 import type {
   AgentMessage,
@@ -321,7 +322,10 @@ class LlmAgentSession implements AgentQuerySession {
 
     try {
       await this.hydrate();
-      const provider = await getRuntimeProvider(this.chatProviderId, this.userId);
+      const provider = await getRuntimeProvider(
+        this.chatProviderId,
+        (key) => getStoredSecret(key, this.userId).then((v) => v ?? undefined),
+      );
       const tools = manifest.map(
         (m) => new UiBridgeTool(transport, sessionId, m),
       );
@@ -449,12 +453,14 @@ async function listAllToolCapableLanguageModels(
 ): Promise<AgentModelDescriptor[]> {
   const providerIds = listRegisteredProviderIds();
   const out: AgentModelDescriptor[] = [];
+  const getSecret = (key: string) =>
+    getStoredSecret(key, userId).then((v) => v ?? undefined);
 
   for (const providerId of providerIds) {
-    if (!(await isProviderConfigured(providerId, userId))) continue;
+    if (!(await isProviderConfigured(providerId, getSecret))) continue;
     let provider: BaseProvider;
     try {
-      provider = await getRuntimeProvider(providerId, userId);
+      provider = await getRuntimeProvider(providerId, getSecret);
     } catch {
       continue;
     }

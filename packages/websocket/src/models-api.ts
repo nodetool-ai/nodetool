@@ -2,6 +2,7 @@ import { access, readdir } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
+import { getSecret as getStoredSecret } from "@nodetool-ai/models";
 import {
   getProvider,
   isProviderConfigured,
@@ -313,13 +314,19 @@ export async function registerPythonProviders(
   return registered;
 }
 
+function secretResolverFor(userId: string) {
+  return (key: string) =>
+    getStoredSecret(key, userId).then((v) => v ?? undefined);
+}
+
 /** Returns only providers whose required credentials are present (env or DB) for the given user. */
 async function getAvailableProviderIds(userId = "1"): Promise<ProviderId[]> {
   const ids = listRegisteredProviderIds();
+  const getSecret = secretResolverFor(userId);
   const checks = await Promise.all(
     ids.map(async (id) => ({
       id,
-      available: await isProviderConfigured(id, userId)
+      available: await isProviderConfigured(id, getSecret)
     }))
   );
   return checks.filter((c) => c.available).map((c) => c.id);
@@ -329,9 +336,10 @@ async function instantiateProvider(
   provider: ProviderId,
   userId = "1"
 ): Promise<BaseProvider | null> {
-  if (!(await isProviderConfigured(provider, userId))) return null;
+  const getSecret = secretResolverFor(userId);
+  if (!(await isProviderConfigured(provider, getSecret))) return null;
   try {
-    return await getProvider(provider, userId);
+    return await getProvider(provider, getSecret);
   } catch {
     return null;
   }
@@ -472,7 +480,8 @@ async function serverAllowsModel(
   if (model.provider === "lmstudio") return servers.lmstudio ?? false;
   if (model.provider === "vllm") return servers.vllm ?? false;
   // API-key providers: available if key is set (env or secrets DB)
-  if (model.provider) return await isProviderConfigured(model.provider);
+  if (model.provider)
+    return await isProviderConfigured(model.provider, secretResolverFor("1"));
   return true;
 }
 

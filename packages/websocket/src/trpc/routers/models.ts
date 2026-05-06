@@ -10,6 +10,12 @@ import {
   type ProviderId,
   type RecommendedUnifiedModel
 } from "@nodetool-ai/runtime";
+import { getSecret as getStoredSecret } from "@nodetool-ai/models";
+
+function secretResolverFor(userId: string) {
+  return (key: string) =>
+    getStoredSecret(key, userId).then((v) => v ?? undefined);
+}
 
 const log = createLogger("nodetool.websocket.trpc.models");
 import {
@@ -374,10 +380,11 @@ type ProviderInstance = Awaited<ReturnType<typeof getProvider>>;
 
 async function getAvailableProviderIds(userId: string): Promise<ProviderId[]> {
   const ids = listRegisteredProviderIds();
+  const getSecret = secretResolverFor(userId);
   const checks = await Promise.all(
     ids.map(async (id) => ({
       id,
-      available: await isProviderConfigured(id, userId)
+      available: await isProviderConfigured(id, getSecret)
     }))
   );
   return checks.filter((c) => c.available).map((c) => c.id);
@@ -387,12 +394,13 @@ async function instantiateProvider(
   provider: ProviderId,
   userId: string
 ): Promise<ProviderInstance | null> {
-  if (!(await isProviderConfigured(provider, userId))) {
+  const getSecret = secretResolverFor(userId);
+  if (!(await isProviderConfigured(provider, getSecret))) {
     log.debug("Provider not configured", { provider, userId });
     return null;
   }
   try {
-    return await getProvider(provider, userId);
+    return await getProvider(provider, getSecret);
   } catch (error) {
     log.warn("Provider instantiation failed", {
       provider,
@@ -507,7 +515,8 @@ async function serverAllowsModel(
   if (model.provider === "llama_cpp") return servers.llama_cpp ?? false;
   if (model.provider === "lmstudio") return servers.lmstudio ?? false;
   if (model.provider === "vllm") return servers.vllm ?? false;
-  if (model.provider) return await isProviderConfigured(model.provider);
+  if (model.provider)
+    return await isProviderConfigured(model.provider, secretResolverFor("1"));
   return true;
 }
 

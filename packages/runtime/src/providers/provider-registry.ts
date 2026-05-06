@@ -8,15 +8,16 @@ interface ProviderRegistration {
   kwargs: Record<string, unknown>;
 }
 
-type SecretResolver = (
-  key: string,
-  userId: string
+/**
+ * Resolve a credential by name. Callers bind any user/account identity into
+ * the closure before passing it in — this module deliberately has no notion
+ * of users or storage backends.
+ */
+export type GetSecret = (
+  key: string
 ) => Promise<string | null | undefined> | string | null | undefined;
-let _secretResolver: SecretResolver | null = null;
 
 const _PROVIDER_REGISTRY = new Map<string, ProviderRegistration>();
-// Cache keyed by "providerId:userId" for per-user provider instances
-const _providerCache = new Map<string, BaseProvider>();
 
 export function registerProvider(
   providerId: string,
@@ -32,46 +33,35 @@ export function getRegisteredProvider(
   return _PROVIDER_REGISTRY.get(providerId) ?? null;
 }
 
-/**
- * Set a secret resolver so that providers can resolve API keys from
- * sources beyond process.env (e.g. encrypted secrets DB).
- *
- * The resolver receives (secretKey, userId) so secrets are resolved per-user.
- */
-export function setSecretResolver(resolver: SecretResolver): void {
-  _secretResolver = resolver;
-  // Clear cache so providers are re-created with resolved secrets
-  _providerCache.clear();
+export function listRegisteredProviderIds(): string[] {
+  return Array.from(_PROVIDER_REGISTRY.keys());
 }
 
+/**
+ * Build a fresh provider instance, resolving any unset credential kwargs via
+ * `getSecret` first, then `process.env` as fallback. The caller owns any
+ * caching — instance reuse is a property of a ProcessingContext, not a module
+ * global.
+ */
 export async function getProvider(
   providerId: string,
-  userId = "1"
+  getSecret: GetSecret
 ): Promise<BaseProvider> {
-  const cacheKey = `${providerId}:${userId}`;
-  const cached = _providerCache.get(cacheKey);
-  if (cached) {
-    return cached;
-  }
-
   const registration = _PROVIDER_REGISTRY.get(providerId);
   if (!registration) {
     throw new Error(`No provider registered for "${providerId}"`);
   }
 
-  // Re-resolve any unset values via secret resolver (DB → env) or direct env
-  // var lookup as final fallback. Only treat empty string / null / undefined
-  // as "needs resolution" so that valid falsy defaults (`0`, `false`) on
-  // numeric/boolean kwargs are preserved.
+  // A kwarg is "needs resolution" when the registration declares the key with
+  // an empty-string / null / undefined value. Valid falsy defaults like `0`
+  // or `false` on numeric/boolean kwargs are preserved.
   const kwargs = { ...registration.kwargs };
   for (const [key, value] of Object.entries(kwargs)) {
     if (value === "" || value == null) {
-      if (_secretResolver) {
-        const resolved = await _secretResolver(key, userId);
-        if (resolved) {
-          kwargs[key] = resolved;
-          continue;
-        }
+      const fromSecret = await getSecret(key);
+      if (fromSecret) {
+        kwargs[key] = fromSecret;
+        continue;
       }
       const envVal = process.env[key];
       if (envVal) {
@@ -80,26 +70,13 @@ export async function getProvider(
     }
   }
 
-  const instance = new registration.cls(kwargs);
-  _providerCache.set(cacheKey, instance);
-  return instance;
-}
-
-export function clearProviderCache(): number {
-  const size = _providerCache.size;
-  _providerCache.clear();
-  return size;
-}
-
-export function listRegisteredProviderIds(): string[] {
-  return Array.from(_PROVIDER_REGISTRY.keys());
+  return new registration.cls(kwargs);
 }
 
 /** Get the secret key name required by a provider (e.g. "OPENAI_API_KEY"), or null. */
 export function getProviderSecretKey(providerId: string): string | null {
   const reg = _PROVIDER_REGISTRY.get(providerId);
   if (!reg) return null;
-  // The kwargs keys are the secret names; find the first one that looks like a key/token
   for (const key of Object.keys(reg.kwargs)) {
     if (
       key.includes("KEY") ||
@@ -109,14 +86,13 @@ export function getProviderSecretKey(providerId: string): string | null {
       return key;
     }
   }
-  // No secret — provider is local (ollama, llama_cpp, etc.)
   return null;
 }
 
-/** Check if a provider has credentials available for a given user (DB, env, or is local). */
+/** Check if a provider's required credentials are resolvable. */
 export async function isProviderConfigured(
   providerId: string,
-  userId = "1"
+  getSecret: GetSecret
 ): Promise<boolean> {
   const reg = _PROVIDER_REGISTRY.get(providerId);
   if (!reg) {
@@ -124,15 +100,8 @@ export async function isProviderConfigured(
     return false;
   }
 
-  // A kwarg is "required at runtime" when the registration declares the key
-  // with an empty-string / null / undefined value — registerProvider() uses
-  // empty strings to mark credentials that must be resolved from the DB or
-  // environment. Non-empty registration values (including valid falsy
-  // defaults like `0` or `false`) are defaults the constructor can use
-  // directly. Keys starting with "_" are runtime injections (e.g.
-  // `_bridge`, `_id` for Python providers) and excluded from the
-  // required-credentials check since they can't be resolved via secret
-  // resolver or env vars.
+  // Keys starting with "_" are runtime injections (e.g. `_bridge`, `_id` for
+  // Python providers) and excluded from the credentials check.
   const required = Object.entries(reg.kwargs)
     .filter(
       ([key, value]) =>
@@ -140,23 +109,15 @@ export async function isProviderConfigured(
     )
     .map(([key]) => key);
 
-  if (required.length === 0) {
-    log.debug("isProviderConfigured: no required kwargs", { providerId });
-    return true;
-  }
+  if (required.length === 0) return true;
 
   for (const key of required) {
-    let value: string | null | undefined = null;
-    if (_secretResolver) {
-      value = await _secretResolver(key, userId);
-    }
+    let value = await getSecret(key);
     if (!value) value = process.env[key];
     if (!value) {
       log.debug("isProviderConfigured: missing credential", {
         providerId,
-        userId,
-        key,
-        hasResolver: Boolean(_secretResolver)
+        key
       });
       return false;
     }
