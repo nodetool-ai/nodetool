@@ -60,7 +60,11 @@ export class BM25Index {
   }
 
   index(docs: BM25Doc[]): void {
+    // Reset prior state so the same instance can be re-indexed safely.
     this.docCount = docs.length;
+    this.fieldStats.clear();
+    this.postings.clear();
+    this.docFreq.clear();
     const fieldLenSums = new Map<string, number>();
     for (const f of this.fields) {
       this.fieldStats.set(f.name, { avgLen: 0, docLens: new Map() });
@@ -109,8 +113,9 @@ export class BM25Index {
   }
 
   /**
-   * Score every doc for the given query terms. Terms are lowercased and
-   * filtered to length >= 2; multi-word phrases should be tokenized first.
+   * Score every doc for the query. The query is tokenized internally with
+   * the same tokenizer used at index time (lowercased, split on punctuation,
+   * tokens shorter than 2 chars dropped).
    */
   search(query: string, limit = 0): BM25Result[] {
     const terms = tokenize(query);
@@ -148,14 +153,30 @@ export class BM25Index {
   }
 }
 
+export interface NodeBM25Extras {
+  /** Cleaned description (first line / body only — no tags or use-cases). */
+  description?: string;
+  /** Comma-joined tag list, parsed from line 2 of the raw description. */
+  tags?: string;
+  /** Use-cases section text, extracted from the raw description. */
+  useCases?: string;
+}
+
 /**
  * Build a BM25 index over node metadata. Field weights are tuned to mirror
  * the existing prefix-tree weights: title is the strongest signal, then
  * namespace/tags, then description.
+ *
+ * NodeMetadata.description in this codebase is multi-line: line 1 is the
+ * description, line 2 is a comma-separated tag list, and a "Use cases:"
+ * section may follow. To avoid double-counting tag/use-case terms (which
+ * are also indexed via dedicated fields), callers should pass cleaned
+ * `description` text in `extraFields` — typically from
+ * `formatNodeDocumentation(node.description)`.
  */
 export function buildNodeBM25Index(
   nodes: readonly NodeMetadata[],
-  extraFields?: ReadonlyMap<string, { tags: string; useCases: string }>
+  extraFields?: ReadonlyMap<string, NodeBM25Extras>
 ): BM25Index {
   const index = new BM25Index([
     { name: "title", weight: 4.0 },
@@ -168,6 +189,9 @@ export function buildNodeBM25Index(
 
   const docs: BM25Doc[] = nodes.map((node) => {
     const extras = extraFields?.get(node.node_type);
+    // Prefer the cleaned description from extras; fall back to the raw
+    // metadata only when no extras are supplied (e.g. unit tests).
+    const description = extras?.description ?? node.description ?? "";
     return {
       id: node.node_type,
       fields: {
@@ -175,7 +199,7 @@ export function buildNodeBM25Index(
         node_type: node.node_type ?? "",
         namespace: node.namespace ?? "",
         tags: extras?.tags ?? "",
-        description: node.description ?? "",
+        description,
         use_cases: extras?.useCases ?? ""
       }
     };

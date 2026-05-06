@@ -106,16 +106,33 @@ let globalPrefixTreeNodesHash: string = "";
 let globalBM25Index: BM25Index | null = null;
 let globalBM25NodesHash: string = "";
 
+// Hash that detects changes to any indexed field, not just the node_type set.
+// Description length is included as a cheap proxy — full strings would bloat
+// the hash, but length changes catch most catalog edits in practice.
+function computeNodesHash(nodes: NodeMetadata[]): string {
+  const parts = nodes.map(
+    (n) =>
+      `${n.node_type}|${n.title ?? ""}|${n.namespace ?? ""}|${
+        (n.description ?? "").length
+      }`
+  );
+  parts.sort();
+  return parts.join(",");
+}
+
 function ensureBM25Index(nodes: NodeMetadata[]): BM25Index {
-  const nodesHash = nodes
-    .map((n) => n.node_type)
-    .sort()
-    .join(",");
+  const nodesHash = computeNodesHash(nodes);
   if (!globalBM25Index || globalBM25NodesHash !== nodesHash) {
-    const extras = new Map<string, { tags: string; useCases: string }>();
+    const extras = new Map<
+      string,
+      { description: string; tags: string; useCases: string }
+    >();
     for (const node of nodes) {
-      const { tags, useCases } = formatNodeDocumentation(node.description);
+      const { description, tags, useCases } = formatNodeDocumentation(
+        node.description
+      );
       extras.set(node.node_type, {
+        description,
         tags: tags.join(", "),
         useCases: useCases.raw
       });
@@ -131,11 +148,9 @@ function ensureBM25Index(nodes: NodeMetadata[]): BM25Index {
  * Uses a hash of node types to detect when re-indexing is needed
  */
 function ensurePrefixTree(nodes: NodeMetadata[]): PrefixTreeSearch {
-  // Create a hash of the nodes to detect changes
-  const nodesHash = nodes
-    .map((n) => n.node_type)
-    .sort()
-    .join(",");
+  // Hash includes title/namespace/description-length so the tree rebuilds
+  // when indexed fields change, not only when the node_type set changes.
+  const nodesHash = computeNodesHash(nodes);
 
   // Check if we need to rebuild the tree
   if (!globalPrefixTree || globalPrefixTreeNodesHash !== nodesHash) {
