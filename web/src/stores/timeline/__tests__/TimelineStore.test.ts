@@ -602,3 +602,89 @@ describe("TimelineStore — replaceClipOutput", () => {
     expect(updated.lastGeneratedHash).toBe("old-hash");
   });
 });
+
+describe("TimelineStore — addImportedClip", () => {
+  it("creates an image clip from an image asset", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    store.setState({ tracks: [track] });
+
+    const asset = {
+      id: "img-asset-1",
+      user_id: "u1",
+      parent_id: "root",
+      name: "photo.jpg",
+      content_type: "image/jpeg",
+      workflow_id: null,
+      created_at: "2024-01-01T00:00:00Z",
+      get_url: "https://cdn.example.com/photo.jpg",
+      thumb_url: null,
+      duration: null
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    store.getState().addImportedClip(asset as any, track.id, 2000);
+
+    const clips = store.getState().clips;
+    expect(clips).toHaveLength(1);
+    expect(clips[0].mediaType).toBe("image");
+    expect(clips[0].sourceType).toBe("imported");
+    expect(clips[0].status).toBe("generated");
+    expect(clips[0].currentAssetId).toBe("img-asset-1");
+    expect(clips[0].durationMs).toBe(4000);
+    expect(clips[0].startMs).toBe(2000);
+    expect(clips[0].trackId).toBe(track.id);
+  });
+
+  it("creates a video clip with duration from the asset", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    store.setState({ tracks: [track] });
+
+    const asset = {
+      id: "vid-asset-1",
+      user_id: "u1",
+      parent_id: "root",
+      name: "clip.mp4",
+      content_type: "video/mp4",
+      workflow_id: null,
+      created_at: "2024-01-01T00:00:00Z",
+      get_url: "https://cdn.example.com/clip.mp4",
+      thumb_url: null,
+      duration: 10 // seconds
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    store.getState().addImportedClip(asset as any, track.id, 0);
+
+    const clips = store.getState().clips;
+    expect(clips[0].mediaType).toBe("video");
+    expect(clips[0].durationMs).toBe(10000);
+  });
+
+  it("creates an audio clip on an audio track", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "audio" });
+    store.setState({ tracks: [track] });
+
+    const asset = {
+      id: "audio-asset-1",
+      user_id: "u1",
+      parent_id: "root",
+      name: "track.mp3",
+      content_type: "audio/mpeg",
+      workflow_id: null,
+      created_at: "2024-01-01T00:00:00Z",
+      get_url: "https://cdn.example.com/track.mp3",
+      thumb_url: null,
+      duration: 120
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    store.getState().addImportedClip(asset as any, track.id, 0);
+
+    const clips = store.getState().clips;
+    expect(clips[0].mediaType).toBe("audio");
+    expect(clips[0].durationMs).toBe(120000);
+  });
+});

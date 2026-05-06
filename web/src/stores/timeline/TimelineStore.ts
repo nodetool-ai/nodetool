@@ -40,6 +40,8 @@ import type {
   TimelineMarker
 } from "@nodetool-ai/timeline";
 import { trpcClient } from "../../trpc/client";
+import type { Asset } from "../ApiTypes";
+import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
 
 // ── Snap threshold ─────────────────────────────────────────────────────────
 
@@ -133,6 +135,13 @@ export interface TimelineStoreState {
 
   /** Add a pre-built clip object directly (used by NOD-304 import). */
   addClip: (clip: TimelineClip) => void;
+
+  /**
+   * Create an imported clip from an Asset and insert it into the store.
+   * The clip geometry is derived from the asset's content type and duration.
+   * Use this action to add clips created by asset drag-and-drop.
+   */
+  addImportedClip: (asset: Asset, trackId: string, startMs: number) => void;
 
   /** Update an arbitrary subset of fields on a clip. */
   patchClip: (clipId: string, patch: Partial<TimelineClip>) => void;
@@ -478,6 +487,11 @@ export const createTimelineStore = (
           set((state) => ({
             clips: [...state.clips, clip]
           })),
+
+        addImportedClip: (asset, trackId, startMs) => {
+          const clip = assetToClip(asset, trackId, startMs);
+          set((state) => ({ clips: [...state.clips, clip] }));
+        },
 
         patchClip: (clipId, patch) =>
           set((state) => ({
