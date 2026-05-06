@@ -59,16 +59,87 @@ export class ForEachNode extends BaseNode {
   })
   declare input_list: any;
 
+  @prop({
+    type: "int",
+    default: -1,
+    title: "Limit",
+    description:
+      "Maximum number of items to emit. -1 (default) emits the full list. " +
+      "Useful for testing pipelines on a small subset."
+  })
+  declare limit: any;
+
   async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
-    const values = (this.input_list ?? this.input_list ?? []) as unknown[];
+    const values = (this.input_list ?? []) as unknown[];
     const list = Array.isArray(values) ? values : [values];
+    const rawLimit = Number(this.limit ?? -1);
+    const cap =
+      Number.isFinite(rawLimit) && rawLimit >= 0 ? rawLimit : list.length;
 
     for (const [index, item] of list.entries()) {
+      if (index >= cap) break;
       yield { output: item, index };
+    }
+  }
+}
+
+export class TakeNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.Take";
+  static readonly title = "Take";
+  static readonly description =
+    "Pass through the first N items of a stream and stop.\n    take, head, limit, first, stream, slice, sample, truncate\n\n    Use cases:\n    - Test a pipeline on a small subset of inputs\n    - Cap expensive downstream work at N items\n    - Implement \"first N matches\" semantics over a stream";
+  static readonly metadataOutputTypes = {
+    output: "any",
+    index: "int"
+  };
+
+  static readonly isStreamingInput = true;
+  static readonly isStreamingOutput = true;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Input Item",
+    description: "Streaming input — each item is forwarded until the limit is reached."
+  })
+  declare input_item: any;
+
+  @prop({
+    type: "int",
+    default: 1,
+    title: "N",
+    description: "Number of items to take from the head of the stream."
+  })
+  declare n: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const rawN = Number(this.n ?? 1);
+    const cap = Number.isFinite(rawN) && rawN > 0 ? Math.floor(rawN) : 0;
+    if (cap === 0) return;
+
+    let emitted = 0;
+    for await (const item of inputs.stream("input_item")) {
+      if (emitted < cap) {
+        await outputs.emit("output", item);
+        await outputs.emit("index", emitted);
+        emitted += 1;
+        if (emitted === cap) {
+          outputs.complete("output");
+          outputs.complete("index");
+        }
+      }
+      // Continue draining without re-emitting so upstream can finish cleanly.
     }
   }
 }
@@ -223,9 +294,556 @@ export class TryCatchNode extends BaseNode {
   }
 }
 
+export class DropNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.Drop";
+  static readonly title = "Drop";
+  static readonly description =
+    "Skip the first N items of a stream, pass the rest through.\n    drop, skip, head, stream, slice, offset\n\n    Use cases:\n    - Skip headers or warm-up items in a stream\n    - Pagination-style offsets\n    - Drop the first record from a CSV-like feed";
+  static readonly metadataOutputTypes = {
+    output: "any",
+    index: "int"
+  };
+
+  static readonly isStreamingInput = true;
+  static readonly isStreamingOutput = true;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Input Item",
+    description: "Streaming input — items after the first N are forwarded."
+  })
+  declare input_item: any;
+
+  @prop({
+    type: "int",
+    default: 1,
+    title: "N",
+    description: "Number of items to drop from the head of the stream."
+  })
+  declare n: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const rawN = Number(this.n ?? 0);
+    const skipCount =
+      Number.isFinite(rawN) && rawN > 0 ? Math.floor(rawN) : 0;
+
+    let seen = 0;
+    let emitted = 0;
+    for await (const item of inputs.stream("input_item")) {
+      if (seen < skipCount) {
+        seen += 1;
+        continue;
+      }
+      await outputs.emit("output", item);
+      await outputs.emit("index", emitted);
+      emitted += 1;
+    }
+  }
+}
+
+function deepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch {
+    return false;
+  }
+}
+
+export class FilterEqualNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.FilterEqual";
+  static readonly title = "Filter Equal";
+  static readonly description =
+    "Pass items through only when they equal a target value.\n    filter, equal, match, predicate, stream, where\n\n    Use cases:\n    - Keep only items matching a status, label, or category\n    - Drop sentinel/null markers from a stream\n    - Select rows by an exact id";
+  static readonly metadataOutputTypes = {
+    output: "any"
+  };
+
+  static readonly isStreamingInput = true;
+  static readonly isStreamingOutput = true;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Input Item",
+    description: "Streaming input — items pass through if they equal the target value."
+  })
+  declare input_item: any;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Value",
+    description: "Target value. Items deep-equal to this are passed through."
+  })
+  declare value: any;
+
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Invert",
+    description: "When true, pass items NOT equal to the target value."
+  })
+  declare invert: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const target = this.value;
+    const invert = Boolean(this.invert);
+    for await (const item of inputs.stream("input_item")) {
+      const eq = deepEqual(item, target);
+      if (eq !== invert) {
+        await outputs.emit("output", item);
+      }
+    }
+  }
+}
+
+function compilePredicate(expr: string): (item: unknown) => boolean {
+  const src = (expr ?? "").toString().trim();
+  if (!src) return () => true;
+  const fn = new Function(
+    "item",
+    `"use strict"; return Boolean(${src});`
+  ) as (item: unknown) => unknown;
+  return (item: unknown) => {
+    try {
+      return Boolean(fn(item));
+    } catch {
+      return false;
+    }
+  };
+}
+
+export class FilterCodeNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.FilterCode";
+  static readonly title = "Filter (Code)";
+  static readonly description =
+    "Pass items through when a JavaScript predicate returns truthy.\n    filter, predicate, code, javascript, expression, stream, where\n\n    Use cases:\n    - Keep items matching arbitrary criteria (e.g. item.score > 0.5)\n    - Drop empty or malformed records\n    - Custom field-based filtering";
+  static readonly metadataOutputTypes = {
+    output: "any"
+  };
+
+  static readonly isStreamingInput = true;
+  static readonly isStreamingOutput = true;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Input Item",
+    description: "Streaming input — each item is tested against the predicate."
+  })
+  declare input_item: any;
+
+  @prop({
+    type: "str",
+    default: "true",
+    title: "Predicate",
+    description:
+      "JavaScript expression evaluated per item. The current value is bound to `item`. Examples: `item > 0`, `item.score > 0.5`, `typeof item === 'string'`."
+  })
+  declare predicate: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const test = compilePredicate(String(this.predicate ?? "true"));
+    for await (const item of inputs.stream("input_item")) {
+      if (test(item)) {
+        await outputs.emit("output", item);
+      }
+    }
+  }
+}
+
+export class ChunkNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.Chunk";
+  static readonly title = "Chunk";
+  static readonly description =
+    "Group every N items into a list and emit as a batch. Trailing partial batch is emitted at end of stream.\n    chunk, batch, group, window, buffer, stream\n\n    Use cases:\n    - Batched LLM/API calls without giving up streaming\n    - Window-based aggregation\n    - Group rows for bulk inserts";
+  static readonly metadataOutputTypes = {
+    output: "list[any]",
+    index: "int"
+  };
+
+  static readonly isStreamingInput = true;
+  static readonly isStreamingOutput = true;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Input Item",
+    description: "Streaming input — items are buffered into batches of size N."
+  })
+  declare input_item: any;
+
+  @prop({
+    type: "int",
+    default: 10,
+    title: "Size",
+    description: "Number of items per batch."
+  })
+  declare size: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const rawSize = Number(this.size ?? 10);
+    const size =
+      Number.isFinite(rawSize) && rawSize > 0 ? Math.floor(rawSize) : 1;
+
+    let buffer: unknown[] = [];
+    let batchIndex = 0;
+    for await (const item of inputs.stream("input_item")) {
+      buffer.push(item);
+      if (buffer.length >= size) {
+        await outputs.emit("output", buffer);
+        await outputs.emit("index", batchIndex);
+        batchIndex += 1;
+        buffer = [];
+      }
+    }
+    if (buffer.length > 0) {
+      await outputs.emit("output", buffer);
+      await outputs.emit("index", batchIndex);
+    }
+  }
+}
+
+export class LastNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.Last";
+  static readonly title = "Last";
+  static readonly description =
+    "Emit only the final item of a stream.\n    last, final, tail, fold, stream, reduce\n\n    Use cases:\n    - Keep the final answer from an agent token stream\n    - Pick the most recent item in a feed\n    - Cheap fold to a single value";
+  static readonly metadataOutputTypes = {
+    output: "any"
+  };
+
+  static readonly isStreamingInput = true;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Input Item",
+    description: "Streaming input — only the final value is forwarded."
+  })
+  declare input_item: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    let last: unknown = null;
+    let seen = false;
+    for await (const item of inputs.stream("input_item")) {
+      last = item;
+      seen = true;
+    }
+    if (seen) {
+      await outputs.emit("output", last);
+    }
+  }
+}
+
+export class CountStreamNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.Count";
+  static readonly title = "Count";
+  static readonly description =
+    "Emit the total number of items when the stream ends.\n    count, length, size, total, fold, stream\n\n    Use cases:\n    - Report how many items a pipeline produced\n    - Measure stream throughput without buffering items\n    - Avoid collecting just to call .length";
+  static readonly metadataOutputTypes = {
+    output: "int"
+  };
+
+  static readonly isStreamingInput = true;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Input Item",
+    description: "Streaming input — items are counted but not forwarded."
+  })
+  declare input_item: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return { output: 0 };
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    let count = 0;
+    for await (const _ of inputs.stream("input_item")) {
+      count += 1;
+    }
+    await outputs.emit("output", count);
+  }
+}
+
+function distinctKey(item: unknown, expr: string): string {
+  const trimmed = expr.trim();
+  if (!trimmed) {
+    try {
+      return JSON.stringify(item);
+    } catch {
+      return String(item);
+    }
+  }
+  try {
+    const fn = new Function(
+      "item",
+      `"use strict"; return (${trimmed});`
+    ) as (item: unknown) => unknown;
+    const key = fn(item);
+    if (typeof key === "string" || typeof key === "number" || typeof key === "boolean") {
+      return String(key);
+    }
+    return JSON.stringify(key);
+  } catch {
+    try {
+      return JSON.stringify(item);
+    } catch {
+      return String(item);
+    }
+  }
+}
+
+export class DistinctNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.Distinct";
+  static readonly title = "Distinct";
+  static readonly description =
+    "Drop duplicate items from a stream. Optional key expression for grouping.\n    distinct, unique, dedup, deduplicate, stream, set\n\n    Use cases:\n    - Deduplicate URLs, ids, or records\n    - Keep only the first sighting of each value\n    - Field-based dedup with a key expression";
+  static readonly metadataOutputTypes = {
+    output: "any"
+  };
+
+  static readonly isStreamingInput = true;
+  static readonly isStreamingOutput = true;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Input Item",
+    description: "Streaming input — duplicate items are dropped."
+  })
+  declare input_item: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Key",
+    description:
+      "Optional JavaScript expression for the dedup key. The item is bound to `item`. Examples: `item.id`, `item.url`. Empty means use the whole item."
+  })
+  declare key: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const keyExpr = String(this.key ?? "");
+    const seen = new Set<string>();
+    for await (const item of inputs.stream("input_item")) {
+      const k = distinctKey(item, keyExpr);
+      if (!seen.has(k)) {
+        seen.add(k);
+        await outputs.emit("output", item);
+      }
+    }
+  }
+}
+
+export class TakeWhileNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.TakeWhile";
+  static readonly title = "Take While";
+  static readonly description =
+    "Pass items through while a predicate is truthy. Stops at the first failure.\n    take, while, predicate, stream, prefix\n\n    Use cases:\n    - Stream until a sentinel/terminator is reached\n    - Process items while a confidence threshold holds\n    - Cleaner than counting when N is unknown up front";
+  static readonly metadataOutputTypes = {
+    output: "any"
+  };
+
+  static readonly isStreamingInput = true;
+  static readonly isStreamingOutput = true;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Input Item",
+    description: "Streaming input."
+  })
+  declare input_item: any;
+
+  @prop({
+    type: "str",
+    default: "true",
+    title: "Predicate",
+    description:
+      "JavaScript expression evaluated per item. The current value is bound to `item`. Stream stops at the first item where the predicate is falsy."
+  })
+  declare predicate: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const test = compilePredicate(String(this.predicate ?? "true"));
+    let stopped = false;
+    for await (const item of inputs.stream("input_item")) {
+      if (stopped) continue;
+      if (!test(item)) {
+        stopped = true;
+        outputs.complete("output");
+        continue;
+      }
+      await outputs.emit("output", item);
+    }
+  }
+}
+
+export class DropWhileNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.DropWhile";
+  static readonly title = "Drop While";
+  static readonly description =
+    "Drop items while a predicate is truthy, then pass everything after.\n    drop, skip, while, predicate, stream, suffix\n\n    Use cases:\n    - Skip leading whitespace, headers, or warm-up\n    - Wait for a stream to enter a steady state\n    - Predicate-based version of Drop(N)";
+  static readonly metadataOutputTypes = {
+    output: "any"
+  };
+
+  static readonly isStreamingInput = true;
+  static readonly isStreamingOutput = true;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Input Item",
+    description: "Streaming input."
+  })
+  declare input_item: any;
+
+  @prop({
+    type: "str",
+    default: "false",
+    title: "Predicate",
+    description:
+      "JavaScript expression evaluated per item. The current value is bound to `item`. Items are dropped until the predicate first returns falsy; everything after is passed through."
+  })
+  declare predicate: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const test = compilePredicate(String(this.predicate ?? "false"));
+    let dropping = true;
+    for await (const item of inputs.stream("input_item")) {
+      if (dropping) {
+        if (test(item)) continue;
+        dropping = false;
+      }
+      await outputs.emit("output", item);
+    }
+  }
+}
+
+export class TapNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.Tap";
+  static readonly title = "Tap";
+  static readonly description =
+    "Passthrough that logs each item to the console as a side effect.\n    tap, log, debug, inspect, peek, side-effect, stream\n\n    Use cases:\n    - Inspect a streaming pipeline without altering it\n    - Add lightweight per-item logging\n    - Debug intermediate stages of a workflow";
+  static readonly metadataOutputTypes = {
+    output: "any"
+  };
+
+  static readonly isStreamingInput = true;
+  static readonly isStreamingOutput = true;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Input Item",
+    description: "Streaming input — forwarded unchanged after logging."
+  })
+  declare input_item: any;
+
+  @prop({
+    type: "str",
+    default: "tap",
+    title: "Label",
+    description: "Label printed alongside each logged item."
+  })
+  declare label: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const label = String(this.label ?? "tap");
+    for await (const item of inputs.stream("input_item")) {
+      // eslint-disable-next-line no-console
+      console.log(`[${label}]`, item);
+      await outputs.emit("output", item);
+    }
+  }
+}
+
 export const CONTROL_NODES = [
   IfNode,
   ForEachNode,
+  TakeNode,
+  DropNode,
+  TakeWhileNode,
+  DropWhileNode,
+  FilterEqualNode,
+  FilterCodeNode,
+  ChunkNode,
+  LastNode,
+  CountStreamNode,
+  DistinctNode,
+  TapNode,
   CollectNode,
   RerouteNode,
   SwitchNode,
