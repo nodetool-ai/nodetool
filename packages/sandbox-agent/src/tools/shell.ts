@@ -13,7 +13,7 @@
  * session ids after a server restart.
  */
 
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import {
   type ShellExecInput,
@@ -52,6 +52,7 @@ export async function shellExec(input: ShellExecInput): Promise<ShellExecOutput>
     const tmuxName = tmuxNameFor(input.id);
     // -d detach, -s session name, -c workdir
     await runTmux(["new-session", "-d", "-s", tmuxName, "-c", workDir]);
+    await runTmux(["clear-history", "-t", tmuxName]);
     sessions.set(input.id, {
       tmuxName,
       workDir,
@@ -204,7 +205,21 @@ export async function shellKillProcess(
 
 /** Test-only: clear in-process session registry. */
 export function _resetSessionsForTests(): void {
+  for (const state of sessions.values()) {
+    spawnSync("tmux", ["kill-session", "-t", state.tmuxName], { stdio: "ignore" });
+  }
   sessions.clear();
+  const listed = spawnSync("tmux", ["list-sessions", "-F", "#{session_name}"], {
+    encoding: "utf-8"
+  });
+  if (listed.status !== 0) {
+    return;
+  }
+  for (const name of listed.stdout.split("\n")) {
+    if (name.startsWith("nt-")) {
+      spawnSync("tmux", ["kill-session", "-t", name], { stdio: "ignore" });
+    }
+  }
 }
 
 // ---- internals -------------------------------------------------------------
@@ -254,6 +269,9 @@ function cleanShellOutput(output: string, marker: string | null): string {
     if (isPromptOnlyLine(trimmed)) {
       return false;
     }
+    if (isShellStartupLine(trimmed)) {
+      return false;
+    }
     return true;
   });
   return cleaned.join("\n").trim();
@@ -280,6 +298,10 @@ function isPromptOnlyLine(line: string): boolean {
     /^[^\s@]+@[^\s:]+:[^$#]*[$#]\s*$/.test(line) ||
     /^[^$#>]*[~/][^$#>]*\s[>$#]\s*$/.test(line)
   );
+}
+
+function isShellStartupLine(line: string): boolean {
+  return /^Now using node v\d+\.\d+\.\d+ \(npm v\d+\.\d+\.\d+\)$/.test(line);
 }
 
 function shellQuote(s: string): string {

@@ -1,4 +1,5 @@
 import { FsSafeError, root, type Root } from "@openclaw/fs-safe";
+import { mkdirSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { StorageAdapter } from "./storage-adapter.js";
@@ -19,7 +20,9 @@ export class FileStorageAdapter implements StorageAdapter {
   private readonly rootPromise: Promise<Root>;
 
   constructor(rootDir: string) {
-    this.rootDir = resolve(rootDir);
+    const resolvedRoot = resolve(rootDir);
+    mkdirSync(resolvedRoot, { recursive: true });
+    this.rootDir = realpathSync(resolvedRoot);
     this.rootPromise = root(this.rootDir, {
       hardlinks: "reject",
       symlinks: "reject",
