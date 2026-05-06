@@ -54,6 +54,13 @@ function makeContext(stub: {
 }): ProcessingContext {
   const ctx: Record<string, unknown> = {
     workspaceDir,
+    resolveWorkspacePath: (p: string) => {
+      const resolved = path.resolve(workspaceDir, p);
+      if (!resolved.startsWith(workspaceDir + path.sep) && resolved !== workspaceDir) {
+        throw new Error("Path escapes workspace directory");
+      }
+      return resolved;
+    },
     runProviderPrediction: vi.fn(async (req: PredictCall) => {
       if (!stub.run) throw new Error("runProviderPrediction not stubbed");
       return stub.run(req);

@@ -34,6 +34,7 @@
     "@nodetool-ai/runtime": "*",
     "@nodetool-ai/sandbox": "*",
     "@nodetool-ai/vectorstore": "*",
+    "@openclaw/fs-safe": "^0.1.2",
     "@supabase/supabase-js": "^2.98.0",
     "@tensorflow-models/coco-ssd": "^2.2.3",
     "@tensorflow-models/mobilenet": "^2.1.1",
