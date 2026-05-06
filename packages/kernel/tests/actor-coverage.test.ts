@@ -26,7 +26,8 @@ function createActor(
   node: NodeDescriptor,
   inbox: NodeInbox,
   executor: NodeExecutor,
-  executionContext?: ProcessingContext
+  executionContext?: ProcessingContext,
+  stickyHandles?: Set<string>
 ): { actor: NodeActor; sentOutputs: SentOutput[]; messages: unknown[] } {
   const sentOutputs: SentOutput[] = [];
   const messages: unknown[] = [];
@@ -39,7 +40,8 @@ function createActor(
       sentOutputs.push({ nodeId, outputs });
     },
     emitMessage: (msg) => messages.push(msg),
-    executionContext
+    executionContext,
+    stickyHandles
   });
 
   return { actor, sentOutputs, messages };
@@ -235,9 +237,11 @@ describe("NodeActor – execution context forwarding", () => {
 });
 
 describe("NodeActor – zip_all sticky edge cases", () => {
-  it("uses sticky value when handle is open but EOS arrives", async () => {
-    // Scenario: handle "a" has data, handle "b" will go through iterInput
-    // and get EOS while there's a sticky value from a previous iteration
+  it("reuses topology-sticky value when handle is open but EOS arrives", async () => {
+    // Scenario: handle "a" has data, handle "b" is topology-sticky
+    // (non-streaming upstream) and EOSes after first value — its cached
+    // value should be reused. Pure streaming handles do NOT do this; use
+    // sync_mode: "on_any" for that pattern.
     const node = makeNode({ sync_mode: "zip_all" });
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
@@ -251,7 +255,13 @@ describe("NodeActor – zip_all sticky edge cases", () => {
       }
     };
 
-    const { actor, sentOutputs } = createActor(node, inbox, executor);
+    const { actor, sentOutputs } = createActor(
+      node,
+      inbox,
+      executor,
+      undefined,
+      new Set(["b"])
+    );
 
     // First batch: both handles
     await inbox.put("a", 1);
@@ -301,9 +311,9 @@ describe("NodeActor – zip_all sticky edge cases", () => {
 });
 
 describe("NodeActor – zip_all: open handle EOS with existing sticky", () => {
-  it("uses sticky value when iterInput returns EOS on an open handle", async () => {
-    // This covers actor.ts lines 323-326:
-    // Handle is open, iterInput returns done, but sticky exists from prior iteration
+  it("uses topology-sticky value when iterInput returns EOS on an open handle", async () => {
+    // Handle "b" is topology-sticky. iterInput returns done after one
+    // value, but the cached value is reused for further "a" arrivals.
     const node = makeNode({ sync_mode: "zip_all" });
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
@@ -317,7 +327,13 @@ describe("NodeActor – zip_all: open handle EOS with existing sticky", () => {
       }
     };
 
-    const { actor } = createActor(node, inbox, executor);
+    const { actor } = createActor(
+      node,
+      inbox,
+      executor,
+      undefined,
+      new Set(["b"])
+    );
 
     // First batch: both handles have data
     await inbox.put("a", 1);
@@ -415,8 +431,8 @@ describe("NodeActor – on_any mode via async iteration (lines 274-281)", () => 
   });
 });
 
-describe("NodeActor – zip_all closed handle no sticky (lines 340-341)", () => {
-  it("uses sticky value from first iteration when handle closes", async () => {
+describe("NodeActor – zip_all closed handle reuses topology sticky", () => {
+  it("reuses topology-sticky value from first iteration when handle closes", async () => {
     const node = makeNode({ sync_mode: "zip_all" });
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
@@ -430,7 +446,13 @@ describe("NodeActor – zip_all closed handle no sticky (lines 340-341)", () => 
       }
     };
 
-    const { actor } = createActor(node, inbox, executor);
+    const { actor } = createActor(
+      node,
+      inbox,
+      executor,
+      undefined,
+      new Set(["b"])
+    );
 
     // Both handles have data for first iteration
     await inbox.put("a", 10);

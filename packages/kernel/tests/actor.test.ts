@@ -119,7 +119,7 @@ describe("NodeActor – buffered mode", () => {
     expect(logged).toContain('"type":"test.Node"');
   });
 
-  it("defaults to on_any when sync_mode is omitted", async () => {
+  it("defaults to zip_all when sync_mode is omitted", async () => {
     const node = makeNode();
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
@@ -139,10 +139,10 @@ describe("NodeActor – buffered mode", () => {
 
     await actor.run();
 
-    expect(calls).toEqual([
-      { a: 1, b: 2 },
-      { a: 3, b: 2 }
-    ]);
+    // zip_all: a=[1,3], b=[2]. First pair fires (1,2). Second iteration
+    // pops a=3 but b is closed with no buffered/sticky → halt. Use on_any
+    // for broadcast/fan-out across closed streaming handles.
+    expect(calls).toEqual([{ a: 1, b: 2 }]);
   });
 
   it("calls process once and sends outputs", async () => {

@@ -281,7 +281,7 @@ export class NodeActor {
     log.info("Executing node", {
       nodeId: this.node.id,
       type: this.node.type,
-      syncMode: this.node.sync_mode ?? "on_any",
+      syncMode: this.node.sync_mode ?? "zip_all",
       inputHandles: Object.keys(inputs)
     });
 
@@ -449,25 +449,28 @@ export class NodeActor {
         }
       }
 
-      // Use sticky value if handle is closed or marked sticky from streaming analysis
-      const isSticky =
-        !this.inbox.isOpen(handle) || this._initialStickyHandles.has(handle);
-      if (isSticky && handle in this._stickyValues) {
+      // Topology-marked sticky handles (one-shot upstream like Constant)
+      // reuse their last value across firings. Streaming handles do NOT —
+      // when they EOS, zip_all halts. Use on_any if you want broadcast/
+      // fan-out semantics across closed streaming handles.
+      const isInitialSticky = this._initialStickyHandles.has(handle);
+      if (isInitialSticky && handle in this._stickyValues) {
         result[handle] = this._stickyValues[handle];
         continue;
       }
 
-      // Handle still open but no data yet – wait
+      // Handle still open: wait for the next value.
       if (this.inbox.isOpen(handle)) {
         const gen = this.inbox.iterInput(handle);
         const next = await gen.next();
         if (next.done) {
-          // EOS – use sticky if available
-          if (handle in this._stickyValues) {
+          // EOS — only initial-sticky handles fall back to the cached value.
+          // Non-sticky streaming handles closing means no more pairs.
+          if (isInitialSticky && handle in this._stickyValues) {
             result[handle] = this._stickyValues[handle];
             continue;
           }
-          return null; // no sticky, no data
+          return null;
         }
         result[handle] = next.value;
         this._stickyValues[handle] = next.value;
@@ -476,14 +479,12 @@ export class NodeActor {
         continue;
       }
 
-      // Handle closed, no sticky
-      if (!(handle in this._stickyValues)) {
-        return null;
-      }
-      result[handle] = this._stickyValues[handle];
+      // Handle closed and not initial-sticky (or no value ever received) —
+      // can't form a complete tuple, stop iterating.
+      return null;
     }
 
-    if (!gotNew) return null; // all sticky, no new data
+    if (!gotNew) return null; // every handle yielded only sticky reuse
     return result;
   }
 
