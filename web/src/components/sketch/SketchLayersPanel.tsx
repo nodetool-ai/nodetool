@@ -169,18 +169,24 @@ const PANEL_SHORTCUT_NOTES: Partial<Record<SketchActionId, string>> = {
 function formatShortcutCombos(
   entries: typeof BINDING_CATALOG
 ): string {
-  if (
-    entries.length === 10 &&
-    entries.every(
-      (entry, index) =>
+  const digitEntries = entries
+    .filter(
+      (entry) =>
         entry.scope === "global" &&
         !entry.modifiers.ctrl &&
         !entry.modifiers.shift &&
         !entry.modifiers.alt &&
-        entry.key === String(index)
+        /^\d$/.test(entry.key)
     )
+    .map((entry) => Number(entry.key))
+    .sort((a, b) => a - b);
+
+  if (
+    digitEntries.length === entries.length &&
+    digitEntries.length > 1 &&
+    digitEntries.every((digit, index) => digit === index)
   ) {
-    return "0–9";
+    return `${digitEntries[0]}–${digitEntries[digitEntries.length - 1]}`;
   }
 
   return [...new Set(entries.map((entry) => displayBinding(entry)))].join(" / ");
