@@ -1,13 +1,4 @@
 /** @jsxImportSource @emotion/react */
-/**
- * VideoClipBody
- *
- * Rendered inside the Clip chrome for video and overlay clips.
- * Shows the clip's thumbnail if a URL is available; otherwise shows a
- * PlaceholderClipBody. The actual preview video playback happens inside
- * PreviewCompositor via a pooled <video> element — this component is just
- * the thumbnail representation in the tracks timeline.
- */
 
 import React, { memo } from "react";
 import { css } from "@emotion/react";
@@ -17,7 +8,6 @@ import type { TimelineClip } from "@nodetool-ai/timeline";
 import { PlaceholderClipBody } from "./PlaceholderClipBody";
 import { Text } from "../../../ui_primitives";
 
-// ── Styles ─────────────────────────────────────────────────────────────────
 
 const wrapperStyles = css({
   width: "100%",
@@ -49,15 +39,12 @@ const speedBadgeStyles = (theme: Theme) =>
     pointerEvents: "none"
   });
 
-// ── Props ──────────────────────────────────────────────────────────────────
 
 export interface VideoClipBodyProps {
   clip: TimelineClip;
   /** Resolved HTTP URL for the thumbnail asset. */
   thumbnailUrl?: string;
 }
-
-// ── Component ──────────────────────────────────────────────────────────────
 
 export const VideoClipBody: React.FC<VideoClipBodyProps> = memo(
   ({ clip, thumbnailUrl }) => {

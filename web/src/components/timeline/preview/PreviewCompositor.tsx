@@ -38,15 +38,12 @@ import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 
-// ── Constants ──────────────────────────────────────────────────────────────
 
 const HOT_POOL_SIZE = 8;
 const COLD_POOL_SIZE = 4;
 const TOTAL_POOL_SIZE = HOT_POOL_SIZE + COLD_POOL_SIZE;
 /** Preload upcoming clips within this lookahead window (ms). */
 const PRELOAD_LOOKAHEAD_MS = 30_000;
-
-// ── Styles ─────────────────────────────────────────────────────────────────
 
 const compositorStyles = (theme: Theme) =>
   css({
@@ -119,8 +116,6 @@ const placeholderLayerStyles = (theme: Theme) =>
     pointerEvents: "none"
   });
 
-// ── Types ──────────────────────────────────────────────────────────────────
-
 interface ActiveVideoSlot {
   clipId: string;
   trackIndex: number;
@@ -137,8 +132,6 @@ interface ActiveImageLayer {
   assetUrl: string;
   status: TimelineClip["status"];
 }
-
-// ── Helpers ────────────────────────────────────────────────────────────────
 
 function isClipActive(clip: TimelineClip, currentTimeMs: number): boolean {
   return (
@@ -183,8 +176,6 @@ function effectiveAssetId(clip: TimelineClip): string | undefined {
   }
 }
 
-// ── Component ──────────────────────────────────────────────────────────────
-
 export interface PreviewCompositorProps {
   /** Pixel width of the preview area (for aspect-ratio correction). */
   width?: number;
@@ -207,8 +198,6 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
   ({ sequenceWidth = 1920, sequenceHeight = 1080 }) => {
     const theme = useTheme();
 
-    // ── Store subscriptions ──────────────────────────────────────────────
-
     const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
     const isPlaying = useTimelinePlaybackStore((s) => s.isPlaying);
 
@@ -217,9 +206,6 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
       shallow
     );
 
-    // ── Asset URL cache ──────────────────────────────────────────────────
-
-    // Map<assetId, get_url>
     const assetUrlCache = useRef<Map<string, string>>(new Map());
     const getAsset = useAssetStore((s) => s.get);
 
@@ -232,7 +218,6 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
         if (assetUrlCache.current.has(assetId)) {
           return assetUrlCache.current.get(assetId);
         }
-        // Trigger async fetch — result will appear on next render cycle.
         getAsset(assetId)
           .then((asset) => {
             // asset is the normalized response from AssetStore; get_url is
@@ -251,9 +236,6 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
       [getAsset]
     );
 
-    // ── Pooled video elements ────────────────────────────────────────────
-
-    // Create TOTAL_POOL_SIZE video elements once, stored in a stable ref.
     const videoRefs = useRef<HTMLVideoElement[]>([]);
     const [poolReady, setPoolReady] = useState(false);
 
@@ -280,21 +262,16 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
       };
     }, []);
 
-    // ── Compute active layers each frame ─────────────────────────────────
-
-    // Track map for quick index lookup.
     const trackById = useMemo(
       () => new Map(tracks.map((t) => [t.id, t])),
       [tracks]
     );
 
-    // Visible tracks sorted by index.
     const sortedTracks = useMemo(
       () => [...tracks].sort((a, b) => a.index - b.index),
       [tracks]
     );
 
-    // Active video/overlay clips → mapped to pool slots.
     const activeVideoSlots = useMemo((): ActiveVideoSlot[] => {
       const result: ActiveVideoSlot[] = [];
       for (const track of sortedTracks) {
@@ -397,20 +374,16 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
       return result;
     }, [sortedTracks, clips, currentTimeMs, resolveUrl]);
 
-    // ── Update pooled video elements each frame ───────────────────────────
-
     useLayoutEffect(() => {
       if (!poolReady) {
         return;
       }
       const pool = videoRefs.current;
 
-      // Release all slots first.
       for (let i = 0; i < pool.length; i++) {
         pool[i].hidden = true;
       }
 
-      // Assign active video slots.
       activeVideoSlots.forEach((slot, slotIndex) => {
         if (slotIndex >= pool.length) {
           return;
@@ -424,7 +397,6 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
           el.setAttribute("data-asset", slot.assetUrl);
         }
 
-        // Sync position.
         const clipOffsetMs =
           currentTimeMs -
           (clips.find((c) => c.id === slot.clipId)?.startMs ?? 0) +
@@ -446,7 +418,6 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
         const speed = clips.find((c) => c.id === slot.clipId)?.speedMultiplier ?? 1;
         el.playbackRate = speed;
 
-        // Stacking.
         el.style.zIndex = String(slot.trackIndex);
         el.style.mixBlendMode = slot.blendMode;
         el.style.opacity = String(slot.opacity);
@@ -478,13 +449,9 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
         el.hidden = true; // keep preloaded but hidden
         const assetId = effectiveAssetId(clip);
         const url = resolveUrl(assetId);
-        if (
-          url &&
-          el.getAttribute("data-asset") !== url
-        ) {
+        if (url && el.getAttribute("data-asset") !== url) {
           el.src = url;
           el.setAttribute("data-asset", url);
-          // Trigger preload.
           void el.load();
         }
       });
@@ -496,8 +463,6 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
       clips,
       resolveUrl
     ]);
-
-    // ── Pool container ref ───────────────────────────────────────────────
 
     const poolContainerRef = useRef<HTMLDivElement>(null);
 
@@ -518,8 +483,6 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
       };
     }, [poolReady]);
 
-    // ── Empty state ──────────────────────────────────────────────────────
-
     const hasAnything =
       activeVideoSlots.length > 0 ||
       activeImageLayers.length > 0 ||
@@ -527,7 +490,6 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
 
     return (
       <div css={compositorStyles(theme)} data-testid="preview-compositor">
-        {/* Video element pool container */}
         <div
           ref={poolContainerRef}
           style={{
@@ -537,7 +499,6 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
           }}
         />
 
-        {/* Image layers */}
         {activeImageLayers.map((layer) => (
           <div
             key={layer.clipId}
@@ -560,7 +521,6 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
           </div>
         ))}
 
-        {/* Placeholder layers */}
         {placeholderLayers.map((layer) => (
           <div
             key={layer.clipId}
@@ -573,7 +533,6 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
           </div>
         ))}
 
-        {/* Stale overlay badges */}
         {clips
           .filter(
             (c) =>
@@ -591,7 +550,6 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
             </div>
           ))}
 
-        {/* Generating overlay badges */}
         {clips
           .filter(
             (c) =>
@@ -608,7 +566,6 @@ export const PreviewCompositor: React.FC<PreviewCompositorProps> = memo(
             </div>
           ))}
 
-        {/* Empty state (nothing at current time) */}
         {!hasAnything && (
           <div
             css={placeholderLayerStyles(theme)}

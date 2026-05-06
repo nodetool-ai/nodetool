@@ -1,25 +1,17 @@
 /** @jsxImportSource @emotion/react */
-/**
- * PlaceholderClipBody
- *
- * Rendered inside the Clip chrome for clips whose status is
- * `draft`, `failed`, or `missing` — states where no real asset exists
- * to display. Shows a simple placeholder glyph and the status label.
- */
 
 import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { FlexColumn, Text } from "../../../ui_primitives";
-
-// ── Styles ─────────────────────────────────────────────────────────────────
+import { Text } from "../../../ui_primitives";
 
 const rootStyles = (theme: Theme) =>
   css({
     width: "100%",
     height: "100%",
     display: "flex",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     gap: 4,
@@ -28,8 +20,7 @@ const rootStyles = (theme: Theme) =>
     userSelect: "none",
     overflow: "hidden",
     color: theme.vars.palette.text.secondary,
-    fontSize: 11,
-    flexDirection: "column"
+    fontSize: 11
   });
 
 const glyphStyles = css({
@@ -37,30 +28,16 @@ const glyphStyles = css({
   lineHeight: 1
 });
 
-// ── Props ──────────────────────────────────────────────────────────────────
-
 export interface PlaceholderClipBodyProps {
-  /**
-   * Status label shown beneath the glyph.
-   * @default "No asset"
-   */
+  /** @default "No asset" */
   label?: string;
 }
-
-// ── Component ──────────────────────────────────────────────────────────────
 
 export const PlaceholderClipBody: React.FC<PlaceholderClipBodyProps> = memo(
   ({ label = "No asset" }) => {
     const theme = useTheme();
     return (
-      <FlexColumn
-        css={rootStyles(theme)}
-        align="center"
-        justify="center"
-        gap={0.5}
-        fullWidth
-        fullHeight
-      >
+      <div css={rootStyles(theme)}>
         <span css={glyphStyles} aria-hidden>
           ▭
         </span>
@@ -77,7 +54,7 @@ export const PlaceholderClipBody: React.FC<PlaceholderClipBodyProps> = memo(
         >
           {label}
         </Text>
-      </FlexColumn>
+      </div>
     );
   }
 );

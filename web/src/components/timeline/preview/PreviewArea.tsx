@@ -64,9 +64,6 @@ import { PlaybackClock } from "./PlaybackClock";
 import { AudioGraph } from "./AudioGraph";
 import { PreviewCompositor } from "./PreviewCompositor";
 
-// ── Constants ──────────────────────────────────────────────────────────────
-
-// ── Helpers ────────────────────────────────────────────────────────────────
 
 /**
  * Format a millisecond value as `HH:MM:SS:FF` timecode.
@@ -90,8 +87,6 @@ function formatTimecode(timeMs: number, fps: number): string {
 function frameDeltaMs(fps: number): number {
   return 1000 / Math.max(1, fps);
 }
-
-// ── Styles ─────────────────────────────────────────────────────────────────
 
 const containerStyles = (theme: Theme) =>
   css({
@@ -154,8 +149,6 @@ const dividerStyles = (theme: Theme) =>
     margin: `0 ${theme.spacing(0.25)}`
   });
 
-// ── Component ──────────────────────────────────────────────────────────────
-
 export interface PreviewAreaProps {
   /** Sequence fps — read from the parent so no extra query is needed here. */
   fps?: number;
@@ -168,8 +161,6 @@ export interface PreviewAreaProps {
 export const PreviewArea: React.FC<PreviewAreaProps> = memo(
   ({ fps = 30, sequenceWidth = 1920, sequenceHeight = 1080 }) => {
     const theme = useTheme();
-
-    // ── Store state ────────────────────────────────────────────────────────
 
     const { currentTimeMs, isPlaying, play, pause, stop, setCurrentTimeMs } =
       useTimelinePlaybackStore(
@@ -195,12 +186,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
     const getAsset = useAssetStore((s) => s.get);
 
-    // ── PlaybackClock + AudioGraph singletons ──────────────────────────────
-
     const clockRef = useRef<PlaybackClock>(new PlaybackClock());
     const graphRef = useRef<AudioGraph>(new AudioGraph());
 
-    // Clean up on unmount.
     useEffect(() => {
       const clock = clockRef.current;
       const graph = graphRef.current;
@@ -210,18 +198,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       };
     }, []);
 
-    // ── Playback control ───────────────────────────────────────────────────
-
     const handlePlay = useCallback(async () => {
       play();
       const graph = graphRef.current;
       const clock = clockRef.current;
 
-      // Initialise AudioContext on first user gesture.
       const ctx = graph.getContext();
       await ctx.resume();
 
-      // Schedule any active audio clips.
       const activeAudioClips = clips.filter(
         (c) =>
           c.mediaType === "audio" &&
@@ -234,7 +218,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           c.startMs + c.durationMs > currentTimeMs
       );
 
-      // Resolve URLs for active audio clips.
       const scheduledClips = await Promise.all(
         activeAudioClips.map(async (clip) => {
           try {
@@ -258,7 +241,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
       await graph.scheduleClips(validClips, tracks, currentTimeMs);
 
-      // Start the clock (audio context as master if available).
       clock.start(
         currentTimeMs,
         1,
@@ -289,8 +271,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       }
     }, [isPlaying, handlePlay, handlePause]);
 
-    // ── Frame stepping ─────────────────────────────────────────────────────
-
     const stepFrame = useCallback(
       (direction: 1 | -1) => {
         if (isPlaying) {
@@ -306,7 +286,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       [isPlaying, fps, durationMs, currentTimeMs, setCurrentTimeMs]
     );
 
-    // ── Jump to clip boundary ──────────────────────────────────────────────
+    const stepBack = useCallback(() => stepFrame(-1), [stepFrame]);
+    const stepForward = useCallback(() => stepFrame(1), [stepFrame]);
 
     /** All unique clip boundary timestamps (start + end), sorted ascending. */
     const clipBoundaries = useMemo(() => {
@@ -344,8 +325,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       }
     }, [clipBoundaries, currentTimeMs, isPlaying, handleStop, setCurrentTimeMs]);
 
-    // ── Fullscreen ─────────────────────────────────────────────────────────
-
     const containerRef = useRef<HTMLDivElement>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -369,8 +348,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         void document.exitFullscreen();
       }
     }, []);
-
-    // ── Keyboard shortcuts ─────────────────────────────────────────────────
 
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -425,11 +402,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       ]
     );
 
-    // ── Timecode & FPS ────────────────────────────────────────────────────
-
     const timecode = formatTimecode(currentTimeMs, fps);
-
-    // ── Render ─────────────────────────────────────────────────────────────
 
     return (
       <div
@@ -440,7 +413,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         aria-label="Preview area"
         data-testid="preview-area"
       >
-        {/* ── Compositor viewport ───────────────────────────────────────── */}
         <div css={viewportStyles}>
           <PreviewCompositor
             sequenceWidth={sequenceWidth}
@@ -448,9 +420,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           />
         </div>
 
-        {/* ── Transport control bar ─────────────────────────────────────── */}
         <div css={controlBarStyles(theme)}>
-          {/* Jump to previous clip boundary */}
           <ToolbarIconButton
             icon={<SkipPreviousIcon />}
             tooltip="Previous clip boundary (Shift+←)"
@@ -459,17 +429,15 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             size="small"
           />
 
-          {/* Step back one frame */}
           <ToolbarIconButton
             icon={<NavigateBeforeIcon />}
             tooltip="Step back one frame (←)"
-            onClick={() => stepFrame(-1)}
+            onClick={stepBack}
             disabled={isPlaying}
             aria-label="Step back one frame"
             size="small"
           />
 
-          {/* Play / Pause */}
           <ToolbarIconButton
             icon={isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
             tooltip={isPlaying ? "Pause (Space)" : "Play (Space)"}
@@ -479,7 +447,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             size="small"
           />
 
-          {/* Stop */}
           <ToolbarIconButton
             icon={<StopIcon />}
             tooltip="Stop and return to start"
@@ -488,17 +455,15 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             size="small"
           />
 
-          {/* Step forward one frame */}
           <ToolbarIconButton
             icon={<NavigateNextIcon />}
             tooltip="Step forward one frame (→)"
-            onClick={() => stepFrame(1)}
+            onClick={stepForward}
             disabled={isPlaying}
             aria-label="Step forward one frame"
             size="small"
           />
 
-          {/* Jump to next clip boundary */}
           <ToolbarIconButton
             icon={<SkipNextIcon />}
             tooltip="Next clip boundary (Shift+→)"
@@ -507,19 +472,11 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             size="small"
           />
 
-          {/* Separator */}
           <div css={dividerStyles(theme)} />
-
-          {/* Timecode */}
           <Text css={timecodeStyles(theme)}>{timecode}</Text>
-
-          {/* FPS */}
           <Caption css={fpsStyles(theme)}>{fps} fps</Caption>
-
-          {/* Spacer */}
           <FlexRow sx={{ flex: "1 1 auto" }} />
 
-          {/* Fullscreen */}
           <ToolbarIconButton
             icon={isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
             tooltip={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
@@ -528,7 +485,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             size="small"
           />
 
-          {/* Fit / fill toggle */}
           <ToolbarIconButton
             icon={<FitScreenIcon />}
             tooltip="Fit to window"
