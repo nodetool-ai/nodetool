@@ -109,7 +109,8 @@
     "electron": "npm run build:web && npm run build:electron && npm start --workspace=electron",
     "electron:dev": "node scripts/electron-dev.mjs",
     "screenshots": "npm run build:packages && npm run screenshots --workspace=web",
-    "screenshots:force": "npm run build:packages && npm run screenshots:force --workspace=web"
+    "screenshots:force": "npm run build:packages && npm run screenshots:force --workspace=web",
+    "setup:codex": "bash scripts/setup-codex.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
