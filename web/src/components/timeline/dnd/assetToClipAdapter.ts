@@ -1,21 +1,3 @@
-/**
- * assetToClipAdapter
- *
- * Pure function that converts a dragged Asset into a new TimelineClip.
- * No React dependencies — safe to import from stores or non-UI modules.
- *
- * Mapping rules (from NOD-304):
- *   image/* → mediaType "image", durationMs 4000, currentAssetId = asset.id
- *   video/* → mediaType "video", durationMs = asset.duration * 1000 ?? 4000,
- *              thumbnailAssetId from asset.metadata.thumbnails[0] if present
- *   audio/* → mediaType "audio", durationMs = asset.duration * 1000 ?? 4000
- *
- * All imported clips get:
- *   sourceType = "imported"
- *   status     = "generated"  (the asset IS its output)
- *   versions   = []
- */
-
 import type { Asset } from "../../../stores/ApiTypes";
 import { makeClip } from "@nodetool-ai/timeline";
 import type { TimelineClip } from "@nodetool-ai/timeline";
@@ -62,8 +44,7 @@ export function isCompatibleWithTrack(
 }
 
 /**
- * Convert an Asset to a TimelineClip positioned at the given
- * (trackId, startMs).
+ * Convert an Asset to a TimelineClip positioned at the given (trackId, startMs).
  *
  * Throws if the asset content_type is not image/*, video/*, or audio/*.
  */
@@ -80,7 +61,9 @@ export function assetToClip(
   }
 
   const durationMs =
-    asset.duration != null ? Math.round(asset.duration * 1000) : DEFAULT_DURATION_MS;
+    asset.duration !== null && asset.duration !== undefined
+      ? Math.round(asset.duration * 1000)
+      : DEFAULT_DURATION_MS;
 
   // Thumbnail: for video assets check metadata.thumbnails array
   let thumbnailAssetId: string | undefined;
