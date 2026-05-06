@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "@mui/material/styles";
 import { css } from "@emotion/react";
 
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -29,9 +28,48 @@ const BLEND_MODES = ["normal", "screen", "multiply", "add", "overlay"] as const;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
+/**
+ * Numeric field with local draft state — only commits on blur or Enter.
+ * Avoids patching the store on every keystroke.
+ */
+const NumericField: React.FC<{
+  label: string;
+  value: number | undefined;
+  onCommit: (raw: string) => void;
+}> = ({ label, value, onCommit }) => {
+  const initial = value ?? "";
+  const [draft, setDraft] = useState<string>(String(initial));
+
+  // Re-sync when the underlying value changes (e.g. clip selection swap).
+  useEffect(() => {
+    setDraft(value == null ? "" : String(value));
+  }, [value]);
+
+  const commit = () => {
+    if (draft === String(value ?? "")) return;
+    onCommit(draft);
+  };
+
+  const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
+    if (e.key === "Enter") {
+      (e.target as HTMLInputElement).blur();
+    }
+  };
+
+  return (
+    <FormField label={label}>
+      <NodeTextField
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={handleKeyDown}
+      />
+    </FormField>
+  );
+};
+
 export const TimelineInspector: React.FC = memo(() => {
   const navigate = useNavigate();
-  const theme = useTheme();
   const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
   const clipId = selectedClipIds.size === 1 ? [...selectedClipIds][0] : null;
   const selectedCount = selectedClipIds.size;
@@ -54,12 +92,6 @@ export const TimelineInspector: React.FC = memo(() => {
   const isAudio = clip?.mediaType === "audio";
   const isOverlay = track?.type === "overlay";
 
-  const renderField = useCallback((label: string, value: number | undefined, onCommit: (value: string) => void) => (
-    <FormField label={label}>
-      <NodeTextField size="small" value={value ?? ""} onChange={(e) => onCommit(e.target.value)} />
-    </FormField>
-  ), []);
-
   if (selectedCount === 0) {
     return <EmptyState variant="empty" size="small" title="Inspector" description="Select a clip to inspect" />;
   }
@@ -67,8 +99,8 @@ export const TimelineInspector: React.FC = memo(() => {
   if (selectedCount > 1) {
     return (
       <Panel sx={{ width: "100%", p: 1 }}>
-        <Text weight="medium">{selectedCount} clips selected</Text>
-        <FlexRow sx={{ gap: theme.spacing(1), mt: 1 }}>
+        <Text weight={500}>{selectedCount} clips selected</Text>
+        <FlexRow gap={1} sx={{ mt: 1 }}>
           <EditorButton onClick={() => deleteSelected(selectedClipIds)}>Delete</EditorButton>
           <EditorButton disabled>Lock</EditorButton>
           <EditorButton disabled>Mute</EditorButton>
@@ -92,11 +124,11 @@ export const TimelineInspector: React.FC = memo(() => {
 
         <CollapsibleSection title="Timing" defaultOpen>
           <FlexColumn css={sectionContentStyles} gap={1}>
-            {renderField("Start (ms)", clip.startMs, (v) => onPatchNumber("startMs", v, 0, Number.MAX_SAFE_INTEGER))}
-            {renderField("Duration (ms)", clip.durationMs, (v) => onPatchNumber("durationMs", v, 1, Number.MAX_SAFE_INTEGER))}
-            {renderField("In point (ms)", clip.inPointMs ?? 0, (v) => onPatchNumber("inPointMs", v, 0, Number.MAX_SAFE_INTEGER))}
-            {renderField("Out point (ms)", clip.outPointMs ?? clip.durationMs, (v) => onPatchNumber("outPointMs", v, 1, Number.MAX_SAFE_INTEGER))}
-            {renderField("Speed", clip.speedMultiplier ?? 1, (v) => onPatchNumber("speedMultiplier", v, 0.1, 8))}
+            <NumericField label="Start (ms)" value={clip.startMs} onCommit={(v) => onPatchNumber("startMs", v, 0, Number.MAX_SAFE_INTEGER)} />
+            <NumericField label="Duration (ms)" value={clip.durationMs} onCommit={(v) => onPatchNumber("durationMs", v, 1, Number.MAX_SAFE_INTEGER)} />
+            <NumericField label="In point (ms)" value={clip.inPointMs ?? 0} onCommit={(v) => onPatchNumber("inPointMs", v, 0, Number.MAX_SAFE_INTEGER)} />
+            <NumericField label="Out point (ms)" value={clip.outPointMs ?? clip.durationMs} onCommit={(v) => onPatchNumber("outPointMs", v, 1, Number.MAX_SAFE_INTEGER)} />
+            <NumericField label="Speed" value={clip.speedMultiplier ?? 1} onCommit={(v) => onPatchNumber("speedMultiplier", v, 0.1, 8)} />
           </FlexColumn>
         </CollapsibleSection>
 
@@ -116,9 +148,9 @@ export const TimelineInspector: React.FC = memo(() => {
             )}
             {isAudio && (
               <>
-                {renderField("Volume (dB)", clip.volumeDb ?? 0, (v) => onPatchNumber("volumeDb", v, -60, 12))}
-                {renderField("Fade in (ms)", clip.fadeInMs ?? 0, (v) => onPatchNumber("fadeInMs", v, 0, Math.floor(clip.durationMs / 2)))}
-                {renderField("Fade out (ms)", clip.fadeOutMs ?? 0, (v) => onPatchNumber("fadeOutMs", v, 0, Math.floor(clip.durationMs / 2)))}
+                <NumericField label="Volume (dB)" value={clip.volumeDb ?? 0} onCommit={(v) => onPatchNumber("volumeDb", v, -60, 12)} />
+                <NumericField label="Fade in (ms)" value={clip.fadeInMs ?? 0} onCommit={(v) => onPatchNumber("fadeInMs", v, 0, Math.floor(clip.durationMs / 2))} />
+                <NumericField label="Fade out (ms)" value={clip.fadeOutMs ?? 0} onCommit={(v) => onPatchNumber("fadeOutMs", v, 0, Math.floor(clip.durationMs / 2))} />
               </>
             )}
           </FlexColumn>
