@@ -1,9 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import {
-  Box,
-  Fade
-} from "@mui/material";
+import { Box, Fade } from "@mui/material";
 import { Text, Tooltip, LoadingSpinner } from "../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
@@ -21,6 +18,15 @@ interface WorkflowCardProps {
   onClick: (workflow: Workflow) => void;
 }
 
+const HIDDEN_TAGS = new Set([
+  "start",
+  "getting-started",
+  "example",
+  "ai",
+  "agent",
+  "agents"
+]);
+
 const cardStyles = (theme: Theme) =>
   css({
     position: "relative",
@@ -34,16 +40,12 @@ const cardStyles = (theme: Theme) =>
     cursor: "pointer",
     background: theme.vars.palette.grey[900],
     border: `1px solid ${theme.vars.palette.grey[800]}`,
-    transition: "transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease",
+    transition:
+      "transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease",
     "&:hover": {
       transform: "translateY(-2px)",
       borderColor: theme.vars.palette.primary.main,
       boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3)"
-    },
-
-    "&:hover .chips-container": {
-      opacity: 1,
-      maxHeight: "60px"
     },
     "&:hover .matched-nodes": {
       display: "flex"
@@ -74,7 +76,7 @@ const cardStyles = (theme: Theme) =>
     ".card-image-container": {
       position: "relative",
       width: "100%",
-      aspectRatio: "16 / 10",
+      aspectRatio: "16 / 9",
       overflow: "hidden",
       backgroundColor: theme.vars.palette.grey[850],
       flexShrink: 0
@@ -134,31 +136,49 @@ const cardStyles = (theme: Theme) =>
     ".card-content": {
       display: "flex",
       flexDirection: "column",
-      padding: "12px 14px",
+      gap: "6px",
+      padding: "10px 12px 12px",
       flex: 1,
-      minHeight: "60px"
+      minHeight: 0
     },
     ".card-title": {
-      fontSize: "0.95rem",
+      fontSize: "0.9rem",
       fontWeight: 600,
       color: theme.vars.palette.text.primary,
-      lineHeight: 1.3,
+      lineHeight: 1.25,
+      display: "-webkit-box",
+      WebkitLineClamp: 1,
+      WebkitBoxOrient: "vertical",
+      overflow: "hidden",
+      margin: 0
+    },
+    ".card-description": {
+      fontSize: "0.75rem",
+      color: theme.vars.palette.text.secondary,
+      lineHeight: 1.35,
       display: "-webkit-box",
       WebkitLineClamp: 2,
       WebkitBoxOrient: "vertical",
       overflow: "hidden",
       margin: 0
     },
-
     ".chips-container": {
       display: "flex",
       flexWrap: "wrap",
       gap: "4px",
-      marginTop: "8px",
-      maxHeight: 0,
-      opacity: 0,
-      overflow: "hidden",
-      transition: "max-height 0.3s ease, opacity 0.3s ease"
+      marginTop: "auto",
+      paddingTop: "6px"
+    },
+    ".chip": {
+      fontSize: "0.65rem",
+      fontWeight: 500,
+      letterSpacing: "0.3px",
+      padding: "2px 8px",
+      borderRadius: "999px",
+      color: theme.vars.palette.text.secondary,
+      background: theme.vars.palette.action.hover,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      textTransform: "lowercase"
     }
   });
 
@@ -179,16 +199,29 @@ const WorkflowCard = ({
     return `${BASE_URL}/api/assets/packages/${workflow.package_name}/${workflow.name}.jpg`;
   }, [workflow.package_name, workflow.name]);
 
-  const packageNameDisplay = useMemo(() => {
-    return workflow.package_name?.replace("nodetool-", "") || "N/A";
+  // Hide the package badge for the default base package — it's noise when
+  // every card carries it. Surface only differentiating signals.
+  const packageBadge = useMemo(() => {
+    const pkg = workflow.package_name;
+    if (!pkg || pkg === "nodetool-base") {
+      return null;
+    }
+    return pkg.replace("nodetool-", "");
   }, [workflow.package_name]);
+
+  const chips = useMemo(() => {
+    const tags = (workflow.tags || []).filter(
+      (t) => !HIDDEN_TAGS.has(t.toLowerCase())
+    );
+    return tags.slice(0, 3);
+  }, [workflow.tags]);
 
   return (
     <Tooltip
       title={workflow.description || ""}
       placement="top"
       arrow
-      delay={300}
+      delay={500}
       leaveDelay={0}
       slotProps={{
         tooltip: {
@@ -218,9 +251,7 @@ const WorkflowCard = ({
           <Fade in={true}>
             <Box className="loading-overlay">
               <LoadingSpinner size="medium" />
-              <Text className="loading-text">
-                Creating workflow...
-              </Text>
+              <Text className="loading-text">Creating workflow...</Text>
             </Box>
           </Fade>
         )}
@@ -232,9 +263,9 @@ const WorkflowCard = ({
             alt={workflow.name}
             loading="lazy"
           />
-          <Text className="package-badge">
-            {packageNameDisplay}
-          </Text>
+          {packageBadge && (
+            <Text className="package-badge">{packageBadge}</Text>
+          )}
           {nodesOnlySearch && matchedNodes.length > 0 && (
             <Box className="matched-nodes">
               {matchedNodes.slice(0, 3).map((match, idx) => (
@@ -262,6 +293,18 @@ const WorkflowCard = ({
           <Text component="h3" className="card-title">
             {workflow.name}
           </Text>
+          {workflow.description && (
+            <Text className="card-description">{workflow.description}</Text>
+          )}
+          {chips.length > 0 && (
+            <Box className="chips-container">
+              {chips.map((tag) => (
+                <span key={tag} className="chip">
+                  {tag}
+                </span>
+              ))}
+            </Box>
+          )}
         </Box>
       </Box>
     </Tooltip>
