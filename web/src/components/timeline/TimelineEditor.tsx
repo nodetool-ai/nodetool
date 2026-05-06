@@ -35,7 +35,12 @@ import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { PreviewArea } from "./preview/PreviewArea";
 import { ClipActions } from "./Inspector/ClipActions";
+import { ActivityIndicator } from "./ActivityIndicator";
 import { StructuralDriftDialog } from "./Inspector/StructuralDriftDialog";
+import {
+  useGeneratingCount,
+  useFailedCount
+} from "../../stores/timeline/TimelineGenerationStore";
 import { useWorkflowFreshnessCheck } from "../../hooks/timeline/useWorkflowFreshnessCheck";
 
 // ── Drag-handle constants ──────────────────────────────────────────────────
@@ -183,6 +188,10 @@ export const TimelineEditor: React.FC = memo(() => {
     [setZoom]
   );
 
+  // Activity counts for BottomStatusBar
+  const generatingCount = useGeneratingCount();
+  const failedCount = useFailedCount();
+
   // Tracks resize ─────────────────────────────────────────────────────────
   const [tracksHeight, setTracksHeight] = useState(DEFAULT_TRACKS_HEIGHT_PX);
   const [isDragging, setIsDragging] = useState(false);
@@ -282,7 +291,10 @@ export const TimelineEditor: React.FC = memo(() => {
   return (
     <FlexColumn fullWidth fullHeight css={editorStyles(theme)}>
       {/* ── Top bar ───────────────────────────────────────────────── */}
-      <TopBar sequenceName={sequence?.name} />
+      <TopBar
+        sequenceName={sequence?.name}
+        activitySlot={<ActivityIndicator />}
+      />
 
       {/* ── Middle: preview + inspector ───────────────────────────── */}
       <FlexRow
@@ -317,6 +329,8 @@ export const TimelineEditor: React.FC = memo(() => {
         mode="local"
         zoom={zoom}
         onZoomChange={handleZoomChange}
+        generatingCount={generatingCount}
+        failedCount={failedCount}
       />
 
       {/* ── Structural drift dialog ────────────────────────────────── */}
