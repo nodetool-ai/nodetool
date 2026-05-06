@@ -110,8 +110,8 @@ describe("Python parity — Graph.fromDict normalization", () => {
   });
 });
 
-describe("Python parity — omitted sync_mode default", () => {
-  it("defaults buffered actors to on_any semantics", async () => {
+describe("omitted sync_mode default", () => {
+  it("defaults buffered actors to zip_all semantics (strict pairing)", async () => {
     const inbox = new NodeInbox();
     inbox.addUpstream("left", 1);
     inbox.addUpstream("right", 1);
@@ -135,9 +135,9 @@ describe("Python parity — omitted sync_mode default", () => {
 
     await actor.run();
 
-    expect(calls).toEqual([
-      { left: 1, right: 2 },
-      { left: 3, right: 2 }
-    ]);
+    // zip_all pairs positionally. left=[1,3], right=[2]: only one pair
+    // fires; the trailing left=3 has no right partner, so it's dropped.
+    // Use sync_mode: "on_any" for broadcast/fan-out semantics.
+    expect(calls).toEqual([{ left: 1, right: 2 }]);
   });
 });

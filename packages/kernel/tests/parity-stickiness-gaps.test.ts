@@ -62,7 +62,8 @@ interface SentOutput {
 function createActor(
   node: NodeDescriptor,
   inbox: NodeInbox,
-  executor: NodeExecutor
+  executor: NodeExecutor,
+  stickyHandles?: Set<string>
 ): { actor: NodeActor; sentOutputs: SentOutput[]; messages: unknown[] } {
   const sentOutputs: SentOutput[] = [];
   const messages: unknown[] = [];
@@ -73,7 +74,8 @@ function createActor(
     sendOutputs: async (nodeId, outputs) => {
       sentOutputs.push({ nodeId, outputs: { ...outputs } });
     },
-    emitMessage: (msg) => messages.push(msg)
+    emitMessage: (msg) => messages.push(msg),
+    stickyHandles
   });
   return { actor, sentOutputs, messages };
 }
@@ -129,7 +131,14 @@ describe("Gap #5 — zip_all stickiness: streaming vs non-streaming edges", () =
       };
     })();
 
-    const { actor, sentOutputs } = createActor(node, inbox, executor);
+    // Wire A's handle as sticky from the start, mirroring what the runner
+    // does via edgeStreams() topology analysis for non-streaming upstreams.
+    const { actor, sentOutputs } = createActor(
+      node,
+      inbox,
+      executor,
+      new Set(["a"])
+    );
 
     // A sends one value and closes
     await inbox.put("a", 10);
@@ -175,7 +184,7 @@ describe("Gap #5 — zip_all stickiness: streaming vs non-streaming edges", () =
       }
     };
 
-    const { actor } = createActor(node, inbox, executor);
+    const { actor } = createActor(node, inbox, executor, new Set(["a"]));
 
     // Both A and B have data ready; A closes after one value.
     // B has multiple items.
