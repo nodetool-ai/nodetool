@@ -173,11 +173,25 @@ export const autoLayout = async (
     nodeGroups[groupId].push(node);
   });
 
+  // Title panels (EditableTitle) render absolutely-positioned below the node
+  // (top: 100% + 12px) so they don't contribute to node.measured.height.
+  // Measure them from the DOM so ELK reserves space and avoids overlap.
+  const measureTitleHeight = (nodeId: string): number => {
+    if (typeof document === "undefined") return 40;
+    const el = document.querySelector(
+      `.react-flow__node[data-id="${CSS.escape(nodeId)}"] .title-container`
+    ) as HTMLElement | null;
+    if (!el) return 40;
+    return el.offsetHeight + 12; // 12px = top offset gap
+  };
+
   // Helper function to create ELK node structure
   const createElkNode = (node: Node<NodeData>, children?: ElkNode[]): ElkNode => ({
     id: node.id,
     width: node.measured?.width ?? 100,
-    height: node.measured?.height ?? 100,
+    height:
+      (node.measured?.height ?? 100) +
+      (node.data?.title ? measureTitleHeight(node.id) : 0),
     ...(children && { children })
   });
 
