@@ -1,9 +1,10 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { trpcClient } from "../../trpc/client";
 import { queryClient } from "../../queryClient";
 import { fetchWorkflowById, workflowQueryKey } from "../../serverState/useWorkflow";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { useTimelineGenerationStore } from "../../stores/timeline/TimelineGenerationStore";
+import type { TimelineClip, ClipStatus } from "@nodetool-ai/timeline";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
@@ -11,6 +12,7 @@ import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import useErrorStore from "../../stores/ErrorStore";
 import { normalizeOutputUpdateValue } from "../../stores/outputUpdateValue";
+import type { OutputUpdate } from "../../stores/ApiTypes";
 import {
   globalWebSocketManager,
   WebSocketMessage
@@ -22,32 +24,13 @@ interface JobSubscriptionContext {
   selectedOutputNodeId?: string;
 }
 
-type DerivedClipStatus =
-  | "draft"
-  | "generated"
-  | "stale"
-  | "locked";
-
-interface TimelineClipLike {
-  id: string;
-  workflowId?: string;
-  selectedOutputNodeId?: string;
-  sourceType: "imported" | "generated";
-  status: string;
-  locked: boolean;
-  currentAssetId?: string;
-  dependencyHash?: string;
-  lastGeneratedHash?: string;
-  paramOverrides?: Record<string, unknown>;
-}
-
 const jobSubscriptions = new Map<string, () => void>();
 const jobContexts = new Map<string, JobSubscriptionContext>();
 
 const isActiveStatus = (status: string): boolean =>
   status === "queued" || status === "running";
 
-const deriveIdleClipStatus = (clip: TimelineClipLike): DerivedClipStatus => {
+const deriveIdleClipStatus = (clip: TimelineClip): ClipStatus => {
   if (clip.locked) {
     return "locked";
   }
@@ -141,7 +124,7 @@ const forwardWorkflowMessage = (
       .setOutputResult(
         workflowId,
         message.node_id,
-        normalizeOutputUpdateValue(message),
+        normalizeOutputUpdateValue(message as unknown as OutputUpdate),
         true
       );
   }
@@ -251,18 +234,20 @@ const subscribeJob = async (
 };
 
 export const useTimelineGenerationSubscriptions = (): void => {
-  const activeJobs = useTimelineGenerationStore((state) =>
-    Object.values(state.clipJobs)
+  const clipJobs = useTimelineGenerationStore((state) => state.clipJobs);
+
+  const activeJobs = useMemo(() => {
+    const clips = useTimelineStore.getState().clips;
+    return Object.values(clipJobs)
       .filter((job) => isActiveStatus(job.status))
       .map((job) => ({
         clipId: job.clipId,
         jobId: job.jobId,
         workflowId: job.workflowId,
-        selectedOutputNodeId: useTimelineStore
-          .getState()
-          .clips.find((clip) => clip.id === job.clipId)?.selectedOutputNodeId
-      }))
-  );
+        selectedOutputNodeId: clips.find((c) => c.id === job.clipId)
+          ?.selectedOutputNodeId
+      }));
+  }, [clipJobs]);
 
   useEffect(() => {
     const activeJobIdSet = new Set(activeJobs.map((job) => job.jobId));
@@ -308,24 +293,23 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
   const clearJob = useTimelineGenerationStore((state) => state.clearJob);
 
   const generateClip = useCallback(async () => {
-    if (!clip?.workflowId) {
+    const workflowId = clip?.workflowId;
+    if (!clip || !workflowId) {
       throw new Error("Clip is not bound to a workflow");
     }
 
     const workflow = await queryClient.fetchQuery({
-      queryKey: workflowQueryKey(clip.workflowId),
-      queryFn: () => fetchWorkflowById(clip.workflowId),
+      queryKey: workflowQueryKey(workflowId),
+      queryFn: () => fetchWorkflowById(workflowId),
       staleTime: 0
     });
 
-    const graphNodes = (workflow.graph?.nodes ??
-      []) as Parameters<typeof graphNodeToReactFlowNode>[1][];
-    const graphEdges = (workflow.graph?.edges ??
-      []) as Parameters<typeof graphEdgeToReactFlowEdge>[0][];
+    const graphNodes = workflow.graph.nodes;
+    const graphEdges = workflow.graph.edges;
     const nodes = graphNodes.map((node) => graphNodeToReactFlowNode(workflow, node));
     const edges = graphEdges.map(graphEdgeToReactFlowEdge);
 
-    const runnerStore = getWorkflowRunnerStore(clip.workflowId);
+    const runnerStore = getWorkflowRunnerStore(workflowId);
     await runnerStore
       .getState()
       .run(clip.paramOverrides ?? {}, workflow, nodes, edges);
@@ -335,12 +319,12 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
       throw new Error("Workflow runner did not return a job id");
     }
 
-    registerJob(clip.id, jobId, clip.workflowId);
+    registerJob(clip.id, jobId, workflowId);
     await subscribeJob(
       jobId,
       {
         clipId: clip.id,
-        workflowId: clip.workflowId,
+        workflowId,
         selectedOutputNodeId: clip.selectedOutputNodeId
       },
       false

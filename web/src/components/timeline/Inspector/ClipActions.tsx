@@ -59,7 +59,7 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
     );
     const setClipLocked = useTimelineStore((s) => s.setClipLocked);
     const replaceClipOutput = useTimelineStore((s) => s.replaceClipOutput);
-    const { generateClip, cancelClipGeneration, isActive, isGenerating, isQueued } =
+    const { generateClip, cancelClipGeneration, isActive, isGenerating } =
       useGenerateClip(clipId);
 
     const variationBusyRef = useRef(false);
