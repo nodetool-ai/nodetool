@@ -137,32 +137,16 @@ export interface TimelineStoreState {
   /** Update an arbitrary subset of fields on a clip. */
   patchClip: (clipId: string, patch: Partial<TimelineClip>) => void;
 
-<<<<<<< copilot/add-clip-version-history
   /** Restore a clip to a previously generated version (purely local; autosave persists on next save cycle). */
   restoreVersion: (clipId: string, versionId: string) => void;
-=======
-  /**
-   * Duplicate a clip maintaining the same `workflowId` (shared graph, independent
-   * overrides). Both clips run from the same workflow row; editing `paramOverrides`
-   * on either is independent.
-   */
+
   duplicateClipLinked: (clipId: string, deltaMs?: number) => void;
 
-  /**
-   * Duplicate a clip as a variation — clones the associated workflow so the new clip
-   * gets its own independent graph. Calls the workflow creation API and resolves once
-   * the new clip has been added to the store.
-   *
-   * @returns Promise that resolves with the new clip id, or rejects if the API fails.
-   */
   duplicateClipAsVariation: (clipId: string, deltaMs?: number) => Promise<string>;
 
-  /** Toggle the `locked` flag on a clip. */
   setClipLocked: (clipId: string, locked: boolean) => void;
 
-  /** Replace the visible output asset without regenerating. */
   replaceClipOutput: (clipId: string, assetId: string) => void;
->>>>>>> main
 }
 
 // ── Partialized type for zundo (only document state is undo-able) ──────────
@@ -491,7 +475,6 @@ export const createTimelineStore = (
             )
           })),
 
-<<<<<<< copilot/add-clip-version-history
         restoreVersion: (clipId, versionId) =>
           set((state) => {
             const clip = state.clips.find((c) => c.id === clipId);
@@ -518,8 +501,8 @@ export const createTimelineStore = (
                   : c
               )
             };
-          })
-=======
+          }),
+
         duplicateClipLinked: (clipId, deltaMs = 0) =>
           set((state) => {
             const src = state.clips.find((c) => c.id === clipId);
@@ -530,11 +513,9 @@ export const createTimelineStore = (
               ...src,
               id: createTimeOrderedUuid(),
               startMs: src.startMs + deltaMs,
-              // Deep copy so nested values in paramOverrides are fully independent
               paramOverrides: src.paramOverrides
                 ? structuredClone(src.paramOverrides)
                 : undefined,
-              // Reset generation state; the shared workflow still applies
               status: "draft",
               locked: false,
               currentAssetId: undefined,
@@ -553,7 +534,6 @@ export const createTimelineStore = (
           let newWorkflowId: string | undefined;
 
           if (src.workflowId) {
-            // Fetch the original workflow and create a deep clone via the API
             const original = await trpcClient.workflows.get.query({ id: src.workflowId });
             const cloned = await trpcClient.workflows.create.mutate({
               name: `${original.name} (variation)`,
@@ -566,13 +546,10 @@ export const createTimelineStore = (
             newWorkflowId = cloned.id;
           }
 
-          // Re-read current clip state inside the set callback to guard against
-          // mutations (e.g. clip deleted) that occurred during the awaited API calls.
           let newClipId: string | undefined;
           set((state) => {
             const currentSrc = state.clips.find((c) => c.id === clipId);
             if (!currentSrc) {
-              // Source was deleted while we awaited — no-op
               return state;
             }
             const newClip = makeClip({
@@ -580,7 +557,6 @@ export const createTimelineStore = (
               id: createTimeOrderedUuid(),
               startMs: currentSrc.startMs + deltaMs,
               workflowId: newWorkflowId,
-              // Deep copy so nested values in paramOverrides are fully independent
               paramOverrides: currentSrc.paramOverrides
                 ? structuredClone(currentSrc.paramOverrides)
                 : undefined,
@@ -613,7 +589,6 @@ export const createTimelineStore = (
               c.id === clipId ? { ...c, currentAssetId: assetId } : c
             )
           }))
->>>>>>> main
       }),
       {
         limit: 100,
