@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { root as fsSafeRoot, type Root } from "@openclaw/fs-safe";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -6,6 +7,35 @@ function workspaceDirFrom(props: Record<string, unknown>): string {
   return String(props.workspace_dir ?? process.cwd());
 }
 
+/**
+ * Capability-style workspace handle backed by `@openclaw/fs-safe`.
+ *
+ * Cached per workspace directory so repeated I/O on a single workflow run
+ * doesn't re-stat the root. Symlinks and hardlinks pointing outside the
+ * workspace are rejected at I/O time, not just at path-resolution time.
+ */
+const workspaceRoots = new Map<string, Promise<Root>>();
+export function workspaceRoot(workspaceDir: string): Promise<Root> {
+  const key = path.resolve(workspaceDir);
+  let pending = workspaceRoots.get(key);
+  if (!pending) {
+    pending = fsSafeRoot(key, {
+      hardlinks: "reject",
+      symlinks: "reject",
+      mkdir: true
+    });
+    pending.catch(() => workspaceRoots.delete(key));
+    workspaceRoots.set(key, pending);
+  }
+  return pending;
+}
+
+/**
+ * Pure path-string pre-validation used by node-graph workspace nodes.
+ *
+ * Rejects absolute paths and `..` segments before they ever reach the
+ * filesystem. Pair with `workspaceRoot()` for the I/O leg.
+ */
 export function ensureWorkspacePath(
   workspaceDir: string,
   relativePath: string
@@ -23,7 +53,7 @@ export function ensureWorkspacePath(
   }
   const full = path.resolve(workspaceDir, relativePath);
   const root = path.resolve(workspaceDir);
-  if (!full.startsWith(root)) {
+  if (full !== root && !full.startsWith(root + path.sep)) {
     throw new Error("Path must be within workspace directory");
   }
   return full;
@@ -201,12 +231,13 @@ export class ReadTextFileNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const workspace = workspaceDirFrom(this.serialize());
-    const relative = String(this.path ?? this.path ?? "");
+    const relative = String(this.path ?? "");
     const encoding = String(
-      this.encoding ?? this.encoding ?? "utf-8"
+      this.encoding ?? "utf-8"
     ) as BufferEncoding;
-    const full = ensureWorkspacePath(workspace, relative);
-    const text = await fs.readFile(full, { encoding });
+    ensureWorkspacePath(workspace, relative);
+    const r = await workspaceRoot(workspace);
+    const text = await r.readText(relative, { encoding });
     return { output: text };
   }
 }
@@ -254,18 +285,21 @@ export class WriteTextFileNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const workspace = workspaceDirFrom(this.serialize());
-    const relative = String(this.path ?? this.path ?? "");
-    const content = String(this.content ?? this.content ?? "");
-    const append = Boolean(this.append ?? this.append ?? false);
+    const relative = String(this.path ?? "");
+    const content = String(this.content ?? "");
+    const append = Boolean(this.append ?? false);
     const encoding = String(
-      this.encoding ?? this.encoding ?? "utf-8"
+      this.encoding ?? "utf-8"
     ) as BufferEncoding;
-    const full = ensureWorkspacePath(workspace, relative);
-    await fs.mkdir(path.dirname(full), { recursive: true });
+    ensureWorkspacePath(workspace, relative);
+    const r = await workspaceRoot(workspace);
     if (append) {
-      await fs.appendFile(full, content, { encoding });
+      await r.append(relative, Buffer.from(content, encoding), { mkdir: true });
     } else {
-      await fs.writeFile(full, content, { encoding });
+      await r.write(relative, Buffer.from(content, encoding), {
+        mkdir: true,
+        overwrite: true
+      });
     }
     return { output: relative };
   }
@@ -290,9 +324,10 @@ export class ReadBinaryFileNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const workspace = workspaceDirFrom(this.serialize());
-    const relative = String(this.path ?? this.path ?? "");
-    const full = ensureWorkspacePath(workspace, relative);
-    const data = await fs.readFile(full);
+    const relative = String(this.path ?? "");
+    ensureWorkspacePath(workspace, relative);
+    const r = await workspaceRoot(workspace);
+    const data = await r.readBytes(relative);
     return { output: Buffer.from(data).toString("base64") };
   }
 }
@@ -324,11 +359,14 @@ export class WriteBinaryFileNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const workspace = workspaceDirFrom(this.serialize());
-    const relative = String(this.path ?? this.path ?? "");
-    const content = String(this.content ?? this.content ?? "");
-    const full = ensureWorkspacePath(workspace, relative);
-    await fs.mkdir(path.dirname(full), { recursive: true });
-    await fs.writeFile(full, Buffer.from(content, "base64"));
+    const relative = String(this.path ?? "");
+    const content = String(this.content ?? "");
+    ensureWorkspacePath(workspace, relative);
+    const r = await workspaceRoot(workspace);
+    await r.write(relative, Buffer.from(content, "base64"), {
+      mkdir: true,
+      overwrite: true
+    });
     return { output: relative };
   }
 }
@@ -360,17 +398,19 @@ export class DeleteWorkspaceFileNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const workspace = workspaceDirFrom(this.serialize());
-    const relative = String(this.path ?? this.path ?? "");
-    const recursive = Boolean(this.recursive ?? this.recursive ?? false);
-    const full = ensureWorkspacePath(workspace, relative);
-    const stat = await fs.stat(full);
+    const relative = String(this.path ?? "");
+    const recursive = Boolean(this.recursive ?? false);
+    ensureWorkspacePath(workspace, relative);
+    const r = await workspaceRoot(workspace);
+    const resolved = await r.resolve(relative);
+    const stat = await fs.stat(resolved);
     if (stat.isDirectory()) {
       if (!recursive) {
         throw new Error("Path is a directory. Set recursive=true to delete.");
       }
-      await fs.rm(full, { recursive: true, force: false });
+      await fs.rm(resolved, { recursive: true, force: false });
     } else {
-      await fs.unlink(full);
+      await r.remove(relative);
     }
     return { output: null };
   }
@@ -395,9 +435,10 @@ export class CreateWorkspaceDirectoryNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const workspace = workspaceDirFrom(this.serialize());
-    const relative = String(this.path ?? this.path ?? "");
-    const full = ensureWorkspacePath(workspace, relative);
-    await fs.mkdir(full, { recursive: true });
+    const relative = String(this.path ?? "");
+    ensureWorkspacePath(workspace, relative);
+    const r = await workspaceRoot(workspace);
+    await r.mkdir(relative);
     return { output: relative };
   }
 }
@@ -421,14 +462,10 @@ export class WorkspaceFileExistsNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const workspace = workspaceDirFrom(this.serialize());
-    const relative = String(this.path ?? this.path ?? "");
-    const full = ensureWorkspacePath(workspace, relative);
-    try {
-      await fs.access(full);
-      return { output: true };
-    } catch {
-      return { output: false };
-    }
+    const relative = String(this.path ?? "");
+    ensureWorkspacePath(workspace, relative);
+    const r = await workspaceRoot(workspace);
+    return { output: await r.exists(relative) };
   }
 }
 
@@ -451,7 +488,7 @@ export class GetWorkspaceFileInfoNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const workspace = workspaceDirFrom(this.serialize());
-    const relative = String(this.path ?? this.path ?? "");
+    const relative = String(this.path ?? "");
     const full = ensureWorkspacePath(workspace, relative);
     const stats = await fs.stat(full);
     return {
@@ -498,9 +535,9 @@ export class CopyWorkspaceFileNode extends BaseNode {
     const workspace = workspaceDirFrom(this.serialize());
     const source = ensureWorkspacePath(
       workspace,
-      String(this.source ?? this.source ?? "")
+      String(this.source ?? "")
     );
-    const destRelative = String(this.destination ?? this.destination ?? "");
+    const destRelative = String(this.destination ?? "");
     const destination = ensureWorkspacePath(workspace, destRelative);
     await fs.mkdir(path.dirname(destination), { recursive: true });
     await fs.cp(source, destination, { recursive: true });
@@ -537,9 +574,9 @@ export class MoveWorkspaceFileNode extends BaseNode {
     const workspace = workspaceDirFrom(this.serialize());
     const source = ensureWorkspacePath(
       workspace,
-      String(this.source ?? this.source ?? "")
+      String(this.source ?? "")
     );
-    const destRelative = String(this.destination ?? this.destination ?? "");
+    const destRelative = String(this.destination ?? "");
     const destination = ensureWorkspacePath(workspace, destRelative);
     await fs.mkdir(path.dirname(destination), { recursive: true });
     await fs.rename(source, destination);
@@ -566,7 +603,7 @@ export class GetWorkspaceFileSizeNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const workspace = workspaceDirFrom(this.serialize());
-    const relative = String(this.path ?? this.path ?? "");
+    const relative = String(this.path ?? "");
     const full = ensureWorkspacePath(workspace, relative);
     const stats = await fs.stat(full);
     if (!stats.isFile()) {
@@ -595,7 +632,7 @@ export class IsWorkspaceFileNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const workspace = workspaceDirFrom(this.serialize());
-    const relative = String(this.path ?? this.path ?? "");
+    const relative = String(this.path ?? "");
     const full = ensureWorkspacePath(workspace, relative);
     try {
       const stats = await fs.stat(full);
@@ -625,7 +662,7 @@ export class IsWorkspaceDirectoryNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const workspace = workspaceDirFrom(this.serialize());
-    const relative = String(this.path ?? this.path ?? "");
+    const relative = String(this.path ?? "");
     const full = ensureWorkspacePath(workspace, relative);
     try {
       const stats = await fs.stat(full);
@@ -655,9 +692,7 @@ export class JoinWorkspacePathsNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const workspace = workspaceDirFrom(this.serialize());
-    const parts = Array.isArray(this.paths ?? this.paths)
-      ? ((this.paths ?? this.paths) as unknown[])
-      : [];
+    const parts = Array.isArray(this.paths) ? (this.paths as unknown[]) : [];
     if (parts.length === 0) {
       throw new Error("paths cannot be empty");
     }
@@ -722,12 +757,12 @@ export class SaveImageFileNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const workspace = workspaceDirFrom(this.serialize());
-    const image = (this.image ?? this.image ?? {}) as Record<string, unknown>;
-    const folder = String(this.folder ?? this.folder ?? ".");
+    const image = (this.image ?? {}) as Record<string, unknown>;
+    const folder = String(this.folder ?? ".");
     const filename = formatTimestampedName(
-      String(this.filename ?? this.filename ?? "image.png")
+      String(this.filename ?? "image.png")
     );
-    const overwrite = Boolean(this.overwrite ?? this.overwrite ?? false);
+    const overwrite = Boolean(this.overwrite ?? false);
 
     let relative = path.join(folder, filename);
     let full = ensureWorkspacePath(workspace, relative);
@@ -818,12 +853,12 @@ export class SaveVideoFileNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const workspace = workspaceDirFrom(this.serialize());
-    const video = (this.video ?? this.video ?? {}) as Record<string, unknown>;
-    const folder = String(this.folder ?? this.folder ?? ".");
+    const video = (this.video ?? {}) as Record<string, unknown>;
+    const folder = String(this.folder ?? ".");
     const filename = formatTimestampedName(
-      String(this.filename ?? this.filename ?? "video.mp4")
+      String(this.filename ?? "video.mp4")
     );
-    const overwrite = Boolean(this.overwrite ?? this.overwrite ?? false);
+    const overwrite = Boolean(this.overwrite ?? false);
 
     let relative = path.join(folder, filename);
     let full = ensureWorkspacePath(workspace, relative);

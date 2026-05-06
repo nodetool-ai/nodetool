@@ -12,6 +12,6 @@ export interface GetSecretOutputs {
   output: string;
 }
 
-export function getSecret(inputs: GetSecretInputs): DslNode<GetSecretOutputs, "output"> {
-  return createNode("lib.secret.GetSecret", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function getSecret(inputs: GetSecretInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GetSecretOutputs, "output"> {
+  return createNode("lib.secret.GetSecret", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

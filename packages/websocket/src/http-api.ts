@@ -7,6 +7,7 @@ import {
 import { gzipSync } from "node:zlib";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import nodePath from "node:path";
+import { withCacheBuster } from "./lib/example-thumbnail.js";
 import {
   createLogger,
   loadAssetStorageConfig,
@@ -852,12 +853,17 @@ function buildExamplesFromDir(examplesDir: string): unknown[] {
         typeof parsed.name === "string"
           ? parsed.name
           : file.replace(/\.json$/i, "");
-      // Point thumbnail_url to the served JPG when the file exists in assets.
+      // Point thumbnail_url to the served JPG when the file exists in
+      // assets. withCacheBuster() appends ?v=<md5-8> so the browser cache
+      // invalidates whenever the JPG is regenerated.
       const jpgFile = `${name}.jpg`;
-      const thumbnailUrl =
-        existsSync(nodePath.join(assetsDir, jpgFile))
-          ? `${EXAMPLES_THUMBNAILS_PREFIX}${encodeURIComponent(jpgFile)}`
-          : null;
+      const jpgPath = nodePath.join(assetsDir, jpgFile);
+      const thumbnailUrl = existsSync(jpgPath)
+        ? withCacheBuster(
+            `${EXAMPLES_THUMBNAILS_PREFIX}${encodeURIComponent(jpgFile)}`,
+            jpgPath
+          )
+        : null;
       workflows.push({
         id: file,
         access: "public",

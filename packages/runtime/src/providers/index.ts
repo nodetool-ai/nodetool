@@ -104,10 +104,9 @@ export {
   getProvider,
   getProviderSecretKey,
   isProviderConfigured,
-  clearProviderCache,
-  listRegisteredProviderIds,
-  setSecretResolver
+  listRegisteredProviderIds
 } from "./provider-registry.js";
+export type { GetSecret } from "./provider-registry.js";
 import { registerProvider as registerBuiltinProvider } from "./provider-registry.js";
 export type {
   ProviderId,

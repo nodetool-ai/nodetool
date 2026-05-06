@@ -14,8 +14,8 @@ export interface BlendOutputs {
   output: ImageRef;
 }
 
-export function blend(inputs: BlendInputs): DslNode<BlendOutputs, "output"> {
-  return createNode("lib.image.Blend", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function blend(inputs: BlendInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<BlendOutputs, "output"> {
+  return createNode("lib.image.Blend", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Composite — lib.image.Composite
@@ -29,6 +29,6 @@ export interface CompositeOutputs {
   output: ImageRef;
 }
 
-export function composite(inputs: CompositeInputs): DslNode<CompositeOutputs, "output"> {
-  return createNode("lib.image.Composite", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function composite(inputs: CompositeInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CompositeOutputs, "output"> {
+  return createNode("lib.image.Composite", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

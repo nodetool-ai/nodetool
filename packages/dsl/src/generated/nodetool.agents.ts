@@ -17,8 +17,8 @@ export interface SummarizerOutputs {
   chunk: unknown;
 }
 
-export function summarizer(inputs: SummarizerInputs): DslNode<SummarizerOutputs> {
-  return createNode("nodetool.agents.Summarizer", inputs as Record<string, unknown>, { outputNames: ["text", "chunk"], streaming: true });
+export function summarizer(inputs: SummarizerInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SummarizerOutputs> {
+  return createNode("nodetool.agents.Summarizer", inputs as Record<string, unknown>, { outputNames: ["text", "chunk"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Create Thread — nodetool.agents.CreateThread
@@ -31,8 +31,8 @@ export interface CreateThreadOutputs {
   thread_id: string;
 }
 
-export function createThread(inputs: CreateThreadInputs): DslNode<CreateThreadOutputs, "thread_id"> {
-  return createNode("nodetool.agents.CreateThread", inputs as Record<string, unknown>, { outputNames: ["thread_id"], defaultOutput: "thread_id" });
+export function createThread(inputs: CreateThreadInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CreateThreadOutputs, "thread_id"> {
+  return createNode("nodetool.agents.CreateThread", inputs as Record<string, unknown>, { outputNames: ["thread_id"], defaultOutput: "thread_id", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Extractor — nodetool.agents.Extractor
@@ -47,8 +47,8 @@ export interface ExtractorInputs {
 export interface ExtractorOutputs {
 }
 
-export function extractor(inputs: ExtractorInputs): DslNode<ExtractorOutputs> {
-  return createNode("nodetool.agents.Extractor", inputs as Record<string, unknown>, { outputNames: [] });
+export function extractor(inputs: ExtractorInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExtractorOutputs> {
+  return createNode("nodetool.agents.Extractor", inputs as Record<string, unknown>, { outputNames: [], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Classifier — nodetool.agents.Classifier
@@ -65,14 +65,14 @@ export interface ClassifierOutputs {
   output: string;
 }
 
-export function classifier(inputs: ClassifierInputs): DslNode<ClassifierOutputs, "output"> {
-  return createNode("nodetool.agents.Classifier", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function classifier(inputs: ClassifierInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ClassifierOutputs, "output"> {
+  return createNode("nodetool.agents.Classifier", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Agent — nodetool.agents.Agent
 export interface AgentInputs {
   model?: Connectable<unknown>;
-  mode?: Connectable<string>;
+  mode?: Connectable<"loop" | "plan" | "multi-agent">;
   system?: Connectable<string>;
   prompt?: Connectable<string>;
   tools?: Connectable<unknown[]>;
@@ -81,8 +81,9 @@ export interface AgentInputs {
   history?: Connectable<unknown[]>;
   thread_id?: Connectable<string>;
   max_tokens?: Connectable<number>;
+  max_turns?: Connectable<number>;
   num_agents?: Connectable<number>;
-  team_strategy?: Connectable<string>;
+  team_strategy?: Connectable<"coordinator" | "autonomous" | "hybrid">;
 }
 
 export interface AgentOutputs {
@@ -92,8 +93,8 @@ export interface AgentOutputs {
   audio: AudioRef;
 }
 
-export function agent(inputs: AgentInputs): DslNode<AgentOutputs> {
-  return createNode("nodetool.agents.Agent", inputs as Record<string, unknown>, { outputNames: ["text", "chunk", "thinking", "audio"], streaming: true });
+export function agent(inputs: AgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<AgentOutputs> {
+  return createNode("nodetool.agents.Agent", inputs as Record<string, unknown>, { outputNames: ["text", "chunk", "thinking", "audio"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Shell Agent — nodetool.agents.ShellAgent
@@ -108,8 +109,8 @@ export interface ShellAgentOutputs {
   text: string;
 }
 
-export function shellAgent(inputs: ShellAgentInputs): DslNode<ShellAgentOutputs, "text"> {
-  return createNode("nodetool.agents.ShellAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
+export function shellAgent(inputs: ShellAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ShellAgentOutputs, "text"> {
+  return createNode("nodetool.agents.ShellAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Browser Agent — nodetool.agents.BrowserAgent
@@ -124,8 +125,8 @@ export interface BrowserAgentOutputs {
   text: string;
 }
 
-export function browserAgent(inputs: BrowserAgentInputs): DslNode<BrowserAgentOutputs, "text"> {
-  return createNode("nodetool.agents.BrowserAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
+export function browserAgent(inputs: BrowserAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<BrowserAgentOutputs, "text"> {
+  return createNode("nodetool.agents.BrowserAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // SQLite Agent — nodetool.agents.SQLiteAgent
@@ -144,8 +145,8 @@ export interface SQLiteAgentOutputs {
   dataframe: DataframeRef;
 }
 
-export function sqLiteAgent(inputs: SQLiteAgentInputs): DslNode<SQLiteAgentOutputs> {
-  return createNode("nodetool.agents.SQLiteAgent", inputs as Record<string, unknown>, { outputNames: ["text", "json", "dataframe"] });
+export function sqLiteAgent(inputs: SQLiteAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SQLiteAgentOutputs> {
+  return createNode("nodetool.agents.SQLiteAgent", inputs as Record<string, unknown>, { outputNames: ["text", "json", "dataframe"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Supabase Agent — nodetool.agents.SupabaseAgent
@@ -162,8 +163,8 @@ export interface SupabaseAgentOutputs {
   dataframe: DataframeRef;
 }
 
-export function supabaseAgent(inputs: SupabaseAgentInputs): DslNode<SupabaseAgentOutputs> {
-  return createNode("nodetool.agents.SupabaseAgent", inputs as Record<string, unknown>, { outputNames: ["text", "json", "dataframe"] });
+export function supabaseAgent(inputs: SupabaseAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SupabaseAgentOutputs> {
+  return createNode("nodetool.agents.SupabaseAgent", inputs as Record<string, unknown>, { outputNames: ["text", "json", "dataframe"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Document Agent — nodetool.agents.DocumentAgent
@@ -179,8 +180,8 @@ export interface DocumentAgentOutputs {
   document: unknown;
 }
 
-export function documentAgent(inputs: DocumentAgentInputs): DslNode<DocumentAgentOutputs> {
-  return createNode("nodetool.agents.DocumentAgent", inputs as Record<string, unknown>, { outputNames: ["text", "document"] });
+export function documentAgent(inputs: DocumentAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DocumentAgentOutputs> {
+  return createNode("nodetool.agents.DocumentAgent", inputs as Record<string, unknown>, { outputNames: ["text", "document"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // DOCX Agent — nodetool.agents.DocxAgent
@@ -196,8 +197,8 @@ export interface DocxAgentOutputs {
   text: string;
 }
 
-export function docxAgent(inputs: DocxAgentInputs): DslNode<DocxAgentOutputs> {
-  return createNode("nodetool.agents.DocxAgent", inputs as Record<string, unknown>, { outputNames: ["document", "text"] });
+export function docxAgent(inputs: DocxAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DocxAgentOutputs> {
+  return createNode("nodetool.agents.DocxAgent", inputs as Record<string, unknown>, { outputNames: ["document", "text"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Email Agent — nodetool.agents.EmailAgent
@@ -212,8 +213,8 @@ export interface EmailAgentOutputs {
   text: string;
 }
 
-export function emailAgent(inputs: EmailAgentInputs): DslNode<EmailAgentOutputs, "text"> {
-  return createNode("nodetool.agents.EmailAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
+export function emailAgent(inputs: EmailAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<EmailAgentOutputs, "text"> {
+  return createNode("nodetool.agents.EmailAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // FFmpeg Agent — nodetool.agents.FfmpegAgent
@@ -232,8 +233,8 @@ export interface FfmpegAgentOutputs {
   text: string;
 }
 
-export function ffmpegAgent(inputs: FfmpegAgentInputs): DslNode<FfmpegAgentOutputs> {
-  return createNode("nodetool.agents.FfmpegAgent", inputs as Record<string, unknown>, { outputNames: ["video", "audio", "text"] });
+export function ffmpegAgent(inputs: FfmpegAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FfmpegAgentOutputs> {
+  return createNode("nodetool.agents.FfmpegAgent", inputs as Record<string, unknown>, { outputNames: ["video", "audio", "text"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Filesystem Agent — nodetool.agents.FilesystemAgent
@@ -248,8 +249,8 @@ export interface FilesystemAgentOutputs {
   text: string;
 }
 
-export function filesystemAgent(inputs: FilesystemAgentInputs): DslNode<FilesystemAgentOutputs, "text"> {
-  return createNode("nodetool.agents.FilesystemAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
+export function filesystemAgent(inputs: FilesystemAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FilesystemAgentOutputs, "text"> {
+  return createNode("nodetool.agents.FilesystemAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Git Agent — nodetool.agents.GitAgent
@@ -264,8 +265,8 @@ export interface GitAgentOutputs {
   text: string;
 }
 
-export function gitAgent(inputs: GitAgentInputs): DslNode<GitAgentOutputs, "text"> {
-  return createNode("nodetool.agents.GitAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
+export function gitAgent(inputs: GitAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GitAgentOutputs, "text"> {
+  return createNode("nodetool.agents.GitAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // HTML Agent — nodetool.agents.HtmlAgent
@@ -281,8 +282,8 @@ export interface HtmlAgentOutputs {
   text: string;
 }
 
-export function htmlAgent(inputs: HtmlAgentInputs): DslNode<HtmlAgentOutputs> {
-  return createNode("nodetool.agents.HtmlAgent", inputs as Record<string, unknown>, { outputNames: ["html", "text"] });
+export function htmlAgent(inputs: HtmlAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<HtmlAgentOutputs> {
+  return createNode("nodetool.agents.HtmlAgent", inputs as Record<string, unknown>, { outputNames: ["html", "text"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // HTTP API Agent — nodetool.agents.HttpApiAgent
@@ -297,8 +298,8 @@ export interface HttpApiAgentOutputs {
   text: string;
 }
 
-export function httpApiAgent(inputs: HttpApiAgentInputs): DslNode<HttpApiAgentOutputs, "text"> {
-  return createNode("nodetool.agents.HttpApiAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
+export function httpApiAgent(inputs: HttpApiAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<HttpApiAgentOutputs, "text"> {
+  return createNode("nodetool.agents.HttpApiAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Image Agent — nodetool.agents.ImageAgent
@@ -315,8 +316,8 @@ export interface ImageAgentOutputs {
   text: string;
 }
 
-export function imageAgent(inputs: ImageAgentInputs): DslNode<ImageAgentOutputs> {
-  return createNode("nodetool.agents.ImageAgent", inputs as Record<string, unknown>, { outputNames: ["image", "text"] });
+export function imageAgent(inputs: ImageAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ImageAgentOutputs> {
+  return createNode("nodetool.agents.ImageAgent", inputs as Record<string, unknown>, { outputNames: ["image", "text"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Media Agent — nodetool.agents.MediaAgent
@@ -335,8 +336,8 @@ export interface MediaAgentOutputs {
   text: string;
 }
 
-export function mediaAgent(inputs: MediaAgentInputs): DslNode<MediaAgentOutputs> {
-  return createNode("nodetool.agents.MediaAgent", inputs as Record<string, unknown>, { outputNames: ["video", "audio", "text"] });
+export function mediaAgent(inputs: MediaAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<MediaAgentOutputs> {
+  return createNode("nodetool.agents.MediaAgent", inputs as Record<string, unknown>, { outputNames: ["video", "audio", "text"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // PDF-lib Agent — nodetool.agents.PdfLibAgent
@@ -353,8 +354,8 @@ export interface PdfLibAgentOutputs {
   text: string;
 }
 
-export function pdfLibAgent(inputs: PdfLibAgentInputs): DslNode<PdfLibAgentOutputs> {
-  return createNode("nodetool.agents.PdfLibAgent", inputs as Record<string, unknown>, { outputNames: ["document", "text"] });
+export function pdfLibAgent(inputs: PdfLibAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PdfLibAgentOutputs> {
+  return createNode("nodetool.agents.PdfLibAgent", inputs as Record<string, unknown>, { outputNames: ["document", "text"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // PPTX Agent — nodetool.agents.PptxAgent
@@ -371,8 +372,8 @@ export interface PptxAgentOutputs {
   text: string;
 }
 
-export function pptxAgent(inputs: PptxAgentInputs): DslNode<PptxAgentOutputs> {
-  return createNode("nodetool.agents.PptxAgent", inputs as Record<string, unknown>, { outputNames: ["document", "text"] });
+export function pptxAgent(inputs: PptxAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PptxAgentOutputs> {
+  return createNode("nodetool.agents.PptxAgent", inputs as Record<string, unknown>, { outputNames: ["document", "text"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Spreadsheet Agent — nodetool.agents.SpreadsheetAgent
@@ -387,8 +388,8 @@ export interface SpreadsheetAgentOutputs {
   text: string;
 }
 
-export function spreadsheetAgent(inputs: SpreadsheetAgentInputs): DslNode<SpreadsheetAgentOutputs, "text"> {
-  return createNode("nodetool.agents.SpreadsheetAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
+export function spreadsheetAgent(inputs: SpreadsheetAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SpreadsheetAgentOutputs, "text"> {
+  return createNode("nodetool.agents.SpreadsheetAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Vector Store Agent — nodetool.agents.VectorStoreAgent
@@ -403,8 +404,8 @@ export interface VectorStoreAgentOutputs {
   text: string;
 }
 
-export function vectorStoreAgent(inputs: VectorStoreAgentInputs): DslNode<VectorStoreAgentOutputs, "text"> {
-  return createNode("nodetool.agents.VectorStoreAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text" });
+export function vectorStoreAgent(inputs: VectorStoreAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<VectorStoreAgentOutputs, "text"> {
+  return createNode("nodetool.agents.VectorStoreAgent", inputs as Record<string, unknown>, { outputNames: ["text"], defaultOutput: "text", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // yt-dlp Downloader Agent — nodetool.agents.YtDlpDownloaderAgent
@@ -422,6 +423,6 @@ export interface YtDlpDownloaderAgentOutputs {
   text: string;
 }
 
-export function ytDlpDownloaderAgent(inputs: YtDlpDownloaderAgentInputs): DslNode<YtDlpDownloaderAgentOutputs> {
-  return createNode("nodetool.agents.YtDlpDownloaderAgent", inputs as Record<string, unknown>, { outputNames: ["video", "text"] });
+export function ytDlpDownloaderAgent(inputs: YtDlpDownloaderAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<YtDlpDownloaderAgentOutputs> {
+  return createNode("nodetool.agents.YtDlpDownloaderAgent", inputs as Record<string, unknown>, { outputNames: ["video", "text"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

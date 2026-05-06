@@ -12,8 +12,8 @@ export interface LoadImageFileOutputs {
   output: ImageRef;
 }
 
-export function loadImageFile(inputs: LoadImageFileInputs): DslNode<LoadImageFileOutputs, "output"> {
-  return createNode("nodetool.image.LoadImageFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function loadImageFile(inputs: LoadImageFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<LoadImageFileOutputs, "output"> {
+  return createNode("nodetool.image.LoadImageFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Load Image Folder — nodetool.image.LoadImageFolder
@@ -30,8 +30,8 @@ export interface LoadImageFolderOutputs {
   images: unknown[];
 }
 
-export function loadImageFolder(inputs: LoadImageFolderInputs): DslNode<LoadImageFolderOutputs> {
-  return createNode("nodetool.image.LoadImageFolder", inputs as Record<string, unknown>, { outputNames: ["image", "path", "images"], streaming: true });
+export function loadImageFolder(inputs: LoadImageFolderInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<LoadImageFolderOutputs> {
+  return createNode("nodetool.image.LoadImageFolder", inputs as Record<string, unknown>, { outputNames: ["image", "path", "images"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Save Image File — nodetool.image.SaveImageFile
@@ -46,8 +46,8 @@ export interface SaveImageFileOutputs {
   output: ImageRef;
 }
 
-export function saveImageFile(inputs: SaveImageFileInputs): DslNode<SaveImageFileOutputs, "output"> {
-  return createNode("nodetool.image.SaveImageFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function saveImageFile(inputs: SaveImageFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SaveImageFileOutputs, "output"> {
+  return createNode("nodetool.image.SaveImageFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Load Image Assets — nodetool.image.LoadImageAssets
@@ -61,8 +61,8 @@ export interface LoadImageAssetsOutputs {
   images: unknown[];
 }
 
-export function loadImageAssets(inputs: LoadImageAssetsInputs): DslNode<LoadImageAssetsOutputs> {
-  return createNode("nodetool.image.LoadImageAssets", inputs as Record<string, unknown>, { outputNames: ["image", "name", "images"], streaming: true });
+export function loadImageAssets(inputs: LoadImageAssetsInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<LoadImageAssetsOutputs> {
+  return createNode("nodetool.image.LoadImageAssets", inputs as Record<string, unknown>, { outputNames: ["image", "name", "images"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Save Image Asset — nodetool.image.SaveImage
@@ -76,8 +76,8 @@ export interface SaveImageOutputs {
   output: ImageRef;
 }
 
-export function saveImage(inputs: SaveImageInputs): DslNode<SaveImageOutputs, "output"> {
-  return createNode("nodetool.image.SaveImage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function saveImage(inputs: SaveImageInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SaveImageOutputs, "output"> {
+  return createNode("nodetool.image.SaveImage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Get Metadata — nodetool.image.GetMetadata
@@ -93,8 +93,8 @@ export interface GetMetadataOutputs {
   channels: number;
 }
 
-export function getMetadata(inputs: GetMetadataInputs): DslNode<GetMetadataOutputs> {
-  return createNode("nodetool.image.GetMetadata", inputs as Record<string, unknown>, { outputNames: ["format", "mode", "width", "height", "channels"] });
+export function getMetadata(inputs: GetMetadataInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GetMetadataOutputs> {
+  return createNode("nodetool.image.GetMetadata", inputs as Record<string, unknown>, { outputNames: ["format", "mode", "width", "height", "channels"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Batch To List — nodetool.image.BatchToList
@@ -106,8 +106,8 @@ export interface BatchToListOutputs {
   output: ImageRef[];
 }
 
-export function batchToList(inputs: BatchToListInputs): DslNode<BatchToListOutputs, "output"> {
-  return createNode("nodetool.image.BatchToList", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function batchToList(inputs: BatchToListInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<BatchToListOutputs, "output"> {
+  return createNode("nodetool.image.BatchToList", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Images To List — nodetool.image.ImagesToList
@@ -118,8 +118,8 @@ export interface ImagesToListOutputs {
   output: ImageRef[];
 }
 
-export function imagesToList(inputs?: ImagesToListInputs): DslNode<ImagesToListOutputs, "output"> {
-  return createNode("nodetool.image.ImagesToList", (inputs ?? {}) as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function imagesToList(inputs?: ImagesToListInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ImagesToListOutputs, "output"> {
+  return createNode("nodetool.image.ImagesToList", (inputs ?? {}) as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Paste — nodetool.image.Paste
@@ -134,8 +134,8 @@ export interface PasteOutputs {
   output: ImageRef;
 }
 
-export function paste(inputs: PasteInputs): DslNode<PasteOutputs, "output"> {
-  return createNode("nodetool.image.Paste", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function paste(inputs: PasteInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PasteOutputs, "output"> {
+  return createNode("nodetool.image.Paste", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Scale — nodetool.image.Scale
@@ -148,8 +148,8 @@ export interface ScaleOutputs {
   output: ImageRef;
 }
 
-export function scale(inputs: ScaleInputs): DslNode<ScaleOutputs, "output"> {
-  return createNode("nodetool.image.Scale", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function scale(inputs: ScaleInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ScaleOutputs, "output"> {
+  return createNode("nodetool.image.Scale", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Resize — nodetool.image.Resize
@@ -163,8 +163,8 @@ export interface ResizeOutputs {
   output: ImageRef;
 }
 
-export function resize(inputs: ResizeInputs): DslNode<ResizeOutputs, "output"> {
-  return createNode("nodetool.image.Resize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function resize(inputs: ResizeInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ResizeOutputs, "output"> {
+  return createNode("nodetool.image.Resize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Crop — nodetool.image.Crop
@@ -180,8 +180,8 @@ export interface CropOutputs {
   output: ImageRef;
 }
 
-export function crop(inputs: CropInputs): DslNode<CropOutputs, "output"> {
-  return createNode("nodetool.image.Crop", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function crop(inputs: CropInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CropOutputs, "output"> {
+  return createNode("nodetool.image.Crop", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Fit — nodetool.image.Fit
@@ -195,8 +195,8 @@ export interface FitOutputs {
   output: ImageRef;
 }
 
-export function fit(inputs: FitInputs): DslNode<FitOutputs, "output"> {
-  return createNode("nodetool.image.Fit", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function fit(inputs: FitInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FitOutputs, "output"> {
+  return createNode("nodetool.image.Fit", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Rotate — nodetool.image.Rotate
@@ -209,8 +209,8 @@ export interface RotateOutputs {
   output: ImageRef;
 }
 
-export function rotate(inputs: RotateInputs): DslNode<RotateOutputs, "output"> {
-  return createNode("nodetool.image.Rotate", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function rotate(inputs: RotateInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RotateOutputs, "output"> {
+  return createNode("nodetool.image.Rotate", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Flip — nodetool.image.Flip
@@ -223,8 +223,8 @@ export interface FlipOutputs {
   output: ImageRef;
 }
 
-export function flip(inputs: FlipInputs): DslNode<FlipOutputs, "output"> {
-  return createNode("nodetool.image.Flip", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function flip(inputs: FlipInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FlipOutputs, "output"> {
+  return createNode("nodetool.image.Flip", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Text To Image — nodetool.image.TextToImage
@@ -232,12 +232,8 @@ export interface TextToImageInputs {
   model?: Connectable<unknown>;
   prompt?: Connectable<string>;
   negative_prompt?: Connectable<string>;
-  width?: Connectable<number>;
-  height?: Connectable<number>;
-  guidance_scale?: Connectable<number>;
-  num_inference_steps?: Connectable<number>;
-  seed?: Connectable<number>;
-  safety_check?: Connectable<boolean>;
+  aspect_ratio?: Connectable<string>;
+  resolution?: Connectable<string>;
   timeout_seconds?: Connectable<number>;
 }
 
@@ -245,8 +241,8 @@ export interface TextToImageOutputs {
   output: ImageRef;
 }
 
-export function textToImage(inputs: TextToImageInputs): DslNode<TextToImageOutputs, "output"> {
-  return createNode("nodetool.image.TextToImage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function textToImage(inputs: TextToImageInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<TextToImageOutputs, "output"> {
+  return createNode("nodetool.image.TextToImage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Image To Image — nodetool.image.ImageToImage
@@ -256,13 +252,9 @@ export interface ImageToImageInputs {
   prompt?: Connectable<string>;
   negative_prompt?: Connectable<string>;
   strength?: Connectable<number>;
-  guidance_scale?: Connectable<number>;
-  num_inference_steps?: Connectable<number>;
-  target_width?: Connectable<number>;
-  target_height?: Connectable<number>;
-  seed?: Connectable<number>;
+  aspect_ratio?: Connectable<string>;
+  resolution?: Connectable<string>;
   scheduler?: Connectable<string>;
-  safety_check?: Connectable<boolean>;
   timeout_seconds?: Connectable<number>;
 }
 
@@ -270,6 +262,6 @@ export interface ImageToImageOutputs {
   output: ImageRef;
 }
 
-export function imageToImage(inputs: ImageToImageInputs): DslNode<ImageToImageOutputs, "output"> {
-  return createNode("nodetool.image.ImageToImage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function imageToImage(inputs: ImageToImageInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ImageToImageOutputs, "output"> {
+  return createNode("nodetool.image.ImageToImage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

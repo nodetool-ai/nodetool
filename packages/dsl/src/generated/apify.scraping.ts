@@ -15,8 +15,8 @@ export interface ApifyWebScraperOutputs {
   output: Record<string, unknown>[];
 }
 
-export function apifyWebScraper(inputs: ApifyWebScraperInputs): DslNode<ApifyWebScraperOutputs, "output"> {
-  return createNode("apify.scraping.ApifyWebScraper", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function apifyWebScraper(inputs: ApifyWebScraperInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ApifyWebScraperOutputs, "output"> {
+  return createNode("apify.scraping.ApifyWebScraper", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Apify Google Search Scraper — apify.scraping.ApifyGoogleSearchScraper
@@ -33,8 +33,8 @@ export interface ApifyGoogleSearchScraperOutputs {
   output: Record<string, unknown>[];
 }
 
-export function apifyGoogleSearchScraper(inputs: ApifyGoogleSearchScraperInputs): DslNode<ApifyGoogleSearchScraperOutputs, "output"> {
-  return createNode("apify.scraping.ApifyGoogleSearchScraper", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function apifyGoogleSearchScraper(inputs: ApifyGoogleSearchScraperInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ApifyGoogleSearchScraperOutputs, "output"> {
+  return createNode("apify.scraping.ApifyGoogleSearchScraper", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Apify Instagram Scraper — apify.scraping.ApifyInstagramScraper
@@ -51,8 +51,8 @@ export interface ApifyInstagramScraperOutputs {
   output: Record<string, unknown>[];
 }
 
-export function apifyInstagramScraper(inputs: ApifyInstagramScraperInputs): DslNode<ApifyInstagramScraperOutputs, "output"> {
-  return createNode("apify.scraping.ApifyInstagramScraper", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function apifyInstagramScraper(inputs: ApifyInstagramScraperInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ApifyInstagramScraperOutputs, "output"> {
+  return createNode("apify.scraping.ApifyInstagramScraper", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Apify Amazon Scraper — apify.scraping.ApifyAmazonScraper
@@ -69,8 +69,8 @@ export interface ApifyAmazonScraperOutputs {
   output: Record<string, unknown>[];
 }
 
-export function apifyAmazonScraper(inputs: ApifyAmazonScraperInputs): DslNode<ApifyAmazonScraperOutputs, "output"> {
-  return createNode("apify.scraping.ApifyAmazonScraper", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function apifyAmazonScraper(inputs: ApifyAmazonScraperInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ApifyAmazonScraperOutputs, "output"> {
+  return createNode("apify.scraping.ApifyAmazonScraper", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Apify You Tube Scraper — apify.scraping.ApifyYouTubeScraper
@@ -87,8 +87,8 @@ export interface ApifyYouTubeScraperOutputs {
   output: Record<string, unknown>[];
 }
 
-export function apifyYouTubeScraper(inputs: ApifyYouTubeScraperInputs): DslNode<ApifyYouTubeScraperOutputs, "output"> {
-  return createNode("apify.scraping.ApifyYouTubeScraper", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function apifyYouTubeScraper(inputs: ApifyYouTubeScraperInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ApifyYouTubeScraperOutputs, "output"> {
+  return createNode("apify.scraping.ApifyYouTubeScraper", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Apify Twitter Scraper — apify.scraping.ApifyTwitterScraper
@@ -104,8 +104,8 @@ export interface ApifyTwitterScraperOutputs {
   output: Record<string, unknown>[];
 }
 
-export function apifyTwitterScraper(inputs: ApifyTwitterScraperInputs): DslNode<ApifyTwitterScraperOutputs, "output"> {
-  return createNode("apify.scraping.ApifyTwitterScraper", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function apifyTwitterScraper(inputs: ApifyTwitterScraperInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ApifyTwitterScraperOutputs, "output"> {
+  return createNode("apify.scraping.ApifyTwitterScraper", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Apify Linked In Scraper — apify.scraping.ApifyLinkedInScraper
@@ -121,6 +121,6 @@ export interface ApifyLinkedInScraperOutputs {
   output: Record<string, unknown>[];
 }
 
-export function apifyLinkedInScraper(inputs: ApifyLinkedInScraperInputs): DslNode<ApifyLinkedInScraperOutputs, "output"> {
-  return createNode("apify.scraping.ApifyLinkedInScraper", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function apifyLinkedInScraper(inputs: ApifyLinkedInScraperInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ApifyLinkedInScraperOutputs, "output"> {
+  return createNode("apify.scraping.ApifyLinkedInScraper", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

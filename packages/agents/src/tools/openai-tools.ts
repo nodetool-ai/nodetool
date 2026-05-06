@@ -187,12 +187,7 @@ export class OpenAITextToSpeechTool extends Tool {
       });
 
       const buffer = Buffer.from(await response.arrayBuffer());
-      const workspace = (context as unknown as Record<string, unknown>)[
-        "workspace"
-      ] as string | undefined;
-      const filePath = workspace
-        ? path.join(workspace, outputFile)
-        : outputFile;
+      const filePath = context.resolveWorkspacePath(outputFile);
       await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.writeFile(filePath, buffer);
 

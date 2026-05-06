@@ -113,8 +113,10 @@ export async function persistOutput(
 
   if (opts.outputFile || !result.asset_id) {
     const fileName = opts.outputFile ?? timestampedName(opts.namePrefix, ext);
+    // Untrusted: `fileName` may originate from an LLM tool argument. Route
+    // through the context's safe resolver so it can't escape the workspace.
     const ws = workspaceDir(context);
-    const filePath = ws ? path.join(ws, fileName) : fileName;
+    const filePath = ws ? context.resolveWorkspacePath(fileName) : fileName;
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, Buffer.from(bytes));
     result.path = filePath;

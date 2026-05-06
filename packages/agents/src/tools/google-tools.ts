@@ -198,12 +198,7 @@ export class GoogleImageGenerationTool extends Tool {
       if (!imageB64) return { error: "No image bytes found in response" };
 
       const imageBuffer = Buffer.from(imageB64, "base64");
-      const workspace = (context as unknown as Record<string, unknown>)[
-        "workspaceDir"
-      ] as string | undefined;
-      const filePath = workspace
-        ? path.join(workspace, outputFile)
-        : outputFile;
+      const filePath = context.resolveWorkspacePath(outputFile);
       await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.writeFile(filePath, imageBuffer);
 

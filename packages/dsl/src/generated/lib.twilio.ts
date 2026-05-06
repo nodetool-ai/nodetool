@@ -15,8 +15,8 @@ export interface SendSMSOutputs {
   output: Record<string, unknown>;
 }
 
-export function sendSMS(inputs: SendSMSInputs): DslNode<SendSMSOutputs, "output"> {
-  return createNode("lib.twilio.SendSMS", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function sendSMS(inputs: SendSMSInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SendSMSOutputs, "output"> {
+  return createNode("lib.twilio.SendSMS", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Send WhatsApp — lib.twilio.SendWhatsApp
@@ -32,8 +32,8 @@ export interface SendWhatsAppOutputs {
   output: Record<string, unknown>;
 }
 
-export function sendWhatsApp(inputs: SendWhatsAppInputs): DslNode<SendWhatsAppOutputs, "output"> {
-  return createNode("lib.twilio.SendWhatsApp", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function sendWhatsApp(inputs: SendWhatsAppInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SendWhatsAppOutputs, "output"> {
+  return createNode("lib.twilio.SendWhatsApp", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Get Messages — lib.twilio.GetMessages
@@ -51,8 +51,8 @@ export interface GetMessagesOutputs {
   messages: unknown[];
 }
 
-export function getMessages(inputs: GetMessagesInputs): DslNode<GetMessagesOutputs> {
-  return createNode("lib.twilio.GetMessages", inputs as Record<string, unknown>, { outputNames: ["message", "messages"], streaming: true });
+export function getMessages(inputs: GetMessagesInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GetMessagesOutputs> {
+  return createNode("lib.twilio.GetMessages", inputs as Record<string, unknown>, { outputNames: ["message", "messages"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Lookup Phone Number — lib.twilio.Lookup
@@ -66,6 +66,6 @@ export interface LookupOutputs {
   output: Record<string, unknown>;
 }
 
-export function lookup(inputs: LookupInputs): DslNode<LookupOutputs, "output"> {
-  return createNode("lib.twilio.Lookup", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function lookup(inputs: LookupInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<LookupOutputs, "output"> {
+  return createNode("lib.twilio.Lookup", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

@@ -20,6 +20,7 @@ import React, { memo, useCallback, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import LockIcon from "@mui/icons-material/Lock";
 
 import type { TimelineClip, ClipStatus } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -113,6 +114,18 @@ const statusBadgeStyles = css({
   right: 4,
   zIndex: 3,
   pointerEvents: "none"
+});
+
+const lockIconStyles = css({
+  position: "absolute",
+  top: 3,
+  left: 4,
+  zIndex: 3,
+  pointerEvents: "none",
+  opacity: 0.85,
+  fontSize: 12,
+  display: "flex",
+  alignItems: "center"
 });
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -364,6 +377,13 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         aria-label="Trim clip end"
         data-testid={`clip-trim-end-${clipId}`}
       />
+
+      {/* Lock icon — top-left when clip is locked */}
+      {clip.locked && (
+        <div css={lockIconStyles}>
+          <LockIcon sx={{ fontSize: 12 }} aria-label="Clip locked" />
+        </div>
+      )}
 
       {/* Status badge */}
       {clip.status !== "draft" && (
