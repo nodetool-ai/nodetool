@@ -102,8 +102,8 @@ export class JinaProvider extends BaseProvider {
   async *generateMessages(
     _args: Parameters<BaseProvider["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
-    throw new Error("jina provider does not support chat generation");
     yield* [];
+    throw new Error("jina provider does not support chat generation");
   }
 
   override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {

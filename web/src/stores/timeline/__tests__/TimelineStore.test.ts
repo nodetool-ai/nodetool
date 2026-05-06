@@ -10,6 +10,7 @@
 import { describe, it, expect, beforeEach } from "@jest/globals";
 import { createTimelineStore } from "../TimelineStore";
 import { makeTrack, makeClip } from "@nodetool-ai/timeline";
+import type { Asset } from "../../ApiTypes";
 // Import mock helpers directly from the mock file so TypeScript resolves the
 // exports correctly. Jest's moduleNameMapper redirects TimelineStore.ts's
 // own `trpc/client` import to the same file, so both share the same module
@@ -20,6 +21,22 @@ import {
 } from "../../../__mocks__/trpcClientMock";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+
+/** Minimal valid Asset fixture for addImportedClip tests. */
+function makeAsset(overrides: Partial<Asset> = {}): Asset {
+  return {
+    id: "asset-1",
+    user_id: "u1",
+    parent_id: "root",
+    name: "test.jpg",
+    content_type: "image/jpeg",
+    workflow_id: null,
+    created_at: "2024-01-01T00:00:00Z",
+    get_url: "https://cdn.example.com/test.jpg",
+    thumb_url: null,
+    ...overrides
+  };
+}
 
 function mkStore() {
   return createTimelineStore();
@@ -365,6 +382,57 @@ describe("TimelineStore — addClip / patchClip", () => {
   });
 });
 
+describe("TimelineStore — addImportedClip", () => {
+  it("creates an image clip from an image asset", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    store.setState({ tracks: [track] });
+
+    const asset = makeAsset({ id: "img-asset-1", name: "photo.jpg", content_type: "image/jpeg", duration: null });
+
+    store.getState().addImportedClip(asset, track.id, 2000);
+
+    const clips = store.getState().clips;
+    expect(clips).toHaveLength(1);
+    expect(clips[0].mediaType).toBe("image");
+    expect(clips[0].sourceType).toBe("imported");
+    expect(clips[0].status).toBe("generated");
+    expect(clips[0].currentAssetId).toBe("img-asset-1");
+    expect(clips[0].durationMs).toBe(4000);
+    expect(clips[0].startMs).toBe(2000);
+    expect(clips[0].trackId).toBe(track.id);
+  });
+
+  it("creates a video clip with duration from the asset", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    store.setState({ tracks: [track] });
+
+    const asset = makeAsset({ id: "vid-asset-1", name: "clip.mp4", content_type: "video/mp4", duration: 10 });
+
+    store.getState().addImportedClip(asset, track.id, 0);
+
+    const clips = store.getState().clips;
+    expect(clips[0].mediaType).toBe("video");
+    expect(clips[0].durationMs).toBe(10000);
+  });
+
+  it("creates an audio clip on an audio track", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "audio" });
+    store.setState({ tracks: [track] });
+
+    const asset = makeAsset({ id: "audio-asset-1", name: "track.mp3", content_type: "audio/mpeg", duration: 120 });
+
+    store.getState().addImportedClip(asset, track.id, 0);
+
+    const clips = store.getState().clips;
+    expect(clips[0].mediaType).toBe("audio");
+    expect(clips[0].durationMs).toBe(120000);
+  });
+});
+
+
 describe("TimelineStore — restoreVersion", () => {
   it("restores currentAssetId, paramOverrides, and lastGeneratedHash from version", () => {
     const store = mkStore();
@@ -697,101 +765,6 @@ describe("TimelineStore — replaceClipOutput", () => {
     expect(updated.currentAssetId).toBe("asset-new");
     expect(updated.paramOverrides?.prompt).toBe("hello");
     expect(updated.lastGeneratedHash).toBe("old-hash");
-  });
-});
-
-describe("TimelineStore — restoreVersion", () => {
-  it("restores currentAssetId, paramOverrides, and lastGeneratedHash from version", () => {
-    const store = mkStore();
-    const track = makeTrack({ type: "video" });
-    const clip = makeClip({
-      trackId: track.id,
-      dependencyHash: "hash-current",
-      versions: [
-        {
-          id: "ver-1",
-          createdAt: new Date().toISOString(),
-          jobId: "j1",
-          assetId: "asset-restored",
-          workflowUpdatedAt: new Date().toISOString(),
-          dependencyHash: "hash-current",
-          paramOverridesSnapshot: { speed: 1.5 },
-          status: "success"
-        }
-      ]
-    });
-    store.setState({ tracks: [track], clips: [clip] });
-
-    store.getState().restoreVersion(clip.id, "ver-1");
-
-    const updated = store.getState().clips[0];
-    expect(updated.currentAssetId).toBe("asset-restored");
-    expect(updated.lastGeneratedHash).toBe("hash-current");
-    expect(updated.paramOverrides).toEqual({ speed: 1.5 });
-    expect(updated.status).toBe("generated");
-  });
-
-  it("sets status to stale when dependencyHash differs", () => {
-    const store = mkStore();
-    const track = makeTrack({ type: "video" });
-    const clip = makeClip({
-      trackId: track.id,
-      dependencyHash: "hash-new",
-      versions: [
-        {
-          id: "ver-old",
-          createdAt: new Date().toISOString(),
-          jobId: "j2",
-          assetId: "asset-old",
-          workflowUpdatedAt: new Date().toISOString(),
-          dependencyHash: "hash-old",
-          paramOverridesSnapshot: {},
-          status: "success"
-        }
-      ]
-    });
-    store.setState({ tracks: [track], clips: [clip] });
-
-    store.getState().restoreVersion(clip.id, "ver-old");
-
-    const updated = store.getState().clips[0];
-    expect(updated.status).toBe("stale");
-  });
-
-  it("is a no-op for failed versions", () => {
-    const store = mkStore();
-    const track = makeTrack({ type: "video" });
-    const clip = makeClip({
-      trackId: track.id,
-      versions: [
-        {
-          id: "ver-fail",
-          createdAt: new Date().toISOString(),
-          jobId: "j3",
-          assetId: "asset-fail",
-          workflowUpdatedAt: new Date().toISOString(),
-          dependencyHash: "h",
-          paramOverridesSnapshot: {},
-          status: "failed"
-        }
-      ]
-    });
-    store.setState({ tracks: [track], clips: [clip] });
-
-    store.getState().restoreVersion(clip.id, "ver-fail");
-
-    expect(store.getState().clips[0].currentAssetId).toBeUndefined();
-  });
-
-  it("is a no-op for an unknown clipId", () => {
-    const store = mkStore();
-    const track = makeTrack({ type: "video" });
-    const clip = makeClip({ trackId: track.id });
-    store.setState({ tracks: [track], clips: [clip] });
-
-    store.getState().restoreVersion("nonexistent", "ver-1");
-
-    expect(store.getState().clips[0]).toBe(clip);
   });
 });
 
