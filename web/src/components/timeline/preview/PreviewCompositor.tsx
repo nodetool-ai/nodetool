@@ -18,10 +18,7 @@ import type { TimelineClip } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useAssetStore } from "../../../stores/AssetStore";
-
-function getAssetUrl(asset: unknown): string | null {
-  return (asset as { get_url?: string | null })?.get_url ?? null;
-}
+import { getAssetUrl } from "../../../utils/assetHelpers";
 
 interface PlaceholderLayer {
   clipId: string;

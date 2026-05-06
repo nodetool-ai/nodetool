@@ -143,8 +143,10 @@ export class AudioGraph {
           const remainingSec = (fadeEndMs - currentTimeMs) / 1000;
           clipGain.gain.setValueAtTime(startGain, now);
           clipGain.gain.linearRampToValueAtTime(volumeLinear, now + remainingSec);
+        } else {
+          // Past the fade-in region — pin explicitly to volumeLinear.
+          clipGain.gain.setValueAtTime(volumeLinear, now);
         }
-        // else: past the fade-in region — start at full volume (default)
       }
 
       // Fade-out envelope.
