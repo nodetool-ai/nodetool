@@ -30,6 +30,10 @@ const emptyMutate = () =>
     ok: true
   }));
 
+// Named exports for tests that need to configure per-test behaviour.
+export const mockWorkflowsGet = jest.fn();
+export const mockWorkflowsCreate = jest.fn();
+
 export const trpc = {
   Provider: ({ children }: { children: unknown }) => children as never,
   createClient: jest.fn()
@@ -101,6 +105,11 @@ export const trpcClient = {
     create: { mutate: emptyMutate() },
     remove: { mutate: emptyMutate() },
     resetToken: { mutate: emptyMutate() }
+  },
+  // Workflows namespace — shared mock functions exported for per-test config
+  workflows: {
+    get: { query: mockWorkflowsGet },
+    create: { mutate: mockWorkflowsCreate }
   }
 };
 

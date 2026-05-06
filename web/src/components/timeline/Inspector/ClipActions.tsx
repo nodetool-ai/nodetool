@@ -22,7 +22,7 @@ import LockOpenIcon from "@mui/icons-material/LockOpen";
 import ImageIcon from "@mui/icons-material/Image";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { ToolbarIconButton, FlexRow, Text, Dialog, TextInput } from "../../ui_primitives";
+import { ToolbarIconButton, FlexRow, Text, Dialog, TextInput, Toast } from "../../ui_primitives";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -69,6 +69,7 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
     const replaceClipOutput = useTimelineStore((s) => s.replaceClipOutput);
 
     const [variationBusy, setVariationBusy] = useState(false);
+    const [variationError, setVariationError] = useState<string | null>(null);
     const [replaceOpen, setReplaceOpen] = useState(false);
     const [assetIdInput, setAssetIdInput] = useState("");
 
@@ -87,6 +88,10 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
       setVariationBusy(true);
       try {
         await duplicateClipAsVariation(clipId, duplicateOffsetMs);
+      } catch (err) {
+        setVariationError(
+          err instanceof Error ? err.message : "Failed to create variation"
+        );
       } finally {
         setVariationBusy(false);
       }
@@ -204,6 +209,16 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
             size="small"
           />
         </Dialog>
+
+        {/* Variation error toast */}
+        <Toast
+          open={variationError !== null}
+          message={variationError ?? ""}
+          severity="error"
+          onClose={() => setVariationError(null)}
+          vertical="top"
+          horizontal="center"
+        />
       </>
     );
   }

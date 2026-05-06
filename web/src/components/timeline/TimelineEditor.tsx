@@ -32,7 +32,9 @@ import { BottomStatusBar } from "./BottomStatusBar";
 import { useTimeline } from "../../hooks/useTimelineSequence";
 import { TracksRegion } from "./Tracks/TracksRegion";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
+import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { PreviewArea } from "./preview/PreviewArea";
+import { ClipActions } from "./Inspector/ClipActions";
 
 // ── Drag-handle constants ──────────────────────────────────────────────────
 
@@ -123,18 +125,34 @@ const PreviewRegion: React.FC<{ isLoading: boolean; sequence?: { fps?: number; w
 
 const InspectorRegion: React.FC = () => {
   const theme = useTheme();
+
+  const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
+  const selectedId =
+    selectedClipIds.size === 1 ? [...selectedClipIds][0] : null;
+
+  // Get durationMs for the offset default so duplicates are placed right after
+  const clipDurationMs = useTimelineStore((s) =>
+    selectedId
+      ? (s.clips.find((c) => c.id === selectedId)?.durationMs ?? 0)
+      : 0
+  );
+
   return (
     <FlexColumn
       css={inspectorRegionStyles(theme)}
       fullHeight
-      sx={{ flex: "1 1 45%" }}
+      sx={{ flex: "1 1 45%", alignItems: "flex-start", justifyContent: "flex-start" }}
     >
-      <EmptyState
-        variant="empty"
-        size="small"
-        title="Inspector"
-        description="Inspector (NOD-305 / NOD-308)"
-      />
+      {selectedId ? (
+        <ClipActions clipId={selectedId} duplicateOffsetMs={clipDurationMs} />
+      ) : (
+        <EmptyState
+          variant="empty"
+          size="small"
+          title="Inspector"
+          description="Select a clip to inspect"
+        />
+      )}
     </FlexColumn>
   );
 };
