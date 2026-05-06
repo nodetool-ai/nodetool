@@ -10,6 +10,7 @@ import { PrefixTreeSearch, SearchField } from "./PrefixTreeSearch";
 import { getProviderKindForNamespace } from "./nodeProvider";
 import { rankNodeMetadata, searchTermsFromQuery } from "./nodeRanking";
 import { QUICK_ACTION_NODE_TYPES } from "../config/quickActionNodeTypes";
+import { BM25Index, buildNodeBM25Index } from "./bm25";
 
 /** Stop words to filter from multi-word queries */
 const QUERY_STOP_WORDS = new Set([
@@ -100,6 +101,30 @@ const addCandidateBoost = (
 // Cache is keyed by the metadata array to enable proper reuse
 let globalPrefixTree: PrefixTreeSearch | null = null;
 let globalPrefixTreeNodesHash: string = "";
+
+// Global BM25 index, cached alongside the prefix tree.
+let globalBM25Index: BM25Index | null = null;
+let globalBM25NodesHash: string = "";
+
+function ensureBM25Index(nodes: NodeMetadata[]): BM25Index {
+  const nodesHash = nodes
+    .map((n) => n.node_type)
+    .sort()
+    .join(",");
+  if (!globalBM25Index || globalBM25NodesHash !== nodesHash) {
+    const extras = new Map<string, { tags: string; useCases: string }>();
+    for (const node of nodes) {
+      const { tags, useCases } = formatNodeDocumentation(node.description);
+      extras.set(node.node_type, {
+        tags: tags.join(", "),
+        useCases: useCases.raw
+      });
+    }
+    globalBM25Index = buildNodeBM25Index(nodes, extras);
+    globalBM25NodesHash = nodesHash;
+  }
+  return globalBM25Index;
+}
 
 /**
  * Initialize or update the global prefix tree with node metadata
@@ -540,6 +565,33 @@ function collectFuseCandidateBoosts(
   return boosts;
 }
 
+/**
+ * BM25-based candidate boosts. Acts as the primary fuzzy/relevance signal
+ * for queries the prefix tree can't satisfy on its own — full-text term
+ * matches in title/namespace/tags/description with proper IDF weighting.
+ */
+const BM25_BOOST_SCALE = 1.5;
+const BM25_MIN_TERM_LENGTH = 2;
+
+function collectBM25CandidateBoosts(
+  nodes: NodeMetadata[],
+  terms: string[]
+): Map<string, number> {
+  const boosts = new Map<string, number>();
+  const normalizedTerms = terms
+    .map((t) => t.trim())
+    .filter((t) => t.length >= BM25_MIN_TERM_LENGTH);
+  if (normalizedTerms.length === 0 || nodes.length === 0) return boosts;
+
+  const index = ensureBM25Index(nodes);
+  for (const term of normalizedTerms) {
+    for (const result of index.search(term, 200)) {
+      addCandidateBoost(boosts, result.id, result.score * BM25_BOOST_SCALE);
+    }
+  }
+  return boosts;
+}
+
 const mergeCandidateBoosts = (
   target: Map<string, number>,
   source: Map<string, number>
@@ -567,6 +619,16 @@ export function rankSearchNodes(
     ? collectPrefixCandidateBoosts(nodes, expandedSearchTerms)
     : new Map<string, number>();
 
+  // Always merge BM25 scores when there's a query. BM25 catches fuzzy/term
+  // matches the prefix tree misses (e.g. queries that match description
+  // words mid-phrase) and provides principled IDF weighting.
+  if (term.trim()) {
+    mergeCandidateBoosts(
+      candidateBoosts,
+      collectBM25CandidateBoosts(nodes, expandedSearchTerms)
+    );
+  }
+
   let ranked = rankNodeMetadata(nodes, expandedSearchTerms, {
     boostedNodeTypes,
     candidateBoosts,
@@ -575,6 +637,8 @@ export function rankSearchNodes(
     recentNodeTypes
   });
 
+  // Fall back to Fuse only if BM25 + prefix didn't surface enough results
+  // (e.g. typo-tolerant fuzzy matches that BM25 won't catch).
   if (term.trim().length >= MIN_FUSE_QUERY_LENGTH && ranked.length < MIN_RESULTS_BEFORE_FUSE) {
     mergeCandidateBoosts(
       candidateBoosts,
