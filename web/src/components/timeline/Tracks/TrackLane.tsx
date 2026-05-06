@@ -158,6 +158,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
   /** Returns true if the dataTransfer looks like an internal asset drag. */
   const isAssetDrag = useCallback((e: React.DragEvent): boolean => {
+    // Check for both the unified MIME type and the legacy "asset" key.
+    // useAssetActions sets both for backward compatibility: serializeDragData
+    // writes DRAG_DATA_MIME, and a separate line writes the legacy "asset" key.
     return (
       e.dataTransfer.types.includes(DRAG_DATA_MIME) ||
       e.dataTransfer.types.includes("asset")
@@ -178,8 +181,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
   const handleAssetDragLeave = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
-      // Only clear when leaving the lane itself (not a child element)
-      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      // Only clear when leaving the lane itself (not a child element).
+      // relatedTarget is null or an Element, both of which are Nodes.
+      if (!(e.relatedTarget instanceof Node) || !e.currentTarget.contains(e.relatedTarget)) {
         setIsDragOver(false);
         setIsDragReject(false);
       }
