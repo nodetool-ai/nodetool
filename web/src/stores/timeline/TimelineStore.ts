@@ -136,18 +136,7 @@ export interface TimelineStoreState {
   /** Update an arbitrary subset of fields on a clip. */
   patchClip: (clipId: string, patch: Partial<TimelineClip>) => void;
 
-  /**
-   * Restore a clip to a previously generated version (purely local; autosave
-   * will persist the change on next save cycle).
-   *
-   * Sets:
-   *   - `clip.currentAssetId = version.assetId`
-   *   - `clip.paramOverrides = version.paramOverridesSnapshot`
-   *   - `clip.lastGeneratedHash = version.dependencyHash`
-   *
-   * Status becomes `"generated"` if the clip's current `dependencyHash`
-   * matches the version's hash, otherwise `"stale"`.
-   */
+  /** Restore a clip to a previously generated version (purely local; autosave persists on next save cycle). */
   restoreVersion: (clipId: string, versionId: string) => void;
 }
 
