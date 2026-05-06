@@ -153,6 +153,8 @@ export const SelectionControls = memo(
               nodrag && editorClassNames.nodrag,
               className
             )}
+            role="group"
+            aria-label="Selection controls"
             sx={{
               display: "flex",
               alignItems: "center",
@@ -198,6 +200,8 @@ export const SelectionControls = memo(
             nodrag && editorClassNames.nodrag,
             className
           )}
+          role="group"
+          aria-label="Selection controls"
           sx={{
             display: "flex",
             alignItems: "center",
