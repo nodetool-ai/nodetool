@@ -10,6 +10,7 @@ import { PrefixTreeSearch, SearchField } from "./PrefixTreeSearch";
 import { getProviderKindForNamespace } from "./nodeProvider";
 import { rankNodeMetadata, searchTermsFromQuery } from "./nodeRanking";
 import { QUICK_ACTION_NODE_TYPES } from "../config/quickActionNodeTypes";
+import { BM25Index, buildNodeBM25Index } from "./bm25";
 
 /** Stop words to filter from multi-word queries */
 const QUERY_STOP_WORDS = new Set([
@@ -96,34 +97,88 @@ const addCandidateBoost = (
   boosts.set(nodeType, Math.max(boosts.get(nodeType) ?? 0, boost));
 };
 
-// Global prefix tree instance for fast prefix searches
-// Cache is keyed by the metadata array to enable proper reuse
+// Cached search indexes. Both the prefix tree and BM25 index are rebuilt
+// together when the metadata changes, so they share a single hash check.
 let globalPrefixTree: PrefixTreeSearch | null = null;
-let globalPrefixTreeNodesHash: string = "";
+let globalBM25Index: BM25Index | null = null;
+let globalIndexesHash: string = "";
+
+// WeakMap memo so we don't re-hash the metadata array on every keystroke
+// when the caller passes the same array reference (the common case).
+const HASH_CACHE = new WeakMap<readonly NodeMetadata[], string>();
+
+const PREFIX_TREE_FIELDS: SearchField[] = [
+  { field: "title", weight: 1.0 },
+  { field: "namespace", weight: 0.8 },
+  { field: "description", weight: 0.4 }
+];
+
+// Content hash over node_type/title/namespace/description-length. Order-
+// sensitive (filter results preserve catalog order, so omitting the sort is
+// safe). Memoized by array reference for ref-stable callers.
+function computeNodesHash(nodes: NodeMetadata[]): string {
+  const cached = HASH_CACHE.get(nodes);
+  if (cached !== undefined) return cached;
+  const parts = nodes.map(
+    (n) =>
+      `${n.node_type}|${n.title ?? ""}|${n.namespace ?? ""}|${
+        (n.description ?? "").length
+      }`
+  );
+  const hash = parts.join(",");
+  HASH_CACHE.set(nodes, hash);
+  return hash;
+}
 
 /**
- * Initialize or update the global prefix tree with node metadata
- * Uses a hash of node types to detect when re-indexing is needed
+ * Build (or reuse) both the prefix tree and BM25 index for the given node
+ * set. Hashing and `formatNodeDocumentation` parsing happen once per
+ * rebuild — both indexes consume the same parsed extras.
  */
-function ensurePrefixTree(nodes: NodeMetadata[]): PrefixTreeSearch {
-  // Create a hash of the nodes to detect changes
-  const nodesHash = nodes
-    .map((n) => n.node_type)
-    .sort()
-    .join(",");
-
-  // Check if we need to rebuild the tree
-  if (!globalPrefixTree || globalPrefixTreeNodesHash !== nodesHash) {
-    const searchFields: SearchField[] = [
-      { field: "title", weight: 1.0 },
-      { field: "namespace", weight: 0.8 },
-      { field: "description", weight: 0.4 }
-    ];
-    globalPrefixTree = new PrefixTreeSearch(searchFields);
-    globalPrefixTree.indexNodes(nodes);
-    globalPrefixTreeNodesHash = nodesHash;
+function ensureIndexes(nodes: NodeMetadata[]): {
+  prefixTree: PrefixTreeSearch;
+  bm25: BM25Index;
+} {
+  const nodesHash = computeNodesHash(nodes);
+  if (
+    globalPrefixTree &&
+    globalBM25Index &&
+    globalIndexesHash === nodesHash
+  ) {
+    return { prefixTree: globalPrefixTree, bm25: globalBM25Index };
   }
-  return globalPrefixTree;
+
+  const extras = new Map<
+    string,
+    { description: string; tags: string; useCases: string }
+  >();
+  for (const node of nodes) {
+    const { description, tags, useCases } = formatNodeDocumentation(
+      node.description
+    );
+    extras.set(node.node_type, {
+      description,
+      tags: tags.join(", "),
+      useCases: useCases.raw
+    });
+  }
+
+  const prefixTree = new PrefixTreeSearch(PREFIX_TREE_FIELDS);
+  prefixTree.indexNodes(nodes);
+  const bm25 = buildNodeBM25Index(nodes, extras);
+
+  globalPrefixTree = prefixTree;
+  globalBM25Index = bm25;
+  globalIndexesHash = nodesHash;
+  return { prefixTree, bm25 };
+}
+
+function ensureBM25Index(nodes: NodeMetadata[]): BM25Index {
+  return ensureIndexes(nodes).bm25;
+}
+
+function ensurePrefixTree(nodes: NodeMetadata[]): PrefixTreeSearch {
+  return ensureIndexes(nodes).prefixTree;
 }
 
 /**
@@ -540,6 +595,33 @@ function collectFuseCandidateBoosts(
   return boosts;
 }
 
+/**
+ * BM25-based candidate boosts. Acts as the primary fuzzy/relevance signal
+ * for queries the prefix tree can't satisfy on its own — full-text term
+ * matches in title/namespace/tags/description with proper IDF weighting.
+ */
+const BM25_BOOST_SCALE = 1.5;
+const BM25_MIN_TERM_LENGTH = 2;
+
+function collectBM25CandidateBoosts(
+  nodes: NodeMetadata[],
+  terms: string[]
+): Map<string, number> {
+  const boosts = new Map<string, number>();
+  const normalizedTerms = terms
+    .map((t) => t.trim())
+    .filter((t) => t.length >= BM25_MIN_TERM_LENGTH);
+  if (normalizedTerms.length === 0 || nodes.length === 0) return boosts;
+
+  const index = ensureBM25Index(nodes);
+  for (const term of normalizedTerms) {
+    for (const result of index.search(term, 200)) {
+      addCandidateBoost(boosts, result.id, result.score * BM25_BOOST_SCALE);
+    }
+  }
+  return boosts;
+}
+
 const mergeCandidateBoosts = (
   target: Map<string, number>,
   source: Map<string, number>
@@ -567,6 +649,16 @@ export function rankSearchNodes(
     ? collectPrefixCandidateBoosts(nodes, expandedSearchTerms)
     : new Map<string, number>();
 
+  // Always merge BM25 scores when there's a query. BM25 catches fuzzy/term
+  // matches the prefix tree misses (e.g. queries that match description
+  // words mid-phrase) and provides principled IDF weighting.
+  if (term.trim()) {
+    mergeCandidateBoosts(
+      candidateBoosts,
+      collectBM25CandidateBoosts(nodes, expandedSearchTerms)
+    );
+  }
+
   let ranked = rankNodeMetadata(nodes, expandedSearchTerms, {
     boostedNodeTypes,
     candidateBoosts,
@@ -575,6 +667,8 @@ export function rankSearchNodes(
     recentNodeTypes
   });
 
+  // Fall back to Fuse only if BM25 + prefix didn't surface enough results
+  // (e.g. typo-tolerant fuzzy matches that BM25 won't catch).
   if (term.trim().length >= MIN_FUSE_QUERY_LENGTH && ranked.length < MIN_RESULTS_BEFORE_FUSE) {
     mergeCandidateBoosts(
       candidateBoosts,
