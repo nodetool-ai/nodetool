@@ -2,9 +2,9 @@ const isCi = process.env.CI === 'true';
 
 export default {
   // GitHub-hosted runners can OOM when ts-jest compiles many Electron test
-  // workers concurrently. Keep CI parallelism bounded while preserving the
-  // default local Jest behavior.
-  ...(isCi ? { maxWorkers: 2 } : {}),
+  // workers concurrently. Keep CI parallelism bounded and cap worker memory
+  // to prevent ipc.test.ts (28 KB, many mocks) from triggering SIGKILL.
+  ...(isCi ? { maxWorkers: 2, workerIdleMemoryLimit: '512MB' } : {}),
   preset: 'ts-jest',
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/src/__mocks__/setup.ts'],
