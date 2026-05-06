@@ -184,7 +184,9 @@ function formatShortcutCombos(
   if (
     digitEntries.length === entries.length &&
     digitEntries.length > 1 &&
-    digitEntries.every((digit, index) => digit === index)
+    digitEntries.every(
+      (digit, index) => digit === digitEntries[0] + index
+    )
   ) {
     return `${digitEntries[0]}–${digitEntries[digitEntries.length - 1]}`;
   }
