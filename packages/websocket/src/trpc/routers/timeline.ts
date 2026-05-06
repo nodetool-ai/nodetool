@@ -247,10 +247,14 @@ export const timelineRouter = router({
 
         // Prune successful: keep favorites + newest non-favorites up to cap
         const favSuccessful = successful.filter((v) => v.favorite);
-        const nonFavSuccessful = successful
-          .filter((v) => !v.favorite)
-          // newest first (versions are appended, so last element is newest)
-          .slice(-(MAX_SUCCESSFUL_VERSIONS - favSuccessful.length));
+        const slotsForNonFav = Math.max(
+          0,
+          MAX_SUCCESSFUL_VERSIONS - favSuccessful.length
+        );
+        const nonFavSuccessful =
+          slotsForNonFav > 0
+            ? successful.filter((v) => !v.favorite).slice(-slotsForNonFav)
+            : [];
 
         // Prune non-successful: keep newest up to cap
         const prunedNonSuccessful = nonSuccessful.slice(-MAX_FAILED_VERSIONS);

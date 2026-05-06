@@ -65,14 +65,14 @@ function formatCost(credits: number): string {
 
 function versionStatusType(
   status: ClipVersion["status"]
-): "success" | "error" | "pending" {
+): "success" | "error" | "warning" {
   switch (status) {
     case "success":
       return "success";
     case "failed":
       return "error";
     case "cancelled":
-      return "pending";
+      return "warning";
   }
 }
 

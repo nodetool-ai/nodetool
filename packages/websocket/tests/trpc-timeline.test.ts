@@ -343,6 +343,67 @@ describe("timeline router", () => {
       ).toBe(true);
     });
 
+    it("append does not exceed cap when all versions are favorited", async () => {
+      // 10 favorites fills the cap — no slots left for non-favorites
+      const allFavVersions = Array.from({ length: 10 }, (_, i) => ({
+        id: `vf-${i}`,
+        createdAt: `2026-01-01T00:00:0${i}Z`,
+        jobId: `j-${i}`,
+        assetId: `a-${i}`,
+        workflowUpdatedAt: "2026-01-01T00:00:00Z",
+        dependencyHash: `h${i}`,
+        paramOverridesSnapshot: {},
+        status: "success" as const,
+        favorite: true
+      }));
+
+      const docAllFav: TimelineDocument = {
+        tracks: [],
+        clips: [
+          {
+            id: "clip-1",
+            trackId: "v1",
+            name: "Clip",
+            startMs: 0,
+            durationMs: 1000,
+            mediaType: "video",
+            sourceType: "imported",
+            status: "generated",
+            locked: false,
+            versions: allFavVersions
+          }
+        ],
+        markers: []
+      };
+
+      TS.findById.mockResolvedValue(
+        makeSeq({ document: JSON.stringify(docAllFav) })
+      );
+      TS.update.mockResolvedValue(undefined);
+      const caller = createCaller(makeCtx());
+      await caller.timeline.versions.append({
+        id: "seq-1",
+        clipId: "clip-1",
+        jobId: "job-new",
+        assetId: "asset-new",
+        dependencyHash: "h-new",
+        workflowUpdatedAt: "2026-01-02T00:00:00Z"
+      });
+      const updateArgs = TS.update.mock.calls[0]?.[1];
+      const persisted = JSON.parse(
+        updateArgs?.document as string
+      ) as TimelineDocument;
+      // 10 favorites + 1 new non-favorite (the just-appended version)
+      // Since favorites fill the cap, the new non-fav gets 0 slots → only favorites + new item itself
+      // The new version is kept (it was just appended), non-fav slots = 0
+      const versions = persisted.clips[0].versions!;
+      // All 10 favorites must still be present
+      expect(versions.filter((v) => v.favorite).length).toBe(10);
+      // slotsForNonFav = Math.max(0, 10 - 10) = 0 → new non-favorite is pruned
+      expect(versions.filter((v) => !v.favorite).length).toBe(0);
+      expect(versions.length).toBe(10);
+    });
+
     it("setFavorite toggles the favorite flag", async () => {
       TS.findById.mockResolvedValue(
         makeSeq({ document: JSON.stringify(docWithClip) })
