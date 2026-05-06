@@ -509,9 +509,9 @@ export const createTimelineStore = (
               ...src,
               id: createTimeOrderedUuid(),
               startMs: src.startMs + deltaMs,
-              // Independent overrides — start with a shallow copy
+              // Deep copy so nested values in paramOverrides are fully independent
               paramOverrides: src.paramOverrides
-                ? { ...src.paramOverrides }
+                ? structuredClone(src.paramOverrides)
                 : undefined,
               // Reset generation state; the shared workflow still applies
               status: "draft",
@@ -541,25 +541,41 @@ export const createTimelineStore = (
               tags: original.tags,
               run_mode: "clip"
             });
-            newWorkflowId = (cloned as { id: string }).id;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            newWorkflowId = (cloned as any).id as string;
           }
 
-          const newClip = makeClip({
-            ...src,
-            id: createTimeOrderedUuid(),
-            startMs: src.startMs + deltaMs,
-            workflowId: newWorkflowId,
-            paramOverrides: src.paramOverrides
-              ? { ...src.paramOverrides }
-              : undefined,
-            status: "draft",
-            currentAssetId: undefined,
-            lastGeneratedHash: undefined,
-            versions: []
+          // Re-read current clip state inside the set callback to guard against
+          // mutations (e.g. clip deleted) that occurred during the awaited API calls.
+          let newClipId: string | undefined;
+          set((state) => {
+            const currentSrc = state.clips.find((c) => c.id === clipId);
+            if (!currentSrc) {
+              // Source was deleted while we awaited — no-op
+              return state;
+            }
+            const newClip = makeClip({
+              ...currentSrc,
+              id: createTimeOrderedUuid(),
+              startMs: currentSrc.startMs + deltaMs,
+              workflowId: newWorkflowId,
+              // Deep copy so nested values in paramOverrides are fully independent
+              paramOverrides: currentSrc.paramOverrides
+                ? structuredClone(currentSrc.paramOverrides)
+                : undefined,
+              status: "draft",
+              currentAssetId: undefined,
+              lastGeneratedHash: undefined,
+              versions: []
+            });
+            newClipId = newClip.id;
+            return { clips: [...state.clips, newClip] };
           });
 
-          set((state) => ({ clips: [...state.clips, newClip] }));
-          return newClip.id;
+          if (!newClipId) {
+            throw new Error(`Source clip ${clipId} was deleted before variation could be created`);
+          }
+          return newClipId;
         },
 
         setClipLocked: (clipId, locked) =>

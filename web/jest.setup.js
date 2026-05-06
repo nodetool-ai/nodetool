@@ -4,6 +4,15 @@ process.env.TZ = 'UTC';
 // Note: React is imported via standard imports in test files.
 // CJS mode in ts-jest handles the default export properly.
 
+// Polyfill structuredClone for jsdom which does not expose it as a window global.
+// structuredClone is a Node.js 17+ and modern-browser built-in; jsdom simply
+// does not forward it to the window object. All paramOverrides values are
+// JSON-serialisable (they originate from UI inputs), so JSON round-trip is a
+// valid deep-clone strategy here.
+if (typeof global.structuredClone === 'undefined') {
+  global.structuredClone = (obj) => JSON.parse(JSON.stringify(obj));
+}
+
 // Mock import.meta for Vite compatibility
 global.import = {
   meta: {
