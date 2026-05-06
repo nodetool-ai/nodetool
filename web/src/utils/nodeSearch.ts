@@ -97,73 +97,88 @@ const addCandidateBoost = (
   boosts.set(nodeType, Math.max(boosts.get(nodeType) ?? 0, boost));
 };
 
-// Global prefix tree instance for fast prefix searches
-// Cache is keyed by the metadata array to enable proper reuse
+// Cached search indexes. Both the prefix tree and BM25 index are rebuilt
+// together when the metadata changes, so they share a single hash check.
 let globalPrefixTree: PrefixTreeSearch | null = null;
-let globalPrefixTreeNodesHash: string = "";
-
-// Global BM25 index, cached alongside the prefix tree.
 let globalBM25Index: BM25Index | null = null;
-let globalBM25NodesHash: string = "";
+let globalIndexesHash: string = "";
 
-// Hash that detects changes to any indexed field, not just the node_type set.
-// Description length is included as a cheap proxy — full strings would bloat
-// the hash, but length changes catch most catalog edits in practice.
+// WeakMap memo so we don't re-hash the metadata array on every keystroke
+// when the caller passes the same array reference (the common case).
+const HASH_CACHE = new WeakMap<readonly NodeMetadata[], string>();
+
+const PREFIX_TREE_FIELDS: SearchField[] = [
+  { field: "title", weight: 1.0 },
+  { field: "namespace", weight: 0.8 },
+  { field: "description", weight: 0.4 }
+];
+
+// Content hash over node_type/title/namespace/description-length. Order-
+// sensitive (filter results preserve catalog order, so omitting the sort is
+// safe). Memoized by array reference for ref-stable callers.
 function computeNodesHash(nodes: NodeMetadata[]): string {
+  const cached = HASH_CACHE.get(nodes);
+  if (cached !== undefined) return cached;
   const parts = nodes.map(
     (n) =>
       `${n.node_type}|${n.title ?? ""}|${n.namespace ?? ""}|${
         (n.description ?? "").length
       }`
   );
-  parts.sort();
-  return parts.join(",");
-}
-
-function ensureBM25Index(nodes: NodeMetadata[]): BM25Index {
-  const nodesHash = computeNodesHash(nodes);
-  if (!globalBM25Index || globalBM25NodesHash !== nodesHash) {
-    const extras = new Map<
-      string,
-      { description: string; tags: string; useCases: string }
-    >();
-    for (const node of nodes) {
-      const { description, tags, useCases } = formatNodeDocumentation(
-        node.description
-      );
-      extras.set(node.node_type, {
-        description,
-        tags: tags.join(", "),
-        useCases: useCases.raw
-      });
-    }
-    globalBM25Index = buildNodeBM25Index(nodes, extras);
-    globalBM25NodesHash = nodesHash;
-  }
-  return globalBM25Index;
+  const hash = parts.join(",");
+  HASH_CACHE.set(nodes, hash);
+  return hash;
 }
 
 /**
- * Initialize or update the global prefix tree with node metadata
- * Uses a hash of node types to detect when re-indexing is needed
+ * Build (or reuse) both the prefix tree and BM25 index for the given node
+ * set. Hashing and `formatNodeDocumentation` parsing happen once per
+ * rebuild — both indexes consume the same parsed extras.
  */
-function ensurePrefixTree(nodes: NodeMetadata[]): PrefixTreeSearch {
-  // Hash includes title/namespace/description-length so the tree rebuilds
-  // when indexed fields change, not only when the node_type set changes.
+function ensureIndexes(nodes: NodeMetadata[]): {
+  prefixTree: PrefixTreeSearch;
+  bm25: BM25Index;
+} {
   const nodesHash = computeNodesHash(nodes);
-
-  // Check if we need to rebuild the tree
-  if (!globalPrefixTree || globalPrefixTreeNodesHash !== nodesHash) {
-    const searchFields: SearchField[] = [
-      { field: "title", weight: 1.0 },
-      { field: "namespace", weight: 0.8 },
-      { field: "description", weight: 0.4 }
-    ];
-    globalPrefixTree = new PrefixTreeSearch(searchFields);
-    globalPrefixTree.indexNodes(nodes);
-    globalPrefixTreeNodesHash = nodesHash;
+  if (
+    globalPrefixTree &&
+    globalBM25Index &&
+    globalIndexesHash === nodesHash
+  ) {
+    return { prefixTree: globalPrefixTree, bm25: globalBM25Index };
   }
-  return globalPrefixTree;
+
+  const extras = new Map<
+    string,
+    { description: string; tags: string; useCases: string }
+  >();
+  for (const node of nodes) {
+    const { description, tags, useCases } = formatNodeDocumentation(
+      node.description
+    );
+    extras.set(node.node_type, {
+      description,
+      tags: tags.join(", "),
+      useCases: useCases.raw
+    });
+  }
+
+  const prefixTree = new PrefixTreeSearch(PREFIX_TREE_FIELDS);
+  prefixTree.indexNodes(nodes);
+  const bm25 = buildNodeBM25Index(nodes, extras);
+
+  globalPrefixTree = prefixTree;
+  globalBM25Index = bm25;
+  globalIndexesHash = nodesHash;
+  return { prefixTree, bm25 };
+}
+
+function ensureBM25Index(nodes: NodeMetadata[]): BM25Index {
+  return ensureIndexes(nodes).bm25;
+}
+
+function ensurePrefixTree(nodes: NodeMetadata[]): PrefixTreeSearch {
+  return ensureIndexes(nodes).prefixTree;
 }
 
 /**
