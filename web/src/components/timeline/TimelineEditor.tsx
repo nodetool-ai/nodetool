@@ -35,6 +35,8 @@ import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { PreviewArea } from "./preview/PreviewArea";
 import { ClipActions } from "./Inspector/ClipActions";
+import { StructuralDriftDialog } from "./Inspector/StructuralDriftDialog";
+import { useWorkflowFreshnessCheck } from "../../hooks/timeline/useWorkflowFreshnessCheck";
 
 // ── Drag-handle constants ──────────────────────────────────────────────────
 
@@ -166,6 +168,10 @@ export const TimelineEditor: React.FC = memo(() => {
 
   // Data fetching ─────────────────────────────────────────────────────────
   const { data: sequence, isLoading, isError } = useTimeline(sequenceId);
+
+  // Workflow freshness check — runs on mount after returning from the node editor
+  const { driftItems, resolveDrift } = useWorkflowFreshnessCheck(sequenceId ?? null);
+  const currentDriftItem = driftItems[0] ?? null;
 
   // Zoom ← wired to TimelineUIStore so TracksRegion + BottomStatusBar stay in sync
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
@@ -311,6 +317,12 @@ export const TimelineEditor: React.FC = memo(() => {
         mode="local"
         zoom={zoom}
         onZoomChange={handleZoomChange}
+      />
+
+      {/* ── Structural drift dialog ────────────────────────────────── */}
+      <StructuralDriftDialog
+        driftItem={currentDriftItem}
+        onResolve={resolveDrift}
       />
     </FlexColumn>
   );

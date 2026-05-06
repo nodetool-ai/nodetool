@@ -459,6 +459,9 @@ describe("TimelineStore — restoreVersion", () => {
     store.getState().restoreVersion("nonexistent", "ver-1");
 
     expect(store.getState().clips[0]).toBe(clip);
+  });
+});
+
 describe("TimelineStore — duplicateClipLinked", () => {
   it("creates a second clip with a new id", () => {
     const store = mkStore();
@@ -789,5 +792,188 @@ describe("TimelineStore — restoreVersion", () => {
     store.getState().restoreVersion("nonexistent", "ver-1");
 
     expect(store.getState().clips[0]).toBe(clip);
+  });
+});
+
+// ── Freshness actions ──────────────────────────────────────────────────────
+
+describe("TimelineStore — markClipsStaleForWorkflow", () => {
+  it("marks all clips with the given workflowId as stale", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    const clipA = makeClip({ trackId: track.id, workflowId: "wf-1", status: "generated" });
+    const clipB = makeClip({ trackId: track.id, workflowId: "wf-1", status: "generated" });
+    const clipC = makeClip({ trackId: track.id, workflowId: "wf-2", status: "generated" });
+    store.setState({ tracks: [track], clips: [clipA, clipB, clipC] });
+
+    store.getState().markClipsStaleForWorkflow("wf-1");
+
+    const clips = store.getState().clips;
+    expect(clips.find((c) => c.id === clipA.id)!.status).toBe("stale");
+    expect(clips.find((c) => c.id === clipB.id)!.status).toBe("stale");
+    // clipC uses a different workflowId — must not be affected
+    expect(clips.find((c) => c.id === clipC.id)!.status).toBe("generated");
+  });
+
+  it("is a no-op when no clips reference the workflowId", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, { workflowId: "wf-other", status: "generated" });
+
+    store.getState().markClipsStaleForWorkflow("wf-missing");
+
+    expect(store.getState().clips.find((c) => c.id === clip.id)!.status).toBe(
+      "generated"
+    );
+  });
+});
+
+describe("TimelineStore — applyInputDrift", () => {
+  it("seeds added input names with default values", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, {
+      workflowId: "wf-1",
+      paramOverrides: { existing: "hello" }
+    });
+
+    store
+      .getState()
+      .applyInputDrift(
+        "wf-1",
+        [{ name: "newInput", defaultValue: 42 }],
+        []
+      );
+
+    const overrides = store.getState().clips.find((c) => c.id === clip.id)!
+      .paramOverrides;
+    expect(overrides?.existing).toBe("hello");
+    expect(overrides?.newInput).toBe(42);
+  });
+
+  it("does not overwrite an existing override with the default", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, {
+      workflowId: "wf-1",
+      paramOverrides: { prompt: "keep-me" }
+    });
+
+    store
+      .getState()
+      .applyInputDrift(
+        "wf-1",
+        [{ name: "prompt", defaultValue: "replaced?" }],
+        []
+      );
+
+    expect(
+      store.getState().clips.find((c) => c.id === clip.id)!.paramOverrides
+        ?.prompt
+    ).toBe("keep-me");
+  });
+
+  it("drops removed input names from paramOverrides", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, {
+      workflowId: "wf-1",
+      paramOverrides: { a: 1, b: 2, c: 3 }
+    });
+
+    store.getState().applyInputDrift("wf-1", [], ["b", "c"]);
+
+    const overrides = store.getState().clips.find((c) => c.id === clip.id)!
+      .paramOverrides;
+    expect(overrides).toEqual({ a: 1 });
+  });
+
+  it("applies drift to all clips with the same workflowId", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    const clipA = makeClip({
+      trackId: track.id,
+      workflowId: "wf-1",
+      paramOverrides: { old: "x" }
+    });
+    const clipB = makeClip({
+      trackId: track.id,
+      workflowId: "wf-1",
+      paramOverrides: { old: "y" }
+    });
+    const clipC = makeClip({
+      trackId: track.id,
+      workflowId: "wf-other",
+      paramOverrides: { old: "z" }
+    });
+    store.setState({ tracks: [track], clips: [clipA, clipB, clipC] });
+
+    store
+      .getState()
+      .applyInputDrift("wf-1", [{ name: "brand_new", defaultValue: 0 }], ["old"]);
+
+    const clips = store.getState().clips;
+    // wf-1 clips should have "brand_new" added and "old" removed
+    expect(clips.find((c) => c.id === clipA.id)!.paramOverrides).toEqual({
+      brand_new: 0
+    });
+    expect(clips.find((c) => c.id === clipB.id)!.paramOverrides).toEqual({
+      brand_new: 0
+    });
+    // wf-other clip unchanged
+    expect(clips.find((c) => c.id === clipC.id)!.paramOverrides).toEqual({
+      old: "z"
+    });
+  });
+});
+
+describe("TimelineStore — setClipsOutputNode", () => {
+  it("sets selectedOutputNodeId on all clips with the given workflowId", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    const clipA = makeClip({
+      trackId: track.id,
+      workflowId: "wf-1",
+      selectedOutputNodeId: "old-node",
+      status: "generated"
+    });
+    const clipB = makeClip({
+      trackId: track.id,
+      workflowId: "wf-1",
+      selectedOutputNodeId: "old-node",
+      status: "generated"
+    });
+    const clipC = makeClip({
+      trackId: track.id,
+      workflowId: "wf-2",
+      selectedOutputNodeId: "old-node",
+      status: "generated"
+    });
+    store.setState({ tracks: [track], clips: [clipA, clipB, clipC] });
+
+    store.getState().setClipsOutputNode("wf-1", "new-node");
+
+    const clips = store.getState().clips;
+    expect(clips.find((c) => c.id === clipA.id)!.selectedOutputNodeId).toBe(
+      "new-node"
+    );
+    expect(clips.find((c) => c.id === clipB.id)!.selectedOutputNodeId).toBe(
+      "new-node"
+    );
+    // wf-2 clip must be unchanged
+    expect(clips.find((c) => c.id === clipC.id)!.selectedOutputNodeId).toBe(
+      "old-node"
+    );
+  });
+
+  it("marks affected clips as stale", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, {
+      workflowId: "wf-1",
+      selectedOutputNodeId: "out-1",
+      status: "generated"
+    });
+
+    store.getState().setClipsOutputNode("wf-1", "out-2");
+
+    expect(store.getState().clips.find((c) => c.id === clip.id)!.status).toBe(
+      "stale"
+    );
   });
 });
