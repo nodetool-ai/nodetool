@@ -141,8 +141,6 @@ export interface TimelineStoreState {
    * Duplicate a clip maintaining the same `workflowId` (shared graph, independent
    * overrides). Both clips run from the same workflow row; editing `paramOverrides`
    * on either is independent.
-   *
-   * Tooltip hint: "Shared graph — edits to either clip's params are independent."
    */
   duplicateClipLinked: (clipId: string, deltaMs?: number) => void;
 
@@ -151,25 +149,14 @@ export interface TimelineStoreState {
    * gets its own independent graph. Calls the workflow creation API and resolves once
    * the new clip has been added to the store.
    *
-   * Tooltip hint: "For trying a different look — graph is fully independent."
-   *
    * @returns Promise that resolves with the new clip id, or rejects if the API fails.
    */
   duplicateClipAsVariation: (clipId: string, deltaMs?: number) => Promise<string>;
 
-  /**
-   * Toggle the `locked` flag on a clip.
-   * When locked, successful generations record a ClipVersion but do NOT replace
-   * `currentAssetId`. The lock icon appears on the clip body (top-right) and the
-   * inspector header badge shows "locked".
-   */
+  /** Toggle the `locked` flag on a clip. */
   setClipLocked: (clipId: string, locked: boolean) => void;
 
-  /**
-   * Replace the visible output asset without regenerating.
-   * Sets `currentAssetId` to the user-picked asset and leaves `paramOverrides`
-   * and `lastGeneratedHash` untouched. Clip status is unchanged.
-   */
+  /** Replace the visible output asset without regenerating. */
   replaceClipOutput: (clipId: string, assetId: string) => void;
 }
 
@@ -515,6 +502,7 @@ export const createTimelineStore = (
                 : undefined,
               // Reset generation state; the shared workflow still applies
               status: "draft",
+              locked: false,
               currentAssetId: undefined,
               lastGeneratedHash: undefined,
               versions: []
@@ -536,13 +524,12 @@ export const createTimelineStore = (
             const cloned = await trpcClient.workflows.create.mutate({
               name: `${original.name} (variation)`,
               access: original.access ?? "private",
-              graph: original.graph as Parameters<typeof trpcClient.workflows.create.mutate>[0]["graph"],
+              graph: original.graph,
               description: original.description,
               tags: original.tags,
               run_mode: "clip"
             });
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            newWorkflowId = (cloned as any).id as string;
+            newWorkflowId = cloned.id;
           }
 
           // Re-read current clip state inside the set callback to guard against
@@ -564,6 +551,7 @@ export const createTimelineStore = (
                 ? structuredClone(currentSrc.paramOverrides)
                 : undefined,
               status: "draft",
+              locked: false,
               currentAssetId: undefined,
               lastGeneratedHash: undefined,
               versions: []

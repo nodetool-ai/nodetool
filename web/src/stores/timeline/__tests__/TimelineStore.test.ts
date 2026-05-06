@@ -10,12 +10,14 @@
 import { describe, it, expect, beforeEach } from "@jest/globals";
 import { createTimelineStore } from "../TimelineStore";
 import { makeTrack, makeClip } from "@nodetool-ai/timeline";
-// moduleNameMapper routes "../../../trpc/client" → trpcClientMock.ts, which
-// exports named mock functions we can configure per-test.
+// Import mock helpers directly from the mock file so TypeScript resolves the
+// exports correctly. Jest's moduleNameMapper redirects TimelineStore.ts's
+// own `trpc/client` import to the same file, so both share the same module
+// instance at runtime.
 import {
   mockWorkflowsGet,
   mockWorkflowsCreate
-} from "../../../trpc/client";
+} from "../../../__mocks__/trpcClientMock";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -424,6 +426,18 @@ describe("TimelineStore — duplicateClipLinked", () => {
     expect(newClip.status).toBe("draft");
   });
 
+  it("resets locked to false even when source is locked", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, { startMs: 0, durationMs: 1000 });
+    store.getState().setClipLocked(clip.id, true);
+    store.getState().duplicateClipLinked(clip.id);
+    const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
+    expect(newClip.locked).toBe(false);
+    // Source remains locked
+    const src = store.getState().clips.find((c) => c.id === clip.id)!;
+    expect(src.locked).toBe(true);
+  });
+
   it("deep-copies paramOverrides so nested values are independent", () => {
     const store = mkStore();
     const { clip } = addTrackAndClip(store, {
@@ -545,6 +559,16 @@ describe("TimelineStore — duplicateClipAsVariation", () => {
     expect(newClip.currentAssetId).toBeUndefined();
     expect(newClip.lastGeneratedHash).toBeUndefined();
     expect(newClip.status).toBe("draft");
+  });
+
+  it("resets locked to false even when source is locked", async () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, { startMs: 0, durationMs: 1000 });
+    store.getState().setClipLocked(clip.id, true);
+
+    const newClipId = await store.getState().duplicateClipAsVariation(clip.id);
+    const newClip = store.getState().clips.find((c) => c.id === newClipId)!;
+    expect(newClip.locked).toBe(false);
   });
 });
 
