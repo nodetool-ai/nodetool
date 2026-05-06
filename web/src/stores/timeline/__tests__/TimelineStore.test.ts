@@ -18,6 +18,23 @@ import {
   mockWorkflowsGet,
   mockWorkflowsCreate
 } from "../../../__mocks__/trpcClientMock";
+import type { Asset } from "../../ApiTypes";
+
+/** Minimal valid Asset fixture for addImportedClip tests. */
+function makeAsset(overrides: Partial<Asset> = {}): Asset {
+  return {
+    id: "asset-1",
+    user_id: "u1",
+    parent_id: "root",
+    name: "test.jpg",
+    content_type: "image/jpeg",
+    workflow_id: null,
+    created_at: "2024-01-01T00:00:00Z",
+    get_url: "https://cdn.example.com/test.jpg",
+    thumb_url: null,
+    ...overrides
+  };
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -609,21 +626,9 @@ describe("TimelineStore — addImportedClip", () => {
     const track = makeTrack({ type: "video" });
     store.setState({ tracks: [track] });
 
-    const asset = {
-      id: "img-asset-1",
-      user_id: "u1",
-      parent_id: "root",
-      name: "photo.jpg",
-      content_type: "image/jpeg",
-      workflow_id: null,
-      created_at: "2024-01-01T00:00:00Z",
-      get_url: "https://cdn.example.com/photo.jpg",
-      thumb_url: null,
-      duration: null
-    };
+    const asset = makeAsset({ id: "img-asset-1", name: "photo.jpg", content_type: "image/jpeg", duration: null });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    store.getState().addImportedClip(asset as any, track.id, 2000);
+    store.getState().addImportedClip(asset, track.id, 2000);
 
     const clips = store.getState().clips;
     expect(clips).toHaveLength(1);
@@ -641,21 +646,9 @@ describe("TimelineStore — addImportedClip", () => {
     const track = makeTrack({ type: "video" });
     store.setState({ tracks: [track] });
 
-    const asset = {
-      id: "vid-asset-1",
-      user_id: "u1",
-      parent_id: "root",
-      name: "clip.mp4",
-      content_type: "video/mp4",
-      workflow_id: null,
-      created_at: "2024-01-01T00:00:00Z",
-      get_url: "https://cdn.example.com/clip.mp4",
-      thumb_url: null,
-      duration: 10 // seconds
-    };
+    const asset = makeAsset({ id: "vid-asset-1", name: "clip.mp4", content_type: "video/mp4", duration: 10 });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    store.getState().addImportedClip(asset as any, track.id, 0);
+    store.getState().addImportedClip(asset, track.id, 0);
 
     const clips = store.getState().clips;
     expect(clips[0].mediaType).toBe("video");
@@ -667,21 +660,9 @@ describe("TimelineStore — addImportedClip", () => {
     const track = makeTrack({ type: "audio" });
     store.setState({ tracks: [track] });
 
-    const asset = {
-      id: "audio-asset-1",
-      user_id: "u1",
-      parent_id: "root",
-      name: "track.mp3",
-      content_type: "audio/mpeg",
-      workflow_id: null,
-      created_at: "2024-01-01T00:00:00Z",
-      get_url: "https://cdn.example.com/track.mp3",
-      thumb_url: null,
-      duration: 120
-    };
+    const asset = makeAsset({ id: "audio-asset-1", name: "track.mp3", content_type: "audio/mpeg", duration: 120 });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    store.getState().addImportedClip(asset as any, track.id, 0);
+    store.getState().addImportedClip(asset, track.id, 0);
 
     const clips = store.getState().clips;
     expect(clips[0].mediaType).toBe("audio");

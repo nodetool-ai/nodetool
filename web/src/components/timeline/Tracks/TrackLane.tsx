@@ -24,7 +24,7 @@ import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { Clip } from "./Clip";
 import { WarningBanner } from "../../ui_primitives";
-import { deserializeDragData, DRAG_DATA_MIME } from "../../../lib/dragdrop";
+import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
 import {
   assetMediaType,
@@ -145,25 +145,29 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     };
   }, []);
 
-  const showWarning = useCallback((message: string) => {
+  const showWarning = useCallback((message: string, isReject = false) => {
     setDropWarning(message);
+    setIsDragReject(isReject);
     if (warningTimerRef.current !== null) {
       clearTimeout(warningTimerRef.current);
     }
     warningTimerRef.current = setTimeout(() => {
       setDropWarning(null);
+      setIsDragReject(false);
       warningTimerRef.current = null;
     }, WARNING_DISMISS_MS);
   }, []);
 
-  /** Returns true if the dataTransfer looks like an internal asset drag. */
+  /**
+   * Returns true if the dataTransfer looks like an asset drag (single or multi).
+   * The legacy "asset" key is only set by single-asset drags; "selectedAssetIds"
+   * is set by multi-asset drags. We intentionally do NOT check DRAG_DATA_MIME
+   * alone because that MIME type is shared with create-node and other drag types.
+   */
   const isAssetDrag = useCallback((e: React.DragEvent): boolean => {
-    // Check for both the unified MIME type and the legacy "asset" key.
-    // useAssetActions sets both for backward compatibility: serializeDragData
-    // writes DRAG_DATA_MIME, and a separate line writes the legacy "asset" key.
     return (
-      e.dataTransfer.types.includes(DRAG_DATA_MIME) ||
-      e.dataTransfer.types.includes("asset")
+      e.dataTransfer.types.includes("asset") ||
+      e.dataTransfer.types.includes("selectedAssetIds")
     );
   }, []);
 
@@ -208,6 +212,12 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         return;
       }
 
+      // Multi-asset drags are not supported for clip creation — guide the user.
+      if (dragData.type === "assets-multiple") {
+        showWarning("Drop one asset at a time onto a track.", true);
+        return;
+      }
+
       // Resolve asset: only single-asset drags are supported for clip creation
       let asset: Asset | null = null;
       if (dragData.type === "asset") {
@@ -228,10 +238,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         const expected =
           mediaType === "audio" ? "an audio" : "a video or overlay";
         showWarning(
-          `Cannot drop ${mediaType} asset onto this ${track.type} track — use ${expected} track.`
+          `Cannot drop ${mediaType} asset onto this ${track.type} track — use ${expected} track.`,
+          true
         );
-        setIsDragReject(true);
-        setTimeout(() => setIsDragReject(false), WARNING_DISMISS_MS);
         return;
       }
 
