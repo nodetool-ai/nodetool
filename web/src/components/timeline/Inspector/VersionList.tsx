@@ -1,17 +1,5 @@
 /** @jsxImportSource @emotion/react */
-/**
- * VersionList
- *
- * Collapsible section showing the version history for a single timeline clip.
- * Collapsed by default; header shows "Versions (N)".
- *
- * - Restore: calls `useTimelineStore.restoreVersion` (purely local, autosave
- *   persists it on next cycle).
- * - Favorite: calls `trpc.timeline.versions.setFavorite` (prevents pruning).
- * - Delete: calls `trpc.timeline.versions.delete` with a confirmation dialog.
- *
- * Versions are displayed newest-first.
- */
+/** Collapsible version history list for a single timeline clip. */
 
 import React, { memo, useCallback, useState } from "react";
 import { css } from "@emotion/react";

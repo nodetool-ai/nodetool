@@ -1,9 +1,4 @@
-/**
- * Thin wrappers around the `trpc.timeline.versions.*` hooks.
- *
- * Components can also call `trpc.timeline.versions.*` directly; these wrappers
- * exist for convenience and consistent cache-invalidation patterns.
- */
+/** Thin wrappers around `trpc.timeline.versions.*` with consistent cache invalidation. */
 
 import { trpc } from "../../trpc/client";
 

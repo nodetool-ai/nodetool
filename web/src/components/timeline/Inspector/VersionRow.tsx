@@ -1,13 +1,5 @@
 /** @jsxImportSource @emotion/react */
-/**
- * VersionRow
- *
- * A single row in the clip version history list.
- * Shows: timestamp, status pill, cost (if known), and action buttons
- * (Favorite toggle, Delete with confirmation).
- *
- * Restore is triggered via the primary "Restore" action.
- */
+/** Single row in the clip version history list. */
 
 import React, { memo, useCallback, useState } from "react";
 import { css } from "@emotion/react";
