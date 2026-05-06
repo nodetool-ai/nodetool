@@ -147,6 +147,25 @@ export interface TimelineStoreState {
   setClipLocked: (clipId: string, locked: boolean) => void;
 
   replaceClipOutput: (clipId: string, assetId: string) => void;
+
+  /** Mark all clips referencing the given workflowId as stale. */
+  markClipsStaleForWorkflow: (workflowId: string) => void;
+
+  /**
+   * Apply Input* node drift: seed added inputs with defaults, drop removed ones.
+   * No status change — caller is responsible for marking stale if needed.
+   */
+  applyInputDrift: (
+    workflowId: string,
+    added: Array<{ name: string; defaultValue: unknown }>,
+    removed: string[]
+  ) => void;
+
+  /**
+   * Set `selectedOutputNodeId` for every clip with the given workflowId.
+   * Also marks those clips as stale so they will be regenerated.
+   */
+  setClipsOutputNode: (workflowId: string, selectedOutputNodeId: string) => void;
 }
 
 // ── Partialized type for zundo (only document state is undo-able) ──────────
@@ -587,6 +606,39 @@ export const createTimelineStore = (
           set((state) => ({
             clips: state.clips.map((c) =>
               c.id === clipId ? { ...c, currentAssetId: assetId } : c
+            )
+          })),
+
+        markClipsStaleForWorkflow: (workflowId) =>
+          set((state) => ({
+            clips: state.clips.map((c) =>
+              c.workflowId === workflowId ? { ...c, status: "stale" } : c
+            )
+          })),
+
+        applyInputDrift: (workflowId, added, removed) =>
+          set((state) => ({
+            clips: state.clips.map((c) => {
+              if (c.workflowId !== workflowId) return c;
+              const overrides = { ...(c.paramOverrides ?? {}) };
+              for (const { name, defaultValue } of added) {
+                if (!(name in overrides)) {
+                  overrides[name] = defaultValue;
+                }
+              }
+              for (const name of removed) {
+                delete overrides[name];
+              }
+              return { ...c, paramOverrides: overrides };
+            })
+          })),
+
+        setClipsOutputNode: (workflowId, selectedOutputNodeId) =>
+          set((state) => ({
+            clips: state.clips.map((c) =>
+              c.workflowId === workflowId
+                ? { ...c, selectedOutputNodeId, status: "stale" }
+                : c
             )
           }))
       }),
