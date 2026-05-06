@@ -261,7 +261,13 @@ describe("GoogleImageGenerationTool", () => {
       const result = (await tool.process(
         {
           workspaceDir: tmpDir,
-          resolveWorkspacePath: (p: string) => path.resolve(tmpDir, p)
+          resolveWorkspacePath: (p: string) => {
+            const resolved = path.resolve(tmpDir, p);
+            if (!resolved.startsWith(tmpDir + path.sep) && resolved !== tmpDir) {
+              throw new Error("Path escapes workspace directory");
+            }
+            return resolved;
+          }
         } as any,
         {
           prompt: "a cute cat",
