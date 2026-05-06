@@ -106,6 +106,11 @@ export const trpcClient = {
     remove: { mutate: emptyMutate() },
     resetToken: { mutate: emptyMutate() }
   },
+  jobs: {
+    list: { query: emptyQuery() },
+    get: { query: emptyQuery() },
+    cancel: { mutate: emptyMutate() }
+  },
   // Workflows namespace — shared mock functions exported for per-test config
   workflows: {
     get: { query: mockWorkflowsGet },

@@ -20,6 +20,7 @@ import {
   Text,
   Toast
 } from "../../ui_primitives";
+import { ClipActions } from "./ClipActions";
 
 const containerStyles = css({ width: "100%", padding: 8, overflow: "auto" });
 const sectionContentStyles = css({ padding: 8 });
@@ -77,7 +78,6 @@ export const TimelineInspector: React.FC = memo(() => {
   const clip = useTimelineStore((s) => (clipId ? s.clips.find((c) => c.id === clipId) : null));
   const track = useTimelineStore((s) => (clip ? s.tracks.find((t) => t.id === clip.trackId) : null));
   const deleteSelected = useTimelineStore((s) => s.deleteSelected);
-  const setClipLocked = useTimelineStore((s) => s.setClipLocked);
   const patchClip = useTimelineStore((s) => s.patchClip);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -158,10 +158,10 @@ export const TimelineInspector: React.FC = memo(() => {
 
         <CollapsibleSection title="Actions" defaultOpen>
           <FlexColumn css={sectionContentStyles} gap={1}>
+            <ClipActions clipId={clip.id} />
             <EditorButton onClick={() => setToast("Replace media picker coming soon")}>Replace Media</EditorButton>
             <EditorButton onClick={() => navigate("/assets")}>Reveal in Library</EditorButton>
             <EditorButton onClick={() => setToast("Convert to Generated Clip will be wired in NOD-306")}>Convert to Generated Clip</EditorButton>
-            <EditorButton onClick={() => setClipLocked(clip.id, !clip.locked)}>{clip.locked ? "Unlock" : "Lock"}</EditorButton>
           </FlexColumn>
         </CollapsibleSection>
       </FlexColumn>

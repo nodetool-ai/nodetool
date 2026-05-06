@@ -18,8 +18,6 @@
  */
 
 import { create } from "zustand";
-import { createTimeOrderedUuid } from "@nodetool-ai/timeline";
-import type { ClipVersion } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "./TimelineStore";
 import useResultsStore from "../ResultsStore";
 
@@ -33,6 +31,8 @@ export interface ClipJobState {
   /** The workflowId associated with the clip at job submission time. */
   workflowId: string;
   status: ClipGenerationStatus;
+  /** Best-effort clip-level progress percentage (0..100). */
+  progress?: number;
   /** Asset ID resolved from job output on completion (undefined until complete). */
   assetId?: string;
   /** Human-readable error message on failure. */
@@ -63,6 +63,7 @@ interface TimelineGenerationStoreState {
     status: ClipGenerationStatus,
     extra?: { assetId?: string; errorMessage?: string }
   ) => void;
+  updateJobProgress: (jobId: string, progress: number) => void;
 
   /** Remove the job entry for a clip (e.g. after user dismisses a failed job). */
   clearJob: (clipId: string) => void;
@@ -82,144 +83,181 @@ interface TimelineGenerationStoreState {
   ) => string | undefined;
 }
 
+const STORAGE_KEY = "timeline-generation-jobs:v1";
+
+const canUseSessionStorage = (): boolean =>
+  typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
+
+const loadPersistedClipJobs = (): Record<string, ClipJobState> => {
+  if (!canUseSessionStorage()) {
+    return {};
+  }
+  try {
+    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw) as Record<string, ClipJobState>;
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([, value]) =>
+        value.status === "queued" || value.status === "running"
+      )
+    );
+  } catch {
+    return {};
+  }
+};
+
+const persistClipJobs = (clipJobs: Record<string, ClipJobState>): void => {
+  if (!canUseSessionStorage()) {
+    return;
+  }
+  try {
+    const activeClipJobs = Object.fromEntries(
+      Object.entries(clipJobs).filter(([, value]) =>
+        value.status === "queued" || value.status === "running"
+      )
+    );
+    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(activeClipJobs));
+  } catch {
+    // Ignore sessionStorage errors (quota/private mode).
+  }
+};
+
 // ── Store ──────────────────────────────────────────────────────────────────
 
 export const useTimelineGenerationStore =
-  create<TimelineGenerationStoreState>((set, get) => ({
-    clipJobs: {},
-    jobToClip: {},
+  create<TimelineGenerationStoreState>((set, get) => {
+    const persistedClipJobs = loadPersistedClipJobs();
+    const persistedJobToClip = Object.fromEntries(
+      Object.values(persistedClipJobs).map((job) => [job.jobId, job.clipId])
+    );
 
-    registerJob: (clipId, jobId, workflowId) => {
-      const jobState: ClipJobState = {
-        clipId,
-        jobId,
-        workflowId,
-        status: "queued"
-      };
+    return {
+      clipJobs: persistedClipJobs,
+      jobToClip: persistedJobToClip,
 
-      set((state) => ({
-        clipJobs: { ...state.clipJobs, [clipId]: jobState },
-        jobToClip: { ...state.jobToClip, [jobId]: clipId }
-      }));
+      registerJob: (clipId, jobId, workflowId) => {
+        const jobState: ClipJobState = {
+          clipId,
+          jobId,
+          workflowId,
+          status: "queued",
+          progress: 0
+        };
 
-      // Mirror into TimelineStore so clip.status reflects the queue.
-      useTimelineStore.getState().patchClip(clipId, { status: "queued" });
-    },
+        set((state) => {
+          const nextClipJobs = { ...state.clipJobs, [clipId]: jobState };
+          persistClipJobs(nextClipJobs);
+          return {
+            clipJobs: nextClipJobs,
+            jobToClip: { ...state.jobToClip, [jobId]: clipId }
+          };
+        });
 
-    updateJobStatus: (jobId, status, extra) => {
-      const { jobToClip, clipJobs } = get();
-      const clipId = jobToClip[jobId];
-      if (!clipId) {
-        return;
-      }
+        // Mirror into TimelineStore so clip.status reflects the queue.
+        useTimelineStore.getState().patchClip(clipId, { status: "queued" });
+      },
 
-      const existing = clipJobs[clipId];
-      if (!existing) {
-        return;
-      }
-
-      const updated: ClipJobState = { ...existing, status, ...extra };
-
-      set((state) => ({
-        clipJobs: { ...state.clipJobs, [clipId]: updated }
-      }));
-
-      // ── Mirror status into TimelineStore ──────────────────────────────
-
-      if (status === "running") {
-        useTimelineStore.getState().patchClip(clipId, { status: "generating" });
-        return;
-      }
-
-      if (status === "failed") {
-        useTimelineStore.getState().patchClip(clipId, { status: "failed" });
-        return;
-      }
-
-      if (status === "completed") {
-        const { assetId } = extra ?? {};
-        const clip = useTimelineStore
-          .getState()
-          .clips.find((c) => c.id === clipId);
-
-        if (!clip) {
+      updateJobStatus: (jobId, status, extra) => {
+        const { jobToClip, clipJobs } = get();
+        const clipId = jobToClip[jobId];
+        if (!clipId) {
           return;
         }
 
-        const version: ClipVersion = {
-          id: createTimeOrderedUuid(),
-          createdAt: new Date().toISOString(),
-          jobId,
-          assetId: assetId ?? "",
-          workflowUpdatedAt: new Date().toISOString(),
-          dependencyHash: clip.dependencyHash ?? "",
-          paramOverridesSnapshot: clip.paramOverrides ?? {},
-          costCredits: undefined,
-          durationMs: clip.durationMs,
-          status: "success"
-        };
-
-        if (!clip.locked && assetId) {
-          // Normal completion: advance the clip to "generated" and update its
-          // output asset and hash so the badge reflects the fresh state.
-          useTimelineStore.getState().patchClip(clipId, {
-            currentAssetId: assetId,
-            lastGeneratedHash: clip.dependencyHash,
-            status: "generated",
-            versions: [...(clip.versions ?? []), version]
-          });
-        } else {
-          // Locked clip: record the version but do NOT replace currentAssetId.
-          useTimelineStore.getState().patchClip(clipId, {
-            versions: [...(clip.versions ?? []), version]
-          });
+        const existing = clipJobs[clipId];
+        if (!existing) {
+          return;
         }
-      }
-    },
 
-    clearJob: (clipId) => {
-      const { clipJobs, jobToClip } = get();
-      const jobState = clipJobs[clipId];
-      if (!jobState) {
-        return;
-      }
+        const updated: ClipJobState = { ...existing, status, ...extra };
 
-      const newJobToClip = { ...jobToClip };
-      delete newJobToClip[jobState.jobId];
+        set((state) => {
+          const nextClipJobs = { ...state.clipJobs, [clipId]: updated };
+          persistClipJobs(nextClipJobs);
+          return {
+            clipJobs: nextClipJobs
+          };
+        });
 
-      const newClipJobs = { ...clipJobs };
-      delete newClipJobs[clipId];
+        // ── Mirror status into TimelineStore ──────────────────────────────
 
-      set({ clipJobs: newClipJobs, jobToClip: newJobToClip });
-    },
+        if (status === "running") {
+          useTimelineStore.getState().patchClip(clipId, { status: "generating" });
+          return;
+        }
 
-    getClipJobState: (clipId) => get().clipJobs[clipId],
+        if (status === "failed") {
+          useTimelineStore.getState().patchClip(clipId, { status: "failed" });
+        }
+      },
 
-    resolveOutputAssetId: (workflowId, selectedOutputNodeId) => {
-      const result = useResultsStore
-        .getState()
-        .getOutputResult(workflowId, selectedOutputNodeId);
+      updateJobProgress: (jobId, progress) => {
+        const { jobToClip, clipJobs } = get();
+        const clipId = jobToClip[jobId];
+        if (!clipId) {
+          return;
+        }
 
-      // The result may be an AssetRef ({ uri, asset_id }) or a plain string ID.
-      if (!result) {
+        const existing = clipJobs[clipId];
+        if (!existing) {
+          return;
+        }
+
+        const safeProgress = Math.max(0, Math.min(100, progress));
+        const updated: ClipJobState = { ...existing, progress: safeProgress };
+
+        set((state) => ({
+          clipJobs: { ...state.clipJobs, [clipId]: updated }
+        }));
+      },
+
+      clearJob: (clipId) => {
+        const { clipJobs, jobToClip } = get();
+        const jobState = clipJobs[clipId];
+        if (!jobState) {
+          return;
+        }
+
+        const newJobToClip = { ...jobToClip };
+        delete newJobToClip[jobState.jobId];
+
+        const newClipJobs = { ...clipJobs };
+        delete newClipJobs[clipId];
+
+        persistClipJobs(newClipJobs);
+        set({ clipJobs: newClipJobs, jobToClip: newJobToClip });
+      },
+
+      getClipJobState: (clipId) => get().clipJobs[clipId],
+
+      resolveOutputAssetId: (workflowId, selectedOutputNodeId) => {
+        const result = useResultsStore
+          .getState()
+          .getOutputResult(workflowId, selectedOutputNodeId);
+
+        // The result may be an AssetRef ({ uri, asset_id }) or a plain string ID.
+        if (!result) {
+          return undefined;
+        }
+        if (typeof result === "string") {
+          return result;
+        }
+        if (typeof result === "object" && result !== null) {
+          const r = result as Record<string, unknown>;
+          if (typeof r.asset_id === "string") {
+            return r.asset_id;
+          }
+          // Some result types carry the ID under different keys.
+          if (typeof r.id === "string") {
+            return r.id;
+          }
+        }
         return undefined;
       }
-      if (typeof result === "string") {
-        return result;
-      }
-      if (typeof result === "object" && result !== null) {
-        const r = result as Record<string, unknown>;
-        if (typeof r.asset_id === "string") {
-          return r.asset_id;
-        }
-        // Some result types carry the ID under different keys.
-        if (typeof r.id === "string") {
-          return r.id;
-        }
-      }
-      return undefined;
-    }
-  }));
+    };
+  });
 
 // ── Convenience selectors ──────────────────────────────────────────────────
 
