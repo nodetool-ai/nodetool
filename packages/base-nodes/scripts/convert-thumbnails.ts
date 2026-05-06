@@ -21,6 +21,11 @@ const ASSETS_DIR = resolve(__dirname, "../nodetool/assets/nodetool-base");
 const TARGET_WIDTH = 1280;
 const TARGET_HEIGHT = 720;
 const JPEG_QUALITY = 85;
+// gpt-image-1 returns very saturated neon-on-black; on the small thumbnail
+// card the magentas in particular bloom and clip. Pull the saturation down
+// to keep them readable without losing the brand colour cue. Applied to the
+// JPGs only — PNG masters keep the original saturation.
+const SATURATION = 0.6;
 
 async function convertOne(name: string): Promise<{ kb: number; w: number; h: number }> {
   const srcPath = join(ASSETS_DIR, name);
@@ -35,6 +40,7 @@ async function convertOne(name: string): Promise<{ kb: number; w: number; h: num
   // does both in one step and matches the UI's objectFit: "cover".
   await sharp(srcPath)
     .resize(TARGET_WIDTH, TARGET_HEIGHT, { fit: "cover", position: "centre" })
+    .modulate({ saturation: SATURATION })
     .jpeg({ quality: JPEG_QUALITY, progressive: true, mozjpeg: true })
     .toFile(dstPath);
 
