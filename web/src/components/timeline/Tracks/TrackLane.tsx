@@ -165,6 +165,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
    * alone because that MIME type is shared with create-node and other drag types.
    */
   const isAssetDrag = useCallback((e: React.DragEvent): boolean => {
+    // Check for both the unified MIME type and the legacy "asset" key.
+    // useAssetActions sets both for backward compatibility: serializeDragData
+    // writes DRAG_DATA_MIME, and a separate line writes the legacy "asset" key.
     return (
       e.dataTransfer.types.includes("asset") ||
       e.dataTransfer.types.includes("selectedAssetIds")
