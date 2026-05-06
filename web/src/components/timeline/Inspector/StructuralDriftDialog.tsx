@@ -12,7 +12,7 @@
  * and applies the chosen output node to all simultaneously.
  */
 
-import React, { memo, useState, useCallback } from "react";
+import React, { memo, useState, useCallback, useEffect } from "react";
 import { FlexColumn, FlexRow, Text, Dialog, SelectField, Caption } from "../../ui_primitives";
 import type { DriftItem } from "../../../hooks/timeline/useWorkflowFreshnessCheck";
 
@@ -32,6 +32,10 @@ export const StructuralDriftDialog: React.FC<StructuralDriftDialogProps> = memo(
     const open = driftItem !== null;
 
     // Reset selection whenever the dialog opens for a new item.
+    useEffect(() => {
+      setSelectedNodeId("");
+    }, [driftItem?.workflowId]);
+
     const options = driftItem?.availableOutputNodes ?? [];
     const clipCount = driftItem?.clipIds.length ?? 0;
 
