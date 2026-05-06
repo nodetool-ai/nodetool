@@ -15,8 +15,8 @@ export interface SearchOutputs {
   results: unknown[];
 }
 
-export function search(inputs: SearchInputs): DslNode<SearchOutputs> {
-  return createNode("lib.notion.Search", inputs as Record<string, unknown>, { outputNames: ["result", "results"], streaming: true });
+export function search(inputs: SearchInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SearchOutputs> {
+  return createNode("lib.notion.Search", inputs as Record<string, unknown>, { outputNames: ["result", "results"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Notion Get Page — lib.notion.GetPage
@@ -28,8 +28,8 @@ export interface GetPageOutputs {
   output: Record<string, unknown>;
 }
 
-export function getPage(inputs: GetPageInputs): DslNode<GetPageOutputs, "output"> {
-  return createNode("lib.notion.GetPage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function getPage(inputs: GetPageInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GetPageOutputs, "output"> {
+  return createNode("lib.notion.GetPage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Notion Get Page Content — lib.notion.GetPageContent
@@ -43,8 +43,8 @@ export interface GetPageContentOutputs {
   blocks: unknown[];
 }
 
-export function getPageContent(inputs: GetPageContentInputs): DslNode<GetPageContentOutputs> {
-  return createNode("lib.notion.GetPageContent", inputs as Record<string, unknown>, { outputNames: ["block", "blocks"], streaming: true });
+export function getPageContent(inputs: GetPageContentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GetPageContentOutputs> {
+  return createNode("lib.notion.GetPageContent", inputs as Record<string, unknown>, { outputNames: ["block", "blocks"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Notion Create Page — lib.notion.CreatePage
@@ -61,8 +61,8 @@ export interface CreatePageOutputs {
   output: Record<string, unknown>;
 }
 
-export function createPage(inputs: CreatePageInputs): DslNode<CreatePageOutputs, "output"> {
-  return createNode("lib.notion.CreatePage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function createPage(inputs: CreatePageInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CreatePageOutputs, "output"> {
+  return createNode("lib.notion.CreatePage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Notion Update Page — lib.notion.UpdatePage
@@ -76,8 +76,8 @@ export interface UpdatePageOutputs {
   output: Record<string, unknown>;
 }
 
-export function updatePage(inputs: UpdatePageInputs): DslNode<UpdatePageOutputs, "output"> {
-  return createNode("lib.notion.UpdatePage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function updatePage(inputs: UpdatePageInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<UpdatePageOutputs, "output"> {
+  return createNode("lib.notion.UpdatePage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Notion Query Database — lib.notion.QueryDatabase
@@ -93,6 +93,6 @@ export interface QueryDatabaseOutputs {
   results: unknown[];
 }
 
-export function queryDatabase(inputs: QueryDatabaseInputs): DslNode<QueryDatabaseOutputs> {
-  return createNode("lib.notion.QueryDatabase", inputs as Record<string, unknown>, { outputNames: ["result", "results"], streaming: true });
+export function queryDatabase(inputs: QueryDatabaseInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<QueryDatabaseOutputs> {
+  return createNode("lib.notion.QueryDatabase", inputs as Record<string, unknown>, { outputNames: ["result", "results"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

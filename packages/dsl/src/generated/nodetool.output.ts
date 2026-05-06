@@ -13,6 +13,6 @@ export interface OutputOutputs {
   output: unknown;
 }
 
-export function output(inputs: OutputInputs): DslNode<OutputOutputs, "output"> {
-  return createNode("nodetool.output.Output", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", streaming: true });
+export function output(inputs: OutputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<OutputOutputs, "output"> {
+  return createNode("nodetool.output.Output", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

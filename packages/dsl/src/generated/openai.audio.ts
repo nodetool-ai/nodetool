@@ -15,8 +15,8 @@ export interface TextToSpeechOutputs {
   output: AudioRef;
 }
 
-export function textToSpeech(inputs: TextToSpeechInputs): DslNode<TextToSpeechOutputs, "output"> {
-  return createNode("openai.audio.TextToSpeech", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function textToSpeech(inputs: TextToSpeechInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<TextToSpeechOutputs, "output"> {
+  return createNode("openai.audio.TextToSpeech", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Translate — openai.audio.Translate
@@ -29,8 +29,8 @@ export interface TranslateOutputs {
   output: string;
 }
 
-export function translate(inputs: TranslateInputs): DslNode<TranslateOutputs, "output"> {
-  return createNode("openai.audio.Translate", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function translate(inputs: TranslateInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<TranslateOutputs, "output"> {
+  return createNode("openai.audio.Translate", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Transcribe — openai.audio.Transcribe
@@ -49,6 +49,6 @@ export interface TranscribeOutputs {
   segments: unknown[];
 }
 
-export function transcribe(inputs: TranscribeInputs): DslNode<TranscribeOutputs> {
-  return createNode("openai.audio.Transcribe", inputs as Record<string, unknown>, { outputNames: ["text", "words", "segments"] });
+export function transcribe(inputs: TranscribeInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<TranscribeOutputs> {
+  return createNode("openai.audio.Transcribe", inputs as Record<string, unknown>, { outputNames: ["text", "words", "segments"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

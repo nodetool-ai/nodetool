@@ -18,8 +18,8 @@ export interface RectOutputs {
   output: unknown;
 }
 
-export function rect(inputs: RectInputs): DslNode<RectOutputs, "output"> {
-  return createNode("lib.svg.Rect", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function rect(inputs: RectInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RectOutputs, "output"> {
+  return createNode("lib.svg.Rect", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Circle — lib.svg.Circle
@@ -36,8 +36,8 @@ export interface CircleOutputs {
   output: unknown;
 }
 
-export function circle(inputs: CircleInputs): DslNode<CircleOutputs, "output"> {
-  return createNode("lib.svg.Circle", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function circle(inputs: CircleInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CircleOutputs, "output"> {
+  return createNode("lib.svg.Circle", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Ellipse — lib.svg.Ellipse
@@ -55,8 +55,8 @@ export interface EllipseOutputs {
   output: unknown;
 }
 
-export function ellipse(inputs: EllipseInputs): DslNode<EllipseOutputs, "output"> {
-  return createNode("lib.svg.Ellipse", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function ellipse(inputs: EllipseInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<EllipseOutputs, "output"> {
+  return createNode("lib.svg.Ellipse", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Line — lib.svg.Line
@@ -73,8 +73,8 @@ export interface LineOutputs {
   output: unknown;
 }
 
-export function line(inputs: LineInputs): DslNode<LineOutputs, "output"> {
-  return createNode("lib.svg.Line", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function line(inputs: LineInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<LineOutputs, "output"> {
+  return createNode("lib.svg.Line", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Polygon — lib.svg.Polygon
@@ -89,8 +89,8 @@ export interface PolygonOutputs {
   output: unknown;
 }
 
-export function polygon(inputs: PolygonInputs): DslNode<PolygonOutputs, "output"> {
-  return createNode("lib.svg.Polygon", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function polygon(inputs: PolygonInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PolygonOutputs, "output"> {
+  return createNode("lib.svg.Polygon", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Path — lib.svg.Path
@@ -105,8 +105,8 @@ export interface PathOutputs {
   output: unknown;
 }
 
-export function path(inputs: PathInputs): DslNode<PathOutputs, "output"> {
-  return createNode("lib.svg.Path", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function path(inputs: PathInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PathOutputs, "output"> {
+  return createNode("lib.svg.Path", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Text — lib.svg.Text
@@ -124,8 +124,8 @@ export interface TextOutputs {
   output: unknown;
 }
 
-export function text(inputs: TextInputs): DslNode<TextOutputs, "output"> {
-  return createNode("lib.svg.Text", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function text(inputs: TextInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<TextOutputs, "output"> {
+  return createNode("lib.svg.Text", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Gaussian Blur — lib.svg.GaussianBlur
@@ -137,8 +137,8 @@ export interface GaussianBlurOutputs {
   output: unknown;
 }
 
-export function gaussianBlur(inputs: GaussianBlurInputs): DslNode<GaussianBlurOutputs, "output"> {
-  return createNode("lib.svg.GaussianBlur", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function gaussianBlur(inputs: GaussianBlurInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GaussianBlurOutputs, "output"> {
+  return createNode("lib.svg.GaussianBlur", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Drop Shadow — lib.svg.DropShadow
@@ -153,8 +153,8 @@ export interface DropShadowOutputs {
   output: unknown;
 }
 
-export function dropShadow(inputs: DropShadowInputs): DslNode<DropShadowOutputs, "output"> {
-  return createNode("lib.svg.DropShadow", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function dropShadow(inputs: DropShadowInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DropShadowOutputs, "output"> {
+  return createNode("lib.svg.DropShadow", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // SVG Document — lib.svg.Document
@@ -169,8 +169,8 @@ export interface DocumentOutputs {
   output: unknown;
 }
 
-export function document(inputs: DocumentInputs): DslNode<DocumentOutputs, "output"> {
-  return createNode("lib.svg.Document", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function document(inputs: DocumentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DocumentOutputs, "output"> {
+  return createNode("lib.svg.Document", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // SVG to Image — lib.svg.SVGToImage
@@ -186,8 +186,8 @@ export interface SVGToImageOutputs {
   output: ImageRef;
 }
 
-export function svgToImage(inputs: SVGToImageInputs): DslNode<SVGToImageOutputs, "output"> {
-  return createNode("lib.svg.SVGToImage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function svgToImage(inputs: SVGToImageInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SVGToImageOutputs, "output"> {
+  return createNode("lib.svg.SVGToImage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Gradient — lib.svg.Gradient
@@ -205,8 +205,8 @@ export interface GradientOutputs {
   output: unknown;
 }
 
-export function gradient(inputs: GradientInputs): DslNode<GradientOutputs, "output"> {
-  return createNode("lib.svg.Gradient", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function gradient(inputs: GradientInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GradientOutputs, "output"> {
+  return createNode("lib.svg.Gradient", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Transform — lib.svg.Transform
@@ -223,8 +223,8 @@ export interface TransformOutputs {
   output: unknown;
 }
 
-export function transform(inputs: TransformInputs): DslNode<TransformOutputs, "output"> {
-  return createNode("lib.svg.Transform", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function transform(inputs: TransformInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<TransformOutputs, "output"> {
+  return createNode("lib.svg.Transform", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Clip Path — lib.svg.ClipPath
@@ -237,6 +237,6 @@ export interface ClipPathOutputs {
   output: unknown;
 }
 
-export function clipPath(inputs: ClipPathInputs): DslNode<ClipPathOutputs, "output"> {
-  return createNode("lib.svg.ClipPath", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function clipPath(inputs: ClipPathInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ClipPathOutputs, "output"> {
+  return createNode("lib.svg.ClipPath", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

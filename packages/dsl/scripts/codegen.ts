@@ -360,23 +360,39 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
       ? `DslNode<${className}Outputs, ${defaultOutput}>`
       : `DslNode<${className}Outputs>`;
 
-    // Options
-    const opts: string[] = [];
+    // Static options baked in from node metadata.
+    const baseOpts: string[] = [];
     const outputNames = meta.outputs
       .map((out) => JSON.stringify(out.name))
       .join(", ");
-    opts.push(`outputNames: [${outputNames}]`);
-    if (defaultOutput) opts.push(`defaultOutput: ${defaultOutput}`);
-    if (meta.is_streaming_output) opts.push("streaming: true");
-    const optsStr = opts.length > 0 ? `, { ${opts.join(", ")} }` : "";
+    baseOpts.push(`outputNames: [${outputNames}]`);
+    if (defaultOutput) baseOpts.push(`defaultOutput: ${defaultOutput}`);
+    if (meta.is_streaming_output) baseOpts.push("streaming: true");
+    if (meta.is_streaming_input) baseOpts.push("streamingInput: true");
+    // Only bake in syncMode when it's not the kernel default ("zip_all").
+    const declaredSyncMode =
+      meta.sync_mode && meta.sync_mode !== "zip_all"
+        ? meta.sync_mode
+        : null;
+    if (declaredSyncMode) {
+      baseOpts.push(`syncMode: ${JSON.stringify(declaredSyncMode)}`);
+    }
 
     const castExpr = hasProps
       ? "inputs as Record<string, unknown>"
       : "(inputs ?? {}) as Record<string, unknown>";
 
-    lines.push(`export function ${factoryName}(${inputsArg}): ${returnType} {`);
+    // Per-call overrides — currently just `syncMode`.
+    const overrideArg = `overrides?: { syncMode?: \"zip_all\" | \"on_any\" }`;
+    const optsExpr =
+      `{ ${baseOpts.join(", ")}, ` +
+      `...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) }`;
+
     lines.push(
-      `  return createNode("${meta.node_type}", ${castExpr}${optsStr});`
+      `export function ${factoryName}(${inputsArg}, ${overrideArg}): ${returnType} {`
+    );
+    lines.push(
+      `  return createNode("${meta.node_type}", ${castExpr}, ${optsExpr});`
     );
     lines.push("}");
     lines.push("");

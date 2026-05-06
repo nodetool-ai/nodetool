@@ -16,8 +16,8 @@ export interface ImageToTextOutputs {
   output: string;
 }
 
-export function imageToText(inputs: ImageToTextInputs): DslNode<ImageToTextOutputs, "output"> {
-  return createNode("mistral.vision.ImageToText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function imageToText(inputs: ImageToTextInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ImageToTextOutputs, "output"> {
+  return createNode("mistral.vision.ImageToText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // OCR — mistral.vision.OCR
@@ -30,6 +30,6 @@ export interface OCROutputs {
   output: string;
 }
 
-export function ocr(inputs: OCRInputs): DslNode<OCROutputs, "output"> {
-  return createNode("mistral.vision.OCR", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function ocr(inputs: OCRInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<OCROutputs, "output"> {
+  return createNode("mistral.vision.OCR", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
