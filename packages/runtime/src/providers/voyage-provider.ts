@@ -108,8 +108,8 @@ export class VoyageProvider extends BaseProvider {
   async *generateMessages(
     _args: Parameters<BaseProvider["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
-    throw new Error("voyage provider does not support chat generation");
     yield* [];
+    throw new Error("voyage provider does not support chat generation");
   }
 
   override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
