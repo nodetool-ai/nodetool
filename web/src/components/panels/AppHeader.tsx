@@ -6,7 +6,8 @@ import React, { memo, useCallback, useMemo } from "react";
 import { Toolbar, Box, useMediaQuery } from "@mui/material";
 import { EditorButton } from "../editor_ui";
 import AutoAwesomeMosaicIcon from "@mui/icons-material/AutoAwesomeMosaic";
-import { useLocation, useNavigate } from "react-router-dom";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY, HEADER_HEIGHT } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import Logo from "../Logo";
@@ -310,12 +311,62 @@ const HeaderWorkspaceSelector = memo(function HeaderWorkspaceSelector() {
   );
 });
 
+/**
+ * "Return to Timeline" pill — shown in the editor header when the user arrived
+ * via "Open in Node Editor" from the timeline inspector.
+ * The `from` query param carries `timeline:{sequenceId}:{clipId}`.
+ */
+const ReturnToTimelinePill = memo(function ReturnToTimelinePill() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // from=timeline:{sequenceId}:{clipId}
+  // Require at least 3 colon-separated parts: "timeline", sequenceId, clipId.
+  const fromParam = searchParams.get("from") ?? "";
+  const parts = fromParam.startsWith("timeline:") ? fromParam.split(":") : [];
+  const sequenceId = parts.length >= 3 ? parts[1] : "";
+
+  const handleReturn = useCallback(() => {
+    navigate(`/timeline/${sequenceId}`);
+  }, [navigate, sequenceId]);
+
+  if (!sequenceId) return null;
+
+  return (
+    <Tooltip title="Return to Timeline" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
+      <EditorButton
+        variant="outlined"
+        size="small"
+        onClick={handleReturn}
+        aria-label="Return to Timeline"
+        data-testid="return-to-timeline-pill"
+        sx={{
+          height: "1.75em",
+          minWidth: "auto",
+          borderRadius: "var(--rounded-md)",
+          color: "var(--palette-primary-main)",
+          border: "1px solid var(--palette-primary-main)",
+          gap: "4px",
+          "&:hover": {
+            backgroundColor: "var(--palette-action-hover)"
+          }
+        }}
+      >
+        <ArrowBackIcon sx={{ fontSize: "14px" }} />
+        <span>Timeline</span>
+      </EditorButton>
+    </Tooltip>
+  );
+});
+
 const AppHeader: React.FC = memo(function AppHeader() {
   const theme = useTheme();
   const path = useLocation().pathname;
   const headerStyles = useMemo(() => styles(theme), [theme]);
   const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  const isEditorRoute = path.startsWith("/editor/");
 
   const handleLogoClick = useCallback(() => {
     navigate("/dashboard");
@@ -339,6 +390,8 @@ const AppHeader: React.FC = memo(function AppHeader() {
           </Tooltip>
           {/* Mode Pills - Editor, Chat, Dashboard */}
           <ModePills currentPath={path} />
+          {/* Return to Timeline pill — only shown when opened from timeline */}
+          {isEditorRoute && <ReturnToTimelinePill />}
           <Box sx={{ flexGrow: 1 }} />
         </FlexRow>
         <div className="buttons-right">

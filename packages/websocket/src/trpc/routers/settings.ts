@@ -10,6 +10,7 @@
 
 import { Secret, Setting, clearSecretCache } from "@nodetool-ai/models";
 import type { Secret as SecretModel } from "@nodetool-ai/models";
+import { clearProviderCache } from "@nodetool-ai/runtime";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -121,6 +122,7 @@ const secretsRouter = router({
           : {})
       });
       clearSecretCache(ctx.userId, input.key);
+      clearProviderCache();
       return toSecretResponse(secret);
     }),
 
@@ -133,6 +135,7 @@ const secretsRouter = router({
         throwApiError(ApiErrorCode.NOT_FOUND, "Secret not found");
       }
       clearSecretCache(ctx.userId, input.key);
+      clearProviderCache();
       return { message: "Secret deleted successfully" };
     })
 });
@@ -216,6 +219,7 @@ export const settingsRouter = router({
             description: `Secret for ${key}`
           });
           clearSecretCache(ctx.userId, key);
+          clearProviderCache();
         }
       }
 
