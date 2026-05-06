@@ -95,8 +95,8 @@ export class CohereProvider extends BaseProvider {
   async *generateMessages(
     _args: Parameters<BaseProvider["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
-    throw new Error("cohere provider does not support chat generation");
     yield* [];
+    throw new Error("cohere provider does not support chat generation");
   }
 
   override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
