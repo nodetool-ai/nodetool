@@ -36,10 +36,7 @@ import { useAssetStore } from "../../../stores/AssetStore";
 import { PlaybackClock } from "./PlaybackClock";
 import { AudioGraph } from "./AudioGraph";
 import { PreviewCompositor } from "./PreviewCompositor";
-
-function getAssetUrl(asset: unknown): string | null {
-  return (asset as { get_url?: string | null })?.get_url ?? null;
-}
+import { getAssetUrl } from "../../../utils/assetHelpers";
 
 function formatTimecode(timeMs: number, fps: number): string {
   const totalFrames = Math.floor((timeMs / 1000) * fps);
