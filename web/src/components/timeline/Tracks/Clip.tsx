@@ -16,7 +16,7 @@
  * selection membership (id selector), and msPerPx.
  */
 
-import React, { memo, useCallback, useRef } from "react";
+import React, { memo, useCallback, useMemo, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -29,8 +29,12 @@ import {
   useIsClipSelected
 } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
+import { useTimelineGenerationStore } from "../../../stores/timeline/TimelineGenerationStore";
+import useErrorStore, { hasNodeError, nodeErrorToDisplayString } from "../../../stores/ErrorStore";
 import { StatusIndicator } from "../../ui_primitives";
 import type { StatusType } from "../../ui_primitives/StatusIndicator";
+import { deriveClipStatus } from "../status/clipStatusReducer";
+import type { ClipGenerationState, ClipErrorState } from "../status/clipStatusReducer";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -154,6 +158,50 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const moveSelectedClips = useTimelineStore((s) => s.moveSelectedClips);
   const trimClipStart = useTimelineStore((s) => s.trimClipStart);
   const trimClipEnd = useTimelineStore((s) => s.trimClipEnd);
+
+  // ── Derived status (PRD §5.5) ────────────────────────────────────────────
+
+  // Generation state from TimelineGenerationStore (queued/running/failed job).
+  const rawJobState = useTimelineGenerationStore(
+    (s) => s.clipJobs[clipId] ?? null
+  );
+  const generationState: ClipGenerationState | null = useMemo(() => {
+    if (!rawJobState || rawJobState.status === "completed") {
+      return null;
+    }
+    return { status: rawJobState.status as ClipGenerationState["status"] };
+  }, [rawJobState]);
+
+  // Node-level errors from ErrorStore, keyed by the clip's workflowId.
+  const workflowId = clip?.workflowId;
+  const errorEntries = useErrorStore((s) => s.errors);
+  const errorState: ClipErrorState | null = useMemo(() => {
+    if (!workflowId) {
+      return null;
+    }
+    const prefix = `${workflowId}:`;
+    for (const key of Object.keys(errorEntries)) {
+      if (key.startsWith(prefix) && hasNodeError(errorEntries[key])) {
+        return {
+          hasError: true,
+          message: nodeErrorToDisplayString(errorEntries[key])
+        };
+      }
+    }
+    return null;
+  }, [workflowId, errorEntries]);
+
+  // Derive the displayed status badge.
+  // For the "missing" check we trust clip.currentAssetId: if it's set,
+  // the asset is assumed present unless the generation store knows otherwise.
+  // A full async asset-existence check would require React Query per-clip,
+  // which is handled separately by the PreviewCompositor.
+  const derivedStatus: ClipStatus = useMemo(() => {
+    if (!clip) {
+      return "draft";
+    }
+    return deriveClipStatus(clip, generationState, errorState, true);
+  }, [clip, generationState, errorState]);
 
   // ── Drag (move) ─────────────────────────────────────────────────────────
 
@@ -345,7 +393,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const leftPx = clip.startMs / msPerPx - scrollLeftPx;
   const widthPx = Math.max(MIN_CLIP_WIDTH_PX, clip.durationMs / msPerPx);
 
-  const statusInfo = CLIP_STATUS_MAP[clip.status];
+  const statusInfo = CLIP_STATUS_MAP[derivedStatus];
 
   return (
     <div
@@ -385,8 +433,8 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         </div>
       )}
 
-      {/* Status badge */}
-      {clip.status !== "draft" && (
+      {/* Status badge — hidden for "draft" to keep the clip chrome clean */}
+      {derivedStatus !== "draft" && (
         <div css={statusBadgeStyles}>
           <StatusIndicator
             status={statusInfo.status}
