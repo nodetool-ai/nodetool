@@ -17,7 +17,10 @@ type ImageRefLike = {
 function toBytes(data: Uint8Array | string | undefined): Uint8Array {
   if (!data) return new Uint8Array();
   if (data instanceof Uint8Array) return data;
-  return Uint8Array.from(Buffer.from(data, "base64"));
+  // Strip data URI prefix if present (e.g. "data:image/png;base64,...").
+  const comma = data.startsWith("data:") ? data.indexOf(",") : -1;
+  const b64 = comma >= 0 ? data.slice(comma + 1) : data;
+  return Uint8Array.from(Buffer.from(b64, "base64"));
 }
 
 function imageBytes(image: unknown): Uint8Array {
