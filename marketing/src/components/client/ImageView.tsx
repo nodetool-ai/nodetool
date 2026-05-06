@@ -11,7 +11,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     if (!source) return undefined;
     if (typeof source === "string") return source;
 
-    return URL.createObjectURL(new Blob([source], { type: "image/png" }));
+    return URL.createObjectURL(new Blob([new Uint8Array(source)], { type: "image/png" }));
   }, [source]);
 
   if (!imageUrl) {
