@@ -50,9 +50,12 @@ export async function shellExec(input: ShellExecInput): Promise<ShellExecOutput>
 
   if (!existing) {
     const tmuxName = tmuxNameFor(input.id);
+    // A tmux server can outlive this process (or a previously interrupted
+    // test run), leaving a stale session with the deterministic name.
+    await killTmuxSessionIfExists(tmuxName);
     // -d detach, -s session name, -c workdir
     await runTmux(["new-session", "-d", "-s", tmuxName, "-c", workDir]);
-    await runTmux(["clear-history", "-t", tmuxName]);
+    await clearPane(tmuxName);
     sessions.set(input.id, {
       tmuxName,
       workDir,
@@ -67,6 +70,7 @@ export async function shellExec(input: ShellExecInput): Promise<ShellExecOutput>
   }
 
   const state = sessions.get(input.id)!;
+  await clearPane(state.tmuxName);
   const marker = randomBytes(6).toString("hex");
   state.marker = marker;
   state.lastExitCode = null;
@@ -228,6 +232,19 @@ async function sendKeys(tmuxName: string, line: string): Promise<void> {
   // send-keys with Enter: two invocations, first literal text then Enter.
   await runTmux(["send-keys", "-t", tmuxName, "-l", line]);
   await runTmux(["send-keys", "-t", tmuxName, "Enter"]);
+}
+
+async function clearPane(tmuxName: string): Promise<void> {
+  await runTmux(["send-keys", "-t", tmuxName, "C-l"]);
+  await runTmux(["clear-history", "-t", tmuxName]);
+}
+
+async function killTmuxSessionIfExists(tmuxName: string): Promise<void> {
+  try {
+    await runTmux(["kill-session", "-t", tmuxName]);
+  } catch {
+    // ignore — the session normally will not exist
+  }
 }
 
 async function capturePane(tmuxName: string): Promise<string> {
