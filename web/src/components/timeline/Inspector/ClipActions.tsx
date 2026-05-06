@@ -11,8 +11,11 @@ import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import ImageIcon from "@mui/icons-material/Image";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import StopIcon from "@mui/icons-material/Stop";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useGenerateClip } from "../../../hooks/timeline/useGenerateClip";
 import { ToolbarIconButton, FlexRow, Text, Dialog, TextInput, Toast } from "../../ui_primitives";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
@@ -56,10 +59,13 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
     );
     const setClipLocked = useTimelineStore((s) => s.setClipLocked);
     const replaceClipOutput = useTimelineStore((s) => s.replaceClipOutput);
+    const { generateClip, cancelClipGeneration, isActive, isGenerating, isQueued } =
+      useGenerateClip(clipId);
 
     const variationBusyRef = useRef(false);
     const [variationBusy, setVariationBusy] = useState(false);
     const [variationError, setVariationError] = useState<string | null>(null);
+    const [generationError, setGenerationError] = useState<string | null>(null);
     const [replaceOpen, setReplaceOpen] = useState(false);
     const [assetIdInput, setAssetIdInput] = useState("");
 
@@ -117,6 +123,28 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
       setReplaceOpen(false);
     }, []);
 
+    // ── Generate / Cancel ───────────────────────────────────────────────────
+
+    const handleGenerate = useCallback(async () => {
+      try {
+        await generateClip();
+      } catch (err) {
+        setGenerationError(
+          err instanceof Error ? err.message : "Failed to start clip generation"
+        );
+      }
+    }, [generateClip]);
+
+    const handleCancelGeneration = useCallback(async () => {
+      try {
+        await cancelClipGeneration();
+      } catch (err) {
+        setGenerationError(
+          err instanceof Error ? err.message : "Failed to cancel generation"
+        );
+      }
+    }, [cancelClipGeneration]);
+
     // ── Open in Node Editor ────────────────────────────────────────────────
 
     const handleOpenInNodeEditor = useCallback(() => {
@@ -136,6 +164,26 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
       <>
         <FlexRow css={actionsRowStyles(theme)}>
           <span css={sectionLabelStyles(theme)}>Clip</span>
+
+          <ToolbarIconButton
+            icon={
+              isActive ? (
+                <StopIcon fontSize="small" />
+              ) : (
+                <PlayArrowIcon fontSize="small" />
+              )
+            }
+            tooltip={
+              isActive
+                ? "Cancel generation"
+                : "Generate clip from the bound workflow and overrides"
+            }
+            onClick={isActive ? () => void handleCancelGeneration() : () => void handleGenerate()}
+            active={isGenerating}
+            aria-label={isActive ? "Cancel clip generation" : "Generate clip"}
+            disabled={!clip.workflowId}
+            data-testid="clip-action-generate"
+          />
 
           <ToolbarIconButton
             icon={<ContentCopyIcon fontSize="small" />}
@@ -229,6 +277,15 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
           message={variationError ?? ""}
           severity="error"
           onClose={() => setVariationError(null)}
+          vertical="top"
+          horizontal="center"
+        />
+
+        <Toast
+          open={generationError !== null}
+          message={generationError ?? ""}
+          severity="error"
+          onClose={() => setGenerationError(null)}
           vertical="top"
           horizontal="center"
         />
