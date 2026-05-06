@@ -23,6 +23,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ReplayIcon from "@mui/icons-material/Replay";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ArticleIcon from "@mui/icons-material/Article";
 
 import useStatusStore from "../../../stores/StatusStore";
 import useErrorStore, {
@@ -164,18 +165,18 @@ export const NodeStackRow: React.FC<NodeStackRowProps> = memo(
           {nodeHasError && (
             <>
               <ToolbarIconButton
-                icon={<ExpandMoreIcon fontSize="small" />}
+                icon={
+                  errorExpanded ? (
+                    <ExpandLessIcon fontSize="small" />
+                  ) : (
+                    <ExpandMoreIcon fontSize="small" />
+                  )
+                }
                 tooltip={errorExpanded ? "Hide error" : "Show error"}
                 onClick={handleToggleError}
                 aria-label={errorExpanded ? "Collapse error" : "Expand error"}
                 size="small"
-              >
-                {errorExpanded ? (
-                  <ExpandLessIcon fontSize="small" />
-                ) : (
-                  <ExpandMoreIcon fontSize="small" />
-                )}
-              </ToolbarIconButton>
+              />
 
               <ToolbarIconButton
                 icon={<ContentCopyIcon fontSize="small" />}
@@ -197,7 +198,7 @@ export const NodeStackRow: React.FC<NodeStackRowProps> = memo(
 
               {onOpenLogs && (
                 <ToolbarIconButton
-                  icon={<ExpandMoreIcon fontSize="small" />}
+                  icon={<ArticleIcon fontSize="small" />}
                   tooltip="Open logs"
                   onClick={onOpenLogs}
                   aria-label="Open logs"
