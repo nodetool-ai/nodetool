@@ -90,13 +90,13 @@ This issue has been fixed in the latest release, and future installations will i
 - ToString text node for type conversion
 - Text processing nodes for comparison, transformation, and normalization
 - Agent thread node for conversation management
-- Research agent DSL example
+- Agent-based research DSL example
 - Text-to-video campaign DSL example
 - Game encounter planner DSL example
 - Supabase DSL examples and CRUD node implementations
 - ImageToVideo node for video generation from images
 - TextToVideo node for generating videos from text prompts
-- ResearchAgent node for autonomous web-based research and synthesis
+- Agent node support for autonomous web-based research and synthesis
 - StructuredOutputGenerator for generating structured JSON objects
 - Document and Excel processing nodes
 - New audio, data, image, text, and video nodes for enhanced processing capabilities

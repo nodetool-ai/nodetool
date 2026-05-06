@@ -42,7 +42,7 @@
         "source": "5",
         "sourceHandle": "output",
         "target": "4",
-        "targetHandle": "objective"
+        "targetHandle": "prompt"
       },
       {
         "id": "5",
@@ -152,12 +152,11 @@
       },
       {
         "id": "4",
-        "type": "nodetool.agents.ResearchAgent",
+        "type": "nodetool.agents.Agent",
         "data": {
           "model": {
             "type": "language_model"
           },
-          "system_prompt": "You are a research assistant.\n\nGoal\n- Conduct thorough research on the given objective\n- Use tools to gather information from multiple sources\n- Write intermediate findings to the workspace for reference\n- Synthesize information into the structured output format specified\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract content\n- write_file: Save research findings to files\n- read_file: Read previously saved research files\n- list_directory: List files in the workspace\n\nWorkflow\n1. Break down the research objective into specific queries\n2. Use google_search to find relevant sources\n3. Use browser to extract content from promising URLs\n4. Save important findings using write_file\n5. Synthesize all findings into the requested output format\n\nOutput Format\n- Return a structured JSON object matching the defined output schema\n- Be thorough and cite sources where appropriate\n- Ensure all required fields are populated with accurate information\n",
           "tools": [
             {
               "type": "tool_name",
@@ -168,7 +167,9 @@
               "name": "browser"
             }
           ],
-          "max_tokens": 8192
+          "max_tokens": 8192,
+          "system": "You are a research assistant.\n\nGoal\n- Conduct thorough research on the given objective\n- Use tools to gather information from multiple sources\n- Synthesize information into the structured output format specified\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract content\n\nWorkflow\n1. Break down the research objective into specific queries\n2. Use google_search to find relevant sources\n3. Use browser to extract content from promising URLs\n4. Synthesize all findings into the requested output format\n\nOutput Format\n- Return a structured JSON object matching the defined output schema\n- Be thorough and cite sources where appropriate\n- Ensure all required fields are populated with accurate information\n",
+          "mode": "plan"
         },
         "ui_properties": {
           "selected": false,

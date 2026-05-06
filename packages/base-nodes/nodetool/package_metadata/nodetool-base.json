@@ -437,7 +437,7 @@
     {
       "id": "autonomous_research_agent",
       "name": "Autonomous Research Agent",
-      "description": "Use the ResearchAgent node to perform a lightweight market analysis with structured outputs defined through dynamic slots.",
+      "description": "Use the Agent node to perform a lightweight market analysis with structured outputs defined through dynamic slots.",
       "tags": [
         "agent",
         "business",

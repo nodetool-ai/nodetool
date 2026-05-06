@@ -259,7 +259,6 @@ The agent system surfaces in the workflow editor through several node types defi
 | Node | Purpose |
 |---|---|
 | **AgentNode** | General-purpose agent with streaming output, tool access, and control edges |
-| **ResearchAgentNode** | Specialized for research — returns findings array and summary |
 | **SummarizerNode** | Summarize text with streaming output |
 | **ExtractorNode** | Extract structured data from text |
 | **ClassifierNode** | Classify text into categories |
