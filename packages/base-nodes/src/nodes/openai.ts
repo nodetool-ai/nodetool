@@ -291,8 +291,7 @@ export class CreateImageNode extends BaseNode {
         n: 1,
         size,
         quality,
-        background,
-        response_format: "b64_json"
+        background
       })
     });
     if (!res.ok) {
