@@ -326,8 +326,12 @@ const ReturnToTimelinePill = memo(function ReturnToTimelinePill() {
   }
 
   // from=timeline:{sequenceId}:{clipId}
+  // Require at least 3 colon-separated parts: "timeline", sequenceId, clipId.
   const parts = fromParam.split(":");
-  const sequenceId = parts[1] ?? "";
+  const sequenceId = parts.length >= 3 ? parts[1] : "";
+  if (!sequenceId) {
+    return null;
+  }
 
   const handleReturn = () => {
     if (sequenceId) {

@@ -39,6 +39,14 @@ interface ClipVersion {
 const INPUT_PREFIX = "nodetool.input.";
 const OUTPUT_PREFIX = "nodetool.output.";
 
+// ── Shared node shape ─────────────────────────────────────────────────────
+
+interface GraphNode {
+  id: string;
+  type: string;
+  data?: Record<string, unknown>;
+}
+
 // ── Public types ──────────────────────────────────────────────────────────
 
 export interface OutputNodeOption {
@@ -133,8 +141,8 @@ export function useWorkflowFreshnessCheck(
         }
 
         const workflowUpdatedAt = workflow.updated_at ?? null;
-        const graphNodes: Array<{ id: string; type: string; data?: Record<string, unknown> }> =
-          (workflow.graph?.nodes ?? []) as Array<{ id: string; type: string; data?: Record<string, unknown> }>;
+        const graphNodes: GraphNode[] =
+          (workflow.graph?.nodes ?? []) as GraphNode[];
 
         // ── Compute current input/output sets ─────────────────────────────
 
