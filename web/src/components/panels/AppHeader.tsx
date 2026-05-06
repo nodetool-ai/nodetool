@@ -320,24 +320,17 @@ const ReturnToTimelinePill = memo(function ReturnToTimelinePill() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const fromParam = searchParams.get("from") ?? "";
-  if (!fromParam.startsWith("timeline:")) {
-    return null;
-  }
-
   // from=timeline:{sequenceId}:{clipId}
   // Require at least 3 colon-separated parts: "timeline", sequenceId, clipId.
-  const parts = fromParam.split(":");
+  const fromParam = searchParams.get("from") ?? "";
+  const parts = fromParam.startsWith("timeline:") ? fromParam.split(":") : [];
   const sequenceId = parts.length >= 3 ? parts[1] : "";
-  if (!sequenceId) {
-    return null;
-  }
 
-  const handleReturn = () => {
-    if (sequenceId) {
-      navigate(`/timeline/${sequenceId}`);
-    }
-  };
+  const handleReturn = useCallback(() => {
+    navigate(`/timeline/${sequenceId}`);
+  }, [navigate, sequenceId]);
+
+  if (!sequenceId) return null;
 
   return (
     <Tooltip title="Return to Timeline" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
