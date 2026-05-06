@@ -30,7 +30,7 @@ interface FieldStats {
   docLens: Map<string, number>;
 }
 
-const TOKEN_SPLIT = /[\s.,;:!?\-_/(){}\[\]"'`<>@#$%^&*+=|\\~]+/;
+const TOKEN_SPLIT = /[\s.,;:!?\-_/(){}[\]"'`<>@#$%^&*+=|\\~]+/;
 
 export function tokenize(text: string): string[] {
   if (!text || typeof text !== "string") return [];
