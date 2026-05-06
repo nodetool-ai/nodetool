@@ -31,27 +31,27 @@ describe("FileStorage edge cases", () => {
       await setup();
       await expect(
         storage.upload("../../etc/passwd", Buffer.from("bad"))
-      ).rejects.toThrow("Path traversal detected");
+      ).rejects.toThrow(/Invalid storage key/);
     });
 
     it("rejects traversal on download", async () => {
       await setup();
       await expect(storage.download("../secret")).rejects.toThrow(
-        "Path traversal detected"
+        /Invalid storage key/
       );
     });
 
     it("rejects traversal on delete", async () => {
       await setup();
       await expect(storage.delete("../../file")).rejects.toThrow(
-        "Path traversal detected"
+        /Invalid storage key/
       );
     });
 
     it("rejects traversal on exists", async () => {
       await setup();
       await expect(storage.exists("../../file")).rejects.toThrow(
-        "Path traversal detected"
+        /Invalid storage key/
       );
     });
 

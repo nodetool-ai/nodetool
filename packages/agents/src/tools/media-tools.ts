@@ -34,8 +34,10 @@ async function readWorkspaceOrAssetFile(
   context: ProcessingContext,
   inputFile: string
 ): Promise<Uint8Array> {
+  // `inputFile` is an LLM-supplied path; resolve through the context's safe
+  // resolver so it stays inside the workspace boundary.
   const ws = workspaceDir(context);
-  const filePath = ws ? path.join(ws, inputFile) : inputFile;
+  const filePath = ws ? context.resolveWorkspacePath(inputFile) : inputFile;
   const buf = await fs.readFile(filePath);
   return new Uint8Array(buf);
 }

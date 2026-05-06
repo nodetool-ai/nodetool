@@ -258,10 +258,16 @@ describe("GoogleImageGenerationTool", () => {
       path.join(os.tmpdir(), "google-tools-test-")
     );
     try {
-      const result = (await tool.process({ workspaceDir: tmpDir } as any, {
-        prompt: "a cute cat",
-        output_file: "cat.png"
-      })) as any;
+      const result = (await tool.process(
+        {
+          workspaceDir: tmpDir,
+          resolveWorkspacePath: (p: string) => path.resolve(tmpDir, p)
+        } as any,
+        {
+          prompt: "a cute cat",
+          output_file: "cat.png"
+        }
+      )) as any;
       expect(result.status).toBe("success");
       expect(result.type).toBe("image");
       expect(result.prompt).toBe("a cute cat");
