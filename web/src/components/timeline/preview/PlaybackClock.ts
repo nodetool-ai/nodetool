@@ -1,21 +1,3 @@
-/**
- * PlaybackClock
- *
- * RAF-driven playback clock for the timeline preview.
- *
- * When an AudioContext is provided, its `currentTime` is used as the master
- * clock (drift-corrected). When playing without audio the wall-clock
- * (`performance.now()`) drives the position. Either way, the computed
- * `currentTimeMs` is written to `TimelinePlaybackStore` on every animation
- * frame so the rest of the UI stays in sync.
- *
- * Usage:
- *   const clock = new PlaybackClock();
- *   clock.start(positionMs, rate, audioContext, durationMs);
- *   // ...compositor & AudioGraph read currentTimeMs from the store...
- *   clock.stop();
- */
-
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 
 export class PlaybackClock {
@@ -28,14 +10,6 @@ export class PlaybackClock {
   private rate = 1;
   private durationMs = Infinity;
 
-  /**
-   * Begin the clock at the given timeline position.
-   *
-   * @param positionMs   Starting position in the timeline (ms)
-   * @param rate         Playback rate (default 1)
-   * @param audioContext Optional AudioContext to use as master clock
-   * @param durationMs   Sequence duration; clock stops at this boundary
-   */
   start(
     positionMs: number,
     rate = 1,
@@ -54,7 +28,6 @@ export class PlaybackClock {
     this.tick();
   }
 
-  /** Stop the clock without resetting the playhead position. */
   stop(): void {
     if (this.rafId !== null) {
       cancelAnimationFrame(this.rafId);

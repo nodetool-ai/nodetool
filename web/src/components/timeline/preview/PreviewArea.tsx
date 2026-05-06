@@ -1,28 +1,4 @@
 /** @jsxImportSource @emotion/react */
-/**
- * PreviewArea
- *
- * Wraps the PreviewCompositor with transport controls:
- *   - Play / Pause (Space key)
- *   - Stop (returns playhead to 0)
- *   - Step back one frame (← when paused)
- *   - Step forward one frame (→ when paused)
- *   - Jump to previous / next clip boundary
- *   - Timecode display (HH:MM:SS:FF)
- *   - FPS readout
- *   - Fullscreen toggle
- *
- * Also owns the PlaybackClock and AudioGraph lifecycle.
- *
- * When playback starts:
- *   1. AudioGraph.getContext() initialises the AudioContext (user-gesture OK).
- *   2. PlaybackClock.start() begins the RAF loop, writing currentTimeMs to
- *      TimelinePlaybackStore.
- *   3. PreviewCompositor reads currentTimeMs and composites the frame.
- *
- * When paused / stopped, PlaybackClock is stopped and AudioGraph.stopAll() is
- * called. The compositor continues to render the still frame at the playhead.
- */
 
 import React, {
   memo,
@@ -46,10 +22,8 @@ import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
-import FitScreenIcon from "@mui/icons-material/FitScreen";
 
 import {
-  FlexColumn,
   FlexRow,
   Text,
   Caption,
@@ -59,15 +33,14 @@ import {
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useAssetStore } from "../../../stores/AssetStore";
-
 import { PlaybackClock } from "./PlaybackClock";
 import { AudioGraph } from "./AudioGraph";
 import { PreviewCompositor } from "./PreviewCompositor";
 
+function getAssetUrl(asset: unknown): string | null {
+  return (asset as { get_url?: string | null })?.get_url ?? null;
+}
 
-/**
- * Format a millisecond value as `HH:MM:SS:FF` timecode.
- */
 function formatTimecode(timeMs: number, fps: number): string {
   const totalFrames = Math.floor((timeMs / 1000) * fps);
   const framePart = totalFrames % fps;
@@ -81,9 +54,6 @@ function formatTimecode(timeMs: number, fps: number): string {
   return `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}:${pad2(framePart)}`;
 }
 
-/**
- * Compute the frame step in ms for the given fps.
- */
 function frameDeltaMs(fps: number): number {
   return 1000 / Math.max(1, fps);
 }
@@ -203,6 +173,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       const graph = graphRef.current;
       const clock = clockRef.current;
 
+      // Read fresh to avoid stale closure when the user scrubs before pressing play.
+      const startMs = useTimelinePlaybackStore.getState().currentTimeMs;
+
       const ctx = graph.getContext();
       await ctx.resume();
 
@@ -214,17 +187,15 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           (c.status === "generated" ||
             c.status === "stale" ||
             c.status === "locked") &&
-          c.startMs < currentTimeMs + c.durationMs &&
-          c.startMs + c.durationMs > currentTimeMs
+          c.startMs < startMs + c.durationMs &&
+          c.startMs + c.durationMs > startMs
       );
 
       const scheduledClips = await Promise.all(
         activeAudioClips.map(async (clip) => {
           try {
             const asset = await getAsset(clip.currentAssetId!);
-            // get_url is present at runtime; cast needed because websocket dist
-            // may be absent during typecheck, leaving the Asset type incomplete.
-            const url = (asset as unknown as { get_url?: string | null })?.get_url;
+            const url = getAssetUrl(asset);
             if (!url) {
               return null;
             }
@@ -239,15 +210,15 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         (c): c is NonNullable<typeof c> => c !== null
       );
 
-      await graph.scheduleClips(validClips, tracks, currentTimeMs);
+      await graph.scheduleClips(validClips, tracks, startMs);
 
       clock.start(
-        currentTimeMs,
+        startMs,
         1,
         validClips.length > 0 ? ctx : null,
         durationMs || Infinity
       );
-    }, [play, clips, tracks, currentTimeMs, durationMs, getAsset]);
+    }, [play, clips, tracks, durationMs, getAsset]);
 
     const handlePause = useCallback(() => {
       pause();
@@ -414,10 +385,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         data-testid="preview-area"
       >
         <div css={viewportStyles}>
-          <PreviewCompositor
-            sequenceWidth={sequenceWidth}
-            sequenceHeight={sequenceHeight}
-          />
+          <PreviewCompositor />
         </div>
 
         <div css={controlBarStyles(theme)}>
@@ -482,13 +450,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             tooltip={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
             onClick={handleFullscreen}
             aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-            size="small"
-          />
-
-          <ToolbarIconButton
-            icon={<FitScreenIcon />}
-            tooltip="Fit to window"
-            aria-label="Fit to window"
             size="small"
           />
         </div>
