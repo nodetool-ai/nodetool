@@ -79,7 +79,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const redo = useTemporalNodes((state) => state.redo);
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
 
-  // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux)
+  // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux).
+  // Global scope: must work even when an input/editor is focused.
   const commandMenuCombo = isMac() ? ["meta", "k"] : ["control", "k"];
   useCombo(
     commandMenuCombo,
@@ -89,7 +90,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
       }
     },
     true,
-    active
+    active,
+    { scope: "global" }
   );
 
   // Keyboard shortcut for Quick Add Node (Ctrl+Shift+A on all platforms)
