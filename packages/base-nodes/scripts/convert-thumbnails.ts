@@ -26,8 +26,8 @@ const JPEG_QUALITY = 85;
 // thumbnail looks identical and very "AI" out of the box. Tone it down at
 // conversion time instead of regenerating: pull saturation down and shift
 // the hue slightly off pure neon toward warmer/less synthetic colour.
-const SATURATION = 0.55;
-const HUE_SHIFT_DEG = 18;
+const SATURATION = 0.3;
+const HUE_SHIFT_DEG = 25;
 
 async function convertOne(name: string): Promise<{ kb: number; w: number; h: number }> {
   const srcPath = join(ASSETS_DIR, name);
