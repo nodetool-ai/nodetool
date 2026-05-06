@@ -17,8 +17,8 @@ export interface QueryOutputs {
   status: number;
 }
 
-export function query(inputs: QueryInputs): DslNode<QueryOutputs> {
-  return createNode("lib.graphql.Query", inputs as Record<string, unknown>, { outputNames: ["data", "errors", "status"] });
+export function query(inputs: QueryInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<QueryOutputs> {
+  return createNode("lib.graphql.Query", inputs as Record<string, unknown>, { outputNames: ["data", "errors", "status"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // GraphQL Query with Auth — lib.graphql.QueryWithAuth
@@ -37,8 +37,8 @@ export interface QueryWithAuthOutputs {
   status: number;
 }
 
-export function queryWithAuth(inputs: QueryWithAuthInputs): DslNode<QueryWithAuthOutputs> {
-  return createNode("lib.graphql.QueryWithAuth", inputs as Record<string, unknown>, { outputNames: ["data", "errors", "status"] });
+export function queryWithAuth(inputs: QueryWithAuthInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<QueryWithAuthOutputs> {
+  return createNode("lib.graphql.QueryWithAuth", inputs as Record<string, unknown>, { outputNames: ["data", "errors", "status"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // GraphQL Introspection — lib.graphql.Introspection
@@ -51,8 +51,8 @@ export interface IntrospectionOutputs {
   output: Record<string, unknown>;
 }
 
-export function introspection(inputs: IntrospectionInputs): DslNode<IntrospectionOutputs, "output"> {
-  return createNode("lib.graphql.Introspection", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function introspection(inputs: IntrospectionInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<IntrospectionOutputs, "output"> {
+  return createNode("lib.graphql.Introspection", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // GraphQL Batch Query — lib.graphql.BatchQuery
@@ -67,6 +67,6 @@ export interface BatchQueryOutputs {
   status: number;
 }
 
-export function batchQuery(inputs: BatchQueryInputs): DslNode<BatchQueryOutputs> {
-  return createNode("lib.graphql.BatchQuery", inputs as Record<string, unknown>, { outputNames: ["output", "status"] });
+export function batchQuery(inputs: BatchQueryInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<BatchQueryOutputs> {
+  return createNode("lib.graphql.BatchQuery", inputs as Record<string, unknown>, { outputNames: ["output", "status"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

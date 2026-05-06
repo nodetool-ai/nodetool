@@ -11,8 +11,8 @@ export interface LoadDocumentFileOutputs {
   output: unknown;
 }
 
-export function loadDocumentFile(inputs: LoadDocumentFileInputs): DslNode<LoadDocumentFileOutputs, "output"> {
-  return createNode("nodetool.document.LoadDocumentFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function loadDocumentFile(inputs: LoadDocumentFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<LoadDocumentFileOutputs, "output"> {
+  return createNode("nodetool.document.LoadDocumentFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Save Document File — nodetool.document.SaveDocumentFile
@@ -25,8 +25,8 @@ export interface SaveDocumentFileInputs {
 export interface SaveDocumentFileOutputs {
 }
 
-export function saveDocumentFile(inputs: SaveDocumentFileInputs): DslNode<SaveDocumentFileOutputs> {
-  return createNode("nodetool.document.SaveDocumentFile", inputs as Record<string, unknown>, { outputNames: [] });
+export function saveDocumentFile(inputs: SaveDocumentFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SaveDocumentFileOutputs> {
+  return createNode("nodetool.document.SaveDocumentFile", inputs as Record<string, unknown>, { outputNames: [], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // List Documents — nodetool.document.ListDocuments
@@ -41,8 +41,8 @@ export interface ListDocumentsOutputs {
   documents: unknown[];
 }
 
-export function listDocuments(inputs: ListDocumentsInputs): DslNode<ListDocumentsOutputs> {
-  return createNode("nodetool.document.ListDocuments", inputs as Record<string, unknown>, { outputNames: ["document", "documents"], streaming: true });
+export function listDocuments(inputs: ListDocumentsInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ListDocumentsOutputs> {
+  return createNode("nodetool.document.ListDocuments", inputs as Record<string, unknown>, { outputNames: ["document", "documents"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Split Document — nodetool.document.SplitDocument
@@ -60,8 +60,8 @@ export interface SplitDocumentOutputs {
   chunks: unknown[];
 }
 
-export function splitDocument(inputs: SplitDocumentInputs): DslNode<SplitDocumentOutputs> {
-  return createNode("nodetool.document.SplitDocument", inputs as Record<string, unknown>, { outputNames: ["text", "source_id", "start_index", "chunks"], streaming: true });
+export function splitDocument(inputs: SplitDocumentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SplitDocumentOutputs> {
+  return createNode("nodetool.document.SplitDocument", inputs as Record<string, unknown>, { outputNames: ["text", "source_id", "start_index", "chunks"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Split HTML — nodetool.document.SplitHTML
@@ -76,8 +76,8 @@ export interface SplitHTMLOutputs {
   chunks: unknown[];
 }
 
-export function splitHTML(inputs: SplitHTMLInputs): DslNode<SplitHTMLOutputs> {
-  return createNode("nodetool.document.SplitHTML", inputs as Record<string, unknown>, { outputNames: ["text", "source_id", "start_index", "chunks"], streaming: true });
+export function splitHTML(inputs: SplitHTMLInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SplitHTMLOutputs> {
+  return createNode("nodetool.document.SplitHTML", inputs as Record<string, unknown>, { outputNames: ["text", "source_id", "start_index", "chunks"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Split JSON — nodetool.document.SplitJSON
@@ -94,8 +94,8 @@ export interface SplitJSONOutputs {
   chunks: unknown[];
 }
 
-export function splitJSON(inputs: SplitJSONInputs): DslNode<SplitJSONOutputs> {
-  return createNode("nodetool.document.SplitJSON", inputs as Record<string, unknown>, { outputNames: ["text", "source_id", "start_index", "chunks"], streaming: true });
+export function splitJSON(inputs: SplitJSONInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SplitJSONOutputs> {
+  return createNode("nodetool.document.SplitJSON", inputs as Record<string, unknown>, { outputNames: ["text", "source_id", "start_index", "chunks"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Split Recursively — nodetool.document.SplitRecursively
@@ -113,8 +113,8 @@ export interface SplitRecursivelyOutputs {
   chunks: unknown[];
 }
 
-export function splitRecursively(inputs: SplitRecursivelyInputs): DslNode<SplitRecursivelyOutputs> {
-  return createNode("nodetool.document.SplitRecursively", inputs as Record<string, unknown>, { outputNames: ["text", "source_id", "start_index", "chunks"], streaming: true });
+export function splitRecursively(inputs: SplitRecursivelyInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SplitRecursivelyOutputs> {
+  return createNode("nodetool.document.SplitRecursively", inputs as Record<string, unknown>, { outputNames: ["text", "source_id", "start_index", "chunks"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Split Markdown — nodetool.document.SplitMarkdown
@@ -134,6 +134,6 @@ export interface SplitMarkdownOutputs {
   chunks: unknown[];
 }
 
-export function splitMarkdown(inputs: SplitMarkdownInputs): DslNode<SplitMarkdownOutputs> {
-  return createNode("nodetool.document.SplitMarkdown", inputs as Record<string, unknown>, { outputNames: ["text", "source_id", "start_index", "chunks"], streaming: true });
+export function splitMarkdown(inputs: SplitMarkdownInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SplitMarkdownOutputs> {
+  return createNode("nodetool.document.SplitMarkdown", inputs as Record<string, unknown>, { outputNames: ["text", "source_id", "start_index", "chunks"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

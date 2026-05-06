@@ -13,8 +13,8 @@ export interface CollectionOutputs {
   output: unknown;
 }
 
-export function collection(inputs: CollectionInputs): DslNode<CollectionOutputs, "output"> {
-  return createNode("vector.Collection", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function collection(inputs: CollectionInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CollectionOutputs, "output"> {
+  return createNode("vector.Collection", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Count — vector.Count
@@ -26,8 +26,8 @@ export interface CountOutputs {
   output: number;
 }
 
-export function count(inputs: CountInputs): DslNode<CountOutputs, "output"> {
-  return createNode("vector.Count", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function count(inputs: CountInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CountOutputs, "output"> {
+  return createNode("vector.Count", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Get Documents — vector.GetDocuments
@@ -42,8 +42,8 @@ export interface GetDocumentsOutputs {
   output: string[];
 }
 
-export function getDocuments(inputs: GetDocumentsInputs): DslNode<GetDocumentsOutputs, "output"> {
-  return createNode("vector.GetDocuments", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function getDocuments(inputs: GetDocumentsInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GetDocumentsOutputs, "output"> {
+  return createNode("vector.GetDocuments", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Peek — vector.Peek
@@ -56,8 +56,8 @@ export interface PeekOutputs {
   output: string[];
 }
 
-export function peek(inputs: PeekInputs): DslNode<PeekOutputs, "output"> {
-  return createNode("vector.Peek", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function peek(inputs: PeekInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PeekOutputs, "output"> {
+  return createNode("vector.Peek", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Index Image — vector.IndexImage
@@ -72,8 +72,8 @@ export interface IndexImageInputs {
 export interface IndexImageOutputs {
 }
 
-export function indexImage(inputs: IndexImageInputs): DslNode<IndexImageOutputs> {
-  return createNode("vector.IndexImage", inputs as Record<string, unknown>, { outputNames: [] });
+export function indexImage(inputs: IndexImageInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<IndexImageOutputs> {
+  return createNode("vector.IndexImage", inputs as Record<string, unknown>, { outputNames: [], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Index Embedding — vector.IndexEmbedding
@@ -87,8 +87,8 @@ export interface IndexEmbeddingInputs {
 export interface IndexEmbeddingOutputs {
 }
 
-export function indexEmbedding(inputs: IndexEmbeddingInputs): DslNode<IndexEmbeddingOutputs> {
-  return createNode("vector.IndexEmbedding", inputs as Record<string, unknown>, { outputNames: [] });
+export function indexEmbedding(inputs: IndexEmbeddingInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<IndexEmbeddingOutputs> {
+  return createNode("vector.IndexEmbedding", inputs as Record<string, unknown>, { outputNames: [], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Index Text Chunk — vector.IndexTextChunk
@@ -102,8 +102,8 @@ export interface IndexTextChunkInputs {
 export interface IndexTextChunkOutputs {
 }
 
-export function indexTextChunk(inputs: IndexTextChunkInputs): DslNode<IndexTextChunkOutputs> {
-  return createNode("vector.IndexTextChunk", inputs as Record<string, unknown>, { outputNames: [] });
+export function indexTextChunk(inputs: IndexTextChunkInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<IndexTextChunkOutputs> {
+  return createNode("vector.IndexTextChunk", inputs as Record<string, unknown>, { outputNames: [], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Index Aggregated Text — vector.IndexAggregatedText
@@ -119,8 +119,8 @@ export interface IndexAggregatedTextInputs {
 export interface IndexAggregatedTextOutputs {
 }
 
-export function indexAggregatedText(inputs: IndexAggregatedTextInputs): DslNode<IndexAggregatedTextOutputs> {
-  return createNode("vector.IndexAggregatedText", inputs as Record<string, unknown>, { outputNames: [] });
+export function indexAggregatedText(inputs: IndexAggregatedTextInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<IndexAggregatedTextOutputs> {
+  return createNode("vector.IndexAggregatedText", inputs as Record<string, unknown>, { outputNames: [], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Index String — vector.IndexString
@@ -134,8 +134,8 @@ export interface IndexStringInputs {
 export interface IndexStringOutputs {
 }
 
-export function indexString(inputs: IndexStringInputs): DslNode<IndexStringOutputs> {
-  return createNode("vector.IndexString", inputs as Record<string, unknown>, { outputNames: [] });
+export function indexString(inputs: IndexStringInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<IndexStringOutputs> {
+  return createNode("vector.IndexString", inputs as Record<string, unknown>, { outputNames: [], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Query Image — vector.QueryImage
@@ -152,8 +152,8 @@ export interface QueryImageOutputs {
   distances: number[];
 }
 
-export function queryImage(inputs: QueryImageInputs): DslNode<QueryImageOutputs> {
-  return createNode("vector.QueryImage", inputs as Record<string, unknown>, { outputNames: ["ids", "documents", "metadatas", "distances"] });
+export function queryImage(inputs: QueryImageInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<QueryImageOutputs> {
+  return createNode("vector.QueryImage", inputs as Record<string, unknown>, { outputNames: ["ids", "documents", "metadatas", "distances"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Query Text — vector.QueryText
@@ -170,8 +170,8 @@ export interface QueryTextOutputs {
   distances: number[];
 }
 
-export function queryText(inputs: QueryTextInputs): DslNode<QueryTextOutputs> {
-  return createNode("vector.QueryText", inputs as Record<string, unknown>, { outputNames: ["ids", "documents", "metadatas", "distances"] });
+export function queryText(inputs: QueryTextInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<QueryTextOutputs> {
+  return createNode("vector.QueryText", inputs as Record<string, unknown>, { outputNames: ["ids", "documents", "metadatas", "distances"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Remove Overlap — vector.RemoveOverlap
@@ -184,8 +184,8 @@ export interface RemoveOverlapOutputs {
   documents: string[];
 }
 
-export function removeOverlap(inputs: RemoveOverlapInputs): DslNode<RemoveOverlapOutputs, "documents"> {
-  return createNode("vector.RemoveOverlap", inputs as Record<string, unknown>, { outputNames: ["documents"], defaultOutput: "documents" });
+export function removeOverlap(inputs: RemoveOverlapInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RemoveOverlapOutputs, "documents"> {
+  return createNode("vector.RemoveOverlap", inputs as Record<string, unknown>, { outputNames: ["documents"], defaultOutput: "documents", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Hybrid Search — vector.HybridSearch
@@ -205,6 +205,6 @@ export interface HybridSearchOutputs {
   scores: number[];
 }
 
-export function hybridSearch(inputs: HybridSearchInputs): DslNode<HybridSearchOutputs> {
-  return createNode("vector.HybridSearch", inputs as Record<string, unknown>, { outputNames: ["ids", "documents", "metadatas", "distances", "scores"] });
+export function hybridSearch(inputs: HybridSearchInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<HybridSearchOutputs> {
+  return createNode("vector.HybridSearch", inputs as Record<string, unknown>, { outputNames: ["ids", "documents", "metadatas", "distances", "scores"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

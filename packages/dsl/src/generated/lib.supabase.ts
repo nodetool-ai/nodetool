@@ -17,8 +17,8 @@ export interface SelectOutputs {
   output: unknown;
 }
 
-export function select(inputs: SelectInputs): DslNode<SelectOutputs, "output"> {
-  return createNode("lib.supabase.Select", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function select(inputs: SelectInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SelectOutputs, "output"> {
+  return createNode("lib.supabase.Select", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Insert — lib.supabase.Insert
@@ -32,8 +32,8 @@ export interface InsertOutputs {
   output: unknown;
 }
 
-export function insert(inputs: InsertInputs): DslNode<InsertOutputs, "output"> {
-  return createNode("lib.supabase.Insert", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function insert(inputs: InsertInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<InsertOutputs, "output"> {
+  return createNode("lib.supabase.Insert", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Update — lib.supabase.Update
@@ -48,8 +48,8 @@ export interface UpdateOutputs {
   output: unknown;
 }
 
-export function update(inputs: UpdateInputs): DslNode<UpdateOutputs, "output"> {
-  return createNode("lib.supabase.Update", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function update(inputs: UpdateInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<UpdateOutputs, "output"> {
+  return createNode("lib.supabase.Update", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Delete — lib.supabase.Delete
@@ -62,8 +62,8 @@ export interface DeleteOutputs {
   output: Record<string, unknown>;
 }
 
-export function delete_(inputs: DeleteInputs): DslNode<DeleteOutputs, "output"> {
-  return createNode("lib.supabase.Delete", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function delete_(inputs: DeleteInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DeleteOutputs, "output"> {
+  return createNode("lib.supabase.Delete", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Upsert — lib.supabase.Upsert
@@ -77,8 +77,8 @@ export interface UpsertOutputs {
   output: unknown;
 }
 
-export function upsert(inputs: UpsertInputs): DslNode<UpsertOutputs, "output"> {
-  return createNode("lib.supabase.Upsert", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function upsert(inputs: UpsertInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<UpsertOutputs, "output"> {
+  return createNode("lib.supabase.Upsert", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // RPC — lib.supabase.RPC
@@ -92,6 +92,6 @@ export interface RPCOutputs {
   output: unknown;
 }
 
-export function rpc(inputs: RPCInputs): DslNode<RPCOutputs, "output"> {
-  return createNode("lib.supabase.RPC", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function rpc(inputs: RPCInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RPCOutputs, "output"> {
+  return createNode("lib.supabase.RPC", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
