@@ -696,3 +696,98 @@ describe("TimelineStore — replaceClipOutput", () => {
     expect(updated.lastGeneratedHash).toBe("old-hash");
   });
 });
+
+describe("TimelineStore — restoreVersion", () => {
+  it("restores currentAssetId, paramOverrides, and lastGeneratedHash from version", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    const clip = makeClip({
+      trackId: track.id,
+      dependencyHash: "hash-current",
+      versions: [
+        {
+          id: "ver-1",
+          createdAt: new Date().toISOString(),
+          jobId: "j1",
+          assetId: "asset-restored",
+          workflowUpdatedAt: new Date().toISOString(),
+          dependencyHash: "hash-current",
+          paramOverridesSnapshot: { speed: 1.5 },
+          status: "success"
+        }
+      ]
+    });
+    store.setState({ tracks: [track], clips: [clip] });
+
+    store.getState().restoreVersion(clip.id, "ver-1");
+
+    const updated = store.getState().clips[0];
+    expect(updated.currentAssetId).toBe("asset-restored");
+    expect(updated.lastGeneratedHash).toBe("hash-current");
+    expect(updated.paramOverrides).toEqual({ speed: 1.5 });
+    expect(updated.status).toBe("generated");
+  });
+
+  it("sets status to stale when dependencyHash differs", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    const clip = makeClip({
+      trackId: track.id,
+      dependencyHash: "hash-new",
+      versions: [
+        {
+          id: "ver-old",
+          createdAt: new Date().toISOString(),
+          jobId: "j2",
+          assetId: "asset-old",
+          workflowUpdatedAt: new Date().toISOString(),
+          dependencyHash: "hash-old",
+          paramOverridesSnapshot: {},
+          status: "success"
+        }
+      ]
+    });
+    store.setState({ tracks: [track], clips: [clip] });
+
+    store.getState().restoreVersion(clip.id, "ver-old");
+
+    const updated = store.getState().clips[0];
+    expect(updated.status).toBe("stale");
+  });
+
+  it("is a no-op for failed versions", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    const clip = makeClip({
+      trackId: track.id,
+      versions: [
+        {
+          id: "ver-fail",
+          createdAt: new Date().toISOString(),
+          jobId: "j3",
+          assetId: "asset-fail",
+          workflowUpdatedAt: new Date().toISOString(),
+          dependencyHash: "h",
+          paramOverridesSnapshot: {},
+          status: "failed"
+        }
+      ]
+    });
+    store.setState({ tracks: [track], clips: [clip] });
+
+    store.getState().restoreVersion(clip.id, "ver-fail");
+
+    expect(store.getState().clips[0].currentAssetId).toBeUndefined();
+  });
+
+  it("is a no-op for an unknown clipId", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    const clip = makeClip({ trackId: track.id });
+    store.setState({ tracks: [track], clips: [clip] });
+
+    store.getState().restoreVersion("nonexistent", "ver-1");
+
+    expect(store.getState().clips[0]).toBe(clip);
+  });
+});
