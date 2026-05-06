@@ -7,6 +7,7 @@ import {
   type UseEditorKeyboardShortcutsParams
 } from "../useEditorKeyboardShortcuts";
 import { useSketchStore } from "../state";
+import { isMac } from "../shortcuts";
 
 function makeParams(): UseEditorKeyboardShortcutsParams {
   return {
@@ -58,6 +59,15 @@ function dispatchKey(target: EventTarget, key: string, type: "keydown" | "keyup"
   });
   target.dispatchEvent(event);
   return event;
+}
+
+function createPrimaryModifierKeydownEvent(): KeyboardEvent {
+  return new KeyboardEvent("keydown", {
+    code: isMac() ? "MetaLeft" : "ControlLeft",
+    key: isMac() ? "Meta" : "Control",
+    bubbles: true,
+    cancelable: true
+  });
 }
 
 describe("useEditorKeyboardShortcuts", () => {
@@ -225,7 +235,7 @@ describe("useEditorKeyboardShortcuts", () => {
     expect(params.handleCropCommit).toHaveBeenCalledTimes(1);
   });
 
-  it("does not arm spring-loaded move when Control is pressed while select tool is active", () => {
+  it("does not arm spring-loaded move when the primary modifier is pressed while select tool is active", () => {
     const params = makeParams();
     renderHook(() => useEditorKeyboardShortcuts(params));
 
@@ -233,12 +243,7 @@ describe("useEditorKeyboardShortcuts", () => {
       useSketchStore.getState().setActiveTool("select");
     });
 
-    const event = new KeyboardEvent("keydown", {
-      code: "ControlLeft",
-      key: "Control",
-      bubbles: true,
-      cancelable: true
-    });
+    const event = createPrimaryModifierKeydownEvent();
     act(() => {
       window.dispatchEvent(event);
     });
@@ -246,16 +251,11 @@ describe("useEditorKeyboardShortcuts", () => {
     expect(useSketchStore.getState().transientMoveModifierHeld).toBe(false);
   });
 
-  it("arms spring-loaded move on Control and clears it on window blur", () => {
+  it("arms spring-loaded move on the primary modifier and clears it on window blur", () => {
     const params = makeParams();
     renderHook(() => useEditorKeyboardShortcuts(params));
 
-    const event = new KeyboardEvent("keydown", {
-      code: "ControlLeft",
-      key: "Control",
-      bubbles: true,
-      cancelable: true
-    });
+    const event = createPrimaryModifierKeydownEvent();
 
     act(() => {
       window.dispatchEvent(event);

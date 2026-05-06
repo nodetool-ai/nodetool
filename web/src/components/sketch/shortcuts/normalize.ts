@@ -75,7 +75,9 @@ export const CROP_MAP = buildScopeMap("mode:crop");
 
 /** OS-aware display string for a key combo, e.g. "⌘Z" on Mac, "Ctrl+Z" on Win. */
 export function displayCombo(actionId: SketchActionId): string {
-  const entry = BINDING_CATALOG.find((b) => b.actionId === actionId && b.scope !== "panel:layers");
-  if (!entry) return "";
-  return displayBinding(entry);
+  const combos = BINDING_CATALOG
+    .filter((entry) => entry.actionId === actionId && entry.scope !== "panel:layers")
+    .map((entry) => displayBinding(entry));
+
+  return [...new Set(combos)].join(" / ");
 }
