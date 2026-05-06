@@ -8,8 +8,10 @@
  *   update      (mutation) — TimelineSequenceResponse (optional baseUpdatedAt for optimistic concurrency)
  *   delete      (mutation) — { ok: true }
  *   versions:
- *     list      (query)    — ClipVersion[]
- *     append    (mutation) — ClipVersion
+ *     list        (query)    — ClipVersion[]
+ *     append      (mutation) — ClipVersion
+ *     setFavorite (mutation) — ClipVersion
+ *     delete      (mutation) — { ok: true }
  *
  * Auth: every procedure uses `protectedProcedure`. Ownership is enforced by
  * comparing `seq.user_id` against `ctx.userId`.
@@ -55,6 +57,24 @@ const versionsListInput = z.object({
 const versionsAppendInput = appendClipVersionInput.and(
   z.object({ id: z.string(), clipId: z.string() })
 );
+
+const versionsSetFavoriteInput = z.object({
+  id: z.string(),
+  clipId: z.string(),
+  versionId: z.string(),
+  favorite: z.boolean()
+});
+
+const versionsDeleteInput = z.object({
+  id: z.string(),
+  clipId: z.string(),
+  versionId: z.string()
+});
+
+/** Max successful versions retained per clip (favorites excluded from pruning). */
+const MAX_SUCCESSFUL_VERSIONS = 10;
+/** Max failed/cancelled versions retained per clip. */
+const MAX_FAILED_VERSIONS = 5;
 
 const okOutput = z.object({ ok: z.literal(true) });
 
@@ -216,11 +236,88 @@ export const timelineRouter = router({
         if (!clip.versions) clip.versions = [];
         clip.versions.push(newVersion);
 
+        // ── Pruning ─────────────────────────────────────────────────────────
+        // Split versions by status bucket
+        const successful = clip.versions.filter(
+          (v) => v.status === "success"
+        );
+        const nonSuccessful = clip.versions.filter(
+          (v) => v.status !== "success"
+        );
+
+        // Prune successful: keep favorites + newest non-favorites up to cap
+        const favSuccessful = successful.filter((v) => v.favorite);
+        const nonFavSuccessful = successful
+          .filter((v) => !v.favorite)
+          // newest first (versions are appended, so last element is newest)
+          .slice(-(MAX_SUCCESSFUL_VERSIONS - favSuccessful.length));
+
+        // Prune non-successful: keep newest up to cap
+        const prunedNonSuccessful = nonSuccessful.slice(-MAX_FAILED_VERSIONS);
+
+        // Restore original order (sort by createdAt)
+        const all = [...favSuccessful, ...nonFavSuccessful, ...prunedNonSuccessful];
+        all.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+        clip.versions = all;
+
         await TimelineSequence.update(input.id, {
           document: JSON.stringify(doc)
         });
 
         return newVersion;
+      }),
+
+    setFavorite: protectedProcedure
+      .input(versionsSetFavoriteInput)
+      .output(clipVersion)
+      .mutation(async ({ ctx, input }) => {
+        const seq = await loadOwned(ctx.userId, input.id);
+        const doc = seq.toDocument();
+        const clipIdx = doc.clips.findIndex((c) => c.id === input.clipId);
+        if (clipIdx === -1) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Clip not found");
+        }
+        const clip = doc.clips[clipIdx];
+        const versionIdx = (clip.versions ?? []).findIndex(
+          (v) => v.id === input.versionId
+        );
+        if (versionIdx === -1) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
+        }
+        const version = clip.versions![versionIdx];
+        clip.versions![versionIdx] = { ...version, favorite: input.favorite };
+
+        await TimelineSequence.update(input.id, {
+          document: JSON.stringify(doc)
+        });
+
+        return clip.versions![versionIdx];
+      }),
+
+    delete: protectedProcedure
+      .input(versionsDeleteInput)
+      .output(okOutput)
+      .mutation(async ({ ctx, input }) => {
+        const seq = await loadOwned(ctx.userId, input.id);
+        const doc = seq.toDocument();
+        const clipIdx = doc.clips.findIndex((c) => c.id === input.clipId);
+        if (clipIdx === -1) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Clip not found");
+        }
+        const clip = doc.clips[clipIdx];
+        const before = (clip.versions ?? []).length;
+        clip.versions = (clip.versions ?? []).filter(
+          (v) => v.id !== input.versionId
+        );
+        if (clip.versions.length === before) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
+        }
+
+        await TimelineSequence.update(input.id, {
+          document: JSON.stringify(doc)
+        });
+
+        return { ok: true as const };
       })
   })
 });

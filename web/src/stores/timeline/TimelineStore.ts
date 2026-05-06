@@ -135,6 +135,20 @@ export interface TimelineStoreState {
 
   /** Update an arbitrary subset of fields on a clip. */
   patchClip: (clipId: string, patch: Partial<TimelineClip>) => void;
+
+  /**
+   * Restore a clip to a previously generated version (purely local; autosave
+   * will persist the change on next save cycle).
+   *
+   * Sets:
+   *   - `clip.currentAssetId = version.assetId`
+   *   - `clip.paramOverrides = version.paramOverridesSnapshot`
+   *   - `clip.lastGeneratedHash = version.dependencyHash`
+   *
+   * Status becomes `"generated"` if the clip's current `dependencyHash`
+   * matches the version's hash, otherwise `"stale"`.
+   */
+  restoreVersion: (clipId: string, versionId: string) => void;
 }
 
 // ── Partialized type for zundo (only document state is undo-able) ──────────
@@ -461,7 +475,35 @@ export const createTimelineStore = (
             clips: state.clips.map((c) =>
               c.id === clipId ? { ...c, ...patch } : c
             )
-          }))
+          })),
+
+        restoreVersion: (clipId, versionId) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip) return state;
+            const version = (clip.versions ?? []).find(
+              (v) => v.id === versionId
+            );
+            if (!version || version.status !== "success") return state;
+
+            const restoredHash = version.dependencyHash;
+            const status: TimelineClip["status"] =
+              clip.dependencyHash === restoredHash ? "generated" : "stale";
+
+            return {
+              clips: state.clips.map((c) =>
+                c.id === clipId
+                  ? {
+                      ...c,
+                      currentAssetId: version.assetId,
+                      paramOverrides: version.paramOverridesSnapshot,
+                      lastGeneratedHash: restoredHash,
+                      status
+                    }
+                  : c
+              )
+            };
+          })
       }),
       {
         limit: 100,
