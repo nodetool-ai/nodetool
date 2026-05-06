@@ -141,7 +141,7 @@ const InspectorRegion: React.FC = () => {
     <FlexColumn
       css={inspectorRegionStyles(theme)}
       fullHeight
-      sx={{ flex: "1 1 45%", alignItems: "flex-start", justifyContent: "flex-start" }}
+      sx={{ flex: "1 1 45%" }}
     >
       {selectedId ? (
         <ClipActions clipId={selectedId} duplicateOffsetMs={clipDurationMs} />
