@@ -356,3 +356,103 @@ describe("TimelineStore — addClip / patchClip", () => {
     expect(store.getState().clips[0].durationMs).toBe(2000);
   });
 });
+
+describe("TimelineStore — duplicateClipLinked", () => {
+  it("creates a second clip with a new id", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, { startMs: 0, durationMs: 2000 });
+    store.getState().duplicateClipLinked(clip.id);
+    const clips = store.getState().clips;
+    expect(clips).toHaveLength(2);
+    expect(clips[0].id).not.toBe(clips[1].id);
+  });
+
+  it("shares the same workflowId as the source", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, {
+      startMs: 0,
+      durationMs: 1000,
+      workflowId: "wf-123"
+    });
+    store.getState().duplicateClipLinked(clip.id);
+    const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
+    expect(newClip.workflowId).toBe("wf-123");
+  });
+
+  it("applies deltaMs offset to the new clip start", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, { startMs: 500, durationMs: 1000 });
+    store.getState().duplicateClipLinked(clip.id, 2000);
+    const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
+    expect(newClip.startMs).toBe(2500);
+  });
+
+  it("gives the duplicate an independent copy of paramOverrides", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, {
+      startMs: 0,
+      durationMs: 1000,
+      paramOverrides: { speed: 1 }
+    });
+    store.getState().duplicateClipLinked(clip.id);
+    const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
+
+    // Mutating one clip's overrides does not affect the other
+    store.getState().patchClip(newClip.id, { paramOverrides: { speed: 2 } });
+    const original = store.getState().clips.find((c) => c.id === clip.id)!;
+    expect(original.paramOverrides?.speed).toBe(1);
+  });
+
+  it("resets generation state on the duplicate", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, {
+      startMs: 0,
+      durationMs: 1000,
+      currentAssetId: "asset-abc",
+      lastGeneratedHash: "hash-xyz"
+    });
+    store.getState().duplicateClipLinked(clip.id);
+    const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
+    expect(newClip.currentAssetId).toBeUndefined();
+    expect(newClip.lastGeneratedHash).toBeUndefined();
+    expect(newClip.status).toBe("draft");
+  });
+
+  it("no-ops for unknown clip id", () => {
+    const store = mkStore();
+    addTrackAndClip(store);
+    store.getState().duplicateClipLinked("nonexistent");
+    expect(store.getState().clips).toHaveLength(1);
+  });
+});
+
+describe("TimelineStore — setClipLocked", () => {
+  it("locks a clip", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store);
+    store.getState().setClipLocked(clip.id, true);
+    expect(store.getState().clips[0].locked).toBe(true);
+  });
+
+  it("unlocks a clip", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, { locked: true });
+    store.getState().setClipLocked(clip.id, false);
+    expect(store.getState().clips[0].locked).toBe(false);
+  });
+});
+
+describe("TimelineStore — replaceClipOutput", () => {
+  it("sets currentAssetId without touching other fields", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, {
+      paramOverrides: { prompt: "hello" },
+      lastGeneratedHash: "old-hash"
+    });
+    store.getState().replaceClipOutput(clip.id, "asset-new");
+    const updated = store.getState().clips[0];
+    expect(updated.currentAssetId).toBe("asset-new");
+    expect(updated.paramOverrides?.prompt).toBe("hello");
+    expect(updated.lastGeneratedHash).toBe("old-hash");
+  });
+});
