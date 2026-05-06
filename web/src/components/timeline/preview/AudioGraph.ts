@@ -28,29 +28,13 @@ export interface ScheduledAudioClip {
 export class AudioGraph {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
-
-  /** Per-track gain node (track volume / mute / solo). */
   private trackGains = new Map<string, GainNode>();
-
-  /** Per-clip gain node (volume + fades). */
   private clipGains = new Map<string, GainNode>();
-
-  /** Currently playing source nodes, keyed by clipId. */
   private clipSources = new Map<string, AudioBufferSourceNode>();
-
-  /** Decoded buffer cache keyed by assetId. */
   private bufferCache = new Map<string, AudioBuffer>();
-
-  /** In-flight decode promises keyed by assetId. */
   private loadingPromises = new Map<string, Promise<AudioBuffer | null>>();
 
-  // ── AudioContext lifecycle ─────────────────────────────────────────────────
-
-  /**
-   * Lazily create and return the AudioContext.
-   * Calling this triggers the browser's autoplay policy; call it from a
-   * user-gesture handler (play button click).
-   */
+  /** Must be called from a user-gesture handler — triggers the autoplay policy. */
   getContext(): AudioContext {
     if (!this.ctx) {
       this.ctx = new AudioContext();
@@ -60,14 +44,10 @@ export class AudioGraph {
     return this.ctx;
   }
 
-  /** The raw AudioContext (null until first getContext() call). */
   get context(): AudioContext | null {
     return this.ctx;
   }
 
-  // ── Buffer loading ─────────────────────────────────────────────────────────
-
-  /** Load and decode an audio buffer, caching the result by assetId. */
   async loadBuffer(assetId: string, url: string): Promise<AudioBuffer | null> {
     if (this.bufferCache.has(assetId)) {
       return this.bufferCache.get(assetId)!;
@@ -100,8 +80,6 @@ export class AudioGraph {
     return promise;
   }
 
-  // ── Track gain management ──────────────────────────────────────────────────
-
   private getTrackGain(trackId: string): GainNode {
     if (!this.trackGains.has(trackId)) {
       const ctx = this.getContext();
@@ -112,10 +90,7 @@ export class AudioGraph {
     return this.trackGains.get(trackId)!;
   }
 
-  /**
-   * Update all track-level gain nodes to reflect the current mute/solo state.
-   * Solo rule: if ANY audio track is soloed, non-solo tracks are silenced.
-   */
+  /** Solo rule: if any audio track is soloed, non-solo tracks are silenced. */
   updateTracks(tracks: TimelineTrack[]): void {
     if (!this.ctx) {
       return;
@@ -132,16 +107,6 @@ export class AudioGraph {
     }
   }
 
-  // ── Clip scheduling ────────────────────────────────────────────────────────
-
-  /**
-   * Schedule playback for the supplied set of active audio clips, stopping
-   * any previously scheduled clips that are no longer active.
-   *
-   * @param clips          Active audio clips with resolved asset URLs.
-   * @param tracks         All tracks (used for mute/solo resolution).
-   * @param currentTimeMs  Current playhead position in the timeline (ms).
-   */
   async scheduleClips(
     clips: ScheduledAudioClip[],
     tracks: TimelineTrack[],
@@ -150,7 +115,6 @@ export class AudioGraph {
     const ctx = this.getContext();
     const activeIds = new Set(clips.map((c) => c.clip.id));
 
-    // Stop sources for clips no longer in the active set.
     for (const [id, src] of this.clipSources) {
       if (!activeIds.has(id)) {
         try {
@@ -163,13 +127,11 @@ export class AudioGraph {
       }
     }
 
-    // Sync track volumes.
     this.updateTracks(tracks);
 
-    // Start newly active clips.
     for (const { clip, assetUrl } of clips) {
       if (this.clipSources.has(clip.id)) {
-        continue; // already playing
+        continue;
       }
       if (!clip.currentAssetId) {
         continue;
@@ -180,12 +142,10 @@ export class AudioGraph {
         continue;
       }
 
-      // Source node.
       const src = ctx.createBufferSource();
       src.buffer = buffer;
       src.playbackRate.value = clip.speedMultiplier ?? 1;
 
-      // Per-clip gain node.
       const volumeLinear = clip.volumeDb
         ? Math.pow(10, clip.volumeDb / 20)
         : 1;
@@ -193,8 +153,6 @@ export class AudioGraph {
       clipGain.gain.value = volumeLinear;
 
       const now = ctx.currentTime;
-
-      // Fade-in envelope.
       if (clip.fadeInMs && clip.fadeInMs > 0) {
         const fadeSec = clip.fadeInMs / 1000;
         clipGain.gain.setValueAtTime(0, now);
@@ -213,17 +171,14 @@ export class AudioGraph {
         }
       }
 
-      // Connect clip → track.
       src.connect(clipGain);
       const trackGain = this.getTrackGain(clip.trackId);
       clipGain.connect(trackGain);
 
-      // Offset within the buffer (handle mid-clip seek).
+      // Offset into the buffer for mid-clip seeks.
       const clipOffsetMs =
         currentTimeMs - clip.startMs + (clip.inPointMs ?? 0);
       const offsetSec = Math.max(0, clipOffsetMs / 1000);
-
-      // Remaining clip duration.
       const remainingMs = clip.startMs + clip.durationMs - currentTimeMs;
       const durationSec = Math.max(0, remainingMs / 1000);
 
@@ -234,9 +189,6 @@ export class AudioGraph {
     }
   }
 
-  // ── Playback control ───────────────────────────────────────────────────────
-
-  /** Stop all currently playing sources. */
   stopAll(): void {
     for (const [, src] of this.clipSources) {
       try {
@@ -249,17 +201,14 @@ export class AudioGraph {
     this.clipGains.clear();
   }
 
-  /** Suspend the AudioContext (call when pausing). */
   suspend(): void {
     void this.ctx?.suspend();
   }
 
-  /** Resume the AudioContext (call when unpausing). */
   resume(): void {
     void this.ctx?.resume();
   }
 
-  /** Release all resources and close the AudioContext. */
   dispose(): void {
     this.stopAll();
     for (const gain of this.trackGains.values()) {

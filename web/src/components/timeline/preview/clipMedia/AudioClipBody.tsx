@@ -1,15 +1,4 @@
 /** @jsxImportSource @emotion/react */
-/**
- * AudioClipBody
- *
- * Rendered inside the Clip chrome for audio clips.
- * Displays a waveform placeholder and the clip name.
- *
- * NOTE: WaveSurfer is used only for waveform *visualisation* (peaks
- * extracted once per asset and cached). Actual audio *playback* is
- * handled by AudioGraph via a WebAudio AudioBufferSourceNode — this
- * component has no playback responsibility.
- */
 
 import React, { memo } from "react";
 import { css } from "@emotion/react";
@@ -17,8 +6,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 import { FlexRow, Text } from "../../../ui_primitives";
-
-// ── Styles ─────────────────────────────────────────────────────────────────
 
 const rootStyles = (theme: Theme) =>
   css({
@@ -54,14 +41,12 @@ const barStyles = (theme: Theme, height: number) =>
     backgroundColor: theme.vars.palette.primary.light
   });
 
-// ── Waveform bars ──────────────────────────────────────────────────────────
 
 const BARS = 40;
 
 /**
- * Generate a deterministic fake waveform from the clip id so the bars are
- * consistent across re-renders without any fetch. Real waveform data
- * (WaveSurfer peaks) can be substituted here in a future iteration.
+ * Generates a deterministic fake waveform from the clip id.
+ * Real WaveSurfer peaks can be substituted here in a future iteration.
  */
 function deterministicBars(seed: string): number[] {
   const bars: number[] = [];
@@ -73,13 +58,10 @@ function deterministicBars(seed: string): number[] {
   return bars;
 }
 
-// ── Props ──────────────────────────────────────────────────────────────────
 
 export interface AudioClipBodyProps {
   clip: TimelineClip;
 }
-
-// ── Component ──────────────────────────────────────────────────────────────
 
 export const AudioClipBody: React.FC<AudioClipBodyProps> = memo(({ clip }) => {
   const theme = useTheme();
