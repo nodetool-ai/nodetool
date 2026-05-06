@@ -11,9 +11,10 @@
  *   - Click on empty space → clear selection
  *   - Rubber-band selection (pointer drag on empty space)
  *   - Drop target for clips dragged from other tracks
+ *   - Drop target for assets dragged from AssetExplorer (NOD-304)
  */
 
-import React, { memo, useCallback, useRef } from "react";
+import React, { memo, useCallback, useRef, useState, useEffect } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -22,10 +23,19 @@ import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { Clip } from "./Clip";
+import { WarningBanner } from "../../ui_primitives";
+import { deserializeDragData, DRAG_DATA_MIME } from "../../../lib/dragdrop";
+import type { Asset } from "../../../stores/ApiTypes";
+import {
+  assetMediaType,
+  isCompatibleWithTrack
+} from "../dnd/assetToClipAdapter";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const DEFAULT_TRACK_HEIGHT_PX = 64;
+/** Duration (ms) the mismatch warning banner remains visible. */
+const WARNING_DISMISS_MS = 3000;
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -33,7 +43,9 @@ const laneStyles = (
   theme: Theme,
   heightPx: number,
   visible: boolean,
-  isRubberBanding: boolean
+  isRubberBanding: boolean,
+  isDragOver: boolean,
+  isDragReject: boolean
 ) =>
   css({
     position: "relative",
@@ -43,7 +55,17 @@ const laneStyles = (
     backgroundColor: visible
       ? theme.vars.palette.background.default
       : theme.vars.palette.action.disabledBackground,
-    borderBottom: `1px solid ${theme.vars.palette.divider}`,
+    borderBottom: `1px solid ${isDragReject
+      ? theme.vars.palette.error.main
+      : isDragOver
+        ? theme.vars.palette.primary.main
+        : theme.vars.palette.divider}`,
+    outline: isDragOver
+      ? `2px solid ${theme.vars.palette.primary.main}`
+      : isDragReject
+        ? `2px solid ${theme.vars.palette.error.main}`
+        : "none",
+    outlineOffset: "-2px",
     overflow: "hidden",
     cursor: isRubberBanding ? "crosshair" : "default",
     // Subtle alternating stripe
@@ -92,8 +114,10 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   );
 
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
+  const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
   const clearSelection = useTimelineUIStore((s) => s.clearSelection);
   const setSelection = useTimelineUIStore((s) => s.setSelection);
+  const addImportedClip = useTimelineStore((s) => s.addImportedClip);
 
   const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
 
@@ -103,6 +127,126 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const rbStartRef = useRef({ x: 0, y: 0 });
   const [rubberBand, setRubberBand] = React.useState<RubberBandRect | null>(
     null
+  );
+
+  // ── Asset drop state ────────────────────────────────────────────────────
+
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [isDragReject, setIsDragReject] = useState(false);
+  const [dropWarning, setDropWarning] = useState<string | null>(null);
+  const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear any pending warning timer on unmount
+  useEffect(() => {
+    return () => {
+      if (warningTimerRef.current !== null) {
+        clearTimeout(warningTimerRef.current);
+      }
+    };
+  }, []);
+
+  const showWarning = useCallback((message: string) => {
+    setDropWarning(message);
+    if (warningTimerRef.current !== null) {
+      clearTimeout(warningTimerRef.current);
+    }
+    warningTimerRef.current = setTimeout(() => {
+      setDropWarning(null);
+      warningTimerRef.current = null;
+    }, WARNING_DISMISS_MS);
+  }, []);
+
+  /** Returns true if the dataTransfer looks like an internal asset drag. */
+  const isAssetDrag = useCallback((e: React.DragEvent): boolean => {
+    return (
+      e.dataTransfer.types.includes(DRAG_DATA_MIME) ||
+      e.dataTransfer.types.includes("asset")
+    );
+  }, []);
+
+  const handleAssetDragOver = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      if (!isAssetDrag(e)) {
+        return;
+      }
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      setIsDragOver(true);
+    },
+    [isAssetDrag]
+  );
+
+  const handleAssetDragLeave = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      // Only clear when leaving the lane itself (not a child element)
+      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+        setIsDragOver(false);
+        setIsDragReject(false);
+      }
+    },
+    []
+  );
+
+  const handleAssetDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      setIsDragOver(false);
+      setIsDragReject(false);
+
+      if (!isAssetDrag(e)) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const dragData = deserializeDragData(e.dataTransfer);
+      if (!dragData) {
+        return;
+      }
+
+      // Resolve asset: only single-asset drags are supported for clip creation
+      let asset: Asset | null = null;
+      if (dragData.type === "asset") {
+        asset = dragData.payload as Asset;
+      }
+
+      if (!asset) {
+        return;
+      }
+
+      const mediaType = assetMediaType(asset.content_type);
+      if (!mediaType) {
+        showWarning(`Cannot import "${asset.name}": unsupported media type.`);
+        return;
+      }
+
+      if (!isCompatibleWithTrack(mediaType, track.type)) {
+        const expected =
+          mediaType === "audio" ? "an audio" : "a video or overlay";
+        showWarning(
+          `Cannot drop ${mediaType} asset onto this ${track.type} track — use ${expected} track.`
+        );
+        setIsDragReject(true);
+        setTimeout(() => setIsDragReject(false), WARNING_DISMISS_MS);
+        return;
+      }
+
+      // Compute start time from drop position + scroll offset
+      const rect = e.currentTarget.getBoundingClientRect();
+      const dropX = e.clientX - rect.left;
+      const startMs = Math.max(0, Math.round((dropX + scrollLeftPx) * msPerPx));
+
+      addImportedClip(asset, track.id, startMs);
+    },
+    [
+      isAssetDrag,
+      track.type,
+      track.id,
+      scrollLeftPx,
+      msPerPx,
+      addImportedClip,
+      showWarning
+    ]
   );
 
   const handleLanePointerDown = useCallback(
@@ -174,11 +318,14 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
   return (
     <div
-      css={laneStyles(theme, heightPx, track.visible, rubberBand !== null)}
+      css={laneStyles(theme, heightPx, track.visible, rubberBand !== null, isDragOver, isDragReject)}
       data-testid={`track-lane-${track.id}`}
       onPointerDown={handleLanePointerDown}
       onPointerMove={handleLanePointerMove}
       onPointerUp={handleLanePointerUp}
+      onDragOver={handleAssetDragOver}
+      onDragLeave={handleAssetDragLeave}
+      onDrop={handleAssetDrop}
       role="listbox"
       aria-label={`Track: ${track.name}`}
       aria-multiselectable="true"
@@ -199,6 +346,27 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
           }}
           aria-hidden="true"
         />
+      )}
+
+      {/* Mismatch / error warning banner (auto-dismissed) */}
+      {dropWarning && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 4,
+            left: 4,
+            right: 4,
+            zIndex: 30,
+            pointerEvents: "none"
+          }}
+          aria-live="polite"
+        >
+          <WarningBanner
+            message={dropWarning}
+            variant="warning"
+            compact
+          />
+        </div>
       )}
     </div>
   );
