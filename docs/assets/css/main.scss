@@ -659,6 +659,16 @@ blockquote {
   border-color: rgba(59, 130, 246, 0.4);
 }
 
+.nav-item-external {
+  color: var(--color-accent-cyan, #67e8f9);
+  border-color: rgba(103, 232, 249, 0.3);
+}
+
+.nav-item-external:hover {
+  background-color: rgba(103, 232, 249, 0.1);
+  color: var(--color-accent-cyan, #67e8f9);
+}
+
 /* Remove old underline effect */
 .nav-item::before {
   display: none;
@@ -1360,6 +1370,23 @@ blockquote {
   color: var(--color-text-muted);
   font-size: 0.95rem;
   line-height: 1.6;
+}
+
+.footer-marketing-link {
+  margin-top: var(--spacing-md);
+  font-size: 0.95rem;
+}
+
+.footer-marketing-link a {
+  color: var(--color-accent-cyan);
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.footer-marketing-link a:hover {
+  opacity: 0.8;
+  text-decoration: underline;
 }
 
 .footer-heading {
