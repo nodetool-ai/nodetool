@@ -1,8 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { displayCombo } from "../shortcuts";
-import { isMac } from "../shortcuts";
+import { displayCombo, isMac } from "../shortcuts";
 
 describe("displayCombo", () => {
   it("returns every binding for redo", () => {

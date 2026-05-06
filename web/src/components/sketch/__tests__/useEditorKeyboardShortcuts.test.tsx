@@ -62,9 +62,10 @@ function dispatchKey(target: EventTarget, key: string, type: "keydown" | "keyup"
 }
 
 function createPrimaryModifierKeydownEvent(): KeyboardEvent {
+  const mac = isMac();
   return new KeyboardEvent("keydown", {
-    code: isMac() ? "MetaLeft" : "ControlLeft",
-    key: isMac() ? "Meta" : "Control",
+    code: mac ? "MetaLeft" : "ControlLeft",
+    key: mac ? "Meta" : "Control",
     bubbles: true,
     cancelable: true
   });
