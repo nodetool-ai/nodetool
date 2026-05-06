@@ -1,17 +1,6 @@
 /** @jsxImportSource @emotion/react */
-/**
- * ClipActions
- *
- * Action bar rendered in the timeline Inspector for the selected clip.
- * Surfaces four lifecycle actions (PRD §17, §6 #1, §6 #6):
- *
- *   1. Duplicate Linked   — same workflowId, independent paramOverrides.
- *   2. Duplicate Variation — clones the workflow so both graphs are independent.
- *   3. Lock / Unlock       — prevents successful generations from swapping currentAssetId.
- *   4. Replace Output…     — picks an existing asset and sets currentAssetId directly.
- */
 
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -46,10 +35,6 @@ const sectionLabelStyles = (theme: Theme) =>
 
 export interface ClipActionsProps {
   clipId: string;
-  /**
-   * Optional time offset in ms applied when placing the duplicate alongside
-   * the original. Defaults to 0 (same start; callers may supply clip.durationMs).
-   */
   duplicateOffsetMs?: number;
 }
 
@@ -68,6 +53,7 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
     const setClipLocked = useTimelineStore((s) => s.setClipLocked);
     const replaceClipOutput = useTimelineStore((s) => s.replaceClipOutput);
 
+    const variationBusyRef = useRef(false);
     const [variationBusy, setVariationBusy] = useState(false);
     const [variationError, setVariationError] = useState<string | null>(null);
     const [replaceOpen, setReplaceOpen] = useState(false);
@@ -82,9 +68,10 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
     // ── Duplicate as Variation ─────────────────────────────────────────────
 
     const handleDuplicateVariation = useCallback(async () => {
-      if (variationBusy) {
+      if (variationBusyRef.current) {
         return;
       }
+      variationBusyRef.current = true;
       setVariationBusy(true);
       try {
         await duplicateClipAsVariation(clipId, duplicateOffsetMs);
@@ -93,9 +80,10 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
           err instanceof Error ? err.message : "Failed to create variation"
         );
       } finally {
+        variationBusyRef.current = false;
         setVariationBusy(false);
       }
-    }, [clipId, duplicateOffsetMs, duplicateClipAsVariation, variationBusy]);
+    }, [clipId, duplicateOffsetMs, duplicateClipAsVariation]);
 
     // ── Lock ───────────────────────────────────────────────────────────────
 
