@@ -4,11 +4,13 @@ import React, { memo, useCallback, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { useNavigate } from "react-router-dom";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import ImageIcon from "@mui/icons-material/Image";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { ToolbarIconButton, FlexRow, Text, Dialog, TextInput, Toast } from "../../ui_primitives";
@@ -41,10 +43,12 @@ export interface ClipActionsProps {
 export const ClipActions: React.FC<ClipActionsProps> = memo(
   ({ clipId, duplicateOffsetMs = 0 }) => {
     const theme = useTheme();
+    const navigate = useNavigate();
 
     const clip = useTimelineStore(
       (s) => s.clips.find((c) => c.id === clipId)
     );
+    const sequenceId = useTimelineStore((s) => s.sequenceId);
 
     const duplicateClipLinked = useTimelineStore((s) => s.duplicateClipLinked);
     const duplicateClipAsVariation = useTimelineStore(
@@ -113,6 +117,17 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
       setReplaceOpen(false);
     }, []);
 
+    // ── Open in Node Editor ────────────────────────────────────────────────
+
+    const handleOpenInNodeEditor = useCallback(() => {
+      if (!clip?.workflowId || !sequenceId) {
+        return;
+      }
+      navigate(
+        `/editor/${clip.workflowId}?from=timeline:${sequenceId}:${clipId}`
+      );
+    }, [clip?.workflowId, sequenceId, clipId, navigate]);
+
     if (!clip) {
       return null;
     }
@@ -171,6 +186,16 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
             aria-label="Replace clip output"
             data-testid="clip-action-replace-output"
           />
+
+          {clip.workflowId && sequenceId && (
+            <ToolbarIconButton
+              icon={<OpenInNewIcon fontSize="small" />}
+              tooltip="Open in Node Editor"
+              onClick={handleOpenInNodeEditor}
+              aria-label="Open clip workflow in node editor"
+              data-testid="clip-action-open-in-editor"
+            />
+          )}
         </FlexRow>
 
         {/* Replace Output dialog */}
