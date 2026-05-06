@@ -118,9 +118,10 @@ export class Workflow extends DBModel {
       limit?: number;
       access?: AccessLevel;
       runMode?: string;
+      tag?: string;
     } = {}
   ): Promise<[Workflow[], string]> {
-    const { limit = 50, access, runMode } = opts;
+    const { limit = 50, access, runMode, tag } = opts;
     const db = getDb();
 
     const conditions = [eq(workflows.user_id, userId)];
@@ -132,9 +133,21 @@ export class Workflow extends DBModel {
       .from(workflows)
       .where(and(...conditions))
       .orderBy(desc(workflows.updated_at))
-      .limit(limit + 1)
+      .limit(tag ? 10_000 : limit + 1)
 
-    const items = rows.map((r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>));
+    let items = rows.map((r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>));
+
+    // Filter by tag in-memory (JSON array field)
+    if (tag) {
+      items = items.filter((w: Workflow) => Array.isArray(w.tags) && w.tags.includes(tag));
+      // Apply limit after tag filter
+      const capped = items.slice(0, limit + 1);
+      if (capped.length <= limit) return [capped, ""];
+      capped.pop();
+      const cursor = capped[capped.length - 1]?.id ?? "";
+      return [capped, cursor];
+    }
+
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -230,5 +243,41 @@ export class Workflow extends DBModel {
       )
       .limit(1);
     return row ? new Workflow(row as Record<string, unknown>) : null;
+  }
+
+  /**
+   * Clone an existing workflow into a new `run_mode = "clip"` row owned by
+   * `ownerUserId`. The clone has an empty `tags` set and no tool_name, so it
+   * is invisible in standalone workflow listings.
+   *
+   * Returns the new persisted Workflow.
+   */
+  static async cloneAsClipPrivate(
+    sourceId: string,
+    ownerUserId: string
+  ): Promise<Workflow> {
+    const source = await Workflow.get<Workflow>(sourceId);
+    if (!source) {
+      throw new Error(`Source workflow ${sourceId} not found`);
+    }
+    const clone = new Workflow({
+      user_id: ownerUserId,
+      name: source.name,
+      description: source.description ?? "",
+      tags: [],
+      thumbnail: null,
+      thumbnail_url: null,
+      graph: source.graph,
+      settings: source.settings ?? null,
+      package_name: null,
+      path: null,
+      tool_name: null,
+      run_mode: "clip",
+      workspace_id: source.workspace_id ?? null,
+      html_app: null,
+      access: "private"
+    });
+    await clone.save();
+    return clone;
   }
 }

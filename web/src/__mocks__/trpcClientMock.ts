@@ -33,6 +33,7 @@ const emptyMutate = () =>
 // Named exports for tests that need to configure per-test behaviour.
 export const mockWorkflowsGet = jest.fn();
 export const mockWorkflowsCreate = jest.fn();
+export const mockTimelineClipsCreate = jest.fn();
 
 export const trpc = {
   Provider: ({ children }: { children: unknown }) => children as never,
@@ -110,6 +111,12 @@ export const trpcClient = {
   workflows: {
     get: { query: mockWorkflowsGet },
     create: { mutate: mockWorkflowsCreate }
+  },
+  // Timeline namespace
+  timeline: {
+    clips: {
+      create: { mutate: mockTimelineClipsCreate }
+    }
   }
 };
 
