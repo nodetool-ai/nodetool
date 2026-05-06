@@ -284,5 +284,188 @@ describe("timeline router", () => {
       ) as TimelineDocument;
       expect(persisted.clips[0].versions).toHaveLength(2);
     });
+
+    it("append prunes successful versions beyond cap, keeping favorites", async () => {
+      // Build a clip with 10 successful versions (none favorited) + 1 favorite
+      const existingVersions = Array.from({ length: 10 }, (_, i) => ({
+        id: `v-${i}`,
+        createdAt: `2026-01-01T00:00:0${i}Z`,
+        jobId: `j-${i}`,
+        assetId: `a-${i}`,
+        workflowUpdatedAt: "2026-01-01T00:00:00Z",
+        dependencyHash: `h${i}`,
+        paramOverridesSnapshot: {},
+        status: "success" as const,
+        favorite: i === 0 // first one is favorited
+      }));
+
+      const docWithManyVersions: TimelineDocument = {
+        tracks: [],
+        clips: [
+          {
+            id: "clip-1",
+            trackId: "v1",
+            name: "Clip",
+            startMs: 0,
+            durationMs: 1000,
+            mediaType: "video",
+            sourceType: "imported",
+            status: "generated",
+            locked: false,
+            versions: existingVersions
+          }
+        ],
+        markers: []
+      };
+
+      TS.findById.mockResolvedValue(
+        makeSeq({ document: JSON.stringify(docWithManyVersions) })
+      );
+      TS.update.mockResolvedValue(undefined);
+      const caller = createCaller(makeCtx());
+      await caller.timeline.versions.append({
+        id: "seq-1",
+        clipId: "clip-1",
+        jobId: "job-new",
+        assetId: "asset-new",
+        dependencyHash: "h-new",
+        workflowUpdatedAt: "2026-01-02T00:00:00Z"
+      });
+      const updateArgs = TS.update.mock.calls[0]?.[1];
+      const persisted = JSON.parse(
+        updateArgs?.document as string
+      ) as TimelineDocument;
+      // 1 favorite + 9 newest non-favorites = 10 total (cap kept)
+      expect(persisted.clips[0].versions!.length).toBeLessThanOrEqual(10);
+      // The favorite version must still be present
+      expect(
+        persisted.clips[0].versions!.some((v) => v.id === "v-0")
+      ).toBe(true);
+    });
+
+    it("append does not exceed cap when all versions are favorited", async () => {
+      // 10 favorites fills the cap — no slots left for non-favorites
+      const allFavVersions = Array.from({ length: 10 }, (_, i) => ({
+        id: `vf-${i}`,
+        createdAt: `2026-01-01T00:00:0${i}Z`,
+        jobId: `j-${i}`,
+        assetId: `a-${i}`,
+        workflowUpdatedAt: "2026-01-01T00:00:00Z",
+        dependencyHash: `h${i}`,
+        paramOverridesSnapshot: {},
+        status: "success" as const,
+        favorite: true
+      }));
+
+      const docAllFav: TimelineDocument = {
+        tracks: [],
+        clips: [
+          {
+            id: "clip-1",
+            trackId: "v1",
+            name: "Clip",
+            startMs: 0,
+            durationMs: 1000,
+            mediaType: "video",
+            sourceType: "imported",
+            status: "generated",
+            locked: false,
+            versions: allFavVersions
+          }
+        ],
+        markers: []
+      };
+
+      TS.findById.mockResolvedValue(
+        makeSeq({ document: JSON.stringify(docAllFav) })
+      );
+      TS.update.mockResolvedValue(undefined);
+      const caller = createCaller(makeCtx());
+      await caller.timeline.versions.append({
+        id: "seq-1",
+        clipId: "clip-1",
+        jobId: "job-new",
+        assetId: "asset-new",
+        dependencyHash: "h-new",
+        workflowUpdatedAt: "2026-01-02T00:00:00Z"
+      });
+      const updateArgs = TS.update.mock.calls[0]?.[1];
+      const persisted = JSON.parse(
+        updateArgs?.document as string
+      ) as TimelineDocument;
+      // 10 favorites + 1 new non-favorite (the just-appended version)
+      // Since favorites fill the cap, the new non-fav gets 0 slots → only favorites + new item itself
+      // The new version is kept (it was just appended), non-fav slots = 0
+      const versions = persisted.clips[0].versions!;
+      // All 10 favorites must still be present
+      expect(versions.filter((v) => v.favorite).length).toBe(10);
+      // slotsForNonFav = Math.max(0, 10 - 10) = 0 → new non-favorite is pruned
+      expect(versions.filter((v) => !v.favorite).length).toBe(0);
+      expect(versions.length).toBe(10);
+    });
+
+    it("setFavorite toggles the favorite flag", async () => {
+      TS.findById.mockResolvedValue(
+        makeSeq({ document: JSON.stringify(docWithClip) })
+      );
+      TS.update.mockResolvedValue(undefined);
+      const caller = createCaller(makeCtx());
+      const out = await caller.timeline.versions.setFavorite({
+        id: "seq-1",
+        clipId: "clip-1",
+        versionId: "v0",
+        favorite: true
+      });
+      expect(out.favorite).toBe(true);
+      expect(TS.update).toHaveBeenCalled();
+    });
+
+    it("setFavorite 404s on unknown version", async () => {
+      TS.findById.mockResolvedValue(
+        makeSeq({ document: JSON.stringify(docWithClip) })
+      );
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.timeline.versions.setFavorite({
+          id: "seq-1",
+          clipId: "clip-1",
+          versionId: "nope",
+          favorite: true
+        })
+      ).rejects.toThrow();
+    });
+
+    it("delete removes the version and persists", async () => {
+      TS.findById.mockResolvedValue(
+        makeSeq({ document: JSON.stringify(docWithClip) })
+      );
+      TS.update.mockResolvedValue(undefined);
+      const caller = createCaller(makeCtx());
+      const out = await caller.timeline.versions.delete({
+        id: "seq-1",
+        clipId: "clip-1",
+        versionId: "v0"
+      });
+      expect(out.ok).toBe(true);
+      const updateArgs = TS.update.mock.calls[0]?.[1];
+      const persisted = JSON.parse(
+        updateArgs?.document as string
+      ) as TimelineDocument;
+      expect(persisted.clips[0].versions).toHaveLength(0);
+    });
+
+    it("delete 404s on unknown version", async () => {
+      TS.findById.mockResolvedValue(
+        makeSeq({ document: JSON.stringify(docWithClip) })
+      );
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.timeline.versions.delete({
+          id: "seq-1",
+          clipId: "clip-1",
+          versionId: "nope"
+        })
+      ).rejects.toThrow();
+    });
   });
 });
