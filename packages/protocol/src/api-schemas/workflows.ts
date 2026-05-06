@@ -72,6 +72,7 @@ export type WorkflowResponse = z.infer<typeof workflowResponse>;
 export const listInput = z.object({
   limit: z.number().int().min(1).default(100),
   run_mode: z.string().optional(),
+  tag: z.string().optional(),
   cursor: z.string().optional()
 });
 export type ListInput = z.infer<typeof listInput>;

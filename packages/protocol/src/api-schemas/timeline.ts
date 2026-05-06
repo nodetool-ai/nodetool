@@ -158,3 +158,27 @@ export const appendClipVersionInput = z.object({
   status: z.enum(["success", "failed", "cancelled"]).optional().default("success")
 });
 export type AppendClipVersionInput = z.infer<typeof appendClipVersionInput>;
+
+// ── create clip (POST /api/timeline/:id/clips) ────────────────────────────────
+
+export const createClipInput = z.object({
+  /** Timeline sequence that will own the clip. */
+  id: z.string(),
+  trackId: z.string(),
+  startMs: z.number().int().min(0),
+  /** The source standalone workflow to clone into a clip-private `run_mode = "clip"` row. */
+  sourceWorkflowId: z.string(),
+  /**
+   * Override which terminal node's output becomes the clip's media.
+   * Required when the source workflow has multiple terminal output nodes;
+   * optional (server auto-picks) when there is exactly one.
+   */
+  selectedOutputNodeId: z.string().optional(),
+  /** If placed on an overlay track, pass `"overlay"` to override mediaType. */
+  mediaTypeOverride: z.enum(["overlay"]).optional()
+});
+export type CreateClipInput = z.infer<typeof createClipInput>;
+
+/** Response shape returned by `timeline.clips.create`. */
+export const timelineClipResponse = timelineClip;
+export type TimelineClipResponse = z.infer<typeof timelineClipResponse>;

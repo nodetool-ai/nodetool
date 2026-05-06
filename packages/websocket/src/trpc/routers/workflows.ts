@@ -359,7 +359,8 @@ export const workflowsRouter = router({
     .query(async ({ ctx, input }) => {
       const [workflows, cursor] = await Workflow.paginate(ctx.userId, {
         limit: input.limit,
-        runMode: input.run_mode
+        runMode: input.run_mode,
+        tag: input.tag
       });
       return {
         workflows: workflows.map((w) => toWorkflowResponse(w)),
