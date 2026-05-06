@@ -1,20 +1,20 @@
 """
 Autonomous Research Agent DSL Example
 
-Use the ResearchAgent node to perform a lightweight market analysis with
+Use the Agent node to perform a lightweight market analysis with
 structured outputs defined through dynamic slots.
 
 Workflow:
 1. **Input Brief** – Provide product, audience, and region details.
 2. **Objective Builder** – Combine the brief into a research objective.
-3. **Autonomous Research** – Launch the ResearchAgent with dynamic output schema.
+3. **Autonomous Research** – Launch the Agent with dynamic output schema.
 4. **Report Assembly** – Format the structured findings into a briefing memo.
 """
 
 from nodetool.dsl.graph import create_graph, run_graph_sync
 from nodetool.dsl.nodetool.input import StringInput
 from nodetool.dsl.nodetool.text import FormatText
-from nodetool.dsl.nodetool.agents import ResearchAgent
+from nodetool.dsl.nodetool.agents import Agent
 from nodetool.dsl.nodetool.output import Output
 from nodetool.metadata.types import LanguageModel, Provider
 
@@ -69,8 +69,9 @@ research_objective = FormatText(
 
 # ---- Autonomous Research Agent ---------------------------------------------
 # Configure the research agent and declare the dynamic output schema.
-research_agent = ResearchAgent(
-    objective=research_objective.output,
+research_agent = Agent(
+    prompt=research_objective.output,
+    mode="plan",
     model=LanguageModel(
         type="language_model",
         id="openai/gpt-oss-120b",

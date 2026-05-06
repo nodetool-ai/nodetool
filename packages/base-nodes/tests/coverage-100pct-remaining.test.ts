@@ -906,7 +906,7 @@ describe("agents nodes", () => {
     });
   });
 
-  // ResearchAgentNode has been removed from agents.ts
+  // Research node coverage is handled by the general Agent node in agents.ts
 });
 
 // ============================================================================

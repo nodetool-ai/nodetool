@@ -5,7 +5,7 @@
   "updated_at": "2025-11-22T16:54:18.095690",
   "name": "Autonomous Research Agent",
   "tool_name": null,
-  "description": "Use the ResearchAgent node to perform a lightweight market analysis with structured outputs defined through dynamic slots.",
+  "description": "Use the Agent node to perform a lightweight market analysis with structured outputs defined through dynamic slots.",
   "tags": [
     "agent",
     "business",
@@ -34,7 +34,7 @@
         "parent_id": null,
         "type": "nodetool.text.FormatText",
         "data": {
-          "template": "# Aurora Metrics \u2013 Market Intelligence Brief\n\n## Executive Summary\n{{ summary }}\n\n## Market Landscape\n{{ landscape }}\n\n## Key Players\n- {{ players | join('\n- ') }}\n\n## Opportunities\n{{ opportunities }}\n\n## Risk Factors\n{{ risks }}\n\n## Recommended Actions\n{{ actions }}\n\n## Source Notes\n{{ sources }}\n"
+          "template": "# Aurora Metrics – Market Intelligence Brief\n\n## Executive Summary\n{{ summary }}\n\n## Market Landscape\n{{ landscape }}\n\n## Key Players\n- {{ players | join('\n- ') }}\n\n## Opportunities\n{{ opportunities }}\n\n## Risk Factors\n{{ risks }}\n\n## Recommended Actions\n{{ actions }}\n\n## Source Notes\n{{ sources }}\n"
         },
         "ui_properties": {},
         "dynamic_properties": {
@@ -52,13 +52,11 @@
       {
         "id": "3",
         "parent_id": null,
-        "type": "nodetool.agents.ResearchAgent",
+        "type": "nodetool.agents.Agent",
         "data": {
-          "objective": "",
           "model": {
             "type": "language_model"
           },
-          "system_prompt": "You are a research assistant.\n\nGoal\n- Conduct thorough research on the given objective\n- Use tools to gather information from multiple sources\n- Write intermediate findings to the workspace for reference\n- Synthesize information into the structured output format specified\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract content\n- write_file: Save research findings to files\n- read_file: Read previously saved research files\n- list_directory: List files in the workspace\n\nWorkflow\n1. Break down the research objective into specific queries\n2. Use google_search to find relevant sources\n3. Use browser to extract content from promising URLs\n4. Save important findings using write_file\n5. Synthesize all findings into the requested output format\n\nOutput Format\n- Return a structured JSON object matching the defined output schema\n- Be thorough and cite sources where appropriate\n- Ensure all required fields are populated with accurate information\n",
           "tools": [
             {
               "type": "tool_name",
@@ -69,7 +67,10 @@
               "name": "browser"
             }
           ],
-          "max_tokens": 8192
+          "max_tokens": 8192,
+          "prompt": "",
+          "system": "You are a research assistant.\n\nGoal\n- Conduct thorough research on the given objective\n- Use tools to gather information from multiple sources\n- Synthesize information into the structured output format specified\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract content\n\nWorkflow\n1. Break down the research objective into specific queries\n2. Use google_search to find relevant sources\n3. Use browser to extract content from promising URLs\n4. Synthesize all findings into the requested output format\n\nOutput Format\n- Return a structured JSON object matching the defined output schema\n- Be thorough and cite sources where appropriate\n- Ensure all required fields are populated with accurate information\n",
+          "mode": "plan"
         },
         "ui_properties": {},
         "dynamic_properties": {},
@@ -246,7 +247,7 @@
         "source": "4",
         "sourceHandle": "output",
         "target": "3",
-        "targetHandle": "objective",
+        "targetHandle": "prompt",
         "ui_properties": null
       },
       {
