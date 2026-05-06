@@ -196,8 +196,15 @@ const WorkflowCard = ({
   }, [onClick, workflow]);
 
   const imageUrl = useMemo(() => {
+    // Prefer the server-provided URL — it carries an md5-based ?v=<hash>
+    // cache buster so updates show up without users having to hard-refresh.
+    if (workflow.thumbnail_url) {
+      return workflow.thumbnail_url.startsWith("http")
+        ? workflow.thumbnail_url
+        : `${BASE_URL}${workflow.thumbnail_url}`;
+    }
     return `${BASE_URL}/api/assets/packages/${workflow.package_name}/${workflow.name}.jpg`;
-  }, [workflow.package_name, workflow.name]);
+  }, [workflow.thumbnail_url, workflow.package_name, workflow.name]);
 
   // Hide the package badge for the default base package — it's noise when
   // every card carries it. Surface only differentiating signals.

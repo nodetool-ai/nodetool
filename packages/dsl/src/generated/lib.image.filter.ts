@@ -13,8 +13,8 @@ export interface BlurOutputs {
   output: ImageRef;
 }
 
-export function blur(inputs: BlurInputs): DslNode<BlurOutputs, "output"> {
-  return createNode("lib.image.filter.Blur", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function blur(inputs: BlurInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<BlurOutputs, "output"> {
+  return createNode("lib.image.filter.Blur", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Canny — lib.image.filter.Canny
@@ -28,8 +28,8 @@ export interface CannyOutputs {
   output: ImageRef;
 }
 
-export function canny(inputs: CannyInputs): DslNode<CannyOutputs, "output"> {
-  return createNode("lib.image.filter.Canny", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function canny(inputs: CannyInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CannyOutputs, "output"> {
+  return createNode("lib.image.filter.Canny", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Contour — lib.image.filter.Contour
@@ -41,8 +41,8 @@ export interface ContourOutputs {
   output: ImageRef;
 }
 
-export function contour(inputs: ContourInputs): DslNode<ContourOutputs, "output"> {
-  return createNode("lib.image.filter.Contour", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function contour(inputs: ContourInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ContourOutputs, "output"> {
+  return createNode("lib.image.filter.Contour", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Convert To Grayscale — lib.image.filter.ConvertToGrayscale
@@ -54,8 +54,8 @@ export interface ConvertToGrayscaleOutputs {
   output: ImageRef;
 }
 
-export function convertToGrayscale(inputs: ConvertToGrayscaleInputs): DslNode<ConvertToGrayscaleOutputs, "output"> {
-  return createNode("lib.image.filter.ConvertToGrayscale", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function convertToGrayscale(inputs: ConvertToGrayscaleInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ConvertToGrayscaleOutputs, "output"> {
+  return createNode("lib.image.filter.ConvertToGrayscale", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Emboss — lib.image.filter.Emboss
@@ -67,8 +67,8 @@ export interface EmbossOutputs {
   output: ImageRef;
 }
 
-export function emboss(inputs: EmbossInputs): DslNode<EmbossOutputs, "output"> {
-  return createNode("lib.image.filter.Emboss", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function emboss(inputs: EmbossInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<EmbossOutputs, "output"> {
+  return createNode("lib.image.filter.Emboss", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Expand — lib.image.filter.Expand
@@ -82,8 +82,8 @@ export interface ExpandOutputs {
   output: ImageRef;
 }
 
-export function expand(inputs: ExpandInputs): DslNode<ExpandOutputs, "output"> {
-  return createNode("lib.image.filter.Expand", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function expand(inputs: ExpandInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExpandOutputs, "output"> {
+  return createNode("lib.image.filter.Expand", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Find Edges — lib.image.filter.FindEdges
@@ -95,8 +95,8 @@ export interface FindEdgesOutputs {
   output: ImageRef;
 }
 
-export function findEdges(inputs: FindEdgesInputs): DslNode<FindEdgesOutputs, "output"> {
-  return createNode("lib.image.filter.FindEdges", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function findEdges(inputs: FindEdgesInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FindEdgesOutputs, "output"> {
+  return createNode("lib.image.filter.FindEdges", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Get Channel — lib.image.filter.GetChannel
@@ -109,8 +109,8 @@ export interface GetChannelOutputs {
   output: ImageRef;
 }
 
-export function getChannel(inputs: GetChannelInputs): DslNode<GetChannelOutputs, "output"> {
-  return createNode("lib.image.filter.GetChannel", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function getChannel(inputs: GetChannelInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GetChannelOutputs, "output"> {
+  return createNode("lib.image.filter.GetChannel", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Invert — lib.image.filter.Invert
@@ -122,8 +122,8 @@ export interface InvertOutputs {
   output: ImageRef;
 }
 
-export function invert(inputs: InvertInputs): DslNode<InvertOutputs, "output"> {
-  return createNode("lib.image.filter.Invert", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function invert(inputs: InvertInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<InvertOutputs, "output"> {
+  return createNode("lib.image.filter.Invert", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Posterize — lib.image.filter.Posterize
@@ -136,8 +136,8 @@ export interface PosterizeOutputs {
   output: ImageRef;
 }
 
-export function posterize(inputs: PosterizeInputs): DslNode<PosterizeOutputs, "output"> {
-  return createNode("lib.image.filter.Posterize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function posterize(inputs: PosterizeInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PosterizeOutputs, "output"> {
+  return createNode("lib.image.filter.Posterize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Smooth — lib.image.filter.Smooth
@@ -149,8 +149,8 @@ export interface SmoothOutputs {
   output: ImageRef;
 }
 
-export function smooth(inputs: SmoothInputs): DslNode<SmoothOutputs, "output"> {
-  return createNode("lib.image.filter.Smooth", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function smooth(inputs: SmoothInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SmoothOutputs, "output"> {
+  return createNode("lib.image.filter.Smooth", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Solarize — lib.image.filter.Solarize
@@ -163,6 +163,6 @@ export interface SolarizeOutputs {
   output: ImageRef;
 }
 
-export function solarize(inputs: SolarizeInputs): DslNode<SolarizeOutputs, "output"> {
-  return createNode("lib.image.filter.Solarize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function solarize(inputs: SolarizeInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SolarizeOutputs, "output"> {
+  return createNode("lib.image.filter.Solarize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

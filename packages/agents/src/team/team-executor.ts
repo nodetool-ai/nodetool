@@ -15,7 +15,6 @@ import type {
   Message,
   ProviderTool
 } from "@nodetool-ai/runtime";
-import { getProvider } from "@nodetool-ai/runtime";
 import { Tool } from "../tools/base-tool.js";
 import { MessageBus } from "./message-bus.js";
 import { TaskBoard } from "./task-board.js";
@@ -101,7 +100,7 @@ export class TeamExecutor {
   async *execute(): AsyncGenerator<TeamEvent> {
     // Initialize agents
     for (const identity of this.config.agents) {
-      const provider = await getProvider(identity.provider);
+      const provider = await this.context.getProvider(identity.provider);
       this.bus.register(identity.id);
 
       const state: AgentState = {

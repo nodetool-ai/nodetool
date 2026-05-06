@@ -12,8 +12,8 @@ export interface SchemaOutputs {
   output: unknown;
 }
 
-export function schema(inputs: SchemaInputs): DslNode<SchemaOutputs, "output"> {
-  return createNode("nodetool.data.Schema", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function schema(inputs: SchemaInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SchemaOutputs, "output"> {
+  return createNode("nodetool.data.Schema", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Filter — nodetool.data.Filter
@@ -26,8 +26,8 @@ export interface FilterOutputs {
   output: DataframeRef;
 }
 
-export function filter(inputs: FilterInputs): DslNode<FilterOutputs, "output"> {
-  return createNode("nodetool.data.Filter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function filter(inputs: FilterInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FilterOutputs, "output"> {
+  return createNode("nodetool.data.Filter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Slice — nodetool.data.Slice
@@ -41,8 +41,8 @@ export interface SliceOutputs {
   output: DataframeRef;
 }
 
-export function slice(inputs: SliceInputs): DslNode<SliceOutputs, "output"> {
-  return createNode("nodetool.data.Slice", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function slice(inputs: SliceInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SliceOutputs, "output"> {
+  return createNode("nodetool.data.Slice", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Save Dataframe — nodetool.data.SaveDataframe
@@ -56,8 +56,8 @@ export interface SaveDataframeOutputs {
   output: DataframeRef;
 }
 
-export function saveDataframe(inputs: SaveDataframeInputs): DslNode<SaveDataframeOutputs, "output"> {
-  return createNode("nodetool.data.SaveDataframe", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function saveDataframe(inputs: SaveDataframeInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SaveDataframeOutputs, "output"> {
+  return createNode("nodetool.data.SaveDataframe", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Import CSV — nodetool.data.ImportCSV
@@ -69,8 +69,8 @@ export interface ImportCSVOutputs {
   output: DataframeRef;
 }
 
-export function importCSV(inputs: ImportCSVInputs): DslNode<ImportCSVOutputs, "output"> {
-  return createNode("nodetool.data.ImportCSV", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function importCSV(inputs: ImportCSVInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ImportCSVOutputs, "output"> {
+  return createNode("nodetool.data.ImportCSV", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Load CSVURL — nodetool.data.LoadCSVURL
@@ -82,8 +82,8 @@ export interface LoadCSVURLOutputs {
   output: DataframeRef;
 }
 
-export function loadCSVURL(inputs: LoadCSVURLInputs): DslNode<LoadCSVURLOutputs, "output"> {
-  return createNode("nodetool.data.LoadCSVURL", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function loadCSVURL(inputs: LoadCSVURLInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<LoadCSVURLOutputs, "output"> {
+  return createNode("nodetool.data.LoadCSVURL", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Load CSVFile — nodetool.data.LoadCSVFile
@@ -95,8 +95,8 @@ export interface LoadCSVFileOutputs {
   output: DataframeRef;
 }
 
-export function loadCSVFile(inputs: LoadCSVFileInputs): DslNode<LoadCSVFileOutputs, "output"> {
-  return createNode("nodetool.data.LoadCSVFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function loadCSVFile(inputs: LoadCSVFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<LoadCSVFileOutputs, "output"> {
+  return createNode("nodetool.data.LoadCSVFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // From List — nodetool.data.FromList
@@ -108,8 +108,8 @@ export interface FromListOutputs {
   output: DataframeRef;
 }
 
-export function fromList(inputs: FromListInputs): DslNode<FromListOutputs, "output"> {
-  return createNode("nodetool.data.FromList", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function fromList(inputs: FromListInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FromListOutputs, "output"> {
+  return createNode("nodetool.data.FromList", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Convert JSON to DataFrame — nodetool.data.JSONToDataframe
@@ -121,8 +121,8 @@ export interface JSONToDataframeOutputs {
   output: DataframeRef;
 }
 
-export function jsonToDataframe(inputs: JSONToDataframeInputs): DslNode<JSONToDataframeOutputs, "output"> {
-  return createNode("nodetool.data.JSONToDataframe", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function jsonToDataframe(inputs: JSONToDataframeInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<JSONToDataframeOutputs, "output"> {
+  return createNode("nodetool.data.JSONToDataframe", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // To List — nodetool.data.ToList
@@ -134,8 +134,8 @@ export interface ToListOutputs {
   output: Record<string, unknown>[];
 }
 
-export function toList(inputs: ToListInputs): DslNode<ToListOutputs, "output"> {
-  return createNode("nodetool.data.ToList", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function toList(inputs: ToListInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ToListOutputs, "output"> {
+  return createNode("nodetool.data.ToList", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Select Column — nodetool.data.SelectColumn
@@ -148,8 +148,8 @@ export interface SelectColumnOutputs {
   output: DataframeRef;
 }
 
-export function selectColumn(inputs: SelectColumnInputs): DslNode<SelectColumnOutputs, "output"> {
-  return createNode("nodetool.data.SelectColumn", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function selectColumn(inputs: SelectColumnInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SelectColumnOutputs, "output"> {
+  return createNode("nodetool.data.SelectColumn", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Extract Column — nodetool.data.ExtractColumn
@@ -162,8 +162,8 @@ export interface ExtractColumnOutputs {
   output: unknown[];
 }
 
-export function extractColumn(inputs: ExtractColumnInputs): DslNode<ExtractColumnOutputs, "output"> {
-  return createNode("nodetool.data.ExtractColumn", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function extractColumn(inputs: ExtractColumnInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExtractColumnOutputs, "output"> {
+  return createNode("nodetool.data.ExtractColumn", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Add Column — nodetool.data.AddColumn
@@ -177,8 +177,8 @@ export interface AddColumnOutputs {
   output: DataframeRef;
 }
 
-export function addColumn(inputs: AddColumnInputs): DslNode<AddColumnOutputs, "output"> {
-  return createNode("nodetool.data.AddColumn", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function addColumn(inputs: AddColumnInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<AddColumnOutputs, "output"> {
+  return createNode("nodetool.data.AddColumn", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Merge — nodetool.data.Merge
@@ -191,8 +191,8 @@ export interface MergeOutputs {
   output: DataframeRef;
 }
 
-export function merge(inputs: MergeInputs): DslNode<MergeOutputs, "output"> {
-  return createNode("nodetool.data.Merge", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function merge(inputs: MergeInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<MergeOutputs, "output"> {
+  return createNode("nodetool.data.Merge", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Append — nodetool.data.Append
@@ -205,8 +205,8 @@ export interface AppendOutputs {
   output: DataframeRef;
 }
 
-export function append(inputs: AppendInputs): DslNode<AppendOutputs, "output"> {
-  return createNode("nodetool.data.Append", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function append(inputs: AppendInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<AppendOutputs, "output"> {
+  return createNode("nodetool.data.Append", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Join — nodetool.data.Join
@@ -220,8 +220,8 @@ export interface JoinOutputs {
   output: DataframeRef;
 }
 
-export function join(inputs: JoinInputs): DslNode<JoinOutputs, "output"> {
-  return createNode("nodetool.data.Join", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function join(inputs: JoinInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<JoinOutputs, "output"> {
+  return createNode("nodetool.data.Join", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Row Iterator — nodetool.data.RowIterator
@@ -234,8 +234,8 @@ export interface RowIteratorOutputs {
   index: unknown;
 }
 
-export function rowIterator(inputs: RowIteratorInputs): DslNode<RowIteratorOutputs> {
-  return createNode("nodetool.data.RowIterator", inputs as Record<string, unknown>, { outputNames: ["dict", "index"], streaming: true });
+export function rowIterator(inputs: RowIteratorInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RowIteratorOutputs> {
+  return createNode("nodetool.data.RowIterator", inputs as Record<string, unknown>, { outputNames: ["dict", "index"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Find Row — nodetool.data.FindRow
@@ -248,8 +248,8 @@ export interface FindRowOutputs {
   output: DataframeRef;
 }
 
-export function findRow(inputs: FindRowInputs): DslNode<FindRowOutputs, "output"> {
-  return createNode("nodetool.data.FindRow", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function findRow(inputs: FindRowInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FindRowOutputs, "output"> {
+  return createNode("nodetool.data.FindRow", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Sort By Column — nodetool.data.SortByColumn
@@ -262,8 +262,8 @@ export interface SortByColumnOutputs {
   output: DataframeRef;
 }
 
-export function sortByColumn(inputs: SortByColumnInputs): DslNode<SortByColumnOutputs, "output"> {
-  return createNode("nodetool.data.SortByColumn", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function sortByColumn(inputs: SortByColumnInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SortByColumnOutputs, "output"> {
+  return createNode("nodetool.data.SortByColumn", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Drop Duplicates — nodetool.data.DropDuplicates
@@ -275,8 +275,8 @@ export interface DropDuplicatesOutputs {
   output: DataframeRef;
 }
 
-export function dropDuplicates(inputs: DropDuplicatesInputs): DslNode<DropDuplicatesOutputs, "output"> {
-  return createNode("nodetool.data.DropDuplicates", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function dropDuplicates(inputs: DropDuplicatesInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DropDuplicatesOutputs, "output"> {
+  return createNode("nodetool.data.DropDuplicates", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Drop NA — nodetool.data.DropNA
@@ -288,8 +288,8 @@ export interface DropNAOutputs {
   output: DataframeRef;
 }
 
-export function dropNA(inputs: DropNAInputs): DslNode<DropNAOutputs, "output"> {
-  return createNode("nodetool.data.DropNA", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function dropNA(inputs: DropNAInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DropNAOutputs, "output"> {
+  return createNode("nodetool.data.DropNA", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // For Each Row — nodetool.data.ForEachRow
@@ -302,8 +302,8 @@ export interface ForEachRowOutputs {
   index: unknown;
 }
 
-export function forEachRow(inputs: ForEachRowInputs): DslNode<ForEachRowOutputs> {
-  return createNode("nodetool.data.ForEachRow", inputs as Record<string, unknown>, { outputNames: ["row", "index"], streaming: true });
+export function forEachRow(inputs: ForEachRowInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ForEachRowOutputs> {
+  return createNode("nodetool.data.ForEachRow", inputs as Record<string, unknown>, { outputNames: ["row", "index"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Load CSV Assets — nodetool.data.LoadCSVAssets
@@ -318,8 +318,8 @@ export interface LoadCSVAssetsOutputs {
   names: unknown[];
 }
 
-export function loadCSVAssets(inputs: LoadCSVAssetsInputs): DslNode<LoadCSVAssetsOutputs> {
-  return createNode("nodetool.data.LoadCSVAssets", inputs as Record<string, unknown>, { outputNames: ["dataframe", "name", "dataframes", "names"], streaming: true });
+export function loadCSVAssets(inputs: LoadCSVAssetsInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<LoadCSVAssetsOutputs> {
+  return createNode("nodetool.data.LoadCSVAssets", inputs as Record<string, unknown>, { outputNames: ["dataframe", "name", "dataframes", "names"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Aggregate — nodetool.data.Aggregate
@@ -333,8 +333,8 @@ export interface AggregateOutputs {
   output: DataframeRef;
 }
 
-export function aggregate(inputs: AggregateInputs): DslNode<AggregateOutputs, "output"> {
-  return createNode("nodetool.data.Aggregate", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function aggregate(inputs: AggregateInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<AggregateOutputs, "output"> {
+  return createNode("nodetool.data.Aggregate", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Pivot — nodetool.data.Pivot
@@ -350,8 +350,8 @@ export interface PivotOutputs {
   output: DataframeRef;
 }
 
-export function pivot(inputs: PivotInputs): DslNode<PivotOutputs, "output"> {
-  return createNode("nodetool.data.Pivot", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function pivot(inputs: PivotInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PivotOutputs, "output"> {
+  return createNode("nodetool.data.Pivot", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Rename — nodetool.data.Rename
@@ -364,8 +364,8 @@ export interface RenameOutputs {
   output: DataframeRef;
 }
 
-export function rename(inputs: RenameInputs): DslNode<RenameOutputs, "output"> {
-  return createNode("nodetool.data.Rename", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function rename(inputs: RenameInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RenameOutputs, "output"> {
+  return createNode("nodetool.data.Rename", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Fill NA — nodetool.data.FillNA
@@ -380,8 +380,8 @@ export interface FillNAOutputs {
   output: DataframeRef;
 }
 
-export function fillNA(inputs: FillNAInputs): DslNode<FillNAOutputs, "output"> {
-  return createNode("nodetool.data.FillNA", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function fillNA(inputs: FillNAInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FillNAOutputs, "output"> {
+  return createNode("nodetool.data.FillNA", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Save CSVDataframe File — nodetool.data.SaveCSVDataframeFile
@@ -395,8 +395,8 @@ export interface SaveCSVDataframeFileOutputs {
   output: DataframeRef;
 }
 
-export function saveCSVDataframeFile(inputs: SaveCSVDataframeFileInputs): DslNode<SaveCSVDataframeFileOutputs, "output"> {
-  return createNode("nodetool.data.SaveCSVDataframeFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function saveCSVDataframeFile(inputs: SaveCSVDataframeFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SaveCSVDataframeFileOutputs, "output"> {
+  return createNode("nodetool.data.SaveCSVDataframeFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Filter None — nodetool.data.FilterNone
@@ -408,8 +408,8 @@ export interface FilterNoneOutputs {
   output: unknown;
 }
 
-export function filterNone(inputs: FilterNoneInputs): DslNode<FilterNoneOutputs, "output"> {
-  return createNode("nodetool.data.FilterNone", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", streaming: true });
+export function filterNone(inputs: FilterNoneInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FilterNoneOutputs, "output"> {
+  return createNode("nodetool.data.FilterNone", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", streaming: true, streamingInput: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Describe — nodetool.data.Describe
@@ -421,6 +421,6 @@ export interface DescribeOutputs {
   output: DataframeRef;
 }
 
-export function describe(inputs: DescribeInputs): DslNode<DescribeOutputs, "output"> {
-  return createNode("nodetool.data.Describe", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function describe(inputs: DescribeInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DescribeOutputs, "output"> {
+  return createNode("nodetool.data.Describe", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

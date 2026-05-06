@@ -15,8 +15,8 @@ export interface ChatCompleteOutputs {
   output: string;
 }
 
-export function chatComplete(inputs: ChatCompleteInputs): DslNode<ChatCompleteOutputs, "output"> {
-  return createNode("mistral.text.ChatComplete", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function chatComplete(inputs: ChatCompleteInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ChatCompleteOutputs, "output"> {
+  return createNode("mistral.text.ChatComplete", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Code Complete — mistral.text.CodeComplete
@@ -31,6 +31,6 @@ export interface CodeCompleteOutputs {
   output: string;
 }
 
-export function codeComplete(inputs: CodeCompleteInputs): DslNode<CodeCompleteOutputs, "output"> {
-  return createNode("mistral.text.CodeComplete", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function codeComplete(inputs: CodeCompleteInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CodeCompleteOutputs, "output"> {
+  return createNode("mistral.text.CodeComplete", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

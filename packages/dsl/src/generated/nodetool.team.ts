@@ -16,8 +16,8 @@ export interface AgentOutputs {
   result: string;
 }
 
-export function agent(inputs: AgentInputs): DslNode<AgentOutputs, "result"> {
-  return createNode("nodetool.team.Agent", inputs as Record<string, unknown>, { outputNames: ["result"], defaultOutput: "result" });
+export function agent(inputs: AgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<AgentOutputs, "result"> {
+  return createNode("nodetool.team.Agent", inputs as Record<string, unknown>, { outputNames: ["result"], defaultOutput: "result", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Team Lead — nodetool.team.TeamLead
@@ -35,6 +35,6 @@ export interface TeamLeadOutputs {
   events: unknown[];
 }
 
-export function teamLead(inputs: TeamLeadInputs): DslNode<TeamLeadOutputs> {
-  return createNode("nodetool.team.TeamLead", inputs as Record<string, unknown>, { outputNames: ["result", "board", "messages", "events"] });
+export function teamLead(inputs: TeamLeadInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<TeamLeadOutputs> {
+  return createNode("nodetool.team.TeamLead", inputs as Record<string, unknown>, { outputNames: ["result", "board", "messages", "events"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

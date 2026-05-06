@@ -13,6 +13,6 @@ export interface ConvertToMarkdownOutputs {
   output: string;
 }
 
-export function convertToMarkdown(inputs: ConvertToMarkdownInputs): DslNode<ConvertToMarkdownOutputs, "output"> {
-  return createNode("lib.convert.ConvertToMarkdown", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+export function convertToMarkdown(inputs: ConvertToMarkdownInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ConvertToMarkdownOutputs, "output"> {
+  return createNode("lib.convert.ConvertToMarkdown", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

@@ -31,11 +31,10 @@ import { registerKieNodes } from "@nodetool-ai/kie-nodes";
 import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
 import {
   initTelemetry,
-  setSecretResolver,
   PythonStdioBridge
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
-import { initDb, initPostgresDb, getSecret, runSeeds } from "@nodetool-ai/models";
+import { initDb, initPostgresDb, runSeeds } from "@nodetool-ai/models";
 import {
   Tool,
   GoogleSearchTool,
@@ -221,13 +220,11 @@ try {
     log.info(`SQLite database ready [${startupMs()}]`, { path: dbPath });
   }
 
-  // Initialize master key from keychain before any secret access.
-  // This must happen before setSecretResolver so that getMasterKey() (sync)
-  // returns the keychain key rather than auto-generating a new one.
+  // Initialize master key from keychain before any secret access. Callers
+  // that need provider credentials bind their own `(key) => getSecret(key,
+  // userId)` closure when invoking provider APIs — there is no shared
+  // global resolver.
   await initMasterKey();
-  setSecretResolver((key, userId) =>
-    getSecret(key, userId).then((v) => v ?? undefined)
-  );
 } catch (err) {
   log.error(
     "Database setup failed",

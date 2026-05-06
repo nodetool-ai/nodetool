@@ -712,36 +712,16 @@ export class ProcessingContext {
     const cached = this._providers.get(providerId);
     if (cached) return cached;
 
-    if (!this._providerResolver) {
-      const { getRegisteredProvider } = await import("./providers/index.js");
-      const reg = getRegisteredProvider(providerId);
-      if (!reg) {
-        throw new Error(`No provider registered for "${providerId}"`);
-      }
-      // Resolve any missing secret kwargs from the context's own secret resolver
-      const kwargs = { ...reg.kwargs };
-      for (const [key, value] of Object.entries(kwargs)) {
-        if (!value) {
-          const envVal = process.env[key];
-          if (envVal) {
-            kwargs[key] = envVal;
-          } else {
-            const secret = await this.getSecret(key);
-            if (secret) {
-              kwargs[key] = secret;
-            }
-          }
-        }
-      }
-      const resolved = new reg.cls(kwargs);
-      this._providers.set(providerId, resolved);
-      resolved.setMessageEmitter((msg) =>
-        this.postMessage(msg as ProcessingMessage)
+    let resolved: BaseProvider;
+    if (this._providerResolver) {
+      resolved = await this._providerResolver(providerId);
+    } else {
+      const { getProvider: buildProvider } = await import(
+        "./providers/index.js"
       );
-      return resolved;
+      resolved = await buildProvider(providerId, (key) => this.getSecret(key));
     }
 
-    const resolved = await this._providerResolver(providerId);
     this._providers.set(providerId, resolved);
     resolved.setMessageEmitter((msg) =>
       this.postMessage(msg as ProcessingMessage)
@@ -751,6 +731,17 @@ export class ProcessingContext {
 
   async get_provider(providerId: string): Promise<BaseProvider> {
     return this.getProvider(providerId);
+  }
+
+  /**
+   * Check whether a registered provider has all required credentials
+   * resolvable through this context (DB/keychain/env).
+   */
+  async isProviderConfigured(providerId: string): Promise<boolean> {
+    const { isProviderConfigured: check } = await import(
+      "./providers/index.js"
+    );
+    return check(providerId, (key) => this.getSecret(key));
   }
 
   // -----------------------------------------------------------------------

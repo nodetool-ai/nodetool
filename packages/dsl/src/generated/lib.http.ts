@@ -13,8 +13,8 @@ export interface GetTextOutputs {
   status: number;
 }
 
-export function getText(inputs: GetTextInputs): DslNode<GetTextOutputs> {
-  return createNode("lib.http.GetText", inputs as Record<string, unknown>, { outputNames: ["output", "status"] });
+export function getText(inputs: GetTextInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GetTextOutputs> {
+  return createNode("lib.http.GetText", inputs as Record<string, unknown>, { outputNames: ["output", "status"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // HTTP GET JSON — lib.http.GetJSON
@@ -28,8 +28,8 @@ export interface GetJSONOutputs {
   status: number;
 }
 
-export function getJSON(inputs: GetJSONInputs): DslNode<GetJSONOutputs> {
-  return createNode("lib.http.GetJSON", inputs as Record<string, unknown>, { outputNames: ["output", "status"] });
+export function getJSON(inputs: GetJSONInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GetJSONOutputs> {
+  return createNode("lib.http.GetJSON", inputs as Record<string, unknown>, { outputNames: ["output", "status"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // HTTP GET Bytes — lib.http.GetBytes
@@ -43,8 +43,8 @@ export interface GetBytesOutputs {
   status: number;
 }
 
-export function getBytes(inputs: GetBytesInputs): DslNode<GetBytesOutputs> {
-  return createNode("lib.http.GetBytes", inputs as Record<string, unknown>, { outputNames: ["output", "status"] });
+export function getBytes(inputs: GetBytesInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GetBytesOutputs> {
+  return createNode("lib.http.GetBytes", inputs as Record<string, unknown>, { outputNames: ["output", "status"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // HTTP POST — lib.http.Post
@@ -59,8 +59,8 @@ export interface PostOutputs {
   status: number;
 }
 
-export function post(inputs: PostInputs): DslNode<PostOutputs> {
-  return createNode("lib.http.Post", inputs as Record<string, unknown>, { outputNames: ["output", "status"] });
+export function post(inputs: PostInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PostOutputs> {
+  return createNode("lib.http.Post", inputs as Record<string, unknown>, { outputNames: ["output", "status"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // HTTP PUT — lib.http.Put
@@ -75,8 +75,8 @@ export interface PutOutputs {
   status: number;
 }
 
-export function put(inputs: PutInputs): DslNode<PutOutputs> {
-  return createNode("lib.http.Put", inputs as Record<string, unknown>, { outputNames: ["output", "status"] });
+export function put(inputs: PutInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PutOutputs> {
+  return createNode("lib.http.Put", inputs as Record<string, unknown>, { outputNames: ["output", "status"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // HTTP PATCH — lib.http.Patch
@@ -91,8 +91,8 @@ export interface PatchOutputs {
   status: number;
 }
 
-export function patch(inputs: PatchInputs): DslNode<PatchOutputs> {
-  return createNode("lib.http.Patch", inputs as Record<string, unknown>, { outputNames: ["output", "status"] });
+export function patch(inputs: PatchInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PatchOutputs> {
+  return createNode("lib.http.Patch", inputs as Record<string, unknown>, { outputNames: ["output", "status"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // HTTP DELETE — lib.http.Delete
@@ -106,6 +106,6 @@ export interface DeleteOutputs {
   status: number;
 }
 
-export function delete_(inputs: DeleteInputs): DslNode<DeleteOutputs> {
-  return createNode("lib.http.Delete", inputs as Record<string, unknown>, { outputNames: ["output", "status"] });
+export function delete_(inputs: DeleteInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DeleteOutputs> {
+  return createNode("lib.http.Delete", inputs as Record<string, unknown>, { outputNames: ["output", "status"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

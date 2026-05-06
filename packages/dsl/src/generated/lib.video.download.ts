@@ -24,6 +24,6 @@ export interface YtDlpDownloadOutputs {
   thumbnail: ImageRef;
 }
 
-export function ytDlpDownload(inputs: YtDlpDownloadInputs): DslNode<YtDlpDownloadOutputs> {
-  return createNode("lib.video.download.YtDlpDownload", inputs as Record<string, unknown>, { outputNames: ["video", "audio", "metadata", "subtitles", "thumbnail"] });
+export function ytDlpDownload(inputs: YtDlpDownloadInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<YtDlpDownloadOutputs> {
+  return createNode("lib.video.download.YtDlpDownload", inputs as Record<string, unknown>, { outputNames: ["video", "audio", "metadata", "subtitles", "thumbnail"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

@@ -82,11 +82,15 @@ export interface DslNode<
 // WorkflowNode / WorkflowEdge / Workflow
 // ---------------------------------------------------------------------------
 
+export type SyncMode = "zip_all" | "on_any";
+
 export interface WorkflowNode {
   readonly id: string;
   readonly type: string;
   readonly data: Record<string, unknown>;
   readonly streaming: boolean;
+  readonly streamingInput: boolean;
+  readonly syncMode?: SyncMode;
 }
 
 export interface WorkflowEdge {
@@ -110,6 +114,8 @@ interface RegisteredNodeDescriptor {
   nodeType: string;
   inputs: Record<string, unknown>;
   streaming: boolean;
+  streamingInput: boolean;
+  syncMode?: SyncMode;
 }
 
 const nodeRegistry = new Map<string, RegisteredNodeDescriptor>();
@@ -127,6 +133,8 @@ export type CreateNodeOptions<
   TDefault extends OutputSlot<TOutputs> | undefined = undefined
 > = {
   streaming?: boolean;
+  streamingInput?: boolean;
+  syncMode?: SyncMode;
   outputNames?: readonly OutputSlot<TOutputs>[];
   defaultOutput?: TDefault;
   multiOutput?: boolean;
@@ -149,6 +157,8 @@ export function createNode<
 ): DslNode<TOutputs, TDefault> {
   const nodeId = crypto.randomUUID();
   const streaming = opts?.streaming ?? false;
+  const streamingInput = opts?.streamingInput ?? false;
+  const syncMode = opts?.syncMode;
   const outputNames = opts?.outputNames
     ? [...opts.outputNames]
     : opts?.multiOutput
@@ -164,7 +174,9 @@ export function createNode<
     nodeId,
     nodeType,
     inputs,
-    streaming
+    streaming,
+    streamingInput,
+    syncMode
   };
   nodeRegistry.set(nodeId, descriptor);
 
@@ -292,7 +304,9 @@ export function workflow(...terminals: DslNode<any>[]): Workflow {
       id: desc.nodeId,
       type: desc.nodeType,
       data,
-      streaming: desc.streaming
+      streaming: desc.streaming,
+      streamingInput: desc.streamingInput,
+      syncMode: desc.syncMode
     };
   });
 
@@ -306,11 +320,24 @@ export function workflow(...terminals: DslNode<any>[]): Workflow {
 // run() / runGraph() — execution helpers
 // ---------------------------------------------------------------------------
 
+export type SecretResolver = (
+  key: string,
+  userId: string
+) => Promise<string | null | undefined> | string | null | undefined;
+
 export type RunOptions = {
   userId?: string;
   authToken?: string;
   /** Custom node registry; defaults to NodeRegistry.global. */
   registry?: NodeRegistry;
+  /**
+   * Resolve a credential by name for the running job. Bind your storage
+   * backend here — typically `(key, userId) => getSecret(key, userId)` from
+   * `@nodetool-ai/models`. Without it the context falls back to env vars
+   * only, and any node declaring `requiredSettings` will warn that its
+   * secret is missing.
+   */
+  secretResolver?: SecretResolver;
 };
 
 export type WorkflowResult = Record<string, unknown>;
@@ -324,7 +351,9 @@ export async function run(
     id: n.id,
     type: n.type,
     properties: n.data,
-    is_streaming_output: n.streaming
+    is_streaming_output: n.streaming,
+    is_streaming_input: n.streamingInput,
+    ...(n.syncMode ? { sync_mode: n.syncMode } : {})
   }));
 
   const edges = wf.edges.map((e) => ({
@@ -336,7 +365,10 @@ export async function run(
 
   const context = new ProcessingContext({
     jobId,
-    userId: opts?.userId
+    // Default to user "1" — matches the CLI's default user-id, so secrets
+    // stored via `nodetool secrets store <KEY>` resolve out of the box.
+    userId: opts?.userId ?? "1",
+    secretResolver: opts?.secretResolver
   });
 
   const builtinRegistry = new NodeRegistry();

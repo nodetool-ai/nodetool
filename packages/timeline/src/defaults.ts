@@ -12,7 +12,6 @@
  * deps: drizzle, better-sqlite3) into this types-only package.
  */
 
-import { randomUUID } from "node:crypto";
 import type {
   TimelineSequence,
   TimelineTrack,
@@ -27,9 +26,13 @@ import type {
  * Mirrors `createTimeOrderedUuid` from `@nodetool-ai/models`.
  * Returns a UUID v4 with hyphens stripped, matching the format used by
  * all other model IDs in the system.
+ *
+ * Uses the Web Crypto API (`globalThis.crypto.randomUUID`) which is
+ * available in Node 19+ and all modern browsers, so this module stays
+ * usable in browser builds.
  */
 export function createTimeOrderedUuid(): string {
-  return randomUUID().replace(/-/g, "");
+  return globalThis.crypto.randomUUID().replace(/-/g, "");
 }
 
 function nowIso(): string {

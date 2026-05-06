@@ -247,3 +247,8 @@ To add a new example:
 - [Node Reference Guide](https://docs.nodetool.ai/nodes)
 - [DSL Guide](https://docs.nodetool.ai/dsl)
 - [Community Examples](https://github.com/nodetool/examples)
+
+## Gallery Thumbnail Generator (meta example)
+
+`gallery_thumbnail_generator_dsl.ts` — TypeScript DSL workflow that walks every `*.json` in this directory, asks an LLM to pick a domain-specific subject from each workflow's name/description/tags/node types, and generates a 16:9 thumbnail JPEG via OpenAI image generation. Outputs land in `../../assets/nodetool-base/<workflow name>.jpg` (next to the existing gallery thumbnails). Run with `npm run dev:nodetool -- run packages/base-nodes/nodetool/examples/nodetool-base/gallery_thumbnail_generator_dsl.ts` from the repo root, or `npx tsx <path-to-file>` for a one-off. Requires `OPENAI_API_KEY` and an Anthropic key for the subject model.
+
