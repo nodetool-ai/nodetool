@@ -149,7 +149,6 @@ export class GradientTool implements ToolHandler {
 export const definition: ToolDefinition = {
   tool: "gradient",
   label: "Gradient",
-  shortcut: "T",
   Icon: GradientIcon,
   group: "shape"
 };

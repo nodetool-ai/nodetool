@@ -152,8 +152,6 @@ export function useEditorCommands({
     syncSketchOutputsNow: canvasActions.syncSketchOutputsNow,
     setActiveTool: sessionStore.setActiveTool,
     setZoom: canvasStore.setZoom,
-    setMirrorX: canvasStore.setMirrorX,
-    setMirrorY: canvasStore.setMirrorY,
     setBrushSettings: colorStore.setBrushSettings,
     setPencilSettings: colorStore.setPencilSettings,
     setEraserSettings: colorStore.setEraserSettings,

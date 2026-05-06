@@ -970,7 +970,6 @@ export class TransformTool implements ToolHandler {
 export const definition: ToolDefinition = {
   tool: "transform",
   label: "Transform",
-  shortcut: "F",
   Icon: AspectRatioIcon,
   group: "painting"
 };

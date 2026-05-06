@@ -27,7 +27,6 @@ export type ToolIconComponent = React.ComponentType<SvgIconProps>;
 export interface ToolDefinition {
   tool: SketchTool;
   label: string;
-  shortcut?: string;
   Icon: ToolIconComponent;
   group: "painting" | "shape";
 }

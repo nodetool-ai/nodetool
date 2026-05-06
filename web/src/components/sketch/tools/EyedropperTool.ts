@@ -47,7 +47,6 @@ export class EyedropperTool implements ToolHandler {
 export const definition: ToolDefinition = {
   tool: "eyedropper",
   label: "Eyedropper",
-  shortcut: "I",
   Icon: ColorizeIcon,
   group: "painting"
 };

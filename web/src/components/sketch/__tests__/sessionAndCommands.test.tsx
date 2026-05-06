@@ -415,9 +415,7 @@ describe("useEditorCommands", () => {
         splitSelectedLayer: jest.fn()
       } as unknown as Parameters<typeof useEditorCommands>[0]["segmentation"],
       canvasStore: {
-        setZoom: jest.fn(),
-        setMirrorX: jest.fn(),
-        setMirrorY: jest.fn()
+        setZoom: jest.fn()
       } as unknown as Parameters<typeof useEditorCommands>[0]["canvasStore"],
       colorStore: {
         setBrushSettings: jest.fn(),

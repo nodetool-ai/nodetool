@@ -13,6 +13,7 @@ function renderToolbar() {
     <ThemeProvider theme={theme}>
       <SketchToolbar
         activeTool="move"
+        selectMode="rectangle"
         onToolChange={jest.fn()}
         foregroundColor="#000000"
         backgroundColor="#ffffff"

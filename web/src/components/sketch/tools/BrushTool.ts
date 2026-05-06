@@ -54,7 +54,6 @@ export class BrushTool implements ToolHandler {
 export const definition: ToolDefinition = {
   tool: "brush",
   label: "Brush",
-  shortcut: "B",
   Icon: BrushIcon,
   group: "painting"
 };
