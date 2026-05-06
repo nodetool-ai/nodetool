@@ -20,17 +20,17 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Categorize Emails\n\nThis workflow classifies emails into predefined categories (e.g., Newsletter, Work, Family, Friends) using a large language model and applies the matching Gmail labels.\n\n## Workflow Steps:\n\n1. **Gmail Search** - Fetches up to 10 recent emails using the specified filters (e.g., date, subject, sender).\n2. **Template** - Formats each email into a structured prompt including subject, sender, and a truncated body snippet.\n3. **Agent** - Uses an LLM to classify the email. It outputs the reasoning as text and triggers 'apply_label' to set the label.\n4. **Add Label** - Applies the determined label(s) to each email message in Gmail."
+          "comment": "# 📬 Categorize Emails\n\nClassify recent Gmail messages into Newsletter / Work / Family / Friends and apply the matching label.\n\n**Pipeline:** Gmail search → format each email as a prompt → LLM classifies (streams reasoning, calls `apply_label`) → label applied in Gmail.\n\n**Try this:** edit the categories in the Agent's system prompt, widen the search (date, sender, folder), or pick a smaller/faster model on the Agent."
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": -633,
+            "x": -540,
             "y": -3
           },
           "zIndex": 0,
-          "width": 280,
-          "height": 804,
+          "width": 480,
+          "height": 240,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -45,6 +45,7 @@
           "string": "subject: {{subject}}\nsender: {{sender}}\ncontent: {{body|truncate(100)}}"
         },
         "ui_properties": {
+          "title": "2️⃣ Format email — subject, sender, snippet",
           "selected": false,
           "position": {
             "x": 355,
@@ -85,6 +86,7 @@
           "max_tokens": 8192
         },
         "ui_properties": {
+          "title": "3️⃣ Classify with LLM — pick a model, edit categories in system prompt",
           "selected": false,
           "position": {
             "x": 665,
@@ -110,6 +112,7 @@
         "type": "nodetool.workflows.base_node.Preview",
         "data": {},
         "ui_properties": {
+          "title": "👁️ Reasoning stream — watch the model think",
           "selected": false,
           "position": {
             "x": 1043,
@@ -129,6 +132,7 @@
         "type": "lib.mail.AddLabel",
         "data": {},
         "ui_properties": {
+          "title": "4️⃣ Apply Gmail label",
           "selected": false,
           "position": {
             "x": 1123,
@@ -158,6 +162,7 @@
           "max_results": 10
         },
         "ui_properties": {
+          "title": "1️⃣ Fetch recent Gmail — narrow with the filters",
           "selected": false,
           "position": {
             "x": 45,
