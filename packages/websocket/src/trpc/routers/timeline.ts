@@ -255,9 +255,12 @@ export const timelineRouter = router({
         // Prune non-successful: keep newest up to cap
         const prunedNonSuccessful = nonSuccessful.slice(-MAX_FAILED_VERSIONS);
 
-        // Restore original order (sort by createdAt)
+        // Restore original order (sort by createdAt ascending)
         const all = [...favSuccessful, ...nonFavSuccessful, ...prunedNonSuccessful];
-        all.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+        all.sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
         clip.versions = all;
 
         await TimelineSequence.update(input.id, {
