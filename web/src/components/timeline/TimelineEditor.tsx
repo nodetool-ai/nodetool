@@ -21,6 +21,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import {
+  EmptyState,
   FlexColumn,
   FlexRow,
   LoadingSpinner
@@ -130,7 +131,6 @@ const PreviewRegion: React.FC<{ isLoading: boolean; sequence?: { fps?: number; w
 
 const InspectorRegion: React.FC = () => {
   const theme = useTheme();
-
 
   return (
     <FlexColumn
