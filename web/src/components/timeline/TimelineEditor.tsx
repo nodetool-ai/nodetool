@@ -32,6 +32,7 @@ import { BottomStatusBar } from "./BottomStatusBar";
 import { useTimeline } from "../../hooks/useTimelineSequence";
 import { TracksRegion } from "./Tracks/TracksRegion";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
+import { PreviewArea } from "./preview/PreviewArea";
 
 // ── Drag-handle constants ──────────────────────────────────────────────────
 
@@ -99,7 +100,7 @@ const dragHandleStyles = (theme: Theme) =>
 
 // ── Sub-region placeholder components ─────────────────────────────────────
 
-const PreviewRegion: React.FC<{ isLoading: boolean }> = ({ isLoading }) => {
+const PreviewRegion: React.FC<{ isLoading: boolean; sequence?: { fps?: number; width?: number; height?: number } }> = ({ isLoading, sequence }) => {
   const theme = useTheme();
   return (
     <FlexColumn
@@ -110,11 +111,10 @@ const PreviewRegion: React.FC<{ isLoading: boolean }> = ({ isLoading }) => {
       {isLoading ? (
         <LoadingSpinner text="Loading sequence…" />
       ) : (
-        <EmptyState
-          variant="empty"
-          size="small"
-          title="Preview"
-          description="Preview compositor (NOD-303)"
+        <PreviewArea
+          fps={sequence?.fps ?? 30}
+          sequenceWidth={sequence?.width ?? 1920}
+          sequenceHeight={sequence?.height ?? 1080}
         />
       )}
     </FlexColumn>
@@ -266,7 +266,7 @@ export const TimelineEditor: React.FC = memo(() => {
         css={middleAreaStyles(theme)}
         sx={{ flex: "1 1 auto", overflow: "hidden" }}
       >
-        <PreviewRegion isLoading={isLoading} />
+        <PreviewRegion isLoading={isLoading} sequence={sequence} />
         <InspectorRegion />
       </FlexRow>
 
