@@ -6,9 +6,12 @@ process.env.TZ = 'UTC';
 
 // Polyfill structuredClone for jsdom which does not expose it as a window global.
 // structuredClone is a Node.js 17+ and modern-browser built-in; jsdom simply
-// does not forward it to the window object. All paramOverrides values are
-// JSON-serialisable (they originate from UI inputs), so JSON round-trip is a
-// valid deep-clone strategy here.
+// does not forward it to the window object.
+//
+// LIMITATION: JSON round-trip cannot clone functions, symbols, `undefined`
+// values, or circular references. This is acceptable for `paramOverrides`
+// which only contain JSON-serialisable values sourced from UI inputs.
+// Do NOT rely on this polyfill for data that may include the above types.
 if (typeof global.structuredClone === 'undefined') {
   global.structuredClone = (obj) => JSON.parse(JSON.stringify(obj));
 }
