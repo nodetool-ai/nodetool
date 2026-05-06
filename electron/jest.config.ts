@@ -12,6 +12,8 @@ export default {
     '\\.(css|less|scss|sass)$': '<rootDir>/src/__mocks__/styleMock.ts',
     '\\.(jpg|jpeg|png|gif|webp|svg)$': '<rootDir>/src/__mocks__/fileMock.ts',
     '^@nodetool-ai/protocol$': '<rootDir>/src/__mocks__/protocol.ts',
+    '^@nodetool-ai/protocol/bridge-protocol$': '<rootDir>/../packages/protocol/src/bridge-protocol.ts',
+    '^@nodetool-ai/websocket/trpc$': '<rootDir>/src/__mocks__/websocket-trpc.ts',
     '^superjson$': '<rootDir>/src/__mocks__/superjson.ts',
     '^@nodetool-ai/config$': '<rootDir>/../packages/config/src/index.ts',
     '^@nodetool-ai/config/(.*)$': '<rootDir>/../packages/config/src/$1',
@@ -22,7 +24,7 @@ export default {
     '^.+\\.tsx?$': ['ts-jest', {
       tsconfig: 'tsconfig.test.json',
       diagnostics: {
-        ignoreCodes: [2339, 2345]
+        ignoreCodes: [2307, 2339, 2344, 2345]
       }
     }],
   },

@@ -1,7 +1,16 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "types": ["react", "react-dom", "node", "jest"]
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "types": ["react", "react-dom", "node", "jest"],
+    "paths": {
+      "@nodetool-ai/protocol": ["../packages/protocol/src/index.ts"],
+      "@nodetool-ai/protocol/*": ["../packages/protocol/src/*"],
+      "@nodetool-ai/websocket/trpc": ["src/__mocks__/websocket-trpc.ts"],
+      "@nodetool-ai/config": ["../packages/config/src/index.ts"],
+      "@nodetool-ai/config/*": ["../packages/config/src/*"]
+    }
   },
   "include": [
     "src",
