@@ -180,8 +180,7 @@ const ImageSizeField: React.FC<{
   useEffect(() => {
     setWDraft(String(safeValue.width));
     setHDraft(String(safeValue.height));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [safeValue.width, safeValue.height]);
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps -- intentionally sync on upstream `value` change
 
   const commitW = useCallback(() => {
     const w = Number(wDraft);
@@ -216,7 +215,7 @@ const ImageSizeField: React.FC<{
           slotProps={{ htmlInput: { min: 1, step: 1 } }}
           sx={{ width: 80 }}
         />
-        <span style={{ fontSize: 12, opacity: 0.6 }}>×</span>
+        <span style={{ fontSize: "var(--fontSizeTiny)", opacity: 0.6 }}>×</span>
         <NodeTextField
           aria-label="Height"
           value={hDraft}

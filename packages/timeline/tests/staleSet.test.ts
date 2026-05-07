@@ -12,6 +12,10 @@ function makeInputNode(
   return { id, type, data: { name: paramName, value: "" } };
 }
 
+function makeImageSizeInputNode(id: string, paramName: string) {
+  return makeInputNode(id, paramName, "nodetool.input.ImageSizeInput");
+}
+
 function makeNonInputNode(id: string, type = "nodetool.image.Resize") {
   return { id, type };
 }
@@ -154,7 +158,7 @@ describe("computeStaleSet", () => {
 
   it("handles object-typed values by value, not by reference", () => {
     const graph: StaleSetGraph = {
-      nodes: [makeInputNode("in-size", "size", "nodetool.input.ImageSizeInput")]
+      nodes: [makeImageSizeInputNode("in-size", "size")]
     };
     const snapshot = { size: { width: 512, height: 512 } };
     const current = { size: { width: 512, height: 512 } }; // same value, different object
@@ -165,7 +169,7 @@ describe("computeStaleSet", () => {
 
   it("marks as dirty when an object-typed value changes", () => {
     const graph: StaleSetGraph = {
-      nodes: [makeInputNode("in-size", "size", "nodetool.input.ImageSizeInput")]
+      nodes: [makeImageSizeInputNode("in-size", "size")]
     };
     const snapshot = { size: { width: 512, height: 512 } };
     const current = { size: { width: 1024, height: 512 } };
