@@ -175,6 +175,20 @@ export interface TimelineStoreState {
    * Also marks those clips as stale so they will be regenerated.
    */
   setClipsOutputNode: (workflowId: string, selectedOutputNodeId: string) => void;
+
+  /**
+   * Create a generated clip by cloning `sourceWorkflowId` into a
+   * `run_mode = "clip"` workflow row, then inserting the clip into the
+   * current sequence document.
+   *
+   * Returns the id of the newly created clip.
+   */
+  addGeneratedClip: (
+    sourceWorkflowId: string,
+    trackId: string,
+    startMs: number,
+    opts?: { selectedOutputNodeId?: string; mediaTypeOverride?: "overlay" }
+  ) => Promise<string>;
 }
 
 // ── Partialized type for zundo (only document state is undo-able) ──────────
@@ -654,7 +668,29 @@ export const createTimelineStore = (
                 ? { ...c, selectedOutputNodeId, status: "stale" }
                 : c
             )
-          }))
+          })),
+
+        addGeneratedClip: async (sourceWorkflowId, trackId, startMs, opts) => {
+          const sequenceId = get().sequenceId;
+          if (!sequenceId) {
+            throw new Error("No timeline sequence loaded");
+          }
+
+          const newClip = await trpcClient.timeline.clips.create.mutate({
+            id: sequenceId,
+            trackId,
+            startMs,
+            sourceWorkflowId,
+            selectedOutputNodeId: opts?.selectedOutputNodeId,
+            mediaTypeOverride: opts?.mediaTypeOverride
+          });
+
+          set((state) => ({
+            clips: [...state.clips, newClip]
+          }));
+
+          return newClip.id;
+        }
       }),
       {
         limit: 100,

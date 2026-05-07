@@ -11,3 +11,6 @@ export type { TopBarProps } from "./TopBar";
 
 export { BottomStatusBar } from "./BottomStatusBar";
 export type { BottomStatusBarProps } from "./BottomStatusBar";
+
+export { AddClipMenu, AddClipButton } from "./AddClipMenu";
+export type { AddClipMenuProps, AddClipButtonProps } from "./AddClipMenu";

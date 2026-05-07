@@ -69,6 +69,8 @@ import {
   versionRestoreInput,
   versionDeleteInput,
   versionDeleteOutput,
+  terminalOutputsInput,
+  terminalOutputsOutput,
   workflowResponse,
   graph as graphSchema,
   type WorkflowResponse,
@@ -359,7 +361,8 @@ export const workflowsRouter = router({
     .query(async ({ ctx, input }) => {
       const [workflows, cursor] = await Workflow.paginate(ctx.userId, {
         limit: input.limit,
-        runMode: input.run_mode
+        runMode: input.run_mode,
+        tag: input.tag
       });
       return {
         workflows: workflows.map((w) => toWorkflowResponse(w)),
@@ -805,6 +808,46 @@ export const workflowsRouter = router({
       }
       const name = deriveWorkflowName(workflow);
       return { name };
+    }),
+
+  // ── terminalOutputs (GET /api/workflows/:id/terminal-outputs) ─────────────
+  // Returns the terminal media-output nodes of a workflow for the multi-output
+  // selection prompt in AddClipMenu.
+  terminalOutputs: protectedProcedure
+    .input(terminalOutputsInput)
+    .output(terminalOutputsOutput)
+    .query(async ({ ctx, input }) => {
+      const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
+      if (!workflow) throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+      if (workflow.access !== "public" && workflow.user_id !== ctx.userId) {
+        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+      }
+
+      // NOTE: This map also lives in the timeline router (timeline.ts).
+      // Both should be kept in sync until extracted to a shared protocol constant.
+      const OUTPUT_NODE_MEDIA_TYPES: Record<string, "image" | "video" | "audio"> = {
+        "nodetool.output.ImageOutput": "image",
+        "nodetool.output.VideoOutput": "video",
+        "nodetool.output.AudioOutput": "audio"
+      };
+
+      const graph = safeGraph(workflow.id, workflow.graph);
+      const nodes = (graph?.nodes ?? []) as Array<{
+        id: string;
+        type: string;
+        data?: Record<string, unknown>;
+      }>;
+
+      const outputs = nodes
+        .filter((n) => n.type in OUTPUT_NODE_MEDIA_TYPES)
+        .map((n) => ({
+          id: n.id,
+          type: n.type,
+          mediaType: OUTPUT_NODE_MEDIA_TYPES[n.type] as "image" | "video" | "audio",
+          name: (n.data?.name as string | undefined) ?? ""
+        }));
+
+      return { outputs };
     }),
 
   // ── versions ──────────────────────────────────────────────────────────────
