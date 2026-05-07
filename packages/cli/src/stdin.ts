@@ -28,18 +28,21 @@ import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { createProvider, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient, type JobEvent } from "./websocket-client.js";
 import { getSecret } from "@nodetool-ai/models";
+import type { AgentMode } from "./settings.js";
 
 export interface StdinModeOptions {
   provider: string;
   model: string;
   workspaceDir: string;
-  agentMode?: boolean;
   /**
-   * Which planner to use when `agentMode` is true:
-   * - `"graph"` — GraphPlanner builds a workflow DAG (default when registry available).
-   * - `"multi"` — TaskPlanner builds a parallel task DAG of LLM steps.
+   * Agent mode for stdin lines.
+   * - `"off"`         — plain chat.
+   * - `"loop"`        — iterative tool-calling loop.
+   * - `"plan"`        — TaskPlanner builds a parallel task DAG of LLM steps.
+   * - `"graph"`       — GraphPlanner builds a workflow DAG (needs a registry).
+   * - `"multi-agent"` — sub-agent team via TeamExecutor.
    */
-  agentPlanner?: "multi" | "graph";
+  agentMode?: AgentMode;
   wsUrl?: string;
   /** Pre-built tools (e.g. from --sandbox) appended to the Agent's tool list. */
   extraTools?: Tool[];
@@ -241,18 +244,21 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
       continue;
     }
 
-    if (opts.agentMode) {
+    if (opts.agentMode && opts.agentMode !== "off") {
       // --- Agent mode: each line is an objective ---
       const prov = wsClient
         ? new WebSocketProvider(wsClient, opts.model, opts.provider)
         : directProvider!;
 
-      // Pick the planner. The "graph" planner needs a registry; without one
-      // we silently downgrade to the multi-task planner.
-      const plannerType: "multi" | "graph" =
-        opts.agentPlanner === "multi" ? "multi" : "graph";
-      const useGraphPlanner =
-        plannerType === "graph" && !!opts.registry;
+      // Map chat-cli agent mode → MultiModeAgent options.
+      // "graph" needs a registry; without one we silently downgrade to plan mode.
+      const wantsGraph = opts.agentMode === "graph" && !!opts.registry;
+      const mmaMode =
+        opts.agentMode === "loop"
+          ? "loop"
+          : opts.agentMode === "multi-agent"
+            ? "multi-agent"
+            : "plan";
       const markdownOutputSchema = {
         type: "object",
         properties: {
@@ -268,11 +274,11 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
         objective: trimmed,
         provider: prov,
         model: opts.model,
-        mode: "plan",
+        mode: mmaMode,
         tools: opts.extraTools ?? [],
-        useGraphPlanner,
-        registry: useGraphPlanner ? opts.registry : undefined,
-        providers: useGraphPlanner ? opts.agentProviders : undefined,
+        useGraphPlanner: wantsGraph,
+        registry: wantsGraph ? opts.registry : undefined,
+        providers: wantsGraph ? opts.agentProviders : undefined,
         maxStepIterations: 20,
         outputSchema: markdownOutputSchema
       });

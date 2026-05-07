@@ -15,7 +15,7 @@ import { program } from "commander";
 import { render } from "ink";
 import React from "react";
 import { App } from "./app.js";
-import { loadSettings } from "./settings.js";
+import { loadSettings, isAgentMode, type AgentMode } from "./settings.js";
 import { runStdinMode } from "./stdin.js";
 import { buildConfiguredProviders } from "./providers.js";
 import { initDb, getSecret } from "@nodetool-ai/models";
@@ -57,12 +57,11 @@ program
     "LLM provider (anthropic, openai, ollama, gemini, mistral, groq)"
   )
   .option("-m, --model <model>", "Model ID")
-  .option("-a, --agent", "Start in agent mode")
-  .option("--no-agent", "Disable agent mode (overrides saved settings)")
   .option(
-    "--planner <type>",
-    "Agent planner: 'graph' (workflow builder, default) or 'multi' (parallel tasks)"
+    "-a, --agent [mode]",
+    "Agent mode: off | loop | plan | graph | multi-agent (default: plan when --agent is given without a value)"
   )
+  .option("--no-agent", "Force agent mode off (overrides saved settings)")
   .option(
     "-w, --workspace <path>",
     "Workspace directory (default: current directory)"
@@ -99,8 +98,7 @@ program
 const opts = program.opts<{
   provider?: string;
   model?: string;
-  agent?: boolean;
-  planner?: string;
+  agent?: boolean | string;
   workspace?: string;
   tools?: string;
   url?: string;
@@ -146,12 +144,35 @@ const settings = await loadSettings();
 
 const provider = opts.provider ?? settings.provider;
 const model = opts.model ?? settings.model;
-// When connecting to a WS server, default to regular chat mode unless --agent is explicit
-const agentMode = opts.agent ?? (opts.url ? false : settings.agentMode);
-const agentPlanner: "multi" | "graph" =
-  opts.planner === "multi" || opts.planner === "graph"
-    ? opts.planner
-    : settings.agentPlanner;
+/**
+ * Resolve the agent mode from CLI flag + saved settings:
+ * - `--agent <mode>` → use that mode (validated).
+ * - `--agent` (bare) → use the saved mode if set, else "plan".
+ * - `--no-agent` → "off".
+ * - No flag, with --url → "off" (the WS server has its own agent flow).
+ * - No flag, no --url → saved mode.
+ */
+function resolveAgentMode(): AgentMode {
+  const flag = opts.agent;
+  if (flag === false) return "off";
+  if (typeof flag === "string") {
+    if (!isAgentMode(flag)) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `Invalid --agent value: ${JSON.stringify(flag)}. ` +
+          `Expected one of: off, loop, plan, graph, multi-agent.`
+      );
+      process.exit(2);
+    }
+    return flag;
+  }
+  if (flag === true) {
+    return settings.agentMode === "off" ? "plan" : settings.agentMode;
+  }
+  if (opts.url) return "off";
+  return settings.agentMode;
+}
+const agentMode = resolveAgentMode();
 const workspace = opts.workspace ?? settings.workspace;
 const enabledTools = opts.tools
   ? opts.tools.split(",").map((t) => t.trim())
@@ -262,7 +283,6 @@ if (!process.stdin.isTTY) {
       model,
       workspaceDir: workspace,
       agentMode,
-      agentPlanner,
       wsUrl: opts.url,
       extraTools: sandboxExtraTools,
       registry: cliRegistry,
@@ -279,7 +299,6 @@ const { waitUntilExit } = render(
     initialProvider: provider,
     initialModel: model,
     initialAgentMode: agentMode,
-    initialAgentPlanner: agentPlanner,
     enabledTools,
     workspaceDir: workspace,
     wsUrl: opts.url,
