@@ -1,8 +1,8 @@
 {
-  "id": "agent-google-search-example",
-  "access": "public",
-  "created_at": "2025-12-21T10:36:12.038240",
-  "updated_at": "2025-12-21T10:37:59.106310",
+  "id": "",
+  "access": "private",
+  "created_at": "2026-05-07T05:34:27.426Z",
+  "updated_at": "2026-05-07T05:37:35.927Z",
   "name": "Agent Google Search",
   "tool_name": null,
   "description": "Demonstrates an Agent using dynamic outputs to perform Google searches and display results.",
@@ -10,9 +10,10 @@
     "agent",
     "google",
     "search",
-    "dynamic-outputs"
+    "dynamic-outputs",
+    "example"
   ],
-  "thumbnail": "Agent Google Search.jpg",
+  "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
     "edges": [
@@ -24,7 +25,8 @@
         "targetHandle": "keyword",
         "ui_properties": {
           "className": "str"
-        }
+        },
+        "edge_type": "data"
       },
       {
         "id": "8df1db3c-8a72-4666-8b2b-0abbca21b40e",
@@ -34,7 +36,16 @@
         "targetHandle": "value",
         "ui_properties": {
           "className": "chunk"
-        }
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "a9f30c9f-03a2-459d-aec8-8cdc45f7c591",
+        "source": "6ababfd3-5743-4d7c-accd-97242130a8d8",
+        "sourceHandle": "__control__",
+        "target": "d6a1dc18-d26c-45c4-9196-2d6524018b1b",
+        "targetHandle": "__control__",
+        "edge_type": "control"
       }
     ],
     "nodes": [
@@ -42,17 +53,180 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "headline": "Agent Google Search",
-          "comment": "This workflow demonstrates how an Agent can use dynamic outputs to trigger external actions.\n\n1. The Agent receives a prompt to search for something\n2. It generates a 'search' dynamic output with the search query\n3. The GoogleSearch node receives the query and performs the search\n4. Results are displayed in the Preview node via the Agent's 'chunk' output\n\nDynamic outputs allow agents to interface with other nodes in the workflow."
+          "comment": {
+            "root": {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "🔎 Agent Google Search",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h1"
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "Let an Agent decide what to search for, then run the query through Google and stream the answer.",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 1,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "Pipeline:",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": " Agent generates a ",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 16,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "search",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": " dynamic output → GoogleSearch runs the query → results stream back through the Agent's ",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 16,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "chunk",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": " output into a Preview.",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 1,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 1,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "Try this:",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": " edit the prompt or system message, swap the model, or raise ",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 16,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "num_results",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": " on the GoogleSearch node for a wider sweep.",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 1,
+                  "textStyle": ""
+                }
+              ],
+              "direction": "ltr",
+              "format": "",
+              "indent": 0,
+              "type": "root",
+              "version": 1,
+              "textFormat": 1
+            }
+          }
         },
         "ui_properties": {
           "position": {
-            "x": 40,
-            "y": 40
+            "x": -473,
+            "y": 81
           },
           "zIndex": 0,
-          "width": 280,
-          "selectable": true
+          "width": 437,
+          "height": 296,
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -84,23 +258,18 @@
           "max_tokens": 8192
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 283,
-            "y": 182
+            "x": 50,
+            "y": 50
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "title": "1️⃣ Agent — picks a search query and streams the answer",
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {
-          "search": {
-            "type": "str",
-            "type_args": [],
-            "optional": false
-          }
-        },
+        "dynamic_outputs": {},
         "sync_mode": "on_any"
       },
       {
@@ -110,14 +279,15 @@
           "num_results": 10
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 623,
-            "y": 285
+            "x": 52,
+            "y": 767
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "title": "2️⃣ Google Search — runs the agent's query",
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -130,13 +300,15 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 703,
-            "y": 519
+            "x": 360,
+            "y": 50
           },
           "zIndex": 0,
-          "width": 280,
-          "height": 669,
-          "selectable": true
+          "width": 303,
+          "height": 606,
+          "title": "👁️ Preview — streamed agent response",
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -144,20 +316,15 @@
       }
     ]
   },
-  "input_schema": {
-    "type": "object",
-    "properties": {},
-    "required": []
-  },
-  "output_schema": {
-    "type": "object",
-    "properties": {},
-    "required": []
-  },
+  "input_schema": null,
+  "output_schema": null,
   "settings": {},
   "package_name": "nodetool-base",
   "path": null,
   "run_mode": "workflow",
+  "workspace_id": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "html_app": null,
+  "etag": "4e1d96a8ba623dd501f0089d8edc5821"
 }
