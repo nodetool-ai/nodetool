@@ -12,7 +12,6 @@ import {
   encrypt,
   decrypt,
   decryptFernet,
-  getMasterKey,
   initMasterKey
 } from "@nodetool-ai/security";
 
@@ -64,7 +63,7 @@ export class OAuthCredential extends DBModel {
     received_at: string;
     expires_at?: string | null;
   }): Promise<OAuthCredential> {
-    const masterKey = getMasterKey();
+    const masterKey = await initMasterKey();
     const encryptedAccessToken = encrypt(
       masterKey,
       opts.user_id,
@@ -160,7 +159,7 @@ export class OAuthCredential extends DBModel {
     received_at?: string;
     expires_at?: string | null;
   }): Promise<OAuthCredential> {
-    const masterKey = getMasterKey();
+    const masterKey = await initMasterKey();
     const encryptedAccessToken = encrypt(
       masterKey,
       opts.user_id,
@@ -222,7 +221,7 @@ export class OAuthCredential extends DBModel {
     receivedAt?: string;
     expiresAt?: string | null;
   }): Promise<void> {
-    const masterKey = getMasterKey();
+    const masterKey = await initMasterKey();
     this.encrypted_access_token = encrypt(
       masterKey,
       this.user_id,
