@@ -153,4 +153,17 @@ describe("Workflow model clip lifecycle helpers", () => {
       "not clip-private"
     );
   });
+
+  it("promoteToTemplate rejects non-private clip workflows", async () => {
+    const publicClip = await createWorkflow({
+      id: "wf-public-clip",
+      run_mode: "clip"
+    });
+    publicClip.access = "public";
+    await publicClip.save();
+
+    await expect(Workflow.promoteToTemplate(publicClip.id)).rejects.toThrow(
+      "not clip-private"
+    );
+  });
 });

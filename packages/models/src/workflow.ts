@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.workflow`.
  */
 
-import { eq, and, desc, or, isNull, like, type SQL } from "drizzle-orm";
+import { eq, and, desc, or, isNull, sql, type SQL } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workflows } from "./schema/workflows.js";
@@ -26,15 +26,11 @@ export class WorkflowNotClipPrivateError extends Error {
   }
 }
 
-function requireCondition(condition: SQL<unknown> | undefined): SQL<unknown> {
+function ensureSqlCondition(condition: SQL<unknown> | undefined): SQL<unknown> {
   if (!condition) {
     throw new Error("Expected SQL condition");
   }
   return condition;
-}
-
-function escapeLikePattern(input: string): string {
-  return input.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
 }
 
 export class Workflow extends DBModel {
@@ -149,7 +145,7 @@ export class Workflow extends DBModel {
       conditions.push(eq(workflows.run_mode, runMode));
     } else {
       conditions.push(
-        requireCondition(
+        ensureSqlCondition(
           or(eq(workflows.run_mode, "workflow"), isNull(workflows.run_mode))
         )
       );
@@ -310,11 +306,10 @@ export class Workflow extends DBModel {
 
   static async countClipReferences(workflowId: string): Promise<number> {
     const db = getDb();
-    const escapedWorkflowId = escapeLikePattern(workflowId);
     const rows = await db
       .select({ document: timelineSequences.document })
       .from(timelineSequences)
-      .where(like(timelineSequences.document, `%${escapedWorkflowId}%`));
+      .where(sql`instr(${timelineSequences.document}, ${workflowId}) > 0`);
 
     let count = 0;
     for (const row of rows) {
@@ -355,7 +350,7 @@ export class Workflow extends DBModel {
     if (!workflow) {
       throw new Error(`Workflow ${workflowId} not found`);
     }
-    if (workflow.run_mode !== "clip") {
+    if (workflow.run_mode !== "clip" || workflow.access !== "private") {
       throw new WorkflowNotClipPrivateError(workflowId);
     }
 

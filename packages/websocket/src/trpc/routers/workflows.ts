@@ -888,12 +888,6 @@ export const workflowsRouter = router({
       if (!workflow || workflow.user_id !== ctx.userId) {
         throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
       }
-      if (workflow.access !== "private") {
-        throwApiError(
-          ApiErrorCode.INVALID_INPUT,
-          "Only clip-private workflows can be promoted to templates"
-        );
-      }
       try {
         await Workflow.promoteToTemplate(input.id);
       } catch (error) {
