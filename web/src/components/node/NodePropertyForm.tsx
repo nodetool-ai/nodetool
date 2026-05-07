@@ -7,7 +7,7 @@ import {
   DialogActions,
   MenuItem
 } from "@mui/material";
-import { FlexRow, ToolbarIconButton, EditorButton, Dialog } from "../ui_primitives";
+import { FlexRow, EditorButton, Dialog } from "../ui_primitives";
 import { Add } from "@mui/icons-material";
 import { useState, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
@@ -116,9 +116,13 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
             position: "relative"
           })}
         >
-          <ToolbarIconButton title="Add input" size="small" onClick={handleShowInputDialog}>
-            <Add fontSize="small" />
-          </ToolbarIconButton>
+          <EditorButton
+            density="normal"
+            startIcon={<Add fontSize="small" />}
+            onClick={handleShowInputDialog}
+          >
+            Add input
+          </EditorButton>
         </FlexRow>
       )}
 
@@ -135,9 +139,13 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
               top: 0
             })}
           >
-            <ToolbarIconButton title="Add output" size="small" onClick={handleShowOutputDialog}>
-              <Add fontSize="small" />
-            </ToolbarIconButton>
+            <EditorButton
+              density="normal"
+              startIcon={<Add fontSize="small" />}
+              onClick={handleShowOutputDialog}
+            >
+              Add output
+            </EditorButton>
           </FlexRow>
 
           <Dialog

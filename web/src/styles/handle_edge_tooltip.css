@@ -432,7 +432,7 @@ ul.multi-outputs {
 }
 ul.multi-outputs li {
   position: relative;
-  padding: 0 0.75em 0.75em 0;
+  padding: 0 0.75em 0.25em 0;
   /* color: var(--palette-grey-200); */
   text-transform: capitalize;
   text-align: right;
