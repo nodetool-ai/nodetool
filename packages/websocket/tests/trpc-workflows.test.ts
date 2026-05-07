@@ -41,7 +41,12 @@ vi.mock("@nodetool-ai/kernel", () => {
   };
 });
 
-import { Workflow, WorkflowVersion, Job } from "@nodetool-ai/models";
+import {
+  Workflow,
+  WorkflowVersion,
+  Job,
+  WorkflowNotClipPrivateError
+} from "@nodetool-ai/models";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
 
 const createCaller = createCallerFactory(appRouter);
@@ -763,7 +768,7 @@ describe("workflows router", () => {
       });
       (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(standalone);
       (Workflow.promoteToTemplate as ReturnType<typeof vi.fn>).mockRejectedValue(
-        new Error("Workflow wf-standalone is not clip-private")
+        new WorkflowNotClipPrivateError("wf-standalone")
       );
 
       const caller = createCaller(makeCtx());

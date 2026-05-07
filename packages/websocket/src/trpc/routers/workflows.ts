@@ -24,7 +24,12 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import nodePath from "node:path";
 import { z } from "zod";
 import { withCacheBuster } from "../../lib/example-thumbnail.js";
-import { Workflow, WorkflowVersion, Job } from "@nodetool-ai/models";
+import {
+  Workflow,
+  WorkflowVersion,
+  Job,
+  WorkflowNotClipPrivateError
+} from "@nodetool-ai/models";
 import type {
   Workflow as WorkflowModel,
   WorkflowVersion as WorkflowVersionModel
@@ -405,7 +410,8 @@ export const workflowsRouter = router({
       }
       return {
         workflows: filtered.map((w) => toWorkflowResponse(w)),
-        // mediaOutput filtering happens in memory after DB pagination.
+        // mediaOutput filtering happens in memory after DB pagination, so cursor
+        // pagination is intentionally disabled for this mode.
         next: input.mediaOutput ? null : cursor || null
       };
     }),
@@ -891,10 +897,7 @@ export const workflowsRouter = router({
       try {
         await Workflow.promoteToTemplate(input.id);
       } catch (error) {
-        if (
-          error instanceof Error &&
-          error.message.includes("not clip-private")
-        ) {
+        if (error instanceof WorkflowNotClipPrivateError) {
           throwApiError(
             ApiErrorCode.INVALID_INPUT,
             "Only clip-private workflows can be promoted to templates"

@@ -19,11 +19,22 @@ export interface WorkflowGraph {
   edges: Record<string, unknown>[];
 }
 
+export class WorkflowNotClipPrivateError extends Error {
+  constructor(workflowId: string) {
+    super(`Workflow ${workflowId} is not clip-private`);
+    this.name = "WorkflowNotClipPrivateError";
+  }
+}
+
 function requireCondition(condition: SQL<unknown> | undefined): SQL<unknown> {
   if (!condition) {
     throw new Error("Expected SQL condition");
   }
   return condition;
+}
+
+function escapeLikePattern(input: string): string {
+  return input.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
 }
 
 export class Workflow extends DBModel {
@@ -299,10 +310,11 @@ export class Workflow extends DBModel {
 
   static async countClipReferences(workflowId: string): Promise<number> {
     const db = getDb();
+    const escapedWorkflowId = escapeLikePattern(workflowId);
     const rows = await db
       .select({ document: timelineSequences.document })
       .from(timelineSequences)
-      .where(like(timelineSequences.document, `%${workflowId}%`));
+      .where(like(timelineSequences.document, `%${escapedWorkflowId}%`));
 
     let count = 0;
     for (const row of rows) {
@@ -344,7 +356,7 @@ export class Workflow extends DBModel {
       throw new Error(`Workflow ${workflowId} not found`);
     }
     if (workflow.run_mode !== "clip") {
-      throw new Error(`Workflow ${workflowId} is not clip-private`);
+      throw new WorkflowNotClipPrivateError(workflowId);
     }
 
     const tags = Array.isArray(workflow.tags) ? [...workflow.tags] : [];
