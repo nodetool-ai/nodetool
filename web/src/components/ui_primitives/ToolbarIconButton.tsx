@@ -187,29 +187,31 @@ export const ToolbarIconButton = memo(
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
         >
-          <IconButton
-            ref={ref}
-            aria-label={label}
-            className={cn(
-              "toolbar-icon-button",
-              nodrag && editorClassNames.nodrag,
-              active && "active",
-              className
-            )}
-            size={size}
-            tabIndex={tabIndex}
-            sx={{
-              ...variantStyles,
-              ...(active && {
-                backgroundColor: theme.vars.palette.grey[800],
-                color: "var(--palette-primary-main)"
-              }),
-              ...sx
-            }}
-            {...props}
-          >
-            {resolvedIcon}
-          </IconButton>
+          <span style={{ display: "inline-flex" }}>
+            <IconButton
+              ref={ref}
+              aria-label={label}
+              className={cn(
+                "toolbar-icon-button",
+                nodrag && editorClassNames.nodrag,
+                active && "active",
+                className
+              )}
+              size={size}
+              tabIndex={tabIndex}
+              sx={{
+                ...variantStyles,
+                ...(active && {
+                  backgroundColor: theme.vars.palette.grey[800],
+                  color: "var(--palette-primary-main)"
+                }),
+                ...sx
+              }}
+              {...props}
+            >
+              {resolvedIcon}
+            </IconButton>
+          </span>
         </Tooltip>
       );
     }
