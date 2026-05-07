@@ -15,6 +15,10 @@ import { loadMetadata } from "../serverState/useMetadata";
  * Mapping of resource types to their TanStack Query cache keys.
  * When a resource change event is received, all associated query keys
  * will be invalidated to trigger refetch.
+ *
+ * `resource_type` matches the lowercased model class name emitted by the
+ * backend ModelObserver (see packages/websocket/src/unified-websocket-runner.ts
+ * `onModelChange`).
  */
 const RESOURCE_TYPE_TO_QUERY_KEYS: Record<string, string[]> = {
   workflow: ["workflows", "templates"],
@@ -24,12 +28,12 @@ const RESOURCE_TYPE_TO_QUERY_KEYS: Record<string, string[]> = {
   collection: ["collections"],
   workspace: ["workspaces"],
   secret: ["secrets"],
-  metadata: ["metadata"]
-  // Add more mappings as needed
+  metadata: ["metadata"],
+  setting: ["settings"]
 };
 
-const PROVIDER_QUERY_KEYS = ["providers"] as const;
-const MODEL_QUERY_KEYS = [
+export const PROVIDER_QUERY_KEYS = ["providers"] as const;
+export const MODEL_QUERY_KEYS = [
   "models",
   "language-models",
   "embedding-models",
@@ -77,6 +81,17 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
   if (resource_type === "model") {
     console.info("[ResourceChange] Invalidating model queries");
     invalidateQueryKeys(MODEL_QUERY_KEYS);
+    return;
+  }
+
+  // WorkflowVersion changes carry the version's id, not the workflow id, so
+  // invalidate every workflow version query and let consumers refetch.
+  if (resource_type === "workflowversion") {
+    console.info("[ResourceChange] Invalidating workflow version queries");
+    queryClient.invalidateQueries({
+      predicate: (query) =>
+        query.queryKey[0] === "workflow" && query.queryKey[2] === "versions"
+    });
     return;
   }
 

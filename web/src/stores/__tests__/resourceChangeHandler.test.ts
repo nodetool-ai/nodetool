@@ -13,6 +13,10 @@ jest.mock("../../queryClient", () => ({
   }
 }));
 
+// `predicate` invalidations need access to the query cache. Provide a stub
+// invalidator the test can inspect; for keyed calls we keep the existing
+// `queryKey`-shape assertions.
+
 jest.mock("../../serverState/useMetadata", () => ({
   loadMetadata: jest.fn()
 }));
@@ -259,6 +263,52 @@ describe("handleResourceChange", () => {
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ["allModels"]
     });
+  });
+
+  it("invalidates settings on setting update", () => {
+    const update: ResourceChangeUpdate = {
+      type: "resource_change",
+      event: "updated",
+      resource_type: "setting",
+      resource: { id: "OPENAI_API_KEY" }
+    };
+
+    handleResourceChange(update);
+
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["settings"]
+    });
+  });
+
+  it("invalidates workflow version queries on workflowversion change", () => {
+    const update: ResourceChangeUpdate = {
+      type: "resource_change",
+      event: "created",
+      resource_type: "workflowversion",
+      resource: { id: "version-xyz" }
+    };
+
+    handleResourceChange(update);
+
+    // The version's id is not the workflow id, so the handler invalidates
+    // every `["workflow", *, "versions"]` query via predicate.
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      expect.objectContaining({
+        predicate: expect.any(Function)
+      })
+    );
+    const predicateCall = (
+      queryClient.invalidateQueries as jest.Mock
+    ).mock.calls.find((call) => typeof call[0]?.predicate === "function");
+    expect(predicateCall).toBeTruthy();
+    const predicate = predicateCall![0].predicate as (q: {
+      queryKey: readonly unknown[];
+    }) => boolean;
+    expect(
+      predicate({ queryKey: ["workflow", "abc", "versions"] })
+    ).toBe(true);
+    expect(predicate({ queryKey: ["workflow", "abc"] })).toBe(false);
+    expect(predicate({ queryKey: ["workflows"] })).toBe(false);
   });
 
   it("includes additional resource properties in the update", () => {

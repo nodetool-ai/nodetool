@@ -8,6 +8,10 @@ import LockIcon from "@mui/icons-material/Lock";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSecretsStore from "../../stores/SecretsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import {
+  MODEL_QUERY_KEYS,
+  PROVIDER_QUERY_KEYS
+} from "../../stores/resourceChangeHandler";
 import { useState, useCallback, useMemo, memo } from "react";
 import type React from "react";
 import { useTheme } from "@mui/material/styles";
@@ -99,6 +103,18 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
     return { configured, unconfigured };
   }, [safeSecrets, searchTerm]);
 
+  // Provider availability and the per-modality model lists are derived from
+  // configured secrets, so any secret change invalidates the full set.
+  const invalidateSecretDependents = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["secrets"] });
+    for (const key of PROVIDER_QUERY_KEYS) {
+      queryClient.invalidateQueries({ queryKey: [key] });
+    }
+    for (const key of MODEL_QUERY_KEYS) {
+      queryClient.invalidateQueries({ queryKey: [key] });
+    }
+  }, [queryClient]);
+
   const updateMutation = useMutation({
     mutationFn: () => {
       if (!editingSecret) {
@@ -107,16 +123,7 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
       return updateSecret(editingSecret.key, formData.value);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["secrets"] });
-      // Invalidate providers cache when secrets change, as provider availability
-      // depends on having the required secrets configured
-      queryClient.invalidateQueries({ queryKey: ["providers"] });
-      // Also invalidate all model queries that depend on providers
-      queryClient.invalidateQueries({ queryKey: ["language-models"] });
-      queryClient.invalidateQueries({ queryKey: ["image-models"] });
-      queryClient.invalidateQueries({ queryKey: ["tts-models"] });
-      queryClient.invalidateQueries({ queryKey: ["asr-models"] });
-      queryClient.invalidateQueries({ queryKey: ["video-models"] });
+      invalidateSecretDependents();
       addNotification({
         type: "success",
         content: "Secret updated successfully",
@@ -136,16 +143,7 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
   const deleteMutation = useMutation({
     mutationFn: (key: string) => deleteSecret(key),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["secrets"] });
-      // Invalidate providers cache when secrets change, as provider availability
-      // depends on having the required secrets configured
-      queryClient.invalidateQueries({ queryKey: ["providers"] });
-      // Also invalidate all model queries that depend on providers
-      queryClient.invalidateQueries({ queryKey: ["language-models"] });
-      queryClient.invalidateQueries({ queryKey: ["image-models"] });
-      queryClient.invalidateQueries({ queryKey: ["tts-models"] });
-      queryClient.invalidateQueries({ queryKey: ["asr-models"] });
-      queryClient.invalidateQueries({ queryKey: ["video-models"] });
+      invalidateSecretDependents();
       addNotification({
         type: "success",
         content: "Secret deleted successfully",

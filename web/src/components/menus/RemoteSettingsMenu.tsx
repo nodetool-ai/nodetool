@@ -16,6 +16,10 @@ import useRemoteSettingsStore, {
   type SettingWithValue
 } from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import {
+  MODEL_QUERY_KEYS,
+  PROVIDER_QUERY_KEYS
+} from "../../stores/resourceChangeHandler";
 import { useTheme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import ExternalLink from "../common/ExternalLink";
@@ -312,8 +316,20 @@ const RemoteSettings = () => {
   const updateSettingsMutation = useMutation({
     mutationFn: (args: { settings: Record<string, string>; secrets: Record<string, string> }) =>
       updateSettings(args.settings, args.secrets),
-    onSuccess: () => {
+    onSuccess: (_data, args) => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
+      // Saving secrets through the remote-settings panel must propagate the
+      // same way SecretsMenu does — provider availability and per-modality
+      // model lists derive from configured secrets.
+      if (args.secrets && Object.keys(args.secrets).length > 0) {
+        queryClient.invalidateQueries({ queryKey: ["secrets"] });
+        for (const key of PROVIDER_QUERY_KEYS) {
+          queryClient.invalidateQueries({ queryKey: [key] });
+        }
+        for (const key of MODEL_QUERY_KEYS) {
+          queryClient.invalidateQueries({ queryKey: [key] });
+        }
+      }
     }
   });
 
