@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.workflow`.
  */
 
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, or, isNull } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workflows } from "./schema/workflows.js";
@@ -131,7 +131,7 @@ export class Workflow extends DBModel {
       conditions.push(eq(workflows.run_mode, runMode));
     } else {
       conditions.push(
-        sql`(${workflows.run_mode} = 'workflow' OR ${workflows.run_mode} IS NULL)`
+        or(eq(workflows.run_mode, "workflow"), isNull(workflows.run_mode))!
       );
     }
 

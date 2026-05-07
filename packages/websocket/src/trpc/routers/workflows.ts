@@ -393,12 +393,6 @@ export const workflowsRouter = router({
         tag: input.tag
       });
       let filtered = workflows;
-      if (input.run_mode === undefined) {
-        filtered = filtered.filter((w) => {
-          const runMode = w.run_mode ?? "workflow";
-          return runMode === "workflow";
-        });
-      }
       if (input.mediaOutput) {
         filtered = filtered.filter((w) => hasTerminalMediaOutput(w));
       }

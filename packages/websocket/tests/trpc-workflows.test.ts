@@ -79,6 +79,7 @@ function makeWorkflow(opts: {
     user_id: opts.user_id ?? "user-1",
     name: opts.name ?? "Test Workflow",
     access: opts.access ?? "private",
+    // Preserve explicit `null` for legacy rows while defaulting only when omitted.
     run_mode: opts.run_mode === undefined ? "workflow" : opts.run_mode,
     tool_name: null,
     package_name: null,
@@ -175,7 +176,7 @@ describe("workflows router", () => {
       });
     });
 
-    it("excludes clip workflows by default", async () => {
+    it("uses default run_mode filtering when no run_mode is passed", async () => {
       const workflow = makeWorkflow({ id: "wf-default", run_mode: "workflow" });
       const legacy = makeWorkflow({ id: "wf-legacy", run_mode: null });
       const clip = makeWorkflow({ id: "wf-clip", run_mode: "clip" });
@@ -186,7 +187,15 @@ describe("workflows router", () => {
 
       const caller = createCaller(makeCtx());
       const result = await caller.workflows.list({});
-      expect(result.workflows.map((w) => w.id)).toEqual(["wf-default", "wf-legacy"]);
+      expect(Workflow.paginate).toHaveBeenCalledWith(
+        "user-1",
+        expect.objectContaining({ runMode: undefined })
+      );
+      expect(result.workflows.map((w) => w.id)).toEqual([
+        "wf-default",
+        "wf-legacy",
+        "wf-clip"
+      ]);
     });
 
     it("includes clip workflows when run_mode filter is set", async () => {

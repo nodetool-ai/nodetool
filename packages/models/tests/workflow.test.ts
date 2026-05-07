@@ -86,6 +86,17 @@ describe("Workflow model clip lifecycle helpers", () => {
     expect(await Workflow.countClipReferences("wf-missing")).toBe(0);
   });
 
+  it("paginate defaults to standalone workflows and legacy null run_mode", async () => {
+    await createWorkflow({ id: "wf-workflow", run_mode: "workflow" });
+    await createWorkflow({ id: "wf-legacy", run_mode: null });
+    await createWorkflow({ id: "wf-clip-only", run_mode: "clip" });
+
+    const [items] = await Workflow.paginate("user-1", { limit: 10 });
+    expect(items.map((workflow) => workflow.id).sort()).toEqual(
+      ["wf-legacy", "wf-workflow"].sort()
+    );
+  });
+
   it("deleteIfOrphaned refuses standalone workflows", async () => {
     const standalone = await createWorkflow({
       id: "wf-standalone",
