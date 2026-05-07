@@ -15,13 +15,16 @@ import { TimelineEditor } from "../TimelineEditor";
 
 jest.mock("react-router-dom", () => ({
   useParams: jest.fn(),
-  useNavigate: jest.fn()
+  useNavigate: jest.fn(),
+  useSearchParams: jest.fn()
 }));
 
 // ── Data hook mock ───────────────────────────────────────────────────────────
 
 jest.mock("../../../hooks/useTimelineSequence", () => ({
-  useTimeline: jest.fn()
+  useTimeline: jest.fn(),
+  useTimelines: jest.fn(),
+  useCreateTimeline: jest.fn()
 }));
 
 // ── TracksRegion mock ────────────────────────────────────────────────────────
@@ -38,12 +41,20 @@ jest.mock("../preview/PreviewArea", () => ({
     React.createElement("div", { "data-testid": "preview-area" }, "Preview")
 }));
 
-import { useParams, useNavigate } from "react-router-dom";
-import { useTimeline } from "../../../hooks/useTimelineSequence";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  useTimeline,
+  useTimelines,
+  useCreateTimeline
+} from "../../../hooks/useTimelineSequence";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 const mockNavigate = jest.fn();
+const mockRefetch = jest.fn();
+let mockSearchParams: URLSearchParams;
+const mockCreateMutate = jest.fn();
+const mockCreateReset = jest.fn();
 
 const renderEditor = () =>
   render(
@@ -54,8 +65,20 @@ const renderEditor = () =>
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockRefetch.mockClear();
+  mockCreateMutate.mockClear();
+  mockCreateReset.mockClear();
+  mockSearchParams = new URLSearchParams();
   (useParams as jest.Mock).mockReturnValue({ sequenceId: "seq-1" });
   (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
+  (useSearchParams as jest.Mock).mockReturnValue([mockSearchParams, jest.fn()]);
+  (useTimelines as jest.Mock).mockReturnValue({ data: [] });
+  (useCreateTimeline as jest.Mock).mockReturnValue({
+    mutate: mockCreateMutate,
+    reset: mockCreateReset,
+    isPending: false,
+    error: null
+  });
 });
 
 // ── Tests ────────────────────────────────────────────────────────────────────
@@ -66,7 +89,8 @@ describe("TimelineEditor", () => {
       (useTimeline as jest.Mock).mockReturnValue({
         data: undefined,
         isLoading: true,
-        isError: false
+        isError: false,
+        refetch: mockRefetch
       });
 
       renderEditor();
@@ -78,7 +102,8 @@ describe("TimelineEditor", () => {
       (useTimeline as jest.Mock).mockReturnValue({
         data: undefined,
         isLoading: true,
-        isError: false
+        isError: false,
+        refetch: mockRefetch
       });
 
       renderEditor();
@@ -94,37 +119,66 @@ describe("TimelineEditor", () => {
       (useTimeline as jest.Mock).mockReturnValue({
         data: undefined,
         isLoading: false,
-        isError: false
+        isError: false,
+        refetch: mockRefetch
       });
 
       renderEditor();
 
       expect(screen.getByText("Sequence not found")).toBeInTheDocument();
+      expect(screen.getByTestId("tracks-region")).toBeInTheDocument();
+      expect(screen.getByText("seq-1")).toBeInTheDocument();
     });
 
     it("shows EmptyState when the query returns an error", () => {
       (useTimeline as jest.Mock).mockReturnValue({
         data: undefined,
         isLoading: false,
-        isError: true
+        isError: true,
+        refetch: mockRefetch
       });
 
       renderEditor();
 
       expect(screen.getByText("Sequence not found")).toBeInTheDocument();
+      expect(screen.getByTestId("tracks-region")).toBeInTheDocument();
     });
 
-    it("navigates to /dashboard when the action button is clicked", () => {
+    it("calls refetch when Retry is clicked", () => {
       (useTimeline as jest.Mock).mockReturnValue({
         data: undefined,
         isLoading: false,
-        isError: false
+        isError: false,
+        refetch: mockRefetch
       });
 
       renderEditor();
 
-      fireEvent.click(screen.getByRole("button", { name: "Go to dashboard" }));
-      expect(mockNavigate).toHaveBeenCalledWith("/dashboard");
+      fireEvent.click(screen.getByRole("button", { name: "Retry loading sequence" }));
+      expect(mockRefetch).toHaveBeenCalled();
+    });
+
+    it("shows New sequence and calls create mutation with resolved project id", () => {
+      mockSearchParams.set("projectId", "from-url");
+      (useTimeline as jest.Mock).mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: false,
+        refetch: mockRefetch
+      });
+
+      renderEditor();
+
+      expect(
+        screen.getByRole("button", { name: "Create new sequence" })
+      ).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Create new sequence" }));
+      expect(mockCreateReset).toHaveBeenCalled();
+      expect(mockCreateMutate).toHaveBeenCalledWith(
+        { name: "Untitled sequence", projectId: "from-url" },
+        expect.any(Object)
+      );
     });
   });
 
@@ -135,7 +189,8 @@ describe("TimelineEditor", () => {
       (useTimeline as jest.Mock).mockReturnValue({
         data: sequence,
         isLoading: false,
-        isError: false
+        isError: false,
+        refetch: mockRefetch
       });
     });
 
@@ -193,7 +248,8 @@ describe("TimelineEditor", () => {
       (useTimeline as jest.Mock).mockReturnValue({
         data: sequence,
         isLoading: false,
-        isError: false
+        isError: false,
+        refetch: mockRefetch
       });
 
       renderEditor();
