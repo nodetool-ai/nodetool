@@ -3,6 +3,7 @@ import React, {
   memo,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState
@@ -28,6 +29,7 @@ import SpeedIcon from "@mui/icons-material/Speed";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import TuneIcon from "@mui/icons-material/Tune";
 import LayersIcon from "@mui/icons-material/Layers";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 
 import { FlexRow, Text, Tooltip } from "../../ui_primitives";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
@@ -76,6 +78,7 @@ import { createMediaComposerStyles } from "./MediaChatComposer.styles";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { StopGenerationButton } from "./StopGenerationButton";
+import ToolsSelector from "./ToolsSelector";
 
 function formatElapsed(seconds: number): string {
   if (seconds < 5) return "Starting…";
@@ -128,6 +131,8 @@ export interface MediaChatComposerProps {
   allowedProviders?: string[];
   /** Hide non-tool-capable models in the language model picker. */
   requireToolSupport?: boolean;
+  selectedTools?: string[];
+  onToolsChange?: (tools: string[]) => void;
 }
 
 /**
@@ -160,7 +165,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   selectedModel,
   onModelChange,
   allowedProviders,
-  requireToolSupport
+  requireToolSupport,
+  selectedTools = [],
+  onToolsChange
 }) => {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -229,7 +236,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   );
 
   // Adjust textarea height based on content
-  useEffect(() => {
+  const adjustHeight = useCallback(() => {
     const el = textareaRef.current;
     if (!el) {
       return;
@@ -238,7 +245,11 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     const next = Math.min(el.scrollHeight, 220);
     el.style.height = `${next}px`;
     el.style.overflowY = el.scrollHeight > 220 ? "auto" : "hidden";
-  }, [prompt]);
+  }, []);
+
+  useLayoutEffect(() => {
+    adjustHeight();
+  }, [prompt, adjustHeight]);
 
   // Focus on mount
   useEffect(() => {
@@ -754,6 +765,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           className="media-compose-input"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
+          onInput={adjustHeight}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           placeholder={placeholder}
@@ -822,6 +834,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 showChevron={false}
                 truncate
               />
+              {onToolsChange && (
+                <ToolsSelector value={selectedTools} onChange={onToolsChange} />
+              )}
               <LanguageModelMenuDialog
                 open={languageModelOpen}
                 anchorEl={languageModelAnchorRef.current}
@@ -1300,7 +1315,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               disabled={isDisabled || !canGenerate}
               aria-label={isMediaMode ? "Generate" : "Send"}
             >
-              {isMediaMode ? "Generate" : "Send"}
+              {isMediaMode ? "Generate" : <ArrowUpwardIcon fontSize="small" />}
             </button>
           )}
         </div>
