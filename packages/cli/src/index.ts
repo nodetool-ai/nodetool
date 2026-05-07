@@ -19,6 +19,7 @@ import { loadSettings, isAgentMode, type AgentMode } from "./settings.js";
 import { runStdinMode } from "./stdin.js";
 import { buildConfiguredProviders } from "./providers.js";
 import { initDb, getSecret } from "@nodetool-ai/models";
+import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
@@ -137,6 +138,23 @@ try {
   initDb(getDefaultDbPath());
 } catch {
   // DB unavailable — secret lookups will fall back to env vars
+}
+
+// Resolve the master encryption key NOW (before Ink takes over the terminal)
+// so any first-time keychain prompt is visible to the user, and so that the
+// first secret lookup during a chat message doesn't race against keychain
+// initialization. Failures are surfaced clearly to stderr — silently falling
+// back to env-only would mask DB-stored secrets and produce confusing
+// "API_KEY is not configured" errors deep in provider construction.
+try {
+  await initMasterKey();
+} catch (err) {
+  const msg = err instanceof Error ? err.message : String(err);
+  process.stderr.write(
+    `[chat-cli] Could not unlock the secret store: ${msg}\n` +
+      `[chat-cli] Falling back to environment variables for API keys.\n` +
+      `[chat-cli] Tip: set SECRETS_MASTER_KEY or grant keychain access to enable DB-stored secrets.\n`
+  );
 }
 
 // Load persisted settings and merge with CLI flags
