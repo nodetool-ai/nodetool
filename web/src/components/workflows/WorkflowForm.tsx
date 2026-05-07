@@ -13,6 +13,14 @@ import { isProduction } from "../../lib/env";
 
 const workspacesEnabled = !isProduction;
 
+const RUN_MODE_OPTIONS = [
+  { value: "workflow", label: "Workflow" },
+  { value: "chat", label: "Chat" },
+  { value: "comfy", label: "Comfy" },
+  { value: "app", label: "App" },
+  { value: "tool", label: "Tool" }
+] as const;
+
 const DEFAULT_TAG_SUGGESTIONS = [
   "image",
   "audio",
@@ -309,13 +317,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
               run_mode: value
             }))
           }
-          options={[
-            { value: "workflow", label: "Workflow" },
-            { value: "chat", label: "Chat" },
-            { value: "comfy", label: "Comfy" },
-            { value: "app", label: "App" },
-            { value: "tool", label: "Tool" }
-          ]}
+          options={RUN_MODE_OPTIONS}
         />
 
       </div>
