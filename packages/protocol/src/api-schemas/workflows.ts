@@ -335,3 +335,29 @@ export type VersionDeleteInput = z.infer<typeof versionDeleteInput>;
 
 export const versionDeleteOutput = z.object({ ok: z.literal(true) });
 export type VersionDeleteOutput = z.infer<typeof versionDeleteOutput>;
+
+// ── terminalOutputs (GET /api/workflows/:id/terminal-outputs) ────────────────
+// Lists the terminal media-output nodes of a workflow.
+// Used by AddClipMenu to prompt the user when a workflow has multiple outputs.
+
+export const terminalOutputsInput = z.object({
+  id: z.string().min(1)
+});
+export type TerminalOutputsInput = z.infer<typeof terminalOutputsInput>;
+
+export const terminalOutputItem = z.object({
+  /** Node id in the workflow graph. */
+  id: z.string(),
+  /** Full node type string, e.g. "nodetool.output.ImageOutput". */
+  type: z.string(),
+  /** Resolved media type. */
+  mediaType: z.enum(["image", "video", "audio"]),
+  /** Human-readable node name from its `data.name` property (may be empty). */
+  name: z.string()
+});
+export type TerminalOutputItem = z.infer<typeof terminalOutputItem>;
+
+export const terminalOutputsOutput = z.object({
+  outputs: z.array(terminalOutputItem)
+});
+export type TerminalOutputsOutput = z.infer<typeof terminalOutputsOutput>;

@@ -22,6 +22,7 @@ import { TimelineSequence, Workflow, createTimeOrderedUuid } from "@nodetool-ai/
 import type { TimelineDocument } from "@nodetool-ai/models";
 import type { ClipVersion } from "@nodetool-ai/timeline";
 import { makeClip } from "@nodetool-ai/timeline";
+import { computeDependencyHash } from "@nodetool-ai/timeline/dependencyHash.js";
 import {
   appendClipVersionInput,
   clipVersion,
@@ -455,10 +456,22 @@ export const timelineRouter = router({
           DEFAULT_DURATION_MS[mediaType] ??
           4000;
 
+        // 5. Compute initial dependencyHash via @nodetool-ai/timeline
+        const workflowUpdatedAt =
+          (clone.updated_at as string | undefined | null) ??
+          new Date().toISOString();
+        const dependencyHash = computeDependencyHash({
+          workflowId: clone.id,
+          workflowUpdatedAt,
+          paramOverrides,
+          inputAssetHashes: []
+        });
+
         // 6. Build and insert the clip into the sequence document
         const clipId = createTimeOrderedUuid();
         const newClip = makeClip({
           id: clipId,
+          name: clone.name,
           trackId: input.trackId,
           startMs: input.startMs,
           durationMs,
@@ -467,6 +480,7 @@ export const timelineRouter = router({
           workflowId: clone.id,
           selectedOutputNodeId: selectedOutputNode.id as string,
           paramOverrides,
+          dependencyHash,
           status: "draft",
           locked: false,
           versions: []
