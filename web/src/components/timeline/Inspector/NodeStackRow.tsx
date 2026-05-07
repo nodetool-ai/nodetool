@@ -102,8 +102,7 @@ const indexStyles = (theme: Theme) =>
     fontSize: 10,
     color: theme.vars.palette.text.secondary,
     minWidth: 16,
-    textAlign: "right",
-    userSelect: "none"
+    textAlign: "right"
   });
 
 // ── Helpers ────────────────────────────────────────────────────────────────

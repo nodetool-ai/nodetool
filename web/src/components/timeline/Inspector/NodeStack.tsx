@@ -79,15 +79,16 @@ function computeNodesOnPath(
     }
   }
 
-  // BFS backwards from terminal to find all ancestors
+  // BFS backwards from terminal to find all ancestors (queue-index for O(n))
   const reachable = new Set<string>([terminalId]);
-  const queue: string[] = [terminalId];
-  while (queue.length > 0) {
-    const cur = queue.shift()!;
+  const bfsQueue: string[] = [terminalId];
+  let bfsHead = 0;
+  while (bfsHead < bfsQueue.length) {
+    const cur = bfsQueue[bfsHead++]!;
     for (const parentId of reverseAdj.get(cur) ?? []) {
       if (!reachable.has(parentId)) {
         reachable.add(parentId);
-        queue.push(parentId);
+        bfsQueue.push(parentId);
       }
     }
   }
@@ -97,7 +98,7 @@ function computeNodesOnPath(
     (e) => reachable.has(e.source) && reachable.has(e.target)
   );
 
-  // Kahn's topological sort (inputs → terminal)
+  // Kahn's topological sort (inputs → terminal), O(n) via queue index
   const inDegree = new Map<string, number>();
   const adj = new Map<string, string[]>();
   for (const n of reachableNodes) {
@@ -116,8 +117,9 @@ function computeNodesOnPath(
     }
   }
   const sorted: string[] = [];
-  while (topoQueue.length > 0) {
-    const id = topoQueue.shift()!;
+  let topoHead = 0;
+  while (topoHead < topoQueue.length) {
+    const id = topoQueue[topoHead++]!;
     sorted.push(id);
     for (const neighbor of adj.get(id) ?? []) {
       const newDeg = (inDegree.get(neighbor) ?? 1) - 1;
@@ -134,7 +136,10 @@ function computeNodesOnPath(
     .filter((n): n is Node => n !== undefined);
 }
 
-/** Derive a display name for a node. */
+/** Returns "N node" or "N nodes" as appropriate. */
+function pluralizeNode(count: number): string {
+  return `${count} node${count !== 1 ? "s" : ""}`;
+}
 function deriveNodeName(
   node: Node,
   metaTitle: string | undefined
@@ -228,8 +233,7 @@ export const NodeStack: React.FC<NodeStackProps> = memo(
                 onClick={handleToggleMiddle}
               >
                 <Caption color="secondary" sx={{ fontSize: 11 }}>
-                  {collapsedMiddleCount} more node
-                  {collapsedMiddleCount !== 1 ? "s" : ""}
+                  {pluralizeNode(collapsedMiddleCount)} more
                 </Caption>
                 <ToolbarIconButton
                   icon={<ExpandMoreIcon fontSize="small" />}
@@ -242,14 +246,14 @@ export const NodeStack: React.FC<NodeStackProps> = memo(
             );
           }
 
-          // For collapsed view, compute true 1-based index in pathNodes
-          let trueIndex: number;
+          // For collapsed view, compute 1-based position in the full path
+          let absoluteIndex: number;
           if (needsCollapse && renderIdx >= HEAD_VISIBLE) {
             // Items after the expander slot are from the tail
             const tailOffset = renderIdx - (HEAD_VISIBLE + 1);
-            trueIndex = pathNodes.length - TAIL_VISIBLE + tailOffset + 1;
+            absoluteIndex = pathNodes.length - TAIL_VISIBLE + tailOffset + 1;
           } else {
-            trueIndex = renderIdx + 1;
+            absoluteIndex = renderIdx + 1;
           }
 
           const nodeId = item.id;
@@ -262,7 +266,7 @@ export const NodeStack: React.FC<NodeStackProps> = memo(
               nodeId={nodeId}
               nodeName={nodeName}
               workflowId={workflowId}
-              index={trueIndex}
+              index={absoluteIndex}
               isSelected={selectedNodeId === nodeId}
               onClick={() => onSelectNode(nodeId)}
             />
