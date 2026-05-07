@@ -298,7 +298,12 @@ const SketchModal: React.FC<SketchModalProps> = ({
             ))}
             {(symmetryMode === "radial" || symmetryMode === "mandala") && (
               <Box sx={{ px: 2, py: 1, minWidth: 160 }}>
-                <Text sx={{ color: "grey.500", fontSize: theme.fontSizeTiny }}>
+                <Text
+                  sx={{
+                    color: "grey.500",
+                    fontSize: theme.typography.caption.fontSize
+                  }}
+                >
                   Rays: {symmetryRays}
                 </Text>
                 <Slider
@@ -325,7 +330,13 @@ const SketchModal: React.FC<SketchModalProps> = ({
 
           {confirmDiscard ? (
             <>
-              <Text sx={{ color: "warning.main", whiteSpace: "nowrap", fontSize: theme.fontSizeTiny }}>
+              <Text
+                sx={{
+                  color: "warning.main",
+                  whiteSpace: "nowrap",
+                  fontSize: theme.typography.caption.fontSize
+                }}
+              >
                 Discard changes?
               </Text>
               <IconButton size="small" color="error" onClick={() => { editorRef.current?.discardToInitial(); onClose(); }}>

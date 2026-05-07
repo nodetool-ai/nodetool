@@ -113,7 +113,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
               flex: 1,
               minWidth: 0,
               padding: 0,
-              borderRadius: "3px",
+              borderRadius: "3px"
             }}
           >
             <SwapHorizIcon sx={{ fontSize: "13px" }} />
