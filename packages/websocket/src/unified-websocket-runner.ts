@@ -3810,8 +3810,14 @@ export class UnifiedWebSocketRunner {
       BrowserTool,
       GoogleSearchTool,
       getAllMcpTools,
-      resolveTool
+      resolveTool,
+      registerBuiltinTools
     } = await import("@nodetool-ai/agents");
+
+    // Ensure the global tool registry is populated with all built-in tools,
+    // so `resolveTool(name)` works for any builtin selected by the client.
+    // Idempotent — only the first call does real work.
+    registerBuiltinTools();
 
     let selectedTools: Tool[] = [];
     const rawToolNames = Array.isArray(data.tools)

@@ -629,7 +629,8 @@ vi.mock("@nodetool-ai/agents", () => {
       name = "google_search";
     },
     getAllMcpTools: () => [],
-    resolveTool: () => null
+    resolveTool: () => null,
+    registerBuiltinTools: () => []
   };
 });
 
