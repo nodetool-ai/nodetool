@@ -18,7 +18,7 @@ import type {
   ToolCall,
   ProviderStreamItem
 } from "@nodetool-ai/runtime";
-import { withAgentSpanGen } from "@nodetool-ai/runtime";
+import { memoryKeys, withAgentSpanGen } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import {
   TaskUpdateEvent,
@@ -391,28 +391,32 @@ export class StepExecutor {
 
   /**
    * Build the system prompt for this step using templates.
+   *
+   * The default execution prompts encode the contract every step relies on
+   * (output discipline, finish_step protocol, conclusion stage). They must
+   * always be present. A caller-supplied `userPrompt` is added as a preamble
+   * — never as a replacement — so domain context can be layered in without
+   * losing the execution discipline.
    */
-  private buildSystemPrompt(customPrompt?: string): string {
+  private buildSystemPrompt(userPrompt?: string): string {
     let basePrompt: string;
     const templateContext: Record<string, string> = {};
 
     if (this.resultSchema) {
       const schemaJson = JSON.stringify(this.resultSchema, null, 2);
       templateContext["output_schema_json"] = schemaJson;
-
-      if (this.useFinishTask) {
-        basePrompt = customPrompt ?? DEFAULT_FINISH_TASK_SYSTEM_PROMPT;
-        templateContext["step_content"] = this.step.instructions;
-      } else {
-        basePrompt = customPrompt ?? DEFAULT_EXECUTION_SYSTEM_PROMPT;
-        templateContext["step_content"] = this.step.instructions;
-      }
+      basePrompt = this.useFinishTask
+        ? DEFAULT_FINISH_TASK_SYSTEM_PROMPT
+        : DEFAULT_EXECUTION_SYSTEM_PROMPT;
     } else {
-      basePrompt = customPrompt ?? DEFAULT_UNSTRUCTURED_SYSTEM_PROMPT;
-      templateContext["step_content"] = this.step.instructions;
+      basePrompt = DEFAULT_UNSTRUCTURED_SYSTEM_PROMPT;
     }
+    templateContext["step_content"] = this.step.instructions;
 
     let prompt = renderTemplate(basePrompt, templateContext);
+    if (userPrompt && userPrompt.trim().length > 0) {
+      prompt = `${userPrompt.trim()}\n\n---\n\n${prompt}`;
+    }
     prompt += `\n\nToday's date is ${new Date().toISOString().slice(0, 10)}`;
     return prompt;
   }
@@ -467,15 +471,30 @@ export class StepExecutor {
 
   /**
    * Persist the final result and mark the step as completed.
+   *
+   * Writes a `step_result` entry to {@link ProcessingContext.memory} under
+   * `step:<id>`. For finish-task steps it additionally writes the same value
+   * as a `task_result` under `task:<id>` so downstream tasks can discover it
+   * via memory.
    */
-  private async storeCompletionResult(
-    normalizedResult: unknown
-  ): Promise<void> {
+  private storeCompletionResult(normalizedResult: unknown): void {
     this.step.completed = true;
     this.step.endTime = Date.now();
-    await this.context.storeStepResult(this.step.id, normalizedResult);
+    this.context.memory.set({
+      key: memoryKeys.step(this.step.id),
+      kind: "step_result",
+      value: normalizedResult,
+      source: this.step.id,
+      title: this.step.instructions.slice(0, 80)
+    });
     if (this.useFinishTask) {
-      await this.context.storeStepResult(this.task.id, normalizedResult);
+      this.context.memory.set({
+        key: memoryKeys.task(this.task.id),
+        kind: "task_result",
+        value: normalizedResult,
+        source: this.task.id,
+        title: this.task.title
+      });
     }
     this.result = normalizedResult;
   }
@@ -914,24 +933,27 @@ export class StepExecutor {
   }
 
   /**
-   * Build the initial user message with instructions and dependency results.
+   * Build the initial user message with instructions and a structured
+   * snapshot of {@link ProcessingContext.memory}.
+   *
+   * Every step receives the full memory snapshot of prior task / step / input
+   * entries — not only its declared `dependsOn` IDs. This guarantees that
+   * upstream results from any agent or task are discoverable, even when the
+   * planner forgets to wire an explicit dependency edge.
    */
-  private async buildUserMessage(): Promise<string> {
+  private buildUserMessage(): string {
     const parts: string[] = [this.step.instructions];
 
-    if (this.step.dependsOn.length > 0) {
-      for (const depId of this.step.dependsOn) {
-        const depResult = await this.context.loadStepResult(depId);
-        if (depResult !== undefined && depResult !== null) {
-          parts.push(
-            `**Result from Task ${depId}:**\n${JSON.stringify(depResult, null, 2)}\n`
-          );
-        }
-      }
+    const memoryBlock = this.context.memory.formatForPrompt({
+      kind: ["task_result", "step_result", "input"]
+    });
+    if (memoryBlock) {
+      parts.push("");
+      parts.push(memoryBlock);
     }
 
     parts.push(
-      "Please perform the step based on the provided context, instructions, and upstream task results."
+      "\nPerform this step using the instructions above. Use any matching memory entries as upstream context."
     );
 
     return parts.join("\n");
@@ -968,7 +990,7 @@ export class StepExecutor {
     this.history.push({ role: "system" as const, content: this.systemPrompt });
 
     // Build user message with instructions and dependency results
-    const userContent = await this.buildUserMessage();
+    const userContent = this.buildUserMessage();
     this.history.push({ role: "user" as const, content: userContent });
 
     // Yield task update: step started
@@ -1119,7 +1141,7 @@ export class StepExecutor {
                 content: '{"status": "completed"}'
               });
 
-              await this.storeCompletionResult(normalizedResult);
+              this.storeCompletionResult(normalizedResult);
               log.debug("Step completed", { stepId: this.step.id });
 
               yield {
@@ -1277,7 +1299,7 @@ export class StepExecutor {
           normalizedResult !== null &&
           normalizedResult !== undefined
         ) {
-          await this.storeCompletionResult(normalizedResult);
+          this.storeCompletionResult(normalizedResult);
 
           yield {
             type: "task_update",
@@ -1308,7 +1330,13 @@ export class StepExecutor {
         error: `Step failed: exceeded ${this.maxIterations} iterations without completion`
       };
       this.result = errorResult;
-      await this.context.storeStepResult(this.step.id, errorResult);
+      this.context.memory.set({
+        key: memoryKeys.step(this.step.id),
+        kind: "step_result",
+        value: errorResult,
+        source: this.step.id,
+        title: `Failed: ${this.step.instructions.slice(0, 60)}`
+      });
 
       yield {
         type: "task_update",

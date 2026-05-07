@@ -15,6 +15,7 @@ import type {
   Message,
   ProviderTool
 } from "@nodetool-ai/runtime";
+import { memoryKeys } from "@nodetool-ai/runtime";
 import { Tool } from "../tools/base-tool.js";
 import { MessageBus } from "./message-bus.js";
 import { TaskBoard } from "./task-board.js";
@@ -98,6 +99,26 @@ export class TeamExecutor {
    * Main execution loop. Yields TeamEvents as the team works.
    */
   async *execute(): AsyncGenerator<TeamEvent> {
+    // Mirror task-board completions into shared agent memory so every
+    // teammate (and any downstream agent on the same context) sees task
+    // results through the unified `context.memory` API.
+    const unsubscribeBoard =
+      typeof (this.board as TaskBoard).onEvent === "function"
+        ? (this.board as TaskBoard).onEvent((event) => {
+            if (event.type !== "task_completed") return;
+            const task = this.board.get(event.taskId);
+            if (!task) return;
+            this.context.memory.set({
+              key: memoryKeys.task(task.id),
+              kind: "task_result",
+              value: task.result,
+              source: task.id,
+              title: task.title,
+              description: task.description
+            });
+          })
+        : null;
+
     // Initialize agents
     for (const identity of this.config.agents) {
       const provider = await this.context.getProvider(identity.provider);
@@ -175,6 +196,8 @@ export class TeamExecutor {
     };
     this.events.push(completeEvent);
     yield completeEvent;
+
+    unsubscribeBoard?.();
   }
 
   // ─── Strategy Phases ───
@@ -277,6 +300,15 @@ export class TeamExecutor {
         t.claimedBy === agent.identity.id &&
         (t.status === "claimed" || t.status === "working")
     );
+
+    // Inject shared agent memory so teammates can read each other's results.
+    const memoryBlock = this.context.memory.formatForPrompt({
+      kind: ["task_result", "shared", "input"]
+    });
+    if (memoryBlock) {
+      promptParts.push(memoryBlock);
+      promptParts.push("");
+    }
 
     if (myTasks.length > 0) {
       promptParts.push("**Your current tasks:**");

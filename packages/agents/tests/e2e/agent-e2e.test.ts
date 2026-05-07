@@ -17,6 +17,7 @@ import { TaskPlanner } from "../../src/task-planner.js";
 import { TaskExecutor } from "../../src/task-executor.js";
 import { StepExecutor } from "../../src/step-executor.js";
 import {
+  AgentMemory,
   ScriptedProvider,
   planScript,
   stepScript,
@@ -34,6 +35,8 @@ import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 function makeContext() {
   const store = new Map<string, unknown>();
   return {
+    memory: new AgentMemory(),
+    workspaceDir: null,
     storeStepResult: async (key: string, value: unknown) => {
       store.set(key, value);
       return key;
@@ -303,8 +306,8 @@ describe("TaskExecutor E2E", () => {
     expect(results[0].result).toEqual({ value: 10 });
     expect(results[1].result).toEqual({ result: 20 });
 
-    // step_1 result should be available for step_2 to load
-    const stored = await context.loadStepResult("step_1");
+    // step_1 result should be available for step_2 to load via shared memory
+    const stored = context.memory.getValue("step:step_1");
     expect(stored).toEqual({ value: 10 });
   });
 

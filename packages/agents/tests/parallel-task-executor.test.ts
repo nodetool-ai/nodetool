@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { ParallelTaskExecutor } from "../src/parallel-task-executor.js";
 import type { TaskPlan } from "../src/types.js";
 import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
+import { memoryKeys } from "@nodetool-ai/runtime";
+import { createMockContext } from "./_helpers/mock-context.js";
 
 function createMockProvider(delayMs = 0) {
   return {
@@ -51,26 +53,6 @@ function createMockProvider(delayMs = 0) {
     generateEmbedding: vi.fn(),
     isContextLengthError: () => false
   } as ReturnType<typeof createMockProvider>;
-}
-
-function createMockContext() {
-  const store = new Map<string, unknown>();
-  return {
-    storeStepResult: vi.fn(async (key: string, value: unknown) => {
-      store.set(key, value);
-      return key;
-    }),
-    loadStepResult: vi.fn(async (key: string) => {
-      return store.get(key);
-    }),
-    set: vi.fn((key: string, value: unknown) => {
-      store.set(key, value);
-    }),
-    get: vi.fn((key: string) => {
-      return store.get(key);
-    }),
-    _store: store
-  } as ReturnType<typeof createMockContext>;
 }
 
 describe("ParallelTaskExecutor", () => {
@@ -231,12 +213,10 @@ describe("ParallelTaskExecutor", () => {
 
     const completionOrder: string[] = [];
     const context = createMockContext();
-    const origSet = context.set;
-    context.set = vi.fn((key: string, value: unknown) => {
-      if (key.startsWith("task_")) {
-        completionOrder.push(key);
+    context.memory.subscribe((entry: { kind: string; source?: string }) => {
+      if (entry.kind === "task_result" && entry.source) {
+        completionOrder.push(entry.source);
       }
-      origSet(key, value);
     });
 
     const executor = new ParallelTaskExecutor({
@@ -386,7 +366,8 @@ describe("ParallelTaskExecutor", () => {
       // consume
     }
 
-    expect(context.set).toHaveBeenCalledWith("myKey", "myValue");
+    expect(context.memory.has(memoryKeys.input("myKey"))).toBe(true);
+    expect(context.memory.getValue(memoryKeys.input("myKey"))).toBe("myValue");
   });
 
   it("executes a diamond dependency pattern (fan-out + fan-in)", async () => {
@@ -474,12 +455,10 @@ describe("ParallelTaskExecutor", () => {
 
     const completionOrder: string[] = [];
     const context = createMockContext();
-    const origSet = context.set;
-    context.set = vi.fn((key: string, value: unknown) => {
-      if (key.startsWith("task_")) {
-        completionOrder.push(key);
+    context.memory.subscribe((entry: { kind: string; source?: string }) => {
+      if (entry.kind === "task_result" && entry.source) {
+        completionOrder.push(entry.source);
       }
-      origSet(key, value);
     });
 
     const executor = new ParallelTaskExecutor({

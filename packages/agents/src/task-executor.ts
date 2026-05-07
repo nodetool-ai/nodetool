@@ -16,6 +16,7 @@
 import { createHash } from "node:crypto";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { memoryKeys } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import type { ProcessingMessage, Chunk, StepResult } from "@nodetool-ai/protocol";
 
@@ -81,9 +82,14 @@ export class TaskExecutor {
    * Supports both sequential and parallel execution modes.
    */
   async *executeTasks(): AsyncGenerator<ProcessingMessage> {
-    // Seed inputs into context
+    // Seed inputs into shared memory so every step sees them.
     for (const [key, value] of Object.entries(this.inputs)) {
-      this.context.set(key, value);
+      this.context.memory.set({
+        key: memoryKeys.input(key),
+        kind: "input",
+        value,
+        title: key
+      });
     }
 
     // Auto-detect finish step (last step) like Python does
@@ -196,13 +202,21 @@ export class TaskExecutor {
       return;
     }
 
-    let discoverResult = this.context.get(discoverStepId);
+    let discoverResult = this.context.memory.getValue(
+      memoryKeys.step(discoverStepId)
+    );
     if (discoverResult === undefined || discoverResult === null) {
       log.warn("Discover step result is null/undefined, skipping fan-out", {
         stepId: step.id
       });
       step.completed = true;
-      this.context.set(step.id, []);
+      this.context.memory.set({
+        key: memoryKeys.step(step.id),
+        kind: "step_result",
+        value: [],
+        source: step.id,
+        title: step.instructions.slice(0, 60)
+      });
       step.endTime = Date.now();
       return;
     }
@@ -294,8 +308,14 @@ export class TaskExecutor {
       }
     }
 
-    // Store aggregated results and mark complete
-    this.context.set(step.id, results);
+    // Store aggregated results and mark complete.
+    this.context.memory.set({
+      key: memoryKeys.step(step.id),
+      kind: "step_result",
+      value: results,
+      source: step.id,
+      title: step.instructions.slice(0, 60)
+    });
     step.completed = true;
     step.endTime = Date.now();
 

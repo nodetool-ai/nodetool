@@ -7,8 +7,9 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { SimpleAgent } from "../src/simple-agent.js";
-import type { ProcessingContext, BaseProvider } from "@nodetool-ai/runtime";
+import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import { createMockContext } from "./_helpers/mock-context.js";
 
 function createMockProvider(finishResult?: Record<string, unknown>) {
   const result = finishResult ?? { answer: "42" };
@@ -69,15 +70,6 @@ function createMockProvider(finishResult?: Record<string, unknown>) {
     getTotalCost: vi.fn().mockReturnValue(0),
     resetCost: vi.fn()
   } as unknown as BaseProvider;
-}
-
-function createMockContext() {
-  return {
-    storeStepResult: vi.fn(),
-    loadStepResult: vi.fn(),
-    set: vi.fn(),
-    get: vi.fn()
-  } as unknown as ProcessingContext;
 }
 
 describe("SimpleAgent constructor", () => {

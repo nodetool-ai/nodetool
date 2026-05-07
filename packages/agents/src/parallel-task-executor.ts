@@ -15,6 +15,7 @@
 
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { memoryKeys } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   ProcessingMessage,
@@ -61,9 +62,6 @@ export class ParallelTaskExecutor {
   private readonly maxStepIterations: number;
   private readonly maxTokenLimit: number;
 
-  /** Results collected per task ID. */
-  private readonly taskResults = new Map<string, unknown>();
-
   constructor(opts: ParallelTaskExecutorOptions) {
     this.provider = opts.provider;
     this.model = opts.model;
@@ -83,9 +81,14 @@ export class ParallelTaskExecutor {
    * Independent tasks run concurrently as separate sub-agents.
    */
   async *execute(): AsyncGenerator<ProcessingMessage> {
-    // Seed inputs into context
+    // Seed inputs into shared agent memory so every task and step sees them.
     for (const [key, value] of Object.entries(this.inputs)) {
-      this.context.set(key, value);
+      this.context.memory.set({
+        key: memoryKeys.input(key),
+        kind: "input",
+        value,
+        title: key
+      });
     }
 
     const totalTasks = this.taskPlan.tasks.length;
@@ -186,21 +189,19 @@ export class ParallelTaskExecutor {
       } as TaskUpdate["task"]
     } satisfies TaskUpdate;
 
-    // Build context with dependency results
-    const depContext = this.buildDependencyContext(task);
-
-    // Build enhanced system prompt with dependency information
-    const enhancedPrompt = this.buildTaskSystemPrompt(task, depContext);
-
-    // Create TaskExecutor for this task's steps
+    // Create TaskExecutor for this task's steps. Dependency results are
+    // discovered through `context.memory` — we don't need to build a custom
+    // system prompt here, since `StepExecutor` injects the full memory
+    // snapshot into every step's user message. The user-supplied
+    // `systemPrompt` is forwarded as a preamble.
     const executor = new TaskExecutor({
       provider: this.provider,
       model: this.model,
       context: this.context,
       tools: [...this.tools],
       task,
-      systemPrompt: enhancedPrompt,
-      inputs: { ...this.inputs, ...depContext },
+      systemPrompt: this.systemPrompt,
+      inputs: this.inputs,
       maxSteps: task.steps.length + 5, // Allow some slack
       maxStepIterations: this.maxStepIterations,
       maxTokenLimit: this.maxTokenLimit,
@@ -219,20 +220,31 @@ export class ParallelTaskExecutor {
       yield item;
     }
 
-    // Store task result in shared context and mark complete
-    if (taskResult !== null && taskResult !== undefined) {
-      this.taskResults.set(task.id, taskResult);
-      this.context.set(task.id, taskResult);
-    } else {
-      // Use last step result as task result
+    // Resolve the task result. StepExecutor already wrote a `task:<id>` entry
+    // for finish-task steps; if not, fall back to the last step's result.
+    if (taskResult === null || taskResult === undefined) {
       const lastStep = task.steps[task.steps.length - 1];
       if (lastStep) {
-        const lastResult = this.context.get(lastStep.id);
+        const lastResult = this.context.memory.getValue(
+          memoryKeys.step(lastStep.id)
+        );
         if (lastResult !== undefined) {
-          this.taskResults.set(task.id, lastResult);
-          this.context.set(task.id, lastResult);
           taskResult = lastResult;
         }
+      }
+    }
+
+    if (taskResult !== null && taskResult !== undefined) {
+      // Idempotent: only write if StepExecutor didn't already persist it.
+      if (!this.context.memory.has(memoryKeys.task(task.id))) {
+        this.context.memory.set({
+          key: memoryKeys.task(task.id),
+          kind: "task_result",
+          value: taskResult,
+          source: task.id,
+          title: task.title,
+          description: task.description
+        });
       }
     }
 
@@ -252,50 +264,6 @@ export class ParallelTaskExecutor {
       taskId: task.id,
       title: task.title
     });
-  }
-
-  /**
-   * Build a map of dependency results for a task.
-   */
-  private buildDependencyContext(
-    task: Task
-  ): Record<string, unknown> {
-    const depContext: Record<string, unknown> = {};
-    for (const depId of task.dependsOn ?? []) {
-      const result = this.taskResults.get(depId);
-      if (result !== undefined) {
-        depContext[depId] = result;
-      }
-    }
-    return depContext;
-  }
-
-  /**
-   * Build system prompt enhanced with dependency results.
-   */
-  private buildTaskSystemPrompt(
-    task: Task,
-    depContext: Record<string, unknown>
-  ): string | undefined {
-    const parts: string[] = [];
-    if (this.systemPrompt) {
-      parts.push(this.systemPrompt);
-    }
-
-    if (Object.keys(depContext).length > 0) {
-      parts.push("\n# Results from prerequisite tasks:");
-      for (const [depId, result] of Object.entries(depContext)) {
-        const depTask = this.taskPlan.tasks.find((t) => t.id === depId);
-        const depTitle = depTask?.title ?? depId;
-        const resultStr =
-          typeof result === "string"
-            ? result
-            : JSON.stringify(result, null, 2);
-        parts.push(`\n## ${depTitle} (${depId}):\n${resultStr}`);
-      }
-    }
-
-    return parts.length > 0 ? parts.join("\n") : undefined;
   }
 
   /**
@@ -326,20 +294,17 @@ export class ParallelTaskExecutor {
     );
   }
 
-  /**
-   * Get the result of a specific task.
-   */
+  /** Get the result of a specific task from shared memory. */
   getTaskResult(taskId: string): unknown {
-    return this.taskResults.get(taskId);
+    return this.context.memory.getValue(memoryKeys.task(taskId));
   }
 
-  /**
-   * Get all task results.
-   */
+  /** Get all task results recorded in shared memory. */
   getAllResults(): Record<string, unknown> {
     const results: Record<string, unknown> = {};
-    for (const [id, result] of this.taskResults) {
-      results[id] = result;
+    for (const entry of this.context.memory.list({ kind: "task_result" })) {
+      const id = entry.source ?? entry.key.replace(/^task:/, "");
+      results[id] = entry.value;
     }
     return results;
   }
@@ -350,7 +315,7 @@ export class ParallelTaskExecutor {
   getFinalResult(): unknown {
     if (this.taskPlan.tasks.length === 0) return null;
     const lastTask = this.taskPlan.tasks[this.taskPlan.tasks.length - 1];
-    return this.taskResults.get(lastTask.id) ?? null;
+    return this.context.memory.getValue(memoryKeys.task(lastTask.id)) ?? null;
   }
 }
 
