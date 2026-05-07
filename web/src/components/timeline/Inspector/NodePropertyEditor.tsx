@@ -54,6 +54,16 @@ function inputNodeParamName(
   );
 }
 
+/** Cast a node's `data` field to a typed property map. */
+function nodeData(n: Node): Record<string, unknown> | undefined {
+  return n.data as Record<string, unknown> | undefined;
+}
+
+/** Cast a node's `dynamic_properties` field to a typed property map. */
+function nodeDynamic(n: Node): Record<string, unknown> | undefined {
+  return n.dynamic_properties as Record<string, unknown> | undefined;
+}
+
 /** Short human-readable label for a node type, e.g. "StringInput" from "nodetool.input.StringInput". */
 function shortNodeType(nodeType: string): string {
   return nodeType.split(".").pop() ?? nodeType;
@@ -167,8 +177,8 @@ const NodePropertyEditorInner: React.FC<NodePropertyEditorProps> = ({
     }
 
     if (isInputNodeType(selectedNode.type)) {
-      const data = selectedNode.data as Record<string, unknown> | undefined;
-      const paramName = inputNodeParamName(data, selectedNode.dynamic_properties as Record<string, unknown> | undefined);
+      const data = nodeData(selectedNode);
+      const paramName = inputNodeParamName(data, nodeDynamic(selectedNode));
       if (!paramName) {
         return (
           <Caption color="secondary">
@@ -192,7 +202,7 @@ const NodePropertyEditorInner: React.FC<NodePropertyEditorProps> = ({
     }
 
     // Non-input node → read-only summary
-    const data = selectedNode.data as Record<string, unknown> | undefined;
+    const data = nodeData(selectedNode);
     return (
       <NodeSummary
         nodeType={selectedNode.type}
@@ -219,11 +229,8 @@ const NodePropertyEditorInner: React.FC<NodePropertyEditorProps> = ({
   return (
     <FlexColumn gap={1}>
       {inputNodes.map((node) => {
-        const data = node.data as Record<string, unknown> | undefined;
-        const paramName = inputNodeParamName(
-          data,
-          node.dynamic_properties as Record<string, unknown> | undefined
-        );
+        const data = nodeData(node);
+        const paramName = inputNodeParamName(data, nodeDynamic(node));
         if (!paramName) return null;
         const currentValue =
           paramName in paramOverrides ? paramOverrides[paramName] : data?.value;
