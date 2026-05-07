@@ -21,6 +21,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./dependencyHash.js": {
+      "nodetool-dev": "./src/dependencyHash.ts",
+      "types": "./dist/dependencyHash.d.ts",
+      "import": "./dist/dependencyHash.js",
+      "default": "./dist/dependencyHash.js"
     }
   },
   "license": "MIT",

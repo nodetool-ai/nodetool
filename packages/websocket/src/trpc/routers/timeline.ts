@@ -18,14 +18,18 @@
  */
 
 import { z } from "zod";
-import { TimelineSequence, createTimeOrderedUuid } from "@nodetool-ai/models";
+import { TimelineSequence, Workflow, createTimeOrderedUuid } from "@nodetool-ai/models";
 import type { TimelineDocument } from "@nodetool-ai/models";
 import type { ClipVersion } from "@nodetool-ai/timeline";
+import { makeClip } from "@nodetool-ai/timeline";
+import { computeDependencyHash } from "@nodetool-ai/timeline/dependencyHash.js";
 import {
   appendClipVersionInput,
   clipVersion,
+  createClipInput,
   createTimelineInput,
   patchTimelineInput,
+  timelineClipResponse,
   timelineSequenceListItem,
   timelineSequenceResponse
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
@@ -100,6 +104,53 @@ async function loadOwned(
   }
   return seq;
 }
+
+// ── Node-type helpers ────────────────────────────────────────────────────────
+
+/** Known terminal media-output node type suffixes → mediaType */
+const OUTPUT_NODE_MEDIA_TYPES: Record<string, "image" | "video" | "audio"> = {
+  "nodetool.output.ImageOutput": "image",
+  "nodetool.output.VideoOutput": "video",
+  "nodetool.output.AudioOutput": "audio"
+};
+
+function isOutputNode(nodeType: string): boolean {
+  return nodeType in OUTPUT_NODE_MEDIA_TYPES;
+}
+
+function mediaTypeForOutputNode(nodeType: string): "image" | "video" | "audio" | null {
+  return OUTPUT_NODE_MEDIA_TYPES[nodeType] ?? null;
+}
+
+function isInputNode(nodeType: string): boolean {
+  return nodeType.startsWith("nodetool.input.");
+}
+
+/** Extract the node's `name` property from its `data` or `dynamic_properties`. */
+function inputNodeName(node: Record<string, unknown>): string | null {
+  const data = node.data as Record<string, unknown> | undefined;
+  return (data?.name as string | undefined) ??
+    ((node.dynamic_properties as Record<string, unknown> | undefined)?.name as string | undefined) ??
+    null;
+}
+
+/** Extract the default value for an input node from its `data`. */
+function inputNodeDefault(node: Record<string, unknown>): unknown {
+  const data = node.data as Record<string, unknown> | undefined;
+  return data?.value ?? null;
+}
+
+/** Default durationMs for each media type. */
+const DEFAULT_DURATION_MS: Record<string, number> = {
+  image: 4000,
+  video: 4000,
+  audio: 4000,
+  overlay: 4000
+};
+
+// ── clips sub-router input ───────────────────────────────────────────────────
+
+// (defined in protocol; re-used here)
 
 // ── router ──────────────────────────────────────────────────────────────────
 
@@ -325,6 +376,126 @@ export const timelineRouter = router({
         });
 
         return { ok: true as const };
+      })
+  }),
+
+  clips: router({
+    create: protectedProcedure
+      .input(createClipInput)
+      .output(timelineClipResponse)
+      .mutation(async ({ ctx, input }) => {
+        // 1. Verify ownership of timeline
+        const seq = await loadOwned(ctx.userId, input.id);
+
+        // 2. Clone the source workflow into a clip-private row
+        const clone = await Workflow.cloneAsClipPrivate(
+          input.sourceWorkflowId,
+          ctx.userId!
+        );
+
+        const nodes = (clone.graph?.nodes ?? []) as Record<string, unknown>[];
+
+        // 3. Find terminal output nodes (nodes whose type is a known output type)
+        const outputNodes = nodes.filter((n) =>
+          isOutputNode(n.type as string)
+        );
+
+        if (outputNodes.length === 0) {
+          throwApiError(
+            ApiErrorCode.TIMELINE_NO_MEDIA_OUTPUT,
+            "Source workflow has no media output node (ImageOutput, VideoOutput, or AudioOutput)"
+          );
+        }
+
+        let selectedOutputNode: Record<string, unknown>;
+        if (input.selectedOutputNodeId) {
+          const found = outputNodes.find(
+            (n) => n.id === input.selectedOutputNodeId
+          );
+          if (!found) {
+            throwApiError(
+              ApiErrorCode.INVALID_INPUT,
+              `selectedOutputNodeId ${input.selectedOutputNodeId} is not a terminal output node in the cloned graph`
+            );
+          }
+          selectedOutputNode = found;
+        } else if (outputNodes.length === 1) {
+          selectedOutputNode = outputNodes[0]!;
+        } else {
+          throwApiError(
+            ApiErrorCode.INVALID_INPUT,
+            "Source workflow has multiple terminal output nodes; provide selectedOutputNodeId"
+          );
+          // unreachable: throwApiError always throws (returns never)
+        }
+
+        const rawMediaType = mediaTypeForOutputNode(
+          selectedOutputNode.type as string
+        ) ?? "image";
+        const mediaType: "image" | "video" | "audio" | "overlay" =
+          input.mediaTypeOverride === "overlay" && rawMediaType === "video"
+            ? "overlay"
+            : rawMediaType;
+
+        // 4. Seed paramOverrides from each Input* node default
+        const paramOverrides: Record<string, unknown> = {};
+        for (const node of nodes) {
+          if (!isInputNode(node.type as string)) continue;
+          const name = inputNodeName(node);
+          if (name) {
+            paramOverrides[name] = inputNodeDefault(node);
+          }
+        }
+
+        // 5. Initial durationMs
+        const durationMsInput = nodes.find(
+          (n) => isInputNode(n.type as string) && inputNodeName(n) === "duration_ms"
+        );
+        const durationMs: number =
+          (durationMsInput ? (inputNodeDefault(durationMsInput) as number | null) : null) ??
+          DEFAULT_DURATION_MS[mediaType] ??
+          4000;
+
+        // 5. Compute initial dependencyHash via @nodetool-ai/timeline
+        const workflowUpdatedAt =
+          (clone.updated_at as string | undefined | null) ??
+          new Date().toISOString();
+        const dependencyHash = computeDependencyHash({
+          workflowId: clone.id,
+          workflowUpdatedAt,
+          paramOverrides,
+          inputAssetHashes: []
+        });
+
+        // 6. Build and insert the clip into the sequence document.
+        // The clip name inherits the source workflow's name so users can
+        // identify clip origins in the timeline before renaming.
+        const clipId = createTimeOrderedUuid();
+        const newClip = makeClip({
+          id: clipId,
+          name: clone.name,
+          trackId: input.trackId,
+          startMs: input.startMs,
+          durationMs,
+          mediaType,
+          sourceType: "generated",
+          workflowId: clone.id,
+          selectedOutputNodeId: selectedOutputNode.id as string,
+          paramOverrides,
+          dependencyHash,
+          status: "draft",
+          locked: false,
+          versions: []
+        });
+
+        const doc = seq.toDocument();
+        doc.clips.push(newClip);
+
+        await TimelineSequence.update(input.id, {
+          document: JSON.stringify(doc)
+        });
+
+        return newClip;
       })
   })
 });

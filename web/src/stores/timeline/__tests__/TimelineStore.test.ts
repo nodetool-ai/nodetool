@@ -17,7 +17,8 @@ import type { Asset } from "../../ApiTypes";
 // instance at runtime.
 import {
   mockWorkflowsGet,
-  mockWorkflowsCreate
+  mockWorkflowsCreate,
+  mockTimelineClipsCreate
 } from "../../../__mocks__/trpcClientMock";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -948,5 +949,77 @@ describe("TimelineStore — setClipsOutputNode", () => {
     expect(store.getState().clips.find((c) => c.id === clip.id)!.status).toBe(
       "stale"
     );
+  });
+});
+
+describe("TimelineStore — addGeneratedClip", () => {
+  beforeEach(() => {
+    mockTimelineClipsCreate.mockReset();
+  });
+
+  it("calls trpcClient.timeline.clips.create.mutate and adds the clip", async () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    store.setState({ tracks: [track], sequenceId: "seq-1" });
+
+    const mockClip = makeClip({
+      id: "clip-new",
+      trackId: track.id,
+      workflowId: "wf-clone",
+      sourceType: "generated",
+      status: "draft",
+      mediaType: "image",
+      startMs: 0,
+      durationMs: 4000
+    });
+
+    mockTimelineClipsCreate.mockResolvedValue(mockClip);
+
+    const clipId = await store.getState().addGeneratedClip("wf-src", track.id, 0);
+
+    expect(mockTimelineClipsCreate).toHaveBeenCalledWith({
+      id: "seq-1",
+      trackId: track.id,
+      startMs: 0,
+      sourceWorkflowId: "wf-src",
+      selectedOutputNodeId: undefined,
+      mediaTypeOverride: undefined
+    });
+
+    expect(clipId).toBe("clip-new");
+    expect(store.getState().clips).toHaveLength(1);
+    expect(store.getState().clips[0]).toEqual(mockClip);
+  });
+
+  it("throws when no sequence is loaded", async () => {
+    const store = mkStore();
+    store.setState({ sequenceId: null });
+
+    await expect(
+      store.getState().addGeneratedClip("wf-src", "track-1", 0)
+    ).rejects.toThrow("No timeline sequence loaded");
+  });
+
+  it("passes selectedOutputNodeId and mediaTypeOverride through", async () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    store.setState({ tracks: [track], sequenceId: "seq-2" });
+
+    const mockClip = makeClip({ id: "clip-x", trackId: track.id });
+    mockTimelineClipsCreate.mockResolvedValue(mockClip);
+
+    await store.getState().addGeneratedClip("wf-src", track.id, 500, {
+      selectedOutputNodeId: "out-vid",
+      mediaTypeOverride: "overlay"
+    });
+
+    expect(mockTimelineClipsCreate).toHaveBeenCalledWith({
+      id: "seq-2",
+      trackId: track.id,
+      startMs: 500,
+      sourceWorkflowId: "wf-src",
+      selectedOutputNodeId: "out-vid",
+      mediaTypeOverride: "overlay"
+    });
   });
 });
