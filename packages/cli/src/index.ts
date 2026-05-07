@@ -190,7 +190,7 @@ await Promise.all([
     "openai_image_generation",
     "openai_text_to_speech"
   ]),
-  autoEnable("DATA_FOR_SEO_LOGIN", ["dataseo_search", "dataseo_news"]),
+  autoEnable("DATA_FOR_SEO_LOGIN", ["dataforseo_search", "dataforseo_news"]),
   autoEnable("IMAP_USERNAME", ["search_email", "archive_email"])
 ]);
 
