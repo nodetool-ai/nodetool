@@ -48,7 +48,7 @@ import {
   settingRowChildrenSx
 } from "./sketchStyles";
 import { displayCombo } from "./shortcuts";
-import { Divider, Text, Tooltip } from "../ui_primitives";
+import { Caption, Divider, Text, Tooltip } from "../ui_primitives";
 
 function isPressureSketchTool(tool: SketchTool): boolean {
   return tool === "brush" || tool === "pencil" || tool === "eraser";
@@ -298,14 +298,9 @@ const SketchModal: React.FC<SketchModalProps> = ({
             ))}
             {(symmetryMode === "radial" || symmetryMode === "mandala") && (
               <Box sx={{ px: 2, py: 1, minWidth: 160 }}>
-                <Text
-                  sx={{
-                    color: "grey.500",
-                    fontSize: theme.typography.caption.fontSize
-                  }}
-                >
+                <Caption sx={{ color: "grey.500" }}>
                   Rays: {symmetryRays}
-                </Text>
+                </Caption>
                 <Slider
                   value={symmetryRays}
                   min={SYMMETRY_MIN_RAYS}
@@ -330,15 +325,9 @@ const SketchModal: React.FC<SketchModalProps> = ({
 
           {confirmDiscard ? (
             <>
-              <Text
-                sx={{
-                  color: "warning.main",
-                  whiteSpace: "nowrap",
-                  fontSize: theme.typography.caption.fontSize
-                }}
-              >
+              <Caption sx={{ color: "warning.main", whiteSpace: "nowrap" }}>
                 Discard changes?
-              </Text>
+              </Caption>
               <IconButton size="small" color="error" onClick={() => { editorRef.current?.discardToInitial(); onClose(); }}>
                 <TrashIcon width={16} height={16} />
               </IconButton>

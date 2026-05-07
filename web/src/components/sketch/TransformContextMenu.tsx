@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 import React, { memo, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import CheckIcon from "@mui/icons-material/Check";

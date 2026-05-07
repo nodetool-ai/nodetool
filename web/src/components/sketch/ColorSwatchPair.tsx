@@ -74,13 +74,8 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
               className="color-swatch-pair__fg"
               padding="none"
               onClick={handleFgClick}
-              sx={colorSwatchSx}
-            >
-              <Container
-                padding="none"
-                sx={{ position: "absolute", inset: 0, backgroundColor: fgHex6 }}
-              />
-            </Container>
+              sx={{ ...colorSwatchSx, backgroundColor: fgHex6 }}
+            />
           </Tooltip>
         </FlexColumn>
 
@@ -91,13 +86,8 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
               className="color-swatch-pair__bg"
               padding="none"
               onClick={handleBgClick}
-              sx={colorSwatchSx}
-            >
-              <Container
-                padding="none"
-                sx={{ position: "absolute", inset: 0, backgroundColor: bgHex6 }}
-              />
-            </Container>
+              sx={{ ...colorSwatchSx, backgroundColor: bgHex6 }}
+            />
           </Tooltip>
         </FlexColumn>
       </FlexRow>
