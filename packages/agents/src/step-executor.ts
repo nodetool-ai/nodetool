@@ -4,8 +4,8 @@
  * Port of src/nodetool/agents/step_executor.py
  *
  * Manages the LLM interaction loop: sending messages, handling tool calls,
- * monitoring token limits, and capturing the step result via finish_step
- * or inline JSON extraction.
+ * and capturing the step result via finish_step (for schema'd steps) or the
+ * assistant's text response (for unstructured steps).
  */
 
 import * as fs from "node:fs/promises";
@@ -34,15 +34,12 @@ import type { Tool } from "./tools/base-tool.js";
 import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { getMemoryTools } from "./tools/memory-tools.js";
-import { extractJSON } from "./utils/json-parser.js";
 import { DEFAULT_TOKEN_LIMIT, MAX_TOOL_RESULT_CHARS } from "./constants.js";
 import { rejectAgenticProvider } from "./reject-agentic-provider.js";
 
 const log = createLogger("nodetool.agents.step-executor");
 
 const DEFAULT_MAX_ITERATIONS = 30;
-const JSON_FAILURE_ALERT_THRESHOLD = 3;
-const MAX_JSON_PARSE_FAILURES = 6;
 
 // ---------------------------------------------------------------------------
 // Shared prompt fragments (DRY)
@@ -89,11 +86,11 @@ const PROMPT_TOOL_USE = `# Tool Use
 - Use \`http_request\` for API calls, POST/PUT/PATCH requests, or when you need raw response headers and body. Do not use it for reading page content — use \`browser\` instead.
 - Use \`download_file\` to save a file (binary or text) from a URL to disk.`;
 
-const PROMPT_FINISH_STEP = `# Completion (Tool Call Only)
-- When done, CALL \`finish_step\` exactly once with:
-  {"result": <result>}
-- Do NOT output the final result in assistant text — only use the tool.
-- Stop immediately after calling \`finish_step\`.`;
+const PROMPT_FINISH_STEP = `# Completion
+- When you have everything you need, call \`finish_step\` exactly once with
+  \`{"result": <result>}\` matching the declared schema.
+- Use \`memory_read\` to fetch any upstream values you still need before
+  finishing.`;
 
 // ---------------------------------------------------------------------------
 // Assembled system prompts
@@ -337,12 +334,10 @@ export class StepExecutor {
   private maxTokenLimit: number;
   private maxIterations: number;
   private useFinishTask: boolean;
-  private inConclusionStage = false;
   private result: unknown = null;
   private finishStepTool: FinishStepTool | null = null;
   private resultSchema: Record<string, unknown> | null = null;
   private iterations = 0;
-  private jsonParseFailures = 0;
   private generationFailures = 0;
   private sources: string[] = [];
   private sourcesSet = new Set<string>();
@@ -422,10 +417,10 @@ export class StepExecutor {
    * Build the system prompt for this step using templates.
    *
    * The default execution prompts encode the contract every step relies on
-   * (output discipline, finish_step protocol, conclusion stage). They must
-   * always be present. A caller-supplied `userPrompt` is added as a preamble
-   * — never as a replacement — so domain context can be layered in without
-   * losing the execution discipline.
+   * (output discipline, finish_step protocol). They must always be present.
+   * A caller-supplied `userPrompt` is added as a preamble — never as a
+   * replacement — so domain context can be layered in without losing the
+   * execution discipline.
    */
   private buildSystemPrompt(userPrompt?: string): string {
     let basePrompt: string;
@@ -562,200 +557,36 @@ export class StepExecutor {
   }
 
   /**
-   * Attempt to parse and store a completion payload from the assistant message.
+   * For unstructured steps (no schema), accept the assistant's text content
+   * as the result when the model produces a final response without tool
+   * calls. Schema'd steps finalize exclusively through `finish_step`.
    */
   private maybeFinalizeFromMessage(
     message: Message | null
   ): [boolean, unknown] {
     if (!message) return [false, null];
-
-    // For unstructured steps (no schema), accept text content as the result
-    if (this.resultSchema === null) {
-      if (!message.toolCalls || message.toolCalls.length === 0) {
-        return [true, message.content];
-      }
-      return [false, null];
-    }
-
-    if (!message.content || typeof message.content !== "string")
-      return [false, null];
-
-    const parsed = extractJSON(message.content);
-    if (!parsed || typeof parsed !== "object") return [false, null];
-
-    const obj = parsed as Record<string, unknown>;
-    const status = obj["status"];
-    if (status !== undefined && status !== "completed") return [false, null];
-
-    if (status === "completed" && !("result" in obj)) {
-      this.history.push({
-        role: "system",
-        content:
-          'Missing \'result\' in completion payload. Provide: {"status": "completed", "result": <your_result>}.'
-      });
-      return [false, null];
-    }
-
-    const candidateResult = "result" in obj ? obj["result"] : parsed;
-    const [isValid, errorDetail, normalizedResult] =
-      this.validateResultPayload(candidateResult);
-
-    if (
-      !isValid ||
-      normalizedResult === null ||
-      normalizedResult === undefined
-    ) {
-      this.history.push({
-        role: "system",
-        content: `Schema validation failed: ${errorDetail ?? "unknown error"}`
-      });
-      return [false, null];
-    }
-
-    return [true, normalizedResult];
+    if (this.resultSchema !== null) return [false, null];
+    if (message.toolCalls && message.toolCalls.length > 0) return [false, null];
+    return [true, message.content];
   }
 
   /**
-   * Track JSON parsing/validation failures and enforce a hard stop.
+   * Drop oldest tool-result messages from history when over budget. Their
+   * content lives in `context.memory` under `step:` / `task:` keys, so
+   * eviction is lossless — the model can re-read what it needs via
+   * `memory_read`.
    */
-  private registerJsonFailure(detail: string): void {
-    this.jsonParseFailures++;
-
-    if (this.jsonParseFailures === JSON_FAILURE_ALERT_THRESHOLD) {
-      const reminder =
-        "SYSTEM: Do NOT output completion JSON in assistant text. You MUST call " +
-        "`finish_step` with {'result': <result>} matching the schema, with no extra keys.";
-      this.history.push({ role: "system", content: reminder });
-      this.inConclusionStage = true;
-    }
-
-    if (this.jsonParseFailures >= MAX_JSON_PARSE_FAILURES) {
-      throw new Error(
-        `Exceeded maximum JSON parse attempts (${MAX_JSON_PARSE_FAILURES}) for step ${this.step.id}. Last failure: ${detail}`
+  private evictOldToolResultsIfOverBudget(): void {
+    while (this.estimateTokens() > this.maxTokenLimit * 0.9) {
+      const idx = this.history.findIndex(
+        (m, i) => i > 0 && m.role === "tool"
       );
-    }
-  }
-
-  /**
-   * Filter tool calls based on whether we're in the conclusion stage.
-   */
-  private filterToolCallsForCurrentStage(toolCalls: ToolCall[]): ToolCall[] {
-    if (!this.inConclusionStage) return toolCalls;
-    return toolCalls.filter((tc) => tc.name === "finish_step");
-  }
-
-  /**
-   * Get the tools available for the current stage.
-   */
-  private getCurrentTools(): Tool[] {
-    if (this.inConclusionStage) {
-      return this.finishStepTool ? [this.finishStepTool] : [];
-    }
-    return [...this.tools];
-  }
-
-  /**
-   * Transition to conclusion stage: restrict tools to finish_step only.
-   */
-  private enterConclusionStage(): void {
-    if (this.inConclusionStage) return;
-    this.inConclusionStage = true;
-
-    const hasFinishTool = !!this.finishStepTool;
-    const message = hasFinishTool
-      ? `SYSTEM: The conversation history is approaching the token limit (${this.maxTokenLimit} tokens).\n` +
-        "ENTERING CONCLUSION STAGE: You MUST now synthesize all gathered information and finalize the step.\n" +
-        "Only the `finish_step` tool is available. Call `finish_step` exactly once with:\n" +
-        '{"result": <result>} where <result> matches the declared schema.'
-      : `SYSTEM: The conversation history is approaching the token limit (${this.maxTokenLimit} tokens).\n` +
-        "ENTERING CONCLUSION STAGE: You MUST now synthesize all gathered information and finalize the step.\n" +
-        "Tools are not available. Provide the final answer concisely.";
-
-    // Prevent duplicate conclusion messages
-    if (
-      !this.history.some(
-        (m) =>
-          m.role === "system" &&
-          typeof m.content === "string" &&
-          m.content.includes("ENTERING CONCLUSION STAGE")
-      )
-    ) {
-      this.history.push({ role: "system", content: message });
-    }
-  }
-
-  /**
-   * Summarize older messages into a concise, factual summary.
-   */
-  private async summarizeMessages(messages: Message[]): Promise<string> {
-    const joined = messages
-      .filter((m) => m.content)
-      .map((m) => `${(m.role ?? "").toUpperCase()}: ${m.content}`)
-      .join("\n");
-
-    const prompt =
-      "Summarize the following conversation concisely while preserving key facts, " +
-      "decisions, and results:\n\n" +
-      joined;
-
-    try {
-      const msg = await this.provider.generateMessageTraced({
-        messages: [
-          { role: "system", content: "Summarize previous context." },
-          { role: "user", content: prompt }
-        ],
-        model: this.model,
-        tools: [],
-        maxTokens: 512
-      });
-      return String(msg.content ?? "").trim();
-    } catch {
-      return "Summary unavailable due to compression error.";
-    }
-  }
-
-  /**
-   * Trim or summarize older messages to stay within token limits.
-   */
-  private async trimHistoryIfNeeded(): Promise<void> {
-    const tokenCount = this.estimateTokens();
-    if (tokenCount < this.maxTokenLimit * 0.9) return;
-
-    // Preserve the last 6 messages
-    const preserved: Message[] = [];
-    for (let i = this.history.length - 1; i >= 0 && preserved.length < 6; i--) {
-      preserved.unshift(this.history[i]);
-    }
-
-    const earlierCount = this.history.length - preserved.length;
-    const earlierContext =
-      earlierCount > 1 ? this.history.slice(1, earlierCount) : [];
-
-    if (earlierContext.length > 0) {
-      const summary = await this.summarizeMessages(earlierContext);
-      const systemPrompt = this.history[0];
-      this.history = [];
-      if (systemPrompt) {
-        this.history.push(systemPrompt);
+      if (idx === -1) return;
+      this.history.splice(idx, 1);
+      const prev = this.history[idx - 1];
+      if (prev?.role === "assistant" && prev.toolCalls?.length === 1) {
+        this.history.splice(idx - 1, 1);
       }
-      this.history.push({
-        role: "system",
-        content: `Summary of previous context:\n${summary}`
-      });
-    } else {
-      this.history = this.history.slice(0, 1);
-    }
-
-    this.history.push(...preserved);
-
-    // Trim further if still over budget
-    let currentTokens = this.estimateTokens();
-    while (
-      currentTokens > this.maxTokenLimit * 0.85 &&
-      this.history.length > 2
-    ) {
-      this.history.splice(2, 1);
-      currentTokens = this.estimateTokens();
     }
   }
 
@@ -1059,34 +890,18 @@ export class StepExecutor {
     while (!this.step.completed && this.iterations < this.maxIterations) {
       this.iterations++;
 
-      // Check token budget
-      const tokenCount = this.estimateTokens();
-      if (tokenCount > this.maxTokenLimit && !this.inConclusionStage) {
-        this.enterConclusionStage();
-        yield {
-          type: "task_update",
-          node_id: this.step.id,
-          task: { id: this.task.id, title: this.task.title },
-          step: { id: this.step.id, instructions: this.step.instructions },
-          event: TaskUpdateEvent.EnteredConclusionStage
-        } satisfies TaskUpdate;
-      }
+      // Drop oldest tool-result messages from history when over budget. Their
+      // content is already in `context.memory`, so eviction is lossless and
+      // the model can `memory_read` what it needs.
+      this.evictOldToolResultsIfOverBudget();
 
-      // Trim history if needed
-      await this.trimHistoryIfNeeded();
+      const providerTools = this.tools.map((t) => t.toProviderTool());
 
-      // Determine available tools
-      const currentTools = this.getCurrentTools();
-      const providerTools = currentTools.map((t) => t.toProviderTool());
-
-      // Yield log update
       yield {
         type: "log_update",
         node_id: this.step.id,
         node_name: `Step: ${this.step.id}`,
-        content: !this.inConclusionStage
-          ? "Generating next steps..."
-          : "Synthesizing final answer...",
+        content: "Generating next steps...",
         severity: "info"
       } satisfies LogUpdate;
 
@@ -1144,10 +959,7 @@ export class StepExecutor {
         };
       }
 
-      // Filter tool calls for current stage
-      const filteredToolCalls = message.toolCalls
-        ? this.filterToolCallsForCurrentStage(message.toolCalls)
-        : [];
+      const filteredToolCalls = message.toolCalls ?? [];
       message.toolCalls =
         filteredToolCalls.length > 0 ? filteredToolCalls : undefined;
 

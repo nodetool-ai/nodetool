@@ -45,7 +45,7 @@ const log = createLogger("nodetool.agents.compiler-agent");
 const MAX_COMPILE_ROUNDS = 6;
 const MAX_TOOL_RESULT_CHARS = 20_000;
 
-const COMPILER_SYSTEM_PROMPT = `# Role
+const COMPILER_SYSTEM_PROMPT_STRUCTURED = `# Role
 You are the Compiler. The plan has finished gathering information; your only
 job is to synthesize the gathered results into the final deliverable.
 
@@ -69,9 +69,40 @@ job is to synthesize the gathered results into the final deliverable.
   facts that are not in memory.
 - Do not reveal chain-of-thought or internal reasoning.`;
 
+const COMPILER_SYSTEM_PROMPT_PROSE = `# Role
+You are the Compiler. The plan has finished gathering information; your only
+job is to combine the gathered results into one coherent response for the
+user.
+
+# How To Work
+1. Call \`memory_list\` to see every entry the plan produced (task outputs,
+   step outputs, inputs, shared facts).
+2. Call \`memory_read\` for the keys whose full values you need.
+3. Produce the final response as your assistant message. Do NOT call any
+   tool in this final turn — the absence of a tool call signals completion.
+
+# Discipline
+- Do NOT do additional research or invoke domain tools — there are none.
+- Preserve every concrete artifact (URLs, asset IDs, file paths, tables,
+  key facts). Never paraphrase them away.
+- Do not mention task IDs or internal plan structure to the user.
+- Do not reveal chain-of-thought or internal reasoning.`;
+
 export interface CompilerAgentOptions {
   objective: string;
-  outputSchema: Record<string, unknown>;
+  /**
+   * Schema the final result must match. When omitted the compiler runs in
+   * prose mode: it produces the final response as a plain assistant message
+   * and returns the text. When supplied it adds `finish_step` to the toolset
+   * and produces a schema-conformant value.
+   */
+  outputSchema?: Record<string, unknown>;
+  /**
+   * Optional directive appended to the prose-mode user prompt to control
+   * presentation (e.g. "Final result: markdown prose."). Ignored when
+   * `outputSchema` is supplied.
+   */
+  formatDirective?: string;
   provider: BaseProvider;
   model: string;
   context: ProcessingContext;
@@ -90,7 +121,8 @@ export interface CompilerAgentOptions {
 
 export class CompilerAgent {
   private readonly objective: string;
-  private readonly outputSchema: Record<string, unknown>;
+  private readonly outputSchema?: Record<string, unknown>;
+  private readonly formatDirective?: string;
   private readonly provider: BaseProvider;
   private readonly model: string;
   private readonly context: ProcessingContext;
@@ -102,6 +134,7 @@ export class CompilerAgent {
   constructor(opts: CompilerAgentOptions) {
     this.objective = opts.objective;
     this.outputSchema = opts.outputSchema;
+    this.formatDirective = opts.formatDirective;
     this.provider = opts.provider;
     this.model = opts.model;
     this.context = opts.context;
@@ -109,10 +142,11 @@ export class CompilerAgent {
     this.maxRounds = opts.maxRounds ?? MAX_COMPILE_ROUNDS;
     this.threadId = opts.threadId;
 
+    const base = this.outputSchema
+      ? COMPILER_SYSTEM_PROMPT_STRUCTURED
+      : COMPILER_SYSTEM_PROMPT_PROSE;
     const preamble = opts.systemPrompt?.trim();
-    this.systemPrompt = preamble
-      ? `${preamble}\n\n---\n\n${COMPILER_SYSTEM_PROMPT}`
-      : COMPILER_SYSTEM_PROMPT;
+    this.systemPrompt = preamble ? `${preamble}\n\n---\n\n${base}` : base;
   }
 
   /**
@@ -135,10 +169,14 @@ export class CompilerAgent {
   }
 
   private async *_compileImpl(): AsyncGenerator<ProcessingMessage, unknown> {
-    const finishStepTool = new FinishStepTool(this.outputSchema);
     const memoryList = new MemoryListTool();
     const memoryRead = new MemoryReadTool();
-    const tools: Tool[] = [memoryList, memoryRead, finishStepTool];
+    const finishStepTool = this.outputSchema
+      ? new FinishStepTool(this.outputSchema)
+      : null;
+    const tools: Tool[] = finishStepTool
+      ? [memoryList, memoryRead, finishStepTool]
+      : [memoryList, memoryRead];
     const toolsByName = new Map(tools.map((t) => [t.name, t]));
     const providerTools = tools.map((t) => t.toProviderTool());
 
@@ -153,6 +191,11 @@ export class CompilerAgent {
       : "(no memory entries — produce the best result you can from the objective alone)";
 
     const planSection = this.formatTaskPlan();
+    const closing = finishStepTool
+      ? "Produce the final result and call `finish_step` exactly once."
+      : `Produce the final response now.${
+          this.formatDirective ? ` ${this.formatDirective}` : ""
+        }`;
 
     const userPrompt = [
       `Objective:\n${this.objective}`,
@@ -161,7 +204,7 @@ export class CompilerAgent {
       "Memory inventory (call `memory_read` for the keys whose values you need):",
       inventory,
       "",
-      "Produce the final result and call `finish_step` exactly once."
+      closing
     ].join("\n");
 
     const messages: Message[] = [
@@ -210,7 +253,22 @@ export class CompilerAgent {
       });
 
       if (toolCalls.length === 0) {
-        // Nudge once, then stop wasting rounds.
+        // Prose mode: a no-tool-call response is the final answer.
+        if (!finishStepTool) {
+          const text = assistantText.trim();
+          log.info("Compiler finished (prose)", {
+            entries: snapshot.length,
+            chars: text.length
+          });
+          yield {
+            type: "step_result",
+            step: { id: "compiler", instructions: this.objective },
+            result: text,
+            is_task_result: true
+          } satisfies StepResult;
+          return text;
+        }
+        // Structured mode: nudge once, then stop wasting rounds.
         messages.push({
           role: "user",
           content:
@@ -287,8 +345,9 @@ export class CompilerAgent {
       }
     }
 
-    log.warn("Compiler exhausted round budget without finish_step", {
-      rounds: this.maxRounds
+    log.warn("Compiler exhausted round budget without finishing", {
+      rounds: this.maxRounds,
+      mode: this.outputSchema ? "structured" : "prose"
     });
     return null;
   }
