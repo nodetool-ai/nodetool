@@ -823,6 +823,8 @@ export const workflowsRouter = router({
         throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
       }
 
+      // NOTE: This map also lives in the timeline router (timeline.ts).
+      // Both should be kept in sync until extracted to a shared protocol constant.
       const OUTPUT_NODE_MEDIA_TYPES: Record<string, "image" | "video" | "audio"> = {
         "nodetool.output.ImageOutput": "image",
         "nodetool.output.VideoOutput": "video",

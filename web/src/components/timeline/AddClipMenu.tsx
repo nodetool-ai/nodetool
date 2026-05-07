@@ -315,11 +315,14 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
 
           if (result.outputs.length === 1) {
             // Single output — proceed directly
-            await createClip(workflowId, result.outputs[0]!.id);
+            const singleOutputId = result.outputs[0]?.id;
+            if (!singleOutputId) return;
+            await createClip(workflowId, singleOutputId);
           } else {
             // Multiple outputs — show selection panel
+            // result.outputs matches TerminalOutputItem[] (typed by tRPC schema)
             setPendingWorkflow({ id: workflowId, name: workflowName });
-            setTerminalOutputs(result.outputs as TerminalOutputItem[]);
+            setTerminalOutputs(result.outputs);
             setIsAdding(false);
           }
         } catch (err) {

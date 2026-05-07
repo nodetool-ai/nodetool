@@ -467,7 +467,9 @@ export const timelineRouter = router({
           inputAssetHashes: []
         });
 
-        // 6. Build and insert the clip into the sequence document
+        // 6. Build and insert the clip into the sequence document.
+        // The clip name inherits the source workflow's name so users can
+        // identify clip origins in the timeline before renaming.
         const clipId = createTimeOrderedUuid();
         const newClip = makeClip({
           id: clipId,
