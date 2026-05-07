@@ -41,6 +41,7 @@ import {
   useFailedCount
 } from "../../stores/timeline/TimelineGenerationStore";
 import { useWorkflowFreshnessCheck } from "../../hooks/timeline/useWorkflowFreshnessCheck";
+import { useTimelineGenerationSubscriptions } from "../../hooks/timeline/useGenerateClip";
 
 // ── Drag-handle constants ──────────────────────────────────────────────────
 
@@ -156,6 +157,7 @@ export const TimelineEditor: React.FC = memo(() => {
   // Workflow freshness check — runs on mount after returning from the node editor
   const { driftItems, resolveDrift } = useWorkflowFreshnessCheck(sequenceId ?? null);
   const currentDriftItem = driftItems[0] ?? null;
+  useTimelineGenerationSubscriptions();
 
   // Zoom ← wired to TimelineUIStore so TracksRegion + BottomStatusBar stay in sync
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
