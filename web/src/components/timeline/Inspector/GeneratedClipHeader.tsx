@@ -97,14 +97,14 @@ export const GeneratedClipHeader: React.FC<GeneratedClipHeaderProps> = memo(
         </Caption>
 
         {/* Duration */}
-        {showBothDurations ? (
+        {showBothDurations && generatedDurationMs !== null ? (
           <FlexRow gap={0.5}>
             <Caption color="secondary">
               Timeline: {formatDuration(timelineDurationMs)}
             </Caption>
             <Caption color="secondary">·</Caption>
             <Caption color="secondary">
-              Generated: {formatDuration(generatedDurationMs!)}
+              Generated: {formatDuration(generatedDurationMs)}
             </Caption>
             <Caption color="secondary">
               (×{speedMultiplier.toFixed(2)})
