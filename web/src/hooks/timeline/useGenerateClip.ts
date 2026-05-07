@@ -33,6 +33,8 @@ interface TimelineClipLike {
   lastGeneratedHash?: string;
 }
 
+type WorkflowGraphNode = Parameters<typeof graphNodeToReactFlowNode>[1];
+
 const jobSubscriptions = new Map<string, () => void>();
 const jobContexts = new Map<string, JobSubscriptionContext>();
 
@@ -315,7 +317,7 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
 
     const graphNodes = workflow.graph?.nodes ?? [];
     const graphEdges = workflow.graph?.edges ?? [];
-    const nodes = graphNodes.map((node: Parameters<typeof graphNodeToReactFlowNode>[1]) =>
+    const nodes = graphNodes.map((node: WorkflowGraphNode) =>
       graphNodeToReactFlowNode(workflow, node)
     );
     const edges = graphEdges.map(graphEdgeToReactFlowEdge);
