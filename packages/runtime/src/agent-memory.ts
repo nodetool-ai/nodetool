@@ -94,7 +94,14 @@ export class AgentMemory {
     };
     this.entries.set(entry.key, entry);
     for (const listener of this.listeners) {
-      listener(entry);
+      try {
+        listener(entry);
+      } catch (error) {
+        console.error("AgentMemory listener failed", {
+          key: entry.key,
+          error
+        });
+      }
     }
     return entry;
   }
