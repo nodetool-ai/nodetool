@@ -4,6 +4,7 @@ import { TaskPlanner } from "../src/task-planner.js";
 import { TaskExecutor } from "../src/task-executor.js";
 import type { Step, Task } from "../src/types.js";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import { createMockContext } from "./_helpers/mock-context.js";
 
 // ---------------------------------------------------------------------------
 // Mock helpers
@@ -55,29 +56,6 @@ function createMockProvider(
     imageToVideo: vi.fn(),
     generateEmbedding: vi.fn(),
     isContextLengthError: () => false
-  } as any;
-}
-
-/**
- * Minimal mock ProcessingContext.
- */
-function createMockContext() {
-  const store = new Map<string, unknown>();
-  return {
-    storeStepResult: vi.fn(async (key: string, value: unknown) => {
-      store.set(key, value);
-      return key;
-    }),
-    loadStepResult: vi.fn(async (key: string) => {
-      return store.get(key);
-    }),
-    set: vi.fn((key: string, value: unknown) => {
-      store.set(key, value);
-    }),
-    get: vi.fn((key: string) => {
-      return store.get(key);
-    }),
-    _store: store
   } as any;
 }
 
@@ -715,10 +693,10 @@ describe("TaskExecutor", () => {
     expect(stepB.completed).toBe(true);
 
     // step_a result should be stored before step_b runs
-    expect(context.storeStepResult).toHaveBeenCalledWith("step_a", {
+    expect(context.memory.getValue("step:step_a")).toEqual({
       data: "from_a"
     });
-    expect(context.storeStepResult).toHaveBeenCalledWith("step_b", {
+    expect(context.memory.getValue("step:step_b")).toEqual({
       result: "from_b"
     });
 
@@ -932,8 +910,6 @@ describe("TaskExecutor", () => {
 
     // Step should complete because "user_input" is in inputs
     expect(stepA.completed).toBe(true);
-    expect(context.storeStepResult).toHaveBeenCalledWith("step_a", {
-      v: "done"
-    });
+    expect(context.memory.getValue("step:step_a")).toEqual({ v: "done" });
   });
 });

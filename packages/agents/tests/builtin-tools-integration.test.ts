@@ -20,6 +20,7 @@ import { resolveTool, listTools } from "../src/tools/tool-registry.js";
 import { SimpleAgent } from "../src/simple-agent.js";
 import { CalculatorTool } from "../src/tools/calculator-tool.js";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import { createMockContext } from "./_helpers/mock-context.js";
 
 // Tool IDs hardcoded in chat / agent frontends. Every ID here MUST
 // resolve to a real built-in tool instance — if a frontend adds a new
@@ -121,21 +122,6 @@ function createMockProvider(
     isContextLengthError: () => false
   };
   return provider;
-}
-
-function createMockContext() {
-  const store = new Map<string, unknown>();
-  return {
-    storeStepResult: vi.fn(async (k: string, v: unknown) => {
-      store.set(k, v);
-      return k;
-    }),
-    loadStepResult: vi.fn(async (k: string) => store.get(k)),
-    set: vi.fn((k: string, v: unknown) => {
-      store.set(k, v);
-    }),
-    get: vi.fn((k: string) => store.get(k))
-  } as any;
 }
 
 // ---------------------------------------------------------------------------

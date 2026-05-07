@@ -5,6 +5,7 @@ import * as path from "node:path";
 import { Agent, loadSkillsFromDirectory } from "../src/agent.js";
 import { parseFrontmatter } from "../src/agent.js";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import { createMockContext } from "./_helpers/mock-context.js";
 
 // ---------------------------------------------------------------------------
 // Mock helpers (same pattern as agents.test.ts)
@@ -91,26 +92,6 @@ function planCalls(
     { id: "tc_finish", name: "finish_plan", args: { title: plan.title } }
   ]);
   return calls;
-}
-
-function createMockContext() {
-  const store = new Map<string, unknown>();
-  return {
-    storeStepResult: vi.fn(async (key: string, value: unknown) => {
-      store.set(key, value);
-      return key;
-    }),
-    loadStepResult: vi.fn(async (key: string) => {
-      return store.get(key);
-    }),
-    set: vi.fn((key: string, value: unknown) => {
-      store.set(key, value);
-    }),
-    get: vi.fn((key: string) => {
-      return store.get(key);
-    }),
-    _store: store
-  } as any;
 }
 
 // ---------------------------------------------------------------------------

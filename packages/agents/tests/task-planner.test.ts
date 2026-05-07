@@ -1,15 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { CreatePlanTool } from "../src/tools/create-plan-tool.js";
 import { CreateTaskPlanTool } from "../src/tools/create-task-tool.js";
 import type { Step, Task, TaskPlan } from "../src/types.js";
-
-function createMockContext() {
-  return {
-    set: vi.fn(),
-    get: vi.fn(),
-    storeStepResult: vi.fn()
-  } as any;
-}
+import { createMockContext } from "./_helpers/mock-context.js";
 
 // ---------------------------------------------------------------------------
 // CreateTaskPlanTool (single-task planning)
