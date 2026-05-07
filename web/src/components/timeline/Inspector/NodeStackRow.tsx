@@ -45,6 +45,12 @@ export interface NodeStackRowProps {
   nodeId: string;
   nodeName: string;
   workflowId: string;
+  /** 1-based position index in the topological order. */
+  index?: number;
+  /** Whether this row is currently selected in the NodeStack. */
+  isSelected?: boolean;
+  /** Called when the user clicks the row to select this node. */
+  onClick?: () => void;
   /** Called when the user clicks the retry button. */
   onRetry?: () => void;
   /** Called when the user clicks the open-logs button. */
@@ -53,12 +59,18 @@ export interface NodeStackRowProps {
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
-const rowStyles = (theme: Theme) =>
+const rowStyles = (theme: Theme, isSelected: boolean) =>
   css({
     padding: theme.spacing(0.5, 1),
     borderRadius: theme.rounded.xs,
+    cursor: "pointer",
+    backgroundColor: isSelected
+      ? theme.vars.palette.action.selected
+      : undefined,
     "&:hover": {
-      backgroundColor: theme.vars.palette.action.hover
+      backgroundColor: isSelected
+        ? theme.vars.palette.action.selected
+        : theme.vars.palette.action.hover
     }
   });
 
@@ -85,6 +97,14 @@ const nodeNameStyles = css({
   whiteSpace: "nowrap"
 });
 
+const indexStyles = (theme: Theme) =>
+  css({
+    fontSize: 10,
+    color: theme.vars.palette.text.secondary,
+    minWidth: 16,
+    textAlign: "right"
+  });
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function statusTypeFromNodeStatus(
@@ -106,7 +126,7 @@ function statusTypeFromNodeStatus(
 // ── Component ──────────────────────────────────────────────────────────────
 
 export const NodeStackRow: React.FC<NodeStackRowProps> = memo(
-  ({ nodeId, nodeName, workflowId, onRetry, onOpenLogs }) => {
+  ({ nodeId, nodeName, workflowId, index, isSelected = false, onClick, onRetry, onOpenLogs }) => {
     const theme = useTheme();
 
     // Node execution status from StatusStore
@@ -141,9 +161,10 @@ export const NodeStackRow: React.FC<NodeStackRowProps> = memo(
     return (
       <FlexColumn>
         <FlexRow
-          css={rowStyles(theme)}
+          css={rowStyles(theme, isSelected)}
           align="center"
           gap={0.75}
+          onClick={onClick}
           data-testid={`node-stack-row-${nodeId}`}
         >
           <StatusIndicator
@@ -151,6 +172,10 @@ export const NodeStackRow: React.FC<NodeStackRowProps> = memo(
             pulse={statusType === "pending"}
             size="small"
           />
+
+          {index !== undefined && (
+            <span css={indexStyles(theme)}>{index}</span>
+          )}
 
           <span css={nodeNameStyles} title={nodeName}>
             {nodeName}
@@ -173,7 +198,10 @@ export const NodeStackRow: React.FC<NodeStackRowProps> = memo(
                   )
                 }
                 tooltip={errorExpanded ? "Hide error" : "Show error"}
-                onClick={handleToggleError}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggleError();
+                }}
                 aria-label={errorExpanded ? "Collapse error" : "Expand error"}
                 size="small"
               />
@@ -181,7 +209,10 @@ export const NodeStackRow: React.FC<NodeStackRowProps> = memo(
               <ToolbarIconButton
                 icon={<ContentCopyIcon fontSize="small" />}
                 tooltip="Copy error to clipboard"
-                onClick={handleCopyError}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCopyError();
+                }}
                 aria-label="Copy error"
                 size="small"
               />
@@ -190,7 +221,10 @@ export const NodeStackRow: React.FC<NodeStackRowProps> = memo(
                 <ToolbarIconButton
                   icon={<ReplayIcon fontSize="small" />}
                   tooltip="Retry"
-                  onClick={onRetry}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRetry();
+                  }}
                   aria-label="Retry node"
                   size="small"
                 />
@@ -200,7 +234,10 @@ export const NodeStackRow: React.FC<NodeStackRowProps> = memo(
                 <ToolbarIconButton
                   icon={<ArticleIcon fontSize="small" />}
                   tooltip="Open logs"
-                  onClick={onOpenLogs}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenLogs();
+                  }}
                   aria-label="Open logs"
                   size="small"
                 />
