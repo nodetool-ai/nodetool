@@ -222,31 +222,37 @@ export const useAssets = (_initialFolderId: string | null = null) => {
     });
   }, [filterAssets, processedAssets, assetSearchTerm, sizeFilter, typeFilter]);
 
+  // AssetStore.{createFolder,delete,update} already invalidates the
+  // ["assets", { parent_id }] queries it touches; these mutations only need
+  // to refresh the folder tree and the workflow-filtered list.
+  const invalidateAssetSiblings = useCallback(() => {
+    queryClient.invalidateQueries({
+      queryKey: ["assets", { parent_id: currentFolderId }]
+    });
+    if (workflowFilter) {
+      queryClient.invalidateQueries({
+        queryKey: ["assets", { workflow_id: workflowFilter }]
+      });
+    }
+    queryClient.invalidateQueries({ queryKey: ["folderTree"] });
+  }, [queryClient, currentFolderId, workflowFilter]);
+
   // Create folder mutation
   const createFolderMutation = useMutation({
     mutationFn: (name: string) => createFolder(currentFolderId, name),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["assets", currentFolderId] });
-      queryClient.invalidateQueries({ queryKey: ["folderTree"] });
-    }
+    onSuccess: invalidateAssetSiblings
   });
 
   // Delete asset mutation
   const deleteAssetMutation = useMutation({
     mutationFn: (assetId: string) => deleteAsset(assetId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["assets", currentFolderId] });
-      queryClient.invalidateQueries({ queryKey: ["folderTree"] });
-    }
+    onSuccess: invalidateAssetSiblings
   });
 
   // Update asset mutation
   const updateAssetMutation = useMutation({
     mutationFn: (updateData: AssetUpdate) => update(updateData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["assets", currentFolderId] });
-      queryClient.invalidateQueries({ queryKey: ["folderTree"] });
-    }
+    onSuccess: invalidateAssetSiblings
   });
 
   // Navigate to folder
