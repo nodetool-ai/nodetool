@@ -41,7 +41,7 @@ const OutputContextMenu: React.FC = () => {
     closeContextMenu: state.closeContextMenu,
     type: state.type,
     handleId: state.handleId
-  }));
+  }), shallow);
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
   const { createNode, addNode, addEdge, generateEdgeId } = useNodes(
@@ -59,8 +59,10 @@ const OutputContextMenu: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const recentNodeTypes = useRecentNodesStore((state) =>
-    state.recentNodes.map((node) => node.nodeType)
+  const recentNodes = useRecentNodesStore((state) => state.recentNodes);
+  const recentNodeTypes = useMemo(
+    () => recentNodes.map((node) => node.nodeType),
+    [recentNodes]
   );
 
   const outputNodeMetadata = useMemo(
