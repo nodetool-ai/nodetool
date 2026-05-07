@@ -16,6 +16,11 @@ jest.mock("../../trpc/client", () => ({
   }
 }));
 
+const invalidateQueries = jest.fn();
+jest.mock("../../queryClient", () => ({
+  queryClient: { invalidateQueries: (...args: unknown[]) => invalidateQueries(...args) }
+}));
+
 import { trpcClient } from "../../trpc/client";
 // Cast so we can read the Jest mock APIs on the nested procedures without
 // sprinkling `as any` in every test.
@@ -26,6 +31,7 @@ const deleteMutate = trpcClient.settings.secrets.delete.mutate as jest.Mock;
 describe("SecretsStore", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    invalidateQueries.mockReset();
     useSecretsStore.setState({
       secrets: [],
       isLoading: false,
@@ -166,6 +172,50 @@ describe("SecretsStore", () => {
 
       expect(result.current.error).toBeTruthy();
     });
+
+    it("should invalidate provider-dependent caches on success", async () => {
+      upsertMutate.mockResolvedValueOnce({
+        key: "OPENAI_API_KEY",
+        is_configured: true,
+        is_unreadable: false
+      });
+      listQuery.mockResolvedValueOnce({ secrets: [], next_key: null });
+
+      const { result } = renderHook(() => useSecretsStore());
+
+      await act(async () => {
+        await result.current.updateSecret("OPENAI_API_KEY", "new_value");
+      });
+
+      const invalidatedKeys = invalidateQueries.mock.calls.map((c) => c[0].queryKey[0]);
+      expect(invalidatedKeys).toEqual(
+        expect.arrayContaining([
+          "secrets",
+          "providers",
+          "language-models",
+          "image-models",
+          "tts-models",
+          "asr-models",
+          "video-models"
+        ])
+      );
+    });
+
+    it("should NOT invalidate caches when update fails", async () => {
+      upsertMutate.mockRejectedValueOnce(new Error("Failed"));
+
+      const { result } = renderHook(() => useSecretsStore());
+
+      await act(async () => {
+        try {
+          await result.current.updateSecret("OPENAI_API_KEY", "value");
+        } catch (_) {
+          // Error is expected
+        }
+      });
+
+      expect(invalidateQueries).not.toHaveBeenCalled();
+    });
   });
 
   describe("deleteSecret", () => {
@@ -212,6 +262,30 @@ describe("SecretsStore", () => {
       });
 
       expect(result.current.error).toBeTruthy();
+    });
+
+    it("should invalidate provider-dependent caches on success", async () => {
+      deleteMutate.mockResolvedValueOnce({ message: "Secret deleted" });
+      listQuery.mockResolvedValueOnce({ secrets: [], next_key: null });
+
+      const { result } = renderHook(() => useSecretsStore());
+
+      await act(async () => {
+        await result.current.deleteSecret("OPENAI_API_KEY");
+      });
+
+      const invalidatedKeys = invalidateQueries.mock.calls.map((c) => c[0].queryKey[0]);
+      expect(invalidatedKeys).toEqual(
+        expect.arrayContaining([
+          "secrets",
+          "providers",
+          "language-models",
+          "image-models",
+          "tts-models",
+          "asr-models",
+          "video-models"
+        ])
+      );
     });
   });
 
