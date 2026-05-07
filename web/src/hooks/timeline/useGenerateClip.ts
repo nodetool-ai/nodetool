@@ -4,7 +4,6 @@ import { queryClient } from "../../queryClient";
 import { fetchWorkflowById, workflowQueryKey } from "../../serverState/useWorkflow";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { useTimelineGenerationStore } from "../../stores/timeline/TimelineGenerationStore";
-import type { TimelineClip, ClipStatus } from "@nodetool-ai/timeline";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
@@ -24,13 +23,23 @@ interface JobSubscriptionContext {
   selectedOutputNodeId?: string;
 }
 
+type IdleClipStatus = "locked" | "draft" | "stale" | "generated";
+
+interface TimelineClipLike {
+  locked: boolean;
+  sourceType: "imported" | "generated";
+  currentAssetId?: string;
+  dependencyHash?: string;
+  lastGeneratedHash?: string;
+}
+
 const jobSubscriptions = new Map<string, () => void>();
 const jobContexts = new Map<string, JobSubscriptionContext>();
 
 const isActiveStatus = (status: string): boolean =>
   status === "queued" || status === "running";
 
-const deriveIdleClipStatus = (clip: TimelineClip): ClipStatus => {
+const deriveIdleClipStatus = (clip: TimelineClipLike): IdleClipStatus => {
   if (clip.locked) {
     return "locked";
   }
@@ -304,9 +313,11 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
       staleTime: 0
     });
 
-    const graphNodes = workflow.graph.nodes;
-    const graphEdges = workflow.graph.edges;
-    const nodes = graphNodes.map((node) => graphNodeToReactFlowNode(workflow, node));
+    const graphNodes = workflow.graph?.nodes ?? [];
+    const graphEdges = workflow.graph?.edges ?? [];
+    const nodes = graphNodes.map((node: Parameters<typeof graphNodeToReactFlowNode>[1]) =>
+      graphNodeToReactFlowNode(workflow, node)
+    );
     const edges = graphEdges.map(graphEdgeToReactFlowEdge);
 
     const runnerStore = getWorkflowRunnerStore(workflowId);
