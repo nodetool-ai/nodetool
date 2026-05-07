@@ -9,10 +9,17 @@ import * as path from "node:path";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
-async function getOpenAIClient() {
+async function getOpenAIClient(context?: ProcessingContext) {
   // Dynamic import to avoid hard dependency
   const { OpenAI } = await import("openai");
-  const apiKey = process.env["OPENAI_API_KEY"];
+  // Prefer the context's secretResolver (which checks the encrypted DB
+  // before env vars). Fall back to env directly for callers that don't
+  // pass a context.
+  const fromCtx =
+    typeof context?.getSecret === "function"
+      ? await context.getSecret("OPENAI_API_KEY")
+      : null;
+  const apiKey = fromCtx ?? process.env["OPENAI_API_KEY"];
   if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
   return new OpenAI({ apiKey });
 }
@@ -32,7 +39,7 @@ export class OpenAIWebSearchTool extends Tool {
   };
 
   async process(
-    _context: ProcessingContext,
+    context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
     const query = params["query"];
@@ -41,7 +48,7 @@ export class OpenAIWebSearchTool extends Tool {
     }
 
     try {
-      const client = await getOpenAIClient();
+      const client = await getOpenAIClient(context);
       const completion = await client.chat.completions.create({
         model: "gpt-4o-search-preview",
         web_search_options: {},
@@ -97,7 +104,7 @@ export class OpenAIImageGenerationTool extends Tool {
       return { error: "Output file is required" };
 
     try {
-      const client = await getOpenAIClient();
+      const client = await getOpenAIClient(context);
       const response = await client.images.generate({
         model: "gpt-image-2",
         prompt,
@@ -177,7 +184,7 @@ export class OpenAITextToSpeechTool extends Tool {
       return { error: "Input text exceeds maximum length of 4096 characters" };
 
     try {
-      const client = await getOpenAIClient();
+      const client = await getOpenAIClient(context);
       const response = await client.audio.speech.create({
         model: "tts-1",
         voice,

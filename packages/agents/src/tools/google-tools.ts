@@ -11,8 +11,14 @@ import { Tool } from "./base-tool.js";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
-function getGeminiApiKey(): string {
-  const key = process.env["GEMINI_API_KEY"];
+async function getGeminiApiKey(context?: ProcessingContext): Promise<string> {
+  // Prefer the context's secretResolver (encrypted DB) over env vars so the
+  // chat-cli + agent picks up keys configured via `nodetool secrets store`.
+  const fromCtx =
+    typeof context?.getSecret === "function"
+      ? await context.getSecret("GEMINI_API_KEY")
+      : null;
+  const key = fromCtx ?? process.env["GEMINI_API_KEY"];
   if (!key) throw new Error("GEMINI_API_KEY is not set");
   return key;
 }
@@ -33,7 +39,7 @@ export class GoogleGroundedSearchTool extends Tool {
   };
 
   async process(
-    _context: ProcessingContext,
+    context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
     const query = params["query"];
@@ -42,7 +48,7 @@ export class GoogleGroundedSearchTool extends Tool {
     }
 
     try {
-      const apiKey = getGeminiApiKey();
+      const apiKey = await getGeminiApiKey(context);
       const url = `${GEMINI_API_BASE}/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
       const body = {
@@ -163,7 +169,7 @@ export class GoogleImageGenerationTool extends Tool {
       return { error: "Output file is required" };
 
     try {
-      const apiKey = getGeminiApiKey();
+      const apiKey = await getGeminiApiKey(context);
       // Use Imagen 3 REST API
       const url = `${GEMINI_API_BASE}/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
 
