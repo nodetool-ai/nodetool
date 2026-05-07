@@ -225,7 +225,7 @@ async process(
     const output = await context.runProviderPrediction({
       provider: "openai",
       capability: "text_to_image",
-      model: "dall-e-3",
+      model: "gpt-image-1",
       params: { prompt: "a cat" },
     });
   }

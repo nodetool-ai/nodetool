@@ -86,7 +86,7 @@ const useCases: UseCase[] = [
   {
     name: "Image Generation",
     description:
-      "Generate images with gpt-image-2 (OpenAI DALL-E), FLUX, or Imagen (Google Gemini API). Chain with text generation for creative workflows.",
+      "Generate images with gpt-image-2 (OpenAI GPT-Image), FLUX, or Imagen (Google Gemini API). Chain with text generation for creative workflows.",
     icon: Image,
     iconBgFrom: "from-indigo-600/20",
     iconBgTo: "to-teal-600/20",

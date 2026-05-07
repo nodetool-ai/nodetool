@@ -19,26 +19,85 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiService, CollectionResponse } from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 
+interface ToolEntry {
+  id: string;
+  description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  toolIds: string[];
+}
+
+const BROWSER_TOOL_IDS = [
+  'browser_view',
+  'browser_navigate',
+  'browser_restart',
+  'browser_click',
+  'browser_input_text',
+  'browser_move_mouse',
+  'browser_press_key',
+  'browser_select_option',
+  'browser_scroll',
+  'browser_console_exec',
+  'browser_console_view',
+];
+
+const SANDBOX_TOOL_IDS = [
+  'sandbox_shell_exec',
+  'sandbox_shell_wait',
+  'sandbox_shell_view',
+  'sandbox_shell_write',
+  'sandbox_shell_kill',
+  'sandbox_file_read',
+  'sandbox_file_write',
+  'sandbox_file_str_replace',
+  'sandbox_file_find_in_content',
+  'sandbox_file_find_by_name',
+  'sandbox_browser_view',
+  'sandbox_browser_navigate',
+  'sandbox_browser_restart',
+  'sandbox_browser_click',
+  'sandbox_browser_input_text',
+  'sandbox_browser_move_mouse',
+  'sandbox_browser_press_key',
+  'sandbox_browser_select_option',
+  'sandbox_browser_scroll',
+  'sandbox_browser_console_exec',
+  'sandbox_browser_console_view',
+];
+
+const AVAILABLE_TOOLS: ToolEntry[] = [
+  { id: 'read_file', description: 'Read file in workspace', icon: 'document-text-outline', toolIds: ['read_file'] },
+  { id: 'write_file', description: 'Write file in workspace', icon: 'create-outline', toolIds: ['write_file'] },
+  { id: 'list_directory', description: 'List files in workspace', icon: 'folder-outline', toolIds: ['list_directory'] },
+  { id: 'google_search', description: 'Search the web', icon: 'search-outline', toolIds: ['google_search'] },
+  { id: 'browser', description: 'Browse the web', icon: 'globe-outline', toolIds: BROWSER_TOOL_IDS },
+  { id: 'sandbox', description: 'Sandbox shell, files, and browser', icon: 'lock-closed-outline', toolIds: SANDBOX_TOOL_IDS },
+];
+
 interface ChatOptionsBarProps {
   agentMode: boolean;
   helpMode: boolean;
   selectedCollections: string[];
+  selectedTools: string[];
   onToggleAgentMode: (next: boolean) => void;
   onToggleHelpMode: (next: boolean) => void;
   onChangeCollections: (next: string[]) => void;
+  onChangeTools: (next: string[]) => void;
 }
 
 export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
   agentMode,
   helpMode,
   selectedCollections,
+  selectedTools,
   onToggleAgentMode,
   onToggleHelpMode,
   onChangeCollections,
+  onChangeTools,
 }) => {
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
   const [modalOpen, setModalOpen] = useState(false);
+  const [toolsModalOpen, setToolsModalOpen] = useState(false);
   const [collections, setCollections] = useState<CollectionResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +121,12 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
     }
   }, [modalOpen, loadCollections]);
 
+  const selectedToolSet = useMemo(() => new Set(selectedTools), [selectedTools]);
+  const selectedToolEntries = useMemo(
+    () => AVAILABLE_TOOLS.filter((entry) => entry.toolIds.every((id) => selectedToolSet.has(id))),
+    [selectedToolSet],
+  );
+
   const collectionsLabel = useMemo(() => {
     if (selectedCollections.length === 0) { return 'Collections'; }
     if (selectedCollections.length === 1) { return selectedCollections[0]; }
@@ -83,14 +148,28 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
     onChangeCollections([]);
   }, [onChangeCollections]);
 
+  const handleToggleTool = useCallback(
+    (entry: ToolEntry) => {
+      const isSelected = entry.toolIds.every((id) => selectedToolSet.has(id));
+      const memberSet = new Set(entry.toolIds);
+      const next = isSelected
+        ? selectedTools.filter((id) => !memberSet.has(id))
+        : [...selectedTools.filter((id) => !memberSet.has(id)), ...entry.toolIds];
+      onChangeTools(next);
+    },
+    [selectedTools, selectedToolSet, onChangeTools],
+  );
+
   const renderChip = (
     label: string,
     iconName: keyof typeof Ionicons.glyphMap,
     active: boolean,
     onPress: () => void,
     accessibilityLabel: string,
+    key?: string,
   ) => (
     <TouchableOpacity
+      key={key}
       onPress={onPress}
       activeOpacity={0.7}
       style={[
@@ -142,6 +221,23 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
           () => onToggleHelpMode(!helpMode),
           helpMode ? 'Disable help mode' : 'Enable help mode',
         )}
+        {selectedToolEntries.map((entry) =>
+          renderChip(
+            '',
+            entry.icon,
+            true,
+            () => handleToggleTool(entry),
+            `Remove ${entry.description}`,
+            entry.id,
+          ),
+        )}
+        {renderChip(
+          selectedToolEntries.length > 0 ? 'Tools' : 'Tools',
+          'add-outline',
+          selectedToolEntries.length > 0,
+          () => setToolsModalOpen(true),
+          'Add or remove tools',
+        )}
         {renderChip(
           collectionsLabel,
           'library-outline',
@@ -150,6 +246,79 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
           'Choose collections',
         )}
       </ScrollView>
+
+      <Modal
+        visible={toolsModalOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setToolsModalOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            onPress={() => setToolsModalOpen(false)}
+            accessibilityLabel="Close tools picker"
+          />
+          <View
+            style={[
+              styles.modalSheet,
+              shadows.large,
+              { backgroundColor: colors.surface, paddingBottom: insets.bottom + 16 },
+            ]}
+          >
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+            <View style={styles.sheetHeader}>
+              <Text style={[styles.sheetTitle, { color: colors.text }]}>Tools</Text>
+              {selectedTools.length > 0 && (
+                <TouchableOpacity onPress={() => onChangeTools([])} accessibilityRole="button">
+                  <Text style={[styles.clearText, { color: colors.primary }]}>Clear</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <Text style={[styles.sheetHint, { color: colors.textSecondary }]}>Enable tools the model may call while answering.</Text>
+            {AVAILABLE_TOOLS.map((entry) => {
+              const checked = entry.toolIds.every((id) => selectedToolSet.has(id));
+              return (
+                <TouchableOpacity
+                  key={entry.id}
+                  onPress={() => handleToggleTool(entry)}
+                  style={[
+                    styles.row,
+                    { backgroundColor: checked ? colors.primaryMuted : colors.inputBg },
+                  ]}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked }}
+                  accessibilityLabel={`Toggle ${entry.description}`}
+                >
+                  <Ionicons name={entry.icon} size={20} color={checked ? colors.primary : colors.textSecondary} />
+                  <View style={styles.toolRowMeta}>
+                    <Text style={[styles.rowName, { color: colors.text }]}>{entry.description}</Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.checkBox,
+                      {
+                        borderColor: checked ? colors.primary : colors.border,
+                        backgroundColor: checked ? colors.primary : 'transparent',
+                      },
+                    ]}
+                  >
+                    {checked && <Ionicons name="checkmark" size={14} color="#fff" />}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity
+              onPress={() => setToolsModalOpen(false)}
+              style={[styles.doneBtn, { backgroundColor: colors.primary }]}
+              accessibilityRole="button"
+              accessibilityLabel="Done"
+            >
+              <Text style={styles.doneText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={modalOpen}
@@ -324,6 +493,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   rowMeta: { flex: 1, marginRight: 12 },
+  toolRowMeta: { flex: 1, marginHorizontal: 12 },
   rowName: { fontSize: 14, fontWeight: '600' },
   rowSub: { fontSize: 12, marginTop: 2 },
   checkBox: {

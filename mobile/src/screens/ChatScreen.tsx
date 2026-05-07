@@ -31,7 +31,8 @@ export default function ChatScreen({ navigation, route }: Props) {
     selectedModel,
     agentMode,
     helpMode,
-    selectedCollections
+    selectedCollections,
+    selectedTools
   } = useChatStore(useShallow(state => ({
     status: state.status,
     error: state.error,
@@ -40,7 +41,8 @@ export default function ChatScreen({ navigation, route }: Props) {
     selectedModel: state.selectedModel,
     agentMode: state.agentMode,
     helpMode: state.helpMode,
-    selectedCollections: state.selectedCollections
+    selectedCollections: state.selectedCollections,
+    selectedTools: state.selectedTools
   })));
 
   const connect = useChatStore(state => state.connect);
@@ -52,6 +54,7 @@ export default function ChatScreen({ navigation, route }: Props) {
   const setAgentMode = useChatStore(state => state.setAgentMode);
   const setHelpMode = useChatStore(state => state.setHelpMode);
   const setSelectedCollections = useChatStore(state => state.setSelectedCollections);
+  const setSelectedTools = useChatStore(state => state.setSelectedTools);
 
   const { colors, mode } = useTheme();
 
@@ -146,9 +149,11 @@ export default function ChatScreen({ navigation, route }: Props) {
         agentMode={agentMode}
         helpMode={helpMode}
         selectedCollections={selectedCollections}
+        selectedTools={selectedTools}
         onToggleAgentMode={setAgentMode}
         onToggleHelpMode={setHelpMode}
         onChangeCollections={setSelectedCollections}
+        onChangeTools={setSelectedTools}
       />
     </SafeAreaView>
   );

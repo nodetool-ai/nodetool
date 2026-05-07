@@ -31,9 +31,11 @@ interface ChatViewProps {
   agentMode?: boolean;
   helpMode?: boolean;
   selectedCollections?: string[];
+  selectedTools?: string[];
   onToggleAgentMode?: (next: boolean) => void;
   onToggleHelpMode?: (next: boolean) => void;
   onChangeCollections?: (next: string[]) => void;
+  onChangeTools?: (next: string[]) => void;
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({
@@ -47,9 +49,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
   agentMode = false,
   helpMode = false,
   selectedCollections = [],
+  selectedTools = [],
   onToggleAgentMode,
   onToggleHelpMode,
   onChangeCollections,
+  onChangeTools,
 }) => {
   const { colors } = useTheme();
   const isLoading = status === 'loading';
@@ -154,14 +158,16 @@ export const ChatView: React.FC<ChatViewProps> = ({
         )}
       </View>
 
-      {(onToggleAgentMode || onToggleHelpMode || onChangeCollections) && (
+      {(onToggleAgentMode || onToggleHelpMode || onChangeCollections || onChangeTools) && (
         <ChatOptionsBar
           agentMode={agentMode}
           helpMode={helpMode}
           selectedCollections={selectedCollections}
+          selectedTools={selectedTools}
           onToggleAgentMode={onToggleAgentMode || (() => {})}
           onToggleHelpMode={onToggleHelpMode || (() => {})}
           onChangeCollections={onChangeCollections || (() => {})}
+          onChangeTools={onChangeTools || (() => {})}
         />
       )}
 

@@ -9,7 +9,7 @@ You help users configure AI model providers and select the right models for thei
 
 | Provider | Type | Key Env Var | Models |
 |----------|------|-------------|--------|
-| **OpenAI** | Cloud | `OPENAI_API_KEY` | GPT-4o, GPT-3.5, DALL-E, TTS, Whisper |
+| **OpenAI** | Cloud | `OPENAI_API_KEY` | GPT-4o, GPT-3.5, GPT-Image, TTS, Whisper |
 | **Anthropic** | Cloud | `ANTHROPIC_API_KEY` | Claude 4.6, Claude 4.5, Haiku |
 | **Google** | Cloud | `GEMINI_API_KEY` | Gemini 2.0, Veo, Nano Banana |
 | **Ollama** | Local | `OLLAMA_API_URL` | Llama 3, Mistral, Qwen, any GGUF |
@@ -60,7 +60,7 @@ export OLLAMA_API_URL=http://localhost:11434
 | Best quality | FLUX.2 Dev | HuggingFace, FAL | State-of-art |
 | Fast | FLUX Schnell | HuggingFace | Quick iterations |
 | Versatile | SDXL | HuggingFace | Many LoRAs available |
-| API-based | DALL-E 3 | OpenAI | No local GPU needed |
+| API-based | GPT-Image 3 | OpenAI | No local GPU needed |
 
 ## Video Generation
 
@@ -183,7 +183,7 @@ export class MyProvider extends BaseProvider {
 |-----------|--------|-----------|--------|--------|-----|
 | Chat/Text | yes | yes | yes | yes | yes |
 | Vision | yes | yes | yes | some | yes |
-| Image Gen | yes (DALL-E) | no | no | no | yes |
+| Image Gen | yes (GPT-Image) | no | no | no | yes |
 | Video Gen | no | no | yes (Veo) | no | some |
 | TTS | yes | no | no | no | yes |
 | ASR | yes (Whisper) | no | no | no | yes |
