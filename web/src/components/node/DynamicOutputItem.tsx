@@ -67,22 +67,20 @@ const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
             ":hover .actions": { opacity: 1 }
           }}
         >
-          <FlexRow
-            className="actions"
-            gap={0.5}
-            sx={{ height: "1em" }}
-          >
+          <FlexRow className="actions" gap={0.25}>
             <EditButton
               onClick={handleRename}
               tooltip="Rename output"
               iconVariant="edit"
               tabIndex={-1}
+              sx={{ padding: "2px", "& svg": { fontSize: "0.875rem" } }}
             />
             <DeleteButton
               onClick={handleDelete}
               tooltip="Remove output"
               iconVariant="outline"
               tabIndex={-1}
+              sx={{ padding: "2px", "& svg": { fontSize: "0.875rem" } }}
             />
           </FlexRow>
           <HandleTooltip

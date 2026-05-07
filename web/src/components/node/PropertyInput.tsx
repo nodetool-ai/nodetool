@@ -89,13 +89,13 @@ const propertyInputContainerStyles = (theme: Theme) =>
       transform: "translateY(-50%)",
       display: "flex",
       alignItems: "center",
-      gap: 2,
+      gap: 4,
       opacity: 0,
       transition: "opacity 0.15s ease",
       zIndex: 1,
       background: theme.vars.palette.background.paper,
       borderRadius: "var(--rounded-sm)",
-      padding: "2px 4px",
+      padding: "4px 6px",
       boxShadow: `0 1px 4px ${theme.vars.palette.action.focus}`,
     },
 
@@ -104,10 +104,10 @@ const propertyInputContainerStyles = (theme: Theme) =>
     },
 
     ".action-icon": {
-      fontSize: "0.9em",
+      fontSize: "1.25rem",
       cursor: "pointer",
-      padding: 2,
-      borderRadius: "3px",
+      padding: 4,
+      borderRadius: "var(--rounded-sm)",
       color: theme.vars.palette.text.secondary,
       transition: "color 0.15s ease, background 0.15s ease",
       "&:hover": {
