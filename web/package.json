@@ -32,7 +32,6 @@
     "@tanstack/react-virtual": "^3.13.24",
     "@trpc/client": "^11.0.0",
     "@trpc/react-query": "^11.17.0",
-    "@trpc/server": "^11.0.0",
     "@xyflow/react": "^12.10.2",
     "chroma-js": "^3.2.0",
     "cmdk": "^1.1.1",
@@ -117,6 +116,7 @@
   },
   "devDependencies": {
     "@emotion/babel-plugin": "^11.13.5",
+    "@trpc/server": "^11.0.0",
     "@eslint/compat": "^2.0.5",
     "@eslint/eslintrc": "^3.3.5",
     "@eslint/js": "^9.39.4",
