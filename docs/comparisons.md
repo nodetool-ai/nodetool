@@ -19,7 +19,7 @@ NodeTool can integrate with external services via HTTP when needed.
 | **Primary Focus** | ✅ Multi-modal AI workflows (text, image, audio, video) | ✅ Business automation and SaaS integrations | ✅ Image/video generation with diffusion models |
 | **AI Agents** | ✅ Built-in Agent nodes with tool calling and streaming | ⚠️ AI Agent node via LangChain integration | ⚠️ Via custom nodes (comfyui-ollama) |
 | **LLM Integration** | ✅ OpenAI, Anthropic, Google, Ollama, HuggingFace | ✅ OpenAI, Anthropic, Google via nodes | ⚠️ Via custom nodes (Ollama, OpenAI) |
-| **Image Generation** | ✅ Local: FLUX, Qwen Image · API: FAL, Kie, Replicate, OpenAI, Gemini | ⚠️ Via API integrations (DALL-E, etc.) | ✅ Deep control over diffusion internals |
+| **Image Generation** | ✅ Local: FLUX, Qwen Image · API: FAL, Kie, Replicate, OpenAI, Gemini | ⚠️ Via API integrations (GPT-Image, etc.) | ✅ Deep control over diffusion internals |
 | **Video Generation** | ✅ Local: Wan · API: Fal, Kie, Sora, Veo, Kling | ⚠️ Via API integrations only | ✅ Local diffusion-based video (AnimateDiff, etc.) |
 | **Audio Generation** | ✅ Local: MusicGen, AudioLDM, Stable Audio · API: Kie, ElevenLabs, MiniMax | ❌ Not a primary focus | ⚠️ Via custom nodes (ACE-Step, Stable Audio) |
 | **Text-to-Speech (TTS)** | ✅ Local: Kokoro, Sesame, Spark · API: OpenAI, Gemini, ElevenLabs | ⚠️ Via API integrations | ⚠️ Via custom nodes |

@@ -54,7 +54,7 @@ const PROVIDERS: Provider[] = [
   },
   {
     name: "OpenAI",
-    description: "Access GPT-4, DALL-E, Whisper, and other powerful AI models from OpenAI.",
+    description: "Access GPT-4, GPT-Image, Whisper, and other powerful AI models from OpenAI.",
     signupUrl: "https://platform.openai.com/api-keys",
     capabilities: ["Chat", "Image Generation", "Speech", "Embeddings"],
   },

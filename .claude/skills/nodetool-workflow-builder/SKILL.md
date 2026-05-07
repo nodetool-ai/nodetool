@@ -81,7 +81,7 @@ When using `ui_add_node` or `ui_graph`, the `data` object supports:
 | `kie.image.*` | Image generation services (Flux, SDXL, etc.) |
 | `kie.video.*` | Video generation services (Kling, Hailuo, Sora, etc.) |
 | `kie.audio.*` | Audio generation services |
-| `openai.*` | GPT, DALL-E, embeddings, TTS |
+| `openai.*` | GPT, GPT-Image, embeddings, TTS |
 | `gemini.*` | Google Gemini models |
 | `mistral.*` | Mistral models |
 | `search.*` | Web search integrations |

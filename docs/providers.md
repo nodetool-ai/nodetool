@@ -45,7 +45,7 @@ The capability system uses introspection to automatically detect which features 
 
 | Provider | File | Streaming | Tool calls | Vision | Notes |
 |----------|------|-----------|------------|--------|-------|
-| OpenAI | `openai-provider.ts` | ✅ | ✅ | ✅ | Includes DALL-E, TTS, Whisper |
+| OpenAI | `openai-provider.ts` | ✅ | ✅ | ✅ | Includes GPT-Image, TTS, Whisper |
 | Anthropic | `anthropic-provider.ts` | ✅ | ✅ | ✅ | JSON via tool use |
 | Google Gemini | `gemini-provider.ts` | ✅ | ✅ | ✅ | File input via Blobs, Veo video |
 | xAI (Grok) | `xai-provider.ts` | ✅ | ✅ | — | Grok models; `XAI_API_KEY` |
@@ -84,7 +84,7 @@ Text-to-video and image-to-video providers available through the unified interfa
 | Black Forest Labs FLUX.2 Pro | via kie.ai or direct API |
 | Google Nano Banana 2.0 / Imagen 4 | `GEMINI_API_KEY` or via kie.ai |
 | OpenAI GPT Image 2 | `OPENAI_API_KEY` or via kie.ai |
-| OpenAI DALL-E 2/3 | `OPENAI_API_KEY` |
+| OpenAI GPT-Image 2/3 | `OPENAI_API_KEY` |
 | Ideogram V3 | via kie.ai |
 | Z-Image Turbo | via kie.ai |
 | ByteDance Seedream 4.5 | via kie.ai |
@@ -121,7 +121,7 @@ Generic nodes in the `nodetool.*` namespace accept a `model` parameter and route
 | Node | Switch between |
 |------|---------------|
 | `nodetool.agents.Agent` | OpenAI, Anthropic, Gemini, xAI, DeepSeek, Ollama, any LLM |
-| `nodetool.image.TextToImage` | FLUX.2, Nano Banana 2.0, GPT Image 2, Ideogram V3, Z-Image, DALL-E, HuggingFace, ComfyUI, MLX |
+| `nodetool.image.TextToImage` | FLUX.2, Nano Banana 2.0, GPT Image 2, Ideogram V3, Z-Image, GPT-Image, HuggingFace, ComfyUI, MLX |
 | `nodetool.image.ImageToImage` | HuggingFace, local servers, cloud services |
 | `nodetool.video.TextToVideo` | Sora 2 Pro, Veo 3.1, Seedance 2.0, Runway, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 3.0, HuggingFace |
 | `nodetool.video.ImageToVideo` | Sora 2 Pro, Veo 3.1, Seedance 2.0, Runway, Luma, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 3.0, Stability AI |
@@ -143,17 +143,17 @@ Generic nodes map parameters to provider-specific formats:
 ```typescript
 const params: TextToImageParams = {
   prompt: "...",             // -> All providers
-  negative_prompt: "...",    // -> HuggingFace, Gemini (ignored by DALL-E)
-  width: 1024,              // -> HuggingFace (mapped to size for DALL-E)
-  height: 1024,             // -> HuggingFace (mapped to size for DALL-E)
-  guidance_scale: 7.5,      // -> HuggingFace (not used by DALL-E)
-  num_inference_steps: 30,  // -> HuggingFace (not used by DALL-E)
-  seed: 42,                 // -> HuggingFace (not supported by DALL-E)
+  negative_prompt: "...",    // -> HuggingFace, Gemini (ignored by GPT-Image)
+  width: 1024,              // -> HuggingFace (mapped to size for GPT-Image)
+  height: 1024,             // -> HuggingFace (mapped to size for GPT-Image)
+  guidance_scale: 7.5,      // -> HuggingFace (not used by GPT-Image)
+  num_inference_steps: 30,  // -> HuggingFace (not used by GPT-Image)
+  seed: 42,                 // -> HuggingFace (not supported by GPT-Image)
   scheduler: "...",          // -> HuggingFace-specific
 };
 ```
 
-If a provider does not support a parameter (e.g., negative prompt for DALL-E), NodeTool automatically ignores or
+If a provider does not support a parameter (e.g., negative prompt for GPT-Image), NodeTool automatically ignores or
 remaps it.
 
 **TextToVideo mapping:**

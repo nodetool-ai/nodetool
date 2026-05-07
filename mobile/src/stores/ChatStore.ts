@@ -51,6 +51,7 @@ interface ChatState {
   agentMode: boolean;
   helpMode: boolean;
   selectedCollections: string[];
+  selectedTools: string[];
 
   // Actions
   connect: () => Promise<void>;
@@ -66,6 +67,7 @@ interface ChatState {
   setAgentMode: (enabled: boolean) => void;
   setHelpMode: (enabled: boolean) => void;
   setSelectedCollections: (collections: string[]) => void;
+  setSelectedTools: (tools: string[]) => void;
 
   // Internal actions
   addMessageToCache: (threadId: string, message: Message) => void;
@@ -234,6 +236,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   agentMode: false,
   helpMode: false,
   selectedCollections: [],
+  selectedTools: [],
 
   connect: async () => {
     const state = get();
@@ -383,6 +386,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       help_mode: stateForSend.helpMode || undefined,
       collections: stateForSend.selectedCollections.length
         ? stateForSend.selectedCollections
+        : undefined,
+      tools: stateForSend.selectedTools.length
+        ? stateForSend.selectedTools
         : undefined,
       media_generation: mediaGeneration,
     };
@@ -578,5 +584,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setSelectedCollections: (collections: string[]) => {
     set({ selectedCollections: collections });
+  },
+
+  setSelectedTools: (tools: string[]) => {
+    set({ selectedTools: tools });
   },
 }));
