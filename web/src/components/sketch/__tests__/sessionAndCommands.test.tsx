@@ -107,7 +107,7 @@ describe("useEditorSession", () => {
     expect(result.current.interactionTool).toBe("move");
   });
 
-  it("does not spring-load move when activeTool is select", () => {
+  it("spring-loads move when activeTool is select (gesture lock in usePointerHandlers prevents mid-drag switches)", () => {
     const { result } = renderHook(() =>
       useEditorSession({
         initialDocument: undefined,
@@ -123,7 +123,7 @@ describe("useEditorSession", () => {
     });
 
     expect(result.current.activeTool).toBe("select");
-    expect(result.current.interactionTool).toBe("select");
+    expect(result.current.interactionTool).toBe("move");
   });
 
   it("does not spring-load move when activeTool is crop", () => {

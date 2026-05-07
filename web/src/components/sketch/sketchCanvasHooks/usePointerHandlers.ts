@@ -270,6 +270,9 @@ export function usePointerHandlers({
 
   // ─── Core interaction state refs ────────────────────────────────────
   const isDrawingRef = useRef(false);
+  // Locks the effective tool for the duration of a pointer-down gesture so that
+  // pressing Ctrl mid-drag (e.g. during a selection draw) cannot switch the tool.
+  const gestureToolRef = useRef<SketchTool | null>(null);
   const isPanningRef = useRef(false);
   const isSpacePanningRef = useRef(false);
   const panStartRef = useRef<Point>({ x: 0, y: 0 });
@@ -524,6 +527,7 @@ export function usePointerHandlers({
       const started = handler.onDown?.(toolCtxRef.current, buildToolPointerEvent(e));
       if (started) {
         isDrawingRef.current = true;
+        gestureToolRef.current = interactionTool;
       }
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
 
@@ -588,16 +592,17 @@ export function usePointerHandlers({
         drawCursor(e.clientX, e.clientY);
       }
 
-      const handler = getToolHandler(interactionTool);
-
       // ─── Non-drawing hover dispatches ─────────────────────────────────
       if (!isDrawingRef.current) {
         // Generic hover dispatch: any tool with onHoverMove receives hover events
+        const handler = getToolHandler(interactionTool);
         handler.onHoverMove?.(toolCtxRef.current, buildToolPointerEvent(e));
         return;
       }
 
-      // ─── Active drawing: delegate to tool handler ─────────────────────
+      // ─── Active drawing: use locked gesture tool so mid-gesture modifier ──
+      // ─── key changes (e.g. Ctrl during a selection drag) cannot hijack it ─
+      const handler = getToolHandler(gestureToolRef.current ?? interactionTool);
       handler.onMove?.(
         toolCtxRef.current,
         buildToolPointerEvent(e),
@@ -653,10 +658,12 @@ export function usePointerHandlers({
       if (!isDrawingRef.current) {
         return;
       }
+      const gestureTool = gestureToolRef.current ?? interactionTool;
+      gestureToolRef.current = null;
       isDrawingRef.current = false;
 
       // ─── Generic tool delegation ─────────────────────────────────────
-      const handler = getToolHandler(interactionTool);
+      const handler = getToolHandler(gestureTool);
       handler.onUp?.(toolCtxRef.current, buildToolPointerEvent(e));
 
       // ─── Async tool lifecycle: call onCommit if present ──────────────
@@ -670,7 +677,7 @@ export function usePointerHandlers({
         handler.onCommit(toolCtxRef.current).catch((err) => {
           // Only log if this commit was not superseded by a newer one
           if (commitGenRef.current === gen) {
-            console.error(`Tool ${interactionTool} onCommit error:`, err);
+            console.error(`Tool ${gestureTool} onCommit error:`, err);
           }
         });
       }

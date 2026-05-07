@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { isMac } from "../../../utils/platform";
 import { useSketchStore } from "../state";
 
-const SPRING_BLOCKED_TOOLS = new Set(["select", "crop", "segment"]);
+const SPRING_BLOCKED_TOOLS = new Set(["crop", "segment"]);
 
 function isSpringModifierPhysicalKey(e: KeyboardEvent): boolean {
   return isMac()
@@ -18,7 +18,8 @@ function isSpringModifierStillHeld(e: KeyboardEvent): boolean {
  * Manages spring-loaded modifier state independently of the shortcut dispatcher.
  *
  * - Ctrl/Cmd held (physical key) → temporarily activates move tool.
- *   Blocked when activeTool is select, crop, or segment (those tools own modifier semantics).
+ *   Blocked when activeTool is crop or segment. Select allows spring-load but the gesture lock
+ *   in usePointerHandlers prevents mid-selection-drag tool switches.
  * - Space held → activates pan. `spacePanActive` state lives here.
  *   `useKeyboardModifiers.ts` keeps its own `spaceHeldRef` for pointer-gesture code — separate concern.
  *
