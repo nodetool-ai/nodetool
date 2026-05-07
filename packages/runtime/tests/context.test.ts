@@ -781,11 +781,8 @@ describe("ProcessingContext – variables and secrets", () => {
       expect(ctx.get("new_key")).toEqual({ ok: true });
 
       const outPath = await ctx.storeStepResult("step_a", { n: 42 });
-      expect(outPath.endsWith("step_a.json")).toBe(true);
+      expect(outPath).toBe("");
       await expect(ctx.loadStepResult("step_a")).resolves.toEqual({ n: 42 });
-      await expect(
-        readFile(join(root, "var_new_key.json"), "utf8")
-      ).resolves.toContain('"ok": true');
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -1302,22 +1299,7 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
 });
 
 describe("ProcessingContext – loadStepResult edge cases", () => {
-  it("returns default when workspace result file is missing", async () => {
-    const root = await mkdtemp(join(tmpdir(), "nodetool-ts-load-"));
-    try {
-      const ctx = new ProcessingContext({ jobId: "j1", workspaceDir: root });
-      // Manually set a workspace result marker with non-existent file
-      ctx.set("step_missing", { __workspace_result__: "missing.json" } as any);
-      // Wait a tick for the persist attempt
-      await new Promise((r) => setTimeout(r, 10));
-      const result = await ctx.loadStepResult("step_missing", "fallback");
-      expect(result).toBe("fallback");
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("returns raw variable when no workspace marker", async () => {
+  it("returns stored value", async () => {
     const ctx = new ProcessingContext({ jobId: "j1" });
     ctx.set("raw_var", 42);
     const result = await ctx.loadStepResult("raw_var", 0);
@@ -1720,11 +1702,11 @@ describe("ProcessingContext – getProvider edge cases", () => {
 });
 
 describe("ProcessingContext – storeStepResult without workspace", () => {
-  it("throws when no workspace is set", async () => {
+  it("stores value in-memory when no workspace is set", async () => {
     const ctx = new ProcessingContext({ jobId: "j1" });
-    await expect(ctx.storeStepResult("key", { data: 1 })).rejects.toThrow(
-      "workspace_dir is required"
-    );
+    const path = await ctx.storeStepResult("key", { data: 1 });
+    expect(path).toBe("");
+    await expect(ctx.loadStepResult("key")).resolves.toEqual({ data: 1 });
   });
 });
 

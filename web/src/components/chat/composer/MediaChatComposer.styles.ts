@@ -15,9 +15,12 @@ export const createMediaComposerStyles = (theme: Theme) =>
 
     ".media-compose-card": {
       width: "100%",
-      borderRadius: 22,
-      padding: `${theme.spacing(1.75)} ${theme.spacing(2)} ${theme.spacing(1.5)}`,
-      background: theme.vars.palette.background.paper,
+      borderRadius: 28,
+      padding: `${theme.spacing(2.25)} ${theme.spacing(2)} ${theme.spacing(1.5)}`,
+      background:
+        theme.palette.mode === "light"
+          ? theme.vars.palette.background.paper
+          : theme.vars.palette.grey[900],
       backdropFilter: "blur(16px)",
       border: `1px solid ${
         theme.palette.mode === "light"
@@ -30,7 +33,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
           : "0 10px 40px rgba(0,0,0,0.45)",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(1.25),
+      gap: theme.spacing(1.75),
       transition: `${MOTION.border}, ${MOTION.shadow}`,
       "&:focus-within": {
         borderColor:
@@ -49,10 +52,10 @@ export const createMediaComposerStyles = (theme: Theme) =>
 
     ".media-compose-card textarea.media-compose-input": {
       width: "100%",
-      minHeight: 48,
+      minHeight: 36,
       maxHeight: 220,
-      padding: `${theme.spacing(0.5)} ${theme.spacing(0.75)}`,
       margin: 0,
+      padding: theme.spacing(3),
       resize: "none",
       background: "transparent",
       color: theme.vars.palette.grey[50],
@@ -62,6 +65,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
       fontSize: 16,
       lineHeight: "24px",
       boxSizing: "border-box",
+      display: "block",
       overflowY: "hidden",
       "&::placeholder": {
         color: theme.vars.palette.grey[500],
@@ -72,8 +76,10 @@ export const createMediaComposerStyles = (theme: Theme) =>
     ".media-chip-row": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.5),
+      gap: theme.spacing(1.25),
       width: "100%",
+      padding: `0 ${theme.spacing(2)}`,
+      boxSizing: "border-box",
       flexWrap: "wrap"
     },
 
@@ -83,6 +89,34 @@ export const createMediaComposerStyles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.circle,
       background: theme.vars.palette.grey[700],
       margin: `0 ${theme.spacing(0.25)}`
+    },
+
+    ".media-chip-row .tools-button": {
+      height: 34,
+      minWidth: 34,
+      padding: 0,
+      borderRadius: BORDER_RADIUS.pill,
+      color: `${theme.vars.palette.grey[300]} !important`,
+      borderColor: "transparent !important",
+      backgroundColor: "transparent !important",
+      boxShadow: "none",
+      "&:hover": {
+        backgroundColor: "rgba(255,255,255,0.10) !important",
+        color: `${theme.vars.palette.grey[100]} !important`
+      },
+      "&.active": {
+        color: `${theme.vars.palette.grey[300]} !important`,
+        borderColor: "transparent !important"
+      },
+      ".MuiButton-startIcon": {
+        margin: 0,
+        "& > *:nth-of-type(1)": {
+          fontSize: 18
+        }
+      },
+      "svg": {
+        color: "currentColor !important"
+      }
     },
 
     ".media-chip-spacer": {
@@ -143,12 +177,18 @@ export const createMediaComposerStyles = (theme: Theme) =>
     },
 
     ".media-generate-btn.chat-send": {
-      background: theme.vars.palette.grey[100],
-      color: theme.vars.palette.grey[900],
+      width: 44,
+      height: 44,
+      padding: 0,
+      borderRadius: BORDER_RADIUS.circle,
+      background: theme.vars.palette.grey[700],
+      color: theme.vars.palette.grey[50],
       boxShadow: "none",
-      padding: `0 ${theme.spacing(2)}`,
+      "& svg": {
+        fontSize: 26
+      },
       "&:hover:not(:disabled)": {
-        background: theme.vars.palette.grey[50]
+        background: theme.vars.palette.grey[600]
       }
     },
 

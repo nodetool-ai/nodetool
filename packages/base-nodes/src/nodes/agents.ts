@@ -3064,6 +3064,19 @@ export class AgentNode extends BaseNode {
 
     let lastText = "";
 
+    const statusChunk = (
+      kind: string,
+      content: string,
+      metadata: Record<string, unknown> = {}
+    ): Chunk =>
+      ({
+        type: "chunk",
+        content_type: "agent_status",
+        content,
+        content_metadata: { kind, ...metadata },
+        done: false
+      }) as Chunk;
+
     for await (const msg of agent.execute(context)) {
       const pmsg = msg as ProcessingMessage;
       if (pmsg.type === "chunk") {
@@ -3084,10 +3097,67 @@ export class AgentNode extends BaseNode {
           lastText = resultText;
         }
       } else if (pmsg.type === "log_update") {
+        const p = pmsg as any;
         log.info("MultiModeAgent log", {
           nodeId: this.__node_id ?? null,
-          content: (pmsg as any).content
+          content: p.content
         });
+        yield {
+          chunk: statusChunk("log", String(p.content ?? ""), {
+            severity: p.severity ?? "info"
+          }),
+          thinking: null,
+          text: null,
+          audio: null
+        };
+      } else if (pmsg.type === "planning_update") {
+        const p = pmsg as any;
+        const content = p.content ?? `${p.phase}: ${p.status}`;
+        yield {
+          chunk: statusChunk("planning", String(content), {
+            phase: p.phase,
+            status: p.status
+          }),
+          thinking: null,
+          text: null,
+          audio: null
+        };
+      } else if (pmsg.type === "task_update") {
+        const p = pmsg as any;
+        const taskTitle = p.task?.title ?? p.task?.id ?? "task";
+        const stepTitle = p.step?.instructions ?? p.step?.id ?? "";
+        const content = stepTitle
+          ? `${p.event}: ${taskTitle} — ${stepTitle}`
+          : `${p.event}: ${taskTitle}`;
+        yield {
+          chunk: statusChunk("task", content, {
+            event: p.event,
+            task_id: p.task?.id,
+            step_id: p.step?.id
+          }),
+          thinking: null,
+          text: null,
+          audio: null
+        };
+      } else if (pmsg.type === "tool_call_update") {
+        const p = pmsg as any;
+        const argsPreview = (() => {
+          try {
+            return JSON.stringify(p.args ?? {});
+          } catch {
+            return "";
+          }
+        })();
+        yield {
+          chunk: statusChunk(
+            "tool_call",
+            `${p.name}(${argsPreview.slice(0, 200)})`,
+            { name: p.name, args: p.args, message: p.message }
+          ),
+          thinking: null,
+          text: null,
+          audio: null
+        };
       }
     }
 

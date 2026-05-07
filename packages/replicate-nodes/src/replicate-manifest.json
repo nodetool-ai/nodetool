@@ -27572,7 +27572,7 @@
     "endpointId": "cjwbw/rudalle-sr:32fdb2231d00a10d33754cc2ba794a2dfec94216579770785849ce6f149dbc69",
     "className": "ruDallE_SR",
     "moduleName": "image-upscale",
-    "docstring": "Real-ESRGAN super-resolution model from ruDALL-E",
+    "docstring": "Real-ESRGAN super-resolution model from ruGPT-Image",
     "tags": [
       "replicate",
       "ai"

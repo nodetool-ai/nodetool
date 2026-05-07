@@ -68,7 +68,7 @@ export class OpenAIWebSearchTool extends Tool {
 export class OpenAIImageGenerationTool extends Tool {
   readonly name = "openai_image_generation";
   readonly description =
-    "Generate an image from a text prompt using OpenAI DALL-E";
+    "Generate an image from a text prompt using OpenAI GPT-Image";
   readonly inputSchema = {
     type: "object" as const,
     properties: {

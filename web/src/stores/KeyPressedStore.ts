@@ -48,6 +48,7 @@ interface ComboOptions {
 
 // Module-level variables and functions
 const comboCallbacks = new Map<string, ComboOptions>();
+let lastPointerDownWasCanvas = false;
 
 /**
  * Is this element a text-editing target the platform itself treats as editable?
@@ -62,6 +63,12 @@ const isEditable = (node: Element | null | undefined): boolean => {
   if (node.isContentEditable) return true;
   return false;
 };
+
+const isWorkflowEditorElement = (node: Element | null | undefined): boolean =>
+  node instanceof HTMLElement &&
+  (node.classList.contains("react-flow__pane") ||
+    node.closest(".react-flow__renderer") !== null ||
+    node.closest("[data-workflow-editor]") !== null);
 
 const registerComboCallback = (combo: string, options: ComboOptions = {}) => {
   // Normalize 'ctrl' to 'control' for consistency
@@ -105,9 +112,10 @@ const executeComboCallbacks = (
   // while the user is typing.
   const isCanvasFocused =
     !isInputFocused &&
-    (activeElement?.classList?.contains("react-flow__pane") ||
-      activeElement?.closest(".react-flow__renderer") ||
-      activeElement?.closest("[data-workflow-editor]"));
+    (lastPointerDownWasCanvas ||
+      isWorkflowEditorElement(activeElement) ||
+      (event?.target instanceof Element &&
+        isWorkflowEditorElement(event.target)));
 
   if (isInputFocused && options.scope !== "global") {
     // --- Input Focus Handling ---
@@ -352,6 +360,16 @@ const initKeyListeners = () => {
   const handleKeyDown = (event: KeyboardEvent) => handleKeyChange(event, true);
   const handleKeyUp = (event: KeyboardEvent) => handleKeyChange(event, false);
 
+  const handlePointerDown = (event: PointerEvent) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const targetIsEditable = isEditable(target);
+    lastPointerDownWasCanvas = !targetIsEditable && isWorkflowEditorElement(target);
+
+    if (lastPointerDownWasCanvas && isEditable(document.activeElement)) {
+      (document.activeElement as HTMLElement).blur();
+    }
+  };
+
   const clearAllKeys = () => {
     const { pressedKeys, setKeysPressed } = useKeyPressedStore.getState();
     pressedKeys.forEach((key) => setKeysPressed({ [key]: false }));
@@ -359,6 +377,7 @@ const initKeyListeners = () => {
 
   window.addEventListener("keydown", handleKeyDown);
   window.addEventListener("keyup", handleKeyUp);
+  window.addEventListener("pointerdown", handlePointerDown, true);
   window.addEventListener("blur", clearAllKeys);
   window.addEventListener("focus", clearAllKeys);
 
@@ -369,8 +388,10 @@ const initKeyListeners = () => {
   return () => {
     window.removeEventListener("keydown", handleKeyDown);
     window.removeEventListener("keyup", handleKeyUp);
+    window.removeEventListener("pointerdown", handlePointerDown, true);
     window.removeEventListener("blur", clearAllKeys);
     window.removeEventListener("focus", clearAllKeys);
+    lastPointerDownWasCanvas = false;
     listenersInitialized = false;
   };
 };

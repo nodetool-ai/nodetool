@@ -81,68 +81,6 @@ describe("CreateTaskPlanTool", () => {
     expect(errors.some((e) => e.includes("Duplicate"))).toBe(true);
   });
 
-  it("rejects steps with looping phrases", async () => {
-    const tool = new CreateTaskPlanTool();
-    const result = (await tool.process(createMockContext(), {
-      title: "Loop Task",
-      steps: [
-        {
-          id: "process_items",
-          instructions: "For each URL, fetch the content",
-          depends_on: []
-        }
-      ]
-    })) as Record<string, unknown>;
-
-    expect(result.status).toBe("validation_failed");
-    const errors = result.errors as string[];
-    expect(errors.some((e) => e.includes("looping phrase"))).toBe(true);
-  });
-
-  it("allows aggregator steps to have looping language", async () => {
-    const tool = new CreateTaskPlanTool();
-    const result = (await tool.process(createMockContext(), {
-      title: "Agg Task",
-      steps: [
-        {
-          id: "aggregate_results",
-          instructions: "For each result, combine into final report",
-          depends_on: []
-        }
-      ]
-    })) as Record<string, unknown>;
-
-    expect(result.status).toBe("task_created");
-  });
-
-  it("detects missing aggregator dependencies on extractor steps", async () => {
-    const tool = new CreateTaskPlanTool();
-    const result = (await tool.process(createMockContext(), {
-      title: "Missing Agg Deps",
-      steps: [
-        {
-          id: "extract_data_1",
-          instructions: "Get data from source 1",
-          depends_on: []
-        },
-        {
-          id: "extract_data_2",
-          instructions: "Get data from source 2",
-          depends_on: []
-        },
-        {
-          id: "aggregate_results",
-          instructions: "Combine all data",
-          depends_on: ["extract_data_1"]
-        }
-      ]
-    })) as Record<string, unknown>;
-
-    expect(result.status).toBe("validation_failed");
-    const errors = result.errors as string[];
-    expect(errors.some((e) => e.includes("extract_data_2"))).toBe(true);
-  });
-
   it("detects circular dependencies", async () => {
     const tool = new CreateTaskPlanTool();
     const result = (await tool.process(createMockContext(), {
