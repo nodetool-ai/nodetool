@@ -44,6 +44,12 @@ export interface TaskExecutorOptions {
   finalStepId?: string;
   /** Execute independent steps in parallel (default: false). */
   parallelExecution?: boolean;
+  /**
+   * Memory keys (typically `task:<id>` from the parent plan's task-level
+   * dependencies) to surface in every step's user message as required
+   * upstream context. Forwarded to {@link StepExecutor.upstreamMemoryKeys}.
+   */
+  upstreamMemoryKeys?: string[];
 }
 
 export class TaskExecutor {
@@ -59,6 +65,7 @@ export class TaskExecutor {
   private maxTokenLimit: number;
   private finalStepId: string | undefined;
   private parallelExecution: boolean;
+  private upstreamMemoryKeys: string[];
   private _finishStepId: string | undefined;
 
   constructor(opts: TaskExecutorOptions) {
@@ -75,6 +82,7 @@ export class TaskExecutor {
     this.maxTokenLimit = opts.maxTokenLimit ?? DEFAULT_TOKEN_LIMIT;
     this.finalStepId = opts.finalStepId;
     this.parallelExecution = opts.parallelExecution ?? false;
+    this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
   }
 
   /**
@@ -149,7 +157,8 @@ export class TaskExecutor {
           systemPrompt: this.systemPrompt,
           maxTokenLimit: this.maxTokenLimit,
           maxIterations: this.maxStepIterations,
-          useFinishTask: this.isFinishStep(step)
+          useFinishTask: this.isFinishStep(step),
+          upstreamMemoryKeys: this.upstreamMemoryKeys
         });
         return executor.execute();
       });
@@ -282,7 +291,8 @@ export class TaskExecutor {
         systemPrompt: this.systemPrompt,
         maxTokenLimit: this.maxTokenLimit,
         maxIterations: this.maxStepIterations,
-        useFinishTask: false
+        useFinishTask: false,
+        upstreamMemoryKeys: this.upstreamMemoryKeys
       });
       return executor.execute();
     });
