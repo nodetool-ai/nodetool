@@ -13,7 +13,7 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { Box } from "@mui/material";
+import { FlexRow, Text } from "../ui_primitives";
 import type { Point, SketchTool } from "./types";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
 import { SKETCH_Z_INDEX, SKETCH_FONT } from "./sketchStyles";
@@ -240,8 +240,9 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
           />
         )}
         {/* Canvas info bar */}
-        <Box
+        <FlexRow
           className="sketch-canvas__info-bar"
+          align="center"
           sx={{
             position: "absolute",
             bottom: 8,
@@ -254,29 +255,29 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
             fontSize: SKETCH_FONT.md,
             pointerEvents: "none",
             zIndex: 5,
-            display: "flex",
             gap: "12px"
           }}
         >
-          <span>
+          <Text component="span">
             {canvasWidth} × {canvasHeight}
-          </span>
-          <span>{Math.round(zoom * 100)}%</span>
+          </Text>
+          <Text component="span">{Math.round(zoom * 100)}%</Text>
           {cursorDocPos !== null && (
-            <span>
+            <Text component="span">
               {cursorDocPos.x}, {cursorDocPos.y}
-            </span>
+            </Text>
           )}
-          <span
-            style={{
+          <Text
+            component="span"
+            sx={{
               textTransform: "uppercase",
               fontSize: SKETCH_FONT.xs,
               opacity: 0.7
             }}
           >
             {backend}
-          </span>
-        </Box>
+          </Text>
+        </FlexRow>
       </div>
     );
   }

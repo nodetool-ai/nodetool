@@ -7,13 +7,15 @@
  */
 
 import React, { memo, useState, useCallback } from "react";
-import {
-  Box,
-  Typography,
-  Tooltip,
-  IconButton
-} from "@mui/material";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import {
+  Container,
+  FlexColumn,
+  FlexRow,
+  Text,
+  ToolbarIconButton,
+  Tooltip
+} from "../ui_primitives";
 import { colorToHex6 } from "./types";
 import { SKETCH_FONT, SKETCH_SPACING, SKETCH_COLORS, SKETCH_TOOLTIP_DELAY_MS, colorSwatchSx } from "./sketchStyles";
 import ColorPickerPopover from "./ColorPickerPopover";
@@ -53,50 +55,72 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
   }, [backgroundColor]);
 
   return (
-    <Box className="color-swatch-pair" sx={{ display: "flex", flexDirection: "column", gap: SKETCH_SPACING.sm, width: "100%", alignItems: "center" }}>
+    <FlexColumn
+      className="color-swatch-pair"
+      sx={{ width: "100%", alignItems: "center", gap: SKETCH_SPACING.sm }}
+    >
 
       {/* ── Swatches ── */}
-      <Box className="color-swatch-pair__swatches" sx={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: SKETCH_SPACING.md }}>
-        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px" }}>
-          <Typography sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted, userSelect: "none" }}>FG</Typography>
+      <FlexRow
+        className="color-swatch-pair__swatches"
+        align="flex-end"
+        justify="center"
+        sx={{ gap: SKETCH_SPACING.md }}
+      >
+        <FlexColumn sx={{ alignItems: "center", gap: "1px" }}>
+          <Text sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted, userSelect: "none" }}>FG</Text>
           <Tooltip title="Foreground Color" placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <Box
+            <Container
               className="color-swatch-pair__fg"
+              padding="none"
               onClick={handleFgClick}
               sx={colorSwatchSx}
             >
-              <Box sx={{ position: "absolute", inset: 0, backgroundColor: fgHex6 }} />
-            </Box>
+              <Container
+                padding="none"
+                sx={{ position: "absolute", inset: 0, backgroundColor: fgHex6 }}
+              />
+            </Container>
           </Tooltip>
-        </Box>
+        </FlexColumn>
 
-        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px" }}>
-          <Typography sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted, userSelect: "none" }}>BG</Typography>
+        <FlexColumn sx={{ alignItems: "center", gap: "1px" }}>
+          <Text sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted, userSelect: "none" }}>BG</Text>
           <Tooltip title="Background Color" placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <Box
+            <Container
               className="color-swatch-pair__bg"
+              padding="none"
               onClick={handleBgClick}
               sx={colorSwatchSx}
             >
-              <Box sx={{ position: "absolute", inset: 0, backgroundColor: bgHex6 }} />
-            </Box>
+              <Container
+                padding="none"
+                sx={{ position: "absolute", inset: 0, backgroundColor: bgHex6 }}
+              />
+            </Container>
           </Tooltip>
-        </Box>
-      </Box>
+        </FlexColumn>
+      </FlexRow>
 
       {/* ── Swap / Reset ── */}
-      <Box className="color-swatch-pair__actions" sx={{ display: "flex", alignItems: "center", width: "54px" }}>
-        <Tooltip title="Swap Colors (X)" placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-          <IconButton size="small" onClick={onSwapColors} sx={{ flex: 1, padding: SKETCH_SPACING.xs, borderRadius: "3px" }}>
-            <SwapHorizIcon sx={{ fontSize: "13px" }} />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Reset to B/W (D)" placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-          <IconButton size="small" onClick={onResetColors} sx={{ flex: 1, padding: SKETCH_SPACING.xs, borderRadius: "3px" }}>
-            <Typography sx={{ fontSize: SKETCH_FONT.xxs, fontWeight: 700, lineHeight: 1 }}>D</Typography>
-          </IconButton>
-        </Tooltip>
-      </Box>
+      <FlexRow className="color-swatch-pair__actions" align="center" sx={{ width: "54px" }}>
+        <ToolbarIconButton
+          tooltip="Swap Colors (X)"
+          tooltipPlacement="right"
+          delay={SKETCH_TOOLTIP_DELAY_MS}
+          onClick={onSwapColors}
+          icon={<SwapHorizIcon sx={{ fontSize: "13px" }} />}
+          sx={{ flex: 1, padding: SKETCH_SPACING.xs, borderRadius: "3px" }}
+        />
+        <ToolbarIconButton
+          tooltip="Reset to B/W (D)"
+          tooltipPlacement="right"
+          delay={SKETCH_TOOLTIP_DELAY_MS}
+          onClick={onResetColors}
+          icon={<Text sx={{ fontSize: SKETCH_FONT.xxs, fontWeight: 700, lineHeight: 1 }}>D</Text>}
+          sx={{ flex: 1, padding: SKETCH_SPACING.xs, borderRadius: "3px" }}
+        />
+      </FlexRow>
 
       {/* ── Pickers ── */}
       <ColorPickerPopover
@@ -114,7 +138,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
         onClose={() => setBgAnchor(null)}
       />
 
-    </Box>
+    </FlexColumn>
   );
 };
 

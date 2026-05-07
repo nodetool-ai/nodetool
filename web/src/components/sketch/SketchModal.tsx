@@ -14,9 +14,6 @@ import type { Theme } from "@mui/material/styles";
 import {
   Box,
   IconButton,
-  Typography,
-  Tooltip,
-  Divider,
   Menu,
   MenuItem,
   ListItemIcon,
@@ -51,6 +48,7 @@ import {
   settingRowChildrenSx
 } from "./sketchStyles";
 import { displayCombo } from "./shortcuts";
+import { Divider, Text, Tooltip } from "../ui_primitives";
 
 function isPressureSketchTool(tool: SketchTool): boolean {
   return tool === "brush" || tool === "pencil" || tool === "eraser";
@@ -182,9 +180,9 @@ const SketchModal: React.FC<SketchModalProps> = ({
       tabIndex={-1}
     >
       <Box className="sketch-modal-header">
-        <Typography variant="body2" sx={{ fontWeight: 500, mr: "auto" }}>
+        <Text sx={{ fontWeight: 500, mr: "auto" }}>
           {title}
-        </Typography>
+        </Text>
 
         {isPressureSketchTool(activeTool) ? (
           <Box
@@ -300,9 +298,9 @@ const SketchModal: React.FC<SketchModalProps> = ({
             ))}
             {(symmetryMode === "radial" || symmetryMode === "mandala") && (
               <Box sx={{ px: 2, py: 1, minWidth: 160 }}>
-                <Typography variant="caption" sx={{ color: "grey.500" }}>
+                <Text sx={{ color: "grey.500", fontSize: theme.fontSizeTiny }}>
                   Rays: {symmetryRays}
-                </Typography>
+                </Text>
                 <Slider
                   value={symmetryRays}
                   min={SYMMETRY_MIN_RAYS}
@@ -327,9 +325,9 @@ const SketchModal: React.FC<SketchModalProps> = ({
 
           {confirmDiscard ? (
             <>
-              <Typography variant="caption" sx={{ color: "warning.main", whiteSpace: "nowrap" }}>
+              <Text sx={{ color: "warning.main", whiteSpace: "nowrap", fontSize: theme.fontSizeTiny }}>
                 Discard changes?
-              </Typography>
+              </Text>
               <IconButton size="small" color="error" onClick={() => { editorRef.current?.discardToInitial(); onClose(); }}>
                 <TrashIcon width={16} height={16} />
               </IconButton>
