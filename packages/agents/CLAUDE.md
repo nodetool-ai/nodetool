@@ -1,5 +1,49 @@
 # Agents Package
 
+## Agent Memory (`@nodetool-ai/runtime` → `context.memory`)
+
+Every `ProcessingContext` carries an `AgentMemory` instance at `context.memory`. It is the **single source of truth** for everything shared between steps, tasks, sub-agents, and tools. Do not introduce a parallel result map in any executor — read and write through `context.memory`.
+
+### Key namespaces
+
+```ts
+import { memoryKeys } from "@nodetool-ai/runtime";
+
+memoryKeys.step("step_1");         // "step:step_1"  — step result
+memoryKeys.task("research_phase"); // "task:research_phase"  — task result
+memoryKeys.input("customer");      // "input:customer"  — caller-supplied input
+memoryKeys.shared("note");         // "shared:note"  — cross-agent scratch
+```
+
+### Who writes what
+
+| Writer | Trigger | Key | Kind |
+|---|---|---|---|
+| `StepExecutor` | Step completion | `step:<step.id>` | `step_result` |
+| `StepExecutor` | Last step of a task (finish-task) | `task:<task.id>` | `task_result` |
+| `TaskExecutor` | Startup / process-mode aggregation | `input:<key>` / `step:<step.id>` | `input` / `step_result` |
+| `ParallelTaskExecutor` | After a task completes (idempotent) | `task:<task.id>` | `task_result` |
+| `TeamExecutor` | `TaskBoard.task_completed` event | `task:<task.id>` | `task_result` |
+| `AgentStepExecutor` | Workflow edge inputs | `input:<nodeId>.<key>` | `input` |
+
+### How LLMs see memory
+
+`StepExecutor.buildUserMessage()` injects a Markdown snapshot of `task_result + step_result + input` entries into every step's user message via `formatForPrompt()`. Downstream tasks see upstream results without explicit dependency edges. `TeamExecutor.runAgentWorkCycle()` injects a similar block (`task_result + shared + input`) so teammates discover each other's work.
+
+### Custom prompts are preambles, not replacements
+
+`StepExecutor.buildSystemPrompt()` always uses the default execution prompt (output schema, `finish_step` discipline, conclusion-stage rules). A caller-supplied `systemPrompt` is layered as a preamble *before* the default — it cannot override the execution contract. Earlier versions allowed this and broke result capture in plan mode.
+
+### Tests
+
+- `packages/runtime/tests/agent-memory.test.ts` — unit tests for `AgentMemory`
+- `packages/agents/tests/memory-propagation.test.ts` — end-to-end propagation through `MultiModeAgent` plan mode
+- `packages/agents/tests/_helpers/mock-context.ts` — shared mock context with a real `AgentMemory` for executor tests
+
+When asserting memory writes in tests, prefer `context.memory.has(memoryKeys.task("..."))` and `context.memory.subscribe(...)` over spies on `set` / `storeStepResult`.
+
+For the full API reference, propagation flow, design decisions, and troubleshooting, see [docs/agent-memory.md](../../docs/agent-memory.md).
+
 ## JavaScript Sandbox (`src/js-sandbox.ts`)
 
 User-authored JS from `MiniJSAgentTool` and `nodetool.code.Code` runs in a
