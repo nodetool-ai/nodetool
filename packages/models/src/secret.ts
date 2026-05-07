@@ -12,7 +12,6 @@ import {
   encryptFernet,
   decrypt,
   decryptFernet,
-  getMasterKey,
   initMasterKey
 } from "@nodetool-ai/security";
 import { createLogger } from "@nodetool-ai/config";
@@ -61,7 +60,12 @@ export class Secret extends DBModel {
     value: string;
     description?: string;
   }): Promise<Secret> {
-    const masterKey = getMasterKey();
+    // Use the async master-key resolver so a fresh process that has not
+    // pre-initialized the keychain still encrypts with the same persistent
+    // key that decryption (Secret.getDecryptedValue) will later load. The
+    // sync getMasterKey() would silently auto-generate a one-shot key here
+    // and leave the encrypted value undecryptable on the next launch.
+    const masterKey = await initMasterKey();
     const encryptedValue = encryptFernet(masterKey, opts.userId, opts.value);
     const now = new Date().toISOString();
 

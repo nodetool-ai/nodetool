@@ -24,6 +24,7 @@ import superjson from "superjson";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { workflowToDsl } from "@nodetool-ai/dsl";
 import { initDb, Workflow, Secret, getSecret } from "@nodetool-ai/models";
+import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath } from "@nodetool-ai/config";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -52,6 +53,20 @@ const __dirname = dirname(__filename);
 
 async function setupDb(): Promise<void> {
   initDb(getDefaultDbPath());
+  // Resolve the master encryption key from keychain / env / AWS so that
+  // both encryption (Secret.upsert) and decryption (Secret.getDecryptedValue)
+  // use the same persistent key. Without this, a fresh process would
+  // auto-generate a one-shot key inside `getMasterKey()`, encrypt with it,
+  // then lose it on exit — and the next launch could not decrypt.
+  try {
+    await initMasterKey();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stderr.write(
+      `Could not unlock the secret store: ${msg}\n` +
+        `Tip: set SECRETS_MASTER_KEY or grant keychain access.\n`
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
