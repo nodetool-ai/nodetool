@@ -90,10 +90,14 @@ export class TaskExecutor {
    * Supports both sequential and parallel execution modes.
    */
   async *executeTasks(): AsyncGenerator<ProcessingMessage> {
-    // Seed inputs into shared memory so every step sees them.
+    // Seed inputs into shared memory so every step sees them. Skip keys that
+    // were already seeded by an upstream caller (e.g. ParallelTaskExecutor) to
+    // avoid redundant writes and extra subscriber notifications.
     for (const [key, value] of Object.entries(this.inputs)) {
+      const fullKey = memoryKeys.input(key);
+      if (this.context.memory.has(fullKey)) continue;
       this.context.memory.set({
-        key: memoryKeys.input(key),
+        key: fullKey,
         kind: "input",
         value,
         title: key
