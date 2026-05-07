@@ -1281,14 +1281,23 @@ export class WorkflowRunner {
   ): Record<string, Record<string, unknown>> {
     const result: Record<string, Record<string, unknown>> = {};
 
-    if (!node.properties || typeof node.properties !== "object") return result;
-    const props = node.properties as Record<string, unknown>;
-    const propTypes = node.propertyTypes ?? {};
+    const propTypes = (node.propertyTypes ?? {}) as Record<string, string>;
+    const props = (node.properties ?? {}) as Record<string, unknown>;
 
-    for (const [name, value] of Object.entries(props)) {
+    // Build the schema from registry-declared property types so the LLM sees
+    // every argument the node accepts, even when the node has no saved values.
+    // Fall back to keys present in `properties` for dynamic nodes whose
+    // registry metadata doesn't enumerate every property.
+    const names = new Set<string>([
+      ...Object.keys(propTypes),
+      ...Object.keys(props)
+    ]);
+
+    for (const name of names) {
       if (name.startsWith("_")) continue;
 
-      const declaredType = (propTypes as Record<string, string>)[name];
+      const declaredType = propTypes[name];
+      const value = props[name];
       let jsonType = "string";
       if (declaredType) {
         const lower = declaredType.toLowerCase();
@@ -1313,7 +1322,7 @@ export class WorkflowRunner {
         description:
           meta?.description ??
           `Property '${name}' (${declaredType ?? jsonType})`,
-        default: value,
+        ...(value !== undefined ? { default: value } : {}),
         ...(meta?.min != null ? { minimum: meta.min } : {}),
         ...(meta?.max != null ? { maximum: meta.max } : {})
       };

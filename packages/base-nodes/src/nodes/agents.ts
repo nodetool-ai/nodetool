@@ -847,16 +847,21 @@ function* yieldSplitThinkChunks(
 
 /**
  * Sanitize a node title to a valid tool name (snake_case, max 64 chars).
+ * Prefixed with `run_` to avoid collisions with provider-reserved built-in
+ * tool names (e.g. Gemini's native `google_search`, which would otherwise
+ * shadow our schema and pass `queries` instead of the node's actual props).
  */
 function sanitizeControlToolName(name: string): string {
-  if (!name) return "control_node";
+  const fallback = "run_node";
+  if (!name) return fallback;
   let s = name
     .replace(/[^a-zA-Z0-9]/g, "_")
     .replace(/([a-z])([A-Z])/g, "$1_$2")
     .toLowerCase()
     .replace(/_+/g, "_")
     .replace(/^_+|_+$/g, "");
-  if (!s) return "control_node";
+  if (!s) return fallback;
+  s = `run_${s}`;
   if (s.length > 64) s = s.slice(0, 64);
   return s;
 }
