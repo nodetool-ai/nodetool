@@ -92,10 +92,11 @@ export class AgentStepExecutor implements NodeExecutor {
       steps: [step]
     };
 
-    // Surface upstream edge inputs through shared agent memory so the step
-    // sees them via the standard memory-rendered prompt block. The legacy
-    // `Upstream Results` preamble is preserved for clients that read the
-    // raw step instructions.
+    // Persist upstream edge inputs into shared agent memory for cross-step
+    // discoverability and tool-based access (for example via memory tools /
+    // progressive disclosure). This method does not render memory into the
+    // current step prompt automatically; direct visibility for this step still
+    // comes from the legacy `Upstream Results` preamble added below.
     if (context) {
       for (const [key, value] of Object.entries(inputs)) {
         if (value === undefined || value === null) continue;
