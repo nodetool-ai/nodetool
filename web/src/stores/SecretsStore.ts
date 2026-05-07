@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { trpcClient } from "../trpc/client";
 import { createErrorMessage } from "../utils/errorHandling";
 import { SecretResponse } from "./ApiTypes";
+import { queryClient } from "../queryClient";
 
 interface SecretsStore {
   secrets: SecretResponse[];
@@ -12,6 +13,22 @@ interface SecretsStore {
   updateSecret: (key: string, value: string, description?: string) => Promise<void>;
   deleteSecret: (key: string) => Promise<void>;
 }
+
+// Provider availability is derived from configured secrets, and downstream
+// model lists are scoped to those providers. Whenever a secret is added,
+// changed, or removed, every cache that depends on the resulting provider
+// set must be refreshed so model dialogs reflect the new provider without
+// requiring a page reload.
+const invalidateProviderDependentCaches = (): void => {
+  queryClient.invalidateQueries({ queryKey: ["secrets"] });
+  queryClient.invalidateQueries({ queryKey: ["providers"] });
+  queryClient.invalidateQueries({ queryKey: ["language-models"] });
+  queryClient.invalidateQueries({ queryKey: ["embedding-models"] });
+  queryClient.invalidateQueries({ queryKey: ["image-models"] });
+  queryClient.invalidateQueries({ queryKey: ["tts-models"] });
+  queryClient.invalidateQueries({ queryKey: ["asr-models"] });
+  queryClient.invalidateQueries({ queryKey: ["video-models"] });
+};
 
 const useSecretsStore = create<SecretsStore>((set, get) => ({
   secrets: [],
@@ -60,6 +77,7 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
       });
       // Refresh secrets list
       await get().fetchSecrets();
+      invalidateProviderDependentCaches();
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
       set({
@@ -75,6 +93,7 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
       await trpcClient.settings.secrets.delete.mutate({ key });
       // Refresh secrets list
       await get().fetchSecrets();
+      invalidateProviderDependentCaches();
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
       set({
