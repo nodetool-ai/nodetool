@@ -28,7 +28,7 @@
     "lucide-react": "^0.341.0",
     "next": "^15.5.15",
     "openapi-fetch": "^0.7.1",
-    "openapi-typescript": "^6.3.9",
+    "openapi-typescript": "^7.13.0",
     "react": "^18",
     "react-dom": "^18",
     "react-markdown": "^10.0.0",
@@ -36,7 +36,7 @@
     "remark-gfm": "^4.0.1",
     "tailwind-merge": "^2.2.1",
     "tailwindcss-animate": "^1.0.7",
-    "uuid": "^11.1.0",
+    "uuid": "^14.0.0",
     "wavesurfer.js": "^7.9.1",
     "zustand": "^5.0.3"
   },
