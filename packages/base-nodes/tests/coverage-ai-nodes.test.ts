@@ -852,7 +852,7 @@ describe("AgentNode", () => {
         if (callCount === 1) {
           yield {
             id: "call_ctrl",
-            name: "controlled_node",
+            name: "run_controlled_node",
             args: { message: "hello" }
           };
           return;
@@ -877,7 +877,7 @@ describe("AgentNode", () => {
     });
 
     const result = await n.process(mockContext as any);
-    expect(capturedTools.some((t: any) => t.name === "controlled_node")).toBe(true);
+    expect(capturedTools.some((t: any) => t.name === "run_controlled_node")).toBe(true);
     expect(result.text).toBe("done");
     expect(sentEvents).toHaveLength(1);
     expect(sentEvents[0].targetNodeId).toBe("node-ctrl-1");
