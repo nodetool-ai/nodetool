@@ -25,6 +25,7 @@ import { StepExecutor } from "./step-executor.js";
 import { TaskPlanner } from "./task-planner.js";
 import { TaskExecutor } from "./task-executor.js";
 import { ParallelTaskExecutor } from "./parallel-task-executor.js";
+import { CompilerAgent } from "./compiler-agent.js";
 import { TeamExecutor } from "./team/team-executor.js";
 import { SubAgentPlanner } from "./sub-agent-planner.js";
 import type { Tool } from "./tools/base-tool.js";
@@ -271,14 +272,9 @@ export class MultiModeAgent extends BaseAgent {
       this.task = taskPlan.tasks[0];
     }
 
-    // Apply output schema to last step of last task
-    if (this.outputSchema && taskPlan.tasks.length > 0) {
-      const lastTask = taskPlan.tasks[taskPlan.tasks.length - 1];
-      if (lastTask.steps.length > 0) {
-        lastTask.steps[lastTask.steps.length - 1].outputSchema =
-          JSON.stringify(this.outputSchema);
-      }
-    }
+    // Schema is owned by the CompilerAgent below — the planner is told NOT
+    // to create an aggregation/synthesis step, so we no longer graft the
+    // agent's output schema onto a plan-step's finish_step.
 
     const totalSteps = taskPlan.tasks.reduce(
       (sum, t) => sum + t.steps.length,
@@ -309,16 +305,35 @@ export class MultiModeAgent extends BaseAgent {
     });
 
     for await (const item of executor.execute()) {
-      if (item.type === "step_result") {
-        const stepResult = item as StepResult;
-        if (stepResult.is_task_result) {
-          this.results = stepResult.result;
-        }
-      }
       yield item;
     }
 
-    // If no task_result was captured, use the final task's result
+    // Final synthesis: a dedicated CompilerAgent reads the gathered memory
+    // and produces a schema-conformant result. This replaces the previous
+    // approach of attaching the output schema to the plan's terminal step.
+    if (this.outputSchema) {
+      const compiler = new CompilerAgent({
+        objective: this.objective,
+        outputSchema: this.outputSchema,
+        provider: this.provider,
+        model: this.planningModel,
+        context,
+        systemPrompt: this.systemPrompt || undefined
+      });
+
+      const compileGen = compiler.compile();
+      let next = await compileGen.next();
+      while (!next.done) {
+        yield next.value;
+        next = await compileGen.next();
+      }
+      if (next.value !== null && next.value !== undefined) {
+        this.results = next.value;
+      }
+    }
+
+    // Fall back to the executor's last step result if compilation produced
+    // nothing (no schema declared, or compiler failed to finalize).
     if (this.results === null) {
       this.results = executor.getFinalResult();
     }
