@@ -42,7 +42,7 @@ export const useInputMinMax = ({
 
   const nodes: Node<NodeData>[] = useStoreWithEqualityFn(
     context ?? { subscribe: () => () => {}, getState: () => ({ nodes: [] }) } as unknown as NodeStore,
-    (state: unknown) => (state as NodeStoreState)?.nodes ?? [],
+    (state: NodeStoreState) => state?.nodes ?? [],
     shallow
   );
 
@@ -51,8 +51,9 @@ export const useInputMinMax = ({
 
   if (shouldLookupBounds && context && nodes.length > 0) {
     const node = nodes.find((n) => n.id === nodeId);
-    nodeMin = (node?.data?.properties as Record<string, unknown>)?.min as number | undefined;
-    nodeMax = (node?.data?.properties as Record<string, unknown>)?.max as number | undefined;
+    const props = node?.data?.properties;
+    nodeMin = typeof props?.min === "number" ? props.min : undefined;
+    nodeMax = typeof props?.max === "number" ? props.max : undefined;
 
     if (process.env.NODE_ENV === "development") {
       console.info("useInputMinMax node data:", { nodeId, min: nodeMin, max: nodeMax, properties: node?.data?.properties });

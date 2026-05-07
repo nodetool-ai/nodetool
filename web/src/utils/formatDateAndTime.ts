@@ -4,7 +4,7 @@ interface Settings {
   timeFormat: "12h" | "24h";
 }
 
-export function secondsToHMS(seconds: number) {
+export function secondsToHMS(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   seconds %= 3600;
   const minutes = Math.floor(seconds / 60);
@@ -93,7 +93,7 @@ export function relativeTime(date: Date | string): string {
   return "just now";
 }
 
-export function getTimestampForFilename(includeTime: boolean = true): string {
+export function getTimestampForFilename(includeTime = true): string {
   const now = new Date();
   const iso = now.toISOString();
   if (includeTime) {

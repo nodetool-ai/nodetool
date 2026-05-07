@@ -31,7 +31,7 @@ export interface SelectFieldProps {
   /** Change handler */
   onChange: (value: string) => void;
   /** Available options */
-  options: SelectOption[];
+  options: readonly SelectOption[];
   /** Optional description text shown below */
   description?: string;
   /** Whether the select is disabled */

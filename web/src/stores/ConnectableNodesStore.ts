@@ -23,10 +23,12 @@ export interface ConnectableNodesState {
 
 export function useConnectableNodes(): ConnectableNodesState;
 export function useConnectableNodes<Selected>(
-  selector: (state: ConnectableNodesState) => Selected
+  selector: (state: ConnectableNodesState) => Selected,
+  equalityFn?: (a: Selected, b: Selected) => boolean
 ): Selected;
 export function useConnectableNodes<Selected>(
-  selector?: (state: ConnectableNodesState) => Selected
+  selector?: (state: ConnectableNodesState) => Selected,
+  _equalityFn?: (a: Selected, b: Selected) => boolean
 ) {
   const context = useContext(ConnectableNodesContext);
   if (!context) {

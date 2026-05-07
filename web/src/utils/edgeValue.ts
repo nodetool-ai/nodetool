@@ -4,7 +4,11 @@ import { NodeData } from "../stores/NodeData";
 type GetResult = (_workflowId: string, _nodeId: string) => unknown;
 type FindNode = (_nodeId: string) => Node<NodeData> | undefined;
 
-const isLiteralSourceNode = (nodeType?: string) => {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+const isLiteralSourceNode = (nodeType?: string): boolean => {
   if (!nodeType) {
     return false;
   }
@@ -15,13 +19,8 @@ const isLiteralSourceNode = (nodeType?: string) => {
 };
 
 const resolveResultValue = (result: unknown, sourceHandle?: string): unknown => {
-  if (
-    sourceHandle &&
-    typeof result === "object" &&
-    result !== null &&
-    !Array.isArray(result)
-  ) {
-    return (result as Record<string, unknown>)[sourceHandle] ?? result;
+  if (sourceHandle && isRecord(result)) {
+    return result[sourceHandle] ?? result;
   }
   return result;
 };
@@ -48,12 +47,18 @@ const resolveNodePropertyValue = (
   return undefined;
 };
 
+interface ResolvedEdgeValue {
+  value: unknown;
+  hasValue: boolean;
+  isFallback: boolean;
+}
+
 export const resolveExternalEdgeValue = (
   edge: Edge,
   workflowId: string,
   getResult: GetResult,
   findNode: FindNode
-) => {
+): ResolvedEdgeValue => {
   const result = getResult(workflowId, edge.source);
   if (result !== undefined) {
     return {
