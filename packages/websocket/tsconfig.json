@@ -66,6 +66,9 @@
       "path": "../storage"
     },
     {
+      "path": "../timeline"
+    },
+    {
       "path": "../vectorstore"
     }
   ]

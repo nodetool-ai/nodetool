@@ -42,6 +42,7 @@
     "@nodetool-ai/runtime": "*",
     "@nodetool-ai/security": "*",
     "@nodetool-ai/storage": "*",
+    "@nodetool-ai/timeline": "*",
     "@nodetool-ai/vectorstore": "*",
     "@mariozechner/pi-coding-agent": "^0.72.1",
     "@sinclair/typebox": "^0.34.0",
