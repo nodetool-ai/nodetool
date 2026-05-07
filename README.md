@@ -76,7 +76,7 @@ Access the latest generative AI models through simple nodes:
 | Type | Models |
 | :--- | :--- |
 | **Video** | OpenAI Sora 2 Pro, Google Veo 3.1, xAI Grok Imagine, Alibaba Wan 2.6, MiniMax Hailuo 2.3, Kling 2.6 |
-| **Image** | Black Forest Labs FLUX.2, Google Nano Banana Pro, DALL-E 3 |
+| **Image** | Black Forest Labs FLUX.2, Google Nano Banana Pro, GPT-Image 3 |
 | **Audio** | OpenAI Whisper, OpenAI TTS, ElevenLabs |
 | **Text** | GPT-4, Claude, Gemini, Llama, Mistral (local or cloud) |
 
