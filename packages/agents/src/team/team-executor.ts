@@ -17,6 +17,7 @@ import type {
 } from "@nodetool-ai/runtime";
 import { memoryKeys } from "@nodetool-ai/runtime";
 import { Tool } from "../tools/base-tool.js";
+import { getMemoryTools } from "../tools/memory-tools.js";
 import { MessageBus } from "./message-bus.js";
 import { TaskBoard } from "./task-board.js";
 import { createTeamTools } from "./team-tools.js";
@@ -301,15 +302,6 @@ export class TeamExecutor {
         (t.status === "claimed" || t.status === "working")
     );
 
-    // Inject shared agent memory so teammates can read each other's results.
-    const memoryBlock = this.context.memory.formatForPrompt({
-      kind: ["task_result", "shared", "input"]
-    });
-    if (memoryBlock) {
-      promptParts.push(memoryBlock);
-      promptParts.push("");
-    }
-
     if (myTasks.length > 0) {
       promptParts.push("**Your current tasks:**");
       for (const t of myTasks) {
@@ -357,14 +349,26 @@ export class TeamExecutor {
     this.totalIterations++;
     agent.iterations++;
 
-    // Build tool list: team tools + shared tools + agent-specific tools
+    // Build tool list: team tools + shared tools + memory tools.
+    // Memory tools provide progressive-disclosure access to results
+    // produced by other teammates (mirrored from the TaskBoard) and any
+    // facts published via `memory_write`.
     const teamTools = createTeamTools(
       agent.identity,
       this.config.agents,
       this.bus,
       this.board
     );
-    const allTools: Tool[] = [...teamTools, ...this.sharedTools];
+    const memoryTools = getMemoryTools().filter((mt) => {
+      const sharedNames = new Set(this.sharedTools.map((t) => t.name));
+      const teamNames = new Set(teamTools.map((t) => t.name));
+      return !sharedNames.has(mt.name) && !teamNames.has(mt.name);
+    });
+    const allTools: Tool[] = [
+      ...teamTools,
+      ...this.sharedTools,
+      ...memoryTools
+    ];
     const providerTools: ProviderTool[] = allTools.map((t) =>
       t.toProviderTool()
     );
@@ -560,6 +564,14 @@ export class TeamExecutor {
       "- Use `list_tasks` to see the board, `claim_task` to take work, `complete_task` when done.",
       "- Use `send_message` to coordinate with specific teammates, or `broadcast` for the whole team.",
       "- Use `create_task` to add new work items, `decompose_task` to break complex tasks apart.",
+      "",
+      "## Shared Memory (progressive disclosure)",
+      "- Completed teammate task results are mirrored into shared agent memory.",
+      "- Memory contents are NOT auto-included in your prompts. Pull on demand:",
+      "  1. `memory_list` — see what's available (metadata only).",
+      "  2. `memory_read` — fetch full values for specific keys.",
+      "  3. `memory_write` — publish a value under `shared:<key>` for others.",
+      "- Pull only what you need — don't fetch every entry by reflex.",
       "",
       strategyInstructions,
       "",

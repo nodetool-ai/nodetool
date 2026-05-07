@@ -189,11 +189,14 @@ export class ParallelTaskExecutor {
       } as TaskUpdate["task"]
     } satisfies TaskUpdate;
 
-    // Create TaskExecutor for this task's steps. Dependency results are
-    // discovered through `context.memory` — we don't need to build a custom
-    // system prompt here, since `StepExecutor` injects the full memory
-    // snapshot into every step's user message. The user-supplied
-    // `systemPrompt` is forwarded as a preamble.
+    // Create TaskExecutor for this task's steps. Each step discovers
+    // upstream context on demand via the `memory_list` / `memory_read` tools
+    // (progressive disclosure). The task's declared `dependsOn` IDs are
+    // forwarded as `upstreamMemoryKeys` so every step's user message names
+    // them explicitly without dumping their values.
+    const upstreamMemoryKeys = (task.dependsOn ?? []).map((id) =>
+      memoryKeys.task(id)
+    );
     const executor = new TaskExecutor({
       provider: this.provider,
       model: this.model,
@@ -205,7 +208,8 @@ export class ParallelTaskExecutor {
       maxSteps: task.steps.length + 5, // Allow some slack
       maxStepIterations: this.maxStepIterations,
       maxTokenLimit: this.maxTokenLimit,
-      parallelExecution: true // Enable parallel step execution within each task
+      parallelExecution: true, // Enable parallel step execution within each task
+      upstreamMemoryKeys
     });
 
     let taskResult: unknown = null;

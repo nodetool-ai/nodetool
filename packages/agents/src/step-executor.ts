@@ -33,6 +33,10 @@ import type { Step, Task } from "./types.js";
 import type { Tool } from "./tools/base-tool.js";
 import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
+import {
+  MEMORY_TOOL_NAMES,
+  getMemoryTools
+} from "./tools/memory-tools.js";
 import { extractJSON } from "./utils/json-parser.js";
 import { DEFAULT_TOKEN_LIMIT, MAX_TOOL_RESULT_CHARS } from "./constants.js";
 import { rejectAgenticProvider } from "./reject-agentic-provider.js";
@@ -66,6 +70,14 @@ const PROMPT_TOOL_USE = `# Tool Use
 - Use tools only when they materially improve correctness or are required.
 - Avoid exploratory or repeated tool calls that are unlikely to change the outcome.
 - Before each tool call, emit a one-sentence rationale describing what you're doing and why.
+
+## Memory Tools (progressive disclosure)
+- Shared agent memory holds results from prior steps and tasks, original inputs, and facts published by other agents.
+- Memory contents are NOT auto-included in your prompt. If you need upstream context, discover it on demand:
+  1. Call \`memory_list\` to see what's available (returns metadata only — keys, titles, kinds, byte sizes).
+  2. Call \`memory_read\` with the specific keys you actually need; it returns full values.
+  3. Call \`memory_write\` to publish a value under \`shared:<key>\` so other agents can find it via \`memory_list\`.
+- Pull only what you need — don't fetch every entry by reflex.
 
 ## File Tools
 - Use \`read_file\` to read files. Do not use \`run_code\` with cat/head/tail.
@@ -305,6 +317,15 @@ export interface StepExecutorOptions {
   maxIterations?: number;
   useFinishTask?: boolean;
   threadId?: string;
+  /**
+   * Additional memory keys to surface in the user message as required
+   * upstream context for this step. Typically `task:<id>` keys derived from
+   * the parent task's `dependsOn` (set by ParallelTaskExecutor / TaskExecutor).
+   *
+   * The step's own `step.dependsOn` IDs are added automatically as
+   * `step:<id>` keys — callers should not duplicate them here.
+   */
+  upstreamMemoryKeys?: string[];
 }
 
 export class StepExecutor {
@@ -335,6 +356,7 @@ export class StepExecutor {
     event: import("@nodetool-ai/protocol").ControlEvent;
   }> = [];
   private threadId?: string;
+  private upstreamMemoryKeys: string[];
 
   constructor(opts: StepExecutorOptions) {
     this.task = opts.task;
@@ -347,9 +369,19 @@ export class StepExecutor {
     this.maxIterations = opts.maxIterations ?? DEFAULT_MAX_ITERATIONS;
     this.useFinishTask = opts.useFinishTask ?? false;
     this.threadId = opts.threadId;
+    this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
 
     // Load and sanitize the output schema
     this.resultSchema = this.loadResultSchema();
+
+    // Auto-attach memory tools so the step can list / read / write
+    // shared agent memory on demand. Skip any caller-supplied duplicates.
+    const existingNames = new Set(this.tools.map((t) => t.name));
+    for (const memoryTool of getMemoryTools()) {
+      if (!existingNames.has(memoryTool.name)) {
+        this.tools.push(memoryTool);
+      }
+    }
 
     // Setup finish_step tool if we have a schema
     if (this.resultSchema) {
@@ -933,28 +965,48 @@ export class StepExecutor {
   }
 
   /**
-   * Build the initial user message with instructions and a structured
-   * snapshot of {@link ProcessingContext.memory}.
+   * Build the initial user message.
    *
-   * Every step receives the full memory snapshot of prior task / step / input
-   * entries — not only its declared `dependsOn` IDs. This guarantees that
-   * upstream results from any agent or task are discoverable, even when the
-   * planner forgets to wire an explicit dependency edge.
+   * Memory contents are NOT auto-included — callers fetch on demand via the
+   * `memory_list` / `memory_read` tools (progressive disclosure; tool usage
+   * is documented in the default system prompt).
+   *
+   * The only memory information the user message carries is a short list of
+   * **specific** upstream keys the planner declared as relevant to this step:
+   *
+   *   - `step:<id>` for every entry of `step.dependsOn` (intra-task deps).
+   *   - any caller-supplied {@link StepExecutorOptions.upstreamMemoryKeys}
+   *     (typically `task:<id>` entries from the parent task's `dependsOn`).
+   *
+   * Only keys that actually exist in `context.memory` are listed. The LLM
+   * is expected to call `memory_read` with whichever subset it needs.
    */
   private buildUserMessage(): string {
     const parts: string[] = [this.step.instructions];
 
-    const memoryBlock = this.context.memory.formatForPrompt({
-      kind: ["task_result", "step_result", "input"]
-    });
-    if (memoryBlock) {
-      parts.push("");
-      parts.push(memoryBlock);
+    const declared = [
+      ...this.step.dependsOn.map((id) => memoryKeys.step(id)),
+      ...this.upstreamMemoryKeys
+    ];
+    const seen = new Set<string>();
+    const hints: { key: string; title?: string }[] = [];
+    for (const key of declared) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const entry = this.context.memory.get(key);
+      if (!entry) continue;
+      hints.push({ key: entry.key, title: entry.title });
     }
 
-    parts.push(
-      "\nPerform this step using the instructions above. Use any matching memory entries as upstream context."
-    );
+    if (hints.length > 0) {
+      parts.push("");
+      parts.push(
+        "# Required upstream memory (call `memory_read` with these keys):"
+      );
+      for (const hint of hints) {
+        parts.push(`- ${hint.key}${hint.title ? ` — ${hint.title}` : ""}`);
+      }
+    }
 
     return parts.join("\n");
   }

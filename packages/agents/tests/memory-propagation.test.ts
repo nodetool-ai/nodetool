@@ -1,20 +1,24 @@
 /**
- * End-to-end tests for the unified agent memory system.
+ * End-to-end tests for the unified agent memory system with progressive
+ * disclosure.
  *
  * Drives `MultiModeAgent` in plan mode and `TaskExecutor` directly with a
  * scriptable mock provider, then verifies that:
  *
  *   1. Every step / task / input is written to `context.memory` under a
  *      canonical namespaced key.
- *   2. Downstream tasks see upstream task results in their step's user
- *      message (no replacement of the default execution prompt).
- *   3. Final task results survive even when only one task in a multi-task
- *      plan emits an `is_task_result` step result.
+ *   2. Memory contents are NOT auto-injected into prompts; the agent
+ *      discovers them via `memory_list` / `memory_read` tools.
+ *   3. Downstream tasks see only specific upstream key hints (the planner's
+ *      declared `dependsOn` IDs), not full values.
+ *   4. The progressive-disclosure round trip (`memory_list` → `memory_read`
+ *      → `finish_step`) works end-to-end with a fake provider.
  */
 
 import { describe, expect, it, vi } from "vitest";
 import { MultiModeAgent } from "../src/multi-mode-agent.js";
 import { TaskExecutor } from "../src/task-executor.js";
+import { StepExecutor } from "../src/step-executor.js";
 import { ParallelTaskExecutor } from "../src/parallel-task-executor.js";
 import { memoryKeys } from "@nodetool-ai/runtime";
 import type { Task, TaskPlan } from "../src/types.js";
@@ -181,11 +185,15 @@ describe("Agent memory propagation", () => {
 
     expect(context.memory.getValue(memoryKeys.input("customer"))).toBe("Acme");
     expect(context.memory.getValue(memoryKeys.input("region"))).toBe("EU");
-    // Inputs should also surface in the user message of the first step.
+    // Inputs are NOT auto-injected into the user message — the agent must
+    // discover them via memory_list / memory_read (progressive disclosure).
     const userMsg = provider.calls[0].userContent;
-    expect(userMsg).toContain("# Memory");
-    expect(userMsg).toContain("Acme");
-    expect(userMsg).toContain("EU");
+    expect(userMsg).not.toContain("Acme");
+    expect(userMsg).not.toContain("EU");
+    // The system prompt always advertises the memory tools.
+    const sysPrompt = provider.calls[0].systemPrompt;
+    expect(sysPrompt).toContain("memory_list");
+    expect(sysPrompt).toContain("memory_read");
   });
 
   it("makes upstream task results visible in downstream task prompts (plan mode)", async () => {
@@ -258,17 +266,25 @@ describe("Agent memory propagation", () => {
     expect(plan.tasks[0].completed).toBe(true);
     expect(plan.tasks[1].completed).toBe(true);
 
-    // First call (research) must NOT see the not-yet-existing task result.
+    // First call (research) has no upstream task → no memory hint.
     const firstUserMsg = provider.calls[0].userContent;
     expect(firstUserMsg).not.toContain("task:task_research");
+    expect(firstUserMsg).not.toContain("Required upstream memory");
 
-    // Second call (report) MUST see the upstream task result rendered into
-    // the user message — proving downstream agents discover memory entries.
+    // Second call (report) names the upstream task as a memory hint —
+    // values are NOT included; the agent fetches via memory_read.
     const secondUserMsg = provider.calls[1].userContent;
-    expect(secondUserMsg).toContain("# Memory");
-    expect(secondUserMsg).toContain("task:task_research");
-    expect(secondUserMsg).toContain("alpha");
-    expect(secondUserMsg).toContain("beta");
+    expect(secondUserMsg).toContain(
+      "# Required upstream memory (call `memory_read` with these keys):"
+    );
+    expect(secondUserMsg).toContain("- task:task_research");
+    expect(secondUserMsg).not.toContain("alpha");
+    expect(secondUserMsg).not.toContain("beta");
+
+    // The actual value is in shared memory and reachable via the tool.
+    expect(
+      context.memory.getValue(memoryKeys.task("task_research"))
+    ).toEqual({ findings: ["alpha", "beta"] });
   });
 
   it("preserves the default execution discipline (finish_step instructions) when a custom user prompt is provided", async () => {
@@ -378,5 +394,163 @@ describe("Agent memory propagation", () => {
     });
     // The agent's `results` is set from the captured step_result.
     expect(agent.getResults()).toEqual({ greeting: "Hello" });
+  });
+
+  it("agent discovers and reads memory via memory_list → memory_read → finish_step", async () => {
+    // Pre-populate memory with two upstream task results — neither auto-
+    // injected. The agent must list, read the relevant one, and finish.
+    const context = createMockContext();
+    context.memory.set({
+      key: memoryKeys.task("upstream_a"),
+      kind: "task_result",
+      value: { findings: ["alpha", "beta"] },
+      source: "upstream_a",
+      title: "Upstream A findings"
+    });
+    context.memory.set({
+      key: memoryKeys.task("upstream_b"),
+      kind: "task_result",
+      value: { unrelated: "ignore me" },
+      source: "upstream_b",
+      title: "Upstream B"
+    });
+
+    // Scripted provider: turn 1 → memory_list, turn 2 → memory_read, turn 3 → finish_step.
+    const provider = createRecordingProvider([
+      // Turn 1: list memory
+      [
+        {
+          id: "tc_list",
+          name: "memory_list",
+          args: { kind: ["task_result"] }
+        }
+      ],
+      // Turn 2: read just the relevant entry
+      [
+        {
+          id: "tc_read",
+          name: "memory_read",
+          args: { keys: ["task:upstream_a"] }
+        }
+      ],
+      // Turn 3: finish_step using the value the agent fetched
+      [finishStep("tc_finish", { summary: "alpha, beta" })]
+    ]);
+
+    const task: Task = {
+      id: "task_synth",
+      title: "Synthesize",
+      steps: [
+        {
+          id: "step_synth",
+          instructions: "Summarize the upstream findings.",
+          completed: false,
+          dependsOn: [],
+          outputSchema: JSON.stringify({
+            type: "object",
+            properties: { summary: { type: "string" } },
+            required: ["summary"]
+          }),
+          logs: []
+        }
+      ]
+    };
+
+    const executor = new StepExecutor({
+      task,
+      step: task.steps[0],
+      context,
+      provider,
+      model: "test"
+    });
+
+    for await (const _ of executor.execute()) {
+      /* drain */
+    }
+
+    // The first user message must NOT contain the values, only the
+    // instructions + system prompt mentions of the memory tools.
+    const firstUser = provider.calls[0].userContent;
+    expect(firstUser).not.toContain("alpha");
+    expect(firstUser).not.toContain("beta");
+
+    // System prompt advertises the tools.
+    const sys = provider.calls[0].systemPrompt;
+    expect(sys).toContain("memory_list");
+    expect(sys).toContain("memory_read");
+
+    // After the agent fetched via memory_read, the conversation history
+    // (turn 3) must include the value as a tool result.
+    const turn3 = provider.calls[2].fullMessages;
+    const toolMessages = turn3.filter((m) => m.role === "tool");
+    const hasReadResult = toolMessages.some(
+      (m) =>
+        typeof m.content === "string" &&
+        m.content.includes("alpha") &&
+        m.content.includes("beta")
+    );
+    expect(hasReadResult).toBe(true);
+
+    // Final result captured.
+    expect(executor.getResult()).toEqual({ summary: "alpha, beta" });
+  });
+
+  it("memory_write publishes shared facts that subsequent steps see in memory_list", async () => {
+    const context = createMockContext();
+
+    // Step 1 publishes a fact via memory_write, then finishes.
+    const provider = createRecordingProvider([
+      [
+        {
+          id: "tc_write",
+          name: "memory_write",
+          args: {
+            key: "top_source",
+            value: "https://example.com/article",
+            title: "Top source URL"
+          }
+        }
+      ],
+      [finishStep("tc_finish", { ok: true })]
+    ]);
+
+    const task: Task = {
+      id: "task_publisher",
+      title: "Publisher",
+      steps: [
+        {
+          id: "step_publisher",
+          instructions: "Publish the top source to shared memory.",
+          completed: false,
+          dependsOn: [],
+          outputSchema: JSON.stringify({
+            type: "object",
+            properties: { ok: { type: "boolean" } },
+            required: ["ok"]
+          }),
+          logs: []
+        }
+      ]
+    };
+
+    const executor = new StepExecutor({
+      task,
+      step: task.steps[0],
+      context,
+      provider,
+      model: "test"
+    });
+
+    for await (const _ of executor.execute()) {
+      /* drain */
+    }
+
+    // The shared entry is in memory under shared:<suffix>.
+    const sharedKey = memoryKeys.shared("top_source");
+    expect(context.memory.has(sharedKey)).toBe(true);
+    const entry = context.memory.get(sharedKey);
+    expect(entry?.kind).toBe("shared");
+    expect(entry?.value).toBe("https://example.com/article");
+    expect(entry?.title).toBe("Top source URL");
   });
 });

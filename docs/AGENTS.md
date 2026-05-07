@@ -136,11 +136,19 @@ context.memory.getValue(memoryKeys.task("research"));
 | `input:<key>` | `memoryKeys.input(key)` | Caller-supplied inputs and edge inputs |
 | `shared:<key>` | `memoryKeys.shared(key)` | Cross-agent communication, tool-published facts |
 
-**Propagation rule**: `StepExecutor.buildUserMessage()` injects a Markdown block of every relevant memory entry (`task_result + step_result + input`) into the user message of every step. Downstream tasks discover upstream results without explicit edges or prompt assembly.
+**Access pattern — progressive disclosure via tool calls**: memory contents are NOT auto-injected into prompts. The agent uses three auto-attached tools:
 
-**Multi-agent teams** mirror `TaskBoard` `task_completed` events into `context.memory`, so sub-agents see each other's work through the same channel.
+| Tool | Purpose |
+|---|---|
+| `memory_list` | Discover available entries (metadata only — keys, titles, kinds, byte sizes) |
+| `memory_read` | Fetch full values for specific keys |
+| `memory_write` | Publish a value under `shared:<key>` for other agents to discover |
 
-For the full API, propagation flow, examples, and troubleshooting, see [Agent Memory System](agent-memory.md).
+The default execution system prompt explains these tools; the user message names only the **specific** upstream keys the planner declared as required for the step. Values are pulled on demand.
+
+**Multi-agent teams** mirror `TaskBoard` `task_completed` events into `context.memory`, so sub-agents see each other's work through `memory_list`.
+
+For the full API, tool schemas, propagation flow, examples, and troubleshooting, see [Agent Memory System](agent-memory.md).
 
 ---
 

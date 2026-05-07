@@ -4,6 +4,18 @@
 
 Every `ProcessingContext` carries an `AgentMemory` instance at `context.memory`. It is the **single source of truth** for everything shared between steps, tasks, sub-agents, and tools. Do not introduce a parallel result map in any executor — read and write through `context.memory`.
 
+### Access pattern: progressive disclosure via tools
+
+Memory contents are NOT auto-injected into prompts. Agents access memory through three tools that are auto-attached to every step (and to every team iteration):
+
+| Tool | Purpose |
+|---|---|
+| `memory_list` | Discover available entries (metadata only — keys, titles, kinds, byte sizes) |
+| `memory_read` | Fetch full values for specific keys |
+| `memory_write` | Publish a value under `shared:<key>` |
+
+The default execution system prompt documents these tools. The user message names only **specific** upstream keys the planner pinned (`step.dependsOn` plus parent-task `dependsOn` via `upstreamMemoryKeys`) — values are pulled on demand.
+
 ### Key namespaces
 
 ```ts
@@ -25,24 +37,28 @@ memoryKeys.shared("note");         // "shared:note"  — cross-agent scratch
 | `ParallelTaskExecutor` | After a task completes (idempotent) | `task:<task.id>` | `task_result` |
 | `TeamExecutor` | `TaskBoard.task_completed` event | `task:<task.id>` | `task_result` |
 | `AgentStepExecutor` | Workflow edge inputs | `input:<nodeId>.<key>` | `input` |
+| `memory_write` tool | Agent / sub-agent publish | `shared:<key>` | `shared` |
 
-### How LLMs see memory
-
-`StepExecutor.buildUserMessage()` injects a Markdown snapshot of `task_result + step_result + input` entries into every step's user message via `formatForPrompt()`. Downstream tasks see upstream results without explicit dependency edges. `TeamExecutor.runAgentWorkCycle()` injects a similar block (`task_result + shared + input`) so teammates discover each other's work.
+`memory_write` is restricted to the `shared:` namespace so agents can't spoof step / task / input results. Internal executors write directly through `context.memory.set` for their owned namespaces.
 
 ### Custom prompts are preambles, not replacements
 
-`StepExecutor.buildSystemPrompt()` always uses the default execution prompt (output schema, `finish_step` discipline, conclusion-stage rules). A caller-supplied `systemPrompt` is layered as a preamble *before* the default — it cannot override the execution contract. Earlier versions allowed this and broke result capture in plan mode.
+`StepExecutor.buildSystemPrompt()` always uses the default execution prompt (memory tools docs, output schema, `finish_step` discipline, conclusion-stage rules). A caller-supplied `systemPrompt` is layered as a preamble *before* the default — it cannot override the execution contract. Earlier versions allowed this and broke result capture in plan mode.
+
+### Threading task-level deps through executors
+
+`ParallelTaskExecutor` derives `task.dependsOn.map(memoryKeys.task)` and forwards it as `upstreamMemoryKeys` to `TaskExecutor`, which forwards it verbatim to every `StepExecutor`. The step's user message renders these as `- task:<id>` hints next to the intra-task `step:<id>` deps. The agent calls `memory_read` when it needs the values.
 
 ### Tests
 
 - `packages/runtime/tests/agent-memory.test.ts` — unit tests for `AgentMemory`
-- `packages/agents/tests/memory-propagation.test.ts` — end-to-end propagation through `MultiModeAgent` plan mode
+- `packages/agents/tests/memory-tools.test.ts` — unit tests for `memory_list` / `memory_read` / `memory_write`
+- `packages/agents/tests/memory-propagation.test.ts` — end-to-end through `MultiModeAgent` plan mode, including a fake-provider round trip that drives `memory_list` → `memory_read` → `finish_step`
 - `packages/agents/tests/_helpers/mock-context.ts` — shared mock context with a real `AgentMemory` for executor tests
 
 When asserting memory writes in tests, prefer `context.memory.has(memoryKeys.task("..."))` and `context.memory.subscribe(...)` over spies on `set` / `storeStepResult`.
 
-For the full API reference, propagation flow, design decisions, and troubleshooting, see [docs/agent-memory.md](../../docs/agent-memory.md).
+For the full API reference, tool schemas, propagation flow, design decisions, and troubleshooting, see [docs/agent-memory.md](../../docs/agent-memory.md).
 
 ## JavaScript Sandbox (`src/js-sandbox.ts`)
 
