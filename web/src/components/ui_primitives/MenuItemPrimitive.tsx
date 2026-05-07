@@ -135,11 +135,11 @@ const styles = (theme: Theme) => css`
         }
 
         .MuiListItemText-primary {
-          font-size: 0.7rem;
+          font-size: 11.2px;
         }
 
         .shortcut {
-          font-size: 0.6rem;
+          font-size: 9.6px;
         }
       }
     }

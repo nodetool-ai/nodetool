@@ -76,8 +76,9 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
               onClick={handleFgClick}
               sx={colorSwatchSx}
             >
-              <div
-                style={{
+              <Container
+                padding="none"
+                sx={{
                   position: "absolute",
                   inset: 0,
                   backgroundColor: fgHex6
@@ -96,8 +97,9 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
               onClick={handleBgClick}
               sx={colorSwatchSx}
             >
-              <div
-                style={{
+              <Container
+                padding="none"
+                sx={{
                   position: "absolute",
                   inset: 0,
                   backgroundColor: bgHex6
