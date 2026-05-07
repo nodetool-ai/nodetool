@@ -33,10 +33,7 @@ import type { Step, Task } from "./types.js";
 import type { Tool } from "./tools/base-tool.js";
 import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
-import {
-  MEMORY_TOOL_NAMES,
-  getMemoryTools
-} from "./tools/memory-tools.js";
+import { getMemoryTools } from "./tools/memory-tools.js";
 import { extractJSON } from "./utils/json-parser.js";
 import { DEFAULT_TOKEN_LIMIT, MAX_TOOL_RESULT_CHARS } from "./constants.js";
 import { rejectAgenticProvider } from "./reject-agentic-provider.js";
