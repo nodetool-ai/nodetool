@@ -822,9 +822,16 @@ export function App({
         const selected = acMatches[acIndex] ?? acMatches[0];
         if (selected) {
           const completed = selected.replaceAll ?? selected.cmd + " ";
-          // Submit complete commands directly; partial ones go into input for editing
-          if (completed.trimEnd() in COMMANDS) {
-            handleSubmit(completed);
+          // Submit when:
+          //  - the completion is a bare command in COMMANDS (e.g. "/help"), or
+          //  - the user has already typed it (completion would no-op).
+          // Otherwise fill the input so they can finish typing the argument.
+          if (
+            completed.trimEnd() in COMMANDS ||
+            completed === inputValue ||
+            completed.trimEnd() === inputValue.trimEnd()
+          ) {
+            handleSubmit(inputValue);
           } else {
             setInputValue(completed);
           }
