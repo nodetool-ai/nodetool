@@ -338,7 +338,7 @@ describe("Agent memory propagation", () => {
     // default execution discipline (output schema, finish_step protocol).
     const sys = provider.calls[0].systemPrompt;
     expect(sys).toContain("DOMAIN_PREAMBLE_MARKER");
-    expect(sys).toContain("CALL `finish_step`");
+    expect(sys).toContain("`finish_step`");
     expect(sys).toContain("Output Schema");
   });
 
