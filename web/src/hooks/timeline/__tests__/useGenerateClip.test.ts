@@ -63,7 +63,7 @@ describe("useGenerateClip", () => {
       mediaType: "video" as const,
       workflowId: "wf-1",
       sourceType: "generated" as const,
-      status: "stale",
+      status: "missing" as const,
       selectedOutputNodeId: "output-1",
       paramOverrides: { prompt: "hello" },
       locked: false,
@@ -191,7 +191,7 @@ describe("useGenerateClip", () => {
       mediaType: "video" as const,
       workflowId: "wf-2",
       sourceType: "generated" as const,
-      status: "stale",
+      status: "missing" as const,
       locked: false,
       versions: []
     };
