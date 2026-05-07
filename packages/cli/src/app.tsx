@@ -93,6 +93,14 @@ const COMMANDS = {
   "/quit":     "Exit the chat",
 } as const;
 
+const AGENT_MODE_DESCRIPTIONS: Record<AgentMode, string> = {
+  "off":         "plain chat (no agent)",
+  "loop":        "iterative tool-calling loop",
+  "plan":        "TaskPlanner DAG + CompilerAgent synthesis",
+  "graph":       "GraphPlanner builds a workflow graph",
+  "multi-agent": "team of sub-agents",
+};
+
 // ---------------------------------------------------------------------------
 // Individual message rendering
 // ---------------------------------------------------------------------------
@@ -763,6 +771,14 @@ export function App({
             cmd: m.id,
             desc: m.name !== m.id ? m.name : "",
             replaceAll: `/model ${m.id}`,
+          }));
+      } else if (cmd === "/agent") {
+        acMatches = AGENT_MODES
+          .filter((m) => m.startsWith(arg))
+          .map((m) => ({
+            cmd: m,
+            desc: AGENT_MODE_DESCRIPTIONS[m],
+            replaceAll: `/agent ${m}`,
           }));
       }
     }
