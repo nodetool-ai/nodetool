@@ -20,8 +20,6 @@ function isSpringModifierStillHeld(e: KeyboardEvent): boolean {
  * - Ctrl/Cmd held (physical key) → temporarily activates move tool.
  *   Blocked when activeTool is crop or segment. Select allows spring-load but the gesture lock
  *   in usePointerHandlers prevents mid-selection-drag tool switches.
- * - Space held → activates pan. `spacePanActive` state lives here.
- *   `useKeyboardModifiers.ts` keeps its own `spaceHeldRef` for pointer-gesture code — separate concern.
  *
  * Attaches its own capture-phase window listeners. Cleared on window blur.
  */

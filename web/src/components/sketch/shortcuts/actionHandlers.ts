@@ -42,7 +42,13 @@ export const ACTION_HANDLERS: ActionHandlerMap = {
   "cut": (_e, p) => p.handleCut(),
   "paste": (_e, p) => { void p.handlePaste(false); },
   "paste-masked": (_e, p) => { void p.handlePaste(true); },
-  "free-transform": (_e, p) => p.handleFreeTransform?.(),
+  "free-transform": (_e, p) => {
+    if (p.handleFreeTransform) {
+      p.handleFreeTransform();
+    } else {
+      p.setActiveTool("transform");
+    }
+  },
   "repeat-transform": (_e, p) => p.handleRepeatLastTransform?.(),
   "repeat-transform-on-copy": (_e, p) => p.handleRepeatLastTransformOnCopy?.(),
   "clear-layer": (_e, p) => p.handleClearLayer(),

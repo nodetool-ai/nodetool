@@ -10,7 +10,7 @@
  * a `definition` export.
  */
 
-import type { SketchActionId } from "./shortcuts/actionRegistry";
+import { ACTION_MAP, type SketchActionId } from "./shortcuts/actionRegistry";
 import type { SketchTool, SelectToolMode } from "./types";
 import type { ToolDefinition, ToolIconComponent } from "./tools/types";
 
@@ -93,7 +93,8 @@ export function getToolShortcutActionId(
     return null;
   }
 
-  return `tool-${tool.replaceAll("_", "-")}` as SketchActionId;
+  const candidate = `tool-${tool.replaceAll("_", "-")}`;
+  return ACTION_MAP.has(candidate as SketchActionId) ? (candidate as SketchActionId) : null;
 }
 
 // Context menu excludes "adjust" since it has no quick controls

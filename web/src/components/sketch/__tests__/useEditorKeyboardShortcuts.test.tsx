@@ -236,7 +236,7 @@ describe("useEditorKeyboardShortcuts", () => {
     expect(params.handleCropCommit).toHaveBeenCalledTimes(1);
   });
 
-  it("does not arm spring-loaded move when the primary modifier is pressed while select tool is active", () => {
+  it("arms spring-loaded move when the primary modifier is pressed while select tool is active", () => {
     const params = makeParams();
     renderHook(() => useEditorKeyboardShortcuts(params));
 
@@ -249,7 +249,7 @@ describe("useEditorKeyboardShortcuts", () => {
       window.dispatchEvent(event);
     });
 
-    expect(useSketchStore.getState().transientMoveModifierHeld).toBe(false);
+    expect(useSketchStore.getState().transientMoveModifierHeld).toBe(true);
   });
 
   it("arms spring-loaded move on the primary modifier and clears it on window blur", () => {

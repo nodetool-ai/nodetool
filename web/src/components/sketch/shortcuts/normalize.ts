@@ -23,13 +23,23 @@ export function normalizeKey(key: string): string {
 /**
  * Build a canonical combo string from a KeyboardEvent for fast lookup.
  * Format: [ctrl+][shift+][alt+]<normalizedKey>
+ *
+ * For non-alphabetic single-character keys (e.g. `{`, `}`, `+`), the Shift
+ * modifier is already encoded in `e.key` itself (Shift+[ produces `{`), so we
+ * omit the `shift` prefix to match catalog entries that use the shifted symbol
+ * directly (e.g. `{ key: "{", modifiers: {} }`).
  */
 export function buildComboString(e: KeyboardEvent): string {
+  const normalizedKey = normalizeKey(e.key);
   const parts: string[] = [];
   if (isPrimaryModifier(e)) parts.push("ctrl");
-  if (e.shiftKey) parts.push("shift");
+  // Include "shift" only for multi-character keys (e.g. ArrowUp) and lowercase
+  // alpha keys; for symbol keys the shift is encoded in the key value itself.
+  if (e.shiftKey && (normalizedKey.length > 1 || /^[a-z]$/.test(normalizedKey))) {
+    parts.push("shift");
+  }
   if (e.altKey) parts.push("alt");
-  parts.push(normalizeKey(e.key));
+  parts.push(normalizedKey);
   return parts.join("+");
 }
 
