@@ -19,7 +19,7 @@ const RUN_MODE_OPTIONS = [
   { value: "comfy", label: "Comfy" },
   { value: "app", label: "App" },
   { value: "tool", label: "Tool" }
-] as const;
+];
 
 const DEFAULT_TAG_SUGGESTIONS = [
   "image",
