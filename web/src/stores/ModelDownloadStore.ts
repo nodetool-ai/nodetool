@@ -3,6 +3,7 @@ import { DOWNLOAD_URL } from "./BASE_URL";
 import { QueryClient } from "@tanstack/react-query";
 import { trpc } from "../lib/trpc";
 import { useHfCacheStatusStore } from "./HfCacheStatusStore";
+import { MODEL_QUERY_KEYS } from "./resourceChangeHandler";
 
 interface SpeedDataPoint {
   bytes: number;
@@ -209,11 +210,18 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
           });
           if (data.status === "completed") {
             const queryClient = get().queryClient;
-            queryClient?.invalidateQueries({ queryKey: ["allModels"] });
-            queryClient?.invalidateQueries({ queryKey: ["image-models"] });
-            // TJS picker queries by `["tjs-models", modelType]` and
-            // `["tjs-recommended", modelType]` — invalidate both so newly
-            // cached repos flip from "Download" to "Downloaded" immediately.
+            // A finished download can produce any modality (LLM GGUF, TTS,
+            // diffusion, embedding, …), so invalidate every per-modality
+            // picker query plus the aggregated lists. The HuggingFace and
+            // Ollama listings also derive from on-disk state and must
+            // refresh so newly cached repos flip from "Download" to
+            // "Downloaded" immediately.
+            for (const key of MODEL_QUERY_KEYS) {
+              queryClient?.invalidateQueries({ queryKey: [key] });
+            }
+            queryClient?.invalidateQueries({ queryKey: ["huggingFaceModels"] });
+            queryClient?.invalidateQueries({ queryKey: ["hf-models"] });
+            queryClient?.invalidateQueries({ queryKey: ["ollamaModels"] });
             queryClient?.invalidateQueries({ queryKey: ["tjs-models"] });
             queryClient?.invalidateQueries({ queryKey: ["tjs-recommended"] });
             useHfCacheStatusStore.getState().invalidate([id]);
