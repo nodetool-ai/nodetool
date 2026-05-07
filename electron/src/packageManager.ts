@@ -468,8 +468,9 @@ export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
     return sequentialMatchScore(q, value);
   };
 
+  type PackageNodeStringKey = "title" | "namespace" | "node_type" | "description";
   const fieldWeights: Array<{
-    key: keyof PackageNode;
+    key: PackageNodeStringKey;
     weight: number;
   }> = [
     { key: "title", weight: 1.0 },
@@ -488,7 +489,7 @@ export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
       for (const token of effectiveTokens) {
         let bestForToken = 0;
         for (const { key, weight } of fieldWeights) {
-          const value = (node[key] as unknown as string) || "";
+          const value = node[key] || "";
           const base = scoreField(token, value);
           bestForToken = Math.max(bestForToken, base * weight);
         }

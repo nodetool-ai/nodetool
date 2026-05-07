@@ -466,8 +466,8 @@ export function simulateColorBlindness(
   const g = rgb.g / 255;
   const b = rgb.b / 255;
 
-  // Color blindness simulation matrices
-  const matrices: Record<string, number[][]> = {
+  type ColorBlindnessType = typeof type;
+  const matrices: Record<ColorBlindnessType, number[][]> = {
     protanopia: [
       [0.567, 0.433, 0],
       [0.558, 0.442, 0],

@@ -4,6 +4,24 @@ import type { TorchruntimeDetectionResult, TorchPlatform } from "./torchruntime"
 
 const TORCH_PLATFORM_SETTING_KEY = "TORCH_PLATFORM_DETECTED";
 
+interface SavedTorchData {
+  platform: string;
+  indexUrl: string | null;
+  error?: string;
+  detectedAt?: string;
+}
+
+function isSavedTorchData(value: unknown): value is SavedTorchData {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return (
+    typeof obj.platform === "string" &&
+    (obj.indexUrl === null || typeof obj.indexUrl === "string")
+  );
+}
+
 /**
  * Get the saved torch platform detection result from settings
  * Returns null if no detection result is saved
@@ -13,26 +31,17 @@ export function getSavedTorchPlatform(): TorchruntimeDetectionResult | null {
     const settings = readSettings();
     const saved = settings[TORCH_PLATFORM_SETTING_KEY];
 
-    if (!saved || typeof saved !== "object") {
-      return null;
-    }
-
-    // Type guard: validate saved is an object with expected properties
-    const savedObj = saved as Record<string, unknown>;
-
-    // Validate the saved data has required fields
-    if (
-      typeof savedObj.platform !== "string" ||
-      (savedObj.indexUrl !== null && typeof savedObj.indexUrl !== "string")
-    ) {
-      logMessage("Invalid torch platform data in settings, ignoring", "warn");
+    if (!isSavedTorchData(saved)) {
+      if (saved) {
+        logMessage("Invalid torch platform data in settings, ignoring", "warn");
+      }
       return null;
     }
 
     return {
-      platform: savedObj.platform as TorchPlatform,
-      indexUrl: savedObj.indexUrl,
-      error: savedObj.error as string | undefined,
+      platform: saved.platform as TorchPlatform,
+      indexUrl: saved.indexUrl,
+      error: saved.error,
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -50,26 +59,17 @@ export async function getSavedTorchPlatformAsync(): Promise<TorchruntimeDetectio
     const settings = await readSettingsAsync();
     const saved = settings[TORCH_PLATFORM_SETTING_KEY];
 
-    if (!saved || typeof saved !== "object") {
-      return null;
-    }
-
-    // Type guard: validate saved is an object with expected properties
-    const savedObj = saved as Record<string, unknown>;
-
-    // Validate the saved data has required fields
-    if (
-      typeof savedObj.platform !== "string" ||
-      (savedObj.indexUrl !== null && typeof savedObj.indexUrl !== "string")
-    ) {
-      logMessage("Invalid torch platform data in settings, ignoring", "warn");
+    if (!isSavedTorchData(saved)) {
+      if (saved) {
+        logMessage("Invalid torch platform data in settings, ignoring", "warn");
+      }
       return null;
     }
 
     return {
-      platform: savedObj.platform as TorchPlatform,
-      indexUrl: savedObj.indexUrl,
-      error: savedObj.error as string | undefined,
+      platform: saved.platform as TorchPlatform,
+      indexUrl: saved.indexUrl,
+      error: saved.error,
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
