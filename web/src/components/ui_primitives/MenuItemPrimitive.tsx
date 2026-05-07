@@ -30,6 +30,8 @@ export interface MenuItemPrimitiveProps {
   color?: "default" | "error" | "primary";
   /** Dense mode */
   dense?: boolean;
+  /** Compact mode for tighter menus that need smaller typography and spacing */
+  compact?: boolean;
   /** Divider before this item */
   dividerBefore?: boolean;
   /** Divider after this item */
@@ -116,15 +118,32 @@ const styles = (theme: Theme) => css`
       font-size: 18px;
     }
     
-    &.dense {
-      padding: 6px 12px;
-      
-      .MuiListItemText-primary {
-        font-size: 13px;
+      &.dense {
+        padding: 6px 12px;
+        
+        .MuiListItemText-primary {
+          font-size: 13px;
+        }
+      }
+
+      &.compact {
+        min-height: 32px;
+        padding: 4.8px 12px;
+
+        .MuiListItemIcon-root {
+          min-width: 28px;
+        }
+
+        .MuiListItemText-primary {
+          font-size: 0.7rem;
+        }
+
+        .shortcut {
+          font-size: 0.6rem;
+        }
       }
     }
-  }
-`;
+  `;
 
 export const MenuItemPrimitive: React.FC<MenuItemPrimitiveProps> = ({
   label,
@@ -138,6 +157,7 @@ export const MenuItemPrimitive: React.FC<MenuItemPrimitiveProps> = ({
   shortcut,
   color = "default",
   dense = false,
+  compact = false,
   dividerBefore = false,
   dividerAfter = false,
   className
@@ -146,7 +166,7 @@ export const MenuItemPrimitive: React.FC<MenuItemPrimitiveProps> = ({
   
   const menuItem = (
     <MenuItem
-      className={`menu-item-primitive ${color} ${dense ? "dense" : ""} ${className || ""}`}
+      className={`menu-item-primitive ${color} ${dense ? "dense" : ""} ${compact ? "compact" : ""} ${className || ""}`}
       onClick={onClick}
       disabled={disabled}
       selected={selected}

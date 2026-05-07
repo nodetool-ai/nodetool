@@ -117,6 +117,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
         label="Commit"
         icon={<CheckIcon sx={{ fontSize: 16, color: "success.main" }} />}
         shortcut="Enter"
+        compact
         onClick={() => {
           onTransformCommit?.();
           onClose();
@@ -126,6 +127,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
         label="Cancel"
         icon={<CloseIcon sx={{ fontSize: 16, color: "error.main" }} />}
         shortcut="Esc"
+        compact
         onClick={() => {
           onTransformCancel?.();
           onClose();
@@ -134,6 +136,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
       <MenuItemPrimitive
         label="Reset"
         icon={<RestartAltIcon sx={{ fontSize: 16 }} />}
+        compact
         onClick={() => {
           onTransformReset?.();
           onClose();
@@ -145,6 +148,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
       <MenuItemPrimitive
         label="Rotate 180°"
         icon={<Rotate90DegreesCwIcon sx={{ fontSize: 16 }} />}
+        compact
         onClick={() => {
           onRotate180?.();
           onClose();
@@ -153,6 +157,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
       <MenuItemPrimitive
         label="Rotate 90° CW"
         icon={<RotateRightIcon sx={{ fontSize: 16 }} />}
+        compact
         onClick={() => {
           onRotate90CW?.();
           onClose();
@@ -161,6 +166,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
       <MenuItemPrimitive
         label="Rotate 90° CCW"
         icon={<RotateLeftIcon sx={{ fontSize: 16 }} />}
+        compact
         onClick={() => {
           onRotate90CCW?.();
           onClose();
@@ -172,6 +178,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
       <MenuItemPrimitive
         label="Flip Horizontal"
         icon={<FlipIcon sx={{ fontSize: 16 }} />}
+        compact
         onClick={() => {
           onFlipHorizontal?.();
           onClose();
@@ -180,6 +187,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
       <MenuItemPrimitive
         label="Flip Vertical"
         icon={<FlipIcon sx={{ fontSize: 16, transform: "rotate(90deg)" }} />}
+        compact
         onClick={() => {
           onFlipVertical?.();
           onClose();

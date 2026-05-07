@@ -74,8 +74,16 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
               className="color-swatch-pair__fg"
               padding="none"
               onClick={handleFgClick}
-              sx={{ ...colorSwatchSx, backgroundColor: fgHex6 }}
-            />
+              sx={colorSwatchSx}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  backgroundColor: fgHex6
+                }}
+              />
+            </Container>
           </Tooltip>
         </FlexColumn>
 
@@ -86,8 +94,16 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
               className="color-swatch-pair__bg"
               padding="none"
               onClick={handleBgClick}
-              sx={{ ...colorSwatchSx, backgroundColor: bgHex6 }}
-            />
+              sx={colorSwatchSx}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  backgroundColor: bgHex6
+                }}
+              />
+            </Container>
           </Tooltip>
         </FlexColumn>
       </FlexRow>
@@ -113,6 +129,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
           <EditorButton
             density="compact"
             onClick={onResetColors}
+            aria-label="Reset to black and white (D)"
             sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: "3px" }}
           >
             <Text sx={{ fontSize: SKETCH_FONT.xxs, fontWeight: 700, lineHeight: 1 }}>D</Text>
