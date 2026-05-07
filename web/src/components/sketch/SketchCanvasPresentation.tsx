@@ -258,14 +258,10 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
             gap: "12px"
           }}
         >
-          <span>
-            {canvasWidth} × {canvasHeight}
-          </span>
+          <span>{canvasWidth} × {canvasHeight}</span>
           <span>{Math.round(zoom * 100)}%</span>
           {cursorDocPos !== null && (
-            <span>
-              {cursorDocPos.x}, {cursorDocPos.y}
-            </span>
+            <span>{cursorDocPos.x}, {cursorDocPos.y}</span>
           )}
           <span
             style={{

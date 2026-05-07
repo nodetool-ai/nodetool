@@ -8,7 +8,7 @@
  */
 
 import React, { memo } from "react";
-import { Box, IconButton, Tooltip, Typography } from "@mui/material";
+import { Box, IconButton } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
@@ -22,6 +22,7 @@ import type { Layer } from "./types";
 import { summarizeLayerImageReference } from "./types";
 import { getLayerDataImageUrl } from "./serialization";
 import { SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
+import { Text, Tooltip } from "../ui_primitives";
 
 /** Base left padding for the layer row (px). */
 const BASE_PADDING = 8;
@@ -365,13 +366,13 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 />
               </Tooltip>
             ) : null}
-            <Typography
+            <Text
               className="layer-name"
               onDoubleClick={() => onStartRename(layer.id, layer.name)}
               sx={{ minWidth: 0 }}
             >
               {layer.name}
-            </Typography>
+            </Text>
           </Box>
         )}
 

@@ -11,7 +11,7 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
+import { FlexRow } from "../ui_primitives";
 import {
   SketchTool,
   BrushSettings,
@@ -178,7 +178,7 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   const theme = useTheme();
 
   return (
-    <Box className="sketch-tool-top-bar" css={styles(theme)}>
+    <FlexRow className="sketch-tool-top-bar" css={styles(theme)}>
       <ToolSettingsPanel
         activeTool={activeTool}
         brushSettings={brushSettings}
@@ -239,7 +239,7 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         onClearSegmentPrompts={onClearSegmentPrompts}
         onCheckSegmentModel={onCheckSegmentModel}
       />
-    </Box>
+    </FlexRow>
   );
 };
 

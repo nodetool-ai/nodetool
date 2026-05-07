@@ -1,16 +1,5 @@
-/** @jsxImportSource @emotion/react */
 import React, { memo, useEffect } from "react";
-import { SKETCH_FONT } from "./sketchStyles";
 import { useTheme } from "@mui/material/styles";
-import {
-  Box,
-  Divider,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  Popover,
-  Typography
-} from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
@@ -19,6 +8,14 @@ import RotateRightIcon from "@mui/icons-material/RotateRight";
 import Rotate90DegreesCwIcon from "@mui/icons-material/Rotate90DegreesCw";
 import FlipIcon from "@mui/icons-material/Flip";
 import TransformIcon from "@mui/icons-material/Transform";
+import {
+  ContextMenu,
+  Divider,
+  FlexRow,
+  MenuItemPrimitive,
+  Text
+} from "../ui_primitives";
+import { SKETCH_FONT } from "./sketchStyles";
 
 export interface TransformContextMenuProps {
   open: boolean;
@@ -66,60 +63,36 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [open, onClose]);
 
-  const menuItemSx = {
-    fontSize: SKETCH_FONT.md,
-    py: 0.6,
-    px: 1.5,
-    minHeight: 32,
-    borderRadius: "6px",
-    mx: 0.5,
-    "&:hover": {
-      backgroundColor: theme.vars.palette.grey[800]
-    }
-  };
-
-  const shortcutSx = {
-    fontSize: SKETCH_FONT.xs,
-    color: "text.secondary",
-    ml: 2,
-    fontWeight: 600
-  };
-
   return (
-    <Popover
+    <ContextMenu
       open={open}
       onClose={onClose}
+      position={position}
       transitionDuration={{ enter: 60, exit: 40 }}
-      anchorReference="anchorPosition"
       transformOrigin={{
         vertical: "top",
         horizontal: "left"
       }}
-      anchorPosition={
-        open && position ? { top: position.y, left: position.x } : undefined
-      }
       disableRestoreFocus
+      minWidth={200}
+      paperSx={{
+        maxWidth: 280,
+        borderRadius: "10px",
+        backgroundImage: "none",
+        backgroundColor: theme.vars.palette.grey[900],
+        backdropFilter: "blur(16px)",
+        boxShadow: theme.shadows[12],
+        py: 0.5
+      }}
       slotProps={{
         paper: {
-          className: "sketch-transform-context-menu",
-          sx: {
-            minWidth: 200,
-            maxWidth: 280,
-            borderRadius: "10px",
-            backgroundImage: "none",
-            backgroundColor: theme.vars.palette.grey[900],
-            backdropFilter: "blur(16px)",
-            boxShadow: theme.shadows[12],
-            py: 0.5
-          }
+          className: "sketch-transform-context-menu"
         }
       }}
     >
-      {/* Header */}
-      <Box
+      <FlexRow
+        align="center"
         sx={{
-          display: "flex",
-          alignItems: "center",
           gap: 1,
           px: 2,
           py: 0.75,
@@ -127,7 +100,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
         }}
       >
         <TransformIcon sx={{ fontSize: 16, color: "primary.light" }} />
-        <Typography
+        <Text
           sx={{
             fontSize: SKETCH_FONT.section,
             fontWeight: 700,
@@ -135,156 +108,92 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
           }}
         >
           Free Transform
-        </Typography>
-      </Box>
+        </Text>
+      </FlexRow>
 
       <Divider sx={{ mx: 1, borderColor: theme.vars.palette.grey[800] }} />
 
-      {/* Commit / Cancel / Reset */}
-      <MenuItem
+      <MenuItemPrimitive
+        label="Commit"
+        icon={<CheckIcon sx={{ fontSize: 16, color: "success.main" }} />}
+        shortcut="Enter"
+        compact
         onClick={() => {
           onTransformCommit?.();
           onClose();
         }}
-        sx={menuItemSx}
-      >
-        <ListItemIcon sx={{ minWidth: 28 }}>
-          <CheckIcon sx={{ fontSize: 16, color: "success.main" }} />
-        </ListItemIcon>
-        <ListItemText
-          primaryTypographyProps={{ fontSize: SKETCH_FONT.md }}
-        >
-          Commit
-        </ListItemText>
-        <Typography sx={shortcutSx}>Enter</Typography>
-      </MenuItem>
-
-      <MenuItem
+      />
+      <MenuItemPrimitive
+        label="Cancel"
+        icon={<CloseIcon sx={{ fontSize: 16, color: "error.main" }} />}
+        shortcut="Esc"
+        compact
         onClick={() => {
           onTransformCancel?.();
           onClose();
         }}
-        sx={menuItemSx}
-      >
-        <ListItemIcon sx={{ minWidth: 28 }}>
-          <CloseIcon sx={{ fontSize: 16, color: "error.main" }} />
-        </ListItemIcon>
-        <ListItemText
-          primaryTypographyProps={{ fontSize: SKETCH_FONT.md }}
-        >
-          Cancel
-        </ListItemText>
-        <Typography sx={shortcutSx}>Esc</Typography>
-      </MenuItem>
-
-      <MenuItem
+      />
+      <MenuItemPrimitive
+        label="Reset"
+        icon={<RestartAltIcon sx={{ fontSize: 16 }} />}
+        compact
         onClick={() => {
           onTransformReset?.();
           onClose();
         }}
-        sx={menuItemSx}
-      >
-        <ListItemIcon sx={{ minWidth: 28 }}>
-          <RestartAltIcon sx={{ fontSize: 16 }} />
-        </ListItemIcon>
-        <ListItemText
-          primaryTypographyProps={{ fontSize: SKETCH_FONT.md }}
-        >
-          Reset
-        </ListItemText>
-      </MenuItem>
+      />
 
       <Divider sx={{ mx: 1, my: 0.5, borderColor: theme.vars.palette.grey[800] }} />
 
-      {/* Rotation options */}
-      <MenuItem
+      <MenuItemPrimitive
+        label="Rotate 180°"
+        icon={<Rotate90DegreesCwIcon sx={{ fontSize: 16 }} />}
+        compact
         onClick={() => {
           onRotate180?.();
           onClose();
         }}
-        sx={menuItemSx}
-      >
-        <ListItemIcon sx={{ minWidth: 28 }}>
-          <Rotate90DegreesCwIcon sx={{ fontSize: 16 }} />
-        </ListItemIcon>
-        <ListItemText
-          primaryTypographyProps={{ fontSize: SKETCH_FONT.md }}
-        >
-          Rotate 180°
-        </ListItemText>
-      </MenuItem>
-
-      <MenuItem
+      />
+      <MenuItemPrimitive
+        label="Rotate 90° CW"
+        icon={<RotateRightIcon sx={{ fontSize: 16 }} />}
+        compact
         onClick={() => {
           onRotate90CW?.();
           onClose();
         }}
-        sx={menuItemSx}
-      >
-        <ListItemIcon sx={{ minWidth: 28 }}>
-          <RotateRightIcon sx={{ fontSize: 16 }} />
-        </ListItemIcon>
-        <ListItemText
-          primaryTypographyProps={{ fontSize: SKETCH_FONT.md }}
-        >
-          Rotate 90° CW
-        </ListItemText>
-      </MenuItem>
-
-      <MenuItem
+      />
+      <MenuItemPrimitive
+        label="Rotate 90° CCW"
+        icon={<RotateLeftIcon sx={{ fontSize: 16 }} />}
+        compact
         onClick={() => {
           onRotate90CCW?.();
           onClose();
         }}
-        sx={menuItemSx}
-      >
-        <ListItemIcon sx={{ minWidth: 28 }}>
-          <RotateLeftIcon sx={{ fontSize: 16 }} />
-        </ListItemIcon>
-        <ListItemText
-          primaryTypographyProps={{ fontSize: SKETCH_FONT.md }}
-        >
-          Rotate 90° CCW
-        </ListItemText>
-      </MenuItem>
+      />
 
       <Divider sx={{ mx: 1, my: 0.5, borderColor: theme.vars.palette.grey[800] }} />
 
-      {/* Flip options */}
-      <MenuItem
+      <MenuItemPrimitive
+        label="Flip Horizontal"
+        icon={<FlipIcon sx={{ fontSize: 16 }} />}
+        compact
         onClick={() => {
           onFlipHorizontal?.();
           onClose();
         }}
-        sx={menuItemSx}
-      >
-        <ListItemIcon sx={{ minWidth: 28 }}>
-          <FlipIcon sx={{ fontSize: 16 }} />
-        </ListItemIcon>
-        <ListItemText
-          primaryTypographyProps={{ fontSize: SKETCH_FONT.md }}
-        >
-          Flip Horizontal
-        </ListItemText>
-      </MenuItem>
-
-      <MenuItem
+      />
+      <MenuItemPrimitive
+        label="Flip Vertical"
+        icon={<FlipIcon sx={{ fontSize: 16, transform: "rotate(90deg)" }} />}
+        compact
         onClick={() => {
           onFlipVertical?.();
           onClose();
         }}
-        sx={menuItemSx}
-      >
-        <ListItemIcon sx={{ minWidth: 28 }}>
-          <FlipIcon sx={{ fontSize: 16, transform: "rotate(90deg)" }} />
-        </ListItemIcon>
-        <ListItemText
-          primaryTypographyProps={{ fontSize: SKETCH_FONT.md }}
-        >
-          Flip Vertical
-        </ListItemText>
-      </MenuItem>
-    </Popover>
+      />
+    </ContextMenu>
   );
 };
 

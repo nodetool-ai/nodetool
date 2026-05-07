@@ -40,7 +40,7 @@ import { css } from "@emotion/react";
 import React, { memo, forwardRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
+import { Container, FlexColumn, FlexRow } from "../ui_primitives";
 import TransformContextMenu from "./TransformContextMenu";
 import type { SketchDocument } from "./types";
 import { useEditorSession, useEditorCommands } from "./hooks";
@@ -115,11 +115,11 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   });
 
   return (
-    <Box className="sketch-editor" css={styles(theme)}>
+    <FlexRow className="sketch-editor" css={styles(theme)}>
       {/* ConnectedToolbar subscribes to its own state — no prop drilling */}
       <ConnectedToolbar />
 
-      <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <FlexColumn sx={{ flex: 1, overflow: "hidden" }}>
         {/* ConnectedToolTopBar handles its own panelsHidden check */}
         <ConnectedToolTopBar
           adjBrightness={session.canvasActions.adjBrightness}
@@ -141,8 +141,9 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           onCropCancelPreview={session.canvasActions.handleCropCancelPreview}
         />
 
-        <Box
+        <Container
           className="sketch-editor__canvas-region"
+          padding="none"
           sx={{ flex: 1, position: "relative", overflow: "hidden" }}
         >
           <SketchCanvasPane
@@ -177,8 +178,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             }
             segmentation={session.segmentation}
           />
-        </Box>
-      </Box>
+        </Container>
+      </FlexColumn>
 
       {/* ConnectedLayersPanel handles its own panelsHidden check */}
       <ConnectedLayersPanel
@@ -271,7 +272,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         onFlipHorizontal={session.canvasActions.handleTransformFlipH}
         onFlipVertical={session.canvasActions.handleTransformFlipV}
       />
-    </Box>
+    </FlexRow>
   );
 });
 

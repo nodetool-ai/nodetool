@@ -12,12 +12,10 @@ import React, { memo, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Box,
-  Tooltip,
   ToggleButtonGroup,
-  ToggleButton,
-  Divider
+  ToggleButton
 } from "@mui/material";
+import { Divider, FlexColumn, Tooltip } from "../ui_primitives";
 import type { SelectToolMode, SketchTool } from "./types";
 import {
   getToolShortcutActionId,
@@ -136,22 +134,25 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   );
 
   return (
-    <Box className="sketch-toolbar" css={styles(theme)}>
-      <Box className="tool-sections">
+    <FlexColumn className="sketch-toolbar" css={styles(theme)}>
+      <FlexColumn className="tool-sections">
         {TOOLBAR_TOOL_GROUPS.map((group, index) => (
-          <Box key={group.map((def) => def.tool).join("-")} className="tool-section">
+          <FlexColumn
+            key={group.map((def) => def.tool).join("-")}
+            className="tool-section"
+          >
             <ToggleButtonGroup value={activeTool} exclusive onChange={handleToolChange} size="small" className="tool-group">
               {group.map((definition) => renderToolButton(definition, selectMode))}
             </ToggleButtonGroup>
             {index < TOOLBAR_TOOL_GROUPS.length - 1 ? <Divider flexItem /> : null}
-          </Box>
+          </FlexColumn>
         ))}
-      </Box>
+      </FlexColumn>
 
       <Divider flexItem />
 
       {/* ── Colors ── */}
-      <Box sx={{ px: SKETCH_SPACING.xs }}>
+      <FlexColumn sx={{ px: SKETCH_SPACING.xs }}>
         <ColorSwatchPair
           foregroundColor={foregroundColor}
           backgroundColor={backgroundColor}
@@ -160,9 +161,9 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           onSwapColors={onSwapColors}
           onResetColors={onResetColors}
         />
-      </Box>
+      </FlexColumn>
 
-    </Box>
+    </FlexColumn>
   );
 };
 
