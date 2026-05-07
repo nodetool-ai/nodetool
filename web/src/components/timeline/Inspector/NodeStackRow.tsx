@@ -198,7 +198,10 @@ export const NodeStackRow: React.FC<NodeStackRowProps> = memo(
                   )
                 }
                 tooltip={errorExpanded ? "Hide error" : "Show error"}
-                onClick={handleToggleError}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggleError();
+                }}
                 aria-label={errorExpanded ? "Collapse error" : "Expand error"}
                 size="small"
               />
@@ -206,7 +209,10 @@ export const NodeStackRow: React.FC<NodeStackRowProps> = memo(
               <ToolbarIconButton
                 icon={<ContentCopyIcon fontSize="small" />}
                 tooltip="Copy error to clipboard"
-                onClick={handleCopyError}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCopyError();
+                }}
                 aria-label="Copy error"
                 size="small"
               />
@@ -215,7 +221,10 @@ export const NodeStackRow: React.FC<NodeStackRowProps> = memo(
                 <ToolbarIconButton
                   icon={<ReplayIcon fontSize="small" />}
                   tooltip="Retry"
-                  onClick={onRetry}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRetry();
+                  }}
                   aria-label="Retry node"
                   size="small"
                 />
@@ -225,7 +234,10 @@ export const NodeStackRow: React.FC<NodeStackRowProps> = memo(
                 <ToolbarIconButton
                   icon={<ArticleIcon fontSize="small" />}
                   tooltip="Open logs"
-                  onClick={onOpenLogs}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenLogs();
+                  }}
                   aria-label="Open logs"
                   size="small"
                 />

@@ -67,12 +67,16 @@ function computeNodesOnPath(
   allEdges: Edge[],
   terminalId: string
 ): Node[] {
-  // Build reverse adjacency: target → [sources]
+  // Filter to data edges only — control edges can introduce false dependencies
+  // and may cause cycles that break topological sorting.
+  const dataEdges = allEdges.filter((e) => e.edge_type !== "control");
+
+  // Build reverse adjacency: target → [sources] (data edges only)
   const reverseAdj = new Map<string, string[]>();
   for (const n of allNodes) {
     reverseAdj.set(n.id, []);
   }
-  for (const e of allEdges) {
+  for (const e of dataEdges) {
     const arr = reverseAdj.get(e.target);
     if (arr) {
       arr.push(e.source);
@@ -94,7 +98,8 @@ function computeNodesOnPath(
   }
 
   const reachableNodes = allNodes.filter((n) => reachable.has(n.id));
-  const reachableEdges = allEdges.filter(
+  // Also restrict topo-sort edges to reachable data edges
+  const reachableEdges = dataEdges.filter(
     (e) => reachable.has(e.source) && reachable.has(e.target)
   );
 
@@ -230,7 +235,6 @@ export const NodeStack: React.FC<NodeStackProps> = memo(
                 css={expanderRowStyles(theme)}
                 align="center"
                 gap={0.25}
-                onClick={handleToggleMiddle}
               >
                 <Caption color="secondary" sx={{ fontSize: 11 }}>
                   {pluralizeNode(collapsedMiddleCount)} more
@@ -238,7 +242,10 @@ export const NodeStack: React.FC<NodeStackProps> = memo(
                 <ToolbarIconButton
                   icon={<ExpandMoreIcon fontSize="small" />}
                   tooltip="Show all nodes"
-                  onClick={handleToggleMiddle}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleMiddle();
+                  }}
                   aria-label="Expand node list"
                   size="small"
                 />
@@ -278,7 +285,6 @@ export const NodeStack: React.FC<NodeStackProps> = memo(
             css={expanderRowStyles(theme)}
             align="center"
             gap={0.25}
-            onClick={handleToggleMiddle}
           >
             <Caption color="secondary" sx={{ fontSize: 11 }}>
               Collapse
@@ -286,7 +292,10 @@ export const NodeStack: React.FC<NodeStackProps> = memo(
             <ToolbarIconButton
               icon={<ExpandLessIcon fontSize="small" />}
               tooltip="Collapse node list"
-              onClick={handleToggleMiddle}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleMiddle();
+              }}
               aria-label="Collapse node list"
               size="small"
             />
