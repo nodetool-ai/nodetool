@@ -255,6 +255,15 @@ const WorkflowList = () => {
             )
           };
         });
+        // The optimistic write only updates the list query. Detail consumers
+        // (`["workflow", id]`) and the workflow tools picker also surface the
+        // name and must be refetched. The backend resource_change broadcast
+        // will normally cover this, but invalidating here keeps the UI
+        // consistent even if the broadcast is missed.
+        queryClient.invalidateQueries({
+          queryKey: ["workflow", workflow.id]
+        });
+        queryClient.invalidateQueries({ queryKey: ["workflow-tools"] });
         // Also update the workflow manager if this workflow is open (updates tabs)
         const openWorkflow = getWorkflow(workflow.id);
         if (openWorkflow) {

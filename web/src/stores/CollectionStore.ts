@@ -3,6 +3,7 @@ import { devtools } from "zustand/middleware";
 import { restFetch } from "../lib/rest-fetch";
 import { CollectionList as CollectionListType } from "./ApiTypes";
 import { trpcClient } from "../trpc/client";
+import { queryClient } from "../queryClient";
 
 interface IndexResponseData {
   path: string;
@@ -96,6 +97,9 @@ export const useCollectionStore = create<CollectionStore>()(
       deleteCollection: async (collectionName: string) => {
         await trpcClient.collections.delete.mutate({ name: collectionName });
         await get().fetchCollections();
+        // Collections are not DBModels and don't broadcast resource_change,
+        // so React Query consumers (CollectionProperty) need an explicit kick.
+        queryClient.invalidateQueries({ queryKey: ["collections"] });
       },
 
       confirmDelete: async () => {
@@ -188,6 +192,8 @@ export const useCollectionStore = create<CollectionStore>()(
         }
 
         await get().fetchCollections();
+        // Indexing changes the collection's document count; refresh consumers.
+        queryClient.invalidateQueries({ queryKey: ["collections"] });
         set({ indexProgress: null, indexErrors: errors });
       }
     }),
