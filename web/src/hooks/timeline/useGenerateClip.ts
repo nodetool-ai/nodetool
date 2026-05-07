@@ -7,6 +7,7 @@ import { useTimelineGenerationStore } from "../../stores/timeline/TimelineGenera
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
+import type { Node as WorkflowGraphNode } from "../../stores/ApiTypes";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import useErrorStore from "../../stores/ErrorStore";
@@ -23,8 +24,12 @@ interface JobSubscriptionContext {
   selectedOutputNodeId?: string;
 }
 
-type IdleClipStatus = "locked" | "draft" | "stale" | "generated";
+type NonGeneratingClipStatus = "locked" | "draft" | "stale" | "generated";
 
+/**
+ * Minimal clip shape needed to derive a non-generating status.
+ * This keeps the hook decoupled from timeline package type imports.
+ */
 interface TimelineClipLike {
   locked: boolean;
   sourceType: "imported" | "generated";
@@ -33,15 +38,13 @@ interface TimelineClipLike {
   lastGeneratedHash?: string;
 }
 
-type WorkflowGraphNode = Parameters<typeof graphNodeToReactFlowNode>[1];
-
 const jobSubscriptions = new Map<string, () => void>();
 const jobContexts = new Map<string, JobSubscriptionContext>();
 
 const isActiveStatus = (status: string): boolean =>
   status === "queued" || status === "running";
 
-const deriveIdleClipStatus = (clip: TimelineClipLike): IdleClipStatus => {
+const deriveIdleClipStatus = (clip: TimelineClipLike): NonGeneratingClipStatus => {
   if (clip.locked) {
     return "locked";
   }
