@@ -52,6 +52,28 @@
     ],
     "nodes": [
       {
+        "id": "comment-intro",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🎙️ Audio To Image\n\nSpeak a description and turn it into an image. Audio is transcribed by Whisper, then the transcript drives a text-to-image model.\n\n**Pipeline:** Audio input → Whisper transcription → Text-to-Image → Output preview.\n\n**Try this:** swap the ASR or image model, change `aspect_ratio` / `resolution` on the image node, or replace the recording with a longer audio asset."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": -540,
+            "y": -3
+          },
+          "zIndex": 0,
+          "width": 480,
+          "height": 240,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
         "id": "15",
         "type": "nodetool.input.AudioInput",
         "data": {
@@ -64,6 +86,7 @@
           }
         },
         "ui_properties": {
+          "title": "1️⃣ Record or upload audio — describe your image",
           "selected": true,
           "position": {
             "x": 65,
@@ -71,7 +94,6 @@
           },
           "zIndex": 0,
           "width": 245,
-          "title": "Records the user voice as audio file.",
           "selectable": true,
           "bypassed": false
         },
@@ -91,6 +113,7 @@
           }
         },
         "ui_properties": {
+          "title": "2️⃣ Transcribe with Whisper — pick a different ASR model if you like",
           "selected": false,
           "position": {
             "x": 340,
@@ -122,6 +145,7 @@
           "timeout_seconds": 0
         },
         "ui_properties": {
+          "title": "3️⃣ Generate image — tweak model, aspect ratio, resolution",
           "selected": false,
           "position": {
             "x": 650,
@@ -144,6 +168,7 @@
           "description": ""
         },
         "ui_properties": {
+          "title": "4️⃣ Output — final image",
           "position": {
             "x": 960,
             "y": 167
