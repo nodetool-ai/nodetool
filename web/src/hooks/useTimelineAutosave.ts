@@ -63,13 +63,9 @@ export const useTimelineAutosave = ({
 
   useEffect(() => {
     documentRef.current = document;
-  }, [document]);
-  useEffect(() => {
     updatedAtRef.current = updatedAt;
-  }, [updatedAt]);
-  useEffect(() => {
     sequenceIdRef.current = sequenceId;
-  }, [sequenceId]);
+  }, [document, updatedAt, sequenceId]);
 
   const performSave = useCallback(async () => {
     const id = sequenceIdRef.current;

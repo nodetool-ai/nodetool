@@ -72,6 +72,18 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
         .join("\n");
     }, [logs]);
 
+    const logRows = useMemo(
+      () =>
+        (logs || []).map((l) => ({
+          severity: l.severity as LogRow["severity"],
+          timestamp: l.timestamp,
+          content: l.content,
+          workflowName: undefined,
+          data: l.data
+        })),
+      [logs]
+    );
+
     useEffect(() => {
       if (logsRef.current) {
         logsRef.current.scrollTop = logsRef.current.scrollHeight;
@@ -188,13 +200,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
           </div>
           <div style={{ padding: 10 }} ref={logsRef}>
             <LogsTable
-              rows={(logs || []).map((l) => ({
-                severity: l.severity as LogRow["severity"],
-                timestamp: l.timestamp,
-                content: l.content,
-                workflowName: undefined,
-                data: l.data
-              }))}
+              rows={logRows}
               height={400}
               severities={selectedSeverities}
             />
