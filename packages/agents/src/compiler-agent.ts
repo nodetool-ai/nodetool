@@ -27,6 +27,7 @@ import { withAgentSpanGen } from "@nodetool-ai/runtime";
 import type {
   Chunk,
   LogUpdate,
+  PlanningUpdate,
   ProcessingMessage,
   StepResult,
   ToolCallUpdate
@@ -212,11 +213,25 @@ export class CompilerAgent {
       { role: "user", content: userPrompt }
     ];
 
+    const startSummary =
+      snapshot.length > 0
+        ? `Composing the final answer from ${snapshot.length} memory ${snapshot.length === 1 ? "entry" : "entries"}…`
+        : "Composing the final answer…";
+
+    // Strongly-typed status signal for chat / execution-tree UIs.
+    yield {
+      type: "planning_update",
+      node_id: "compiler",
+      phase: "compile",
+      status: "started",
+      content: startSummary
+    } satisfies PlanningUpdate;
+
     yield {
       type: "log_update",
       node_id: "compiler",
       node_name: "Compiler",
-      content: `Compiling final result from ${snapshot.length} memory entries...`,
+      content: startSummary,
       severity: "info"
     } satisfies LogUpdate;
 
@@ -261,6 +276,13 @@ export class CompilerAgent {
             chars: text.length
           });
           yield {
+            type: "planning_update",
+            node_id: "compiler",
+            phase: "compile",
+            status: "completed",
+            content: "Final answer composed."
+          } satisfies PlanningUpdate;
+          yield {
             type: "step_result",
             step: { id: "compiler", instructions: this.objective },
             result: text,
@@ -301,6 +323,13 @@ export class CompilerAgent {
         }
 
         log.info("Compiler finished", { entries: snapshot.length });
+        yield {
+          type: "planning_update",
+          node_id: "compiler",
+          phase: "compile",
+          status: "completed",
+          content: "Final result produced."
+        } satisfies PlanningUpdate;
         yield {
           type: "step_result",
           step: { id: "compiler", instructions: this.objective },
@@ -349,6 +378,13 @@ export class CompilerAgent {
       rounds: this.maxRounds,
       mode: this.outputSchema ? "structured" : "prose"
     });
+    yield {
+      type: "planning_update",
+      node_id: "compiler",
+      phase: "compile",
+      status: "failed",
+      content: `Compiler exhausted round budget (${this.maxRounds}).`
+    } satisfies PlanningUpdate;
     return null;
   }
 

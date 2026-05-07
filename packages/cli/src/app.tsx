@@ -576,15 +576,18 @@ export function App({
           if (abortRef.current) break;
           execState.processMessage(msg);
 
-          // Stream the agent's final synthesis so the user sees the answer
-          // forming in real time. Other chunks (step thinking, planner
-          // commentary) are noise in the chat pane and stay in the tree.
+          // Stream the CompilerAgent's prose-mode output so the user sees the
+          // final answer forming in real time. Other chunks (step thinking,
+          // planner commentary) stay in the execution tree.
           if (msg.type === "chunk") {
             const ch = msg as { content?: string; node_id?: string };
-            if (ch.node_id === "agent_synthesizer" && ch.content) {
+            if (
+              (ch.node_id === "compiler" || ch.node_id === "agent_synthesizer") &&
+              ch.content
+            ) {
               synthesisContent += ch.content;
               setStreamContent(synthesisContent);
-              setStreamLabel("finalizing");
+              setStreamLabel("composing");
             }
           }
         }

@@ -206,6 +206,18 @@ function PlanningPhase({ content }: { content: string }) {
   );
 }
 
+function CompilingPhase({ content }: { content: string }) {
+  return (
+    <Box>
+      <Text color="magenta"><Spinner type="dots" /> </Text>
+      <Text color="magenta">composing</Text>
+      {content ? (
+        <Text color="gray" dimColor>  {content.slice(0, 80)}</Text>
+      ) : null}
+    </Box>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Main tree
 // ---------------------------------------------------------------------------
@@ -231,6 +243,9 @@ export function ExecutionTree({
     <Box flexDirection="column" marginTop={1}>
       {state.phase === "planning" ? (
         <PlanningPhase content={state.planningContent} />
+      ) : null}
+      {state.phase === "compiling" ? (
+        <CompilingPhase content={state.compileContent} />
       ) : null}
       {state.tasks.length > 0 ? (
         <>
