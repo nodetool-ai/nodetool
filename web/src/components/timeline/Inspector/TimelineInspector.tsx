@@ -22,6 +22,7 @@ import {
 } from "../../ui_primitives";
 import { ClipActions } from "./ClipActions";
 import { NodePropertyEditor } from "./NodePropertyEditor";
+import { GeneratedClipPanel } from "./GeneratedClipPanel";
 
 const containerStyles = css({ width: "100%", padding: 8, overflow: "auto" });
 const sectionContentStyles = css({ padding: 8 });
@@ -111,6 +112,11 @@ export const TimelineInspector: React.FC = memo(() => {
   }
 
   if (!clip) return null;
+
+  // Generated clips get the full GeneratedClipPanel with node stack + property editor.
+  if (clip.sourceType === "generated") {
+    return <GeneratedClipPanel clipId={clip.id} />;
+  }
 
   return (
     <Panel css={containerStyles}>
