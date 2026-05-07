@@ -359,9 +359,9 @@ export class TeamExecutor {
       this.bus,
       this.board
     );
+    const sharedNames = new Set(this.sharedTools.map((t) => t.name));
+    const teamNames = new Set(teamTools.map((t) => t.name));
     const memoryTools = getMemoryTools().filter((mt) => {
-      const sharedNames = new Set(this.sharedTools.map((t) => t.name));
-      const teamNames = new Set(teamTools.map((t) => t.name));
       return !sharedNames.has(mt.name) && !teamNames.has(mt.name);
     });
     const allTools: Tool[] = [
