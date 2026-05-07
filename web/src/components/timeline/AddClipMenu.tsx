@@ -8,7 +8,7 @@
  * - Expander: "All workflows" — all standalone workflows (run_mode IN ("workflow", null)).
  *
  * When the user picks a workflow:
- *  1. If it has multiple terminal output nodes, a second prompt asks which one to use.
+ *  1. If it has multiple terminal output nodes, a second step asks which one to use.
  *  2. `TimelineStore.addGeneratedClip` is called to clone the workflow and create the clip.
  */
 
@@ -17,6 +17,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 import {
   FlexColumn,
@@ -32,6 +33,7 @@ import {
   ToolbarIconButton
 } from "../ui_primitives";
 import { trpc } from "../../trpc/client";
+import { trpcClient } from "../../trpc/client";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
@@ -137,6 +139,75 @@ const WorkflowList: React.FC<WorkflowListProps> = memo(
 
 WorkflowList.displayName = "WorkflowList";
 
+// ── Output-node selection sub-panel ────────────────────────────────────────
+
+interface TerminalOutputItem {
+  id: string;
+  type: string;
+  mediaType: "image" | "video" | "audio";
+  name: string;
+}
+
+interface OutputSelectPanelProps {
+  outputs: TerminalOutputItem[];
+  workflowName: string;
+  onSelect: (outputNodeId: string) => void;
+  onBack: () => void;
+}
+
+const OutputSelectPanel: React.FC<OutputSelectPanelProps> = memo(
+  ({ outputs, workflowName, onSelect, onBack }) => {
+    const theme = useTheme();
+
+    return (
+      <FlexColumn gap={1}>
+        <FlexRow align="center" gap={0.5}>
+          <ToolbarIconButton
+            icon={<ArrowBackIcon fontSize="small" />}
+            tooltip="Back"
+            onClick={onBack}
+            aria-label="Back to workflow list"
+          />
+          <Text size="small" weight={500} sx={{ flex: 1 }}>
+            Select output — {workflowName}
+          </Text>
+        </FlexRow>
+        <Caption sx={{ color: "text.secondary" }}>
+          This workflow has multiple output nodes. Pick one:
+        </Caption>
+        <FlexColumn gap={0}>
+          {outputs.map((out) => (
+            <FlexColumn
+              key={out.id}
+              gap={0}
+              css={workflowItemStyles(theme)}
+              role="button"
+              tabIndex={0}
+              aria-label={`Use ${out.name || out.type} output`}
+              onClick={() => onSelect(out.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelect(out.id);
+                }
+              }}
+            >
+              <Text size="small" weight={500}>
+                {out.name || out.type}
+              </Text>
+              <Caption sx={{ color: "text.secondary" }}>
+                {out.mediaType}
+              </Caption>
+            </FlexColumn>
+          ))}
+        </FlexColumn>
+      </FlexColumn>
+    );
+  }
+);
+
+OutputSelectPanel.displayName = "OutputSelectPanel";
+
 // ── Main component ─────────────────────────────────────────────────────────
 
 export interface AddClipMenuProps {
@@ -170,6 +241,15 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
     const [isAdding, setIsAdding] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Multi-output selection state
+    const [pendingWorkflow, setPendingWorkflow] = useState<{
+      id: string;
+      name: string;
+    } | null>(null);
+    const [terminalOutputs, setTerminalOutputs] = useState<
+      TerminalOutputItem[] | null
+    >(null);
+
     const addGeneratedClip = useTimelineStore((s) => s.addGeneratedClip);
 
     // ── Data fetching ──────────────────────────────────────────────────────
@@ -184,15 +264,16 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
       { staleTime: 60_000, enabled: Boolean(anchorEl) && activeTab === "all" }
     );
 
-    // ── Handlers ───────────────────────────────────────────────────────────
+    // ── Helpers ────────────────────────────────────────────────────────────
 
-    const handleSelect = useCallback(
-      async (workflowId: string) => {
+    const createClip = useCallback(
+      async (workflowId: string, selectedOutputNodeId?: string) => {
         setIsAdding(true);
         setError(null);
         try {
           await addGeneratedClip(workflowId, trackId, startMs, {
-            mediaTypeOverride
+            mediaTypeOverride,
+            selectedOutputNodeId
           });
           onClose();
         } catch (err) {
@@ -205,6 +286,67 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
       },
       [addGeneratedClip, trackId, startMs, mediaTypeOverride, onClose]
     );
+
+    // ── Handlers ───────────────────────────────────────────────────────────
+
+    const handleSelect = useCallback(
+      async (workflowId: string) => {
+        // Resolve the workflow name from the list data for the output-select header
+        const allWfs = [
+          ...(templatesQuery.data?.workflows ?? []),
+          ...(allWorkflowsQuery.data?.workflows ?? [])
+        ];
+        const wfMeta = allWfs.find((w) => w.id === workflowId);
+        const workflowName = wfMeta?.name ?? workflowId;
+
+        setIsAdding(true);
+        setError(null);
+        try {
+          const result = await trpcClient.workflows.terminalOutputs.query({
+            id: workflowId
+          });
+
+          if (result.outputs.length === 0) {
+            // Server will throw TIMELINE_NO_MEDIA_OUTPUT; surface gracefully
+            throw new Error(
+              "This workflow has no media output node (image, video, or audio)."
+            );
+          }
+
+          if (result.outputs.length === 1) {
+            // Single output — proceed directly
+            await createClip(workflowId, result.outputs[0]!.id);
+          } else {
+            // Multiple outputs — show selection panel
+            setPendingWorkflow({ id: workflowId, name: workflowName });
+            setTerminalOutputs(result.outputs as TerminalOutputItem[]);
+            setIsAdding(false);
+          }
+        } catch (err) {
+          const msg =
+            err instanceof Error ? err.message : "Failed to add clip";
+          setError(msg);
+          setIsAdding(false);
+        }
+      },
+      [createClip, templatesQuery.data, allWorkflowsQuery.data]
+    );
+
+    const handleOutputSelect = useCallback(
+      async (selectedOutputNodeId: string) => {
+        if (!pendingWorkflow) return;
+        setPendingWorkflow(null);
+        setTerminalOutputs(null);
+        await createClip(pendingWorkflow.id, selectedOutputNodeId);
+      },
+      [pendingWorkflow, createClip]
+    );
+
+    const handleBack = useCallback(() => {
+      setPendingWorkflow(null);
+      setTerminalOutputs(null);
+      setError(null);
+    }, []);
 
     const handleTabChange = useCallback((tab: string) => {
       setActiveTab(tab as "templates" | "all");
@@ -226,61 +368,75 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
         placement="bottom-left"
       >
         <FlexColumn gap={1} css={menuStyles(theme)}>
-          {/* Header */}
-          <FlexRow align="center" justify="space-between">
-            <Text size="small" weight={600}>
-              Add Generated Clip
-            </Text>
-            {isAdding && <LoadingSpinner size="small" />}
-          </FlexRow>
+          {/* Header (hidden when showing output-select sub-panel) */}
+          {!terminalOutputs && (
+            <>
+              <FlexRow align="center" justify="space-between">
+                <Text size="small" weight={600}>
+                  Add Generated Clip
+                </Text>
+                {isAdding && <LoadingSpinner size="small" />}
+              </FlexRow>
 
-          {/* Tabs */}
-          <TabGroup
-            size="small"
-            tabs={[
-              { value: "templates", label: "Templates" },
-              { value: "all", label: "All workflows" }
-            ]}
-            value={activeTab}
-            onChange={handleTabChange}
-          />
+              {/* Tabs */}
+              <TabGroup
+                size="small"
+                tabs={[
+                  { value: "templates", label: "Templates" },
+                  { value: "all", label: "All workflows" }
+                ]}
+                value={activeTab}
+                onChange={handleTabChange}
+              />
 
-          {/* Search */}
-          <SearchInput
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Search…"
-            autoFocus
-            fullWidth
-            debounceMs={150}
-          />
+              {/* Search */}
+              <SearchInput
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Search…"
+                autoFocus
+                fullWidth
+                debounceMs={150}
+              />
 
-          {/* Error */}
-          {error && (
-            <Caption sx={{ color: "error.main" }}>{error}</Caption>
+              {/* Error */}
+              {error && (
+                <Caption sx={{ color: "error.main" }}>{error}</Caption>
+              )}
+
+              {/* Templates tab */}
+              <TabPanel value="templates" activeValue={activeTab}>
+                <WorkflowList
+                  workflows={templateWorkflows}
+                  isLoading={templatesQuery.isLoading}
+                  searchQuery={searchQuery}
+                  onSelect={handleSelect}
+                  emptyLabel="No templates found"
+                />
+              </TabPanel>
+
+              {/* All workflows tab */}
+              <TabPanel value="all" activeValue={activeTab}>
+                <WorkflowList
+                  workflows={allWorkflows}
+                  isLoading={allWorkflowsQuery.isLoading}
+                  searchQuery={searchQuery}
+                  onSelect={handleSelect}
+                  emptyLabel="No workflows found"
+                />
+              </TabPanel>
+            </>
           )}
 
-          {/* Templates tab */}
-          <TabPanel value="templates" activeValue={activeTab}>
-            <WorkflowList
-              workflows={templateWorkflows}
-              isLoading={templatesQuery.isLoading}
-              searchQuery={searchQuery}
-              onSelect={handleSelect}
-              emptyLabel="No templates found"
+          {/* Multi-output selection sub-panel */}
+          {terminalOutputs && pendingWorkflow && (
+            <OutputSelectPanel
+              outputs={terminalOutputs}
+              workflowName={pendingWorkflow.name}
+              onSelect={handleOutputSelect}
+              onBack={handleBack}
             />
-          </TabPanel>
-
-          {/* All workflows tab */}
-          <TabPanel value="all" activeValue={activeTab}>
-            <WorkflowList
-              workflows={allWorkflows}
-              isLoading={allWorkflowsQuery.isLoading}
-              searchQuery={searchQuery}
-              onSelect={handleSelect}
-              emptyLabel="No workflows found"
-            />
-          </TabPanel>
+          )}
         </FlexColumn>
       </Popover>
     );
