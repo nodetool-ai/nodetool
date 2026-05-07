@@ -40,10 +40,12 @@ export const ContextMenuContext = createContext<
 
 export function useContextMenu(): ContextMenuContextType;
 export function useContextMenu<Selected>(
-  selector: (state: ContextMenuContextType) => Selected
+  selector: (state: ContextMenuContextType) => Selected,
+  equalityFn?: (a: Selected, b: Selected) => boolean
 ): Selected;
 export function useContextMenu<Selected>(
-  selector?: (state: ContextMenuContextType) => Selected
+  selector?: (state: ContextMenuContextType) => Selected,
+  _equalityFn?: (a: Selected, b: Selected) => boolean
 ) {
   const context = useContext(ContextMenuContext);
   if (context === undefined) {
