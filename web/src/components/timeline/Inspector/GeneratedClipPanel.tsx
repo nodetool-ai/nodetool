@@ -83,6 +83,15 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
           {/* Header: name, status, type, duration, timestamps */}
           <GeneratedClipHeader clip={clip} />
 
+          {/* No workflow bound — explain rather than silently omitting sections */}
+          {!workflowId && (
+            <EmptyState
+              variant="empty"
+              size="small"
+              description="No workflow is bound to this clip."
+            />
+          )}
+
           {/* Node Stack */}
           {workflowId && (
             <CollapsibleSection title="Workflow Nodes" defaultOpen>
