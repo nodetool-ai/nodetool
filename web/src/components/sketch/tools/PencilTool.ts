@@ -48,7 +48,6 @@ export class PencilTool implements ToolHandler {
 export const definition: ToolDefinition = {
   tool: "pencil",
   label: "Pencil",
-  shortcut: "P",
   Icon: CreateIcon,
   group: "painting"
 };

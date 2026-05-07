@@ -306,7 +306,6 @@ export class MoveTool implements ToolHandler {
 export const definition: ToolDefinition = {
   tool: "move",
   label: "Move",
-  shortcut: "V",
   Icon: OpenWithIcon,
   group: "painting"
 };

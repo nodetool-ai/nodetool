@@ -57,7 +57,6 @@ export class EraserTool implements ToolHandler {
 export const definition: ToolDefinition = {
   tool: "eraser",
   label: "Eraser",
-  shortcut: "E",
   Icon: AutoFixNormalIcon,
   group: "painting"
 };

@@ -7,7 +7,8 @@ import {
   PAINTING_TOOLS,
   SHAPE_TOOLS,
   CONTEXT_MENU_TOOLS,
-  getToolDefinition
+  getToolDefinition,
+  getToolShortcutActionId
 } from "../toolDefinitions";
 import type { SketchTool } from "../types";
 
@@ -93,14 +94,13 @@ describe("toolDefinitions", () => {
       const def = getToolDefinition("brush");
       expect(def.tool).toBe("brush");
       expect(def.label).toBe("Brush");
-      expect(def.shortcut).toBe("B");
+      expect("shortcut" in def).toBe(false);
     });
 
     it("returns the correct definition for clone_stamp", () => {
       const def = getToolDefinition("clone_stamp");
       expect(def.tool).toBe("clone_stamp");
       expect(def.label).toBe("Clone Stamp");
-      expect(def.shortcut).toBe("S");
     });
 
     it("returns move (first painting tool) for unknown tool", () => {
@@ -108,17 +108,32 @@ describe("toolDefinitions", () => {
       expect(def.tool).toBe("move");
     });
 
-    it("returns definition with shortcut for tools that have one", () => {
+    it("does not include per-tool shortcut metadata", () => {
       const brushDef = getToolDefinition("brush");
-      expect(brushDef.shortcut).toBeDefined();
-
       const eraserDef = getToolDefinition("eraser");
-      expect(eraserDef.shortcut).toBe("E");
+      expect("shortcut" in brushDef).toBe(false);
+      expect("shortcut" in eraserDef).toBe(false);
     });
 
-    it("returns definition without shortcut for select tool", () => {
+    it("returns definition for select tool without legacy shortcut metadata", () => {
       const def = getToolDefinition("select");
-      expect(def.shortcut).toBeUndefined();
+      expect("shortcut" in def).toBe(false);
+    });
+  });
+
+  describe("getToolShortcutActionId", () => {
+    it("maps ordinary tool ids to shortcut action ids", () => {
+      expect(getToolShortcutActionId("brush")).toBe("tool-brush");
+      expect(getToolShortcutActionId("clone_stamp")).toBe("tool-clone-stamp");
+    });
+
+    it("maps select tool based on the active select mode", () => {
+      expect(getToolShortcutActionId("select", "rectangle")).toBe("tool-select-rect");
+      expect(getToolShortcutActionId("select", "magic_wand")).toBe("tool-select-magic-wand");
+    });
+
+    it("returns null for tools with no shortcut binding", () => {
+      expect(getToolShortcutActionId("segment")).toBeNull();
     });
   });
 });

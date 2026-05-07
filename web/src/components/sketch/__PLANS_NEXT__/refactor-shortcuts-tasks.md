@@ -203,39 +203,38 @@ These are not dispatched by the central dispatcher — they fire from `onKeyDown
 
 ## Ordered implementation tasks
 
-- [ ] **Keyboard test audit (do this before touching any code):** grep `__tests__/` for `keydown`, `KeyboardEvent`, and `key:` to get a full list of tests that exercise keyboard behavior. Record which files and which actions they cover. After the hook is rewritten, verify each one still reaches the new dispatcher. This is the regression baseline.
+- [x] **Keyboard test audit (do this before touching any code):** grep `__tests__/` for `keydown`, `KeyboardEvent`, and `key:` to get a full list of tests that exercise keyboard behavior. Record which files and which actions they cover. After the hook is rewritten, verify each one still reaches the new dispatcher. This is the regression baseline.
 
-- [ ] Create `shortcuts/actionRegistry.ts` — pure data module exporting the action registry type (`id`, `label`, `displayGroup`) and the full list of sketch action ids as a const enum or string union. No handlers, no keys.
+- [x] Create `shortcuts/actionRegistry.ts` — pure data module exporting the action registry type (`id`, `label`, `displayGroup`) and the full list of sketch action ids as a const enum or string union. No handlers, no keys.
 
-- [ ] Create `shortcuts/bindingCatalog.ts` — pure data module exporting the full binding catalog table above as a typed const array (`key`, `modifiers`, `actionId`, `scope`). No runtime logic.
+- [x] Create `shortcuts/bindingCatalog.ts` — pure data module exporting the full binding catalog table above as a typed const array (`key`, `modifiers`, `actionId`, `scope`). No runtime logic.
 
-- [ ] Add normalization helpers in `shortcuts/normalize.ts` — re-export `isMac` from `web/src/utils/platform.ts` (already uses `navigator.userAgent`, not the deprecated `navigator.platform`), `normalizeKey()` for Delete→Backspace where appropriate, `buildComboString(e: KeyboardEvent)` for matching, and `displayCombo(actionId)` for OS-aware display strings (Ctrl → ⌘ on Mac). Replace the existing local `isAppleLikePlatform()` in `useEditorKeyboardShortcuts.ts`.
+- [x] Add normalization helpers in `shortcuts/normalize.ts` — re-export `isMac` from `web/src/utils/platform.ts` (already uses `navigator.userAgent`, not the deprecated `navigator.platform`), `normalizeKey()` for Delete→Backspace where appropriate, `buildComboString(e: KeyboardEvent)` for matching, and `displayCombo(actionId)` for OS-aware display strings (Ctrl → ⌘ on Mac). Replace the existing local `isAppleLikePlatform()` in `useEditorKeyboardShortcuts.ts`.
 
-- [ ] Add catalog integrity tests — duplicate bindings within the same scope, action ids not in registry, OS expansion correctness, all mode-scope entries have a corresponding global fallback where expected.
+- [x] Add catalog integrity tests — duplicate bindings within the same scope, action ids not in registry, OS expansion correctness, all mode-scope entries have a corresponding global fallback where expected.
 
-- [ ] Create `shortcuts/dispatcher.ts` — the scope resolution function: blocked-check → mode:transform → mode:crop → panel:layers (for documentation; actual dispatch stays in panel) → global. Returns the matched action id or null. Pure function that takes the event and current store state snapshot; no side effects.
+- [x] Create `shortcuts/dispatcher.ts` — the scope resolution function: blocked-check → mode:transform → mode:crop → panel:layers (for documentation; actual dispatch stays in panel) → global. Returns the matched action id or null. Pure function that takes the event and current store state snapshot; no side effects.
 
-- [ ] Create `shortcuts/actionHandlers.ts` — maps each action id to its handler function. Handlers call into `paramsRef.current.*` or `useSketchStore.getState().*` directly, same as today. Handler for `tool-opacity-preset`, `tool-size-*`, and `tool-hardness-*` reads `activeTool` internally and branches — no change to this logic.
+- [x] Create `shortcuts/actionHandlers.ts` — maps each action id to its handler function. Handlers call into `paramsRef.current.*` or `useSketchStore.getState().*` directly, same as today. Handler for `tool-opacity-preset`, `tool-size-*`, and `tool-hardness-*` reads `activeTool` internally and branches — no change to this logic.
 
-- [ ] Create `shortcuts/springLoadedModifiers.ts` — moves the Ctrl/Cmd spring-loaded move logic and the Space pan tracking out of the keydown handler. Exposes `useSpringLoadedModifiers()` hook that attaches its own window listeners and manages its own held-key state. Accepts the same `select/crop/segment` guard. **Space tracking split resolution:** this module owns `spacePanActive` state (is the user currently panning); `useKeyboardModifiers.ts` keeps its existing `spaceHeldRef` for pointer-gesture code that reads raw held-key state. Different concerns, no duplication. `useKeyboardModifiers.ts` remains otherwise unchanged.
+- [x] Create `shortcuts/springLoadedModifiers.ts` — moves the Ctrl/Cmd spring-loaded move logic and the Space pan tracking out of the keydown handler. Exposes `useSpringLoadedModifiers()` hook that attaches its own window listeners and manages its own held-key state. Accepts the same `select/crop/segment` guard. **Space tracking split resolution:** this module owns `spacePanActive` state (is the user currently panning); `useKeyboardModifiers.ts` keeps its existing `spaceHeldRef` for pointer-gesture code that reads raw held-key state. Different concerns, no duplication. `useKeyboardModifiers.ts` remains otherwise unchanged.
 
-- [ ] Add `shortcuts/index.ts` barrel export — re-exports the public API: `displayCombo`, `bindingCatalog`, `SKETCH_ACTIONS` (the action id union/enum), and `useSpringLoadedModifiers`. Keeps consumer imports clean and makes the module boundary explicit.
+- [x] Add `shortcuts/index.ts` barrel export — re-exports the public API: `displayCombo`, `bindingCatalog`, `SKETCH_ACTIONS` (the action id union/enum), and `useSpringLoadedModifiers`. Keeps consumer imports clean and makes the module boundary explicit.
 
-- [ ] Rewrite `useEditorKeyboardShortcuts.ts` to: (1) attach a single `keydown` listener, (2) call `dispatcher()` to get the action id, (3) look up and call the handler from `actionHandlers.ts`. Remove all inline key-string comparisons and tool-context branches from the listener body.
+- [x] Rewrite `useEditorKeyboardShortcuts.ts` to: (1) attach a single `keydown` listener, (2) call `dispatcher()` to get the action id, (3) look up and call the handler from `actionHandlers.ts`. Remove all inline key-string comparisons and tool-context branches from the listener body.
 
-- [ ] Replace hard-coded shortcut display strings in `SketchModal.tsx` (undo/redo/export/close tooltips) and `SketchToolbar.tsx` (tool tooltips) with `displayCombo(actionId)` from the normalize helpers. In the toolbar, map each tool definition to its action id using the convention `"tool-" + definition.tool` (e.g. `tool-brush`, `tool-crop`) — no special lookup needed. Update `hooks/useEditorCommands.ts` to pass the updated params shape to the rewritten keyboard hook.
+- [x] Replace hard-coded shortcut display strings in `SketchModal.tsx` (undo/redo/export/close tooltips) and `SketchToolbar.tsx` (tool tooltips) with `displayCombo(actionId)` from the normalize helpers. In the toolbar, map each tool definition to its action id using the convention `"tool-" + definition.tool` (e.g. `tool-brush`, `tool-crop`) — no special lookup needed. Update `hooks/useEditorCommands.ts` to pass the updated params shape to the rewritten keyboard hook.
 
-- [ ] Replace the static shortcut reference block in `SketchLayersPanel.tsx` (the hardcoded `<dl>`) with a component that reads the binding catalog and groups entries by `displayGroup`.
+- [x] Replace the static shortcut reference block in `SketchLayersPanel.tsx` (the hardcoded `<dl>`) with a component that reads the binding catalog and groups entries by `displayGroup`.
 
-- [ ] Remove mirror-horizontal and mirror-vertical keyboard shortcuts (`M` and `Shift+M`). Confirm mirror UI is accessible via toolbar buttons only. Remove the dead binding from any remaining code.
+- [x] Remove mirror-horizontal and mirror-vertical keyboard shortcuts (`M` and `Shift+M`). Confirm mirror UI is accessible via toolbar buttons only. Remove the dead binding from any remaining code.
 
-- [ ] Remove the `shortcut` field from every individual tool definition file (`tools/BrushTool.ts`, `PencilTool.ts`, `EraserTool.ts`, `MoveTool.ts`, `TransformTool.ts`, `ShapeTool.ts`, `FillTool.ts`, `EyedropperTool.ts`, `BlurTool.ts`, `CloneStampTool.ts`, `GradientTool.ts`, `CropTool.ts`, `AdjustTool.ts`). Also clear the `shortcut: "W"` field from `SegmentTool.ts` — this binding was already shadowed by magic-wand and the decision is that segment gets no keyboard shortcut until production-ready. Remove the `shortcut` field from the `ToolDefinition` type once all usages are gone.
+- [x] Remove the `shortcut` field from every individual tool definition file (`tools/BrushTool.ts`, `PencilTool.ts`, `EraserTool.ts`, `MoveTool.ts`, `TransformTool.ts`, `ShapeTool.ts`, `FillTool.ts`, `EyedropperTool.ts`, `BlurTool.ts`, `CloneStampTool.ts`, `GradientTool.ts`, `CropTool.ts`, `AdjustTool.ts`). Also clear the `shortcut: "W"` field from `SegmentTool.ts` — this binding was already shadowed by magic-wand and the decision is that segment gets no keyboard shortcut until production-ready. Remove the `shortcut` field from the `ToolDefinition` type once all usages are gone.
 
-- [ ] Add or update tests: dispatcher scope resolution, mode override behavior, blocked-input bypass, nudge with Shift multiplier, `Ctrl+I` vs `Ctrl+Shift+I` no-collision, spring-loaded modifier lifecycle (activate, window-blur cleanup).
+- [x] Add or update tests: dispatcher scope resolution, mode override behavior, blocked-input bypass, nudge with Shift multiplier, `Ctrl+I` vs `Ctrl+Shift+I` no-collision, spring-loaded modifier lifecycle (activate, window-blur cleanup).
 
-- [ ] Delete the old monolithic keydown handler body, any leftover `isAppleLikePlatform()` local copies, and the now-unused inline mirror toggle branches.
+- [x] Delete the old monolithic keydown handler body, any leftover `isAppleLikePlatform()` local copies, and the now-unused inline mirror toggle branches.
 
----
 
 ## Problematic parts (for reference during migration)
 

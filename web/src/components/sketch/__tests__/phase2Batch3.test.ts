@@ -1,7 +1,7 @@
 /**
  * Tests for Phase 2 Features — Batch 3
  *
- * Tests for: alpha lock per layer, vertical mirror shortcut, fill layer with color,
+ * Tests for: alpha lock per layer, editor-managed mirror state, fill layer with color,
  * stroke stabilizer, layer thumbnails, and serialization migration.
  */
 
@@ -126,9 +126,9 @@ describe("Phase 2 Batch 3 Features", () => {
     });
   });
 
-  // ─── Vertical Mirror Toggle ─────────────────────────────────────────
+  // ─── Mirror State ──────────────────────────────────────────────────
 
-  describe("vertical mirror shortcut", () => {
+  describe("mirror state", () => {
     it("mirrorY state is managed at editor level (not in store)", () => {
       // mirrorX and mirrorY are React state in SketchEditor, not in the store.
       // This test verifies the store has the activeTool tracking needed for

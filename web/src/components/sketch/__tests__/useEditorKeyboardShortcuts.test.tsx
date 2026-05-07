@@ -7,6 +7,7 @@ import {
   type UseEditorKeyboardShortcutsParams
 } from "../useEditorKeyboardShortcuts";
 import { useSketchStore } from "../state";
+import { isMac } from "../shortcuts";
 
 function makeParams(): UseEditorKeyboardShortcutsParams {
   return {
@@ -25,8 +26,6 @@ function makeParams(): UseEditorKeyboardShortcutsParams {
     syncSketchOutputsNow: jest.fn(),
     setActiveTool: jest.fn(),
     setZoom: jest.fn(),
-    setMirrorX: jest.fn(),
-    setMirrorY: jest.fn(),
     setBrushSettings: jest.fn(),
     setPencilSettings: jest.fn(),
     setEraserSettings: jest.fn(),
@@ -60,6 +59,16 @@ function dispatchKey(target: EventTarget, key: string, type: "keydown" | "keyup"
   });
   target.dispatchEvent(event);
   return event;
+}
+
+function createPrimaryModifierKeydownEvent(): KeyboardEvent {
+  const mac = isMac();
+  return new KeyboardEvent("keydown", {
+    code: mac ? "MetaLeft" : "ControlLeft",
+    key: mac ? "Meta" : "Control",
+    bubbles: true,
+    cancelable: true
+  });
 }
 
 describe("useEditorKeyboardShortcuts", () => {
@@ -114,6 +123,32 @@ describe("useEditorKeyboardShortcuts", () => {
     expect(keydown.defaultPrevented).toBe(true);
     expect(keyup.defaultPrevented).toBe(true);
     expect(params.handleNudgeLayer).toHaveBeenCalledWith(0, 1, {
+      recordHistory: true,
+      syncOutputs: false
+    });
+    expect(params.syncSketchOutputsNow).toHaveBeenCalled();
+  });
+
+  it("nudges by 10 pixels when Shift is held", () => {
+    const params = makeParams();
+    renderHook(() => useEditorKeyboardShortcuts(params));
+
+    const root = document.createElement("div");
+    root.className = "sketch-editor";
+    const surface = document.createElement("div");
+    surface.tabIndex = 0;
+    root.appendChild(surface);
+    document.body.appendChild(root);
+    surface.focus();
+
+    act(() => {
+      dispatchKey(surface, "Shift");
+      dispatchKey(surface, "ArrowRight");
+      dispatchKey(surface, "ArrowRight", "keyup");
+      dispatchKey(surface, "Shift", "keyup");
+    });
+
+    expect(params.handleNudgeLayer).toHaveBeenCalledWith(10, 0, {
       recordHistory: true,
       syncOutputs: false
     });
@@ -201,35 +236,38 @@ describe("useEditorKeyboardShortcuts", () => {
     expect(params.handleCropCommit).toHaveBeenCalledTimes(1);
   });
 
-  it("does not arm spring-loaded move when Control is pressed while select tool is active", () => {
+  it("arms spring-loaded move when the primary modifier is pressed while select tool is active", () => {
     const params = makeParams();
-    const origPlatform = navigator.platform;
-    Object.defineProperty(navigator, "platform", {
-      configurable: true,
-      value: "Win32"
-    });
-
     renderHook(() => useEditorKeyboardShortcuts(params));
 
     act(() => {
       useSketchStore.getState().setActiveTool("select");
     });
 
-    const event = new KeyboardEvent("keydown", {
-      code: "ControlLeft",
-      key: "Control",
-      bubbles: true,
-      cancelable: true
-    });
+    const event = createPrimaryModifierKeydownEvent();
     act(() => {
       window.dispatchEvent(event);
     });
 
-    expect(useSketchStore.getState().transientMoveModifierHeld).toBe(false);
+    expect(useSketchStore.getState().transientMoveModifierHeld).toBe(true);
+  });
 
-    Object.defineProperty(navigator, "platform", {
-      configurable: true,
-      value: origPlatform
+  it("arms spring-loaded move on the primary modifier and clears it on window blur", () => {
+    const params = makeParams();
+    renderHook(() => useEditorKeyboardShortcuts(params));
+
+    const event = createPrimaryModifierKeydownEvent();
+
+    act(() => {
+      window.dispatchEvent(event);
     });
+
+    expect(useSketchStore.getState().transientMoveModifierHeld).toBe(true);
+
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+    });
+
+    expect(useSketchStore.getState().transientMoveModifierHeld).toBe(false);
   });
 });

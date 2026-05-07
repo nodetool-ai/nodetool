@@ -63,6 +63,14 @@ import type { DropPosition } from "./LayerItem";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
 import { useCollapsedSections } from "./useCollapsedSections";
 import { getMergeSelectedLayersPlan } from "./layerMergeSelection";
+import {
+  ACTION_REGISTRY,
+  BINDING_CATALOG,
+  displayBinding,
+  type BindingEntry,
+  type DisplayGroup,
+  type SketchActionId
+} from "./shortcuts";
 
 /**
  * Layer row modifiers: `getModifierState` helps when `draggable` rows omit flags on
@@ -141,6 +149,123 @@ function quickCycleDirectionForArrowKey(key: string): -1 | 1 | null {
 }
 
 type PanelSectionKey = "canvasSize" | "shortcuts";
+const SHORTCUT_DISPLAY_GROUPS: readonly DisplayGroup[] = [
+  "Tools",
+  "Edit",
+  "Selection",
+  "Canvas",
+  "Color",
+  "Paint",
+  "Layers",
+  "Mode: Transform",
+  "Mode: Crop"
+];
+const PANEL_SHORTCUT_NOTES: Partial<Record<SketchActionId, string>> = {
+  "blend-mode-prev": "Blend mode dropdown",
+  "blend-mode-next": "Blend mode dropdown",
+  "canvas-preset-prev": "Canvas preset dropdown",
+  "canvas-preset-next": "Canvas preset dropdown"
+};
+
+function isUnmodifiedGlobalDigitBinding(entry: BindingEntry): boolean {
+  return (
+    entry.scope === "global" &&
+    !entry.modifiers.ctrl &&
+    !entry.modifiers.shift &&
+    !entry.modifiers.alt &&
+    /^\d$/.test(entry.key)
+  );
+}
+
+function formatShortcutCombos(entries: ReadonlyArray<BindingEntry>): string {
+  const digitEntries = entries
+    .filter(isUnmodifiedGlobalDigitBinding)
+    .map((entry) => Number(entry.key))
+    .sort((a, b) => a - b);
+
+  if (
+    digitEntries.length === entries.length &&
+    digitEntries.length > 1 &&
+    digitEntries.every(
+      (digit, index) => digit === digitEntries[0] + index
+    )
+  ) {
+    return `${digitEntries[0]}–${digitEntries[digitEntries.length - 1]}`;
+  }
+
+  return [...new Set(entries.map((entry) => displayBinding(entry)))].join(" / ");
+}
+
+const SHORTCUT_REFERENCE_GROUPS = SHORTCUT_DISPLAY_GROUPS.map((displayGroup) => {
+  const rows = ACTION_REGISTRY.flatMap((action) => {
+    if (action.displayGroup !== displayGroup) {
+      return [];
+    }
+
+    const entries = BINDING_CATALOG.filter((entry) => entry.actionId === action.id);
+    if (entries.length === 0) {
+      return [];
+    }
+
+    return [{
+      actionId: action.id,
+      combo: formatShortcutCombos(entries),
+      label: action.label,
+      note: PANEL_SHORTCUT_NOTES[action.id]
+    }];
+  });
+
+  return {
+    displayGroup,
+    rows
+  };
+}).filter((group) => group.rows.length > 0);
+
+const ShortcutReference = memo(function ShortcutReference() {
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      {SHORTCUT_REFERENCE_GROUPS.map((group) => (
+        <Box key={group.displayGroup}>
+          <Typography
+            sx={{
+              mb: 0.5,
+              fontSize: SKETCH_FONT.xs,
+              fontWeight: 700,
+              color: "grey.400",
+              textTransform: "uppercase",
+              letterSpacing: "0.04em"
+            }}
+          >
+            {group.displayGroup}
+          </Typography>
+          <Box
+            component="dl"
+            sx={{
+              fontSize: SKETCH_FONT.section,
+              color: SKETCH_COLORS.textMuted,
+              display: "grid",
+              gridTemplateColumns: "auto 1fr",
+              gap: "1px 6px",
+              m: 0,
+              "& dt": { fontWeight: 700, color: "grey.300", textAlign: "right" },
+              "& dd": { m: 0 }
+            }}
+          >
+            {group.rows.map((row) => (
+              <React.Fragment key={row.actionId}>
+                <dt>{row.combo}</dt>
+                <dd>
+                  {row.label}
+                  {row.note ? ` — ${row.note}` : ""}
+                </dd>
+              </React.Fragment>
+            ))}
+          </Box>
+        </Box>
+      ))}
+    </Box>
+  );
+});
 
 // ─── Collapsible PanelSection component ───────────────────────────────────
 
@@ -1817,80 +1942,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         collapsed={collapsedSections.shortcuts}
         onToggle={handleToggleSection}
       >
-        <Box
-          component="dl"
-          sx={{
-            fontSize: SKETCH_FONT.section,
-            color: SKETCH_COLORS.textMuted,
-            display: "grid",
-            gridTemplateColumns: "auto 1fr",
-            gap: "1px 6px",
-            m: 0,
-            "& dt": { fontWeight: 700, color: "grey.300", textAlign: "right" },
-            "& dd": { m: 0 }
-          }}
-        >
-          <dt>V</dt>
-          <dd>Move</dd>
-          <dt>B</dt>
-          <dd>Brush</dd>
-          <dt>P</dt>
-          <dd>Pencil</dd>
-          <dt>E</dt>
-          <dd>Eraser</dd>
-          <dt>G</dt>
-          <dd>Fill</dd>
-          <dt>I</dt>
-          <dd>Eyedropper</dd>
-          <dt>Q</dt>
-          <dd>Blur</dd>
-          <dt>L</dt>
-          <dd>Line</dd>
-          <dt>R</dt>
-          <dd>Rect</dd>
-          <dt>O</dt>
-          <dd>Ellipse</dd>
-          <dt>A</dt>
-          <dd>Arrow</dd>
-          <dt>T</dt>
-          <dd>Gradient</dd>
-          <dt>C</dt>
-          <dd>Crop</dd>
-          <dt>M</dt>
-          <dd>Mirror H</dd>
-          <dt>Shift+M</dt>
-          <dd>Mirror V</dd>
-          <dt>X</dt>
-          <dd>Swap colors</dd>
-          <dt>D</dt>
-          <dd>Reset colors</dd>
-          <dt>Tab</dt>
-          <dd>Toggle UI</dd>
-          <dt>[ / ]</dt>
-          <dd>Brush size</dd>
-          <dt>Shift+[/]</dt>
-          <dd>Hardness</dd>
-          <dt>0–9</dt>
-          <dd>Opacity</dd>
-          <dt>Alt+Click</dt>
-          <dd>Pick color</dd>
-          <dt>Alt+⌫</dt>
-          <dd>Fill FG</dd>
-          <dt>Ctrl+⌫</dt>
-          <dd>Fill BG</dd>
-          <dt>Shift</dt>
-          <dd>Constrain</dd>
-          <dt>Space</dt>
-          <dd>Pan</dd>
-          <dt>+ / −</dt>
-          <dd>Zoom</dd>
-          <dt>Ctrl+0</dt>
-          <dd>Reset view</dd>
-          <dt>Del</dt>
-          <dd>Clear layer</dd>
-          <dt>Ctrl+S</dt>
-          <dd>Export</dd>
-        </Box>
+        <ShortcutReference />
       </PanelSection>
     </Box>
   );
