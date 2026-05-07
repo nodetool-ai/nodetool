@@ -137,69 +137,33 @@ export type {
   ASRResult
 } from "./types.js";
 
-registerBuiltinProvider("openai", OpenAIProvider, {
-  OPENAI_API_KEY: process.env["OPENAI_API_KEY"]
-});
-registerBuiltinProvider("anthropic", AnthropicProvider, {
-  ANTHROPIC_API_KEY: process.env["ANTHROPIC_API_KEY"]
-});
-registerBuiltinProvider("gemini", GeminiProvider, {
-  GEMINI_API_KEY: process.env["GEMINI_API_KEY"]
-});
-registerBuiltinProvider("groq", GroqProvider, {
-  GROQ_API_KEY: process.env["GROQ_API_KEY"]
-});
-registerBuiltinProvider("mistral", MistralProvider, {
-  MISTRAL_API_KEY: process.env["MISTRAL_API_KEY"]
-});
-registerBuiltinProvider("moonshot", MoonshotProvider, {
-  KIMI_API_KEY: process.env["KIMI_API_KEY"]
-});
-registerBuiltinProvider("minimax", MinimaxProvider, {
-  MINIMAX_API_KEY: process.env["MINIMAX_API_KEY"]
-});
-registerBuiltinProvider("replicate", ReplicateProvider, {
-  REPLICATE_API_TOKEN: process.env["REPLICATE_API_TOKEN"]
-});
-registerBuiltinProvider("fal_ai", FalProvider, {
-  FAL_API_KEY: process.env["FAL_API_KEY"]
-});
-registerBuiltinProvider("kie", KieProvider, {
-  KIE_API_KEY: process.env["KIE_API_KEY"]
-});
-registerBuiltinProvider("aki", AkiProvider, {
-  AKI_API_KEY: process.env["AKI_API_KEY"]
-});
-registerBuiltinProvider("meshy", MeshyProvider, {
-  MESHY_API_KEY: process.env["MESHY_API_KEY"]
-});
-registerBuiltinProvider("rodin", RodinProvider, {
-  RODIN_API_KEY: process.env["RODIN_API_KEY"]
-});
-registerBuiltinProvider("openrouter", OpenRouterProvider, {
-  OPENROUTER_API_KEY: process.env["OPENROUTER_API_KEY"]
-});
-registerBuiltinProvider("together", TogetherProvider, {
-  TOGETHER_API_KEY: process.env["TOGETHER_API_KEY"]
-});
-registerBuiltinProvider("cerebras", CerebrasProvider, {
-  CEREBRAS_API_KEY: process.env["CEREBRAS_API_KEY"]
-});
-registerBuiltinProvider("cohere", CohereProvider, {
-  COHERE_API_KEY: process.env["COHERE_API_KEY"]
-});
-registerBuiltinProvider("voyage", VoyageProvider, {
-  VOYAGE_API_KEY: process.env["VOYAGE_API_KEY"]
-});
-registerBuiltinProvider("jina", JinaProvider, {
-  JINA_API_KEY: process.env["JINA_API_KEY"]
-});
-registerBuiltinProvider("deepseek", DeepSeekProvider, {
-  DEEPSEEK_API_KEY: process.env["DEEPSEEK_API_KEY"]
-});
-registerBuiltinProvider("xai", XAIProvider, {
-  XAI_API_KEY: process.env["XAI_API_KEY"]
-});
+// Register hosted providers with the secret key NAME each one needs but no
+// pre-resolved value. Pre-baking `process.env[KEY]` here at module-load time
+// would shadow the encrypted DB: a stale or expired env value would short-
+// circuit the registry's resolution branch (which only re-resolves when the
+// kwarg is empty/null). Empty-string declarations force every getProvider()
+// call to ask the supplied `getSecret` (DB-then-env) at instantiation time.
+registerBuiltinProvider("openai", OpenAIProvider, { OPENAI_API_KEY: "" });
+registerBuiltinProvider("anthropic", AnthropicProvider, { ANTHROPIC_API_KEY: "" });
+registerBuiltinProvider("gemini", GeminiProvider, { GEMINI_API_KEY: "" });
+registerBuiltinProvider("groq", GroqProvider, { GROQ_API_KEY: "" });
+registerBuiltinProvider("mistral", MistralProvider, { MISTRAL_API_KEY: "" });
+registerBuiltinProvider("moonshot", MoonshotProvider, { KIMI_API_KEY: "" });
+registerBuiltinProvider("minimax", MinimaxProvider, { MINIMAX_API_KEY: "" });
+registerBuiltinProvider("replicate", ReplicateProvider, { REPLICATE_API_TOKEN: "" });
+registerBuiltinProvider("fal_ai", FalProvider, { FAL_API_KEY: "" });
+registerBuiltinProvider("kie", KieProvider, { KIE_API_KEY: "" });
+registerBuiltinProvider("aki", AkiProvider, { AKI_API_KEY: "" });
+registerBuiltinProvider("meshy", MeshyProvider, { MESHY_API_KEY: "" });
+registerBuiltinProvider("rodin", RodinProvider, { RODIN_API_KEY: "" });
+registerBuiltinProvider("openrouter", OpenRouterProvider, { OPENROUTER_API_KEY: "" });
+registerBuiltinProvider("together", TogetherProvider, { TOGETHER_API_KEY: "" });
+registerBuiltinProvider("cerebras", CerebrasProvider, { CEREBRAS_API_KEY: "" });
+registerBuiltinProvider("cohere", CohereProvider, { COHERE_API_KEY: "" });
+registerBuiltinProvider("voyage", VoyageProvider, { VOYAGE_API_KEY: "" });
+registerBuiltinProvider("jina", JinaProvider, { JINA_API_KEY: "" });
+registerBuiltinProvider("deepseek", DeepSeekProvider, { DEEPSEEK_API_KEY: "" });
+registerBuiltinProvider("xai", XAIProvider, { XAI_API_KEY: "" });
 
 // Local-only providers — require local servers/CLIs, skip in production
 if (process.env["NODETOOL_ENV"] !== "production") {
