@@ -13,6 +13,7 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
+import { Box } from "@mui/material";
 import type { Point, SketchTool } from "./types";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
 import { SKETCH_Z_INDEX, SKETCH_FONT } from "./sketchStyles";
@@ -239,9 +240,9 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
           />
         )}
         {/* Canvas info bar */}
-        <div
+        <Box
           className="sketch-canvas__info-bar"
-          style={{
+          sx={{
             position: "absolute",
             bottom: 8,
             left: "50%",
@@ -264,7 +265,6 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
           )}
           <span
             style={{
-              display: "inline-block",
               textTransform: "uppercase",
               fontSize: SKETCH_FONT.xs,
               opacity: 0.7
@@ -272,7 +272,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
           >
             {backend}
           </span>
-        </div>
+        </Box>
       </div>
     );
   }

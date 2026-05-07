@@ -10,10 +10,10 @@ import React, { memo, useState, useCallback } from "react";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import {
   Container,
+  EditorButton,
   FlexColumn,
   FlexRow,
   Text,
-  ToolbarIconButton,
   Tooltip
 } from "../ui_primitives";
 import { colorToHex6 } from "./types";
@@ -104,22 +104,30 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
 
       {/* ── Swap / Reset ── */}
       <FlexRow className="color-swatch-pair__actions" align="center" sx={{ width: "54px" }}>
-        <ToolbarIconButton
-          tooltip="Swap Colors (X)"
-          tooltipPlacement="right"
-          delay={SKETCH_TOOLTIP_DELAY_MS}
-          onClick={onSwapColors}
-          icon={<SwapHorizIcon sx={{ fontSize: "13px" }} />}
-          sx={{ flex: 1, padding: SKETCH_SPACING.xs, borderRadius: "3px" }}
-        />
-        <ToolbarIconButton
-          tooltip="Reset to B/W (D)"
-          tooltipPlacement="right"
-          delay={SKETCH_TOOLTIP_DELAY_MS}
-          onClick={onResetColors}
-          icon={<Text sx={{ fontSize: SKETCH_FONT.xxs, fontWeight: 700, lineHeight: 1 }}>D</Text>}
-          sx={{ flex: 1, padding: SKETCH_SPACING.xs, borderRadius: "3px" }}
-        />
+        <Tooltip title="Swap Colors (X)" placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+          <EditorButton
+            density="compact"
+            onClick={onSwapColors}
+            aria-label="Swap Colors (X)"
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              padding: 0,
+              borderRadius: "3px",
+            }}
+          >
+            <SwapHorizIcon sx={{ fontSize: "13px" }} />
+          </EditorButton>
+        </Tooltip>
+        <Tooltip title="Reset to B/W (D)" placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+          <EditorButton
+            density="compact"
+            onClick={onResetColors}
+            sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: "3px" }}
+          >
+            <Text sx={{ fontSize: SKETCH_FONT.xxs, fontWeight: 700, lineHeight: 1 }}>D</Text>
+          </EditorButton>
+        </Tooltip>
       </FlexRow>
 
       {/* ── Pickers ── */}
