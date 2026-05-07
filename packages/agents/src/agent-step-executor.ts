@@ -92,11 +92,11 @@ export class AgentStepExecutor implements NodeExecutor {
       steps: [step]
     };
 
-    // Persist upstream edge inputs into shared agent memory for cross-step
-    // discoverability and tool-based access (for example via memory tools /
-    // progressive disclosure). This method does not render memory into the
-    // current step prompt automatically; direct visibility for this step still
-    // comes from the legacy `Upstream Results` preamble added below.
+    // Persist upstream edge inputs into shared agent memory so other agents
+    // and downstream steps can discover them via `memory_list` and fetch them
+    // via `memory_read` (progressive disclosure). The current step does NOT
+    // see these entries in its prompt automatically — direct visibility for
+    // this step comes from the `Upstream Results` preamble appended below.
     if (context) {
       for (const [key, value] of Object.entries(inputs)) {
         if (value === undefined || value === null) continue;

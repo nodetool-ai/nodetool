@@ -120,6 +120,14 @@ export class TeamExecutor {
           })
         : null;
 
+    try {
+      yield* this.executeInner();
+    } finally {
+      unsubscribeBoard?.();
+    }
+  }
+
+  private async *executeInner(): AsyncGenerator<TeamEvent> {
     // Initialize agents
     for (const identity of this.config.agents) {
       const provider = await this.context.getProvider(identity.provider);
@@ -197,8 +205,6 @@ export class TeamExecutor {
     };
     this.events.push(completeEvent);
     yield completeEvent;
-
-    unsubscribeBoard?.();
   }
 
   // ─── Strategy Phases ───

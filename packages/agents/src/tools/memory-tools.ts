@@ -168,7 +168,6 @@ export class MemoryReadTool extends Tool {
       keys: {
         type: "array",
         items: { type: "string" },
-        minItems: 1,
         description:
           "Memory keys to read (e.g. [\"task:research\", \"step:summary\"])."
       }
