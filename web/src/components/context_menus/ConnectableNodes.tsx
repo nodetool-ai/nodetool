@@ -151,8 +151,10 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
   const [searchTerm, setSearchTerm] = useState("");
   const reactFlowInstance = useReactFlow();
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const recentNodeTypes = useRecentNodesStore((state) =>
-    state.recentNodes.map((node) => node.nodeType)
+  const recentNodes = useRecentNodesStore((state) => state.recentNodes);
+  const recentNodeTypes = useMemo(
+    () => recentNodes.map((node) => node.nodeType),
+    [recentNodes]
   );
 
   // Memoize store selector function to prevent re-renders
