@@ -21,6 +21,7 @@ import {
   Toast
 } from "../../ui_primitives";
 import { ClipActions } from "./ClipActions";
+import { NodePropertyEditor } from "./NodePropertyEditor";
 
 const containerStyles = css({ width: "100%", padding: 8, overflow: "auto" });
 const sectionContentStyles = css({ padding: 8 });
@@ -164,6 +165,17 @@ export const TimelineInspector: React.FC = memo(() => {
             <EditorButton onClick={() => setToast("Convert to Generated Clip will be wired in NOD-306")}>Convert to Generated Clip</EditorButton>
           </FlexColumn>
         </CollapsibleSection>
+
+        {clip.workflowId && (
+          <CollapsibleSection title="Parameters" defaultOpen>
+            <FlexColumn css={sectionContentStyles} gap={1}>
+              <NodePropertyEditor
+                clipId={clip.id}
+                workflowId={clip.workflowId}
+              />
+            </FlexColumn>
+          </CollapsibleSection>
+        )}
       </FlexColumn>
       <Toast open={toast !== null} message={toast ?? ""} onClose={() => setToast(null)} severity="info" />
     </Panel>

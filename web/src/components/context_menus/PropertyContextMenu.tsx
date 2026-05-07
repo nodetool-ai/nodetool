@@ -37,7 +37,7 @@ const PropertyContextMenuComponent: React.FC = () => {
     nodeId: state.nodeId,
     handleId: state.handleId,
     isDynamicProperty: state.isDynamicProperty
-  }), shallow);
+  }));
   const { findNode, updateNodeData, updateNodeProperties } = useNodes(
     (state) => ({
       findNode: state.findNode,

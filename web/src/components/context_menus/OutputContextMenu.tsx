@@ -41,7 +41,7 @@ const OutputContextMenu: React.FC = () => {
     closeContextMenu: state.closeContextMenu,
     type: state.type,
     handleId: state.handleId
-  }), shallow);
+  }));
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
   const { createNode, addNode, addEdge, generateEdgeId } = useNodes(
