@@ -111,6 +111,39 @@ Steps can use three modes for batch processing:
 
 ---
 
+## Memory
+
+Every `ProcessingContext` carries an **`AgentMemory`** at `context.memory` — the single namespaced store for results shared between steps, tasks, sub-agents, and tools. There are no parallel result maps; all executors write and read through the same API.
+
+```ts
+import { memoryKeys } from "@nodetool-ai/runtime";
+
+context.memory.set({
+  key: memoryKeys.task("research"),
+  kind: "task_result",
+  value: { findings: ["alpha", "beta"] },
+  source: "research",
+  title: "Research findings"
+});
+
+context.memory.getValue(memoryKeys.task("research"));
+```
+
+| Namespace | Helper | Used For |
+|---|---|---|
+| `step:<id>` | `memoryKeys.step(id)` | Per-step results |
+| `task:<id>` | `memoryKeys.task(id)` | Per-task results |
+| `input:<key>` | `memoryKeys.input(key)` | Caller-supplied inputs and edge inputs |
+| `shared:<key>` | `memoryKeys.shared(key)` | Cross-agent communication, tool-published facts |
+
+**Propagation rule**: `StepExecutor.buildUserMessage()` injects a Markdown block of every relevant memory entry (`task_result + step_result + input`) into the user message of every step. Downstream tasks discover upstream results without explicit edges or prompt assembly.
+
+**Multi-agent teams** mirror `TaskBoard` `task_completed` events into `context.memory`, so sub-agents see each other's work through the same channel.
+
+For the full API, propagation flow, examples, and troubleshooting, see [Agent Memory System](agent-memory.md).
+
+---
+
 ## Tool System
 
 Every tool extends a single base class:
@@ -395,6 +428,7 @@ su claude -s /bin/bash -c "CLAUDE_OAUTH_TOKEN=1 npx vitest run packages/runtime/
 
 ## Related Pages
 
+- [Agent Memory System](agent-memory.md) — Unified memory across all agent types: API, propagation, examples
 - [Global Chat & Agents](global-chat-agents.md) — Using agents in the chat interface
 - [Agent CLI](agent-cli.md) — Running agents from the command line
 - [Agent Configuration Schema](agent-config-schema.md) — YAML configuration reference
