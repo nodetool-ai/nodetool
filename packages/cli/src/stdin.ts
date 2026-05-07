@@ -305,8 +305,10 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
                 : JSON.stringify(sr.result, null, 2);
           }
         } else if (msg.type === "planning_update") {
+          const pu = msg as { phase?: string; content?: string };
+          const tag = pu.phase === "compile" ? "[compile]" : "[planning]";
           process.stderr.write(
-            `[planning] ${(msg as { content: string }).content.slice(0, 80)}\n`
+            `${tag} ${(pu.content ?? "").slice(0, 80)}\n`
           );
         } else if (msg.type === "task_update") {
           process.stderr.write(`[task] ${(msg as { event: string }).event}\n`);

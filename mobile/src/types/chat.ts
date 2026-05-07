@@ -44,7 +44,33 @@ export type WebSocketMessageData =
   | NodeProgress
   | OutputUpdate
   | GenerationStoppedUpdate
-  | ErrorUpdate;
+  | ErrorUpdate
+  | PlanningUpdate
+  | TaskUpdateMessage;
+
+/**
+ * Planning-phase status from agents (TaskPlanner, CompilerAgent, etc.).
+ * Used to drive the chat status banner during long-running agent runs.
+ */
+export interface PlanningUpdate {
+  type: 'planning_update';
+  phase?: string;
+  status?: string;
+  content?: string | null;
+  node_id?: string | null;
+  thread_id?: string | null;
+}
+
+/**
+ * Task lifecycle update from the agent task executor.
+ */
+export interface TaskUpdateMessage {
+  type: 'task_update';
+  event?: string;
+  task?: { id?: string; title?: string };
+  step?: { id?: string; instructions?: string };
+  thread_id?: string | null;
+}
 
 /**
  * Generation stopped message from server
