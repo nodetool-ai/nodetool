@@ -46,9 +46,11 @@ import {
 import type { SamModelInfo } from "./sam";
 import {
   CONTEXT_MENU_TOOLS,
+  getToolShortcutActionId,
   getToolDefinition,
   type ToolDefinition
 } from "./toolDefinitions";
+import { displayCombo } from "./shortcuts";
 import { ToolSettingsPanel, getToolSettingsLabel } from "./ToolSettingsPanels";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -87,9 +89,6 @@ function ColorPreview({ label, color }: { label: string; color: string }) {
     </Stack>
   );
 }
-
-const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent);
-const cmdKey = isMac ? "⌘" : "Ctrl+";
 
 interface SelectionMenuItemProps {
   icon: React.ReactNode;
@@ -148,6 +147,7 @@ function SelectionMenuItem({
 interface ToolGridButtonProps {
   definition: ToolDefinition;
   selected: boolean;
+  shortcut: string;
   onClick: () => void;
   onDoubleClick: () => void;
 }
@@ -155,6 +155,7 @@ interface ToolGridButtonProps {
 function ToolGridButton({
   definition,
   selected,
+  shortcut,
   onClick,
   onDoubleClick
 }: ToolGridButtonProps) {
@@ -194,7 +195,7 @@ function ToolGridButton({
         }
       }}
     >
-      {definition.shortcut && (
+      {shortcut ? (
         <Box
           sx={{
             position: "absolute",
@@ -210,9 +211,9 @@ function ToolGridButton({
             color: "text.secondary"
           }}
         >
-          {definition.shortcut}
+          {shortcut}
         </Box>
-      )}
+      ) : null}
       <Icon
         sx={{
           fontSize: 20,
@@ -385,8 +386,19 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
 }) => {
   const theme = useTheme();
   const activeDefinition = getToolDefinition(activeTool);
+  const activeShortcutActionId = getToolShortcutActionId(
+    activeDefinition.tool,
+    selectSettings.mode
+  );
+  const activeShortcut = activeShortcutActionId
+    ? displayCombo(activeShortcutActionId)
+    : "";
   const surfaceSoft = theme.vars.palette.grey[800];
   const ActiveIcon = activeDefinition.Icon;
+  const getToolShortcut = (tool: SketchTool): string => {
+    const actionId = getToolShortcutActionId(tool, selectSettings.mode);
+    return actionId ? displayCombo(actionId) : "";
+  };
   const [newLayerMenuAnchor, setNewLayerMenuAnchor] =
     useState<HTMLButtonElement | null>(null);
 
@@ -538,7 +550,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           >
             {activeDefinition.label}
           </Typography>
-          {activeDefinition.shortcut ? (
+          {activeShortcut ? (
             <Box
               className="sketch-context-menu__header-shortcut"
               sx={{
@@ -555,7 +567,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 fontVariantNumeric: "tabular-nums"
               }}
             >
-              {activeDefinition.shortcut}
+              {activeShortcut}
             </Box>
           ) : null}
           <Box sx={{ flex: 1, minWidth: 0 }} />
@@ -691,6 +703,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     key={definition.tool}
                     definition={definition}
                     selected={definition.tool === activeTool}
+                    shortcut={getToolShortcut(definition.tool)}
                     onClick={() => onToolChange(definition.tool)}
                     onDoubleClick={() => {
                       onToolChange(definition.tool);
@@ -716,20 +729,20 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                   <SelectionMenuItem
                     icon={<InvertColorsIcon sx={{ fontSize: 16 }} />}
                     label="Select Inverse"
-                    shortcut={`${cmdKey}⇧I`}
+                    shortcut={displayCombo("invert-selection")}
                     onClick={() => { onInvertSelection(); onClose(); }}
                   />
                   <SelectionMenuItem
                     icon={<DeselectIcon sx={{ fontSize: 16 }} />}
                     label="Deselect"
-                    shortcut={`${cmdKey}D`}
+                    shortcut={displayCombo("deselect")}
                     disabled={!hasActiveSelection}
                     onClick={() => { onDeselectSelection(); onClose(); }}
                   />
                   <SelectionMenuItem
                     icon={<RestoreIcon sx={{ fontSize: 16 }} />}
                     label="Reselect"
-                    shortcut={`${cmdKey}⇧D`}
+                    shortcut={displayCombo("reselect")}
                     onClick={() => { onReselectSelection(); onClose(); }}
                   />
                   <SelectionMenuItem
@@ -742,14 +755,14 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                   <SelectionMenuItem
                     icon={<ContentCopyIcon sx={{ fontSize: 16 }} />}
                     label="Layer via Copy"
-                    shortcut={`${cmdKey}J`}
+                    shortcut={displayCombo("layer-via-copy")}
                     disabled={!hasActiveSelection}
                     onClick={() => { onLayerViaCopy(); onClose(); }}
                   />
                   <SelectionMenuItem
                     icon={<ContentCutIcon sx={{ fontSize: 16 }} />}
                     label="Layer via Cut"
-                    shortcut={`${cmdKey}⇧J`}
+                    shortcut={displayCombo("layer-via-cut")}
                     disabled={!hasActiveSelection}
                     onClick={() => { onLayerViaCut(); onClose(); }}
                   />
@@ -776,7 +789,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                   <SelectionMenuItem
                     icon={<TransformIcon sx={{ fontSize: 16 }} />}
                     label="Free Transform"
-                    shortcut={`${cmdKey}T`}
+                    shortcut={displayCombo("free-transform")}
                     onClick={() => { onFreeTransform(); onClose(); }}
                   />
                   <SelectionMenuItem

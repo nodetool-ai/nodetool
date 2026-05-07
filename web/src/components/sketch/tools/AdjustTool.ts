@@ -25,7 +25,6 @@ export class AdjustTool implements ToolHandler {
 export const definition: ToolDefinition = {
   tool: "adjust",
   label: "Adjustments",
-  shortcut: "J",
   Icon: TuneIcon,
   group: "shape"
 };

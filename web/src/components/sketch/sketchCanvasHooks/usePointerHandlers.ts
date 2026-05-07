@@ -21,8 +21,6 @@ import {
 import type { ActiveStrokeInfo } from "./useCompositing";
 import { getToolHandler } from "../tools";
 import { CloneStampTool } from "../tools/CloneStampTool";
-import { SelectTool } from "../tools/SelectTool";
-import { MoveTool } from "../tools/MoveTool";
 import { TransformTool } from "../tools/TransformTool";
 import { CropTool } from "../tools/CropTool";
 import { sampleColorHex } from "../tools/EyedropperTool";
@@ -30,28 +28,15 @@ import type { ToolContext, ToolPointerEvent, StrokeEndOptions } from "../tools/t
 import { buildToolContext } from "../tools/buildToolContext";
 import { useKeyboardModifiers } from "./useKeyboardModifiers";
 import { usePointerHandlerUtils } from "./usePointerHandlerUtils";
+import { useWheelZoom } from "./useWheelZoom";
+import { useToolLifecycle } from "./useToolLifecycle";
 import type { GizmoDrawCallback } from "./useOverlayRenderer";
-import {
-  SKETCH_ZOOM_MAX,
-  SKETCH_ZOOM_MIN
-} from "../state/useSketchStore";
 import {
   normalizePointerPressure,
   pointerHasPaintContact
 } from "../pointerPen";
 import { cursorStyleForTool } from "../sketchCursorStyle";
 
-/** Matches `useOverlayRenderer` brush-ring tools (software cursor).
- * @deprecated Prefer querying `handler.showsBrushCursor` from the tool handler. */
-function interactionToolShowsBrushCursor(t: SketchTool): boolean {
-  return (
-    t === "brush" ||
-    t === "pencil" ||
-    t === "eraser" ||
-    t === "blur" ||
-    t === "clone_stamp"
-  );
-}
 
 /**
  * Params for `usePointerHandlers`.
@@ -266,8 +251,6 @@ export function usePointerHandlers({
   setLayerTransformPreview,
   clearLayerTransformPreview
 }: UsePointerHandlersParams): UsePointerHandlersResult {
-  const drawCursorRef = useRef(drawCursor);
-  drawCursorRef.current = drawCursor;
   const interactionToolCursorRef = useRef(interactionTool);
   interactionToolCursorRef.current = interactionTool;
   const setPanningCursor = useCallback(() => {
@@ -287,9 +270,9 @@ export function usePointerHandlers({
 
   // ─── Core interaction state refs ────────────────────────────────────
   const isDrawingRef = useRef(false);
-  const _paintStrokeHasMovedRef = useRef(false);
-  const _lastPointRef = useRef<Point | null>(null);
-  const _lastSmoothedPointRef = useRef<Point | null>(null);
+  // Locks the effective tool for the duration of a pointer-down gesture so that
+  // pressing Ctrl mid-drag (e.g. during a selection draw) cannot switch the tool.
+  const gestureToolRef = useRef<SketchTool | null>(null);
   const isPanningRef = useRef(false);
   const isSpacePanningRef = useRef(false);
   const panStartRef = useRef<Point>({ x: 0, y: 0 });
@@ -297,8 +280,6 @@ export function usePointerHandlers({
   const isSizeDraggingRef = useRef(false);
   const sizeDragStartRef = useRef<Point>({ x: 0, y: 0 });
   const sizeDragInitialSize = useRef(0);
-
-  // Tool-specific state (now managed by tool handlers; only kept for legacy refs)
 
   // Keep pan offset in sync
   useEffect(() => {
@@ -546,14 +527,14 @@ export function usePointerHandlers({
       const started = handler.onDown?.(toolCtxRef.current, buildToolPointerEvent(e));
       if (started) {
         isDrawingRef.current = true;
+        gestureToolRef.current = interactionTool;
       }
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
 
       // Post-delegation: active stroke preview for tools that declare the capability
-      const downHandler = getToolHandler(interactionTool);
       if (
         started &&
-        downHandler.showsActiveStrokePreview &&
+        handler.showsActiveStrokePreview &&
         activeStrokeRef.current
       ) {
         drawActiveStrokePreview();
@@ -619,8 +600,9 @@ export function usePointerHandlers({
         return;
       }
 
-      // ─── Active drawing: delegate to tool handler ─────────────────────
-      const handler = getToolHandler(interactionTool);
+      // ─── Active drawing: use locked gesture tool so mid-gesture modifier ──
+      // ─── key changes (e.g. Ctrl during a selection drag) cannot hijack it ─
+      const handler = getToolHandler(gestureToolRef.current ?? interactionTool);
       handler.onMove?.(
         toolCtxRef.current,
         buildToolPointerEvent(e),
@@ -628,13 +610,12 @@ export function usePointerHandlers({
       );
 
       // Post-delegation: active stroke preview for tools that declare the capability
-      const moveHandler = getToolHandler(interactionTool);
-      if (moveHandler.showsActiveStrokePreview && activeStrokeRef.current) {
+      if (handler.showsActiveStrokePreview && activeStrokeRef.current) {
         drawActiveStrokePreview();
       }
 
       // Post-delegation: cursor update for brush-cursor tools during drawing
-      if (moveHandler.showsBrushCursor) {
+      if (handler.showsBrushCursor) {
         const r = containerRef.current?.getBoundingClientRect();
         if (r) {
           mousePositionRef.current = {
@@ -677,10 +658,12 @@ export function usePointerHandlers({
       if (!isDrawingRef.current) {
         return;
       }
+      const gestureTool = gestureToolRef.current ?? interactionTool;
+      gestureToolRef.current = null;
       isDrawingRef.current = false;
 
       // ─── Generic tool delegation ─────────────────────────────────────
-      const handler = getToolHandler(interactionTool);
+      const handler = getToolHandler(gestureTool);
       handler.onUp?.(toolCtxRef.current, buildToolPointerEvent(e));
 
       // ─── Async tool lifecycle: call onCommit if present ──────────────
@@ -694,14 +677,13 @@ export function usePointerHandlers({
         handler.onCommit(toolCtxRef.current).catch((err) => {
           // Only log if this commit was not superseded by a newer one
           if (commitGenRef.current === gen) {
-            console.error(`Tool ${interactionTool} onCommit error:`, err);
+            console.error(`Tool ${gestureTool} onCommit error:`, err);
           }
         });
       }
 
       // Post-delegation: active stroke preview for tools that declare the capability
-      const upHandler = getToolHandler(interactionTool);
-      if (upHandler.showsActiveStrokePreview) {
+      if (handler.showsActiveStrokePreview) {
         // Shift-line continuation keeps `activeStrokeRef` until the next non-shift
         // stroke; WebGPU hides the active layer while it is set, so the 2D overlay
         // must keep showing the merged preview — do not clear it in that case.
@@ -727,91 +709,7 @@ export function usePointerHandlers({
 
   // ─── Wheel zoom ────────────────────────────────────────────────────
 
-  // Accumulate wheel deltas and apply them once per animation frame.
-  // This prevents multiple wheel events per frame from each causing
-  // separate state updates and React re-renders.
-  const zoomRafRef = useRef<number | null>(null);
-  const pendingZoomRef = useRef<{
-    deltaY: number;
-    clientX: number;
-    clientY: number;
-  } | null>(null);
-
-  const handleZoomWheel = useCallback(
-    (
-      event: Pick<WheelEvent, "deltaY" | "clientX" | "clientY" | "preventDefault">
-    ) => {
-      event.preventDefault();
-      // Accumulate delta; keep the latest pointer position for centering.
-      const pending = pendingZoomRef.current;
-      if (pending) {
-        pending.deltaY += event.deltaY;
-        pending.clientX = event.clientX;
-        pending.clientY = event.clientY;
-      } else {
-        pendingZoomRef.current = {
-          deltaY: event.deltaY,
-          clientX: event.clientX,
-          clientY: event.clientY
-        };
-      }
-      if (zoomRafRef.current === null) {
-        zoomRafRef.current = requestAnimationFrame(() => {
-          zoomRafRef.current = null;
-          const p = pendingZoomRef.current;
-          if (!p) {
-            return;
-          }
-          pendingZoomRef.current = null;
-
-          const factor = 1.3;
-          const wheelDelta = p.deltaY > 0 ? 1 / factor : factor;
-          const newZoom = Math.max(
-            SKETCH_ZOOM_MIN,
-            Math.min(SKETCH_ZOOM_MAX, zoom * wheelDelta)
-          );
-          const container = containerRef.current;
-          if (container) {
-            const rect = container.getBoundingClientRect();
-            const mouseX = p.clientX - rect.left;
-            const mouseY = p.clientY - rect.top;
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const offsetX = mouseX - centerX - pan.x;
-            const offsetY = mouseY - centerY - pan.y;
-            const zoomRatio = newZoom / zoom;
-            onPanChange({
-              x: pan.x + offsetX * (1 - zoomRatio),
-              y: pan.y + offsetY * (1 - zoomRatio)
-            });
-          }
-          onZoomChange(newZoom);
-        });
-      }
-    },
-    [zoom, pan, onZoomChange, onPanChange, containerRef]
-  );
-
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
-      handleZoomWheel(e.nativeEvent);
-    },
-    [handleZoomWheel]
-  );
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) {
-      return;
-    }
-    const onWheel = (event: WheelEvent) => {
-      handleZoomWheel(event);
-    };
-    container.addEventListener("wheel", onWheel, { passive: false });
-    return () => {
-      container.removeEventListener("wheel", onWheel);
-    };
-  }, [containerRef, handleZoomWheel]);
+  const { handleWheel } = useWheelZoom({ zoom, pan, containerRef, onZoomChange, onPanChange });
 
   // ─── Mouse events (cursor + context menu) ──────────────────────────
 
@@ -870,11 +768,10 @@ export function usePointerHandlers({
         return;
       }
       const handler = getToolHandler("select");
+      const rect = containerRef.current?.getBoundingClientRect();
       const pt = screenToCanvas(
-        mousePositionRef.current.x +
-          (containerRef.current?.getBoundingClientRect().left ?? 0),
-        mousePositionRef.current.y +
-          (containerRef.current?.getBoundingClientRect().top ?? 0)
+        mousePositionRef.current.x + (rect?.left ?? 0),
+        mousePositionRef.current.y + (rect?.top ?? 0)
       );
       handler.onDoubleClick?.(toolCtxRef.current, pt);
     },
@@ -886,143 +783,22 @@ export function usePointerHandlers({
     ]
   );
 
-  // Redraw cursor immediately when brush/tool settings change so the brush ring
-  // updates without needing mouse movement (e.g. after slider change).
-  const ts = doc.toolSettings;
-  useEffect(() => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) {
-      return;
-    }
-    const mp = mousePositionRef.current;
-    drawCursorRef.current(mp.x + rect.left, mp.y + rect.top);
-  }, [
+  // ─── Tool lifecycle effects ─────────────────────────────────────────
+  useToolLifecycle({
+    activeTool,
     interactionTool,
-    ts.brush.size,
-    ts.brush.hardness,
-    ts.brush.roundness,
-    ts.brush.angle,
-    ts.brush.brushType,
-    ts.pencil.size,
-    ts.eraser.size,
-    ts.blur.size,
-    ts.cloneStamp.size,
-  ]);
-
-  // Clear in-progress polygon when selection is cleared externally (e.g. Escape)
-  useEffect(() => {
-    if (!selection && lassoPointsRef.current.length > 0 && doc.toolSettings.select.mode === "lasso_polygon") {
-      lassoPointsRef.current = [];
-      // Also clear internal SelectTool state
-      const handler = getToolHandler("select");
-      if (handler instanceof SelectTool) {
-        handler.clearPolygon();
-      }
-      clearOverlay();
-    }
-  }, [selection, doc.toolSettings.select.mode, lassoPointsRef, clearOverlay]);
-
-  // Pen/tablet: `pointermove` is often coalesced/throttled; `pointerrawupdate` carries
-  // every physical sample so the brush ring tracks the tip while drawing.
-  useEffect(() => {
-    const el = containerRef.current;
-    if (el == null || typeof window.PointerEvent === "undefined") {
-      return;
-    }
-    const onRaw: EventListener = (ev) => {
-      const e = ev as PointerEvent;
-      if (!interactionToolShowsBrushCursor(interactionToolCursorRef.current)) {
-        return;
-      }
-      const rect = el.getBoundingClientRect();
-      mousePositionRef.current = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      };
-      // Viewport coords — drawCursor maps into the cursor canvas (some styluses
-      // report as pointerType "mouse"; raw updates still carry the pen position).
-      drawCursorRef.current(e.clientX, e.clientY);
-    };
-    el.addEventListener("pointerrawupdate", onRaw, { capture: true });
-    return () => {
-      el.removeEventListener("pointerrawupdate", onRaw, { capture: true });
-    };
-  }, [containerRef, mousePositionRef]);
-
-  // ─── Tool activation lifecycle ────────────────────────────────────
-  const prevActiveToolRef = useRef(activeTool);
-  useEffect(() => {
-    const prev = prevActiveToolRef.current;
-    if (prev === activeTool) {
-      return;
-    }
-    // Invalidate any pending async commits from the previous tool
-    commitGenRef.current++;
-    const prevHandler = getToolHandler(prev);
-    // Cancel any pending async work before deactivating
-    prevHandler.onCancel?.(toolCtxRef.current);
-    prevHandler.onDeactivate?.(toolCtxRef.current);
-    const nextHandler = getToolHandler(activeTool);
-    nextHandler.onActivate?.(toolCtxRef.current);
-    prevActiveToolRef.current = activeTool;
-  }, [activeTool]);
-
-  // ─── Spring-loaded tool lifecycle ──────────────────────────────────
-  // When interactionTool changes due to modifier keys (e.g. Ctrl+drag → move)
-  // but activeTool stays the same, we need to activate/deactivate the
-  // spring-loaded tool so it runs the same lifecycle as a real tool switch.
-  // This prevents desync between preview state and tool session state.
-  const prevInteractionToolRef = useRef(interactionTool);
-  useEffect(() => {
-    const prev = prevInteractionToolRef.current;
-    if (prev === interactionTool) {
-      return;
-    }
-    // Only handle the spring-loaded case where activeTool didn't change
-    // (the real tool-switch effect above handles activeTool changes).
-    if (activeTool !== prevActiveToolRef.current) {
-      prevInteractionToolRef.current = interactionTool;
-      return;
-    }
-    const prevHandler = getToolHandler(prev);
-    prevHandler.onDeactivate?.(toolCtxRef.current);
-    const nextHandler = getToolHandler(interactionTool);
-    nextHandler.onActivate?.(toolCtxRef.current);
-    prevInteractionToolRef.current = interactionTool;
-  }, [interactionTool, activeTool]);
-
-  // ─── Viewport change notification (zoom / pan) ─────────────────
-  const prevZoomRef = useRef(zoom);
-  const prevPanRef = useRef(pan);
-  useEffect(() => {
-    if (prevZoomRef.current !== zoom || prevPanRef.current !== pan) {
-      prevZoomRef.current = zoom;
-      prevPanRef.current = pan;
-      const handler = getToolHandler(interactionTool);
-      handler.onViewportChange?.(toolCtxRef.current);
-    }
-  }, [zoom, pan, interactionTool]);
-
-  // ─── Active layer change: refresh transform/move gizmos ─────────────
-  const prevActiveLayerIdRef = useRef(doc.activeLayerId);
-  useEffect(() => {
-    const prev = prevActiveLayerIdRef.current;
-    prevActiveLayerIdRef.current = doc.activeLayerId;
-    if (prev === doc.activeLayerId) {
-      return;
-    }
-    if (interactionTool === "transform") {
-      const handler = getToolHandler("transform");
-      if (handler instanceof TransformTool) {
-        handler.syncActiveLayer(toolCtxRef.current);
-      }
-    } else if (interactionTool === "move") {
-      const handler = getToolHandler("move");
-      if (handler instanceof MoveTool) {
-        handler.syncActiveLayer(toolCtxRef.current);
-      }
-    }
-  }, [doc.activeLayerId, interactionTool]);
+    zoom,
+    pan,
+    selection,
+    doc,
+    toolCtxRef,
+    commitGenRef,
+    containerRef,
+    mousePositionRef,
+    drawCursor,
+    lassoPointsRef,
+    clearOverlay,
+  });
 
   /** Cancel the active tool's in-progress operation (e.g. crop drag, transform). */
   const cancelActiveTool = useCallback(() => {

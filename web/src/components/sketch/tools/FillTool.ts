@@ -205,7 +205,6 @@ export class FillTool implements ToolHandler {
 export const definition: ToolDefinition = {
   tool: "fill",
   label: "Fill",
-  shortcut: "G",
   Icon: FormatColorFillIcon,
   group: "painting"
 };

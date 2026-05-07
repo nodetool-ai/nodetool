@@ -107,7 +107,7 @@ describe("useEditorSession", () => {
     expect(result.current.interactionTool).toBe("move");
   });
 
-  it("does not spring-load move when activeTool is select", () => {
+  it("spring-loads move when activeTool is select (gesture lock in usePointerHandlers prevents mid-drag switches)", () => {
     const { result } = renderHook(() =>
       useEditorSession({
         initialDocument: undefined,
@@ -123,7 +123,7 @@ describe("useEditorSession", () => {
     });
 
     expect(result.current.activeTool).toBe("select");
-    expect(result.current.interactionTool).toBe("select");
+    expect(result.current.interactionTool).toBe("move");
   });
 
   it("does not spring-load move when activeTool is crop", () => {
@@ -415,9 +415,7 @@ describe("useEditorCommands", () => {
         splitSelectedLayer: jest.fn()
       } as unknown as Parameters<typeof useEditorCommands>[0]["segmentation"],
       canvasStore: {
-        setZoom: jest.fn(),
-        setMirrorX: jest.fn(),
-        setMirrorY: jest.fn()
+        setZoom: jest.fn()
       } as unknown as Parameters<typeof useEditorCommands>[0]["canvasStore"],
       colorStore: {
         setBrushSettings: jest.fn(),

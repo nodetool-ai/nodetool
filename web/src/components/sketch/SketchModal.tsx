@@ -50,6 +50,7 @@ import {
   SKETCH_TOOLTIP_DELAY_MS,
   settingRowChildrenSx
 } from "./sketchStyles";
+import { displayCombo } from "./shortcuts";
 
 function isPressureSketchTool(tool: SketchTool): boolean {
   return tool === "brush" || tool === "pencil" || tool === "eraser";
@@ -139,8 +140,8 @@ const SketchModal: React.FC<SketchModalProps> = ({
   // Derive label from mode
   const symmetryLabels: Record<SymmetryMode, string> = {
     off: "Off",
-    horizontal: "Horizontal (M)",
-    vertical: "Vertical (⇧M)",
+    horizontal: "Horizontal",
+    vertical: "Vertical",
     dual: "Dual Axis",
     radial: `Radial (${symmetryRays})`,
     mandala: `Mandala (${symmetryRays})`
@@ -253,14 +254,14 @@ const SketchModal: React.FC<SketchModalProps> = ({
 
         {/* ── Actions (right-aligned) ── */}
         <Box sx={{ display: "flex", alignItems: "center", gap: "2px" }}>
-          <Tooltip title="Undo (Ctrl+Z)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+          <Tooltip title={`Undo (${displayCombo("undo")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span>
               <IconButton size="small" onClick={() => editorRef.current?.undo()} disabled={!canUndo}>
                 <UndoIcon sx={{ fontSize: "18px" }} />
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title="Redo (Ctrl+Y)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+          <Tooltip title={`Redo (${displayCombo("redo")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span>
               <IconButton size="small" onClick={() => editorRef.current?.redo()} disabled={!canRedo}>
                 <RedoIcon sx={{ fontSize: "18px" }} />
@@ -316,7 +317,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
             )}
           </Menu>
 
-          <Tooltip title="Export PNG (Ctrl+S)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+          <Tooltip title={`Export PNG (${displayCombo("export-png")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton size="small" onClick={() => editorRef.current?.exportPng()}>
               <SaveAltIcon sx={{ fontSize: "18px" }} />
             </IconButton>
@@ -343,7 +344,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                   <TrashIcon width={16} height={16} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Close (Esc)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+              <Tooltip title={`Close (${displayCombo("cancel-or-deselect")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
                 <IconButton size="small" onClick={handleRequestClose}>
                   <CloseIcon fontSize="small" />
                 </IconButton>

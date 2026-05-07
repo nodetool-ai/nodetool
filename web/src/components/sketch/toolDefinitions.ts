@@ -10,7 +10,8 @@
  * a `definition` export.
  */
 
-import type { SketchTool } from "./types";
+import { ACTION_MAP, type SketchActionId } from "./shortcuts/actionRegistry";
+import type { SketchTool, SelectToolMode } from "./types";
 import type { ToolDefinition, ToolIconComponent } from "./tools/types";
 
 export type { ToolDefinition, ToolIconComponent };
@@ -76,6 +77,24 @@ const toolMap = new Map<SketchTool, ToolDefinition>(
 
 export function getToolDefinition(tool: SketchTool): ToolDefinition {
   return toolMap.get(tool) ?? PAINTING_TOOLS[0];
+}
+
+export function getToolShortcutActionId(
+  tool: SketchTool,
+  selectMode: SelectToolMode = "rectangle"
+): SketchActionId | null {
+  if (tool === "select") {
+    return selectMode === "magic_wand"
+      ? "tool-select-magic-wand"
+      : "tool-select-rect";
+  }
+
+  if (tool === "segment") {
+    return null;
+  }
+
+  const candidate = `tool-${tool.replaceAll("_", "-")}`;
+  return ACTION_MAP.has(candidate as SketchActionId) ? (candidate as SketchActionId) : null;
 }
 
 // Context menu excludes "adjust" since it has no quick controls
