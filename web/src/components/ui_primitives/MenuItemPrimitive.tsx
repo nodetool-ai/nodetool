@@ -128,18 +128,18 @@ const styles = (theme: Theme) => css`
 
       &.compact {
         min-height: 32px;
-        padding: 4.8px 12px;
+        padding: 5px 12px;
 
         .MuiListItemIcon-root {
           min-width: 28px;
         }
 
         .MuiListItemText-primary {
-          font-size: 11.2px;
+          font-size: 11px;
         }
 
         .shortcut {
-          font-size: 9.6px;
+          font-size: 10px;
         }
       }
     }
