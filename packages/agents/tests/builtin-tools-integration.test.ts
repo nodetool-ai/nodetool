@@ -13,22 +13,25 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   BUILTIN_TOOL_CLASSES,
   getBuiltinTools,
-  registerBuiltinTools
+  registerBuiltinTools,
+  resetBuiltinToolsRegistration
 } from "../src/tools/builtin-tools.js";
 import { resolveTool, listTools } from "../src/tools/tool-registry.js";
 import { SimpleAgent } from "../src/simple-agent.js";
 import { CalculatorTool } from "../src/tools/calculator-tool.js";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 
-// Tool IDs hardcoded in chat / agent frontends. These MUST resolve to
-// real built-in tool instances. If a frontend adds a new ID, add it here.
+// Tool IDs hardcoded in chat / agent frontends. Every ID here MUST
+// resolve to a real built-in tool instance — if a frontend adds a new
+// one, add it here. (Dynamic browser_*/sandbox_* IDs come from
+// base-nodes / sandbox-tools and are intentionally excluded; MCP tools
+// require a NodeRegistry and are also excluded.)
 //
 // Sources:
 //   web/src/components/chat/composer/ToolsSelector.tsx
-//   web/src/components/properties/ToolsListProperty.tsx (subset — the
-//     dynamic browser_*/sandbox_* IDs come from base-nodes / sandbox-tools)
-//   mobile/src/components/chat/ChatOptionsBar.tsx (subset — same)
-const FRONTEND_TOOL_IDS = [
+//   web/src/components/properties/ToolsListProperty.tsx
+//   mobile/src/components/chat/ChatOptionsBar.tsx
+const WEB_AND_MOBILE_TOOL_IDS = [
   "google_search",
   "google_image_generation",
   "openai_image_generation",
@@ -38,6 +41,40 @@ const FRONTEND_TOOL_IDS = [
   "write_file",
   "list_directory"
 ];
+
+// CLI defaults from packages/cli/src/settings.ts (DEFAULT_SETTINGS.enabledTools)
+// and the `autoEnable` calls in packages/cli/src/index.ts. The CLI feeds
+// these names directly into its toolMap, which is now keyed by canonical
+// tool name — so each entry here MUST resolve.
+const CLI_DEFAULT_TOOL_IDS = [
+  "read_file",
+  "write_file",
+  "edit_file",
+  "list_directory",
+  "glob",
+  "grep",
+  "download_file",
+  "http_request",
+  "browser",
+  "take_screenshot",
+  "run_code",
+  "calculate",
+  // autoEnable groups
+  "google_search",
+  "google_news",
+  "google_images",
+  "openai_web_search",
+  "openai_image_generation",
+  "openai_text_to_speech",
+  "dataforseo_search",
+  "dataforseo_news",
+  "search_email",
+  "archive_email"
+];
+
+const FRONTEND_TOOL_IDS = Array.from(
+  new Set([...WEB_AND_MOBILE_TOOL_IDS, ...CLI_DEFAULT_TOOL_IDS])
+);
 
 // ---------------------------------------------------------------------------
 // Mock provider — minimal shape needed by SimpleAgent / StepExecutor
@@ -138,8 +175,6 @@ describe("BUILTIN_TOOL_CLASSES", () => {
 
 describe("registerBuiltinTools()", () => {
   beforeEach(() => {
-    // Re-register on every test so order/state from sibling tests doesn't
-    // affect us. registerBuiltinTools() is idempotent.
     registerBuiltinTools();
   });
 
@@ -158,6 +193,17 @@ describe("registerBuiltinTools()", () => {
       expect(tool, `${id} did not resolve — frontend selectors will break`).not.toBeNull();
       expect(tool!.name).toBe(id);
     }
+  });
+
+  it("is idempotent — repeated calls return the same name list without re-registering", () => {
+    resetBuiltinToolsRegistration();
+    const first = registerBuiltinTools();
+    // Second call must short-circuit and return the same array reference.
+    const second = registerBuiltinTools();
+    expect(second).toBe(first);
+    expect(first.length).toBe(BUILTIN_TOOL_CLASSES.length);
+    // Re-register after reset.
+    registerBuiltinTools();
   });
 });
 

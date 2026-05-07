@@ -24,20 +24,9 @@ import { useExecutionState } from "./useExecutionState.js";
 import type { Message, ToolCall } from "@nodetool-ai/runtime";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import { processChat } from "@nodetool-ai/chat";
-import { MultiModeAgent } from "@nodetool-ai/agents";
 import {
-  ReadFileTool, WriteFileTool, ListDirectoryTool,
-  EditFileTool, GlobTool, GrepTool,
-  DownloadFileTool, HttpRequestTool,
-  GoogleSearchTool, GoogleNewsTool, GoogleImagesTool,
-  BrowserTool, ScreenshotTool,
-  RunCodeTool,
-  CalculatorTool,
-  ExtractPDFTextTool, ConvertPDFToMarkdownTool, ConvertDocumentTool,
-  StatisticsTool, GeometryTool, ConversionTool,
-  OpenAIWebSearchTool, OpenAIImageGenerationTool, OpenAITextToSpeechTool,
-  DataForSEOSearchTool, DataForSEONewsTool,
-  SearchEmailTool, ArchiveEmailTool,
+  MultiModeAgent,
+  getBuiltinTools,
   getAllMcpTools,
 } from "@nodetool-ai/agents";
 import { createProvider, DEFAULT_MODELS, KNOWN_PROVIDERS, WebSocketProvider } from "./providers.js";
@@ -352,47 +341,15 @@ export function App({
     }
   }, []);
 
-  // Create tools from enabled list
+  // Create tools from enabled list. The toolMap is keyed by canonical
+  // tool `name` (matching what `BUILTIN_TOOL_CLASSES` exposes), so the
+  // names users put in their settings.json `enabledTools` are the same
+  // IDs the LLM sees and the same IDs other frontends use.
   function buildTools() {
-    const toolMap: Record<string, unknown> = {
-      // Filesystem
-      read_file: new ReadFileTool(),
-      write_file: new WriteFileTool(),
-      edit_file: new EditFileTool(),
-      list_directory: new ListDirectoryTool(),
-      glob: new GlobTool(),
-      grep: new GrepTool(),
-      // HTTP
-      download_file: new DownloadFileTool(),
-      http_request: new HttpRequestTool(),
-      // Search (SERPAPI)
-      google_search: new GoogleSearchTool(),
-      google_news: new GoogleNewsTool(),
-      google_images: new GoogleImagesTool(),
-      // Browser
-      browser: new BrowserTool(),
-      screenshot: new ScreenshotTool(),
-      // Code & math
-      run_code: new RunCodeTool(),
-      calculator: new CalculatorTool(),
-      statistics: new StatisticsTool(),
-      geometry: new GeometryTool(),
-      conversion: new ConversionTool(),
-      // PDF & documents
-      extract_pdf_text: new ExtractPDFTextTool(),
-      convert_pdf_to_markdown: new ConvertPDFToMarkdownTool(),
-      convert_document: new ConvertDocumentTool(),
-      // OpenAI tools
-      openai_web_search: new OpenAIWebSearchTool(),
-      openai_image_generation: new OpenAIImageGenerationTool(),
-      openai_text_to_speech: new OpenAITextToSpeechTool(),
-      // DataForSEO
-      dataseo_search: new DataForSEOSearchTool(),
-      dataseo_news: new DataForSEONewsTool(),
-      // Email (IMAP)
-      search_email: new SearchEmailTool(),
-      archive_email: new ArchiveEmailTool(),
-    };
+    const toolMap: Record<string, import("@nodetool-ai/agents").Tool> = {};
+    for (const tool of getBuiltinTools()) {
+      toolMap[tool.name] = tool;
+    }
     // NodeTool MCP tools (workflows, nodes, jobs, assets, models).
     // When a NodeRegistry is in process, this swaps the REST node-search
     // tools for the local biased versions (and adds `find_model`) so any
@@ -416,18 +373,18 @@ export function App({
           "grep",
           "run_code",
           "browser",
-          "screenshot",
+          "take_screenshot",
           "google_search",
           "google_news",
           "google_images",
-          "dataseo_search",
-          "dataseo_news"
+          "dataforseo_search",
+          "dataforseo_news"
         ])
       : null;
 
     const enabled = enabledTools
       .filter(name => name in toolMap && !(hostToolsToExclude?.has(name)))
-      .map(name => toolMap[name] as import("@nodetool-ai/agents").Tool);
+      .map(name => toolMap[name]);
     return extraTools && extraTools.length > 0
       ? [...enabled, ...extraTools]
       : enabled;
