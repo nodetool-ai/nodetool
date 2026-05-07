@@ -318,6 +318,7 @@ export class MultiModeAgent extends BaseAgent {
         provider: this.provider,
         model: this.planningModel,
         context,
+        taskPlan,
         systemPrompt: this.systemPrompt || undefined
       });
 

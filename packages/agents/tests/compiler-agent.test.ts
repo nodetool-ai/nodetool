@@ -184,6 +184,100 @@ describe("CompilerAgent", () => {
     expect(next.value).toBeNull();
   });
 
+  it("includes the task plan structure in the user prompt when supplied", async () => {
+    const context = createMockContext();
+    seedTaskResults(context);
+
+    let capturedPrompt = "";
+    const provider = {
+      provider: "scripted",
+      hasToolSupport: async () => true,
+      async *generateMessagesTraced(opts: { messages: { content: string }[] }) {
+        capturedPrompt = opts.messages.map((m) => m.content).join("\n---\n");
+        yield {
+          id: "tc",
+          name: "finish_step",
+          args: { result: { ok: true } }
+        };
+      },
+      generateMessageTraced: vi.fn(),
+      generateMessage: vi.fn(),
+      generateMessages: vi.fn(),
+      getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
+      getAvailableImageModels: vi.fn().mockResolvedValue([]),
+      getAvailableVideoModels: vi.fn().mockResolvedValue([]),
+      getAvailableTTSModels: vi.fn().mockResolvedValue([]),
+      getAvailableASRModels: vi.fn().mockResolvedValue([]),
+      getAvailableEmbeddingModels: vi.fn().mockResolvedValue([]),
+      getContainerEnv: () => ({}),
+      textToImage: vi.fn(),
+      imageToImage: vi.fn(),
+      textToSpeech: vi.fn(),
+      automaticSpeechRecognition: vi.fn(),
+      textToVideo: vi.fn(),
+      imageToVideo: vi.fn(),
+      generateEmbedding: vi.fn(),
+      isContextLengthError: () => false
+    } as never;
+
+    const compiler = new CompilerAgent({
+      objective: "Write a brief about competitors",
+      outputSchema: {
+        type: "object",
+        properties: { ok: { type: "boolean" } },
+        required: ["ok"]
+      },
+      provider,
+      model: "scripted-model",
+      context: context as never,
+      taskPlan: {
+        title: "Competitor brief",
+        tasks: [
+          {
+            id: "research",
+            title: "Research competitors",
+            dependsOn: [],
+            completed: true,
+            steps: [
+              {
+                id: "research_search",
+                instructions: "Use google_search to find top 3 competitors.",
+                completed: true,
+                dependsOn: [],
+                logs: []
+              }
+            ]
+          },
+          {
+            id: "analyze",
+            title: "Analyze findings",
+            dependsOn: ["research"],
+            completed: true,
+            steps: [
+              {
+                id: "analyze_score",
+                instructions: "Score each competitor on price/quality.",
+                completed: true,
+                dependsOn: [],
+                logs: []
+              }
+            ]
+          }
+        ]
+      }
+    });
+
+    const gen = compiler.compile();
+    let next = await gen.next();
+    while (!next.done) next = await gen.next();
+
+    expect(capturedPrompt).toContain("Plan executed");
+    expect(capturedPrompt).toContain("task:research");
+    expect(capturedPrompt).toContain("task:analyze");
+    expect(capturedPrompt).toContain("[depends_on: research]");
+    expect(capturedPrompt).toContain("research_search");
+  });
+
   it("succeeds with no memory entries by working from the objective alone", async () => {
     const context = createMockContext();
     // No memory seeded.

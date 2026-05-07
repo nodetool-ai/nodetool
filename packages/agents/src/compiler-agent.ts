@@ -38,6 +38,7 @@ import {
   MemoryReadTool
 } from "./tools/memory-tools.js";
 import type { Tool } from "./tools/base-tool.js";
+import type { TaskPlan } from "./types.js";
 
 const log = createLogger("nodetool.agents.compiler-agent");
 
@@ -74,6 +75,13 @@ export interface CompilerAgentOptions {
   provider: BaseProvider;
   model: string;
   context: ProcessingContext;
+  /**
+   * The plan that produced the memory entries this compiler will synthesize.
+   * Surfaced in the prompt so the model knows which `task:<id>` keys to expect
+   * and what each task was supposed to accomplish — much more useful than
+   * memory metadata alone, which only shows titles.
+   */
+  taskPlan?: TaskPlan;
   /** Optional preamble layered above the default compiler system prompt. */
   systemPrompt?: string;
   maxRounds?: number;
@@ -86,6 +94,7 @@ export class CompilerAgent {
   private readonly provider: BaseProvider;
   private readonly model: string;
   private readonly context: ProcessingContext;
+  private readonly taskPlan?: TaskPlan;
   private readonly systemPrompt: string;
   private readonly maxRounds: number;
   private readonly threadId?: string;
@@ -96,6 +105,7 @@ export class CompilerAgent {
     this.provider = opts.provider;
     this.model = opts.model;
     this.context = opts.context;
+    this.taskPlan = opts.taskPlan;
     this.maxRounds = opts.maxRounds ?? MAX_COMPILE_ROUNDS;
     this.threadId = opts.threadId;
 
@@ -142,8 +152,11 @@ export class CompilerAgent {
           .join("\n")
       : "(no memory entries — produce the best result you can from the objective alone)";
 
+    const planSection = this.formatTaskPlan();
+
     const userPrompt = [
       `Objective:\n${this.objective}`,
+      ...(planSection ? ["", planSection] : []),
       "",
       "Memory inventory (call `memory_read` for the keys whose values you need):",
       inventory,
@@ -278,6 +291,32 @@ export class CompilerAgent {
       rounds: this.maxRounds
     });
     return null;
+  }
+
+  /**
+   * Render the executed task plan so the compiler knows which `task:<id>`
+   * keys to expect and what each task was meant to produce. Returns an
+   * empty string when no plan is supplied.
+   */
+  private formatTaskPlan(): string {
+    if (!this.taskPlan || this.taskPlan.tasks.length === 0) return "";
+
+    const lines: string[] = [
+      `Plan executed (title: ${this.taskPlan.title}). Each completed task wrote its result to \`task:<id>\`:`
+    ];
+    for (const task of this.taskPlan.tasks) {
+      const deps =
+        task.dependsOn && task.dependsOn.length > 0
+          ? ` [depends_on: ${task.dependsOn.join(", ")}]`
+          : "";
+      lines.push(`- task:${task.id}${deps} — ${task.title}`);
+      for (const step of task.steps) {
+        const instr = step.instructions.replace(/\s+/g, " ").trim();
+        const summary = instr.length > 140 ? instr.slice(0, 140) + "…" : instr;
+        lines.push(`    • ${step.id}: ${summary}`);
+      }
+    }
+    return lines.join("\n");
   }
 }
 
