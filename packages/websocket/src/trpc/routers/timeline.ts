@@ -532,10 +532,6 @@ export const timelineRouter = router({
       )
       .output(timelineClipResponse)
       .mutation(async ({ ctx, input }) => {
-        const userId = ctx.userId;
-        if (!userId) {
-          throwApiError(ApiErrorCode.UNAUTHORIZED, "Unauthorized");
-        }
         const seq = await loadOwned(ctx.userId, input.id);
         const doc = seq.toDocument();
         const src = doc.clips.find((c) => c.id === input.clipId);
@@ -547,7 +543,7 @@ export const timelineRouter = router({
         if (input.mode === "variation" && src.workflowId) {
           const clonedWorkflow = await Workflow.cloneAsClipPrivate(
             src.workflowId,
-            userId
+            ctx.userId
           );
           newWorkflowId = clonedWorkflow.id;
         }

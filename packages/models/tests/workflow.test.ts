@@ -141,12 +141,16 @@ describe("Workflow model clip lifecycle helpers", () => {
     expect(updated!.run_mode).toBe("workflow");
     expect(updated!.tags).toContain("foo");
     expect(updated!.tags).toContain("timeline-template");
+  });
 
-    await Workflow.promoteToTemplate(clipWf.id);
-    const updatedAgain = await Workflow.get<Workflow>(clipWf.id);
-    const templateTagCount = updatedAgain!.tags.filter(
-      (tag) => tag === "timeline-template"
-    ).length;
-    expect(templateTagCount).toBe(1);
+  it("promoteToTemplate rejects non-clip workflows", async () => {
+    const standalone = await createWorkflow({
+      id: "wf-standalone",
+      run_mode: "workflow"
+    });
+
+    await expect(Workflow.promoteToTemplate(standalone.id)).rejects.toThrow(
+      "not clip-private"
+    );
   });
 });

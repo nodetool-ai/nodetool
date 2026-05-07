@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.workflow`.
  */
 
-import { eq, and, desc, or, isNull } from "drizzle-orm";
+import { eq, and, desc, or, isNull, like, type SQL } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workflows } from "./schema/workflows.js";
@@ -17,6 +17,13 @@ export type AccessLevel = "private" | "public";
 export interface WorkflowGraph {
   nodes: Record<string, unknown>[];
   edges: Record<string, unknown>[];
+}
+
+function requireCondition(condition: SQL<unknown> | undefined): SQL<unknown> {
+  if (!condition) {
+    throw new Error("Expected SQL condition");
+  }
+  return condition;
 }
 
 export class Workflow extends DBModel {
@@ -131,7 +138,9 @@ export class Workflow extends DBModel {
       conditions.push(eq(workflows.run_mode, runMode));
     } else {
       conditions.push(
-        or(eq(workflows.run_mode, "workflow"), isNull(workflows.run_mode))!
+        requireCondition(
+          or(eq(workflows.run_mode, "workflow"), isNull(workflows.run_mode))
+        )
       );
     }
 
@@ -292,7 +301,8 @@ export class Workflow extends DBModel {
     const db = getDb();
     const rows = await db
       .select({ document: timelineSequences.document })
-      .from(timelineSequences);
+      .from(timelineSequences)
+      .where(like(timelineSequences.document, `%${workflowId}%`));
 
     let count = 0;
     for (const row of rows) {
@@ -334,7 +344,7 @@ export class Workflow extends DBModel {
       throw new Error(`Workflow ${workflowId} not found`);
     }
     if (workflow.run_mode !== "clip") {
-      return;
+      throw new Error(`Workflow ${workflowId} is not clip-private`);
     }
 
     const tags = Array.isArray(workflow.tags) ? [...workflow.tags] : [];

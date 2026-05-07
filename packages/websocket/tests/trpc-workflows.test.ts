@@ -233,6 +233,7 @@ describe("workflows router", () => {
       const caller = createCaller(makeCtx());
       const result = await caller.workflows.list({ mediaOutput: true });
       expect(result.workflows.map((w) => w.id)).toEqual(["wf-out"]);
+      expect(result.next).toBeNull();
     });
   });
 
@@ -761,6 +762,9 @@ describe("workflows router", () => {
         run_mode: "workflow"
       });
       (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(standalone);
+      (Workflow.promoteToTemplate as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error("Workflow wf-standalone is not clip-private")
+      );
 
       const caller = createCaller(makeCtx());
       await expect(
