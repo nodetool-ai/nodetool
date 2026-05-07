@@ -142,6 +142,57 @@ export function subgraph(
   return result;
 }
 
+const isControlEdge = (edge: Edge): boolean =>
+  edge.type === "control" ||
+  (edge.data as { edge_type?: string } | undefined)?.edge_type === "control";
+
+/**
+ * Compute a layer index per node using data edges (target ≥ source + 1) and
+ * collapsing control edges to the same layer (controller and controlled node
+ * share a column). Used to feed ELK's partitioning so it respects the
+ * "controlled node is a sibling, not a successor" intent.
+ */
+const computeLayerPartitions = (
+  nodes: Node<NodeData>[],
+  edges: Edge[]
+): Map<string, number> => {
+  const layer = new Map<string, number>();
+  nodes.forEach((n) => layer.set(n.id, 0));
+
+  const dataEdges = edges.filter((e) => !isControlEdge(e));
+  const ctrlEdges = edges.filter(isControlEdge);
+
+  let changed = true;
+  let safety = Math.max(8, nodes.length * 4);
+  while (changed && safety-- > 0) {
+    changed = false;
+    for (const e of dataEdges) {
+      const want = (layer.get(e.source) ?? 0) + 1;
+      if ((layer.get(e.target) ?? 0) < want) {
+        layer.set(e.target, want);
+        changed = true;
+      }
+    }
+    // Pin control source/target to the same (max) layer.
+    for (const e of ctrlEdges) {
+      const src = layer.get(e.source) ?? 0;
+      const tgt = layer.get(e.target) ?? 0;
+      if (src === tgt) continue;
+      const pinned = Math.max(src, tgt);
+      if (src !== pinned) {
+        layer.set(e.source, pinned);
+        changed = true;
+      }
+      if (tgt !== pinned) {
+        layer.set(e.target, pinned);
+        changed = true;
+      }
+    }
+  }
+
+  return layer;
+};
+
 export const autoLayout = async (
   edges: Edge[],
   nodes: Node<NodeData>[]
@@ -157,6 +208,8 @@ export const autoLayout = async (
       "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX"
     }
   });
+
+  const layerPartitions = computeLayerPartitions(nodes, edges);
 
   // Filter out comment nodes
   const nonCommentNodes = nodes.filter(
@@ -192,26 +245,74 @@ export const autoLayout = async (
     height:
       (node.measured?.height ?? 100) +
       (node.data?.title ? measureTitleHeight(node.id) : 0),
+    layoutOptions: {
+      "elk.partitioning.partition": String(layerPartitions.get(node.id) ?? 0)
+    },
     ...(children && { children })
   });
 
-  // Helper function to create ELK graph for a group of nodes
+  // Within a partition, place each controller immediately followed by its
+  // controlled nodes so model-order ordering renders the controlled node
+  // directly below the controller.
+  const orderForControlPlacement = (
+    groupNodes: Node<NodeData>[],
+    groupEdges: Edge[]
+  ): Node<NodeData>[] => {
+    const controlled = new Map<string, string[]>();
+    for (const e of groupEdges) {
+      if (!isControlEdge(e)) continue;
+      if (!controlled.has(e.source)) controlled.set(e.source, []);
+      controlled.get(e.source)!.push(e.target);
+    }
+    if (controlled.size === 0) return groupNodes;
+
+    const byId = new Map(groupNodes.map((n) => [n.id, n]));
+    const placed = new Set<string>();
+    const ordered: Node<NodeData>[] = [];
+    for (const node of groupNodes) {
+      if (placed.has(node.id)) continue;
+      ordered.push(node);
+      placed.add(node.id);
+      for (const targetId of controlled.get(node.id) ?? []) {
+        const target = byId.get(targetId);
+        if (target && !placed.has(targetId)) {
+          ordered.push(target);
+          placed.add(targetId);
+        }
+      }
+    }
+    return ordered;
+  };
+
+  // Helper function to create ELK graph for a group of nodes.
+  // Control edges are excluded from ELK input so they don't pull the
+  // controlled node into a later layer; partitioning keeps controller and
+  // controlled node in the same column, and model-order placement keeps
+  // the controlled node directly below its controller.
   const createElkGraph = (
     groupNodes: Node<NodeData>[],
     groupEdges: Edge[],
     isRoot = false
-  ) => ({
-    id: isRoot ? "root" : groupNodes[0].parentId || "root",
-    layoutOptions: {
-      "elk.padding": "[top=50,left=50,bottom=50,right=50]"
-    },
-    children: groupNodes.map((node) => createElkNode(node)),
-    edges: groupEdges.map((edge) => ({
-      id: edge.id,
-      sources: [edge.source],
-      targets: [edge.target]
-    }))
-  });
+  ) => {
+    const orderedNodes = orderForControlPlacement(groupNodes, groupEdges);
+    return {
+      id: isRoot ? "root" : groupNodes[0].parentId || "root",
+      layoutOptions: {
+        "elk.padding": "[top=50,left=50,bottom=50,right=50]",
+        "elk.partitioning.activate": "true",
+        "elk.layered.crossingMinimization.forceNodeModelOrder": "true",
+        "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES"
+      },
+      children: orderedNodes.map((node) => createElkNode(node)),
+      edges: groupEdges
+        .filter((edge) => !isControlEdge(edge))
+        .map((edge) => ({
+          id: edge.id,
+          sources: [edge.source],
+          targets: [edge.target]
+        }))
+    };
+  };
 
   // Helper function to update node positions
   const updateNodePositions = (
