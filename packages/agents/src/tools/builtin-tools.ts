@@ -129,19 +129,32 @@ export function getBuiltinTools(): Tool[] {
   return BUILTIN_TOOL_CLASSES.map((Cls) => new Cls());
 }
 
+let registeredNames: string[] | null = null;
+
 /**
  * Register all built-in tools in the global tool registry, so that
  * `resolveTool(name)` returns a usable instance for any built-in by name.
  *
- * Idempotent: repeated calls re-register the same instances. Returns the
- * map of registered names for diagnostics.
+ * Truly idempotent: only the first call instantiates and registers; later
+ * calls return the cached list of names without touching the registry.
+ * Returns the array of registered tool names.
  */
 export function registerBuiltinTools(): string[] {
+  if (registeredNames) return registeredNames;
   const names: string[] = [];
   for (const Cls of BUILTIN_TOOL_CLASSES) {
     const instance = new Cls();
     registerTool(instance);
     names.push(instance.name);
   }
+  registeredNames = names;
   return names;
+}
+
+/**
+ * Reset the one-time registration guard. Test-only — production code
+ * should never call this.
+ */
+export function resetBuiltinToolsRegistration(): void {
+  registeredNames = null;
 }

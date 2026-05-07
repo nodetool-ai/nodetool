@@ -124,7 +124,8 @@ export {
 export {
   BUILTIN_TOOL_CLASSES,
   getBuiltinTools,
-  registerBuiltinTools
+  registerBuiltinTools,
+  resetBuiltinToolsRegistration
 } from "./tools/builtin-tools.js";
 
 export {
