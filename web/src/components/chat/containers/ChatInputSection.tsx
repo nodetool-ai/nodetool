@@ -87,6 +87,8 @@ const ChatInputSection = ({
   onAgentPlannerChange,
   allowedProviders,
   requireToolSupport,
+  selectedTools,
+  onToolsChange,
   variant = "media",
   composerToolbar
 }: ChatInputSectionProps) => {
@@ -125,6 +127,8 @@ const ChatInputSection = ({
             onAgentPlannerChange={onAgentPlannerChange}
             allowedProviders={allowedProviders}
             requireToolSupport={requireToolSupport}
+            selectedTools={selectedTools}
+            onToolsChange={onToolsChange}
           />
         )}
       </div>

@@ -221,7 +221,7 @@ s(
 sec(
   "OPENAI_API_KEY",
   "OpenAI",
-  "OpenAI API key for accessing GPT models, DALL-E, and other OpenAI services. Get yours at https://platform.openai.com/api-keys"
+  "OpenAI API key for accessing GPT models, GPT-Image, and other OpenAI services. Get yours at https://platform.openai.com/api-keys"
 );
 sec(
   "OPENROUTER_API_KEY",

@@ -187,8 +187,6 @@ export class PlanBuilder {
       }
     }
 
-    errors.push(...validateTaskSemantics(task));
-
     return errors;
   }
 
@@ -261,81 +259,6 @@ function checkTaskCycles(tasks: readonly Task[]): boolean {
     if (hasCycle(task.id)) return false;
   }
   return true;
-}
-
-const LOOPING_PHRASES = [
-  "for each",
-  "for every",
-  "iterate over",
-  "loop over",
-  "for all"
-];
-
-const AGGREGATOR_PATTERNS = [
-  "aggregate",
-  "compile",
-  "combine",
-  "merge",
-  "final",
-  "report"
-];
-
-const EXTRACTOR_PATTERNS = [
-  "extract",
-  "fetch",
-  "scrape",
-  "crawl",
-  "parse",
-  "process"
-];
-
-function validateTaskSemantics(task: Task): string[] {
-  const errors: string[] = [];
-  const aggregatorIds = new Set<string>();
-
-  for (const step of task.steps) {
-    const sid = step.id.toLowerCase();
-    if (AGGREGATOR_PATTERNS.some((p) => sid.includes(p))) {
-      aggregatorIds.add(step.id);
-    }
-  }
-
-  for (const step of task.steps) {
-    if (aggregatorIds.has(step.id)) continue;
-    const content = step.instructions.toLowerCase();
-    for (const phrase of LOOPING_PHRASES) {
-      if (content.includes(phrase)) {
-        errors.push(
-          `Task '${task.id}': step '${step.id}' contains looping phrase '${phrase}'. Emit one step per item (fan-out) instead.`
-        );
-        break;
-      }
-    }
-  }
-
-  const extractorIds: string[] = [];
-  for (const step of task.steps) {
-    const sid = step.id.toLowerCase();
-    if (EXTRACTOR_PATTERNS.some((p) => sid.includes(p))) {
-      extractorIds.push(step.id);
-    }
-  }
-
-  if (aggregatorIds.size > 0 && extractorIds.length > 0) {
-    for (const aggId of aggregatorIds) {
-      const agg = task.steps.find((s) => s.id === aggId);
-      if (!agg) continue;
-      const declared = new Set(agg.dependsOn);
-      const missing = extractorIds.filter((eid) => !declared.has(eid));
-      if (missing.length > 0) {
-        errors.push(
-          `Task '${task.id}': aggregator '${aggId}' must depend on all extractor steps. Missing: ${missing.join(", ")}`
-        );
-      }
-    }
-  }
-
-  return errors;
 }
 
 function applySchemaOverrides(steps: Step[]): void {

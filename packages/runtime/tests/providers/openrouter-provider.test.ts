@@ -312,7 +312,7 @@ describe("OpenRouterProvider", () => {
       const params: TextToImageParams = {
         model: {
           id: "openai/dall-e-3",
-          name: "DALL-E 3",
+          name: "GPT-Image 3",
           provider: "openrouter"
         },
         prompt: "A cat in a hat"
@@ -353,7 +353,7 @@ describe("OpenRouterProvider", () => {
       const result = await provider.textToImage({
         model: {
           id: "openai/dall-e-3",
-          name: "DALL-E 3",
+          name: "GPT-Image 3",
           provider: "openrouter"
         },
         prompt: "A cat"
@@ -378,7 +378,7 @@ describe("OpenRouterProvider", () => {
         provider.textToImage({
           model: {
             id: "openai/dall-e-3",
-            name: "DALL-E 3",
+            name: "GPT-Image 3",
             provider: "openrouter"
           },
           prompt: ""
@@ -408,7 +408,7 @@ describe("OpenRouterProvider", () => {
       await provider.textToImage({
         model: {
           id: "openai/dall-e-3",
-          name: "DALL-E 3",
+          name: "GPT-Image 3",
           provider: "openrouter"
         },
         prompt: "A landscape",

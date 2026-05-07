@@ -794,73 +794,23 @@ export class ProcessingContext {
 
   set(key: string, value: unknown): void {
     this._variables[key] = value;
-    void this.persistVariableIfNeeded(key, value);
     if (key.startsWith("memory://")) {
       this._memory.set(key, value);
     }
   }
 
   async storeStepResult(key: string, value: unknown): Promise<string> {
-    const path = this.workspacePathFor(`${key}.json`);
-    await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(value, null, 2), "utf8");
-    this._variables[key] = { __workspace_result__: `${key}.json` };
-    return path;
+    this._variables[key] = value;
+    return "";
   }
 
   async loadStepResult<T = unknown>(key: string, defaultValue?: T): Promise<T> {
-    const marker = this._variables[key];
-    if (
-      marker &&
-      typeof marker === "object" &&
-      "__workspace_result__" in marker
-    ) {
-      const rel = (marker as { __workspace_result__: unknown })
-        .__workspace_result__;
-      const path = this.workspacePathFor(String(rel));
-      try {
-        const raw = await readFile(path, "utf8");
-        return JSON.parse(raw) as T;
-      } catch {
-        // File missing or corrupt — fall back to default.
-        return defaultValue as T;
-      }
-    }
     if (Object.prototype.hasOwnProperty.call(this._variables, key)) {
       return this._variables[key] as T;
     }
     return defaultValue as T;
   }
 
-  private workspacePathFor(fileName: string): string {
-    if (!this.workspaceDir) {
-      throw new Error(
-        "workspace_dir is required to persist workflow variables"
-      );
-    }
-    return resolveWorkspacePath(this.workspaceDir, fileName);
-  }
-
-  private async persistVariableIfNeeded(
-    key: string,
-    value: unknown
-  ): Promise<void> {
-    if (!this.workspaceDir) return;
-    if (value === undefined || value === null) return;
-    if (
-      typeof value === "function" ||
-      typeof value === "symbol" ||
-      typeof value === "bigint"
-    )
-      return;
-    const filePath = this.workspacePathFor(`var_${key}.json`);
-    try {
-      await mkdir(dirname(filePath), { recursive: true });
-      await writeFile(filePath, JSON.stringify(value, null, 2), "utf8");
-    } catch {
-      // Best-effort persistence.
-    }
-  }
 
   // -----------------------------------------------------------------------
   // Node result cache helpers

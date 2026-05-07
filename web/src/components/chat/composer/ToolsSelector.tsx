@@ -3,13 +3,9 @@ import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 
 import React, { memo, useCallback, useMemo, useState, useRef } from "react";
-import {
-  ListItemIcon,
-  ListItemText,
-  DialogContent
-} from "@mui/material";
+import { DialogContent } from "@mui/material";
 import { EditorButton } from "../../editor_ui";
-import { Dialog, Tooltip, Caption, FlexRow } from "../../ui_primitives";
+import { Dialog, Tooltip, FlexRow } from "../../ui_primitives";
 import isEqual from "fast-deep-equal";
 import {
   Search,
@@ -17,82 +13,142 @@ import {
   Image,
   VolumeUp,
   Build,
-  Lock
+  Check
 } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 const dialogStyles = (theme: Theme) =>
   css({
-    ".dialog-title": {
-      position: "sticky",
-      top: 0,
-      zIndex: 2,
-      background: "transparent",
-      margin: 0,
-      padding: theme.spacing(4, 4),
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
-    },
-    ".close-button": {
-      position: "absolute",
-      right: theme.spacing(1),
-      top: theme.spacing(2),
-      color: theme.vars.palette.grey[500]
-    },
     ".tools-grid": {
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
       gap: theme.spacing(2)
     },
     ".category-card": {
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
-      borderRadius: 8,
-      background: "transparent"
+      border: `1px solid ${theme.vars.palette.grey[800]}`,
+      borderRadius: 12,
+      background: `linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0) 100%)`,
+      overflow: "hidden",
+      transition: "border-color 160ms ease"
     },
     ".category-header": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(1),
       padding: theme.spacing(1.5, 2),
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
-      color: theme.vars.palette.grey[100],
-      fontSize: "0.8rem",
-      fontWeight: 600,
+      color: theme.vars.palette.grey[300],
+      fontSize: "0.7rem",
+      fontWeight: 700,
       textTransform: "uppercase",
-      letterSpacing: "0.05em"
+      letterSpacing: "0.08em"
+    },
+    ".category-dot": {
+      width: 6,
+      height: 6,
+      borderRadius: "50%",
+      background: theme.vars.palette.grey[500]
+    },
+    ".category-card.has-selected .category-dot": {
+      background: "var(--palette-primary-main)",
+      boxShadow: `0 0 8px var(--palette-primary-main)`
     },
     ".tools-list": {
       display: "flex",
       flexDirection: "column",
-      padding: theme.spacing(0.5, 0)
+      padding: theme.spacing(0.5, 0.75, 0.75)
     },
     ".tool-item": {
+      position: "relative",
       display: "flex",
       alignItems: "flex-start",
-      gap: theme.spacing(1),
-      padding: theme.spacing(1, 1.5),
+      gap: theme.spacing(1.25),
+      padding: theme.spacing(1, 1.25),
+      borderRadius: 8,
       cursor: "pointer",
-      transition: "background-color 0.2s ease",
+      transition:
+        "background-color 160ms ease, transform 160ms ease, color 160ms ease",
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[800]
+        backgroundColor: "rgba(255,255,255,0.04)"
       },
       "&.selected": {
-        backgroundColor: theme.vars.palette.grey[800],
-        borderLeft: `3px solid var(--palette-primary-main)`,
-        paddingLeft: theme.spacing(1.25)
+        backgroundColor: "rgba(74, 123, 255, 0.10)",
+        boxShadow: `inset 0 0 0 1px rgba(74, 123, 255, 0.35)`
       }
     },
-    ".tool-name": {
-      color: theme.vars.palette.grey[0]
+    ".tool-icon-wrap": {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: 32,
+      height: 32,
+      flexShrink: 0,
+      borderRadius: 8,
+      background: theme.vars.palette.grey[800],
+      color: theme.vars.palette.grey[100],
+      transition: "background-color 160ms ease, color 160ms ease",
+      "& svg": { fontSize: 18 }
     },
-    ".tool-name.selected": {
-      color: "var(--palette-primary-main)"
+    ".tool-item.selected .tool-icon-wrap": {
+      background: "var(--palette-primary-main)",
+      color: theme.vars.palette.primary.contrastText
+    },
+    ".tool-text": {
+      display: "flex",
+      flexDirection: "column",
+      gap: 2,
+      minWidth: 0,
+      flex: 1
+    },
+    ".tool-name": {
+      color: theme.vars.palette.grey[0],
+      fontSize: "0.875rem",
+      fontWeight: 500,
+      lineHeight: 1.3
+    },
+    ".tool-item.selected .tool-name": {
+      color: "var(--palette-primary-light)"
     },
     ".tool-description": {
-      color: theme.vars.palette.grey[200],
-      fontSize: "0.75rem"
+      color: theme.vars.palette.grey[300],
+      fontSize: "0.75rem",
+      lineHeight: 1.4
     },
-    ".tool-icon": {
-      color: theme.vars.palette.grey[100]
+    ".tool-check": {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: 18,
+      height: 18,
+      borderRadius: "50%",
+      flexShrink: 0,
+      marginTop: 6,
+      border: `1px solid ${theme.vars.palette.grey[600]}`,
+      color: "transparent",
+      transition: "all 160ms ease",
+      "& svg": { fontSize: 14 }
     },
-    ".tool-icon.selected": {
-      color: "var(--palette-primary-main)"
+    ".tool-item:hover .tool-check": {
+      borderColor: theme.vars.palette.grey[400]
+    },
+    ".tool-item.selected .tool-check": {
+      background: "var(--palette-primary-main)",
+      borderColor: "var(--palette-primary-main)",
+      color: theme.vars.palette.primary.contrastText
+    },
+    ".tools-count-badge": {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      minWidth: 18,
+      height: 18,
+      padding: "0 5px",
+      marginLeft: theme.spacing(0.5),
+      borderRadius: 9,
+      fontSize: "0.7rem",
+      fontWeight: 600,
+      lineHeight: 1,
+      background: "var(--palette-primary-main)",
+      color: theme.vars.palette.primary.contrastText
     }
   });
 
@@ -106,44 +162,6 @@ interface Tool {
   /** Backend tool ids this entry expands to. A group selects/deselects them all together. */
   toolIds: string[];
 }
-
-const BROWSER_TOOL_IDS = [
-  "browser_view",
-  "browser_navigate",
-  "browser_restart",
-  "browser_click",
-  "browser_input_text",
-  "browser_move_mouse",
-  "browser_press_key",
-  "browser_select_option",
-  "browser_scroll",
-  "browser_console_exec",
-  "browser_console_view"
-];
-
-const SANDBOX_TOOL_IDS = [
-  "sandbox_shell_exec",
-  "sandbox_shell_wait",
-  "sandbox_shell_view",
-  "sandbox_shell_write",
-  "sandbox_shell_kill",
-  "sandbox_file_read",
-  "sandbox_file_write",
-  "sandbox_file_str_replace",
-  "sandbox_file_find_in_content",
-  "sandbox_file_find_by_name",
-  "sandbox_browser_view",
-  "sandbox_browser_navigate",
-  "sandbox_browser_restart",
-  "sandbox_browser_click",
-  "sandbox_browser_input_text",
-  "sandbox_browser_move_mouse",
-  "sandbox_browser_press_key",
-  "sandbox_browser_select_option",
-  "sandbox_browser_scroll",
-  "sandbox_browser_console_exec",
-  "sandbox_browser_console_view"
-];
 
 const TOOLS: Tool[] = [
   {
@@ -165,7 +183,7 @@ const TOOLS: Tool[] = [
   {
     id: "openai_image_generation",
     name: "OpenAI Image Gen",
-    description: "Generate images with DALL-E",
+    description: "Generate images with GPT-Image",
     category: "Generation",
     icon: <Image />,
     toolIds: ["openai_image_generation"]
@@ -182,18 +200,10 @@ const TOOLS: Tool[] = [
     id: "browser",
     name: "Web Browser",
     description:
-      "Full browser control: navigate, view, click, input, scroll, run JS, and read the console.",
+      "Browse the web — navigate, read pages, click links, fill forms.",
     category: "Utility",
     icon: <Language />,
-    toolIds: BROWSER_TOOL_IDS
-  },
-  {
-    id: "sandbox",
-    name: "Sandbox",
-    description: "Shell, files, and browser running in an isolated container.",
-    category: "Utility",
-    icon: <Lock />,
-    toolIds: SANDBOX_TOOL_IDS
+    toolIds: ["browser"]
   }
 ];
 
@@ -259,52 +269,24 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
     }, {});
   }, []);
 
-  const selectedToolIcons = useMemo(
-    () => selectedToolEntries.slice(0, 3),
-    [selectedToolEntries]
-  );
+  const selectedCount = selectedToolEntries.length;
 
   return (
     <>
       <Tooltip
         title={
-          selectedToolEntries.length > 0
-            ? `${selectedToolEntries.length} tools selected`
-            : "Select Tools"
+          selectedCount > 0
+            ? `${selectedCount} tool${selectedCount === 1 ? "" : "s"} selected`
+            : "Select tools"
         }
         delay={TOOLTIP_ENTER_DELAY}
       >
         <EditorButton
           ref={buttonRef}
-          className={`tools-button ${
-            selectedToolEntries.length > 0 ? "active" : ""
-          }`}
+          className={`tools-button ${selectedCount > 0 ? "active" : ""}`}
           onClick={handleClick}
           size="small"
-          startIcon={
-            selectedToolIcons.length > 0 ? (
-              <FlexRow gap={0.5}>
-                {selectedToolIcons.map((tool) => (
-                  <FlexRow
-                    key={tool.id}
-                    align="center"
-                    sx={{
-                      "& > svg": { fontSize: "16px" }
-                    }}
-                  >
-                    {tool.icon}
-                  </FlexRow>
-                ))}
-                {selectedToolEntries.length > 3 && (
-                  <Caption sx={{ fontSize: "12px", ml: 0.5 }}>
-                    +{selectedToolEntries.length - 3}
-                  </Caption>
-                )}
-              </FlexRow>
-            ) : (
-              <Build fontSize="small" />
-            )
-          }
+          startIcon={<Build fontSize="small" />}
           sx={(theme) => ({
             color: theme.vars.palette.grey[0],
             "&:hover": {
@@ -316,14 +298,43 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
               color: "var(--palette-primary-main)"
             }
           })}
-        />
+        >
+          <FlexRow align="center" gap={0}>
+            <span>Tools</span>
+            {selectedCount > 0 && (
+              <span
+                css={css({
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: 18,
+                  height: 18,
+                  padding: "0 5px",
+                  marginLeft: 6,
+                  borderRadius: 9,
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  lineHeight: 1,
+                  background: "var(--palette-primary-main)",
+                  color: theme.vars.palette.primary.contrastText
+                })}
+              >
+                {selectedCount}
+              </span>
+            )}
+          </FlexRow>
+        </EditorButton>
       </Tooltip>
       <Dialog
         css={dialogStyles(theme)}
         className="tools-selector-dialog"
         open={isOpen}
         onClose={handleClose}
-        title="Tools"
+        title={
+          selectedCount > 0
+            ? `Tools · ${selectedCount} selected`
+            : "Tools"
+        }
         slotProps={{
           backdrop: {
             style: { backdropFilter: "blur(20px)" }
@@ -334,56 +345,57 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
             width: "92%",
             maxWidth: "1000px",
             margin: "auto",
-            borderRadius: 1.5,
-            background: "transparent",
-            border: `1px solid ${theme.vars.palette.grey[700]}`
+            borderRadius: 2,
+            background: theme.vars.palette.grey[900],
+            border: `1px solid ${theme.vars.palette.grey[800]}`,
+            boxShadow: "0 24px 60px rgba(0,0,0,0.55)"
           }
         })}
       >
-        <DialogContent sx={{ background: "transparent", pt: 2 }}>
+        <DialogContent sx={{ background: "transparent", pt: 2, pb: 3 }}>
           <div className="tools-grid">
-            {TOOL_CATEGORIES.map((category) => (
-              <div key={category} className="category-card">
-                <div className="category-header">{category}</div>
-                <div className="tools-list">
-                  {groupedTools[category]?.map((tool) => {
-                    const isSelected = isToolSelected(tool, value || []);
-                    return (
-                      <div
-                        key={tool.id}
-                        className={`tool-item ${isSelected ? "selected" : ""}`}
-                        onClick={toggleHandlers[tool.id]}
-                      >
-                        <ListItemIcon
-                          className={`tool-icon ${
-                            isSelected ? "selected" : ""
-                          }`}
-                          sx={{ minWidth: 32 }}
+            {TOOL_CATEGORIES.map((category) => {
+              const items = groupedTools[category] ?? [];
+              const hasSelected = items.some((tool) =>
+                isToolSelected(tool, value || [])
+              );
+              return (
+                <div
+                  key={category}
+                  className={`category-card${hasSelected ? " has-selected" : ""}`}
+                >
+                  <div className="category-header">
+                    <span className="category-dot" />
+                    {category}
+                  </div>
+                  <div className="tools-list">
+                    {items.map((tool) => {
+                      const isSelected = isToolSelected(tool, value || []);
+                      return (
+                        <div
+                          key={tool.id}
+                          className={`tool-item${isSelected ? " selected" : ""}`}
+                          onClick={toggleHandlers[tool.id]}
+                          role="button"
+                          aria-pressed={isSelected}
                         >
-                          {tool.icon}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={
-                            <span
-                              className={`tool-name ${
-                                isSelected ? "selected" : ""
-                              }`}
-                            >
-                              {tool.name}
-                            </span>
-                          }
-                          secondary={
+                          <span className="tool-icon-wrap">{tool.icon}</span>
+                          <span className="tool-text">
+                            <span className="tool-name">{tool.name}</span>
                             <span className="tool-description">
                               {tool.description}
                             </span>
-                          }
-                        />
-                      </div>
-                    );
-                  })}
+                          </span>
+                          <span className="tool-check">
+                            <Check />
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>

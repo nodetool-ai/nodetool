@@ -1,8 +1,8 @@
 {
   "id": "",
   "access": "private",
-  "created_at": "2025-12-21T12:48:11.758845",
-  "updated_at": "2025-12-21T12:48:27.594443",
+  "created_at": "2026-05-07T05:38:15.864Z",
+  "updated_at": "2026-05-07T06:26:21.809Z",
   "name": "AI Product Launch Video Generator",
   "tool_name": null,
   "description": "Create a realistic 16:9 marketing video for a new product launch using the TextToVideo node.",
@@ -12,68 +12,280 @@
     "video",
     "example"
   ],
-  "thumbnail": "AI Product Launch Video Generator.jpg",
+  "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
     "edges": [
-      {
-        "id": "1",
-        "source": "5",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "brief"
-      },
-      {
-        "id": "2",
-        "source": "6",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "audience"
-      },
-      {
-        "id": "3",
-        "source": "7",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "features"
-      },
-      {
-        "id": "4",
-        "source": "8",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "tone"
-      },
-      {
-        "id": "5",
-        "source": "4",
-        "sourceHandle": "output",
-        "target": "3",
-        "targetHandle": "prompt"
-      },
       {
         "id": "6",
         "source": "3",
         "sourceHandle": "text",
         "target": "2",
-        "targetHandle": "prompt"
-      },
-      {
-        "id": "7",
-        "source": "9",
-        "sourceHandle": "output",
-        "target": "2",
-        "targetHandle": "negative_prompt"
+        "targetHandle": "prompt",
+        "edge_type": "data"
       },
       {
         "id": "8",
         "source": "2",
         "sourceHandle": "output",
         "target": "1",
-        "targetHandle": "value"
+        "targetHandle": "value",
+        "edge_type": "data"
+      },
+      {
+        "id": "01ff2dd6-973b-486d-aa3d-49047690ac60",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "brief",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "1bf29f21-70b9-46e1-895b-b0270b558090",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "audience",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "be968faa-0e7b-416f-b129-23e742d264bc",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "features",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
       }
     ],
     "nodes": [
+      {
+        "id": "comment-1",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": {
+            "root": {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "🎬 AI Product Launch Video Generator",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h1"
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "Turn a brief, an audience, and a feature list into a realistic 16:9 marketing video using a Sora-style prompt and the TextToVideo node.",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 1,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "Pipeline:",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": " three string inputs (",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 16,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "brief",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": ", ",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 16,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "audience",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": ", ",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 16,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "features",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": ") feed an Agent that writes a cinematic Sora prompt → TextToVideo renders the shot → Output returns the final clip.",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 1,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 1,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "Try this:",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": " swap the product, edit the audience or feature list, change the video model, or tweak ",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 16,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "guidance_scale",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": " / ",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 16,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "num_frames",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": " on the TextToVideo node for a different look.",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 1,
+                  "textStyle": ""
+                }
+              ],
+              "direction": "ltr",
+              "format": "",
+              "indent": 0,
+              "type": "root",
+              "version": 1,
+              "textFormat": 1
+            }
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": -460,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 437,
+          "height": 340,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
       {
         "id": "1",
         "type": "nodetool.output.Output",
@@ -83,12 +295,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1630,
-            "y": 109
+            "x": 1080,
+            "y": 1009
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "title": "👁️ Output — final marketing video",
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -99,7 +313,10 @@
         "type": "nodetool.video.TextToVideo",
         "data": {
           "model": {
-            "type": "video_model"
+            "type": "video_model",
+            "id": "bytedance/seedance-2",
+            "provider": "kie",
+            "name": "Seedance 2.0 Text To Video"
           },
           "aspect_ratio": "16:9",
           "resolution": "720p",
@@ -109,13 +326,16 @@
           "seed": 12345
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 1320,
-            "y": 0
+            "x": 770,
+            "y": 886
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "title": "5️⃣ Text To Video — renders the launch shot",
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -126,9 +346,12 @@
         "type": "nodetool.agents.Agent",
         "data": {
           "model": {
-            "type": "language_model"
+            "type": "language_model",
+            "id": "gpt-5.5",
+            "provider": "openai",
+            "name": "gpt-5.5"
           },
-          "system": "You are a senior video prompt engineer for OpenAI Sora. Follow Sora best practices: describe the shot like a storyboard\u2014subject, setting, action beats, and camera. Be specific about camera framing and movement (e.g., wide establishing, eye level, 50mm, slow push-in), depth cues, composition (rule of thirds, leading lines), lighting and color anchors (name 3\u20135 colors), and atmosphere/texture (mist, rain on asphalt). Keep motion simple and grounded with one clear camera move and one primary subject action. Support continuity and realism (plausible physics, natural motion, environmental interaction). Do not mention size/resolution or clip length; those are set via API, not prose. Use present tense and avoid abstract phrasing and meta commentary. If dialogue adds clarity, include a short 'Dialogue:' block; otherwise omit. End with constraints: no on-screen text, no logos, no watermarks, no glitches, no distorted anatomy.",
+          "system": "You are a senior video prompt engineer for OpenAI Sora. Follow Sora best practices: describe the shot like a storyboard—subject, setting, action beats, and camera. Be specific about camera framing and movement (e.g., wide establishing, eye level, 50mm, slow push-in), depth cues, composition (rule of thirds, leading lines), lighting and color anchors (name 3–5 colors), and atmosphere/texture (mist, rain on asphalt). Keep motion simple and grounded with one clear camera move and one primary subject action. Support continuity and realism (plausible physics, natural motion, environmental interaction). Do not mention size/resolution or clip length; those are set via API, not prose. Use present tense and avoid abstract phrasing and meta commentary. If dialogue adds clarity, include a short 'Dialogue:' block; otherwise omit. End with constraints: no on-screen text, no logos, no watermarks, no glitches, no distorted anatomy.",
           "image": {
             "type": "image",
             "uri": "",
@@ -143,41 +366,25 @@
           },
           "history": [],
           "thread_id": null,
-          "max_tokens": 600
+          "max_tokens": 600,
+          "prompt": "Using the marketing inputs, write an OpenAI Sora prompt for a single 16:9 product launch shot.\n\nRules:\n- Do not specify resolution or duration in text (those are API parameters).\n- Present tense, visually concrete; one clear camera move and one primary subject action.\n- Include: subject, setting, time-of-day, camera language (framing, angle, lens, movement), composition cues, lighting, 3–5 color anchors, atmosphere/texture, and realistic motion cues.\n- Emphasize the product and key features naturally within the scene for the target audience and tone.\n- If useful, end with an optional Dialogue: block (short, natural lines) and/or Background Sound: line; otherwise omit.\n- Finish with constraints: no on-screen text, no logos, no watermarks, no glitches, no distorted anatomy.\n\nInputs:\n- Campaign brief: {{ brief }}\n- Target audience: {{ audience }}\n- Key features: {{ features }}"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 900,
-            "y": 252
+            "x": 430,
+            "y": 362
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "4",
-        "type": "nodetool.text.FormatText",
-        "data": {
-          "template": "Using the marketing inputs, write an OpenAI Sora prompt for a single 16:9 product launch shot.\n\nRules:\n- Do not specify resolution or duration in text (those are API parameters).\n- Present tense, visually concrete; one clear camera move and one primary subject action.\n- Include: subject, setting, time-of-day, camera language (framing, angle, lens, movement), composition cues, lighting, 3\u20135 color anchors, atmosphere/texture, and realistic motion cues.\n- Emphasize the product and key features naturally within the scene for the target audience and tone.\n- If useful, end with an optional Dialogue: block (short, natural lines) and/or Background Sound: line; otherwise omit.\n- Finish with constraints: no on-screen text, no logos, no watermarks, no glitches, no distorted anatomy.\n\nInputs:\n- Campaign brief: {{ brief }}\n- Target audience: {{ audience }}\n- Desired tone: {{ tone }}\n- Key features: {{ features }}"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 590,
-            "y": 348
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true
+          "title": "4️⃣ Agent — writes a cinematic Sora prompt",
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {
-          "brief": null,
-          "audience": null,
-          "features": null,
-          "tone": null
+          "brief": "",
+          "audience": "",
+          "features": ""
         },
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -192,12 +399,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 362
+            "x": 80,
+            "y": 0
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "title": "1️⃣ Campaign Brief",
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -214,11 +423,13 @@
         "ui_properties": {
           "position": {
             "x": 80,
-            "y": 590
+            "y": 351
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "title": "2️⃣ Target Audience",
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -234,52 +445,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 160,
-            "y": 818
+            "x": 80,
+            "y": 702
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "8",
-        "type": "nodetool.input.StringInput",
-        "data": {
-          "name": "tone",
-          "value": "inspiring, cinematic, and energetic",
-          "description": "Desired tone or mood for the video"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 240,
-            "y": 134
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "9",
-        "type": "nodetool.text.FormatText",
-        "data": {
-          "template": "Avoid glitch art, distorted anatomy, floating objects, text overlays, watermarks, or unrealistic facial expressions."
-        },
-        "ui_properties": {
-          "position": {
-            "x": 980,
-            "y": 40
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true
+          "title": "3️⃣ Key Features",
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -287,67 +460,15 @@
       }
     ]
   },
-  "input_schema": {
-    "type": "object",
-    "properties": {
-      "campaign_brief": {
-        "type": "string",
-        "default": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking.",
-        "label": ""
-      },
-      "target_audience": {
-        "type": "string",
-        "default": "active millennials who enjoy weekend hiking and fitness challenges",
-        "label": ""
-      },
-      "key_features": {
-        "type": "string",
-        "default": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance",
-        "label": ""
-      },
-      "tone": {
-        "type": "string",
-        "default": "inspiring, cinematic, and energetic",
-        "label": ""
-      }
-    },
-    "required": [
-      "campaign_brief",
-      "target_audience",
-      "key_features",
-      "tone"
-    ]
-  },
-  "output_schema": {
-    "type": "object",
-    "properties": {
-      "product_launch_video": {
-        "type": "object",
-        "properties": {
-          "uri": {
-            "type": "string",
-            "format": "uri"
-          },
-          "type": {
-            "type": "string",
-            "const": "video"
-          }
-        },
-        "required": [
-          "uri",
-          "type"
-        ],
-        "label": ""
-      }
-    },
-    "required": [
-      "product_launch_video"
-    ]
-  },
+  "input_schema": null,
+  "output_schema": null,
   "settings": {},
   "package_name": "nodetool-base",
   "path": null,
-  "run_mode": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "html_app": null,
+  "etag": "d549e72742c4b48c05edc9ecc47b4913"
 }

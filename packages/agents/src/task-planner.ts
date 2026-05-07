@@ -72,8 +72,6 @@ const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objec
 ## Step Granularity (hard rule)
 - One step = one focused operation that a sub-agent can finish in ~3 LLM turns.
   Typical shapes: a single search + summarize, a single image/video render, a single file write.
-- NEVER combine N independent items into one step (e.g. "research 3 games and render an image for each"
-  is 6 steps minimum, not 1). Fan out into N parallel steps/tasks, then an aggregation step.
 - If a step would need more than 2 tool calls of different kinds, split it.
 - Prefer many small parallel steps over a few wide ones — steps are iteration-capped, parallelism is cheap.
 

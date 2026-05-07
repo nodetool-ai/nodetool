@@ -21,18 +21,6 @@ interface OpenRouterProviderOptions {
 /** Known image-capable models on OpenRouter. */
 const OPENROUTER_IMAGE_MODELS: ImageModel[] = [
   {
-    id: "openai/dall-e-3",
-    name: "DALL-E 3",
-    provider: "openrouter",
-    supportedTasks: ["text_to_image"]
-  },
-  {
-    id: "openai/dall-e-2",
-    name: "DALL-E 2",
-    provider: "openrouter",
-    supportedTasks: ["text_to_image"]
-  },
-  {
     id: "stabilityai/stable-diffusion-xl",
     name: "Stable Diffusion XL",
     provider: "openrouter",

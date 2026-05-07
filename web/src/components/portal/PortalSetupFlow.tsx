@@ -96,7 +96,7 @@ const PROVIDERS: Provider[] = [
   {
     id: "openai",
     name: "OpenAI",
-    description: "GPT-4o, DALL-E, Whisper",
+    description: "GPT-4o, GPT-Image, Whisper",
     secretKey: "OPENAI_API_KEY",
     color: "#10a37f",
     defaultModel: "openai:gpt-4o",

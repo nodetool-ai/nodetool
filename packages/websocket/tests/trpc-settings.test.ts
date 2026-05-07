@@ -215,7 +215,7 @@ describe("settings router", () => {
       const configured = makeSecretStub({
         id: "s1",
         key: "OPENAI_API_KEY",
-        description: "OpenAI API key for accessing GPT models, DALL-E, and other OpenAI services"
+        description: "OpenAI API key for accessing GPT models, GPT-Image, and other OpenAI services"
       });
       (Secret.listForUser as ReturnType<typeof vi.fn>).mockResolvedValue([
         [configured],

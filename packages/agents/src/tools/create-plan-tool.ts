@@ -243,11 +243,6 @@ export class CreatePlanTool extends Tool {
         );
       }
 
-      // Validate semantics within each task
-      const semanticErrors = this.validatePlanSemantics(task.steps);
-      for (const err of semanticErrors) {
-        errors.push(`Task '${task.id}': ${err}`);
-      }
     }
 
     // Must have at least one task
@@ -310,82 +305,6 @@ export class CreatePlanTool extends Tool {
       if (hasCycle(step.id)) return false;
     }
     return true;
-  }
-
-  private validatePlanSemantics(steps: Step[]): string[] {
-    const errors: string[] = [];
-
-    const loopingPhrases = [
-      "for each",
-      "for every",
-      "iterate over",
-      "loop over",
-      "for all"
-    ];
-
-    const aggregatorPatterns = [
-      "aggregate",
-      "compile",
-      "combine",
-      "merge",
-      "final",
-      "report"
-    ];
-    const aggregatorIds = new Set<string>();
-
-    for (const step of steps) {
-      const sid = step.id.toLowerCase();
-      if (aggregatorPatterns.some((p) => sid.includes(p))) {
-        aggregatorIds.add(step.id);
-      }
-    }
-
-    // Check non-aggregator steps for looping language
-    for (const step of steps) {
-      if (aggregatorIds.has(step.id)) continue;
-      const content = step.instructions.toLowerCase();
-      for (const phrase of loopingPhrases) {
-        if (content.includes(phrase)) {
-          errors.push(
-            `Step '${step.id}' contains looping phrase '${phrase}'. Emit one step per item (fan-out) instead.`
-          );
-          break;
-        }
-      }
-    }
-
-    // Check aggregator wiring
-    const extractorPatterns = [
-      "extract",
-      "fetch",
-      "scrape",
-      "crawl",
-      "parse",
-      "process"
-    ];
-    const extractorIds: string[] = [];
-    for (const step of steps) {
-      const sid = step.id.toLowerCase();
-      if (extractorPatterns.some((p) => sid.includes(p))) {
-        extractorIds.push(step.id);
-      }
-    }
-
-    if (aggregatorIds.size > 0 && extractorIds.length > 0) {
-      for (const aggId of aggregatorIds) {
-        const agg = steps.find((s) => s.id === aggId);
-        if (!agg) continue;
-        const declaredDeps = new Set(agg.dependsOn);
-        const missing = extractorIds.filter((eid) => !declaredDeps.has(eid));
-        if (missing.length > 0) {
-          errors.push(
-            `Aggregator '${aggId}' must depend on all extractor steps. Missing: ${missing.join(", ")}`
-          );
-        }
-      }
-    }
-
-    return errors;
   }
 
   // ---------------------------------------------------------------------------

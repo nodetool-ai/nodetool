@@ -34,7 +34,8 @@ export type ContentType =
   | "image"
   | "video"
   | "document"
-  | "tool_call";
+  | "tool_call"
+  | "agent_status";
 
 export type EdgeType = "data" | "control";
 

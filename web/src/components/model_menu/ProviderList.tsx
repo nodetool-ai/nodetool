@@ -69,7 +69,6 @@ import novitaColorIcon from "@lobehub/icons-static-svg/icons/novita-color.svg";
 import sambanovaColorIcon from "@lobehub/icons-static-svg/icons/sambanova-color.svg";
 import siliconcloudColorIcon from "@lobehub/icons-static-svg/icons/siliconcloud-color.svg";
 import xinferenceColorIcon from "@lobehub/icons-static-svg/icons/xinference-color.svg";
-import dalleColorIcon from "@lobehub/icons-static-svg/icons/dalle-color.svg";
 import bflIcon from "@lobehub/icons-static-svg/icons/bfl.svg";
 import fluxIcon from "@lobehub/icons-static-svg/icons/flux.svg";
 import lumaColorIcon from "@lobehub/icons-static-svg/icons/luma-color.svg";
@@ -215,8 +214,6 @@ const providerIconMap: Record<string, string> = {
   xinference: xinferenceColorIcon,
   
   // Image generation
-  dalle: dalleColorIcon,
-  "dall-e": dalleColorIcon,
   bfl: bflIcon,
   "black-forest-labs": bflIcon,
   blackforestlabs: bflIcon,
