@@ -161,6 +161,21 @@ export interface TimelineStoreState {
   markClipsStaleForWorkflow: (workflowId: string) => void;
 
   /**
+   * Update a single Input* node override for a generated clip.
+   *
+   * Steps:
+   *  1. Sets `paramOverrides[inputNodeName] = value`.
+   *  2. Marks the clip as "stale" when it has already been generated
+   *     (i.e. `lastGeneratedHash` is set), because the new param value means
+   *     the current asset no longer matches the current inputs.
+   */
+  setParamOverride: (
+    clipId: string,
+    inputNodeName: string,
+    value: unknown
+  ) => void;
+
+  /**
    * Apply Input* node drift: seed added inputs with defaults, drop removed ones.
    * No status change — caller is responsible for marking stale if needed.
    */
@@ -642,6 +657,18 @@ export const createTimelineStore = (
             clips: state.clips.map((c) =>
               c.workflowId === workflowId ? { ...c, status: "stale" } : c
             )
+          })),
+
+        setParamOverride: (clipId, inputNodeName, value) =>
+          set((state) => ({
+            clips: state.clips.map((c) => {
+              if (c.id !== clipId) return c;
+              const paramOverrides = { ...(c.paramOverrides ?? {}), [inputNodeName]: value };
+              // Mark as stale only when the clip has already been generated.
+              const status: TimelineClip["status"] =
+                c.lastGeneratedHash ? "stale" : c.status;
+              return { ...c, paramOverrides, status };
+            })
           })),
 
         applyInputDrift: (workflowId, added, removed) =>
