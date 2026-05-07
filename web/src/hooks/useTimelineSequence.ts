@@ -8,10 +8,13 @@
 import { trpc } from "../trpc/client";
 
 /** List sequences, optionally filtered by projectId. */
-export const useTimelines = (projectId?: string) =>
+export const useTimelines = (
+  projectId?: string,
+  options?: { enabled?: boolean }
+) =>
   trpc.timeline.list.useQuery(
     { projectId },
-    { staleTime: 30_000 }
+    { staleTime: 30_000, enabled: options?.enabled ?? true }
   );
 
 /** Fetch a single sequence by id. */

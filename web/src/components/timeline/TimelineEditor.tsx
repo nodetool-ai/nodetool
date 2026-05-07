@@ -11,16 +11,19 @@
  *   BottomStatusBar (32 px)
  *
  * Loading: shows LoadingSpinner centred in the preview region.
- * Not-found / error: shows EmptyState with a "Go to dashboard" action.
+ * Not-found / error: shows EmptyState in the preview only; route and editor
+ * chrome (tracks, inspector, status bar) stay mounted so the URL remains stable.
  */
 
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import {
+  Caption,
+  EditorButton,
   EmptyState,
   FlexColumn,
   FlexRow,
@@ -29,7 +32,11 @@ import {
 
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
-import { useTimeline } from "../../hooks/useTimelineSequence";
+import {
+  useCreateTimeline,
+  useTimeline,
+  useTimelines
+} from "../../hooks/useTimelineSequence";
 import { TracksRegion } from "./Tracks/TracksRegion";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import { PreviewArea } from "./preview/PreviewArea";
@@ -109,7 +116,23 @@ const dragHandleStyles = (theme: Theme) =>
 
 // ── Sub-region placeholder components ─────────────────────────────────────
 
-const PreviewRegion: React.FC<{ isLoading: boolean; sequence?: { fps?: number; width?: number; height?: number } }> = ({ isLoading, sequence }) => {
+const PreviewRegion: React.FC<{
+  isLoading: boolean;
+  sequence?: { fps?: number; width?: number; height?: number };
+  sequenceUnavailable: boolean;
+  onRetryFetch?: () => void;
+  onCreateNewSequence?: () => void;
+  createSequencePending?: boolean;
+  createSequenceErrorMessage?: string | null;
+}> = ({
+  isLoading,
+  sequence,
+  sequenceUnavailable,
+  onRetryFetch,
+  onCreateNewSequence,
+  createSequencePending,
+  createSequenceErrorMessage
+}) => {
   const theme = useTheme();
   return (
     <FlexColumn
@@ -119,6 +142,48 @@ const PreviewRegion: React.FC<{ isLoading: boolean; sequence?: { fps?: number; w
     >
       {isLoading ? (
         <LoadingSpinner text="Loading sequence…" />
+      ) : sequenceUnavailable ? (
+        <FlexColumn
+          align="center"
+          justify="center"
+          gap={2}
+          sx={{ flex: 1, width: "100%", px: 2 }}
+        >
+          <EmptyState
+            variant="error"
+            title="Sequence not found"
+            description="The timeline sequence you requested does not exist or you do not have access to it."
+          />
+          <FlexRow gap={1} align="center" justify="center" sx={{ flexWrap: "wrap" }}>
+            {onRetryFetch ? (
+              <EditorButton
+                variant="outlined"
+                size="small"
+                onClick={onRetryFetch}
+                disabled={createSequencePending}
+                aria-label="Retry loading sequence"
+              >
+                Retry
+              </EditorButton>
+            ) : null}
+            {onCreateNewSequence ? (
+              <EditorButton
+                variant="contained"
+                size="small"
+                onClick={onCreateNewSequence}
+                disabled={createSequencePending}
+                aria-label="Create new sequence"
+              >
+                {createSequencePending ? "Creating…" : "New sequence"}
+              </EditorButton>
+            ) : null}
+          </FlexRow>
+          {createSequenceErrorMessage ? (
+            <Caption sx={{ color: "error.main", textAlign: "center" }}>
+              {createSequenceErrorMessage}
+            </Caption>
+          ) : null}
+        </FlexColumn>
       ) : (
         <PreviewArea
           fps={sequence?.fps ?? 30}
@@ -148,11 +213,13 @@ const InspectorRegion: React.FC = () => {
 
 export const TimelineEditor: React.FC = memo(() => {
   const { sequenceId } = useParams<{ sequenceId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const theme = useTheme();
 
   // Data fetching ─────────────────────────────────────────────────────────
-  const { data: sequence, isLoading, isError } = useTimeline(sequenceId);
+  const { data: sequence, isLoading, isError, refetch } =
+    useTimeline(sequenceId);
 
   // Workflow freshness check — runs on mount after returning from the node editor
   const { driftItems, resolveDrift } = useWorkflowFreshnessCheck(sequenceId ?? null);
@@ -246,34 +313,61 @@ export const TimelineEditor: React.FC = memo(() => {
     []
   );
 
-  // Not-found / error ─────────────────────────────────────────────────────
-  const notFound = !isLoading && (isError || !sequence);
+  /** Query finished without a usable row (disabled id, error, or empty). */
+  const sequenceUnavailable = !isLoading && (isError || !sequence);
 
-  if (notFound) {
-    return (
-      <FlexColumn
-        fullWidth
-        fullHeight
-        align="center"
-        justify="center"
-        css={editorStyles(theme)}
-      >
-        <EmptyState
-          variant="error"
-          title="Sequence not found"
-          description="The timeline sequence you requested does not exist or you do not have access to it."
-          actionText="Go to dashboard"
-          onAction={() => navigate("/dashboard")}
-        />
-      </FlexColumn>
+  const { data: userTimelines } = useTimelines(undefined, {
+    enabled: sequenceUnavailable
+  });
+
+  const createTimeline = useCreateTimeline();
+
+  const projectIdForNewSequence = useMemo(() => {
+    const fromUrl = searchParams.get("projectId")?.trim();
+    if (fromUrl) {
+      return fromUrl;
+    }
+    const fromExisting = userTimelines?.[0]?.projectId;
+    if (fromExisting) {
+      return fromExisting;
+    }
+    return "default";
+  }, [searchParams, userTimelines]);
+
+  const handleRetrySequence = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
+  const handleCreateNewSequence = useCallback(() => {
+    createTimeline.reset();
+    createTimeline.mutate(
+      { name: "Untitled sequence", projectId: projectIdForNewSequence },
+      {
+        onSuccess: (created) => {
+          const next = new URLSearchParams(searchParams);
+          next.set("projectId", created.projectId);
+          const qs = next.toString();
+          navigate(qs ? `/timeline/${created.id}?${qs}` : `/timeline/${created.id}`, {
+            replace: true
+          });
+        }
+      }
     );
-  }
+  }, [createTimeline, navigate, projectIdForNewSequence, searchParams]);
+
+  const createErrorMessage =
+    createTimeline.error != null
+      ? createTimeline.error.message || "Could not create sequence."
+      : null;
 
   return (
     <FlexColumn fullWidth fullHeight css={editorStyles(theme)}>
       {/* ── Top bar ───────────────────────────────────────────────── */}
       <TopBar
-        sequenceName={sequence?.name}
+        sequenceName={
+          sequence?.name ??
+          (sequenceUnavailable ? sequenceId : undefined)
+        }
         activitySlot={<ActivityIndicator />}
       />
 
@@ -283,7 +377,17 @@ export const TimelineEditor: React.FC = memo(() => {
         css={middleAreaStyles(theme)}
         sx={{ flex: "1 1 auto", overflow: "hidden" }}
       >
-        <PreviewRegion isLoading={isLoading} sequence={sequence} />
+        <PreviewRegion
+          isLoading={isLoading}
+          sequence={sequence}
+          sequenceUnavailable={sequenceUnavailable}
+          onRetryFetch={sequenceUnavailable ? handleRetrySequence : undefined}
+          onCreateNewSequence={
+            sequenceUnavailable ? handleCreateNewSequence : undefined
+          }
+          createSequencePending={createTimeline.isPending}
+          createSequenceErrorMessage={createErrorMessage}
+        />
         <InspectorRegion />
       </FlexRow>
 
