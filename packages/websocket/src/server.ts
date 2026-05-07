@@ -35,31 +35,7 @@ import {
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
 import { initDb, initPostgresDb, runSeeds } from "@nodetool-ai/models";
-import {
-  Tool,
-  GoogleSearchTool,
-  GoogleNewsTool,
-  GoogleImagesTool,
-  GoogleGroundedSearchTool,
-  GoogleImageGenerationTool,
-  OpenAIWebSearchTool,
-  OpenAIImageGenerationTool,
-  OpenAITextToSpeechTool,
-  BrowserTool,
-  ScreenshotTool,
-  HttpRequestTool,
-  CalculatorTool,
-  RunCodeTool,
-  StatisticsTool,
-  GeometryTool,
-  ConversionTool,
-  SearchEmailTool,
-  ArchiveEmailTool,
-  AddLabelToEmailTool,
-  DataForSEOSearchTool,
-  DataForSEONewsTool,
-  DataForSEOImagesTool
-} from "@nodetool-ai/agents";
+import { Tool, BUILTIN_TOOL_CLASSES } from "@nodetool-ai/agents";
 import { registerPythonProviders } from "./models-api.js";
 import type { HttpApiOptions } from "./http-api.js";
 import { handleMcpHttpRequest } from "./mcp-server.js";
@@ -428,40 +404,15 @@ pythonBridge.on("exit", (code: number) => {
 });
 
 // ---------------------------------------------------------------------------
-// Tool registry
+// Tool registry — sourced from @nodetool-ai/agents BUILTIN_TOOL_CLASSES
 // ---------------------------------------------------------------------------
-
-const builtinToolClasses: (new () => Tool)[] = [
-  GoogleSearchTool,
-  GoogleNewsTool,
-  GoogleImagesTool,
-  GoogleGroundedSearchTool,
-  GoogleImageGenerationTool,
-  OpenAIWebSearchTool,
-  OpenAIImageGenerationTool,
-  OpenAITextToSpeechTool,
-  BrowserTool,
-  ScreenshotTool,
-  HttpRequestTool,
-  CalculatorTool,
-  RunCodeTool,
-  StatisticsTool,
-  GeometryTool,
-  ConversionTool,
-  SearchEmailTool,
-  ArchiveEmailTool,
-  AddLabelToEmailTool,
-  DataForSEOSearchTool,
-  DataForSEONewsTool,
-  DataForSEOImagesTool
-];
 
 // Lazy tool class map — defers instantiation until first access.
 let _toolClassMap: Map<string, new () => Tool> | null = null;
 function getToolClassMap(): Map<string, new () => Tool> {
   if (!_toolClassMap) {
     _toolClassMap = new Map();
-    for (const cls of builtinToolClasses) {
+    for (const cls of BUILTIN_TOOL_CLASSES) {
       const instance = new cls();
       _toolClassMap.set(instance.name, cls);
     }

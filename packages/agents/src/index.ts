@@ -8,6 +8,10 @@ export type { Step, Task, TaskPlan, AgentMode, SubAgentConfig } from "./types.js
 // Tools
 export { Tool } from "./tools/base-tool.js";
 export { FinishStepTool } from "./tools/finish-step-tool.js";
+export {
+  FinishTool,
+  jsonSchemaForOutputType
+} from "./tools/finish-task-tool.js";
 export { CalculatorTool } from "./tools/calculator-tool.js";
 export {
   StatisticsTool,
@@ -117,6 +121,11 @@ export {
   listTools,
   getAllTools
 } from "./tools/tool-registry.js";
+export {
+  BUILTIN_TOOL_CLASSES,
+  getBuiltinTools,
+  registerBuiltinTools
+} from "./tools/builtin-tools.js";
 
 export {
   WorkspaceReadTool,
@@ -198,11 +207,7 @@ export { wrapGeneratorsParallel } from "./utils/wrap-generators-parallel.js";
 // Core execution
 export { StepExecutor } from "./step-executor.js";
 export type { StepExecutorOptions } from "./step-executor.js";
-export {
-  AgentExecutor,
-  FinishTool,
-  jsonSchemaForOutputType
-} from "./agent-executor.js";
+export { AgentExecutor } from "./agent-executor.js";
 export type { AgentExecutorOptions } from "./agent-executor.js";
 
 // Agents
