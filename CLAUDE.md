@@ -167,8 +167,9 @@ npm run dev:chat -- --agent --url ws://localhost:7777/ws
 
 Chat flags:
 ```
--a, --agent              Enable agent mode (planning + parallel execution)
---no-agent               Disable agent mode
+-a, --agent [mode]       Agent mode: off | loop | plan | graph | multi-agent
+                         (default: plan when --agent is given without a value)
+--no-agent               Force agent mode off
 -p, --provider <name>    anthropic, openai, ollama, gemini, mistral, groq
 -m, --model <id>         Model ID (e.g. claude-sonnet-4-6, gpt-5.4-mini)
 -w, --workspace <path>   Workspace directory for file tools
@@ -176,7 +177,7 @@ Chat flags:
 -u, --url <ws-url>       Connect to WebSocket server instead of local provider
 ```
 
-Interactive commands: `/agent` toggle, `/model <id>`, `/provider <name>`, `/tools`, `/clear`, `/exit`
+Interactive commands: `/agent <off|loop|plan|graph|multi-agent>`, `/model <id>`, `/provider <name>`, `/tools`, `/clear`, `/exit`
 
 ### nodetool serve
 
