@@ -183,6 +183,8 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const moveSelectedClips = useTimelineStore((s) => s.moveSelectedClips);
   const trimClipStart = useTimelineStore((s) => s.trimClipStart);
   const trimClipEnd = useTimelineStore((s) => s.trimClipEnd);
+  const splitClipAtTime = useTimelineStore((s) => s.splitClipAtTime);
+  const activeTool = useTimelineUIStore((s) => s.activeTool);
 
   // ── Derived status (PRD §5.5) ────────────────────────────────────────────
 
@@ -239,6 +241,20 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       if (!clip || clip.locked) {
         return;
       }
+      // Cut tool: split the clip at the pointer's ms position instead of
+      // initiating a drag. Skip primary-button check so pen/touch also work.
+      if (activeTool === "cut" && e.button === 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        const rect = e.currentTarget.getBoundingClientRect();
+        const localPx = e.clientX - rect.left;
+        const atMs = clip.startMs + localPx * msPerPx;
+        // Refuse no-op splits at the clip boundaries.
+        if (atMs > clip.startMs && atMs < clip.startMs + clip.durationMs) {
+          splitClipAtTime(clip.id, atMs);
+        }
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -246,7 +262,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       dragStartMsRef.current = clip.startMs;
       isDraggingRef.current = false;
     },
-    [clip]
+    [clip, activeTool, msPerPx, splitClipAtTime]
   );
 
   const handleDragPointerMove = useCallback(
@@ -351,12 +367,16 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       if (!clip || clip.locked) {
         return;
       }
+      // In cut mode, let the event bubble up so the clip body splits instead.
+      if (activeTool === "cut") {
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       e.currentTarget.setPointerCapture(e.pointerId);
       trimStartRef.current = { startX: e.clientX, startMs: clip.startMs };
     },
-    [clip]
+    [clip, activeTool]
   );
 
   const handleTrimStartPointerMove = useCallback(
@@ -390,6 +410,10 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       if (!clip || clip.locked) {
         return;
       }
+      // In cut mode, let the event bubble up so the clip body splits instead.
+      if (activeTool === "cut") {
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -399,7 +423,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         startDuration: clip.durationMs
       };
     },
-    [clip]
+    [clip, activeTool]
   );
 
   const handleTrimEndPointerMove = useCallback(
@@ -444,6 +468,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       handleTrimStartPointerMove={handleTrimStartPointerMove}
       handleTrimEndPointerDown={handleTrimEndPointerDown}
       handleTrimEndPointerMove={handleTrimEndPointerMove}
+      cutMode={activeTool === "cut"}
     />
   );
 });
@@ -463,6 +488,7 @@ interface ClipBodyProps {
   handleTrimStartPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimEndPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimEndPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
+  cutMode: boolean;
 }
 
 const ClipBody: React.FC<ClipBodyProps> = ({
@@ -479,7 +505,8 @@ const ClipBody: React.FC<ClipBodyProps> = ({
   handleTrimStartPointerDown,
   handleTrimStartPointerMove,
   handleTrimEndPointerDown,
-  handleTrimEndPointerMove
+  handleTrimEndPointerMove,
+  cutMode
 }) => {
   const theme = useTheme();
   const clipId = clip.id;
@@ -554,7 +581,7 @@ const ClipBody: React.FC<ClipBodyProps> = ({
   return (
     <div
       css={clipStyles(theme, isSelected, clip.locked)}
-      style={{ left: leftPx, width: widthPx }}
+      style={{ left: leftPx, width: widthPx, cursor: cutMode ? "crosshair" : undefined }}
       onPointerDown={handleDragPointerDown}
       onPointerMove={handleDragPointerMove}
       onPointerUp={handleDragPointerUp}
