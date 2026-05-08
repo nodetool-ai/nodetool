@@ -362,6 +362,9 @@ describe("Selection mutations stay ROI-bounded", () => {
     expect(feathered!.width).toBeLessThan(512);
     expect(feathered!.height).toBeLessThan(512);
     expect(bounds).not.toBeNull();
+    // The exact thresholded blur footprint depends on the repeated box-blur
+    // passes, but it should stay within the feather radius while still
+    // covering the original 10×10 selection.
     expect(bounds!.width).toBeGreaterThanOrEqual(20);
     expect(bounds!.width).toBeLessThanOrEqual(22);
     expect(bounds!.height).toBeGreaterThanOrEqual(20);

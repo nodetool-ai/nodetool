@@ -59,7 +59,7 @@ function getSelectionAlphaBounds(
     }
   }
 
-  if (maxX < 0 || maxY < 0) {
+  if (maxX < 0 || maxY < 0 || minX >= width || minY >= height) {
     return null;
   }
 
@@ -226,7 +226,8 @@ export const createSelectionSlice: StateCreator<
       return;
     }
     const widthPx = state.toolSettings.select.borderWidth;
-    const copy = cloneSelectionRegion(sel!, Math.ceil(Math.max(1, widthPx) / 2));
+    const normalizedBorderWidth = Math.max(1, Math.min(64, Math.round(widthPx)));
+    const copy = cloneSelectionRegion(sel!, Math.ceil(normalizedBorderWidth / 2));
     const ring = buildSelectionBorderStrokeMask(copy, widthPx);
     if (!ring || !selectionHasAnyPixels(ring)) {
       return;
