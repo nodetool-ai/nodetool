@@ -1,4 +1,8 @@
-# NodeTool: Node-Based Visual Builder for AI Workflows and LLM Agents
+# NodeTool
+
+**The open creative AI workspace.**
+
+*Every model. Your keys. Your canvas.*
 
 [![Stars](https://img.shields.io/github/stars/nodetool-ai/nodetool?style=social)](https://github.com/nodetool-ai/nodetool/stargazers)
 [![Downloads](https://img.shields.io/github/downloads/nodetool-ai/nodetool/total?color=3fb950)](https://github.com/nodetool-ai/nodetool/releases)
@@ -10,120 +14,129 @@
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue)](https://nodetool.ai)
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange)](https://nodetool.ai)
 
-> Build AI Workflows. Run Them Anywhere.
+NodeTool is the open-source creative AI workspace — every major model from every major provider, called with your own keys, wired into one node-based canvas you run on your machine.
 
-NodeTool is a node-based visual programming tool for building AI workflows and applications. Connect models and tools with visual nodes to create LLM agents, RAG systems, and multimodal pipelines.
-
-NodeTool ships in **two editions** — both 100% open source under AGPL-3.0, both built from the code in this repository:
-
-- **NodeTool Studio** — the local-first desktop app (macOS / Windows / Linux). Runs Ollama, MLX, and GGUF models on your hardware. Works offline. Your data never leaves your machine.
-- **NodeTool Cloud** — our hosted version. Open in any browser, no install, no GPU required. Doesn't run local models, but supports BYOK for every cloud provider (OpenAI, Anthropic, Gemini, Replicate, FAL, ElevenLabs, HuggingFace, …).
-
-Same workflows, same nodes, same agent system — pick whichever runtime fits how you want to work. Workflows are portable between both.
+Bring your own keys to FAL, KIE, Atlas, OpenAI, Anthropic, Gemini, Replicate, ElevenLabs, HuggingFace. Pay providers directly at provider prices. Switch the moment a better model ships. Wire it all into one canvas with the editing tools you rely on — masks, inpaint, outpaint, relight, upscale, layers, compositing.
 
 ![NodeTool Interface](screen_canvas.png)
 
-## Studio vs. Cloud
+## Two ways to run it
+
+Same code, same workflows, same nodes. Pick whichever fits how you want to work — workflows are portable between both, and there is no separate "pro" or closed-source version.
+
+- **NodeTool Studio** — desktop app for macOS, Windows, and Linux. Runs Ollama, MLX, and GGUF models on your machine. Works offline.
+- **NodeTool Cloud** — open in any browser. No install, no GPU. BYOK to every provider.
+
+Both are AGPL-3.0, both built from this repository.
 
 |   | **NodeTool Studio** (desktop) | **NodeTool Cloud** (hosted) |
 | :--- | :--- | :--- |
-| **Where it runs** | Your machine | Our managed servers, accessed via browser |
+| **Where it runs** | Your machine | Managed servers, in any browser |
 | **Install** | Desktop app + ~20GB for local models | None — sign in and start |
-| **Local LLMs** (Ollama, MLX, GGUF) | ✅ Yes — runs entirely on your hardware | ❌ Not available — cloud APIs only |
+| **Local models** (Ollama, MLX, GGUF) | ✅ Yes — runs on your hardware | ❌ Not available — cloud APIs only |
 | **BYOK cloud providers** | ✅ All providers (keys stored on disk) | ✅ All providers (keys encrypted at rest) |
 | **Works offline** | ✅ Yes, fully offline with local models | ❌ Needs an internet connection |
-| **Where your data lives** | On your disk only | Our managed storage (encrypted) |
-| **GPU required** | Recommended for local models | None — we run the heavy lifting |
+| **Where your data lives** | On your disk only | Managed storage (encrypted) |
+| **GPU required** | Recommended for local models | None |
 | **Updates** | You install new releases | Always on the latest version |
-| **Cost** | Free; pay only for the cloud APIs you use | Subscription + your own API spend (BYOK) |
+| **Cost** | Free; pay only the providers you call | Subscription + your own API spend (BYOK) |
 | **Source code** | AGPL-3.0 (this repo) | AGPL-3.0 (this repo) — self-host any time |
 
-**Pick Studio if** you care about privacy, want to run open-weight models for free, work offline, or have a capable GPU / Apple Silicon machine.
+**Pick Studio if** you want to run open-weight models for free, work offline, keep data on your disk, or have a capable GPU / Apple Silicon machine.
 
-**Pick Cloud if** you want zero setup, work across multiple devices, build with a team, or don't want to manage local model files and GPU drivers.
+**Pick Cloud if** you want zero setup, work across multiple devices, or don't want to manage local model files and GPU drivers.
 
-Either way, you're running the same open-source codebase. Cloud is just our hosting of it — there is **no separate "pro" or closed-source version**.
+## Why NodeTool
 
-## Key Features
+The best model for the job changes every month. NodeTool keeps up.
+
+> Seedance is the best video model right now. It's available on FAL, Replicate, and KIE at different price points. NodeTool lets you pick the cheapest. When Veo 4 ships, you swap one node and you're on it the same day.
+
+That's what vendor neutrality buys you:
+
+- **Every model.** OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace. Local with Ollama, MLX, and GGUF.
+- **Your keys.** Pay providers directly at provider prices. No credit markup, no proprietary tokens.
+- **Your canvas.** Workflows, files, and keys belong to you. Run on your machine or in the browser — your choice.
+- **Open source.** AGPL-3.0. Self-host any time. No acquisition risk.
+
+## What's in the box
 
 | | |
 | :--- | :--- |
-| **Visual workflow builder** | Drag-and-drop nodes with type-safe connections — no code required |
-| **Local-first architecture** | Run models on your machine via Ollama, MLX (Apple Silicon), and GGUF/GGML |
-| **Multi-provider support** | OpenAI, Anthropic, Ollama, Replicate, HuggingFace, and custom models |
-| **AI agent framework** | Build autonomous agents with tool use, planning, and 100+ built-in tools |
-| **RAG & vector databases** | Built-in document indexing and semantic search |
-| **Multimodal processing** | Text, images, video, and audio in unified workflows |
-| **Real-time streaming** | Async execution with live output previews at every node |
+| **Node-based canvas** | Drag-and-drop nodes with type-safe connections |
+| **Image, video, audio, text** | Unified workflows across every modality |
+| **Editing tools as nodes** | Mask, inpaint, outpaint, relight, upscale, layers, compositing |
+| **Runs on your machine** | Ollama, MLX (Apple Silicon), and GGUF for local inference |
+| **BYOK everywhere** | OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace |
+| **Document search** | Built-in vector store for indexing and querying your files |
+| **Real-time previews** | Live output at every node as the workflow runs |
+| **Custom nodes** | Extend in TypeScript or Python |
 | **Deploy anywhere** | Docker, RunPod, Google Cloud Run, or self-hosted |
-| **Extend with code** | Custom nodes in TypeScript or Python |
-| **Cross-platform** | Desktop (Electron), web, CLI, and mobile (React Native) |
+| **Cross-platform** | Desktop, web, CLI, and mobile |
 
-## What You Can Build
+## What people build with it
 
-- **AI Agents & Automation** — multi-step agents that plan, execute, and adapt
-- **Document Intelligence** — index documents, search with AI, and answer questions (RAG made simple)
-- **Image & Video Creation** — generate and transform media with FLUX, NanoBanana, and custom models
-- **Data Processing** — transform data, extract insights, and automate reports
-- **Voice & Audio** — transcribe, analyze, and generate speech with Whisper and ElevenLabs
-- **Smart Assistants** — AI assistants that understand documents, emails, and notes
-- **Mini-Apps** — share workflows as interactive web applications
+The workspace is a canvas, not a wizard. A few of the patterns we see most often:
 
-## Cloud Models
+- **Image generation and editing** — FLUX.2, Nano Banana Pro, GPT-Image 3, plus mask, inpaint, outpaint, relight, and upscale as first-class nodes.
+- **Video** — Seedance, Sora 2 Pro, Veo 3.1, Wan 2.6, Hailuo 2.3, Kling 2.6. Text-to-video, image-to-video, and video-to-video pipelines.
+- **Voice and audio** — Whisper for transcription, ElevenLabs and OpenAI TTS for speech, audio analysis and editing as nodes.
+- **Document search** — point a workflow at a folder, embed it, query it. RAG without writing the plumbing.
+- **Multi-step agents** — agents are a capability inside the workspace, not a separate product. Wire one into a graph when a step needs to plan, decide, or call tools.
+- **Mini-apps** — share a workflow as an interactive web app others can run.
 
-Access the latest generative AI models through simple nodes:
+## Models
+
+Pick a provider per node. Switch by changing one field.
 
 | Type | Models |
 | :--- | :--- |
-| **Video** | OpenAI Sora 2 Pro, Google Veo 3.1, xAI Grok Imagine, Alibaba Wan 2.6, MiniMax Hailuo 2.3, Kling 2.6 |
-| **Image** | Black Forest Labs FLUX.2, Google Nano Banana Pro, GPT-Image 3 |
+| **Video** | Seedance, OpenAI Sora 2 Pro, Google Veo 3.1, xAI Grok Imagine, Alibaba Wan 2.6, MiniMax Hailuo 2.3, Kling 2.6 |
+| **Image** | Flux, Black Forest Labs FLUX.2, Google Nano Banana Pro, GPT-Image 3 |
 | **Audio** | OpenAI Whisper, OpenAI TTS, ElevenLabs |
-| **Text** | GPT-4, Claude, Gemini, Llama, Mistral (local or cloud) |
+| **Text** | GPT-4, Claude, Gemini, Llama, Mistral — local on your machine, or BYOK to the cloud |
 
-Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provider and model.
+Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provider and model. Some models route through [kie.ai](https://kie.ai/), which combines providers and is often the cheapest path.
 
-> Some models need direct API keys. Others work through [kie.ai](https://kie.ai/), which combines multiple providers and often has better prices.
+## How NodeTool compares
 
-## How NodeTool Differs
-
-| | NodeTool | ComfyUI | n8n | LangChain |
+| | NodeTool | ComfyUI | Weavy | n8n |
 | :--- | :--- | :--- | :--- | :--- |
-| **Focus** | General AI workflows + agents | Stable Diffusion image generation | Business automation | Code-first LLM framework |
-| **Local LLMs** | Ollama, MLX, GGUF | Limited | No | Via integrations |
-| **AI Agents** | Built-in with 100+ tools | No | Basic | Code-first |
-| **RAG / Vector DB** | Native support | No | Via plugins | Via integrations |
-| **Streaming** | Real-time async | Queue-based | Webhook-based | Callback-based |
-| **Multimodal** | Text, image, video, audio | Image, video | Text-focused | Text-focused |
-| **Code execution** | Sandboxed (Docker) | No | Limited | No |
+| **Built for** | Creatives working with AI | Stable Diffusion power users | Creative teams (now part of Figma) | Business workflows |
+| **Models** | Every major provider, BYOK | Stable Diffusion ecosystem | Curated marketplace | API integrations |
+| **Pricing** | Provider prices, no markup | Free, self-hosted | Credit system | Subscription |
+| **Source** | AGPL-3.0, this repo | Open source | Closed | Fair-code |
+| **Runs on your machine** | Yes (Studio) | Yes | No | Self-host option |
+| **Image, video, audio, text** | Yes | Image and video | Image and video | Text-focused |
 
-**vs ComfyUI:** ComfyUI focuses on Stable Diffusion image generation. NodeTool covers the rest of the AI stack: LLMs, RAG, audio, and video.
+**vs ComfyUI.** ComfyUI exposes every parameter for engineers who want them. NodeTool keeps the node-based power, gives it an interface that doesn't fight you, and covers the rest of the stack — video, audio, text, document search.
 
-**vs n8n:** n8n automates business processes and APIs. NodeTool is built for AI work, with model management and local LLMs included.
+**vs Weavy.** Weavy was the closed-source canvas for creative AI. After the Figma acquisition, the roadmap belongs to someone else. NodeTool is the open alternative — same node-based canvas, your keys, your files, no acquisition risk.
 
-**vs LangChain:** LangChain is a Python framework for LLM apps. NodeTool is a visual, TypeScript-first platform with an async Node.js runtime and custom nodes in TypeScript or Python.
+**vs n8n.** n8n is for business workflows and API plumbing. NodeTool is built for creative work — models, masks, layers, video, audio, RAG.
 
 ## Get NodeTool
 
-### NodeTool Studio (desktop, local-first)
+### NodeTool Studio (desktop)
 
 | Platform | Get It | Requirements |
 | :--- | :--- | :--- |
-| **Windows** | [Download](https://nodetool.ai/studio) | NVIDIA GPU recommended, 4GB+ VRAM (local AI), 20GB space |
-| **macOS** | [Download](https://nodetool.ai/studio) | M1+ Apple Silicon, 16GB+ RAM (local AI) |
-| **Linux** | [Download](https://nodetool.ai/studio) | NVIDIA GPU recommended, 4GB+ VRAM (local AI) |
+| **Windows** | [Download](https://nodetool.ai/studio) | NVIDIA GPU recommended, 4GB+ VRAM (local models), 20GB space |
+| **macOS** | [Download](https://nodetool.ai/studio) | M1+ Apple Silicon, 16GB+ RAM (local models) |
+| **Linux** | [Download](https://nodetool.ai/studio) | NVIDIA GPU recommended, 4GB+ VRAM (local models) |
 
-[Flatpak CI Builds](https://github.com/nodetool-ai/nodetool/actions/workflows/flatpak-ci.yml) are also available for Linux.
+[Flatpak CI Builds](https://github.com/nodetool-ai/nodetool/actions/workflows/flatpak-ci.yml) are available for Linux.
 
-### NodeTool Cloud (hosted, browser)
+### NodeTool Cloud (browser)
 
-Open [nodetool.ai/cloud](https://nodetool.ai/cloud) and sign in — no install, no GPU. Bring your own API keys for every provider.
+Open [nodetool.ai/cloud](https://nodetool.ai/cloud) and sign in. Bring your own keys for every provider.
 
 ______________________________________________________________________
 
 ## Documentation
 
 - **[Getting Started](https://docs.nodetool.ai/getting-started)** — Build your first workflow
-- **[Node Packs](https://docs.nodetool.ai/packs)** — Available operations and integrations
+- **[Node Packs](https://docs.nodetool.ai/packs)** — Available nodes and integrations
 - **[Custom Nodes](https://docs.nodetool.ai/developer/custom-nodes-guide)** — Extend NodeTool
 - **[Deployment](https://docs.nodetool.ai/deployment)** — Share your work
 - **[API Reference](https://docs.nodetool.ai/api)** — Programmatic access
@@ -132,7 +145,7 @@ ______________________________________________________________________
 
 ## CLI & Server (npm)
 
-Use NodeTool headless — run the server, execute workflows, or chat with agents from the terminal:
+Run the server, execute workflows, or chat from the terminal:
 
 ```bash
 # Install globally (Node.js 22.x required)
@@ -141,7 +154,7 @@ npm install -g @nodetool-ai/cli
 # Start the API server (port 7777)
 nodetool serve
 
-# Interactive AI chat with agent mode
+# Interactive chat with agent mode
 nodetool-chat --agent --provider anthropic --model claude-sonnet-4-6
 
 # Run a TypeScript DSL workflow
@@ -163,11 +176,11 @@ NodeTool is a monorepo with a TypeScript backend, React frontend, Electron deskt
 ```
 nodetool/
 ├── packages/          # Backend monorepo (28 packages)
-│   ├── kernel/        #   DAG orchestration & workflow runner
+│   ├── kernel/        #   Workflow graph & runner
 │   ├── node-sdk/      #   BaseNode class & node registry
 │   ├── base-nodes/    #   100+ built-in node types
 │   ├── agents/        #   Agent system with task planning & tools
-│   ├── runtime/       #   Processing context & LLM providers
+│   ├── runtime/       #   Processing context & model providers
 │   ├── websocket/     #   HTTP + WebSocket server (entry point)
 │   ├── vectorstore/   #   SQLite-vec vector database
 │   ├── code-runners/  #   Sandboxed code execution
@@ -264,7 +277,7 @@ ______________________________________________________________________
 
 ## Contributing
 
-We welcome bug reports, feature requests, code contributions, and new node creation.
+We welcome bug reports, feature requests, code contributions, and new nodes.
 
 Please open an issue before starting major work so we can coordinate.
 
