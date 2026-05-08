@@ -64,6 +64,13 @@ export interface UseOverlayRendererParams {
   altHeldRef: React.MutableRefObject<boolean>;
   selectStartRef: React.MutableRefObject<Point | null>;
   lassoPointsRef: React.MutableRefObject<Point[]>;
+  /**
+   * When true, committed selection marching ants are rendered by WebGPU on the
+   * display canvas. Skip building/stroking a CPU {@link Path2D} for the
+   * selection mask — fragmented magic-wand selections create enormous paths
+   * and animating them here pegs the main thread (and makes brushing sluggish).
+   */
+  committedSelectionAntsOnGpu?: boolean;
 }
 
 /**
@@ -120,7 +127,8 @@ export function useOverlayRenderer({
   shiftHeldRef,
   altHeldRef,
   selectStartRef,
-  lassoPointsRef
+  lassoPointsRef,
+  committedSelectionAntsOnGpu = false
 }: UseOverlayRendererParams): UseOverlayRendererResult {
 
   // ─── Screen-resolution canvas sizing (cursor + selection + gizmo) ───
@@ -232,13 +240,19 @@ export function useOverlayRenderer({
   // prevents the loop from overwriting a preview drawn in a separate pass.
   const selectionDragPreviewRef = useRef<{ start: Point; end: Point } | null>(null);
 
+  useEffect(() => {
+    if (committedSelectionAntsOnGpu) {
+      selectionPathCacheRef.current = null;
+    }
+  }, [committedSelectionAntsOnGpu]);
+
   /** Pixel grid (when zoom allows) + committed-selection marching ants + drag preview. */
   const paintSelectionCanvas = useCallback(() => {
     const ctx = beginSelectionLayerPaint();
     if (!ctx) {
       return;
     }
-    if (selection) {
+    if (selection && !committedSelectionAntsOnGpu) {
       if (!selectionPathCacheRef.current || selectionPathCacheRef.current.sel !== selection) {
         selectionPathCacheRef.current = {
           sel: selection,
@@ -271,20 +285,22 @@ export function useOverlayRenderer({
       }
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [beginSelectionLayerPaint, selection, zoom, doc.toolSettings.select.mode]);
+  }, [beginSelectionLayerPaint, selection, zoom, doc.toolSettings.select.mode, committedSelectionAntsOnGpu]);
 
   const paintSelectionCanvasRef = useRef(paintSelectionCanvas);
   paintSelectionCanvasRef.current = paintSelectionCanvas;
 
   const setSelectionOriginOverride = useCallback((pos: { x: number; y: number } | null) => {
     selectionOriginOverrideRef.current = pos;
-    paintSelectionCanvasRef.current();
-  }, []);
+    if (!committedSelectionAntsOnGpu) {
+      paintSelectionCanvasRef.current();
+    }
+  }, [committedSelectionAntsOnGpu]);
 
-  // Animate marching ants while a selection is active.
+  // Animate marching ants while a selection is active (Canvas2D path only).
   const hasSelection = !!selection;
   useEffect(() => {
-    if (!hasSelection) return;
+    if (!hasSelection || committedSelectionAntsOnGpu) return;
     let animId: number;
     const animate = () => {
       antsPhaseRef.current = (antsPhaseRef.current + 1) % 256;
@@ -293,7 +309,7 @@ export function useOverlayRenderer({
     };
     animId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animId);
-  }, [hasSelection]);
+  }, [hasSelection, committedSelectionAntsOnGpu]);
 
   const drawSelectionOverlay = useCallback(() => {
     selectionDragPreviewRef.current = null;

@@ -18,7 +18,11 @@ const mockCompositing = {
   bootstrapPhaseActive: false,
   overlayCanvasRef: { current: null },
   layerCanvasesRef: { current: new Map() },
-  runtime: { dispose: jest.fn() },
+  runtime: {
+    dispose: jest.fn(),
+    setSelection: jest.fn(),
+    setSelectionOriginOverride: jest.fn()
+  },
   backend: "canvas2d" as const,
   getOrCreateLayerCanvas: jest.fn(),
   invalidateLayer: jest.fn(),
@@ -146,7 +150,42 @@ describe("useCanvasOrchestration", () => {
     renderHook(() => useCanvasOrchestration(params));
 
     expect(useOverlayRenderer).toHaveBeenCalledWith(
-      expect.objectContaining({ doc: params.docWithTools })
+      expect.objectContaining({
+        doc: params.docWithTools,
+        committedSelectionAntsOnGpu: false
+      })
+    );
+  });
+
+  it("passes committedSelectionAntsOnGpu when WebGPU is active past bootstrap", () => {
+    const params = makeParams();
+    (useCompositing as jest.Mock).mockReturnValueOnce({
+      ...mockCompositing,
+      backend: "webgpu" as const,
+      bootstrapPhaseActive: false
+    });
+    renderHook(() => useCanvasOrchestration(params));
+
+    expect(useOverlayRenderer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        committedSelectionAntsOnGpu: true
+      })
+    );
+  });
+
+  it("keeps CPU ants during WebGPU bootstrap phase", () => {
+    const params = makeParams();
+    (useCompositing as jest.Mock).mockReturnValueOnce({
+      ...mockCompositing,
+      backend: "webgpu" as const,
+      bootstrapPhaseActive: true
+    });
+    renderHook(() => useCanvasOrchestration(params));
+
+    expect(useOverlayRenderer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        committedSelectionAntsOnGpu: false
+      })
     );
   });
 

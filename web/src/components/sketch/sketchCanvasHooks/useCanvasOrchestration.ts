@@ -199,6 +199,9 @@ export function useCanvasOrchestration(
     coordinatorRef
   });
 
+  const committedSelectionAntsOnGpu =
+    compositing.backend === "webgpu" && !compositing.bootstrapPhaseActive;
+
   // Wire the preview bridge refs to compositing output.
   requestPreviewRedrawRef.current = compositing.requestRedraw;
   invalidateLayerRef.current = compositing.invalidateLayer;
@@ -234,7 +237,8 @@ export function useCanvasOrchestration(
     shiftHeldRef,
     altHeldRef,
     selectStartRef,
-    lassoPointsRef
+    lassoPointsRef,
+    committedSelectionAntsOnGpu
   });
 
   // ─── Pointer handlers ──────────────────────────────────────────────
