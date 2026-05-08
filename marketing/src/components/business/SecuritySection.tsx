@@ -10,41 +10,41 @@ interface SecuritySectionProps {
 const securityFeatures = [
   {
     icon: Shield,
-    title: "Data Sovereignty",
-    description: "Your data never leaves your infrastructure. Complete control over where and how data is processed.",
+    title: "Your data stays with you",
+    description: "Workflows, files, and provider keys live with you — on your machine, in your browser, or on hardware you control.",
   },
   {
     icon: Lock,
-    title: "End-to-End Encryption",
-    description: "All data in transit and at rest is encrypted. Support for custom encryption keys and HSM integration.",
+    title: "Encrypted in transit and at rest",
+    description: "Cloud storage is encrypted by default. Studio keeps everything on your disk and never phones home.",
   },
   {
     icon: Server,
-    title: "On-Premise Deployment",
-    description: "Deploy entirely on your infrastructure. No external dependencies or cloud services required.",
+    title: "Self-host the same code",
+    description: "Cloud is just our managed hosting of the open-source code. Run the same Docker images, CLI, and runtime on your own infrastructure.",
   },
   {
     icon: FileCheck,
-    title: "Audit Logs",
-    description: "Complete audit trail of all workflow executions, data access, and system changes.",
+    title: "Workflow history",
+    description: "Every workflow run, every node output, every prompt — captured so your team can re-run, audit, and version what shipped.",
   },
   {
     icon: Eye,
-    title: "Transparent & Open Source",
-    description: "Full source code access under AGPL-3.0. Audit every line of code for security compliance.",
+    title: "Open source, end to end",
+    description: "AGPL-3.0 on GitHub. No closed-source layer, no \"pro tier\" hiding the good features. Read the code, fork the code, ship the code.",
   },
   {
     icon: Key,
-    title: "Access Control",
-    description: "Role-based access control (RBAC), SSO integration, and fine-grained permissions management.",
+    title: "Your keys, your billing",
+    description: "BYOK for every provider. Use your own accounts, your own usage limits, and your own provider-side controls.",
   },
 ];
 
 const complianceLogos = [
-  { name: "SOC 2 Ready", color: "text-blue-400" },
-  { name: "GDPR Compliant", color: "text-emerald-400" },
-  { name: "HIPAA Compatible", color: "text-amber-400" },
-  { name: "ISO 27001 Ready", color: "text-cyan-400" },
+  { name: "Open source", color: "text-blue-400" },
+  { name: "BYOK", color: "text-emerald-400" },
+  { name: "Self-hostable", color: "text-amber-400" },
+  { name: "AGPL-3.0", color: "text-cyan-400" },
 ];
 
 export default function SecuritySection({ reducedMotion }: SecuritySectionProps) {
@@ -63,11 +63,11 @@ export default function SecuritySection({ reducedMotion }: SecuritySectionProps)
             <Shield className="w-8 h-8 text-blue-400" />
           </div>
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-            Enterprise Security <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-amber-400">& Compliance</span>
+            Your keys. Your data. <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-amber-400">Your call.</span>
           </h2>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-            Built with security and compliance in mind from day one. Meet the strictest industry standards.
+            Open source, BYOK, and self-hostable — so your team controls where the work runs, where the keys live, and where the files end up.
           </p>
         </motion.div>
 
@@ -101,7 +101,7 @@ export default function SecuritySection({ reducedMotion }: SecuritySectionProps)
           className="text-center"
         >
           <div className="inline-block rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur-xl p-8 md:p-12">
-            <h3 className="text-xl font-semibold text-white mb-8">Compliance Ready</h3>
+            <h3 className="text-xl font-semibold text-white mb-8">Built on open ground</h3>
             <div className="flex flex-wrap items-center justify-center gap-8">
               {complianceLogos.map((compliance, index) => (
                 <motion.div
@@ -118,7 +118,7 @@ export default function SecuritySection({ reducedMotion }: SecuritySectionProps)
               ))}
             </div>
             <p className="mt-8 text-sm text-slate-400 max-w-2xl mx-auto">
-              Self-hosting gives you full control to meet your organization&apos;s specific compliance requirements.
+              Self-hosting puts the same open-source runtime on your hardware, so your team can meet whatever data and infrastructure rules your work needs to follow.
             </p>
           </div>
         </motion.div>

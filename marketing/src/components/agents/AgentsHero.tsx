@@ -35,22 +35,22 @@ export default function AgentsHero() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-500/10 border border-teal-500/20 mb-6">
               <Bot className="w-4 h-4 text-amber-400" />
               <span className="text-sm font-medium text-amber-300">
-                AI Agents & Automation
+                Agents on the canvas
               </span>
             </div>
 
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-8">
-              Build Intelligent
+              Drop a planning agent
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-blue-400 to-cyan-400">
-                AI Agents
+                into your canvas.
               </span>
             </h1>
 
             <p className="text-lg md:text-xl text-slate-400 mb-10 leading-relaxed max-w-2xl mx-auto">
-              Create autonomous agents that reason, plan, and execute complex
-              tasks. Chain together AI models, tools, and APIs to automate
-              anything—all with a visual drag-and-drop interface.
+              Agents are nodes you wire into the same canvas as your image, video, and
+              text models. Give one an objective and it&apos;ll call the right models and
+              tools to finish the job — then hand the result to the next node.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -59,13 +59,13 @@ export default function AgentsHero() {
                 className="px-8 py-4 rounded-xl font-semibold text-white bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-500 hover:to-blue-500 transition-all shadow-lg shadow-teal-900/40 flex items-center gap-2"
               >
                 <Sparkles className="w-5 h-5" />
-                Get Started
+                Read the docs
               </a>
               <a
                 href="#use-cases"
                 className="px-8 py-4 rounded-xl font-semibold text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 transition-all flex items-center gap-2"
               >
-                See Use Cases
+                See examples
               </a>
             </div>
 
@@ -75,11 +75,11 @@ export default function AgentsHero() {
               </span>
               <span className="w-1 h-1 rounded-full bg-slate-700" />
               <span className="flex items-center gap-2">
-                <Zap className="w-4 h-4" /> No Code Required
+                <Zap className="w-4 h-4" /> BYOK to every provider
               </span>
               <span className="w-1 h-1 rounded-full bg-slate-700" />
               <span className="flex items-center gap-2">
-                <Workflow className="w-4 h-4" /> Visual Builder
+                <Workflow className="w-4 h-4" /> Visual canvas
               </span>
             </div>
           </motion.div>

@@ -63,38 +63,38 @@ const dslExplanation = [
 const coreFeatures = [
   {
     icon: Box,
-    title: "Node-Based DSL",
-    description: "Declare graphs in code. Strict types, no vendor lock-in.",
+    title: "Node-based DSL",
+    description: "Declare graphs in code. Strict types, vendor-neutral.",
     color: "text-violet-400",
   },
   {
     icon: Layers,
-    title: "First-Class Agents",
-    description: "Planner, browser, search & tool-calling baked in.",
+    title: "Agents as nodes",
+    description: "Planner, browser, search, and tool-calling baked in.",
     color: "text-blue-400",
   },
   {
     icon: Network,
-    title: "Multi-Provider Models",
-    description: "OpenAI, Anthropic, Ollama, Hugging Face, and more.",
+    title: "Every major provider",
+    description: "FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Ollama, and more — your keys.",
     color: "text-emerald-400",
   },
   {
     icon: Database,
-    title: "RAG & Vector Stores",
-    description: "Native adapters for ChromaDB and semantic search.",
+    title: "RAG & vector stores",
+    description: "Built-in SQLite-vec, plus adapters for ChromaDB and friends.",
     color: "text-pink-400",
   },
   {
     icon: Zap,
-    title: "Actor-Based Execution",
+    title: "Actor-based execution",
     description: "One actor per node, streaming-first architecture.",
     color: "text-amber-400",
   },
   {
     icon: PackagePlus,
-    title: "Plugin SDK",
-    description: "Bring your own nodes with the extensible plugin system.",
+    title: "Custom nodes",
+    description: "Add your own nodes to the workspace with the SDK.",
     color: "text-cyan-400",
   },
 ];
@@ -123,7 +123,7 @@ export default function DeveloperCoreSection({
             className="inline-flex items-center gap-2 rounded-full bg-blue-500/10 px-4 py-1.5 text-sm font-medium text-blue-300 ring-1 ring-inset ring-blue-500/20 mb-4"
           >
             <Code2 className="h-4 w-4" />
-            NodeTool Core Engine
+            NodeTool runtime
           </motion.span>
           <motion.h2
             id="core-title"
@@ -133,7 +133,7 @@ export default function DeveloperCoreSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
-            Open-Source Runtime
+            Open source, end to end
           </motion.h2>
           <motion.p
             initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
@@ -142,9 +142,8 @@ export default function DeveloperCoreSection({
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
           >
-            Workflows run in an async Node.js runtime. Use NodeTool as a library
-            in your own app, or standalone via the CLI to build, run, and ship AI
-            workflows.
+            Workflows run on an async Node.js runtime. Embed NodeTool as a library, drive it from
+            the CLI, or run the same code that powers Studio and Cloud on your own boxes.
           </motion.p>
           <motion.div
             initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
