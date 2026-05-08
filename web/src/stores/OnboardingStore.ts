@@ -35,6 +35,12 @@ export interface OnboardingState {
   completed: Record<OnboardingStepId, boolean>;
   /** Set once the user has either finished or explicitly dismissed the tour. */
   dismissed: boolean;
+  /**
+   * Ref-counted flag: > 0 while a GettingStartedPanel instance is mounted.
+   * The floating onboarding overlay suppresses itself while this is set so
+   * its hints don't duplicate the visible checklist.
+   */
+  panelMountCount: number;
 
   start: () => void;
   /** Resume the tour at the first incomplete step (falls back to 0). */
@@ -46,6 +52,8 @@ export interface OnboardingState {
   finish: () => void;
   markComplete: (stepId: OnboardingStepId) => void;
   reset: () => void;
+  registerPanelMount: () => void;
+  unregisterPanelMount: () => void;
 }
 
 const defaultCompleted = (): Record<OnboardingStepId, boolean> => ({
@@ -64,6 +72,7 @@ export const useOnboardingStore = create<OnboardingState>()(
       currentStep: 0,
       completed: defaultCompleted(),
       dismissed: false,
+      panelMountCount: 0,
 
       start: () =>
         set({
@@ -132,7 +141,15 @@ export const useOnboardingStore = create<OnboardingState>()(
           currentStep: 0,
           completed: defaultCompleted(),
           dismissed: false
-        })
+        }),
+
+      registerPanelMount: () =>
+        set((state) => ({ panelMountCount: state.panelMountCount + 1 })),
+
+      unregisterPanelMount: () =>
+        set((state) => ({
+          panelMountCount: Math.max(0, state.panelMountCount - 1)
+        }))
     }),
     {
       name: "onboarding",

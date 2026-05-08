@@ -14,6 +14,7 @@ import { useWorkflowManager } from "./contexts/WorkflowManagerContext";
 import ReactDOM from "react-dom/client";
 
 import {
+  Navigate,
   RouteObject,
   RouterProvider,
   createBrowserRouter
@@ -73,9 +74,6 @@ const AppHeader = React.lazy(() => import("./components/panels/AppHeader"));
 import { SkipLinks } from "./components/ui_primitives/SkipLinks";
 
 // Lazy-loaded route components for code splitting
-const WelcomePage = React.lazy(
-  () => import("./components/dashboard/WelcomePage")
-);
 const GlobalChat = React.lazy(
   () => import("./components/chat/containers/GlobalChat")
 );
@@ -204,11 +202,11 @@ const NavigateToStart = () => {
           return;
         }
 
-        // Brand-new users land on the guided welcome page rather than an
-        // empty new workflow — the onboarding hint overlay drives them
-        // through their first steps from there.
+        // Brand-new users land on the chat homepage, which embeds the
+        // getting-started checklist in its empty state. The chat composer
+        // is right there waiting for their first message.
         if (isNewcomer) {
-          navigate("/welcome", { replace: true });
+          navigate("/chat", { replace: true });
           return;
         }
 
@@ -220,17 +218,18 @@ const NavigateToStart = () => {
             navigate(`/editor/${workflow.id}`, { replace: true });
           } catch (error) {
             console.error("Failed to create workflow:", error);
-            navigate("/welcome", { replace: true });
+            navigate("/chat", { replace: true });
           }
         }
       };
 
       if (isLocalhost || state === "logged_in") {
-        // Newcomers always start on /welcome, regardless of the
+        // Newcomers always start on the chat homepage (which embeds the
+        // getting-started checklist), regardless of the
         // showWelcomeOnStartup setting (which still controls the Portal
         // for returning users).
         if (isNewcomer) {
-          navigate("/welcome", { replace: true });
+          navigate("/chat", { replace: true });
         } else if (!showWelcomeOnStartup) {
           await navigateToEditor();
         } else {
@@ -268,12 +267,10 @@ function getRoutes() {
       )
     },
     {
+      // Legacy route — the getting-started checklist now lives in the
+      // chat homepage's empty state. Redirect old links there.
       path: "/welcome",
-      element: (
-        <ProtectedRoute>
-          <WelcomePage />
-        </ProtectedRoute>
-      )
+      element: <Navigate to="/chat" replace />
     },
     {
       path: "/settings",

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { Box } from "@mui/material";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
@@ -297,7 +297,16 @@ const GettingStartedPanel: React.FC = () => {
   const navigate = useNavigate();
 
   const completed = useOnboardingStore((s) => s.completed);
+  const registerPanelMount = useOnboardingStore((s) => s.registerPanelMount);
+  const unregisterPanelMount = useOnboardingStore(
+    (s) => s.unregisterPanelMount
+  );
   const createNewWorkflow = useWorkflowManager((s) => s.createNew);
+
+  useEffect(() => {
+    registerPanelMount();
+    return () => unregisterPanelMount();
+  }, [registerPanelMount, unregisterPanelMount]);
 
   const navigateToStep = useCallback(
     async (id: OnboardingStepId) => {
