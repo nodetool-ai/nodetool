@@ -43,6 +43,21 @@ export interface StrokeEndOptions {
   syncDocumentFromCanvas?: boolean;
 }
 
+export type ToolRuntime = SketchRuntime & {
+  applySelectionOverlay?: (
+    overlay: Selection,
+    op: SelectionCombineOp
+  ) => Selection | null;
+  applyLayerSourceBySelectionMask?: (
+    layerId: string,
+    offsetX: number,
+    offsetY: number,
+    mask: Selection,
+    source: CanvasImageSource,
+    compositeOp?: GlobalCompositeOperation
+  ) => void;
+};
+
 // ─── Tool context (injected dependencies) ─────────────────────────────────
 
 export interface ToolContext {
@@ -73,12 +88,7 @@ export interface ToolContext {
   mousePositionRef: React.MutableRefObject<Point>;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
   /** Active runtime for selection commits, readback, and compositing-aware tools. */
-  runtime?: SketchRuntime & {
-    applySelectionOverlay?: (
-      overlay: Selection,
-      op: SelectionCombineOp
-    ) => Selection | null;
-  };
+  runtime?: ToolRuntime;
 
   // ── Layer canvas ops ─────────────────────────────────────────────────
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;

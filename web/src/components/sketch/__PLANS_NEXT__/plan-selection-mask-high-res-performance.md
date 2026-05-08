@@ -13,7 +13,7 @@ These pieces already exist and should be treated as the starting point for this 
 - `WebGPURuntime` already has a GPU `r8unorm` selection mask texture, ants shader support, and `setSelectionOriginOverride(...)`.
 - `useOverlayRenderer.ts` still contains a Canvas2D marching-ants path behind `committedSelectionAntsOnGpu`.
 - Selection finalization still combines CPU masks through `tools/selectionFinalization.ts` + `combineMasks(...)`.
-- `FillTool.ts` and `GradientTool.ts` still use `applySelectionConstraint(...)`, which does full-canvas `getImageData`/`putImageData` work.
+- `FillTool.ts` and `GradientTool.ts` now route selection-constrained commits through a runtime mask-composite path instead of `applySelectionConstraint(...)`.
 - Selection modify commands in `selectionSlice.ts` (`feather`, `expand`, `contract`, `smooth`, `border`) still run CPU-wide mask work on the main thread.
 
 ---
@@ -38,9 +38,9 @@ These pieces already exist and should be treated as the starting point for this 
 
 ## Phase 3 — Remove `applySelectionConstraint(...)` from interactive tools
 
-- [ ] Replace the current selection-constrained fill path in `tools/FillTool.ts` with a mask-aware runtime composite path so it no longer snapshots the whole layer and restores pixels with `applySelectionConstraint(...)`.
-- [ ] Replace the current selection-constrained gradient path in `tools/GradientTool.ts` with the same runtime composite path.
-- [ ] Preserve the existing early-out behavior where fill/gradient do nothing when the pointer-down seed is outside the active selection.
+- [x] Replace the current selection-constrained fill path in `tools/FillTool.ts` with a mask-aware runtime composite path so it no longer snapshots the whole layer and restores pixels with `applySelectionConstraint(...)`.
+- [x] Replace the current selection-constrained gradient path in `tools/GradientTool.ts` with the same runtime composite path.
+- [x] Preserve the existing early-out behavior where fill/gradient do nothing when the pointer-down seed is outside the active selection.
 - [ ] Delete `selection/applySelectionConstraint.ts` only after runtime callsites are gone, and confirm there are no production imports left outside tests/docs.
 
 ---

@@ -11,6 +11,7 @@
 
 import { getToolHandler } from "../tools";
 import type { ToolContext, ToolPointerEvent } from "../tools";
+import type { ToolRuntime } from "../tools/types";
 import { BrushTool } from "../tools/BrushTool";
 import { PencilTool } from "../tools/PencilTool";
 import { EraserTool } from "../tools/EraserTool";
@@ -893,6 +894,67 @@ describe("GradientTool", () => {
       { x: 50, y: 50 }
     );
   });
+
+  it("rejects starting a gradient outside the active selection", () => {
+    const tool = new GradientTool();
+    const ctx = makeToolContext({
+      activeTool: "gradient",
+      selection: rectSelectionMask(64, 64, 30, 30, 10, 10)
+    });
+    const result = tool.onDown(ctx, makePointerEvent({ point: { x: 5, y: 5 } }));
+    expect(result).toBe(false);
+    expect(ctx.onStrokeStart).not.toHaveBeenCalled();
+  });
+
+  it("routes selection-constrained gradients through the runtime mask helper", () => {
+    const tool = new GradientTool();
+    const runtime = {
+      applyLayerSourceBySelectionMask: jest.fn()
+    } as unknown as ToolRuntime;
+    const ctx = makeToolContext({
+      activeTool: "gradient",
+      selection: rectSelectionMask(64, 64, 0, 0, 64, 64),
+      runtime,
+      getOrCreateLayerCanvas: jest.fn(() => {
+        const canvas = window.document.createElement("canvas");
+        canvas.width = 64;
+        canvas.height = 64;
+        return canvas;
+      })
+    });
+    const getContextSpy = jest
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockImplementation((function (this: HTMLCanvasElement) {
+        const canvas = this;
+        const gradient = { addColorStop: jest.fn() };
+        return {
+          canvas,
+          save: jest.fn(),
+          restore: jest.fn(),
+          clearRect: jest.fn(),
+          fillRect: jest.fn(),
+          drawImage: jest.fn(),
+          createLinearGradient: jest.fn(() => gradient),
+          createRadialGradient: jest.fn(() => gradient)
+        } as unknown as CanvasRenderingContext2D;
+      }) as unknown as HTMLCanvasElement["getContext"]);
+
+    try {
+      expect(tool.onDown(ctx, makePointerEvent({ point: { x: 10, y: 10 } }))).toBe(true);
+      tool.onMove!(ctx, makePointerEvent({ point: { x: 20, y: 20 } }), []);
+      tool.onUp!(ctx, makePointerEvent({ point: { x: 20, y: 20 } }));
+
+      expect(runtime.applyLayerSourceBySelectionMask).toHaveBeenCalledWith(
+        ctx.doc.activeLayerId,
+        0,
+        0,
+        ctx.selection,
+        expect.any(HTMLCanvasElement)
+      );
+    } finally {
+      getContextSpy.mockRestore();
+    }
+  });
 });
 
 describe("FillTool", () => {
@@ -915,6 +977,63 @@ describe("FillTool", () => {
     const result = tool.onDown(ctx, makePointerEvent({ point: { x: 5, y: 5 } }));
     expect(result).toBe(false);
     expect(ctx.getOrCreateLayerCanvas).not.toHaveBeenCalled();
+  });
+
+  it("routes selection-constrained fills through the runtime mask helper", () => {
+    const tool = new FillTool();
+    const runtime = {
+      applyLayerSourceBySelectionMask: jest.fn()
+    } as unknown as ToolRuntime;
+    const ctx = makeToolContext({
+      activeTool: "fill",
+      foregroundColor: "#ff0000",
+      selection: rectSelectionMask(64, 64, 0, 0, 64, 64),
+      runtime,
+      getOrCreateLayerCanvas: jest.fn(() => {
+        const canvas = window.document.createElement("canvas");
+        canvas.width = 64;
+        canvas.height = 64;
+        return canvas;
+      })
+    });
+    const getContextSpy = jest
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockImplementation((function (this: HTMLCanvasElement) {
+        const canvas = this;
+        return {
+          canvas,
+          getImageData: jest.fn(() => ({
+            data: new Uint8ClampedArray(canvas.width * canvas.height * 4),
+            width: canvas.width,
+            height: canvas.height
+          })),
+          putImageData: jest.fn(),
+          createImageData: jest.fn((width: number, height: number) => ({
+            data: new Uint8ClampedArray(width * height * 4),
+            width,
+            height
+          })),
+          drawImage: jest.fn(),
+          save: jest.fn(),
+          restore: jest.fn(),
+          clearRect: jest.fn(),
+          fillRect: jest.fn()
+        } as unknown as CanvasRenderingContext2D;
+      }) as unknown as HTMLCanvasElement["getContext"]);
+
+    try {
+      tool.onDown(ctx, makePointerEvent({ point: { x: 10, y: 10 } }));
+
+      expect(runtime.applyLayerSourceBySelectionMask).toHaveBeenCalledWith(
+        ctx.doc.activeLayerId,
+        0,
+        0,
+        ctx.selection,
+        expect.any(HTMLCanvasElement)
+      );
+    } finally {
+      getContextSpy.mockRestore();
+    }
   });
 });
 

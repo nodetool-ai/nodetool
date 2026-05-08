@@ -1331,6 +1331,25 @@ export class WebGPURuntime implements SketchRuntime {
     this.markLayerDirty(layerId);
   }
 
+  applyLayerSourceBySelectionMask(
+    layerId: string,
+    offsetX: number,
+    offsetY: number,
+    mask: Selection,
+    source: CanvasImageSource,
+    compositeOp: GlobalCompositeOperation = "source-over"
+  ): void {
+    this.cpuRuntime.applyLayerSourceBySelectionMask(
+      layerId,
+      offsetX,
+      offsetY,
+      mask,
+      source,
+      compositeOp
+    );
+    this.markLayerDirty(layerId);
+  }
+
   nudgeLayer(layerId: string, dx: number, dy: number): void {
     this.cpuRuntime.nudgeLayer(layerId, dx, dy);
     this.markLayerDirty(layerId);

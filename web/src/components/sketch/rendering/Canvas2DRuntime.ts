@@ -53,6 +53,7 @@ import {
   readbackComposite as readbackCompositeFn,
   clearLayerBySelectionMask as clearLayerBySelectionMaskFn,
   fillLayerBySelectionMask as fillLayerBySelectionMaskFn,
+  applyLayerSourceBySelectionMask as applyLayerSourceBySelectionMaskFn,
   trimLayerToBounds as trimLayerToBoundsFn,
   mergeLayerDown as mergeLayerDownFn
 } from "./canvas2d/maskAndExport";
@@ -510,6 +511,25 @@ export class Canvas2DRuntime implements SketchRuntime {
     color: string
   ): void {
     fillLayerBySelectionMaskFn(this.layerCanvases, layerId, offsetX, offsetY, mask, color);
+  }
+
+  applyLayerSourceBySelectionMask(
+    layerId: string,
+    offsetX: number,
+    offsetY: number,
+    mask: Selection,
+    source: CanvasImageSource,
+    compositeOp: GlobalCompositeOperation = "source-over"
+  ): void {
+    applyLayerSourceBySelectionMaskFn(
+      this.layerCanvases,
+      layerId,
+      offsetX,
+      offsetY,
+      mask,
+      source,
+      compositeOp
+    );
   }
 
   nudgeLayer(layerId: string, dx: number, dy: number): void {

@@ -8,14 +8,14 @@
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
-import type { Point, GradientSettings, Selection } from "../types";
+import type { Point, GradientSettings } from "../types";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
 import {
   getCanvasRasterBounds,
   ensureLayerRasterBounds,
   getDocumentViewportLayerBounds
 } from "../painting";
-import { selectionHasAnyPixels, applySelectionConstraint } from "../selection";
+import { selectionHasAnyPixels, selectionHitTest } from "../selection";
 import GradientIcon from "@mui/icons-material/Gradient";
 
 // ─── Gradient Drawing (moved from drawingUtils.ts) ───────────────────────────
@@ -51,6 +51,24 @@ export function drawGradient(
   ctx.restore();
 }
 
+function createGradientOverlayCanvas(
+  width: number,
+  height: number,
+  start: Point,
+  end: Point,
+  settings: GradientSettings
+): HTMLCanvasElement | null {
+  const overlayCanvas = document.createElement("canvas");
+  overlayCanvas.width = width;
+  overlayCanvas.height = height;
+  const overlayCtx = overlayCanvas.getContext("2d");
+  if (!overlayCtx) {
+    return null;
+  }
+  drawGradient(overlayCtx, start, end, settings);
+  return overlayCanvas;
+}
+
 export class GradientTool implements ToolHandler {
   readonly toolId = "gradient" as const;
 
@@ -62,6 +80,14 @@ export class GradientTool implements ToolHandler {
     const activeLayer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
     // Locked layers reject pixel edits.
     if (!activeLayer || activeLayer.locked) {
+      return false;
+    }
+    const selection = ctx.selection;
+    if (
+      selection &&
+      selectionHasAnyPixels(selection) &&
+      !selectionHitTest(selection, event.point.x, event.point.y)
+    ) {
       return false;
     }
 
@@ -111,11 +137,11 @@ export class GradientTool implements ToolHandler {
     // the current contentBounds) receive the gradient.
     if (hasSelection) {
       const viewportBounds = getDocumentViewportLayerBounds(activeLayer, doc);
-      ensureLayerRasterBounds(ctx, activeLayer, viewportBounds);
+      const expandedBounds = ensureLayerRasterBounds(ctx, activeLayer, viewportBounds);
       // Recreate mapper after canvas expansion — origin may have shifted.
       mapper = new CoordinateMapper({
         layerTransform: activeLayer.transform,
-        rasterBounds: viewportBounds
+        rasterBounds: expandedBounds
       });
     }
 
@@ -124,14 +150,29 @@ export class GradientTool implements ToolHandler {
     const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
     const layerCtx = layerCanvas.getContext("2d");
     if (layerCtx) {
-      const beforeData = hasSelection
-        ? layerCtx.getImageData(0, 0, layerCanvas.width, layerCanvas.height)
-        : null;
-
-      drawGradient(layerCtx, localStart, localEnd, doc.toolSettings.gradient);
-
-      if (hasSelection && beforeData && selection) {
-        applySelectionConstraint(layerCtx, beforeData, selection, mapper.offset.x, mapper.offset.y);
+      if (
+        hasSelection &&
+        selection &&
+        ctx.runtime?.applyLayerSourceBySelectionMask
+      ) {
+        const overlayCanvas = createGradientOverlayCanvas(
+          layerCanvas.width,
+          layerCanvas.height,
+          localStart,
+          localEnd,
+          doc.toolSettings.gradient
+        );
+        if (overlayCanvas) {
+          ctx.runtime.applyLayerSourceBySelectionMask(
+            activeLayer.id,
+            mapper.offset.x,
+            mapper.offset.y,
+            selection,
+            overlayCanvas
+          );
+        }
+      } else {
+        drawGradient(layerCtx, localStart, localEnd, doc.toolSettings.gradient);
       }
       const committedBounds = getCanvasRasterBounds(layerCanvas) ?? undefined;
       ctx.onStrokeEnd(activeLayer.id, null, committedBounds);

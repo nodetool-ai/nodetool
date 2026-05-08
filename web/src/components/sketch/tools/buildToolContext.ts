@@ -18,10 +18,9 @@ import type {
   LayerTransform,
   LayerContentBounds
 } from "../types";
-import type { ActiveStrokeInfo, SketchRuntime } from "../rendering";
-import type { ToolContext, StrokeEndOptions } from "./types";
+import type { ActiveStrokeInfo } from "../rendering";
+import type { ToolContext, StrokeEndOptions, ToolRuntime } from "./types";
 import type { GizmoDrawCallback } from "../sketchCanvasHooks/useOverlayRenderer";
-import type { SelectionCombineOp } from "../selection";
 
 /** All dependencies needed to build a ToolContext. */
 export interface BuildToolContextParams {
@@ -46,12 +45,7 @@ export interface BuildToolContextParams {
   layerCanvasesRef: React.MutableRefObject<Map<string, HTMLCanvasElement>>;
   mousePositionRef: React.MutableRefObject<Point>;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
-  runtime?: SketchRuntime & {
-    applySelectionOverlay?: (
-      overlay: Selection,
-      op: SelectionCombineOp
-    ) => Selection | null;
-  };
+  runtime?: ToolRuntime;
 
   // ── Layer canvas ops ──
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
