@@ -34,6 +34,10 @@ export class FileStorageAdapter implements StorageAdapter {
       symlinks: "reject",
       mkdir: true
     });
+    // Prevent unhandled rejection when no method is ever called on this
+    // adapter (e.g. tests that construct it but only inspect tool schemas).
+    // Real callers still receive the error via their own `await`.
+    this.rootPromise.catch(() => {});
   }
 
   private keyFromUri(uri: string): string | null {

@@ -57,7 +57,7 @@ describe("isGettingStarted", () => {
 
   it("handles workflow with null/undefined tags", () => {
     const wf = makeWorkflow([]);
-    (wf as Record<string, unknown>).tags = undefined;
+    (wf as unknown as Record<string, unknown>).tags = undefined;
     expect(isGettingStarted(wf)).toBe(false);
   });
 });
