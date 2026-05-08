@@ -102,28 +102,48 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
         defaults: state.defaults
       }),
       migrate: (persistedState, _version) => {
-        // No prior versions; this scaffold lets future schema changes
-        // produce a clean shape rather than silently inheriting raw data.
+        // Corrupt localStorage (string, null, etc.) must NOT be passed
+        // through unchanged: it would rehydrate the store into an
+        // invalid shape that breaks selectors expecting the partialized
+        // keys. Always return an object with every required field.
+        const fallback = {
+          favorites: [] as FavoriteKey[],
+          recents: [] as RecentEntry[],
+          onlyAvailable: true,
+          enabledProviders: {} as Record<string, boolean>,
+          defaults: {} as Record<
+            string,
+            { provider: string; id: string; name: string }
+          >
+        };
         if (!persistedState || typeof persistedState !== "object") {
-          return persistedState;
+          return fallback;
         }
         const state = persistedState as Record<string, unknown>;
-        if (!Array.isArray(state.favorites)) {
-          state.favorites = [];
-        }
-        if (!Array.isArray(state.recents)) {
-          state.recents = [];
-        }
-        if (
-          state.enabledProviders === null ||
-          typeof state.enabledProviders !== "object"
-        ) {
-          state.enabledProviders = {};
-        }
-        if (state.defaults === null || typeof state.defaults !== "object") {
-          state.defaults = {};
-        }
-        return state;
+        return {
+          favorites: Array.isArray(state.favorites)
+            ? (state.favorites as FavoriteKey[])
+            : fallback.favorites,
+          recents: Array.isArray(state.recents)
+            ? (state.recents as RecentEntry[])
+            : fallback.recents,
+          onlyAvailable:
+            typeof state.onlyAvailable === "boolean"
+              ? state.onlyAvailable
+              : fallback.onlyAvailable,
+          enabledProviders:
+            state.enabledProviders &&
+            typeof state.enabledProviders === "object"
+              ? (state.enabledProviders as Record<string, boolean>)
+              : fallback.enabledProviders,
+          defaults:
+            state.defaults && typeof state.defaults === "object"
+              ? (state.defaults as Record<
+                  string,
+                  { provider: string; id: string; name: string }
+                >)
+              : fallback.defaults
+        };
       },
       // Rehydrate Set
       onRehydrateStorage: () => (state) => {

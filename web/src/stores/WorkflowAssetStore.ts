@@ -53,7 +53,12 @@ interface WorkflowAssetStore extends WorkflowAssetState {
 // Per-workflow request token: only the most recent in-flight request
 // for a given workflow may write back. Earlier requests bail silently so
 // a slow response can't clobber newer data.
-const loadTokens = new Map<string, number>();
+//
+// Tokens are unique object references (not counters) so the map can be
+// safely pruned on `clearWorkflowAssets` without risking that a freshly
+// minted counter value collides with one captured by an earlier
+// in-flight call against the same workflowId.
+const loadTokens = new Map<string, object>();
 
 export const useWorkflowAssetStore = create<WorkflowAssetStore>(
   (set, get) => ({
@@ -65,7 +70,7 @@ export const useWorkflowAssetStore = create<WorkflowAssetStore>(
      * Load assets for a specific workflow from the API.
      */
     loadWorkflowAssets: async (workflowId: string): Promise<Asset[]> => {
-      const token = (loadTokens.get(workflowId) ?? 0) + 1;
+      const token = {};
       loadTokens.set(workflowId, token);
 
       const isCurrent = () => loadTokens.get(workflowId) === token;
@@ -140,8 +145,10 @@ export const useWorkflowAssetStore = create<WorkflowAssetStore>(
      * Clear assets for a specific workflow.
      */
     clearWorkflowAssets: (workflowId: string) => {
-      // Bump the token so any in-flight load for this workflow won't write back.
-      loadTokens.set(workflowId, (loadTokens.get(workflowId) ?? 0) + 1);
+      // Drop the in-flight token entirely. Bumping a counter only would
+      // leave loadTokens growing unbounded across long sessions, which
+      // would just relocate the lifecycle leak we're trying to fix.
+      loadTokens.delete(workflowId);
       set((state) => {
         const assetsByWorkflow = { ...state.assetsByWorkflow };
         delete assetsByWorkflow[workflowId];

@@ -1117,22 +1117,44 @@ const useGlobalChatStore = create<GlobalChatState>()(
         selectedCollections: state.selectedCollections
       }) as GlobalChatState,
       migrate: (persistedState, _version) => {
-        // Strip incompatible payloads on schema bump rather than letting
-        // them silently corrupt rehydrated state.
+        // Corrupt localStorage (string, null, etc.) must yield a usable
+        // default rather than passing the raw value through; selectors
+        // that read `threads`/`selectedTools`/`selectedCollections`
+        // would otherwise see `undefined` and crash.
+        const fallback = {
+          threads: {} as Record<string, Thread>,
+          lastUsedThreadId: null as string | null,
+          selectedModel: null as LanguageModel | null,
+          selectedTools: [] as string[],
+          selectedCollections: [] as string[]
+        };
         if (!persistedState || typeof persistedState !== "object") {
-          return persistedState;
+          return fallback as unknown as GlobalChatState;
         }
         const state = persistedState as Record<string, unknown>;
-        if (state.threads === null || typeof state.threads !== "object") {
-          state.threads = {};
-        }
-        if (!Array.isArray(state.selectedTools)) {
-          state.selectedTools = [];
-        }
-        if (!Array.isArray(state.selectedCollections)) {
-          state.selectedCollections = [];
-        }
-        return state;
+        return {
+          threads:
+            state.threads &&
+            typeof state.threads === "object" &&
+            !Array.isArray(state.threads)
+              ? (state.threads as Record<string, Thread>)
+              : fallback.threads,
+          lastUsedThreadId:
+            typeof state.lastUsedThreadId === "string"
+              ? state.lastUsedThreadId
+              : fallback.lastUsedThreadId,
+          selectedModel:
+            state.selectedModel &&
+            typeof state.selectedModel === "object"
+              ? (state.selectedModel as LanguageModel)
+              : fallback.selectedModel,
+          selectedTools: Array.isArray(state.selectedTools)
+            ? (state.selectedTools as string[])
+            : fallback.selectedTools,
+          selectedCollections: Array.isArray(state.selectedCollections)
+            ? (state.selectedCollections as string[])
+            : fallback.selectedCollections
+        } as unknown as GlobalChatState;
       },
       onRehydrateStorage: () => (state) => {
         // State has been rehydrated from storage
