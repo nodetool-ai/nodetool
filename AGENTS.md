@@ -19,7 +19,7 @@ Guidelines for working with code in this repository. These are linter-like rules
 
 ## Prerequisites
 
-- **Node.js 24.x** (required — see `.nvmrc`). Electron 39 embeds Node 24; native modules must match the ABI.
+- **Node.js 22.22.1** (required — see `.nvmrc`). Matches Electron 39's embedded Node (22.22.1). Native module ABI rebuild is handled by `@electron/rebuild` in `electron/`'s postinstall.
 - Use `nvm use` to activate the correct version.
 - If you see `NODE_MODULE_VERSION` errors, run `npm rebuild`.
 

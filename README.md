@@ -135,7 +135,7 @@ ______________________________________________________________________
 Use NodeTool headless — run the server, execute workflows, or chat with agents from the terminal:
 
 ```bash
-# Install globally (Node.js 24+ required)
+# Install globally (Node.js 22.x required)
 npm install -g @nodetool-ai/cli
 
 # Start the API server (port 7777)
@@ -184,14 +184,14 @@ ______________________________________________________________________
 
 ## Development Setup
 
-**Prerequisites:** Node.js 24.x, npm. Python 3.11 with conda for Python nodes (optional).
+**Prerequisites:** Node.js 22.22.1, npm. Python 3.11 with conda for Python nodes (optional).
 
-> **Node 24 is required.** Electron 39 embeds Node 24 — native modules must match. Use `nvm use` to activate the correct version (reads `.nvmrc`).
+> **Node 22.22.1 is required.** Matches Electron 39's embedded Node so dev and the packaged app run on the same Node version. Use `nvm use` to activate (reads `.nvmrc`).
 
 ### Quick Start
 
 ```bash
-nvm use                    # Activate Node 24 (reads .nvmrc)
+nvm use                    # Activate Node 22.22.1 (reads .nvmrc)
 npm install
 npm run build:packages     # Build all TS packages in dependency order
 
@@ -214,14 +214,13 @@ The Electron app auto-detects your active Conda environment. Settings are stored
 - **Linux/macOS**: `~/.config/nodetool/settings.yaml`
 - **Windows**: `%APPDATA%\nodetool\settings.yaml`
 
-> **Native module ABI caveat.** Electron 39 bundles its own Node.js (Node 24, ABI 140). Native modules such as `better-sqlite3` must be compiled against Electron's ABI, *not* the system Node ABI. If you see a `NODE_MODULE_VERSION` mismatch error at Electron startup, use `npm run electron:dev` (which automatically rebuilds native modules via `electron-builder install-app-deps`) or run the rebuild step manually:
+> **Native module ABI caveat.** Electron 39 bundles its own Node.js (22.22.1) but uses a distinct `NODE_MODULE_VERSION` (140), so native modules like `better-sqlite3` must be compiled against Electron's headers — *not* system Node, even when the major matches. This is handled automatically by `@electron/rebuild`, wired into `electron/`'s `postinstall`. If you ever see a `NODE_MODULE_VERSION` mismatch, force a rebuild:
 >
 > ```bash
-> # Rebuild native modules for Electron's embedded Node
-> cd electron && npx electron-builder install-app-deps
+> npm --prefix electron run postinstall
 > ```
 >
-> **Do not** use plain `npm rebuild` here — that compiles against your system Node ABI, which will not match Electron's embedded runtime and will produce the same mismatch error.
+> **Do not** use plain `npm rebuild` — it compiles against system Node's ABI, which will not match Electron's runtime.
 
 ### Mobile App
 

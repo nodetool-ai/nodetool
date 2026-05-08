@@ -3,7 +3,7 @@
 #
 # This script is intentionally idempotent and suitable for OpenAI Codex or a
 # fresh Linux dev container. It installs OS build dependencies, ensures Node.js
-# 24.x, installs all npm dependencies, optionally prepares local Python node
+# 22.x, installs all npm dependencies, optionally prepares local Python node
 # packages, and compiles the repository.
 #
 # Usage:
@@ -15,14 +15,14 @@
 #   SKIP_BUILD=1        Install dependencies only; do not compile
 #   SKIP_PLAYWRIGHT=1   Do not install Playwright browser/deps
 #   PYTHON_ENV=.venv    Python virtualenv path (default: .venv)
-#   NODE_VERSION=24     Node major/version to install/use (default: 24)
+#   NODE_VERSION=22     Node major/version to install/use (default: 22)
 #   CI=1                Non-interactive npm install behavior
 
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_ENV="${PYTHON_ENV:-${ROOT_DIR}/.venv}"
-NODE_VERSION="${NODE_VERSION:-$(tr -d '[:space:]' < "${ROOT_DIR}/.nvmrc" 2>/dev/null || printf '24')}"
+NODE_VERSION="${NODE_VERSION:-$(tr -d '[:space:]' < "${ROOT_DIR}/.nvmrc" 2>/dev/null || printf '22')}"
 
 if [[ -t 1 ]]; then
   BOLD='\033[1m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; RED='\033[0;31m'; NC='\033[0m'
