@@ -3,7 +3,7 @@ layout: page
 title: "NodeTool Workflow Cookbook"
 ---
 
-Guide for building AI workflows with NodeTool.
+Workflow patterns for the canvas.
 
 ## Cookbook Sections
 

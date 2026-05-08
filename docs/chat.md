@@ -1,19 +1,13 @@
 ---
 layout: page
-title: "Chat Module"
+title: "Chat"
 ---
 
+Interactive CLI for chatting with models. Works with OpenAI, Anthropic, Gemini, Ollama, and others. The assistant can call tools during a session.
 
-
-The chat module provides an interactive command line interface and utilities for conversational AI. It supports multiple
-providers like OpenAI, Anthropic, Gemini and Ollama, and integrates various tools that the assistant can call during a
-chat session.
-
-Main features:
-
-- Interactive CLI with history and auto-completion
+- Interactive REPL with history and completion
 - Sandboxed workspace for file operations
-- Support for provider specific models
-- Optional agent mode for tool-augmented conversations
+- Provider-specific models
+- Optional agent mode for tool use
 
-For details see the [Chat CLI guide](chat-cli.md) and the [Chat API reference](chat-api.md).
+See the [Chat CLI](chat-cli.md) and [Chat API](chat-api.md).

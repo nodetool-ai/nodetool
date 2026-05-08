@@ -1,51 +1,40 @@
 ---
 layout: page
 title: "Models & Providers"
-description: "AI models and local vs cloud options."
+description: "Local and cloud models in NodeTool."
 ---
 
-NodeTool gives you the flexibility to run AI models locally on your hardware or through cloud APIs — or both at the same time. This guide helps you choose the right approach and get set up.
+Run models locally, through cloud APIs with your own keys, or both in the same graph.
 
-## Local vs. Cloud
+## Local vs. cloud
 
-NodeTool runs AI models locally or through cloud APIs. Here's how they compare:
+### Local
 
-### Local Models
+- Data stays on your disk
+- Free after download
+- Works offline
+- 4–20 GB per model; needs a capable GPU or Apple Silicon
 
-**Pros:**
-- 🔒 **Private** – Data stays local
-- 💰 **Free** – No usage costs
-- 📶 **Offline** – Works without internet
+### Cloud (BYOK)
 
-**Cons:**
-- 💾 **Requires space** – 4-20 GB per model
-- ⚡ **Needs hardware** – Faster with GPU
-- ⏳ **Initial download** – One-time setup
+- No download
+- Runs on the provider's hardware
+- Latest model releases
+- Billed by the provider, at the provider's price — no NodeTool markup
+- Requires internet; data goes to the provider
 
-### Cloud Models
+### Mixed
 
-**Pros:**
-- 🚀 **Fast** – No downloads
-- 💻 **Any hardware** – Works on older machines
-- 🆕 **Latest models** – Access newest capabilities
-
-**Cons:**
-- 💵 **Usage costs** – Pay per task
-- 🌐 **Requires internet**
-- 📤 **Data sent externally**
-
-### Mixed Approach (Recommended)
-
-Combine local and cloud:
-- **Speech recognition** – local for privacy
-- **Image generation** – cloud for quality
-- **Document processing** – local for confidential files
+Pick the best provider per node:
+- ASR (Whisper) — local for sensitive audio
+- Image generation — Flux locally for control, FAL/KIE cloud for speed
+- Document processing — local for confidential files
 
 ---
 
-## Cloud Models for Creative Workflows
+## Cloud models
 
-NodeTool provides access to high-quality generative AI models through cloud providers:
+Available through provider nodes:
 
 ### Top 3D Generation Models
 

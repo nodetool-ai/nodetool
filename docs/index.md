@@ -1,92 +1,91 @@
 ---
 layout: home
-description: "NodeTool documentation — build AI workflows visually. Connect nodes to generate images, process documents, build agents, and automate tasks. Run locally or deploy to the cloud."
+description: "NodeTool — the open creative AI workspace. Every major model, your own keys, one node-based canvas. Runs on your machine or in the browser."
 ---
 
 <section class="home-hero">
-  <p class="eyebrow">Open-Source Visual AI Workflow Builder</p>
-  <h1>Build AI Workflows Visually</h1>
+  <p class="eyebrow">The open creative AI workspace</p>
+  <h1>Every model. Your keys. Your canvas.</h1>
   <p class="lead">
-   Connect nodes to generate content, analyze data, and automate tasks. Run models locally or via cloud APIs.
+   One node-based canvas for image, video, audio, and text models. Bring your own keys to FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, ElevenLabs. Or run Flux, Qwen, and Llama locally. Open source, AGPL-3.0.
   </p>
-  <img src="{{ '/assets/home.png' | relative_url }}" alt="NodeTool visual workflow editor" class="home-screenshot">
+  <img src="{{ '/assets/home.png' | relative_url }}" alt="NodeTool canvas" class="home-screenshot">
   <div class="cta-row">
-    <a href="{{ '/getting-started' | relative_url }}" class="cta-button primary">Get Started</a>
-    <a href="{{ '/workflows/' | relative_url }}" class="cta-button">Example Gallery</a>
+    <a href="{{ '/getting-started' | relative_url }}" class="cta-button primary">Get started</a>
+    <a href="{{ '/workflows/' | relative_url }}" class="cta-button">Examples</a>
     <a href="{{ '/cookbook' | relative_url }}" class="cta-button ghost">Cookbook</a>
   </div>
 </section>
 
-## Studio or Cloud?
+## Studio or Cloud
 
-NodeTool ships in two editions, both 100% open source under AGPL-3.0 and built from the same codebase. Pick the one that fits how you want to work — workflows are portable between them.
+Both editions are open source under AGPL-3.0 and built from the same code. Workflows are portable between them.
 
 <div class="pattern-grid">
   <article class="pattern-card">
-    <h5>NodeTool Studio — desktop, local-first</h5>
+    <h5>NodeTool Studio — desktop</h5>
     <p>
-      The desktop app for macOS, Windows, and Linux. Runs Ollama, MLX, and GGUF models on your hardware. Works offline. Your data, prompts, and outputs stay on your disk. BYOK for cloud providers when you want them.
+      Runs on macOS, Windows, and Linux. Local inference via Ollama, MLX, and GGUF on your hardware. Works offline. Files, prompts, and outputs stay on disk. Bring your keys for cloud providers when you want them.
     </p>
-    <p><strong>Best for:</strong> privacy, offline work, free local inference, GPU owners.</p>
+    <p><strong>For:</strong> local inference, offline work, GPU owners, privacy.</p>
     <a href="https://nodetool.ai/studio">Download Studio →</a>
   </article>
   <article class="pattern-card">
-    <h5>NodeTool Cloud — hosted, browser-based</h5>
+    <h5>NodeTool Cloud — browser</h5>
     <p>
-      The hosted version. Sign in from any browser — no install, no GPU, no driver setup. Always on the latest release. <strong>Doesn't run local models</strong>, but supports BYOK for every cloud provider (OpenAI, Anthropic, Gemini, Replicate, FAL, ElevenLabs, HuggingFace, …).
+      Hosted, no install. Same canvas, same nodes. Bring your keys for every cloud provider — OpenAI, Anthropic, Gemini, Replicate, FAL, ElevenLabs, HuggingFace. Does not run local models.
     </p>
-    <p><strong>Best for:</strong> zero setup, working across devices, teams, no-GPU environments.</p>
+    <p><strong>For:</strong> no setup, working across devices, no GPU.</p>
     <a href="https://nodetool.ai/cloud">Open Cloud →</a>
   </article>
 </div>
 
-> **Always open source.** Cloud is just our managed hosting of the code in this repo. There is no separate proprietary version — you can self-host the same Docker images, CLI, and websocket server any time.
+> **No credit markup.** Cloud is managed hosting of the code in this repo. You can self-host the same Docker images and CLI any time. You pay providers directly.
 
 ## What you can build
 
 <div class="pattern-grid">
   <article class="pattern-card">
-    <h5>AI Agents & Automation</h5>
-    <p>Build multi-step agents that plan and execute tasks.</p>
+    <h5>Agents</h5>
+    <p>Multi-step agents that plan and execute.</p>
     <a href="{{ '/workflows/realtime-agent' | relative_url }}">Realtime Agent →</a>
   </article>
   <article class="pattern-card">
-    <h5>Document Intelligence & RAG</h5>
-    <p>Index documents, search with AI, and answer questions from your sources.</p>
+    <h5>RAG</h5>
+    <p>Index documents, search, and answer from your sources.</p>
     <a href="{{ '/workflows/chat-with-docs' | relative_url }}">Chat with Docs →</a>
   </article>
   <article class="pattern-card">
-    <h5>Image & Video Creation</h5>
-    <p>Generate and transform media with Flux, Qwen, and other models.</p>
+    <h5>Image and video</h5>
+    <p>Flux, Qwen, Wan, Seedance, Sora, Veo, Kling.</p>
     <a href="{{ '/workflows/movie-posters' | relative_url }}">Movie Posters →</a>
   </article>
   <article class="pattern-card">
-    <h5>Data Processing</h5>
-    <p>Transform data, extract information, and automate reports.</p>
-    <a href="{{ '/cookbook' | relative_url }}">Workflow Patterns →</a>
+    <h5>Pipelines</h5>
+    <p>Wire models, transforms, and tools into one graph.</p>
+    <a href="{{ '/cookbook' | relative_url }}">Patterns →</a>
   </article>
 </div>
 
 ## Get started
 
 <ol class="step-sequence">
-  <li><a href="{{ '/installation' | relative_url }}">Download NodeTool</a> — macOS, Windows, or Linux.</li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-2--run-your-first-workflow">Try a template workflow</a> — open an example, press Run, see results stream in real-time.</li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-3--customize-and-iterate">Customize and iterate</a> — change inputs, connect nodes differently, make it yours.</li>
+  <li><a href="{{ '/installation' | relative_url }}">Download NodeTool</a> for macOS, Windows, or Linux.</li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-2--run-your-first-workflow">Open a template</a>, press Run, watch results stream.</li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-3--customize-and-iterate">Edit and iterate.</a></li>
 </ol>
 
-## Explore by role
+## Explore
 
-- **New to NodeTool:** [Getting Started]({{ '/getting-started' | relative_url }}) · [Key Concepts]({{ '/key-concepts' | relative_url }}) · [UI Overview]({{ '/user-interface' | relative_url }})
-- **Building agents or pipelines:** [Global Chat & Agents]({{ '/global-chat-agents' | relative_url }}) · [Cookbook]({{ '/cookbook' | relative_url }}) · [Example Gallery]({{ '/workflows/' | relative_url }})
-- **Deploying or self-hosting:** [Deployment Guide]({{ '/deployment' | relative_url }}) · [Configuration]({{ '/configuration' | relative_url }}) · [API Reference]({{ '/api-reference' | relative_url }})
-- **Extending NodeTool:** [Developer Guide]({{ '/developer/' | relative_url }}) · [Custom Nodes]({{ '/developer/node-reference' | relative_url }}) · [CLI Reference]({{ '/cli' | relative_url }})
+- **New here:** [Getting Started]({{ '/getting-started' | relative_url }}) · [Key Concepts]({{ '/key-concepts' | relative_url }}) · [UI]({{ '/user-interface' | relative_url }})
+- **Building:** [Global Chat & Agents]({{ '/global-chat-agents' | relative_url }}) · [Cookbook]({{ '/cookbook' | relative_url }}) · [Examples]({{ '/workflows/' | relative_url }})
+- **Self-hosting:** [Deployment]({{ '/deployment' | relative_url }}) · [Configuration]({{ '/configuration' | relative_url }}) · [API]({{ '/api-reference' | relative_url }})
+- **Extending:** [Developer Guide]({{ '/developer/' | relative_url }}) · [Custom Nodes]({{ '/developer/node-reference' | relative_url }}) · [CLI]({{ '/cli' | relative_url }})
 
 <section class="home-section">
-  <h2>Open source & community</h2>
+  <h2>Open source</h2>
   <p>
-    NodeTool is open-source under AGPL-3.0. Join the <a href="https://discord.gg/WmQTWZRcYE" target="_blank" rel="noopener">Discord</a>,
-    explore the <a href="https://github.com/nodetool-ai/nodetool" target="_blank" rel="noopener">GitHub repo</a>,
-    and share workflows with other builders.
+    AGPL-3.0. <a href="https://discord.gg/WmQTWZRcYE" target="_blank" rel="noopener">Discord</a> ·
+    <a href="https://github.com/nodetool-ai/nodetool" target="_blank" rel="noopener">GitHub</a>.
   </p>
 </section>
