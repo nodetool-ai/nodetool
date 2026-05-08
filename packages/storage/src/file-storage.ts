@@ -20,6 +20,7 @@ export class FileStorage implements AbstractStorage {
       symlinks: "reject",
       mkdir: true
     });
+    this.rootPromise.catch(() => {});
   }
 
   private async getRoot(): Promise<Root> {
