@@ -15,11 +15,18 @@
 import { create } from "zustand";
 import { shallow } from "zustand/shallow";
 
+export type TimelineTool = "select" | "cut";
+
 export interface TimelineUIState {
   /** Set of selected clip IDs. */
   selectedClipIds: Set<string>;
   /** ID of the clip the pointer is currently hovering, or null. */
   hoveredClipId: string | null;
+  /**
+   * Active editor tool. "select" enables move/trim/select; "cut" turns the
+   * pointer into a razor that splits a clip at the click position.
+   */
+  activeTool: TimelineTool;
   /**
    * Milliseconds per pixel — the primary zoom metric.
    * Default 10 ms/px ≈ 100 px/s. Smaller = zoomed in.
@@ -58,6 +65,10 @@ export interface TimelineUIState {
 
   setFullscreen: (full: boolean) => void;
   toggleFullscreen: () => void;
+
+  // ── Tool ─────────────────────────────────────────────────────────────────
+
+  setActiveTool: (tool: TimelineTool) => void;
 }
 
 const MIN_MS_PER_PX = 0.5;
@@ -66,6 +77,7 @@ const MAX_MS_PER_PX = 500;
 export const useTimelineUIStore = create<TimelineUIState>((set, get) => ({
   selectedClipIds: new Set(),
   hoveredClipId: null,
+  activeTool: "select",
   msPerPx: 10,
   scrollLeftPx: 0,
   fullscreen: false,
@@ -106,7 +118,9 @@ export const useTimelineUIStore = create<TimelineUIState>((set, get) => ({
 
   setFullscreen: (full) => set({ fullscreen: full }),
 
-  toggleFullscreen: () => set((state) => ({ fullscreen: !state.fullscreen }))
+  toggleFullscreen: () => set((state) => ({ fullscreen: !state.fullscreen })),
+
+  setActiveTool: (tool) => set({ activeTool: tool })
 }));
 
 // ── Convenience selectors ──────────────────────────────────────────────────
