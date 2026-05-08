@@ -245,6 +245,8 @@ export function useOverlayRenderer({
   const paintSelectionCanvasRef = useRef(paintSelectionCanvas);
   paintSelectionCanvasRef.current = paintSelectionCanvas;
 
+  // Retained so pointer-tool wiring does not need a separate overlay/runtime split.
+  // Committed selection movement is now rendered by the runtime, not the selection canvas.
   const setSelectionOriginOverride: UseOverlayRendererResult["setSelectionOriginOverride"] =
     useCallback(() => {}, []);
 
