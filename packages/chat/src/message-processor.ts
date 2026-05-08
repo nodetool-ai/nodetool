@@ -8,8 +8,15 @@ import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { Message, ToolCall, ProviderStreamItem } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
-import type { LongTermMemory, Tool } from "@nodetool-ai/agents";
-import { formatMemoryForPrompt } from "@nodetool-ai/agents";
+import type { Tool } from "@nodetool-ai/agents";
+// Pull `formatMemoryForPrompt` from the narrow `./memory` subpath so chat
+// consumers don't end up loading the full agents bundle (planners, graph
+// builder, sandbox, every tool class) just to render a memory block.
+// `LongTermMemory` is a type-only import and has no runtime cost.
+import {
+  formatMemoryForPrompt,
+  type LongTermMemory
+} from "@nodetool-ai/agents/memory";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -273,8 +280,15 @@ export async function processChat(opts: {
     }
   }
 
-  // Mine the completed turn for new long-term memories. Snapshot first so a
-  // late caller mutating `messages` doesn't race with the extraction call.
+  // Mine the completed turn for new long-term memories.
+  //
+  // The shallow copy here only protects against the array itself being
+  // mutated (push / splice / reassignment) after we return — it does NOT
+  // deep-clone the message objects, so a caller that later mutates an
+  // existing message's `content` in place could in principle still race
+  // with extraction. In practice nothing in this repo mutates persisted
+  // message content post-hoc, so a deep clone would be wasted allocation
+  // on every turn; we accept the trade-off.
   if (longTermMemory && longTermMemory.isReady()) {
     const snapshot = messages.slice();
     void longTermMemory

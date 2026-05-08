@@ -194,6 +194,13 @@ class LlmAgentSession implements AgentQuerySession {
   private readonly systemPrompt: string;
   private readonly userId: string;
   private threadId: string;
+  /**
+   * Long-term memory bound to this session. Resolved lazily on the first
+   * send() so secret lookups happen at most once per session — not every
+   * turn. `undefined` means "not yet resolved"; `null` means "resolved and
+   * not configured" (e.g. no embedding provider).
+   */
+  private longTermMemory: LongTermMemory | null | undefined = undefined;
 
   constructor(opts: LlmAgentSessionOptions) {
     if (!opts.userId) {
@@ -341,24 +348,27 @@ class LlmAgentSession implements AgentQuerySession {
         userId: this.userId,
       });
 
-      // Best-effort long-term memory. Returns null when no embedding
-      // provider is configured for this user, in which case processChat is
-      // a no-op for the LTM hook.
-      let longTermMemory: LongTermMemory | null = null;
-      try {
-        longTermMemory = await createDefaultLongTermMemory({
-          userId: this.userId,
-          namespace: "chat",
-          extractionProvider: provider,
-          extractionModel: this.model
-        });
-      } catch (err) {
-        log.warn(
-          `Long-term memory init failed (session ${sessionId}): ${
-            err instanceof Error ? err.message : String(err)
-          }`
-        );
+      // Best-effort long-term memory. Resolved once per session and cached
+      // on the instance so secret lookups don't repeat on every send(). A
+      // `null` cache value means "checked, not configured" — also reused.
+      if (this.longTermMemory === undefined) {
+        try {
+          this.longTermMemory = await createDefaultLongTermMemory({
+            userId: this.userId,
+            namespace: "chat",
+            extractionProvider: provider,
+            extractionModel: this.model
+          });
+        } catch (err) {
+          this.longTermMemory = null;
+          log.warn(
+            `Long-term memory init failed (session ${sessionId}): ${
+              err instanceof Error ? err.message : String(err)
+            }`
+          );
+        }
       }
+      const longTermMemory = this.longTermMemory;
 
       let assistantText = "";
       // The renderer dedupes assistant messages by `uuid` and replaces in
