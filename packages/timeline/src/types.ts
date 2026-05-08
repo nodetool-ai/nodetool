@@ -93,6 +93,60 @@ export interface TimelineClip {
   fadeInMs?: number;
   /** Duration of the fade-out effect in milliseconds. */
   fadeOutMs?: number;
+  /** 2D placement on the preview canvas. Default: identity (centered, contain-fit). */
+  transform?: ClipTransform;
+  /** Rounded-corner radius in source pixels. 0 = sharp corners. */
+  borderRadius?: number;
+  /** GPU effects applied to this clip in order. */
+  effects?: ClipEffect[];
+}
+
+/**
+ * 2D transform applied per clip in the GPU compositor.
+ * - `position` is in canvas pixels relative to the canvas center.
+ * - `scale` multiplies the contain-fit base scale (1 = fit, 2 = 2x).
+ * - `rotation` is in radians.
+ * - `anchor` is the rotation/scale pivot in normalized [0,1] coords (0.5 = center).
+ */
+export interface ClipTransform {
+  position: { x: number; y: number };
+  scale: { x: number; y: number };
+  rotation: number;
+  anchor: { x: number; y: number };
+}
+
+export type ClipEffect = ClipColorEffect | ClipBlurEffect;
+
+export interface ClipColorEffect {
+  id: string;
+  type: "color";
+  enabled: boolean;
+  /** -1..1, default 0 */
+  brightness?: number;
+  /** 0..4, default 1 */
+  contrast?: number;
+  /** 0..4, default 1 */
+  saturation?: number;
+  /** degrees -180..180, default 0 */
+  hue?: number;
+  /** -1..1 (cool→warm), default 0 */
+  temperature?: number;
+  /** -1..1 (green→magenta), default 0 */
+  tint?: number;
+  /** -1..1, default 0 */
+  shadows?: number;
+  /** -1..1, default 0 */
+  highlights?: number;
+}
+
+export interface ClipBlurEffect {
+  id: string;
+  type: "blur";
+  enabled: boolean;
+  /** Blur radius in source pixels (0..20 typical). */
+  radius: number;
+  /** Optional Gaussian sigma. Defaults to radius / 3. */
+  sigma?: number;
 }
 
 export interface ClipVersion {
