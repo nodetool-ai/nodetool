@@ -26,7 +26,7 @@ export default function AgentBuildRunDeploy() {
                         Plan. Act. Self-correct.
                     </h2>
                     <p className="text-slate-400 text-lg">
-                        Design autonomous systems that plan, act, and self-correct. Then deploy them as reliable workers.
+                        Design agents that plan a task, call the right tools, and self-correct as they go — then re-run them as a node in any workflow.
                     </p>
                 </div>
 
@@ -43,7 +43,7 @@ export default function AgentBuildRunDeploy() {
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-3 relative z-10">
                     <Card
                         title="Design"
-                        subtitle="Define objectives, choose execution mode (loop, plan, or multi-agent), and assign tools and skills visually."
+                        subtitle="Set the objective, pick a mode (loop, plan, or multi-agent), and wire in the tools and skills the agent should reach for."
                         step={1}
                         accentColor="blue"
                     >
@@ -52,7 +52,7 @@ export default function AgentBuildRunDeploy() {
 
                     <Card
                         title="Observe"
-                        subtitle="Stream reasoning traces, tool calls, and task progress in real-time. OpenTelemetry tracing built in."
+                        subtitle="Stream reasoning, tool calls, and task progress live. OpenTelemetry tracing built in so you can see exactly what the agent did."
                         step={2}
                         accentColor="purple"
                     >
@@ -60,8 +60,8 @@ export default function AgentBuildRunDeploy() {
                     </Card>
 
                     <Card
-                        title="Scale"
-                        subtitle="Run multi-agent teams with coordinator, autonomous, or hybrid strategies. Parallel DAG execution."
+                        title="Re-run"
+                        subtitle="Run a team of specialized agents in parallel via a shared task board, then re-run the whole thing as a node next time."
                         step={3}
                         accentColor="emerald"
                     >

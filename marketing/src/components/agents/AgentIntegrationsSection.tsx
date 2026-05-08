@@ -118,8 +118,8 @@ export default function AgentIntegrationsSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            NodeTool agents can connect to any service, API, or data source.
-            Built-in integrations make it easy to get started.
+            Agents can call any provider, browse the web, run code, query a vector
+            store, or hand off to another agent. Wire up what you need on the canvas.
           </motion.p>
         </div>
 
@@ -190,11 +190,11 @@ export default function AgentIntegrationsSection({
           className="mt-16 rounded-2xl border border-white/10 bg-gradient-to-r from-teal-900/20 via-slate-900/50 to-blue-900/20 p-8 md:p-12 text-center"
         >
           <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
-            Need a Custom Integration?
+            Need a tool that isn&apos;t here yet?
           </h3>
           <p className="text-slate-400 mb-6 max-w-2xl mx-auto">
-            NodeTool is fully extensible. Create custom nodes to connect to any
-            service, or use the TypeScript SDK to build integrations programmatically.
+            NodeTool is open source and extensible. Add your own node, plug in a proprietary
+            model, or drive the canvas from the TypeScript SDK — same code path as the built-ins.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
@@ -202,14 +202,14 @@ export default function AgentIntegrationsSection({
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white transition-all"
             >
               <Braces className="w-5 h-5" />
-              View Integration Docs
+              Read the docs
             </a>
             <a
               href="https://github.com/nodetool-ai/nodetool"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-teal-600 text-white hover:bg-teal-500 transition-all"
             >
               <Terminal className="w-5 h-5" />
-              Build Custom Nodes
+              Build a custom node
             </a>
           </div>
         </motion.div>

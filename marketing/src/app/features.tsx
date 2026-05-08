@@ -19,11 +19,11 @@ export type Feature = {
 
 export const features = [
   {
-    name: "🔗 Snap Nodes Together",
+    name: "🔗 Snap nodes together",
     description: (
       <>
-        Drag any model into your canvas—LLMs, diffusion, agents, or custom code.
-        Connect with one click and watch your AI workflow come alive.
+        Drag any model into your canvas — image, video, audio, text, agents,
+        or custom code. Connect with one click and run.
       </>
     ),
     icon: CodeBracketIcon,
@@ -33,12 +33,12 @@ export const features = [
     height: 400,
   },
   {
-    name: "☁️ Access World-Class Models",
+    name: "☁️ Every model, your keys",
     description: (
       <>
-        One API for every top model. Generate video with Seedance 2.0, Kling 3.0, Luma & Runway,
-        music with Suno, and images with Flux & Ideogram via Kie.ai. Plus
-        support for local execution and major providers like OpenAI & Anthropic.
+        One canvas, every major provider. Video with Seedance, Kling, Veo, and
+        Runway; music with Suno; images with Flux and Ideogram via FAL or KIE;
+        plus OpenAI, Anthropic, Gemini — and local models via MLX, Ollama, and GGUF.
       </>
     ),
     icon: FolderIcon,
@@ -51,10 +51,9 @@ export const features = [
     name: "🚀 Deploy to RunPod",
     description: (
       <>
-        Ship AI workflows to RunPod with one command. Scale from local
-        development to production with GPU acceleration, auto-scaling, and
-        enterprise features. Support for CPU and GPU compute, multiple data
-        centers, and custom Docker images.
+        Ship workflows to RunPod with one command. GPU acceleration,
+        auto-scaling, multi-region, and custom Docker images — for when you need
+        a workflow to run on something bigger than your laptop.
       </>
     ),
     icon: CloudArrowUpIcon,
@@ -64,9 +63,9 @@ export const features = [
     height: 400,
   },
   {
-    name: "💬 Chat Interface",
+    name: "💬 Chat interface",
     description:
-      "Access and trigger AI workflows through a unified chat interface.",
+      "Trigger and re-run any workflow through a chat interface — same nodes, different surface.",
     icon: ChatBubbleBottomCenterTextIcon,
     href: "#",
     gif: "/chat.png",
@@ -74,7 +73,7 @@ export const features = [
     height: 400,
   },
   {
-    name: "🤖 Agent Nodes",
+    name: "🤖 Agent nodes",
     description:
       "Drop in a planning agent that calls models and tools to finish a multi-step task. Used as a node, not a separate framework.",
     icon: PuzzlePieceIcon,
@@ -84,9 +83,9 @@ export const features = [
     height: 400,
   },
   {
-    name: "📁 Vector Storage & RAG",
+    name: "📁 Vector store & RAG",
     description:
-      "Built-in SQLite-vec embedded vector store. Create smart assistants that know your documents—no extra database to run.",
+      "Built-in SQLite-vec embedded vector store. Build assistants that know your documents — no extra database to run.",
     icon: FolderIcon,
     href: "#",
     gif: "/vector-db.jpg",

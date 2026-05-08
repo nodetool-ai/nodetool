@@ -110,8 +110,8 @@ export default function AgentFeaturesSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Build agents that think, plan, and execute with the same visual
-            tools you use for any NodeTool workflow.
+            Agents are nodes. Use the same canvas you use for image, video, and text
+            workflows — just with a model that plans and acts.
           </motion.p>
         </div>
 

@@ -16,46 +16,46 @@ interface BusinessUseCasesSectionProps {
 
 const useCases = [
   {
-    title: "Document Intelligence",
-    description: "Automate document processing, extraction, and analysis. Process invoices, contracts, and forms at scale.",
-    icon: FileText,
+    title: "Brand campaigns at speed",
+    description: "Generate on-brand visuals, social posts, and ad variants from a single workflow your team can re-run all season.",
+    icon: ImageIcon,
     gradient: "from-emerald-500/20 to-teal-500/20",
-    examples: ["Invoice processing", "Contract analysis", "Form extraction"],
+    examples: ["Ad creative variants", "Social post sets", "Brand-consistent imagery"],
   },
   {
-    title: "Customer Support Automation",
-    description: "Build intelligent chatbots and ticket routing systems. Reduce response times and support costs.",
+    title: "Video & post-production",
+    description: "Wire Seedance, Veo, Kling, and Runway alongside your existing edit tools. Generate B-roll, run upscales, and ship cuts faster.",
     icon: MessageSquare,
     gradient: "from-blue-500/20 to-cyan-500/20",
-    examples: ["24/7 chatbot support", "Ticket classification", "Knowledge base search"],
+    examples: ["B-roll generation", "Upscale & relight", "Frame-accurate edits"],
   },
   {
-    title: "Marketing & Content",
-    description: "Generate marketing materials, social media content, and personalized campaigns at scale.",
+    title: "Pitch & concept work",
+    description: "Move from rough idea to a presentable pitch deck of stills, motion, and voiceover in a single afternoon — without leaving the canvas.",
     icon: Mail,
     gradient: "from-teal-500/20 to-purple-500/20",
-    examples: ["Ad copy generation", "Image creation", "Email personalization"],
+    examples: ["Mood boards", "Animatics", "Voiceover with ElevenLabs"],
   },
   {
-    title: "Data Analysis & Insights",
-    description: "Transform raw data into actionable insights. Automated reporting, trend detection, and forecasting.",
+    title: "Asset libraries & batch work",
+    description: "Process hundreds of stills, generate variants, and tag everything — without juggling browser tabs across Midjourney, Runway, and Photoshop.",
     icon: BarChart3,
     gradient: "from-cyan-500/20 to-blue-500/20",
-    examples: ["Sales forecasting", "Anomaly detection", "Report generation"],
+    examples: ["Batch upscale", "Style transfer at scale", "Auto-tagging"],
   },
   {
-    title: "Quality Assurance",
-    description: "Automated visual inspection, defect detection, and quality control in manufacturing processes.",
-    icon: ImageIcon,
+    title: "Agent-driven research",
+    description: "Drop a planning agent into the canvas to research references, compile mood boards, and draft creative briefs from your prompts.",
+    icon: FileText,
     gradient: "from-rose-500/20 to-pink-500/20",
-    examples: ["Visual inspection", "Defect detection", "Product classification"],
+    examples: ["Reference research", "Brief drafting", "Mood board scraping"],
   },
   {
-    title: "Process Automation",
-    description: "Connect disparate systems and put AI in the loop where humans currently spend hours making routine decisions.",
+    title: "Custom team workflows",
+    description: "Wrap the steps your team does every week into a workflow they can re-run, share, and version — on a canvas, not a script.",
     icon: Database,
     gradient: "from-amber-500/20 to-orange-500/20",
-    examples: ["Data pipeline automation", "Cross-system integration", "Smart routing"],
+    examples: ["Repeatable team recipes", "Shared workflow library", "Workflow handoff"],
   },
 ];
 
@@ -70,10 +70,10 @@ export default function BusinessUseCasesSection({ reducedMotion }: BusinessUseCa
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-            Real-World <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400">Business Applications</span>
+            Real workflows for <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400">creative teams</span>
           </h2>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-            From small businesses to enterprise organizations, NodeTool powers AI automation across industries.
+            From small studios to agency creative teams, NodeTool runs the visual AI work your team already does — on a canvas you actually own.
           </p>
         </motion.div>
 
