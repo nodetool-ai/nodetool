@@ -20,6 +20,7 @@ import {
 } from "../../selection";
 
 const MAX_SELECTION_MUTATION_PADDING = 64;
+const MAX_SELECTION_BORDER_WIDTH = 64;
 
 /**
  * Returns bounds for every pixel with any remaining alpha.
@@ -226,7 +227,10 @@ export const createSelectionSlice: StateCreator<
       return;
     }
     const widthPx = state.toolSettings.select.borderWidth;
-    const normalizedBorderWidth = Math.max(1, Math.min(64, Math.round(widthPx)));
+    const normalizedBorderWidth = Math.max(
+      1,
+      Math.min(MAX_SELECTION_BORDER_WIDTH, Math.round(widthPx))
+    );
     const copy = cloneSelectionRegion(sel!, Math.ceil(normalizedBorderWidth / 2));
     const ring = buildSelectionBorderStrokeMask(copy, widthPx);
     if (!ring || !selectionHasAnyPixels(ring)) {
