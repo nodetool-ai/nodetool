@@ -597,7 +597,7 @@ const applyToolCallUpdate = (
     const existingExecution =
       state.agentExecutionToolCalls[agentExecutionId] || {};
     const existingCalls = existingExecution[stepId] || [];
-    const existingIndex = existingCalls.findIndex(
+    const existingIndex = existingCalls.findLastIndex(
       (call) => call.id === toolCallId
     );
     const nextCall: StepToolCall = {
