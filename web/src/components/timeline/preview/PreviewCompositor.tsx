@@ -41,12 +41,23 @@ const compositorStyles = css({
   width: "100%",
   height: "100%",
   backgroundColor: "#000",
-  overflow: "hidden"
+  overflow: "hidden",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center"
+});
+
+/**
+ * Holds the preview canvas at the sequence's fixed aspect ratio. The
+ * fit-rect is computed in JS each resize and applied as inline width /
+ * height; the parent flexbox letterboxes / pillarboxes whichever axis
+ * runs short.
+ */
+const frameStyles = css({
+  position: "relative"
 });
 
 const canvasStyles = css({
-  position: "absolute",
-  inset: 0,
   width: "100%",
   height: "100%",
   display: "block"
@@ -146,8 +157,13 @@ export const PreviewCompositor: React.FC = memo(() => {
   const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
   const isPlaying = useTimelinePlaybackStore((s) => s.isPlaying);
 
-  const { tracks, clips } = useTimelineStore(
-    (s) => ({ tracks: s.tracks, clips: s.clips }),
+  const { tracks, clips, sequenceWidth, sequenceHeight } = useTimelineStore(
+    (s) => ({
+      tracks: s.tracks,
+      clips: s.clips,
+      sequenceWidth: s.width,
+      sequenceHeight: s.height
+    }),
     shallow
   );
 
@@ -188,6 +204,8 @@ export const PreviewCompositor: React.FC = memo(() => {
   // Image element cache, keyed by URL — fed to the compositor as image layers.
   const imageElementCache = useRef<Map<string, HTMLImageElement>>(new Map());
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const compositorRef = useRef<WebGPUCompositor | null>(null);
   const [gpuReady, setGpuReady] = useState(false);
@@ -262,15 +280,33 @@ export const PreviewCompositor: React.FC = memo(() => {
     };
   }, []);
 
-  // Keep the canvas backing-store sized to its CSS box (devicePixelRatio aware).
+  // Compute a fit-rect that preserves the sequence aspect inside the
+  // outer container. Drives both the frame element's CSS pixel dimensions
+  // (so the canvas + overlays sit on a fixed-aspect surface) and the
+  // canvas backing buffer (devicePixelRatio aware).
   useLayoutEffect(() => {
+    const container = containerRef.current;
+    const frame = frameRef.current;
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!container || !frame || !canvas) return;
     const apply = () => {
+      const rect = container.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      const aspect =
+        sequenceWidth > 0 && sequenceHeight > 0
+          ? sequenceWidth / sequenceHeight
+          : 16 / 9;
+      const fitByWidth = { w: rect.width, h: rect.width / aspect };
+      const fit =
+        fitByWidth.h <= rect.height
+          ? fitByWidth
+          : { w: rect.height * aspect, h: rect.height };
+      frame.style.width = `${fit.w}px`;
+      frame.style.height = `${fit.h}px`;
+
       const dpr = window.devicePixelRatio || 1;
-      const rect = canvas.getBoundingClientRect();
-      const w = Math.max(1, Math.floor(rect.width * dpr));
-      const h = Math.max(1, Math.floor(rect.height * dpr));
+      const w = Math.max(1, Math.floor(fit.w * dpr));
+      const h = Math.max(1, Math.floor(fit.h * dpr));
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
         canvas.height = h;
@@ -279,9 +315,9 @@ export const PreviewCompositor: React.FC = memo(() => {
     };
     apply();
     const ro = new ResizeObserver(apply);
-    ro.observe(canvas);
+    ro.observe(container);
     return () => ro.disconnect();
-  }, []);
+  }, [sequenceWidth, sequenceHeight]);
 
   const sortedTracks = useMemo(
     () => [...tracks].sort((a, b) => a.index - b.index),
@@ -545,86 +581,88 @@ export const PreviewCompositor: React.FC = memo(() => {
     placeholderLayers.length > 0;
 
   return (
-    <div css={compositorStyles} data-testid="preview-compositor">
-      <canvas ref={canvasRef} css={canvasStyles} aria-hidden />
+    <div ref={containerRef} css={compositorStyles} data-testid="preview-compositor">
+      <div ref={frameRef} css={frameStyles}>
+        <canvas ref={canvasRef} css={canvasStyles} aria-hidden />
 
-      <div
-        ref={poolContainerRef}
-        style={{
-          position: "absolute",
-          width: 0,
-          height: 0,
-          overflow: "hidden",
-          pointerEvents: "none"
-        }}
-      />
-
-      {placeholderLayers.map((layer) => (
         <div
-          key={layer.clipId}
+          ref={poolContainerRef}
           style={{
             position: "absolute",
-            inset: 0,
-            zIndex: layer.trackIndex
+            width: 0,
+            height: 0,
+            overflow: "hidden",
+            pointerEvents: "none"
           }}
-        >
-          <div css={placeholderLayerStyles(theme)}>
-            <span style={{ fontSize: 24, opacity: 0.4 }}>▭</span>
-            <span style={{ fontSize: 11, opacity: 0.5 }}>{layer.name}</span>
-          </div>
-        </div>
-      ))}
+        />
 
-      {clips
-        .filter(
-          (c) =>
-            c.status === "stale" &&
-            isClipActive(c, currentTimeMs) &&
-            (c.mediaType === "video" ||
-              c.mediaType === "overlay" ||
-              c.mediaType === "image")
-        )
-        .map((c) => (
+        {placeholderLayers.map((layer) => (
           <div
-            key={`stale-${c.id}`}
-            css={overlayBadgeStyles("#c08000")}
-            style={{ zIndex: 9999 }}
+            key={layer.clipId}
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: layer.trackIndex
+            }}
           >
-            stale
+            <div css={placeholderLayerStyles(theme)}>
+              <span style={{ fontSize: 24, opacity: 0.4 }}>▭</span>
+              <span style={{ fontSize: 11, opacity: 0.5 }}>{layer.name}</span>
+            </div>
           </div>
         ))}
 
-      {clips
-        .filter(
-          (c) => c.status === "generating" && isClipActive(c, currentTimeMs)
-        )
-        .map((c) => (
+        {clips
+          .filter(
+            (c) =>
+              c.status === "stale" &&
+              isClipActive(c, currentTimeMs) &&
+              (c.mediaType === "video" ||
+                c.mediaType === "overlay" ||
+                c.mediaType === "image")
+          )
+          .map((c) => (
+            <div
+              key={`stale-${c.id}`}
+              css={overlayBadgeStyles("#c08000")}
+              style={{ zIndex: 9999 }}
+            >
+              stale
+            </div>
+          ))}
+
+        {clips
+          .filter(
+            (c) => c.status === "generating" && isClipActive(c, currentTimeMs)
+          )
+          .map((c) => (
+            <div
+              key={`gen-${c.id}`}
+              css={overlayBadgeStyles("#0055aa")}
+              style={{ zIndex: 9999 }}
+            >
+              generating…
+            </div>
+          ))}
+
+        {gpuFailed && (
           <div
-            key={`gen-${c.id}`}
-            css={overlayBadgeStyles("#0055aa")}
-            style={{ zIndex: 9999 }}
+            css={placeholderLayerStyles(theme)}
+            style={{ zIndex: 1, color: "#c08000" }}
           >
-            generating…
+            <span style={{ fontSize: 12 }}>WebGPU not available</span>
           </div>
-        ))}
+        )}
 
-      {gpuFailed && (
-        <div
-          css={placeholderLayerStyles(theme)}
-          style={{ zIndex: 1, color: "#c08000" }}
-        >
-          <span style={{ fontSize: 12 }}>WebGPU not available</span>
-        </div>
-      )}
-
-      {!hasAnything && !gpuFailed && (
-        <div css={placeholderLayerStyles(theme)} style={{ zIndex: 1 }}>
-          <span style={{ fontSize: 32, opacity: 0.15 }}>▶</span>
-          <span style={{ fontSize: 12, opacity: 0.25 }}>
-            No media at {Math.round(currentTimeMs / 1000)}s
-          </span>
-        </div>
-      )}
+        {!hasAnything && !gpuFailed && (
+          <div css={placeholderLayerStyles(theme)} style={{ zIndex: 1 }}>
+            <span style={{ fontSize: 32, opacity: 0.15 }}>▶</span>
+            <span style={{ fontSize: 12, opacity: 0.25 }}>
+              No media at {Math.round(currentTimeMs / 1000)}s
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 });
