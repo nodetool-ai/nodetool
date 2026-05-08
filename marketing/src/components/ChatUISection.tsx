@@ -34,9 +34,9 @@ export default function ChatUISection() {
             transition={{ duration: 0.5 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Talk to your <br />
+            Run your workflows <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">
-              workflows
+              by chatting
             </span>
           </motion.h2>
 
@@ -47,7 +47,7 @@ export default function ChatUISection() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Run workflows through natural conversation. Get results and iterate in a unified chat interface.
+            Skip the canvas when you don&apos;t need it. Ask in plain English, the right workflow runs, results stream back inline.
           </motion.p>
         </div>
 

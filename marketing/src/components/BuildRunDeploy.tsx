@@ -2,12 +2,15 @@ import React from "react";
 import {
   Workflow,
   PlayCircle,
-  Globe,
   Mic,
   MessageSquare,
   ImageIcon,
   Check,
-  Server,
+  Share2,
+  Download,
+  FolderOpen,
+  Users,
+  Repeat,
 } from "lucide-react";
 
 type AccentColor = "blue" | "fuchsia" | "amber";
@@ -62,10 +65,10 @@ export default function BuildRunDeploy() {
 
         <Card
           step="03"
-          title="Ship the workflow"
-          icon={<Globe className="h-6 w-6" />}
+          title="Ship the work"
+          icon={<Share2 className="h-6 w-6" />}
           accent="amber"
-          description="Save it as a template, hand it to a teammate, or expose it as an API. Move between Studio on your machine and Cloud in the browser."
+          description="Export the render, drop it in a shared folder, or hand the whole canvas to a collaborator. Re-run it for the next variation without rebuilding a thing."
         >
           <DeployVisual />
         </Card>
@@ -241,50 +244,27 @@ function DeployVisual() {
   return (
     <div>
       <div className="mb-3 flex items-center gap-2 text-[11px] font-medium">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-        </span>
-        <span className="text-emerald-300">Workflow online</span>
+        <Check className="h-3 w-3 text-emerald-400" />
+        <span className="text-emerald-300">Render delivered</span>
       </div>
       <div className="flex items-end justify-between gap-2 px-1">
         <DeployTarget
-          label="Docker"
-          icon={<DockerIcon className="h-5 w-5 text-sky-400" />}
+          label="Export"
+          icon={<Download className="h-5 w-5 text-sky-400" />}
         />
         <DeployTarget
-          label="RunPod"
-          icon={<Server className="h-5 w-5 text-violet-400" />}
+          label="Shared folder"
+          icon={<FolderOpen className="h-5 w-5 text-amber-300" />}
         />
         <DeployTarget
-          label="Google Cloud"
-          icon={<CloudIcon className="h-5 w-5 text-amber-300" />}
+          label="Hand off"
+          icon={<Users className="h-5 w-5 text-violet-400" />}
         />
         <DeployTarget
-          label="Self-Hosted"
-          icon={<Server className="h-5 w-5 text-emerald-300" />}
+          label="Re-run"
+          icon={<Repeat className="h-5 w-5 text-emerald-300" />}
         />
       </div>
     </div>
-  );
-}
-
-function DockerIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M13.98 11.13H16.3v2.32h-2.32v-2.32zm-2.85 0h2.32v2.32H11.13v-2.32zm-2.85 0H10.6v2.32H8.28v-2.32zm-2.85 0h2.32v2.32H5.43v-2.32zm5.7-2.85h2.32v2.32H11.13V8.28zm-2.85 0H10.6v2.32H8.28V8.28zm5.7-2.85H16.3v2.32h-2.32V5.43zm-2.85 0h2.32v2.32H11.13V5.43zM2 14.5c0 3.04 2.46 5.5 5.5 5.5h9c3.04 0 5.5-2.46 5.5-5.5v-.5h-1.5c-.43 0-.85-.05-1.26-.13-.32 1.66-1.5 3.04-3.07 3.6l-.32.11.11-.32a4.18 4.18 0 0 0 .04-2.43 5.06 5.06 0 0 1-.95-.42c-.18 1-.85 1.85-1.78 2.18l-.32.11.11-.32c.27-.78.13-1.65-.36-2.31a4.85 4.85 0 0 1-.95.45c.5 1.07.16 2.36-.83 3.05l-.27.18-.06-.32a3.34 3.34 0 0 1 .56-2.42c-.32-.13-.62-.3-.9-.5L2 14.5z" />
-    </svg>
-  );
-}
-
-function CloudIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
-      <path
-        d="M7 18a5 5 0 0 1-.5-9.97A6 6 0 0 1 18 9a4.5 4.5 0 0 1 .5 8.97L18 18H7Z"
-        fill="currentColor"
-        opacity="0.9"
-      />
-    </svg>
   );
 }

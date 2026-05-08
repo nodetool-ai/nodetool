@@ -30,7 +30,7 @@ export default function ComparisonSection({
             transition={{ duration: 0.5 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            What NodeTool is, said honestly
+            What NodeTool is
           </motion.h2>
           <motion.p
             initial={reducedMotion ? {} : { opacity: 0, y: 16 }}

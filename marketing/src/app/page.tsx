@@ -575,6 +575,9 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Chat UI */}
+        <ChatUISection />
+
         {/* Comparisons with alternatives */}
         <ComparisonSection reducedMotion={reducedMotion} />
 
@@ -598,9 +601,6 @@ export default function Home() {
 
         {/* Node Menu */}
         <NodeMenuSection />
-
-        {/* Chat UI */}
-        <ChatUISection />
 
         {/* Asset Manager */}
         <AssetManagerSection />
