@@ -224,7 +224,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       // Agent mode
       agentMode: false,
       setAgentMode: (enabled: boolean) => set({ agentMode: enabled }),
-      agentPlanner: "graph",
+      agentPlanner: "multi",
       setAgentPlanner: (planner) => set({ agentPlanner: planner }),
 
       // Agent execution trace
@@ -478,6 +478,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
           selectedCollections,
           sendMessageTimeoutId
         } = get();
+        // Graph planner is hidden in the UI; coerce any persisted "graph"
+        // value back to "multi" so we never send the broken planner.
+        const effectiveAgentPlanner: "multi" | "graph" =
+          agentPlanner === "graph" ? "multi" : agentPlanner;
         const outgoing = message as ChatOutgoingMessage;
         const mediaGeneration = outgoing.media_generation ?? null;
 
@@ -544,7 +548,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           ...message,
           thread_id: threadId,
           agent_mode: agentMode,
-          agent_planner: agentMode ? agentPlanner : undefined,
+          agent_planner: agentMode ? effectiveAgentPlanner : undefined,
           ...(mediaGeneration ? { media_generation: mediaGeneration } : {})
         } as Message;
 
@@ -561,7 +565,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           agent_mode: agentMode,
           // Only send agent_planner when agent_mode is on; the server picks a
           // sensible default otherwise.
-          agent_planner: agentMode ? agentPlanner : undefined,
+          agent_planner: agentMode ? effectiveAgentPlanner : undefined,
           model: isMediaGeneration
             ? mediaGeneration?.model ?? message.model ?? selectedModel?.id
             : selectedModel?.id,
