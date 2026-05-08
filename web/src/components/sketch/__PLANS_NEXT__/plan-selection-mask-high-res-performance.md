@@ -20,9 +20,9 @@ These pieces already exist and should be treated as the starting point for this 
 
 ## Phase 1 — Remove committed-selection Canvas2D ants
 
-- [ ] Delete the committed-selection Canvas2D ants branch from `useOverlayRenderer.ts` (`antsPhaseRef`, `selectionPathCacheRef`, `buildSelectionMaskOutlinePath(...)`, `drawSelectionAntsFromPath(...)`, and the `committedSelectionAntsOnGpu === false` path for committed selections).
-- [ ] Keep live marquee / ellipse / lasso / polygon previews on the overlay canvas; only committed selections move fully to the GPU path.
-- [ ] Remove now-unused committed-selection outline helpers from `selection/selectionMask.ts` once no runtime callers remain.
+- [x] Delete the committed-selection Canvas2D ants branch from `useOverlayRenderer.ts` (`antsPhaseRef`, `selectionPathCacheRef`, `buildSelectionMaskOutlinePath(...)`, `drawSelectionAntsFromPath(...)`, and the `committedSelectionAntsOnGpu === false` path for committed selections).
+- [x] Keep live marquee / ellipse / lasso / polygon previews on the overlay canvas; only committed selections move fully to the GPU path.
+- [x] Remove now-unused committed-selection outline helpers from `selection/selectionMask.ts` once no runtime callers remain.
 - [ ] Verify that committed selections still animate, including during move-drag via `setSelectionOriginOverride(...)`.
 
 ---

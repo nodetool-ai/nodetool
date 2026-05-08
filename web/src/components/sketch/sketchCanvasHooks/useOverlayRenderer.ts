@@ -245,7 +245,8 @@ export function useOverlayRenderer({
   const paintSelectionCanvasRef = useRef(paintSelectionCanvas);
   paintSelectionCanvasRef.current = paintSelectionCanvas;
 
-  const setSelectionOriginOverride = useCallback((_pos: { x: number; y: number } | null) => {}, []);
+  const setSelectionOriginOverride: UseOverlayRendererResult["setSelectionOriginOverride"] =
+    useCallback(() => {}, []);
 
   const drawSelectionOverlay = useCallback(() => {
     selectionDragPreviewRef.current = null;
