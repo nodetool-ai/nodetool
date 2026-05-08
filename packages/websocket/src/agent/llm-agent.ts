@@ -34,7 +34,11 @@
 import { randomUUID } from "node:crypto";
 
 import { processChat } from "@nodetool-ai/chat";
-import { Tool } from "@nodetool-ai/agents";
+import {
+  Tool,
+  createDefaultLongTermMemory,
+  type LongTermMemory
+} from "@nodetool-ai/agents";
 import {
   ProcessingContext,
   getProvider as getRuntimeProvider,
@@ -337,6 +341,25 @@ class LlmAgentSession implements AgentQuerySession {
         userId: this.userId,
       });
 
+      // Best-effort long-term memory. Returns null when no embedding
+      // provider is configured for this user, in which case processChat is
+      // a no-op for the LTM hook.
+      let longTermMemory: LongTermMemory | null = null;
+      try {
+        longTermMemory = await createDefaultLongTermMemory({
+          userId: this.userId,
+          namespace: "chat",
+          extractionProvider: provider,
+          extractionModel: this.model
+        });
+      } catch (err) {
+        log.warn(
+          `Long-term memory init failed (session ${sessionId}): ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        );
+      }
+
       let assistantText = "";
       // The renderer dedupes assistant messages by `uuid` and replaces in
       // place (see web/src/stores/AgentStore.ts). To make streaming text
@@ -355,6 +378,7 @@ class LlmAgentSession implements AgentQuerySession {
         tools,
         threadId: this.threadId,
         signal: this.abortController.signal,
+        longTermMemory,
         callbacks: {
           onChunk: (text) => {
             assistantText += text;

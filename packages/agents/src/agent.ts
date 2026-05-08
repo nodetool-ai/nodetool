@@ -37,6 +37,10 @@ import {
   type AgentOutputFormat,
   outputFormatDirective
 } from "./output-format.js";
+import {
+  formatMemoryForPrompt,
+  type LongTermMemory
+} from "./long-term-memory.js";
 
 // ---------------------------------------------------------------------------
 // Skill types and helpers
@@ -207,6 +211,14 @@ export interface AgentOptions {
   task?: Task;
   skills?: string[];
   skillDirs?: string[];
+  /**
+   * Optional long-term memory. When provided, items relevant to the agent's
+   * objective are recalled before planning and folded into the system prompt
+   * so the planner and every step inherit the same context. After execution
+   * the objective + final result are mined for new memories on a best-effort
+   * basis.
+   */
+  longTermMemory?: LongTermMemory | null;
 }
 
 export class Agent extends BaseAgent {
@@ -221,6 +233,7 @@ export class Agent extends BaseAgent {
   private readonly requestedSkills?: string[];
   private readonly skillDirs: string[];
   private readonly initialTask?: Task;
+  private readonly longTermMemory: LongTermMemory | null;
   /** The multi-task plan, set after planning. */
   taskPlan: TaskPlan | null = null;
 
@@ -249,6 +262,7 @@ export class Agent extends BaseAgent {
     this.requestedSkills = opts.skills;
     this.skillDirs = opts.skillDirs ?? [];
     this.initialTask = opts.task;
+    this.longTermMemory = opts.longTermMemory ?? null;
     if (opts.task) {
       this.task = opts.task;
     }
@@ -397,12 +411,16 @@ export class Agent extends BaseAgent {
   }
 
   /**
-   * Merge user system prompt with skill system prompt.
+   * Merge user system prompt, skills and recalled long-term memory.
    */
-  private mergeSystemPrompt(skillPrompt: string | null): string | undefined {
+  private mergeSystemPrompt(
+    skillPrompt: string | null,
+    memoryPrompt: string | null = null
+  ): string | undefined {
     const parts: string[] = [];
     if (this.systemPrompt) parts.push(this.systemPrompt);
     if (skillPrompt) parts.push(skillPrompt);
+    if (memoryPrompt) parts.push(memoryPrompt);
     const formatDirective = outputFormatDirective(this.outputFormat);
     if (formatDirective) parts.push(formatDirective);
     if (parts.length === 0) return undefined;
@@ -441,7 +459,27 @@ export class Agent extends BaseAgent {
     );
     const skillSystemPrompt = this.buildSkillSystemPrompt(activeSkills);
     const effectiveObjective = this.buildEffectiveObjective(activeSkills);
-    const mergedSystemPrompt = this.mergeSystemPrompt(skillSystemPrompt);
+
+    // Recall long-term memory and fold it into the system prompt so the
+    // planner and every step share the same background context. Best-effort:
+    // if the LTM backend is misconfigured we just continue without it.
+    let memoryPrompt: string | null = null;
+    if (this.longTermMemory && this.longTermMemory.isReady()) {
+      try {
+        const recalled = await this.longTermMemory.recall(this.objective);
+        const block = formatMemoryForPrompt(recalled);
+        if (block) memoryPrompt = block;
+      } catch (err) {
+        log.warn("Long-term memory recall failed", {
+          name: this.name,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+    }
+    const mergedSystemPrompt = this.mergeSystemPrompt(
+      skillSystemPrompt,
+      memoryPrompt
+    );
 
     // Ensure workspace directory exists
     const workspacePath =
@@ -582,6 +620,7 @@ export class Agent extends BaseAgent {
     }
 
     log.info("Agent completed", { name: this.name });
+    this.persistAgentRunMemory();
   }
 
   /**
@@ -644,6 +683,38 @@ export class Agent extends BaseAgent {
     }
 
     log.info("Agent completed", { name: this.name });
+    this.persistAgentRunMemory();
+  }
+
+  /**
+   * Mine the completed run for new long-term memories. Fire-and-forget so a
+   * slow extraction call never blocks the caller, and any backend error is
+   * swallowed (already logged inside the LTM module).
+   */
+  private persistAgentRunMemory(): void {
+    if (!this.longTermMemory || !this.longTermMemory.isReady()) return;
+    const resultText =
+      this.results === null || this.results === undefined
+        ? ""
+        : typeof this.results === "string"
+          ? this.results
+          : (() => {
+              try {
+                return JSON.stringify(this.results);
+              } catch {
+                return String(this.results);
+              }
+            })();
+    if (!resultText.trim()) return;
+    const synthetic: Message[] = [
+      { role: "user", content: this.objective },
+      { role: "assistant", content: resultText }
+    ];
+    void this.longTermMemory
+      .rememberConversation(synthetic, { source: `agent:${this.name}` })
+      .catch(() => {
+        // already logged inside rememberConversation
+      });
   }
 
   getResults(): unknown {

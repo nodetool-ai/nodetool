@@ -8,7 +8,8 @@ import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { Message, ToolCall, ProviderStreamItem } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
-import type { Tool } from "@nodetool-ai/agents";
+import type { LongTermMemory, Tool } from "@nodetool-ai/agents";
+import { formatMemoryForPrompt } from "@nodetool-ai/agents";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -100,6 +101,14 @@ export async function processChat(opts: {
    * invalid tool calls and gets the same error back. Defaults to 25.
    */
   maxIterations?: number;
+  /**
+   * Optional long-term memory. When provided, relevant memories are recalled
+   * for `userInput` and injected as a system message into the provider call
+   * (without mutating `messages`, so they don't leak into persisted history).
+   * After the turn finishes, the conversation is mined for new memories on a
+   * best-effort basis — failures don't surface to the caller.
+   */
+  longTermMemory?: LongTermMemory | null;
 }): Promise<Message[]> {
   const {
     userInput,
@@ -111,8 +120,27 @@ export async function processChat(opts: {
     callbacks,
     threadId,
     signal,
-    maxIterations = 25
+    maxIterations = 25,
+    longTermMemory
   } = opts;
+
+  // Recall memory before pushing the user message — keep the recall fresh
+  // (relevant to the new query) and avoid leaking the system block into the
+  // persisted `messages` array. The recall result is held as a separate
+  // `memoryPrefix` that gets spliced into `messagesToSend` each iteration.
+  let memoryPrefix: Message[] = [];
+  if (longTermMemory && longTermMemory.isReady()) {
+    try {
+      const recalled = await longTermMemory.recall(userInput);
+      const block = formatMemoryForPrompt(recalled);
+      if (block) {
+        memoryPrefix = [{ role: "system", content: block }];
+      }
+    } catch {
+      // Memory recall is best-effort. A vector backend hiccup must not
+      // break the chat turn.
+    }
+  }
 
   // 1. Add user message
   messages.push({ role: "user", content: userInput });
@@ -120,7 +148,16 @@ export async function processChat(opts: {
   const providerTools =
     tools.length > 0 ? tools.map((t) => t.toProviderTool()) : undefined;
 
-  let messagesToSend: Message[] = messages;
+  // Splice the memory block in right after any existing leading system
+  // messages so the persona/system contract still comes first.
+  const buildMessagesToSend = (): Message[] => {
+    if (memoryPrefix.length === 0) return messages;
+    let i = 0;
+    while (i < messages.length && messages[i].role === "system") i++;
+    return [...messages.slice(0, i), ...memoryPrefix, ...messages.slice(i)];
+  };
+
+  let messagesToSend: Message[] = buildMessagesToSend();
 
   for (let iteration = 0; iteration < maxIterations; iteration++) {
     const toolCallResults: Array<ToolCall & { result: unknown }> = [];
@@ -230,10 +267,23 @@ export async function processChat(opts: {
         });
       }
 
-      messagesToSend = messages;
+      messagesToSend = buildMessagesToSend();
     } else {
       break;
     }
+  }
+
+  // Mine the completed turn for new long-term memories. Snapshot first so a
+  // late caller mutating `messages` doesn't race with the extraction call.
+  if (longTermMemory && longTermMemory.isReady()) {
+    const snapshot = messages.slice();
+    void longTermMemory
+      .rememberConversation(snapshot, {
+        source: threadId ? `chat:${threadId}` : "chat"
+      })
+      .catch(() => {
+        // Already logged inside rememberConversation.
+      });
   }
 
   return messages;
