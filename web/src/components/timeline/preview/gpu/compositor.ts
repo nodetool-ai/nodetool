@@ -84,6 +84,17 @@ function uploadKey(source: CompositeSource): string {
   return `b:${source.width}x${source.height}`;
 }
 
+function isSourceReady(source: CompositeSource): boolean {
+  if (source instanceof HTMLVideoElement) {
+    // HAVE_CURRENT_DATA = 2 — the current frame is decoded.
+    return source.readyState >= 2;
+  }
+  if (source instanceof HTMLImageElement) {
+    return source.complete && source.naturalWidth > 0;
+  }
+  return source.width > 0;
+}
+
 function sourceDimensions(source: CompositeSource): {
   width: number;
   height: number;
@@ -255,12 +266,18 @@ export class WebGPUCompositor {
 
   /**
    * Allocates / reuses a source GPU texture for the layer and copies its
-   * current pixels into it. Returns null if the source isn't ready yet.
+   * current pixels into it. If the source isn't ready right now (e.g. a
+   * `<video>` mid-seek with `readyState < HAVE_CURRENT_DATA`) the texture
+   * is left unchanged and we return the previous entry — keeps the last
+   * good frame on screen instead of flashing to black during a scrub.
+   * Returns null only if there's no texture to fall back on yet.
    */
   private uploadSource(layer: CompositeLayer): SourceTexture | null {
     if (!this.device) return null;
     const { width, height } = sourceDimensions(layer.source);
-    if (width === 0 || height === 0) return null;
+    if (width === 0 || height === 0) {
+      return this.sourceTextures.get(layer.id) ?? null;
+    }
 
     const key = uploadKey(layer.source);
     let entry = this.sourceTextures.get(layer.id);
@@ -286,13 +303,18 @@ export class WebGPUCompositor {
       this.sourceTextures.set(layer.id, entry);
     }
 
-    if (entry.lastUploadKey !== key) {
+    if (entry.lastUploadKey !== key && isSourceReady(layer.source)) {
       this.device.queue.copyExternalImageToTexture(
         { source: layer.source, flipY: false },
         { texture: entry.texture, premultipliedAlpha: false },
         { width, height }
       );
       entry.lastUploadKey = key;
+    }
+    // If we couldn't upload yet AND have never uploaded for this entry,
+    // there's nothing to draw — skip the layer this frame.
+    if (entry.lastUploadKey === "") {
+      return null;
     }
     return entry;
   }
