@@ -30,7 +30,7 @@ export default function ComparisonSection({
             transition={{ duration: 0.5 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            How NodeTool differs
+            What NodeTool is, said honestly
           </motion.h2>
           <motion.p
             initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
@@ -39,26 +39,26 @@ export default function ComparisonSection({
             transition={{ duration: 0.5, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
           >
-            We borrow ideas from a few categories of tools and specialize them for AI work.
+            Where we sit next to the tools you&apos;re already using.
           </motion.p>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-800/60 border border-slate-800/80 rounded-2xl overflow-hidden">
           <ComparisonCard
             competitor="ComfyUI"
-            sentence="ComfyUI focuses on Stable Diffusion image generation. NodeTool covers the rest of the AI stack: LLMs, RAG, audio, and video."
+            sentence="ComfyUI is a Stable Diffusion power tool with engineer-first UX. NodeTool is the full creative workspace — image, video, audio, and text on one canvas, with masks, inpaint, outpaint, relight, upscale, and compositing built in."
             reducedMotion={reducedMotion}
             delay={0}
           />
           <ComparisonCard
-            competitor="n8n"
-            sentence="n8n automates business processes and APIs. NodeTool is built for AI work, with model management and local LLMs included."
+            competitor="Weavy / closed canvases"
+            sentence="Closed canvases lock you into a credit system and a curated model roster. NodeTool is open source and BYOK — every provider, your keys, provider prices."
             reducedMotion={reducedMotion}
             delay={0.05}
           />
           <ComparisonCard
-            competitor="LangChain"
-            sentence="LangChain is a Python framework for LLM apps. NodeTool is a visual, TypeScript-first platform with an async Node.js runtime and custom nodes in TypeScript or Python."
+            competitor="A dozen browser tabs"
+            sentence="Midjourney, Runway, Photoshop, ElevenLabs, Suno — each in its own tab, none of them talking to each other. NodeTool wires them into one canvas you can run, share, and re-run."
             reducedMotion={reducedMotion}
             delay={0.1}
           />
@@ -99,16 +99,18 @@ export default function ComparisonSection({
                 Where NodeTool fits
               </div>
               <h3 className="text-2xl md:text-3xl font-semibold text-white mb-5 tracking-tight">
-                Prompt your workflows. Watch them render.
+                Every model. Your keys. Your canvas.
               </h3>
               <p className="text-slate-300 leading-relaxed mb-4 text-[1.025rem]">
-                Agents are first-class, not bolted on. Describe what you want and your
-                coding agent builds the graph. Run it autonomously, or as a fixed API.
+                Seedance is the best video model right now. It&apos;s available
+                on FAL, Replicate, and KIE at different price points. NodeTool
+                lets you pick the cheapest. When Veo 4 ships, you swap one node
+                and you&apos;re on it the same day.
               </p>
               <p className="text-slate-400 leading-relaxed text-[1.025rem]">
-                Image, video, audio, and text all live on one canvas. Results stream in
-                as nodes finish. Extend with custom nodes in TypeScript or Python. Local
-                by default.
+                That&apos;s what vendor neutrality actually buys you. No credit
+                markup, no curated roster, no roadmap risk if your favourite
+                tool gets acquired.
               </p>
             </div>
           </div>

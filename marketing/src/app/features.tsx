@@ -74,9 +74,9 @@ export const features = [
     height: 400,
   },
   {
-    name: "🤖 AI Agent Orchestration",
+    name: "🤖 Agent Nodes",
     description:
-      "Build intelligent agents that coordinate multiple AI models. Chain reasoning, planning, and execution across complex multi-step workflows.",
+      "Drop in a planning agent that calls models and tools to finish a multi-step task. Used as a node, not a separate framework.",
     icon: PuzzlePieceIcon,
     href: "#",
     gif: "/agents.png",

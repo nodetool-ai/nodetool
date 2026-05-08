@@ -6,24 +6,24 @@ import { Shield, Cpu, Globe, Lock } from "lucide-react";
 
 const features = [
   {
-    title: "Local-First",
-    body: "All workflows, assets, and models can run on your machine for maximum privacy and control. Work offline once models are downloaded.",
-    icon: Cpu,
+    title: "BYOK, every provider",
+    body: "Bring your own keys to FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and more. Keys stay on your disk in Studio, encrypted in Cloud. We never mark up model calls.",
+    icon: Lock,
   },
   {
-    title: "Always Open Source",
-    body: "Both editions — Studio (desktop) and Cloud (hosted) — share the same AGPL-3.0 codebase. No closed-source layer, no proprietary cloud-only features. Self-host any time.",
-    icon: Globe,
-  },
-  {
-    title: "Privacy by Design",
-    body: "Your data stays yours—process locally or use your API keys. No collection, no telemetry, opt-in cloud only.",
+    title: "Provider prices, no credits",
+    body: "No proprietary tokens. No minimum top-up. You pay providers what they charge. The same Seedance call that costs $0.18 on KIE costs $0.18 in NodeTool.",
     icon: Shield,
   },
   {
-    title: "BYOK Everywhere",
-    body: "Bring your own API keys for OpenAI, Anthropic, Gemini, Replicate, and more — in Studio (stored on disk) or Cloud (encrypted). You pay providers directly; we never mark up tokens.",
-    icon: Lock,
+    title: "Open source, always",
+    body: "Both editions — Studio (desktop) and Cloud (hosted) — share the same AGPL-3.0 codebase. No closed-source layer, no “pro tier” hiding the good features. Self-host any time.",
+    icon: Globe,
+  },
+  {
+    title: "Local inference when you want it",
+    body: "MLX, Ollama, llama.cpp, vLLM, LM Studio — fully supported. Runs offline once models are downloaded. Local is a feature, not a religion.",
+    icon: Cpu,
   },
 ];
 
@@ -47,8 +47,8 @@ export default function OwnershipSection({
             transition={{ duration: 0.5 }}
             className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Local-first or <br />
-            <span className="text-slate-300">cloud-augmented.</span>
+            Your keys. Your files. <br />
+            <span className="text-slate-300">Your roadmap.</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -57,7 +57,10 @@ export default function OwnershipSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Your tools, your data—always under your control. Run everything locally for maximum privacy, or mix in cloud services for flexibility.
+            Creative tools shouldn&apos;t lock you into someone else&apos;s
+            pricing, model roster, or roadmap. NodeTool calls whatever models
+            you choose, charges you what the providers charge, and outlives
+            whoever built it.
           </motion.p>
         </div>
 
