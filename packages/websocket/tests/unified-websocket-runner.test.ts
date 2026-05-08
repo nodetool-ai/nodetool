@@ -113,6 +113,26 @@ describe("UnifiedWebSocketRunner", () => {
     await runner.disconnect();
   });
 
+  it("ignores client pong in receive loop (no invalid_message)", async () => {
+    await runner.connect(ws);
+    ws.queue.push({
+      type: "websocket.message",
+      text: JSON.stringify({ type: "pong", ts: 1 })
+    });
+    ws.queue.push({ type: "websocket.disconnect" });
+
+    await runner.receiveMessages();
+
+    const allText = ws.sentText.map((t) => JSON.parse(t) as Record<string, unknown>);
+    const allBinary = ws.sentBytes.map(
+      (b) => unpack(b) as Record<string, unknown>
+    );
+    for (const out of [...allText, ...allBinary]) {
+      expect(out.error).not.toBe("invalid_message");
+    }
+    await runner.disconnect();
+  });
+
   it("processes get_status command envelope", async () => {
     await runner.connect(ws);
     ws.queue.push({

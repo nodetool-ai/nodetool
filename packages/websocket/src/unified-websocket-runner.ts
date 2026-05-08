@@ -4632,6 +4632,10 @@ export class UnifiedWebSocketRunner {
         continue;
       }
 
+      if (msgType === "pong") {
+        continue;
+      }
+
       if (typeof data.command === "string") {
         try {
           const command = data as unknown as WebSocketCommandEnvelope;
