@@ -5,6 +5,7 @@ import { css } from "@emotion/react";
 
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { usePersistedFold } from "./usePersistedFold";
 import type {
   ClipBlurEffect,
   ClipColorEffect,
@@ -128,6 +129,17 @@ export const TimelineInspector: React.FC = memo(() => {
   const clipId = selectedClipIds.size === 1 ? [...selectedClipIds][0] : null;
   const selectedCount = selectedClipIds.size;
 
+  // Persisted fold state — closed by default, remembered across selections
+  // and reloads via localStorage.
+  const [mediaOpen, setMediaOpen] = usePersistedFold("media");
+  const [timingOpen, setTimingOpen] = usePersistedFold("timing");
+  const [renderOpen, setRenderOpen] = usePersistedFold("render");
+  const [transformOpen, setTransformOpen] = usePersistedFold("transform");
+  const [colorOpen, setColorOpen] = usePersistedFold("color");
+  const [blurOpen, setBlurOpen] = usePersistedFold("blur");
+  const [actionsOpen, setActionsOpen] = usePersistedFold("actions");
+  const [parametersOpen, setParametersOpen] = usePersistedFold("parameters");
+
   const clip = useTimelineStore((s) => (clipId ? s.clips.find((c) => c.id === clipId) : null));
   const track = useTimelineStore((s) => (clip ? s.tracks.find((t) => t.id === clip.trackId) : null));
   const deleteSelected = useTimelineStore((s) => s.deleteSelected);
@@ -172,7 +184,7 @@ export const TimelineInspector: React.FC = memo(() => {
   return (
     <Panel css={containerStyles}>
       <FlexColumn gap={1}>
-        <CollapsibleSection title="Media" defaultOpen>
+        <CollapsibleSection title="Media" open={mediaOpen} onToggle={setMediaOpen}>
           <FlexColumn css={sectionContentStyles} gap={1}>
             <Text size="small">Name: {clip.name}</Text>
             <Text size="small">Type: {clip.mediaType}</Text>
@@ -180,7 +192,7 @@ export const TimelineInspector: React.FC = memo(() => {
           </FlexColumn>
         </CollapsibleSection>
 
-        <CollapsibleSection title="Timing" defaultOpen>
+        <CollapsibleSection title="Timing" open={timingOpen} onToggle={setTimingOpen}>
           <FlexColumn css={sectionContentStyles} gap={1}>
             <NumericField label="Start (ms)" value={clip.startMs} onCommit={(v) => onPatchNumber("startMs", v, 0, Number.MAX_SAFE_INTEGER)} />
             <NumericField label="Duration (ms)" value={clip.durationMs} onCommit={(v) => onPatchNumber("durationMs", v, 1, Number.MAX_SAFE_INTEGER)} />
@@ -190,7 +202,7 @@ export const TimelineInspector: React.FC = memo(() => {
           </FlexColumn>
         </CollapsibleSection>
 
-        <CollapsibleSection title="Render" defaultOpen>
+        <CollapsibleSection title="Render" open={renderOpen} onToggle={setRenderOpen}>
           <FlexColumn css={sectionContentStyles} gap={1}>
             {!isAudio && (
               <FormField label="Opacity">
@@ -215,7 +227,7 @@ export const TimelineInspector: React.FC = memo(() => {
         </CollapsibleSection>
 
         {!isAudio && (
-          <CollapsibleSection title="Transform">
+          <CollapsibleSection title="Transform" open={transformOpen} onToggle={setTransformOpen}>
             <FlexColumn css={sectionContentStyles} gap={1}>
               {(() => {
                 const t = clip.transform ?? IDENTITY_TRANSFORM;
@@ -324,7 +336,7 @@ export const TimelineInspector: React.FC = memo(() => {
         )}
 
         {!isAudio && (
-          <CollapsibleSection title="Color">
+          <CollapsibleSection title="Color" open={colorOpen} onToggle={setColorOpen}>
             <FlexColumn css={sectionContentStyles} gap={1}>
               {(() => {
                 const color = findColorEffect(clip);
@@ -409,7 +421,7 @@ export const TimelineInspector: React.FC = memo(() => {
         )}
 
         {!isAudio && (
-          <CollapsibleSection title="Blur">
+          <CollapsibleSection title="Blur" open={blurOpen} onToggle={setBlurOpen}>
             <FlexColumn css={sectionContentStyles} gap={1}>
               {(() => {
                 const blur = findBlurEffect(clip);
@@ -468,7 +480,7 @@ export const TimelineInspector: React.FC = memo(() => {
           </CollapsibleSection>
         )}
 
-        <CollapsibleSection title="Actions" defaultOpen>
+        <CollapsibleSection title="Actions" open={actionsOpen} onToggle={setActionsOpen}>
           <FlexColumn css={sectionContentStyles} gap={1}>
             <ClipActions clipId={clip.id} />
             <EditorButton onClick={() => setToast("Replace media picker coming soon")}>Replace Media</EditorButton>
@@ -478,7 +490,7 @@ export const TimelineInspector: React.FC = memo(() => {
         </CollapsibleSection>
 
         {clip.workflowId && (
-          <CollapsibleSection title="Parameters" defaultOpen>
+          <CollapsibleSection title="Parameters" open={parametersOpen} onToggle={setParametersOpen}>
             <FlexColumn css={sectionContentStyles} gap={1}>
               <NodePropertyEditor
                 clipId={clip.id}
