@@ -136,7 +136,9 @@ export default function AgentsGraphHero() {
                 </div>
 
                 {/* The Visualization Stage */}
-                <GraphVisualization />
+                <div className="hidden md:block">
+                    <GraphVisualization />
+                </div>
 
             </div>
         </div>
