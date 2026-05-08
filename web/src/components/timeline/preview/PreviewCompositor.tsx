@@ -134,6 +134,20 @@ function isClipActive(clip: TimelineClip, currentTimeMs: number): boolean {
   );
 }
 
+/**
+ * Opacity multiplier for a clip given the playhead position. Implements
+ * the incoming `transitionIn` ramp (0→1 over `durationMs`). Returns 1 when
+ * no transition applies. Crossfade is the only type currently supported.
+ */
+function transitionOpacity(clip: TimelineClip, currentTimeMs: number): number {
+  const t = clip.transitionIn;
+  if (!t || t.durationMs <= 0) return 1;
+  const intoClip = currentTimeMs - clip.startMs;
+  if (intoClip >= t.durationMs) return 1;
+  if (intoClip <= 0) return 0;
+  return intoClip / t.durationMs;
+}
+
 function isClipUpcoming(clip: TimelineClip, currentTimeMs: number): boolean {
   return (
     clip.startMs > currentTimeMs &&
@@ -206,6 +220,10 @@ export const PreviewCompositor: React.FC = memo(() => {
   // Hidden HTMLVideoElement pool — still browser-decoded, but never rendered.
   // Their pixels are uploaded each frame to GPU textures by the compositor.
   const videoRefs = useRef<HTMLVideoElement[]>([]);
+  /** Stable clipId → hot-slot index binding. Survives neighbor-clip churn
+   *  during transition overlaps so an active clip keeps its HTMLVideoElement
+   *  (no reload + seek glitch when the previous clip ends). */
+  const clipSlotMap = useRef<Map<string, number>>(new Map());
   const [poolReady, setPoolReady] = useState(false);
   const poolContainerRef = useRef<HTMLDivElement>(null);
 
@@ -355,57 +373,68 @@ export const PreviewCompositor: React.FC = memo(() => {
     for (const track of sortedTracks) {
       if (!track.visible) continue;
       const trackClips = clipsByTrackId.get(track.id) ?? [];
-      const clip = trackClips.find((c) => isClipActive(c, currentTimeMs));
-      if (!clip || clip.mediaType === "audio") continue;
+      // All clips overlapping the playhead. With transitions, two adjacent
+      // clips can be active simultaneously during the cross-fade overlap.
+      // Order by startMs so the outgoing (older) clip composites first and
+      // the incoming clip blends on top.
+      const activeClips = trackClips
+        .filter((c) => isClipActive(c, currentTimeMs))
+        .sort((a, b) => a.startMs - b.startMs);
 
-      const assetId = effectiveAssetId(clip);
-      const url = resolveUrl(assetId);
+      for (const clip of activeClips) {
+        if (clip.mediaType === "audio") continue;
 
-      if (
-        clip.mediaType === "image" &&
-        (track.type === "video" || track.type === "overlay")
-      ) {
-        imageLayers.push({
-          clipId: clip.id,
-          trackIndex: track.index,
-          blendMode: resolveBlendMode(clip.blendMode),
-          opacity: clip.opacity ?? 1,
-          assetUrl: url ?? "",
-          status: clip.status,
-          transform: clip.transform,
-          borderRadius: clip.borderRadius,
-          effects: clip.effects
-        });
-        if (!url) {
-          placeholders.push({
-            clipId: clip.id,
-            trackIndex: track.index,
-            status: clip.status,
-            name: clip.name
-          });
-        }
-      } else if (
-        (clip.mediaType === "video" || clip.mediaType === "overlay") &&
-        (track.type === "video" || track.type === "overlay")
-      ) {
-        if (url && videoSlots.length < HOT_POOL_SIZE) {
-          videoSlots.push({
+        const assetId = effectiveAssetId(clip);
+        const url = resolveUrl(assetId);
+        const baseOpacity = clip.opacity ?? 1;
+        const opacity = baseOpacity * transitionOpacity(clip, currentTimeMs);
+
+        if (
+          clip.mediaType === "image" &&
+          (track.type === "video" || track.type === "overlay")
+        ) {
+          imageLayers.push({
             clipId: clip.id,
             trackIndex: track.index,
             blendMode: resolveBlendMode(clip.blendMode),
-            opacity: clip.opacity ?? 1,
-            assetUrl: url,
+            opacity,
+            assetUrl: url ?? "",
+            status: clip.status,
             transform: clip.transform,
             borderRadius: clip.borderRadius,
             effects: clip.effects
           });
-        } else if (!url) {
-          placeholders.push({
-            clipId: clip.id,
-            trackIndex: track.index,
-            status: clip.status,
-            name: clip.name
-          });
+          if (!url) {
+            placeholders.push({
+              clipId: clip.id,
+              trackIndex: track.index,
+              status: clip.status,
+              name: clip.name
+            });
+          }
+        } else if (
+          (clip.mediaType === "video" || clip.mediaType === "overlay") &&
+          (track.type === "video" || track.type === "overlay")
+        ) {
+          if (url && videoSlots.length < HOT_POOL_SIZE) {
+            videoSlots.push({
+              clipId: clip.id,
+              trackIndex: track.index,
+              blendMode: resolveBlendMode(clip.blendMode),
+              opacity,
+              assetUrl: url,
+              transform: clip.transform,
+              borderRadius: clip.borderRadius,
+              effects: clip.effects
+            });
+          } else if (!url) {
+            placeholders.push({
+              clipId: clip.id,
+              trackIndex: track.index,
+              status: clip.status,
+              name: clip.name
+            });
+          }
         }
       }
     }
@@ -424,8 +453,28 @@ export const PreviewCompositor: React.FC = memo(() => {
     if (!poolReady) return;
     const pool = videoRefs.current;
 
-    activeVideoSlots.forEach((slot, slotIndex) => {
-      if (slotIndex >= pool.length) return;
+    // Stable clipId→hot-slot binding. Reuse existing assignments first,
+    // then fill empty slots for newly-active clips. Slots whose clip is no
+    // longer active become free for reuse.
+    const activeIds = new Set(activeVideoSlots.map((s) => s.clipId));
+    for (const [id] of clipSlotMap.current) {
+      if (!activeIds.has(id)) clipSlotMap.current.delete(id);
+    }
+    const usedSlots = new Set(clipSlotMap.current.values());
+    for (const slot of activeVideoSlots) {
+      if (clipSlotMap.current.has(slot.clipId)) continue;
+      for (let i = 0; i < HOT_POOL_SIZE; i++) {
+        if (!usedSlots.has(i)) {
+          clipSlotMap.current.set(slot.clipId, i);
+          usedSlots.add(i);
+          break;
+        }
+      }
+    }
+
+    activeVideoSlots.forEach((slot) => {
+      const slotIndex = clipSlotMap.current.get(slot.clipId);
+      if (slotIndex === undefined || slotIndex >= pool.length) return;
       const el = pool[slotIndex];
 
       if (el.getAttribute("data-asset") !== slot.assetUrl) {
@@ -459,8 +508,9 @@ export const PreviewCompositor: React.FC = memo(() => {
       }
     });
 
-    // Pause + clear unused hot-pool slots so their decoders go idle.
-    for (let i = activeVideoSlots.length; i < HOT_POOL_SIZE; i++) {
+    // Pause unused hot-pool slots so their decoders go idle.
+    for (let i = 0; i < HOT_POOL_SIZE; i++) {
+      if (usedSlots.has(i)) continue;
       const el = pool[i];
       if (el && !el.paused) el.pause();
     }
@@ -523,7 +573,9 @@ export const PreviewCompositor: React.FC = memo(() => {
     const out: CompositeLayer[] = [];
     const pool = videoRefs.current;
 
-    activeVideoSlots.forEach((slot, slotIndex) => {
+    activeVideoSlots.forEach((slot) => {
+      const slotIndex = clipSlotMap.current.get(slot.clipId);
+      if (slotIndex === undefined) return;
       const el = pool[slotIndex];
       // Keep the layer in the list even if the video momentarily drops below
       // HAVE_CURRENT_DATA (e.g. during a scrub seek). The compositor reuses
