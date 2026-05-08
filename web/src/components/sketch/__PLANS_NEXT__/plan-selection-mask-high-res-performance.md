@@ -73,6 +73,6 @@ These pieces already exist and should be treated as the starting point for this 
 
 - [ ] At 4096×4096, committed-selection interactions (move ants, add/subtract/intersect, fill, gradient, wand, feather/expand/contract) avoid multi-second main-thread stalls.
 - [ ] No committed-selection marching ants depend on Canvas2D `Path2D` generation or animation loops.
-- [ ] No interactive fill/gradient path depends on `applySelectionConstraint(...)`.
+- [x] No interactive fill/gradient path depends on `applySelectionConstraint(...)`.
 - [ ] CPU `Selection` snapshots are produced only at commit/history/export-style boundaries, not on every pointer move.
 - [ ] The codebase has one documented rule for selection authority: which operations read/write the GPU mask directly, and when CPU snapshots are synchronized.

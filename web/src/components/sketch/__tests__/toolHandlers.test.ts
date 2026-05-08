@@ -143,6 +143,33 @@ function makePointerEvent(
   };
 }
 
+function makeMock2dContext(
+  canvas: HTMLCanvasElement
+): CanvasRenderingContext2D {
+  const gradient = { addColorStop: jest.fn() };
+  return {
+    canvas,
+    getImageData: jest.fn(() => ({
+      data: new Uint8ClampedArray(canvas.width * canvas.height * 4),
+      width: canvas.width,
+      height: canvas.height
+    })),
+    putImageData: jest.fn(),
+    createImageData: jest.fn((width: number, height: number) => ({
+      data: new Uint8ClampedArray(width * height * 4),
+      width,
+      height
+    })),
+    save: jest.fn(),
+    restore: jest.fn(),
+    clearRect: jest.fn(),
+    fillRect: jest.fn(),
+    drawImage: jest.fn(),
+    createLinearGradient: jest.fn(() => gradient),
+    createRadialGradient: jest.fn(() => gradient)
+  } as unknown as CanvasRenderingContext2D;
+}
+
 // ─── Factory tests ─────────────────────────────────────────────────────────
 
 describe("getToolHandler factory", () => {
@@ -925,18 +952,7 @@ describe("GradientTool", () => {
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")
       .mockImplementation((function (this: HTMLCanvasElement) {
-        const canvas = this;
-        const gradient = { addColorStop: jest.fn() };
-        return {
-          canvas,
-          save: jest.fn(),
-          restore: jest.fn(),
-          clearRect: jest.fn(),
-          fillRect: jest.fn(),
-          drawImage: jest.fn(),
-          createLinearGradient: jest.fn(() => gradient),
-          createRadialGradient: jest.fn(() => gradient)
-        } as unknown as CanvasRenderingContext2D;
+        return makeMock2dContext(this);
       }) as unknown as HTMLCanvasElement["getContext"]);
 
     try {
@@ -999,26 +1015,7 @@ describe("FillTool", () => {
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")
       .mockImplementation((function (this: HTMLCanvasElement) {
-        const canvas = this;
-        return {
-          canvas,
-          getImageData: jest.fn(() => ({
-            data: new Uint8ClampedArray(canvas.width * canvas.height * 4),
-            width: canvas.width,
-            height: canvas.height
-          })),
-          putImageData: jest.fn(),
-          createImageData: jest.fn((width: number, height: number) => ({
-            data: new Uint8ClampedArray(width * height * 4),
-            width,
-            height
-          })),
-          drawImage: jest.fn(),
-          save: jest.fn(),
-          restore: jest.fn(),
-          clearRect: jest.fn(),
-          fillRect: jest.fn()
-        } as unknown as CanvasRenderingContext2D;
+        return makeMock2dContext(this);
       }) as unknown as HTMLCanvasElement["getContext"]);
 
     try {
