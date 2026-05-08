@@ -38,6 +38,8 @@ import type { StatusType } from "../../ui_primitives/StatusIndicator";
 import { deriveClipStatus } from "../status/clipStatusReducer";
 import type { ClipGenerationState, ClipErrorState } from "../status/clipStatusReducer";
 import { useClipThumbnails } from "./useClipThumbnails";
+import { useAudioPeaks } from "./useAudioPeaks";
+import { samplePeaksWindow } from "./audioPeaks";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -106,6 +108,72 @@ const filmstripStyles = css({
   pointerEvents: "none",
   zIndex: 0
 });
+
+const waveformStyles = css({
+  position: "absolute",
+  inset: 0,
+  pointerEvents: "none",
+  zIndex: 0,
+  display: "block",
+  width: "100%",
+  height: "100%"
+});
+
+interface WaveformCanvasProps {
+  url: string | undefined;
+  inPointMs: number;
+  outPointMs: number;
+  widthPx: number;
+}
+
+/** Draws audio peaks on a canvas, sized to the clip's pixel width. */
+const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
+  url,
+  inPointMs,
+  outPointMs,
+  widthPx
+}) => {
+  const theme = useTheme();
+  const { peaks, durationMs } = useAudioPeaks(url);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+    const cssWidth = Math.max(1, Math.floor(widthPx));
+    const cssHeight = canvas.clientHeight || 32;
+    canvas.width = cssWidth * dpr;
+    canvas.height = cssHeight * dpr;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+    if (!peaks || !durationMs) return;
+
+    const barCount = Math.max(1, Math.floor(cssWidth / 2));
+    const slice = samplePeaksWindow(
+      peaks,
+      durationMs,
+      inPointMs,
+      outPointMs,
+      barCount
+    );
+    const mid = cssHeight / 2;
+    ctx.fillStyle = theme.vars.palette.primary.main;
+    for (let i = 0; i < slice.length; i += 1) {
+      const amp = slice[i];
+      const h = Math.max(1, amp * (cssHeight - 2));
+      const x = (i / slice.length) * cssWidth;
+      const w = Math.max(1, cssWidth / slice.length - 0.5);
+      ctx.fillRect(x, mid - h / 2, w, h);
+    }
+  }, [peaks, durationMs, inPointMs, outPointMs, widthPx, theme]);
+
+  return <canvas ref={canvasRef} css={waveformStyles} aria-hidden />;
+};
+WaveformCanvas.displayName = "WaveformCanvas";
 
 const filmstripCellStyles = (url: string, withDivider: boolean) =>
   css({
@@ -519,10 +587,13 @@ const ClipBody: React.FC<ClipBodyProps> = ({
       : undefined;
   const imageAssetId =
     clip.mediaType === "image" ? clip.currentAssetId : undefined;
+  const audioAssetId =
+    clip.mediaType === "audio" ? clip.currentAssetId : undefined;
 
   const getAsset = useAssetStore((s) => s.get);
   const [videoUrl, setVideoUrl] = useState<string | undefined>(undefined);
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  const [audioUrl, setAudioUrl] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -559,6 +630,24 @@ const ClipBody: React.FC<ClipBodyProps> = ({
       cancelled = true;
     };
   }, [imageAssetId, getAsset]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!audioAssetId) {
+      setAudioUrl(undefined);
+      return;
+    }
+    getAsset(audioAssetId)
+      .then((asset) => {
+        if (!cancelled) setAudioUrl(getAssetUrl(asset) ?? undefined);
+      })
+      .catch(() => {
+        // Asset unavailable — leave url undefined; clip renders without waveform.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [audioAssetId, getAsset]);
 
   const thumbnails = useClipThumbnails(videoUrl);
   // openreel uses ~60px per cell; matches their visual density.
@@ -611,6 +700,15 @@ const ClipBody: React.FC<ClipBodyProps> = ({
             backgroundPosition: "center",
             opacity: 0.7
           }}
+        />
+      )}
+
+      {clip.mediaType === "audio" && (
+        <WaveformCanvas
+          url={audioUrl}
+          inPointMs={clip.inPointMs ?? 0}
+          outPointMs={(clip.inPointMs ?? 0) + clip.durationMs}
+          widthPx={widthPx}
         />
       )}
 
