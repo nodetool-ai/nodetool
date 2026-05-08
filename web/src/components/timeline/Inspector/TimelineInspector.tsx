@@ -5,6 +5,13 @@ import { css } from "@emotion/react";
 
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import type {
+  ClipBlurEffect,
+  ClipColorEffect,
+  ClipEffect,
+  ClipTransform,
+  TimelineClip
+} from "@nodetool-ai/timeline";
 import {
   CollapsibleSection,
   EditorButton,
@@ -12,6 +19,7 @@ import {
   FlexColumn,
   FlexRow,
   FormField,
+  LabeledSwitch,
   NodeSelect,
   NodeSlider,
   NodeTextField,
@@ -29,7 +37,43 @@ const sectionContentStyles = css({ padding: 8 });
 
 const BLEND_MODES = ["normal", "screen", "multiply", "add", "overlay"] as const;
 
+/** Stable IDs for the inspector-managed effects so they can round-trip in
+ *  `clip.effects` without an add/remove UI. Each clip has at most one of each. */
+const COLOR_EFFECT_ID = "inspector:color";
+const BLUR_EFFECT_ID = "inspector:blur";
+
+const IDENTITY_TRANSFORM: ClipTransform = {
+  position: { x: 0, y: 0 },
+  scale: { x: 1, y: 1 },
+  rotation: 0,
+  anchor: { x: 0.5, y: 0.5 }
+};
+
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+function findColorEffect(clip: TimelineClip): ClipColorEffect | undefined {
+  return clip.effects?.find(
+    (e): e is ClipColorEffect => e.type === "color" && e.id === COLOR_EFFECT_ID
+  );
+}
+function findBlurEffect(clip: TimelineClip): ClipBlurEffect | undefined {
+  return clip.effects?.find(
+    (e): e is ClipBlurEffect => e.type === "blur" && e.id === BLUR_EFFECT_ID
+  );
+}
+function upsertEffect(
+  effects: ClipEffect[] | undefined,
+  next: ClipEffect
+): ClipEffect[] {
+  const existing = effects ?? [];
+  const idx = existing.findIndex((e) => e.id === next.id);
+  if (idx >= 0) {
+    const out = [...existing];
+    out[idx] = next;
+    return out;
+  }
+  return [...existing, next];
+}
 
 /**
  * Numeric field with local draft state — only commits on blur or Enter.
@@ -162,6 +206,264 @@ export const TimelineInspector: React.FC = memo(() => {
             )}
           </FlexColumn>
         </CollapsibleSection>
+
+        {!isAudio && (
+          <CollapsibleSection title="Transform">
+            <FlexColumn css={sectionContentStyles} gap={1}>
+              {(() => {
+                const t = clip.transform ?? IDENTITY_TRANSFORM;
+                const setTransform = (next: ClipTransform) =>
+                  patchClip(clip.id, { transform: next });
+                const setPos = (axis: "x" | "y", v: number) =>
+                  setTransform({ ...t, position: { ...t.position, [axis]: v } });
+                const setScale = (axis: "x" | "y", v: number) =>
+                  setTransform({ ...t, scale: { ...t.scale, [axis]: v } });
+                const setAnchor = (axis: "x" | "y", v: number) =>
+                  setTransform({ ...t, anchor: { ...t.anchor, [axis]: v } });
+                const setRotationDeg = (deg: number) =>
+                  setTransform({ ...t, rotation: (deg * Math.PI) / 180 });
+                return (
+                  <>
+                    <FlexRow gap={1}>
+                      <NumericField
+                        label="X (px)"
+                        value={t.position.x}
+                        onCommit={(v) => {
+                          const n = Number(v);
+                          if (Number.isFinite(n)) setPos("x", n);
+                        }}
+                      />
+                      <NumericField
+                        label="Y (px)"
+                        value={t.position.y}
+                        onCommit={(v) => {
+                          const n = Number(v);
+                          if (Number.isFinite(n)) setPos("y", n);
+                        }}
+                      />
+                    </FlexRow>
+                    <FlexRow gap={1}>
+                      <NumericField
+                        label="Scale X"
+                        value={t.scale.x}
+                        onCommit={(v) => {
+                          const n = Number(v);
+                          if (Number.isFinite(n)) setScale("x", n);
+                        }}
+                      />
+                      <NumericField
+                        label="Scale Y"
+                        value={t.scale.y}
+                        onCommit={(v) => {
+                          const n = Number(v);
+                          if (Number.isFinite(n)) setScale("y", n);
+                        }}
+                      />
+                    </FlexRow>
+                    <NumericField
+                      label="Rotation (deg)"
+                      value={(t.rotation * 180) / Math.PI}
+                      onCommit={(v) => {
+                        const n = Number(v);
+                        if (Number.isFinite(n)) setRotationDeg(n);
+                      }}
+                    />
+                    <FormField label={`Anchor X (${t.anchor.x.toFixed(2)})`}>
+                      <NodeSlider
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={t.anchor.x}
+                        onChange={(_e, value) =>
+                          setAnchor("x", Array.isArray(value) ? value[0] : value)
+                        }
+                      />
+                    </FormField>
+                    <FormField label={`Anchor Y (${t.anchor.y.toFixed(2)})`}>
+                      <NodeSlider
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={t.anchor.y}
+                        onChange={(_e, value) =>
+                          setAnchor("y", Array.isArray(value) ? value[0] : value)
+                        }
+                      />
+                    </FormField>
+                    <FormField label="Border radius (px)">
+                      <NodeSlider
+                        min={0}
+                        max={500}
+                        step={1}
+                        value={clip.borderRadius ?? 0}
+                        onChange={(_e, value) =>
+                          patchClip(clip.id, {
+                            borderRadius: Array.isArray(value) ? value[0] : value
+                          })
+                        }
+                      />
+                    </FormField>
+                    <EditorButton
+                      onClick={() =>
+                        patchClip(clip.id, {
+                          transform: undefined,
+                          borderRadius: undefined
+                        })
+                      }
+                    >
+                      Reset transform
+                    </EditorButton>
+                  </>
+                );
+              })()}
+            </FlexColumn>
+          </CollapsibleSection>
+        )}
+
+        {!isAudio && (
+          <CollapsibleSection title="Color">
+            <FlexColumn css={sectionContentStyles} gap={1}>
+              {(() => {
+                const color = findColorEffect(clip);
+                const enabled = color?.enabled ?? false;
+                const update = (patch: Partial<ClipColorEffect>): void => {
+                  const next: ClipColorEffect = {
+                    id: COLOR_EFFECT_ID,
+                    type: "color",
+                    enabled,
+                    brightness: color?.brightness,
+                    contrast: color?.contrast,
+                    saturation: color?.saturation,
+                    hue: color?.hue,
+                    temperature: color?.temperature,
+                    tint: color?.tint,
+                    shadows: color?.shadows,
+                    highlights: color?.highlights,
+                    ...patch
+                  };
+                  patchClip(clip.id, {
+                    effects: upsertEffect(clip.effects, next)
+                  });
+                };
+                const slider = (
+                  label: string,
+                  key: keyof Omit<ClipColorEffect, "id" | "type" | "enabled">,
+                  min: number,
+                  max: number,
+                  step: number,
+                  defaultV: number
+                ) => {
+                  const v = color?.[key] ?? defaultV;
+                  return (
+                    <FormField label={`${label} (${v.toFixed(2)})`}>
+                      <NodeSlider
+                        min={min}
+                        max={max}
+                        step={step}
+                        value={v}
+                        disabled={!enabled}
+                        onChange={(_e, value) =>
+                          update({
+                            [key]: Array.isArray(value) ? value[0] : value
+                          } as Partial<ClipColorEffect>)
+                        }
+                      />
+                    </FormField>
+                  );
+                };
+                return (
+                  <>
+                    <LabeledSwitch
+                      label="Enable color grading"
+                      checked={enabled}
+                      onChange={(checked) => update({ enabled: checked })}
+                    />
+                    {slider("Brightness", "brightness", -1, 1, 0.01, 0)}
+                    {slider("Contrast", "contrast", 0, 4, 0.01, 1)}
+                    {slider("Saturation", "saturation", 0, 4, 0.01, 1)}
+                    {slider("Hue", "hue", -180, 180, 1, 0)}
+                    {slider("Temperature", "temperature", -1, 1, 0.01, 0)}
+                    {slider("Tint", "tint", -1, 1, 0.01, 0)}
+                    {slider("Shadows", "shadows", -1, 1, 0.01, 0)}
+                    {slider("Highlights", "highlights", -1, 1, 0.01, 0)}
+                    <EditorButton
+                      disabled={!color}
+                      onClick={() =>
+                        patchClip(clip.id, {
+                          effects: clip.effects?.filter(
+                            (e) => e.id !== COLOR_EFFECT_ID
+                          )
+                        })
+                      }
+                    >
+                      Clear color effect
+                    </EditorButton>
+                  </>
+                );
+              })()}
+            </FlexColumn>
+          </CollapsibleSection>
+        )}
+
+        {!isAudio && (
+          <CollapsibleSection title="Blur">
+            <FlexColumn css={sectionContentStyles} gap={1}>
+              {(() => {
+                const blur = findBlurEffect(clip);
+                const enabled = blur?.enabled ?? false;
+                const radius = blur?.radius ?? 0;
+                const updateBlur = (patch: Partial<ClipBlurEffect>) => {
+                  const next: ClipBlurEffect = {
+                    id: BLUR_EFFECT_ID,
+                    type: "blur",
+                    enabled,
+                    radius,
+                    sigma: blur?.sigma,
+                    ...patch
+                  };
+                  patchClip(clip.id, {
+                    effects: upsertEffect(clip.effects, next)
+                  });
+                };
+                return (
+                  <>
+                    <LabeledSwitch
+                      label="Enable blur"
+                      checked={enabled}
+                      onChange={(checked) => updateBlur({ enabled: checked })}
+                    />
+                    <FormField label={`Radius (${radius.toFixed(0)} px)`}>
+                      <NodeSlider
+                        min={0}
+                        max={20}
+                        step={0.5}
+                        value={radius}
+                        disabled={!enabled}
+                        onChange={(_e, value) =>
+                          updateBlur({
+                            radius: Array.isArray(value) ? value[0] : value
+                          })
+                        }
+                      />
+                    </FormField>
+                    <EditorButton
+                      disabled={!blur}
+                      onClick={() =>
+                        patchClip(clip.id, {
+                          effects: clip.effects?.filter(
+                            (e) => e.id !== BLUR_EFFECT_ID
+                          )
+                        })
+                      }
+                    >
+                      Clear blur effect
+                    </EditorButton>
+                  </>
+                );
+              })()}
+            </FlexColumn>
+          </CollapsibleSection>
+        )}
 
         <CollapsibleSection title="Actions" defaultOpen>
           <FlexColumn css={sectionContentStyles} gap={1}>
