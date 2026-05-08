@@ -35,6 +35,14 @@ const COLD_POOL_SIZE = 4;
 const TOTAL_POOL_SIZE = HOT_POOL_SIZE + COLD_POOL_SIZE;
 /** Preload upcoming clips within this lookahead window (ms). */
 const PRELOAD_LOOKAHEAD_MS = 30_000;
+/**
+ * Top-of-UI track (lowest `track.index`) renders on top in the composite —
+ * matches Premiere / Resolve / FCP. Compositor draws layers from low z to
+ * high z, so we invert the UI index. Constant offset keeps numbers
+ * positive for DOM placeholder z-indices too.
+ */
+const LAYER_Z_BASE = 1000;
+const trackZ = (uiIndex: number): number => LAYER_Z_BASE - uiIndex;
 
 const compositorStyles = css({
   position: "relative",
@@ -523,7 +531,7 @@ export const PreviewCompositor: React.FC = memo(() => {
         source: el,
         opacity: slot.opacity,
         blendMode: slot.blendMode,
-        zIndex: slot.trackIndex,
+        zIndex: trackZ(slot.trackIndex),
         transform: slot.transform,
         borderRadius: slot.borderRadius,
         effects: slot.effects
@@ -539,7 +547,7 @@ export const PreviewCompositor: React.FC = memo(() => {
         source: img,
         opacity: layer.opacity,
         blendMode: layer.blendMode,
-        zIndex: layer.trackIndex,
+        zIndex: trackZ(layer.trackIndex),
         transform: layer.transform,
         borderRadius: layer.borderRadius,
         effects: layer.effects
@@ -602,7 +610,7 @@ export const PreviewCompositor: React.FC = memo(() => {
             style={{
               position: "absolute",
               inset: 0,
-              zIndex: layer.trackIndex
+              zIndex: trackZ(layer.trackIndex)
             }}
           >
             <div css={placeholderLayerStyles(theme)}>
