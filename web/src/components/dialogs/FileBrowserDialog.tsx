@@ -181,14 +181,14 @@ function FileBrowserDialog({
     // Special handling for root based on OS style
     if (currentPath.startsWith("/")) {
       // Unix absolute
-      items.push({ name: "Root", path: "/" });
+      items.push({ label: "Root", path: "/" });
       pathAcc = "";
     } else if (currentPath.includes(":")) {
       // Windows absolute probably
       pathAcc = "";
     } else if (currentPath.startsWith("~")) {
       // Home relative
-      items.push({ name: "Home", path: "~" });
+      items.push({ label: "Home", path: "~" });
       pathAcc = "~";
       parts.shift();
     }
@@ -205,7 +205,7 @@ function FileBrowserDialog({
         // Default separator
         pathAcc = `${pathAcc}${separator}${part}`;
       }
-      items.push({ name: part, path: pathAcc });
+      items.push({ label: part, path: pathAcc });
     });
     return items;
   }, [currentPath]);
@@ -691,7 +691,7 @@ function FileBrowserDialog({
             >
               <Breadcrumbs
                 className="breadcrumbs"
-                items={breadcrumbs.map((b) => ({ label: b.name, path: b.path }))}
+                items={breadcrumbs}
                 separator="slash"
                 onNavigate={handleBreadcrumbNavigate}
               />
