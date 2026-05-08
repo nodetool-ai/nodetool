@@ -16,11 +16,36 @@ import React, {
   useRef
 } from "react";
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
+import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+
+interface RulerColors {
+  bg: string;
+  text: string;
+  tick: string;
+}
+
+/**
+ * Pick concrete color strings for the ruler from the active color scheme.
+ * Canvas 2D won't parse `var(--…)`, and `theme.palette.X` returns CSS-var
+ * strings under nodetool's `cssVariables` theme — so we go through
+ * `theme.colorSchemes` which exposes the plain palette values for each mode.
+ */
+function pickRulerColors(theme: Theme, mode: "light" | "dark"): RulerColors {
+  const scheme = theme.colorSchemes?.[mode];
+  const palette = scheme?.palette;
+  return {
+    bg: palette?.background?.paper ?? (mode === "dark" ? "#101113" : "#ffffff"),
+    text:
+      palette?.text?.secondary ?? (mode === "dark" ? "#a0a0a0" : "#5a5550"),
+    tick:
+      palette?.divider ??
+      (mode === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)")
+  };
+}
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -97,6 +122,8 @@ export interface TimeRulerProps {
 export const TimeRuler: React.FC<TimeRulerProps> = memo(
   ({ totalWidthPx, headerWidthPx = 0 }) => {
     const theme = useTheme();
+    const { mode, systemMode } = useColorScheme();
+    const activeMode = mode === "system" ? systemMode : mode;
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
@@ -133,12 +160,12 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, w, h);
 
-      const bg = theme.palette.background.paper;
-      ctx.fillStyle = bg;
+      const colors = pickRulerColors(theme, activeMode === "light" ? "light" : "dark");
+      ctx.fillStyle = colors.bg;
       ctx.fillRect(0, 0, w, h);
 
-      const textColor = theme.palette.text.secondary;
-      const tickColor = theme.palette.divider;
+      const textColor = colors.text;
+      const tickColor = colors.tick;
 
       const { majorMs, minorMs } = computeTickIntervals(msPerPx);
 
@@ -180,7 +207,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
           ctx.fillText(formatTimecode(tMs), px + 3, 3);
         }
       }
-    }, [msPerPx, scrollLeftPx, totalWidthPx, theme, headerWidthPx]);
+    }, [msPerPx, scrollLeftPx, totalWidthPx, theme, headerWidthPx, activeMode]);
 
     // ── Pointer interaction ─────────────────────────────────────────────────
 
