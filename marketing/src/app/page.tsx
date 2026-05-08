@@ -53,10 +53,6 @@ const ComparisonSection = dynamic(
   () => import("../components/ComparisonSection"),
   { ssr: false }
 );
-const EditionsCompareSection = dynamic(
-  () => import("../components/EditionsCompareSection"),
-  { ssr: false }
-);
 import { XMarkIcon, Bars3Icon } from "@heroicons/react/24/outline";
 
 import { Feature, features } from "./features";
@@ -578,9 +574,6 @@ export default function Home() {
             </motion.div>
           </div>
         </section>
-
-        {/* Editions: Studio vs Cloud */}
-        <EditionsCompareSection reducedMotion={reducedMotion} />
 
         {/* Comparisons with alternatives */}
         <ComparisonSection reducedMotion={reducedMotion} />
