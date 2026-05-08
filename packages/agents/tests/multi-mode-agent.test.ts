@@ -3,6 +3,7 @@ import { MultiModeAgent } from "../src/multi-mode-agent.js";
 import { SubAgentPlanner } from "../src/sub-agent-planner.js";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import type { AgentMode, SubAgentConfig, Task } from "../src/types.js";
+import { createMockContext } from "./_helpers/mock-context.js";
 
 // ---------------------------------------------------------------------------
 // Mock helpers
@@ -100,26 +101,6 @@ function createTracedMockProvider(
     imageToVideo: vi.fn(),
     generateEmbedding: vi.fn(),
     isContextLengthError: () => false
-  } as any;
-}
-
-function createMockContext() {
-  const store = new Map<string, unknown>();
-  return {
-    storeStepResult: vi.fn(async (key: string, value: unknown) => {
-      store.set(key, value);
-      return key;
-    }),
-    loadStepResult: vi.fn(async (key: string) => {
-      return store.get(key);
-    }),
-    set: vi.fn((key: string, value: unknown) => {
-      store.set(key, value);
-    }),
-    get: vi.fn((key: string) => {
-      return store.get(key);
-    }),
-    _store: store
   } as any;
 }
 

@@ -16,6 +16,7 @@
 import { createHash } from "node:crypto";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { memoryKeys } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import type { ProcessingMessage, Chunk, StepResult } from "@nodetool-ai/protocol";
 
@@ -43,6 +44,12 @@ export interface TaskExecutorOptions {
   finalStepId?: string;
   /** Execute independent steps in parallel (default: false). */
   parallelExecution?: boolean;
+  /**
+   * Memory keys (typically `task:<id>` from the parent plan's task-level
+   * dependencies) to surface in every step's user message as required
+   * upstream context. Forwarded to {@link StepExecutor.upstreamMemoryKeys}.
+   */
+  upstreamMemoryKeys?: string[];
 }
 
 export class TaskExecutor {
@@ -58,6 +65,7 @@ export class TaskExecutor {
   private maxTokenLimit: number;
   private finalStepId: string | undefined;
   private parallelExecution: boolean;
+  private upstreamMemoryKeys: string[];
   private _finishStepId: string | undefined;
 
   constructor(opts: TaskExecutorOptions) {
@@ -74,6 +82,7 @@ export class TaskExecutor {
     this.maxTokenLimit = opts.maxTokenLimit ?? DEFAULT_TOKEN_LIMIT;
     this.finalStepId = opts.finalStepId;
     this.parallelExecution = opts.parallelExecution ?? false;
+    this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
   }
 
   /**
@@ -81,9 +90,18 @@ export class TaskExecutor {
    * Supports both sequential and parallel execution modes.
    */
   async *executeTasks(): AsyncGenerator<ProcessingMessage> {
-    // Seed inputs into context
+    // Seed inputs into shared memory so every step sees them. Skip keys that
+    // were already seeded by an upstream caller (e.g. ParallelTaskExecutor) to
+    // avoid redundant writes and extra subscriber notifications.
     for (const [key, value] of Object.entries(this.inputs)) {
-      this.context.set(key, value);
+      const fullKey = memoryKeys.input(key);
+      if (this.context.memory.has(fullKey)) continue;
+      this.context.memory.set({
+        key: fullKey,
+        kind: "input",
+        value,
+        title: key
+      });
     }
 
     // Auto-detect finish step (last step) like Python does
@@ -143,7 +161,8 @@ export class TaskExecutor {
           systemPrompt: this.systemPrompt,
           maxTokenLimit: this.maxTokenLimit,
           maxIterations: this.maxStepIterations,
-          useFinishTask: this.isFinishStep(step)
+          useFinishTask: this.isFinishStep(step),
+          upstreamMemoryKeys: this.upstreamMemoryKeys
         });
         return executor.execute();
       });
@@ -196,13 +215,21 @@ export class TaskExecutor {
       return;
     }
 
-    let discoverResult = this.context.get(discoverStepId);
+    let discoverResult = this.context.memory.getValue(
+      memoryKeys.step(discoverStepId)
+    );
     if (discoverResult === undefined || discoverResult === null) {
       log.warn("Discover step result is null/undefined, skipping fan-out", {
         stepId: step.id
       });
       step.completed = true;
-      this.context.set(step.id, []);
+      this.context.memory.set({
+        key: memoryKeys.step(step.id),
+        kind: "step_result",
+        value: [],
+        source: step.id,
+        title: step.instructions.slice(0, 60)
+      });
       step.endTime = Date.now();
       return;
     }
@@ -268,7 +295,8 @@ export class TaskExecutor {
         systemPrompt: this.systemPrompt,
         maxTokenLimit: this.maxTokenLimit,
         maxIterations: this.maxStepIterations,
-        useFinishTask: false
+        useFinishTask: false,
+        upstreamMemoryKeys: this.upstreamMemoryKeys
       });
       return executor.execute();
     });
@@ -294,8 +322,14 @@ export class TaskExecutor {
       }
     }
 
-    // Store aggregated results and mark complete
-    this.context.set(step.id, results);
+    // Store aggregated results and mark complete.
+    this.context.memory.set({
+      key: memoryKeys.step(step.id),
+      kind: "step_result",
+      value: results,
+      source: step.id,
+      title: step.instructions.slice(0, 60)
+    });
     step.completed = true;
     step.endTime = Date.now();
 

@@ -10,6 +10,7 @@
 
 import type { NodeExecutor } from "@nodetool-ai/runtime";
 import type { ProcessingContext, BaseProvider } from "@nodetool-ai/runtime";
+import { memoryKeys } from "@nodetool-ai/runtime";
 import type {
   NodeDescriptor,
   ProcessingMessage,
@@ -91,7 +92,23 @@ export class AgentStepExecutor implements NodeExecutor {
       steps: [step]
     };
 
-    // Prepend upstream results to step instructions
+    // Persist upstream edge inputs into shared agent memory so other agents
+    // and downstream steps can discover them via `memory_list` and fetch them
+    // via `memory_read` (progressive disclosure). The current step does NOT
+    // see these entries in its prompt automatically — direct visibility for
+    // this step comes from the `Upstream Results` preamble appended below.
+    if (context) {
+      for (const [key, value] of Object.entries(inputs)) {
+        if (value === undefined || value === null) continue;
+        context.memory.set({
+          key: memoryKeys.input(`${this.node.id}.${key}`),
+          kind: "input",
+          value,
+          source: this.node.id,
+          title: `${this.node.id}.${key}`
+        });
+      }
+    }
     const upstreamContext = formatUpstreamContext(inputs);
     if (upstreamContext) {
       step.instructions = upstreamContext + step.instructions;
@@ -125,11 +142,6 @@ export class AgentStepExecutor implements NodeExecutor {
       if (msg.type === "step_result") {
         result = (msg as StepResult).result;
       }
-    }
-
-    // Also store in context for backwards compat with code reading from context
-    if (context) {
-      context.set(this.node.id, result);
     }
 
     // Use "output" as the handle name so downstream nodes can connect via .output

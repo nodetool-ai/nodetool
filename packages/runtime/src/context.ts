@@ -11,6 +11,7 @@
  */
 
 import type { AssetRef, ProcessingMessage } from "@nodetool-ai/protocol";
+import { AgentMemory } from "./agent-memory.js";
 import { randomUUID } from "node:crypto";
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import {
@@ -481,6 +482,12 @@ export class ProcessingContext {
 
   /** Storage adapter (optional, for asset handling). */
   readonly storage: StorageAdapter | null;
+  /**
+   * Unified, structured agent memory. The single source of truth for results
+   * shared between agents, tasks, steps and tools. Keys use the namespaces
+   * `step:`, `task:`, `input:`, `shared:` (see {@link memoryKeys}).
+   */
+  readonly memory: AgentMemory = new AgentMemory();
   /** Variables shared across node execution. */
   private _variables: Record<string, unknown>;
   /** Optional async secret resolver. */

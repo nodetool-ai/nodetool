@@ -6,6 +6,7 @@ import {
 } from "../src/agent-executor.js";
 import type { ToolCall } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
+import { createMockContext } from "./_helpers/mock-context.js";
 
 function createMockProvider(toolCallArgs?: Record<string, unknown>) {
   const args = toolCallArgs ?? {
@@ -50,15 +51,6 @@ function createMockProvider(toolCallArgs?: Record<string, unknown>) {
     trackUsage: vi.fn(),
     getTotalCost: vi.fn().mockReturnValue(0),
     resetCost: vi.fn()
-  } as any;
-}
-
-function createMockContext() {
-  return {
-    storeStepResult: vi.fn(),
-    loadStepResult: vi.fn(),
-    set: vi.fn(),
-    get: vi.fn()
   } as any;
 }
 
