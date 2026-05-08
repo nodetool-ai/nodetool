@@ -1,5 +1,5 @@
 import { WebGPUEffectsProcessor } from "./effectsProcessor";
-import { borderRadiusShader, transformShader } from "./shaders";
+import { blitShader, compositeShader } from "./shaders";
 import {
   IDENTITY_TRANSFORM,
   buildTransformMatrix,
@@ -12,59 +12,16 @@ import type {
   CompositorInitResult
 } from "./types";
 
-const TRANSFORM_UNIFORM_BYTES = 96;
-const BORDER_RADIUS_UNIFORM_BYTES = 96;
+const LAYER_UNIFORM_BYTES = 96;
+const ACCUM_FORMAT: GPUTextureFormat = "rgba8unorm";
 
-const BLEND_MODES: CompositorBlendMode[] = [
-  "normal",
-  "add",
-  "multiply",
-  "screen",
-  "overlay"
-];
-
-function blendStateFor(mode: CompositorBlendMode): GPUBlendState {
-  switch (mode) {
-    case "add":
-      return {
-        color: { srcFactor: "src-alpha", dstFactor: "one", operation: "add" },
-        alpha: { srcFactor: "one", dstFactor: "one", operation: "add" }
-      };
-    case "multiply":
-      return {
-        color: { srcFactor: "dst", dstFactor: "zero", operation: "add" },
-        alpha: {
-          srcFactor: "one",
-          dstFactor: "one-minus-src-alpha",
-          operation: "add"
-        }
-      };
-    case "screen":
-      return {
-        color: {
-          srcFactor: "one",
-          dstFactor: "one-minus-src",
-          operation: "add"
-        },
-        alpha: { srcFactor: "one", dstFactor: "one", operation: "add" }
-      };
-    case "normal":
-    case "overlay":
-    default:
-      return {
-        color: {
-          srcFactor: "src-alpha",
-          dstFactor: "one-minus-src-alpha",
-          operation: "add"
-        },
-        alpha: {
-          srcFactor: "one",
-          dstFactor: "one-minus-src-alpha",
-          operation: "add"
-        }
-      };
-  }
-}
+const BLEND_MODE_INDEX: Record<CompositorBlendMode, number> = {
+  normal: 0,
+  add: 1,
+  multiply: 2,
+  screen: 3,
+  overlay: 4
+};
 
 interface SourceTexture {
   texture: GPUTexture;
@@ -74,19 +31,8 @@ interface SourceTexture {
   lastUploadKey: string;
 }
 
-function uploadKey(source: CompositeSource): string {
-  if (source instanceof HTMLVideoElement) {
-    return `v:${source.currentTime}:${source.videoWidth}x${source.videoHeight}`;
-  }
-  if (source instanceof HTMLImageElement) {
-    return `i:${source.src}:${source.naturalWidth}x${source.naturalHeight}`;
-  }
-  return `b:${source.width}x${source.height}`;
-}
-
 function isSourceReady(source: CompositeSource): boolean {
   if (source instanceof HTMLVideoElement) {
-    // HAVE_CURRENT_DATA = 2 — the current frame is decoded.
     return source.readyState >= 2;
   }
   if (source instanceof HTMLImageElement) {
@@ -114,9 +60,14 @@ function sourceDimensions(source: CompositeSource): {
   return { width: source.width, height: source.height };
 }
 
-interface PipelinePair {
-  plain: GPURenderPipeline;
-  rounded: GPURenderPipeline;
+function uploadKey(source: CompositeSource): string {
+  if (source instanceof HTMLVideoElement) {
+    return `v:${source.currentTime}:${source.videoWidth}x${source.videoHeight}`;
+  }
+  if (source instanceof HTMLImageElement) {
+    return `i:${source.src}:${source.naturalWidth}x${source.naturalHeight}`;
+  }
+  return `b:${source.width}x${source.height}`;
 }
 
 export class WebGPUCompositor {
@@ -124,13 +75,22 @@ export class WebGPUCompositor {
   private context: GPUCanvasContext | null = null;
   private canvasFormat: GPUTextureFormat = "rgba8unorm";
 
-  private uniformLayout: GPUBindGroupLayout | null = null;
-  private textureLayout: GPUBindGroupLayout | null = null;
+  private layerUniformLayout: GPUBindGroupLayout | null = null;
+  private layerTextureLayout: GPUBindGroupLayout | null = null;
+  private accumTextureLayout: GPUBindGroupLayout | null = null;
+  private blitTextureLayout: GPUBindGroupLayout | null = null;
+
+  private layerPipeline: GPURenderPipeline | null = null;
+  private blitPipeline: GPURenderPipeline | null = null;
+
   private sampler: GPUSampler | null = null;
-  private pipelines = new Map<CompositorBlendMode, PipelinePair>();
 
   private canvasWidth = 0;
   private canvasHeight = 0;
+
+  private accumA: GPUTexture | null = null;
+  private accumB: GPUTexture | null = null;
+  private accumIdx: 0 | 1 = 0;
 
   private sourceTextures = new Map<string, SourceTexture>();
   private uniformBuffers: GPUBuffer[] = [];
@@ -165,8 +125,8 @@ export class WebGPUCompositor {
       alphaMode: "premultiplied"
     });
 
-    this.uniformLayout = device.createBindGroupLayout({
-      label: "preview-uniform-layout",
+    this.layerUniformLayout = device.createBindGroupLayout({
+      label: "preview-layer-uniforms",
       entries: [
         {
           binding: 0,
@@ -175,8 +135,38 @@ export class WebGPUCompositor {
         }
       ]
     });
-    this.textureLayout = device.createBindGroupLayout({
-      label: "preview-texture-layout",
+    this.layerTextureLayout = device.createBindGroupLayout({
+      label: "preview-layer-texture",
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.FRAGMENT,
+          sampler: { type: "filtering" }
+        },
+        {
+          binding: 1,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" }
+        }
+      ]
+    });
+    this.accumTextureLayout = device.createBindGroupLayout({
+      label: "preview-accum-texture",
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.FRAGMENT,
+          sampler: { type: "filtering" }
+        },
+        {
+          binding: 1,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" }
+        }
+      ]
+    });
+    this.blitTextureLayout = device.createBindGroupLayout({
+      label: "preview-blit-texture",
       entries: [
         {
           binding: 0,
@@ -199,53 +189,80 @@ export class WebGPUCompositor {
       addressModeV: "clamp-to-edge"
     });
 
-    const transformModule = device.createShaderModule({
-      label: "preview-transform",
-      code: transformShader
+    const compositeModule = device.createShaderModule({
+      label: "preview-composite",
+      code: compositeShader
     });
-    const borderRadiusModule = device.createShaderModule({
-      label: "preview-border-radius",
-      code: borderRadiusShader
+    const layerPipelineLayout = device.createPipelineLayout({
+      bindGroupLayouts: [
+        this.layerUniformLayout,
+        this.layerTextureLayout,
+        this.accumTextureLayout
+      ]
     });
-    const pipelineLayout = device.createPipelineLayout({
-      bindGroupLayouts: [this.uniformLayout, this.textureLayout]
+    // Single layer pipeline — blend math runs in the fragment shader,
+    // so no fixed-function blend state.
+    this.layerPipeline = device.createRenderPipeline({
+      label: "preview-layer-pipeline",
+      layout: layerPipelineLayout,
+      vertex: { module: compositeModule, entryPoint: "vs" },
+      fragment: {
+        module: compositeModule,
+        entryPoint: "fs",
+        targets: [{ format: ACCUM_FORMAT }]
+      },
+      primitive: { topology: "triangle-list" }
     });
 
-    for (const mode of BLEND_MODES) {
-      const blend = blendStateFor(mode);
-      const plain = device.createRenderPipeline({
-        label: `preview-pipeline-${mode}`,
-        layout: pipelineLayout,
-        vertex: { module: transformModule, entryPoint: "vs" },
-        fragment: {
-          module: transformModule,
-          entryPoint: "fs",
-          targets: [{ format: this.canvasFormat, blend }]
-        },
-        primitive: { topology: "triangle-list" }
-      });
-      const rounded = device.createRenderPipeline({
-        label: `preview-pipeline-rounded-${mode}`,
-        layout: pipelineLayout,
-        vertex: { module: borderRadiusModule, entryPoint: "vs" },
-        fragment: {
-          module: borderRadiusModule,
-          entryPoint: "fs",
-          targets: [{ format: this.canvasFormat, blend }]
-        },
-        primitive: { topology: "triangle-list" }
-      });
-      this.pipelines.set(mode, { plain, rounded });
-    }
+    const blitModule = device.createShaderModule({
+      label: "preview-blit",
+      code: blitShader
+    });
+    this.blitPipeline = device.createRenderPipeline({
+      label: "preview-blit-pipeline",
+      layout: device.createPipelineLayout({
+        bindGroupLayouts: [this.blitTextureLayout]
+      }),
+      vertex: { module: blitModule, entryPoint: "vs" },
+      fragment: {
+        module: blitModule,
+        entryPoint: "fs",
+        targets: [{ format: this.canvasFormat }]
+      },
+      primitive: { topology: "triangle-list" }
+    });
 
     this.effects = new WebGPUEffectsProcessor(device);
+    this.allocateAccumTextures();
 
     return { ok: true };
   }
 
   resize(width: number, height: number): void {
+    if (width === this.canvasWidth && height === this.canvasHeight) return;
     this.canvasWidth = width;
     this.canvasHeight = height;
+    this.allocateAccumTextures();
+  }
+
+  private allocateAccumTextures(): void {
+    if (!this.device || this.canvasWidth === 0 || this.canvasHeight === 0) return;
+    this.accumA?.destroy();
+    this.accumB?.destroy();
+    const make = (label: string): GPUTexture =>
+      this.device!.createTexture({
+        label,
+        size: { width: this.canvasWidth, height: this.canvasHeight },
+        format: ACCUM_FORMAT,
+        usage:
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.RENDER_ATTACHMENT |
+          GPUTextureUsage.COPY_SRC |
+          GPUTextureUsage.COPY_DST
+      });
+    this.accumA = make("preview-accum-a");
+    this.accumB = make("preview-accum-b");
+    this.accumIdx = 0;
   }
 
   setLayers(layers: CompositeLayer[]): void {
@@ -264,14 +281,6 @@ export class WebGPUCompositor {
     this.effects?.retainOnly(liveIds);
   }
 
-  /**
-   * Allocates / reuses a source GPU texture for the layer and copies its
-   * current pixels into it. If the source isn't ready right now (e.g. a
-   * `<video>` mid-seek with `readyState < HAVE_CURRENT_DATA`) the texture
-   * is left unchanged and we return the previous entry — keeps the last
-   * good frame on screen instead of flashing to black during a scrub.
-   * Returns null only if there's no texture to fall back on yet.
-   */
   private uploadSource(layer: CompositeLayer): SourceTexture | null {
     if (!this.device) return null;
     const { width, height } = sourceDimensions(layer.source);
@@ -312,21 +321,15 @@ export class WebGPUCompositor {
         );
         entry.lastUploadKey = key;
       } catch {
-        // The browser claimed the frame was ready (readyState >= 2) but its
-        // GPU-side resource is gone — happens transiently during seeks in
-        // Chrome ("doesn't have back resource"). Keep the previous texture
-        // and try again on the next render.
+        // Browser claimed readyState >= 2 but the GPU side resource is
+        // gone (Chrome scrub race). Keep the previous texture.
       }
     }
-    // If we couldn't upload yet AND have never uploaded for this entry,
-    // there's nothing to draw — skip the layer this frame.
-    if (entry.lastUploadKey === "") {
-      return null;
-    }
+    if (entry.lastUploadKey === "") return null;
     return entry;
   }
 
-  private getUniformBuffer(index: number, size: number): GPUBuffer {
+  private getUniformBuffer(index: number): GPUBuffer {
     if (!this.device) {
       throw new Error("Compositor not initialized");
     }
@@ -334,7 +337,7 @@ export class WebGPUCompositor {
     if (!buffer) {
       buffer = this.device.createBuffer({
         label: `preview-layer-uniforms-${index}`,
-        size: Math.max(size, TRANSFORM_UNIFORM_BYTES),
+        size: LAYER_UNIFORM_BYTES,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
       });
       this.uniformBuffers[index] = buffer;
@@ -347,33 +350,44 @@ export class WebGPUCompositor {
       !this.device ||
       !this.context ||
       !this.sampler ||
-      !this.uniformLayout ||
-      !this.textureLayout
+      !this.layerUniformLayout ||
+      !this.layerTextureLayout ||
+      !this.accumTextureLayout ||
+      !this.blitTextureLayout ||
+      !this.layerPipeline ||
+      !this.blitPipeline ||
+      !this.accumA ||
+      !this.accumB
     ) {
       return;
     }
 
-    const view = this.context.getCurrentTexture().createView();
-    const encoder = this.device.createCommandEncoder({ label: "preview-frame" });
-    const pass = encoder.beginRenderPass({
-      label: "preview-pass",
-      colorAttachments: [
-        {
-          view,
-          clearValue: { r: 0, g: 0, b: 0, a: 1 },
-          loadOp: "clear",
-          storeOp: "store"
-        }
-      ]
-    });
+    const device = this.device;
+    const sampler = this.sampler;
+
+    // 1. Clear the starting accumulation to opaque black.
+    this.accumIdx = 0;
+    {
+      const encoder = device.createCommandEncoder({ label: "preview-clear" });
+      const pass = encoder.beginRenderPass({
+        colorAttachments: [
+          {
+            view: this.accumA.createView(),
+            clearValue: { r: 0, g: 0, b: 0, a: 1 },
+            loadOp: "clear",
+            storeOp: "store"
+          }
+        ]
+      });
+      pass.end();
+      device.queue.submit([encoder.finish()]);
+    }
 
     let drawn = 0;
     for (const layer of this.layers) {
       const src = this.uploadSource(layer);
       if (!src) continue;
 
-      // Run effects pre-pass if any. Effects uses its own command encoder
-      // and submits before we record this draw — so the result is ready.
       const effectsList = layer.effects ?? [];
       const processedTexture =
         effectsList.length > 0 && this.effects
@@ -399,50 +413,111 @@ export class WebGPUCompositor {
         radiusPx > 0 && src.width > 0 && src.height > 0
           ? Math.min(0.5, radiusPx / Math.min(src.width, src.height))
           : 0;
-      const useRadius = radiusNormalized > 0.001;
       const aspect = src.height === 0 ? 1 : src.width / src.height;
+      const blendIndex = BLEND_MODE_INDEX[layer.blendMode] ?? 0;
 
-      const uniformBuffer = this.getUniformBuffer(
-        drawn,
-        useRadius ? BORDER_RADIUS_UNIFORM_BYTES : TRANSFORM_UNIFORM_BYTES
-      );
-      // Both pipelines use 96-byte buffers but the tail layout differs.
-      const data = new Float32Array(24);
-      data.set(matrix, 0);
-      data[16] = layer.opacity;
-      if (useRadius) {
-        data[17] = radiusNormalized;
-        data[18] = aspect;
-        data[19] = 0.01; // smoothness — small, anti-alias band
-      }
-      this.device.queue.writeBuffer(uniformBuffer, 0, data.buffer, 0, data.byteLength);
+      const uniformBuffer = this.getUniformBuffer(drawn);
+      const data = new ArrayBuffer(LAYER_UNIFORM_BYTES);
+      const f = new Float32Array(data);
+      const u = new Uint32Array(data);
+      f.set(matrix, 0);
+      f[16] = layer.opacity;
+      f[17] = radiusNormalized;
+      f[18] = aspect;
+      f[19] = 0.01; // smoothness band for SDF
+      u[20] = blendIndex;
+      device.queue.writeBuffer(uniformBuffer, 0, data);
 
-      const uniformBindGroup = this.device.createBindGroup({
-        layout: this.uniformLayout,
-        entries: [{ binding: 0, resource: { buffer: uniformBuffer } }]
+      const accumIn = this.accumIdx === 0 ? this.accumA : this.accumB;
+      const accumOut = this.accumIdx === 0 ? this.accumB : this.accumA;
+
+      // Seed the next ping-pong target with the current accumulation, so
+      // pixels outside the layer's transformed quad keep their previous
+      // value. Compositing math (which needs to read accumIn) happens in
+      // the layer fragment shader and writes accumOut.
+      const encoder = device.createCommandEncoder({
+        label: `preview-layer-${drawn}`
       });
-      const textureBindGroup = this.device.createBindGroup({
-        layout: this.textureLayout,
-        entries: [
-          { binding: 0, resource: this.sampler },
-          { binding: 1, resource: processedTexture.createView() }
+      encoder.copyTextureToTexture(
+        { texture: accumIn },
+        { texture: accumOut },
+        { width: this.canvasWidth, height: this.canvasHeight }
+      );
+
+      const pass = encoder.beginRenderPass({
+        colorAttachments: [
+          {
+            view: accumOut.createView(),
+            loadOp: "load",
+            storeOp: "store"
+          }
         ]
       });
-
-      const pair =
-        this.pipelines.get(layer.blendMode) ?? this.pipelines.get("normal");
-      if (!pair) continue;
-      const pipeline = useRadius ? pair.rounded : pair.plain;
-
-      pass.setPipeline(pipeline);
-      pass.setBindGroup(0, uniformBindGroup);
-      pass.setBindGroup(1, textureBindGroup);
+      pass.setPipeline(this.layerPipeline);
+      pass.setBindGroup(
+        0,
+        device.createBindGroup({
+          layout: this.layerUniformLayout,
+          entries: [{ binding: 0, resource: { buffer: uniformBuffer } }]
+        })
+      );
+      pass.setBindGroup(
+        1,
+        device.createBindGroup({
+          layout: this.layerTextureLayout,
+          entries: [
+            { binding: 0, resource: sampler },
+            { binding: 1, resource: processedTexture.createView() }
+          ]
+        })
+      );
+      pass.setBindGroup(
+        2,
+        device.createBindGroup({
+          layout: this.accumTextureLayout,
+          entries: [
+            { binding: 0, resource: sampler },
+            { binding: 1, resource: accumIn.createView() }
+          ]
+        })
+      );
       pass.draw(6);
+      pass.end();
+      device.queue.submit([encoder.finish()]);
+
+      this.accumIdx = (1 - this.accumIdx) as 0 | 1;
       drawn++;
     }
 
-    pass.end();
-    this.device.queue.submit([encoder.finish()]);
+    // 2. Final blit: present the latest accumulation to the swapchain.
+    const finalAccum = this.accumIdx === 0 ? this.accumA : this.accumB;
+    const presentEncoder = device.createCommandEncoder({
+      label: "preview-present"
+    });
+    const presentPass = presentEncoder.beginRenderPass({
+      colorAttachments: [
+        {
+          view: this.context.getCurrentTexture().createView(),
+          loadOp: "clear",
+          clearValue: { r: 0, g: 0, b: 0, a: 1 },
+          storeOp: "store"
+        }
+      ]
+    });
+    presentPass.setPipeline(this.blitPipeline);
+    presentPass.setBindGroup(
+      0,
+      device.createBindGroup({
+        layout: this.blitTextureLayout,
+        entries: [
+          { binding: 0, resource: sampler },
+          { binding: 1, resource: finalAccum.createView() }
+        ]
+      })
+    );
+    presentPass.draw(6);
+    presentPass.end();
+    device.queue.submit([presentEncoder.finish()]);
   }
 
   dispose(): void {
@@ -454,12 +529,19 @@ export class WebGPUCompositor {
       buffer.destroy();
     }
     this.uniformBuffers = [];
-    this.pipelines.clear();
+    this.accumA?.destroy();
+    this.accumB?.destroy();
+    this.accumA = null;
+    this.accumB = null;
+    this.layerPipeline = null;
+    this.blitPipeline = null;
     this.effects?.dispose();
     this.effects = null;
     this.sampler = null;
-    this.uniformLayout = null;
-    this.textureLayout = null;
+    this.layerUniformLayout = null;
+    this.layerTextureLayout = null;
+    this.accumTextureLayout = null;
+    this.blitTextureLayout = null;
     this.context = null;
     this.device?.destroy();
     this.device = null;

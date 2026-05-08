@@ -1,101 +1,54 @@
 /**
- * Transform shader: vertex stage applies a 4x4 matrix per layer; fragment
- * samples the source texture and applies opacity. Two-triangle quad with
- * explicit UVs (no full-screen triangle trick — UV math has to stay clean
- * after we scale/rotate the quad in clip space).
+ * Composite shader. The full preview pipeline is:
  *
- * Matrix layout matches openreel's createTransformMatrix:
- *   columns = [scale.x*cos, scale.x*sin, 0, 0,
- *              -scale.y*sin, scale.y*cos, 0, 0,
- *              0, 0, 1, 0,
- *              tx, ty, 0, 1]
+ *   accumA (cleared) ──► accumB ──► accumA ──► … ──► swapchain
+ *                  layer 1   layer 2          blit
  *
- * Uniform buffer (96 bytes total):
- *   matrix: 64
- *   opacity: 4
- *   _pad0:   4
- *   _pad1:   8 (unused — kept for layout symmetry with the border-radius variant)
+ * Each layer renders a transformed quad into the next ping-pong target
+ * (`loadOp: "load"`, the contents of the previous accumulation copied in
+ * via `copyTextureToTexture` first). Inside the quad, the fragment shader
+ * samples both the previous accumulation (at the fragment's screen UV)
+ * and the layer source (at the layer-local UV), and combines them per
+ * the active blend mode. Fixed-function blend state stays at "no blend"
+ * — all compositing math lives in the shader.
+ *
+ * Uniform layout (96 bytes for both transform + border-radius variants):
+ *   matrix:     64
+ *   opacity:     4
+ *   borderRadius:4   (normalized 0..0.5; 0 = sharp corners)
+ *   aspect:      4   (source w/h)
+ *   smoothness:  4
+ *   blendMode:   4   (u32 enum — see BLEND_MODE_* constants below)
+ *   _pad:       12
  */
-export const transformShader = /* wgsl */ `
-struct Uniforms {
-  matrix: mat4x4<f32>,
-  opacity: f32,
-  _pad0: f32,
-  _pad1: vec2<f32>,
-};
-
-@group(0) @binding(0) var<uniform> u: Uniforms;
-@group(1) @binding(0) var samp: sampler;
-@group(1) @binding(1) var tex: texture_2d<f32>;
-
-struct VsOut {
-  @builtin(position) pos: vec4<f32>,
-  @location(0) uv: vec2<f32>,
-};
-
-@vertex
-fn vs(@builtin(vertex_index) i: u32) -> VsOut {
-  var positions = array<vec2<f32>, 6>(
-    vec2<f32>(-1.0, -1.0),
-    vec2<f32>( 1.0, -1.0),
-    vec2<f32>(-1.0,  1.0),
-    vec2<f32>(-1.0,  1.0),
-    vec2<f32>( 1.0, -1.0),
-    vec2<f32>( 1.0,  1.0),
-  );
-  var uvs = array<vec2<f32>, 6>(
-    vec2<f32>(0.0, 1.0),
-    vec2<f32>(1.0, 1.0),
-    vec2<f32>(0.0, 0.0),
-    vec2<f32>(0.0, 0.0),
-    vec2<f32>(1.0, 1.0),
-    vec2<f32>(1.0, 0.0),
-  );
-  var out: VsOut;
-  out.pos = u.matrix * vec4<f32>(positions[i], 0.0, 1.0);
-  out.uv = uvs[i];
-  return out;
-}
-
-@fragment
-fn fs(in: VsOut) -> @location(0) vec4<f32> {
-  let c = textureSample(tex, samp, in.uv);
-  return vec4<f32>(c.rgb, c.a * u.opacity);
-}
-`;
-
-/**
- * Border-radius variant: same vertex transform but the fragment uses an SDF
- * to mask rounded corners with anti-aliased edges. `radius` is in normalized
- * [0, 0.5] units (fraction of the shorter quad axis).
- *
- * Uniform buffer (96 bytes):
- *   matrix: 64
- *   opacity: 4
- *   radius:  4
- *   aspect:  4   (width/height of the source — corrects the SDF for non-square layers)
- *   smooth:  4
- *   _pad:    16
- */
-export const borderRadiusShader = /* wgsl */ `
+export const compositeShader = /* wgsl */ `
 struct Uniforms {
   matrix: mat4x4<f32>,
   opacity: f32,
   radius: f32,
   aspect: f32,
   smoothness: f32,
-  _pad: vec4<f32>,
+  blendMode: u32,
+  _pad: vec3<u32>,
 };
 
 @group(0) @binding(0) var<uniform> u: Uniforms;
 @group(1) @binding(0) var samp: sampler;
-@group(1) @binding(1) var tex: texture_2d<f32>;
+@group(1) @binding(1) var layerTex: texture_2d<f32>;
+@group(2) @binding(0) var accumSamp: sampler;
+@group(2) @binding(1) var accumTex: texture_2d<f32>;
 
 struct VsOut {
   @builtin(position) pos: vec4<f32>,
   @location(0) uv: vec2<f32>,
   @location(1) local: vec2<f32>,
 };
+
+const BLEND_NORMAL: u32   = 0u;
+const BLEND_ADD: u32      = 1u;
+const BLEND_MULTIPLY: u32 = 2u;
+const BLEND_SCREEN: u32   = 3u;
+const BLEND_OVERLAY: u32  = 4u;
 
 @vertex
 fn vs(@builtin(vertex_index) i: u32) -> VsOut {
@@ -127,29 +80,107 @@ fn sdRoundedRect(p: vec2<f32>, b: vec2<f32>, r: f32) -> f32 {
   return min(max(q.x, q.y), 0.0) + length(max(q, vec2<f32>(0.0))) - r;
 }
 
+fn applyBlend(src: vec3<f32>, dst: vec3<f32>, mode: u32) -> vec3<f32> {
+  if (mode == BLEND_ADD) {
+    return min(src + dst, vec3<f32>(1.0));
+  }
+  if (mode == BLEND_MULTIPLY) {
+    return src * dst;
+  }
+  if (mode == BLEND_SCREEN) {
+    return src + dst - src * dst;
+  }
+  if (mode == BLEND_OVERLAY) {
+    let lt = step(dst, vec3<f32>(0.5));
+    let dark = 2.0 * src * dst;
+    let light = vec3<f32>(1.0) - 2.0 * (vec3<f32>(1.0) - src) * (vec3<f32>(1.0) - dst);
+    return mix(light, dark, lt);
+  }
+  return src; // BLEND_NORMAL
+}
+
 @fragment
 fn fs(in: VsOut) -> @location(0) vec4<f32> {
-  let c = textureSample(tex, samp, in.uv);
-  // Stretch the local position to a square so the SDF gives a uniform corner.
-  var p = in.local;
-  if (u.aspect > 1.0) {
-    p.y = p.y / u.aspect;
-  } else {
-    p.x = p.x * u.aspect;
+  // Screen-space UV for sampling the previous accumulation. WebGPU's
+  // builtin(position).xy is in pixels relative to the viewport origin.
+  let dims = vec2<f32>(textureDimensions(accumTex, 0));
+  let screenUv = in.pos.xy / dims;
+  let dst = textureSample(accumTex, accumSamp, screenUv);
+
+  // Sample the layer source.
+  let layer = textureSample(layerTex, samp, in.uv);
+  var layerAlpha = layer.a * u.opacity;
+
+  // Border-radius mask via SDF in layer-local space (-1..1).
+  if (u.radius > 0.0) {
+    var p = in.local;
+    if (u.aspect > 1.0) {
+      p.y = p.y / u.aspect;
+    } else {
+      p.x = p.x * u.aspect;
+    }
+    let halfSize = vec2<f32>(min(1.0, u.aspect), min(1.0, 1.0 / u.aspect));
+    let r = clamp(u.radius, 0.0, 0.5) * 2.0 * min(halfSize.x, halfSize.y);
+    let dist = sdRoundedRect(p, halfSize, r);
+    let mask = 1.0 - smoothstep(-u.smoothness, u.smoothness, dist);
+    layerAlpha = layerAlpha * mask;
   }
-  let halfSize = vec2<f32>(min(1.0, u.aspect), min(1.0, 1.0 / u.aspect));
-  let r = clamp(u.radius, 0.0, 0.5) * 2.0 * min(halfSize.x, halfSize.y);
-  let dist = sdRoundedRect(p, halfSize, r);
-  let alpha = 1.0 - smoothstep(-u.smoothness, u.smoothness, dist);
-  return vec4<f32>(c.rgb, c.a * u.opacity * alpha);
+
+  // Blend math runs in non-premultiplied RGB; the layer's effective alpha
+  // is its texture alpha × layer opacity × border-radius mask.
+  let blended = applyBlend(layer.rgb, dst.rgb, u.blendMode);
+  let outRgb = mix(dst.rgb, blended, layerAlpha);
+  let outA = layerAlpha + dst.a * (1.0 - layerAlpha);
+  return vec4<f32>(outRgb, outA);
 }
 `;
 
 /**
- * Color effects compute shader. Single pass that chains brightness →
- * contrast → saturation → hue → temperature → tint → shadows/highlights.
- * Ported verbatim from openreel-video's effects.wgsl.
+ * Blit shader — fullscreen quad that samples a single texture and writes
+ * it straight through. Used to (a) seed the next ping-pong target with
+ * the previous accumulation before each layer pass, and (b) present the
+ * final accumulation to the swapchain.
  */
+export const blitShader = /* wgsl */ `
+@group(0) @binding(0) var samp: sampler;
+@group(0) @binding(1) var tex: texture_2d<f32>;
+
+struct VsOut {
+  @builtin(position) pos: vec4<f32>,
+  @location(0) uv: vec2<f32>,
+};
+
+@vertex
+fn vs(@builtin(vertex_index) i: u32) -> VsOut {
+  var positions = array<vec2<f32>, 6>(
+    vec2<f32>(-1.0, -1.0),
+    vec2<f32>( 1.0, -1.0),
+    vec2<f32>(-1.0,  1.0),
+    vec2<f32>(-1.0,  1.0),
+    vec2<f32>( 1.0, -1.0),
+    vec2<f32>( 1.0,  1.0),
+  );
+  var uvs = array<vec2<f32>, 6>(
+    vec2<f32>(0.0, 1.0),
+    vec2<f32>(1.0, 1.0),
+    vec2<f32>(0.0, 0.0),
+    vec2<f32>(0.0, 0.0),
+    vec2<f32>(1.0, 1.0),
+    vec2<f32>(1.0, 0.0),
+  );
+  var out: VsOut;
+  out.pos = vec4<f32>(positions[i], 0.0, 1.0);
+  out.uv = uvs[i];
+  return out;
+}
+
+@fragment
+fn fs(in: VsOut) -> @location(0) vec4<f32> {
+  return textureSample(tex, samp, in.uv);
+}
+`;
+
+/** Color-grading compute shader (unchanged from before). */
 export const effectsComputeShader = /* wgsl */ `
 struct EffectUniforms {
   brightness: f32,
@@ -267,10 +298,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
 }
 `;
 
-/**
- * Separable Gaussian blur compute shader. Caller dispatches twice — once
- * with direction (1,0) and once with (0,1) — and ping-pongs textures.
- */
+/** Separable Gaussian blur compute shader (unchanged). */
 export const blurComputeShader = /* wgsl */ `
 struct BlurUniforms {
   radius: f32,
