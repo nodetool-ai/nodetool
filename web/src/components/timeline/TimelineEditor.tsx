@@ -51,6 +51,7 @@ import {
 import { useWorkflowFreshnessCheck } from "../../hooks/timeline/useWorkflowFreshnessCheck";
 import { useTimelineGenerationSubscriptions } from "../../hooks/timeline/useGenerateClip";
 import { useLoadTimelineIntoStore } from "../../hooks/timeline/useLoadTimelineIntoStore";
+import { useTimelineAutosave } from "../../hooks/timeline/useTimelineAutosave";
 
 // ── Drag-handle constants ──────────────────────────────────────────────────
 
@@ -233,6 +234,9 @@ export const TimelineEditor: React.FC = memo(() => {
   // Mirror the fetched sequence into the TimelineStore so store-bound
   // components (Tracks, Inspector, ActivityIndicator) render its content.
   useLoadTimelineIntoStore(sequence);
+
+  // Persist subsequent edits back via trpc.timeline.update (debounced).
+  useTimelineAutosave();
 
   // Workflow freshness check — runs on mount after returning from the node editor
   const { driftItems, resolveDrift } = useWorkflowFreshnessCheck(sequenceId ?? null);
