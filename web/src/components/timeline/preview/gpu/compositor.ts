@@ -12,7 +12,10 @@ import type {
   CompositorInitResult
 } from "./types";
 
-const LAYER_UNIFORM_BYTES = 96;
+// WGSL: matrix(64) + opacity/radius/aspect/smoothness/blendMode (5×4=20)
+// + vec3<u32> _pad which has 16-byte alignment, so it starts at offset 96
+// and the struct size rounds up to 112.
+const LAYER_UNIFORM_BYTES = 112;
 const ACCUM_FORMAT: GPUTextureFormat = "rgba8unorm";
 
 const BLEND_MODE_INDEX: Record<CompositorBlendMode, number> = {

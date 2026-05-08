@@ -39,6 +39,9 @@ import { TimeRuler } from "./TimeRuler";
 import { Playhead } from "./Playhead";
 import { AddTrackButton } from "./AddTrackButton";
 import { FlexColumn, FlexRow } from "../../ui_primitives";
+import { deserializeDragData } from "../../../lib/dragdrop";
+import type { Asset } from "../../../stores/ApiTypes";
+import { assetMediaType } from "../dnd/assetToClipAdapter";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -104,7 +107,60 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     );
     const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
 
+    const addTrack = useTimelineStore((s) => s.addTrack);
+    const addImportedClip = useTimelineStore((s) => s.addImportedClip);
+
     const scrollableRef = useRef<HTMLDivElement>(null);
+
+    // ── Drop on empty area: auto-create a track of matching type ───────────
+
+    const isAssetDrag = useCallback((e: React.DragEvent): boolean => {
+      return (
+        e.dataTransfer.types.includes("asset") ||
+        e.dataTransfer.types.includes("selectedAssetIds")
+      );
+    }, []);
+
+    const handleEmptyAreaDragOver = useCallback(
+      (e: React.DragEvent<HTMLDivElement>) => {
+        if (!isAssetDrag(e)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      },
+      [isAssetDrag]
+    );
+
+    const handleEmptyAreaDrop = useCallback(
+      (e: React.DragEvent<HTMLDivElement>) => {
+        if (!isAssetDrag(e)) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        const dragData = deserializeDragData(e.dataTransfer);
+        if (!dragData || dragData.type !== "asset") return;
+        const asset = dragData.payload as Asset;
+
+        const mediaType = assetMediaType(asset.content_type);
+        if (!mediaType) return;
+
+        const trackType: "video" | "audio" =
+          mediaType === "audio" ? "audio" : "video";
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const dropX = e.clientX - rect.left;
+        const startMs = Math.max(
+          0,
+          Math.round((dropX + scrollLeftPx) * msPerPx)
+        );
+
+        addTrack(trackType);
+        const newTrack =
+          useTimelineStore.getState().tracks.slice(-1)[0];
+        if (!newTrack) return;
+        addImportedClip(asset, newTrack.id, startMs);
+      },
+      [isAssetDrag, scrollLeftPx, msPerPx, addTrack, addImportedClip]
+    );
 
     // Total scrollable width = max of durationMs or visible area
     const totalWidthPx = Math.max(
@@ -238,6 +294,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             css={scrollableAreaStyles}
             onScroll={handleScroll}
             onWheel={handleWheel}
+            onDragOver={handleEmptyAreaDragOver}
+            onDrop={handleEmptyAreaDrop}
           >
             <div
               css={lanesContainerStyles}

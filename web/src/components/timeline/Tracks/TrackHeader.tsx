@@ -20,6 +20,7 @@ import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -126,6 +127,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
   const setTrackSolo = useTimelineStore((s) => s.setTrackSolo);
   const setTrackHeight = useTimelineStore((s) => s.setTrackHeight);
   const setTrackName = useTimelineStore((s) => s.setTrackName);
+  const removeTrack = useTimelineStore((s) => s.removeTrack);
 
   const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
 
@@ -265,6 +267,22 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
             </Tooltip>
           </>
         )}
+
+        <Tooltip title="Remove track">
+          <button
+            css={iconButtonStyles(theme, true)}
+            onClick={() => {
+              if (
+                window.confirm(`Remove track "${track.name}" and all its clips?`)
+              ) {
+                removeTrack(track.id);
+              }
+            }}
+            aria-label="Remove track"
+          >
+            <DeleteOutlineIcon />
+          </button>
+        </Tooltip>
       </div>
 
       {/* Height resize handle */}

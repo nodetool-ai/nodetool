@@ -361,7 +361,10 @@ export const PreviewCompositor: React.FC = memo(() => {
       const assetId = effectiveAssetId(clip);
       const url = resolveUrl(assetId);
 
-      if (clip.mediaType === "image" && track.type === "video") {
+      if (
+        clip.mediaType === "image" &&
+        (track.type === "video" || track.type === "overlay")
+      ) {
         imageLayers.push({
           clipId: clip.id,
           trackIndex: track.index,
