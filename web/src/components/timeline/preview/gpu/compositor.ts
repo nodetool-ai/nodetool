@@ -304,12 +304,19 @@ export class WebGPUCompositor {
     }
 
     if (entry.lastUploadKey !== key && isSourceReady(layer.source)) {
-      this.device.queue.copyExternalImageToTexture(
-        { source: layer.source, flipY: false },
-        { texture: entry.texture, premultipliedAlpha: false },
-        { width, height }
-      );
-      entry.lastUploadKey = key;
+      try {
+        this.device.queue.copyExternalImageToTexture(
+          { source: layer.source, flipY: false },
+          { texture: entry.texture, premultipliedAlpha: false },
+          { width, height }
+        );
+        entry.lastUploadKey = key;
+      } catch {
+        // The browser claimed the frame was ready (readyState >= 2) but its
+        // GPU-side resource is gone — happens transiently during seeks in
+        // Chrome ("doesn't have back resource"). Keep the previous texture
+        // and try again on the next render.
+      }
     }
     // If we couldn't upload yet AND have never uploaded for this entry,
     // there's nothing to draw — skip the layer this frame.
