@@ -53,6 +53,10 @@ export interface TimelineStoreState {
   // ── Document ─────────────────────────────────────────────────────────────
   sequenceId: string | null;
   fps: number;
+  /** Sequence width in pixels (project resolution). */
+  width: number;
+  /** Sequence height in pixels (project resolution). */
+  height: number;
   durationMs: number;
   tracks: TimelineTrack[];
   clips: TimelineClip[];
@@ -218,6 +222,8 @@ type PartializedState = Pick<
 const emptyState = {
   sequenceId: null as string | null,
   fps: 30,
+  width: 1920,
+  height: 1080,
   durationMs: 0,
   tracks: [] as TimelineTrack[],
   clips: [] as TimelineClip[],
@@ -249,6 +255,8 @@ export const createTimelineStore = (
           set({
             sequenceId: seq.id,
             fps: seq.fps,
+            width: seq.width,
+            height: seq.height,
             durationMs: seq.durationMs,
             tracks: seq.tracks,
             clips: seq.clips,
