@@ -2,16 +2,15 @@
  * useOverlayRenderer
  *
  * Manages overlay canvas drawing for shape/gradient/crop/selection preview
- * (document-sized bitmap), viewport-layer marching ants + pixel grid on the
- * screen-resolution selection canvas, and cursor canvas rendering.
+ * (document-sized bitmap), viewport-layer pixel grid + live selection previews
+ * on the screen-resolution selection canvas, and cursor canvas rendering.
  */
 
 import { useCallback, useEffect, useRef } from "react";
 import type {
   SketchDocument,
   SketchTool,
-  Point,
-  Selection
+  Point
 } from "../types";
 import { getToolHandler } from "../tools";
 import { CloneStampTool } from "../tools/CloneStampTool";
@@ -27,8 +26,6 @@ import {
   documentCanvasToClient
 } from "../tools/transform/handleGeometry";
 import {
-  buildSelectionMaskOutlinePath,
-  drawSelectionAntsFromPath,
   drawSelectionEllipseOutline,
   drawSelectionPolylineOutline,
   drawSelectionRectOutline,
@@ -53,7 +50,6 @@ export interface UseOverlayRendererParams {
   interactionTool: SketchTool;
   zoom: number;
   pan: Point;
-  selection?: Selection | null;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   selectionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   cursorCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -64,13 +60,6 @@ export interface UseOverlayRendererParams {
   altHeldRef: React.MutableRefObject<boolean>;
   selectStartRef: React.MutableRefObject<Point | null>;
   lassoPointsRef: React.MutableRefObject<Point[]>;
-  /**
-   * When true, committed selection marching ants are rendered by WebGPU on the
-   * display canvas. Skip building/stroking a CPU {@link Path2D} for the
-   * selection mask — fragmented magic-wand selections create enormous paths
-   * and animating them here pegs the main thread (and makes brushing sluggish).
-   */
-  committedSelectionAntsOnGpu?: boolean;
 }
 
 /**
@@ -88,9 +77,9 @@ export type GizmoDrawCallback = (
 export interface UseOverlayRendererResult {
   clearOverlay: () => void;
   drawSelectionOverlay: () => void;
-  /** Update the visual origin of the committed selection ants during a drag (no store update). */
+  /** Kept for pointer-tool wiring; committed-selection movement is rendered by the runtime. */
   setSelectionOriginOverride: (pos: { x: number; y: number } | null) => void;
-  /** Draw marching ants on top without clearing (e.g. after `drawActiveStrokePreview`). */
+  /** Repaint selection-canvas chrome on top without clearing the document overlay. */
   appendSelectionOverlay: () => void;
   drawOverlayShape: (start: Point, end: Point) => void;
   drawOverlayGradient: (start: Point, end: Point) => void;
@@ -118,7 +107,6 @@ export function useOverlayRenderer({
   interactionTool,
   zoom,
   pan,
-  selection,
   overlayCanvasRef,
   selectionCanvasRef,
   cursorCanvasRef,
@@ -127,8 +115,7 @@ export function useOverlayRenderer({
   shiftHeldRef,
   altHeldRef,
   selectStartRef,
-  lassoPointsRef,
-  committedSelectionAntsOnGpu = false
+  lassoPointsRef
 }: UseOverlayRendererParams): UseOverlayRendererResult {
 
   // ─── Screen-resolution canvas sizing (cursor + selection + gizmo) ───
@@ -204,7 +191,7 @@ export function useOverlayRenderer({
 
   // ─── Selection canvas (viewport layer) ─────────────────────────────
   // Screen-resolution bitmap with the same document→screen transform as the artwork.
-  // Pixel grid + marching ants are drawn here (not on the document-sized overlay).
+  // Pixel grid + live selection previews are drawn here (not on the document-sized overlay).
 
   /** Clear, apply doc→view transform, stroke pixel grid when zoom allows; leaves ctx in doc space. */
   const beginSelectionLayerPaint = useCallback((): CanvasRenderingContext2D | null => {
@@ -231,48 +218,16 @@ export function useOverlayRenderer({
     return ctx;
   }, [selectionCanvasRef, containerRef, zoom, pan, doc.canvas.width, doc.canvas.height]);
 
-  const antsPhaseRef = useRef(0);
-  // Cache keyed by selection reference — rebuilt only when selection identity changes.
-  const selectionPathCacheRef = useRef<{ sel: Selection; path: Path2D } | null>(null);
-  const selectionOriginOverrideRef = useRef<{ x: number; y: number } | null>(null);
   // In-progress drag preview (start+end in doc coords). Kept in a ref so the
-  // animation loop can composite it on top of committed ants each frame —
-  // prevents the loop from overwriting a preview drawn in a separate pass.
+  // selection-canvas repaint can composite it on top of the pixel grid.
   const selectionDragPreviewRef = useRef<{ start: Point; end: Point } | null>(null);
 
-  useEffect(() => {
-    if (committedSelectionAntsOnGpu) {
-      selectionPathCacheRef.current = null;
-    }
-  }, [committedSelectionAntsOnGpu]);
-
-  /** Pixel grid (when zoom allows) + committed-selection marching ants + drag preview. */
+  /** Pixel grid (when zoom allows) + live selection drag preview. */
   const paintSelectionCanvas = useCallback(() => {
     const ctx = beginSelectionLayerPaint();
     if (!ctx) {
       return;
     }
-    if (selection && !committedSelectionAntsOnGpu) {
-      if (!selectionPathCacheRef.current || selectionPathCacheRef.current.sel !== selection) {
-        selectionPathCacheRef.current = {
-          sel: selection,
-          path: buildSelectionMaskOutlinePath(selection)
-        };
-      }
-      const override = selectionOriginOverrideRef.current;
-      if (override !== null) {
-        const dx = override.x - (selection.originX ?? 0);
-        const dy = override.y - (selection.originY ?? 0);
-        ctx.save();
-        ctx.translate(dx, dy);
-        drawSelectionAntsFromPath(ctx, selectionPathCacheRef.current.path, antsPhaseRef.current, zoom);
-        ctx.restore();
-      } else {
-        drawSelectionAntsFromPath(ctx, selectionPathCacheRef.current.path, antsPhaseRef.current, zoom);
-      }
-    }
-    // Composite the in-progress drag preview on top so the animation loop
-    // doesn't overwrite it (combine ops keep the loop running while dragging).
     const preview = selectionDragPreviewRef.current;
     if (preview) {
       const { x, y, w, h } = marqueeRectFromDocPoints(preview.start, preview.end);
@@ -285,31 +240,15 @@ export function useOverlayRenderer({
       }
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [beginSelectionLayerPaint, selection, zoom, doc.toolSettings.select.mode, committedSelectionAntsOnGpu]);
+  }, [beginSelectionLayerPaint, zoom, doc.toolSettings.select.mode]);
 
   const paintSelectionCanvasRef = useRef(paintSelectionCanvas);
   paintSelectionCanvasRef.current = paintSelectionCanvas;
 
-  const setSelectionOriginOverride = useCallback((pos: { x: number; y: number } | null) => {
-    selectionOriginOverrideRef.current = pos;
-    if (!committedSelectionAntsOnGpu) {
-      paintSelectionCanvasRef.current();
-    }
-  }, [committedSelectionAntsOnGpu]);
-
-  // Animate marching ants while a selection is active (Canvas2D path only).
-  const hasSelection = !!selection;
-  useEffect(() => {
-    if (!hasSelection || committedSelectionAntsOnGpu) return;
-    let animId: number;
-    const animate = () => {
-      antsPhaseRef.current = (antsPhaseRef.current + 1) % 256;
-      paintSelectionCanvasRef.current();
-      animId = requestAnimationFrame(animate);
-    };
-    animId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animId);
-  }, [hasSelection, committedSelectionAntsOnGpu]);
+  // Retained so pointer-tool wiring does not need a separate overlay/runtime split.
+  // Committed selection movement is now rendered by the runtime, not the selection canvas.
+  const setSelectionOriginOverride: UseOverlayRendererResult["setSelectionOriginOverride"] =
+    useCallback(() => {}, []);
 
   const drawSelectionOverlay = useCallback(() => {
     selectionDragPreviewRef.current = null;
@@ -459,8 +398,7 @@ export function useOverlayRenderer({
         }
       }
       // Store in ref so paintSelectionCanvas composites it on top of committed
-      // ants — the animation loop (running during combine ops) would otherwise
-      // overwrite a preview drawn in a separate canvas pass.
+      // selection UI without relying on a separate committed-ants pass.
       selectionDragPreviewRef.current = { start, end };
       paintSelectionCanvasRef.current();
     },

@@ -19,7 +19,7 @@ import type {
   LayerContentBounds
 } from "../types";
 import type { ActiveStrokeInfo } from "../rendering";
-import type { ToolContext, StrokeEndOptions } from "./types";
+import type { ToolContext, StrokeEndOptions, ToolRuntime } from "./types";
 import type { GizmoDrawCallback } from "../sketchCanvasHooks/useOverlayRenderer";
 
 /** All dependencies needed to build a ToolContext. */
@@ -45,6 +45,7 @@ export interface BuildToolContextParams {
   layerCanvasesRef: React.MutableRefObject<Map<string, HTMLCanvasElement>>;
   mousePositionRef: React.MutableRefObject<Point>;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
+  runtime?: ToolRuntime;
 
   // ── Layer canvas ops ──
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
@@ -157,6 +158,7 @@ export function buildToolContext(params: BuildToolContextParams): ToolContext {
     layerCanvasesRef: params.layerCanvasesRef,
     mousePositionRef: params.mousePositionRef,
     activeStrokeRef: params.activeStrokeRef,
+    runtime: params.runtime,
     getOrCreateLayerCanvas: params.getOrCreateLayerCanvas,
     invalidateLayer: params.invalidateLayer,
     redraw: params.redraw,

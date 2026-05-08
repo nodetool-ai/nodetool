@@ -28,6 +28,11 @@ import { Canvas2DRuntime } from "./Canvas2DRuntime";
 import { checkerboardDocumentCellPx } from "../drawingUtils";
 import { getLayerCompositeOffset } from "../painting/layerBounds";
 import {
+  combineMasks,
+  trimSelectionMask,
+  type SelectionCombineOp
+} from "../selection";
+import {
   FULLSCREEN_QUAD_VERTEX,
   CHECKERBOARD_FRAGMENT,
   LAYER_COMPOSITE_FRAGMENT,
@@ -613,6 +618,20 @@ export class WebGPURuntime implements SketchRuntime {
         this.maskDirty = false;
       }
     }
+  }
+
+  applySelectionOverlay(
+    overlay: Selection,
+    op: SelectionCombineOp
+  ): Selection | null {
+    const normalizedOverlay = trimSelectionMask(overlay);
+    if (!normalizedOverlay) {
+      return this.currentSelection;
+    }
+    const base = op === "replace" ? null : this.currentSelection;
+    const nextSelection = trimSelectionMask(combineMasks(base, normalizedOverlay, op));
+    this.setSelection(nextSelection);
+    return nextSelection;
   }
 
   private uploadMaskTexture(): void {
@@ -1308,6 +1327,25 @@ export class WebGPURuntime implements SketchRuntime {
       offsetY,
       mask,
       color
+    );
+    this.markLayerDirty(layerId);
+  }
+
+  applyLayerSourceBySelectionMask(
+    layerId: string,
+    offsetX: number,
+    offsetY: number,
+    mask: Selection,
+    source: CanvasImageSource,
+    compositeOp: GlobalCompositeOperation = "source-over"
+  ): void {
+    this.cpuRuntime.applyLayerSourceBySelectionMask(
+      layerId,
+      offsetX,
+      offsetY,
+      mask,
+      source,
+      compositeOp
     );
     this.markLayerDirty(layerId);
   }

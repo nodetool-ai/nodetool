@@ -26,6 +26,11 @@ import {
   deserializeLayerData,
   getLayerDataFromCanvas
 } from "./canvas2d/layerIO";
+import {
+  combineMasks,
+  trimSelectionMask,
+  type SelectionCombineOp
+} from "../selection";
 import { evaluateLayerEffectsCPU } from "./canvas2d/resolvedOutput";
 import {
   compositeToDisplayCanvas,
@@ -48,6 +53,7 @@ import {
   readbackComposite as readbackCompositeFn,
   clearLayerBySelectionMask as clearLayerBySelectionMaskFn,
   fillLayerBySelectionMask as fillLayerBySelectionMaskFn,
+  applyLayerSourceBySelectionMask as applyLayerSourceBySelectionMaskFn,
   trimLayerToBounds as trimLayerToBoundsFn,
   mergeLayerDown as mergeLayerDownFn
 } from "./canvas2d/maskAndExport";
@@ -62,6 +68,8 @@ export class Canvas2DRuntime implements SketchRuntime {
 
   /** Reusable temp canvas for stroke compositing. */
   private strokeTempCanvas: HTMLCanvasElement | null = null;
+  /** CPU-side selection snapshot for tool flows that route commits through the runtime. */
+  private currentSelection: Selection | null = null;
   /** Temp canvas for FX-evaluated layer content. */
   private fxTempCanvas: HTMLCanvasElement | null = null;
 
@@ -505,6 +513,25 @@ export class Canvas2DRuntime implements SketchRuntime {
     fillLayerBySelectionMaskFn(this.layerCanvases, layerId, offsetX, offsetY, mask, color);
   }
 
+  applyLayerSourceBySelectionMask(
+    layerId: string,
+    offsetX: number,
+    offsetY: number,
+    mask: Selection,
+    source: CanvasImageSource,
+    compositeOp: GlobalCompositeOperation = "source-over"
+  ): void {
+    applyLayerSourceBySelectionMaskFn(
+      this.layerCanvases,
+      layerId,
+      offsetX,
+      offsetY,
+      mask,
+      source,
+      compositeOp
+    );
+  }
+
   nudgeLayer(layerId: string, dx: number, dy: number): void {
     nudgeLayerFn(this.layerCanvases, layerId, dx, dy);
   }
@@ -606,7 +633,23 @@ export class Canvas2DRuntime implements SketchRuntime {
 
   // ─── Lifecycle ───────────────────────────────────────────────────────
 
-  setSelection(_sel: Selection | null): void {}
+  setSelection(sel: Selection | null): void {
+    this.currentSelection = sel;
+  }
+
+  applySelectionOverlay(
+    overlay: Selection,
+    op: SelectionCombineOp
+  ): Selection | null {
+    const normalizedOverlay = trimSelectionMask(overlay);
+    if (!normalizedOverlay) {
+      return this.currentSelection;
+    }
+    const base = op === "replace" ? null : this.currentSelection;
+    const nextSelection = trimSelectionMask(combineMasks(base, normalizedOverlay, op));
+    this.currentSelection = nextSelection;
+    return nextSelection;
+  }
 
   dispose(): void {
     this.layerCanvases.clear();
@@ -614,5 +657,6 @@ export class Canvas2DRuntime implements SketchRuntime {
     this.fxTempCanvas = null;
     this.fxCache.clear();
     this.readbackCanvas = null;
+    this.currentSelection = null;
   }
 }

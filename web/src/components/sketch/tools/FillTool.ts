@@ -5,7 +5,7 @@
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
-import type { FillSettings, Selection } from "../types";
+import type { FillSettings } from "../types";
 import { parseColorToRgba } from "../types";
 import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
@@ -16,8 +16,7 @@ import {
 } from "../painting/layerBounds";
 import {
   selectionHasAnyPixels,
-  selectionHitTest,
-  applySelectionConstraint
+  selectionHitTest
 } from "../selection";
 
 // ─── Flood Fill (moved from drawingUtils.ts) ─────────────────────────────────
@@ -32,13 +31,13 @@ export function floodFill(
   startY: number,
   settings: FillSettings
 ): void {
-  const w = ctx.canvas.width;
-  const h = ctx.canvas.height;
-  const imageData = ctx.getImageData(0, 0, w, h);
+  const width = ctx.canvas.width;
+  const height = ctx.canvas.height;
+  const imageData = ctx.getImageData(0, 0, width, height);
   const data = imageData.data;
   const sx = Math.round(startX);
   const sy = Math.round(startY);
-  if (sx < 0 || sx >= w || sy < 0 || sy >= h) {
+  if (sx < 0 || sx >= width || sy < 0 || sy >= height) {
     return;
   }
 
@@ -48,7 +47,7 @@ export function floodFill(
   const fillB = fillParsed.b;
   const fillA = Math.round(Math.max(0, Math.min(1, fillParsed.a)) * 255);
 
-  const idx0 = (sy * w + sx) * 4;
+  const idx0 = (sy * width + sx) * 4;
   const targetR = data[idx0];
   const targetG = data[idx0 + 1];
   const targetB = data[idx0 + 2];
@@ -72,47 +71,98 @@ export function floodFill(
     return dr * dr * 0.299 + dg * dg * 0.587 + db * db * 0.114 + da * da * 0.5 <= tol2;
   };
 
-  const filled = new Uint8Array(w * h);
+  const fillMask = new Uint8Array(width * height);
+  const bounds = computeFloodFillMask(fillMask, width, height, sx, sy, colorMatches);
+  if (!bounds) {
+    return;
+  }
 
-  // Stack stores interleaved (x, y) pairs as plain numbers.
-  // Pre-allocate generously to avoid repeated array growth.
-  const stack: number[] = [sx, sy];
+  for (let y = bounds.y; y < bounds.y + bounds.height; y++) {
+    const rowBase = y * width;
+    for (let x = bounds.x; x < bounds.x + bounds.width; x++) {
+      if (!fillMask[rowBase + x]) {
+        continue;
+      }
+      const ii = (rowBase + x) * 4;
+      data[ii] = fillR;
+      data[ii + 1] = fillG;
+      data[ii + 2] = fillB;
+      data[ii + 3] = fillA;
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+}
+
+interface FloodFillBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Compute the flood-filled region for a seed point.
+ *
+ * Mutates `filled` in place by marking every filled pixel with `1`, then
+ * returns the document-space bounding box of those filled pixels. Returns
+ * `null` when the seed does not produce any filled pixels.
+ */
+function computeFloodFillMask(
+  filled: Uint8Array,
+  width: number,
+  height: number,
+  startX: number,
+  startY: number,
+  colorMatches: (i: number) => boolean
+): FloodFillBounds | null {
+  const stack: number[] = [startX, startY];
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
 
   while (stack.length > 0) {
     const y = stack.pop()!;
     const x = stack.pop()!;
 
-    if (filled[y * w + x]) { continue; }
-    if (!colorMatches((y * w + x) * 4)) { continue; }
+    if (filled[y * width + x]) { continue; }
+    if (!colorMatches((y * width + x) * 4)) { continue; }
 
     // ── Scan left from seed ────────────────────────────────────────────
     let x1 = x;
-    while (x1 > 0 && !filled[y * w + x1 - 1] && colorMatches((y * w + x1 - 1) * 4)) {
+    while (x1 > 0 && !filled[y * width + x1 - 1] && colorMatches((y * width + x1 - 1) * 4)) {
       x1--;
     }
 
     // ── Scan right from seed ───────────────────────────────────────────
     let x2 = x;
-    while (x2 < w - 1 && !filled[y * w + x2 + 1] && colorMatches((y * w + x2 + 1) * 4)) {
+    while (x2 < width - 1 && !filled[y * width + x2 + 1] && colorMatches((y * width + x2 + 1) * 4)) {
       x2++;
     }
 
-    // ── Fill the horizontal span ───────────────────────────────────────
-    const rowBase = y * w;
+    const rowBase = y * width;
     for (let xi = x1; xi <= x2; xi++) {
       filled[rowBase + xi] = 1;
-      const ii = (rowBase + xi) * 4;
-      data[ii] = fillR;
-      data[ii + 1] = fillG;
-      data[ii + 2] = fillB;
-      data[ii + 3] = fillA;
+    }
+    if (x1 < minX) {
+      minX = x1;
+    }
+    if (x2 > maxX) {
+      maxX = x2;
+    }
+    if (y < minY) {
+      minY = y;
+    }
+    if (y > maxY) {
+      maxY = y;
     }
 
     // ── Push one seed per contiguous unfilled sub-span above and below ─
     if (y > 0) {
       let inSpan = false;
       for (let xi = x1; xi <= x2; xi++) {
-        const pi = (y - 1) * w + xi;
+        const pi = (y - 1) * width + xi;
         if (!filled[pi] && colorMatches(pi * 4)) {
           if (!inSpan) { stack.push(xi, y - 1); inSpan = true; }
         } else {
@@ -120,10 +170,10 @@ export function floodFill(
         }
       }
     }
-    if (y < h - 1) {
+    if (y < height - 1) {
       let inSpan = false;
       for (let xi = x1; xi <= x2; xi++) {
-        const pi = (y + 1) * w + xi;
+        const pi = (y + 1) * width + xi;
         if (!filled[pi] && colorMatches(pi * 4)) {
           if (!inSpan) { stack.push(xi, y + 1); inSpan = true; }
         } else {
@@ -133,7 +183,95 @@ export function floodFill(
     }
   }
 
-  ctx.putImageData(imageData, 0, 0);
+  if (maxX < minX || maxY < minY) {
+    return null;
+  }
+
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1
+  };
+}
+
+/**
+ * Build a temporary ROI canvas containing only the flood-filled output.
+ *
+ * The returned canvas is transparent outside the fill result and is sized to
+ * the minimal fill bounds so the runtime can composite it through the active
+ * selection mask without restoring the whole layer.
+ */
+function createFloodFillOverlayCanvas(
+  sourceCtx: CanvasRenderingContext2D,
+  startX: number,
+  startY: number,
+  settings: FillSettings
+): HTMLCanvasElement | null {
+  const width = sourceCtx.canvas.width;
+  const height = sourceCtx.canvas.height;
+  const imageData = sourceCtx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  const sx = Math.round(startX);
+  const sy = Math.round(startY);
+  if (sx < 0 || sx >= width || sy < 0 || sy >= height) {
+    return null;
+  }
+
+  const fillParsed = parseColorToRgba(settings.color);
+  const fillR = fillParsed.r;
+  const fillG = fillParsed.g;
+  const fillB = fillParsed.b;
+  const fillA = Math.round(Math.max(0, Math.min(1, fillParsed.a)) * 255);
+  const idx0 = (sy * width + sx) * 4;
+  const targetR = data[idx0];
+  const targetG = data[idx0 + 1];
+  const targetB = data[idx0 + 2];
+  const targetA = data[idx0 + 3];
+  if (targetR === fillR && targetG === fillG && targetB === fillB && targetA === fillA) {
+    return null;
+  }
+
+  const tol = settings.tolerance;
+  const tol2 = tol * tol;
+  const colorMatches = (i: number): boolean => {
+    const dr = data[i] - targetR;
+    const dg = data[i + 1] - targetG;
+    const db = data[i + 2] - targetB;
+    const da = data[i + 3] - targetA;
+    return dr * dr * 0.299 + dg * dg * 0.587 + db * db * 0.114 + da * da * 0.5 <= tol2;
+  };
+
+  const fillMask = new Uint8Array(width * height);
+  const bounds = computeFloodFillMask(fillMask, width, height, sx, sy, colorMatches);
+  if (!bounds) {
+    return null;
+  }
+
+  const overlayCanvas = document.createElement("canvas");
+  overlayCanvas.width = bounds.width;
+  overlayCanvas.height = bounds.height;
+  const overlayCtx = overlayCanvas.getContext("2d");
+  if (!overlayCtx) {
+    return null;
+  }
+  const overlay = overlayCtx.createImageData(bounds.width, bounds.height);
+  for (let y = 0; y < bounds.height; y++) {
+    const sourceRow = (bounds.y + y) * width;
+    const overlayRow = y * bounds.width * 4;
+    for (let x = 0; x < bounds.width; x++) {
+      if (!fillMask[sourceRow + bounds.x + x]) {
+        continue;
+      }
+      const i = overlayRow + x * 4;
+      overlay.data[i] = fillR;
+      overlay.data[i + 1] = fillG;
+      overlay.data[i + 2] = fillB;
+      overlay.data[i + 3] = fillA;
+    }
+  }
+  overlayCtx.putImageData(overlay, 0, 0);
+  return overlayCanvas;
 }
 
 export class FillTool implements ToolHandler {
@@ -182,17 +320,33 @@ export class FillTool implements ToolHandler {
     const localPt = mapper.docToLayer(pt);
     const offset = mapper.offset;
 
-    // Snapshot pixels before fill so we can mask selection afterward.
-    // putImageData bypasses canvas clipping, so we apply selection constraint post-fill.
     const hasSelection = selection && selectionHasAnyPixels(selection);
-    const beforeData = hasSelection
-      ? layerCtx.getImageData(0, 0, layerCanvas.width, layerCanvas.height)
-      : null;
-
-    floodFill(layerCtx, localPt.x, localPt.y, { ...doc.toolSettings.fill, color: ctx.foregroundColor || doc.toolSettings.fill.color });
-
-    if (hasSelection && beforeData && selection) {
-      applySelectionConstraint(layerCtx, beforeData, selection, offset.x, offset.y);
+    const fillSettings = {
+      ...doc.toolSettings.fill,
+      color: ctx.foregroundColor || doc.toolSettings.fill.color
+    };
+    if (
+      hasSelection &&
+      selection &&
+      ctx.runtime?.applyLayerSourceBySelectionMask
+    ) {
+      const overlayCanvas = createFloodFillOverlayCanvas(
+        layerCtx,
+        localPt.x,
+        localPt.y,
+        fillSettings
+      );
+      if (overlayCanvas) {
+        ctx.runtime.applyLayerSourceBySelectionMask(
+          activeLayer.id,
+          offset.x,
+          offset.y,
+          selection,
+          overlayCanvas
+        );
+      }
+    } else {
+      floodFill(layerCtx, localPt.x, localPt.y, fillSettings);
     }
     const committedBounds = getCanvasRasterBounds(layerCanvas) ?? undefined;
     ctx.onStrokeEnd(activeLayer.id, null, committedBounds);

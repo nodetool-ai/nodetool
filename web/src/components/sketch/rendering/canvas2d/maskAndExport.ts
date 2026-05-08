@@ -255,6 +255,91 @@ export function fillLayerBySelectionMask(
   ctx.restore();
 }
 
+/**
+ * Composite a source canvas into a layer, clipped to the document-space
+ * selection mask projected into that layer's raster space.
+ */
+export function applyLayerSourceBySelectionMask(
+  layerCanvases: Map<string, HTMLCanvasElement>,
+  layerId: string,
+  offsetX: number,
+  offsetY: number,
+  mask: Selection,
+  source: CanvasImageSource,
+  compositeOp: GlobalCompositeOperation = "source-over"
+): void {
+  if (!selectionHasAnyPixels(mask)) {
+    return;
+  }
+  const canvas = layerCanvases.get(layerId);
+  if (!canvas) {
+    return;
+  }
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return;
+  }
+
+  const layerWidth = canvas.width;
+  const layerHeight = canvas.height;
+  const maskOriginX = mask.originX ?? 0;
+  const maskOriginY = mask.originY ?? 0;
+  const roiX = Math.max(0, maskOriginX - offsetX);
+  const roiY = Math.max(0, maskOriginY - offsetY);
+  const roiRight = Math.min(layerWidth, maskOriginX + mask.width - offsetX);
+  const roiBottom = Math.min(layerHeight, maskOriginY + mask.height - offsetY);
+  const roiWidth = roiRight - roiX;
+  const roiHeight = roiBottom - roiY;
+  if (roiWidth <= 0 || roiHeight <= 0) {
+    return;
+  }
+
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = roiWidth;
+  tempCanvas.height = roiHeight;
+  const tempCtx = tempCanvas.getContext("2d");
+  if (!tempCtx) {
+    return;
+  }
+  tempCtx.clearRect(0, 0, roiWidth, roiHeight);
+  tempCtx.drawImage(source, -roiX, -roiY);
+
+  const maskCanvas = document.createElement("canvas");
+  maskCanvas.width = roiWidth;
+  maskCanvas.height = roiHeight;
+  const maskCtx = maskCanvas.getContext("2d");
+  if (!maskCtx) {
+    return;
+  }
+  const maskImage = maskCtx.createImageData(roiWidth, roiHeight);
+  const alpha = maskImage.data;
+  // Match the active-pixel threshold used by selectionHitTest in selectionMask.ts.
+  const threshold = 128;
+  const startMaskX = roiX + offsetX - maskOriginX;
+  const startMaskY = roiY + offsetY - maskOriginY;
+  for (let y = 0; y < roiHeight; y++) {
+    const maskRow = (startMaskY + y) * mask.width;
+    const alphaRow = y * roiWidth * 4;
+    for (let x = 0; x < roiWidth; x++) {
+      if (mask.data[maskRow + startMaskX + x] < threshold) {
+        continue;
+      }
+      alpha[alphaRow + x * 4 + 3] = 255;
+    }
+  }
+  maskCtx.putImageData(maskImage, 0, 0);
+
+  tempCtx.save();
+  tempCtx.globalCompositeOperation = "destination-in";
+  tempCtx.drawImage(maskCanvas, 0, 0);
+  tempCtx.restore();
+
+  ctx.save();
+  ctx.globalCompositeOperation = compositeOp;
+  ctx.drawImage(tempCanvas, roiX, roiY);
+  ctx.restore();
+}
+
 // ─── Trim layer to bounds ────────────────────────────────────────────────────
 
 export function trimLayerToBounds(

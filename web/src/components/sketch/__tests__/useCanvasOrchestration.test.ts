@@ -149,44 +149,13 @@ describe("useCanvasOrchestration", () => {
     const params = makeParams();
     renderHook(() => useCanvasOrchestration(params));
 
-    expect(useOverlayRenderer).toHaveBeenCalledWith(
+    const overlayArgs = (useOverlayRenderer as jest.Mock).mock.calls[0][0];
+    expect(overlayArgs).toEqual(
       expect.objectContaining({
-        doc: params.docWithTools,
-        committedSelectionAntsOnGpu: false
+        doc: params.docWithTools
       })
     );
-  });
-
-  it("passes committedSelectionAntsOnGpu when WebGPU is active past bootstrap", () => {
-    const params = makeParams();
-    (useCompositing as jest.Mock).mockReturnValueOnce({
-      ...mockCompositing,
-      backend: "webgpu" as const,
-      bootstrapPhaseActive: false
-    });
-    renderHook(() => useCanvasOrchestration(params));
-
-    expect(useOverlayRenderer).toHaveBeenCalledWith(
-      expect.objectContaining({
-        committedSelectionAntsOnGpu: true
-      })
-    );
-  });
-
-  it("keeps CPU ants during WebGPU bootstrap phase", () => {
-    const params = makeParams();
-    (useCompositing as jest.Mock).mockReturnValueOnce({
-      ...mockCompositing,
-      backend: "webgpu" as const,
-      bootstrapPhaseActive: true
-    });
-    renderHook(() => useCanvasOrchestration(params));
-
-    expect(useOverlayRenderer).toHaveBeenCalledWith(
-      expect.objectContaining({
-        committedSelectionAntsOnGpu: false
-      })
-    );
+    expect(overlayArgs).not.toHaveProperty("committedSelectionAntsOnGpu");
   });
 
   it("calls usePointerHandlers with docWithTools and overlay callbacks", () => {

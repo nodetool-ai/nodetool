@@ -1,76 +1,78 @@
 # Selection mask performance (2K / 4K)
 
-Sequential plan for an **unreleased** codebase: **one rendering path, one mask pipeline**, no legacy fallbacks. Execute phases in order; later phases assume earlier ones are done.
+Sequential plan for the current sketch codebase. The goal is to remove the remaining full-document selection hot paths so committed selections stay responsive at high resolution.
 
-**Rendering commitment:** the sketch editor uses **WebGPU only** for compositing, mask passes, and selection display. **No WebGL** backend and **no WebGL fallback** — unsupported environments show a clear error or degraded non-interactive state, not a second engine.
+**Scope:** committed selection display, selection combine/finalization, selection-constrained tools, heavy selection mutations, and mask upload churn.
 
-**Context:** [`refactor-selection.md`](./refactor-selection.md) describes the existing GPU mask texture and ants shader — this plan finishes the job so **authoring**, **tools**, and **uploads** stay fast at full resolution.
+**Out of scope:** adding a new quick-mask tool, adding a WebGL fallback, or rewriting brush generation itself.
 
----
+## Current baseline
 
-## Phase 1 — WebGPU-only marching ants (delete CPU outline)
+These pieces already exist and should be treated as the starting point for this plan:
 
-- [ ] Treat sketch compositing as **WebGPU-required** for this editor (no Canvas2D ant fallback, **no WebGL fallback**).
-- [ ] Remove all use of **`buildSelectionMaskOutlinePath`**, cached `Path2D`, and CPU dashed stroke for **committed** selection; ants come only from the **mask texture + ants shader** (`WebGPURuntime`).
-- [ ] Live previews (marquee rect/ellipse/lasso while dragging) may stay whatever they are today; only **committed** selection display goes through GPU.
-
----
-
-## Phase 2 — Canonical live mask on the GPU
-
-- [ ] **Authoritative mask for interaction** is a **`r8unorm` render target** (or equivalent) sized to the document; the compositor samples it for ants and for paint.
-- [ ] **CPU `Selection` / `Uint8ClampedArray`** exists only for **history snapshots, export, and any algorithm that truly needs a buffer** — not updated on every `pointermove`.
-- [ ] Marquee / lasso / polygon **combine** (add/subtract/intersect/replace): implement as **GPU passes** (or a single compositing step) that read the current mask texture and write the updated mask — **no full-frame `combineMasks` JS** on the hot path.
-- [ ] When the user finishes a gesture or a history step is pushed, **sync GPU → CPU once** (readback or copy) so undo/redo and file export stay correct.
+- `WebGPURuntime` already has a GPU `r8unorm` selection mask texture, ants shader support, and `setSelectionOriginOverride(...)`.
+- `useOverlayRenderer.ts` still contains a Canvas2D marching-ants path behind `committedSelectionAntsOnGpu`.
+- Selection finalization still combines CPU masks through `tools/selectionFinalization.ts` + `combineMasks(...)`.
+- `FillTool.ts` and `GradientTool.ts` now route selection-constrained commits through a runtime mask-composite path instead of `applySelectionConstraint(...)`.
+- Selection modify commands in `selectionSlice.ts` (`feather`, `expand`, `contract`, `smooth`, `border`) still run CPU-wide mask work on the main thread.
 
 ---
 
-## Phase 3 — Mask brush / quick-mask = stamp compositing
+## Phase 1 — Remove committed-selection Canvas2D ants
 
-- [ ] Brush add and subtract on the selection mask draw **only into the GPU mask target** using blend modes (same semantics as today: white adds, black subtracts — implemented with min/max or equivalent on R8).
-- [ ] **One GPU→CPU sync** per stroke (or per coalesced frame batch), not per pointer event.
-
----
-
-## Phase 4 — Tools: kill `applySelectionConstraint` pixel loops
-
-- [ ] Replace `applySelectionConstraint` (full `getImageData` + per-pixel `selectionHitTest` + `putImageData`) with **one WebGPU compositing path** (draw to temp target, then multiply/clip by mask in the same engine as Phase 2 — no Canvas2D shortcutting at 4K).
-- [ ] Audit remaining **`getImageData(0,0,w,h)`** in fill/gradient/clone paths and remove full-canvas reads from **interactive** code paths.
+- [x] Delete the committed-selection Canvas2D ants branch from `useOverlayRenderer.ts` (`antsPhaseRef`, `selectionPathCacheRef`, `buildSelectionMaskOutlinePath(...)`, `drawSelectionAntsFromPath(...)`, and the `committedSelectionAntsOnGpu === false` path for committed selections).
+- [x] Keep live marquee / ellipse / lasso / polygon previews on the overlay canvas; only committed selections move fully to the GPU path.
+- [x] Remove now-unused committed-selection outline helpers from `selection/selectionMask.ts` once no runtime callers remain.
+- [ ] Verify that committed selections still animate, including during move-drag via `setSelectionOriginOverride(...)`.
 
 ---
 
-## Phase 5 — Magic wand off the main thread
+## Phase 2 — Move selection finalization off `combineMasks(...)`
 
-- [ ] Run flood fill (contiguous and non-contiguous as needed) in a **Worker** with transferred buffers, **or** a **WGSL/compute** path — main thread only schedules work and applies the result into the GPU mask + one CPU snapshot for history.
-- [ ] **Sample-all-layers** wand compositing: build the sampled RGBA buffer **once** in the worker path; avoid synchronous full composite on the main thread at 4K.
-
----
-
-## Phase 6 — Morphology (expand, contract, feather, smooth, border)
-
-- [ ] Implement using **ROI**: compute tight bounds of selected pixels (+ padding = operation radius), run morphology on **that window** only, blit back — **or** run full-frame ops entirely in a **Worker/WASM** so the main thread never blocks for seconds.
-- [ ] Remove duplicated “full document” CPU passes where the ROI path is sufficient.
+- [x] Replace the CPU `combineMasks(...)` hot path in `tools/selectionFinalization.ts` with a runtime-driven mask update path for `replace`, `add`, `subtract`, and `intersect`.
+- [x] Wire marquee, ellipse, lasso, polygon, and magic-wand finalization in `SelectTool.ts` through that runtime path so a completed gesture updates the GPU mask without a full-document CPU combine.
+- [x] Keep CPU `Selection` data as a snapshot/output format only: update it once per committed selection change for history, export, clipboard, and any code that still truly requires a buffer.
+- [x] Add one explicit code comment at the runtime/store boundary that says when GPU state is authoritative and when CPU snapshots are produced.
 
 ---
 
-## Phase 7 — Uploads and React churn
+## Phase 3 — Remove `applySelectionConstraint(...)` from interactive tools
 
-- [ ] **Mask texture uploads:** after Phase 3, avoid full **256-aligned row upload** of the entire document on every tiny change; use **dirty rectangles** (or tiled updates) so typical strokes only touch a small region of the GPU texture.
-- [ ] **Zustand/React:** mask dirty flags and texture handles must not **remount the editor** or subscribe the heavy tree to megabyte buffers; keep selection-derived updates **narrow** (refs, runtime callbacks, or atomic dirty flags the compositor reads).
-
----
-
-## Exit checks (do last)
-
-- [ ] **4096×4096:** continuous mask brushing holds a steady frame budget (target under **16 ms** on a mid-range laptop GPU; no multi-second main-thread freezes).
-- [ ] Fill/gradient with selection: **no** full-canvas JavaScript pixel restore loops.
-- [ ] Short dev comment at compositor entry: **canonical mask = GPU**; **when** CPU `Selection.data` is filled (history/export only).
+- [x] Replace the current selection-constrained fill path in `tools/FillTool.ts` with a mask-aware runtime composite path so it no longer snapshots the whole layer and restores pixels with `applySelectionConstraint(...)`.
+- [x] Replace the current selection-constrained gradient path in `tools/GradientTool.ts` with the same runtime composite path.
+- [x] Preserve the existing early-out behavior where fill/gradient do nothing when the pointer-down seed is outside the active selection.
+- [ ] Delete `selection/applySelectionConstraint.ts` only after runtime callsites are gone, and confirm there are no production imports left outside tests/docs.
 
 ---
 
-## Not in this plan
+## Phase 4 — Make expensive selection mutations bounded or async
 
-- Dual Canvas2D/WebGPU user-facing modes.  
-- **WebGL 1/2** rendering or fallback when WebGPU is unavailable.  
-- Keeping CPU marching ants “for compatibility.”  
-- Per-phase benchmarks before Phase 7 (optional micro-timing can be added during Phase 7 if something regresses).
+- [ ] Rework `featherCurrentSelection`, `smoothCurrentSelectionBorders`, `convertSelectionToBorderOutline`, `expandCurrentSelection`, and `contractCurrentSelection` in `state/slices/selectionSlice.ts` so they no longer do full-document synchronous work for small edits.
+- [ ] For each operation, process only the selection ROI plus the required padding radius; if an ROI path is not practical, move the existing work to a worker/WASM path so the main thread stays responsive.
+- [ ] Keep the current undo/history contract: each command still commits one final `setSelection(...)` result and does not stream intermediate masks through the store.
+
+---
+
+## Phase 5 — Move magic wand off the main thread
+
+- [ ] Run `magicWandFromRgba(...)` and `magicWandNonContiguousFromRgba(...)` off the main thread, with the main thread responsible only for scheduling the work and committing the result.
+- [ ] When `sampleAllLayers` is enabled, build the sampled RGBA input once per invocation in the worker path instead of synchronously compositing on the main thread.
+- [ ] Keep the current modifier semantics (`replace` / `add` / `subtract` / `intersect`) and final history behavior unchanged from the existing `SelectTool.ts` flow.
+
+---
+
+## Phase 6 — Reduce mask upload and subscription churn
+
+- [ ] Stop re-uploading the entire mask texture for localized selection edits; update only dirty rectangles/tiles when the changed region is known.
+- [ ] Make sure selection updates do not push large mask buffers through broad Zustand subscriptions or trigger editor remounts; keep compositor-facing invalidation narrow.
+- [ ] Add lightweight profiling hooks or timings only if needed to prove which interaction still regresses at 4K.
+
+---
+
+## Exit checks
+
+- [ ] At 4096×4096, committed-selection interactions (move ants, add/subtract/intersect, fill, gradient, wand, feather/expand/contract) avoid multi-second main-thread stalls.
+- [ ] No committed-selection marching ants depend on Canvas2D `Path2D` generation or animation loops.
+- [x] No interactive fill/gradient path depends on `applySelectionConstraint(...)`.
+- [ ] CPU `Selection` snapshots are produced only at commit/history/export-style boundaries, not on every pointer move.
+- [ ] The codebase has one documented rule for selection authority: which operations read/write the GPU mask directly, and when CPU snapshots are synchronized.
