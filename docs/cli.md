@@ -22,7 +22,7 @@ npx --package=@nodetool-ai/cli nodetool --help
 npx --package=@nodetool-ai/cli nodetool-chat --agent
 ```
 
-**Requires Node.js 24+.** Check with `node --version`; install via [nvm](https://github.com/nvm-sh/nvm) if needed.
+**Requires Node.js 22.x.** Check with `node --version`; install via [nvm](https://github.com/nvm-sh/nvm) if needed.
 
 ## Getting Help
 

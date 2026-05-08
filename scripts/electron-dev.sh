@@ -13,27 +13,9 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-# Native modules are loaded inside Electron's utilityProcess.fork(), whose ABI
-# matches the installed Electron's embedded Node. Rebuild against Electron
-# headers. Use the *installed* Electron version (not the range in package.json)
-# so a stale node_modules can't silently build for the wrong ABI.
-ELECTRON_VERSION=$(node -p "require('./node_modules/electron/package.json').version")
-ARCH=$(uname -m)
-if [[ "$ARCH" == "arm64" ]]; then
-  GYARCH="arm64"
-else
-  GYARCH="x64"
-fi
-NATIVE_STAMP="node_modules/.electron-native-rebuild-stamp"
-STAMP_VALUE="electron-${ELECTRON_VERSION}-${GYARCH}"
-if [[ -f "${NATIVE_STAMP}" ]] && [[ "$(cat "${NATIVE_STAMP}")" == "${STAMP_VALUE}" ]]; then
-  echo "Native modules already built for Electron ${ELECTRON_VERSION} (${GYARCH}), skipping rebuild."
-else
-  echo "Rebuilding native modules for Electron ${ELECTRON_VERSION} (${GYARCH})..."
-  (cd node_modules/better-sqlite3 && rm -rf build && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch="$GYARCH" --dist-url=https://electronjs.org/headers)
-  (cd node_modules/bufferutil     && rm -rf build && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch="$GYARCH" --dist-url=https://electronjs.org/headers)
-  echo -n "${STAMP_VALUE}" > "${NATIVE_STAMP}"
-fi
+# Native modules (better-sqlite3, bufferutil) are rebuilt against Electron's ABI
+# by @electron/rebuild via electron/'s postinstall hook, which has its own cache.
+# If you hit NODE_MODULE_VERSION errors, run: npm --prefix electron run postinstall
 
 # Start web Vite server
 echo "Starting web Vite server on ${WEB_DEV_SERVER_URL}..."
