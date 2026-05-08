@@ -94,7 +94,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = memo(({
   return (
     <Box css={styles(theme)} className={containerClassName} role="group" aria-label="Zoom controls">
       <Tooltip title="Zoom out" placement={tooltipPlacement} enterDelay={TOOLTIP_ENTER_DELAY}>
-        <span>
+        <span style={{ display: 'inline-flex' }}>
           <IconButton
             className="zoom-button"
             onClick={handleZoomOut}
@@ -114,7 +114,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = memo(({
       )}
 
       <Tooltip title="Zoom in" placement={tooltipPlacement} enterDelay={TOOLTIP_ENTER_DELAY}>
-        <span>
+        <span style={{ display: 'inline-flex' }}>
           <IconButton
             className="zoom-button"
             onClick={handleZoomIn}
@@ -129,14 +129,16 @@ export const ZoomControls: React.FC<ZoomControlsProps> = memo(({
 
       {showReset && (
         <Tooltip title="Reset zoom" placement={tooltipPlacement} enterDelay={TOOLTIP_ENTER_DELAY}>
-          <IconButton
-            className="zoom-button"
-            onClick={handleReset}
-            size={buttonSize}
-            aria-label="Reset zoom"
-          >
-            <RestartAltIcon fontSize={buttonSize} />
-          </IconButton>
+          <span style={{ display: 'inline-flex' }}>
+            <IconButton
+              className="zoom-button"
+              onClick={handleReset}
+              size={buttonSize}
+              aria-label="Reset zoom"
+            >
+              <RestartAltIcon fontSize={buttonSize} />
+            </IconButton>
+          </span>
         </Tooltip>
       )}
     </Box>

@@ -97,7 +97,7 @@ const UndoRedoButtonsInternal: React.FC<UndoRedoButtonsProps> = ({
       css={styles(theme)}
     >
       <Tooltip title={undoTooltip} enterDelay={TOOLTIP_ENTER_DELAY}>
-        <span>
+        <span style={{ display: 'inline-flex' }}>
           <IconButton
             className="undo-redo-button"
             size={size}
@@ -119,7 +119,7 @@ const UndoRedoButtonsInternal: React.FC<UndoRedoButtonsProps> = ({
       )}
       
       <Tooltip title={redoTooltip} enterDelay={TOOLTIP_ENTER_DELAY}>
-        <span>
+        <span style={{ display: 'inline-flex' }}>
           <IconButton
             className="undo-redo-button"
             size={size}

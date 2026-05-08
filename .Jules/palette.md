@@ -49,3 +49,6 @@
 ## 2026-04-24 - Tooltips on disabled Material-UI IconButtons
 **Learning:** By default, disabled HTML elements (like the `<IconButton disabled>`) do not fire mouse events (like `hover` or `mouseenter`). Because of this, any `<Tooltip>` wrapping the disabled button fails to appear, hiding important state context from the user.
 **Action:** When wrapping a potentially `disabled` Material-UI component (like an `<IconButton disabled>`) inside a `<Tooltip>`, wrap the disabled component in a `<span style={{ display: 'inline-flex' }}>` tag. The `inline-flex` display preserves the intended component layout and alignment while capturing the pointer events so the tooltip can appear.
+## 2026-05-08 - Wrap Tooltip IconButtons in spans with inline-flex
+**Learning:** When an `IconButton` is disabled inside a `Tooltip`, the disabled element does not fire pointer events (like hover). This causes the Tooltip to fail to appear, which hides important state context from the user. However, wrapping it in a `<span>` with `display: 'inline-flex'` preserves the intended component layout and alignment while capturing the pointer events so the tooltip can still appear for disabled buttons.
+**Action:** Ensure any Material-UI component that may be `disabled` inside a `<Tooltip>` is wrapped in `<span style={{ display: 'inline-flex' }}>`.

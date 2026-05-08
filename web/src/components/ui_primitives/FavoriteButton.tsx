@@ -95,7 +95,7 @@ export const FavoriteButton: React.FC<FavoriteButtonProps> = ({
       title={isFavorite ? removeTooltip : addTooltip}
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
-      <span>
+      <span style={{ display: 'inline-flex' }}>
         <IconButton
           className={`nodrag favorite-button ${className || ""}`}
           css={styles(theme, isFavorite, variant)}
