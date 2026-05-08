@@ -199,15 +199,12 @@ export function useCanvasOrchestration(
     coordinatorRef
   });
 
-  const committedSelectionAntsOnGpu =
-    compositing.backend === "webgpu" && !compositing.bootstrapPhaseActive;
-
   // Wire the preview bridge refs to compositing output.
   requestPreviewRedrawRef.current = compositing.requestRedraw;
   invalidateLayerRef.current = compositing.invalidateLayer;
 
-  // Sync active selection to the GPU runtime (WebGPU uploads r8unorm mask texture).
-  // Also request a redraw so the mask texture is uploaded and ants animation starts.
+  // Sync active selection to the runtime. WebGPU uploads the r8unorm mask
+  // texture and renders committed ants on the display canvas.
   useEffect(() => {
     compositing.runtime.setSelection(selection ?? null);
     compositing.requestRedraw();
@@ -228,7 +225,6 @@ export function useCanvasOrchestration(
     interactionTool,
     zoom,
     pan,
-    selection,
     overlayCanvasRef: compositing.overlayCanvasRef,
     selectionCanvasRef,
     cursorCanvasRef,
@@ -237,8 +233,7 @@ export function useCanvasOrchestration(
     shiftHeldRef,
     altHeldRef,
     selectStartRef,
-    lassoPointsRef,
-    committedSelectionAntsOnGpu
+    lassoPointsRef
   });
 
   // ─── Pointer handlers ──────────────────────────────────────────────
