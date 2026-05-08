@@ -12,7 +12,7 @@
  *  2. `TimelineStore.addGeneratedClip` is called to clone the workflow and create the clip.
  */
 
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -73,11 +73,15 @@ const WorkflowList: React.FC<WorkflowListProps> = memo(
   ({ workflows, isLoading, searchQuery, onSelect, emptyLabel }) => {
     const theme = useTheme();
 
-    const filtered = searchQuery
-      ? workflows.filter((w) =>
-          w.name.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      : workflows;
+    const filtered = useMemo(
+      () =>
+        searchQuery
+          ? workflows.filter((w) =>
+              w.name.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+          : workflows,
+      [workflows, searchQuery]
+    );
 
     if (isLoading) {
       return (

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Box } from "@mui/material";
 import { Text, TextInput } from "../../ui_primitives";
 import {
@@ -7,23 +7,31 @@ import {
   SHORTCUT_CATEGORIES
 } from "../../../config/shortcuts";
 
+const categories = Object.keys(SHORTCUT_CATEGORIES) as Array<
+  keyof typeof SHORTCUT_CATEGORIES
+>;
+
 const ControlsShortcutsTab: React.FC = () => {
   const [search, setSearch] = useState("");
-  const lower = search.toLowerCase();
 
-  // dynamic filter
-  const filteredShortcuts = NODE_EDITOR_SHORTCUTS.filter((s) => {
-    if (!lower) {return true;}
-    return (
-      s.title.toLowerCase().includes(lower) ||
-      (s.description && s.description.toLowerCase().includes(lower))
-    );
-  });
-
-  // List of category keys derived from the exported mapping
-  const categories = Object.keys(SHORTCUT_CATEGORIES) as Array<
-    keyof typeof SHORTCUT_CATEGORIES
-  >;
+  const groupedShortcuts = useMemo(() => {
+    const lower = search.toLowerCase();
+    const groups = new Map<keyof typeof SHORTCUT_CATEGORIES, typeof NODE_EDITOR_SHORTCUTS>();
+    for (const cat of categories) {
+      groups.set(cat, []);
+    }
+    for (const s of NODE_EDITOR_SHORTCUTS) {
+      if (
+        lower &&
+        !s.title.toLowerCase().includes(lower) &&
+        !(s.description && s.description.toLowerCase().includes(lower))
+      ) {
+        continue;
+      }
+      groups.get(s.category)?.push(s);
+    }
+    return groups;
+  }, [search]);
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -43,8 +51,8 @@ const ControlsShortcutsTab: React.FC = () => {
       />
       <Box sx={{ overflowY: "auto", pr: 1 }}>
         {categories.map((cat) => {
-          const list = filteredShortcuts.filter((s) => s.category === cat);
-          if (!list.length) {return null;}
+          const list = groupedShortcuts.get(cat);
+          if (!list || !list.length) {return null;}
           return (
             <Box key={cat} sx={{ mb: 3 }}>
               <Text size="bigger" color="secondary" sx={{ mb: 4 }}>
