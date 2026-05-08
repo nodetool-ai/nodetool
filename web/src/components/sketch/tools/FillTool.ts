@@ -80,7 +80,7 @@ export function floodFill(
   for (let y = bounds.y; y < bounds.y + bounds.height; y++) {
     const rowBase = y * width;
     for (let x = bounds.x; x < bounds.x + bounds.width; x++) {
-      if (fillMask[rowBase + x] === 0) {
+      if (!fillMask[rowBase + x]) {
         continue;
       }
       const ii = (rowBase + x) * 4;
@@ -260,7 +260,7 @@ function createFloodFillOverlayCanvas(
     const sourceRow = (bounds.y + y) * width;
     const overlayRow = y * bounds.width * 4;
     for (let x = 0; x < bounds.width; x++) {
-      if (fillMask[sourceRow + bounds.x + x] === 0) {
+      if (!fillMask[sourceRow + bounds.x + x]) {
         continue;
       }
       const i = overlayRow + x * 4;

@@ -313,6 +313,7 @@ export function applyLayerSourceBySelectionMask(
   }
   const maskImage = maskCtx.createImageData(roiWidth, roiHeight);
   const alpha = maskImage.data;
+  // Match the active-pixel threshold used by selectionHitTest in selectionMask.ts.
   const threshold = 128;
   const startMaskX = roiX + offsetX - maskOriginX;
   const startMaskY = roiY + offsetY - maskOriginY;

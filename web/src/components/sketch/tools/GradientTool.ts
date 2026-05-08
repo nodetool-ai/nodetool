@@ -141,11 +141,11 @@ export class GradientTool implements ToolHandler {
     // the current contentBounds) receive the gradient.
     if (hasSelection) {
       const viewportBounds = getDocumentViewportLayerBounds(activeLayer, doc);
-      const expandedBounds = ensureLayerRasterBounds(ctx, activeLayer, viewportBounds);
+      const rasterBounds = ensureLayerRasterBounds(ctx, activeLayer, viewportBounds);
       // Recreate mapper after canvas expansion — origin may have shifted.
       mapper = new CoordinateMapper({
         layerTransform: activeLayer.transform,
-        rasterBounds: expandedBounds
+        rasterBounds
       });
     }
 

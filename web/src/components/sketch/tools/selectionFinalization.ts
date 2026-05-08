@@ -72,13 +72,12 @@ export function applySelectionFinalization(
   }
 
   const op: SelectionCombineOp = selectionCombineModeFromSnapshot(modifiers);
+  const base = op === "replace" ? null : currentSelection ?? null;
   // The runtime owns interactive selection commits. Zustand receives the CPU
   // snapshot only after the committed mask has been updated for history/export.
   const combined =
     runtime?.applySelectionOverlay?.(normalizedOverlay, op) ??
-    trimSelectionMask(
-      combineMasks(op === "replace" ? null : currentSelection ?? null, normalizedOverlay, op)
-    );
+    trimSelectionMask(combineMasks(base, normalizedOverlay, op));
   onSelectionChange(combined);
   drawSelectionOverlay();
 
