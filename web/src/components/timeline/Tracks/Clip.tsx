@@ -364,6 +364,10 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       if (!clip || clip.locked || e.buttons !== 1) {
         return;
       }
+      // Stop bubbling so the parent clip body's drag-pointermove handler
+      // does not also fire and shift `startMs`. Without this the clip
+      // appears to move and shrink simultaneously.
+      e.stopPropagation();
       const deltaPx = e.clientX - trimStartRef.current.startX;
       const deltaMs = deltaPx * msPerPx;
       // trimClip(edge="start", deltaMs) convention (from packages/timeline/src/trimClip.ts):
@@ -403,6 +407,10 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       if (!clip || clip.locked || e.buttons !== 1) {
         return;
       }
+      // Stop bubbling so the parent clip body's drag-pointermove handler
+      // does not also fire and shift `startMs`. Without this the clip
+      // appears to move and grow simultaneously.
+      e.stopPropagation();
       const deltaPx = e.clientX - trimEndRef.current.startX;
       const deltaMs = deltaPx * msPerPx;
       trimClipEnd(clip.id, deltaMs);
