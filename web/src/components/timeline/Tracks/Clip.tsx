@@ -16,7 +16,7 @@
  * selection membership (id selector), and msPerPx.
  */
 
-import React, { memo, useCallback, useMemo, useRef } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -30,11 +30,14 @@ import {
 } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineGenerationStore } from "../../../stores/timeline/TimelineGenerationStore";
+import { useAssetStore } from "../../../stores/AssetStore";
+import { getAssetUrl } from "../../../utils/assetHelpers";
 import useErrorStore, { hasNodeError, nodeErrorToDisplayString } from "../../../stores/ErrorStore";
 import { StatusIndicator } from "../../ui_primitives";
 import type { StatusType } from "../../ui_primitives/StatusIndicator";
 import { deriveClipStatus } from "../status/clipStatusReducer";
 import type { ClipGenerationState, ClipErrorState } from "../status/clipStatusReducer";
+import { useClipThumbnails } from "./useClipThumbnails";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -90,7 +93,29 @@ const clipNameStyles = (theme: Theme) =>
     overflow: "hidden",
     textOverflow: "ellipsis",
     pointerEvents: "none",
-    lineHeight: 1.2
+    lineHeight: 1.2,
+    position: "relative",
+    zIndex: 1,
+    textShadow: "0 1px 2px rgba(0,0,0,0.6)"
+  });
+
+const filmstripStyles = css({
+  position: "absolute",
+  inset: 0,
+  display: "flex",
+  pointerEvents: "none",
+  zIndex: 0
+});
+
+const filmstripCellStyles = (url: string, withDivider: boolean) =>
+  css({
+    flex: 1,
+    height: "100%",
+    backgroundImage: `url(${url})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    opacity: 0.7,
+    borderRight: withDivider ? "1px solid rgba(0,0,0,0.2)" : "none"
   });
 
 const trimHandleStyles = (
@@ -396,6 +421,129 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const statusInfo = CLIP_STATUS_MAP[derivedStatus];
 
   return (
+    <ClipBody
+      clip={clip}
+      leftPx={leftPx}
+      widthPx={widthPx}
+      isSelected={isSelected}
+      derivedStatus={derivedStatus}
+      statusInfo={statusInfo}
+      handleDragPointerDown={handleDragPointerDown}
+      handleDragPointerMove={handleDragPointerMove}
+      handleDragPointerUp={handleDragPointerUp}
+      handleClick={handleClick}
+      handleTrimStartPointerDown={handleTrimStartPointerDown}
+      handleTrimStartPointerMove={handleTrimStartPointerMove}
+      handleTrimEndPointerDown={handleTrimEndPointerDown}
+      handleTrimEndPointerMove={handleTrimEndPointerMove}
+    />
+  );
+});
+
+interface ClipBodyProps {
+  clip: TimelineClip;
+  leftPx: number;
+  widthPx: number;
+  isSelected: boolean;
+  derivedStatus: ClipStatus;
+  statusInfo: typeof CLIP_STATUS_MAP[ClipStatus];
+  handleDragPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
+  handleDragPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
+  handleDragPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void;
+  handleClick: (e: React.MouseEvent<HTMLDivElement>) => void;
+  handleTrimStartPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
+  handleTrimStartPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
+  handleTrimEndPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
+  handleTrimEndPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
+}
+
+const ClipBody: React.FC<ClipBodyProps> = ({
+  clip,
+  leftPx,
+  widthPx,
+  isSelected,
+  derivedStatus,
+  statusInfo,
+  handleDragPointerDown,
+  handleDragPointerMove,
+  handleDragPointerUp,
+  handleClick,
+  handleTrimStartPointerDown,
+  handleTrimStartPointerMove,
+  handleTrimEndPointerDown,
+  handleTrimEndPointerMove
+}) => {
+  const theme = useTheme();
+  const clipId = clip.id;
+
+  // Resolve asset URL for thumbnail extraction. Only video clips trigger
+  // a fetch — image clips are handled below with a single backgroundImage.
+  const assetIdForThumb =
+    clip.mediaType === "video" || clip.mediaType === "overlay"
+      ? clip.currentAssetId
+      : undefined;
+  const imageAssetId =
+    clip.mediaType === "image" ? clip.currentAssetId : undefined;
+
+  const getAsset = useAssetStore((s) => s.get);
+  const [videoUrl, setVideoUrl] = useState<string | undefined>(undefined);
+  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!assetIdForThumb) {
+      setVideoUrl(undefined);
+      return;
+    }
+    getAsset(assetIdForThumb)
+      .then((asset) => {
+        if (!cancelled) setVideoUrl(getAssetUrl(asset) ?? undefined);
+      })
+      .catch(() => {
+        // Asset unavailable — leave url undefined; clip renders without filmstrip.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [assetIdForThumb, getAsset]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!imageAssetId) {
+      setImageUrl(undefined);
+      return;
+    }
+    getAsset(imageAssetId)
+      .then((asset) => {
+        if (!cancelled) setImageUrl(getAssetUrl(asset) ?? undefined);
+      })
+      .catch(() => {
+        // ignored
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [imageAssetId, getAsset]);
+
+  const thumbnails = useClipThumbnails(videoUrl);
+  // openreel uses ~60px per cell; matches their visual density.
+  const cellCount = Math.max(1, Math.floor(widthPx / 60));
+
+  const filmstripCells = useMemo(() => {
+    if (!thumbnails || thumbnails.length === 0) return null;
+    const cells: { url: string }[] = [];
+    for (let i = 0; i < cellCount; i++) {
+      const progress = cellCount === 1 ? 0 : i / (cellCount - 1);
+      const idx = Math.min(
+        Math.floor(progress * thumbnails.length),
+        thumbnails.length - 1
+      );
+      cells.push({ url: thumbnails[idx].dataUrl });
+    }
+    return cells;
+  }, [thumbnails, cellCount]);
+
+  return (
     <div
       css={clipStyles(theme, isSelected, clip.locked)}
       style={{ left: leftPx, width: widthPx }}
@@ -408,7 +556,29 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       role="option"
       aria-label={clip.name || `Clip ${clip.id}`}
     >
-      {/* Trim handle — start */}
+      {filmstripCells && (
+        <div css={filmstripStyles}>
+          {filmstripCells.map((cell, i) => (
+            <div
+              key={i}
+              css={filmstripCellStyles(cell.url, i < filmstripCells.length - 1)}
+            />
+          ))}
+        </div>
+      )}
+
+      {imageUrl && (
+        <div
+          css={filmstripStyles}
+          style={{
+            backgroundImage: `url(${imageUrl})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            opacity: 0.7
+          }}
+        />
+      )}
+
       <div
         css={trimHandleStyles(theme, "start", clip.locked)}
         onPointerDown={handleTrimStartPointerDown}
@@ -417,7 +587,6 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         data-testid={`clip-trim-start-${clipId}`}
       />
 
-      {/* Trim handle — end */}
       <div
         css={trimHandleStyles(theme, "end", clip.locked)}
         onPointerDown={handleTrimEndPointerDown}
@@ -426,14 +595,12 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         data-testid={`clip-trim-end-${clipId}`}
       />
 
-      {/* Lock icon — top-left when clip is locked */}
       {clip.locked && (
         <div css={lockIconStyles}>
           <LockIcon sx={{ fontSize: 12 }} aria-label="Clip locked" />
         </div>
       )}
 
-      {/* Status badge — hidden for "draft" to keep the clip chrome clean */}
       {derivedStatus !== "draft" && (
         <div css={statusBadgeStyles}>
           <StatusIndicator
@@ -445,10 +612,9 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         </div>
       )}
 
-      {/* Clip name */}
       <div css={clipNameStyles(theme)}>{clip.name}</div>
     </div>
   );
-});
+};
 
 Clip.displayName = "Clip";
