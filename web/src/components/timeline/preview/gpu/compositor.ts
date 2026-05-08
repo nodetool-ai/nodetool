@@ -1,4 +1,10 @@
-import { compositeShader } from "./shaders";
+import { WebGPUEffectsProcessor } from "./effectsProcessor";
+import { borderRadiusShader, transformShader } from "./shaders";
+import {
+  IDENTITY_TRANSFORM,
+  buildTransformMatrix,
+  containBaseScale
+} from "./transform";
 import type {
   CompositeLayer,
   CompositeSource,
@@ -6,7 +12,8 @@ import type {
   CompositorInitResult
 } from "./types";
 
-const UNIFORM_BUFFER_SIZE = 16; // 4 x f32 (scaleX, scaleY, opacity, pad)
+const TRANSFORM_UNIFORM_BYTES = 96;
+const BORDER_RADIUS_UNIFORM_BYTES = 96;
 
 const BLEND_MODES: CompositorBlendMode[] = [
   "normal",
@@ -16,10 +23,6 @@ const BLEND_MODES: CompositorBlendMode[] = [
   "overlay"
 ];
 
-/**
- * Maps each TimelineClip blend mode to a WebGPU fixed-function blend state.
- * `overlay` has no fixed-function equivalent — fall back to normal alpha.
- */
 function blendStateFor(mode: CompositorBlendMode): GPUBlendState {
   switch (mode) {
     case "add":
@@ -63,23 +66,16 @@ function blendStateFor(mode: CompositorBlendMode): GPUBlendState {
   }
 }
 
-interface LayerTexture {
+interface SourceTexture {
   texture: GPUTexture;
   width: number;
   height: number;
   source: CompositeSource;
-  /** Last frame number we copied for this source. Re-used to skip needless uploads. */
   lastUploadKey: string;
 }
 
-/**
- * Returns a key that changes when the source has produced a new pixel state.
- * For video this uses the underlying mediaTime when available; for images,
- * src + naturalWidth+Height suffices.
- */
 function uploadKey(source: CompositeSource): string {
   if (source instanceof HTMLVideoElement) {
-    // currentTime alone is enough to discriminate frames during playback.
     return `v:${source.currentTime}:${source.videoWidth}x${source.videoHeight}`;
   }
   if (source instanceof HTMLImageElement) {
@@ -107,6 +103,11 @@ function sourceDimensions(source: CompositeSource): {
   return { width: source.width, height: source.height };
 }
 
+interface PipelinePair {
+  plain: GPURenderPipeline;
+  rounded: GPURenderPipeline;
+}
+
 export class WebGPUCompositor {
   private device: GPUDevice | null = null;
   private context: GPUCanvasContext | null = null;
@@ -115,20 +116,20 @@ export class WebGPUCompositor {
   private uniformLayout: GPUBindGroupLayout | null = null;
   private textureLayout: GPUBindGroupLayout | null = null;
   private sampler: GPUSampler | null = null;
-  private pipelines = new Map<CompositorBlendMode, GPURenderPipeline>();
+  private pipelines = new Map<CompositorBlendMode, PipelinePair>();
 
   private canvasWidth = 0;
   private canvasHeight = 0;
 
-  private layerTextures = new Map<string, LayerTexture>();
+  private sourceTextures = new Map<string, SourceTexture>();
   private uniformBuffers: GPUBuffer[] = [];
   private layers: CompositeLayer[] = [];
+  private effects: WebGPUEffectsProcessor | null = null;
 
   async init(canvas: HTMLCanvasElement): Promise<CompositorInitResult> {
     if (typeof navigator === "undefined" || !navigator.gpu) {
       return { ok: false, reason: "WebGPU not supported in this browser" };
     }
-
     const adapter = await navigator.gpu.requestAdapter({
       powerPreference: "high-performance"
     });
@@ -187,28 +188,46 @@ export class WebGPUCompositor {
       addressModeV: "clamp-to-edge"
     });
 
-    const shaderModule = device.createShaderModule({
-      label: "preview-composite",
-      code: compositeShader
+    const transformModule = device.createShaderModule({
+      label: "preview-transform",
+      code: transformShader
+    });
+    const borderRadiusModule = device.createShaderModule({
+      label: "preview-border-radius",
+      code: borderRadiusShader
     });
     const pipelineLayout = device.createPipelineLayout({
       bindGroupLayouts: [this.uniformLayout, this.textureLayout]
     });
 
     for (const mode of BLEND_MODES) {
-      const pipeline = device.createRenderPipeline({
+      const blend = blendStateFor(mode);
+      const plain = device.createRenderPipeline({
         label: `preview-pipeline-${mode}`,
         layout: pipelineLayout,
-        vertex: { module: shaderModule, entryPoint: "vs" },
+        vertex: { module: transformModule, entryPoint: "vs" },
         fragment: {
-          module: shaderModule,
+          module: transformModule,
           entryPoint: "fs",
-          targets: [{ format: this.canvasFormat, blend: blendStateFor(mode) }]
+          targets: [{ format: this.canvasFormat, blend }]
         },
         primitive: { topology: "triangle-list" }
       });
-      this.pipelines.set(mode, pipeline);
+      const rounded = device.createRenderPipeline({
+        label: `preview-pipeline-rounded-${mode}`,
+        layout: pipelineLayout,
+        vertex: { module: borderRadiusModule, entryPoint: "vs" },
+        fragment: {
+          module: borderRadiusModule,
+          entryPoint: "fs",
+          targets: [{ format: this.canvasFormat, blend }]
+        },
+        primitive: { topology: "triangle-list" }
+      });
+      this.pipelines.set(mode, { plain, rounded });
     }
+
+    this.effects = new WebGPUEffectsProcessor(device);
 
     return { ok: true };
   }
@@ -220,32 +239,31 @@ export class WebGPUCompositor {
 
   setLayers(layers: CompositeLayer[]): void {
     this.layers = [...layers].sort((a, b) => a.zIndex - b.zIndex);
-    this.pruneStaleTextures();
+    this.pruneStale();
   }
 
-  private pruneStaleTextures(): void {
+  private pruneStale(): void {
     const liveIds = new Set(this.layers.map((l) => l.id));
-    for (const [id, entry] of this.layerTextures) {
+    for (const [id, entry] of this.sourceTextures) {
       if (!liveIds.has(id)) {
         entry.texture.destroy();
-        this.layerTextures.delete(id);
+        this.sourceTextures.delete(id);
       }
     }
+    this.effects?.retainOnly(liveIds);
   }
 
   /**
-   * Allocates / reuses a GPU texture for the layer's source and copies the
-   * current source pixels into it. Returns null if the source isn't ready
-   * yet (e.g. video has no decoded frame).
+   * Allocates / reuses a source GPU texture for the layer and copies its
+   * current pixels into it. Returns null if the source isn't ready yet.
    */
-  private uploadLayer(layer: CompositeLayer): LayerTexture | null {
+  private uploadSource(layer: CompositeLayer): SourceTexture | null {
     if (!this.device) return null;
-
     const { width, height } = sourceDimensions(layer.source);
     if (width === 0 || height === 0) return null;
 
     const key = uploadKey(layer.source);
-    let entry = this.layerTextures.get(layer.id);
+    let entry = this.sourceTextures.get(layer.id);
 
     if (
       !entry ||
@@ -255,16 +273,17 @@ export class WebGPUCompositor {
     ) {
       entry?.texture.destroy();
       const texture = this.device.createTexture({
-        label: `preview-layer-${layer.id}`,
+        label: `preview-source-${layer.id}`,
         size: { width, height },
         format: "rgba8unorm",
         usage:
           GPUTextureUsage.TEXTURE_BINDING |
           GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.COPY_SRC |
           GPUTextureUsage.RENDER_ATTACHMENT
       });
       entry = { texture, width, height, source: layer.source, lastUploadKey: "" };
-      this.layerTextures.set(layer.id, entry);
+      this.sourceTextures.set(layer.id, entry);
     }
 
     if (entry.lastUploadKey !== key) {
@@ -278,41 +297,20 @@ export class WebGPUCompositor {
     return entry;
   }
 
-  private getUniformBuffer(index: number): GPUBuffer {
+  private getUniformBuffer(index: number, size: number): GPUBuffer {
     if (!this.device) {
       throw new Error("Compositor not initialized");
     }
     let buffer = this.uniformBuffers[index];
     if (!buffer) {
       buffer = this.device.createBuffer({
-        label: `preview-uniforms-${index}`,
-        size: UNIFORM_BUFFER_SIZE,
+        label: `preview-layer-uniforms-${index}`,
+        size: Math.max(size, TRANSFORM_UNIFORM_BYTES),
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
       });
       this.uniformBuffers[index] = buffer;
     }
     return buffer;
-  }
-
-  /** Compute object-fit:contain scale factors in clip space. */
-  private containScale(
-    layerWidth: number,
-    layerHeight: number
-  ): { scaleX: number; scaleY: number } {
-    if (
-      this.canvasWidth === 0 ||
-      this.canvasHeight === 0 ||
-      layerWidth === 0 ||
-      layerHeight === 0
-    ) {
-      return { scaleX: 1, scaleY: 1 };
-    }
-    const canvasAspect = this.canvasWidth / this.canvasHeight;
-    const layerAspect = layerWidth / layerHeight;
-    if (layerAspect > canvasAspect) {
-      return { scaleX: 1, scaleY: canvasAspect / layerAspect };
-    }
-    return { scaleX: layerAspect / canvasAspect, scaleY: 1 };
   }
 
   render(): void {
@@ -342,12 +340,52 @@ export class WebGPUCompositor {
 
     let drawn = 0;
     for (const layer of this.layers) {
-      const entry = this.uploadLayer(layer);
-      if (!entry) continue;
+      const src = this.uploadSource(layer);
+      if (!src) continue;
 
-      const { scaleX, scaleY } = this.containScale(entry.width, entry.height);
-      const uniformBuffer = this.getUniformBuffer(drawn);
-      const data = new Float32Array([scaleX, scaleY, layer.opacity, 0]);
+      // Run effects pre-pass if any. Effects uses its own command encoder
+      // and submits before we record this draw — so the result is ready.
+      const effectsList = layer.effects ?? [];
+      const processedTexture =
+        effectsList.length > 0 && this.effects
+          ? this.effects.process(layer.id, src.texture, src.width, src.height, effectsList)
+          : src.texture;
+
+      const transform = layer.transform ?? IDENTITY_TRANSFORM;
+      const base = containBaseScale(
+        src.width,
+        src.height,
+        this.canvasWidth,
+        this.canvasHeight
+      );
+      const matrix = buildTransformMatrix(
+        transform,
+        base,
+        this.canvasWidth,
+        this.canvasHeight
+      );
+
+      const radiusPx = layer.borderRadius ?? 0;
+      const radiusNormalized =
+        radiusPx > 0 && src.width > 0 && src.height > 0
+          ? Math.min(0.5, radiusPx / Math.min(src.width, src.height))
+          : 0;
+      const useRadius = radiusNormalized > 0.001;
+      const aspect = src.height === 0 ? 1 : src.width / src.height;
+
+      const uniformBuffer = this.getUniformBuffer(
+        drawn,
+        useRadius ? BORDER_RADIUS_UNIFORM_BYTES : TRANSFORM_UNIFORM_BYTES
+      );
+      // Both pipelines use 96-byte buffers but the tail layout differs.
+      const data = new Float32Array(24);
+      data.set(matrix, 0);
+      data[16] = layer.opacity;
+      if (useRadius) {
+        data[17] = radiusNormalized;
+        data[18] = aspect;
+        data[19] = 0.01; // smoothness — small, anti-alias band
+      }
       this.device.queue.writeBuffer(uniformBuffer, 0, data.buffer, 0, data.byteLength);
 
       const uniformBindGroup = this.device.createBindGroup({
@@ -358,13 +396,14 @@ export class WebGPUCompositor {
         layout: this.textureLayout,
         entries: [
           { binding: 0, resource: this.sampler },
-          { binding: 1, resource: entry.texture.createView() }
+          { binding: 1, resource: processedTexture.createView() }
         ]
       });
 
-      const pipeline =
+      const pair =
         this.pipelines.get(layer.blendMode) ?? this.pipelines.get("normal");
-      if (!pipeline) continue;
+      if (!pair) continue;
+      const pipeline = useRadius ? pair.rounded : pair.plain;
 
       pass.setPipeline(pipeline);
       pass.setBindGroup(0, uniformBindGroup);
@@ -378,15 +417,17 @@ export class WebGPUCompositor {
   }
 
   dispose(): void {
-    for (const entry of this.layerTextures.values()) {
+    for (const entry of this.sourceTextures.values()) {
       entry.texture.destroy();
     }
-    this.layerTextures.clear();
+    this.sourceTextures.clear();
     for (const buffer of this.uniformBuffers) {
       buffer.destroy();
     }
     this.uniformBuffers = [];
     this.pipelines.clear();
+    this.effects?.dispose();
+    this.effects = null;
     this.sampler = null;
     this.uniformLayout = null;
     this.textureLayout = null;
