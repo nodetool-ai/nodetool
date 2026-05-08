@@ -31,13 +31,13 @@ export function floodFill(
   startY: number,
   settings: FillSettings
 ): void {
-  const w = ctx.canvas.width;
-  const h = ctx.canvas.height;
-  const imageData = ctx.getImageData(0, 0, w, h);
+  const width = ctx.canvas.width;
+  const height = ctx.canvas.height;
+  const imageData = ctx.getImageData(0, 0, width, height);
   const data = imageData.data;
   const sx = Math.round(startX);
   const sy = Math.round(startY);
-  if (sx < 0 || sx >= w || sy < 0 || sy >= h) {
+  if (sx < 0 || sx >= width || sy < 0 || sy >= height) {
     return;
   }
 
@@ -47,7 +47,7 @@ export function floodFill(
   const fillB = fillParsed.b;
   const fillA = Math.round(Math.max(0, Math.min(1, fillParsed.a)) * 255);
 
-  const idx0 = (sy * w + sx) * 4;
+  const idx0 = (sy * width + sx) * 4;
   const targetR = data[idx0];
   const targetG = data[idx0 + 1];
   const targetB = data[idx0 + 2];
@@ -71,14 +71,14 @@ export function floodFill(
     return dr * dr * 0.299 + dg * dg * 0.587 + db * db * 0.114 + da * da * 0.5 <= tol2;
   };
 
-  const fillMask = new Uint8Array(w * h);
-  const bounds = computeFloodFillMask(fillMask, w, h, sx, sy, colorMatches);
+  const fillMask = new Uint8Array(width * height);
+  const bounds = computeFloodFillMask(fillMask, width, height, sx, sy, colorMatches);
   if (!bounds) {
     return;
   }
 
   for (let y = bounds.y; y < bounds.y + bounds.height; y++) {
-    const rowBase = y * w;
+    const rowBase = y * width;
     for (let x = bounds.x; x < bounds.x + bounds.width; x++) {
       if (fillMask[rowBase + x] === 0) {
         continue;
@@ -101,6 +101,13 @@ interface FloodFillBounds {
   height: number;
 }
 
+/**
+ * Compute the flood-filled region for a seed point.
+ *
+ * Mutates `filled` in place by marking every filled pixel with `1`, then
+ * returns the document-space bounding box of those filled pixels. Returns
+ * `null` when the seed does not produce any filled pixels.
+ */
 function computeFloodFillMask(
   filled: Uint8Array,
   width: number,
@@ -188,6 +195,13 @@ function computeFloodFillMask(
   };
 }
 
+/**
+ * Build a temporary ROI canvas containing only the flood-filled output.
+ *
+ * The returned canvas is transparent outside the fill result and is sized to
+ * the minimal fill bounds so the runtime can composite it through the active
+ * selection mask without restoring the whole layer.
+ */
 function createFloodFillOverlayCanvas(
   sourceCtx: CanvasRenderingContext2D,
   startX: number,

@@ -143,6 +143,10 @@ function makePointerEvent(
   };
 }
 
+/**
+ * Create a minimal Canvas2D mock that is sufficient for fill and gradient
+ * tool tests that generate temporary overlay canvases.
+ */
 function makeMock2dContext(
   canvas: HTMLCanvasElement
 ): CanvasRenderingContext2D {

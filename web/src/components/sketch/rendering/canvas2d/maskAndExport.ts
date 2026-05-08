@@ -255,6 +255,10 @@ export function fillLayerBySelectionMask(
   ctx.restore();
 }
 
+/**
+ * Composite a source canvas into a layer, clipped to the document-space
+ * selection mask projected into that layer's raster space.
+ */
 export function applyLayerSourceBySelectionMask(
   layerCanvases: Map<string, HTMLCanvasElement>,
   layerId: string,

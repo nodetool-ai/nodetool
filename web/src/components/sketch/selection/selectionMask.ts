@@ -518,7 +518,9 @@ export function combineMasks(
 
 /**
  * Trim a selection mask down to the smallest bounding box that still contains
- * active pixels. Returns `null` when the mask has no active pixels.
+ * active pixels (mask values >= 128). Returns `null` when the mask has no
+ * active pixels. The trimmed result preserves document placement by adding the
+ * trimmed offset to `originX` / `originY`.
  */
 export function trimSelectionMask(sel: Selection | null): Selection | null {
   if (!validateSelectionMask(sel) || !selectionHasAnyPixels(sel)) {

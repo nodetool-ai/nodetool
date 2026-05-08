@@ -51,6 +51,10 @@ export function drawGradient(
   ctx.restore();
 }
 
+/**
+ * Render the configured gradient into a temporary canvas sized to the target
+ * layer raster so the runtime can composite it through the active selection.
+ */
 function createGradientOverlayCanvas(
   width: number,
   height: number,
