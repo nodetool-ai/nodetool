@@ -5,19 +5,24 @@
  * automatically retrieves the most relevant ones before each LLM call, and
  * extracts new ones from conversations after they finish.
  *
- * Storage: a per-user sqlite-vec collection (`ltm_<userId>_<namespace>`).
- * Each row is one short, self-contained memory item with an embedding plus
- * metadata (kind, importance, timestamps, source, access count).
+ * Storage: any backend implementing the {@link VectorProvider} contract from
+ * `@nodetool-ai/vectorstore` (sqlite-vec, Pinecone, Supabase, etc.). The
+ * default is whatever {@link getDefaultVectorProvider} returns, so changing
+ * `NODETOOL_VECTOR_PROVIDER` reroutes long-term memory along with every
+ * other vector consumer. Each user/namespace gets its own collection
+ * `ltm_<userId>_<namespace>`; rows are short, self-contained memory items
+ * with metadata (kind, importance, timestamps, source, access count).
  *
  * Recall is hybrid:
- *   1. Pull top {@link RECALL_FETCH_MULTIPLIER}·k by vector similarity.
+ *   1. Pull top {@link RECALL_FETCH_MULTIPLIER}·k by vector similarity via
+ *      the provider's {@link VectorCollection.query}.
  *   2. Re-rank by `score = 0.7·sim + 0.2·recency + 0.1·importance`, where
  *      `sim = 1/(1+distance)` and `recency = 2^(-days_since_creation/30)`.
  *   3. Return the top k and bump `access_count` / `last_accessed_at`.
  *
  * The hybrid weighting matches Mem0's published numbers (semantic dominates,
  * recency and importance break ties) and works against any underlying
- * distance metric the vector backend chooses to use.
+ * distance metric the chosen vector backend exposes.
  */
 
 import { randomUUID } from "node:crypto";
@@ -68,7 +73,12 @@ export interface LongTermMemoryOptions {
   userId: string;
   /** Logical scope (e.g. "chat", "research"). Defaults to "default". */
   namespace?: string;
-  /** Vector provider; defaults to the process-wide SQLite-vec provider. */
+  /**
+   * Backend used to store and search memory rows. Defaults to whatever
+   * {@link getDefaultVectorProvider} resolves to — sqlite-vec out of the
+   * box, but `NODETOOL_VECTOR_PROVIDER` switches it to Pinecone or
+   * Supabase without code changes.
+   */
   vectorProvider?: VectorProvider;
   /** Embedding function. Required to enable semantic recall. */
   embeddingFunction?: EmbeddingFunction;

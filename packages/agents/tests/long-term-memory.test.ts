@@ -9,9 +9,9 @@ import { join } from "node:path";
 import { unlinkSync } from "node:fs";
 
 import {
-  SqliteVecStore,
   SqliteVecProvider,
-  type EmbeddingFunction
+  type EmbeddingFunction,
+  type VectorProvider
 } from "@nodetool-ai/vectorstore";
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
 
@@ -42,8 +42,11 @@ const fakeEmbedder: EmbeddingFunction = {
     })
 };
 
-let store: SqliteVecStore;
-let provider: SqliteVecProvider;
+// Treat the test backend as an opaque VectorProvider — the LTM module is
+// provider-agnostic and the tests should exercise it through that surface,
+// not through any SQLite-specific knobs. SqliteVecProvider is just the
+// in-process implementation we instantiate here.
+let provider: VectorProvider;
 let dbPath: string;
 
 beforeEach(() => {
@@ -51,13 +54,12 @@ beforeEach(() => {
     tmpdir(),
     `ltm-test-${Date.now()}-${Math.random().toString(36).slice(2)}.db`
   );
-  store = new SqliteVecStore(dbPath);
-  provider = new SqliteVecProvider({ store });
+  provider = new SqliteVecProvider({ dbPath });
 });
 
 afterEach(() => {
   try {
-    store.close();
+    provider.close();
   } catch {}
   for (const ext of ["", "-wal", "-shm"]) {
     try {
