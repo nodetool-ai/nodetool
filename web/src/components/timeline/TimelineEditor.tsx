@@ -146,7 +146,7 @@ const PreviewRegion: React.FC<{
     <FlexColumn
       css={previewRegionStyles(theme)}
       fullHeight
-      sx={{ flex: "55 55 0", minWidth: 0 }}
+      sx={{ flex: "0 1 55%", minWidth: 0, width: 0 }}
     >
       {isLoading ? (
         <LoadingSpinner text="Loading sequence…" />
@@ -210,7 +210,7 @@ const InspectorRegion: React.FC = () => {
     <FlexColumn
       css={inspectorRegionStyles(theme)}
       fullHeight
-      sx={{ flex: "45 45 0", minWidth: 0 }}
+      sx={{ flex: "0 1 45%", minWidth: 0, width: 0 }}
     >
       <TimelineInspector />
     </FlexColumn>

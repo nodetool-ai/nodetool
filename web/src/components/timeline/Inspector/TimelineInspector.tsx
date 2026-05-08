@@ -32,7 +32,14 @@ import { ClipActions } from "./ClipActions";
 import { NodePropertyEditor } from "./NodePropertyEditor";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
 
-const containerStyles = css({ width: "100%", padding: 8, overflow: "auto" });
+const containerStyles = css({
+  width: "100%",
+  minWidth: 0,
+  maxWidth: "100%",
+  boxSizing: "border-box",
+  padding: 8,
+  overflow: "auto"
+});
 const sectionContentStyles = css({ padding: 8 });
 
 const BLEND_MODES = ["normal", "screen", "multiply", "add", "overlay"] as const;
@@ -224,42 +231,38 @@ export const TimelineInspector: React.FC = memo(() => {
                   setTransform({ ...t, rotation: (deg * Math.PI) / 180 });
                 return (
                   <>
-                    <FlexRow gap={1}>
-                      <NumericField
-                        label="X (px)"
-                        value={t.position.x}
-                        onCommit={(v) => {
-                          const n = Number(v);
-                          if (Number.isFinite(n)) setPos("x", n);
-                        }}
-                      />
-                      <NumericField
-                        label="Y (px)"
-                        value={t.position.y}
-                        onCommit={(v) => {
-                          const n = Number(v);
-                          if (Number.isFinite(n)) setPos("y", n);
-                        }}
-                      />
-                    </FlexRow>
-                    <FlexRow gap={1}>
-                      <NumericField
-                        label="Scale X"
-                        value={t.scale.x}
-                        onCommit={(v) => {
-                          const n = Number(v);
-                          if (Number.isFinite(n)) setScale("x", n);
-                        }}
-                      />
-                      <NumericField
-                        label="Scale Y"
-                        value={t.scale.y}
-                        onCommit={(v) => {
-                          const n = Number(v);
-                          if (Number.isFinite(n)) setScale("y", n);
-                        }}
-                      />
-                    </FlexRow>
+                    <NumericField
+                      label="X (px)"
+                      value={t.position.x}
+                      onCommit={(v) => {
+                        const n = Number(v);
+                        if (Number.isFinite(n)) setPos("x", n);
+                      }}
+                    />
+                    <NumericField
+                      label="Y (px)"
+                      value={t.position.y}
+                      onCommit={(v) => {
+                        const n = Number(v);
+                        if (Number.isFinite(n)) setPos("y", n);
+                      }}
+                    />
+                    <NumericField
+                      label="Scale X"
+                      value={t.scale.x}
+                      onCommit={(v) => {
+                        const n = Number(v);
+                        if (Number.isFinite(n)) setScale("x", n);
+                      }}
+                    />
+                    <NumericField
+                      label="Scale Y"
+                      value={t.scale.y}
+                      onCommit={(v) => {
+                        const n = Number(v);
+                        if (Number.isFinite(n)) setScale("y", n);
+                      }}
+                    />
                     <NumericField
                       label="Rotation (deg)"
                       value={(t.rotation * 180) / Math.PI}
