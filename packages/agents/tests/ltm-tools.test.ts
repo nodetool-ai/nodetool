@@ -80,6 +80,19 @@ describe("ltm_remember", () => {
     expect(result.id).toBeTruthy();
   });
 
+  it("coerces an unknown kind back to 'fact' instead of trusting the assertion", async () => {
+    const memory = newMemory();
+    const tool = new LtmRememberTool(memory);
+    const ctx = createMockContext();
+    const result = (await tool.process(ctx, {
+      text: "User likes pickles",
+      kind: "totally-made-up-kind",
+      importance: 0.5
+    })) as { stored: boolean; kind?: string };
+    expect(result.stored).toBe(true);
+    expect(result.kind).toBe("fact");
+  });
+
   it("uses the per-user registry when no LTM is bound", async () => {
     const memory = newMemory();
     setLongTermMemory("user-1", memory);

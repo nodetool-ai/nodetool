@@ -12,20 +12,49 @@
  *
  * Two ways to wire them up:
  *
- *   1. **Per-tool binding** — pass a {@link LongTermMemory} to the
- *      constructor. Useful when an agent should only see its own scope.
+ *   1. **Per-tool binding (preferred)** — pass a {@link LongTermMemory} to
+ *      the tool constructor. The {@link processChat} hook and the
+ *      {@link Agent} class both hold their own LTM instance and pass it
+ *      explicitly, so they don't touch the registry below.
  *
  *   2. **Per-user registry** — call {@link setLongTermMemory} once at
- *      session start with the user's LTM, then construct the tools without
- *      arguments. They look up the LTM by `context.userId` at call time.
- *      This is what {@link processChat} and {@link Agent} use under the
- *      hood, so the same tools work in both surfaces.
+ *      session start, then construct the tools without arguments. They
+ *      look up the LTM by `context.userId` at call time. Use this when
+ *      the calling surface can't reach the LTM directly (for example,
+ *      when a tool is auto-attached to an agent via the tool registry).
+ *
+ * **Cleanup contract for the registry**: it's a process-global map keyed
+ * by `userId`, with no TTL or LRU. Owners that register an LTM (web
+ * server session lifecycle, CLI, tests) MUST call `setLongTermMemory(
+ * userId, null)` on logout / session end / teardown so the map doesn't
+ * grow unbounded across long-running processes. Tests in this package
+ * already do this in `afterEach`.
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 import { LongTermMemory } from "../long-term-memory.js";
 import type { MemoryKind } from "../long-term-memory.js";
+
+const VALID_MEMORY_KINDS = new Set<MemoryKind>([
+  "fact",
+  "preference",
+  "decision",
+  "event"
+]);
+
+/**
+ * Coerce an arbitrary value to a {@link MemoryKind}, falling back to
+ * `"fact"` when the value isn't one of the four allowed strings. We can't
+ * trust the schema enum at runtime — model-emitted tool args have been
+ * observed to slip past it (typos, hallucinated kinds), and an unchecked
+ * cast would let those reach storage where they'd skew filtering.
+ */
+function coerceMemoryKind(value: unknown): MemoryKind {
+  if (typeof value !== "string") return "fact";
+  const lower = value.toLowerCase().trim() as MemoryKind;
+  return VALID_MEMORY_KINDS.has(lower) ? lower : "fact";
+}
 
 // ---------------------------------------------------------------------------
 // Per-user registry
@@ -36,6 +65,12 @@ const REGISTRY = new Map<string, LongTermMemory>();
 /**
  * Register a {@link LongTermMemory} for a user so the LTM tools can find it
  * via `context.userId` without having to thread the instance everywhere.
+ *
+ * Pass `null` on session end / logout / teardown to clear the entry. The
+ * registry has no TTL or LRU, so leaks here would accumulate forever in a
+ * long-running server. Per-tool binding (passing the LTM to the tool
+ * constructor) sidesteps the registry entirely and is preferred when the
+ * caller already holds the instance.
  */
 export function setLongTermMemory(
   userId: string,
@@ -184,10 +219,7 @@ export class LtmRememberTool extends Tool {
     if (!text.trim()) {
       return { stored: false, note: "text is required" };
     }
-    const kind =
-      typeof params.kind === "string"
-        ? (params.kind as MemoryKind)
-        : undefined;
+    const kind = params.kind === undefined ? undefined : coerceMemoryKind(params.kind);
     const importance =
       typeof params.importance === "number" ? params.importance : undefined;
     const stored = await memory.remember(text, {

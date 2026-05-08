@@ -445,7 +445,7 @@ describe("processChat", () => {
     expect(firstCall[0].role).toBe("system");
     expect(firstCall[0].content).toContain("helpful assistant");
     expect(firstCall[1].role).toBe("system");
-    expect(firstCall[1].content).toContain("Long-term memory");
+    expect(firstCall[1].content).toContain("<recalled-memories>");
     expect(firstCall[1].content).toContain("User prefers TypeScript");
     expect(firstCall[2].role).toBe("user");
 
