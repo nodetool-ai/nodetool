@@ -3,7 +3,7 @@
 <header class="site-header">
   <div class="header-container">
     <div class="logo-section">
-      <a href="{{ '/' | relative_url }}" class="logo">
+      <a href="https://nodetool.ai" class="logo" rel="noopener">
         <img src="{{ '/assets/logo.png' | relative_url }}" alt="NodeTool Logo" class="logo-image" />
         <span class="logo-text">nodetool</span>
       </a>
@@ -16,7 +16,6 @@
       </button>
 
       <ul class="nav-list">
-        <li><a href="https://nodetool.ai" class="nav-item nav-item-external" rel="noopener">nodetool.ai</a></li>
         <li><a href="{{ '/' | relative_url }}" class="nav-item {% if page.url == '/' %}active{% endif %}">Home</a></li>
         <li><a href="{{ '/getting-started' | relative_url }}" class="nav-item {% if page.url contains '/getting-started' %}active{% endif %}">Getting Started</a></li>
         <li><a href="{{ '/cookbook' | relative_url }}" class="nav-item {% if page.url contains '/cookbook' %}active{% endif %}">Cookbook</a></li>
