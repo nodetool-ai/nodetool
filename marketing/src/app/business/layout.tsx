@@ -1,23 +1,24 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "NodeTool for Business - Enterprise AI Automation Platform",
+  title: "NodeTool for Studios & Teams — The open creative AI workspace",
   description:
-    "Transform your business with AI automation. Build and deploy custom AI workflows without vendor lock-in. Reduce costs, enhance productivity, and maintain complete control over your data.",
+    "An open creative AI workspace for small studios, post-production shops, and agency teams. Every major model, your own keys, your workflows — no credit markup, no vendor lock-in, no acquisition risk.",
   keywords: [
-    "AI automation",
-    "enterprise AI",
-    "business automation",
-    "self-hosted AI",
-    "AI workflows",
-    "process automation",
-    "document intelligence",
-    "AI platform",
+    "creative AI workspace",
+    "studio AI tools",
+    "BYOK AI canvas",
+    "open source creative AI",
+    "ComfyUI alternative",
+    "Weavy alternative",
+    "vendor-neutral AI",
+    "agency AI workflows",
+    "post-production AI",
   ],
   openGraph: {
-    title: "NodeTool for Business - Enterprise AI Automation",
+    title: "NodeTool for Studios & Teams — The open creative AI workspace",
     description:
-      "Build and deploy custom AI workflows without vendor lock-in. Reduce costs by up to 80% while maintaining complete control over your data.",
+      "Every major model, your own keys, your workflows — wired into one node-based canvas. No credit markup, no vendor lock-in, no acquisition risk.",
     type: "website",
   },
 };

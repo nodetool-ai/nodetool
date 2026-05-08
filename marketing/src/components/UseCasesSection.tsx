@@ -34,7 +34,7 @@ export default function UseCasesSection({
             transition={{ duration: 0.5 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Use Cases
+            What people build
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -43,7 +43,7 @@ export default function UseCasesSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            NodeTool supports multiple AI workflow categories. Connect nodes to build applications in these areas.
+            Image, video, audio, text, agents, RAG — all on the same canvas. Wire the models you want, switch when better ones ship.
           </motion.p>
         </div>
 

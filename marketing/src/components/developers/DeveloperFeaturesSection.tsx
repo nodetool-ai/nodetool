@@ -8,9 +8,9 @@ const sectionContainer = "mx-auto max-w-7xl px-6 lg:px-8";
 
 const features = [
   {
-    title: "Developer SDK",
+    title: "TypeScript SDK",
     description:
-      "Build and run workflows programmatically. Strict types, async streaming, and a fluent graph builder.",
+      "Build and run workflows from code. Strict types, async streaming, and a fluent graph builder.",
     icon: Code2,
     color: "text-violet-400",
     bgColor: "bg-violet-500/10",
@@ -39,9 +39,9 @@ const out = text.concat({ a: a.output, b: b.output });
 const wf = workflow(out);`,
   },
   {
-    title: "Custom Nodes",
+    title: "Custom nodes",
     description:
-      "Extend NodeTool with your own nodes. Decorate fields, implement process(), ship it.",
+      "Add your own nodes to the workspace. Decorate fields, implement process(), ship it.",
     icon: Blocks,
     color: "text-emerald-400",
     bgColor: "bg-emerald-500/10",
@@ -85,7 +85,7 @@ export default function DeveloperFeaturesSection({
             transition={{ duration: 0.5 }}
             className="inline-flex items-center gap-2 rounded-full bg-violet-500/10 px-4 py-1.5 text-sm font-medium text-violet-300 ring-1 ring-inset ring-violet-500/20 mb-4"
           >
-            Developer Experience
+            From the canvas to your code
           </motion.span>
           <motion.h2
             id="features-title"
@@ -95,7 +95,7 @@ export default function DeveloperFeaturesSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
-            Build with Powerful APIs
+            Drive the workspace from code
           </motion.h2>
           <motion.p
             initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
@@ -104,7 +104,7 @@ export default function DeveloperFeaturesSection({
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
           >
-            Everything you need to integrate AI workflows into your applications
+            The same workflows you build on the canvas, callable from a TypeScript SDK and CLI.
           </motion.p>
         </div>
 

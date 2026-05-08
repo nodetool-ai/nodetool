@@ -85,7 +85,7 @@ export default function DeveloperIntegrationsSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
-            Connect to Everything
+            Every model. Your keys.
           </motion.h2>
           <motion.p
             initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
@@ -94,7 +94,7 @@ export default function DeveloperIntegrationsSection({
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
           >
-            340+ built-in nodes. Every major AI provider and model supported out of the box.
+            340+ built-in nodes spanning every major provider and modality. BYOK across the board.
           </motion.p>
         </div>
 
@@ -160,11 +160,11 @@ export default function DeveloperIntegrationsSection({
           className="mt-16 text-center rounded-2xl bg-gradient-to-br from-violet-900/20 to-teal-900/20 p-10 ring-1 ring-violet-500/20"
         >
           <h3 className="text-2xl font-bold text-white mb-4">
-            100% Open Source
+            100% open source
           </h3>
           <p className="text-slate-400 max-w-xl mx-auto mb-6">
-            NodeTool is MIT licensed. Fork it, modify it, host it yourself.
-            No vendor lock-in, no usage limits, complete control over your AI infrastructure.
+            NodeTool is AGPL-3.0. Fork it, audit it, self-host it. No vendor lock-in,
+            no usage limits — bring your own keys to every provider and pay providers directly.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a

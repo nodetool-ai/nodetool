@@ -5,11 +5,40 @@ import { MinusSmallIcon, PlusSmallIcon } from "@heroicons/react/24/outline";
 
 const faqs = [
   {
-    question: "What's the best thing about Switzerland?",
+    question: "What is NodeTool?",
     answer:
-      "I don't know, but the flag is a big plus. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quas cupiditate laboriosam fugiat.",
+      "NodeTool is the open creative AI workspace. Every major model from every major provider — FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and more — wired into one node-based canvas you run on your machine or in the browser.",
   },
-  // More questions...
+  {
+    question: "What does BYOK mean for me?",
+    answer:
+      "Bring your own keys. You connect your own provider accounts and pay providers directly at provider prices. NodeTool never marks up model calls and never issues proprietary credits.",
+  },
+  {
+    question: "Is NodeTool open source?",
+    answer:
+      "Yes. The full codebase is AGPL-3.0 on GitHub. Studio and Cloud share the same source — no closed-source layer, no \"pro\" tier hiding the good features. Self-host any time.",
+  },
+  {
+    question: "How is this different from ComfyUI?",
+    answer:
+      "ComfyUI is a Stable Diffusion power tool with engineer-first UX. NodeTool is the full creative workspace — image, video, audio, and text on one canvas, with the editing tools creatives actually use: masks, inpaint, outpaint, relight, upscale, layers, compositing.",
+  },
+  {
+    question: "How is this different from Weavy and other closed canvases?",
+    answer:
+      "Closed canvases lock you into a credit system and a curated model roster. NodeTool is open source and BYOK. Your workflows, files, and keys belong to you. Switch providers the moment a better model ships.",
+  },
+  {
+    question: "Studio or Cloud — which should I use?",
+    answer:
+      "Studio is the desktop app: free, open source, runs on your machine, supports local models via MLX, Ollama, and GGUF. Cloud is the same workspace in the browser — zero setup, no GPU required, your keys still go to providers directly. Same workflows either way.",
+  },
+  {
+    question: "Which models are supported?",
+    answer:
+      "Frontier models including Flux, Seedance, Wan, Veo, Kling, Hailuo, Qwen Image, Whisper, ElevenLabs, and Suno — called through providers like FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, and HuggingFace. Local inference via MLX, Ollama, llama.cpp, vLLM, and LM Studio.",
+  },
 ];
 
 export default function Faqs() {

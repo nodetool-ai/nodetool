@@ -105,15 +105,16 @@ export default function AgentsGraphHero() {
                         </div>
 
                         <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-8">
-                            Build Autonomous <br />
+                            Agents are <br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-fuchsia-400 to-rose-400">
-                                AI Agents Visually
+                                nodes on your canvas.
                             </span>
                         </h1>
 
                         <p className="text-lg md:text-xl text-slate-400 mb-10 leading-relaxed max-w-2xl mx-auto">
-                            Orchestrate multi-step reasoning loops. Connect LLMs to tools, databases, and APIs.
-                            Debug agent thoughts in real-time.
+                            Drop a planning agent into the canvas. It calls the right models and tools to
+                            finish a multi-step task — research, browse, write, generate — and hands the
+                            result to the next node. Watch the reasoning live.
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

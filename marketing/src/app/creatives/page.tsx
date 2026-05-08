@@ -75,30 +75,30 @@ const creativePersonas: Array<{
   accent: PersonaAccent;
 }> = [
   {
-    title: "Video Creators",
+    title: "Motion designers",
     description:
-      "Automate editing workflows, generate B-roll, and create consistent visual styles across your content.",
+      "Wire Seedance, Veo, Kling, and Runway nodes for B-roll, transitions, and looks. Re-run the workflow when the brief changes.",
     icon: Video,
     accent: "rose",
   },
   {
-    title: "Graphic Designers",
+    title: "AI-native illustrators",
     description:
-      "Access Flux, Ideogram, and gpt-image-1.5. Generate variations and maintain brand consistency with world-class image models.",
+      "Mix Flux, Qwen Image, Ideogram, and gpt-image. Mask, inpaint, outpaint, relight, and upscale on the same canvas — no exporting between tools.",
     icon: Palette,
     accent: "emerald",
   },
   {
-    title: "Music Producers",
+    title: "Music & sound producers",
     description:
-      "Compose with Suno, generate speech with ElevenLabs, and experiment with audio processing in your pipeline.",
+      "Compose with Suno, voice with ElevenLabs, transcribe with Whisper. Wire audio straight into your visual workflows.",
     icon: Music,
     accent: "sky",
   },
   {
-    title: "Photographers",
+    title: "Photographers & retouchers",
     description:
-      "Batch process images, upscale photos, and apply consistent edits across your entire catalog.",
+      "Batch upscale, color-match, restyle. Wrap your repeatable retouching steps into a workflow you can re-run on the next shoot.",
     icon: Camera,
     accent: "amber",
   },
@@ -119,29 +119,29 @@ const creativeFeatures = [
     ],
   },
   {
-    title: "Image Generation",
+    title: "Image generation & editing",
     description:
-      "Run Flux, Qwen-Image, Nano-Banana or Z-Image. Generate, upscale, and transform images with professional-grade command.",
+      "Run Flux, Qwen-Image, Nano-Banana, Z-Image, gpt-image, and friends. Generate, mask, inpaint, outpaint, relight, and upscale — all on the canvas.",
     icon: Wand2,
     image: "/disaster_girl.mp4",
-    features: ["GPU acceleration", "Multi-model support", "Batch processing"],
+    features: ["Masks, inpaint, outpaint", "Multi-model support", "Batch processing"],
   },
   {
-    title: "Video Processing",
+    title: "Video pipelines",
     description:
-      "Create with cinematic video models like Seedance 2.0, Kling 3.0, Veo, Runway and Sora 2. Edit and build automated video pipelines.",
+      "Wire Seedance, Kling, Veo, Runway, and Sora alongside your edit nodes. Generate, transform, and stitch — without exporting between tools.",
     icon: Video,
     image: "/sora.mp4",
     features: [
-      "Frame-accurate editing",
+      "Frame-accurate edits",
       "Temporal smoothing",
       "Format transcoding",
     ],
   },
   {
-    title: "Audio Integration",
+    title: "Audio on the same surface",
     description:
-      "Compose music with Suno, generate voice with ElevenLabs, and wire audio straight into your canvas.",
+      "Compose with Suno, generate voice with ElevenLabs, transcribe with Whisper. Same canvas, same nodes, no extra tabs.",
     icon: Music,
     image: "/suno.png",
     features: ["Stem separation", "Music generation", "Voice generation"],
@@ -375,7 +375,7 @@ export default function CreativesPage() {
                 <div className="relative inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-rose-500/30 bg-gradient-to-r from-rose-500/[0.08] via-amber-500/[0.05] to-cyan-500/[0.08] mb-10 shadow-[0_0_40px_-10px_rgba(244,63,94,0.35)]">
                   <Sparkles className="w-4 h-4 text-rose-400" />
                   <span className="text-sm font-medium text-white tracking-wide">
-                    Built for Creative Professionals
+                    The open canvas for working creatives
                   </span>
                 </div>
 
@@ -391,8 +391,8 @@ export default function CreativesPage() {
                 </h1>
 
                 <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-                  Drag-and-drop pipelines for every frontier model —
-                  Seedance 2.0, Kling 3.0, Runway, Luma, Suno, Flux, and more.
+                  Every model. Your keys. Your canvas. Wire Seedance, Kling, Veo, Runway,
+                  Luma, Suno, Flux, and more on one open-source surface — no credit markup, no vendor lock-in.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
@@ -518,12 +518,13 @@ export default function CreativesPage() {
               <h2 className="text-4xl md:text-6xl font-bold tracking-tight text-white mb-6">
                 Built for{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 via-emerald-300 to-cyan-400">
-                  Every Creator
+                  working creatives
                 </span>
               </h2>
               <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-                Whether you&apos;re editing videos, designing graphics, producing music,
-                or processing photos, NodeTool adapts to your creative workflow.
+                Independent generative artists, motion designers, AI-native illustrators,
+                technical art directors, ComfyUI power users, and Weavy switchers — NodeTool
+                is the open canvas for your work.
               </p>
             </motion.div>
 
@@ -610,14 +611,15 @@ export default function CreativesPage() {
                 <Zap className="w-8 h-8 text-amber-400" />
               </div>
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-                Powerful Tools for <br />
+                One canvas for <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-cyan-400">
-                  Creative Work
+                  every modality
                 </span>
               </h2>
               <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-                Access the same elite models used by studios—Seedance 2.0, Kling 3.0, Luma, Suno,
-                Flux—all within a visual, intuitive interface.
+                The same models the studios use — Seedance, Kling, Luma, Suno, Flux —
+                wired into one node-based canvas, with masks, inpaint, outpaint,
+                relight, upscale, and compositing built in.
               </p>
             </motion.div>
 
@@ -698,14 +700,14 @@ export default function CreativesPage() {
               className="text-center mb-16"
             >
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-                Creative Workflow{" "}
+                Workflow{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
-                  Templates
+                  starting points
                 </span>
               </h2>
               <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-                Start with pre-built workflows designed for creative
-                professionals. Customize them to fit your unique process.
+                Real workflows for real creative work. Open one, swap models for the ones
+                you prefer, and make it yours.
               </p>
             </motion.div>
 
@@ -773,9 +775,9 @@ export default function CreativesPage() {
               className="text-center mb-16"
             >
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-                Why Creatives{" "}
+                Why creatives{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-                  Choose NodeTool
+                  choose NodeTool
                 </span>
               </h2>
             </motion.div>
@@ -783,27 +785,27 @@ export default function CreativesPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[
                 {
-                  title: "Your Data, Your Control",
+                  title: "Your work, your machine",
                   description:
-                    "Run everything locally. Your creative assets never leave your machine unless you choose to share them.",
+                    "Studio runs on your computer. Your prompts, files, and outputs stay on your disk unless you choose to share them.",
                   icon: Shield,
                   color: "text-emerald-400",
                   bgColor: "bg-emerald-500/10",
                   borderColor: "border-emerald-500/20",
                 },
                 {
-                  title: "No Subscription Required",
+                  title: "No credits. No markup.",
                   description:
-                    "NodeTool is free and open-source. Use your own API keys or run models completely offline.",
+                    "Studio is free and open source under AGPL-3.0. Bring your own keys to every provider and pay providers directly.",
                   icon: Sparkles,
                   color: "text-amber-400",
                   bgColor: "bg-amber-500/10",
                   borderColor: "border-amber-500/20",
                 },
                 {
-                  title: "All Leading Models",
+                  title: "Every model on one canvas",
                   description:
-                    "Access every top model in one place—Seedance 2.0, Kling 3.0, Luma, Runway, Suno, ElevenLabs, Flux, Ideogram, and more.",
+                    "Seedance, Kling, Veo, Runway, Luma, Suno, ElevenLabs, Flux, Ideogram, and more — switch the moment a better one ships.",
                   icon: Zap,
                   color: "text-amber-400",
                   bgColor: "bg-teal-500/10",
@@ -849,13 +851,12 @@ export default function CreativesPage() {
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
                 Join the{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-amber-400">
-                  Creative Community
+                  community
                 </span>
               </h2>
               <p className="text-lg text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed">
-                Connect with other creative professionals, share workflows, and
-                get help from the community. NodeTool is open-source under
-                AGPL-3.0.
+                Trade workflows, swap prompts, and ship work with other working
+                creatives. NodeTool is open source under AGPL-3.0 — built in the open.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
