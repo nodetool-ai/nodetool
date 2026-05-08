@@ -26,7 +26,14 @@ const loadWorkflows = async () => {
  * const { isLoadingWorkflows, sortedWorkflows, startTemplates } = useDashboardData();
  * ```
  */
-export const useDashboardData = () => {
+interface UseDashboardDataResult {
+  isLoadingWorkflows: boolean;
+  sortedWorkflows: Workflow[];
+  isLoadingTemplates: boolean;
+  startTemplates: Workflow[];
+}
+
+export const useDashboardData = (): UseDashboardDataResult => {
   const settings = useSettingsStore((state) => state.settings);
   const loadTemplates = useWorkflowManager((state) => state.loadTemplates);
 
