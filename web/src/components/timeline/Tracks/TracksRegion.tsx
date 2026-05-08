@@ -298,6 +298,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         {/* ── Tool toolbar (above the ruler) ──────────────────────────── */}
         <FlexRow
           align="center"
+          justify="center"
           gap={0.5}
           css={toolbarStyles(theme)}
           data-testid="timeline-toolbar"
