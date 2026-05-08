@@ -338,6 +338,7 @@ export {
   ExtractorNode,
   ClassifierNode,
   AgentNode,
+  AgentStepNode,
   AGENT_NODES
 } from "./nodes/agents.js";
 export {

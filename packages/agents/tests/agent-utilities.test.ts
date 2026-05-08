@@ -13,12 +13,15 @@ import {
 import { ListProviderModelsTool } from "../src/tools/model-tools.js";
 import { removeBase64Images } from "../src/utils/remove-base64-images.js";
 import { wrapGeneratorsParallel } from "../src/utils/wrap-generators-parallel.js";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type { MessageContent } from "@nodetool-ai/runtime";
 
-// Minimal context stub for workspace tools
+// Minimal context stub for workspace tools — wires a real
+// FileStorageAdapter so the tools' new storage-backed code path works.
 function makeContext(workspaceDir: string) {
   return {
-    workspaceDir
+    workspaceDir,
+    workspaceStorage: new FileStorageAdapter(workspaceDir)
   } as unknown as import("@nodetool-ai/runtime").ProcessingContext;
 }
 

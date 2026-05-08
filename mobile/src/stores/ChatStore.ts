@@ -198,6 +198,26 @@ function handleWebSocketMessage(
       break;
     }
 
+    case 'planning_update': {
+      const pu = data as { phase?: string; status?: string; content?: string };
+      if (pu.status === 'completed' || pu.status === 'failed') {
+        set({ statusMessage: null });
+      } else {
+        set({ statusMessage: pu.content || null });
+      }
+      break;
+    }
+
+    case 'task_update': {
+      // Light-touch surface: show the lifecycle event so the user knows
+      // something is happening during long agent runs. The full execution
+      // tree lives elsewhere; here we just keep the banner alive.
+      const tu = data as { event?: string; task?: { title?: string } };
+      const label = tu.task?.title ? `${tu.task.title} — ${tu.event}` : tu.event;
+      if (label) set({ statusMessage: label });
+      break;
+    }
+
     case 'generation_stopped': {
       set({
         status: 'connected',

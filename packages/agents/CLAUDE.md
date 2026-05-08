@@ -43,7 +43,16 @@ memoryKeys.shared("note");         // "shared:note"  — cross-agent scratch
 
 ### Custom prompts are preambles, not replacements
 
-`StepExecutor.buildSystemPrompt()` always uses the default execution prompt (memory tools docs, output schema, `finish_step` discipline, conclusion-stage rules). A caller-supplied `systemPrompt` is layered as a preamble *before* the default — it cannot override the execution contract. Earlier versions allowed this and broke result capture in plan mode.
+`StepExecutor.buildSystemPrompt()` always uses the default execution prompt (memory tools docs, output schema, `finish_step` discipline). A caller-supplied `systemPrompt` is layered as a preamble *before* the default — it cannot override the execution contract. Earlier versions allowed this and broke result capture in plan mode.
+
+### Final synthesis: CompilerAgent
+
+`Agent` and `MultiModeAgent` (plan mode) end with a dedicated `CompilerAgent` pass after `ParallelTaskExecutor` finishes. The compiler reads the gathered memory snapshot, fetches values via `memory_read`, and produces the final deliverable:
+
+- **Structured mode** (an `outputSchema` is set): `finish_step` is included in the toolset, and the compiler returns a schema-conformant value.
+- **Prose mode** (no `outputSchema`): `finish_step` is omitted; the compiler emits a final assistant message and the absence of any tool call ends the loop. The text becomes the result.
+
+The planner is told NOT to create an aggregation/synthesis step — final assembly is the compiler's job. There is no "schema grafted onto the last step" hack anymore.
 
 ### Threading task-level deps through executors
 
@@ -363,9 +372,8 @@ const agent = new Agent({
 ### Token Budgeting
 
 - Default token limit: 128,000 per step
-- At 90% usage, enters "conclusion stage" — forces step completion
+- At 90% usage, oldest tool-result messages are evicted from history (their values remain in `context.memory` and can be re-read via `memory_read`)
 - Tool results truncated to 20,000 chars
-- Older messages summarized to stay within limits
 - Configure via `maxTokenLimit` option
 
 ### Plan Validation
@@ -380,8 +388,8 @@ Plans are validated before execution:
 
 Steps can enforce structured output via JSON schema:
 - `additionalProperties: false` enforced automatically
-- Failed JSON parsing retried up to 6 times (`MAX_JSON_PARSE_FAILURES`)
-- Warning after 3 failures (`JSON_FAILURE_ALERT_THRESHOLD`)
+- Schema'd steps finalize ONLY through the `finish_step` tool — there is no JSON-from-text extraction path. If `finish_step` is never called, the step fails on `maxIterations` and emits an explicit error result.
+- Unstructured steps (no schema) finalize when the model emits a no-tool-call assistant message; that text becomes the result.
 
 ### Skills System
 

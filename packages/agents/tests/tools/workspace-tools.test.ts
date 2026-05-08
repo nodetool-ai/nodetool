@@ -11,18 +11,22 @@ import {
   WorkspaceWriteTool,
   WorkspaceListTool
 } from "../../src/tools/workspace-tools.js";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
 /* ------------------------------------------------------------------ */
 
-const mockContext = {} as ProcessingContext;
+let mockContext: ProcessingContext;
 
 let tmpDir: string;
 
 beforeEach(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ws-tools-test-"));
+  mockContext = {
+    workspaceStorage: new FileStorageAdapter(tmpDir)
+  } as unknown as ProcessingContext;
 });
 
 afterEach(async () => {

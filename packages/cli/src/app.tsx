@@ -32,7 +32,12 @@ import {
 import { createProvider, DEFAULT_MODELS, KNOWN_PROVIDERS, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient } from "./websocket-client.js";
 import { renderMarkdown } from "./markdown.js";
-import { saveSettings } from "./settings.js";
+import {
+  saveSettings,
+  isAgentMode,
+  AGENT_MODES,
+  type AgentMode
+} from "./settings.js";
 import { getSecret } from "@nodetool-ai/models";
 
 // ---------------------------------------------------------------------------
@@ -51,9 +56,7 @@ export interface ChatMessage {
 interface AppProps {
   initialProvider: string;
   initialModel: string;
-  initialAgentMode: boolean;
-  /** Initial agent planner type ("graph" or "multi"). Default "graph". */
-  initialAgentPlanner?: "multi" | "graph";
+  initialAgentMode: AgentMode;
   enabledTools: string[];
   workspaceDir: string;
   wsUrl?: string;
@@ -84,12 +87,19 @@ const COMMANDS = {
   "/clear":    "Clear conversation history",
   "/model":    "Set model: /model <model-id>",
   "/provider": "Set provider: /provider <name>",
-  "/agent":    "Toggle agent mode",
-  "/planner":  "Set agent planner: /planner graph|multi",
+  "/agent":    "Set agent mode: /agent off|loop|plan|graph|multi-agent",
   "/tools":    "List enabled tools",
   "/exit":     "Exit the chat",
   "/quit":     "Exit the chat",
 } as const;
+
+const AGENT_MODE_DESCRIPTIONS: Record<AgentMode, string> = {
+  "off":         "plain chat (no agent)",
+  "loop":        "iterative tool-calling loop",
+  "plan":        "TaskPlanner DAG + CompilerAgent synthesis",
+  "graph":       "GraphPlanner builds a workflow graph",
+  "multi-agent": "team of sub-agents",
+};
 
 // ---------------------------------------------------------------------------
 // Individual message rendering
@@ -215,7 +225,6 @@ export function App({
   initialProvider,
   initialModel,
   initialAgentMode,
-  initialAgentPlanner = "graph",
   enabledTools,
   workspaceDir,
   wsUrl,
@@ -228,9 +237,7 @@ export function App({
   // --- State ---
   const [provider, setProvider] = useState(initialProvider);
   const [model, setModel] = useState(initialModel);
-  const [agentMode, setAgentMode] = useState(initialAgentMode);
-  const [agentPlanner, setAgentPlanner] =
-    useState<"multi" | "graph">(initialAgentPlanner);
+  const [agentMode, setAgentMode] = useState<AgentMode>(initialAgentMode);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatHistory, setChatHistory] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -276,7 +283,6 @@ export function App({
   const providerRef = useRef(provider);
   const modelRef = useRef(model);
   const agentModeRef = useRef(agentMode);
-  const agentPlannerRef = useRef(agentPlanner);
   const abortRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   // Guard against double-submit: useInput autocomplete Enter + TextInput onSubmit fire for the same keypress
@@ -286,7 +292,6 @@ export function App({
   useEffect(() => { providerRef.current = provider; }, [provider]);
   useEffect(() => { modelRef.current = model; }, [model]);
   useEffect(() => { agentModeRef.current = agentMode; }, [agentMode]);
-  useEffect(() => { agentPlannerRef.current = agentPlanner; }, [agentPlanner]);
   useEffect(() => { setAcIndex(0); }, [inputValue]);
 
   // Connect WebSocket when --url is provided
@@ -414,35 +419,29 @@ export function App({
 
       case "/exit":
       case "/quit":
-        await saveSettings({ provider, model, agentMode, agentPlanner });
+        await saveSettings({ provider, model, agentMode });
         exit();
         return true;
 
-      case "/agent":
-        setAgentMode(prev => {
-          const next = !prev;
-          addMessage("system", `Agent mode ${next ? "ON" : "OFF"}.`);
-          return next;
-        });
-        return true;
-
-      case "/planner": {
+      case "/agent": {
         const arg = args[0]?.toLowerCase();
-        if (arg === "graph" || arg === "multi") {
-          setAgentPlanner(arg);
-          await saveSettings({ agentPlanner: arg });
+        if (!arg) {
           addMessage(
             "system",
-            arg === "graph"
-              ? "Planner set to graph (workflow builder)."
-              : "Planner set to multi (parallel task plan)."
+            `Current agent mode: ${agentMode}. Usage: /agent ${AGENT_MODES.join("|")}`
           );
-        } else {
-          addMessage(
-            "system",
-            `Current planner: ${agentPlanner}. Usage: /planner graph|multi`
-          );
+          return true;
         }
+        if (!isAgentMode(arg)) {
+          addMessage(
+            "system",
+            `Unknown agent mode "${arg}". Expected one of: ${AGENT_MODES.join(", ")}.`
+          );
+          return true;
+        }
+        setAgentMode(arg);
+        await saveSettings({ agentMode: arg });
+        addMessage("system", `Agent mode set to: ${arg}`);
         return true;
       }
 
@@ -526,7 +525,7 @@ export function App({
       const ctx = new ProcessingContext({ jobId: crypto.randomUUID(), userId: "1", workspaceDir, secretResolver: getSecret });
       const tools = buildTools();
 
-      if (agentModeRef.current) {
+      if (agentModeRef.current !== "off") {
         // --- Agent mode ---
         setStreamLabel("planning");
         execState.reset();
@@ -534,10 +533,19 @@ export function App({
           ? new WebSocketProvider(wsClientRef.current, modelRef.current, providerRef.current)
           : await createProvider(providerRef.current);
 
-        // Pick the planner. The "graph" planner needs a registry; without
-        // one we silently downgrade to the multi-task planner.
-        const useGraphPlanner =
-          agentPlannerRef.current === "graph" && !!registry;
+        // Map the chat-cli agent mode to MultiModeAgent's options.
+        // "graph" → plan mode + GraphPlanner (needs a registry; falls back to plan).
+        // "plan"  → plan mode + multi-task TaskPlanner.
+        // "loop"  → simple iterative tool-calling loop.
+        // "multi-agent" → team of sub-agents (auto-specialized).
+        const cur = agentModeRef.current;
+        const wantsGraph = cur === "graph" && !!registry;
+        const mmaMode =
+          cur === "loop"
+            ? "loop"
+            : cur === "multi-agent"
+              ? "multi-agent"
+              : "plan";
         const markdownOutputSchema = {
           type: "object",
           properties: {
@@ -553,11 +561,11 @@ export function App({
           objective: trimmed,
           provider: prov,
           model: modelRef.current,
-          mode: "plan",
+          mode: mmaMode,
           tools,
-          useGraphPlanner,
-          registry: useGraphPlanner ? registry : undefined,
-          providers: useGraphPlanner ? agentProviders : undefined,
+          useGraphPlanner: wantsGraph,
+          registry: wantsGraph ? registry : undefined,
+          providers: wantsGraph ? agentProviders : undefined,
           maxStepIterations: 20,
           outputSchema: markdownOutputSchema,
         });
@@ -568,15 +576,18 @@ export function App({
           if (abortRef.current) break;
           execState.processMessage(msg);
 
-          // Stream the agent's final synthesis so the user sees the answer
-          // forming in real time. Other chunks (step thinking, planner
-          // commentary) are noise in the chat pane and stay in the tree.
+          // Stream the CompilerAgent's prose-mode output so the user sees the
+          // final answer forming in real time. Other chunks (step thinking,
+          // planner commentary) stay in the execution tree.
           if (msg.type === "chunk") {
             const ch = msg as { content?: string; node_id?: string };
-            if (ch.node_id === "agent_synthesizer" && ch.content) {
+            if (
+              (ch.node_id === "compiler" || ch.node_id === "agent_synthesizer") &&
+              ch.content
+            ) {
               synthesisContent += ch.content;
               setStreamContent(synthesisContent);
-              setStreamLabel("finalizing");
+              setStreamLabel("composing");
             }
           }
         }
@@ -764,6 +775,14 @@ export function App({
             desc: m.name !== m.id ? m.name : "",
             replaceAll: `/model ${m.id}`,
           }));
+      } else if (cmd === "/agent") {
+        acMatches = AGENT_MODES
+          .filter((m) => m.startsWith(arg))
+          .map((m) => ({
+            cmd: m,
+            desc: AGENT_MODE_DESCRIPTIONS[m],
+            replaceAll: `/agent ${m}`,
+          }));
       }
     }
   }
@@ -778,7 +797,7 @@ export function App({
         abortControllerRef.current?.abort();
         abortControllerRef.current = null;
         if (wsClientRef.current) {
-          wsClientRef.current.stop(agentModeRef.current ? undefined : threadId);
+          wsClientRef.current.stop(agentModeRef.current !== "off" ? undefined : threadId);
         }
         // Immediately reset UI — don't wait for async cleanup
         setStreaming(false);
@@ -792,7 +811,7 @@ export function App({
     }
 
     // During agent streaming, allow tree navigation
-    if (streaming && agentModeRef.current) {
+    if (streaming && agentModeRef.current !== "off") {
       if (key.upArrow) { execState.navigate("up"); return; }
       if (key.downArrow) { execState.navigate("down"); return; }
       if (key.return || key.rightArrow) { execState.toggleExpand(); return; }
@@ -822,9 +841,16 @@ export function App({
         const selected = acMatches[acIndex] ?? acMatches[0];
         if (selected) {
           const completed = selected.replaceAll ?? selected.cmd + " ";
-          // Submit complete commands directly; partial ones go into input for editing
-          if (completed.trimEnd() in COMMANDS) {
-            handleSubmit(completed);
+          // Submit when:
+          //  - the completion is a bare command in COMMANDS (e.g. "/help"), or
+          //  - the user has already typed it (completion would no-op).
+          // Otherwise fill the input so they can finish typing the argument.
+          if (
+            completed.trimEnd() in COMMANDS ||
+            completed === inputValue ||
+            completed.trimEnd() === inputValue.trimEnd()
+          ) {
+            handleSubmit(inputValue);
           } else {
             setInputValue(completed);
           }
@@ -875,7 +901,7 @@ export function App({
   const statusParts = [
     provider,
     model,
-    agentMode ? `agent:${agentPlanner}` : null,
+    agentMode !== "off" ? `agent:${agentMode}` : null,
     wsUrl ? "ws" : null,
   ].filter(Boolean).join("  ");
 
@@ -894,10 +920,10 @@ export function App({
       {showHelp && <HelpPanel />}
 
       {/* Live streaming area */}
-      {streaming && agentMode && (
+      {streaming && agentMode !== "off" && (
         <ExecutionTree state={execState.state} treeActive={true} />
       )}
-      {streaming && !agentMode && (() => {
+      {streaming && agentMode === "off" && (() => {
         // Truncate streaming preview to avoid overflowing the terminal's dynamic area.
         const maxPreviewLines = Math.max((process.stdout.rows ?? 24) - 4, 5);
         const lines = streamContent ? streamContent.split("\n") : [];

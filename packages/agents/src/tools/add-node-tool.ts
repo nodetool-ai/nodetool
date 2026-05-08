@@ -116,31 +116,29 @@ export class AddNodeTool extends Tool {
 
     const errors = this.builder.addNode(id, type, properties, name);
     if (errors.length > 0) {
-      return { status: "error", errors };
+      // Add an actionable hint to the duplicate-id error so the planner does
+      // not bang the same id back into add_node. Wiring data into an existing
+      // node is done via add_edge, not by re-adding.
+      const annotated = errors.map((e) =>
+        e.startsWith("Duplicate node id:")
+          ? `${e} The node already exists — to wire data into it use add_edge. To create a separate node, pick a different id.`
+          : e
+      );
+      return { status: "error", errors: annotated };
     }
 
-    // Include set properties in response and warn if none were set
-    const propsSet = Object.keys(properties);
-    const meta = !isAgentStep ? this.registry.getMetadata(type) : null;
-    const configurableProps = meta?.properties
-      ?.filter((p: { name: string }) => p.name !== "text" && p.name !== "input") // skip edge-connected inputs
-      ?.map((p: { name: string; default?: unknown }) => `${p.name} (default: ${JSON.stringify(p.default)})`) ?? [];
-
-    const result: Record<string, unknown> = {
+    // Success. Properties left at defaults are fine — they get overridden by
+    // edges or stay at the registry default. We deliberately do NOT emit a
+    // "warning" or "remove-and-re-add" hint here: the planner LLM treats any
+    // such field as a failure signal and retries with the same id, which then
+    // hits the duplicate-id error and starves the loop.
+    return {
       status: "node_added",
       id,
       type,
-      properties_set: propsSet,
+      properties_set: Object.keys(properties),
       total_nodes: this.builder.nodeCount
     };
-
-    if (propsSet.length === 0 && configurableProps.length > 0) {
-      result["warning"] =
-        `No node_properties were set. This node has configurable properties: [${configurableProps.join(", ")}]. ` +
-        `If any need non-default values, remove this node and re-add with node_properties set.`;
-    }
-
-    return result;
   }
 
   userMessage(params: Record<string, unknown>): string {

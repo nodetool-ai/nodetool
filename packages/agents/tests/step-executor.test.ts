@@ -150,7 +150,7 @@ describe("StepExecutor", () => {
     expect(executor.getResult()).toEqual({ answer: "42" });
   });
 
-  it("handles text-only response with JSON extraction", async () => {
+  it("ignores embedded JSON in assistant text for schema'd steps (finish_step is the only completion path)", async () => {
     const step: Step = {
       id: "step_2",
       instructions: "Generate a greeting",
@@ -169,7 +169,8 @@ describe("StepExecutor", () => {
       steps: [step]
     };
 
-    // Provider that returns text with embedded JSON but no tool call
+    // Provider that returns text with embedded JSON but never calls finish_step.
+    // The loop must exhaust iterations rather than parse JSON out of assistant text.
     const provider = {
       ...createMockProvider(),
       generateMessages: async function* () {
@@ -188,7 +189,8 @@ describe("StepExecutor", () => {
       step,
       context,
       provider,
-      model: "test-model"
+      model: "test-model",
+      maxIterations: 3
     });
 
     const messages: ProcessingMessage[] = [];
@@ -196,8 +198,12 @@ describe("StepExecutor", () => {
       messages.push(msg);
     }
 
-    expect(step.completed).toBe(true);
-    expect(executor.getResult()).toEqual({ greeting: "hello" });
+    // Step "completes" with an iteration-exhaustion failure rather than the
+    // hallucinated JSON value — the schema'd path requires finish_step.
+    const result = executor.getResult() as Record<string, unknown> | string;
+    expect(result).not.toEqual({ greeting: "hello" });
+    expect(typeof result === "object" && result !== null && "error" in result)
+      .toBe(true);
   });
 
   it("handles invalid outputSchema JSON gracefully", async () => {
@@ -511,7 +517,7 @@ describe("StepExecutor", () => {
     expect(step.completed).toBe(true);
   });
 
-  it("enters conclusion stage when token limit is approached", async () => {
+  it("evicts old tool results from history when over the soft token-budget threshold", async () => {
     const step: Step = {
       id: "step_conclude",
       instructions: "Do something",
@@ -674,7 +680,7 @@ describe("StepExecutor", () => {
     expect(executor.getResult()).toEqual({ answer: "direct" });
   });
 
-  it("extracts JSON without result wrapper from text response", async () => {
+  it("does not extract bare JSON from text for schema'd steps", async () => {
     const step: Step = {
       id: "step_no_wrapper",
       instructions: "Return plain JSON",
@@ -690,7 +696,6 @@ describe("StepExecutor", () => {
       steps: [step]
     };
 
-    // Provider returns text with JSON that has no "result" key
     const provider = {
       ...createMockProvider(),
       generateMessages: async function* () {
@@ -708,7 +713,8 @@ describe("StepExecutor", () => {
       step,
       context,
       provider,
-      model: "test-model"
+      model: "test-model",
+      maxIterations: 3
     });
 
     const messages: ProcessingMessage[] = [];
@@ -716,12 +722,13 @@ describe("StepExecutor", () => {
       messages.push(msg);
     }
 
-    expect(step.completed).toBe(true);
-    // Since "result" is NOT in the parsed object, the whole object is used
-    expect(executor.getResult()).toEqual({ answer: "plain" });
+    const result = executor.getResult() as Record<string, unknown> | string;
+    expect(result).not.toEqual({ answer: "plain" });
+    expect(typeof result === "object" && result !== null && "error" in result)
+      .toBe(true);
   });
 
-  it("enters conclusion stage without finishStepTool", async () => {
+  it("loops past the soft token-budget threshold without yanking tools", async () => {
     const step: Step = {
       id: "step_conclude_no_tool",
       instructions: "Do something",

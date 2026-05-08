@@ -6,7 +6,12 @@ export { S3Storage } from "./s3-storage.js";
 export { SupabaseStorage } from "./supabase-storage.js";
 
 // URI-based asset storage (used by the runtime / websocket server)
-export type { StorageAdapter } from "./storage-adapter.js";
+export type {
+  StorageAdapter,
+  StorageEntry,
+  StorageListResult,
+  StorageStat
+} from "./storage-adapter.js";
 export { InMemoryStorageAdapter } from "./memory-storage-adapter.js";
 export { FileStorageAdapter } from "./file-storage-adapter.js";
 export {

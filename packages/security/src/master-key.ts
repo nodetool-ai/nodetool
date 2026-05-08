@@ -136,20 +136,25 @@ async function getFromAwsSecrets(secretName: string): Promise<string | null> {
  * Get the master encryption key (synchronous).
  *
  * Checks sources in order:
- * 1. Cached key (if previously retrieved, e.g. via initMasterKey)
- * 2. SECRETS_MASTER_KEY environment variable
- * 3. Auto-generates a new key (will not persist unless initMasterKey was called)
+ * 1. Cached key (set previously by initMasterKey, setMasterKey, or a prior
+ *    getMasterKey hit on SECRETS_MASTER_KEY).
+ * 2. SECRETS_MASTER_KEY environment variable.
  *
- * For full resolution including keychain and AWS, call initMasterKey() once at startup.
+ * Throws if neither is available. Callers MUST call {@link initMasterKey}
+ * once at process startup (which loads from keychain / AWS / env and
+ * persists a fresh key on first run) before the first sync access.
+ * Auto-generating an ephemeral key here would silently encrypt secrets
+ * with a value that disappears on exit — making them undecryptable on
+ * the next launch — so we surface the missing-init explicitly instead.
  *
  * @returns The master key as a base64-encoded string.
+ * @throws  If the key has not been initialized.
  */
 export function getMasterKey(): string {
   if (cachedMasterKey !== null) {
     return cachedMasterKey;
   }
 
-  // 1. Check environment variable
   const envKey = process.env["SECRETS_MASTER_KEY"];
   if (envKey) {
     log.debug("Master key source", { source: "env" });
@@ -157,11 +162,12 @@ export function getMasterKey(): string {
     return envKey;
   }
 
-  // 2. Auto-generate (not persisted without initMasterKey)
-  log.debug("Master key source", { source: "generated" });
-  const newKey = generateMasterKey();
-  cachedMasterKey = newKey;
-  return newKey;
+  throw new Error(
+    "Master key is not initialized. Call `initMasterKey()` once at startup " +
+      "(loads from system keychain / AWS Secrets Manager / SECRETS_MASTER_KEY) " +
+      "before any synchronous secret access. Auto-generating a key here would " +
+      "silently encrypt secrets with a value that disappears on process exit."
+  );
 }
 
 /**

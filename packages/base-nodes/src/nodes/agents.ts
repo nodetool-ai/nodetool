@@ -3180,10 +3180,80 @@ export class AgentNode extends BaseNode {
   }
 }
 
+/**
+ * Virtual LLM step that inherits the workflow's configured model.
+ *
+ * Designed for graph-mode agent workflows: GraphPlanner adds these nodes,
+ * AgentWorkflowRunner intercepts them by `nodeType` and routes execution
+ * through `AgentStepExecutor` (which has access to the workflow's configured
+ * provider+model). The class registers metadata so the registry,
+ * search_nodes, and get_node_info expose it like any other node — but its
+ * `process()` will refuse to run via the standard kernel path because the
+ * configured provider/model is supplied by the agent runner, not by a
+ * `model` property on the node.
+ */
+export class AgentStepNode extends BaseNode {
+  static readonly nodeType: string = "nodetool.agents.AgentStep";
+  static readonly title: string = "Agent Step";
+  static readonly description: string =
+    "LLM step that inherits the workflow's configured model.\n    agents, llm, step, reasoning\n\n    Use this node inside agent-mode workflows when you need an LLM to\n    reason, transform text, or call tools. The step receives upstream\n    edges as context, runs the workflow's configured LLM, and emits the\n    final text on its `output` handle.\n\n    Properties:\n    - instructions (required): the prompt for this step\n    - tools (optional): list of tool names this step may call\n    - output_schema (optional): JSON schema (as a string) constraining the output\n\n    Unlike Agent / Summarizer, this node does NOT take a model property —\n    the workflow's configured model is used.";
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
+  static readonly basicFields = ["instructions", "tools"];
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Instructions",
+    description: "Instructions for the LLM step (acts as the user prompt).",
+    required: true
+  })
+  declare instructions: string;
+
+  @prop({
+    type: "list[str]",
+    default: [],
+    title: "Tools",
+    description:
+      "Optional list of tool names the step is allowed to call. Empty = no tools."
+  })
+  declare tools: string[];
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Output Schema",
+    description:
+      "Optional JSON schema (as a string) constraining the step output. Empty = freeform text."
+  })
+  declare output_schema: string;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Input",
+    description:
+      "Upstream data forwarded to the step as context. Connect any node here."
+  })
+  declare input: unknown;
+
+  async process(): Promise<Record<string, unknown>> {
+    throw new Error(
+      "AgentStep cannot run via the standard workflow runner — it depends on " +
+        "the agent runner's configured provider/model. Use this node only in " +
+        "agent-mode workflows (chat in agent mode, or AgentWorkflowRunner). " +
+        "For a standalone LLM step with its own model property, use " +
+        "`nodetool.agents.Agent` instead."
+    );
+  }
+}
+
 export const AGENT_NODES = [
   SummarizerNode,
   CreateThreadNode,
   ExtractorNode,
   ClassifierNode,
-  AgentNode
+  AgentNode,
+  AgentStepNode
 ] as const;

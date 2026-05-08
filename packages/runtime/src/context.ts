@@ -91,10 +91,70 @@ export interface StorageAdapter {
 
   /** Check if an asset exists. */
   exists(uri: string): Promise<boolean>;
+
+  /** Return the URI that store() would produce for this key, without I/O. */
+  uriForKey(key: string): string;
+
+  /**
+   * List entries under a key prefix. With `delimiter: "/"` the listing is
+   * hierarchical (FS-readdir style); without it the listing is flat.
+   */
+  list(
+    prefix: string,
+    opts?: { delimiter?: string }
+  ): Promise<StorageListResult>;
+
+  /** Delete an entry. Returns true if an entry was deleted. */
+  delete(uri: string): Promise<boolean>;
+
+  /** Stat an entry. Returns null if it doesn't exist. */
+  stat(uri: string): Promise<StorageStat | null>;
 }
 
+export interface StorageEntry {
+  key: string;
+  uri: string;
+  size: number;
+  modifiedAt: number;
+  contentType?: string;
+}
+
+export interface StorageListResult {
+  entries: StorageEntry[];
+  commonPrefixes: string[];
+}
+
+export interface StorageStat {
+  key: string;
+  size: number;
+  modifiedAt: number;
+  contentType?: string;
+}
+
+/**
+ * Controls how asset-like values (ImageRef / AudioRef / VideoRef) are
+ * materialized when {@link ProcessingContext.normalizeOutputValue} runs.
+ *
+ * Pick the mode by where the consumer lives:
+ * - `native`: in-process JS/TS code that knows how to handle the live
+ *   object as-is (DSL, tests, kernel-internal handoffs). Inline `data`
+ *   bytes stay attached.
+ * - `data_uri`: anything that renders a `data:image/png;base64,...` URI
+ *   inline (markdown, simple HTML).
+ * - `temp_url`: HTTP-fetching client over a short-lived URL — bytes are
+ *   uploaded to the temp storage adapter and `data` is dropped.
+ * - `storage_url`: same as `temp_url` but persistent storage.
+ * - `workspace`: write the bytes to a file inside `workspaceDir` and
+ *   return that file URI.
+ * - `raw`: keep bytes embedded in the asset's `data` field.
+ *
+ * NOTE: this used to be called `"python"` (mirroring the Python enum,
+ * where it accurately meant "Python-native object"). The rename to
+ * `"native"` makes the contract language-agnostic and matches what the
+ * mode actually does in the TS runtime.
+ */
 export type AssetOutputMode =
-  | "python"
+  | "native"
   | "data_uri"
   | "temp_url"
   | "storage_url"
@@ -209,15 +269,19 @@ function joinStorageKey(prefix: string | undefined, key: string): string {
  * In-memory storage adapter useful for tests and single-process ephemeral runs.
  */
 export class InMemoryStorageAdapter implements StorageAdapter {
-  private _store = new Map<string, Uint8Array>();
+  private _store = new Map<string, { data: Uint8Array; contentType?: string; modifiedAt: number }>();
 
   async store(
     key: string,
     data: Uint8Array,
-    _contentType?: string
+    contentType?: string
   ): Promise<string> {
     const normalized = normalizeStorageKey(key);
-    this._store.set(normalized, new Uint8Array(data));
+    this._store.set(normalized, {
+      data: new Uint8Array(data),
+      contentType,
+      modifiedAt: Date.now()
+    });
     return `memory://${normalized}`;
   }
 
@@ -225,13 +289,77 @@ export class InMemoryStorageAdapter implements StorageAdapter {
     if (!uri.startsWith("memory://")) return null;
     const key = uri.slice("memory://".length);
     const value = this._store.get(key);
-    return value ? new Uint8Array(value) : null;
+    return value ? new Uint8Array(value.data) : null;
   }
 
   async exists(uri: string): Promise<boolean> {
     if (!uri.startsWith("memory://")) return false;
     const key = uri.slice("memory://".length);
     return this._store.has(key);
+  }
+
+  uriForKey(key: string): string {
+    return `memory://${normalizeStorageKey(key)}`;
+  }
+
+  async list(
+    prefix: string,
+    opts: { delimiter?: string } = {}
+  ): Promise<StorageListResult> {
+    const delimiter = opts.delimiter ?? null;
+    let normalizedPrefix = "";
+    if (prefix && prefix !== "" && prefix !== "/") {
+      try {
+        normalizedPrefix = normalizeStorageKey(prefix);
+      } catch {
+        return { entries: [], commonPrefixes: [] };
+      }
+    }
+    const matchPrefix = normalizedPrefix ? `${normalizedPrefix}/` : "";
+    const entries: StorageEntry[] = [];
+    const commonPrefixes = new Set<string>();
+    for (const [key, entry] of this._store.entries()) {
+      if (matchPrefix && !key.startsWith(matchPrefix) && key !== normalizedPrefix) continue;
+      if (matchPrefix === "" || key.startsWith(matchPrefix)) {
+        const rest = matchPrefix ? key.slice(matchPrefix.length) : key;
+        if (delimiter === "/") {
+          const idx = rest.indexOf("/");
+          if (idx >= 0) {
+            commonPrefixes.add(`${matchPrefix}${rest.slice(0, idx + 1)}`);
+            continue;
+          }
+        }
+        entries.push({
+          key,
+          uri: `memory://${key}`,
+          size: entry.data.byteLength,
+          modifiedAt: entry.modifiedAt,
+          ...(entry.contentType ? { contentType: entry.contentType } : {})
+        });
+      }
+    }
+    return {
+      entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
+      commonPrefixes: [...commonPrefixes].sort()
+    };
+  }
+
+  async delete(uri: string): Promise<boolean> {
+    if (!uri.startsWith("memory://")) return false;
+    return this._store.delete(uri.slice("memory://".length));
+  }
+
+  async stat(uri: string): Promise<StorageStat | null> {
+    if (!uri.startsWith("memory://")) return null;
+    const key = uri.slice("memory://".length);
+    const entry = this._store.get(key);
+    if (!entry) return null;
+    return {
+      key,
+      size: entry.data.byteLength,
+      modifiedAt: entry.modifiedAt,
+      ...(entry.contentType ? { contentType: entry.contentType } : {})
+    };
   }
 }
 
@@ -324,6 +452,100 @@ export class FileStorageAdapter implements StorageAdapter {
       return false;
     }
   }
+
+  uriForKey(key: string): string {
+    return pathToFileURL(this.resolvePathFromKey(key)).toString();
+  }
+
+  /**
+   * Minimal listing for the runtime's own FileStorageAdapter — used by tests
+   * and DSL contexts. The websocket server wires the storage package's
+   * fully-featured FileStorageAdapter (with delimiter / fs-safe), which is
+   * the production path.
+   */
+  async list(
+    prefix: string,
+    opts: { delimiter?: string } = {}
+  ): Promise<StorageListResult> {
+    const { readdir: rd, stat: st } = await import("node:fs/promises");
+    const delimiter = opts.delimiter ?? null;
+    const baseAbs = (() => {
+      try {
+        return this.resolvePathFromKey(prefix || ".");
+      } catch {
+        return null;
+      }
+    })();
+    if (!baseAbs) return { entries: [], commonPrefixes: [] };
+
+    const entries: StorageEntry[] = [];
+    const commonPrefixes = new Set<string>();
+
+    if (delimiter === "/") {
+      let children: Array<{ name: string; isDirectory: () => boolean; isFile: () => boolean }>;
+      try {
+        children = (await rd(baseAbs, { withFileTypes: true })) as unknown as typeof children;
+      } catch {
+        return { entries: [], commonPrefixes: [] };
+      }
+      const normalizedPrefix = prefix ? normalizeStorageKey(prefix) : "";
+      for (const child of children) {
+        const childKey = normalizedPrefix
+          ? `${normalizedPrefix}/${child.name}`
+          : child.name;
+        if (child.isDirectory()) {
+          commonPrefixes.add(`${childKey}/`);
+          continue;
+        }
+        if (!child.isFile()) continue;
+        try {
+          const childAbs = join(baseAbs, child.name);
+          const s = await st(childAbs);
+          entries.push({
+            key: childKey,
+            uri: pathToFileURL(childAbs).toString(),
+            size: s.size,
+            modifiedAt: s.mtimeMs
+          });
+        } catch {
+          // skip
+        }
+      }
+      return {
+        entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
+        commonPrefixes: [...commonPrefixes].sort()
+      };
+    }
+    return { entries: [], commonPrefixes: [] };
+  }
+
+  async delete(uri: string): Promise<boolean> {
+    const absolutePath = this.resolvePathFromUri(uri);
+    if (!absolutePath) return false;
+    const { unlink } = await import("node:fs/promises");
+    try {
+      await unlink(absolutePath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async stat(uri: string): Promise<StorageStat | null> {
+    const absolutePath = this.resolvePathFromUri(uri);
+    if (!absolutePath) return null;
+    const { stat: st } = await import("node:fs/promises");
+    try {
+      const s = await st(absolutePath);
+      if (!s.isFile()) return null;
+      const rel = absolutePath
+        .slice(this.rootDir.length)
+        .replace(/^[\\/]+/, "");
+      return { key: rel, size: s.size, modifiedAt: s.mtimeMs };
+    } catch {
+      return null;
+    }
+  }
 }
 
 export interface S3Client {
@@ -400,6 +622,31 @@ export class S3StorageAdapter implements StorageAdapter {
     if (!parsed) return false;
     if (parsed.bucket !== this.bucket) return false;
     return this.client.headObject(parsed);
+  }
+
+  uriForKey(key: string): string {
+    return `s3://${this.bucket}/${this.keyForStore(key)}`;
+  }
+
+  /**
+   * The runtime's minimal S3Client interface doesn't expose ListObjectsV2 /
+   * DeleteObject / HeadObject-with-metadata, so list/delete/stat are stubs
+   * here. Production paths use `@nodetool-ai/storage`'s S3StorageAdapter
+   * which calls the full SDK.
+   */
+  async list(
+    _prefix: string,
+    _opts?: { delimiter?: string }
+  ): Promise<StorageListResult> {
+    return { entries: [], commonPrefixes: [] };
+  }
+
+  async delete(_uri: string): Promise<boolean> {
+    return false;
+  }
+
+  async stat(_uri: string): Promise<StorageStat | null> {
+    return null;
   }
 }
 
@@ -483,6 +730,16 @@ export class ProcessingContext {
   /** Storage adapter (optional, for asset handling). */
   readonly storage: StorageAdapter | null;
   /**
+   * Workspace storage adapter — the agent's working directory abstracted
+   * behind {@link StorageAdapter}. Tools that read/write/list files use
+   * this adapter so the same code paths work locally (FS-backed) and in
+   * cloud deployments (S3/Supabase-backed).
+   *
+   * If null, file-tool operations should return a clear error rather than
+   * fall back to direct FS access — there is no implicit workspace.
+   */
+  readonly workspaceStorage: StorageAdapter | null;
+  /**
    * Unified, structured agent memory. The single source of truth for results
    * shared between agents, tasks, steps and tools. Keys use the namespaces
    * `step:`, `task:`, `input:`, `shared:` (see {@link memoryKeys}).
@@ -550,6 +807,7 @@ export class ProcessingContext {
     assetOutputMode?: AssetOutputMode;
     cache?: CacheAdapter;
     storage?: StorageAdapter | null;
+    workspaceStorage?: StorageAdapter | null;
     onMessage?: (msg: ProcessingMessage) => void;
     variables?: Record<string, unknown>;
     environment?: Record<string, string>;
@@ -565,9 +823,10 @@ export class ProcessingContext {
     this.workflowId = opts.workflowId ?? null;
     this.userId = opts.userId ?? "default";
     this.workspaceDir = opts.workspaceDir ?? null;
-    this.assetOutputMode = opts.assetOutputMode ?? "python";
+    this.assetOutputMode = opts.assetOutputMode ?? "native";
     this.cache = opts.cache ?? new MemoryCache();
     this.storage = opts.storage ?? null;
+    this.workspaceStorage = opts.workspaceStorage ?? null;
     this._onMessage = opts.onMessage ?? null;
     this._variables = { ...(opts.variables ?? {}) };
     const env: Record<string, string> = {};
@@ -592,6 +851,7 @@ export class ProcessingContext {
       assetOutputMode: this.assetOutputMode,
       cache: this.cache,
       storage: this.storage,
+      workspaceStorage: this.workspaceStorage,
       onMessage: this._onMessage ?? undefined,
       variables: { ...this._variables },
       environment: { ...this.environment },
@@ -768,6 +1028,19 @@ export class ProcessingContext {
     resolver: (uri: string) => Promise<string> | string
   ): void {
     this._tempUrlResolver = resolver;
+  }
+
+  /**
+   * Resolve a raw storage URI (e.g. `file:///.../storage/<key>`) to a URL the
+   * UI can fetch (e.g. `/api/storage/<key>`). Falls back to returning the URI
+   * unchanged when no resolver is wired (DSL / tests).
+   *
+   * Use this from tools that write binary output via `context.storage.store()`
+   * and want to surface a UI-renderable URL in their result.
+   */
+  async resolveTempUrl(uri: string): Promise<string> {
+    if (!this._tempUrlResolver) return uri;
+    return this._tempUrlResolver(uri);
   }
 
   async getSecret(key: string): Promise<string | null> {
@@ -1843,7 +2116,7 @@ export class ProcessingContext {
     asset: Record<string, unknown>,
     mode: AssetOutputMode
   ): Promise<Record<string, unknown>> {
-    if (mode === "python" || mode === "raw") {
+    if (mode === "native" || mode === "raw") {
       return asset;
     }
 

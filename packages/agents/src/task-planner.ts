@@ -61,7 +61,20 @@ const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objec
 ## Parallelism
 - Independent work goes in separate tasks (they run concurrently).
 - Only add \`depends_on\` when one task genuinely needs another's output.
-- Add a final aggregation task (depending on all others) when results need combining.
+
+## Final Synthesis Is NOT Your Job
+- Do NOT create an "assemble", "aggregate", "synthesize", "compile",
+  "combine", or "final report" task or step. Final synthesis runs as a
+  separate Compiler stage AFTER your plan finishes. It has full access to
+  every \`task_result\` your plan produced and will assemble them into the
+  declared output schema.
+- Plan tasks should GATHER and PRODUCE concrete artifacts (search results,
+  generated media, computed values, written sections, extracted facts).
+  Each task's result is automatically stored in shared memory under
+  \`task:<task_id>\` and made available to the Compiler.
+- The schema shown below is informational — it tells you what facts the
+  Compiler will need so you can plan tasks that produce them. Do NOT attach
+  it to any step's \`output_schema\`.
 
 ## Step Instructions
 - Specific and concise. State exactly what to do, not the whole objective.
@@ -76,8 +89,10 @@ const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objec
 - Prefer many small parallel steps over a few wide ones — steps are iteration-capped, parallelism is cheap.
 
 ## Output Schemas
-- Include \`output_schema\` (as a JSON schema string) for steps that produce structured data.
-- The aggregation step MUST have an \`output_schema\` matching the plan's overall output schema.
+- Include \`output_schema\` (as a JSON schema string) on steps that produce
+  structured data the next step needs to consume programmatically.
+- Do NOT attach the overall plan output schema to any step — the Compiler
+  owns the final schema-conformant result.
 - Use type "object" at the top level.
 
 ## Models & Media (use the right tools)
@@ -117,10 +132,13 @@ Objective: {{objective}}
 Available tools (reference by name in step instructions):
 {{toolsInfo}}
 
-Output schema for the final aggregation step:
+Final result schema (informational — the Compiler stage will produce this from your tasks' results; do NOT attach it to any step):
 {{outputSchema}}
 
-Remember: prefix step IDs with their task ID (e.g. "task1_search", "task1_summarize") to avoid collisions. Call add_task for each task in dependency order.`;
+Remember:
+- Prefix step IDs with their task ID (e.g. "task1_search", "task1_summarize") to avoid collisions.
+- Call add_task for each task in dependency order.
+- Do NOT add an aggregation/synthesis/assemble task — the Compiler handles final assembly from \`task_result\` memory entries automatically.`;
 
 const TASK_CREATION_PROMPT_TEMPLATE = `Create an executable task plan using the create_task tool.
 

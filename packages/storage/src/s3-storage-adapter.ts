@@ -2,9 +2,17 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
-  HeadObjectCommand
+  HeadObjectCommand,
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+  type ListObjectsV2CommandOutput
 } from "@aws-sdk/client-s3";
-import type { StorageAdapter } from "./storage-adapter.js";
+import type {
+  StorageAdapter,
+  StorageEntry,
+  StorageListResult,
+  StorageStat
+} from "./storage-adapter.js";
 import { joinStorageKey, normalizeStorageKey } from "./storage-keys.js";
 
 export interface S3StorageAdapterOptions {
@@ -133,6 +141,107 @@ export class S3StorageAdapter implements StorageAdapter {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  async list(
+    prefix: string,
+    opts: { delimiter?: string } = {}
+  ): Promise<StorageListResult> {
+    const delimiter = opts.delimiter ?? undefined;
+    const normalizedPrefix = prefix ? normalizeStorageKey(prefix) : "";
+    // Always end the prefix with `/` when hierarchical, so S3 lists children
+    // not the directory marker itself.
+    const s3Prefix = joinStorageKey(this.prefix ?? undefined, normalizedPrefix);
+    const s3PrefixWithSlash = delimiter && s3Prefix && !s3Prefix.endsWith("/")
+      ? `${s3Prefix}/`
+      : s3Prefix;
+
+    const entries: StorageEntry[] = [];
+    const commonPrefixes: string[] = [];
+
+    let continuationToken: string | undefined = undefined;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const response: ListObjectsV2CommandOutput = await this.getClient().send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: s3PrefixWithSlash || undefined,
+          Delimiter: delimiter,
+          ContinuationToken: continuationToken
+        })
+      );
+      for (const obj of response.Contents ?? []) {
+        if (!obj.Key) continue;
+        // Strip the bucket-side prefix so callers see keys relative to the
+        // adapter's logical root.
+        const key = this.prefix
+          ? obj.Key.replace(new RegExp(`^${this.prefix}/?`), "")
+          : obj.Key;
+        entries.push({
+          key,
+          uri: `s3://${this.bucket}/${obj.Key}`,
+          size: obj.Size ?? 0,
+          modifiedAt: obj.LastModified?.getTime() ?? 0
+        });
+      }
+      for (const cp of response.CommonPrefixes ?? []) {
+        if (!cp.Prefix) continue;
+        const stripped = this.prefix
+          ? cp.Prefix.replace(new RegExp(`^${this.prefix}/?`), "")
+          : cp.Prefix;
+        commonPrefixes.push(stripped);
+      }
+      if (!response.IsTruncated || !response.NextContinuationToken) break;
+      continuationToken = response.NextContinuationToken;
+    }
+
+    return {
+      entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
+      commonPrefixes: commonPrefixes.sort()
+    };
+  }
+
+  async delete(uri: string): Promise<boolean> {
+    const parsed = this.parseUri(uri);
+    if (!parsed || parsed.bucket !== this.bucket) return false;
+    try {
+      // Check existence first so we can return a meaningful boolean. S3
+      // DeleteObject is otherwise idempotent and never errors on missing.
+      await this.getClient().send(
+        new HeadObjectCommand({ Bucket: parsed.bucket, Key: parsed.key })
+      );
+    } catch {
+      return false;
+    }
+    try {
+      await this.getClient().send(
+        new DeleteObjectCommand({ Bucket: parsed.bucket, Key: parsed.key })
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async stat(uri: string): Promise<StorageStat | null> {
+    const parsed = this.parseUri(uri);
+    if (!parsed || parsed.bucket !== this.bucket) return null;
+    try {
+      const response = await this.getClient().send(
+        new HeadObjectCommand({ Bucket: parsed.bucket, Key: parsed.key })
+      );
+      const stripped = this.prefix
+        ? parsed.key.replace(new RegExp(`^${this.prefix}/?`), "")
+        : parsed.key;
+      return {
+        key: stripped,
+        size: response.ContentLength ?? 0,
+        modifiedAt: response.LastModified?.getTime() ?? 0,
+        ...(response.ContentType ? { contentType: response.ContentType } : {})
+      };
+    } catch {
+      return null;
     }
   }
 }
