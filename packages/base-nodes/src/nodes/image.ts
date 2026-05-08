@@ -733,6 +733,83 @@ export class ImagesToListNode extends BaseNode {
   }
 }
 
+/**
+ * Image / sketch editor node. Execution uses properties and per-layer outputs
+ * written by the web UI (flattened image, mask, optional exposed layers).
+ */
+export class ImageEditorNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.ImageEditor";
+  static readonly title = "Image Editor";
+  static readonly description =
+    "Layered sketch and image editor: draw, paint, mask, and composite.\n    sketch, image editor, draw, paint, layers, mask, canvas, composite\n\n    - Build masks for inpainting workflows\n    - Annotate or rough-in compositions before generation\n    - Per-layer inputs/outputs when exposed in the editor";
+  static readonly metadataOutputTypes = {
+    image: "image",
+    mask: "image",
+    layers: "list[image]"
+  };
+  static readonly isDynamic = true;
+  static readonly supportsDynamicOutputs = true;
+  static readonly basicFields = ["sketch_data"];
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Sketch data",
+    description: "Serialized editor document (managed by the UI)."
+  })
+  declare sketch_data: unknown;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Flattened composite (filled when you edit in the UI)."
+  })
+  declare image: unknown;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Mask",
+    description: "Mask output when configured in the editor."
+  })
+  declare mask: unknown;
+
+  @prop({
+    type: "list",
+    default: [],
+    title: "Layers",
+    description: "List of exposed layer image references."
+  })
+  declare layers: unknown;
+
+  async process(): Promise<Record<string, unknown>> {
+    const result: Record<string, unknown> = {
+      image: this.image,
+      mask: this.mask,
+      layers: Array.isArray(this.layers) ? this.layers : []
+    };
+    for (const [key, value] of this.dynamicProps) {
+      if (key.startsWith("layer_out_")) {
+        result[key] = value;
+      }
+    }
+    return result;
+  }
+}
+
 abstract class TransformImageNode extends BaseNode {
   protected transformMeta(): Record<string, unknown> {
     const image = ((this as any).image ?? {}) as ImageRefLike;
@@ -1496,5 +1573,6 @@ export const IMAGE_NODES = [
   RotateNode,
   FlipNode,
   TextToImageNode,
-  ImageToImageNode
+  ImageToImageNode,
+  ImageEditorNode
 ] as const;

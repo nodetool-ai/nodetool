@@ -298,6 +298,7 @@ export {
   FlipNode,
   TextToImageNode,
   ImageToImageNode,
+  ImageEditorNode,
   IMAGE_NODES
 } from "./nodes/image.js";
 export {
