@@ -400,7 +400,7 @@ export default function DevelopersPage() {
         <div className={`${sectionContainer}`}>
           <p className="text-center text-sm text-slate-500">
             <span className="text-violet-400">
-              Built with ❤️ by the NodeTool team
+              Open source creative AI workspace. SDK and runtime under AGPL-3.0.
             </span>
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-slate-500">

@@ -8,9 +8,9 @@ const sectionContainer = "mx-auto max-w-7xl px-6 lg:px-8";
 
 const features = [
   {
-    title: "Developer SDK",
+    title: "TypeScript SDK",
     description:
-      "Build and run workflows programmatically. Strict types, async streaming, and a fluent graph builder.",
+      "Run workflows from a script. Strict types, async streaming, and a fluent graph builder — same kernel as the desktop app.",
     icon: Code2,
     color: "text-violet-400",
     bgColor: "bg-violet-500/10",
@@ -39,9 +39,9 @@ const out = text.concat({ a: a.output, b: b.output });
 const wf = workflow(out);`,
   },
   {
-    title: "Custom Nodes",
+    title: "Custom nodes",
     description:
-      "Extend NodeTool with your own nodes. Decorate fields, implement process(), ship it.",
+      "Add your own model, internal API, or studio-specific helper as a node. Decorate fields, implement process(), drop it in the canvas.",
     icon: Blocks,
     color: "text-emerald-400",
     bgColor: "bg-emerald-500/10",
@@ -95,7 +95,7 @@ export default function DeveloperFeaturesSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
-            Build with Powerful APIs
+            The same canvas, in code
           </motion.h2>
           <motion.p
             initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
@@ -104,7 +104,8 @@ export default function DeveloperFeaturesSection({
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
           >
-            Everything you need to integrate AI workflows into your applications
+            TypeScript SDK, graph DSL, and a node-SDK for the runtime that
+            powers Studio and Cloud. Same workflows, same providers, your keys.
           </motion.p>
         </div>
 

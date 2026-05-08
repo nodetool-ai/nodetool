@@ -32,7 +32,7 @@ const useCases: UseCase[] = [
   {
     name: "Web Research Agent",
     description:
-      "Automate web research with agents that search, scrape, and synthesize information from multiple sources into comprehensive reports.",
+      "Search, scrape, and synthesize information from multiple sources into a single report. Agents handle the busywork while you stay on the canvas.",
     icon: Globe,
     iconBgFrom: "from-teal-600/20",
     iconBgTo: "to-blue-600/20",
@@ -136,9 +136,9 @@ export default function AgentUseCasesSection({
             transition={{ duration: 0.5 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Ready-to-Use{" "}
+            What people{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-cyan-400">
-              Workflows
+              wire up
             </span>
           </motion.h2>
           <motion.p
@@ -148,8 +148,8 @@ export default function AgentUseCasesSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Build these workflows visually in the UI or run them as TypeScript scripts.
-            All examples are available in our{" "}
+            Build any of these on the canvas, or run them from a TypeScript
+            file. All workflows are in our{" "}
             <a
               href="https://github.com/nodetool-ai/nodetool/tree/main/examples"
               target="_blank"

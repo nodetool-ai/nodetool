@@ -17,7 +17,7 @@ export default function DevelopersHero() {
         >
           <span className="inline-flex items-center gap-2 rounded-full bg-violet-500/10 px-4 py-1.5 text-sm font-medium text-violet-300 ring-1 ring-inset ring-violet-500/20">
             <Terminal className="h-4 w-4" />
-            Open-Source SDK & API
+            Open source SDK, runtime, and CLI
           </span>
         </motion.div>
 
@@ -29,9 +29,9 @@ export default function DevelopersHero() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight"
         >
-          <span className="text-white">Build AI Apps with </span>
+          <span className="text-white">The creative AI workspace, </span>
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-purple-400 to-teal-400">
-            NodeTool
+            from code.
           </span>
         </motion.h1>
 
@@ -42,9 +42,10 @@ export default function DevelopersHero() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mt-6 text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed"
         >
-          A visual workflow platform built on an async Node.js runtime. Use the
-          SDK and graph DSL to build, extend, and run AI workflows from code —
-          integrate any model and deploy anywhere.
+          Same node-based canvas as the desktop app, exposed as a TypeScript
+          SDK, REST API, and graph DSL. Wire FAL, OpenAI, Anthropic, Ollama,
+          and the rest with your own keys, write custom nodes in TypeScript or
+          Python, run the same workflows from a script.
         </motion.p>
 
         {/* Feature Pills */}

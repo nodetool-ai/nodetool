@@ -75,30 +75,30 @@ const creativePersonas: Array<{
   accent: PersonaAccent;
 }> = [
   {
-    title: "Video Creators",
+    title: "Motion designers",
     description:
-      "Automate editing workflows, generate B-roll, and create consistent visual styles across your content.",
+      "Wire Seedance, Veo, Kling, and Wan into the same canvas as your image and audio nodes. Cut, mask, composite — keep working in one place.",
     icon: Video,
     accent: "rose",
   },
   {
-    title: "Graphic Designers",
+    title: "AI-native illustrators",
     description:
-      "Access Flux, Ideogram, and gpt-image-1.5. Generate variations and maintain brand consistency with world-class image models.",
+      "Flux, Ideogram, Imagen, gpt-image. Generate, mask, inpaint, outpaint, relight, and upscale on a real canvas with layers.",
     icon: Palette,
     accent: "emerald",
   },
   {
-    title: "Music Producers",
+    title: "Music and sound",
     description:
-      "Compose with Suno, generate speech with ElevenLabs, and experiment with audio processing in your pipeline.",
+      "Suno, ElevenLabs, stem separation, and your own DSP — wired into the canvas alongside your video and image work.",
     icon: Music,
     accent: "sky",
   },
   {
-    title: "Photographers",
+    title: "Photo and post",
     description:
-      "Batch process images, upscale photos, and apply consistent edits across your entire catalog.",
+      "Batch upscale, color match, plate cleanup, and style-locked re-renders across a catalog. The boring parts of a shoot, on rails.",
     icon: Camera,
     accent: "amber",
   },
@@ -375,24 +375,25 @@ export default function CreativesPage() {
                 <div className="relative inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-rose-500/30 bg-gradient-to-r from-rose-500/[0.08] via-amber-500/[0.05] to-cyan-500/[0.08] mb-10 shadow-[0_0_40px_-10px_rgba(244,63,94,0.35)]">
                   <Sparkles className="w-4 h-4 text-rose-400" />
                   <span className="text-sm font-medium text-white tracking-wide">
-                    Built for Creative Professionals
+                    The open creative AI workspace
                   </span>
                 </div>
 
                 <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tight leading-[1.05] mb-10">
-                  <span className="text-white">Think it.</span>{" "}
+                  <span className="text-white">Every model.</span>{" "}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 via-emerald-300 to-cyan-400">
-                    Generate it.
+                    Your keys.
                   </span>
                   <br />
                   <span className="text-white/90 text-3xl md:text-5xl lg:text-6xl">
-                    Image, music &amp; video in one studio.
+                    Your canvas.
                   </span>
                 </h1>
 
                 <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-                  Drag-and-drop pipelines for every frontier model —
-                  Seedance 2.0, Kling 3.0, Runway, Luma, Suno, Flux, and more.
+                  One node-based canvas for Flux, Seedance, Kling, Veo, Suno,
+                  ElevenLabs, and the rest. Pay providers directly at provider
+                  prices — switch the moment a better model ships.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
@@ -516,14 +517,15 @@ export default function CreativesPage() {
               className="text-center mb-16"
             >
               <h2 className="text-4xl md:text-6xl font-bold tracking-tight text-white mb-6">
-                Built for{" "}
+                Made for{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 via-emerald-300 to-cyan-400">
-                  Every Creator
+                  working creatives
                 </span>
               </h2>
               <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-                Whether you&apos;re editing videos, designing graphics, producing music,
-                or processing photos, NodeTool adapts to your creative workflow.
+                Independent generative artists, motion designers, AI-native
+                illustrators, technical art directors, ComfyUI power users
+                tired of the UX, and Weavy users looking for somewhere to go.
               </p>
             </motion.div>
 
@@ -610,14 +612,15 @@ export default function CreativesPage() {
                 <Zap className="w-8 h-8 text-amber-400" />
               </div>
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-                Powerful Tools for <br />
+                Editing tools that <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-cyan-400">
-                  Creative Work
+                  belong on a canvas
                 </span>
               </h2>
               <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-                Access the same elite models used by studios—Seedance 2.0, Kling 3.0, Luma, Suno,
-                Flux—all within a visual, intuitive interface.
+                Masks, inpaint, outpaint, relight, upscale, layers, compositing
+                — wired into the same canvas as Flux, Seedance, Kling, Luma,
+                Suno, and ElevenLabs.
               </p>
             </motion.div>
 
@@ -698,14 +701,14 @@ export default function CreativesPage() {
               className="text-center mb-16"
             >
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-                Creative Workflow{" "}
+                Workflows to{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
-                  Templates
+                  fork and ship
                 </span>
               </h2>
               <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-                Start with pre-built workflows designed for creative
-                professionals. Customize them to fit your unique process.
+                Start from a template a working creative built. Fork it, swap
+                models, change prompts, render the version you actually need.
               </p>
             </motion.div>
 
@@ -773,9 +776,9 @@ export default function CreativesPage() {
               className="text-center mb-16"
             >
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-                Why Creatives{" "}
+                Why working creatives{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-                  Choose NodeTool
+                  pick NodeTool
                 </span>
               </h2>
             </motion.div>
@@ -783,27 +786,27 @@ export default function CreativesPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[
                 {
-                  title: "Your Data, Your Control",
+                  title: "Your files, your machine",
                   description:
-                    "Run everything locally. Your creative assets never leave your machine unless you choose to share them.",
+                    "Workflows, prompts, and outputs stay on your disk. No cloud round-trip unless a node explicitly calls one.",
                   icon: Shield,
                   color: "text-emerald-400",
                   bgColor: "bg-emerald-500/10",
                   borderColor: "border-emerald-500/20",
                 },
                 {
-                  title: "No Subscription Required",
+                  title: "No credits, no markup",
                   description:
-                    "NodeTool is free and open-source. Use your own API keys or run models completely offline.",
+                    "Open source, AGPL-3.0. Bring your own keys to FAL, Replicate, OpenAI, Anthropic — pay providers directly.",
                   icon: Sparkles,
                   color: "text-amber-400",
                   bgColor: "bg-amber-500/10",
                   borderColor: "border-amber-500/20",
                 },
                 {
-                  title: "All Leading Models",
+                  title: "Every model, named by name",
                   description:
-                    "Access every top model in one place—Seedance 2.0, Kling 3.0, Luma, Runway, Suno, ElevenLabs, Flux, Ideogram, and more.",
+                    "Flux, Seedance, Kling, Veo, Luma, Runway, Suno, ElevenLabs, Ideogram. Switch the day a better one ships — one node, no rewire.",
                   icon: Zap,
                   color: "text-amber-400",
                   bgColor: "bg-teal-500/10",
@@ -847,15 +850,14 @@ export default function CreativesPage() {
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 via-teal-500 to-cyan-500 opacity-50" />
 
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-                Join the{" "}
+                Trade workflows with{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-amber-400">
-                  Creative Community
+                  working creatives
                 </span>
               </h2>
               <p className="text-lg text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed">
-                Connect with other creative professionals, share workflows, and
-                get help from the community. NodeTool is open-source under
-                AGPL-3.0.
+                Share workflows, post finished pieces, swap nodes with other
+                artists actually shipping work. Open source, AGPL-3.0.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

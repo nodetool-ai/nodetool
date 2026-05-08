@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AI Agents & Automation | NodeTool",
+  title: "Agents in NodeTool | A capability inside the open creative AI workspace",
   description:
-    "Build intelligent AI agents that reason, plan, and execute complex tasks. Create autonomous automation workflows with a visual drag-and-drop interface. Open-source, privacy-first, no code required.",
+    "Agents are a node in NodeTool — not the product. Wire planning, tool-use, and reasoning models into your canvas alongside Flux, Seedance, ElevenLabs, and the rest. Bring your own keys, swap providers any time. Open source, AGPL-3.0.",
   keywords: [
     "AI agents",
-    "automation",
-    "autonomous agents",
-    "workflow automation",
-    "LLM agents",
-    "ReAct agents",
-    "no-code AI",
-    "visual AI builder",
-    "AI automation",
-    "intelligent agents",
+    "creative AI agents",
+    "agent node",
+    "BYOK agents",
+    "open source agents",
+    "Claude agent",
+    "OpenAI agent",
+    "tool-use canvas",
+    "creative AI workspace",
+    "node-based agent",
   ],
 };
 

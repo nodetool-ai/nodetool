@@ -63,38 +63,38 @@ const dslExplanation = [
 const coreFeatures = [
   {
     icon: Box,
-    title: "Node-Based DSL",
-    description: "Declare graphs in code. Strict types, no vendor lock-in.",
+    title: "Node-based DSL",
+    description: "Declare graphs in code. Strict types, model-agnostic, no vendor lock-in.",
     color: "text-violet-400",
   },
   {
     icon: Layers,
-    title: "First-Class Agents",
-    description: "Planner, browser, search & tool-calling baked in.",
+    title: "Agents as nodes",
+    description: "Planner, browser, search, and tool-calling — wired into the same canvas.",
     color: "text-blue-400",
   },
   {
     icon: Network,
-    title: "Multi-Provider Models",
-    description: "OpenAI, Anthropic, Ollama, Hugging Face, and more.",
+    title: "Every major provider",
+    description: "FAL, Replicate, OpenAI, Anthropic, Gemini, Mistral, Groq, Ollama, HuggingFace.",
     color: "text-emerald-400",
   },
   {
     icon: Database,
-    title: "RAG & Vector Stores",
-    description: "Native adapters for ChromaDB and semantic search.",
+    title: "RAG and vector stores",
+    description: "Native adapters for ChromaDB, FAISS, and SQLite-vec semantic search.",
     color: "text-pink-400",
   },
   {
     icon: Zap,
-    title: "Actor-Based Execution",
-    description: "One actor per node, streaming-first architecture.",
+    title: "Actor-based execution",
+    description: "One actor per node, streaming-first, parallel DAG execution.",
     color: "text-amber-400",
   },
   {
     icon: PackagePlus,
-    title: "Plugin SDK",
-    description: "Bring your own nodes with the extensible plugin system.",
+    title: "Custom-node SDK",
+    description: "Bring your own nodes — Python or TypeScript, decorated fields, process().",
     color: "text-cyan-400",
   },
 ];
@@ -133,7 +133,7 @@ export default function DeveloperCoreSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
-            Open-Source Runtime
+            The runtime is the canvas.
           </motion.h2>
           <motion.p
             initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
@@ -142,9 +142,9 @@ export default function DeveloperCoreSection({
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
           >
-            Workflows run in an async Node.js runtime. Use NodeTool as a library
-            in your own app, or standalone via the CLI to build, run, and ship AI
-            workflows.
+            Workflows run on the same async Node.js kernel that powers the
+            desktop app. Use NodeTool as a library in your own app, or run it
+            standalone via the CLI — same nodes, same providers, your keys.
           </motion.p>
           <motion.div
             initial={reducedMotion ? {} : { opacity: 0, y: 20 }}

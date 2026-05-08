@@ -97,9 +97,9 @@ export default function AgentFeaturesSection({
             transition={{ duration: 0.5 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Agent{" "}
+            Agents{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-cyan-400">
-              Superpowers
+              on the canvas
             </span>
           </motion.h2>
 
@@ -110,8 +110,8 @@ export default function AgentFeaturesSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Build agents that think, plan, and execute with the same visual
-            tools you use for any NodeTool workflow.
+            Same node-based canvas as your image, video, and audio work — with
+            planning, tool-use, and reasoning models wired in alongside them.
           </motion.p>
         </div>
 

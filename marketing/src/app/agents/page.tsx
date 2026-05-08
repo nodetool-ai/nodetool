@@ -410,7 +410,7 @@ export default function AgentsPage() {
         <div className={`${sectionContainer}`}>
           <p className="text-center text-sm text-slate-500">
             <span className="text-amber-400">
-              Built with ❤️ by the NodeTool team
+              Agents are a node in NodeTool. The product is the canvas.
             </span>
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-slate-500">

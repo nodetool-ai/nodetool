@@ -66,49 +66,49 @@ function usePrefersReducedMotion() {
 
 const proPoints = [
   {
-    icon: WifiOff,
-    title: "Works fully offline",
-    body: "Once your local models are downloaded, you can disconnect the internet and keep building. Perfect for travel, secure environments, or air-gapped machines.",
-  },
-  {
-    icon: Shield,
-    title: "Your data never leaves the device",
-    body: "Workflows, assets, prompts, and model outputs stay on your disk. No telemetry, no opt-out — there is no cloud round-trip unless you explicitly call a remote API.",
-  },
-  {
     icon: Cpu,
-    title: "Run open-weight models locally",
-    body: "Ollama, MLX (Apple Silicon), GGUF/GGML, HuggingFace Transformers — all wired into the same nodes. Pick any open model with zero API cost.",
-  },
-  {
-    icon: Zap,
-    title: "Use your GPU to the fullest",
-    body: "NVIDIA CUDA on Windows/Linux, Metal on Apple Silicon. Image, video, and audio nodes go straight to the metal.",
+    title: "Every model, your keys",
+    body: "Bring your own keys to FAL, KIE, Replicate, OpenAI, Anthropic, Gemini, Mistral, Groq, ElevenLabs, HuggingFace. Pay providers directly at provider prices — no credit markup, no resold tokens.",
   },
   {
     icon: HardDrive,
-    title: "Own your model library",
-    body: "Built-in Model Manager downloads, organizes, and shares model files across workflows. Curate the exact stack you want.",
+    title: "Your canvas, your machine",
+    body: "Workflows, assets, prompts, and outputs stay on your disk. No telemetry, no opt-out — there's no round-trip unless you explicitly call a remote API.",
+  },
+  {
+    icon: WifiOff,
+    title: "Open-weight models on your hardware",
+    body: "Ollama, MLX on Apple Silicon, GGUF, HuggingFace Transformers — all wired into the same nodes. Useful when you want a model running without leaving the machine.",
+  },
+  {
+    icon: Zap,
+    title: "GPU, used to the fullest",
+    body: "NVIDIA CUDA on Windows/Linux, Metal on Apple Silicon. Image, video, and audio nodes go straight to the metal.",
+  },
+  {
+    icon: Shield,
+    title: "Your model library",
+    body: "The built-in Model Manager downloads, organizes, and shares model files across workflows. Curate the exact stack you want.",
   },
   {
     icon: Code2,
-    title: "Custom Python and TypeScript nodes",
-    body: "Drop in your own code, install Python packages in the bundled environment, or sandbox untrusted code in Docker. Studio is your full local AI lab.",
+    title: "Custom nodes in Python or TypeScript",
+    body: "Drop in your own code, install Python packages in the bundled environment, or sandbox untrusted code in Docker. Studio is the full creative AI workspace, on your machine.",
   },
 ];
 
 const consPoints = [
   {
-    title: "Hardware matters",
-    body: "Local LLMs need RAM and ideally a GPU. We recommend 16GB+ RAM and 4GB+ VRAM for serious local-model work.",
+    title: "Hardware matters for local models",
+    body: "Open-weight models need RAM and ideally a GPU. We recommend 16GB+ RAM and 4GB+ VRAM if you want serious local-model work — frontier models on FAL, OpenAI, or Anthropic don't care what's on your desk.",
   },
   {
     title: "You manage updates",
-    body: "When a new release ships, you install it. We sign and notarize builds for macOS/Windows so updates stay easy.",
+    body: "When a new release ships, you install it. We sign and notarize builds for macOS and Windows so updates stay easy.",
   },
   {
-    title: "Disk space",
-    body: "Local models are large — plan ~20GB for a small starter set, much more for video/image weights.",
+    title: "Disk space for weights",
+    body: "Open-weight models are large — plan ~20GB for a small starter set, much more for video and image weights.",
   },
 ];
 
@@ -356,17 +356,18 @@ export default function StudioPage() {
                   id="studio-hero-title"
                   className="mt-6 text-4xl md:text-6xl font-bold tracking-tight text-white leading-[1.05]"
                 >
-                  Build AI workflows that
+                  The open creative AI workspace,
                   <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-300">
-                    run on your machine.
+                    on your machine.
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
-                  NodeTool Studio is the desktop app for builders who want their
-                  models, data, and outputs to stay local. Use Ollama, MLX, and
-                  GGUF models with zero per-token cost — and bring your own keys
-                  for any cloud provider when you need them.
+                  NodeTool Studio is the desktop edition. Every major model
+                  from every major provider on one node-based canvas — call
+                  them with your own keys at provider prices, or run
+                  open-weight models like Flux, Wan, and Qwen with Ollama,
+                  MLX, and GGUF without leaving the machine.
                 </p>
                 <div className="mt-8 flex flex-col gap-3">
                   <SmartDownloadButton
@@ -426,17 +427,18 @@ export default function StudioPage() {
             <header className="mb-12 max-w-3xl">
               <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/80">
                 <span className="h-px w-8 bg-amber-300/60" />
-                Why run locally
+                Why run it on your machine
               </div>
               <h2
                 id="why-studio-title"
                 className="text-3xl md:text-5xl font-bold tracking-tight text-white"
               >
-                Privacy, speed, and zero per-token cost.
+                Every model. Your keys. Your canvas.
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl">
-                Everything Studio does, it can do without a network connection.
-                Your prompts, your files, and your models — all on your hardware.
+                The desktop edition wires every major provider into one
+                node-based canvas you control — and runs open-weight models on
+                your own hardware when that&apos;s what the job needs.
               </p>
             </header>
 
@@ -476,18 +478,18 @@ export default function StudioPage() {
                 id="studio-tradeoffs-title"
                 className="text-3xl md:text-4xl font-bold tracking-tight text-white"
               >
-                What Studio asks of you.
+                What running it locally asks of you.
               </h2>
               <p className="mt-4 text-base text-slate-400 leading-relaxed max-w-2xl">
-                Local-first means you take on a few things the cloud would
-                otherwise handle. If any of these feel heavy,{" "}
+                Running on your machine means you take on a few things a hosted
+                editor would otherwise handle. If any of these feel heavy,{" "}
                 <a
                   href="/cloud"
                   className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
                 >
                   NodeTool Cloud
                 </a>{" "}
-                runs the same workflows in your browser.
+                runs the same canvas in your browser.
               </p>
             </header>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -531,12 +533,13 @@ export default function StudioPage() {
             <div className="mx-auto max-w-3xl rounded-2xl border border-slate-800/80 bg-slate-950/60 p-8 text-center">
               <Github className="mx-auto h-8 w-8 text-slate-300 mb-4" />
               <h2 className="text-2xl md:text-3xl font-bold text-white">
-                100% open source. Always.
+                Open source, all the way down.
               </h2>
               <p className="mt-4 text-slate-400 leading-relaxed">
                 Studio is released under AGPL-3.0. Every node, every provider,
                 every line of the runtime is on GitHub. Audit it, fork it,
-                self-host it — there is no separate &ldquo;pro&rdquo; codebase.
+                self-host it — there&apos;s no &ldquo;pro tier&rdquo; hiding the
+                good features, no closed source layer underneath.
               </p>
               <a
                 href="https://github.com/nodetool-ai/nodetool"
@@ -564,7 +567,7 @@ export default function StudioPage() {
         <div className={sectionContainer}>
           <p className="text-center text-sm text-slate-500">
             <span className="text-amber-400">
-              Open source today. The future is yours to build.
+              The open creative AI workspace. Your keys, your canvas, your machine.
             </span>
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-slate-500">

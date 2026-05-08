@@ -10,33 +10,33 @@ interface SecuritySectionProps {
 const securityFeatures = [
   {
     icon: Shield,
-    title: "Data Sovereignty",
-    description: "Your data never leaves your infrastructure. Complete control over where and how data is processed.",
+    title: "Files stay where you put them",
+    description: "Workflows, prompts, and outputs live on your team's machines or in your team's cloud account. No cloud round-trip unless a node explicitly calls one.",
   },
   {
     icon: Lock,
-    title: "End-to-End Encryption",
-    description: "All data in transit and at rest is encrypted. Support for custom encryption keys and HSM integration.",
+    title: "Encrypted in transit and at rest",
+    description: "Provider keys are stored encrypted with the master key on your machine. TLS for every API call out.",
   },
   {
     icon: Server,
-    title: "On-Premise Deployment",
-    description: "Deploy entirely on your infrastructure. No external dependencies or cloud services required.",
+    title: "Self-host anywhere",
+    description: "Run Studio on a workstation, run the same Docker images on your own server, or self-host in your team's AWS, Azure, or GCP account.",
   },
   {
     icon: FileCheck,
-    title: "Audit Logs",
-    description: "Complete audit trail of all workflow executions, data access, and system changes.",
+    title: "Run logs and traces",
+    description: "Every workflow run is logged. OpenTelemetry tracing for agent steps and LLM calls — no black box.",
   },
   {
     icon: Eye,
-    title: "Transparent & Open Source",
-    description: "Full source code access under AGPL-3.0. Audit every line of code for security compliance.",
+    title: "Open source, AGPL-3.0",
+    description: "Every node, every provider, every line of the runtime is on GitHub. Audit it, fork it, run a patched build for your team if you need to.",
   },
   {
     icon: Key,
-    title: "Access Control",
-    description: "Role-based access control (RBAC), SSO integration, and fine-grained permissions management.",
+    title: "Your keys, your account",
+    description: "BYOK for every provider. Bills land on your team's accounts directly — not on a markup line item from us.",
   },
 ];
 
@@ -63,11 +63,11 @@ export default function SecuritySection({ reducedMotion }: SecuritySectionProps)
             <Shield className="w-8 h-8 text-blue-400" />
           </div>
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-            Enterprise Security <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-amber-400">& Compliance</span>
+            Your team. Your keys. <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-amber-400">Your machines.</span>
           </h2>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-            Built with security and compliance in mind from day one. Meet the strictest industry standards.
+            Open source, self-hostable, BYOK. The security story is the same one as the product story.
           </p>
         </motion.div>
 
@@ -101,7 +101,7 @@ export default function SecuritySection({ reducedMotion }: SecuritySectionProps)
           className="text-center"
         >
           <div className="inline-block rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur-xl p-8 md:p-12">
-            <h3 className="text-xl font-semibold text-white mb-8">Compliance Ready</h3>
+            <h3 className="text-xl font-semibold text-white mb-8">Compatible with your existing posture</h3>
             <div className="flex flex-wrap items-center justify-center gap-8">
               {complianceLogos.map((compliance, index) => (
                 <motion.div
@@ -118,7 +118,9 @@ export default function SecuritySection({ reducedMotion }: SecuritySectionProps)
               ))}
             </div>
             <p className="mt-8 text-sm text-slate-400 max-w-2xl mx-auto">
-              Self-hosting gives you full control to meet your organization&apos;s specific compliance requirements.
+              Self-hosting on your team&apos;s own infrastructure gives you the
+              control your security review needs. We don&apos;t certify on your
+              behalf — we get out of the way so you can.
             </p>
           </div>
         </motion.div>

@@ -399,7 +399,7 @@ export default function BusinessPage() {
         <div className={`${sectionContainer}`}>
           <p className="text-center text-sm text-slate-500">
             <span className="text-emerald-400">
-              Built with ❤️ by the NodeTool team
+              Every model. Your keys. Your canvas. Open source, AGPL-3.0.
             </span>
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-slate-500">

@@ -61,34 +61,34 @@ function usePrefersReducedMotion() {
 
 const proPoints = [
   {
+    icon: KeyRound,
+    title: "Every model. Your keys.",
+    body: "FAL, KIE, Replicate, OpenAI, Anthropic, Gemini, Mistral, Groq, ElevenLabs, HuggingFace — every major provider, called with keys you provide. Billed to your account at provider prices. We never mark up tokens.",
+  },
+  {
     icon: Zap,
-    title: "Start in 30 seconds",
-    body: "Sign in, open a workflow, hit run. No installer, no native dependencies, no GPU drivers — just a browser tab.",
+    title: "Open a tab, hit run",
+    body: "Sign in, open a workflow, ship a frame. No installer, no native dependencies, no GPU drivers — just a browser tab and the canvas.",
   },
   {
     icon: Globe,
     title: "Works on any device",
-    body: "Build on a laptop, tweak from a tablet, monitor from your phone. Your workflows follow you across machines.",
+    body: "Build on a laptop, tweak from a tablet, check a render from your phone. Your canvas follows you across machines.",
   },
   {
     icon: Users,
-    title: "Built for teams",
-    body: "Share workflows, hand off prompts, collaborate on agents. One workspace, many builders.",
-  },
-  {
-    icon: KeyRound,
-    title: "Bring your own keys (BYOK)",
-    body: "OpenAI, Anthropic, Gemini, Mistral, Groq, Replicate, FAL, ElevenLabs, HuggingFace — every cloud provider, billed to your account, not ours.",
+    title: "Made for small teams",
+    body: "Share workflows, hand off prompts, collaborate on a piece. One workspace, the people you actually work with.",
   },
   {
     icon: RefreshCcw,
-    title: "Always on the latest version",
-    body: "We ship Cloud updates continuously. New nodes, new providers, and bug fixes land without you lifting a finger.",
+    title: "The best model for the job, the day it ships",
+    body: "Seedance is the best video model right now — pick the cheapest provider for it. When Veo 4 ships, swap one node and you're on it the same day.",
   },
   {
     icon: Cloud,
-    title: "No GPU required",
-    body: "We run the runtime, the websocket server, the queues, and the storage. Heavy generative jobs go to your chosen cloud APIs.",
+    title: "No GPU on your desk required",
+    body: "We run the runtime, the websocket server, the queues, and the storage. Heavy frames go to whichever provider you point them at.",
   },
 ];
 
@@ -98,16 +98,16 @@ const consPoints = [
     body: "Cloud is in active alpha. Expect breaking changes, missing polish, and occasional downtime. SLAs and production guarantees come with general availability, which we haven't reached yet.",
   },
   {
-    title: "No local LLMs",
-    body: "Cloud doesn't run Ollama, MLX, or GGUF models — those need access to your hardware. Use Studio if you need open-weight models running locally.",
+    title: "No open-weight models in the browser",
+    body: "Cloud doesn't run Ollama, MLX, or GGUF — those need access to your hardware. Use Studio when you want a model running on your machine.",
   },
   {
     title: "Needs an internet connection",
-    body: "Cloud is a hosted app. If you need offline workflows, install Studio.",
+    body: "Cloud is a hosted editor. If you want a workspace that runs without a network, install Studio.",
   },
   {
-    title: "Your data lives with us",
-    body: "Workflows and assets are stored encrypted in our managed storage. If you need data to never leave your device, Studio is the right choice — or self-host the same open-source code.",
+    title: "Your files live with us",
+    body: "Workflows and assets are stored encrypted in our managed storage. If you want files that never leave your device, Studio is the right choice — or self-host the same open source code.",
   },
 ];
 
@@ -364,17 +364,17 @@ export default function CloudPage() {
                   id="cloud-hero-title"
                   className="mt-6 text-4xl md:text-6xl font-bold tracking-tight text-white leading-[1.05]"
                 >
-                  Visual AI workflows
+                  The open creative AI workspace,
                   <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">
                     in your browser.
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
-                  NodeTool Cloud is the hosted version of the same open-source
-                  platform. No install, no GPU, no driver setup — just sign in
-                  and start building. Bring your own API keys for every cloud
-                  provider you want to use.
+                  NodeTool Cloud is the hosted edition. Same open source code,
+                  same node-based canvas, same provider list. Bring your own
+                  keys to FAL, Replicate, OpenAI, Anthropic, Gemini, and the
+                  rest — pay providers directly at provider prices.
                 </p>
                 <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-4 text-sm text-amber-100/90 max-w-xl">
                   <strong className="text-amber-200">Heads up:</strong> Cloud is
@@ -399,12 +399,12 @@ export default function CloudPage() {
                     <ArrowRight className="h-4 w-4" />
                   </a>
                   <p className="text-xs text-slate-400">
-                    Alpha preview · AGPL-3.0 source · BYOK for every provider ·
-                    Self-host any time
+                    Alpha preview · AGPL-3.0 source · Your keys for every
+                    provider · Self-host any time
                   </p>
                 </div>
                 <div className="mt-6 inline-flex items-center gap-2 text-sm text-slate-400">
-                  <span>Want to run it locally instead?</span>
+                  <span>Want it on your machine instead?</span>
                   <a
                     href="/studio"
                     className="text-amber-300 hover:text-amber-200 underline underline-offset-2 font-medium"
@@ -451,12 +451,12 @@ export default function CloudPage() {
                 id="why-cloud-title"
                 className="text-3xl md:text-5xl font-bold tracking-tight text-white"
               >
-                Zero setup. Anywhere. Always current.
+                Every model. Your keys. Your canvas.
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl">
-                Cloud removes the install, the GPU, and the upgrade chores —
-                while keeping you in control of your provider keys and your
-                workflows.
+                Cloud takes the install, the GPU, and the upgrade chores off
+                your desk — without taking your keys, your workflows, or your
+                choice of provider with them.
               </p>
             </header>
 
@@ -489,16 +489,17 @@ export default function CloudPage() {
                 <div>
                   <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-blue-200">
                     <KeyRound className="h-3.5 w-3.5" />
-                    Bring your own keys
+                    Your keys, provider prices
                   </div>
                   <h2 className="text-2xl md:text-3xl font-bold text-white">
-                    You pay providers directly. We never mark up tokens.
+                    You pay providers directly. We never mark up a token.
                   </h2>
                   <p className="mt-3 text-slate-300 max-w-2xl">
-                    Cloud connects to OpenAI, Anthropic, Gemini, Mistral, Groq,
-                    Replicate, FAL, ElevenLabs, HuggingFace, and more — using
-                    keys you provide. No hidden inference fees, no resold
-                    credits.
+                    Cloud calls FAL, KIE, Replicate, OpenAI, Anthropic, Gemini,
+                    Mistral, Groq, ElevenLabs, HuggingFace — using keys you
+                    provide. No proprietary credits, no minimum top-up, no
+                    markup on model calls. The best model for the job changes
+                    every month; your tool shouldn&apos;t slow that down.
                   </p>
                 </div>
               </div>
@@ -521,7 +522,7 @@ export default function CloudPage() {
                 id="cloud-tradeoffs-title"
                 className="text-3xl md:text-4xl font-bold tracking-tight text-white"
               >
-                What Cloud doesn&apos;t do.
+                What the browser edition doesn&apos;t do.
               </h2>
               <p className="mt-4 text-base text-slate-400 leading-relaxed max-w-2xl">
                 If any of these matter to you, install{" "}
@@ -531,7 +532,7 @@ export default function CloudPage() {
                 >
                   NodeTool Studio
                 </a>{" "}
-                — same workflows, same nodes, running on your hardware.
+                — same canvas, same nodes, running on your hardware.
               </p>
             </header>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -572,14 +573,14 @@ export default function CloudPage() {
             <div className="mx-auto max-w-3xl rounded-2xl border border-slate-800/80 bg-slate-950/60 p-8 text-center">
               <Github className="mx-auto h-8 w-8 text-slate-300 mb-4" />
               <h2 className="text-2xl md:text-3xl font-bold text-white">
-                Cloud is just our hosting of open-source code.
+                Cloud is just our hosting of open source code.
               </h2>
               <p className="mt-4 text-slate-400 leading-relaxed">
-                Every node, every provider, every line of the runtime that
-                powers Cloud is on GitHub under AGPL-3.0. If you ever want to
+                Every node, every provider, every line of the runtime behind
+                Cloud is on GitHub under AGPL-3.0. If you ever want to
                 self-host, the same Docker images, CLI, and websocket server
                 are yours to run — no vendor lock-in, no &ldquo;cloud-only&rdquo;
-                features, no closed source layer.
+                features, no closed source layer hiding the good ones.
               </p>
               <a
                 href="https://github.com/nodetool-ai/nodetool"
@@ -606,7 +607,7 @@ export default function CloudPage() {
         <div className={sectionContainer}>
           <p className="text-center text-sm text-slate-500">
             <span className="text-blue-300">
-              Open source today. The future is yours to build.
+              The open creative AI workspace. Your keys, your canvas, your browser.
             </span>
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-slate-500">

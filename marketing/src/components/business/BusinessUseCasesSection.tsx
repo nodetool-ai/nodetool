@@ -16,46 +16,46 @@ interface BusinessUseCasesSectionProps {
 
 const useCases = [
   {
-    title: "Document Intelligence",
-    description: "Automate document processing, extraction, and analysis. Process invoices, contracts, and forms at scale.",
-    icon: FileText,
+    title: "Brand and campaign work",
+    description: "Concept frames, key visuals, and ad variants on one canvas. Pick the best image model for the brief, render hundreds of variants, hand off the winners.",
+    icon: ImageIcon,
     gradient: "from-emerald-500/20 to-teal-500/20",
-    examples: ["Invoice processing", "Contract analysis", "Form extraction"],
+    examples: ["Hero key visuals", "Ad variants at scale", "Brand-locked style transfer"],
   },
   {
-    title: "Customer Support Automation",
-    description: "Build intelligent chatbots and ticket routing systems. Reduce response times and support costs.",
-    icon: MessageSquare,
+    title: "Motion and short-form video",
+    description: "Wire Seedance, Veo, and Wan into the same canvas as your image and audio nodes. Edit, mask, and composite without leaving the workspace.",
+    icon: ImageIcon,
     gradient: "from-blue-500/20 to-cyan-500/20",
-    examples: ["24/7 chatbot support", "Ticket classification", "Knowledge base search"],
+    examples: ["Social cutdowns", "Animated key art", "Pre-vis and storyboards"],
   },
   {
-    title: "Marketing & Content",
-    description: "Generate marketing materials, social media content, and personalized campaigns at scale.",
-    icon: Mail,
+    title: "Post-production helpers",
+    description: "Inpainting, outpainting, relight, upscale, and rotoscoping nodes alongside the editing tools your team already relies on.",
+    icon: FileText,
     gradient: "from-teal-500/20 to-purple-500/20",
-    examples: ["Ad copy generation", "Image creation", "Email personalization"],
+    examples: ["Plate cleanup", "AI upscale and restoration", "Background replacement"],
   },
   {
-    title: "Data Analysis & Insights",
-    description: "Transform raw data into actionable insights. Automated reporting, trend detection, and forecasting.",
+    title: "Asset and library work",
+    description: "Batch-tag, batch-caption, and batch-edit your studio's image and video library with the model best suited to each step.",
     icon: BarChart3,
     gradient: "from-cyan-500/20 to-blue-500/20",
-    examples: ["Sales forecasting", "Anomaly detection", "Report generation"],
+    examples: ["Auto-tagging", "Caption generation", "Style-consistent re-renders"],
   },
   {
-    title: "Quality Assurance",
-    description: "Automated visual inspection, defect detection, and quality control in manufacturing processes.",
-    icon: ImageIcon,
+    title: "Voice and audio",
+    description: "ElevenLabs voices, Suno music, and stem separation as nodes. Sync to your motion canvas, render the full piece in one workspace.",
+    icon: MessageSquare,
     gradient: "from-rose-500/20 to-pink-500/20",
-    examples: ["Visual inspection", "Defect detection", "Product classification"],
+    examples: ["Voiceover variants", "Music beds", "Localized dub passes"],
   },
   {
-    title: "Process Automation",
-    description: "Connect disparate systems and put AI in the loop where humans currently spend hours making routine decisions.",
+    title: "Internal creative pipelines",
+    description: "Wire NodeTool into your studio's tools — DAM, asset server, internal services — using REST, webhooks, and custom nodes.",
     icon: Database,
     gradient: "from-amber-500/20 to-orange-500/20",
-    examples: ["Data pipeline automation", "Cross-system integration", "Smart routing"],
+    examples: ["DAM-to-canvas hand-off", "Approval routing", "Custom node for in-house models"],
   },
 ];
 
@@ -70,10 +70,10 @@ export default function BusinessUseCasesSection({ reducedMotion }: BusinessUseCa
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-            Real-World <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400">Business Applications</span>
+            What teams <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400">ship on it</span>
           </h2>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-            From small businesses to enterprise organizations, NodeTool powers AI automation across industries.
+            Brand work, motion, post-production, and creative ops — on the same canvas as your image, video, and audio nodes.
           </p>
         </motion.div>
 

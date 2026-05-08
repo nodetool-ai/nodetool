@@ -18,64 +18,64 @@ interface BusinessFeaturesSectionProps {
 
 const features = [
   {
-    title: "Cost Reduction",
-    description: "Slash AI costs by up to 80% by using your own infrastructure and avoiding expensive API subscriptions.",
+    title: "Provider prices, no markup",
+    description: "Bring your team's keys to FAL, Replicate, OpenAI, Anthropic, Gemini, and the rest. Pay providers directly — no proprietary credits, no resold tokens.",
     icon: DollarSign,
     color: "text-emerald-400",
     bgColor: "bg-emerald-500/10",
     borderColor: "border-emerald-500/20",
   },
   {
-    title: "Data Privacy",
-    description: "Keep sensitive business data on-premise. Full control over your AI models and processing pipelines.",
+    title: "Your data, your machines",
+    description: "Workflows, assets, and prompts live where you put them — on a workstation, on your own server, or in your team's cloud account. Open source, AGPL-3.0.",
     icon: Lock,
     color: "text-blue-400",
     bgColor: "bg-blue-500/10",
     borderColor: "border-blue-500/20",
   },
   {
-    title: "Flexible Integration",
-    description: "Connect to existing tools and databases. REST APIs, webhooks, and custom connectors available.",
+    title: "Connects to what you already use",
+    description: "REST APIs, webhooks, custom nodes for your internal tools, and a TypeScript SDK for the engineers on the team.",
     icon: Boxes,
     color: "text-amber-400",
     bgColor: "bg-teal-500/10",
     borderColor: "border-teal-500/20",
   },
   {
-    title: "Scalable Architecture",
-    description: "Start small and scale up. From single-machine deployment to distributed cloud infrastructure.",
+    title: "Start on a laptop, grow into a server",
+    description: "Same workflows on a designer's MacBook, a workstation in the studio, or a Docker host in the team's cloud. No rewrite when you scale.",
     icon: TrendingUp,
     color: "text-cyan-400",
     bgColor: "bg-cyan-500/10",
     borderColor: "border-cyan-500/20",
   },
   {
-    title: "Team Collaboration",
-    description: "Share workflows across teams. Version control, audit logs, and role-based access control.",
+    title: "Made for small teams",
+    description: "Share workflows, hand off prompts, version control your canvas. One workspace, the people you actually work with.",
     icon: Users,
     color: "text-rose-400",
     bgColor: "bg-rose-500/10",
     borderColor: "border-rose-500/20",
   },
   {
-    title: "Developer Friendly",
-    description: "Open-source and extensible. Build custom nodes, integrate proprietary models, and automate with APIs.",
+    title: "Extensible by design",
+    description: "Open source and node-based. Drop in custom Python or TypeScript nodes for your studio's models, internal services, or proprietary pipelines.",
     icon: FileCode,
     color: "text-amber-400",
     bgColor: "bg-amber-500/10",
     borderColor: "border-amber-500/20",
   },
   {
-    title: "Hybrid Deployment",
-    description: "Deploy anywhere: on-premise, cloud, or hybrid. Compatible with AWS, Azure, GCP, and private clouds.",
+    title: "Self-host or hosted",
+    description: "Run Studio on your own machines, run Cloud in your browser, or self-host the same Docker images on AWS, Azure, GCP, or a private cloud.",
     icon: Cloud,
     color: "text-indigo-400",
     bgColor: "bg-indigo-500/10",
     borderColor: "border-indigo-500/20",
   },
   {
-    title: "Enterprise Performance",
-    description: "GPU acceleration, batch processing, and optimized inference. Handle high-volume workloads efficiently.",
+    title: "Heavy frames, handled",
+    description: "GPU acceleration for local renders, batch nodes for high-volume work, async queues for long jobs. Built for real production timelines.",
     icon: Gauge,
     color: "text-pink-400",
     bgColor: "bg-pink-500/10",
@@ -96,10 +96,10 @@ export default function BusinessFeaturesSection({ reducedMotion }: BusinessFeatu
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-            Enterprise-Grade AI Platform
+            What your team actually gets.
           </h2>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-            Everything your business needs to build, deploy, and scale AI workflows with confidence.
+            One workspace, every model, your keys. Built for the working creatives on your team — not for procurement.
           </p>
         </motion.div>
 

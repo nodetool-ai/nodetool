@@ -10,31 +10,31 @@ interface ROISectionProps {
 const benefits = [
   {
     icon: TrendingDown,
-    title: "80% Cost Reduction",
-    description: "Save on API costs by running models on your own infrastructure",
-    metric: "$50k → $10k",
-    label: "Annual AI Costs",
+    title: "Provider prices, no markup",
+    description: "Same FAL, Replicate, OpenAI, and Anthropic calls — billed to your account, not ours.",
+    metric: "0% markup",
+    label: "On model calls",
   },
   {
     icon: Clock,
-    title: "10x Faster Development",
-    description: "Visual workflows reduce development time from weeks to days",
-    metric: "3 weeks → 2 days",
-    label: "Time to Deploy",
+    title: "Pick the best model, day one",
+    description: "Seedance is the cheapest on FAL right now. When Veo 4 ships, swap one node and you're on it.",
+    metric: "1 node",
+    label: "To switch providers",
   },
   {
     icon: Shield,
-    title: "Zero Data Leakage",
-    description: "Keep sensitive business data on your infrastructure",
-    metric: "100% Control",
-    label: "Data Ownership",
+    title: "Your files, your machines",
+    description: "Workflows, prompts, and outputs stay where you put them — on a workstation or in your cloud account.",
+    metric: "Self-host",
+    label: "On your infrastructure",
   },
   {
     icon: Zap,
-    title: "3x Productivity Gain",
-    description: "Automate repetitive tasks and free up your team",
-    metric: "30 hrs → 10 hrs",
-    label: "Weekly Manual Work",
+    title: "One canvas, fewer tabs",
+    description: "Brand work that lives across Midjourney, Runway, and Photoshop collapses into one node-based workspace.",
+    metric: "1 workspace",
+    label: "Instead of a dozen tabs",
   },
 ];
 
@@ -51,10 +51,10 @@ export default function ROISection({ reducedMotion }: ROISectionProps) {
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-            Measurable <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400">Business Impact</span>
+            What <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400">vendor neutrality</span> buys you
           </h2>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-            Real results from businesses that switched to NodeTool for their AI automation needs.
+            The best model for the job changes every month. Your tool shouldn&apos;t slow that down — and your finance team shouldn&apos;t pay markup for the privilege.
           </p>
         </motion.div>
 
@@ -92,16 +92,18 @@ export default function ROISection({ reducedMotion }: ROISectionProps) {
         >
           <div className="inline-block rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-500/10 to-blue-500/10 backdrop-blur-xl p-8 md:p-12">
             <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
-              Calculate Your Potential ROI
+              Run the math on your own stack
             </h3>
             <p className="text-slate-300 mb-6 max-w-2xl">
-              Most businesses see positive ROI within 3 months. Self-hosting eliminates ongoing API costs and gives you full control.
+              Compare what your team is paying through resold credits today
+              with what FAL, Replicate, OpenAI, and Anthropic charge directly.
+              The gap is usually the markup.
             </p>
             <a
               href="https://github.com/nodetool-ai/nodetool/releases"
               className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-600 text-white font-semibold hover:from-emerald-400 hover:to-blue-500 transition-all shadow-lg shadow-emerald-500/25"
             >
-              Get Started Free
+              Download for your team
             </a>
           </div>
         </motion.div>

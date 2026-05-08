@@ -26,7 +26,7 @@ export default function AgentBuildRunDeploy() {
                         Plan. Act. Self-correct.
                     </h2>
                     <p className="text-slate-400 text-lg">
-                        Design autonomous systems that plan, act, and self-correct. Then deploy them as reliable workers.
+                        Drop an agent node into your canvas, give it tools, and watch it work. Same workspace as your image, video, and audio nodes.
                     </p>
                 </div>
 
@@ -43,7 +43,7 @@ export default function AgentBuildRunDeploy() {
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-3 relative z-10">
                     <Card
                         title="Design"
-                        subtitle="Define objectives, choose execution mode (loop, plan, or multi-agent), and assign tools and skills visually."
+                        subtitle="Pick a model, pick an execution mode (loop, plan, or multi-agent), wire in the tools you want it to call. Visually."
                         step={1}
                         accentColor="blue"
                     >
@@ -52,7 +52,7 @@ export default function AgentBuildRunDeploy() {
 
                     <Card
                         title="Observe"
-                        subtitle="Stream reasoning traces, tool calls, and task progress in real-time. OpenTelemetry tracing built in."
+                        subtitle="Watch reasoning, tool calls, and task progress stream in real time. OpenTelemetry tracing built in — no black box."
                         step={2}
                         accentColor="purple"
                     >
@@ -61,7 +61,7 @@ export default function AgentBuildRunDeploy() {
 
                     <Card
                         title="Scale"
-                        subtitle="Run multi-agent teams with coordinator, autonomous, or hybrid strategies. Parallel DAG execution."
+                        subtitle="Run multi-agent teams with coordinator, autonomous, or hybrid strategies. Parallel DAG execution on the same canvas."
                         step={3}
                         accentColor="emerald"
                     >

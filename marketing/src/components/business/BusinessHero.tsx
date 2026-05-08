@@ -15,20 +15,21 @@ export default function BusinessHero() {
       >
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-white/10 mb-8">
           <BarChart3 className="w-4 h-4 text-emerald-400" />
-          <span className="text-sm font-medium text-slate-300">Enterprise AI Made Simple</span>
+          <span className="text-sm font-medium text-slate-300">For studios and creative teams</span>
         </div>
 
         <h1 id="hero-title" className="text-5xl md:text-7xl font-bold tracking-tight mb-8">
-          <span className="text-white">Transform Your Business with</span>
+          <span className="text-white">The open creative AI workspace,</span>
           <br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-blue-400 to-amber-400">
-            AI Automation
+            for your team.
           </span>
         </h1>
 
         <p className="text-xl md:text-2xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-          Build and deploy custom AI workflows without vendor lock-in. 
-          Reduce costs, enhance productivity, and maintain complete control over your data.
+          Every major model on one node-based canvas, called with your team&apos;s
+          keys at provider prices. So designers, motion artists, and post-production
+          shops use creative AI without each person becoming a ComfyUI expert.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
@@ -37,7 +38,7 @@ export default function BusinessHero() {
             className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-600 text-white font-semibold hover:from-emerald-400 hover:to-blue-500 transition-all shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40"
           >
             <Download className="w-5 h-5" />
-            Get Started Free
+            Download for your team
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </a>
           <a
@@ -45,22 +46,22 @@ export default function BusinessHero() {
             className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/10 transition-all"
           >
             <BarChart3 className="w-5 h-5" />
-            Calculate ROI
+            See the math
           </a>
         </div>
 
         <div className="flex items-center justify-center gap-8 text-sm text-slate-500">
           <span className="flex items-center gap-2">
             <Shield className="w-4 h-4" />
-            Enterprise Security
+            Your keys, your data
           </span>
           <span className="w-1 h-1 rounded-full bg-slate-700" />
           <span className="flex items-center gap-2">
             <Zap className="w-4 h-4" />
-            No Vendor Lock-in
+            No vendor lock-in
           </span>
           <span className="w-1 h-1 rounded-full bg-slate-700" />
-          <span>Self-Hosted or Cloud</span>
+          <span>Self-host or hosted</span>
         </div>
       </motion.div>
 
