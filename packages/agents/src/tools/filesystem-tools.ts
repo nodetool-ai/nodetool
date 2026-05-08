@@ -35,6 +35,44 @@ function getStorage(context: ProcessingContext): StorageAdapter | null {
   return context.workspaceStorage ?? null;
 }
 
+const EXT_TO_MIME: Record<string, string> = {
+  json: "application/json",
+  html: "text/html; charset=utf-8",
+  htm: "text/html; charset=utf-8",
+  md: "text/markdown; charset=utf-8",
+  markdown: "text/markdown; charset=utf-8",
+  csv: "text/csv; charset=utf-8",
+  tsv: "text/tab-separated-values; charset=utf-8",
+  yaml: "application/yaml",
+  yml: "application/yaml",
+  js: "application/javascript",
+  mjs: "application/javascript",
+  cjs: "application/javascript",
+  ts: "application/typescript",
+  tsx: "application/typescript",
+  jsx: "application/javascript",
+  xml: "application/xml",
+  svg: "image/svg+xml",
+  toml: "application/toml",
+  ini: "text/plain; charset=utf-8",
+  log: "text/plain; charset=utf-8",
+  txt: "text/plain; charset=utf-8"
+};
+
+function mimeForPath(path: string): string {
+  const slash = path.lastIndexOf("/");
+  const base = slash >= 0 ? path.slice(slash + 1) : path;
+  const dot = base.lastIndexOf(".");
+  if (dot <= 0) return "text/plain; charset=utf-8";
+  const ext = base.slice(dot + 1).toLowerCase();
+  return EXT_TO_MIME[ext] ?? "text/plain; charset=utf-8";
+}
+
+function isInvalidStorageKeyError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.toLowerCase().includes("invalid storage key");
+}
+
 const NO_WORKSPACE_ERROR = {
   success: false,
   error:
@@ -279,7 +317,7 @@ export class WriteFileTool extends Tool {
 
     try {
       const bytes = new TextEncoder().encode(payload);
-      await storage.store(rawPath, bytes, "text/plain; charset=utf-8");
+      await storage.store(rawPath, bytes, mimeForPath(rawPath));
       return {
         success: true,
         path: rawPath,
@@ -351,9 +389,16 @@ export class ListDirectoryTool extends Tool {
     try {
       result = await storage.list(listPrefix, { delimiter: "/" });
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (isInvalidStorageKeyError(e)) {
+        return {
+          success: false,
+          error: `Path '${rawPath}' is outside the workspace: ${msg}`
+        };
+      }
       return {
         success: false,
-        error: `Path '${rawPath}' is outside the workspace: ${e instanceof Error ? e.message : String(e)}`
+        error: `Failed to list directory '${rawPath}': ${msg}`
       };
     }
     if (
@@ -365,10 +410,16 @@ export class ListDirectoryTool extends Tool {
       let stillExists = false;
       try {
         stillExists = await storage.exists(storage.uriForKey(listPrefix));
-      } catch {
+      } catch (e) {
+        if (isInvalidStorageKeyError(e)) {
+          return {
+            success: false,
+            error: `Path '${rawPath}' is outside the workspace`
+          };
+        }
         return {
           success: false,
-          error: `Path '${rawPath}' is outside the workspace`
+          error: `Failed to list directory '${rawPath}': ${e instanceof Error ? e.message : String(e)}`
         };
       }
       if (!stillExists) {
