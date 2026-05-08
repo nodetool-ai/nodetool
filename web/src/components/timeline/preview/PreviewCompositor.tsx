@@ -478,7 +478,10 @@ export const PreviewCompositor: React.FC = memo(() => {
 
     activeVideoSlots.forEach((slot, slotIndex) => {
       const el = pool[slotIndex];
-      if (!el || el.readyState < 2) return; // HAVE_CURRENT_DATA
+      // Keep the layer in the list even if the video momentarily drops below
+      // HAVE_CURRENT_DATA (e.g. during a scrub seek). The compositor reuses
+      // the previously uploaded texture so we don't flash to black.
+      if (!el || el.videoWidth === 0) return;
       out.push({
         id: `v:${slot.clipId}`,
         source: el,
