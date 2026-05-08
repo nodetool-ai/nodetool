@@ -1,6 +1,6 @@
 import { alpha, type SxProps, type Theme } from "@mui/material/styles";
 import type { EraserMode, EraserSettings } from "../types";
-import { toggleButtonSmallSx } from "../sketchStyles";
+import { SKETCH_FONT } from "../sketchStyles";
 
 /** Reusable no-op function to avoid allocations in optional prop fallbacks. */
 export const noop = () => {};
@@ -15,17 +15,19 @@ export const IN_PROGRESS_DOWNLOAD_STATES = [
   "progress"
 ] as readonly string[];
 
-/** Icon-only select-mode toggles; tooltips carry the descriptive label. */
+/**
+ * Icon-only select-mode toggles; tooltips carry the descriptive label.
+ * Same typography as `toggleButtonSmallSx`, tighter padding (`0.5` theme units).
+ */
 export const selectModeToggleButtonSx: SxProps<Theme> = (theme) => ({
-  ...toggleButtonSmallSx,
-  minWidth: 30,
-  px: 0.5,
+  fontSize: SKETCH_FONT.xs,
   py: 0.5,
+  px: 0.5,
+  minWidth: 30,
   "& .MuiSvgIcon-root": { fontSize: 18 },
   color: theme.vars?.palette?.text?.secondary ?? theme.palette.text.secondary,
   "&.Mui-selected": {
-    color:
-      theme.vars?.palette?.primary?.light ?? theme.palette.primary.light,
+    color: theme.vars?.palette?.primary?.light ?? theme.palette.primary.light,
     backgroundColor: alpha(theme.palette.primary.main, 0.22),
     boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.45)}`,
     "&:hover": {
