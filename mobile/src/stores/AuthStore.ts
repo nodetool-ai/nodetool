@@ -140,6 +140,25 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (error) {
         throw error;
       }
+
+      // Tear down the auth listener and clear any user-bound chat state so
+      // the next account can't see the previous user's threads/messages.
+      get().cleanup();
+      try {
+        // Lazy import to avoid a circular dependency between auth/chat.
+        const chatModule = await import('./ChatStore');
+        const chatStore = chatModule.useChatStore;
+        chatStore.getState().disconnect();
+        chatStore.setState({
+          threads: {},
+          currentThreadId: null,
+          messageCache: {},
+          error: null,
+        });
+      } catch (err) {
+        console.warn('[AuthStore] failed to reset chat on signOut', err);
+      }
+
       set({
         session: null,
         user: null,

@@ -93,10 +93,13 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
       });
     } else {
       set((state) => {
-        // Optimization: Use for...in loop to avoid intermediate array allocation
+        // Optimization: Use for...in loop to avoid intermediate array allocation.
+        // Match on the colon boundary to avoid clearing entries for workflows
+        // whose IDs happen to share a prefix.
+        const prefix = `${workflowId}:`;
         const newErrors: Record<string, NodeError> = {};
         for (const key in state.errors) {
-          if (!key.startsWith(workflowId)) {
+          if (!key.startsWith(prefix)) {
             newErrors[key] = state.errors[key];
           }
         }

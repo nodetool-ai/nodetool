@@ -113,10 +113,12 @@ const filterRecord = <T>(
     });
     return newRecord;
   }
-  // Optimization: Use for...in loop to avoid intermediate array allocation
+  // Optimization: Use for...in loop to avoid intermediate array allocation.
+  // Match on the colon boundary so workflow IDs that share a prefix don't collide.
+  const prefix = `${workflowId}:`;
   const newRecord: Record<string, T> = {};
   for (const key in record) {
-    if (!key.startsWith(workflowId)) {
+    if (!key.startsWith(prefix)) {
       newRecord[key] = record[key];
     }
   }

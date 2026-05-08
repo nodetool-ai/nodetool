@@ -85,9 +85,10 @@ const useExecutionTimeStore = create<ExecutionTimeStore>((set, get) => ({
 
   clearTimings: (workflowId: string) => {
     set((state) => {
+      const prefix = `${workflowId}:`;
       const newTimings: Record<string, ExecutionTiming> = {};
       for (const key in state.timings) {
-        if (!key.startsWith(workflowId)) {
+        if (!key.startsWith(prefix)) {
           newTimings[key] = state.timings[key];
         }
       }

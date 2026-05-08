@@ -140,8 +140,20 @@ export const createWorkflowRunnerStore = (
       const unsubscribe = get().unsubscribe;
       if (unsubscribe) {
         unsubscribe();
-        set({ unsubscribe: null });
       }
+      // Reset job/runtime state so a reused store can't surface a previous
+      // workflow's job_id or status, and late WS messages routed by job_id
+      // won't apply to a resurrected store.
+      set({
+        unsubscribe: null,
+        state: "idle",
+        job_id: null,
+        statusMessage: null,
+        notifications: [],
+        workflow: null,
+        nodes: [],
+        edges: []
+      });
     },
 
     /**
@@ -362,14 +374,26 @@ export const createWorkflowRunnerStore = (
 
       console.info(`WorkflowRunner[${workflowId}]: Sending run_job command`, req);
 
-      await globalWebSocketManager.send({
-        type: "run_job",
-        command: "run_job",
-        data: {
-          ...(req as RunJobRequest & { job_id: string }),
-          job_id: jobId
-        }
-      });
+      try {
+        await globalWebSocketManager.send({
+          type: "run_job",
+          command: "run_job",
+          data: {
+            ...(req as RunJobRequest & { job_id: string }),
+            job_id: jobId
+          }
+        });
+      } catch (error) {
+        // Rollback so the store doesn't get stuck in "running" with a phantom
+        // job_id that cancel() would later try to address.
+        set({
+          state: "error",
+          job_id: null,
+          statusMessage:
+            error instanceof Error ? error.message : "Failed to start job"
+        });
+        throw error;
+      }
     },
 
     /**
@@ -511,6 +535,25 @@ export const getWorkflowRunnerStore = (
   }
 
   return store;
+};
+
+/**
+ * Dispose the runner store for a workflow. Call when a workflow is closed/
+ * deleted so we don't leak per-workflow state forever.
+ */
+export const disposeWorkflowRunnerStore = (workflowId: string): void => {
+  const store = runnerStores.get(workflowId);
+  if (store) {
+    try {
+      store.getState().cleanup();
+    } catch (error) {
+      console.warn(
+        `[WorkflowRunner] cleanup failed for ${workflowId}`,
+        error
+      );
+    }
+    runnerStores.delete(workflowId);
+  }
 };
 
 const defaultWorkflowRunner: WorkflowRunner = {
