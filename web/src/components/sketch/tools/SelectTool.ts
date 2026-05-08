@@ -17,12 +17,11 @@ import {
   ellipseSelectionMask,
   offsetSelectionByDocumentDelta,
   cloneSelectionMask,
-  magicWandFromRgba,
-  magicWandNonContiguousFromRgba,
   polygonToBinaryMask,
   marqueeAdjustedDocPoints,
   marqueeRectFromDocPoints,
 } from "../selection";
+import { runMagicWandSelectionAsync } from "../selection/magicWandAsync";
 import {
   selectionCombineMode,
   captureModifiers,
@@ -63,6 +62,8 @@ export class SelectTool implements ToolHandler {
 
   // Deferred selection-clear timer (cancelled on tool switch / deactivate)
   private selectionClearTimer: ReturnType<typeof setTimeout> | null = null;
+  private magicWandAbortController: AbortController | null = null;
+  private magicWandRequestId = 0;
 
   /** Clear in-progress polygon (called when selection is reset externally, e.g. Escape). */
   clearPolygon(): void {
@@ -78,6 +79,14 @@ export class SelectTool implements ToolHandler {
     }
   }
 
+  private cancelPendingMagicWand(): void {
+    this.magicWandRequestId++;
+    if (this.magicWandAbortController) {
+      this.magicWandAbortController.abort();
+      this.magicWandAbortController = null;
+    }
+  }
+
   /** Schedule a deferred selection clear for responsive pointer-down. */
   private deferSelectionClear(ctx: ToolContext): void {
     this.cancelDeferredClear();
@@ -89,6 +98,11 @@ export class SelectTool implements ToolHandler {
 
   onDeactivate?(): void {
     this.cancelDeferredClear();
+    this.cancelPendingMagicWand();
+  }
+
+  onCancel(): void {
+    this.cancelPendingMagicWand();
   }
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
@@ -129,27 +143,67 @@ export class SelectTool implements ToolHandler {
       if (!onSelectionChange) {
         return false;
       }
+      this.cancelPendingMagicWand();
       const wandSettings = doc.toolSettings.select;
       const mods = captureModifiers(ctx.shiftHeldRef, ctx.altHeldRef);
+      const requestId = ++this.magicWandRequestId;
+      const abortController = new AbortController();
+      this.magicWandAbortController = abortController;
       requestAnimationFrame(() => {
+        if (
+          requestId !== this.magicWandRequestId ||
+          abortController.signal.aborted
+        ) {
+          return;
+        }
         const tol = wandSettings.magicWandTolerance;
 
         if (wandSettings.sampleAllLayers) {
           // Composite sampling: pt is already in doc/pixel space, result is doc-sized.
           const id = ctx.getFullCompositeImageData?.() ?? null;
-          if (!id) return;
-          const bin = wandSettings.contiguous
-            ? magicWandFromRgba(id, pt.x, pt.y, tol)
-            : magicWandNonContiguousFromRgba(id, pt.x, pt.y, tol);
-          const overlay: Selection = { width: cw, height: ch, data: bin };
-          applySelectionFinalization({
-            overlay,
-            modifiers: mods,
-            runtime: ctx.runtime,
-            currentSelection: selection,
-            onSelectionChange,
-            drawSelectionOverlay: ctx.drawSelectionOverlay
-          });
+          if (!id) {
+            return;
+          }
+          void runMagicWandSelectionAsync(
+            {
+              rgba: id.data,
+              width: id.width,
+              height: id.height,
+              seedX: pt.x,
+              seedY: pt.y,
+              tolerance: tol,
+              contiguous: wandSettings.contiguous
+            },
+            abortController.signal
+          )
+            .then((bin) => {
+              if (
+                requestId !== this.magicWandRequestId ||
+                abortController.signal.aborted
+              ) {
+                return;
+              }
+              const overlay: Selection = { width: cw, height: ch, data: bin };
+              applySelectionFinalization({
+                overlay,
+                modifiers: mods,
+                runtime: ctx.runtime,
+                currentSelection: selection,
+                onSelectionChange,
+                drawSelectionOverlay: ctx.drawSelectionOverlay
+              });
+            })
+            .catch((error) => {
+              if (error instanceof Error && error.name === "AbortError") {
+                return;
+              }
+              console.error("Magic wand selection failed:", error);
+            })
+            .finally(() => {
+              if (this.magicWandAbortController === abortController) {
+                this.magicWandAbortController = null;
+              }
+            });
           return;
         }
 
@@ -161,27 +215,57 @@ export class SelectTool implements ToolHandler {
         const seedX = pt.x - offset.x;
         const seedY = pt.y - offset.y;
         const actx = activeCanvas.getContext("2d");
-        if (!actx) return;
+        if (!actx) {
+          return;
+        }
         const id = actx.getImageData(0, 0, activeCanvas.width, activeCanvas.height);
-        const bin = wandSettings.contiguous
-          ? magicWandFromRgba(id, seedX, seedY, tol)
-          : magicWandNonContiguousFromRgba(id, seedX, seedY, tol);
-        // Overlay is layer-sized with origin set — combineMasks handles the placement.
-        const overlay: Selection = {
-          width: activeCanvas.width,
-          height: activeCanvas.height,
-          data: bin,
-          originX: offset.x,
-          originY: offset.y
-        };
-        applySelectionFinalization({
-          overlay,
-          modifiers: mods,
-          runtime: ctx.runtime,
-          currentSelection: selection,
-          onSelectionChange,
-          drawSelectionOverlay: ctx.drawSelectionOverlay
-        });
+        void runMagicWandSelectionAsync(
+          {
+            rgba: id.data,
+            width: id.width,
+            height: id.height,
+            seedX,
+            seedY,
+            tolerance: tol,
+            contiguous: wandSettings.contiguous
+          },
+          abortController.signal
+        )
+          .then((bin) => {
+            if (
+              requestId !== this.magicWandRequestId ||
+              abortController.signal.aborted
+            ) {
+              return;
+            }
+            // Overlay is layer-sized with origin set — combineMasks handles the placement.
+            const overlay: Selection = {
+              width: activeCanvas.width,
+              height: activeCanvas.height,
+              data: bin,
+              originX: offset.x,
+              originY: offset.y
+            };
+            applySelectionFinalization({
+              overlay,
+              modifiers: mods,
+              runtime: ctx.runtime,
+              currentSelection: selection,
+              onSelectionChange,
+              drawSelectionOverlay: ctx.drawSelectionOverlay
+            });
+          })
+          .catch((error) => {
+            if (error instanceof Error && error.name === "AbortError") {
+              return;
+            }
+            console.error("Magic wand selection failed:", error);
+          })
+          .finally(() => {
+            if (this.magicWandAbortController === abortController) {
+              this.magicWandAbortController = null;
+            }
+          });
       });
       return false;
     }

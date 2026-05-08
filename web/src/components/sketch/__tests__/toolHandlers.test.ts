@@ -30,6 +30,7 @@ import type { SketchTool } from "../types";
 import { createDefaultDocument, createDefaultLayer } from "../types";
 import { rectSelectionMask } from "../selection";
 import { useSketchStore } from "../state/useSketchStore";
+import * as magicWandAsync from "../selection/magicWandAsync";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
 
@@ -172,6 +173,21 @@ function makeMock2dContext(
     createLinearGradient: jest.fn(() => gradient),
     createRadialGradient: jest.fn(() => gradient)
   } as unknown as CanvasRenderingContext2D;
+}
+
+function makeImageData(
+  width: number,
+  height: number,
+  fill: [number, number, number, number]
+): ImageData {
+  const data = new Uint8ClampedArray(width * height * 4);
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = fill[0];
+    data[i + 1] = fill[1];
+    data[i + 2] = fill[2];
+    data[i + 3] = fill[3];
+  }
+  return { data, width, height, colorSpace: "srgb" } as ImageData;
 }
 
 // ─── Factory tests ─────────────────────────────────────────────────────────
@@ -750,6 +766,85 @@ describe("SelectTool", () => {
       { x: 5, y: 5 },
       { x: 20, y: 20 }
     );
+  });
+
+  it("runs magic-wand selection through the async worker path", async () => {
+    const tool = new SelectTool();
+    const doc = createDefaultDocument(32, 32);
+    doc.toolSettings.select.mode = "magic_wand";
+    const imageData = makeImageData(32, 32, [255, 0, 0, 255]);
+    const runMagicWandSelectionAsync = jest
+      .spyOn(magicWandAsync, "runMagicWandSelectionAsync")
+      .mockResolvedValue(new Uint8ClampedArray(32 * 32).fill(255));
+    const requestAnimationFrameSpy = jest
+      .spyOn(globalThis, "requestAnimationFrame")
+      .mockImplementation((cb: FrameRequestCallback) => {
+        cb(0);
+        return 1;
+      });
+    const ctx = makeToolContext({
+      doc,
+      getFullCompositeImageData: jest.fn(() => imageData)
+    });
+
+    const result = tool.onDown(ctx, makePointerEvent({ point: { x: 12, y: 14 } }));
+    await Promise.resolve();
+
+    expect(result).toBe(false);
+    expect(runMagicWandSelectionAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        width: 32,
+        height: 32,
+        seedX: 12,
+        seedY: 14,
+        contiguous: true
+      }),
+      expect.any(AbortSignal)
+    );
+    expect(ctx.onSelectionChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        width: 32,
+        height: 32
+      })
+    );
+
+    requestAnimationFrameSpy.mockRestore();
+    runMagicWandSelectionAsync.mockRestore();
+  });
+
+  it("ignores stale magic-wand results after cancel", async () => {
+    const tool = new SelectTool();
+    const doc = createDefaultDocument(16, 16);
+    doc.toolSettings.select.mode = "magic_wand";
+    let resolveMask: ((mask: Uint8ClampedArray) => void) | null = null;
+    const runMagicWandSelectionAsync = jest
+      .spyOn(magicWandAsync, "runMagicWandSelectionAsync")
+      .mockImplementation(
+        () =>
+          new Promise<Uint8ClampedArray>((resolve) => {
+            resolveMask = resolve;
+          })
+      );
+    const requestAnimationFrameSpy = jest
+      .spyOn(globalThis, "requestAnimationFrame")
+      .mockImplementation((cb: FrameRequestCallback) => {
+        cb(0);
+        return 1;
+      });
+    const ctx = makeToolContext({
+      doc,
+      getFullCompositeImageData: jest.fn(() => makeImageData(16, 16, [0, 0, 0, 255]))
+    });
+
+    tool.onDown(ctx, makePointerEvent({ point: { x: 4, y: 4 } }));
+    tool.onCancel?.(ctx);
+    resolveMask?.(new Uint8ClampedArray(16 * 16).fill(255));
+    await Promise.resolve();
+
+    expect(ctx.onSelectionChange).not.toHaveBeenCalled();
+
+    requestAnimationFrameSpy.mockRestore();
+    runMagicWandSelectionAsync.mockRestore();
   });
 });
 
