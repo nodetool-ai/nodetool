@@ -103,11 +103,9 @@ Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provid
 | | NodeTool | ComfyUI | Weavy | n8n |
 | :--- | :--- | :--- | :--- | :--- |
 | **Built for** | Creatives working with AI | Stable Diffusion power users | Creative teams (now part of Figma) | Business workflows |
-| **Models** | Every major provider, BYOK | Stable Diffusion ecosystem | Curated marketplace | API integrations |
-| **Pricing** | Provider prices, no markup | Free, self-hosted | Credit system | Subscription |
-| **Source** | AGPL-3.0, this repo | Open source | Closed | Fair-code |
-| **Runs on your machine** | Yes (Studio) | Yes | No | Self-host option |
-| **Image, video, audio, text** | Yes | Image and video | Image and video | Text-focused |
+| **Modalities** | Image, video, audio, text | Image, video | Image, video | Text |
+| **Models** | Every major provider, BYOK | Stable Diffusion | Curated marketplace | API integrations |
+| **Source & pricing** | AGPL-3.0, provider prices | Open source, free | Closed, credits | Fair-code, subscription |
 
 **vs ComfyUI.** ComfyUI exposes every parameter for engineers who want them. NodeTool keeps the node-based power, gives it an interface that doesn't fight you, and covers the rest of the stack — video, audio, text, document search.
 
