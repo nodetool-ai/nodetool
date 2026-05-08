@@ -338,8 +338,8 @@ describe("Selection mutations stay ROI-bounded", () => {
     expect(expanded).not.toBeNull();
     expect(expanded!.width).toBeLessThan(512);
     expect(expanded!.height).toBeLessThan(512);
-    expect(expanded!.width).toBeLessThan(32);
-    expect(expanded!.height).toBeLessThan(32);
+    expect(expanded!.width).toBeLessThanOrEqual(20);
+    expect(expanded!.height).toBeLessThanOrEqual(18);
     expect(getSelectionBounds(expanded!)).toEqual({
       x: 116,
       y: 136,
@@ -362,7 +362,9 @@ describe("Selection mutations stay ROI-bounded", () => {
     expect(feathered!.width).toBeLessThan(512);
     expect(feathered!.height).toBeLessThan(512);
     expect(bounds).not.toBeNull();
+    expect(bounds!.width).toBeGreaterThanOrEqual(20);
     expect(bounds!.width).toBeLessThanOrEqual(22);
+    expect(bounds!.height).toBeGreaterThanOrEqual(20);
     expect(bounds!.height).toBeLessThanOrEqual(22);
     expect(bounds!.x).toBeGreaterThanOrEqual(74);
     expect(bounds!.x).toBeLessThanOrEqual(80);

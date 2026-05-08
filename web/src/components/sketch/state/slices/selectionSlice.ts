@@ -19,6 +19,8 @@ import {
   trimSelectionMask
 } from "../../selection";
 
+const MAX_SELECTION_MUTATION_PADDING = 64;
+
 /**
  * Returns bounds for every pixel with any remaining alpha.
  *
@@ -57,7 +59,7 @@ function getSelectionAlphaBounds(
     }
   }
 
-  if (maxX < minX || maxY < minY) {
+  if (maxX < 0 || maxY < 0) {
     return null;
   }
 
@@ -195,7 +197,13 @@ export const createSelectionSlice: StateCreator<
     }
     const copy = cloneSelectionRegion(
       sel!,
-      Math.max(0, Math.min(64, Math.round(state.toolSettings.select.featherRadius)))
+      Math.max(
+        0,
+        Math.min(
+          MAX_SELECTION_MUTATION_PADDING,
+          Math.round(state.toolSettings.select.featherRadius)
+        )
+      )
     );
     featherMaskAlpha(copy, state.toolSettings.select.featherRadius);
     get().setSelection(finalizeMutatedSelection(copy));
