@@ -8,9 +8,9 @@ import { join } from "node:path";
 import { unlinkSync } from "node:fs";
 
 import {
-  SqliteVecStore,
   SqliteVecProvider,
-  type EmbeddingFunction
+  type EmbeddingFunction,
+  type VectorProvider
 } from "@nodetool-ai/vectorstore";
 
 import { LongTermMemory } from "../src/long-term-memory.js";
@@ -33,8 +33,7 @@ const fakeEmbedder: EmbeddingFunction = {
     })
 };
 
-let store: SqliteVecStore;
-let provider: SqliteVecProvider;
+let provider: VectorProvider;
 let dbPath: string;
 
 beforeEach(() => {
@@ -42,14 +41,13 @@ beforeEach(() => {
     tmpdir(),
     `ltm-tool-${Date.now()}-${Math.random().toString(36).slice(2)}.db`
   );
-  store = new SqliteVecStore(dbPath);
-  provider = new SqliteVecProvider({ store });
+  provider = new SqliteVecProvider({ dbPath });
 });
 
 afterEach(() => {
   setLongTermMemory("user-1", null);
   try {
-    store.close();
+    provider.close();
   } catch {}
   for (const ext of ["", "-wal", "-shm"]) {
     try {

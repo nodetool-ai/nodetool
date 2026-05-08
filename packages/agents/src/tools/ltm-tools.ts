@@ -6,8 +6,9 @@
  * These are distinct from the in-session `memory_list` / `memory_read` /
  * `memory_write` tools (`./memory-tools.ts`), which operate on the
  * per-context {@link AgentMemory} that lives only for the duration of a
- * single agent run. The LTM tools persist to a sqlite-vec collection that
- * survives across runs.
+ * single agent run. The LTM tools persist through the configured
+ * {@link VectorProvider} (sqlite-vec by default, Pinecone or Supabase when
+ * `NODETOOL_VECTOR_PROVIDER` is set), so memories survive across runs.
  *
  * Two ways to wire them up:
  *
