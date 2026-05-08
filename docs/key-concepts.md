@@ -1,137 +1,107 @@
 ---
 layout: page
 title: "Key Concepts"
-description: "Core concepts for building workflows in NodeTool."
+description: "Core concepts behind NodeTool workflows."
 ---
 
-Understand the core ideas behind NodeTool so you can build workflows confidently.
-
----
-
-## What NodeTool Does
-
-NodeTool is a visual workflow builder for AI. Instead of writing code, you connect building blocks (called **nodes**) to create powerful AI pipelines. Think of it like:
-- **Photoshop layers** — but for AI operations instead of image edits
-- **A video editing timeline** — arrange processing steps in sequence
-- **LEGO blocks** — snap pieces together to make something work
-
-**Why use NodeTool:**
-- **Private** — Data stays on your machine unless you choose to use cloud services
-- **Unlimited** — Local models have no per-use fees or subscription costs
-- **Transparent** — See every step execute and inspect intermediate results in real-time
-- **Flexible** — Mix local and cloud providers in the same workflow
+The ideas you need to build on the canvas.
 
 ---
 
-## Building Blocks
+## What NodeTool is
+
+A node-based canvas for creative AI. You wire **nodes** instead of writing code. Each node is a single operation: a model call, a transform, a tool.
+
+- **Your machine.** Local models run on your hardware. Outputs stay on disk.
+- **Your keys.** Cloud calls go directly to OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, and others. No credit markup.
+- **Mixed.** Local and cloud models in the same graph.
+- **Open.** AGPL-3.0. Self-host the same code we host.
+
+---
+
+## Building blocks
 
 ### Nodes
 
-A **node** is a single building block that performs one specific task:
+A **node** does one thing.
 
-| Node | What It Does | Example Use |
-|------|-------------|-------------|
-| **Image Generator** | Creates images from text descriptions | "A sunset over mountains" → image |
-| **Agent** | Plans and executes multi-step tasks | "Summarize this document" → structured summary |
-| **TextToSpeech** | Converts text to spoken audio | Blog post → narrated audio file |
-| **Filter** | Filters data based on conditions | Remove items that don't match criteria |
+| Node | Does | Example |
+|------|------|---------|
+| **Image Generator** | Image from text | "Sunset over mountains" → image |
+| **Agent** | Plans and executes a multi-step task | "Summarize this document" → structured summary |
+| **TextToSpeech** | Text → audio | Blog post → narration |
+| **Filter** | Drop items that don't match | Conditional branching |
 
-Every node has:
-- **Inputs** (left side) — Data coming in, shown as colored circles
-- **Outputs** (right side) — Results going out, also colored circles
-- **Settings** — Configuration options visible when you click the node
+Each node has inputs (left), outputs (right), and settings (right panel when selected).
 
 ### Workflows
 
-A **workflow** is a collection of nodes connected together to accomplish a task. When you click **Run**:
-1. Data enters through **input nodes** (left side of the canvas)
-2. Each node processes data and passes results forward through connections
-3. Final results appear in **preview** or **output nodes** (right side)
+A **workflow** is connected nodes. When you run it, inputs enter on the left, each node executes when its inputs are ready, results stream into preview and output nodes on the right.
 
-**Example workflows:**
-- **Image generation:** Text prompt → AI Image Generator → Save to file
-- **Document Q&A:** Upload PDF → Index chunks → Search → Generate answer
-- **Content pipeline:** Write story → Generate characters → Create portraits → Combine into video
+Examples:
+- Prompt → image model → save
+- PDF → chunk → index → search → answer
+- Story → characters → portraits → video
 
 ### Connections
 
-**Connections** are the lines between nodes showing how data flows. Each connection has a **type** — you can only connect compatible types (e.g., image output to image input).
-
-- **Drag** from an output port to an input port to create a connection
-- **Connection colors** indicate data type (text, image, audio, etc.)
-- **Hover** over a connection to see what data is flowing through it
-- **Invalid connections** are prevented automatically — NodeTool won't let you connect mismatched types
+Lines between ports. Types are checked — image outputs only connect to image inputs. Drag from an output port to an input port. Hover to inspect data in flight.
 
 ### Agents
 
-An **agent** is a node that can plan and execute multi-step tasks autonomously. Unlike regular nodes that perform one fixed operation, agents:
-
-- Receive a goal or instruction in natural language
-- Break it down into steps
-- Use tools (web search, file operations, code execution) to complete the task
-- Return structured results
-
-Use agents for tasks that require reasoning, planning, or dynamic decision-making.
+An agent node takes a natural-language goal, breaks it into steps, and uses tools (web search, files, code) to finish. Use it when the path isn't fixed.
 
 ### Mini-Apps
 
-A **Mini-App** is a simplified view of a workflow. It hides the node graph and shows only the inputs and outputs, creating a clean interface that anyone can use — no technical knowledge needed.
-
-Mini-Apps are ideal for sharing workflows with non-technical users or creating focused tools for specific tasks.
+A workflow with the graph hidden — just inputs and outputs. Share with people who shouldn't have to read a node graph.
 
 ---
 
-## AI Models
+## Models
 
-### What They Are
-
-An AI **model** is a trained program for a specific task:
-
-| Type | Makes | Good For |
-|------|-------|----------|
+| Type | Output | Use |
+|------|--------|-----|
 | Image | Pictures | Posters, concept art, mockups |
-| Video | Video clips | Animations, effects |
-| Audio | Sound | Narration, music, effects |
-| Text | Words | Story ideas, scripts, analysis |
+| Video | Clips | Animation, motion |
+| Audio | Sound | Narration, music, SFX |
+| Text | Tokens | Scripts, summaries, analysis |
 
-### Local vs. Cloud
+### Local vs. cloud
 
-| | Local Models | Cloud Models |
-|--|-------------|-------------|
-| **Cost** | Free after download | Pay per use |
-| **Privacy** | Data stays on your machine | Data sent to provider servers |
-| **Speed** | Depends on your hardware | Generally fast |
-| **Internet** | Works offline | Requires connection |
-| **Setup** | Download models (4–20 GB each) | Just add an API key |
+| | Local | Cloud |
+|--|-------|-------|
+| Cost | Free after download | Provider's price, billed to your key |
+| Where | Your machine | Provider's servers |
+| Speed | Your hardware | Provider's hardware |
+| Internet | Offline OK | Required |
+| Setup | Download (4–20 GB each) | Paste API key |
 
-NodeTool supports both — and you can mix them in the same workflow. Use local models for privacy-sensitive tasks and cloud models when you need the latest capabilities or don't have powerful hardware.
-
----
-
-## Key Terms
-
-| Term | What It Means |
-|------|---------------|
-| **Workflow** | Your project - connected nodes doing something useful |
-| **Node** | One building block that does one task |
-| **Edge/Connection** | Line showing data flow between nodes |
-| **Input** | Where data enters |
-| **Output** | Where results come out |
-| **Preview** | Node that shows intermediate results |
-| **Run** | Execute your workflow |
-| **Model** | AI program trained for a specific task |
-| **Provider** | Service running AI models (OpenAI, local, etc.) |
+Mix freely. Pick the best model for the job per node.
 
 ---
 
-## How Workflows Run
+## Glossary
 
-When you click **Run** (or press `Ctrl/⌘ + Enter`):
+| Term | Meaning |
+|------|---------|
+| **Workflow** | Connected nodes |
+| **Node** | One operation |
+| **Edge / connection** | Data flow between nodes |
+| **Input / output** | Entry and exit ports |
+| **Preview** | Node that displays intermediate data |
+| **Run** | Execute the graph |
+| **Model** | A trained network you call from a node |
+| **Provider** | Where the model runs (local, OpenAI, FAL, …) |
 
-1. **Check dependencies** — NodeTool analyzes which nodes depend on what
-2. **Process in order** — nodes run as soon as their inputs are ready (independent nodes run **in parallel** automatically)
-3. **Stream results** — progress is shown live, so you see output as it's generated
-4. **Display outputs** — final results appear in output and preview nodes
+---
+
+## How a run works
+
+On <kbd>Ctrl/⌘ + Enter</kbd>:
+
+1. NodeTool walks the graph for dependencies.
+2. Each node runs the moment its inputs are ready. Independent nodes run in parallel.
+3. Results stream live into preview and output nodes.
 
 {% mermaid %}
 graph LR
@@ -142,41 +112,39 @@ graph LR
     D --> F[Preview: Text]
 {% endmermaid %}
 
-In this example, the Agent node runs first (it depends on the Input). Then the Image Generator and Text Writer run **in parallel** since they both depend only on the Agent output. NodeTool figures this out automatically.
+The Agent runs first; Image Generator and Text Writer then run in parallel since both depend only on the Agent.
 
-**The technical term**: Workflows are "Directed Acyclic Graphs" (DAGs), meaning data flows in one direction without loops. You don't need to remember this — just know that NodeTool automatically figures out the right order to run everything.
-
----
-
-## For Developers
-
-If you're building custom nodes or using the TypeScript API, here are the key technical components:
-
-| Component | What It Does |
-|-----------|-------------|
-| **Graph** | A collection of nodes and connections. Use `graph()` to build and `run_graph()` to execute. |
-| **DSL** | [TypeScript DSL](developer/ts-dsl-guide.md) (`@nodetool-ai/dsl`) for building workflows programmatically with type-safe factories. |
-| **WorkflowRunner** | The execution engine. Handles parallel execution, GPU management, and progress streaming. |
-| **ProcessingContext** | Runtime environment providing user data, auth tokens, asset storage, and cache adapters (`@nodetool-ai/runtime`). |
-
-### Node Type Resolution
-
-When a workflow references a node by its type string (e.g., `package.Namespace.Class`), NodeTool resolves the class through:
-
-1. In-memory registry lookup (with and without a trailing `Node` suffix)
-2. Dynamic import of modules based on the type path
-3. Installed packages registry for external nodes
-4. Fallback match by class name only
-
-This enables loading graphs without pre-importing all node modules and supports short class-name references.
-
-See the [Developer Guide](developer/) and [Custom Nodes Guide](developer/custom-nodes-guide.md) for building your own nodes.
+The graph is a DAG — data flows one way, no cycles. The runner schedules the order.
 
 ---
 
-## Next Steps
+## For developers
 
-- **[Getting Started](getting-started.md)** – Build your first workflow in 10 minutes
-- **[Workflow Editor](workflow-editor.md)** – Learn the interface
-- **[Models & Providers](models-and-providers.md)** – Set up AI models
-- **[Cookbook](cookbook.md)** – Explore workflow patterns and examples
+| Component | Role |
+|-----------|------|
+| **Graph** | Nodes + connections. Build with `graph()`, execute with `run_graph()`. |
+| **DSL** | [TypeScript DSL](developer/ts-dsl-guide.md) (`@nodetool-ai/dsl`) — typed factories for building graphs in code. |
+| **WorkflowRunner** | The runner. Schedules nodes, manages GPU, streams progress. |
+| **ProcessingContext** | Runtime — user, auth, assets, cache (`@nodetool-ai/runtime`). |
+
+### Node type resolution
+
+A workflow references nodes by type string (`package.Namespace.Class`). The runner resolves it via:
+
+1. In-memory registry (with and without trailing `Node`)
+2. Dynamic import by type path
+3. Installed packages registry
+4. Fallback match by class name
+
+Graphs load without pre-importing every node module.
+
+See the [Developer Guide](developer/) and [Custom Nodes](developer/custom-nodes-guide.md).
+
+---
+
+## Next
+
+- [Getting Started](getting-started.md)
+- [Workflow Editor](workflow-editor.md)
+- [Models & Providers](models-and-providers.md)
+- [Cookbook](cookbook.md)

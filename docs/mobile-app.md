@@ -1,27 +1,25 @@
 ---
 layout: page
 title: "Mobile App"
-description: "Run NodeTool Mini Apps and AI Chat on iOS and Android."
+description: "Run Mini-Apps and chat from iOS and Android."
 ---
 
-Use NodeTool on your mobile device. The mobile app lets you run Mini Apps and chat with AI assistants from anywhere.
+Run Mini-Apps and chat with models from your phone or tablet. Connects to any NodeTool server — your desktop, a self-hosted instance, or NodeTool Cloud.
 
-> **New to NodeTool?** Start with the [Getting Started guide](getting-started.md) on desktop first.
+> New here? Start on desktop with [Getting Started](getting-started.md).
 
 ---
 
 ## Overview
 
-The NodeTool mobile app brings AI workflows to your phone and tablet:
+![Mobile dashboard](assets/screenshots/dashboard-mobile.png)
 
-![Mobile Dashboard](assets/screenshots/dashboard-mobile.png)
-
-| Feature | Description |
-|---------|-------------|
-| **AI Chat** | Real-time chat with AI models, streaming responses |
-| **Mini Apps** | Run your workflows with a simple interface |
-| **Cross-platform** | Works on iOS, Android, and web browsers |
-| **Server Connection** | Connect to any NodeTool server |
+| Feature | Notes |
+|---------|-------|
+| **Chat** | Streaming responses across providers |
+| **Mini-Apps** | Run your workflows with a simple UI |
+| **Platforms** | iOS, Android, browser |
+| **Server** | Connect to any NodeTool server |
 
 ---
 

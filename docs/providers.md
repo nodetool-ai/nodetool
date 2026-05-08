@@ -3,24 +3,20 @@ layout: page
 title: "Providers"
 ---
 
-The NodeTool provider system offers a unified interface for interacting with various AI service providers. This
-abstraction allows you to switch between different AI backends (OpenAI, Anthropic, Gemini, HuggingFace, etc.)
-without changing your workflow logic.
+Providers are adapters between NodeTool nodes and specific AI services. Switch between OpenAI, Anthropic, Gemini, HuggingFace, FAL, KIE, Replicate, Ollama, vLLM, and others without changing the graph. You bring the keys.
 
 ## Overview
 
-Providers in NodeTool act as adapters that translate between NodeTool's internal formats and the specific API
-requirements of different AI services. The system supports multiple modalities:
+Modalities:
 
-- **Language Models (LLMs)** - Text generation and chat completions
-- **Image Generation** - Text-to-image and image-to-image creation
-- **Video Generation** - Text-to-video and image-to-video synthesis
-- **Text-to-Speech (TTS)** - Convert text to natural speech audio
-- **Automatic Speech Recognition (ASR)** - Transcribe audio to text
-- **3D Generation** - Text-to-3D and image-to-3D model creation
+- **Text** — chat, completions
+- **Image** — text-to-image, image-to-image
+- **Video** — text-to-video, image-to-video
+- **TTS** — text-to-speech
+- **ASR** — speech-to-text
+- **3D** — text-to-3D, image-to-3D
 
-To select a provider, pick a model in the node property panel. Providers are grouped under model families: OpenAI,
-Anthropic, Gemini, Hugging Face, Ollama, vLLM.
+Pick a model from a node's property panel. Providers are grouped by family: OpenAI, Anthropic, Gemini, Hugging Face, Ollama, vLLM.
 
 ## Architecture
 

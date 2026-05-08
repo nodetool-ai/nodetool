@@ -3,15 +3,11 @@ layout: page
 title: "Supported Models"
 ---
 
-NodeTool supports AI models across multiple providers, from proprietary models to
-open-source alternatives. This guide covers supported models and their capabilities.
+NodeTool runs models from many providers — proprietary and open. Generic nodes (TextToImage, Agent, RealtimeAgent, ...) work across providers, so swapping a model doesn't change the graph.
 
-All providers are accessible through generic nodes (TextToImage, Agent, RealtimeAgent, etc.).
-Switching providers does not require editing the workflow structure.
+## Local inference engines
 
-## Local Inference Engines
-
-NodeTool provides local model support with **1,655+ models** across multiple frameworks.
+1,655+ local models across the engines below.
 
 For provider-based local inference (Ollama, vLLM), please refer to the [Providers documentation](providers.md).
 

@@ -1,14 +1,12 @@
 ---
 layout: page
 title: "How NodeTool Compares"
-description: "Understanding where NodeTool fits alongside other workflow tools."
+description: "Where NodeTool sits relative to ComfyUI and n8n."
 ---
 
-NodeTool is a visual workflow builder for AI pipelines – connecting LLMs, image generation, audio, and video. It runs locally or via cloud APIs.
+NodeTool is the open creative AI workspace: a node canvas for image, video, audio, and text models. Local on your machine or BYOK to cloud providers.
 
-It focuses on multi-modal AI workflows with a visual editor, real-time streaming output, and local-first execution. It's designed to make building AI pipelines accessible without sacrificing flexibility.
-
-NodeTool can integrate with external services via HTTP when needed.
+ComfyUI is engineer-first and focused on diffusion internals. n8n is SaaS automation. NodeTool is for creative work that wires multiple modalities — and stays open and key-owned.
 
 ---
 
@@ -33,26 +31,13 @@ NodeTool can integrate with external services via HTTP when needed.
 | **Diffusion Model Control** | ⚠️ Limited | ❌ Limited to API calls | ✅ Full control: latents, VAE, samplers, ControlNet |
 | **License** | AGPL-3.0 (open source) | Fair-code (sustainable source with restrictions) | GPL-3.0 (open source) |
 
-### When to Use Each Tool
+### When to pick each
 
-**Choose NodeTool if you want to:**
-- Build AI workflows that combine text, images, audio, and video
-- Use AI agents with tool calling and streaming responses
-- Run models locally with Ollama or MLX for privacy
-- Create simple Mini App UIs from your workflows
-- Work with RAG/document Q&A pipelines
+**NodeTool** — multi-modal creative work (text + image + audio + video) on one canvas, BYOK to providers, local Ollama/MLX, RAG, Mini-Apps.
 
-**Choose n8n if you want to:**
-- Automate business processes across 1300+ SaaS apps
-- Build webhook-triggered automations
-- Connect CRMs, databases, and productivity tools
-- Use a mature, enterprise-ready automation platform
+**n8n** — SaaS automation across 1,300+ apps, webhooks, CRMs, databases.
 
-**Choose ComfyUI if you want to:**
-- Fine-tune diffusion model parameters (samplers, schedulers, VAE)
-- Build complex image generation pipelines with ControlNet
-- Access a large ecosystem of community custom nodes
-- Focus exclusively on image and video generation
+**ComfyUI** — deep diffusion control: samplers, VAE, ControlNet, latents.
 
 ---
 

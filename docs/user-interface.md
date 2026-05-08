@@ -1,28 +1,28 @@
 ---
 layout: page
 title: "NodeTool User Interface"
-description: "Visual guide to the NodeTool interface."
+description: "Tour of the NodeTool interface."
 ---
 
-A complete tour of the NodeTool interface — covering the Dashboard, Workflow Canvas, Global Chat, Mini-Apps, and Assets. Everything described here applies to both the desktop app and web version.
+Tour of the interface — Dashboard, Canvas, Global Chat, Mini-Apps, Assets. Same on desktop and in the browser.
 
-> **New to NodeTool?** Start with the [Getting Started guide](getting-started.md) to run your first workflow, then come back here for the full interface walkthrough.
+> New here? Start with [Getting Started](getting-started.md), then come back.
 
-> **Looking for every view at a glance?** See the [App Views Gallery](app-views.md) — a visual index of every screen, panel, and dialog with links to detailed docs.
+> Every screen indexed in the [App Views Gallery](app-views.md).
 
 ---
 
-## At a Glance
+## At a glance
 
-NodeTool has five workspaces:
+Five workspaces:
 
-| Workspace | Purpose | Use Case |
-|-----------|---------|----------|
-| **Dashboard** | Home screen | Starting projects, finding templates |
-| **Workflow Canvas** | Building workflows | Creating and designing workflows |
-| **Global Chat** | Conversational AI | Quick iterations, chatting with AI |
-| **Mini-Apps** | Simplified interfaces | Sharing workflows with others |
-| **Assets** | Media library | Managing files |
+| Workspace | Purpose |
+|-----------|---------|
+| **Dashboard** | Home, templates, recent projects |
+| **Canvas** | Build and run workflows |
+| **Global Chat** | Chat with models, run agents |
+| **Mini-Apps** | Run workflows behind a simple UI |
+| **Assets** | Files and media |
 
 ---
 

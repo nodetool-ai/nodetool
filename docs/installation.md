@@ -1,19 +1,18 @@
 ---
 layout: page
 title: "Installing NodeTool"
-description: "Step-by-step installation guide for Windows, macOS, and Linux."
+description: "Install NodeTool on Windows, macOS, and Linux."
 ---
 
-NodeTool launches immediately after installation — no setup wizard required. Python, Conda, and AI engine dependencies are installed on demand through the app when you first need them.
+NodeTool opens on first launch with no setup wizard. Python, Conda, and inference engines install on demand the first time you need them.
 
 ---
 
-## Quick Start
+## Quick start
 
-1. Download NodeTool from [nodetool.ai](https://nodetool.ai)
+1. Download from [nodetool.ai](https://nodetool.ai)
 2. Run the installer
-3. Launch NodeTool — the app opens right away
-4. Start building workflows!
+3. Launch NodeTool
 
 ---
 
@@ -28,28 +27,26 @@ NodeTool launches immediately after installation — no setup wizard required. P
 | **Storage** | 20 GB free (SSD recommended) |
 | **Internet** | For setup and cloud AI |
 
-### For Local AI
+### For local inference
 
-Running models locally gives you privacy and offline use, but needs more resources:
-
-| Hardware | Can Do |
-|----------|--------|
-| **NVIDIA GPU** (8+ GB VRAM) | All local AI including image generation |
-| **Apple Silicon** (M1/M2/M3) | Excellent performance via MLX |
+| Hardware | Runs |
+|----------|------|
+| **NVIDIA GPU** (8+ GB VRAM) | Full local stack including image generation |
+| **Apple Silicon** (M1/M2/M3) | MLX backend |
 | **CPU only** | Works, slower |
 
-> **No GPU?** Use cloud providers (OpenAI, Anthropic) instead. Add API key in Settings.
+No GPU? Use cloud providers with your own keys (Settings → Providers).
 
 ### What Different Tasks Need
 
-| GPU Tier | Recommended Setup | Best Local Experience (Optimized) |
+| GPU Tier | Card | Runs locally |
 | --- | --- | --- |
-| **Entry (8 GB)** | RTX 4060 / 5060 | **Flux.1 Schnell (Nunchaku)**, Qwen-Image-Lightning, 8B LLMs (Llama 3/4). |
-| **Mid (12–16 GB)** | RTX 4070 Ti / 5070 | **Qwen-Image-Edit (4-bit)**, Flux.1 Dev (Nunchaku), 32B Reasoning LLMs (DeepSeek R1 Distill). |
-| **Pro (24–32 GB)** | RTX 3090 / 4090 / 5090 | **Full Qwen-Image 2512**, Wan2.1 Video (720p), 70B LLMs (Llama 3.3/4 Q4). |
-| **Ultra (48 GB+)** | Dual 5090s / Mac Ultra | **DeepSeek-V3 (Full Local)**, 4K Video Gen (LTX-2), LoRA training in minutes. |
+| **Entry (8 GB)** | RTX 4060 / 5060 | Flux.1 Schnell (Nunchaku), Qwen-Image-Lightning, 8B LLMs (Llama 3/4) |
+| **Mid (12–16 GB)** | RTX 4070 Ti / 5070 | Qwen-Image-Edit (4-bit), Flux.1 Dev (Nunchaku), 32B reasoning LLMs (DeepSeek R1 Distill) |
+| **Pro (24–32 GB)** | RTX 3090 / 4090 / 5090 | Full Qwen-Image 2512, Wan2.1 Video (720p), 70B LLMs (Llama 3.3/4 Q4) |
+| **Ultra (48 GB+)** | Dual 5090s / Mac Ultra | DeepSeek-V3 full, LTX-2 4K video, LoRA training |
 
-Apple Silicon's Unified Memory lets Macs use much of system RAM for AI models. With MLX, Macs are competitive with NVIDIA for compute-heavy tasks like Flux and Qwen-Image. Rule of thumb: **model size (GB) + 4 GB system overhead < total RAM**.
+Apple Silicon's unified memory lets MLX use most of system RAM as VRAM. Rule of thumb: model size + 4 GB < total RAM.
 
 ---
 

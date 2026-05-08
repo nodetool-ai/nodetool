@@ -1,14 +1,14 @@
 ---
 layout: page
 title: "Workflow Editor"
-description: "Build AI workflows visually."
+description: "The canvas — build, test, refine."
 ---
 
-The Workflow Editor is where you build, test, and refine AI workflows. This page covers everything from basic canvas navigation to advanced features like node bypass and auto layout.
+The canvas: place nodes, connect ports, run, debug. Covers basic navigation through node bypass and auto layout.
 
-> **New to NodeTool?** Start with the [Getting Started](getting-started.md) guide to run your first workflow, then come back here to learn the editor in depth.
+> New here? Start with [Getting Started](getting-started.md), then come back.
 
-> **Want every panel explained?** See [Editor Panels](editor-panels.md) for a deep dive on the left, right, bottom, and floating panels.
+> For panel-by-panel detail, see [Editor Panels](editor-panels.md).
 
 ---
 
