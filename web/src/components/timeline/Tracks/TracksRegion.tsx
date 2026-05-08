@@ -37,6 +37,7 @@ import { TrackHeader } from "./TrackHeader";
 import { TrackLane } from "./TrackLane";
 import { TimeRuler } from "./TimeRuler";
 import { Playhead } from "./Playhead";
+import { AddTrackButton } from "./AddTrackButton";
 import { FlexColumn, FlexRow } from "../../ui_primitives";
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -228,6 +229,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             {tracks.map((track) => (
               <TrackHeader key={track.id} track={track} />
             ))}
+            <AddTrackButton />
           </div>
 
           {/* Scrollable lanes */}
