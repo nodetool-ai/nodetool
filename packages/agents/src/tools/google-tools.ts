@@ -4,10 +4,9 @@
  * Port of src/nodetool/agents/tools/google_tools.py
  */
 
-import * as fs from "node:fs/promises";
-import * as path from "node:path";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
+import { persistBinaryOutput } from "./binary-output.js";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
@@ -140,7 +139,11 @@ export class GoogleGroundedSearchTool extends Tool {
 export class GoogleImageGenerationTool extends Tool {
   readonly name = "google_image_generation";
   readonly description =
-    "Generate images based on a text prompt using Google's Gemini/Imagen API";
+    "Generate images based on a text prompt using Google's Gemini/Imagen API. " +
+    "The result includes `display_markdown` — a ready-to-paste markdown image " +
+    "embed pointing at a UI-fetchable URL. When narrating the result to the " +
+    "user, include `display_markdown` verbatim; never construct your own " +
+    "markdown from `output_file` (a workspace key, not a URL).";
   readonly inputSchema = {
     type: "object" as const,
     properties: {
@@ -203,15 +206,17 @@ export class GoogleImageGenerationTool extends Tool {
         | undefined;
       if (!imageB64) return { error: "No image bytes found in response" };
 
-      const imageBuffer = Buffer.from(imageB64, "base64");
-      const filePath = context.resolveWorkspacePath(outputFile);
-      await fs.mkdir(path.dirname(filePath), { recursive: true });
-      await fs.writeFile(filePath, imageBuffer);
+      const bytes = Uint8Array.from(Buffer.from(imageB64, "base64"));
+      const persisted = await persistBinaryOutput(context, bytes, {
+        outputFile,
+        contentType: "image/png",
+        uiPrefix: "gemini-images"
+      });
 
       return {
         type: "image",
         prompt,
-        output_file: outputFile,
+        ...persisted,
         status: "success"
       };
     } catch (e) {

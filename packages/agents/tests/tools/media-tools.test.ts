@@ -13,6 +13,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   AnimateImageTool,
@@ -54,6 +55,7 @@ function makeContext(stub: {
 }): ProcessingContext {
   const ctx: Record<string, unknown> = {
     workspaceDir,
+    workspaceStorage: new FileStorageAdapter(workspaceDir),
     resolveWorkspacePath: (p: string) => {
       const resolved = path.resolve(workspaceDir, p);
       if (!resolved.startsWith(workspaceDir + path.sep) && resolved !== workspaceDir) {
@@ -121,7 +123,7 @@ describe("GenerateImageTool", () => {
     expect(result.bytes).toBe(bytes.length);
     expect(result.mime_type).toBe("image/png");
     expect(result.asset_id).toBeUndefined();
-    const written = fs.readFileSync(result.path as string);
+    const written = fs.readFileSync(path.join(workspaceDir, result.path as string));
     expect(Array.from(written)).toEqual(Array.from(bytes));
   });
 
@@ -168,7 +170,7 @@ describe("GenerateImageTool", () => {
     })) as Record<string, unknown>;
     expect(result.asset_id).toBe("asset-1");
     expect(result.path).toBeTruthy();
-    expect(fs.existsSync(result.path as string)).toBe(true);
+    expect(fs.existsSync(path.join(workspaceDir, result.path as string))).toBe(true);
   });
 
   it("returns error when required args are missing", async () => {
@@ -220,7 +222,7 @@ describe("EditImageTool", () => {
     const passedImage = captured!.params.image as Uint8Array;
     expect(Array.from(passedImage)).toEqual([10, 20, 30]);
     expect(result.type).toBe("image");
-    const written = fs.readFileSync(result.path as string);
+    const written = fs.readFileSync(path.join(workspaceDir, result.path as string));
     expect(Array.from(written)).toEqual(Array.from(out));
   });
 });
@@ -319,7 +321,7 @@ describe("GenerateSpeechTool", () => {
       output_file: "out/x.mp3"
     })) as Record<string, unknown>;
     expect(r.path).toBeTruthy();
-    expect(fs.existsSync(r.path as string)).toBe(true);
+    expect(fs.existsSync(path.join(workspaceDir, r.path as string))).toBe(true);
   });
 
   it("returns error when stream yields nothing", async () => {

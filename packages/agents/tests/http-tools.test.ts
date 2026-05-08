@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { DownloadFileTool, HttpRequestTool } from "../src/tools/http-tools.js";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 let tempDir: string;
@@ -18,6 +19,7 @@ afterEach(() => {
 
 function makeMockContext(): ProcessingContext {
   return {
+    workspaceStorage: new FileStorageAdapter(tempDir),
     resolveWorkspacePath: (p: string) => join(tempDir, p)
   } as unknown as ProcessingContext;
 }

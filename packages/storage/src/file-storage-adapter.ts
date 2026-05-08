@@ -1,8 +1,14 @@
 import { FsSafeError, root, type Root } from "@openclaw/fs-safe";
 import { mkdirSync, realpathSync } from "node:fs";
-import { resolve } from "node:path";
+import { readdir, stat as fsStat, unlink } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import type { StorageAdapter } from "./storage-adapter.js";
+import type {
+  StorageAdapter,
+  StorageEntry,
+  StorageListResult,
+  StorageStat
+} from "./storage-adapter.js";
 import { isWithinRoot, normalizeStorageKey } from "./storage-keys.js";
 
 /**
@@ -109,5 +115,150 @@ export class FileStorageAdapter implements StorageAdapter {
   uriForKey(key: string): string {
     const rel = normalizeStorageKey(key);
     return pathToFileURL(resolve(this.rootDir, rel)).toString();
+  }
+
+  async list(
+    prefix: string,
+    opts: { delimiter?: string } = {}
+  ): Promise<StorageListResult> {
+    const delimiter = opts.delimiter ?? null;
+    let normalizedPrefix = "";
+    if (prefix && prefix !== "" && prefix !== "/") {
+      try {
+        normalizedPrefix = normalizeStorageKey(prefix);
+      } catch {
+        return { entries: [], commonPrefixes: [] };
+      }
+    }
+
+    const entries: StorageEntry[] = [];
+    const commonPrefixes = new Set<string>();
+
+    if (delimiter === "/") {
+      // Hierarchical listing — direct children of `prefix` only. Mirrors
+      // FS readdir: subdirectories collapse into commonPrefixes; files
+      // become entries.
+      const dirAbs = resolve(this.rootDir, normalizedPrefix);
+      if (!isWithinRoot(this.rootDir, dirAbs)) {
+        return { entries: [], commonPrefixes: [] };
+      }
+      let children: Array<{ name: string; isDirectory: () => boolean; isFile: () => boolean }>;
+      try {
+        children = await readdir(dirAbs, { withFileTypes: true });
+      } catch {
+        return { entries: [], commonPrefixes: [] };
+      }
+      for (const child of children) {
+        const childKey = normalizedPrefix
+          ? `${normalizedPrefix}/${child.name}`
+          : child.name;
+        if (child.isDirectory()) {
+          commonPrefixes.add(`${childKey}/`);
+          continue;
+        }
+        if (!child.isFile()) continue;
+        const childAbs = join(dirAbs, child.name);
+        try {
+          const st = await fsStat(childAbs);
+          entries.push({
+            key: childKey,
+            uri: pathToFileURL(childAbs).toString(),
+            size: st.size,
+            modifiedAt: st.mtimeMs
+          });
+        } catch {
+          // skip unreadable
+        }
+      }
+      return {
+        entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
+        commonPrefixes: [...commonPrefixes].sort()
+      };
+    }
+
+    // Flat listing — all keys under prefix, recursive.
+    const baseAbs = resolve(this.rootDir, normalizedPrefix);
+    if (!isWithinRoot(this.rootDir, baseAbs)) {
+      return { entries: [], commonPrefixes: [] };
+    }
+    const stack: string[] = [baseAbs];
+    while (stack.length > 0) {
+      const dir = stack.pop()!;
+      let children: Array<{ name: string; isDirectory: () => boolean; isFile: () => boolean }>;
+      try {
+        children = await readdir(dir, { withFileTypes: true });
+      } catch {
+        continue;
+      }
+      for (const child of children) {
+        const childAbs = join(dir, child.name);
+        if (child.isDirectory()) {
+          stack.push(childAbs);
+          continue;
+        }
+        if (!child.isFile()) continue;
+        try {
+          const st = await fsStat(childAbs);
+          const rel = childAbs.slice(this.rootDir.length).replace(/^[\\/]+/, "");
+          entries.push({
+            key: rel,
+            uri: pathToFileURL(childAbs).toString(),
+            size: st.size,
+            modifiedAt: st.mtimeMs
+          });
+        } catch {
+          // skip
+        }
+      }
+    }
+    return {
+      entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
+      commonPrefixes: []
+    };
+  }
+
+  async delete(uri: string): Promise<boolean> {
+    const key = this.keyFromUri(uri);
+    if (!key) return false;
+    let rel: string;
+    try {
+      rel = normalizeStorageKey(key);
+    } catch {
+      return false;
+    }
+    const abs = resolve(this.rootDir, rel);
+    if (!isWithinRoot(this.rootDir, abs)) return false;
+    try {
+      await unlink(abs);
+      return true;
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException)?.code === "ENOENT") return false;
+      if (err instanceof FsSafeError) return false;
+      return false;
+    }
+  }
+
+  async stat(uri: string): Promise<StorageStat | null> {
+    const key = this.keyFromUri(uri);
+    if (!key) return null;
+    let rel: string;
+    try {
+      rel = normalizeStorageKey(key);
+    } catch {
+      return null;
+    }
+    const abs = resolve(this.rootDir, rel);
+    if (!isWithinRoot(this.rootDir, abs)) return null;
+    try {
+      const st = await fsStat(abs);
+      if (!st.isFile()) return null;
+      return {
+        key: rel,
+        size: st.size,
+        modifiedAt: st.mtimeMs
+      };
+    } catch {
+      return null;
+    }
   }
 }

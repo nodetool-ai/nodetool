@@ -134,6 +134,37 @@ export function buildExecutionTreeState(
   const taskMap = new Map<string, TaskState>();
   const activeSteps = new Map<string, string>(); // taskId -> stepId
 
+  // Synthetic task ID for graph-mode tool calls (search_nodes, get_node_info,
+  // add_node, add_edge, find_model, finish_graph). GraphPlanner doesn't emit
+  // task_update / step events — it only emits planning_update phases — so
+  // without a host task the tool_call_update events have no place to land in
+  // the tree. We lazily create one when the first graph-planner tool call
+  // arrives so the UI can show the per-call trace.
+  const GRAPH_PLANNER_NODE_ID = "graph_planner";
+  const ensureGraphPlannerTask = (): TaskState => {
+    let t = taskMap.get(GRAPH_PLANNER_NODE_ID);
+    if (t) return t;
+    t = {
+      id: GRAPH_PLANNER_NODE_ID,
+      name: "Graph planner",
+      status: "running",
+      startedAt: Date.now(),
+      steps: [
+        {
+          id: GRAPH_PLANNER_NODE_ID,
+          name: "Build graph",
+          status: "running",
+          output: "",
+          toolCalls: []
+        }
+      ],
+      expanded: true,
+      toolCalls: []
+    };
+    taskMap.set(GRAPH_PLANNER_NODE_ID, t);
+    return t;
+  };
+
   for (const msg of messages) {
     if (msg.role !== "agent_execution") continue;
     const { content, eventType } = normalizeContent(msg);
@@ -148,6 +179,26 @@ export function buildExecutionTreeState(
         content: pu.content ?? ""
       });
       if (pu.status === "Failed" && pu.phase === "complete") state.phase = "done";
+      // Reflect graph-planner completion on the synthetic task so the UI
+      // shows it as completed (not perpetually running) once the graph is
+      // built.
+      if (pu.phase === "complete") {
+        const task = taskMap.get(GRAPH_PLANNER_NODE_ID);
+        if (task) {
+          const completed = pu.status !== "Failed";
+          task.status = completed ? "completed" : "failed";
+          task.duration = task.startedAt
+            ? Date.now() - task.startedAt
+            : undefined;
+          if (task.steps[0]) {
+            task.steps[0] = {
+              ...task.steps[0],
+              status: completed ? "completed" : "failed",
+              output: pu.content ?? ""
+            };
+          }
+        }
+      }
       continue;
     }
 
@@ -247,6 +298,44 @@ export function buildExecutionTreeState(
       const tc = content as ToolCallUpdate;
       const stepId = tc.node_id ?? tc.step_id;
       if (!stepId) continue;
+
+      // Graph-mode tool calls (search_nodes, get_node_info, add_node, etc.)
+      // arrive with node_id="graph_planner" but no task_update — synthesize
+      // a host task so they show up in the tree.
+      if (stepId === GRAPH_PLANNER_NODE_ID) {
+        const task = ensureGraphPlannerTask();
+        const step = task.steps[0];
+        const argsStr = Object.entries(tc.args ?? {})
+          .map(([k, v]) => {
+            const val = typeof v === "string" ? v : JSON.stringify(v);
+            return `${k}: ${val.slice(0, 40)}`;
+          })
+          .join(", ");
+        const callId = tc.tool_call_id ?? undefined;
+        const existingIdx = callId
+          ? step.toolCalls.findIndex((c) => c.id === callId)
+          : -1;
+        const entry: StepToolCallEntry = {
+          id: callId,
+          name: tc.name ?? "",
+          args: (tc.args ?? {}) as Record<string, unknown>,
+          message: tc.message ?? undefined
+        };
+        const nextCalls =
+          existingIdx !== -1
+            ? step.toolCalls.map((c, i) =>
+                i === existingIdx ? { ...c, ...entry } : c
+              )
+            : [...step.toolCalls, entry];
+        task.steps[0] = {
+          ...step,
+          toolName: tc.name,
+          toolArgs: argsStr,
+          toolCalls: nextCalls,
+          status: "running"
+        };
+        continue;
+      }
 
       for (const task of taskMap.values()) {
         const stepIdx = task.steps.findIndex((s) => s.id === stepId);
