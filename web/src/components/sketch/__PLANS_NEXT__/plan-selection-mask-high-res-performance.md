@@ -41,15 +41,15 @@ These pieces already exist and should be treated as the starting point for this 
 - [x] Replace the current selection-constrained fill path in `tools/FillTool.ts` with a mask-aware runtime composite path so it no longer snapshots the whole layer and restores pixels with `applySelectionConstraint(...)`.
 - [x] Replace the current selection-constrained gradient path in `tools/GradientTool.ts` with the same runtime composite path.
 - [x] Preserve the existing early-out behavior where fill/gradient do nothing when the pointer-down seed is outside the active selection.
-- [ ] Delete `selection/applySelectionConstraint.ts` only after runtime callsites are gone, and confirm there are no production imports left outside tests/docs.
+- [x] Delete `selection/applySelectionConstraint.ts` only after runtime callsites are gone, and confirm there are no production imports left outside tests/docs.
 
 ---
 
 ## Phase 4 — Make expensive selection mutations bounded or async
 
-- [ ] Rework `featherCurrentSelection`, `smoothCurrentSelectionBorders`, `convertSelectionToBorderOutline`, `expandCurrentSelection`, and `contractCurrentSelection` in `state/slices/selectionSlice.ts` so they no longer do full-document synchronous work for small edits.
-- [ ] For each operation, process only the selection ROI plus the required padding radius; if an ROI path is not practical, move the existing work to a worker/WASM path so the main thread stays responsive.
-- [ ] Keep the current undo/history contract: each command still commits one final `setSelection(...)` result and does not stream intermediate masks through the store.
+- [x] Rework `featherCurrentSelection`, `smoothCurrentSelectionBorders`, `convertSelectionToBorderOutline`, `expandCurrentSelection`, and `contractCurrentSelection` in `state/slices/selectionSlice.ts` so they no longer do full-document synchronous work for small edits.
+- [x] For each operation, process only the selection ROI plus the required padding radius; if an ROI path is not practical, move the existing work to a worker/WASM path so the main thread stays responsive.
+- [x] Keep the current undo/history contract: each command still commits one final `setSelection(...)` result and does not stream intermediate masks through the store.
 
 ---
 
