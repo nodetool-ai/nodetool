@@ -192,7 +192,7 @@ export default function EditionsCompareSection({
             transition={{ duration: 0.5, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
           >
-            Same workflows, same nodes, same agent system. Pick the runtime that
+            Same workflows, same nodes, same providers. Pick the runtime that
             fits how you want to work — and switch any time. Both editions are
             AGPL-3.0 open source; Cloud is just our managed hosting of the same
             code you can run yourself.
@@ -205,9 +205,10 @@ export default function EditionsCompareSection({
             <EditionHeader kind="studio" highlighted={highlight === "studio"} />
             <div className="p-5 space-y-4">
               <p className="text-sm text-slate-300 leading-relaxed">
-                <strong className="text-white">Best for:</strong> privacy-first
-                builders, offline work, large local model collections, and
-                anyone with a capable GPU or Apple Silicon.
+                <strong className="text-white">Best for:</strong> artists with
+                a capable GPU or Apple Silicon, large local model collections,
+                offline work, and anyone who wants every byte on their own
+                disk.
               </p>
               <ul className="space-y-2.5">
                 {rows.map((r) => (
@@ -227,9 +228,10 @@ export default function EditionsCompareSection({
             <EditionHeader kind="cloud" highlighted={highlight === "cloud"} />
             <div className="p-5 space-y-4">
               <p className="text-sm text-slate-300 leading-relaxed">
-                <strong className="text-white">Best for:</strong> teams that
-                want to start in seconds, work from any device, and skip GPU
-                setup — while still using their own API keys for every provider.
+                <strong className="text-white">Best for:</strong> studios and
+                solo artists who want to start in seconds, work from any
+                device, and skip the GPU setup — while still bringing their
+                own keys to every provider.
               </p>
               <ul className="space-y-2.5">
                 {rows.map((r) => (

@@ -42,30 +42,30 @@ export default function BuildRunDeploy() {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <Card
           step="01"
-          title="Build Visually"
+          title="Wire your canvas"
           icon={<Workflow className="h-6 w-6" />}
           accent="blue"
-          description="Drag, connect, and configure nodes to create powerful AI workflows. Every connection is type-safe."
+          description="Drag in models, edits, and assets. Connect them. Every model from every provider lives on the same canvas."
         >
           <BuildVisual />
         </Card>
 
         <Card
           step="02"
-          title="Run Everything"
+          title="Render with your keys"
           icon={<PlayCircle className="h-6 w-6" />}
           accent="fuchsia"
-          description="Run LLM calls, image generation, data transforms, and more — locally. See results in real time."
+          description="Bring your own keys to FAL, KIE, OpenAI, Anthropic, Gemini, Replicate. Pay providers directly. Watch results stream in."
         >
           <RunVisual />
         </Card>
 
         <Card
           step="03"
-          title="Deploy Anywhere"
+          title="Ship the workflow"
           icon={<Globe className="h-6 w-6" />}
           accent="amber"
-          description="Export workflows to Docker, RunPod, Google Cloud Run, or your own servers."
+          description="Save it as a template, hand it to a teammate, or expose it as an API. Move between Studio on your machine and Cloud in the browser."
         >
           <DeployVisual />
         </Card>

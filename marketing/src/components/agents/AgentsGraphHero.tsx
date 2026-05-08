@@ -100,7 +100,7 @@ export default function AgentsGraphHero() {
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-500/10 border border-teal-500/20 mb-6">
                             <Brain className="w-4 h-4 text-amber-400" />
                             <span className="text-sm font-medium text-amber-300">
-                                Agentic Workflows
+                                Agents on the canvas
                             </span>
                         </div>
 

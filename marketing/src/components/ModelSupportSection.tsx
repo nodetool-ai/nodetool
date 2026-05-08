@@ -92,9 +92,9 @@ export default function ModelSupportSection({
                         transition={{ duration: 0.5 }}
                         className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6"
                     >
-                        Run Any Model,{" "}
+                        Every model.{" "}
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-400">
-                            Anywhere
+                            Your keys.
                         </span>
                     </motion.h2>
 
@@ -105,7 +105,9 @@ export default function ModelSupportSection({
                         transition={{ duration: 0.5, delay: 0.1 }}
                         className="text-lg text-slate-400 leading-relaxed"
                     >
-                        Access frontier models from leading cloud providers or run models locally with complete privacy.
+                        Frontier models from every major provider, called with
+                        the keys you already pay for. Switch the moment a better
+                        model ships. Run inference locally when you want to.
                     </motion.p>
                 </div>
 
