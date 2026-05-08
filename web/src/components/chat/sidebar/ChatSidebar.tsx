@@ -192,7 +192,23 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         sx={{
                             flex: 1,
                             minWidth: 0,
-                            pl: 0.25
+                            pl: 0.25,
+                            "& .search-input .MuiInputBase-root": {
+                                fontSize: "0.8125rem",
+                                paddingLeft: 0.5,
+                                paddingRight: 0.5
+                            },
+                            "& .search-input .MuiInputBase-input": {
+                                paddingTop: "4px",
+                                paddingBottom: "4px",
+                                height: "20px"
+                            },
+                            "& .search-input .MuiInputAdornment-root": {
+                                marginRight: "4px"
+                            },
+                            "& .search-input .search-icon": {
+                                fontSize: "1rem"
+                            }
                         }}
                     >
                         <SearchInput
@@ -206,18 +222,25 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     <ToolbarIconButton
                         onClick={handleNewChat}
                         tooltip="New chat"
-                        icon={<AddIcon sx={{ fontSize: "1.1rem" }} />}
+                        icon={<AddIcon sx={{ fontSize: "1.25rem" }} />}
                         sx={{
-                            backgroundColor: "transparent",
-                            color: theme.vars.palette.grey[200],
+                            backgroundColor: theme.vars.palette.primary.main,
+                            color: theme.vars.palette.primary.contrastText,
                             border: "none",
                             borderRadius: 1.5,
                             width: 30,
                             height: 30,
-                            transition: "background-color 0.15s ease",
+                            flexShrink: 0,
+                            boxShadow: `0 0 0 1px rgb(${theme.vars.palette.common.whiteChannel} / 0.04)`,
+                            transition:
+                                "background-color 0.15s ease, transform 0.15s ease",
                             "&:hover": {
-                                backgroundColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`,
-                                color: theme.vars.palette.grey[0]
+                                backgroundColor: theme.vars.palette.primary.dark,
+                                color: theme.vars.palette.primary.contrastText,
+                                transform: "translateY(-1px)"
+                            },
+                            "&:active": {
+                                transform: "translateY(0)"
                             }
                         }}
                     />
