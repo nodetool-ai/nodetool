@@ -38,6 +38,7 @@ import { TrackLane } from "./TrackLane";
 import { TimeRuler } from "./TimeRuler";
 import { Playhead } from "./Playhead";
 import { AddTrackButton } from "./AddTrackButton";
+import { ToolToggle } from "../ToolToggle";
 import { FlexColumn, FlexRow } from "../../ui_primitives";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
@@ -60,6 +61,15 @@ const containerStyles = (theme: Theme) =>
     overflow: "hidden",
     backgroundColor: theme.vars.palette.background.default,
     outline: "none"
+  });
+
+const toolbarStyles = (theme: Theme) =>
+  css({
+    height: 32,
+    flexShrink: 0,
+    padding: `0 ${theme.spacing(0.75)}`,
+    borderBottom: `1px solid ${theme.vars.palette.divider}`,
+    backgroundColor: theme.vars.palette.background.paper
   });
 
 const headerColumnStyles = css({
@@ -285,6 +295,16 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         data-testid="tracks-region"
         aria-label="Tracks region"
       >
+        {/* ── Tool toolbar (above the ruler) ──────────────────────────── */}
+        <FlexRow
+          align="center"
+          gap={0.5}
+          css={toolbarStyles(theme)}
+          data-testid="timeline-toolbar"
+        >
+          <ToolToggle />
+        </FlexRow>
+
         {/* ── Ruler (spans full width) ─────────────────────────────────── */}
         <TimeRuler
           totalWidthPx={totalWidthPx}

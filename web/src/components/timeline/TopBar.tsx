@@ -15,14 +15,10 @@ import {
   FlexRow,
   Text,
   Caption,
-  ToolbarIconButton,
   EditorButton
 } from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import NearMeIcon from "@mui/icons-material/NearMe";
-import ContentCutIcon from "@mui/icons-material/ContentCut";
-import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -62,33 +58,6 @@ export interface TopBarProps {
   /** Optional slot for an activity indicator (NOD-311) */
   activitySlot?: React.ReactNode;
 }
-
-/** Select / Cut tool toggle. Keyboard shortcuts V/C also flip it. */
-const ToolToggle: React.FC = memo(() => {
-  const activeTool = useTimelineUIStore((s) => s.activeTool);
-  const setActiveTool = useTimelineUIStore((s) => s.setActiveTool);
-  return (
-    <>
-      <ToolbarIconButton
-        icon={<NearMeIcon />}
-        tooltip="Select tool (V)"
-        active={activeTool === "select"}
-        onClick={() => setActiveTool("select")}
-        aria-label="Select tool"
-        aria-pressed={activeTool === "select"}
-      />
-      <ToolbarIconButton
-        icon={<ContentCutIcon />}
-        tooltip="Cut tool (C) — click a clip to split"
-        active={activeTool === "cut"}
-        onClick={() => setActiveTool("cut")}
-        aria-label="Cut tool"
-        aria-pressed={activeTool === "cut"}
-      />
-    </>
-  );
-});
-ToolToggle.displayName = "ToolToggle";
 
 export const TopBar: React.FC<TopBarProps> = memo(
   ({
@@ -132,11 +101,6 @@ export const TopBar: React.FC<TopBarProps> = memo(
           {saveStatus && (
             <Caption className="save-status">{saveStatus}</Caption>
           )}
-        </FlexRow>
-
-        {/* Center: tools */}
-        <FlexRow gap={0.5} align="center">
-          <ToolToggle />
         </FlexRow>
 
         {/* Right: activity slot + Render All */}
