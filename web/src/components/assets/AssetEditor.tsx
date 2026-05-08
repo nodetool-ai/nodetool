@@ -7,7 +7,50 @@ import type { Theme } from "@mui/material/styles";
 import { Text, LoadingSpinner, EditorButton, FlexColumn } from "../ui_primitives";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useAssetById } from "../../serverState/useAssetById";
+import { BASE_URL } from "../../stores/BASE_URL";
+import type { Asset } from "../../stores/ApiTypes";
 import { ImageEditor } from "../node/image_editor";
+
+/**
+ * Normalize API media URLs for use in <img> / canvas loaders.
+ * Relative paths (e.g. /api/assets/.../thumbnail) need the API origin when VITE_API_URL is set.
+ */
+const resolvePublicMediaUrl = (url: string | null | undefined): string | null => {
+    if (url == null) {
+        return null;
+    }
+    const t = url.trim();
+    if (t === "") {
+        return null;
+    }
+    if (
+        t.startsWith("http://") ||
+        t.startsWith("https://") ||
+        t.startsWith("data:") ||
+        t.startsWith("blob:")
+    ) {
+        return t;
+    }
+    if (t.startsWith("/")) {
+        return `${BASE_URL}${t}`;
+    }
+    return t;
+};
+
+const resolveImageEditorSource = (asset: Asset): string | null => {
+    const primary = resolvePublicMediaUrl(asset.get_url);
+    if (primary) {
+        return primary;
+    }
+    const thumb = resolvePublicMediaUrl(asset.thumb_url);
+    if (thumb) {
+        console.warn(
+            `[AssetEditor] Asset ${asset.id} has no get_url; using thumb_url for the editor (lower resolution).`
+        );
+        return thumb;
+    }
+    return null;
+};
 
 const styles = (theme: Theme) =>
     css({
@@ -68,11 +111,31 @@ const AssetEditor: React.FC = () => {
         if (asset && !asset.content_type?.startsWith("image/")) {
             return "Asset is not an image";
         }
+        if (asset && asset.content_type?.startsWith("image/")) {
+            const src = resolveImageEditorSource(asset);
+            if (!src) {
+                console.error(
+                    "[AssetEditor] Image asset has no get_url or thumb_url; cannot load ImageEditor.",
+                    asset.id
+                );
+                return "This image has no download URL (get_url). Cannot open the editor.";
+            }
+        }
         return null;
     }, [assetId, asset, loading, queryError]);
 
-    // Handle close - navigate back
+    const imageEditorUrl = useMemo(
+        () => (asset && asset.content_type?.startsWith("image/") ? resolveImageEditorSource(asset) : null),
+        [asset]
+    );
+
+    // Handle close: go back when possible; deep links / first history entry cannot use -1
     const handleClose = useCallback(() => {
+        const idx = (window.history.state as { idx?: number } | null)?.idx;
+        if (typeof idx === "number" && idx <= 0) {
+            navigate("/assets");
+            return;
+        }
         navigate(-1);
     }, [navigate]);
 
@@ -158,14 +221,14 @@ const AssetEditor: React.FC = () => {
     // Render editor
     return (
         <FlexColumn css={styles(theme)} fullWidth fullHeight>
-            {asset.get_url && (
+            {imageEditorUrl ? (
                 <ImageEditor
-                    imageUrl={asset.get_url}
+                    imageUrl={imageEditorUrl}
                     onSave={handleSave}
                     onClose={handleClose}
                     title={`Edit: ${asset.name || "Image"}`}
                     />
-            )}
+            ) : null}
             {isSaving && (
                 <FlexColumn
                     sx={{

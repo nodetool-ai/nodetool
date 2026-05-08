@@ -21,6 +21,7 @@ import { parseHarmonyContent, hasHarmonyTokens, getDisplayContent } from "../uti
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import {
   CopyButton,
+  Tooltip,
   Caption,
   Text,
   FlexRow,

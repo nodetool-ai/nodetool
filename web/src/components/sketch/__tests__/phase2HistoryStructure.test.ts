@@ -1,0 +1,811 @@
+/**
+ * Tests for Phase 2: Enhanced undo/redo history with layer structure
+ *
+ * Verifies that history entries capture and restore full layer structure
+ * (order, visibility, opacity, blend mode, etc.) in addition to pixel data.
+ */
+
+import { act } from "@testing-library/react";
+import { useSketchStore } from "../state/useSketchStore";
+
+beforeEach(() => {
+  act(() => {
+    useSketchStore.getState().resetDocument();
+  });
+});
+
+describe("History — layer structure snapshots", () => {
+  it("pushHistory captures layerStructure array", () => {
+    act(() => {
+      useSketchStore.getState().pushHistory("test");
+    });
+    const entry = useSketchStore.getState().history[0];
+    expect(entry.layerStructure).toBeDefined();
+    expect(Array.isArray(entry.layerStructure)).toBe(true);
+    expect(entry.layerStructure.length).toBe(1); // default 1 layer
+  });
+
+  it("pushHistory captures activeLayerId and maskLayerId", () => {
+    act(() => {
+      useSketchStore.getState().pushHistory("test");
+    });
+    const entry = useSketchStore.getState().history[0];
+    expect(entry.activeLayerId).toBe(
+      useSketchStore.getState().document.activeLayerId
+    );
+    expect(entry.maskLayerId).toBe(
+      useSketchStore.getState().document.maskLayerId
+    );
+  });
+
+  it("layerStructure snapshot contains all metadata fields", () => {
+    const layerId = useSketchStore.getState().document.activeLayerId;
+
+    act(() => {
+      useSketchStore.getState().setLayerOpacity(layerId, 0.6);
+      useSketchStore.getState().setLayerBlendMode(layerId, "multiply");
+      useSketchStore.setState((state) => ({
+        document: {
+          ...state.document,
+          layers: state.document.layers.map((layer) =>
+            layer.id === layerId
+              ? {
+                  ...layer,
+                  transform: {
+                    x: 7,
+                    y: -4,
+                    scaleX: 1.25,
+                    scaleY: 0.8,
+                    rotation: Math.PI / 6,
+                    matrix: [1.25, 0, 0, 0.8, 7, -4]
+                  },
+                  contentBounds: {
+                    x: -8,
+                    y: 12,
+                    width: 64,
+                    height: 48
+                  },
+                  exposedAsInput: false,
+                  exposedAsOutput: true,
+                  imageReference: {
+                    uri: "memory://image.png",
+                    objectFit: "contain",
+                    naturalWidth: 64,
+                    naturalHeight: 48
+                  },
+                  parentId: "group-1",
+                  collapsed: true,
+                  segmentationMeta: {
+                    segmentationRunId: "seg_123",
+                    sourceLayerId: "source-1",
+                    modelId: "sam2",
+                    confidence: 0.9,
+                    maskIndex: 1
+                  },
+                  effects: [
+                    {
+                      type: "brightness_contrast",
+                      enabled: true,
+                      params: {
+                        brightness: 0.1,
+                        contrast: -0.05
+                      }
+                    }
+                  ]
+                }
+              : layer
+          )
+        }
+      }));
+      useSketchStore.getState().pushHistory("test");
+    });
+    const ls = useSketchStore.getState().history[0].layerStructure[0];
+    expect(ls).toHaveProperty("id");
+    expect(ls).toHaveProperty("name");
+    expect(ls).toHaveProperty("type");
+    expect(ls).toHaveProperty("visible");
+    expect(ls).toHaveProperty("opacity");
+    expect(ls).toHaveProperty("locked");
+    expect(ls).toHaveProperty("alphaLock");
+    expect(ls).toHaveProperty("blendMode");
+    expect(ls.transform).toMatchObject({ x: 7, y: -4 });
+    expect(ls.contentBounds).toEqual({
+      x: -8,
+      y: 12,
+      width: 64,
+      height: 48
+    });
+    expect(ls.exposedAsInput).toBe(false);
+    expect(ls.exposedAsOutput).toBe(true);
+    expect(ls.imageReference).toMatchObject({
+      uri: "memory://image.png",
+      objectFit: "contain"
+    });
+    expect(ls.parentId).toBe("group-1");
+    expect(ls.collapsed).toBe(true);
+    expect(ls.segmentationMeta).toMatchObject({
+      segmentationRunId: "seg_123",
+      modelId: "sam2"
+    });
+    expect(ls.effects).toEqual([
+      {
+        type: "brightness_contrast",
+        enabled: true,
+        params: {
+          brightness: 0.1,
+          contrast: -0.05
+        }
+      }
+    ]);
+  });
+
+  it("undo and redo restore canvas dimensions and background color", () => {
+    act(() => {
+      useSketchStore.getState().pushHistory("initial");
+      useSketchStore.getState().resizeCanvas(1024, 768);
+      useSketchStore.getState().setCanvasBackgroundColor("#123456");
+      useSketchStore.getState().pushHistory("resize canvas");
+    });
+
+    expect(useSketchStore.getState().document.canvas).toEqual({
+      width: 1024,
+      height: 768,
+      backgroundColor: "#123456"
+    });
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.canvas).toEqual({
+      width: 512,
+      height: 512,
+      backgroundColor: "#000000"
+    });
+
+    act(() => {
+      useSketchStore.getState().redo();
+    });
+    expect(useSketchStore.getState().document.canvas).toEqual({
+      width: 1024,
+      height: 768,
+      backgroundColor: "#123456"
+    });
+  });
+
+  it("undo restores group hierarchy, collapse state, and segmentation metadata", () => {
+    let childId = "";
+    let groupId = "";
+
+    act(() => {
+      useSketchStore.getState().addLayer("Segment");
+      childId = useSketchStore.getState().document.activeLayerId;
+      groupId = useSketchStore.getState().addGroup("SAM Results");
+      useSketchStore.getState().moveLayerToGroup(childId, groupId);
+      useSketchStore.getState().toggleGroupCollapsed(groupId);
+      useSketchStore.setState((state) => ({
+        document: {
+          ...state.document,
+          layers: state.document.layers.map((layer) =>
+            layer.id === childId
+              ? {
+                  ...layer,
+                  segmentationMeta: {
+                    segmentationRunId: "seg_456",
+                    maskIndex: 2,
+                    confidence: 0.82,
+                    modelId: "sam2",
+                    sourceLayerId: "source_layer"
+                  }
+                }
+              : layer
+          )
+        }
+      }));
+      useSketchStore.getState().pushHistory("grouped SAM layer");
+
+      useSketchStore.setState((state) => ({
+        document: {
+          ...state.document,
+          layers: state.document.layers.map((layer) => {
+            if (layer.id === childId) {
+              const { segmentationMeta, ...withoutMeta } = layer;
+              return { ...withoutMeta, parentId: undefined };
+            }
+            if (layer.id === groupId) {
+              return { ...layer, collapsed: false };
+            }
+            return layer;
+          })
+        }
+      }));
+      useSketchStore.getState().pushHistory("flatten metadata");
+    });
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+
+    const restoredLayers = useSketchStore.getState().document.layers;
+    const restoredChild = restoredLayers.find((layer) => layer.id === childId);
+    const restoredGroup = restoredLayers.find((layer) => layer.id === groupId);
+
+    expect(restoredChild?.parentId).toBe(groupId);
+    expect(restoredChild?.segmentationMeta).toMatchObject({
+      segmentationRunId: "seg_456",
+      maskIndex: 2,
+      confidence: 0.82,
+      modelId: "sam2",
+      sourceLayerId: "source_layer"
+    });
+    expect(restoredGroup?.collapsed).toBe(true);
+  });
+
+  it("redo restores grouped hierarchy, collapse state, and segmentation metadata", () => {
+    let childId = "";
+    let groupId = "";
+
+    act(() => {
+      useSketchStore.getState().addLayer("Segment");
+      childId = useSketchStore.getState().document.activeLayerId;
+      groupId = useSketchStore.getState().addGroup("SAM Results");
+      useSketchStore.getState().pushHistory("before grouped SAM layer");
+
+      useSketchStore.getState().moveLayerToGroup(childId, groupId);
+      useSketchStore.getState().toggleGroupCollapsed(groupId);
+      useSketchStore.setState((state) => ({
+        document: {
+          ...state.document,
+          layers: state.document.layers.map((layer) =>
+            layer.id === childId
+              ? {
+                  ...layer,
+                  segmentationMeta: {
+                    segmentationRunId: "seg_789",
+                    maskIndex: 3,
+                    confidence: 0.91,
+                    modelId: "sam3",
+                    sourceLayerId: "source-layer"
+                  }
+                }
+              : layer
+          )
+        }
+      }));
+      useSketchStore.getState().pushHistory("grouped SAM layer");
+
+      useSketchStore.setState((state) => ({
+        document: {
+          ...state.document,
+          layers: state.document.layers.map((layer) => {
+            if (layer.id === childId) {
+              const { segmentationMeta, ...withoutMeta } = layer;
+              return { ...withoutMeta, parentId: undefined };
+            }
+            if (layer.id === groupId) {
+              return { ...layer, collapsed: false };
+            }
+            return layer;
+          })
+        }
+      }));
+      useSketchStore.getState().pushHistory("flatten metadata");
+    });
+
+    act(() => {
+      useSketchStore.getState().undo();
+      useSketchStore.getState().undo();
+    });
+
+    let layers = useSketchStore.getState().document.layers;
+    let child = layers.find((layer) => layer.id === childId);
+    let group = layers.find((layer) => layer.id === groupId);
+    expect(child?.parentId).toBeUndefined();
+    expect(child?.segmentationMeta).toBeUndefined();
+    expect(group?.collapsed).toBe(false);
+
+    act(() => {
+      useSketchStore.getState().redo();
+    });
+
+    layers = useSketchStore.getState().document.layers;
+    child = layers.find((layer) => layer.id === childId);
+    group = layers.find((layer) => layer.id === groupId);
+    expect(child?.parentId).toBe(groupId);
+    expect(child?.segmentationMeta).toMatchObject({
+      segmentationRunId: "seg_789",
+      maskIndex: 3,
+      confidence: 0.91,
+      modelId: "sam3",
+      sourceLayerId: "source-layer"
+    });
+    expect(group?.collapsed).toBe(true);
+  });
+
+  it("undo restores layer structure when layers are added then undone", () => {
+    // Capture initial state
+    act(() => {
+      useSketchStore.getState().pushHistory("initial");
+    });
+    expect(useSketchStore.getState().document.layers).toHaveLength(1);
+
+    // Add a new layer
+    act(() => {
+      useSketchStore.getState().pushHistory("add layer");
+      useSketchStore.getState().addLayer("Layer 2");
+    });
+    expect(useSketchStore.getState().document.layers).toHaveLength(2);
+
+    // Undo should restore to 1 layer
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.layers).toHaveLength(1);
+  });
+
+  it("post-action add-layer history captures redo structure for the new layer tree", () => {
+    act(() => {
+      useSketchStore.getState().pushHistory("initial");
+      useSketchStore.getState().addLayer("Layer 2");
+      useSketchStore.getState().pushHistory("after add");
+    });
+
+    const addEntry = useSketchStore.getState().history[1];
+    expect(addEntry.layerStructure).toHaveLength(2);
+    expect(addEntry.layerStructure.map((layer) => layer.name)).toEqual([
+      "Background",
+      "Layer 2"
+    ]);
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.layers).toHaveLength(1);
+
+    act(() => {
+      useSketchStore.getState().redo();
+    });
+    expect(useSketchStore.getState().document.layers).toHaveLength(2);
+    expect(
+      useSketchStore.getState().document.layers.map((layer) => layer.name)
+    ).toEqual(["Background", "Layer 2"]);
+  });
+
+  it("undo restores layer structure when layers are removed then undone", () => {
+    // Add a second layer
+    act(() => {
+      useSketchStore.getState().addLayer("Layer 2");
+    });
+    expect(useSketchStore.getState().document.layers).toHaveLength(2);
+
+    // Capture state with 2 layers
+    act(() => {
+      useSketchStore.getState().pushHistory("before remove");
+    });
+
+    // Remove a layer
+    const layerToRemove = useSketchStore.getState().document.layers[1].id;
+    act(() => {
+      useSketchStore.getState().pushHistory("remove layer");
+      useSketchStore.getState().removeLayer(layerToRemove);
+    });
+    expect(useSketchStore.getState().document.layers).toHaveLength(1);
+
+    // Undo should restore to 2 layers
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.layers).toHaveLength(2);
+  });
+
+  it("post-action remove-layer history captures redo structure for the remaining tree", () => {
+    let removedLayerId = "";
+
+    act(() => {
+      useSketchStore.getState().addLayer("Layer 2");
+      useSketchStore.getState().pushHistory("before remove");
+      removedLayerId = useSketchStore.getState().document.layers[1].id;
+      useSketchStore.getState().removeLayer(removedLayerId);
+      useSketchStore.getState().pushHistory("after remove");
+    });
+
+    const removeEntry = useSketchStore.getState().history[1];
+    expect(removeEntry.layerStructure).toHaveLength(1);
+    expect(removeEntry.layerStructure.map((layer) => layer.id)).not.toContain(
+      removedLayerId
+    );
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.layers).toHaveLength(2);
+
+    act(() => {
+      useSketchStore.getState().redo();
+    });
+    expect(useSketchStore.getState().document.layers).toHaveLength(1);
+    expect(
+      useSketchStore.getState().document.layers.map((layer) => layer.id)
+    ).not.toContain(removedLayerId);
+  });
+
+  it("undo restores layer visibility changes", () => {
+    const layerId = useSketchStore.getState().document.activeLayerId;
+    expect(useSketchStore.getState().document.layers[0].visible).toBe(true);
+
+    // Capture state before visibility change
+    act(() => {
+      useSketchStore.getState().pushHistory("before toggle");
+    });
+
+    // Toggle visibility
+    act(() => {
+      useSketchStore.getState().pushHistory("toggle visibility");
+      useSketchStore.getState().toggleLayerVisibility(layerId);
+    });
+    expect(useSketchStore.getState().document.layers[0].visible).toBe(false);
+
+    // Undo should restore visibility
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.layers[0].visible).toBe(true);
+  });
+
+  it("undo restores layer opacity changes", () => {
+    const layerId = useSketchStore.getState().document.activeLayerId;
+
+    act(() => {
+      useSketchStore.getState().pushHistory("before opacity");
+    });
+
+    act(() => {
+      useSketchStore.getState().pushHistory("change opacity");
+      useSketchStore.getState().setLayerOpacity(layerId, 0.5);
+    });
+    expect(useSketchStore.getState().document.layers[0].opacity).toBe(0.5);
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.layers[0].opacity).toBe(1);
+  });
+
+  it("undo restores layer blend mode changes", () => {
+    const layerId = useSketchStore.getState().document.activeLayerId;
+
+    act(() => {
+      useSketchStore.getState().pushHistory("before blend");
+    });
+
+    act(() => {
+      useSketchStore.getState().pushHistory("change blend mode");
+      useSketchStore.getState().setLayerBlendMode(layerId, "multiply");
+    });
+    expect(useSketchStore.getState().document.layers[0].blendMode).toBe(
+      "multiply"
+    );
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.layers[0].blendMode).toBe(
+      "normal"
+    );
+  });
+
+  it("redo restores layer structure after undo", () => {
+    // Restore point 0: 1 layer
+    act(() => {
+      useSketchStore.getState().pushHistory("initial");
+    });
+
+    // Add a layer
+    act(() => {
+      useSketchStore.getState().addLayer("Layer 2");
+    });
+    expect(useSketchStore.getState().document.layers).toHaveLength(2);
+
+    // Restore point 1: 2 layers
+    act(() => {
+      useSketchStore.getState().pushHistory("after add");
+    });
+
+    // Toggle visibility and create restore point 2
+    act(() => {
+      useSketchStore.getState().toggleLayerVisibility(
+        useSketchStore.getState().document.layers[1].id
+      );
+    });
+    act(() => {
+      useSketchStore.getState().pushHistory("after toggle");
+    });
+
+    // Undo to restore point 1 (2 layers, visibility restored)
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.layers).toHaveLength(2);
+
+    // Undo to restore point 0 (1 layer)
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.layers).toHaveLength(1);
+
+    // Redo should restore to restore point 1 (2 layers)
+    act(() => {
+      useSketchStore.getState().redo();
+    });
+    expect(useSketchStore.getState().document.layers).toHaveLength(2);
+  });
+
+  it("redo restores crop-style canvas metadata together with layer bounds", () => {
+    const layerId = useSketchStore.getState().document.activeLayerId;
+
+    act(() => {
+      useSketchStore.getState().setLayerContentBounds(layerId, {
+        x: 0,
+        y: 0,
+        width: 512,
+        height: 512
+      });
+      useSketchStore.getState().pushHistory("before crop");
+      useSketchStore.getState().resizeCanvas(320, 180);
+      useSketchStore.getState().setCanvasBackgroundColor("#334455");
+      useSketchStore.getState().setLayerContentBounds(layerId, {
+        x: 0,
+        y: 0,
+        width: 320,
+        height: 180
+      });
+      useSketchStore.getState().pushHistory("after crop");
+    });
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.canvas).toEqual({
+      width: 512,
+      height: 512,
+      backgroundColor: "#000000"
+    });
+    expect(useSketchStore.getState().document.layers[0].contentBounds).toEqual({
+      x: 0,
+      y: 0,
+      width: 512,
+      height: 512
+    });
+
+    act(() => {
+      useSketchStore.getState().redo();
+    });
+    expect(useSketchStore.getState().document.canvas).toEqual({
+      width: 320,
+      height: 180,
+      backgroundColor: "#334455"
+    });
+    expect(useSketchStore.getState().document.layers[0].contentBounds).toEqual({
+      x: 0,
+      y: 0,
+      width: 320,
+      height: 180
+    });
+  });
+
+  it("undo restores activeLayerId", () => {
+    // Add a layer
+    act(() => {
+      useSketchStore.getState().pushHistory("initial");
+    });
+    const originalActiveId = useSketchStore.getState().document.activeLayerId;
+
+    act(() => {
+      useSketchStore.getState().pushHistory("add layer");
+      const newId = useSketchStore.getState().addLayer("Layer 2");
+      useSketchStore.getState().setActiveLayer(newId);
+    });
+    expect(useSketchStore.getState().document.activeLayerId).not.toBe(
+      originalActiveId
+    );
+
+    // Undo should restore the original active layer
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.activeLayerId).toBe(
+      originalActiveId
+    );
+  });
+
+  it("undo restores layer rename", () => {
+    const layerId = useSketchStore.getState().document.activeLayerId;
+    const originalName = useSketchStore.getState().document.layers[0].name;
+
+    act(() => {
+      useSketchStore.getState().pushHistory("before rename");
+    });
+
+    act(() => {
+      useSketchStore.getState().pushHistory("rename");
+      useSketchStore.getState().renameLayer(layerId, "New Name");
+    });
+    expect(useSketchStore.getState().document.layers[0].name).toBe("New Name");
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.layers[0].name).toBe(
+      originalName
+    );
+  });
+
+  it("undo restores alpha lock toggle", () => {
+    const layerId = useSketchStore.getState().document.activeLayerId;
+
+    act(() => {
+      useSketchStore.getState().pushHistory("before alpha lock");
+    });
+
+    act(() => {
+      useSketchStore.getState().pushHistory("toggle alpha lock");
+      useSketchStore.getState().toggleAlphaLock(layerId);
+    });
+    expect(useSketchStore.getState().document.layers[0].alphaLock).toBe(true);
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.layers[0].alphaLock).toBe(false);
+  });
+
+  it("undo restores layer reorder", () => {
+    // Add second layer
+    act(() => {
+      useSketchStore.getState().addLayer("Layer 2");
+    });
+
+    const layerNames = () =>
+      useSketchStore.getState().document.layers.map((l) => l.name);
+
+    const originalOrder = layerNames();
+
+    act(() => {
+      useSketchStore.getState().pushHistory("before reorder");
+    });
+
+    act(() => {
+      useSketchStore.getState().pushHistory("reorder");
+      useSketchStore.getState().reorderLayers(0, 1);
+    });
+    expect(layerNames()).not.toEqual(originalOrder);
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(layerNames()).toEqual(originalOrder);
+  });
+
+  it("structure-only move undo and redo preserve raster data and bounds", () => {
+    const layerId = useSketchStore.getState().document.activeLayerId;
+
+    act(() => {
+      useSketchStore.getState().updateLayerData(layerId, "moved-layer-data");
+      useSketchStore.getState().setLayerContentBounds(layerId, {
+        x: -20,
+        y: 14,
+        width: 96,
+        height: 72
+      });
+      useSketchStore.getState().pushHistory("before move", undefined, {
+        restoreMode: "structure-only"
+      });
+      useSketchStore.getState().commitLayerTransform(layerId, { x: 18, y: -9 });
+      useSketchStore.getState().pushHistory("after move", undefined, {
+        restoreMode: "structure-only"
+      });
+    });
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+
+    let layer = useSketchStore.getState().document.layers[0];
+    expect(layer.transform).toMatchObject({ x: 0, y: 0 });
+    expect(layer.data).toBe("moved-layer-data");
+    expect(layer.contentBounds).toEqual({
+      x: -20,
+      y: 14,
+      width: 96,
+      height: 72
+    });
+
+    act(() => {
+      useSketchStore.getState().redo();
+    });
+
+    layer = useSketchStore.getState().document.layers[0];
+    expect(layer.transform).toMatchObject({ x: 18, y: -9 });
+    expect(layer.data).toBe("moved-layer-data");
+    expect(layer.contentBounds).toEqual({
+      x: -20,
+      y: 14,
+      width: 96,
+      height: 72
+    });
+  });
+
+  it("structure-only nudge undo and redo preserve raster data and bounds", () => {
+    const layerId = useSketchStore.getState().document.activeLayerId;
+
+    act(() => {
+      useSketchStore.getState().updateLayerData(layerId, "nudged-layer-data");
+      useSketchStore.getState().setLayerContentBounds(layerId, {
+        x: 5,
+        y: -7,
+        width: 80,
+        height: 60
+      });
+      useSketchStore.getState().pushHistory("before nudge", undefined, {
+        restoreMode: "structure-only"
+      });
+      useSketchStore.getState().offsetLayerTransform(layerId, 6, 4);
+      useSketchStore.getState().pushHistory("after nudge", undefined, {
+        restoreMode: "structure-only"
+      });
+    });
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+
+    let layer = useSketchStore.getState().document.layers[0];
+    expect(layer.transform).toMatchObject({ x: 0, y: 0 });
+    expect(layer.data).toBe("nudged-layer-data");
+    expect(layer.contentBounds).toEqual({
+      x: 5,
+      y: -7,
+      width: 80,
+      height: 60
+    });
+
+    act(() => {
+      useSketchStore.getState().redo();
+    });
+
+    layer = useSketchStore.getState().document.layers[0];
+    expect(layer.transform).toMatchObject({ x: 6, y: 4 });
+    expect(layer.data).toBe("nudged-layer-data");
+    expect(layer.contentBounds).toEqual({
+      x: 5,
+      y: -7,
+      width: 80,
+      height: 60
+    });
+  });
+
+  it("captures paint-after-transform snapshots without dropping transform-aware placement", () => {
+    const layerId = useSketchStore.getState().document.activeLayerId;
+
+    act(() => {
+      useSketchStore.getState().commitLayerTransform(layerId, { x: 14, y: -3 });
+      useSketchStore.getState().setLayerContentBounds(layerId, {
+        x: -9,
+        y: 11,
+        width: 40,
+        height: 24
+      });
+      useSketchStore.getState().updateLayerData(layerId, "paint-after-transform");
+      useSketchStore.getState().pushHistory("brush stroke");
+    });
+
+    const entry = useSketchStore.getState().history[0];
+    expect(entry.layerSnapshots[layerId]).toBe("paint-after-transform");
+    expect(entry.layerStructure[0]?.transform).toMatchObject({ x: 14, y: -3 });
+    expect(entry.layerStructure[0]?.contentBounds).toEqual({
+      x: -9,
+      y: 11,
+      width: 40,
+      height: 24
+    });
+  });
+});

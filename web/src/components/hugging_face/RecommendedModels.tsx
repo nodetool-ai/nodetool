@@ -157,6 +157,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
       )}
       <Text
         sx={{ marginTop: "1em", color: theme.vars.palette.grey[100] }}
+        component="div"
       >
         <AnnouncementIcon
           fontSize="small"
@@ -168,6 +169,23 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
         />
         Models will be downloaded to your local cache folder in the standard
         location for Huggingface and Ollama.
+      </Text>
+      <Text
+        sx={{
+          marginTop: "0.75em",
+          color: theme.vars.palette.grey[200],
+          maxWidth: "52rem",
+          userSelect: "text",
+          cursor: "text"
+        }}
+        component="div"
+        size="small"
+      >
+        Gated or private Hugging Face models need access on huggingface.co (accept
+        the license or request access) plus a read token for the server process:
+        set HF_TOKEN before starting NodeTool, or run huggingface-cli login once.
+        If a download fails, open the progress panel and use Copy message to share
+        the details.
       </Text>
 
       {/* Open folder buttons */}
