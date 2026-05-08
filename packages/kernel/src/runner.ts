@@ -119,6 +119,34 @@ export interface RunResult {
   error?: string;
 }
 
+/**
+ * For workflow sink nodes (`nodetool.output.Output`, Preview), the user-facing
+ * key is `properties.name` (workflow output / vvvv pin name). The process
+ * result still uses internal handles (e.g. `output`). Map those updates to the
+ * logical name so WebSocket clients can route values to the right pins.
+ */
+function clientFacingOutputName(node: NodeDescriptor, handle: string): string {
+  const t = node.type ?? "";
+  const props = node.properties as Record<string, unknown> | undefined;
+  const workflowKey =
+    props &&
+    typeof props.name === "string" &&
+    props.name.trim().length > 0
+      ? props.name.trim()
+      : undefined;
+
+  if (t === "nodetool.output.Output" || t.endsWith(".output.Output")) {
+    return workflowKey ?? handle;
+  }
+  if (
+    t === "nodetool.workflows.base_node.Preview" ||
+    t.endsWith(".workflows.base_node.Preview")
+  ) {
+    return workflowKey ?? handle;
+  }
+  return handle;
+}
+
 // ---------------------------------------------------------------------------
 // WorkflowRunner
 // ---------------------------------------------------------------------------
@@ -879,11 +907,12 @@ export class WorkflowRunner {
         if (value === undefined) continue;
         if (handle === "__control__" || handle === "__control_output__")
           continue;
+        const outputName = clientFacingOutputName(sourceNode, handle);
         this._emit({
           type: "output_update",
           node_id: sourceNodeId,
           node_name: sourceNode.name ?? sourceNodeId,
-          output_name: handle,
+          output_name: outputName,
           value,
           output_type: declaredOutputs[handle] ?? "any",
           metadata: {}

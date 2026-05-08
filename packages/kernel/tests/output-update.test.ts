@@ -116,4 +116,38 @@ describe("T-K-9: OutputUpdate messages", () => {
       expect(outputUpdates[0].output_name).toBe("output");
     }
   });
+
+  it("uses workflow output name for nodetool.output.Output (vvvv / SDK pins)", async () => {
+    const nodes: NodeDescriptor[] = [
+      {
+        id: "out1",
+        type: "nodetool.output.Output",
+        outputs: { output: "any" },
+        properties: { name: "assistant_reply", value: null, description: "" }
+      }
+    ];
+    const edges: Array<Record<string, unknown>> = [];
+
+    const runner = new WorkflowRunner("job-pin-names", {
+      resolveExecutor: (node) => {
+        if (node.id === "out1") {
+          return makeExecutor(() => ({ output: "hello" }));
+        }
+        return makeExecutor(() => ({}));
+      }
+    });
+
+    const result = await runner.run({ job_id: "job-pin-names" }, { nodes, edges });
+
+    const ou = result.messages.filter(
+      (m) => m.type === "output_update" && m.node_id === "out1"
+    );
+    expect(ou.length).toBeGreaterThanOrEqual(1);
+    const first = ou[0];
+    expect(first.type).toBe("output_update");
+    if (first.type === "output_update") {
+      expect(first.output_name).toBe("assistant_reply");
+      expect(first.value).toBe("hello");
+    }
+  });
 });

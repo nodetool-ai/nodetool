@@ -96,6 +96,34 @@ const log = createLogger("nodetool.websocket.server");
 // initialises eagerly, but an explicit call here picks up any env mutations
 // made by the process launcher before this point).
 configureLogging();
+
+/**
+ * Read-only workflow metadata GETs for SDK/editor boot (same role as
+ * `/api/nodes/metadata`). Mutations still require auth below.
+ */
+function isPublicWorkflowMetadataRequest(
+  pathname: string,
+  method: string
+): boolean {
+  if (method !== "GET") return false;
+  if (pathname === "/api/workflows" || pathname === "/api/workflows/") {
+    return true;
+  }
+  if (
+    pathname.startsWith("/api/workflows/public") ||
+    pathname.startsWith("/api/workflows/examples")
+  ) {
+    return true;
+  }
+  if (pathname === "/api/workflows/names" || pathname === "/api/workflows/tools") {
+    return true;
+  }
+  if (/^\/api\/workflows\/[^/]+\/dsl-export$/.test(pathname)) {
+    return true;
+  }
+  return /^\/api\/workflows\/[^/]+$/.test(pathname);
+}
+
 await initTelemetry();
 const startupT0 = performance.now();
 function startupMs(): string {
@@ -543,7 +571,9 @@ app.addHook("onRequest", async (req, reply) => {
     pathname.startsWith("/api/oauth/") ||
     pathname === "/api/assets/packages" ||
     pathname.startsWith("/api/assets/packages/") ||
-    pathname === "/api/nodes/metadata"
+    pathname === "/api/nodes/metadata" ||
+    pathname === "/api/node/metadata" ||
+    isPublicWorkflowMetadataRequest(pathname, req.method)
   ) {
     return;
   }
