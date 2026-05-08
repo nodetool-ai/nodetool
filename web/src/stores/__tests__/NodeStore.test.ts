@@ -174,12 +174,15 @@ describe("NodeStore node management", () => {
     store.getState().deleteNode("a");
     expect(store.getState().findNode("a")).toBeUndefined();
     expect(store.getState().edges).toHaveLength(0);
+    // deleteNode now correctly clears errors/results scoped to the
+    // current workflow id with the deleted node IDs as the second arg.
+    const workflowId = store.getState().workflow.id;
     expect(
       useErrorStore.getState().clearErrors as jest.Mock
-    ).toHaveBeenCalledWith("a");
+    ).toHaveBeenCalledWith(workflowId, new Set(["a"]));
     expect(
       useResultsStore.getState().clearResults as jest.Mock
-    ).toHaveBeenCalledWith("a");
+    ).toHaveBeenCalledWith(workflowId, new Set(["a"]));
   });
 
   test("undo and redo revert node changes", () => {

@@ -125,6 +125,14 @@ export const useComfyUIStore = create<ComfyUIState>((set, get) => ({
   setBaseUrl: (url: string) => {
     const service = getComfyUIService();
     const normalizedUrl = normalizeComfyBaseUrl(url);
+    // Tear down the prior WS first — otherwise it keeps streaming progress
+    // events into the "disconnected" store and connect() can open a second
+    // socket without closing this one.
+    try {
+      service.disconnectWebSocket();
+    } catch (err) {
+      console.warn("[ComfyUIStore] disconnectWebSocket failed in setBaseUrl", err);
+    }
     service.setBaseUrl(normalizedUrl);
     saveComfyUIUrl(normalizedUrl);
     connectLastFailureTime = 0;
@@ -132,7 +140,10 @@ export const useComfyUIStore = create<ComfyUIState>((set, get) => ({
       baseUrl: normalizedUrl,
       isConnected: false,
       connectionError: null,
-      objectInfo: null
+      objectInfo: null,
+      currentPromptId: null,
+      isExecuting: false,
+      executionProgress: 0
     });
   },
 
@@ -260,6 +271,7 @@ export const useComfyUIStore = create<ComfyUIState>((set, get) => ({
   disconnect: () => {
     const service = getComfyUIService();
     service.disconnectWebSocket();
+    connectLastFailureTime = 0;
     set({
       isConnected: false,
       connectionError: null,

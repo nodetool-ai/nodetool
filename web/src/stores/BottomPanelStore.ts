@@ -118,13 +118,42 @@ export const useBottomPanelStore = create<ResizePanelState>()(
     }),
     {
       name: "bottom-panel-storage",
+      version: 1,
       partialize: (state: ResizePanelState) => ({
         panel: {
-          ...state.panel,
-          isDragging: false,
-          hasDragged: false
+          panelSize: state.panel.panelSize,
+          isVisible: state.panel.isVisible,
+          activeView: state.panel.activeView
         }
-      })
+      }),
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState ?? {}) as Partial<ResizePanelState>;
+        const persistedPanel = (persisted.panel ?? {}) as Partial<PanelState>;
+        const validViews: BottomPanelView[] = ["trace"];
+        const activeView = validViews.includes(
+          persistedPanel.activeView as BottomPanelView
+        )
+          ? (persistedPanel.activeView as BottomPanelView)
+          : currentState.panel.activeView;
+        return {
+          ...currentState,
+          panel: {
+            ...currentState.panel,
+            panelSize:
+              typeof persistedPanel.panelSize === "number"
+                ? Math.max(
+                    MIN_DRAG_SIZE,
+                    Math.min(persistedPanel.panelSize, MAX_PANEL_SIZE)
+                  )
+                : currentState.panel.panelSize,
+            isVisible:
+              typeof persistedPanel.isVisible === "boolean"
+                ? persistedPanel.isVisible
+                : currentState.panel.isVisible,
+            activeView
+          }
+        };
+      }
     }
   )
 );

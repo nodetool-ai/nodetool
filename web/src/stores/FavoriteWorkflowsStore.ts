@@ -50,8 +50,19 @@ export const useFavoriteWorkflowsStore = create<FavoriteWorkflowsState>()(
     }),
     {
       name: "favorite-workflows",
+      version: 1,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ favoriteWorkflowIds: state.favoriteWorkflowIds }),
+      migrate: (persistedState, _version) => {
+        if (!persistedState || typeof persistedState !== "object") {
+          return { favoriteWorkflowIds: [] };
+        }
+        const state = persistedState as Record<string, unknown>;
+        if (!Array.isArray(state.favoriteWorkflowIds)) {
+          state.favoriteWorkflowIds = [];
+        }
+        return state;
+      }
     }
   )
 );

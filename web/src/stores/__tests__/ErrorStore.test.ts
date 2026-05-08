@@ -195,11 +195,11 @@ describe("ErrorStore", () => {
       });
 
       const { errors } = useErrorStore.getState();
-      // Both should be cleared because "workflow" is a prefix match
-      // Note: This tests the current implementation behavior
+      // clearErrors matches on the full `${workflowId}:` boundary, so a
+      // workflowId that is a string prefix of another workflowId does not
+      // accidentally clear the unrelated workflow's errors.
       expect(errors["workflow:node1"]).toBeUndefined();
-      // "workflow-extended" also starts with "workflow" so it will be cleared too
-      expect(errors["workflow-extended:node1"]).toBeUndefined();
+      expect(errors["workflow-extended:node1"]).toBe("Error 2");
     });
   });
 

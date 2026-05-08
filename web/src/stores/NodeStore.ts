@@ -849,10 +849,10 @@ export const createNodeStore = (
               }
             }
 
-            for (const nodeId of foundIds) {
-              useErrorStore.getState().clearErrors(nodeId);
-              useResultsStore.getState().clearResults(nodeId);
-            }
+            const workflowId = get().workflow.id;
+            const idSetForClear = new Set(foundIds);
+            useErrorStore.getState().clearErrors(workflowId, idSetForClear);
+            useResultsStore.getState().clearResults(workflowId, idSetForClear);
 
             set({
               nodes,
@@ -1289,7 +1289,9 @@ export const createNodeStore = (
             }
 
             const nodeId = get().generateNodeId();
-            useResultsStore.getState().clearResults(nodeId);
+            useResultsStore
+              .getState()
+              .clearResults(get().workflow.id, new Set([nodeId]));
 
             // Set default size for nodes that host rich previews so content
             // fills a stable box instead of driving the initial layout.

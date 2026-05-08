@@ -93,6 +93,7 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
     }),
     {
       name: "model-preferences",
+      version: 1,
       partialize: (state) => ({
         favorites: Array.from(state.favorites),
         recents: state.recents,
@@ -100,15 +101,59 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
         enabledProviders: state.enabledProviders,
         defaults: state.defaults
       }),
+      migrate: (persistedState, _version) => {
+        // Corrupt localStorage (string, null, etc.) must NOT be passed
+        // through unchanged: it would rehydrate the store into an
+        // invalid shape that breaks selectors expecting the partialized
+        // keys. Always return an object with every required field.
+        const fallback = {
+          favorites: [] as FavoriteKey[],
+          recents: [] as RecentEntry[],
+          onlyAvailable: true,
+          enabledProviders: {} as Record<string, boolean>,
+          defaults: {} as Record<
+            string,
+            { provider: string; id: string; name: string }
+          >
+        };
+        if (!persistedState || typeof persistedState !== "object") {
+          return fallback;
+        }
+        const state = persistedState as Record<string, unknown>;
+        return {
+          favorites: Array.isArray(state.favorites)
+            ? (state.favorites as FavoriteKey[])
+            : fallback.favorites,
+          recents: Array.isArray(state.recents)
+            ? (state.recents as RecentEntry[])
+            : fallback.recents,
+          onlyAvailable:
+            typeof state.onlyAvailable === "boolean"
+              ? state.onlyAvailable
+              : fallback.onlyAvailable,
+          enabledProviders:
+            state.enabledProviders &&
+            typeof state.enabledProviders === "object"
+              ? (state.enabledProviders as Record<string, boolean>)
+              : fallback.enabledProviders,
+          defaults:
+            state.defaults && typeof state.defaults === "object"
+              ? (state.defaults as Record<
+                  string,
+                  { provider: string; id: string; name: string }
+                >)
+              : fallback.defaults
+        };
+      },
       // Rehydrate Set
       onRehydrateStorage: () => (state) => {
         if (!state) {
           return;
         }
         const rawFavorites = (state as { favorites: unknown }).favorites;
-        if (Array.isArray(rawFavorites)) {
-          state.favorites = new Set(rawFavorites as FavoriteKey[]);
-        }
+        state.favorites = Array.isArray(rawFavorites)
+          ? new Set(rawFavorites as FavoriteKey[])
+          : new Set<FavoriteKey>();
       }
     }
   )

@@ -129,13 +129,57 @@ export const useRightPanelStore = create<ResizePanelState>()(
     }),
     {
       name: "right-panel-storage",
+      version: 1,
+      // Persist only the user-driven slice of `panel`. Constants like
+      // minWidth/maxWidth/defaultWidth come from code on every load, so
+      // bumping them in source should not be undermined by stale persisted
+      // values. activeView is validated on rehydrate.
       partialize: (state: ResizePanelState) => ({
         panel: {
-          ...state.panel,
-          isDragging: false,
-          hasDragged: false
+          panelSize: state.panel.panelSize,
+          isVisible: state.panel.isVisible,
+          activeView: state.panel.activeView
         }
-      })
+      }),
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState ?? {}) as Partial<ResizePanelState>;
+        const persistedPanel = (persisted.panel ?? {}) as Partial<PanelState>;
+        const validViews: RightPanelView[] = [
+          "inspector",
+          "assistant",
+          "logs",
+          "workspace",
+          "versions",
+          "workflow",
+          "jobs",
+          "workflowAssets",
+          "sandboxes",
+          "agent"
+        ];
+        const activeView = validViews.includes(
+          persistedPanel.activeView as RightPanelView
+        )
+          ? (persistedPanel.activeView as RightPanelView)
+          : currentState.panel.activeView;
+        return {
+          ...currentState,
+          panel: {
+            ...currentState.panel,
+            panelSize:
+              typeof persistedPanel.panelSize === "number"
+                ? Math.max(
+                    MIN_DRAG_SIZE,
+                    Math.min(persistedPanel.panelSize, MAX_PANEL_SIZE)
+                  )
+                : currentState.panel.panelSize,
+            isVisible:
+              typeof persistedPanel.isVisible === "boolean"
+                ? persistedPanel.isVisible
+                : currentState.panel.isVisible,
+            activeView
+          }
+        };
+      }
     }
   )
 );

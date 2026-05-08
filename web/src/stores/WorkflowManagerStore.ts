@@ -23,7 +23,14 @@ import {
   workflowQueryKey
 } from "../serverState/useWorkflow";
 import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates, setGetNodeStore } from "./workflowUpdates";
-import { getWorkflowRunnerStore } from "./WorkflowRunner";
+import { disposeWorkflowRunnerStore, getWorkflowRunnerStore } from "./WorkflowRunner";
+import useResultsStore from "./ResultsStore";
+import useErrorStore from "./ErrorStore";
+import useStatusStore from "./StatusStore";
+import useExecutionTimeStore from "./ExecutionTimeStore";
+import { useNodeResultHistoryStore } from "./NodeResultHistoryStore";
+import usePropertyValidationStore from "./PropertyValidationStore";
+import { useFavoriteWorkflowsStore } from "./FavoriteWorkflowsStore";
 import { hydrateWorkflowResultsFromAssets } from "./workflowResultHydration";
 import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 
@@ -469,6 +476,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           window.api.onDeleteWorkflow(workflow);
         }
 
+        // Drop the favorite entry so the deleted workflow doesn't keep
+        // appearing in the favorites UI as a stale id.
+        useFavoriteWorkflowsStore.getState().removeFavorite(workflow.id);
+
         // Invalidate cache for workflows and the specific workflow.
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
         get().queryClient?.invalidateQueries({
@@ -562,14 +573,50 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         */
        removeWorkflow: (workflowId: string) => {
          unsubscribeFromWorkflowUpdates(workflowId);
-         
-         const { nodeStores, openWorkflows, currentWorkflowId } = get();
 
-        const newOpenWorkflows = openWorkflows.filter(
-          (w) => w.id !== workflowId
-        );
-        const newStores = { ...nodeStores };
-        delete newStores[workflowId];
+         const { nodeStores, openWorkflows, currentWorkflowId, notifiedAutosaveVersions } = get();
+
+         // Tear down the per-workflow NodeStore (releases its metadata
+         // subscription) and the WorkflowRunner store before we drop the
+         // reference, otherwise both leak forever.
+         const departingNodeStore = nodeStores[workflowId];
+         if (departingNodeStore) {
+           try {
+             departingNodeStore.getState().cleanup();
+           } catch (err) {
+             console.warn(
+               `[WorkflowManager] NodeStore cleanup failed for ${workflowId}`,
+               err
+             );
+           }
+         }
+         disposeWorkflowRunnerStore(workflowId);
+
+         // Drop per-workflow keyed entries from singleton stores so they
+         // don't accumulate forever in long-lived sessions.
+         useResultsStore.getState().clearResults(workflowId);
+         useResultsStore.getState().clearOutputResults(workflowId);
+         useResultsStore.getState().clearProgress(workflowId);
+         useResultsStore.getState().clearChunks(workflowId);
+         useResultsStore.getState().clearTasks(workflowId);
+         useResultsStore.getState().clearToolCalls(workflowId);
+         useResultsStore.getState().clearPlanningUpdates(workflowId);
+         useResultsStore.getState().clearPreviews(workflowId);
+         useResultsStore.getState().clearEdges(workflowId);
+         useErrorStore.getState().clearErrors(workflowId);
+         useStatusStore.getState().clearStatuses(workflowId);
+         useExecutionTimeStore.getState().clearTimings(workflowId);
+         useNodeResultHistoryStore.getState().clearWorkflowHistory(workflowId);
+         usePropertyValidationStore.getState().clearWorkflow(workflowId);
+
+         const newOpenWorkflows = openWorkflows.filter(
+           (w) => w.id !== workflowId
+         );
+         const newStores = { ...nodeStores };
+         delete newStores[workflowId];
+
+         const newNotified = { ...notifiedAutosaveVersions };
+         delete newNotified[workflowId];
 
         const newCurrentId = determineNextWorkflowId(
           openWorkflows,
@@ -581,7 +628,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           nodeStores: newStores,
           openWorkflows: newOpenWorkflows,
           currentWorkflowId: newCurrentId,
-          loadingStates: {}
+          loadingStates: {},
+          notifiedAutosaveVersions: newNotified
         });
 
         storage.setOpenWorkflows(newOpenWorkflows.map(w => w.id));
@@ -607,14 +655,32 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        */
       reorderWorkflows: (sourceIndex: number, targetIndex: number) => {
         set((state) => {
-          const entries = Object.entries(state.nodeStores);
-          const [moved] = entries.splice(sourceIndex, 1);
-          entries.splice(targetIndex, 0, moved);
+          // Reorder the openWorkflows array, then rebuild the nodeStores
+          // map in the same order so consumers iterating either source see
+          // a consistent ordering.
+          const reordered = [...state.openWorkflows];
+          if (
+            sourceIndex < 0 ||
+            sourceIndex >= reordered.length ||
+            targetIndex < 0 ||
+            targetIndex >= reordered.length
+          ) {
+            return state;
+          }
+          const [moved] = reordered.splice(sourceIndex, 1);
+          reordered.splice(targetIndex, 0, moved);
+
+          const newStores: Record<string, NodeStore> = {};
+          for (const wf of reordered) {
+            const store = state.nodeStores[wf.id];
+            if (store) {
+              newStores[wf.id] = store;
+            }
+          }
+
           return {
-            nodeStores: Object.fromEntries(entries),
-            openWorkflows: Object.values(get().nodeStores).map((store) => {
-              return store.getState().workflow;
-            })
+            openWorkflows: reordered,
+            nodeStores: newStores
           };
         });
       },
@@ -628,8 +694,18 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           const index = state.openWorkflows.findIndex((w) => w.id === workflow.id);
           if (index === -1) return state;
 
+          const merged = { ...state.openWorkflows[index], ...workflow };
           const newWorkflows = [...state.openWorkflows];
-          newWorkflows[index] = { ...newWorkflows[index], ...workflow };
+          newWorkflows[index] = merged;
+
+          // Keep the underlying NodeStore's `workflow` attribute in sync —
+          // otherwise the store and openWorkflows drift apart for fields
+          // like name/description/tags.
+          const nodeStore = state.nodeStores[workflow.id];
+          if (nodeStore) {
+            const current = nodeStore.getState().workflow;
+            nodeStore.setState({ workflow: { ...current, ...workflow } });
+          }
 
           return { openWorkflows: newWorkflows };
         });
