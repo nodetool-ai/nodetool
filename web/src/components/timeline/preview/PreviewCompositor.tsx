@@ -91,6 +91,9 @@ interface ActiveVideoSlot {
   blendMode: CompositorBlendMode;
   opacity: number;
   assetUrl: string;
+  transform?: TimelineClip["transform"];
+  borderRadius?: number;
+  effects?: TimelineClip["effects"];
 }
 
 interface ActiveImageLayer {
@@ -100,6 +103,9 @@ interface ActiveImageLayer {
   opacity: number;
   assetUrl: string;
   status: TimelineClip["status"];
+  transform?: TimelineClip["transform"];
+  borderRadius?: number;
+  effects?: TimelineClip["effects"];
 }
 
 function isClipActive(clip: TimelineClip, currentTimeMs: number): boolean {
@@ -318,7 +324,10 @@ export const PreviewCompositor: React.FC = memo(() => {
           blendMode: resolveBlendMode(clip.blendMode),
           opacity: clip.opacity ?? 1,
           assetUrl: url ?? "",
-          status: clip.status
+          status: clip.status,
+          transform: clip.transform,
+          borderRadius: clip.borderRadius,
+          effects: clip.effects
         });
         if (!url) {
           placeholders.push({
@@ -338,7 +347,10 @@ export const PreviewCompositor: React.FC = memo(() => {
             trackIndex: track.index,
             blendMode: resolveBlendMode(clip.blendMode),
             opacity: clip.opacity ?? 1,
-            assetUrl: url
+            assetUrl: url,
+            transform: clip.transform,
+            borderRadius: clip.borderRadius,
+            effects: clip.effects
           });
         } else if (!url) {
           placeholders.push({
@@ -472,7 +484,10 @@ export const PreviewCompositor: React.FC = memo(() => {
         source: el,
         opacity: slot.opacity,
         blendMode: slot.blendMode,
-        zIndex: slot.trackIndex
+        zIndex: slot.trackIndex,
+        transform: slot.transform,
+        borderRadius: slot.borderRadius,
+        effects: slot.effects
       });
     });
 
@@ -485,7 +500,10 @@ export const PreviewCompositor: React.FC = memo(() => {
         source: img,
         opacity: layer.opacity,
         blendMode: layer.blendMode,
-        zIndex: layer.trackIndex
+        zIndex: layer.trackIndex,
+        transform: layer.transform,
+        borderRadius: layer.borderRadius,
+        effects: layer.effects
       });
     }
 
