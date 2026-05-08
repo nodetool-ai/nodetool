@@ -5,6 +5,11 @@
  *   1. Explicit `setDefaultVectorProvider(...)` call.
  *   2. Env var `NODETOOL_VECTOR_PROVIDER` ∈ { "sqlite-vec", "pinecone", "supabase" }.
  *   3. Fallback: `SqliteVecProvider` with default db path.
+ *
+ * Path resolution for sqlite-vec follows `@nodetool-ai/config` conventions —
+ * `VECTORSTORE_DB_PATH` overrides the default location. The sqlite-vec
+ * adapter shares the process-wide `getDefaultStore()` instance so that
+ * callers using the lower-level API and the provider see one connection.
  */
 
 import { PineconeProvider } from "./pinecone-provider.js";
@@ -12,6 +17,7 @@ import {
   SqliteVecProvider,
   type SqliteVecProviderOptions
 } from "./sqlite-vec-provider.js";
+import { getDefaultStore } from "./sqlite-vec-store.js";
 import { SupabaseProvider } from "./supabase-provider.js";
 import {
   ProviderConfigError,
@@ -59,7 +65,10 @@ export function createVectorProviderFromEnv(
 
   switch (kind) {
     case "sqlite-vec":
-      return new SqliteVecProvider({ dbPath: env.NODETOOL_VECTORSTORE_PATH });
+      // Re-use the shared default SqliteVecStore so the provider and any
+      // direct `getDefaultStore()` callers share one connection. The store's
+      // own constructor reads VECTORSTORE_DB_PATH via @nodetool-ai/config.
+      return new SqliteVecProvider({ store: getDefaultStore() });
 
     case "pinecone": {
       const apiKey = env.PINECONE_API_KEY;
@@ -76,14 +85,19 @@ export function createVectorProviderFromEnv(
     }
 
     case "supabase": {
-      const url = env.SUPABASE_URL;
-      const key = env.SUPABASE_SERVICE_ROLE_KEY;
-      if (!url || !key) {
+      const databaseUrl =
+        env.NODETOOL_VECTOR_DATABASE_URL ?? env.SUPABASE_DB_URL;
+      if (!databaseUrl) {
         throw new ProviderConfigError(
-          "NODETOOL_VECTOR_PROVIDER=supabase but SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not set"
+          "NODETOOL_VECTOR_PROVIDER=supabase but no Postgres connection " +
+            "string was found. Set NODETOOL_VECTOR_DATABASE_URL or " +
+            "SUPABASE_DB_URL to a postgresql:// URL with pgvector enabled."
         );
       }
-      return new SupabaseProvider({ url, serviceRoleKey: key });
+      return new SupabaseProvider({
+        databaseUrl,
+        schema: env.NODETOOL_VECTOR_SCHEMA
+      });
     }
 
     default:
