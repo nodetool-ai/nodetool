@@ -516,6 +516,63 @@ export function combineMasks(
   };
 }
 
+/**
+ * Trim a selection mask down to the smallest bounding box that still contains
+ * active pixels. Returns `null` when the mask has no active pixels.
+ */
+export function trimSelectionMask(sel: Selection | null): Selection | null {
+  if (!validateSelectionMask(sel) || !selectionHasAnyPixels(sel)) {
+    return null;
+  }
+  const { width, height, data } = sel;
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < height; y++) {
+    const row = y * width;
+    for (let x = 0; x < width; x++) {
+      if (data[row + x] === 0) {
+        continue;
+      }
+      if (x < minX) {
+        minX = x;
+      }
+      if (y < minY) {
+        minY = y;
+      }
+      if (x > maxX) {
+        maxX = x;
+      }
+      if (y > maxY) {
+        maxY = y;
+      }
+    }
+  }
+
+  if (maxX < minX || maxY < minY) {
+    return null;
+  }
+
+  const trimmedWidth = maxX - minX + 1;
+  const trimmedHeight = maxY - minY + 1;
+  const trimmed = new Uint8ClampedArray(trimmedWidth * trimmedHeight);
+  for (let y = 0; y < trimmedHeight; y++) {
+    const srcOffset = (minY + y) * width + minX;
+    const dstOffset = y * trimmedWidth;
+    trimmed.set(data.subarray(srcOffset, srcOffset + trimmedWidth), dstOffset);
+  }
+
+  return {
+    width: trimmedWidth,
+    height: trimmedHeight,
+    data: trimmed,
+    originX: (sel.originX ?? 0) + minX,
+    originY: (sel.originY ?? 0) + minY
+  };
+}
+
 export function invertMaskInPlace(mask: Selection): void {
   for (let i = 0; i < mask.data.length; i++) {
     mask.data[i] = 255 - mask.data[i];

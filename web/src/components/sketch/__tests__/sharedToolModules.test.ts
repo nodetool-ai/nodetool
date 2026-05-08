@@ -190,6 +190,53 @@ describe("selectionFinalization", () => {
 
       expect(onSelectionChange).toHaveBeenCalledTimes(1);
     });
+
+    it("routes committed selection updates through the runtime when available", () => {
+      const onSelectionChange = jest.fn();
+      const drawSelectionOverlay = jest.fn();
+      const runtimeSelection = makeOverlay(2, 2, 255);
+      const runtime = {
+        applySelectionOverlay: jest.fn(() => runtimeSelection)
+      };
+
+      applySelectionFinalization({
+        overlay: makeOverlay(4, 4, 255),
+        modifiers: { shift: true, alt: false },
+        runtime,
+        currentSelection: makeOverlay(4, 4, 128),
+        onSelectionChange,
+        drawSelectionOverlay
+      });
+
+      expect(runtime.applySelectionOverlay).toHaveBeenCalledWith(
+        expect.objectContaining({ width: 4, height: 4 }),
+        "add"
+      );
+      expect(onSelectionChange).toHaveBeenCalledWith(runtimeSelection);
+    });
+
+    it("trims sparse overlays before publishing the committed snapshot", () => {
+      const onSelectionChange = jest.fn();
+      const drawSelectionOverlay = jest.fn();
+      const data = new Uint8ClampedArray(16);
+      data[15] = 255;
+
+      applySelectionFinalization({
+        overlay: { width: 4, height: 4, data, originX: 10, originY: 20 },
+        modifiers: null,
+        currentSelection: null,
+        onSelectionChange,
+        drawSelectionOverlay
+      });
+
+      expect(onSelectionChange).toHaveBeenCalledWith({
+        width: 1,
+        height: 1,
+        data: expect.any(Uint8ClampedArray),
+        originX: 13,
+        originY: 23
+      });
+    });
   });
 });
 

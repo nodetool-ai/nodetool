@@ -18,7 +18,8 @@ import type {
   LayerTransform,
   LayerContentBounds
 } from "../types";
-import type { ActiveStrokeInfo } from "../rendering";
+import type { ActiveStrokeInfo, SketchRuntime } from "../rendering";
+import type { SelectionCombineOp } from "../selection";
 
 // ─── Tool definition types (used by toolDefinitions registry) ─────────────
 
@@ -71,6 +72,13 @@ export interface ToolContext {
   layerCanvasesRef: React.MutableRefObject<Map<string, HTMLCanvasElement>>;
   mousePositionRef: React.MutableRefObject<Point>;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
+  /** Active runtime for selection commits, readback, and compositing-aware tools. */
+  runtime?: SketchRuntime & {
+    applySelectionOverlay?: (
+      overlay: Selection,
+      op: SelectionCombineOp
+    ) => Selection | null;
+  };
 
   // ── Layer canvas ops ─────────────────────────────────────────────────
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;

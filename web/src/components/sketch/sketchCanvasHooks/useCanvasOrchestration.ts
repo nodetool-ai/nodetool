@@ -203,8 +203,9 @@ export function useCanvasOrchestration(
   requestPreviewRedrawRef.current = compositing.requestRedraw;
   invalidateLayerRef.current = compositing.invalidateLayer;
 
-  // Sync active selection to the runtime. WebGPU uploads the r8unorm mask
-  // texture and renders committed ants on the display canvas.
+  // Sync external selection state to the runtime. During interactive commits
+  // the runtime is authoritative; the store only keeps the CPU snapshot that
+  // gets published at commit/history boundaries and rehydrates undo/redo here.
   useEffect(() => {
     compositing.runtime.setSelection(selection ?? null);
     compositing.requestRedraw();

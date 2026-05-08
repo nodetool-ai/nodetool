@@ -361,6 +361,7 @@ export function usePointerHandlers({
     layerCanvasesRef,
     mousePositionRef,
     activeStrokeRef,
+    runtime,
     getOrCreateLayerCanvas,
     invalidateLayer,
     redraw,

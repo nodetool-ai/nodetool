@@ -29,10 +29,10 @@ These pieces already exist and should be treated as the starting point for this 
 
 ## Phase 2 — Move selection finalization off `combineMasks(...)`
 
-- [ ] Replace the CPU `combineMasks(...)` hot path in `tools/selectionFinalization.ts` with a runtime-driven mask update path for `replace`, `add`, `subtract`, and `intersect`.
-- [ ] Wire marquee, ellipse, lasso, polygon, and magic-wand finalization in `SelectTool.ts` through that runtime path so a completed gesture updates the GPU mask without a full-document CPU combine.
-- [ ] Keep CPU `Selection` data as a snapshot/output format only: update it once per committed selection change for history, export, clipboard, and any code that still truly requires a buffer.
-- [ ] Add one explicit code comment at the runtime/store boundary that says when GPU state is authoritative and when CPU snapshots are produced.
+- [x] Replace the CPU `combineMasks(...)` hot path in `tools/selectionFinalization.ts` with a runtime-driven mask update path for `replace`, `add`, `subtract`, and `intersect`.
+- [x] Wire marquee, ellipse, lasso, polygon, and magic-wand finalization in `SelectTool.ts` through that runtime path so a completed gesture updates the GPU mask without a full-document CPU combine.
+- [x] Keep CPU `Selection` data as a snapshot/output format only: update it once per committed selection change for history, export, clipboard, and any code that still truly requires a buffer.
+- [x] Add one explicit code comment at the runtime/store boundary that says when GPU state is authoritative and when CPU snapshots are produced.
 
 ---
 

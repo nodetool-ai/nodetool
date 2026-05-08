@@ -142,7 +142,14 @@ export class SelectTool implements ToolHandler {
             ? magicWandFromRgba(id, pt.x, pt.y, tol)
             : magicWandNonContiguousFromRgba(id, pt.x, pt.y, tol);
           const overlay: Selection = { width: cw, height: ch, data: bin };
-          applySelectionFinalization({ overlay, modifiers: mods, currentSelection: selection, onSelectionChange, drawSelectionOverlay: ctx.drawSelectionOverlay });
+          applySelectionFinalization({
+            overlay,
+            modifiers: mods,
+            runtime: ctx.runtime,
+            currentSelection: selection,
+            onSelectionChange,
+            drawSelectionOverlay: ctx.drawSelectionOverlay
+          });
           return;
         }
 
@@ -167,7 +174,14 @@ export class SelectTool implements ToolHandler {
           originX: offset.x,
           originY: offset.y
         };
-        applySelectionFinalization({ overlay, modifiers: mods, currentSelection: selection, onSelectionChange, drawSelectionOverlay: ctx.drawSelectionOverlay });
+        applySelectionFinalization({
+          overlay,
+          modifiers: mods,
+          runtime: ctx.runtime,
+          currentSelection: selection,
+          onSelectionChange,
+          drawSelectionOverlay: ctx.drawSelectionOverlay
+        });
       });
       return false;
     }
@@ -374,6 +388,7 @@ export class SelectTool implements ToolHandler {
           },
           {
             modifiers: mod,
+            runtime: ctx.runtime,
             currentSelection: selection,
             onSelectionChange: ctx.onSelectionChange!,
             drawSelectionOverlay: ctx.drawSelectionOverlay
@@ -431,6 +446,7 @@ export class SelectTool implements ToolHandler {
               : rectSelectionMask(cw, ch, x, y, w, h),
           {
             modifiers: mc,
+            runtime: ctx.runtime,
             currentSelection: capturedSelection,
             onSelectionChange: ctx.onSelectionChange!,
             drawSelectionOverlay: ctx.drawSelectionOverlay
@@ -484,6 +500,7 @@ export class SelectTool implements ToolHandler {
       applySelectionFinalization({
         overlay,
         modifiers: mod,
+        runtime: ctx.runtime,
         currentSelection: ctx.selection,
         onSelectionChange: ctx.onSelectionChange,
         drawSelectionOverlay: ctx.drawSelectionOverlay
