@@ -6,11 +6,11 @@ import {
   MessageSquare,
   ImageIcon,
   Check,
-  Share2,
-  Download,
-  FolderOpen,
-  Users,
-  Repeat,
+  Send,
+  Images,
+  Film,
+  AppWindow,
+  Globe,
 } from "lucide-react";
 
 type AccentColor = "blue" | "fuchsia" | "amber";
@@ -65,10 +65,10 @@ export default function BuildRunDeploy() {
 
         <Card
           step="03"
-          title="Ship the work"
-          icon={<Share2 className="h-6 w-6" />}
+          title="Publish anywhere"
+          icon={<Send className="h-6 w-6" />}
           accent="amber"
-          description="Export the render, drop it in a shared folder, or hand the whole canvas to a collaborator. Re-run it for the next variation without rebuilding a thing."
+          description="Send the output straight to a gallery, a video reel, a standalone app, or a live website. One canvas, every surface your audience sees."
         >
           <DeployVisual />
         </Card>
@@ -245,24 +245,24 @@ function DeployVisual() {
     <div>
       <div className="mb-3 flex items-center gap-2 text-[11px] font-medium">
         <Check className="h-3 w-3 text-emerald-400" />
-        <span className="text-emerald-300">Render delivered</span>
+        <span className="text-emerald-300">Published</span>
       </div>
       <div className="flex items-end justify-between gap-2 px-1">
         <DeployTarget
-          label="Export"
-          icon={<Download className="h-5 w-5 text-sky-400" />}
+          label="Gallery"
+          icon={<Images className="h-5 w-5 text-fuchsia-300" />}
         />
         <DeployTarget
-          label="Shared folder"
-          icon={<FolderOpen className="h-5 w-5 text-amber-300" />}
+          label="Video"
+          icon={<Film className="h-5 w-5 text-sky-400" />}
         />
         <DeployTarget
-          label="Hand off"
-          icon={<Users className="h-5 w-5 text-violet-400" />}
+          label="App"
+          icon={<AppWindow className="h-5 w-5 text-violet-400" />}
         />
         <DeployTarget
-          label="Re-run"
-          icon={<Repeat className="h-5 w-5 text-emerald-300" />}
+          label="Website"
+          icon={<Globe className="h-5 w-5 text-emerald-300" />}
         />
       </div>
     </div>
