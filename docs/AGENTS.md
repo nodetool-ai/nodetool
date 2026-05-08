@@ -111,6 +111,47 @@ Steps can use three modes for batch processing:
 
 ---
 
+## Memory
+
+Every `ProcessingContext` carries an **`AgentMemory`** at `context.memory` — the single namespaced store for results shared between steps, tasks, sub-agents, and tools. There are no parallel result maps; all executors write and read through the same API.
+
+```ts
+import { memoryKeys } from "@nodetool-ai/runtime";
+
+context.memory.set({
+  key: memoryKeys.task("research"),
+  kind: "task_result",
+  value: { findings: ["alpha", "beta"] },
+  source: "research",
+  title: "Research findings"
+});
+
+context.memory.getValue(memoryKeys.task("research"));
+```
+
+| Namespace | Helper | Used For |
+|---|---|---|
+| `step:<id>` | `memoryKeys.step(id)` | Per-step results |
+| `task:<id>` | `memoryKeys.task(id)` | Per-task results |
+| `input:<key>` | `memoryKeys.input(key)` | Caller-supplied inputs and edge inputs |
+| `shared:<key>` | `memoryKeys.shared(key)` | Cross-agent communication, tool-published facts |
+
+**Access pattern — progressive disclosure via tool calls**: memory contents are NOT auto-injected into prompts. The agent uses three auto-attached tools:
+
+| Tool | Purpose |
+|---|---|
+| `memory_list` | Discover available entries (metadata only — keys, titles, kinds, byte sizes) |
+| `memory_read` | Fetch full values for specific keys |
+| `memory_write` | Publish a value under `shared:<key>` for other agents to discover |
+
+The default execution system prompt explains these tools; the user message names only the **specific** upstream keys the planner declared as required for the step. Values are pulled on demand.
+
+**Multi-agent teams** mirror `TaskBoard` `task_completed` events into `context.memory`, so sub-agents see each other's work through `memory_list`.
+
+For the full API, tool schemas, propagation flow, examples, and troubleshooting, see [Agent Memory System](agent-memory.md).
+
+---
+
 ## Tool System
 
 Every tool extends a single base class:
@@ -395,6 +436,7 @@ su claude -s /bin/bash -c "CLAUDE_OAUTH_TOKEN=1 npx vitest run packages/runtime/
 
 ## Related Pages
 
+- [Agent Memory System](agent-memory.md) — Unified memory across all agent types: API, propagation, examples
 - [Global Chat & Agents](global-chat-agents.md) — Using agents in the chat interface
 - [Agent CLI](agent-cli.md) — Running agents from the command line
 - [Agent Configuration Schema](agent-config-schema.md) — YAML configuration reference

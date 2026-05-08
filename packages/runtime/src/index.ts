@@ -14,6 +14,14 @@ export {
   type S3Client,
   type StorageAdapter
 } from "./context.js";
+export {
+  AgentMemory,
+  memoryKeys,
+  type MemoryEntry,
+  type MemoryFilter,
+  type MemoryKind,
+  type MemoryListener
+} from "./agent-memory.js";
 
 export * from "./providers/index.js";
 export {

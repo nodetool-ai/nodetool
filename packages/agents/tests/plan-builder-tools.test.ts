@@ -1,18 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   PlanBuilder,
   AddTaskTool,
   RemoveTaskTool,
   FinishPlanTool
 } from "../src/tools/plan-builder-tools.js";
-
-function createMockContext() {
-  return {
-    set: vi.fn(),
-    get: vi.fn(),
-    storeStepResult: vi.fn()
-  } as any;
-}
+import { createMockContext } from "./_helpers/mock-context.js";
 
 describe("PlanBuilder.addTask", () => {
   it("accepts a valid first task", () => {

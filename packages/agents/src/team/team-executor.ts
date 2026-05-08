@@ -15,7 +15,9 @@ import type {
   Message,
   ProviderTool
 } from "@nodetool-ai/runtime";
+import { memoryKeys } from "@nodetool-ai/runtime";
 import { Tool } from "../tools/base-tool.js";
+import { getMemoryTools } from "../tools/memory-tools.js";
 import { MessageBus } from "./message-bus.js";
 import { TaskBoard } from "./task-board.js";
 import { createTeamTools } from "./team-tools.js";
@@ -98,6 +100,34 @@ export class TeamExecutor {
    * Main execution loop. Yields TeamEvents as the team works.
    */
   async *execute(): AsyncGenerator<TeamEvent> {
+    // Mirror task-board completions into shared agent memory so every
+    // teammate (and any downstream agent on the same context) sees task
+    // results through the unified `context.memory` API.
+    const unsubscribeBoard =
+      typeof (this.board as TaskBoard).onEvent === "function"
+        ? (this.board as TaskBoard).onEvent((event) => {
+            if (event.type !== "task_completed") return;
+            const task = this.board.get(event.taskId);
+            if (!task) return;
+            this.context.memory.set({
+              key: memoryKeys.task(task.id),
+              kind: "task_result",
+              value: task.result,
+              source: task.id,
+              title: task.title,
+              description: task.description
+            });
+          })
+        : null;
+
+    try {
+      yield* this.executeInner();
+    } finally {
+      unsubscribeBoard?.();
+    }
+  }
+
+  private async *executeInner(): AsyncGenerator<TeamEvent> {
     // Initialize agents
     for (const identity of this.config.agents) {
       const provider = await this.context.getProvider(identity.provider);
@@ -325,14 +355,26 @@ export class TeamExecutor {
     this.totalIterations++;
     agent.iterations++;
 
-    // Build tool list: team tools + shared tools + agent-specific tools
+    // Build tool list: team tools + shared tools + memory tools.
+    // Memory tools provide progressive-disclosure access to results
+    // produced by other teammates (mirrored from the TaskBoard) and any
+    // facts published via `memory_write`.
     const teamTools = createTeamTools(
       agent.identity,
       this.config.agents,
       this.bus,
       this.board
     );
-    const allTools: Tool[] = [...teamTools, ...this.sharedTools];
+    const sharedNames = new Set(this.sharedTools.map((t) => t.name));
+    const teamNames = new Set(teamTools.map((t) => t.name));
+    const memoryTools = getMemoryTools().filter((mt) => {
+      return !sharedNames.has(mt.name) && !teamNames.has(mt.name);
+    });
+    const allTools: Tool[] = [
+      ...teamTools,
+      ...this.sharedTools,
+      ...memoryTools
+    ];
     const providerTools: ProviderTool[] = allTools.map((t) =>
       t.toProviderTool()
     );
@@ -528,6 +570,14 @@ export class TeamExecutor {
       "- Use `list_tasks` to see the board, `claim_task` to take work, `complete_task` when done.",
       "- Use `send_message` to coordinate with specific teammates, or `broadcast` for the whole team.",
       "- Use `create_task` to add new work items, `decompose_task` to break complex tasks apart.",
+      "",
+      "## Shared Memory (progressive disclosure)",
+      "- Completed teammate task results are mirrored into shared agent memory.",
+      "- Memory contents are NOT auto-included in your prompts. Pull on demand:",
+      "  1. `memory_list` — see what's available (metadata only).",
+      "  2. `memory_read` — fetch full values for specific keys.",
+      "  3. `memory_write` — publish a value under `shared:<key>` for others.",
+      "- Pull only what you need — don't fetch every entry by reflex.",
       "",
       strategyInstructions,
       "",

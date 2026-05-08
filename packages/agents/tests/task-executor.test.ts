@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { TaskExecutor } from "../src/task-executor.js";
 import type { Step, Task } from "../src/types.js";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import { memoryKeys } from "@nodetool-ai/runtime";
+import { createMockContext } from "./_helpers/mock-context.js";
 
 /**
  * Creates a mock provider that returns a finish_step tool call for each step.
@@ -44,22 +46,6 @@ function createMockProvider(delayMs = 0) {
     imageToVideo: vi.fn(),
     generateEmbedding: vi.fn(),
     isContextLengthError: () => false
-  } as any;
-}
-
-function createMockContext() {
-  const store = new Map<string, unknown>();
-  return {
-    storeStepResult: vi.fn(async (key: string, value: unknown) => {
-      store.set(key, value);
-      return key;
-    }),
-    loadStepResult: vi.fn(async (key: string) => {
-      return store.get(key);
-    }),
-    set: vi.fn(),
-    get: vi.fn(),
-    _store: store
   } as any;
 }
 
@@ -118,11 +104,10 @@ describe("TaskExecutor", () => {
     } as any;
 
     const context = createMockContext();
-    // Track step completion order via storeStepResult
-    const origStore = context.storeStepResult;
-    context.storeStepResult = vi.fn(async (key: string, value: unknown) => {
-      completionOrder.push(key);
-      return origStore(key, value);
+    context.memory.subscribe((entry: { kind: string; source?: string }) => {
+      if (entry.kind === "step_result" && entry.source) {
+        completionOrder.push(entry.source);
+      }
     });
 
     const executor = new TaskExecutor({
@@ -140,8 +125,9 @@ describe("TaskExecutor", () => {
     expect(s1.completed).toBe(true);
     expect(s2.completed).toBe(true);
     // s1 must complete before s2
-    const stepIds = completionOrder.filter((id) => id.startsWith("s"));
-    expect(stepIds.indexOf("s1")).toBeLessThan(stepIds.indexOf("s2"));
+    expect(completionOrder.indexOf("s1")).toBeLessThan(
+      completionOrder.indexOf("s2")
+    );
   });
 
   it("defers finish step until other steps complete", async () => {
@@ -153,10 +139,10 @@ describe("TaskExecutor", () => {
 
     const completionOrder: string[] = [];
     const context = createMockContext();
-    const origStore = context.storeStepResult;
-    context.storeStepResult = vi.fn(async (key: string, value: unknown) => {
-      completionOrder.push(key);
-      return origStore(key, value);
+    context.memory.subscribe((entry: { kind: string; source?: string }) => {
+      if (entry.kind === "step_result" && entry.source) {
+        completionOrder.push(entry.source);
+      }
     });
 
     const executor = new TaskExecutor({
@@ -175,9 +161,7 @@ describe("TaskExecutor", () => {
     expect(s2.completed).toBe(true);
     expect(s3.completed).toBe(true);
     // s3 (finish step) must be last step stored
-    // Note: finish step also stores task-level result, so filter to step ids
-    const stepIds = completionOrder.filter((id) => id.startsWith("s"));
-    expect(stepIds[stepIds.length - 1]).toBe("s3");
+    expect(completionOrder[completionOrder.length - 1]).toBe("s3");
   });
 
   it("defers finish step even when it has no explicit dependencies", async () => {
@@ -189,10 +173,10 @@ describe("TaskExecutor", () => {
 
     const completionOrder: string[] = [];
     const context = createMockContext();
-    const origStore = context.storeStepResult;
-    context.storeStepResult = vi.fn(async (key: string, value: unknown) => {
-      completionOrder.push(key);
-      return origStore(key, value);
+    context.memory.subscribe((entry: { kind: string; source?: string }) => {
+      if (entry.kind === "step_result" && entry.source) {
+        completionOrder.push(entry.source);
+      }
     });
 
     const executor = new TaskExecutor({
@@ -209,8 +193,7 @@ describe("TaskExecutor", () => {
 
     expect(s3.completed).toBe(true);
     // s3 must be last due to finish step deferral
-    const stepIds = completionOrder.filter((id) => id.startsWith("s"));
-    expect(stepIds[stepIds.length - 1]).toBe("s3");
+    expect(completionOrder[completionOrder.length - 1]).toBe("s3");
   });
 
   it("executes independent steps in parallel when parallelExecution=true", async () => {
@@ -307,7 +290,8 @@ describe("TaskExecutor", () => {
       // consume
     }
 
-    expect(context.set).toHaveBeenCalledWith("myKey", "myValue");
+    expect(context.memory.has(memoryKeys.input("myKey"))).toBe(true);
+    expect(context.memory.getValue(memoryKeys.input("myKey"))).toBe("myValue");
   });
 
   it("respects maxSteps limit", async () => {
@@ -364,10 +348,10 @@ describe("TaskExecutor", () => {
 
     const completionOrder: string[] = [];
     const context = createMockContext();
-    const origStore = context.storeStepResult;
-    context.storeStepResult = vi.fn(async (key: string, value: unknown) => {
-      completionOrder.push(key);
-      return origStore(key, value);
+    context.memory.subscribe((entry: { kind: string; source?: string }) => {
+      if (entry.kind === "step_result" && entry.source) {
+        completionOrder.push(entry.source);
+      }
     });
 
     // Set s1 as the final step (not the default last step s2)
@@ -385,8 +369,7 @@ describe("TaskExecutor", () => {
     }
 
     // s1 is the designated finish step, should be deferred until s2 completes
-    const stepIds = completionOrder.filter((id) => id.startsWith("s"));
-    expect(stepIds[0]).toBe("s2");
-    expect(stepIds[1]).toBe("s1");
+    expect(completionOrder[0]).toBe("s2");
+    expect(completionOrder[1]).toBe("s1");
   });
 });

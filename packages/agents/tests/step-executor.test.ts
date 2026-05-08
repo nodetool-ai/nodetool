@@ -3,6 +3,7 @@ import { StepExecutor } from "../src/step-executor.js";
 import type { Step, Task } from "../src/types.js";
 import type { ProcessingMessage, TaskUpdate } from "@nodetool-ai/protocol";
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
+import { AgentMemory } from "@nodetool-ai/runtime";
 import type { Tool } from "../src/tools/base-tool.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
@@ -73,13 +74,15 @@ function createMockProvider(toolCallArgs?: Record<string, unknown>): BaseProvide
 }
 
 /**
- * Minimal mock context with storeStepResult and loadStepResult.
+ * Minimal mock context with a real AgentMemory.
  */
 function createMockContext(
   overrides: Record<string, unknown> = {}
 ): ProcessingContext {
   const store = new Map<string, unknown>();
   return asProcessingContext({
+    memory: new AgentMemory(),
+    workspaceDir: null,
     storeStepResult: vi.fn(async (key: string, value: unknown) => {
       store.set(key, value);
       return key;
@@ -89,6 +92,7 @@ function createMockContext(
     }),
     set: vi.fn(),
     get: vi.fn(),
+    sandboxToAsset: vi.fn(async (uri: string) => ({ uri: `asset://${uri}` })),
     _store: store,
     ...overrides
   });
@@ -141,9 +145,8 @@ describe("StepExecutor", () => {
     expect(step.completed).toBe(true);
 
     // Result should be stored
-    expect(context.storeStepResult).toHaveBeenCalledWith("step_1", {
-      answer: "42"
-    });
+    const stored = context.memory.getValue("step:step_1");
+    expect(stored).toEqual({ answer: "42" });
     expect(executor.getResult()).toEqual({ answer: "42" });
   });
 
@@ -594,8 +597,14 @@ describe("StepExecutor", () => {
 
     const provider = createMockProvider({ result: { v: "ok" } });
     const context = createMockContext();
-    // Pre-store a dependency result
-    await context.storeStepResult("dep_step", { previous: "data" });
+    // Pre-populate the dependency in shared memory
+    context.memory.set({
+      key: "step:dep_step",
+      kind: "step_result",
+      value: { previous: "data" },
+      source: "dep_step",
+      title: "dep_step"
+    });
 
     const executor = new StepExecutor({
       task,
@@ -611,8 +620,9 @@ describe("StepExecutor", () => {
     }
 
     expect(step.completed).toBe(true);
-    // Verify loadStepResult was called for the dependency
-    expect(context.loadStepResult).toHaveBeenCalledWith("dep_step");
+    // The new memory write for this step should exist alongside the dep entry.
+    expect(context.memory.has("step:step_with_deps")).toBe(true);
+    expect(context.memory.has("step:dep_step")).toBe(true);
   });
 
   it("uses full args when finish_step has no result key", async () => {
