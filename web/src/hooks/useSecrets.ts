@@ -1,6 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import useSecretsStore from "../stores/SecretsStore";
+import { SecretResponse } from "../stores/ApiTypes";
 import { useCallback } from "react";
+
+interface UseSecretsResult {
+  secrets: SecretResponse[];
+  isLoading: boolean;
+  isSuccess: boolean;
+  isApiKeySet: (key: string) => boolean;
+}
 
 /**
  * Hook to fetch and manage API secrets (API keys) from the backend.
@@ -11,7 +19,7 @@ import { useCallback } from "react";
  *   console.log("OpenAI API key exists for this user");
  * }
  */
-export const useSecrets = () => {
+export const useSecrets = (): UseSecretsResult => {
   const {
     data: secrets = [],
     isLoading,

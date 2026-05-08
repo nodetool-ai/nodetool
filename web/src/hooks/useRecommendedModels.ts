@@ -31,7 +31,15 @@ import { llama_models as staticOllamaModels } from "../config/models";
  * );
  * ```
  */
-export const useRecommendedModels = () => {
+interface UseRecommendedModelsResult {
+  recommendedModels: UnifiedModel[] | undefined;
+  recommendedLoading: boolean;
+  recommendedIsFetching: boolean;
+  recommendedError: Error | null;
+  combinedRecommendedModels: UnifiedModel[];
+}
+
+export const useRecommendedModels = (): UseRecommendedModelsResult => {
   const {
     data: recommendedModels,
     isLoading: recommendedLoading,

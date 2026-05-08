@@ -1,10 +1,28 @@
 import { useCallback, useEffect, useRef } from "react";
-import { useFindInWorkflowStore } from "../stores/FindInWorkflowStore";
+import { useFindInWorkflowStore, FindResult } from "../stores/FindInWorkflowStore";
 import { useNodes } from "../contexts/NodeContext";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../stores/MetadataStore";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
+
+interface UseFindInWorkflowResult {
+  isOpen: boolean;
+  searchTerm: string;
+  results: FindResult[];
+  selectedIndex: number;
+  totalCount: number;
+  openFind: () => void;
+  closeFind: () => void;
+  performSearch: (term: string) => void;
+  immediateSearch: (term: string) => void;
+  goToSelected: () => void;
+  navigateNext: () => void;
+  navigatePrevious: () => void;
+  clearSearch: () => void;
+  selectNode: (index: number) => void;
+  getNodeDisplayName: (node: Node<NodeData>) => string;
+}
 
 /**
  * Hook to implement "Find in Workflow" functionality.
@@ -50,7 +68,7 @@ import { NodeData } from "../stores/NodeData";
  * goToSelected();
  * ```
  */
-export const useFindInWorkflow = () => {
+export const useFindInWorkflow = (): UseFindInWorkflowResult => {
   const isOpen = useFindInWorkflowStore((state) => state.isOpen);
   const searchTerm = useFindInWorkflowStore((state) => state.searchTerm);
   const results = useFindInWorkflowStore((state) => state.results);
