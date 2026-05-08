@@ -11,6 +11,7 @@ import type {
   ClipColorEffect,
   ClipEffect,
   ClipTransform,
+  ClipTransition,
   TimelineClip
 } from "@nodetool-ai/timeline";
 import {
@@ -137,6 +138,7 @@ export const TimelineInspector: React.FC = memo(() => {
   const [transformOpen, setTransformOpen] = usePersistedFold("transform");
   const [colorOpen, setColorOpen] = usePersistedFold("color");
   const [blurOpen, setBlurOpen] = usePersistedFold("blur");
+  const [transitionOpen, setTransitionOpen] = usePersistedFold("transition");
   const [actionsOpen, setActionsOpen] = usePersistedFold("actions");
   const [parametersOpen, setParametersOpen] = usePersistedFold("parameters");
 
@@ -473,6 +475,66 @@ export const TimelineInspector: React.FC = memo(() => {
                     >
                       Clear blur effect
                     </EditorButton>
+                  </>
+                );
+              })()}
+            </FlexColumn>
+          </CollapsibleSection>
+        )}
+
+        {!isAudio && (
+          <CollapsibleSection title="Transition" open={transitionOpen} onToggle={setTransitionOpen}>
+            <FlexColumn css={sectionContentStyles} gap={1}>
+              {(() => {
+                const t = clip.transitionIn;
+                const type: "none" | "crossfade" = t?.type ?? "none";
+                const duration = t?.durationMs ?? 500;
+                const setType = (next: "none" | "crossfade") => {
+                  if (next === "none") {
+                    patchClip(clip.id, { transitionIn: undefined });
+                  } else {
+                    const transition: ClipTransition = {
+                      type: "crossfade",
+                      durationMs: duration
+                    };
+                    patchClip(clip.id, { transitionIn: transition });
+                  }
+                };
+                return (
+                  <>
+                    <FormField label="Type">
+                      <NodeSelect
+                        value={type}
+                        onChange={(e) =>
+                          setType(e.target.value as "none" | "crossfade")
+                        }
+                      >
+                        <NodeMenuItem value="none">None</NodeMenuItem>
+                        <NodeMenuItem value="crossfade">Crossfade</NodeMenuItem>
+                      </NodeSelect>
+                    </FormField>
+                    {type === "crossfade" && (
+                      <>
+                        <NumericField
+                          label="Duration (ms)"
+                          value={duration}
+                          onCommit={(v) => {
+                            const n = Number(v);
+                            if (!Number.isFinite(n) || n < 0) return;
+                            patchClip(clip.id, {
+                              transitionIn: {
+                                type: "crossfade",
+                                durationMs: Math.max(0, Math.floor(n))
+                              }
+                            });
+                          }}
+                        />
+                        <Text size="small">
+                          Overlap this clip with the previous clip on the same
+                          track to see the cross-fade.
+                        </Text>
+                      </>
+                    )}
                   </>
                 );
               })()}

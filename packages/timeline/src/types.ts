@@ -99,6 +99,25 @@ export interface TimelineClip {
   borderRadius?: number;
   /** GPU effects applied to this clip in order. */
   effects?: ClipEffect[];
+  /**
+   * Transition into this clip from the previously-overlapping clip on the
+   * same track. The two clips must overlap in time by at least
+   * `durationMs` for the transition to be visible.
+   */
+  transitionIn?: ClipTransition;
+}
+
+/**
+ * Per-clip incoming transition. Only `crossfade` is implemented today; the
+ * union is open for future types (`fade`, `wipe`, etc.) without a schema
+ * break.
+ */
+export type ClipTransition = ClipCrossfadeTransition;
+
+export interface ClipCrossfadeTransition {
+  type: "crossfade";
+  /** Length of the cross-fade in milliseconds. */
+  durationMs: number;
 }
 
 /**
