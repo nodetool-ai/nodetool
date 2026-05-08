@@ -100,6 +100,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const setZoom = useTimelineUIStore((s) => s.setZoom);
 
     const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
+    const setActiveTool = useTimelineUIStore((s) => s.setActiveTool);
     const deleteSelected = useTimelineStore((s) => s.deleteSelected);
     const duplicateSelected = useTimelineStore((s) => s.duplicateSelected);
     const splitSelectedAtPlayhead = useTimelineStore(
@@ -231,6 +232,20 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           splitSelectedAtPlayhead(currentTimeMs, selectedClipIds);
         }
 
+        // V → select tool, C → cut tool (FCP-style; ignore in text inputs)
+        if (
+          (e.key === "v" || e.key === "c") &&
+          !isCtrl &&
+          !e.shiftKey &&
+          !e.altKey
+        ) {
+          if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+            return;
+          }
+          e.preventDefault();
+          setActiveTool(e.key === "v" ? "select" : "cut");
+        }
+
         // Ctrl+Z → undo
         if (isCtrl && !e.shiftKey && e.key === "z") {
           e.preventDefault();
@@ -251,7 +266,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         deleteSelected,
         duplicateSelected,
         splitSelectedAtPlayhead,
-        currentTimeMs
+        currentTimeMs,
+        setActiveTool
       ]
     );
 
