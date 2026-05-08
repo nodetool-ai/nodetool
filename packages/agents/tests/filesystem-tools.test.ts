@@ -18,7 +18,13 @@ import {
   getAllTools
 } from "../src/tools/tool-registry.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { FileStorageAdapter } from "@nodetool-ai/storage";
+import {
+  FileStorageAdapter,
+  InMemoryStorageAdapter,
+  type StorageAdapter,
+  type StorageListResult,
+  type StorageStat
+} from "@nodetool-ai/storage";
 
 let tempDir: string;
 
@@ -322,6 +328,41 @@ describe("WriteFileTool", () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain("outside the workspace");
   });
+
+  it("infers content type from the file extension instead of always writing text/plain", async () => {
+    // Use InMemoryStorageAdapter — it's the only adapter that round-trips
+    // contentType through stat(), so we can assert WriteFileTool isn't
+    // hard-coding text/plain regardless of extension.
+    const memStorage = new InMemoryStorageAdapter();
+    const memCtx = {
+      workspaceStorage: memStorage
+    } as unknown as ProcessingContext;
+
+    const cases: Array<{ path: string; expectedPrefix: string }> = [
+      { path: "data.json", expectedPrefix: "application/json" },
+      { path: "page.html", expectedPrefix: "text/html" },
+      { path: "report.md", expectedPrefix: "text/markdown" },
+      { path: "table.csv", expectedPrefix: "text/csv" },
+      { path: "config.yaml", expectedPrefix: "application/yaml" },
+      { path: "script.js", expectedPrefix: "application/javascript" },
+      { path: "notes.txt", expectedPrefix: "text/plain" },
+      { path: "no-extension", expectedPrefix: "text/plain" }
+    ];
+
+    for (const { path, expectedPrefix } of cases) {
+      const result = (await tool.process(memCtx, {
+        path,
+        content: "x"
+      })) as any;
+      expect(result.success).toBe(true);
+      const stat = await memStorage.stat(memStorage.uriForKey(path));
+      expect(stat).not.toBeNull();
+      expect(
+        stat!.contentType,
+        `path=${path}: expected contentType to start with ${expectedPrefix}, got ${stat!.contentType}`
+      ).toMatch(new RegExp(`^${expectedPrefix}\\b`));
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -434,6 +475,61 @@ describe("ListDirectoryTool", () => {
     })) as any;
     expect(result.success).toBe(false);
     expect(result.error).toContain("outside the workspace");
+  });
+
+  it("returns success with empty entries for an existing-but-empty directory", async () => {
+    // An LLM listing a freshly-created or just-emptied directory should not
+    // get back a "not found" error — the directory exists, it's just empty.
+    mkdirSync(join(tempDir, "empty-dir"));
+
+    const result = (await tool.process(mockContext, {
+      path: "empty-dir"
+    })) as any;
+
+    expect(result.entries).toBeDefined();
+    expect(result.entries).toHaveLength(0);
+    expect(result.error).toBeUndefined();
+  });
+
+  it("does not mislabel non-traversal storage errors as 'outside the workspace'", async () => {
+    // A storage backend can throw for many reasons (network, permissions,
+    // backend bug). The list tool used to swallow ALL list() errors as
+    // traversal — that's misleading. Real path-traversal rejections should
+    // still surface as such, but unrelated errors should not be relabeled.
+    class FailingListStorage implements StorageAdapter {
+      async store(): Promise<string> {
+        return "mock://x";
+      }
+      async retrieve(): Promise<Uint8Array | null> {
+        return null;
+      }
+      async exists(): Promise<boolean> {
+        return true;
+      }
+      uriForKey(key: string): string {
+        return `mock://${key}`;
+      }
+      async list(): Promise<StorageListResult> {
+        throw new Error("backend timeout");
+      }
+      async delete(): Promise<boolean> {
+        return false;
+      }
+      async stat(): Promise<StorageStat | null> {
+        return null;
+      }
+    }
+    const failingCtx = {
+      workspaceStorage: new FailingListStorage()
+    } as unknown as ProcessingContext;
+
+    const result = (await tool.process(failingCtx, {
+      path: "some/dir"
+    })) as any;
+
+    expect(result.success).toBe(false);
+    expect(result.error).not.toContain("outside the workspace");
+    expect(result.error).toMatch(/backend timeout/);
   });
 });
 

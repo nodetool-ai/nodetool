@@ -57,6 +57,8 @@ export interface PersistedBinary {
    * (which is a workspace key, not a fetchable URL).
    */
   display_markdown?: string;
+  /** Per-side write errors. Set only when a write or URL resolution failed. */
+  errors?: { workspace?: string; asset?: string };
 }
 
 function kindForMime(mime: string): "image" | "audio" | "video" | "file" {
@@ -67,6 +69,23 @@ function kindForMime(mime: string): "image" | "audio" | "video" | "file" {
   return "file";
 }
 
+function htmlAttrEscape(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function urlForMarkdown(url: string): string {
+  // `(`, `)`, ` `, `<`, `>` can prematurely terminate a markdown link target.
+  return url.replace(
+    /[()\s<>]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`
+  );
+}
+
 function buildDisplayMarkdown(
   url: string,
   kind: "image" | "audio" | "video" | "file",
@@ -75,13 +94,13 @@ function buildDisplayMarkdown(
   const safeLabel = label.replace(/[\[\]]/g, "");
   switch (kind) {
     case "image":
-      return `![${safeLabel}](${url})`;
+      return `![${safeLabel}](${urlForMarkdown(url)})`;
     case "audio":
-      return `<audio controls src="${url}"></audio>`;
+      return `<audio controls src="${htmlAttrEscape(url)}"></audio>`;
     case "video":
-      return `<video controls src="${url}"></video>`;
+      return `<video controls src="${htmlAttrEscape(url)}"></video>`;
     default:
-      return `[${safeLabel}](${url})`;
+      return `[${safeLabel}](${urlForMarkdown(url)})`;
   }
 }
 
@@ -109,6 +128,7 @@ export async function persistBinaryOutput(
   opts: PersistBinaryOptions
 ): Promise<PersistedBinary> {
   const result: PersistedBinary = {};
+  const errors: { workspace?: string; asset?: string } = {};
 
   // Workspace copy — read by downstream tools that take `output_file`.
   if (opts.outputFile && context.workspaceStorage) {
@@ -119,8 +139,8 @@ export async function persistBinaryOutput(
         opts.contentType
       );
       result.output_file = opts.outputFile;
-    } catch {
-      // Non-fatal — the UI URL path may still succeed.
+    } catch (e) {
+      errors.workspace = e instanceof Error ? e.message : String(e);
     }
   }
 
@@ -139,10 +159,8 @@ export async function persistBinaryOutput(
         opts.contentType
       );
       result.asset_url = await context.resolveTempUrl(storageUri);
-    } catch {
-      // Non-fatal — if both writes failed, callers get an empty result and
-      // can decide how to surface that to the LLM. The `output_file` write
-      // would already have populated the workspace key on success.
+    } catch (e) {
+      errors.asset = e instanceof Error ? e.message : String(e);
     }
   }
 
@@ -155,6 +173,10 @@ export async function persistBinaryOutput(
       kind,
       label
     );
+  }
+
+  if (errors.workspace || errors.asset) {
+    result.errors = errors;
   }
 
   return result;
