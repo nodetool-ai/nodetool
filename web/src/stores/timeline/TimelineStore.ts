@@ -52,6 +52,9 @@ const SNAP_THRESHOLD_PX = 8;
 export interface TimelineStoreState {
   // ── Document ─────────────────────────────────────────────────────────────
   sequenceId: string | null;
+  /** Latest server-side `updatedAt` for the loaded sequence; used as the
+   * `baseUpdatedAt` optimistic-concurrency token by autosave. */
+  baseUpdatedAt: string | null;
   fps: number;
   /** Sequence width in pixels (project resolution). */
   width: number;
@@ -68,6 +71,8 @@ export interface TimelineStoreState {
   loadSequence: (seq: TimelineSequence) => void;
   /** Reset the store to an empty document. */
   reset: () => void;
+  /** Roll `baseUpdatedAt` forward after a successful server save. */
+  setBaseUpdatedAt: (updatedAt: string) => void;
 
   // ── Track mutations ──────────────────────────────────────────────────────
 
@@ -221,6 +226,7 @@ type PartializedState = Pick<
 
 const emptyState = {
   sequenceId: null as string | null,
+  baseUpdatedAt: null as string | null,
   fps: 30,
   width: 1920,
   height: 1080,
@@ -254,6 +260,7 @@ export const createTimelineStore = (
         loadSequence: (seq) =>
           set({
             sequenceId: seq.id,
+            baseUpdatedAt: seq.updatedAt,
             fps: seq.fps,
             width: seq.width,
             height: seq.height,
@@ -264,6 +271,8 @@ export const createTimelineStore = (
           }),
 
         reset: () => set({ ...emptyState }),
+
+        setBaseUpdatedAt: (updatedAt) => set({ baseUpdatedAt: updatedAt }),
 
         // ── Tracks ──────────────────────────────────────────────────────────
 
