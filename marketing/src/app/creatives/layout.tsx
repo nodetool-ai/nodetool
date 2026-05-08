@@ -1,29 +1,29 @@
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "NodeTool for Creative Professionals | AI-Powered Creative Workflows",
+  title: "NodeTool for working creatives | The open creative AI workspace",
   description:
-    "Build powerful creative pipelines with drag-and-drop simplicity. Generate images, process video, create audio—all in one visual workspace. Perfect for video creators, graphic designers, music producers, and photographers.",
+    "The open creative AI workspace, made for working artists, motion designers, and AI-native illustrators. Every major model from every major provider, called with your own keys, on one node-based canvas with masks, inpaint, outpaint, relight, upscale, and compositing built in.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/creatives",
   },
   keywords: [
-    "AI for creatives",
-    "creative workflow automation",
-    "AI image generation",
-    "video processing",
-    "audio generation",
-    "visual workflow builder",
-    "creative professionals",
-    "AI tools for designers",
-    "AI video editing",
-    "AI music production",
+    "creative AI workspace",
+    "BYOK creative AI",
+    "ComfyUI alternative for creatives",
+    "Weavy alternative",
+    "AI canvas for artists",
+    "Flux workflow",
+    "Seedance workflow",
+    "ElevenLabs workflow",
+    "AI tools for motion designers",
+    "AI tools for illustrators",
   ],
   openGraph: {
-    title: "NodeTool for Creative Professionals | AI-Powered Creative Workflows",
+    title: "NodeTool for working creatives | The open creative AI workspace",
     description:
-      "Build powerful creative pipelines with drag-and-drop simplicity. Generate images, process video, create audio—all in one visual workspace.",
+      "Every model. Your keys. Your canvas. The open-source creative AI workspace for working artists, motion designers, and illustrators.",
     url: "https://nodetool.ai/creatives",
     siteName: "NodeTool",
     images: [
@@ -37,9 +37,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "NodeTool for Creative Professionals",
+    title: "NodeTool for working creatives",
     description:
-      "Build powerful creative pipelines with drag-and-drop simplicity. Generate images, process video, create audio—all in one visual workspace.",
+      "Every model. Your keys. Your canvas. The open creative AI workspace.",
     images: ["/preview.png"],
   },
 };

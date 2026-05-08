@@ -2,8 +2,8 @@ import React from "react";
 
 /**
  * Server-rendered SEO content that appears above the fold.
- * This component is rendered on the server for search engine visibility.
- * It provides keyword-rich, semantic content optimized for LLM extraction and citations.
+ * Optimized for LLM extraction and citations on the canonical brand
+ * positioning: the open creative AI workspace.
  */
 export default function SeoHeroContent() {
   return (
@@ -11,12 +11,14 @@ export default function SeoHeroContent() {
       {/* Canonical Definition */}
       <section aria-labelledby="definition">
         <h1 id="definition" className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6">
-          NodeTool: Visual AI Workflow Builder for Local and Cloud AI Development
+          NodeTool: The Open Creative AI Workspace
         </h1>
         <p className="text-lg text-slate-300 mb-8 leading-relaxed">
-          NodeTool is a node-based visual programming tool for building AI workflows and applications. 
-          It runs locally on macOS, Windows, and Linux, allowing developers to create LLM agents, RAG systems, 
-          and multimodal content pipelines by connecting nodes in a drag-and-drop interface.
+          NodeTool is the open-source creative AI workspace — every major model
+          from every major provider, called with your own keys, wired into one
+          node-based canvas you run on your machine. Bring your own keys to FAL,
+          KIE, OpenAI, Anthropic, Gemini, Replicate, and more. Pay providers
+          directly at provider prices. Switch the moment a better model ships.
         </p>
       </section>
 
@@ -26,10 +28,12 @@ export default function SeoHeroContent() {
           What Problem Does NodeTool Solve?
         </h2>
         <p className="text-slate-300 leading-relaxed">
-          Building AI workflows typically requires writing code to orchestrate multiple models, APIs, and data sources. 
-          NodeTool eliminates this friction by providing a visual canvas where developers can connect AI components 
-          without managing boilerplate code. It solves the data privacy concern of cloud-only solutions by running 
-          entirely on your local machine while still supporting cloud APIs when needed.
+          Creative pros working with AI are stuck choosing between ComfyUI&apos;s
+          engineer-first UX, closed SaaS canvases that lock you into a credit
+          system and a curated model roster, or a dozen browser tabs across
+          Midjourney, Runway, and Photoshop. NodeTool is the open alternative:
+          one canvas, every provider, your keys, no credit markup, no vendor
+          lock-in.
         </p>
       </section>
 
@@ -39,30 +43,26 @@ export default function SeoHeroContent() {
           Who Is NodeTool For?
         </h2>
         <ul className="space-y-2 text-slate-300">
-          <li>• AI developers building LLM applications and agents</li>
-          <li>• Creative professionals working with generative AI (images, video, audio)</li>
-          <li>• Data engineers creating RAG pipelines and vector database workflows</li>
-          <li>• Researchers prototyping multimodal AI systems</li>
-          <li>• Teams requiring local-first AI for privacy or compliance</li>
+          <li>• Independent generative artists and AI-native illustrators</li>
+          <li>• Motion designers and technical art directors</li>
+          <li>• ComfyUI power users who want better UX without losing control</li>
+          <li>• Weavy users looking for somewhere to go after the Figma acquisition</li>
+          <li>• Small studios, brand teams, and post-production shops working with AI every day</li>
         </ul>
       </section>
 
-      {/* How It Works */}
-      <section aria-labelledby="how-it-works" className="text-left max-w-2xl mx-auto mb-8">
-        <h2 id="how-it-works" className="text-xl font-semibold text-white mb-3">
-          How NodeTool Works
+      {/* The Proof Story */}
+      <section aria-labelledby="proof" className="text-left max-w-2xl mx-auto mb-8">
+        <h2 id="proof" className="text-xl font-semibold text-white mb-3">
+          What Vendor Neutrality Actually Buys You
         </h2>
-        <p className="text-slate-300 leading-relaxed mb-3">
-          NodeTool uses a node-based visual interface where each node represents an AI operation (LLM call, image generation, 
-          data transformation, etc.). Users connect nodes by dragging edges between them. The tool handles:
+        <p className="text-slate-300 leading-relaxed">
+          Seedance is the best video model right now. It&apos;s available on
+          FAL, Replicate, and KIE at different price points. NodeTool lets you
+          pick the cheapest. When Veo 4 ships, you swap one node and you&apos;re
+          on it the same day. The best model for the job changes every month —
+          your tool shouldn&apos;t slow that down.
         </p>
-        <ul className="space-y-2 text-slate-300">
-          <li>• Type-safe connections between nodes (preventing incompatible data flows)</li>
-          <li>• Local execution engine (async Node.js runner; custom nodes in TypeScript or Python)</li>
-          <li>• Real-time workflow execution with live preview of outputs</li>
-          <li>• Model management for local LLMs (MLX, GGML/GGUF formats)</li>
-          <li>• Integration with cloud APIs (OpenAI, Anthropic, Replicate, etc.)</li>
-        </ul>
       </section>
 
       {/* Key Differences */}
@@ -72,33 +72,37 @@ export default function SeoHeroContent() {
         </h2>
         <div className="space-y-3 text-slate-300">
           <div>
-            <strong className="text-white">vs ComfyUI:</strong> ComfyUI focuses on image generation workflows (Stable Diffusion). 
-            NodeTool extends this concept to general AI workflows including LLM agents, text processing, RAG, audio, and video.
+            <strong className="text-white">vs ComfyUI:</strong> ComfyUI is a
+            Stable Diffusion power tool with engineer-first UX. NodeTool is a
+            full creative workspace — image, video, audio, and text on one
+            canvas — with the editing tools you rely on: masks, inpaint,
+            outpaint, relight, upscale, layers, compositing.
           </div>
           <div>
-            <strong className="text-white">vs n8n:</strong> n8n is a general workflow automation tool. NodeTool is specialized 
-            for AI workloads with native support for model management, local LLMs, and multimodal AI operations.
+            <strong className="text-white">vs Weavy / closed SaaS canvases:</strong>{" "}
+            Closed canvases lock you into a credit system and a curated model
+            roster. NodeTool is open source and BYOK. You pay providers
+            directly. Your workflows, files, and keys belong to you.
           </div>
           <div>
-            <strong className="text-white">vs LangChain:</strong> LangChain is a code-first Python framework. NodeTool provides
-            a visual interface and runs workflows locally in an async Node.js runner. No coding required to build workflows,
-            and you can extend it with custom nodes in TypeScript or Python.
+            <strong className="text-white">vs Midjourney + Runway + Photoshop tabs:</strong>{" "}
+            Stop juggling tabs and exporting between tools. Wire every model and
+            every editor into one node-based canvas, then run it on your machine
+            or in the browser via NodeTool Cloud.
           </div>
         </div>
       </section>
 
-      {/* Key Capabilities */}
-      <section aria-labelledby="capabilities" className="text-left max-w-2xl mx-auto mb-8">
-        <h2 id="capabilities" className="text-xl font-semibold text-white mb-3">
-          Core Capabilities
+      {/* What it is not */}
+      <section aria-labelledby="not" className="text-left max-w-2xl mx-auto mb-8">
+        <h2 id="not" className="text-xl font-semibold text-white mb-3">
+          What NodeTool Is Not
         </h2>
         <ul className="space-y-2 text-slate-300">
-          <li>• <strong>Local-First Architecture:</strong> Runs on macOS, Windows, Linux without internet dependency</li>
-          <li>• <strong>Multi-Provider Support:</strong> OpenAI, Anthropic, Ollama, Replicate, Hugging Face, and custom models</li>
-          <li>• <strong>Multimodal Processing:</strong> Text, images, video, and audio in unified workflows</li>
-          <li>• <strong>RAG & Vector Databases:</strong> Built-in support for document indexing and semantic search</li>
-          <li>• <strong>AI Agent Framework:</strong> Build autonomous agents with tool use and web browsing</li>
-          <li>• <strong>Open Source:</strong> TypeScript end-to-end with an async Node.js runner; custom nodes in TypeScript or Python</li>
+          <li>• Not a model host. We don&apos;t run inference on our servers and resell it.</li>
+          <li>• Not a credit system. No proprietary tokens, no minimum top-up, no markup on model calls.</li>
+          <li>• Not a closed platform. Open source, runnable anywhere, no &quot;pro tier&quot; hiding the good features.</li>
+          <li>• Not local-only. Local inference is supported. It&apos;s not required.</li>
         </ul>
       </section>
 
@@ -106,10 +110,10 @@ export default function SeoHeroContent() {
       <section aria-labelledby="facts" className="mt-10 text-slate-400 border-t border-slate-800/50 pt-6">
         <h2 id="facts" className="sr-only">Quick Facts</h2>
         <dl className="space-y-2 text-sm">
-          <div><dt className="inline font-semibold">License:</dt> <dd className="inline">Open Source</dd></div>
-          <div><dt className="inline font-semibold">Platforms:</dt> <dd className="inline">macOS, Windows, Linux</dd></div>
-          <div><dt className="inline font-semibold">Architecture:</dt> <dd className="inline">Local-first with optional cloud APIs</dd></div>
-          <div><dt className="inline font-semibold">Category:</dt> <dd className="inline">AI Development Tool, Visual Programming</dd></div>
+          <div><dt className="inline font-semibold">License:</dt> <dd className="inline">Open Source (AGPL-3.0)</dd></div>
+          <div><dt className="inline font-semibold">Platforms:</dt> <dd className="inline">macOS, Windows, Linux desktop, plus NodeTool Cloud in the browser</dd></div>
+          <div><dt className="inline font-semibold">Pricing model:</dt> <dd className="inline">BYOK — pay providers directly at provider prices, no credits, no markup</dd></div>
+          <div><dt className="inline font-semibold">Category:</dt> <dd className="inline">The open creative AI workspace</dd></div>
         </dl>
       </section>
     </div>
