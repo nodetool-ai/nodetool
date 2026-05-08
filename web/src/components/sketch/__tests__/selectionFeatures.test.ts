@@ -10,6 +10,25 @@
 import { act } from "@testing-library/react";
 import { useSketchStore } from "../state/useSketchStore";
 import { rectSelectionMask, getSelectionBounds } from "../selection";
+import type { Selection } from "../types";
+
+function makeSelectionWithRect(
+  width: number,
+  height: number,
+  x: number,
+  y: number,
+  rectWidth: number,
+  rectHeight: number
+): Selection {
+  const data = new Uint8ClampedArray(width * height);
+  for (let yy = y; yy < y + rectHeight; yy++) {
+    const row = yy * width;
+    for (let xx = x; xx < x + rectWidth; xx++) {
+      data[row + xx] = 255;
+    }
+  }
+  return { width, height, data };
+}
 
 // Reset store before each test
 beforeEach(() => {
@@ -304,5 +323,79 @@ describe("Reselect last selection", () => {
       useSketchStore.getState().reselectLastSelection();
     });
     expect(useSketchStore.getState().selection).toBeNull();
+  });
+});
+
+describe("Selection mutations stay ROI-bounded", () => {
+  it("expandCurrentSelection trims the result back to the changed ROI", () => {
+    const selection = makeSelectionWithRect(512, 512, 120, 140, 8, 6);
+    act(() => {
+      useSketchStore.getState().setSelection(selection);
+      useSketchStore.getState().expandCurrentSelection(4);
+    });
+
+    const expanded = useSketchStore.getState().selection;
+    expect(expanded).not.toBeNull();
+    expect(expanded!.width).toBeLessThan(512);
+    expect(expanded!.height).toBeLessThan(512);
+    expect(expanded!.width).toBeLessThanOrEqual(20);
+    expect(expanded!.height).toBeLessThanOrEqual(18);
+    expect(getSelectionBounds(expanded!)).toEqual({
+      x: 116,
+      y: 136,
+      width: 16,
+      height: 14
+    });
+  });
+
+  it("featherCurrentSelection no longer keeps a full-document buffer for small edits", () => {
+    const selection = makeSelectionWithRect(512, 512, 80, 96, 10, 10);
+    act(() => {
+      useSketchStore.getState().setSelection(selection);
+      useSketchStore.getState().setSelectSettings({ featherRadius: 6 });
+      useSketchStore.getState().featherCurrentSelection();
+    });
+
+    const feathered = useSketchStore.getState().selection;
+    const bounds = getSelectionBounds(feathered!);
+    expect(feathered).not.toBeNull();
+    expect(feathered!.width).toBeLessThan(512);
+    expect(feathered!.height).toBeLessThan(512);
+    expect(bounds).not.toBeNull();
+    // The exact thresholded blur footprint depends on the repeated box-blur
+    // passes, but it should stay within the feather radius while still
+    // covering the original 10×10 selection.
+    expect(bounds!.width).toBeGreaterThanOrEqual(20);
+    expect(bounds!.width).toBeLessThanOrEqual(22);
+    expect(bounds!.height).toBeGreaterThanOrEqual(20);
+    expect(bounds!.height).toBeLessThanOrEqual(22);
+    expect(bounds!.x).toBeGreaterThanOrEqual(74);
+    expect(bounds!.x).toBeLessThanOrEqual(80);
+    expect(bounds!.y).toBeGreaterThanOrEqual(90);
+    expect(bounds!.y).toBeLessThanOrEqual(96);
+    expect(bounds!.x + bounds!.width).toBeGreaterThanOrEqual(90);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(96);
+    expect(bounds!.y + bounds!.height).toBeGreaterThanOrEqual(106);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(112);
+  });
+
+  it("convertSelectionToBorderOutline pads outward before trimming", () => {
+    const selection = makeSelectionWithRect(512, 512, 200, 220, 20, 12);
+    act(() => {
+      useSketchStore.getState().setSelection(selection);
+      useSketchStore.getState().setSelectSettings({ borderWidth: 6 });
+      useSketchStore.getState().convertSelectionToBorderOutline();
+    });
+
+    const border = useSketchStore.getState().selection;
+    expect(border).not.toBeNull();
+    expect(border!.width).toBeLessThan(512);
+    expect(border!.height).toBeLessThan(512);
+    expect(getSelectionBounds(border!)).toEqual({
+      x: 197,
+      y: 217,
+      width: 26,
+      height: 18
+    });
   });
 });

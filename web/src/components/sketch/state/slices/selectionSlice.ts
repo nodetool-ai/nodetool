@@ -15,8 +15,103 @@ import {
   invertMaskInPlace,
   selectionHasAnyPixels,
   selectionToDocumentAligned,
-  smoothSelectionBorders
+  smoothSelectionBorders,
+  trimSelectionMask
 } from "../../selection";
+
+const MAX_SELECTION_MUTATION_PADDING = 64;
+const MAX_SELECTION_BORDER_WIDTH = 64;
+
+/**
+ * Returns bounds for every pixel with any remaining alpha.
+ *
+ * This intentionally keeps sub-threshold soft edges so repeated feather/smooth
+ * operations do not clip partially selected pixels back to the hard-selection
+ * threshold before the next mutation runs.
+ */
+function getSelectionAlphaBounds(
+  sel: Selection
+): { minX: number; minY: number; maxX: number; maxY: number } | null {
+  const { width, height, data } = sel;
+  // Sentinel values let us detect the "found nothing" case after one scan.
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < height; y++) {
+    const row = y * width;
+    for (let x = 0; x < width; x++) {
+      if (data[row + x] === 0) {
+        continue;
+      }
+      if (x < minX) {
+        minX = x;
+      }
+      if (y < minY) {
+        minY = y;
+      }
+      if (x > maxX) {
+        maxX = x;
+      }
+      if (y > maxY) {
+        maxY = y;
+      }
+    }
+  }
+
+  if (maxX < 0 || maxY < 0 || minX >= width || minY >= height) {
+    return null;
+  }
+
+  return { minX, minY, maxX, maxY };
+}
+
+function cloneSelectionRegion(sel: Selection, padding: number): Selection {
+  const bounds = getSelectionAlphaBounds(sel);
+  if (!bounds) {
+    return cloneSelectionMask(sel);
+  }
+
+  const paddedMinX = bounds.minX - padding;
+  const paddedMinY = bounds.minY - padding;
+  const paddedMaxX = bounds.maxX + padding;
+  const paddedMaxY = bounds.maxY + padding;
+  const width = paddedMaxX - paddedMinX + 1;
+  const height = paddedMaxY - paddedMinY + 1;
+  const data = new Uint8ClampedArray(width * height);
+  const srcX0 = Math.max(0, paddedMinX);
+  const srcY0 = Math.max(0, paddedMinY);
+  const srcX1 = Math.min(sel.width - 1, paddedMaxX);
+  const srcY1 = Math.min(sel.height - 1, paddedMaxY);
+  const copyWidth = srcX1 - srcX0 + 1;
+  const dstX = srcX0 - paddedMinX;
+  const dstY = srcY0 - paddedMinY;
+
+  for (let y = srcY0; y <= srcY1; y++) {
+    const srcOffset = y * sel.width + srcX0;
+    const dstOffset = (dstY + (y - srcY0)) * width + dstX;
+    data.set(sel.data.subarray(srcOffset, srcOffset + copyWidth), dstOffset);
+  }
+
+  return {
+    width,
+    height,
+    data,
+    originX: (sel.originX ?? 0) + paddedMinX,
+    originY: (sel.originY ?? 0) + paddedMinY
+  };
+}
+
+/**
+ * Trims zero-valued borders after a mutation so the store does not retain a
+ * full-document buffer when the edited selection only occupies a small ROI.
+ * When the mutation clears everything, keep the mutated buffer instead of
+ * switching to `null` so empty-selection behavior stays unchanged.
+ */
+function finalizeMutatedSelection(sel: Selection): Selection {
+  return trimSelectionMask(sel) ?? sel;
+}
 
 export interface SelectionSlice {
   selection: Selection | null;
@@ -101,9 +196,18 @@ export const createSelectionSlice: StateCreator<
     if (!selectionHasAnyPixels(sel)) {
       return;
     }
-    const copy = cloneSelectionMask(sel!);
+    const copy = cloneSelectionRegion(
+      sel!,
+      Math.max(
+        0,
+        Math.min(
+          MAX_SELECTION_MUTATION_PADDING,
+          Math.round(state.toolSettings.select.featherRadius)
+        )
+      )
+    );
     featherMaskAlpha(copy, state.toolSettings.select.featherRadius);
-    get().setSelection(copy);
+    get().setSelection(finalizeMutatedSelection(copy));
   },
 
   smoothCurrentSelectionBorders: () => {
@@ -111,9 +215,9 @@ export const createSelectionSlice: StateCreator<
     if (!selectionHasAnyPixels(sel)) {
       return;
     }
-    const copy = cloneSelectionMask(sel!);
+    const copy = cloneSelectionRegion(sel!, 3);
     smoothSelectionBorders(copy, 3);
-    get().setSelection(copy);
+    get().setSelection(finalizeMutatedSelection(copy));
   },
 
   convertSelectionToBorderOutline: () => {
@@ -123,26 +227,35 @@ export const createSelectionSlice: StateCreator<
       return;
     }
     const widthPx = state.toolSettings.select.borderWidth;
-    const ring = buildSelectionBorderStrokeMask(sel!, widthPx);
+    const normalizedBorderWidth = Math.max(
+      1,
+      Math.min(MAX_SELECTION_BORDER_WIDTH, Math.round(widthPx))
+    );
+    const copy = cloneSelectionRegion(sel!, Math.ceil(normalizedBorderWidth / 2));
+    const ring = buildSelectionBorderStrokeMask(copy, widthPx);
     if (!ring || !selectionHasAnyPixels(ring)) {
       return;
     }
-    get().setSelection(ring);
+    get().setSelection(finalizeMutatedSelection(ring));
   },
 
   expandCurrentSelection: (px: number) => {
     const sel = get().selection;
-    if (!selectionHasAnyPixels(sel)) return;
-    const copy = cloneSelectionMask(sel!);
+    if (!selectionHasAnyPixels(sel)) {
+      return;
+    }
+    const copy = cloneSelectionRegion(sel!, Math.max(0, Math.round(px)));
     expandSelectionMask(copy, px);
-    get().setSelection(copy);
+    get().setSelection(finalizeMutatedSelection(copy));
   },
 
   contractCurrentSelection: (px: number) => {
     const sel = get().selection;
-    if (!selectionHasAnyPixels(sel)) return;
-    const copy = cloneSelectionMask(sel!);
+    if (!selectionHasAnyPixels(sel)) {
+      return;
+    }
+    const copy = cloneSelectionRegion(sel!, 0);
     contractSelectionMask(copy, px);
-    get().setSelection(copy);
+    get().setSelection(finalizeMutatedSelection(copy));
   }
 });
