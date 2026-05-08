@@ -228,6 +228,8 @@ export { TaskExecutor } from "./task-executor.js";
 export type { TaskExecutorOptions } from "./task-executor.js";
 export { ParallelTaskExecutor } from "./parallel-task-executor.js";
 export type { ParallelTaskExecutorOptions } from "./parallel-task-executor.js";
+export { CompilerAgent } from "./compiler-agent.js";
+export type { CompilerAgentOptions } from "./compiler-agent.js";
 
 // Graph-native planning & execution
 export { GraphBuilder, AGENT_STEP_NODE_TYPE } from "./graph-builder.js";

@@ -4,15 +4,21 @@
  * Port of src/nodetool/agents/tools/openai_tools.py
  */
 
-import * as fs from "node:fs/promises";
-import * as path from "node:path";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
+import { persistBinaryOutput } from "./binary-output.js";
 
-async function getOpenAIClient() {
+async function getOpenAIClient(context?: ProcessingContext) {
   // Dynamic import to avoid hard dependency
   const { OpenAI } = await import("openai");
-  const apiKey = process.env["OPENAI_API_KEY"];
+  // Prefer the context's secretResolver (which checks the encrypted DB
+  // before env vars). Fall back to env directly for callers that don't
+  // pass a context.
+  const fromCtx =
+    typeof context?.getSecret === "function"
+      ? await context.getSecret("OPENAI_API_KEY")
+      : null;
+  const apiKey = fromCtx ?? process.env["OPENAI_API_KEY"];
   if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
   return new OpenAI({ apiKey });
 }
@@ -32,7 +38,7 @@ export class OpenAIWebSearchTool extends Tool {
   };
 
   async process(
-    _context: ProcessingContext,
+    context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
     const query = params["query"];
@@ -41,7 +47,7 @@ export class OpenAIWebSearchTool extends Tool {
     }
 
     try {
-      const client = await getOpenAIClient();
+      const client = await getOpenAIClient(context);
       const completion = await client.chat.completions.create({
         model: "gpt-4o-search-preview",
         web_search_options: {},
@@ -68,7 +74,11 @@ export class OpenAIWebSearchTool extends Tool {
 export class OpenAIImageGenerationTool extends Tool {
   readonly name = "openai_image_generation";
   readonly description =
-    "Generate an image from a text prompt using OpenAI GPT-Image";
+    "Generate an image from a text prompt using OpenAI GPT-Image. " +
+    "The result includes `display_markdown` — a ready-to-paste markdown image " +
+    "embed pointing at a UI-fetchable URL. When narrating the result to the " +
+    "user, include `display_markdown` verbatim; never construct your own " +
+    "markdown from `output_file` (a workspace key, not a URL).";
   readonly inputSchema = {
     type: "object" as const,
     properties: {
@@ -97,7 +107,7 @@ export class OpenAIImageGenerationTool extends Tool {
       return { error: "Output file is required" };
 
     try {
-      const client = await getOpenAIClient();
+      const client = await getOpenAIClient(context);
       const response = await client.images.generate({
         model: "gpt-image-2",
         prompt,
@@ -110,14 +120,17 @@ export class OpenAIImageGenerationTool extends Tool {
       const b64Image = imageData.b64_json as string | undefined;
       if (!b64Image) return { error: "No image data received from OpenAI" };
 
-      const filePath = context.resolveWorkspacePath(outputFile);
-      await fs.mkdir(path.dirname(filePath), { recursive: true });
-      await fs.writeFile(filePath, Buffer.from(b64Image, "base64"));
+      const bytes = Uint8Array.from(Buffer.from(b64Image, "base64"));
+      const persisted = await persistBinaryOutput(context, bytes, {
+        outputFile,
+        contentType: "image/png",
+        uiPrefix: "openai-images"
+      });
 
       return {
         type: "image",
         prompt,
-        output_file: outputFile,
+        ...persisted,
         status: "success"
       };
     } catch (e) {
@@ -134,7 +147,11 @@ export class OpenAIImageGenerationTool extends Tool {
 
 export class OpenAITextToSpeechTool extends Tool {
   readonly name = "openai_text_to_speech";
-  readonly description = "Convert text into spoken audio using OpenAI TTS";
+  readonly description =
+    "Convert text into spoken audio using OpenAI TTS. The result includes " +
+    "`display_markdown` — a ready-to-paste audio embed pointing at a " +
+    "UI-fetchable URL. Include `display_markdown` verbatim when narrating " +
+    "the result; never construct your own markup from `output_file`.";
   readonly inputSchema = {
     type: "object" as const,
     properties: {
@@ -177,7 +194,7 @@ export class OpenAITextToSpeechTool extends Tool {
       return { error: "Input text exceeds maximum length of 4096 characters" };
 
     try {
-      const client = await getOpenAIClient();
+      const client = await getOpenAIClient(context);
       const response = await client.audio.speech.create({
         model: "tts-1",
         voice,
@@ -186,10 +203,12 @@ export class OpenAITextToSpeechTool extends Tool {
         speed
       });
 
-      const buffer = Buffer.from(await response.arrayBuffer());
-      const filePath = context.resolveWorkspacePath(outputFile);
-      await fs.mkdir(path.dirname(filePath), { recursive: true });
-      await fs.writeFile(filePath, buffer);
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      const persisted = await persistBinaryOutput(context, bytes, {
+        outputFile,
+        contentType: "audio/mpeg",
+        uiPrefix: "openai-tts"
+      });
 
       return {
         type: "audio",
@@ -198,7 +217,7 @@ export class OpenAITextToSpeechTool extends Tool {
         model: "tts-1",
         format: "mp3",
         speed,
-        output_file: outputFile,
+        ...persisted,
         status: "success"
       };
     } catch (e) {

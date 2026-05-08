@@ -217,6 +217,11 @@ export const createWorkflowRunner = () =>
     disconnect: () => {
       const { socket } = get();
       if (socket) {
+        // Detach handlers before close so any final 'close'/'error' events
+        // don't fire into stale closures referencing the previous run's
+        // state. Otherwise the next connect would attach a new set of
+        // handlers while the prior socket's still leak references.
+        socket.removeAllListeners();
         socket.close();
         set({ socket: null, state: "idle" });
       }

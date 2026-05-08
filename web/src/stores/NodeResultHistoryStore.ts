@@ -106,8 +106,9 @@ export const useNodeResultHistoryStore = create<NodeResultHistoryStore>(
      */
     clearWorkflowHistory: (workflowId: string) => {
       const history = { ...get().history };
+      const prefix = `${workflowId}:`;
       for (const key in history) {
-        if (key.startsWith(workflowId)) {
+        if (key.startsWith(prefix)) {
           delete history[key];
         }
       }

@@ -371,8 +371,15 @@ const initKeyListeners = () => {
   };
 
   const clearAllKeys = () => {
-    const { pressedKeys, setKeysPressed } = useKeyPressedStore.getState();
-    pressedKeys.forEach((key) => setKeysPressed({ [key]: false }));
+    // Single atomic update: previously this iterated the snapshot and
+    // issued one setKeysPressed per key, which fired combo callbacks
+    // mid-clear and could leave modifiers "stuck" if the user released
+    // them while the window had no focus.
+    useKeyPressedStore.setState((state) => ({
+      ...state,
+      pressedKeys: new Set(),
+      lastPressedKey: null
+    }));
   };
 
   window.addEventListener("keydown", handleKeyDown);

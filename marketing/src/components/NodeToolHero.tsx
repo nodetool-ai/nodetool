@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Download, Play, Code2, ShieldCheck, Monitor } from "lucide-react";
+import { Download, Play, Code2, KeyRound, Layers } from "lucide-react";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
 
 export default function NodeToolHero() {
@@ -25,24 +25,24 @@ export default function NodeToolHero() {
             <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
             Open Source
             <span className="text-blue-500/60">•</span>
-            Local First
+            BYOK
           </span>
 
           <h1
             id="hero-title"
             className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight text-white md:text-6xl"
           >
-            Build AI Workflows.
+            The open creative
             <br />
             <span className="bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent">
-              Run Them Locally.
+              AI workspace.
             </span>
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-400 md:text-lg">
-            Nodetool is a local-first AI workflow and agent builder. Connect
-            models and tools with visual nodes, run multimodal pipelines, and
-            deploy anywhere.
+            Every major model from every major provider, called with your own
+            keys, wired into one node-based canvas. Pay providers directly at
+            provider prices. Switch the moment a better model ships.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -55,24 +55,24 @@ export default function NodeToolHero() {
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60"
             >
               <Play className="h-4 w-4" />
-              See How It Works
+              See it in action
             </a>
           </div>
 
           <ul className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-400">
             <li className="flex items-center gap-1.5">
+              <Layers className="h-3.5 w-3.5 text-fuchsia-400" />
+              Every model. Your keys. Your canvas.
+            </li>
+            <li className="text-slate-700">•</li>
+            <li className="flex items-center gap-1.5">
+              <KeyRound className="h-3.5 w-3.5 text-emerald-400" />
+              Pay providers directly
+            </li>
+            <li className="text-slate-700">•</li>
+            <li className="flex items-center gap-1.5">
               <Code2 className="h-3.5 w-3.5 text-blue-400" />
-              Open Source
-            </li>
-            <li className="text-slate-700">•</li>
-            <li className="flex items-center gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-              Privacy-First
-            </li>
-            <li className="text-slate-700">•</li>
-            <li className="flex items-center gap-1.5">
-              <Monitor className="h-3.5 w-3.5 text-slate-300" />
-              macOS · Windows · Linux
+              Open source, runs anywhere
             </li>
           </ul>
         </motion.div>
@@ -95,7 +95,7 @@ export default function NodeToolHero() {
           <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
             <img
               src="/screen_canvas.png"
-              alt="Nodetool workflow editor"
+              alt="NodeTool canvas: nodes for image, video, and text models wired together"
               className="block w-full rounded-xl"
               loading="eager"
             />

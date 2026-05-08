@@ -341,7 +341,26 @@ export type UnifiedCommandType =
   | "end_input_stream"
   | "chat_message"
   | "inference"
-  | "stop";
+  | "stop"
+  | "list_workflows"
+  | "get_workflow"
+  | "list_assets"
+  | "get_asset"
+  | "list_nodes"
+  | "get_node";
+
+/**
+ * Read-only RPC commands that require a `request_id` and return a single
+ * `rpc_response` frame. Distinguished from streaming commands (run_job,
+ * chat_message, etc.) which fire-and-forget and stream results back.
+ */
+export type RpcCommandType =
+  | "list_workflows"
+  | "get_workflow"
+  | "list_assets"
+  | "get_asset"
+  | "list_nodes"
+  | "get_node";
 
 export interface WebSocketCommandEnvelope<
   C extends UnifiedCommandType = UnifiedCommandType,
@@ -349,6 +368,72 @@ export interface WebSocketCommandEnvelope<
 > {
   command: C;
   data: D;
+  /**
+   * Opaque client-generated id, echoed back in the `rpc_response` frame.
+   * REQUIRED for RPC commands (list_*, get_*); ignored for streaming
+   * commands (run_job, chat_message, …).
+   */
+  request_id?: string;
+}
+
+// ── RPC request payloads ──────────────────────────────────────────
+// Mirror the Zod input schemas in api-schemas/{workflows,assets,nodes}.ts.
+// Kept loose (Record<string, unknown>) so adding optional filters in the
+// underlying procedures doesn't require updating these envelopes.
+
+export interface ListWorkflowsRequest {
+  limit?: number;
+  run_mode?: string;
+  tag?: string;
+  cursor?: string;
+}
+
+export interface GetWorkflowRequest {
+  id: string;
+}
+
+export interface ListAssetsRequest {
+  parent_id?: string;
+  content_type?: string;
+  workflow_id?: string;
+  node_id?: string;
+  job_id?: string;
+  page_size?: number;
+}
+
+export interface GetAssetRequest {
+  id: string;
+}
+
+export interface ListNodesRequest {
+  namespace?: string;
+  query?: string;
+  fields?: "summary" | "full";
+  limit?: number;
+}
+
+export interface GetNodeRequest {
+  node_type: string;
+}
+
+export interface RpcErrorPayload {
+  code: string;
+  message: string;
+  apiCode?: string | null;
+  trpcCode?: string;
+}
+
+/**
+ * Single response frame for RPC commands. Either `result` or `error` is
+ * set; both are absent only for malformed requests where the server
+ * couldn't route the response (those use the legacy `{ error }` shape).
+ */
+export interface RpcResponseMessage {
+  type: "rpc_response";
+  request_id: string;
+  command: UnifiedCommandType;
+  result?: unknown;
+  error?: RpcErrorPayload;
 }
 
 export interface PingMessage {
@@ -394,6 +479,7 @@ export type WebSocketServerMessage =
   | PongMessage
   | SystemStatsMessage
   | ResourceChangeMessage
+  | RpcResponseMessage
   | Record<string, unknown>;
 
 // ---------------------------------------------------------------------------

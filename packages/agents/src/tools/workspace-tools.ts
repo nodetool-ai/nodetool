@@ -1,98 +1,96 @@
 /**
  * Workspace-scoped file tools — T-AG-1.
  *
- * Read, write, and list files relative to a workspace root directory.
- * All paths are sandboxed to prevent traversal outside the workspace.
+ * Read, write, and list files relative to the agent's workspace storage
+ * adapter (`context.workspaceStorage`). Local FS, S3, and Supabase
+ * backends all expose the same surface — these tools no longer touch the
+ * filesystem directly.
+ *
+ * The constructor still accepts a `workspaceRoot` argument for backward
+ * compatibility with existing call sites, but it is unused: routing is
+ * driven by `context.workspaceStorage` instead.
  */
-import {
-  readFile,
-  writeFile,
-  mkdir,
-  readdir,
-  stat,
-  access
-} from "node:fs/promises";
-import { resolve, join, basename, dirname } from "node:path";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { StorageAdapter } from "@nodetool-ai/storage";
 import { Tool } from "./base-tool.js";
 
-function resolveSandboxed(workspaceRoot: string, userPath: string): string {
-  const root = resolve(workspaceRoot);
-  const resolved = resolve(root, userPath);
-  if (!resolved.startsWith(root + "/") && resolved !== root) {
-    throw new Error("Path traversal not allowed");
-  }
-  return resolved;
+function getStorage(context: ProcessingContext): StorageAdapter | null {
+  return context.workspaceStorage ?? null;
 }
+
+const NO_WORKSPACE_ERROR = {
+  success: false,
+  error: "No workspace storage configured for this context."
+} as const;
 
 export class WorkspaceReadTool extends Tool {
   readonly name = "workspace_read";
-  readonly description = "Read a file relative to the agent workspace root.";
+  readonly description = "Read a file relative to the agent workspace.";
   readonly inputSchema = {
     type: "object" as const,
     properties: {
       path: {
         type: "string" as const,
-        description: "File path relative to workspace"
+        description: "File path (storage key) relative to workspace"
       }
     },
     required: ["path"]
   };
 
-  private workspaceRoot: string;
-  constructor(workspaceRoot: string) {
+  // Kept for API compat; no longer consulted.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  constructor(_workspaceRoot?: string) {
     super();
-    this.workspaceRoot = workspaceRoot;
   }
 
   async process(
-    _context: ProcessingContext,
+    context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
     const rawPath = params.path;
     if (typeof rawPath !== "string")
       return { success: false, error: "path must be a string" };
 
-    let filePath: string;
+    const storage = getStorage(context);
+    if (!storage) return NO_WORKSPACE_ERROR;
+
+    let bytes: Uint8Array | null;
     try {
-      filePath = resolveSandboxed(this.workspaceRoot, rawPath);
+      bytes = await storage.retrieve(storage.uriForKey(rawPath));
     } catch {
       return { success: false, error: "Path traversal not allowed" };
     }
-
-    try {
-      await access(filePath);
-      const content = await readFile(filePath, "utf-8");
-      return { success: true, path: rawPath, content };
-    } catch {
-      return { success: false, error: `File not found: ${rawPath}` };
-    }
+    if (!bytes) return { success: false, error: `File not found: ${rawPath}` };
+    return {
+      success: true,
+      path: rawPath,
+      content: new TextDecoder("utf-8").decode(bytes)
+    };
   }
 }
 
 export class WorkspaceWriteTool extends Tool {
   readonly name = "workspace_write";
-  readonly description = "Write a file relative to the agent workspace root.";
+  readonly description = "Write a file relative to the agent workspace.";
   readonly inputSchema = {
     type: "object" as const,
     properties: {
       path: {
         type: "string" as const,
-        description: "File path relative to workspace"
+        description: "File path (storage key) relative to workspace"
       },
       content: { type: "string" as const, description: "Content to write" }
     },
     required: ["path", "content"]
   };
 
-  private workspaceRoot: string;
-  constructor(workspaceRoot: string) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  constructor(_workspaceRoot?: string) {
     super();
-    this.workspaceRoot = workspaceRoot;
   }
 
   async process(
-    _context: ProcessingContext,
+    context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
     const rawPath = params.path;
@@ -102,22 +100,23 @@ export class WorkspaceWriteTool extends Tool {
     if (typeof content !== "string")
       return { success: false, error: "content must be a string" };
 
-    let filePath: string;
-    try {
-      filePath = resolveSandboxed(this.workspaceRoot, rawPath);
-    } catch {
-      return { success: false, error: "Path traversal not allowed" };
-    }
+    const storage = getStorage(context);
+    if (!storage) return NO_WORKSPACE_ERROR;
 
     try {
-      await mkdir(dirname(filePath), { recursive: true });
-      await writeFile(filePath, content, "utf-8");
+      await storage.store(
+        rawPath,
+        new TextEncoder().encode(content),
+        "text/plain; charset=utf-8"
+      );
       return { success: true, path: rawPath };
     } catch (e) {
-      return {
-        success: false,
-        error: `Failed to write: ${e instanceof Error ? e.message : String(e)}`
-      };
+      const msg = e instanceof Error ? e.message : String(e);
+      // The storage layer rejects `..` traversal at normalizeStorageKey.
+      if (msg.toLowerCase().includes("invalid storage key") || msg.includes("..")) {
+        return { success: false, error: "Path traversal not allowed" };
+      }
+      return { success: false, error: `Failed to write: ${msg}` };
     }
   }
 }
@@ -125,56 +124,85 @@ export class WorkspaceWriteTool extends Tool {
 export class WorkspaceListTool extends Tool {
   readonly name = "workspace_list";
   readonly description =
-    "List directory contents relative to the agent workspace root.";
+    "List directory contents relative to the agent workspace.";
   readonly inputSchema = {
     type: "object" as const,
     properties: {
       path: {
         type: "string" as const,
-        description: "Directory path relative to workspace"
+        description: "Directory path (storage key prefix)"
       }
     },
     required: ["path"]
   };
 
-  private workspaceRoot: string;
-  constructor(workspaceRoot: string) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  constructor(_workspaceRoot?: string) {
     super();
-    this.workspaceRoot = workspaceRoot;
   }
 
   async process(
-    _context: ProcessingContext,
+    context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
     const rawPath = params.path;
     if (typeof rawPath !== "string")
       return { success: false, error: "path must be a string" };
 
-    let dirPath: string;
-    try {
-      dirPath = resolveSandboxed(this.workspaceRoot, rawPath);
-    } catch {
+    const storage = getStorage(context);
+    if (!storage) return NO_WORKSPACE_ERROR;
+
+    // Normalize "." / "/" / "" to the empty prefix (workspace root).
+    const listPrefix =
+      rawPath === "." || rawPath === "/" || rawPath === "" ? "" : rawPath;
+
+    // Reject traversal explicitly so we don't quietly return an empty list.
+    if (rawPath.includes("..")) {
       return { success: false, error: "Path traversal not allowed" };
     }
 
+    let result;
     try {
-      const dirEntries = await readdir(dirPath, { withFileTypes: true });
-      const entries = await Promise.all(
-        dirEntries.map(async (entry) => {
-          let size = 0;
-          try {
-            const info = await stat(join(dirPath, entry.name));
-            size = info.size;
-          } catch {
-            /* ignore */
-          }
-          return { name: entry.name, size, is_dir: entry.isDirectory() };
-        })
-      );
-      return { success: true, entries };
+      result = await storage.list(listPrefix, { delimiter: "/" });
     } catch {
-      return { success: false, error: `Directory not found: ${rawPath}` };
+      return { success: false, error: "Path traversal not allowed" };
     }
+    if (
+      result.entries.length === 0 &&
+      result.commonPrefixes.length === 0 &&
+      listPrefix !== ""
+    ) {
+      let stillExists = false;
+      try {
+        stillExists = await storage.exists(storage.uriForKey(listPrefix));
+      } catch {
+        return { success: false, error: "Path traversal not allowed" };
+      }
+      if (!stillExists) {
+        return { success: false, error: `Directory not found: ${rawPath}` };
+      }
+    }
+    const prefixToStrip = rawPath ? `${rawPath.replace(/\/+$/, "")}/` : "";
+    const entries: Array<{ name: string; size: number; is_dir: boolean }> = [];
+    for (const entry of result.entries) {
+      const name = prefixToStrip && entry.key.startsWith(prefixToStrip)
+        ? entry.key.slice(prefixToStrip.length)
+        : entry.key;
+      entries.push({ name, size: entry.size, is_dir: false });
+    }
+    for (const cp of result.commonPrefixes) {
+      const trimmed = cp.replace(/\/+$/, "");
+      const name =
+        prefixToStrip && trimmed.startsWith(prefixToStrip.replace(/\/+$/, ""))
+          ? trimmed.slice(prefixToStrip.length).replace(/^\/+/, "")
+          : trimmed;
+      entries.push({
+        name: name.split("/").pop() ?? name,
+        size: 0,
+        is_dir: true
+      });
+    }
+
+    return { success: true, entries };
   }
 }

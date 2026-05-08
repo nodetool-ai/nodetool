@@ -41,13 +41,13 @@ npm run electron:dev # Electron dev (auto-rebuilds native modules)
 
 ### Prerequisites
 
-- **Node.js 24.x** (required — see `.nvmrc`). Use `nvm use` to activate.
+- **Node.js 22.22.1** (required — see `.nvmrc`). Matches Electron 39's embedded Node so dev and the packaged app run on the same Node. Use `nvm use` to activate.
 - npm (comes with Node)
 - Python 3.11+ with conda (optional, for Python nodes)
 
 ```bash
 # First-time setup
-nvm use              # Reads .nvmrc, activates Node 24
+nvm use              # Reads .nvmrc, activates Node 22.22.1
 npm install          # Install all workspace dependencies
 npm run build:packages  # Build backend packages
 ```
@@ -128,13 +128,13 @@ npm run typecheck   # Must pass before committing
 
 ## Common Pitfalls
 
-- **Node.js 24.x is required**. Electron 39 embeds Node 24 — native modules (better-sqlite3) must be compiled against the same ABI. Use `nvm use 24` (see `.nvmrc`). Mismatched major versions will cause `NODE_MODULE_VERSION` errors in Electron.
+- **Node.js 22.22.1 is required**. This matches Electron 39's embedded Node (`process.versions.node === "22.22.1"`). Pinning the major keeps API parity between dev and the packaged app. Note: matching the Node major does NOT eliminate the native-module rebuild — Electron uses its own `NODE_MODULE_VERSION` (140) regardless of which Node it embeds, so `better-sqlite3`/`bufferutil` are still rebuilt against Electron headers via `@electron/rebuild` in `electron/`'s `postinstall`.
 - **base-nodes, node-sdk, fal-nodes, replicate-nodes, elevenlabs-nodes** use decorators and load from `dist/`. After changing these, run `npm run build:packages` before `npm run dev`.
 - **Package build order matters**. Use `npm run build:packages` which builds in dependency order, not `npm run build` on individual packages that have unbuilt dependencies.
 - **WebSocket messages use MsgPack**, not JSON. Use the existing serialization helpers.
 - **Don't create new WebSocket instances** — use `GlobalWebSocketManager` singleton.
 - **Mobile typecheck** requires building protocol first: `cd packages/protocol && npm run build`.
-- **Native module ABI mismatch**: If you see `NODE_MODULE_VERSION` errors in Electron dev mode, run `npm run electron:dev` which automatically rebuilds native modules (better-sqlite3, bufferutil) against Electron's ABI via node-gyp. Do NOT use `npm rebuild` or `electron-builder install-app-deps` — these rebuild for system Node, not Electron's embedded Node.
+- **Native module ABI mismatch**: `electron/`'s `postinstall` runs `@electron/rebuild`, which rebuilds `better-sqlite3` and `bufferutil` against Electron's ABI on every `npm install`. If you still hit `NODE_MODULE_VERSION` errors, run `npm --prefix electron run postinstall` to force a rebuild. Do NOT use plain `npm rebuild` — it builds for system Node, not Electron's embedded Node.
 - **Claude Agent Provider in nested sessions (e.g. Claude Code web)**: The SDK spawns a subprocess via `node cli.js`. In environments like Claude Code on the web (`claude.ai/code`), you must: (1) strip all `CLAUDE_CODE_*` / `CLAUDE_SESSION_*` / `CLAUDE_ENABLE_*` / `CLAUDE_AFTER_*` / `CLAUDE_AUTO_*` env vars — not just `CLAUDECODE`; (2) run as a non-root user — the SDK refuses `--dangerously-skip-permissions` when uid=0; (3) keep `ANTHROPIC_BASE_URL` and `HTTP_PROXY`/`HTTPS_PROXY` vars for API routing. See `docs/AGENTS.md` § Claude Agent SDK for full details.
 
 ## CLI
@@ -167,8 +167,9 @@ npm run dev:chat -- --agent --url ws://localhost:7777/ws
 
 Chat flags:
 ```
--a, --agent              Enable agent mode (planning + parallel execution)
---no-agent               Disable agent mode
+-a, --agent [mode]       Agent mode: off | loop | plan | graph | multi-agent
+                         (default: plan when --agent is given without a value)
+--no-agent               Force agent mode off
 -p, --provider <name>    anthropic, openai, ollama, gemini, mistral, groq
 -m, --model <id>         Model ID (e.g. claude-sonnet-4-6, gpt-5.4-mini)
 -w, --workspace <path>   Workspace directory for file tools
@@ -176,7 +177,7 @@ Chat flags:
 -u, --url <ws-url>       Connect to WebSocket server instead of local provider
 ```
 
-Interactive commands: `/agent` toggle, `/model <id>`, `/provider <name>`, `/tools`, `/clear`, `/exit`
+Interactive commands: `/agent <off|loop|plan|graph|multi-agent>`, `/model <id>`, `/provider <name>`, `/tools`, `/clear`, `/exit`
 
 ### nodetool serve
 

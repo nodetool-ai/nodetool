@@ -26,7 +26,8 @@
     "dist": "electron-builder",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "postinstall": "electron-rebuild -f -w better-sqlite3,bufferutil"
   },
   "author": "matti.georgi@gmail.com",
   "license": "AGPL-3.0-only",
@@ -35,7 +36,8 @@
     "@jest/globals": "^29.7.0",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^24.12.2",
+    "@types/node": "^22.0.0",
+    "@electron/rebuild": "^4.0.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.59.0",

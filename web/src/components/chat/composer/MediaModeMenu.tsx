@@ -14,7 +14,6 @@ import TimelineIcon from "@mui/icons-material/Timeline";
 import TuneIcon from "@mui/icons-material/Tune";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import PsychologyIcon from "@mui/icons-material/Psychology";
-import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import CheckIcon from "@mui/icons-material/Check";
 import {
   Caption,
@@ -39,7 +38,7 @@ interface MediaModeMenuProps {
   ) => void;
 }
 
-type ModeItemId = MediaMode | "agent_multi" | "agent_graph";
+type ModeItemId = MediaMode | "agent_multi";
 
 interface ModeItem {
   id: ModeItemId;
@@ -61,13 +60,6 @@ const MODES: ModeItem[] = [
     label: "Agent (Multi-task)",
     description: "Plan and run parallel LLM tasks",
     icon: <PsychologyIcon fontSize="small" />,
-    enabled: true
-  },
-  {
-    id: "agent_graph",
-    label: "Agent (Graph builder)",
-    description: "Build a workflow from core nodes",
-    icon: <AccountTreeIcon fontSize="small" />,
     enabled: true
   },
   {
@@ -176,7 +168,7 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
   onClose,
   value,
   agentMode,
-  agentPlanner = "graph",
+  agentPlanner = "multi",
   onChange
 }) => {
   const theme = useTheme();
@@ -198,14 +190,16 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
           Mode
         </Caption>
         {MODES.map((m) => {
+          // Graph planner is hidden; treat persisted "graph" as "multi" so
+          // existing users with that value see the multi-task row selected.
+          const effectivePlanner =
+            agentPlanner === "graph" ? "multi" : agentPlanner;
           const selected =
             m.id === "agent_multi"
-              ? value === "chat" && agentMode && agentPlanner === "multi"
-              : m.id === "agent_graph"
-                ? value === "chat" && agentMode && agentPlanner === "graph"
-                : m.id === "chat"
-                  ? value === "chat" && !agentMode
-                  : m.id === value;
+              ? value === "chat" && agentMode && effectivePlanner === "multi"
+              : m.id === "chat"
+                ? value === "chat" && !agentMode
+                : m.id === value;
           return (
             <div
               key={m.id}
@@ -219,8 +213,6 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
                 }
                 if (m.id === "agent_multi") {
                   onChange("chat", true, "multi");
-                } else if (m.id === "agent_graph") {
-                  onChange("chat", true, "graph");
                 } else {
                   onChange(m.id as MediaMode, false);
                 }

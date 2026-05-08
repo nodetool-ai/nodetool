@@ -731,6 +731,7 @@ await app.register(fastifyTRPCPlugin, {
 await app.register(websocketPlugin, {
   registry,
   pythonBridge,
+  apiOptions,
   getPythonBridgeReady: () => pythonBridgeReady,
   ensurePythonBridge: async () => {
     if (pythonBridgeReady) return;

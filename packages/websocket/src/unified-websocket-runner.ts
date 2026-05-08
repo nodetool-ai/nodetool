@@ -10,6 +10,7 @@ import {
   buildAssetUrl
 } from "@nodetool-ai/config";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
 import { resolveContentUrls, resolveContentForProvider } from "./resolve-media-urls.js";
 import {
@@ -54,10 +55,15 @@ import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
-  WebSocketMode
+  WebSocketMode,
+  RpcErrorPayload
 } from "@nodetool-ai/protocol";
 import { Tool } from "@nodetool-ai/agents";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { PythonStdioBridge } from "@nodetool-ai/runtime";
+import { appRouter } from "./trpc/router.js";
+import { createCallerFactory } from "./trpc/index.js";
+import type { HttpApiOptions } from "./http-api.js";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
@@ -452,7 +458,7 @@ function createRuntimeContext(opts: {
   userId: string;
   workspaceDir: string | null;
   assetOutputMode?:
-    | "python"
+    | "native"
     | "data_uri"
     | "temp_url"
     | "storage_url"
@@ -462,10 +468,19 @@ function createRuntimeContext(opts: {
   const storagePath = getAssetStoragePath();
   const tempAdapter = getTempAdapter();
   const assetAdapter = getAssetAdapter();
+  // The agent's "workspace" — where file_read / file_write / file_list land.
+  // Local: a FileStorageAdapter rooted at workspaceDir. Cloud: callers can
+  // wire a different StorageAdapter when constructing the runner; for now
+  // we fall back to a workspaceDir-backed FileStorageAdapter when one is
+  // present, leaving cloud wiring to the deployment-specific runner.
+  const workspaceAdapter = opts.workspaceDir
+    ? new FileStorageAdapter(opts.workspaceDir)
+    : null;
   const ctx = new RuntimeProcessingContext({
     ...opts,
     secretResolver: getSecret,
     storage: tempAdapter,
+    workspaceStorage: workspaceAdapter,
     tempUrlResolver: (uri: string) => {
       // Cloud backends: key becomes /api/storage/<key> — the HTTP handler
       // will redirect to a signed URL (once signed URL support is wired in).
@@ -740,6 +755,18 @@ export interface UnifiedWebSocketRunnerOptions {
    * toward `nodetool.*` core nodes and exposing a `find_model` tool.
    */
   nodeRegistry?: NodeRegistry;
+  /**
+   * Python stdio bridge. Required to serve the read-only RPC commands
+   * (list_workflows / get_workflow / list_assets / get_asset / list_nodes /
+   * get_node) which delegate to the existing tRPC routers; those routers
+   * accept the bridge in their context. Plain workflow execution and chat
+   * keep working without it.
+   */
+  pythonBridge?: PythonStdioBridge;
+  /** Whether the Python bridge has finished hydrating. Same wiring as the tRPC HTTP context. */
+  getPythonBridgeReady?: () => boolean;
+  /** API options forwarded into the tRPC context (metadata roots, registry, etc.). */
+  apiOptions?: HttpApiOptions;
 }
 
 export class UnifiedWebSocketRunner {
@@ -760,6 +787,9 @@ export class UnifiedWebSocketRunner {
   private getNodeMetadata?: UnifiedWebSocketRunnerOptions["getNodeMetadata"];
   private validateNode?: UnifiedWebSocketRunnerOptions["validateNode"];
   private nodeRegistry?: NodeRegistry;
+  private pythonBridge?: PythonStdioBridge;
+  private getPythonBridgeReady?: () => boolean;
+  private apiOptions?: HttpApiOptions;
   private configuredProvidersCache: Map<string, Record<string, BaseProvider>> =
     new Map();
 
@@ -907,6 +937,9 @@ export class UnifiedWebSocketRunner {
     this.getNodeMetadata = options.getNodeMetadata;
     this.validateNode = options.validateNode;
     this.nodeRegistry = options.nodeRegistry;
+    this.pythonBridge = options.pythonBridge;
+    this.getPythonBridgeReady = options.getPythonBridgeReady;
+    this.apiOptions = options.apiOptions;
     this.getSystemStats =
       options.getSystemStats ??
       (() => ({
@@ -3898,7 +3931,15 @@ export class UnifiedWebSocketRunner {
     const ctx = createRuntimeContext({
       jobId: randomUUID(),
       userId,
-      workspaceDir: agentWorkspaceDir
+      workspaceDir: agentWorkspaceDir,
+      // `temp_url` materializes any asset-like value (image/audio/video refs
+      // with inline `data` bytes) to a real /api/storage/<id>.<ext> URL via
+      // the temp adapter. Without this the agent context defaults to
+      // `python`, which leaves binary data inline — when those results are
+      // JSON-stringified and shown to the structured-results presenter the
+      // LLM dutifully echoes the base64 back as `data:image/png;base64,...`
+      // markdown.
+      assetOutputMode: "temp_url"
     });
 
     const maxStepIterations =
@@ -4166,8 +4207,16 @@ export class UnifiedWebSocketRunner {
         }
       }
 
-      // Normalize final agent output — matches Python
-      const results = agent.getResults();
+      // Normalize final agent output — matches Python.
+      // First materialize any asset-like values (ImageRef/AudioRef/VideoRef
+      // with inline `data` bytes) to real `/api/storage/<id>.<ext>` URIs so
+      // the structured-results presenter sees clean references, not raw
+      // base64 to echo into markdown.
+      const rawResults = agent.getResults();
+      const results =
+        rawResults != null && typeof rawResults === "object"
+          ? await ctx.normalizeOutputValue(rawResults, "temp_url")
+          : rawResults;
       let content: string;
       if (typeof results === "string") {
         content = results;
@@ -4351,9 +4400,77 @@ export class UnifiedWebSocketRunner {
     }
   }
 
+  /**
+   * Build a tRPC caller bound to this connection's `userId`. Used to dispatch
+   * the read-only RPC commands (list_workflows, get_workflow, list_assets,
+   * get_asset, list_nodes, get_node) onto the existing tRPC routers — single
+   * source of truth, no logic duplication.
+   */
+  private getTrpcCaller() {
+    if (!this.nodeRegistry || !this.apiOptions || !this.pythonBridge) {
+      throw new Error(
+        "RPC commands require nodeRegistry, apiOptions, and pythonBridge"
+      );
+    }
+    const factory = createCallerFactory(appRouter);
+    return factory({
+      userId: this.userId,
+      registry: this.nodeRegistry,
+      apiOptions: this.apiOptions,
+      pythonBridge: this.pythonBridge,
+      getPythonBridgeReady: this.getPythonBridgeReady ?? (() => true)
+    });
+  }
+
+  /**
+   * Invoke a tRPC procedure and send back a single `rpc_response` frame
+   * correlating to `command.request_id`. Returns `null` so the receive loop
+   * skips the legacy auto-send (the frame has already been sent here).
+   *
+   * Errors thrown by the procedure are mapped to `rpc_response.error` using
+   * the `apiCode` cause attached by `throwApiError` in the tRPC layer.
+   */
+  private async runRpc(
+    command: WebSocketCommandEnvelope,
+    fn: () => Promise<unknown>
+  ): Promise<Record<string, unknown> | null> {
+    const requestId = command.request_id;
+    if (typeof requestId !== "string" || requestId.length === 0) {
+      return { error: "request_id is required for RPC commands" };
+    }
+    try {
+      const result = await fn();
+      await this.sendMessage({
+        type: "rpc_response",
+        request_id: requestId,
+        command: command.command,
+        result
+      });
+    } catch (err) {
+      const trpc = err as {
+        code?: string;
+        message?: string;
+        cause?: { apiCode?: string };
+      };
+      const error: RpcErrorPayload = {
+        code: trpc.cause?.apiCode ?? trpc.code ?? "INTERNAL_ERROR",
+        message: trpc.message ?? String(err),
+        apiCode: trpc.cause?.apiCode ?? null,
+        trpcCode: trpc.code
+      };
+      await this.sendMessage({
+        type: "rpc_response",
+        request_id: requestId,
+        command: command.command,
+        error
+      });
+    }
+    return null;
+  }
+
   async handleCommand(
     command: WebSocketCommandEnvelope
-  ): Promise<Record<string, unknown>> {
+  ): Promise<Record<string, unknown> | null> {
     const data = command.data ?? {};
     const jobId = typeof data.job_id === "string" ? data.job_id : undefined;
     const workflowId =
@@ -4515,6 +4632,42 @@ export class UnifiedWebSocketRunner {
           thread_id: threadId ?? null
         };
       }
+      case "list_workflows": {
+        const caller = this.getTrpcCaller();
+        return this.runRpc(command, () =>
+          caller.workflows.list(data as Parameters<typeof caller.workflows.list>[0])
+        );
+      }
+      case "get_workflow": {
+        const caller = this.getTrpcCaller();
+        return this.runRpc(command, () =>
+          caller.workflows.get({ id: String(data.id ?? "") })
+        );
+      }
+      case "list_assets": {
+        const caller = this.getTrpcCaller();
+        return this.runRpc(command, () =>
+          caller.assets.list(data as Parameters<typeof caller.assets.list>[0])
+        );
+      }
+      case "get_asset": {
+        const caller = this.getTrpcCaller();
+        return this.runRpc(command, () =>
+          caller.assets.get({ id: String(data.id ?? "") })
+        );
+      }
+      case "list_nodes": {
+        const caller = this.getTrpcCaller();
+        return this.runRpc(command, () =>
+          caller.nodes.list(data as Parameters<typeof caller.nodes.list>[0])
+        );
+      }
+      case "get_node": {
+        const caller = this.getTrpcCaller();
+        return this.runRpc(command, () =>
+          caller.nodes.get({ node_type: String(data.node_type ?? "") })
+        );
+      }
       default:
         return { error: "Unknown command" };
     }
@@ -4640,7 +4793,9 @@ export class UnifiedWebSocketRunner {
         try {
           const command = data as unknown as WebSocketCommandEnvelope;
           const response = await this.handleCommand(command);
-          await this.sendMessage(response);
+          // RPC commands send their `rpc_response` frame inline (in runRpc)
+          // and return null so we don't send a stray legacy reply.
+          if (response) await this.sendMessage(response);
         } catch (err) {
           this.logError("invalid_command handling failed", err);
           await this.sendMessage({

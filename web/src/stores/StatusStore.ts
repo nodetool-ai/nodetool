@@ -50,8 +50,9 @@ const useStatusStore = create<StatusStore>((set, get) => ({
         }
       }
     } else {
+      const prefix = `${workflowId}:`;
       for (const key in newStatuses) {
-        if (key.startsWith(workflowId)) {
+        if (key.startsWith(prefix)) {
           delete newStatuses[key];
           changed = true;
         }

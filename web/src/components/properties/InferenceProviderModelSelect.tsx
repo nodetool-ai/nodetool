@@ -1,9 +1,10 @@
 import { Text, FlexColumn } from "../ui_primitives";
-import { Property, InferenceProvider, InferenceProviderModelValue } from "../../stores/ApiTypes";
+import { InferenceProvider, InferenceProviderModelValue } from "../../stores/ApiTypes";
 import { memo, useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import isEqual from "fast-deep-equal";
 import Select from "../inputs/Select";
+import type { PropertyProps } from "../node/PropertyInput";
 
 interface HuggingFaceModel {
   id: string;
@@ -31,12 +32,9 @@ const fetchModelsForProvider = async (provider: InferenceProvider, pipelineTag: 
 const InferenceProviderModelSelect = ({
   property,
   onChange,
-  value
-}: {
-  property: Property;
-  onChange: (inferenceProviderModel: InferenceProviderModelValue) => void;
-  value: { provider: InferenceProvider; model_id: string };
-}) => {
+  value: rawValue
+}: PropertyProps) => {
+    const value = rawValue as { provider: InferenceProvider; model_id: string };
     const [provider, setProvider] = useState<InferenceProvider>(value.provider);
     const providerOptions = [
         {

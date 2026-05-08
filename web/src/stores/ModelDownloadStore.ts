@@ -38,6 +38,8 @@ interface ModelDownloadStore {
   downloads: Record<string, Download>;
   ws: WebSocket | null;
   wsConnectionState: "disconnected" | "connecting" | "connected";
+  /** In-flight connect promise; concurrent callers reuse this. */
+  wsConnectingPromise: Promise<WebSocket> | null;
   reconnectAttempts: number;
   queryClient: QueryClient | null;
   setQueryClient: (queryClient: QueryClient) => void;
@@ -79,6 +81,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
   downloads: {},
   ws: null,
   wsConnectionState: "disconnected",
+  wsConnectingPromise: null,
   reconnectAttempts: 0,
   queryClient: null,
   setQueryClient: (queryClient: QueryClient) => {
@@ -141,58 +144,53 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
   },
 
   connectWebSocket: async () => {
-    let ws = get().ws;
-    if (ws?.readyState === WebSocket.OPEN) {
-      return ws;
+    const existing = get().ws;
+    if (existing?.readyState === WebSocket.OPEN) {
+      return existing;
     }
 
-    // Prevent multiple simultaneous connection attempts
-    if (get().wsConnectionState === "connecting") {
-      // Wait for existing connection attempt with timeout to prevent memory leak
-      const CONNECTION_TIMEOUT_MS = 30000; // 30 second timeout
-      return new Promise((resolve, reject) => {
-        const checkInterval = setInterval(() => {
-          const currentWs = get().ws;
-          const state = get().wsConnectionState;
-          if (state === "connected" && currentWs) {
-            clearInterval(checkInterval);
-            clearTimeout(timeoutId);
-            resolve(currentWs);
-          } else if (state === "disconnected") {
-            clearInterval(checkInterval);
-            clearTimeout(timeoutId);
-            reject(new Error("Connection failed"));
-          }
-        }, 100);
-
-        // Add timeout to prevent interval from running forever
-        const timeoutId = setTimeout(() => {
-          clearInterval(checkInterval);
-          reject(new Error(`Connection timeout after ${CONNECTION_TIMEOUT_MS}ms`));
-        }, CONNECTION_TIMEOUT_MS);
-      });
+    // Reuse the in-flight connect promise so concurrent callers don't
+    // open a second socket — the polling/interval pattern in the previous
+    // implementation could resolve with a stale `ws` reference.
+    const inflight = get().wsConnectingPromise;
+    if (inflight) {
+      return inflight;
     }
 
     set({ wsConnectionState: "connecting" });
-    ws = new WebSocket(DOWNLOAD_URL);
+    const ws = new WebSocket(DOWNLOAD_URL);
 
-    await new Promise<void>((resolve, reject) => {
-      if (ws) {
-        ws.onopen = () => {
-          set({ wsConnectionState: "connected" });
-          resolve();
-        };
-        ws.onerror = (error) => {
-          set({ wsConnectionState: "disconnected" });
-          reject(error);
-        };
-      } else {
-        set({ wsConnectionState: "disconnected" });
-        reject(new Error("WebSocket is null"));
-      }
+    const connectPromise = new Promise<WebSocket>((resolve, reject) => {
+      let settled = false;
+      const onOpen = () => {
+        if (settled) return;
+        settled = true;
+        set({ ws, wsConnectionState: "connected", wsConnectingPromise: null });
+        resolve(ws);
+      };
+      const onError = (error: Event) => {
+        if (settled) return;
+        settled = true;
+        try {
+          ws.close();
+        } catch {
+          /* already closing */
+        }
+        set({
+          ws: null,
+          wsConnectionState: "disconnected",
+          wsConnectingPromise: null
+        });
+        reject(error);
+      };
+      ws.addEventListener("open", onOpen, { once: true });
+      ws.addEventListener("error", onError, { once: true });
     });
 
-    if (ws) {
+    set({ wsConnectingPromise: connectPromise });
+    await connectPromise;
+
+    {
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.repo_id) {
@@ -245,7 +243,11 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
         console.warn(
           `[ModelDownloadStore] WebSocket closed: code=${event.code}, reason=${event.reason}`
         );
-        set({ ws: null, wsConnectionState: "disconnected" });
+        set({
+          ws: null,
+          wsConnectionState: "disconnected",
+          wsConnectingPromise: null
+        });
 
         // Attempt reconnection if we have active downloads
         if (get().hasActiveDownloads()) {
@@ -257,10 +259,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
         console.error("[ModelDownloadStore] WebSocket error:", error);
       };
 
-      set({ ws });
+      // ws is already stored via the open handler in connectPromise.
       return ws;
-    } else {
-      throw new Error("WebSocket connection failed");
     }
   },
 
@@ -268,7 +268,12 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     const { ws } = get();
     if (ws) {
       ws.close();
-      set({ ws: null, wsConnectionState: "disconnected", reconnectAttempts: 0 });
+      set({
+        ws: null,
+        wsConnectionState: "disconnected",
+        reconnectAttempts: 0,
+        wsConnectingPromise: null
+      });
     }
   },
 

@@ -40,6 +40,7 @@ export type WorkflowRunner = {
   workflow: Workflow | null;
   job_id: string | null;
   unsubscribe: (() => void) | null;
+  jobUnsubscribe: (() => void) | null;
   state: RunnerState;
 
   // Accumulated data for the UI
@@ -83,6 +84,7 @@ export const createWorkflowRunnerStore = (
     workflow: null,
     job_id: null,
     unsubscribe: null,
+    jobUnsubscribe: null,
     state: "idle",
     logs: [],
     results: null,
@@ -106,6 +108,11 @@ export const createWorkflowRunnerStore = (
         if (currentUnsubscribe) {
           currentUnsubscribe();
         }
+        const currentJobUnsubscribe = get().jobUnsubscribe;
+        if (currentJobUnsubscribe) {
+          currentJobUnsubscribe();
+          set({ jobUnsubscribe: null });
+        }
 
         const handler = (message: Record<string, unknown>) => {
           const workflow = get().workflow;
@@ -114,9 +121,8 @@ export const createWorkflowRunnerStore = (
           // Track job_id from first message and subscribe to it too
           if (message.job_id && !get().job_id) {
             const jobId = message.job_id as string;
-            set({ job_id: jobId });
-            // Also subscribe by job_id so we catch messages routed only by job_id
-            webSocketService.subscribe(jobId, handler);
+            const jobUnsubscribe = webSocketService.subscribe(jobId, handler);
+            set({ job_id: jobId, jobUnsubscribe });
           }
 
           handleMessage(set, get, message);
@@ -135,17 +141,14 @@ export const createWorkflowRunnerStore = (
     },
 
     cleanup: () => {
-      const { unsubscribe, job_id } = get();
+      const { unsubscribe, jobUnsubscribe } = get();
       if (unsubscribe) {
         unsubscribe();
-        set({ unsubscribe: null });
       }
-      // Also unsubscribe from job_id if we had one
-      if (job_id) {
-        // The job_id subscription is cleaned up via the handler reference
-        // but we clear it from state
-        set({ job_id: null });
+      if (jobUnsubscribe) {
+        jobUnsubscribe();
       }
+      set({ unsubscribe: null, jobUnsubscribe: null, job_id: null });
       runnerStores.delete(workflowId);
     },
 

@@ -152,13 +152,42 @@ export const usePanelStore = create<ResizePanelState>()(
     }),
     {
       name: "left-panel-storage",
+      version: 1,
       partialize: (state: ResizePanelState) => ({
         panel: {
-          ...state.panel,
-          isDragging: false,
-          hasDragged: false
+          panelSize: state.panel.panelSize,
+          isVisible: state.panel.isVisible,
+          activeView: state.panel.activeView
         }
-      })
+      }),
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState ?? {}) as Partial<ResizePanelState>;
+        const persistedPanel = (persisted.panel ?? {}) as Partial<PanelState>;
+        const validViews: PanelView[] = ["assets", "workflowGrid"];
+        const activeView = validViews.includes(
+          persistedPanel.activeView as PanelView
+        )
+          ? (persistedPanel.activeView as PanelView)
+          : currentState.panel.activeView;
+        return {
+          ...currentState,
+          panel: {
+            ...currentState.panel,
+            panelSize:
+              typeof persistedPanel.panelSize === "number"
+                ? Math.max(
+                    MIN_DRAG_SIZE,
+                    Math.min(persistedPanel.panelSize, MAX_PANEL_SIZE)
+                  )
+                : currentState.panel.panelSize,
+            isVisible:
+              typeof persistedPanel.isVisible === "boolean"
+                ? persistedPanel.isVisible
+                : currentState.panel.isVisible,
+            activeView
+          }
+        };
+      }
     }
   )
 );

@@ -23,7 +23,7 @@ export default function AgentBuildRunDeploy() {
             <div className="relative mx-auto max-w-6xl w-full z-10">
                 <div className="mb-12 text-center max-w-2xl mx-auto">
                     <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-4 tracking-tight">
-                        The Agentic Stack
+                        Plan. Act. Self-correct.
                     </h2>
                     <p className="text-slate-400 text-lg">
                         Design autonomous systems that plan, act, and self-correct. Then deploy them as reliable workers.

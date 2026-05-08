@@ -370,25 +370,27 @@ describe("master-key", () => {
       expect(key).toBe("test-master-key-from-env");
     });
 
-    it("should auto-generate a key when no env var", () => {
-      const key = getMasterKey();
-      expect(typeof key).toBe("string");
-      expect(key.length).toBeGreaterThan(0);
+    it("should throw when neither env nor cache is populated", () => {
+      delete process.env["SECRETS_MASTER_KEY"];
+      clearMasterKeyCache();
+      expect(() => getMasterKey()).toThrow(/not initialized/);
     });
 
-    it("should cache the key across calls", () => {
+    it("should cache the key across calls (env-sourced)", () => {
+      process.env["SECRETS_MASTER_KEY"] = "env-key-stable";
       const key1 = getMasterKey();
       const key2 = getMasterKey();
       expect(key1).toBe(key2);
     });
 
-    it("should clear cache", () => {
+    it("should re-resolve from env after cache clear", () => {
+      process.env["SECRETS_MASTER_KEY"] = "env-key-1";
       const key1 = getMasterKey();
       clearMasterKeyCache();
-      // Without env var, a new key will be generated
+      process.env["SECRETS_MASTER_KEY"] = "env-key-2";
       const key2 = getMasterKey();
-      // They could be different since new key is generated
-      expect(typeof key2).toBe("string");
+      expect(key1).toBe("env-key-1");
+      expect(key2).toBe("env-key-2");
     });
 
     it("should allow setting a custom key", () => {
@@ -516,7 +518,7 @@ describe("master-key", () => {
         "secrets_master_key"
       );
       // Cache should be cleared after deletion
-      // (next getMasterKey call will auto-generate or read from env)
+      // (next getMasterKey call throws unless env or initMasterKey re-resolves it)
     });
 
     it("should return false when keytar.deletePassword returns false", async () => {

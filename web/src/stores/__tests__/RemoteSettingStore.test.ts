@@ -165,6 +165,8 @@ describe("RemoteSettingStore", () => {
   describe("updateSettings", () => {
     it("should update non-secret settings only", async () => {
       updateMutate.mockResolvedValueOnce({ message: "Settings updated" });
+      // updateSettings now refetches to keep the local cache in sync.
+      listQuery.mockResolvedValueOnce({ settings: [] });
 
       const { result } = renderHook(() => useRemoteSettingsStore());
 
@@ -185,6 +187,7 @@ describe("RemoteSettingStore", () => {
 
     it("should accept settings parameter only", async () => {
       updateMutate.mockResolvedValueOnce({ message: "Settings updated" });
+      listQuery.mockResolvedValueOnce({ settings: [] });
 
       const { result } = renderHook(() => useRemoteSettingsStore());
 
@@ -214,6 +217,7 @@ describe("RemoteSettingStore", () => {
 
     it("should set isLoading correctly", async () => {
       updateMutate.mockResolvedValueOnce({ message: "Settings updated" });
+      listQuery.mockResolvedValueOnce({ settings: [] });
 
       const { result } = renderHook(() => useRemoteSettingsStore());
 

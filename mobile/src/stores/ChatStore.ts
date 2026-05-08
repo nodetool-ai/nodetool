@@ -75,6 +75,10 @@ interface ChatState {
   setError: (error: string | null) => void;
 }
 
+// Tracks the in-flight safety timeout from sendMessage. Module-scoped so
+// the cancellation path doesn't have to plumb it through state.
+let safetyTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
 /**
  * Handle incoming WebSocket messages and update state
  */
@@ -198,6 +202,26 @@ function handleWebSocketMessage(
       break;
     }
 
+    case 'planning_update': {
+      const pu = data as { phase?: string; status?: string; content?: string };
+      if (pu.status === 'completed' || pu.status === 'failed') {
+        set({ statusMessage: null });
+      } else {
+        set({ statusMessage: pu.content || null });
+      }
+      break;
+    }
+
+    case 'task_update': {
+      // Light-touch surface: show the lifecycle event so the user knows
+      // something is happening during long agent runs. The full execution
+      // tree lives elsewhere; here we just keep the banner alive.
+      const tu = data as { event?: string; task?: { title?: string } };
+      const label = tu.task?.title ? `${tu.task.title} — ${tu.event}` : tu.event;
+      if (label) set({ statusMessage: label });
+      break;
+    }
+
     case 'generation_stopped': {
       set({
         status: 'connected',
@@ -317,6 +341,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
       wsManager.destroy();
     }
 
+    if (safetyTimeoutId !== null) {
+      clearTimeout(safetyTimeoutId);
+      safetyTimeoutId = null;
+    }
+
     set({
       wsManager: null,
       status: 'disconnected',
@@ -393,11 +422,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
       media_generation: mediaGeneration,
     };
 
+    // Cancel any prior safety timeout — otherwise rapid sends accumulate
+    // timers and one can fire mid-stream of a later message, clobbering
+    // the live `status: "loading"` flag.
+    if (safetyTimeoutId !== null) {
+      clearTimeout(safetyTimeoutId);
+      safetyTimeoutId = null;
+    }
+
     try {
       wsManager.send(messageToSend);
 
       // Safety timeout - reset status if no response
-      setTimeout(() => {
+      safetyTimeoutId = setTimeout(() => {
+        safetyTimeoutId = null;
         const currentState = get();
         if (currentState.status === 'loading' || currentState.status === 'streaming') {
           console.warn('Generation timeout - resetting status');
@@ -425,6 +463,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
       currentThreadId,
       status,
     });
+
+    // Cancel the safety timeout so it doesn't fire after the user stops.
+    if (safetyTimeoutId !== null) {
+      clearTimeout(safetyTimeoutId);
+      safetyTimeoutId = null;
+    }
 
     if (!wsManager || !wsManager.isConnected() || !currentThreadId) {
       console.log('Cannot stop: not connected or no thread');

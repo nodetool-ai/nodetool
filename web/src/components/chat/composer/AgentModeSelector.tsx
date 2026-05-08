@@ -13,7 +13,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ChatIcon from "@mui/icons-material/Chat";
 import PsychologyIcon from "@mui/icons-material/Psychology";
-import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import CheckIcon from "@mui/icons-material/Check";
 
@@ -40,13 +39,6 @@ const AGENT_MODE_OPTIONS: AgentModeOption[] = [
     description:
       "Plans parallel LLM tasks and executes them with tool use",
     icon: <PsychologyIcon fontSize="small" />
-  },
-  {
-    value: "graph",
-    label: "Agent (Graph builder)",
-    description:
-      "Builds a workflow graph from core nodes and runs it end-to-end",
-    icon: <AccountTreeIcon fontSize="small" />
   }
 ];
 
@@ -154,7 +146,7 @@ interface AgentModeSelectorProps {
 export const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   agentMode,
   onToggle,
-  agentPlanner = "graph",
+  agentPlanner = "multi",
   onPlannerChange,
   disabled = false
 }) => {
@@ -162,10 +154,14 @@ export const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
-  const currentMode: AgentMode = agentMode ? agentPlanner : "chat";
-  const currentOption = AGENT_MODE_OPTIONS.find(
-    (o) => o.value === currentMode
-  )!;
+  // Graph planner is hidden from the UI; fall back to "multi" so persisted
+  // "graph" values still render a valid option.
+  const effectivePlanner: AgentPlanner =
+    agentPlanner === "graph" ? "multi" : agentPlanner;
+  const currentMode: AgentMode = agentMode ? effectivePlanner : "chat";
+  const currentOption =
+    AGENT_MODE_OPTIONS.find((o) => o.value === currentMode) ??
+    AGENT_MODE_OPTIONS[0];
 
   const handleClick = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {

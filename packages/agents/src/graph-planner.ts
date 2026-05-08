@@ -151,10 +151,21 @@ export class GraphPlanner {
       content: "Starting graph-native planning..."
     } satisfies PlanningUpdate;
 
+    log.info("GraphPlanner.plan started", {
+      objective: objective.slice(0, 120),
+      provider: this.provider.provider,
+      model: this.model,
+      maxRetries: this.maxRetries,
+      maxToolCalls: MAX_TOOL_CALLS_PER_TURN,
+      hasFindModel: this.hasFindModel,
+      executionToolsCount: this.tools.length
+    });
+
     for (let attempt = 0; attempt < this.maxRetries; attempt++) {
-      log.debug("Building workflow graph", {
+      log.info("GraphPlanner attempt", {
         objective: objective.slice(0, 60),
-        attempt: attempt + 1
+        attempt: attempt + 1,
+        maxRetries: this.maxRetries
       });
 
       yield {
@@ -260,15 +271,26 @@ export class GraphPlanner {
     const toolMap = new Map(allTools.map((t) => [t.name, t]));
 
     let totalToolCalls = 0;
+    let turn = 0;
 
     // Multi-turn loop: LLM may need multiple turns to search, inspect, then build
     while (totalToolCalls < MAX_TOOL_CALLS_PER_TURN) {
+      turn++;
       let content = "";
       const pendingToolCalls: Array<{
         name: string;
         args: Record<string, unknown>;
         id: string;
       }> = [];
+
+      const turnStartedAt = Date.now();
+      log.info("GraphPlanner LLM turn starting", {
+        turn,
+        totalToolCallsSoFar: totalToolCalls,
+        messageCount: messages.length,
+        nodesAdded: builder.nodeCount,
+        edgesAdded: builder.edgeCount
+      });
 
       const stream = this.provider.generateMessagesTraced({
         messages: [...messages],
@@ -301,11 +323,26 @@ export class GraphPlanner {
         }
       }
 
+      log.info("GraphPlanner LLM turn done", {
+        turn,
+        durationMs: Date.now() - turnStartedAt,
+        contentLength: content.length,
+        toolCalls: pendingToolCalls.length,
+        toolNames: pendingToolCalls.map((t) => t.name)
+      });
+
       // No tool calls — LLM finished without calling finish_graph
       if (pendingToolCalls.length === 0) {
         if (finishGraphTool.graph) {
+          log.info("GraphPlanner finished with graph (no further tool calls)");
           return { graph: finishGraphTool.graph };
         }
+        log.warn("GraphPlanner stopped without finish_graph", {
+          turn,
+          contentPreview: content.slice(0, 200),
+          nodesBuilt: builder.nodeCount,
+          edgesBuilt: builder.edgeCount
+        });
         return {
           error:
             "LLM stopped without calling finish_graph. Please build the graph and call finish_graph."
@@ -326,7 +363,12 @@ export class GraphPlanner {
 
       for (const tc of pendingToolCalls) {
         totalToolCalls++;
-        log.debug("Tool call", { name: tc.name, args: tc.args });
+        log.info("GraphPlanner tool call", {
+          turn,
+          totalToolCalls,
+          name: tc.name,
+          args: tc.args
+        });
 
         yield {
           type: "tool_call_update",
@@ -347,20 +389,35 @@ export class GraphPlanner {
           continue;
         }
 
+        const toolStartedAt = Date.now();
         const result = await tool.process(
           {} as ProcessingContext,
           tc.args
         );
+        const resultStr =
+          typeof result === "string" ? result : JSON.stringify(result);
+
+        log.info("GraphPlanner tool result", {
+          name: tc.name,
+          durationMs: Date.now() - toolStartedAt,
+          resultLength: resultStr.length,
+          resultPreview: resultStr.slice(0, 240),
+          nodesBuilt: builder.nodeCount,
+          edgesBuilt: builder.edgeCount
+        });
 
         messages.push({
           role: "tool",
           toolCallId: tc.id,
-          content:
-            typeof result === "string" ? result : JSON.stringify(result)
+          content: resultStr
         });
 
         // Check if finish_graph succeeded
         if (tc.name === "finish_graph" && finishGraphTool.graph) {
+          log.info("GraphPlanner finish_graph succeeded", {
+            nodes: finishGraphTool.graph.nodes.length,
+            edges: finishGraphTool.graph.edges.length
+          });
           return { graph: finishGraphTool.graph };
         }
 
@@ -368,6 +425,13 @@ export class GraphPlanner {
         // so the LLM can fix them
       }
     }
+
+    log.warn("GraphPlanner hit MAX_TOOL_CALLS_PER_TURN", {
+      totalToolCalls,
+      max: MAX_TOOL_CALLS_PER_TURN,
+      nodesBuilt: builder.nodeCount,
+      edgesBuilt: builder.edgeCount
+    });
 
     return {
       error: `Exceeded maximum tool calls (${MAX_TOOL_CALLS_PER_TURN})`

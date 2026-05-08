@@ -16,26 +16,26 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NodeTool: Node-Based Visual Builder for AI Workflows and LLM Agents",
+  title: "NodeTool — The open creative AI workspace",
   description:
-    "NodeTool is an open-source visual programming tool for building AI workflows. Run locally on macOS, Windows, or Linux. Connect LLMs, create RAG systems, build AI agents, and process multimodal content through a drag-and-drop node interface. Alternative to ComfyUI for general AI and n8n for AI-specific automation.",
+    "NodeTool is the open-source creative AI workspace — every major model from every major provider, called with your own keys, wired into one node-based canvas you run on your machine or in the browser. Pay providers directly. No credits, no markup, no vendor lock-in.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/",
   },
   keywords: [
-    "AI workflow builder",
-    "node-based AI tool",
-    "visual programming AI",
-    "LLM agent builder",
-    "local AI development",
-    "RAG pipeline tool",
-    "multimodal AI",
+    "creative AI workspace",
+    "open source creative AI",
+    "BYOK AI canvas",
+    "AI workflow canvas",
     "ComfyUI alternative",
-    "n8n for AI",
-    "open source AI tool",
-    "local-first AI",
-    "AI orchestration",
+    "Weavy alternative",
+    "vendor-neutral AI tool",
+    "node-based AI canvas",
+    "Flux workflow",
+    "Seedance workflow",
+    "image video audio AI",
+    "model-agnostic AI",
   ],
   icons: {
     icon: [
@@ -47,15 +47,15 @@ export const metadata: Metadata = {
     other: [{ rel: "manifest", url: "/site.webmanifest" }],
   },
   openGraph: {
-    title: "NodeTool: Visual Builder for AI Workflows and LLM Agents",
+    title: "NodeTool — The open creative AI workspace",
     description:
-      "Open-source node-based tool for building AI workflows. Runs locally on macOS, Windows, Linux. Create LLM agents, RAG systems, and multimodal pipelines with drag-and-drop nodes.",
+      "Every major model from every major provider, called with your own keys, wired into one node-based canvas. Image, video, audio, and text on one surface. Open source. BYOK. Provider prices.",
     url: "https://nodetool.ai",
     siteName: "NodeTool",
     images: [
       {
         url: "/preview.png",
-        alt: "NodeTool - Visual AI Workflow Builder",
+        alt: "NodeTool — the open creative AI workspace",
       },
     ],
     locale: "en_US",
@@ -63,9 +63,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "NodeTool: Visual AI Workflow Builder",
+    title: "NodeTool — The open creative AI workspace",
     description:
-      "Open-source node-based tool for AI development. Build LLM agents, RAG systems, and multimodal workflows locally on your machine.",
+      "Every model. Your keys. Your canvas. The open-source creative AI workspace, with BYOK to every major provider and provider-price billing.",
     images: ["/preview.png"],
   },
 };
@@ -92,9 +92,9 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "SoftwareApplication",
               "name": "NodeTool",
-              "description": "NodeTool is a node-based visual programming tool for building AI workflows and applications. It allows developers to create LLM agents, RAG systems, and multimodal content pipelines by connecting nodes in a drag-and-drop interface. Runs locally on user's machine with support for cloud APIs.",
-              "applicationCategory": "DeveloperApplication",
-              "applicationSubCategory": "AI Development Tool",
+              "description": "NodeTool is the open-source creative AI workspace — every major model from every major provider, called with your own keys, wired into one node-based canvas. Image, video, audio, and text on one surface, with masks, inpaint, outpaint, relight, upscale, and compositing built in. Runs as a desktop app on macOS, Windows, and Linux, or in the browser via NodeTool Cloud.",
+              "applicationCategory": "MultimediaApplication",
+              "applicationSubCategory": "Creative AI Workspace",
               "operatingSystem": "macOS, Windows, Linux",
               "offers": {
                 "@type": "Offer",
@@ -111,18 +111,16 @@ export default function RootLayout({
               },
               "screenshot": "https://nodetool.ai/preview.png",
               "featureList": [
-                "Node-based visual interface for AI workflow orchestration",
-                "Local execution engine running on macOS, Windows, and Linux",
-                "Support for local LLMs via Ollama, MLX, and GGML/GGUF formats",
-                "Integration with OpenAI, Anthropic, Replicate, and Hugging Face APIs",
-                "Multimodal processing: text, images, video, and audio",
-                "RAG (Retrieval-Augmented Generation) pipeline builder",
-                "Vector database integration for semantic search",
-                "AI agent framework with tool use and web browsing",
-                "Type-safe node connections",
-                "Real-time workflow execution with live output preview",
-                "Async Node.js runner extensible with custom nodes in TypeScript or Python",
-                "Open source, TypeScript end-to-end (frontend and backend)"
+                "Node-based creative canvas for image, video, audio, and text",
+                "BYOK to every major provider: FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, HuggingFace",
+                "Pay providers directly at provider prices, no credits, no markup",
+                "Editing tools built in: masks, inpaint, outpaint, relight, upscale, layers, compositing",
+                "Frontier models named by their real names: Flux, Seedance, Wan, Veo, Kling, Hailuo, Whisper, ElevenLabs, Suno",
+                "Local inference via MLX, Ollama, llama.cpp, vLLM, and LM Studio",
+                "Two editions on one open-source codebase: Studio (desktop) and Cloud (browser)",
+                "Streaming execution with live output as nodes finish",
+                "Workflows, files, and keys belong to you — runs on your machine or browser",
+                "AGPL-3.0 open source, self-host any time"
               ],
               "softwareRequirements": "Node.js 22+ (Python 3.11+ optional, for Python nodes)",
               "installUrl": "https://github.com/nodetool-ai/nodetool",
@@ -148,7 +146,7 @@ export default function RootLayout({
                 "https://github.com/nodetool-ai/nodetool",
                 "https://discord.gg/WmQTWZRcYE"
               ],
-              "description": "NodeTool is an open-source visual programming tool for AI development. It provides a node-based interface for building LLM agents, RAG systems, and multimodal AI workflows that run locally on user machines."
+              "description": "NodeTool builds the open creative AI workspace: a node-based canvas that connects every major model from every major provider with the user's own keys, available as a desktop app and as a browser-based managed edition."
             })
           }}
         />
@@ -166,7 +164,7 @@ export default function RootLayout({
                   "name": "What is NodeTool?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "NodeTool is a node-based visual programming tool for building AI workflows and applications. It runs locally on macOS, Windows, and Linux, allowing developers to create LLM agents, RAG systems, and multimodal content pipelines by connecting nodes in a drag-and-drop interface."
+                    "text": "NodeTool is the open-source creative AI workspace. Every major model from every major provider — FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and more — is called with your own keys and wired into one node-based canvas. Image, video, audio, and text live on the same surface, with editing tools like masks, inpaint, outpaint, relight, upscale, layers, and compositing built in. Runs as a desktop app on macOS, Windows, and Linux, or in the browser via NodeTool Cloud."
                   }
                 },
                 {
@@ -174,39 +172,39 @@ export default function RootLayout({
                   "name": "How is NodeTool different from ComfyUI?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "ComfyUI focuses on image generation workflows with Stable Diffusion. NodeTool extends this node-based concept to general AI workflows including LLM agents, text processing, RAG systems, audio, and video generation."
+                    "text": "ComfyUI is a Stable Diffusion power tool with engineer-first UX. NodeTool is the full creative workspace — every modality on one canvas, with the editing tools creatives actually use. NodeTool also supports a much wider model roster across providers and modalities, called with your own keys at provider prices."
                   }
                 },
                 {
                   "@type": "Question",
-                  "name": "How is NodeTool different from n8n?",
+                  "name": "How is NodeTool different from Weavy or other closed SaaS canvases?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "n8n is a general workflow automation tool for business processes and API integrations. NodeTool is specialized for AI workloads with native support for model management, local LLMs, multimodal AI operations, and RAG pipelines."
+                    "text": "Closed canvases lock you into a credit system and a curated model roster. NodeTool is open source and BYOK. You bring your own API keys to every provider, pay providers directly at provider prices, and own your workflows and files. Cloud is just our managed hosting of the same open-source code you can run yourself."
                   }
                 },
                 {
                   "@type": "Question",
-                  "name": "Does NodeTool require cloud services?",
+                  "name": "How does pricing work?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "No. NodeTool runs entirely on your local machine and can work with local LLMs via Ollama, MLX, or GGML/GGUF formats. Cloud APIs (OpenAI, Anthropic, etc.) are optional and can be used when needed."
+                    "text": "NodeTool Studio is free to download and use. NodeTool Cloud is a subscription for managed hosting. In both editions, you bring your own API keys to every provider and pay those providers directly at their list prices. NodeTool does not run model inference for you on its own servers, does not issue proprietary credits, and does not mark up model calls."
                   }
                 },
                 {
                   "@type": "Question",
-                  "name": "What AI models does NodeTool support?",
+                  "name": "What models does NodeTool support?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "NodeTool supports local LLMs via Ollama, MLX (Apple Silicon), and GGML/GGUF formats. It also integrates with cloud APIs including OpenAI, Anthropic Claude, Replicate, Hugging Face, and custom API endpoints."
+                    "text": "Frontier models including Flux, Seedance, Wan, Veo, Kling, Hailuo, Qwen Image, Whisper, ElevenLabs, and Suno, called through providers like FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, and HuggingFace. Local inference is supported via MLX, Ollama, llama.cpp, vLLM, and LM Studio."
                   }
                 },
                 {
                   "@type": "Question",
-                  "name": "Who should use NodeTool?",
+                  "name": "Who is NodeTool for?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "NodeTool is for AI developers building LLM applications, creative professionals working with generative AI, data engineers creating RAG pipelines, researchers prototyping multimodal AI systems, and teams requiring local-first AI for privacy or compliance."
+                    "text": "Independent generative artists, motion designers, AI-native illustrators, technical art directors, ComfyUI power users frustrated with the UX, and small creative studios, brand teams, and post-production shops working with AI every day."
                   }
                 },
                 {
@@ -214,7 +212,7 @@ export default function RootLayout({
                   "name": "Is NodeTool open source?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Yes. NodeTool is open source and TypeScript end-to-end. Workflows run in an async Node.js runner, and you can extend it with custom nodes written in TypeScript or Python. The source code is available on GitHub."
+                    "text": "Yes. Both Studio and Cloud share the same AGPL-3.0 codebase. There is no closed-source layer and no \"pro tier\" hiding the good features. You can self-host any time."
                   }
                 }
               ]

@@ -224,7 +224,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       // Agent mode
       agentMode: false,
       setAgentMode: (enabled: boolean) => set({ agentMode: enabled }),
-      agentPlanner: "graph",
+      agentPlanner: "multi",
       setAgentPlanner: (planner) => set({ agentPlanner: planner }),
 
       // Agent execution trace
@@ -478,6 +478,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
           selectedCollections,
           sendMessageTimeoutId
         } = get();
+        // Graph planner is hidden in the UI; coerce any persisted "graph"
+        // value back to "multi" so we never send the broken planner.
+        const effectiveAgentPlanner: "multi" | "graph" =
+          agentPlanner === "graph" ? "multi" : agentPlanner;
         const outgoing = message as ChatOutgoingMessage;
         const mediaGeneration = outgoing.media_generation ?? null;
 
@@ -544,7 +548,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           ...message,
           thread_id: threadId,
           agent_mode: agentMode,
-          agent_planner: agentMode ? agentPlanner : undefined,
+          agent_planner: agentMode ? effectiveAgentPlanner : undefined,
           ...(mediaGeneration ? { media_generation: mediaGeneration } : {})
         } as Message;
 
@@ -561,7 +565,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           agent_mode: agentMode,
           // Only send agent_planner when agent_mode is on; the server picks a
           // sensible default otherwise.
-          agent_planner: agentMode ? agentPlanner : undefined,
+          agent_planner: agentMode ? effectiveAgentPlanner : undefined,
           model: isMediaGeneration
             ? mediaGeneration?.model ?? message.model ?? selectedModel?.id
             : selectedModel?.id,
@@ -813,8 +817,16 @@ const useGlobalChatStore = create<GlobalChatState>()(
                 if (existingTimeout !== null) {
                   clearTimeout(existingTimeout);
                 }
-                // Auto-load messages for the new current thread
-                const timeoutId = setTimeout(() => get().loadMessages(newCurrentThreadId), 0);
+                // Auto-load messages for the new current thread, but
+                // re-read currentThreadId at fire time so a switchThread
+                // call between scheduling and firing doesn't load messages
+                // into the wrong thread context.
+                const timeoutId = setTimeout(() => {
+                  const activeId = get().currentThreadId;
+                  if (activeId) {
+                    get().loadMessages(activeId);
+                  }
+                }, 0);
                 newState.loadMessagesTimeoutId = timeoutId;
               } else {
                 // No threads left, clear current thread (we will create a new one below)
@@ -1098,6 +1110,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
     }),
     {
       name: "global-chat-storage",
+      version: 1,
       // Persist minimal subset incl. selections; do not persist message cache
       // Note: Return type cast needed due to zustand persist middleware type limitations
       partialize: (state) => ({
@@ -1107,6 +1120,46 @@ const useGlobalChatStore = create<GlobalChatState>()(
         selectedTools: state.selectedTools,
         selectedCollections: state.selectedCollections
       }) as GlobalChatState,
+      migrate: (persistedState, _version) => {
+        // Corrupt localStorage (string, null, etc.) must yield a usable
+        // default rather than passing the raw value through; selectors
+        // that read `threads`/`selectedTools`/`selectedCollections`
+        // would otherwise see `undefined` and crash.
+        const fallback = {
+          threads: {} as Record<string, Thread>,
+          lastUsedThreadId: null as string | null,
+          selectedModel: null as LanguageModel | null,
+          selectedTools: [] as string[],
+          selectedCollections: [] as string[]
+        };
+        if (!persistedState || typeof persistedState !== "object") {
+          return fallback as unknown as GlobalChatState;
+        }
+        const state = persistedState as Record<string, unknown>;
+        return {
+          threads:
+            state.threads &&
+            typeof state.threads === "object" &&
+            !Array.isArray(state.threads)
+              ? (state.threads as Record<string, Thread>)
+              : fallback.threads,
+          lastUsedThreadId:
+            typeof state.lastUsedThreadId === "string"
+              ? state.lastUsedThreadId
+              : fallback.lastUsedThreadId,
+          selectedModel:
+            state.selectedModel &&
+            typeof state.selectedModel === "object"
+              ? (state.selectedModel as LanguageModel)
+              : fallback.selectedModel,
+          selectedTools: Array.isArray(state.selectedTools)
+            ? (state.selectedTools as string[])
+            : fallback.selectedTools,
+          selectedCollections: Array.isArray(state.selectedCollections)
+            ? (state.selectedCollections as string[])
+            : fallback.selectedCollections
+        } as unknown as GlobalChatState;
+      },
       onRehydrateStorage: () => (state) => {
         // State has been rehydrated from storage
         if (state) {
@@ -1196,8 +1249,19 @@ const registerGlobalChatListeners = () => {
   };
 };
 
-if (typeof window !== "undefined") {
-  registerGlobalChatListeners();
+// Guard against multiple registrations from HMR / multi-bundle loads. Each
+// extra import would otherwise install another set of listeners that the
+// `return cleanup` path never calls back into.
+declare global {
+  interface Window {
+    __nodetoolGlobalChatListenersBound?: boolean;
+    __nodetoolGlobalChatListenersCleanup?: () => void;
+  }
+}
+
+if (typeof window !== "undefined" && !window.__nodetoolGlobalChatListenersBound) {
+  window.__nodetoolGlobalChatListenersBound = true;
+  window.__nodetoolGlobalChatListenersCleanup = registerGlobalChatListeners();
 }
 
 // Custom hook for TanStack Query thread loading
@@ -1221,11 +1285,13 @@ export const useThreadsQuery = () => {
         threadsRecord[thread.id] = thread as unknown as Thread;
       });
 
-      useGlobalChatStore.setState({
-        threads: threadsRecord,
+      // Merge with existing threads so locally-created/optimistic threads
+      // that haven't reached the server yet don't get wiped on refetch.
+      useGlobalChatStore.setState((state) => ({
+        threads: { ...state.threads, ...threadsRecord },
         threadsLoaded: true,
         isLoadingThreads: false
-      });
+      }));
     }
   }, [query.isSuccess, query.data]);
 

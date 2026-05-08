@@ -32,6 +32,7 @@ import {
 
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
+import { TimelineAssetPanel } from "./TimelineAssetPanel";
 import {
   useCreateTimeline,
   useTimeline,
@@ -79,6 +80,13 @@ const middleAreaStyles = (theme: Theme) =>
     overflow: "hidden",
     borderBottom: `1px solid ${theme.vars.palette.divider}`
   });
+
+const assetPanelRegionStyles = css({
+  flex: "0 0 280px",
+  minWidth: 240,
+  maxWidth: 360,
+  overflow: "hidden"
+});
 
 const previewRegionStyles = (theme: Theme) =>
   css({
@@ -138,7 +146,7 @@ const PreviewRegion: React.FC<{
     <FlexColumn
       css={previewRegionStyles(theme)}
       fullHeight
-      sx={{ flex: "0 0 55%" }}
+      sx={{ flex: "55 55 0", minWidth: 0 }}
     >
       {isLoading ? (
         <LoadingSpinner text="Loading sequence…" />
@@ -202,7 +210,7 @@ const InspectorRegion: React.FC = () => {
     <FlexColumn
       css={inspectorRegionStyles(theme)}
       fullHeight
-      sx={{ flex: "1 1 45%" }}
+      sx={{ flex: "45 45 0", minWidth: 0 }}
     >
       <TimelineInspector />
     </FlexColumn>
@@ -371,12 +379,15 @@ export const TimelineEditor: React.FC = memo(() => {
         activitySlot={<ActivityIndicator />}
       />
 
-      {/* ── Middle: preview + inspector ───────────────────────────── */}
+      {/* ── Middle: assets + preview + inspector ──────────────────── */}
       <FlexRow
         fullWidth
         css={middleAreaStyles(theme)}
         sx={{ flex: "1 1 auto", overflow: "hidden" }}
       >
+        <div css={assetPanelRegionStyles}>
+          <TimelineAssetPanel />
+        </div>
         <PreviewRegion
           isLoading={isLoading}
           sequence={sequence}

@@ -4,15 +4,20 @@
  * Port of src/nodetool/agents/tools/google_tools.py
  */
 
-import * as fs from "node:fs/promises";
-import * as path from "node:path";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
+import { persistBinaryOutput } from "./binary-output.js";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
-function getGeminiApiKey(): string {
-  const key = process.env["GEMINI_API_KEY"];
+async function getGeminiApiKey(context?: ProcessingContext): Promise<string> {
+  // Prefer the context's secretResolver (encrypted DB) over env vars so the
+  // chat-cli + agent picks up keys configured via `nodetool secrets store`.
+  const fromCtx =
+    typeof context?.getSecret === "function"
+      ? await context.getSecret("GEMINI_API_KEY")
+      : null;
+  const key = fromCtx ?? process.env["GEMINI_API_KEY"];
   if (!key) throw new Error("GEMINI_API_KEY is not set");
   return key;
 }
@@ -33,7 +38,7 @@ export class GoogleGroundedSearchTool extends Tool {
   };
 
   async process(
-    _context: ProcessingContext,
+    context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
     const query = params["query"];
@@ -42,7 +47,7 @@ export class GoogleGroundedSearchTool extends Tool {
     }
 
     try {
-      const apiKey = getGeminiApiKey();
+      const apiKey = await getGeminiApiKey(context);
       const url = `${GEMINI_API_BASE}/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
       const body = {
@@ -134,7 +139,11 @@ export class GoogleGroundedSearchTool extends Tool {
 export class GoogleImageGenerationTool extends Tool {
   readonly name = "google_image_generation";
   readonly description =
-    "Generate images based on a text prompt using Google's Gemini/Imagen API";
+    "Generate images based on a text prompt using Google's Gemini/Imagen API. " +
+    "The result includes `display_markdown` — a ready-to-paste markdown image " +
+    "embed pointing at a UI-fetchable URL. When narrating the result to the " +
+    "user, include `display_markdown` verbatim; never construct your own " +
+    "markdown from `output_file` (a workspace key, not a URL).";
   readonly inputSchema = {
     type: "object" as const,
     properties: {
@@ -163,7 +172,7 @@ export class GoogleImageGenerationTool extends Tool {
       return { error: "Output file is required" };
 
     try {
-      const apiKey = getGeminiApiKey();
+      const apiKey = await getGeminiApiKey(context);
       // Use Imagen 3 REST API
       const url = `${GEMINI_API_BASE}/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
 
@@ -197,15 +206,17 @@ export class GoogleImageGenerationTool extends Tool {
         | undefined;
       if (!imageB64) return { error: "No image bytes found in response" };
 
-      const imageBuffer = Buffer.from(imageB64, "base64");
-      const filePath = context.resolveWorkspacePath(outputFile);
-      await fs.mkdir(path.dirname(filePath), { recursive: true });
-      await fs.writeFile(filePath, imageBuffer);
+      const bytes = Uint8Array.from(Buffer.from(imageB64, "base64"));
+      const persisted = await persistBinaryOutput(context, bytes, {
+        outputFile,
+        contentType: "image/png",
+        uiPrefix: "gemini-images"
+      });
 
       return {
         type: "image",
         prompt,
-        output_file: outputFile,
+        ...persisted,
         status: "success"
       };
     } catch (e) {

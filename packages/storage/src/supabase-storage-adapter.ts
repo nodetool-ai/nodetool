@@ -1,5 +1,10 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { StorageAdapter } from "./storage-adapter.js";
+import type {
+  StorageAdapter,
+  StorageEntry,
+  StorageListResult,
+  StorageStat
+} from "./storage-adapter.js";
 
 export interface SupabaseStorageAdapterOptions {
   url: string;
@@ -100,10 +105,87 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     return data.some((entry) => entry.name === name);
   }
 
-  async delete(uri: string): Promise<void> {
+  async delete(uri: string): Promise<boolean> {
     const parsed = this.parseUri(uri);
-    if (!parsed || parsed.bucket !== this.bucket) return;
-    await this.getClient().storage.from(parsed.bucket).remove([parsed.key]);
+    if (!parsed || parsed.bucket !== this.bucket) return false;
+    if (!(await this.exists(uri))) return false;
+    const { error } = await this.getClient()
+      .storage.from(parsed.bucket)
+      .remove([parsed.key]);
+    return !error;
+  }
+
+  async list(
+    prefix: string,
+    opts: { delimiter?: string } = {}
+  ): Promise<StorageListResult> {
+    const delimiter = opts.delimiter ?? null;
+    // Supabase storage `list(path)` lists immediate children of `path` (a
+    // pseudo-directory). For hierarchical mode we use that directly; for
+    // flat mode we'd have to walk recursively — implement hierarchical only
+    // for now and fall back to a single-level listing without commonPrefixes
+    // for flat mode (callers wanting recursion should walk themselves).
+    const dir = prefix.replace(/\/+$/, "");
+    const { data, error } = await this.getClient()
+      .storage.from(this.bucket)
+      .list(dir, { limit: 1000 });
+    if (error || !data) return { entries: [], commonPrefixes: [] };
+
+    const entries: StorageEntry[] = [];
+    const commonPrefixes: string[] = [];
+    for (const item of data) {
+      const childKey = dir ? `${dir}/${item.name}` : item.name;
+      // Supabase entries with `id == null` are pseudo-directories.
+      const isDir = item.id == null;
+      if (isDir) {
+        if (delimiter === "/") {
+          commonPrefixes.push(`${childKey}/`);
+        }
+        continue;
+      }
+      entries.push({
+        key: childKey,
+        uri: `supabase://${this.bucket}/${childKey}`,
+        size: (item.metadata?.size as number) ?? 0,
+        modifiedAt: item.updated_at
+          ? new Date(item.updated_at).getTime()
+          : Date.now(),
+        ...(item.metadata?.mimetype
+          ? { contentType: item.metadata.mimetype as string }
+          : {})
+      });
+    }
+    return {
+      entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
+      commonPrefixes: commonPrefixes.sort()
+    };
+  }
+
+  async stat(uri: string): Promise<StorageStat | null> {
+    const parsed = this.parseUri(uri);
+    if (!parsed || parsed.bucket !== this.bucket) return null;
+    const dir = parsed.key.includes("/")
+      ? parsed.key.slice(0, parsed.key.lastIndexOf("/"))
+      : "";
+    const name = parsed.key.includes("/")
+      ? parsed.key.slice(parsed.key.lastIndexOf("/") + 1)
+      : parsed.key;
+    const { data, error } = await this.getClient()
+      .storage.from(parsed.bucket)
+      .list(dir, { search: name, limit: 1 });
+    if (error || !data) return null;
+    const item = data.find((e) => e.name === name);
+    if (!item) return null;
+    return {
+      key: parsed.key,
+      size: (item.metadata?.size as number) ?? 0,
+      modifiedAt: item.updated_at
+        ? new Date(item.updated_at).getTime()
+        : Date.now(),
+      ...(item.metadata?.mimetype
+        ? { contentType: item.metadata.mimetype as string }
+        : {})
+    };
   }
 
   /**

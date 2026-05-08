@@ -525,6 +525,8 @@ describe("Agent E2E (full pipeline)", () => {
     // autoScript: first call gets create_task (planning), subsequent calls get finish_step
     const provider = new ScriptedProvider([
       autoScript({ plan, result: { value: 99 } }),
+      autoScript({ plan, result: { value: 99 } }),
+      // CompilerAgent prose-mode response.
       autoScript({ plan, result: { value: 99 } })
     ]);
     const context = makeContext();
@@ -539,8 +541,12 @@ describe("Agent E2E (full pipeline)", () => {
     const messages = await collectMessages(agent.execute(context));
     const results = findStepResults(messages);
 
+    // The plan's step produced { value: 99 } and the compiler emitted its
+    // own step_result on top — find the step's result by id rather than
+    // assuming the last entry.
     expect(results.length).toBeGreaterThanOrEqual(1);
-    expect(results[results.length - 1].result).toEqual({ value: 99 });
+    const planStepResult = results.find((r) => r.step?.id === "step_1");
+    expect(planStepResult?.result).toEqual({ value: 99 });
   });
 
   it("skips planning when task is pre-provided", async () => {

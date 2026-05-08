@@ -19,11 +19,15 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
+import { MenuItem } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { Clip } from "./Clip";
-import { WarningBanner } from "../../ui_primitives";
+import { ContextMenu, WarningBanner } from "../../ui_primitives";
+import { AddClipMenu } from "../AddClipMenu";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
 import {
@@ -135,6 +139,22 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const [isDragReject, setIsDragReject] = useState(false);
   const [dropWarning, setDropWarning] = useState<string | null>(null);
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Context menu / add-clip state ───────────────────────────────────────
+
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number;
+    y: number;
+    startMs: number;
+  } | null>(null);
+  const [addClipState, setAddClipState] = useState<{
+    x: number;
+    y: number;
+    startMs: number;
+  } | null>(null);
+  const [addClipAnchorEl, setAddClipAnchorEl] = useState<HTMLElement | null>(
+    null
+  );
 
   // Clear any pending warning timer on unmount
   useEffect(() => {
@@ -332,6 +352,46 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     setRubberBand(null);
   }, []);
 
+  // ── Right-click context menu ────────────────────────────────────────────
+
+  const handleLaneContextMenu = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      // Only on empty lane space — let clips handle their own context menu.
+      if (e.target !== e.currentTarget) {
+        return;
+      }
+      if (track.locked) {
+        return;
+      }
+      e.preventDefault();
+      const rect = e.currentTarget.getBoundingClientRect();
+      const dropX = e.clientX - rect.left;
+      const startMs = Math.max(
+        0,
+        Math.round((dropX + scrollLeftPx) * msPerPx)
+      );
+      setContextMenuPos({ x: e.clientX, y: e.clientY, startMs });
+    },
+    [track.locked, scrollLeftPx, msPerPx]
+  );
+
+  const handleAddClipFromMenu = useCallback(() => {
+    if (!contextMenuPos) {
+      return;
+    }
+    setAddClipState({
+      x: contextMenuPos.x,
+      y: contextMenuPos.y,
+      startMs: contextMenuPos.startMs
+    });
+    setContextMenuPos(null);
+  }, [contextMenuPos]);
+
+  const handleAddClipClose = useCallback(() => {
+    setAddClipState(null);
+    setAddClipAnchorEl(null);
+  }, []);
+
   return (
     <div
       css={laneStyles(theme, heightPx, track.visible, rubberBand !== null, isDragOver, isDragReject)}
@@ -342,6 +402,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       onDragOver={handleAssetDragOver}
       onDragLeave={handleAssetDragLeave}
       onDrop={handleAssetDrop}
+      onContextMenu={handleLaneContextMenu}
       role="listbox"
       aria-label={`Track: ${track.name}`}
       aria-multiselectable="true"
@@ -361,6 +422,50 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
             height: rubberBand.height
           }}
           aria-hidden="true"
+        />
+      )}
+
+      {/* Right-click context menu (lane background) */}
+      <ContextMenu
+        open={contextMenuPos !== null}
+        position={
+          contextMenuPos
+            ? { x: contextMenuPos.x, y: contextMenuPos.y }
+            : null
+        }
+        onClose={() => setContextMenuPos(null)}
+        compact
+      >
+        <MenuItem onClick={handleAddClipFromMenu}>
+          <AddIcon fontSize="small" style={{ marginRight: 8 }} />
+          Add generated clip here…
+        </MenuItem>
+      </ContextMenu>
+
+      {/* Invisible anchor for AddClipMenu, positioned at click location */}
+      {addClipState && (
+        <div
+          ref={setAddClipAnchorEl}
+          style={{
+            position: "fixed",
+            top: addClipState.y,
+            left: addClipState.x,
+            width: 1,
+            height: 1,
+            pointerEvents: "none"
+          }}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* AddClipMenu — workflow picker */}
+      {addClipState && addClipAnchorEl && (
+        <AddClipMenu
+          trackId={track.id}
+          startMs={addClipState.startMs}
+          mediaTypeOverride={track.type === "overlay" ? "overlay" : undefined}
+          anchorEl={addClipAnchorEl}
+          onClose={handleAddClipClose}
         />
       )}
 

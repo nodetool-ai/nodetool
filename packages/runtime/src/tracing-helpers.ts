@@ -29,7 +29,7 @@ import {
 } from "@opentelemetry/api";
 import { getTracer } from "./telemetry.js";
 
-export type AgentSpanKind = "execute" | "plan" | "step";
+export type AgentSpanKind = "execute" | "plan" | "step" | "compile";
 
 /** Token counts and computed cost for one LLM call. */
 export interface LlmUsage {

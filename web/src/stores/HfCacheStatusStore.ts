@@ -92,7 +92,7 @@ export const useHfCacheStatusStore = create<HfCacheStatusStore>((set, get) => ({
     if (items.length === 0) {
       return;
     }
-    const { statuses, pending } = get();
+    const { statuses, pending, version: snapshotVersion } = get();
     const requests = items.filter(
       (item) => statuses[item.key] === undefined && !pending[item.key]
     );
@@ -105,7 +105,12 @@ export const useHfCacheStatusStore = create<HfCacheStatusStore>((set, get) => ({
     get().markPending(keys);
     try {
       const results = await checkHfCacheStatus(requests);
-      get().setStatuses(results);
+      // If invalidate() ran while this request was in-flight, the version
+      // counter advanced; dropping the response avoids re-populating the
+      // map with stale data.
+      if (get().version === snapshotVersion) {
+        get().setStatuses(results);
+      }
     } catch {
       // Keep existing statuses on transient failures; avoid persisting false negatives.
     } finally {

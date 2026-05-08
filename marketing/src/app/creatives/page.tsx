@@ -141,7 +141,7 @@ const creativeFeatures = [
   {
     title: "Audio Integration",
     description:
-      "Compose music with Suno, generate voice with ElevenLabs, and integrate audio seamlessly into workflows.",
+      "Compose music with Suno, generate voice with ElevenLabs, and wire audio straight into your canvas.",
     icon: Music,
     image: "/suno.png",
     features: ["Stem separation", "Music generation", "Voice generation"],
@@ -160,7 +160,7 @@ const workflowExamples = [
   {
     title: "Video Thumbnail Pipeline",
     description:
-      "Automatically create eye-catching thumbnails for your videos using AI-powered image generation.",
+      "Generate eye-catching thumbnails for your videos with one image-model node and a few editing nodes.",
     tags: ["Video", "Thumbnails", "YouTube"],
     gradient: "from-teal-500/20 to-purple-500/20",
   },
@@ -902,14 +902,14 @@ export default function CreativesPage() {
               viewport={{ once: true }}
             >
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-                Ready to Transform Your <br />
+                Every model. Your keys. <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-400 to-cyan-400">
-                  Creative Workflow?
+                  Your canvas.
                 </span>
               </h2>
               <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
-                Download NodeTool for free and start building AI-powered
-                creative pipelines today.
+                Download NodeTool, plug in the providers you already pay for,
+                and start wiring your next piece on a canvas you actually own.
               </p>
               <a
                 href="https://github.com/nodetool-ai/nodetool/releases"
