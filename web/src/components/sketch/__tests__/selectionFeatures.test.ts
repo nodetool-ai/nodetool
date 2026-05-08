@@ -12,7 +12,7 @@ import { useSketchStore } from "../state/useSketchStore";
 import { rectSelectionMask, getSelectionBounds } from "../selection";
 import type { Selection } from "../types";
 
-function makeSparseSelection(
+function makeSelectionWithRect(
   width: number,
   height: number,
   x: number,
@@ -328,7 +328,7 @@ describe("Reselect last selection", () => {
 
 describe("Selection mutations stay ROI-bounded", () => {
   it("expandCurrentSelection trims the result back to the changed ROI", () => {
-    const selection = makeSparseSelection(512, 512, 120, 140, 8, 6);
+    const selection = makeSelectionWithRect(512, 512, 120, 140, 8, 6);
     act(() => {
       useSketchStore.getState().setSelection(selection);
       useSketchStore.getState().expandCurrentSelection(4);
@@ -338,6 +338,8 @@ describe("Selection mutations stay ROI-bounded", () => {
     expect(expanded).not.toBeNull();
     expect(expanded!.width).toBeLessThan(512);
     expect(expanded!.height).toBeLessThan(512);
+    expect(expanded!.width).toBeLessThan(32);
+    expect(expanded!.height).toBeLessThan(32);
     expect(getSelectionBounds(expanded!)).toEqual({
       x: 116,
       y: 136,
@@ -347,7 +349,7 @@ describe("Selection mutations stay ROI-bounded", () => {
   });
 
   it("featherCurrentSelection no longer keeps a full-document buffer for small edits", () => {
-    const selection = makeSparseSelection(512, 512, 80, 96, 10, 10);
+    const selection = makeSelectionWithRect(512, 512, 80, 96, 10, 10);
     act(() => {
       useSketchStore.getState().setSelection(selection);
       useSketchStore.getState().setSelectSettings({ featherRadius: 6 });
@@ -360,14 +362,20 @@ describe("Selection mutations stay ROI-bounded", () => {
     expect(feathered!.width).toBeLessThan(512);
     expect(feathered!.height).toBeLessThan(512);
     expect(bounds).not.toBeNull();
+    expect(bounds!.width).toBeLessThanOrEqual(22);
+    expect(bounds!.height).toBeLessThanOrEqual(22);
+    expect(bounds!.x).toBeGreaterThanOrEqual(74);
     expect(bounds!.x).toBeLessThanOrEqual(80);
+    expect(bounds!.y).toBeGreaterThanOrEqual(90);
     expect(bounds!.y).toBeLessThanOrEqual(96);
     expect(bounds!.x + bounds!.width).toBeGreaterThanOrEqual(90);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(96);
     expect(bounds!.y + bounds!.height).toBeGreaterThanOrEqual(106);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(112);
   });
 
   it("convertSelectionToBorderOutline pads outward before trimming", () => {
-    const selection = makeSparseSelection(512, 512, 200, 220, 20, 12);
+    const selection = makeSelectionWithRect(512, 512, 200, 220, 20, 12);
     act(() => {
       useSketchStore.getState().setSelection(selection);
       useSketchStore.getState().setSelectSettings({ borderWidth: 6 });
