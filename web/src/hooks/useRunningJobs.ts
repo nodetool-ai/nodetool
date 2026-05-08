@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import { Job } from "../stores/ApiTypes";
 import { trpcClient } from "../trpc/client";
 import { useAuth } from "../stores/useAuth";
@@ -15,7 +15,7 @@ const fetchRunningJobs = async (): Promise<Job[]> => {
  * Hook to fetch running jobs
  * Only runs when user is authenticated
  */
-export const useRunningJobs = () => {
+export const useRunningJobs = (): UseQueryResult<Job[], Error> => {
   const state = useAuth((auth) => auth.state);
   const isAuthenticated = state === "logged_in";
 
