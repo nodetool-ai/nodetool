@@ -27,6 +27,9 @@ interface TypeFilterProps {
   setSelectedOutputType: (value: string) => void;
 }
 
+const COMFY_TYPES = DATA_TYPES.filter((t) => t.value.startsWith("comfy"));
+const OTHER_TYPES = DATA_TYPES.filter((t) => !t.value.startsWith("comfy"));
+
 const TypeFilter = memo(({
   selectedInputType,
   setSelectedInputType,
@@ -34,12 +37,9 @@ const TypeFilter = memo(({
   setSelectedOutputType
 }: TypeFilterProps) => {
   const theme = useTheme();
-  const nodeTypes = DATA_TYPES;
   const isComfyConnected = useComfyUIStore((state) => state.isConnected);
-  const comfyTypes = isComfyConnected
-    ? nodeTypes.filter((t) => t.value.startsWith("comfy"))
-    : [];
-  const otherTypes = nodeTypes.filter((t) => !t.value.startsWith("comfy"));
+  const comfyTypes = isComfyConnected ? COMFY_TYPES : [];
+  const otherTypes = OTHER_TYPES;
 
   const [showNodetoolInput, setShowNodetoolInput] = useState(true);
   const [showComfyInput, setShowComfyInput] = useState(false);

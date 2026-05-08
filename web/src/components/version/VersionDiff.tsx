@@ -82,7 +82,7 @@ const renderPropertyChange = (change: PropertyChange) => {
 const NodeDiffItem: React.FC<{
   node: { id: string; type?: string };
   type: "added" | "removed";
-}> = ({ node, type }) => (
+}> = memo(({ node, type }) => (
   <ListItem
     sx={{
       bgcolor: type === "added" ? "rgba(46, 125, 50, 0.1)" : "rgba(211, 47, 47, 0.1)",
@@ -116,9 +116,9 @@ const NodeDiffItem: React.FC<{
       sx={{ height: 20, fontSize: "0.65rem" }}
     />
   </ListItem>
-);
+));
 
-const ModifiedNodeItem: React.FC<{ nodeChange: NodeChange }> = ({
+const ModifiedNodeItem: React.FC<{ nodeChange: NodeChange }> = memo(({
   nodeChange
 }) => (
   <Accordion
@@ -159,12 +159,12 @@ const ModifiedNodeItem: React.FC<{ nodeChange: NodeChange }> = ({
       )}
     </AccordionDetails>
   </Accordion>
-);
+));
 
 const EdgeDiffItem: React.FC<{
   edge: { source?: string; target?: string };
   type: "added" | "removed";
-}> = ({ edge, type }) => (
+}> = memo(({ edge, type }) => (
   <ListItem
     sx={{
       bgcolor:
@@ -191,7 +191,7 @@ const EdgeDiffItem: React.FC<{
       }
     />
   </ListItem>
-);
+));
 
 export const VersionDiff: React.FC<VersionDiffProps> = ({
   diff,
