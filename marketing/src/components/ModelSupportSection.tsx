@@ -106,8 +106,8 @@ export default function ModelSupportSection({
                         className="text-lg text-slate-400 leading-relaxed"
                     >
                         Frontier models from every major provider, called with
-                        the keys you already pay for. Switch the moment a better
-                        model ships. Run inference locally when you want to.
+                        the keys you already pay for. Swap models the day they
+                        launch. Run inference locally when you want to.
                     </motion.p>
                 </div>
 

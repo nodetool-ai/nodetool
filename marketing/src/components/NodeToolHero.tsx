@@ -42,7 +42,7 @@ export default function NodeToolHero() {
           <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-400 md:text-lg">
             Every major model from every major provider, called with your own
             keys, wired into one node-based canvas. Pay providers directly at
-            provider prices. Switch the moment a better model ships.
+            provider prices. Swap models the day they launch.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">

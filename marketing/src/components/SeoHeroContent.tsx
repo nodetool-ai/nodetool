@@ -18,7 +18,7 @@ export default function SeoHeroContent() {
           from every major provider, called with your own keys, wired into one
           node-based canvas you run on your machine. Bring your own keys to FAL,
           KIE, OpenAI, Anthropic, Gemini, Replicate, and more. Pay providers
-          directly at provider prices. Switch the moment a better model ships.
+          directly at provider prices. Swap models the day they launch.
         </p>
       </section>
 
