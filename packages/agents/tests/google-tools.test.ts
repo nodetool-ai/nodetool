@@ -258,9 +258,12 @@ describe("GoogleImageGenerationTool", () => {
       path.join(os.tmpdir(), "google-tools-test-")
     );
     try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { FileStorageAdapter } = await import("@nodetool-ai/storage");
       const result = (await tool.process(
         {
           workspaceDir: tmpDir,
+          workspaceStorage: new FileStorageAdapter(tmpDir),
           resolveWorkspacePath: (p: string) => {
             const resolved = path.resolve(tmpDir, p);
             if (!resolved.startsWith(tmpDir + path.sep) && resolved !== tmpDir) {

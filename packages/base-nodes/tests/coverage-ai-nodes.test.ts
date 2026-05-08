@@ -6,6 +6,7 @@ import {
   ExtractorNode,
   ClassifierNode,
   AgentNode,
+  AgentStepNode,
   AGENT_NODES,
   StructuredOutputGeneratorNode,
   DataGeneratorNode,
@@ -36,13 +37,43 @@ function expectMetadataDefaults(NodeCls: any) {
 // ---------------------------------------------------------------------------
 
 describe("AGENT_NODES export", () => {
-  it("contains all 5 agent node classes", () => {
-    expect(AGENT_NODES).toHaveLength(5);
+  it("contains all 6 agent node classes", () => {
+    expect(AGENT_NODES).toHaveLength(6);
     expect(AGENT_NODES).toContain(SummarizerNode);
     expect(AGENT_NODES).toContain(CreateThreadNode);
     expect(AGENT_NODES).toContain(ExtractorNode);
     expect(AGENT_NODES).toContain(ClassifierNode);
     expect(AGENT_NODES).toContain(AgentNode);
+    expect(AGENT_NODES).toContain(AgentStepNode);
+  });
+});
+
+describe("AgentStepNode", () => {
+  it("registers as nodetool.agents.AgentStep with virtual-step metadata", () => {
+    const meta = getNodeMetadata(AgentStepNode);
+    expect(meta.node_type).toBe("nodetool.agents.AgentStep");
+    expect(meta.namespace).toBe("nodetool.agents");
+    const propNames = meta.properties.map((p) => p.name).sort();
+    expect(propNames).toEqual(
+      ["input", "instructions", "output_schema", "tools"].sort()
+    );
+    const instructions = meta.properties.find(
+      (p) => p.name === "instructions"
+    );
+    expect(instructions?.required).toBe(true);
+    const outputs = meta.outputs.map((o) => o.name);
+    expect(outputs).toContain("output");
+  });
+
+  it("does NOT declare a model property — workflow's configured model is used", () => {
+    const meta = getNodeMetadata(AgentStepNode);
+    expect(meta.properties.find((p) => p.name === "model")).toBeUndefined();
+  });
+
+  it("process() refuses to run via the standard kernel path", async () => {
+    await expect(new AgentStepNode().process()).rejects.toThrow(
+      /agent runner|configured provider/i
+    );
   });
 });
 

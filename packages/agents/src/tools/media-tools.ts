@@ -18,15 +18,10 @@
  */
 
 import { Buffer } from "node:buffer";
-import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
-import {
-  persistOutput,
-  workspaceDir,
-  inferImageMime
-} from "./asset-persist.js";
+import { persistOutput, inferImageMime } from "./asset-persist.js";
 
 const MAX_INLINE_TEXT_PREVIEW = 500;
 
@@ -34,12 +29,19 @@ async function readWorkspaceOrAssetFile(
   context: ProcessingContext,
   inputFile: string
 ): Promise<Uint8Array> {
-  // `inputFile` is an LLM-supplied path; resolve through the context's safe
-  // resolver so it stays inside the workspace boundary.
-  const ws = workspaceDir(context);
-  const filePath = ws ? context.resolveWorkspacePath(inputFile) : inputFile;
-  const buf = await fs.readFile(filePath);
-  return new Uint8Array(buf);
+  // Read via the workspace storage adapter so cloud deployments work
+  // identically to local. `inputFile` is treated as a storage key.
+  if (!context.workspaceStorage) {
+    throw new Error(
+      "No workspace storage configured — cannot read input file."
+    );
+  }
+  const uri = context.workspaceStorage.uriForKey(inputFile);
+  const bytes = await context.workspaceStorage.retrieve(uri);
+  if (!bytes) {
+    throw new Error(`Input file not found in workspace storage: ${inputFile}`);
+  }
+  return bytes;
 }
 
 interface MediaModelArgs {

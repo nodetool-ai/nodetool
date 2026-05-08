@@ -4,10 +4,9 @@
  * Port of src/nodetool/agents/tools/http_tools.py
  */
 
-import { writeFile, mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
+import { persistBinaryOutput } from "./binary-output.js";
 
 const DEFAULT_HEADERS: Record<string, string> = {
   "User-Agent":
@@ -19,7 +18,12 @@ const DEFAULT_HEADERS: Record<string, string> = {
 export class DownloadFileTool extends Tool {
   readonly name = "download_file";
   readonly description =
-    "Download a text or binary file from a URL and save it to disk";
+    "Download a text or binary file from a URL and save it to the workspace. " +
+    "For images / audio / video / pdf, the result includes a `display_markdown` " +
+    "field with a ready-to-paste markdown snippet that embeds the asset via a " +
+    "UI-fetchable URL (`asset_url`). When narrating the result to the user, " +
+    "include `display_markdown` verbatim — never construct your own markdown " +
+    "from `output_file`, which is a workspace storage key, not a URL.";
   readonly inputSchema = {
     type: "object" as const,
     properties: {
@@ -88,19 +92,19 @@ export class DownloadFileTool extends Tool {
       const contentLength = response.headers.get("Content-Length");
       const fileSizeBytes = contentLength ? parseInt(contentLength, 10) : null;
 
-      const fullPath = context.resolveWorkspacePath(outputFile);
-      const parentDir = dirname(fullPath);
-      await mkdir(parentDir, { recursive: true });
-
-      const buffer = Buffer.from(await response.arrayBuffer());
-      await writeFile(fullPath, buffer);
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      const persisted = await persistBinaryOutput(context, bytes, {
+        outputFile,
+        contentType,
+        uiPrefix: "downloads"
+      });
 
       return {
         url,
-        output_file: outputFile,
         success: true,
         content_type: contentType,
-        file_size_bytes: fileSizeBytes
+        file_size_bytes: fileSizeBytes,
+        ...persisted
       };
     } catch (e) {
       return { error: `Error in download process: ${String(e)}` };
