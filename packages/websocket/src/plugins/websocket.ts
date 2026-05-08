@@ -13,6 +13,7 @@ import { randomUUID } from "node:crypto";
 import { Workflow } from "@nodetool-ai/models";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
 import type { NodeUpdate } from "@nodetool-ai/protocol";
+import type { HttpApiOptions } from "../http-api.js";
 
 const log = createLogger("nodetool.websocket.ws");
 
@@ -213,6 +214,8 @@ export interface WebSocketPluginOptions {
   getPythonBridgeReady: () => boolean;
   ensurePythonBridge: () => Promise<void>;
   toolClassMap: Map<string, new () => Tool>;
+  /** Forwarded to the runner for read-only RPC commands (list_workflows, …). */
+  apiOptions: HttpApiOptions;
 }
 
 async function resolveProvider(providerId: string, userId: string) {
@@ -327,7 +330,8 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
     pythonBridge,
     getPythonBridgeReady,
     ensurePythonBridge,
-    toolClassMap
+    toolClassMap,
+    apiOptions
   } = opts;
   const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);
 
@@ -441,7 +445,10 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       resolveTools,
       getNodeMetadata: (nodeType) => registry.getMetadata(nodeType),
       validateNode: registry.createNodeValidator(),
-      nodeRegistry: registry
+      nodeRegistry: registry,
+      pythonBridge,
+      getPythonBridgeReady,
+      apiOptions
     });
     log.info("WebSocket client connected");
     void runner.run(new WsAdapter(socket)).catch((error) => {
