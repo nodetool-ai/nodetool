@@ -7,7 +7,7 @@ description: "NodeTool — the open creative AI workspace. Every major model, yo
   <p class="eyebrow">The open creative AI workspace</p>
   <h1>Every model. Your keys. Your canvas.</h1>
   <p class="lead">
-   One node-based canvas for image, video, audio, and text models. Bring your own keys to FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, ElevenLabs. Or run Flux, Qwen, and Llama locally. Open source, AGPL-3.0.
+   One node-based canvas for making images, video, sound, and stories with AI. Wire up Flux, Qwen, Wan, Seedance, Sora, Veo, Kling, ElevenLabs, MusicGen, and the major LLMs side by side — bring your own keys, or run locally. Open source, AGPL-3.0.
   </p>
   <img src="{{ '/assets/home.png' | relative_url }}" alt="NodeTool canvas" class="home-screenshot">
   <div class="cta-row">
@@ -46,26 +46,28 @@ Both editions are open source under AGPL-3.0 and built from the same code. Workf
 
 <div class="pattern-grid">
   <article class="pattern-card">
-    <h5>Agents</h5>
-    <p>Multi-step agents that plan and execute.</p>
-    <a href="{{ '/workflows/realtime-agent' | relative_url }}">Realtime Agent →</a>
-  </article>
-  <article class="pattern-card">
-    <h5>RAG</h5>
-    <p>Index documents, search, and answer from your sources.</p>
-    <a href="{{ '/workflows/chat-with-docs' | relative_url }}">Chat with Docs →</a>
-  </article>
-  <article class="pattern-card">
     <h5>Image and video</h5>
-    <p>Flux, Qwen, Wan, Seedance, Sora, Veo, Kling.</p>
+    <p>Posters, characters, scenes. Flux, Qwen, Wan, Seedance, Sora, Veo, Kling on one canvas.</p>
     <a href="{{ '/workflows/movie-posters' | relative_url }}">Movie Posters →</a>
   </article>
   <article class="pattern-card">
-    <h5>Pipelines</h5>
-    <p>Wire models, transforms, and tools into one graph.</p>
-    <a href="{{ '/cookbook' | relative_url }}">Patterns →</a>
+    <h5>Story to video</h5>
+    <p>Turn a prompt into a storyboard, narrate it, animate it, score it.</p>
+    <a href="{{ '/workflows/story-to-video-generator' | relative_url }}">Story to Video →</a>
+  </article>
+  <article class="pattern-card">
+    <h5>Sound and voice</h5>
+    <p>Music, sound design, narration. ElevenLabs, MusicGen, Whisper wired into the graph.</p>
+    <a href="{{ '/workflows/image-to-audio-story' | relative_url }}">Image to Audio Story →</a>
+  </article>
+  <article class="pattern-card">
+    <h5>Agents</h5>
+    <p>Multi-step agents that plan, call tools, and drive your creative pipelines.</p>
+    <a href="{{ '/workflows/realtime-agent' | relative_url }}">Realtime Agent →</a>
   </article>
 </div>
+
+More patterns — pipelines, data, RAG, email — in the [Cookbook]({{ '/cookbook' | relative_url }}).
 
 ## Get started
 
