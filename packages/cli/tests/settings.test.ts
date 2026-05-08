@@ -110,13 +110,71 @@ describe("DEFAULT_SETTINGS.model (detectDefaultModel)", () => {
 // ─── DEFAULT_SETTINGS shape ────────────────────────────────────────────────────
 
 describe("DEFAULT_SETTINGS structure", () => {
-  it("has agentMode defaulting to false", async () => {
+  it("has agentMode defaulting to \"off\"", async () => {
     vi.resetModules();
     vi.stubEnv("ANTHROPIC_API_KEY", "");
     vi.stubEnv("OPENAI_API_KEY", "");
     vi.stubEnv("GEMINI_API_KEY", "");
     const { DEFAULT_SETTINGS } = await import("../src/settings.js");
-    expect(DEFAULT_SETTINGS.agentMode).toBe(false);
+    expect(DEFAULT_SETTINGS.agentMode).toBe("off");
+  });
+
+  it("migrates legacy agentMode:true + agentPlanner:graph to \"graph\"", async () => {
+    vi.resetModules();
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    vi.stubEnv("OPENAI_API_KEY", "test-openai");
+    vi.stubEnv("GEMINI_API_KEY", "");
+
+    const settingsDir = join(tmpDir, ".nodetool");
+    await mkdir(settingsDir, { recursive: true });
+    await writeFile(
+      join(settingsDir, "chat-settings.json"),
+      JSON.stringify({ agentMode: true, agentPlanner: "graph" })
+    );
+
+    vi.doMock("node:os", () => ({ homedir: () => tmpDir }));
+    const { loadSettings } = await import("../src/settings.js");
+    const loaded = await loadSettings();
+    expect(loaded.agentMode).toBe("graph");
+    expect("agentPlanner" in loaded).toBe(false);
+  });
+
+  it("migrates legacy agentMode:true + agentPlanner:multi to \"plan\"", async () => {
+    vi.resetModules();
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    vi.stubEnv("OPENAI_API_KEY", "test-openai");
+    vi.stubEnv("GEMINI_API_KEY", "");
+
+    const settingsDir = join(tmpDir, ".nodetool");
+    await mkdir(settingsDir, { recursive: true });
+    await writeFile(
+      join(settingsDir, "chat-settings.json"),
+      JSON.stringify({ agentMode: true, agentPlanner: "multi" })
+    );
+
+    vi.doMock("node:os", () => ({ homedir: () => tmpDir }));
+    const { loadSettings } = await import("../src/settings.js");
+    const loaded = await loadSettings();
+    expect(loaded.agentMode).toBe("plan");
+  });
+
+  it("migrates legacy agentMode:false to \"off\"", async () => {
+    vi.resetModules();
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    vi.stubEnv("OPENAI_API_KEY", "test-openai");
+    vi.stubEnv("GEMINI_API_KEY", "");
+
+    const settingsDir = join(tmpDir, ".nodetool");
+    await mkdir(settingsDir, { recursive: true });
+    await writeFile(
+      join(settingsDir, "chat-settings.json"),
+      JSON.stringify({ agentMode: false, agentPlanner: "graph" })
+    );
+
+    vi.doMock("node:os", () => ({ homedir: () => tmpDir }));
+    const { loadSettings } = await import("../src/settings.js");
+    const loaded = await loadSettings();
+    expect(loaded.agentMode).toBe("off");
   });
 
   it("includes a non-empty enabledTools array by default", async () => {
@@ -176,7 +234,7 @@ describe("loadSettings", () => {
       JSON.stringify({
         provider: "gemini",
         model: "gemini-pro",
-        agentMode: true
+        agentMode: "plan"
       })
     );
 
@@ -186,7 +244,7 @@ describe("loadSettings", () => {
     const loaded = await loadSettings();
     expect(loaded.provider).toBe("gemini");
     expect(loaded.model).toBe("gemini-pro");
-    expect(loaded.agentMode).toBe(true);
+    expect(loaded.agentMode).toBe("plan");
     // Default keys should still be present
     expect(Array.isArray(loaded.enabledTools)).toBe(true);
   });
@@ -226,11 +284,11 @@ describe("saveSettings", () => {
     const { saveSettings, loadSettings } = await import("../src/settings.js");
 
     // Save a partial update
-    await saveSettings({ provider: "anthropic", agentMode: true });
+    await saveSettings({ provider: "anthropic", agentMode: "plan" });
     const loaded = await loadSettings();
 
     expect(loaded.provider).toBe("anthropic");
-    expect(loaded.agentMode).toBe(true);
+    expect(loaded.agentMode).toBe("plan");
     // model should still be set (coming from defaults)
     expect(typeof loaded.model).toBe("string");
     expect(loaded.model.length).toBeGreaterThan(0);

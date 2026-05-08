@@ -10,6 +10,7 @@ import {
   buildAssetUrl
 } from "@nodetool-ai/config";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
 import { resolveContentUrls, resolveContentForProvider } from "./resolve-media-urls.js";
 import {
@@ -452,7 +453,7 @@ function createRuntimeContext(opts: {
   userId: string;
   workspaceDir: string | null;
   assetOutputMode?:
-    | "python"
+    | "native"
     | "data_uri"
     | "temp_url"
     | "storage_url"
@@ -462,10 +463,19 @@ function createRuntimeContext(opts: {
   const storagePath = getAssetStoragePath();
   const tempAdapter = getTempAdapter();
   const assetAdapter = getAssetAdapter();
+  // The agent's "workspace" — where file_read / file_write / file_list land.
+  // Local: a FileStorageAdapter rooted at workspaceDir. Cloud: callers can
+  // wire a different StorageAdapter when constructing the runner; for now
+  // we fall back to a workspaceDir-backed FileStorageAdapter when one is
+  // present, leaving cloud wiring to the deployment-specific runner.
+  const workspaceAdapter = opts.workspaceDir
+    ? new FileStorageAdapter(opts.workspaceDir)
+    : null;
   const ctx = new RuntimeProcessingContext({
     ...opts,
     secretResolver: getSecret,
     storage: tempAdapter,
+    workspaceStorage: workspaceAdapter,
     tempUrlResolver: (uri: string) => {
       // Cloud backends: key becomes /api/storage/<key> — the HTTP handler
       // will redirect to a signed URL (once signed URL support is wired in).
@@ -3898,7 +3908,15 @@ export class UnifiedWebSocketRunner {
     const ctx = createRuntimeContext({
       jobId: randomUUID(),
       userId,
-      workspaceDir: agentWorkspaceDir
+      workspaceDir: agentWorkspaceDir,
+      // `temp_url` materializes any asset-like value (image/audio/video refs
+      // with inline `data` bytes) to a real /api/storage/<id>.<ext> URL via
+      // the temp adapter. Without this the agent context defaults to
+      // `python`, which leaves binary data inline — when those results are
+      // JSON-stringified and shown to the structured-results presenter the
+      // LLM dutifully echoes the base64 back as `data:image/png;base64,...`
+      // markdown.
+      assetOutputMode: "temp_url"
     });
 
     const maxStepIterations =
@@ -4166,8 +4184,16 @@ export class UnifiedWebSocketRunner {
         }
       }
 
-      // Normalize final agent output — matches Python
-      const results = agent.getResults();
+      // Normalize final agent output — matches Python.
+      // First materialize any asset-like values (ImageRef/AudioRef/VideoRef
+      // with inline `data` bytes) to real `/api/storage/<id>.<ext>` URIs so
+      // the structured-results presenter sees clean references, not raw
+      // base64 to echo into markdown.
+      const rawResults = agent.getResults();
+      const results =
+        rawResults != null && typeof rawResults === "object"
+          ? await ctx.normalizeOutputValue(rawResults, "temp_url")
+          : rawResults;
       let content: string;
       if (typeof results === "string") {
         content = results;

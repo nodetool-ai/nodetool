@@ -8,9 +8,6 @@
  * tests), it falls back to writing the bytes to a workspace file.
  */
 
-import { Buffer } from "node:buffer";
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 export const MIME_TO_EXT: Record<string, string> = {
@@ -111,15 +108,18 @@ export async function persistOutput(
     }
   }
 
-  if (opts.outputFile || !result.asset_id) {
+  // Persist a workspace copy via the storage adapter so downstream tools can
+  // read the bytes back by `output_file` key. Routed through
+  // context.workspaceStorage instead of `node:fs` so cloud deployments work
+  // identically.
+  if ((opts.outputFile || !result.asset_id) && context.workspaceStorage) {
     const fileName = opts.outputFile ?? timestampedName(opts.namePrefix, ext);
-    // Untrusted: `fileName` may originate from an LLM tool argument. Route
-    // through the context's safe resolver so it can't escape the workspace.
-    const ws = workspaceDir(context);
-    const filePath = ws ? context.resolveWorkspacePath(fileName) : fileName;
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, Buffer.from(bytes));
-    result.path = filePath;
+    try {
+      await context.workspaceStorage.store(fileName, bytes, opts.mime);
+      result.path = fileName;
+    } catch {
+      // Non-fatal — asset_id (if set) is still a valid handle.
+    }
   }
 
   return result;

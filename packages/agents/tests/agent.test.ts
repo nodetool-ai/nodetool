@@ -403,7 +403,9 @@ describe("Agent", () => {
       [
         { type: "chunk", content: "Analyzing..." },
         { id: "tc_1", name: "finish_step", args: { result: { done: true } } }
-      ]
+      ],
+      // CompilerAgent prose-mode response — text without a tool call ends the loop.
+      [{ type: "chunk", content: "Analysis complete." }]
     ]);
 
     const agent = new Agent({
@@ -420,10 +422,15 @@ describe("Agent", () => {
       // consume
     }
 
-    expect(agent.getResults()).toEqual({ done: true });
+    // Compiler returns the prose text it produced in its final turn.
+    expect(agent.getResults()).toBe("Analysis complete.");
   });
 
-  it("applies output schema to the last step", async () => {
+  it("does not graft the agent output schema onto plan steps (the CompilerAgent owns it)", async () => {
+    const stepSchema = JSON.stringify({
+      type: "object",
+      properties: { v: { type: "number" } }
+    });
     const planPayload = {
       title: "Schema Plan",
       tasks: [
@@ -432,13 +439,28 @@ describe("Agent", () => {
           title: "Schema Task",
           depends_on: [],
           steps: [
-            { id: "step_a", instructions: "Do A", depends_on: [] },
-            { id: "step_b", instructions: "Final step", depends_on: ["step_a"] }
+            {
+              id: "step_a",
+              instructions: "Do A",
+              depends_on: [],
+              output_schema: stepSchema
+            },
+            {
+              id: "step_b",
+              instructions: "Final step",
+              depends_on: ["step_a"],
+              output_schema: stepSchema
+            }
           ]
         }
       ]
     };
 
+    const compilerFinish = {
+      id: "tc_compile",
+      name: "finish_step",
+      args: { result: { answer: "yes" } }
+    };
     const provider = createMockProvider([
       ...planCalls(planPayload),
       [
@@ -447,8 +469,14 @@ describe("Agent", () => {
       ],
       [
         { type: "chunk", content: "B" },
-        { id: "tc_b", name: "finish_step", args: { result: { answer: "yes" } } }
-      ]
+        { id: "tc_b", name: "finish_step", args: { result: { v: 2 } } }
+      ],
+      // CompilerAgent: replicate the response so it's served regardless of
+      // how many compile rounds it takes (memory_list / memory_read may run
+      // first in some configurations).
+      [compilerFinish],
+      [compilerFinish],
+      [compilerFinish]
     ]);
 
     const outputSchema = {
@@ -471,11 +499,15 @@ describe("Agent", () => {
       // consume
     }
 
-    // The last step of the last task should have the output schema applied
-    const lastTask = agent.taskPlan!.tasks[agent.taskPlan!.tasks.length - 1];
-    expect(lastTask.steps[lastTask.steps.length - 1].outputSchema).toBe(
-      JSON.stringify(outputSchema)
-    );
+    // The plan steps must NOT have the agent's output schema grafted onto
+    // them — that's the Compiler's job now.
+    for (const task of agent.taskPlan!.tasks) {
+      for (const step of task.steps) {
+        expect(step.outputSchema).not.toBe(JSON.stringify(outputSchema));
+      }
+    }
+    // The compiler produced the final schema-conformant result.
+    expect(agent.getResults()).toEqual({ answer: "yes" });
   });
 
   it("getResults returns null before execution", () => {
@@ -629,7 +661,9 @@ describe("Agent", () => {
     };
     const provider = createMockProvider([
       ...planCalls(planPayload),
-      [{ id: "tc_1", name: "finish_step", args: { result: { ok: true } } }]
+      [{ id: "tc_1", name: "finish_step", args: { result: { ok: true } } }],
+      // Compiler prose-mode response.
+      [{ type: "chunk", content: "Done." }]
     ]);
 
     const agent = new Agent({
@@ -648,7 +682,7 @@ describe("Agent", () => {
     }
 
     expect(agent.taskPlan).not.toBeNull();
-    expect(agent.getResults()).toEqual({ ok: true });
+    expect(agent.getResults()).toBe("Done.");
   });
 
   it("resolves skill dirs from NODETOOL_AGENT_SKILL_DIRS environment variable", async () => {
@@ -732,7 +766,9 @@ describe("Agent", () => {
     };
     const provider = createMockProvider([
       ...planCalls(autoWsPlan),
-      [{ id: "tc_1", name: "finish_step", args: { result: { v: 1 } } }]
+      [{ id: "tc_1", name: "finish_step", args: { result: { v: 1 } } }],
+      // Compiler prose-mode response.
+      [{ type: "chunk", content: "v=1" }]
     ]);
 
     const agent = new Agent({
@@ -755,7 +791,8 @@ describe("Agent", () => {
       thrown = true;
     }
     expect(thrown).toBe(false);
-    expect(agent.getResults()).toEqual({ v: 1 });
+    // Compiler returns prose text.
+    expect(agent.getResults()).toBe("v=1");
   });
 
   it("merges systemPrompt with skill system prompt when both are present", async () => {

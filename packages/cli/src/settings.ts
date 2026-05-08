@@ -2,17 +2,35 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 
+/**
+ * Chat agent mode.
+ *
+ * - `"off"`         — plain chat: a single LLM call per turn, no planning.
+ * - `"loop"`        — agent loop: iterative LLM + tool calling (SimpleAgent-style).
+ * - `"plan"`        — TaskPlanner builds a parallel task DAG of LLM steps; CompilerAgent synthesizes.
+ * - `"graph"`       — GraphPlanner builds a workflow graph using `nodetool.*` core nodes.
+ * - `"multi-agent"` — A team of sub-agents collaborates via shared task board.
+ */
+export type AgentMode = "off" | "loop" | "plan" | "graph" | "multi-agent";
+
+export const AGENT_MODES: readonly AgentMode[] = [
+  "off",
+  "loop",
+  "plan",
+  "graph",
+  "multi-agent"
+] as const;
+
+export function isAgentMode(value: unknown): value is AgentMode {
+  return (
+    typeof value === "string" && (AGENT_MODES as readonly string[]).includes(value)
+  );
+}
+
 export interface ChatSettings {
   provider: string;
   model: string;
-  agentMode: boolean;
-  /**
-   * Which planner to use when agent mode is on:
-   * - "graph" — GraphPlanner builds a workflow graph (default; uses
-   *   `nodetool.*` core nodes plus the `find_model` tool).
-   * - "multi" — TaskPlanner builds a parallel task DAG of LLM steps.
-   */
-  agentPlanner: "multi" | "graph";
+  agentMode: AgentMode;
   enabledTools: string[];
   workspace: string;
 }
@@ -20,8 +38,7 @@ export interface ChatSettings {
 export const DEFAULT_SETTINGS: ChatSettings = {
   provider: detectDefaultProvider(),
   model: detectDefaultModel(),
-  agentMode: false,
-  agentPlanner: "graph",
+  agentMode: "off",
   enabledTools: [
     "read_file",
     "write_file",
@@ -81,10 +98,29 @@ function detectDefaultModel(): string {
 const SETTINGS_DIR = join(homedir(), ".nodetool");
 const SETTINGS_FILE = join(SETTINGS_DIR, "chat-settings.json");
 
+/**
+ * Migrate the legacy `agentMode: boolean` + `agentPlanner: "multi" | "graph"`
+ * shape to the unified `agentMode: AgentMode` enum.
+ */
+function migrateSettings(raw: Record<string, unknown>): Record<string, unknown> {
+  if (isAgentMode(raw["agentMode"])) return raw;
+
+  const legacyMode = raw["agentMode"];
+  const legacyPlanner = raw["agentPlanner"];
+  let mode: AgentMode = "off";
+  if (legacyMode === true) {
+    mode = legacyPlanner === "graph" ? "graph" : "plan";
+  }
+  const { agentPlanner: _drop, ...rest } = raw;
+  void _drop;
+  return { ...rest, agentMode: mode };
+}
+
 export async function loadSettings(): Promise<ChatSettings> {
   try {
     const content = await readFile(SETTINGS_FILE, "utf-8");
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(content) };
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    return { ...DEFAULT_SETTINGS, ...migrateSettings(parsed) } as ChatSettings;
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
