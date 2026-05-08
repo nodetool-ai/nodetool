@@ -52,7 +52,7 @@ const useCases = [
   },
   {
     title: "Process Automation",
-    description: "Connect disparate systems and automate complex business workflows with AI-powered decision making.",
+    description: "Connect disparate systems and put AI in the loop where humans currently spend hours making routine decisions.",
     icon: Database,
     gradient: "from-amber-500/20 to-orange-500/20",
     examples: ["Data pipeline automation", "Cross-system integration", "Smart routing"],

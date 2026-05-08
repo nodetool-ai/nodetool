@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from "next";
 export const metadata: Metadata = {
   title: "NodeTool for Developers | Open-Source AI Workflow SDK & API",
   description:
-    "Build AI-powered applications with NodeTool's TypeScript SDK and REST API. Workflows run in an async Node.js runner. Write custom nodes in TypeScript or Python, integrate with any model, and deploy to production. Open-source, extensible, and developer-friendly.",
+    "Build creative AI applications with NodeTool's TypeScript SDK and REST API. Workflows run in an async Node.js runner. Write custom nodes in TypeScript or Python, integrate with any model, and deploy to production. Open-source, extensible, and developer-friendly.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/developers",
@@ -21,12 +21,12 @@ export const metadata: Metadata = {
     "AI automation API",
     "self-hosted AI platform",
     "developer AI tools",
-    "AI orchestration framework",
+    "model-agnostic SDK",
   ],
   openGraph: {
     title: "NodeTool for Developers | Open-Source AI Workflow SDK & API",
     description:
-      "Build AI-powered applications with NodeTool's TypeScript SDK and REST API. Workflows run in an async Node.js runner. Write custom nodes in TypeScript or Python, integrate with any model, and deploy to production.",
+      "Build creative AI applications with NodeTool's TypeScript SDK and REST API. Workflows run in an async Node.js runner. Write custom nodes in TypeScript or Python, integrate with any model, and deploy to production.",
     url: "https://nodetool.ai/developers",
     siteName: "NodeTool",
     images: [
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NodeTool for Developers",
     description:
-      "Build AI-powered applications with NodeTool's TypeScript SDK and REST API. Open-source and extensible.",
+      "Build creative AI applications with NodeTool's TypeScript SDK and REST API. Open-source and extensible.",
     images: ["/preview.png"],
   },
 };

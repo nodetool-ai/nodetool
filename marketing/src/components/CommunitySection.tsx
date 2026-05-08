@@ -27,10 +27,10 @@ export default function CommunitySection({ stars }: { stars?: number | null }) {
               id="community-title"
               className="text-3xl md:text-4xl font-bold text-white mb-6"
             >
-              Build with the <span className="text-blue-400">community</span>
+              Made with <span className="text-blue-400">working creatives</span>
             </h2>
             <p className="text-lg text-slate-300 mb-10 leading-relaxed">
-              NodeTool is open-source under AGPL-3.0. Join the Discord, explore the GitHub repo, and share workflows with other builders.
+              NodeTool is AGPL-3.0 open source. Star the repo, jump into Discord, and trade workflows with other artists, motion designers, and studios using it for real work.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

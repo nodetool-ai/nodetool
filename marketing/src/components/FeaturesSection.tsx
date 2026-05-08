@@ -46,9 +46,9 @@ export default function FeaturesSection({
             transition={{ duration: 0.5 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Why choose <br />
+            One canvas <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
-              NodeTool
+              for the whole craft
             </span>
           </motion.h2>
 
@@ -59,8 +59,9 @@ export default function FeaturesSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            See your entire workflow on one canvas. Streaming execution shows
-            progress as it happens—no black-box mystery.
+            Image, video, audio, and text on a single node-based canvas — with
+            the editing tools you rely on: masks, inpaint, outpaint, relight,
+            upscale, layers, compositing.
           </motion.p>
         </div>
 
@@ -111,36 +112,36 @@ export default function FeaturesSection({
         >
           {[
             {
-              title: "Visual & Accessible",
+              title: "Editing tools, not just generation",
               description:
-                "Build AI workflows without coding. Drag-and-drop makes complex AI pipelines approachable for everyone.",
+                "Masks, inpaint, outpaint, relight, upscale, layers, compositing. The post tools you reach for, wired into the same canvas as the model calls.",
               icon: MousePointer2,
               color: "text-blue-400",
               bg: "bg-blue-500/10",
               border: "border-blue-500/20",
             },
             {
-              title: "Transparent & Debuggable",
+              title: "Watch every node render",
               description:
-                "See every step in real-time. Inspect outputs, understand what's happening, debug with confidence.",
+                "Outputs stream in as nodes finish. Inspect any frame, swap a model, re-run from that node down.",
               icon: Activity,
               color: "text-purple-400",
               bg: "bg-purple-500/10",
               border: "border-purple-500/20",
             },
             {
-              title: "Privacy-First",
+              title: "Your keys, provider prices",
               description:
-                "Run LLMs, Whisper, and diffusion models on your infrastructure. Opt into cloud only when you choose.",
+                "BYOK for FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and the rest. No credits, no markup, no curated roster.",
               icon: Database,
               color: "text-emerald-400",
               bg: "bg-emerald-500/10",
               border: "border-emerald-500/20",
             },
             {
-              title: "Multimodal",
+              title: "Image, video, audio, text",
               description:
-                "Process text, image, audio, and video in a single workflow. Built-in SQLite-vec store for RAG.",
+                "Flux, Seedance, Wan, ControlNet, Whisper, ElevenLabs, Suno — every modality on one canvas, named by their real names.",
               icon: Layers,
               color: "text-orange-400",
               bg: "bg-orange-500/10",
