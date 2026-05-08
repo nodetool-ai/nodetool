@@ -75,7 +75,7 @@ describe("UnifiedWebSocketRunner", () => {
       command: "set_mode",
       data: { mode: "text" }
     });
-    expect(res.message).toBe("Mode set to text");
+    expect(res?.message).toBe("Mode set to text");
     expect(runner.mode).toBe("text");
   });
 
@@ -84,14 +84,14 @@ describe("UnifiedWebSocketRunner", () => {
       command: "chat_message",
       data: { content: "hello" }
     });
-    expect(res.error).toContain("thread_id is required");
+    expect(res?.error).toContain("thread_id is required");
   });
 
   it("stop with empty data cancels in-progress generation", async () => {
     const res = await runner.handleCommand({ command: "stop", data: {} });
-    expect(res.message).toBe("Stop command processed");
-    expect(res.job_id).toBeNull();
-    expect(res.thread_id).toBeNull();
+    expect(res?.message).toBe("Stop command processed");
+    expect(res?.job_id).toBeNull();
+    expect(res?.thread_id).toBeNull();
   });
 
   it("replies pong for ping in receive loop", async () => {
@@ -184,13 +184,13 @@ describe("UnifiedWebSocketRunner", () => {
       command: "stream_input",
       data: { job_id: jobId, input: "stream_input", value: 7 }
     });
-    expect(streamed.message).toBe("Input item streamed");
+    expect(streamed?.message).toBe("Input item streamed");
 
     const ended = await runner.handleCommand({
       command: "end_input_stream",
       data: { job_id: jobId, input: "stream_input" }
     });
-    expect(ended.message).toBe("Input stream ended");
+    expect(ended?.message).toBe("Input stream ended");
 
     // Give the runner time to drain queue and complete.
     await new Promise((r) => setTimeout(r, 20));
