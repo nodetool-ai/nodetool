@@ -93,6 +93,7 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
     }),
     {
       name: "model-preferences",
+      version: 1,
       partialize: (state) => ({
         favorites: Array.from(state.favorites),
         recents: state.recents,
@@ -100,15 +101,39 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
         enabledProviders: state.enabledProviders,
         defaults: state.defaults
       }),
+      migrate: (persistedState, _version) => {
+        // No prior versions; this scaffold lets future schema changes
+        // produce a clean shape rather than silently inheriting raw data.
+        if (!persistedState || typeof persistedState !== "object") {
+          return persistedState;
+        }
+        const state = persistedState as Record<string, unknown>;
+        if (!Array.isArray(state.favorites)) {
+          state.favorites = [];
+        }
+        if (!Array.isArray(state.recents)) {
+          state.recents = [];
+        }
+        if (
+          state.enabledProviders === null ||
+          typeof state.enabledProviders !== "object"
+        ) {
+          state.enabledProviders = {};
+        }
+        if (state.defaults === null || typeof state.defaults !== "object") {
+          state.defaults = {};
+        }
+        return state;
+      },
       // Rehydrate Set
       onRehydrateStorage: () => (state) => {
         if (!state) {
           return;
         }
         const rawFavorites = (state as { favorites: unknown }).favorites;
-        if (Array.isArray(rawFavorites)) {
-          state.favorites = new Set(rawFavorites as FavoriteKey[]);
-        }
+        state.favorites = Array.isArray(rawFavorites)
+          ? new Set(rawFavorites as FavoriteKey[])
+          : new Set<FavoriteKey>();
       }
     }
   )

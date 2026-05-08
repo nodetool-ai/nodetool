@@ -122,14 +122,12 @@ export type AssetSearchQuery = {
 
 export type AssetUpdate = {
   id: string;
-  status?: string;
   name?: string;
   parent_id?: string;
   content_type?: string;
   metadata?: Record<string, never>;
   data?: string;
   data_encoding?: "base64";
-  duration?: number;
 };
 
 export interface AssetStore {
@@ -302,18 +300,29 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     const currentFolderId = useAssetGridStore.getState().currentFolderId;
     const setCurrentFolder = useAssetGridStore.getState().setCurrentFolder;
     const setParentFolder = useAssetGridStore.getState().setParentFolder;
-    if (currentFolderId) {
-      const asset = await get().get(currentFolderId);
+    // Capture id at call time so a folder switch mid-flight doesn't write
+    // stale header/breadcrumb data into the new folder's view.
+    const requestedFolderId = currentFolderId;
+    const isStillActive = () =>
+      useAssetGridStore.getState().currentFolderId === requestedFolderId;
+
+    if (requestedFolderId) {
+      const asset = await get().get(requestedFolderId);
+      if (!isStillActive()) {
+        return { next: "", assets: [] } as AssetList;
+      }
       setCurrentFolder(asset);
       if (asset?.parent_id !== "") {
         get()
           .get(asset.parent_id)
           .then((parent) => {
-            setParentFolder(parent);
+            if (isStillActive()) {
+              setParentFolder(parent);
+            }
           });
       }
     }
-    return get().load({ parent_id: currentFolderId, cursor: cursor || "" });
+    return get().load({ parent_id: requestedFolderId, cursor: cursor || "" });
   },
 
   /**
@@ -415,12 +424,29 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * @returns A promise that resolves when the asset is deleted.
    */
   delete: async (id: string): Promise<string[]> => {
+    // Capture parent before delete so we can invalidate the listing the
+    // asset was visible in (its parent's children), not its own children.
+    let parentId: string | null = null;
+    try {
+      const existing = await get().get(id);
+      parentId = existing?.parent_id ?? null;
+    } catch {
+      // Ignore — best-effort lookup.
+    }
+
     const { deleted_asset_ids } = await trpcClient.assets.delete.mutate({ id });
 
     deleted_asset_ids.forEach((assetId) => {
       get().invalidateQueries(["assets", assetId]);
+      // The deleted asset's own children (if it was a folder).
       get().invalidateQueries(["assets", { parent_id: assetId }]);
     });
+    // The folder listing that contained the deleted asset.
+    if (parentId !== null) {
+      get().invalidateQueries(["assets", { parent_id: parentId }]);
+    }
+    // Catch-all so workflow-scoped, search, and tree views refetch.
+    get().invalidateQueries(["assets"]);
     return deleted_asset_ids;
   },
 

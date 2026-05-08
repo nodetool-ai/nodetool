@@ -162,6 +162,10 @@ function replaceSessionHistoryId(
   return [replacement, ...filtered].slice(0, 50);
 }
 
+// Token bumped on every loadModels call. Late responses with a stale
+// token are dropped so they can't clobber a newer provider's catalog.
+let loadModelsToken = 0;
+
 const useAgentStore = create<AgentState>((set, get) => ({
   status: "disconnected",
   messages: [],
@@ -209,6 +213,10 @@ const useAgentStore = create<AgentState>((set, get) => ({
 
   loadModels: async () => {
     const { provider, workspacePath } = get();
+    // Token guard: if the user changes provider/workspace mid-flight, only
+    // the latest call writes back. Earlier responses are dropped silently
+    // so they don't clobber the newer catalog.
+    const token = ++loadModelsToken;
     set({ modelsLoading: true });
     try {
       const client = getAgentSocketClient();
@@ -217,18 +225,20 @@ const useAgentStore = create<AgentState>((set, get) => ({
         workspacePath: workspacePath ?? undefined
       });
 
+      if (token !== loadModelsToken) {
+        return;
+      }
+
       const defaultModel =
         models.find((item) => item.isDefault) ?? models[0] ?? null;
 
-      // Re-read state at set time. If the user (or another loadModels call)
-      // selected a model while this request was in flight, preserve it as
-      // long as it's still valid under the new provider's catalog.
-      // Also re-stamp chatProviderId from the resolved descriptor —
-      // setProvider() clears it on switch and only setModel() re-stamps,
-      // so without this every auto-default (e.g. switching to "llm")
-      // would leave model set with chatProviderId=null and createSession
-      // would erroneously refuse with "Pick an LLM model first".
       set((state) => {
+        // Final guard inside the updater in case another call fired between
+        // the await and the set (shouldn't happen with synchronous Zustand
+        // but cheap insurance).
+        if (token !== loadModelsToken) {
+          return state;
+        }
         const resolvedId = models.some((item) => item.id === state.model)
           ? state.model
           : defaultModel?.id ?? state.model;
@@ -242,7 +252,9 @@ const useAgentStore = create<AgentState>((set, get) => ({
       });
     } catch (error) {
       console.error("Failed to load agent models:", error);
-      set({ modelsLoading: false });
+      if (token === loadModelsToken) {
+        set({ modelsLoading: false });
+      }
     }
   },
 
@@ -419,14 +431,20 @@ const useAgentStore = create<AgentState>((set, get) => ({
         client.off("stream", onStream);
       };
 
-      set((state) => ({
-        status: preserveStatus ? state.status : "connected",
-        sessionId,
-        messages: preserveMessages ? state.messages : [],
-        streamUnsubscribe: unsubscribe,
-        workspacePath: selectedWorkspacePath,
-        workspaceId: selectedWorkspaceId ?? null
-      }));
+      try {
+        set((state) => ({
+          status: preserveStatus ? state.status : "connected",
+          sessionId,
+          messages: preserveMessages ? state.messages : [],
+          streamUnsubscribe: unsubscribe,
+          workspacePath: selectedWorkspacePath,
+          workspaceId: selectedWorkspaceId ?? null
+        }));
+      } catch (setError) {
+        // If the state update somehow throws, the listener would leak.
+        unsubscribe();
+        throw setError;
+      }
     } catch (error) {
       set({
         status: "error",

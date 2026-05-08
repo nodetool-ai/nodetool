@@ -107,16 +107,29 @@ export const useVibeCodingStore = create<VibeCodingState>()(
             return state;
           }
 
-          const messages = [...session.messages];
-          const lastMessage = { ...messages[messages.length - 1] };
+          // Identify the streaming assistant placeholder by role rather than
+          // by index so a user message added between chunk arrivals doesn't
+          // get clobbered as if it were the placeholder.
+          let targetIndex = -1;
+          for (let i = session.messages.length - 1; i >= 0; i--) {
+            if (session.messages[i].role === "assistant") {
+              targetIndex = i;
+              break;
+            }
+          }
+          if (targetIndex === -1) {
+            return state;
+          }
 
-          // Update text content of last message
-          if (lastMessage.content && Array.isArray(lastMessage.content)) {
-            lastMessage.content = lastMessage.content.map((c) =>
+          const messages = [...session.messages];
+          const target = { ...messages[targetIndex] };
+
+          if (target.content && Array.isArray(target.content)) {
+            target.content = target.content.map((c) =>
               c.type === "text" ? { ...c, text: content } : c
             );
           }
-          messages[messages.length - 1] = lastMessage;
+          messages[targetIndex] = target;
 
           return {
             sessions: {
@@ -216,6 +229,7 @@ export const useVibeCodingStore = create<VibeCodingState>()(
     }),
     {
       name: "vibecoding-store",
+      version: 1,
       partialize: (state) => {
         // Only persist sessions with unsaved changes
         const activeSessions: Record<string, VibeCodingSession> = {};
@@ -226,6 +240,16 @@ export const useVibeCodingStore = create<VibeCodingState>()(
           }
         }
         return { sessions: activeSessions };
+      },
+      migrate: (persistedState, _version) => {
+        if (!persistedState || typeof persistedState !== "object") {
+          return { sessions: {} };
+        }
+        const state = persistedState as Record<string, unknown>;
+        if (state.sessions === null || typeof state.sessions !== "object") {
+          state.sessions = {};
+        }
+        return state;
       }
     }
   )

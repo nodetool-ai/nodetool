@@ -75,6 +75,10 @@ interface ChatState {
   setError: (error: string | null) => void;
 }
 
+// Tracks the in-flight safety timeout from sendMessage. Module-scoped so
+// the cancellation path doesn't have to plumb it through state.
+let safetyTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
 /**
  * Handle incoming WebSocket messages and update state
  */
@@ -317,6 +321,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
       wsManager.destroy();
     }
 
+    if (safetyTimeoutId !== null) {
+      clearTimeout(safetyTimeoutId);
+      safetyTimeoutId = null;
+    }
+
     set({
       wsManager: null,
       status: 'disconnected',
@@ -393,11 +402,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
       media_generation: mediaGeneration,
     };
 
+    // Cancel any prior safety timeout — otherwise rapid sends accumulate
+    // timers and one can fire mid-stream of a later message, clobbering
+    // the live `status: "loading"` flag.
+    if (safetyTimeoutId !== null) {
+      clearTimeout(safetyTimeoutId);
+      safetyTimeoutId = null;
+    }
+
     try {
       wsManager.send(messageToSend);
 
       // Safety timeout - reset status if no response
-      setTimeout(() => {
+      safetyTimeoutId = setTimeout(() => {
+        safetyTimeoutId = null;
         const currentState = get();
         if (currentState.status === 'loading' || currentState.status === 'streaming') {
           console.warn('Generation timeout - resetting status');
@@ -425,6 +443,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
       currentThreadId,
       status,
     });
+
+    // Cancel the safety timeout so it doesn't fire after the user stops.
+    if (safetyTimeoutId !== null) {
+      clearTimeout(safetyTimeoutId);
+      safetyTimeoutId = null;
+    }
 
     if (!wsManager || !wsManager.isConnected() || !currentThreadId) {
       console.log('Cannot stop: not connected or no thread');

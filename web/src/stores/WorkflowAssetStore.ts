@@ -50,6 +50,11 @@ interface WorkflowAssetStore extends WorkflowAssetState {
   getWorkflowError: (workflowId: string) => Error | null;
 }
 
+// Per-workflow request token: only the most recent in-flight request
+// for a given workflow may write back. Earlier requests bail silently so
+// a slow response can't clobber newer data.
+const loadTokens = new Map<string, number>();
+
 export const useWorkflowAssetStore = create<WorkflowAssetStore>(
   (set, get) => ({
     assetsByWorkflow: {},
@@ -60,17 +65,23 @@ export const useWorkflowAssetStore = create<WorkflowAssetStore>(
      * Load assets for a specific workflow from the API.
      */
     loadWorkflowAssets: async (workflowId: string): Promise<Asset[]> => {
-      // Set loading state
-      set({
+      const token = (loadTokens.get(workflowId) ?? 0) + 1;
+      loadTokens.set(workflowId, token);
+
+      const isCurrent = () => loadTokens.get(workflowId) === token;
+
+      // Set loading state via functional setter so concurrent loads for
+      // different workflows don't drop each other's entries.
+      set((state) => ({
         loadingByWorkflow: {
-          ...get().loadingByWorkflow,
+          ...state.loadingByWorkflow,
           [workflowId]: true
         },
         errorsByWorkflow: {
-          ...get().errorsByWorkflow,
+          ...state.errorsByWorkflow,
           [workflowId]: null
         }
-      });
+      }));
 
       try {
         const data = await trpcClient.assets.list.query({
@@ -80,17 +91,20 @@ export const useWorkflowAssetStore = create<WorkflowAssetStore>(
           (data.assets ?? []) as unknown as Asset[]
         );
 
-        // Update state
-        set({
+        if (!isCurrent()) {
+          return assets;
+        }
+
+        set((state) => ({
           assetsByWorkflow: {
-            ...get().assetsByWorkflow,
+            ...state.assetsByWorkflow,
             [workflowId]: assets
           },
           loadingByWorkflow: {
-            ...get().loadingByWorkflow,
+            ...state.loadingByWorkflow,
             [workflowId]: false
           }
-        });
+        }));
 
         return assets;
       } catch (error) {
@@ -98,16 +112,18 @@ export const useWorkflowAssetStore = create<WorkflowAssetStore>(
           error instanceof Error ? error : new Error("Failed to load assets");
         console.error("Failed to load workflow assets:", err);
 
-        set({
-          loadingByWorkflow: {
-            ...get().loadingByWorkflow,
-            [workflowId]: false
-          },
-          errorsByWorkflow: {
-            ...get().errorsByWorkflow,
-            [workflowId]: err
-          }
-        });
+        if (isCurrent()) {
+          set((state) => ({
+            loadingByWorkflow: {
+              ...state.loadingByWorkflow,
+              [workflowId]: false
+            },
+            errorsByWorkflow: {
+              ...state.errorsByWorkflow,
+              [workflowId]: err
+            }
+          }));
+        }
 
         throw err;
       }
@@ -124,22 +140,27 @@ export const useWorkflowAssetStore = create<WorkflowAssetStore>(
      * Clear assets for a specific workflow.
      */
     clearWorkflowAssets: (workflowId: string) => {
-      const assetsByWorkflow = { ...get().assetsByWorkflow };
-      delete assetsByWorkflow[workflowId];
+      // Bump the token so any in-flight load for this workflow won't write back.
+      loadTokens.set(workflowId, (loadTokens.get(workflowId) ?? 0) + 1);
+      set((state) => {
+        const assetsByWorkflow = { ...state.assetsByWorkflow };
+        delete assetsByWorkflow[workflowId];
 
-      const loadingByWorkflow = { ...get().loadingByWorkflow };
-      delete loadingByWorkflow[workflowId];
+        const loadingByWorkflow = { ...state.loadingByWorkflow };
+        delete loadingByWorkflow[workflowId];
 
-      const errorsByWorkflow = { ...get().errorsByWorkflow };
-      delete errorsByWorkflow[workflowId];
+        const errorsByWorkflow = { ...state.errorsByWorkflow };
+        delete errorsByWorkflow[workflowId];
 
-      set({ assetsByWorkflow, loadingByWorkflow, errorsByWorkflow });
+        return { assetsByWorkflow, loadingByWorkflow, errorsByWorkflow };
+      });
     },
 
     /**
      * Clear all workflow assets.
      */
     clearAllWorkflowAssets: () => {
+      loadTokens.clear();
       set({
         assetsByWorkflow: {},
         loadingByWorkflow: {},

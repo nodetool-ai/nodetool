@@ -813,8 +813,16 @@ const useGlobalChatStore = create<GlobalChatState>()(
                 if (existingTimeout !== null) {
                   clearTimeout(existingTimeout);
                 }
-                // Auto-load messages for the new current thread
-                const timeoutId = setTimeout(() => get().loadMessages(newCurrentThreadId), 0);
+                // Auto-load messages for the new current thread, but
+                // re-read currentThreadId at fire time so a switchThread
+                // call between scheduling and firing doesn't load messages
+                // into the wrong thread context.
+                const timeoutId = setTimeout(() => {
+                  const activeId = get().currentThreadId;
+                  if (activeId) {
+                    get().loadMessages(activeId);
+                  }
+                }, 0);
                 newState.loadMessagesTimeoutId = timeoutId;
               } else {
                 // No threads left, clear current thread (we will create a new one below)
@@ -1098,6 +1106,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
     }),
     {
       name: "global-chat-storage",
+      version: 1,
       // Persist minimal subset incl. selections; do not persist message cache
       // Note: Return type cast needed due to zustand persist middleware type limitations
       partialize: (state) => ({
@@ -1107,6 +1116,24 @@ const useGlobalChatStore = create<GlobalChatState>()(
         selectedTools: state.selectedTools,
         selectedCollections: state.selectedCollections
       }) as GlobalChatState,
+      migrate: (persistedState, _version) => {
+        // Strip incompatible payloads on schema bump rather than letting
+        // them silently corrupt rehydrated state.
+        if (!persistedState || typeof persistedState !== "object") {
+          return persistedState;
+        }
+        const state = persistedState as Record<string, unknown>;
+        if (state.threads === null || typeof state.threads !== "object") {
+          state.threads = {};
+        }
+        if (!Array.isArray(state.selectedTools)) {
+          state.selectedTools = [];
+        }
+        if (!Array.isArray(state.selectedCollections)) {
+          state.selectedCollections = [];
+        }
+        return state;
+      },
       onRehydrateStorage: () => (state) => {
         // State has been rehydrated from storage
         if (state) {
@@ -1196,8 +1223,19 @@ const registerGlobalChatListeners = () => {
   };
 };
 
-if (typeof window !== "undefined") {
-  registerGlobalChatListeners();
+// Guard against multiple registrations from HMR / multi-bundle loads. Each
+// extra import would otherwise install another set of listeners that the
+// `return cleanup` path never calls back into.
+declare global {
+  interface Window {
+    __nodetoolGlobalChatListenersBound?: boolean;
+    __nodetoolGlobalChatListenersCleanup?: () => void;
+  }
+}
+
+if (typeof window !== "undefined" && !window.__nodetoolGlobalChatListenersBound) {
+  window.__nodetoolGlobalChatListenersBound = true;
+  window.__nodetoolGlobalChatListenersCleanup = registerGlobalChatListeners();
 }
 
 // Custom hook for TanStack Query thread loading
@@ -1221,11 +1259,13 @@ export const useThreadsQuery = () => {
         threadsRecord[thread.id] = thread as unknown as Thread;
       });
 
-      useGlobalChatStore.setState({
-        threads: threadsRecord,
+      // Merge with existing threads so locally-created/optimistic threads
+      // that haven't reached the server yet don't get wiped on refetch.
+      useGlobalChatStore.setState((state) => ({
+        threads: { ...state.threads, ...threadsRecord },
         threadsLoaded: true,
         isLoadingThreads: false
-      });
+      }));
     }
   }, [query.isSuccess, query.data]);
 

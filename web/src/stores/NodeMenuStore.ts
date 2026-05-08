@@ -157,13 +157,18 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
       }, 50); // Reduced from 75ms since SearchInput already debounces
     };
 
-    // Subscribe to metadata changes and clear cache
-    useMetadataStore.subscribe(() => {
+    // Subscribe to metadata changes and clear cache. Capture the unsubscribe
+    // and register it with a module-level set so a HMR teardown helper can
+    // release it; without this, hot-reloads accumulate one subscription per
+    // factory call. (Production code paths run the factory exactly twice at
+    // module load — see exports below — so there's no leak there.)
+    const unsubscribeMetadata = useMetadataStore.subscribe(() => {
       set({ searchResultsCache: {} });
       if (get().isMenuOpen) {
         scheduleSearch(get().searchTerm);
       }
     });
+    nodeMenuMetadataUnsubscribers.add(unsubscribeMetadata);
 
     return {
       // menu
@@ -572,6 +577,26 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
       }
     };
   });
+
+// Module-level registry of metadata unsubscribers, so a HMR teardown helper
+// can release them without leaking subscriptions across hot reloads.
+const nodeMenuMetadataUnsubscribers = new Set<() => void>();
+
+/**
+ * Release all metadata subscriptions registered by `createNodeMenuStore`.
+ * Intended for HMR cleanup (Vite's `import.meta.hot.dispose`); can also
+ * be wired into test teardown if needed.
+ */
+export const cleanupNodeMenuMetadataSubscriptions = (): void => {
+  for (const unsubscribe of nodeMenuMetadataUnsubscribers) {
+    try {
+      unsubscribe();
+    } catch (err) {
+      console.warn("[NodeMenuStore] metadata unsubscribe failed", err);
+    }
+  }
+  nodeMenuMetadataUnsubscribers.clear();
+};
 
 export const useNodeMenuStore = createNodeMenuStore();
 export const useNodeToolsMenuStore = createNodeMenuStore({ onlyTools: true });

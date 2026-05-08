@@ -63,7 +63,10 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
         settings,
         secrets
       });
-      set({ isLoading: false });
+      // Refetch so consumers reading via getSettingValue / settingsByGroup
+      // see the new values; previously the local cache stayed stale until
+      // something else triggered fetchSettings.
+      await get().fetchSettings();
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
       set({ isLoading: false });
@@ -86,7 +89,18 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
       const newSettings = [...state.settings];
       newSettings[index] = { ...newSettings[index], value };
 
-      return { settings: newSettings };
+      // Keep settingsByGroup consistent so group-keyed selectors see the
+      // optimistic update too.
+      const newSettingsByGroup = new Map<string, SettingWithValue[]>();
+      newSettings.forEach((setting) => {
+        const group = setting.group;
+        if (!newSettingsByGroup.has(group)) {
+          newSettingsByGroup.set(group, []);
+        }
+        newSettingsByGroup.get(group)!.push(setting);
+      });
+
+      return { settings: newSettings, settingsByGroup: newSettingsByGroup };
     });
   }
 }));
