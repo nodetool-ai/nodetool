@@ -5,22 +5,42 @@ import type { Theme } from "@mui/material/styles";
 import { Text, Chip } from "../../ui_primitives";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { memo, useCallback } from "react";
+import GettingStartedPanel from "../../dashboard/GettingStartedPanel";
+import { useOnboardingStore } from "../../../stores/OnboardingStore";
 
-const styles = (theme: Theme) =>
+const styles = (theme: Theme, withPanel: boolean) =>
   css({
+    flex: 1,
+    minHeight: 0,
+    width: "100%",
+    overflowY: "auto",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    justifyContent: "center",
-    flex: 1,
-    padding: "2rem",
-    textAlign: "center",
-    gap: "1.5rem",
-    maxWidth: "600px",
-    margin: "0 auto",
+    // Top-align when the checklist is showing (it scrolls); otherwise center
+    // the suggestions block like the original empty state.
+    justifyContent: withPanel ? "flex-start" : "center",
+    padding: "1.5rem 1rem 2rem",
+
+    ".welcome-inner": {
+      width: "100%",
+      maxWidth: "900px",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "stretch",
+      gap: "2rem"
+    },
+
+    ".chat-suggestions-block": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      textAlign: "center",
+      gap: "0.75rem"
+    },
 
     ".welcome-icon": {
-      fontSize: "2.5rem",
+      fontSize: "2rem",
       color: theme.vars.palette.primary.main,
       opacity: 0.7
     },
@@ -28,7 +48,7 @@ const styles = (theme: Theme) =>
     ".welcome-title": {
       color: theme.vars.palette.text.primary,
       fontWeight: 600,
-      fontSize: "1.25rem"
+      fontSize: "1.15rem"
     },
 
     ".welcome-subtitle": {
@@ -42,7 +62,7 @@ const styles = (theme: Theme) =>
       flexWrap: "wrap",
       justifyContent: "center",
       gap: "0.5rem",
-      marginTop: "0.5rem"
+      marginTop: "0.25rem"
     }
   });
 
@@ -62,6 +82,7 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
   onSuggestionClick
 }) => {
   const theme = useTheme();
+  const dismissed = useOnboardingStore((s) => s.dismissed);
 
   const handleClick = useCallback(
     (suggestion: string) => {
@@ -70,35 +91,41 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
     [onSuggestionClick]
   );
 
+  const showGettingStarted = !dismissed;
+
   return (
-    <div css={styles(theme)}>
-      <AutoAwesomeIcon className="welcome-icon" />
-      <Text className="welcome-title">
-        How can I help you today?
-      </Text>
-      <Text className="welcome-subtitle">
-        Ask me anything, drop files to analyze, or try one of these:
-      </Text>
-      <div className="suggestions">
-        {SUGGESTIONS.map((suggestion) => (
-          <Chip
-            key={suggestion}
-            label={suggestion}
-            variant="outlined"
-            onClick={() => handleClick(suggestion)}
-            sx={{
-              borderColor: theme.vars.palette.divider,
-              color: theme.vars.palette.text.secondary,
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-              "&:hover": {
-                borderColor: theme.vars.palette.primary.main,
-                color: theme.vars.palette.primary.main,
-                backgroundColor: `${theme.vars.palette.primary.main}10`
-              }
-            }}
-          />
-        ))}
+    <div css={styles(theme, showGettingStarted)}>
+      <div className="welcome-inner">
+        {showGettingStarted && <GettingStartedPanel />}
+
+        <div className="chat-suggestions-block">
+          <AutoAwesomeIcon className="welcome-icon" />
+          <Text className="welcome-title">How can I help you today?</Text>
+          <Text className="welcome-subtitle">
+            Ask me anything, drop files to analyze, or try one of these:
+          </Text>
+          <div className="suggestions">
+            {SUGGESTIONS.map((suggestion) => (
+              <Chip
+                key={suggestion}
+                label={suggestion}
+                variant="outlined"
+                onClick={() => handleClick(suggestion)}
+                sx={{
+                  borderColor: theme.vars.palette.divider,
+                  color: theme.vars.palette.text.secondary,
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  "&:hover": {
+                    borderColor: theme.vars.palette.primary.main,
+                    color: theme.vars.palette.primary.main,
+                    backgroundColor: `${theme.vars.palette.primary.main}10`
+                  }
+                }}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

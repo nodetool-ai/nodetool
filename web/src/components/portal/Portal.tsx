@@ -374,7 +374,7 @@ const Portal: React.FC = () => {
   }, []);
 
   const handleOpenGettingStarted = useCallback(() => {
-    transitionTo(() => navigate("/welcome"));
+    transitionTo(() => navigate("/chat"));
   }, [navigate, transitionTo]);
 
   // Handle clicking a recent chat thread
