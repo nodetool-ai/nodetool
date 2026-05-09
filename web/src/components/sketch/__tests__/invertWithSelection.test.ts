@@ -16,6 +16,7 @@ import {
   combineMasks,
   fillRectMask
 } from "../selection";
+import { setCanvasRasterBounds } from "../painting/layerBounds";
 import type { SketchDocument } from "../types";
 import { createDefaultDocument, createDefaultLayer } from "../types/document";
 
@@ -168,6 +169,40 @@ describe("invertLayerColors with selection", () => {
     // So document (20, 20) is outside the selection
     const [r5] = readPixel(canvas, 10, 10);
     expect(r5).toBe(100);
+  });
+
+  it("uses canvas raster bounds when they diverge from contentBounds (double invert restores)", () => {
+    const { doc, layerCanvases, canvas } = makeDocAndCanvas(32, 32, {
+      contentBoundsX: 0,
+      contentBoundsY: 0
+    });
+    fillCanvasSolid(canvas, 100, 100, 100, 255);
+
+    // Same situation as paint paths that stash __nodetoolRasterBounds while
+    // Zustand layer.contentBounds lags behind: mapping must prefer the canvas.
+    setCanvasRasterBounds(canvas, { x: -10, y: -10, width: 42, height: 42 });
+
+    // Document rectangle (5, 5)–(9, 9): with correct offset (−10, −10) this hits
+    // canvas pixels roughly (15, 15), not where contentBounds‑only logic would hit.
+    const sel = rectSelectionMask(32, 32, 5, 5, 5, 5);
+
+    const snapshot = () =>
+      canvas
+        .getContext("2d")!
+        .getImageData(0, 0, canvas.width, canvas.height).data.slice();
+
+    const before = snapshot();
+    invertLayerColors(doc, layerCanvases, sel);
+    const mid = snapshot();
+    expect(mid.some((v, i) => v !== before[i])).toBe(true);
+
+    invertLayerColors(doc, layerCanvases, sel);
+    const after = snapshot();
+    expect(after).toEqual(before);
+
+    // Outside the selection in document space should be unchanged across both inverts
+    const [rOut] = readPixel(canvas, 0, 0);
+    expect(rOut).toBe(100);
   });
 
   it("accounts for contentBounds offset", () => {
