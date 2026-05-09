@@ -102,6 +102,7 @@ async function ensureNoVisibleProgress(page: Page, timeout = 12000): Promise<voi
   }
   await progress.first().waitFor({ state: "hidden", timeout }).catch((error) => {
     console.warn(`  ⚠ Progress indicator remained visible: ${String(error)}`);
+    throw error;
   });
 }
 
@@ -118,7 +119,7 @@ async function waitForScreenshotReady(
     }
     case "mini-app-page.png": {
       // TODO(screenshots): Re-enable automated mini-app captures once
-      // screenshot-server responses are stable for this route.
+      // screenshot-server API transform responses are stable for this route.
       break;
     }
     case "node-test-page.png": {
