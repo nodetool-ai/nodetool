@@ -97,7 +97,8 @@ export function getToolShortcutActionId(
   return ACTION_MAP.has(candidate as SketchActionId) ? (candidate as SketchActionId) : null;
 }
 
-// Context menu excludes "adjust" since it has no quick controls
-export const CONTEXT_MENU_TOOLS: ToolDefinition[] = ALL_TOOL_DEFINITIONS.filter(
-  (d) => d.tool !== "adjust"
-);
+// Context menu: same sections as SketchToolbar; "adjust" omitted (no quick controls).
+export const CONTEXT_MENU_TOOL_GROUPS: readonly ToolDefinition[][] =
+  TOOLBAR_TOOL_GROUPS.map((group) => group.filter((d) => d.tool !== "adjust"));
+
+export const CONTEXT_MENU_TOOLS: ToolDefinition[] = CONTEXT_MENU_TOOL_GROUPS.flat();

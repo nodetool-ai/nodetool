@@ -7,6 +7,8 @@ import {
   PAINTING_TOOLS,
   SHAPE_TOOLS,
   CONTEXT_MENU_TOOLS,
+  CONTEXT_MENU_TOOL_GROUPS,
+  TOOLBAR_TOOL_GROUPS,
   getToolDefinition,
   getToolShortcutActionId
 } from "../toolDefinitions";
@@ -79,6 +81,23 @@ describe("toolDefinitions", () => {
     it("excludes adjust tool", () => {
       const tools = CONTEXT_MENU_TOOLS.map((d) => d.tool);
       expect(tools).not.toContain("adjust");
+    });
+
+    it("matches left toolbar order (TOOLBAR_TOOL_GROUPS without adjust)", () => {
+      const expectedOrder = TOOLBAR_TOOL_GROUPS.flat()
+        .filter((d) => d.tool !== "adjust")
+        .map((d) => d.tool);
+      expect(CONTEXT_MENU_TOOLS.map((d) => d.tool)).toEqual(expectedOrder);
+    });
+
+    it("CONTEXT_MENU_TOOL_GROUPS mirrors toolbar sections (no adjust)", () => {
+      const expected = TOOLBAR_TOOL_GROUPS.map((group) =>
+        group.filter((d) => d.tool !== "adjust").map((d) => d.tool)
+      );
+      const actual = CONTEXT_MENU_TOOL_GROUPS.map((group) =>
+        group.map((d) => d.tool)
+      );
+      expect(actual).toEqual(expected);
     });
 
     it("includes all other tools", () => {

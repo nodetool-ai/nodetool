@@ -45,7 +45,7 @@ import {
 } from "./types";
 import type { SamModelInfo } from "./sam";
 import {
-  CONTEXT_MENU_TOOLS,
+  CONTEXT_MENU_TOOL_GROUPS,
   getToolShortcutActionId,
   getToolDefinition,
   type ToolDefinition
@@ -150,6 +150,8 @@ interface ToolGridButtonProps {
   shortcut: string;
   onClick: () => void;
   onDoubleClick: () => void;
+  /** Narrow tiles (slim tools column); keeps labels readable at smaller cell width. */
+  compact?: boolean;
 }
 
 function ToolGridButton({
@@ -157,7 +159,8 @@ function ToolGridButton({
   selected,
   shortcut,
   onClick,
-  onDoubleClick
+  onDoubleClick,
+  compact = false
 }: ToolGridButtonProps) {
   const theme = useTheme();
   const { Icon } = definition;
@@ -172,15 +175,15 @@ function ToolGridButton({
       aria-label={definition.label}
       sx={{
         position: "relative",
-        minHeight: 64,
+        minHeight: compact ? 44 : 64,
         borderRadius: "8px",
         border: "1px solid",
         borderColor: selected ? "primary.main" : "transparent",
         backgroundColor: selected
           ? alpha(theme.palette.primary.main, 0.16)
           : inactiveBg,
-        px: 0.75,
-        py: 0.8,
+        px: compact ? 0.35 : 0.75,
+        py: compact ? 0.45 : 0.8,
         alignItems: "center",
         justifyContent: "center",
         display: "flex",
@@ -199,13 +202,13 @@ function ToolGridButton({
         <Box
           sx={{
             position: "absolute",
-            top: 8,
-            right: 8,
-            px: 0.45,
-            py: 0.1,
+            top: compact ? 4 : 8,
+            right: compact ? 4 : 8,
+            px: compact ? 0.35 : 0.5,
+            py: compact ? 0.12 : 0.1,
             borderRadius: 1,
             backgroundColor: shortcutBg,
-            fontSize: SKETCH_FONT.xxs,
+            fontSize: compact ? SKETCH_FONT.xs : SKETCH_FONT.sm,
             fontWeight: 700,
             lineHeight: 1.2,
             color: "text.secondary"
@@ -216,16 +219,27 @@ function ToolGridButton({
       ) : null}
       <Icon
         sx={{
-          fontSize: 20,
+          fontSize: compact ? 16 : 20,
           color: selected ? "primary.light" : "text.primary"
         }}
       />
       <Typography
         sx={{
-          mt: 0.65,
-          fontSize: SKETCH_FONT.md,
+          mt: compact ? 0.35 : 0.65,
+          fontSize: compact ? SKETCH_FONT.xs : SKETCH_FONT.md,
           fontWeight: 400,
-          color: "text.secondary"
+          color: "text.secondary",
+          lineHeight: 1.15,
+          ...(compact
+            ? {
+                display: "-webkit-box",
+                WebkitBoxOrient: "vertical" as const,
+                WebkitLineClamp: 2,
+                overflow: "hidden",
+                wordBreak: "break-word" as const,
+                px: 0.15
+              }
+            : {})
         }}
       >
         {definition.label}
@@ -591,7 +605,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           className="sketch-context-menu__body"
           sx={{
             display: "grid",
-            gridTemplateColumns: "minmax(0, 1fr) 220px",
+            gridTemplateColumns: "minmax(0, 1fr) minmax(128px, 152px)",
             gap: 8,
             padding: 2,
             alignItems: "stretch",
@@ -610,8 +624,9 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             }
           }}
         >
-          <Box
+          <Stack
             className="sketch-context-menu__quick"
+            spacing={1.1}
             sx={{
               minWidth: 0,
               minHeight: 360,
@@ -621,96 +636,59 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               py: 1.2
             }}
           >
-            <SectionLabel>{getToolSettingsLabel(activeTool)}</SectionLabel>
-            <Box sx={sketchToolSettingsContainerSx}>
-              <ToolSettingsPanel
-                activeTool={activeTool}
-                brushSettings={brushSettings}
-                pencilSettings={pencilSettings}
-                eraserSettings={eraserSettings}
-                shapeSettings={shapeSettings}
-                fillSettings={fillSettings}
-                blurSettings={blurSettings}
-                gradientSettings={gradientSettings}
-                cloneStampSettings={cloneStampSettings}
-                selectSettings={selectSettings}
-                hasActiveSelection={hasActiveSelection}
-                adjustBrightness={adjustBrightness}
-                adjustContrast={adjustContrast}
-                adjustSaturation={adjustSaturation}
-                onBrushSettingsChange={onBrushSettingsChange}
-                onPencilSettingsChange={onPencilSettingsChange}
-                onEraserSettingsChange={onEraserSettingsChange}
-                onShapeSettingsChange={onShapeSettingsChange}
-                onFillSettingsChange={onFillSettingsChange}
-                onBlurSettingsChange={onBlurSettingsChange}
-                onGradientSettingsChange={onGradientSettingsChange}
-                onCloneStampSettingsChange={onCloneStampSettingsChange}
-                onSelectSettingsChange={onSelectSettingsChange}
-                onInvertSelection={onInvertSelection}
-                onFeatherSelection={onFeatherSelection}
-                onSmoothSelectionBorders={onSmoothSelectionBorders}
-                onStrokeSelectionBorder={onStrokeSelectionBorder}
-                onAdjustBrightnessChange={onAdjustBrightnessChange}
-                onAdjustContrastChange={onAdjustContrastChange}
-                onAdjustSaturationChange={onAdjustSaturationChange}
-                onAdjustApply={onAdjustApply}
-                onAdjustCancel={onAdjustCancel}
-                transformScaleX={transformScaleX}
-                transformScaleY={transformScaleY}
-                transformRotation={transformRotation}
-                onTransformCommit={onTransformCommit}
-                onTransformCancel={onTransformCancel}
-                onTransformReset={onTransformReset}
-                segmentSettings={segmentSettings}
-                onSegmentSettingsChange={onSegmentSettingsChange}
-                segmentationStatus={segmentationStatus}
-                segmentModelInfo={segmentModelInfo}
-                onRunSegmentation={onRunSegmentation}
-                onApplySegmentResult={onApplySegmentResult}
-                onDiscardSegmentResult={onDiscardSegmentResult}
-                onCancelSegmentation={onCancelSegmentation}
-                onClearSegmentPrompts={onClearSegmentPrompts}
-                onCheckSegmentModel={onCheckSegmentModel}
-              />
-            </Box>
-          </Box>
-
-          <Stack
-            className="sketch-context-menu__sidebar"
-            spacing={1.1}
-            sx={{ minWidth: 0 }}
-          >
-            <Box
-              className="sketch-context-menu__tools"
-              sx={{
-                borderRadius: "8px",
-                px: 1.15,
-                py: 1.1
-              }}
-            >
-              <SectionLabel>Tools</SectionLabel>
-              <Box
-                className="sketch-context-menu__tools-grid"
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                  gap: 0.7
-                }}
-              >
-                {CONTEXT_MENU_TOOLS.map((definition) => (
-                  <ToolGridButton
-                    key={definition.tool}
-                    definition={definition}
-                    selected={definition.tool === activeTool}
-                    shortcut={getToolShortcut(definition.tool)}
-                    onClick={() => onToolChange(definition.tool)}
-                    onDoubleClick={() => {
-                      onToolChange(definition.tool);
-                      onClose();
-                    }}
-                  />
-                ))}
+            <Box sx={{ minWidth: 0 }}>
+              <SectionLabel>{getToolSettingsLabel(activeTool)}</SectionLabel>
+              <Box sx={sketchToolSettingsContainerSx}>
+                <ToolSettingsPanel
+                  activeTool={activeTool}
+                  brushSettings={brushSettings}
+                  pencilSettings={pencilSettings}
+                  eraserSettings={eraserSettings}
+                  shapeSettings={shapeSettings}
+                  fillSettings={fillSettings}
+                  blurSettings={blurSettings}
+                  gradientSettings={gradientSettings}
+                  cloneStampSettings={cloneStampSettings}
+                  selectSettings={selectSettings}
+                  hasActiveSelection={hasActiveSelection}
+                  adjustBrightness={adjustBrightness}
+                  adjustContrast={adjustContrast}
+                  adjustSaturation={adjustSaturation}
+                  onBrushSettingsChange={onBrushSettingsChange}
+                  onPencilSettingsChange={onPencilSettingsChange}
+                  onEraserSettingsChange={onEraserSettingsChange}
+                  onShapeSettingsChange={onShapeSettingsChange}
+                  onFillSettingsChange={onFillSettingsChange}
+                  onBlurSettingsChange={onBlurSettingsChange}
+                  onGradientSettingsChange={onGradientSettingsChange}
+                  onCloneStampSettingsChange={onCloneStampSettingsChange}
+                  onSelectSettingsChange={onSelectSettingsChange}
+                  onInvertSelection={onInvertSelection}
+                  onFeatherSelection={onFeatherSelection}
+                  onSmoothSelectionBorders={onSmoothSelectionBorders}
+                  onStrokeSelectionBorder={onStrokeSelectionBorder}
+                  onAdjustBrightnessChange={onAdjustBrightnessChange}
+                  onAdjustContrastChange={onAdjustContrastChange}
+                  onAdjustSaturationChange={onAdjustSaturationChange}
+                  onAdjustApply={onAdjustApply}
+                  onAdjustCancel={onAdjustCancel}
+                  transformScaleX={transformScaleX}
+                  transformScaleY={transformScaleY}
+                  transformRotation={transformRotation}
+                  onTransformCommit={onTransformCommit}
+                  onTransformCancel={onTransformCancel}
+                  onTransformReset={onTransformReset}
+                  segmentSettings={segmentSettings}
+                  onSegmentSettingsChange={onSegmentSettingsChange}
+                  segmentationStatus={segmentationStatus}
+                  segmentModelInfo={segmentModelInfo}
+                  onRunSegmentation={onRunSegmentation}
+                  onApplySegmentResult={onApplySegmentResult}
+                  onDiscardSegmentResult={onDiscardSegmentResult}
+                  onCancelSegmentation={onCancelSegmentation}
+                  onClearSegmentPrompts={onClearSegmentPrompts}
+                  onCheckSegmentModel={onCheckSegmentModel}
+                />
               </Box>
             </Box>
 
@@ -720,8 +698,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 className="sketch-context-menu__selection-actions"
                 sx={{
                   borderRadius: "8px",
-                  px: 1.15,
-                  py: 1.1
+                  px: 0
                 }}
               >
                 <SectionLabel>Selection</SectionLabel>
@@ -818,8 +795,8 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               className="sketch-context-menu__canvas-actions"
               sx={{
                 borderRadius: "8px",
-                px: 1.15,
-                py: 1.1
+                px: 0,
+                py: 0
               }}
             >
               <SectionLabel>Canvas</SectionLabel>
@@ -899,6 +876,60 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               </Stack>
             </Box>
           </Stack>
+
+          <Box
+            className="sketch-context-menu__tools-column"
+            sx={{
+              minWidth: 0,
+              alignSelf: "stretch",
+              borderRadius: "8px",
+              px: 1.15,
+              py: 1.1,
+              display: "flex",
+              flexDirection: "column"
+            }}
+          >
+            <SectionLabel>Tools</SectionLabel>
+            <Stack
+              spacing={0.75}
+              className="sketch-context-menu__tools-groups"
+              sx={{ flex: 1, alignContent: "start", width: "100%" }}
+            >
+              {CONTEXT_MENU_TOOL_GROUPS.map((group, groupIndex) => (
+                <React.Fragment
+                  key={group.map((d) => d.tool).join("-")}
+                >
+                  <Box
+                    className="sketch-context-menu__tools-grid"
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                      gap: 0.65,
+                      alignContent: "start"
+                    }}
+                  >
+                    {group.map((definition) => (
+                      <ToolGridButton
+                        key={definition.tool}
+                        definition={definition}
+                        compact
+                        selected={definition.tool === activeTool}
+                        shortcut={getToolShortcut(definition.tool)}
+                        onClick={() => onToolChange(definition.tool)}
+                        onDoubleClick={() => {
+                          onToolChange(definition.tool);
+                          onClose();
+                        }}
+                      />
+                    ))}
+                  </Box>
+                  {groupIndex < CONTEXT_MENU_TOOL_GROUPS.length - 1 ? (
+                    <Divider sx={{ borderColor: surfaceSoft, my: 0.15 }} />
+                  ) : null}
+                </React.Fragment>
+              ))}
+            </Stack>
+          </Box>
         </Box>
       </Box>
       </Popover>
