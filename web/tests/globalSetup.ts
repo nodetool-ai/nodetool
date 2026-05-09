@@ -75,7 +75,15 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   // CI/headless Linux often has no keychain backend (libsecret). Provide a
   // deterministic test-only master key so screenshot-server can boot reliably.
   const screenshotTestMasterKey =
-    process.env.SECRETS_MASTER_KEY ?? SCREENSHOT_TEST_MASTER_KEY_B64;
+    process.env.SECRETS_MASTER_KEY ??
+    (process.env.NODE_ENV === "production"
+      ? undefined
+      : SCREENSHOT_TEST_MASTER_KEY_B64);
+  if (!screenshotTestMasterKey) {
+    throw new Error(
+      "[globalSetup] SECRETS_MASTER_KEY must be set when NODE_ENV=production"
+    );
+  }
 
   const serverProcess: ChildProcess = spawn(
     TSX_BIN,

@@ -97,8 +97,11 @@ async function ensureVisibleText(
 
 async function ensureNoVisibleProgress(page: Page, timeout = 12000): Promise<void> {
   const progress = page.locator('[role="progressbar"], .MuiCircularProgress-root');
-  await progress.first().waitFor({ state: "hidden", timeout }).catch(() => {
-    // Progress indicators are not present on every route; this guard is best-effort.
+  if ((await progress.count()) === 0) {
+    return;
+  }
+  await progress.first().waitFor({ state: "hidden", timeout }).catch((error) => {
+    console.warn(`  ⚠ Progress indicator remained visible: ${String(error)}`);
   });
 }
 
@@ -114,9 +117,8 @@ async function waitForScreenshotReady(
       break;
     }
     case "mini-app-page.png": {
-      // TODO(screenshots): Re-enable automated mini-app/assets captures once
-      // screenshot-server responses are stable for those routes. They are
-      // currently captured manually to avoid publishing loading/empty states.
+      // TODO(screenshots): Re-enable automated mini-app captures once
+      // screenshot-server responses are stable for this route.
       break;
     }
     case "node-test-page.png": {
