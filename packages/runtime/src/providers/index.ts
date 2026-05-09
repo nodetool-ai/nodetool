@@ -36,6 +36,7 @@ import { RodinProvider } from "./rodin-provider.js";
 import { CohereProvider } from "./cohere-provider.js";
 import { VoyageProvider } from "./voyage-provider.js";
 import { JinaProvider } from "./jina-provider.js";
+import { FakeProvider } from "./fake-provider.js";
 export { BaseProvider, providerCapabilities } from "./base-provider.js";
 export type { ProviderCapability } from "./base-provider.js";
 export { AnthropicProvider };
@@ -175,4 +176,13 @@ if (process.env["NODETOOL_ENV"] !== "production") {
   });
   registerBuiltinProvider("lmstudio", LMStudioProvider, {});
   registerBuiltinProvider("claude_agent", ClaudeAgentProvider, {});
+}
+
+// Fake provider for end-to-end testing without external API keys.
+// Opt-in via env flag — never enabled in production builds.
+if (
+  process.env["NODETOOL_ENV"] !== "production" &&
+  process.env["NODETOOL_ENABLE_FAKE_PROVIDER"] === "1"
+) {
+  registerBuiltinProvider("fake", FakeProvider, {});
 }
