@@ -582,7 +582,6 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             }}
           >
             <Box sx={{ minWidth: 0 }}>
-              <SectionLabel>{getToolSettingsLabel(activeTool)}</SectionLabel>
               <Box sx={sketchToolSettingsContainerSx}>
                 <ToolSettingsPanel
                   activeTool={activeTool}

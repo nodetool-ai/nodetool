@@ -1,6 +1,31 @@
 /**
  * @jest-environment jsdom
  */
+jest.mock("../toolDefinitions", () => {
+  const React = require("react");
+  const StubIcon = () => React.createElement("span", { "aria-hidden": true });
+  const mk = (tool: string, label: string) => ({
+    tool,
+    label,
+    group: "painting" as const,
+    Icon: StubIcon
+  });
+  return {
+    CONTEXT_MENU_TOOL_GROUPS: [[mk("move", "Move")]],
+    getToolDefinition: (tool: string) =>
+      mk(tool, tool === "select" ? "Select" : tool),
+    getToolShortcutActionId: () => null
+  };
+});
+
+jest.mock("../ToolSettingsPanels", () => ({
+  __esModule: true,
+  ToolSettingsPanel: function MockToolSettingsPanel() {
+    return null;
+  },
+  getToolSettingsLabel: () => "Settings"
+}));
+
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
