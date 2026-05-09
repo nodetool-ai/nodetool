@@ -252,7 +252,7 @@ describe("run / runGraph", () => {
       { outputNames: ["value"], defaultOutput: "value" }
     );
     await run(workflow(warmupNode));
-  }, 60000);
+  }, 45000);
 
   test("run() executes a single source node and returns its outputs", async () => {
     const a = createNode<SingleOutput<number, "value">>(
