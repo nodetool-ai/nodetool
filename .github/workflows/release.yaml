@@ -61,11 +61,67 @@ jobs:
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
           fi
 
-  release-build:
+  preflight:
+    name: Resolve release metadata
     needs: [check_changes]
     if: |
       !failure() && !cancelled() &&
       (github.event_name != 'schedule' || needs.check_changes.outputs.has_changes == 'true')
+    runs-on: ubuntu-latest
+    outputs:
+      release_channel: ${{ steps.meta.outputs.release_channel }}
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      release_name: ${{ steps.meta.outputs.name }}
+      is_prerelease: ${{ steps.meta.outputs.is_prerelease }}
+      make_latest: ${{ steps.meta.outputs.make_latest }}
+      update_manifest: ${{ steps.meta.outputs.update_manifest }}
+      update_mac_manifest: ${{ steps.meta.outputs.update_mac_manifest }}
+      update_linux_manifest: ${{ steps.meta.outputs.update_linux_manifest }}
+      ref: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - id: meta
+        name: Resolve release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "schedule" || ( "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.channel }}" == "nightly" ) ]]; then
+            nightly_date="$(date -u -d "${{ github.run_started_at }}" +%Y%m%d)"
+            node scripts/resolve-nightly-release.mjs \
+              --date "$nightly_date" \
+              --run-number "${{ github.run_number }}" \
+              --sha "${{ github.sha }}" \
+              --github-output
+            echo "release_channel=nightly" >> "$GITHUB_OUTPUT"
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "make_latest=false" >> "$GITHUB_OUTPUT"
+            echo "update_manifest=nightly.yml" >> "$GITHUB_OUTPUT"
+            echo "update_mac_manifest=nightly-mac.yml" >> "$GITHUB_OUTPUT"
+            echo "update_linux_manifest=nightly-linux.yml" >> "$GITHUB_OUTPUT"
+          else
+            raw="${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref_name }}"
+            version="${raw#v}"
+            echo "release_channel=stable" >> "$GITHUB_OUTPUT"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            echo "tag=v$version" >> "$GITHUB_OUTPUT"
+            echo "name=Nodetool v$version" >> "$GITHUB_OUTPUT"
+            if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+              echo "make_latest=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+              echo "make_latest=false" >> "$GITHUB_OUTPUT"
+            fi
+            echo "update_manifest=latest.yml" >> "$GITHUB_OUTPUT"
+            echo "update_mac_manifest=latest-mac.yml" >> "$GITHUB_OUTPUT"
+            echo "update_linux_manifest=latest-linux.yml" >> "$GITHUB_OUTPUT"
+          fi
+
+  release-build:
+    needs: [preflight]
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' }}
     strategy:
       fail-fast: false
       matrix:
@@ -79,48 +135,20 @@ jobs:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      VERSION: ${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref_name }}
-      RELEASE_CHANNEL: stable
-      RELEASE_TAG: ${{ github.event.inputs.version != '' && format('v{0}', github.event.inputs.version) || github.ref_name }}
-      RELEASE_NAME: Nodetool ${{ github.event.inputs.version != '' && format('v{0}', github.event.inputs.version) || github.ref_name }}
-      RELEASE_PRERELEASE: "false"
-      RELEASE_MAKE_LATEST: "true"
-      UPDATE_MANIFEST: latest.yml
-      UPDATE_MAC_MANIFEST: latest-mac.yml
-      UPDATE_LINUX_MANIFEST: latest-linux.yml
+      VERSION: ${{ needs.preflight.outputs.version }}
+      RELEASE_CHANNEL: ${{ needs.preflight.outputs.release_channel }}
+      RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
+      RELEASE_NAME: ${{ needs.preflight.outputs.release_name }}
+      RELEASE_PRERELEASE: ${{ needs.preflight.outputs.is_prerelease }}
+      RELEASE_MAKE_LATEST: ${{ needs.preflight.outputs.make_latest }}
+      UPDATE_MANIFEST: ${{ needs.preflight.outputs.update_manifest }}
+      UPDATE_MAC_MANIFEST: ${{ needs.preflight.outputs.update_mac_manifest }}
+      UPDATE_LINUX_MANIFEST: ${{ needs.preflight.outputs.update_linux_manifest }}
 
     steps:
       - uses: actions/checkout@v6
-
-      - name: Resolve release metadata
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ "${GITHUB_EVENT_NAME}" == "schedule" || ( "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.channel }}" == "nightly" ) ]]; then
-            nightly_date="$(date -u -d "${{ github.run_started_at }}" +%Y%m%d)"
-            node scripts/resolve-nightly-release.mjs \
-              --date "$nightly_date" \
-              --run-number "${{ github.run_number }}" \
-              --sha "${{ github.sha }}" \
-              --github-output
-            version="$(grep '^version=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
-            tag="$(grep '^tag=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
-            name="$(grep '^name=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
-            echo "VERSION=$version" >> "$GITHUB_ENV"
-            echo "RELEASE_TAG=$tag" >> "$GITHUB_ENV"
-            echo "RELEASE_NAME=$name" >> "$GITHUB_ENV"
-            echo "RELEASE_CHANNEL=nightly" >> "$GITHUB_ENV"
-            echo "RELEASE_PRERELEASE=true" >> "$GITHUB_ENV"
-            echo "RELEASE_MAKE_LATEST=false" >> "$GITHUB_ENV"
-            echo "UPDATE_MANIFEST=nightly.yml" >> "$GITHUB_ENV"
-            echo "UPDATE_MAC_MANIFEST=nightly-mac.yml" >> "$GITHUB_ENV"
-            echo "UPDATE_LINUX_MANIFEST=nightly-linux.yml" >> "$GITHUB_ENV"
-          else
-            version="${VERSION#v}"
-            echo "VERSION=$version" >> "$GITHUB_ENV"
-            echo "RELEASE_TAG=v$version" >> "$GITHUB_ENV"
-            echo "RELEASE_NAME=Nodetool v$version" >> "$GITHUB_ENV"
-          fi
+        with:
+          ref: ${{ needs.preflight.outputs.ref }}
 
       - name: Print selected version
         run: echo "Using VERSION=$VERSION channel=$RELEASE_CHANNEL tag=$RELEASE_TAG"
