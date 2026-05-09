@@ -128,6 +128,9 @@ const SettingsPage = React.lazy(
 const TimelineEditor = React.lazy(
   () => import("./components/timeline/TimelineEditor")
 );
+const SketchEditorPage = React.lazy(
+  () => import("./components/sketch/SketchEditorPage")
+);
 
 // Defer frontend tool registrations until after initial render
 const registerFrontendTools = () => {
@@ -503,6 +506,28 @@ function getRoutes() {
             <AppHeader />
             <React.Suspense fallback={<LoadingSpinner />}>
               <TimelineEditor />
+            </React.Suspense>
+          </div>
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/sketch/:documentId",
+      element: (
+        <ProtectedRoute>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%",
+              paddingTop: HEADER_HEIGHT
+            }}
+          >
+            <SkipLinks />
+            <AppHeader />
+            <React.Suspense fallback={<LoadingSpinner />}>
+              <SketchEditorPage />
             </React.Suspense>
           </div>
         </ProtectedRoute>
