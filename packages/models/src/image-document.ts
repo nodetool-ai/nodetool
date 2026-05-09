@@ -3,7 +3,12 @@ import type {
   SketchDocumentLike,
   LayerWorkflowBinding
 } from "@nodetool-ai/image-editor";
-import { DBModel, createTimeOrderedUuid } from "./base-model.js";
+import {
+  DBModel,
+  ModelChangeEvent,
+  ModelObserver,
+  createTimeOrderedUuid
+} from "./base-model.js";
 import { getDb } from "./db.js";
 import { imageDocuments } from "./schema/image-documents.js";
 
@@ -24,6 +29,33 @@ export interface ImageDocumentResponse {
   thumbnailAssetId?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ImageDocumentMutationResult<T> {
+  document: ImageDocument;
+  result: T;
+}
+
+export class ImageDocumentConflictError extends Error {
+  constructor(id: string) {
+    super(`Image document ${id} was modified concurrently`);
+    this.name = "ImageDocumentConflictError";
+  }
+}
+
+function assertValidDocumentData(data: ImageDocumentData): void {
+  if (!data.sketch || !Array.isArray(data.layerBindings)) {
+    throw new Error("document must contain sketch and layerBindings");
+  }
+}
+
+function nextUpdatedAtAfter(previous: string): string {
+  const now = new Date();
+  const previousMs = Date.parse(previous);
+  if (Number.isFinite(previousMs) && now.getTime() <= previousMs) {
+    return new Date(previousMs + 1).toISOString();
+  }
+  return now.toISOString();
 }
 
 export class ImageDocument extends DBModel {
@@ -66,10 +98,7 @@ export class ImageDocument extends DBModel {
 
   override beforeSave(): void {
     this.updated_at = new Date().toISOString();
-    const doc = JSON.parse(this.document) as ImageDocumentData;
-    if (!doc.sketch || !Array.isArray(doc.layerBindings)) {
-      throw new Error("document must contain sketch and layerBindings");
-    }
+    assertValidDocumentData(JSON.parse(this.document) as ImageDocumentData);
   }
 
   toDocumentData(): ImageDocumentData {
@@ -153,5 +182,66 @@ export class ImageDocument extends DBModel {
     Object.assign(doc, fields);
     await doc.save();
     return doc;
+  }
+
+  static async updateDocumentDataIfUnchanged(
+    id: string,
+    expectedUpdatedAt: string,
+    data: ImageDocumentData
+  ): Promise<ImageDocument | null> {
+    assertValidDocumentData(data);
+    const db = getDb();
+    const now = nextUpdatedAtAfter(expectedUpdatedAt);
+    const rows = await db
+      .update(imageDocuments)
+      .set({
+        document: JSON.stringify(data),
+        updated_at: now
+      })
+      .where(
+        and(
+          eq(imageDocuments.id, id),
+          eq(imageDocuments.updated_at, expectedUpdatedAt)
+        )
+      )
+      .returning();
+
+    const row = rows[0] as Record<string, unknown> | undefined;
+    if (!row) {
+      return null;
+    }
+
+    const updated = new ImageDocument(row);
+    ModelObserver.notify(updated, ModelChangeEvent.UPDATED);
+    return updated;
+  }
+
+  static async mutateDocumentData<T>(
+    id: string,
+    mutator: (
+      data: ImageDocumentData,
+      document: ImageDocument
+    ) => T | Promise<T>,
+    maxRetries = 5
+  ): Promise<ImageDocumentMutationResult<T> | null> {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const doc = await ImageDocument.get<ImageDocument>(id);
+      if (!doc) {
+        return null;
+      }
+
+      const data = doc.toDocumentData();
+      const result = await mutator(data, doc);
+      const updated = await ImageDocument.updateDocumentDataIfUnchanged(
+        id,
+        doc.updated_at,
+        data
+      );
+      if (updated) {
+        return { document: updated, result };
+      }
+    }
+
+    throw new ImageDocumentConflictError(id);
   }
 }

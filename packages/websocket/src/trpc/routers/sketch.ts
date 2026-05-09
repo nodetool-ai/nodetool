@@ -23,6 +23,7 @@
 import { z } from "zod";
 import {
   ImageDocument,
+  ImageDocumentConflictError,
   Workflow,
   createTimeOrderedUuid
 } from "@nodetool-ai/models";
@@ -114,6 +115,38 @@ function findBinding(
   layerId: string
 ): LayerWorkflowBinding | undefined {
   return data.layerBindings.find((b) => b.layerId === layerId);
+}
+
+async function mutateOwnedDocumentData<T>(
+  ctxUserId: string | null,
+  id: string,
+  mutator: (data: ImageDocumentData) => T | Promise<T>
+): Promise<T> {
+  if (!ctxUserId) throwApiError(ApiErrorCode.UNAUTHORIZED, "Unauthorized");
+
+  try {
+    const mutation = await ImageDocument.mutateDocumentData(
+      id,
+      async (data, doc) => {
+        if (doc.user_id !== ctxUserId) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Image document not found");
+        }
+        return mutator(data);
+      }
+    );
+    if (!mutation) {
+      throwApiError(ApiErrorCode.NOT_FOUND, "Image document not found");
+    }
+    return mutation.result;
+  } catch (error) {
+    if (error instanceof ImageDocumentConflictError) {
+      throwApiError(
+        ApiErrorCode.ALREADY_EXISTS,
+        "Document was modified concurrently; retry the operation"
+      );
+    }
+    throw error;
+  }
 }
 
 // ── Node-type helpers ────────────────────────────────────────────────────────
@@ -270,13 +303,6 @@ export const sketchRouter = router({
       .input(versionsAppendInput)
       .output(layerVersion)
       .mutation(async ({ ctx, input }) => {
-        const doc = await loadOwned(ctx.userId, input.id);
-        const data = doc.toDocumentData();
-        const binding = findBinding(data, input.layerId);
-        if (!binding) {
-          throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
-        }
-
         const newVersion = {
           id: createTimeOrderedUuid(),
           createdAt: new Date().toISOString(),
@@ -290,77 +316,71 @@ export const sketchRouter = router({
           status: input.status as "success" | "failed" | "cancelled"
         };
 
-        binding.versions.push(newVersion);
+        return mutateOwnedDocumentData(ctx.userId, input.id, (data) => {
+          const binding = findBinding(data, input.layerId);
+          if (!binding) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
+          }
 
-        // Prune: keep all favorites, newest N successful, newest M failed
-        const favorites = binding.versions.filter((v) => v.favorite);
-        const nonFavorite = binding.versions.filter((v) => !v.favorite);
-        const successful = nonFavorite
-          .filter((v) => v.status === "success")
-          .slice(-MAX_SUCCESSFUL_VERSIONS);
-        const failed = nonFavorite
-          .filter((v) => v.status !== "success")
-          .slice(-MAX_FAILED_VERSIONS);
-        binding.versions = [...favorites, ...successful, ...failed].sort(
-          (a, b) => a.createdAt.localeCompare(b.createdAt)
-        );
+          binding.versions.push(newVersion);
 
-        await ImageDocument.updateDoc(input.id, {
-          document: JSON.stringify(data)
+          // Prune: keep all favorites, newest N successful, newest M failed
+          const favorites = binding.versions.filter((v) => v.favorite);
+          const nonFavorite = binding.versions.filter((v) => !v.favorite);
+          const successful = nonFavorite
+            .filter((v) => v.status === "success")
+            .slice(-MAX_SUCCESSFUL_VERSIONS);
+          const failed = nonFavorite
+            .filter((v) => v.status !== "success")
+            .slice(-MAX_FAILED_VERSIONS);
+          binding.versions = [...favorites, ...successful, ...failed].sort(
+            (a, b) => a.createdAt.localeCompare(b.createdAt)
+          );
+
+          return newVersion;
         });
-
-        return newVersion;
       }),
 
     setFavorite: protectedProcedure
       .input(versionsSetFavoriteInput)
       .output(layerVersion)
       .mutation(async ({ ctx, input }) => {
-        const doc = await loadOwned(ctx.userId, input.id);
-        const data = doc.toDocumentData();
-        const binding = findBinding(data, input.layerId);
-        if (!binding) {
-          throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
-        }
+        return mutateOwnedDocumentData(ctx.userId, input.id, (data) => {
+          const binding = findBinding(data, input.layerId);
+          if (!binding) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
+          }
 
-        const version = binding.versions.find((v) => v.id === input.versionId);
-        if (!version) {
-          throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
-        }
+          const version = binding.versions.find((v) => v.id === input.versionId);
+          if (!version) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
+          }
 
-        version.favorite = input.favorite;
-
-        await ImageDocument.updateDoc(input.id, {
-          document: JSON.stringify(data)
+          version.favorite = input.favorite;
+          return version;
         });
-
-        return version;
       }),
 
     delete: protectedProcedure
       .input(versionsDeleteInput)
       .output(okOutput)
       .mutation(async ({ ctx, input }) => {
-        const doc = await loadOwned(ctx.userId, input.id);
-        const data = doc.toDocumentData();
-        const binding = findBinding(data, input.layerId);
-        if (!binding) {
-          throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
-        }
+        return mutateOwnedDocumentData(ctx.userId, input.id, (data) => {
+          const binding = findBinding(data, input.layerId);
+          if (!binding) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
+          }
 
-        const before = binding.versions.length;
-        binding.versions = binding.versions.filter(
-          (v) => v.id !== input.versionId
-        );
-        if (binding.versions.length === before) {
-          throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
-        }
+          const before = binding.versions.length;
+          binding.versions = binding.versions.filter(
+            (v) => v.id !== input.versionId
+          );
+          if (binding.versions.length === before) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
+          }
 
-        await ImageDocument.updateDoc(input.id, {
-          document: JSON.stringify(data)
+          return { ok: true as const };
         });
-
-        return { ok: true as const };
       })
   }),
 
@@ -472,35 +492,44 @@ export const sketchRouter = router({
           versions: []
         };
 
-        data.layerBindings.push(newBinding);
-
-        await ImageDocument.updateDoc(input.id, {
-          document: JSON.stringify(data)
-        });
-
-        return newBinding;
+        try {
+          return await mutateOwnedDocumentData(ctx.userId, input.id, (latest) => {
+            if (findBinding(latest, input.layerId)) {
+              throwApiError(
+                ApiErrorCode.ALREADY_EXISTS,
+                `Layer binding already exists for layerId ${input.layerId}`
+              );
+            }
+            latest.layerBindings.push(newBinding);
+            return newBinding;
+          });
+        } catch (error) {
+          await Workflow.deleteLayerIfOrphaned(clone.id);
+          throw error;
+        }
       }),
 
     delete: protectedProcedure
       .input(z.object({ id: z.string(), layerId: z.string() }))
       .output(okOutput)
       .mutation(async ({ ctx, input }) => {
-        const doc = await loadOwned(ctx.userId, input.id);
-        const data = doc.toDocumentData();
-        const bindingIndex = data.layerBindings.findIndex(
-          (b) => b.layerId === input.layerId
+        const binding = await mutateOwnedDocumentData(
+          ctx.userId,
+          input.id,
+          (data) => {
+            const bindingIndex = data.layerBindings.findIndex(
+              (b) => b.layerId === input.layerId
+            );
+            if (bindingIndex === -1) {
+              throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
+            }
+
+            const [removed] = data.layerBindings.splice(bindingIndex, 1);
+            return removed!;
+          }
         );
-        if (bindingIndex === -1) {
-          throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
-        }
 
-        const binding = data.layerBindings[bindingIndex];
-        data.layerBindings.splice(bindingIndex, 1);
-        await ImageDocument.updateDoc(input.id, {
-          document: JSON.stringify(data)
-        });
-
-        if (binding?.workflowId) {
+        if (binding.workflowId) {
           await Workflow.deleteLayerIfOrphaned(binding.workflowId);
         }
         return { ok: true as const };
@@ -530,35 +559,61 @@ export const sketchRouter = router({
           );
         }
 
-        let newWorkflowId = src.workflowId;
-        if (input.mode === "variation" && src.workflowId) {
+        const sourceWorkflowId = src.workflowId;
+        let clonedWorkflowId: string | undefined;
+        if (input.mode === "variation" && sourceWorkflowId) {
           const clonedWorkflow = await Workflow.cloneAsLayerPrivate(
-            src.workflowId,
+            sourceWorkflowId,
             ctx.userId
           );
-          newWorkflowId = clonedWorkflow.id;
+          clonedWorkflowId = clonedWorkflow.id;
         }
 
-        const newBinding: LayerWorkflowBinding = {
-          layerId: input.newLayerId,
-          workflowId: newWorkflowId,
-          selectedOutputNodeId: src.selectedOutputNodeId,
-          paramOverrides: src.paramOverrides
-            ? structuredClone(src.paramOverrides)
-            : undefined,
-          dependencyHash: src.dependencyHash,
-          lastGeneratedHash: undefined,
-          currentAssetId: undefined,
-          status: "draft",
-          versions: []
-        };
+        try {
+          return await mutateOwnedDocumentData(ctx.userId, input.id, (latest) => {
+            const latestSrc = findBinding(latest, input.layerId);
+            if (!latestSrc) {
+              throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
+            }
+            if (findBinding(latest, input.newLayerId)) {
+              throwApiError(
+                ApiErrorCode.ALREADY_EXISTS,
+                `Layer binding already exists for layerId ${input.newLayerId}`
+              );
+            }
+            if (
+              input.mode === "variation" &&
+              latestSrc.workflowId !== sourceWorkflowId
+            ) {
+              throwApiError(
+                ApiErrorCode.ALREADY_EXISTS,
+                "Layer binding changed concurrently; retry the operation"
+              );
+            }
 
-        data.layerBindings.push(newBinding);
-        await ImageDocument.updateDoc(input.id, {
-          document: JSON.stringify(data)
-        });
+            const newBinding: LayerWorkflowBinding = {
+              layerId: input.newLayerId,
+              workflowId: clonedWorkflowId ?? latestSrc.workflowId,
+              selectedOutputNodeId: latestSrc.selectedOutputNodeId,
+              paramOverrides: latestSrc.paramOverrides
+                ? structuredClone(latestSrc.paramOverrides)
+                : undefined,
+              dependencyHash: latestSrc.dependencyHash,
+              lastGeneratedHash: undefined,
+              currentAssetId: undefined,
+              status: "draft",
+              versions: []
+            };
 
-        return newBinding;
+            latest.layerBindings.push(newBinding);
+            return newBinding;
+          });
+        } catch (error) {
+          if (clonedWorkflowId) {
+            await Workflow.deleteLayerIfOrphaned(clonedWorkflowId);
+          }
+          throw error;
+        }
       })
   })
 });

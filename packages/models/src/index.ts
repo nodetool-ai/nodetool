@@ -85,9 +85,13 @@ export { Setting } from "./setting.js";
 export { TimelineSequence } from "./timeline-sequence.js";
 export type { TimelineDocument } from "./timeline-sequence.js";
 
-export { ImageDocument } from "./image-document.js";
+export {
+  ImageDocument,
+  ImageDocumentConflictError
+} from "./image-document.js";
 export type {
   ImageDocumentData,
+  ImageDocumentMutationResult,
   ImageDocumentResponse
 } from "./image-document.js";
 

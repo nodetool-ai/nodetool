@@ -55,6 +55,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     static listByUser = vi.fn();
     static listByProject = vi.fn();
     static updateDoc = vi.fn();
+    static mutateDocumentData = vi.fn();
   }
   return {
     ...actual,
@@ -76,6 +77,7 @@ const ID = ImageDocument as unknown as {
   listByUser: ReturnType<typeof vi.fn>;
   listByProject: ReturnType<typeof vi.fn>;
   updateDoc: ReturnType<typeof vi.fn>;
+  mutateDocumentData: ReturnType<typeof vi.fn>;
 };
 const WF = Workflow as unknown as {
   find: ReturnType<typeof vi.fn>;
@@ -103,7 +105,27 @@ function makeDoc(over: Partial<Record<string, unknown>> = {}) {
 }
 
 describe("sketch router", () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    ID.mutateDocumentData.mockImplementation(
+      async (
+        id: string,
+        mutator: (
+          data: ImageDocumentData,
+          doc: ReturnType<typeof makeDoc>
+        ) => unknown
+      ) => {
+        const doc = (await ID.findById(id)) as ReturnType<typeof makeDoc> | null;
+        if (!doc) {
+          return null;
+        }
+        const data = doc.toDocumentData();
+        const result = await mutator(data, doc);
+        await ID.updateDoc(id, { document: JSON.stringify(data) });
+        return { document: doc, result };
+      }
+    );
+  });
   afterEach(() => vi.restoreAllMocks());
 
   describe("list", () => {
