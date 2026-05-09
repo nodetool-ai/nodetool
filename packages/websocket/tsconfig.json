@@ -39,6 +39,9 @@
       "path": "../huggingface"
     },
     {
+      "path": "../image-editor"
+    },
+    {
       "path": "../kernel"
     },
     {
