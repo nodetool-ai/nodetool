@@ -2,16 +2,20 @@
 import fs from "node:fs";
 import path from "node:path";
 
+const NIGHTLY_CHANNEL = "nightly";
+const STABLE_CHANNEL = "stable";
+
 const dir = path.resolve(process.argv[2] ?? "release-assets");
-const inputChannel = process.argv[3] ?? "stable";
-const channel = inputChannel === "nightly" ? "nightly" : "stable";
-const manifestPrefix = channel === "nightly" ? "nightly" : "latest";
+const inputChannel = process.argv[3] ?? STABLE_CHANNEL;
+const channel = inputChannel === NIGHTLY_CHANNEL ? NIGHTLY_CHANNEL : STABLE_CHANNEL;
+// Stable channel publishes latest* updater manifests.
+const manifestPrefix = channel === NIGHTLY_CHANNEL ? NIGHTLY_CHANNEL : "latest";
 let files = [];
 try {
   if (fs.existsSync(dir)) {
     const stats = fs.statSync(dir);
     if (!stats.isDirectory()) {
-      throw new Error("Path exists but is not a directory");
+      throw new Error(`Path exists but is not a directory: ${dir}`);
     }
     files = fs.readdirSync(dir);
   }
@@ -20,6 +24,7 @@ try {
   console.error(`Release asset validation failed for ${inputChannel} channel.`);
   console.error(`Directory: ${dir}`);
   console.error(`Unable to read directory: ${message}`);
+  console.error("Error details:", error);
   process.exit(1);
 }
 const has = (predicate) => files.some(predicate);
