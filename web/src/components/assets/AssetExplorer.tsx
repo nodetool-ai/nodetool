@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import AssetGrid from "./AssetGrid";
 import { Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -98,13 +98,14 @@ const styles = (theme: Theme) =>
 
 const AssetExplorer: React.FC = memo(() => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const { folderFiles } = useAssets();
   const _navigate = useNavigate();
   const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
   void _navigate;
   void currentWorkflowId;
   return (
-    <Box css={styles(theme)}>
+    <Box css={cssStyles}>
       <Box
         className="actions-container"
         sx={{

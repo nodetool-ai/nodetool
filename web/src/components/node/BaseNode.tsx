@@ -87,6 +87,31 @@ const RESULT_PANEL_STYLE: React.CSSProperties = {
   padding: "8px"
 };
 
+const isEmptyResult = (obj: unknown) =>
+  obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
+
+const NAMESPACE_BUTTON_SX = {
+  position: "absolute",
+  bottom: -25,
+  left: "50%",
+  transform: "translateX(-50%)",
+  bgcolor: "background.paper",
+  color: "text.secondary",
+  px: 1,
+  py: 0.25,
+  borderRadius: 1,
+  fontSize: "0.65rem",
+  fontWeight: 400,
+  zIndex: 1000,
+  border: "1px solid",
+  borderColor: "divider",
+  whiteSpace: "nowrap",
+  cursor: "pointer",
+  "&:hover": {
+    bgcolor: "action.hover"
+  }
+} as const;
+
 const NODE_CONTENT_CONTAINER_STYLE: React.CSSProperties = {
   flex: "1 1 auto",
   minHeight: 0,
@@ -541,9 +566,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     updateNodeData(id, { showResultPreference: true });
   }, [id, suppressResultOverlay, updateNodeData]);
 
-  // Compute if overlay is actually visible (mirrors logic in NodeContent)
-  const isEmptyResult = (obj: unknown) =>
-    obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
   const shouldAlwaysShowResult =
     !suppressResultOverlay &&
     (nodeType.isOutputNode || isConstantInputLockedResult);
@@ -788,27 +810,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             variant="text"
             className="node-namespace nodrag nopan"
             onClick={handleNamespaceClick}
-            sx={{
-              position: "absolute",
-              bottom: -25,
-              left: "50%",
-              transform: "translateX(-50%)",
-              bgcolor: "background.paper",
-              color: "text.secondary",
-              px: 1,
-              py: 0.25,
-              borderRadius: 1,
-              fontSize: "0.65rem",
-              fontWeight: 400,
-              zIndex: 1000,
-              border: "1px solid",
-              borderColor: "divider",
-              whiteSpace: "nowrap",
-              cursor: "pointer",
-              "&:hover": {
-                bgcolor: "action.hover"
-              }
-            }}
+            sx={NAMESPACE_BUTTON_SX}
           >
             {metadata.namespace}
           </EditorButton>

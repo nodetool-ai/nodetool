@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { Box } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import { Tooltip, EditorButton } from "../../ui_primitives";
@@ -48,7 +48,26 @@ const getAssetInfo = (
   return null;
 };
 
-const PreviewActions: React.FC<PreviewActionsProps> = ({
+const COPY_BUTTON_SX = {
+  width: "17px",
+  height: "17px",
+  minWidth: "unset",
+  padding: 0,
+  margin: 0,
+  marginLeft: "0 !important",
+  borderRadius: ".1em",
+  backgroundColor: (theme: Theme) => theme.vars.palette.grey[600],
+  color: (theme: Theme) => theme.vars.palette.grey[200],
+  "&:hover": {
+    color: "var(--palette-primary-main)"
+  },
+  "& svg": {
+    width: "100%",
+    height: "100%"
+  }
+} as const;
+
+const PreviewActions: React.FC<PreviewActionsProps> = memo(({
   onDownload,
   onAddToAssets,
   copyValue
@@ -57,34 +76,14 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
     (state) => state.addNotification
   );
 
-  // Check if this is a copyable asset (image/video/audio)
   const assetInfo = useMemo(() => getAssetInfo(copyValue), [copyValue]);
 
-  const handleCopyError = (_err: Error) => {
+  const handleCopyError = useCallback((_err: Error) => {
     addNotification({
       type: "error",
       content: "Failed to copy to clipboard"
     });
-  };
-
-  const buttonStyles = {
-    width: "17px",
-    height: "17px",
-    minWidth: "unset",
-    padding: 0,
-    margin: 0,
-    marginLeft: "0 !important",
-    borderRadius: ".1em",
-    backgroundColor: (theme: Theme) => theme.vars.palette.grey[600],
-    color: (theme: Theme) => theme.vars.palette.grey[200],
-    "&:hover": {
-      color: "var(--palette-primary-main)"
-    },
-    "& svg": {
-      width: "100%",
-      height: "100%"
-    }
-  };
+  }, [addNotification]);
 
   return (
     <Box
@@ -122,7 +121,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
           url={assetInfo.url}
           onCopyError={handleCopyError}
           className="action-button copy"
-          sx={buttonStyles}
+          sx={COPY_BUTTON_SX}
           aria-label="Copy asset to clipboard"
         />
       ) : (
@@ -130,12 +129,14 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
           value={copyValue}
           onCopyError={handleCopyError}
           className="action-button copy"
-          sx={buttonStyles}
+          sx={COPY_BUTTON_SX}
           aria-label="Copy to clipboard"
         />
       )}
     </Box>
   );
-};
+});
+
+PreviewActions.displayName = "PreviewActions";
 
 export default PreviewActions;
