@@ -48,7 +48,7 @@ Docs: [Chain Editor]({{ '/chain-editor' | relative_url }})
 
 Read-only visualization of a saved workflow. Useful for sharing, embedding, and review.
 
-![Workflow Graph View](assets/screenshots/workflow-graph-view.png)
+![Workflow Graph View](assets/screenshots/screenshot-placeholder.svg)
 
 Docs: [Workflow Graph View]({{ '/workflow-graph-view' | relative_url }})
 
@@ -72,7 +72,7 @@ Docs: [User Interface → Standalone Chat]({{ '/user-interface#standalone-chat-w
 
 Run saved workflows through simplified form UIs inside the main app.
 
-![Mini-App Page](assets/screenshots/mini-app-page.png)
+![Mini-App Page](assets/screenshots/screenshot-placeholder.svg)
 
 Docs: [User Interface → Mini-Apps]({{ '/user-interface#mini-apps' | relative_url }})
 
@@ -80,7 +80,7 @@ Docs: [User Interface → Mini-Apps]({{ '/user-interface#mini-apps' | relative_u
 
 A dedicated full-window Mini-App runner. Launched from the tray on desktop or by a direct link.
 
-![Standalone Mini-App](assets/screenshots/standalone-mini-app.png)
+![Standalone Mini-App](assets/screenshots/screenshot-placeholder.svg)
 
 Docs: [User Interface → Mini-Apps]({{ '/user-interface#mini-apps' | relative_url }})
 
@@ -88,7 +88,7 @@ Docs: [User Interface → Mini-Apps]({{ '/user-interface#mini-apps' | relative_u
 
 Browse, search, organize, and tag every file used in your workflows.
 
-![Asset Explorer](assets/screenshots/asset-explorer.png)
+![Asset Explorer](assets/screenshots/screenshot-placeholder.svg)
 
 Docs: [Asset Management]({{ '/asset-management' | relative_url }})
 
@@ -96,7 +96,7 @@ Docs: [Asset Management]({{ '/asset-management' | relative_url }})
 
 Full-featured image editor for assets. Crop, paint, and transform without leaving NodeTool.
 
-![Asset Editor](assets/screenshots/asset-editor.png)
+![Asset Editor](assets/screenshots/screenshot-placeholder.svg)
 
 Docs: [Image Editor]({{ '/image-editor' | relative_url }})
 

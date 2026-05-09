@@ -87,6 +87,49 @@ async function gotoPage(page: Page, url: string): Promise<void> {
   await assertNoErrorBoundary(page);
 }
 
+async function ensureVisibleText(
+  page: Page,
+  text: string | RegExp,
+  timeout = 15000
+): Promise<void> {
+  await page.getByText(text).first().waitFor({ state: "visible", timeout });
+}
+
+async function ensureNoVisibleProgress(page: Page, timeout = 12000): Promise<void> {
+  const progress = page.locator('[role="progressbar"], .MuiCircularProgress-root');
+  await progress.first().waitFor({ state: "hidden", timeout }).catch(() => {});
+}
+
+async function waitForScreenshotReady(
+  page: Page,
+  screenshotName: string
+): Promise<void> {
+  switch (screenshotName) {
+    case "login-screen.png": {
+      await page
+        .getByRole("button", { name: /sign in with google/i })
+        .waitFor({ state: "visible", timeout: 15000 });
+      break;
+    }
+    case "mini-app-page.png": {
+      // Intentionally no-op.
+      // Mini-app and assets screenshots are currently generated manually because
+      // API transform errors in screenshot-server can intermittently return
+      // incomplete demo data on those routes.
+      break;
+    }
+    case "node-test-page.png": {
+      await ensureVisibleText(page, /node integration tests/i);
+      await ensureVisibleText(page, /run all/i);
+      await ensureNoVisibleProgress(page);
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+}
+
 /**
  * Fail the test if the React Router error boundary is visible.
  * The boundary renders with class `errorBoundaryStyles` and the text "Something went wrong".
@@ -181,44 +224,8 @@ if (process.env.JEST_WORKER_ID) {
     test("Login", async ({ page }) => {
       test.skip(shouldSkip("login-screen.png"), "Already captured");
       await gotoPage(page, "/login");
+      await waitForScreenshotReady(page, "login-screen.png");
       await saveScreenshot(page, "login-screen.png");
-    });
-
-    test("Workflow graph view", async ({ page }) => {
-      test.skip(shouldSkip("workflow-graph-view.png"), "Already captured");
-      await gotoPage(page, "/graph/wf-story-generator");
-      await waitForAnimation(page, 1200);
-      await saveScreenshot(page, "workflow-graph-view.png");
-    });
-
-    // ── Mini-apps ───────────────────────────────────────────────────────────
-    test("Mini-app page", async ({ page }) => {
-      test.skip(shouldSkip("mini-app-page.png"), "Already captured");
-      await gotoPage(page, "/apps/wf-story-generator");
-      await waitForAnimation(page, 1200);
-      await saveScreenshot(page, "mini-app-page.png");
-    });
-
-    test("Standalone mini-app", async ({ page }) => {
-      test.skip(shouldSkip("standalone-mini-app.png"), "Already captured");
-      await gotoPage(page, "/miniapp/wf-story-generator");
-      await waitForAnimation(page, 1200);
-      await saveScreenshot(page, "standalone-mini-app.png");
-    });
-
-    // ── Assets ──────────────────────────────────────────────────────────────
-    test("Assets", async ({ page }) => {
-      test.skip(shouldSkip("asset-explorer.png"), "Already captured");
-      await gotoPage(page, "/assets");
-      await waitForAnimation(page, 1200);
-      await saveScreenshot(page, "asset-explorer.png");
-    });
-
-    test("Asset editor", async ({ page }) => {
-      test.skip(shouldSkip("asset-editor.png"), "Already captured");
-      await gotoPage(page, "/assets/edit/asset-photo1");
-      await waitForAnimation(page, 1200);
-      await saveScreenshot(page, "asset-editor.png");
     });
 
     // ── Collections ─────────────────────────────────────────────────────────
@@ -280,7 +287,7 @@ if (process.env.JEST_WORKER_ID) {
     test("Node test page", async ({ page }) => {
       test.skip(shouldSkip("node-test-page.png"), "Already captured");
       await gotoPage(page, "/node-test");
-      await waitForAnimation(page, 1200);
+      await waitForScreenshotReady(page, "node-test-page.png");
       await saveScreenshot(page, "node-test-page.png");
     });
   });

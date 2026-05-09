@@ -12,7 +12,7 @@ NodeTool lets you store and organize files used in your workflows. Assets can be
 
 The **Asset Explorer** is the central hub for managing your files. Open it from the left sidebar.
 
-![Asset Explorer](assets/screenshots/asset-explorer.png)
+![Asset Explorer](assets/screenshots/screenshot-placeholder.svg)
 
 ### Views
 

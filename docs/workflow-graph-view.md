@@ -6,7 +6,7 @@ description: "Read-only visualization of a NodeTool workflow."
 
 The **Workflow Graph View** is a read-only rendering of a saved workflow. It's useful for sharing a visual snapshot, embedding workflow diagrams in documentation, and giving stakeholders a look without handing them the editor.
 
-![Workflow Graph View](assets/screenshots/workflow-graph-view.png)
+![Workflow Graph View](assets/screenshots/screenshot-placeholder.svg)
 
 ---
 

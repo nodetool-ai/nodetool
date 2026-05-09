@@ -68,6 +68,11 @@ async function waitForPort(
 export default async function globalSetup(): Promise<() => Promise<void>> {
   console.log("[globalSetup] Starting screenshot backend server…");
 
+  // CI/headless Linux often has no keychain backend (libsecret). Provide a
+  // deterministic test-only master key so screenshot-server can boot reliably.
+  const screenshotTestMasterKey =
+    process.env.SECRETS_MASTER_KEY ?? "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+
   const serverProcess: ChildProcess = spawn(
     TSX_BIN,
     ["--conditions", "development", SERVER_SCRIPT],
@@ -76,6 +81,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
         ...process.env,
         PORT: String(BACKEND_PORT),
         HOST: BACKEND_HOST,
+        SECRETS_MASTER_KEY: screenshotTestMasterKey,
         // Suppress noisy Python detection on machines without Python
         METADATA_ROOTS: ""
       },
