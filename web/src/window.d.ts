@@ -269,13 +269,17 @@ declare global {
         ) => () => void;
       };
 
-      // Settings module - Application settings (Windows only)
+      // Settings module - Application settings
       settings?: {
         getCloseBehavior: () => Promise<"ask" | "quit" | "background">;
         setCloseBehavior: (
           action: "ask" | "quit" | "background"
         ) => Promise<void>;
         getSystemInfo: () => Promise<SystemInfo>;
+        getAutoUpdates?: () => Promise<boolean>;
+        setAutoUpdates?: (enabled: boolean) => Promise<void>;
+        getUpdateChannel?: () => Promise<"latest" | "nightly">;
+        setUpdateChannel?: (channel: "latest" | "nightly") => Promise<"latest" | "nightly">;
       };
 
       // Debug module - Debug bundle export

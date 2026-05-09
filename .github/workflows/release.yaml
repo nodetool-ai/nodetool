@@ -4,8 +4,19 @@ on:
   push:
     tags:
       - "v*"
+      - "!v*-nightly.*"
+  schedule:
+    - cron: "0 9 * * *"
   workflow_dispatch:
     inputs:
+      channel:
+        description: "Release channel"
+        required: false
+        default: stable
+        type: choice
+        options:
+          - stable
+          - nightly
       version:
         description: "Release version (without leading v). Leave empty to use the tag."
         required: false
@@ -31,12 +42,50 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       VERSION: ${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref_name }}
+      RELEASE_CHANNEL: stable
+      RELEASE_TAG: ${{ github.event.inputs.version != '' && format('v{0}', github.event.inputs.version) || github.ref_name }}
+      RELEASE_NAME: Nodetool ${{ github.event.inputs.version != '' && format('v{0}', github.event.inputs.version) || github.ref_name }}
+      RELEASE_PRERELEASE: "false"
+      RELEASE_MAKE_LATEST: "true"
+      UPDATE_MANIFEST: latest.yml
+      UPDATE_MAC_MANIFEST: latest-mac.yml
+      UPDATE_LINUX_MANIFEST: latest-linux.yml
 
     steps:
       - uses: actions/checkout@v6
 
+      - name: Resolve release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "schedule" || ( "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.channel }}" == "nightly" ) ]]; then
+            nightly_date="$(date -u -d "${{ github.run_started_at }}" +%Y%m%d)"
+            node scripts/resolve-nightly-release.mjs \
+              --date "$nightly_date" \
+              --run-number "${{ github.run_number }}" \
+              --sha "${{ github.sha }}" \
+              --github-output
+            version="$(grep '^version=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
+            tag="$(grep '^tag=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
+            name="$(grep '^name=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
+            echo "VERSION=$version" >> "$GITHUB_ENV"
+            echo "RELEASE_TAG=$tag" >> "$GITHUB_ENV"
+            echo "RELEASE_NAME=$name" >> "$GITHUB_ENV"
+            echo "RELEASE_CHANNEL=nightly" >> "$GITHUB_ENV"
+            echo "RELEASE_PRERELEASE=true" >> "$GITHUB_ENV"
+            echo "RELEASE_MAKE_LATEST=false" >> "$GITHUB_ENV"
+            echo "UPDATE_MANIFEST=nightly.yml" >> "$GITHUB_ENV"
+            echo "UPDATE_MAC_MANIFEST=nightly-mac.yml" >> "$GITHUB_ENV"
+            echo "UPDATE_LINUX_MANIFEST=nightly-linux.yml" >> "$GITHUB_ENV"
+          else
+            version="${VERSION#v}"
+            echo "VERSION=$version" >> "$GITHUB_ENV"
+            echo "RELEASE_TAG=v$version" >> "$GITHUB_ENV"
+            echo "RELEASE_NAME=Nodetool v$version" >> "$GITHUB_ENV"
+          fi
+
       - name: Print selected version
-        run: echo "Using VERSION=$VERSION"
+        run: echo "Using VERSION=$VERSION channel=$RELEASE_CHANNEL tag=$RELEASE_TAG"
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -45,7 +94,6 @@ jobs:
           cache: "npm"
 
       - name: Sync package versions to release tag
-        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.version != ''
         shell: bash
         run: |
           set -euo pipefail
@@ -64,6 +112,10 @@ jobs:
               console.log(`Updated ${p} to ${version}`);
             }
           '
+
+      - name: Configure Electron update channel
+        shell: bash
+        run: node scripts/configure-electron-update-channel.mjs "$VERSION"
 
       - name: Install Apple Certificate
         if: matrix.os == 'macos-latest'
@@ -139,10 +191,13 @@ jobs:
           echo "archive_name=nodetool-web-${VERSION_NO_V}.zip" >> $GITHUB_OUTPUT
 
       - name: Upload Web Build to GitHub Release
-        if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'ubuntu-latest' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_NAME }}
+          prerelease: ${{ env.RELEASE_PRERELEASE }}
+          make_latest: ${{ env.RELEASE_MAKE_LATEST }}
           files: ${{ steps.create_archive.outputs.archive_name }}
 
       - name: Build Electron (Windows, unpacked)
@@ -199,7 +254,7 @@ jobs:
           echo "WIN_UNPACKED_ARCHIVE=${ARCHIVE_PATH}" >> "${GITHUB_ENV}"
 
       - name: Decide whether to sign (skip test tags)
-        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -212,7 +267,7 @@ jobs:
           echo "Windows signing enabled: ${SHOULD_SIGN}"
 
       - name: Sign main app exe (SSL.com eSigner)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
         uses: sslcom/esigner-codesign@develop
         with:
           command: sign
@@ -226,7 +281,7 @@ jobs:
           environment_name: PROD
 
       - name: Move signed app exe back to unpacked directory
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -274,7 +329,7 @@ jobs:
           fi
 
       - name: Sign installer exe (SSL.com eSigner)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
         uses: sslcom/esigner-codesign@develop
         with:
           command: sign
@@ -288,7 +343,7 @@ jobs:
           environment_name: PROD
 
       - name: Move signed installer back to dist directory
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -302,7 +357,7 @@ jobs:
           echo "Moved signed installer to ${INSTALLER_PATH}"
 
       - name: Update latest.yml sha512/size for signed installer (Windows)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -317,10 +372,10 @@ jobs:
           const version = process.env.VERSION;
           const installerName = `Nodetool-Setup-${version}.exe`;
           const installerPath = process.env.INSTALLER_PATH;
-          const latestPath = path.join(distDir, "latest.yml");
+          const latestPath = path.join(distDir, process.env.UPDATE_MANIFEST || "latest.yml");
 
           if (!fs.existsSync(latestPath)) {
-            console.warn(`latest.yml not found at ${latestPath}; skipping update`);
+            console.warn(`update manifest not found at ${latestPath}; skipping update`);
             process.exit(0);
           }
           if (!fs.existsSync(installerPath)) {
@@ -356,26 +411,32 @@ jobs:
           }
 
           fs.writeFileSync(latestPath, yaml.dump(doc, { lineWidth: 120 }), "utf8");
-          console.log(`Updated latest.yml for signed installer: sha512=${sha512.slice(0, 16)}... size=${size}`);
+          console.log(`Updated ${path.basename(latestPath)} for signed installer: sha512=${sha512.slice(0, 16)}... size=${size}`);
           NODE
 
       - name: Upload Windows assets to GitHub Release (signed)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_NAME }}
+          prerelease: ${{ env.RELEASE_PRERELEASE }}
+          make_latest: ${{ env.RELEASE_MAKE_LATEST }}
           files: |
             ${{ env.DIST_DIR }}/Nodetool-Setup-${{ env.VERSION }}.exe
-            ${{ env.DIST_DIR }}/latest.yml
+            ${{ env.DIST_DIR }}/${{ env.UPDATE_MANIFEST }}
 
       - name: Upload Windows assets to GitHub Release (unsigned)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'false' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'false' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_NAME }}
+          prerelease: ${{ env.RELEASE_PRERELEASE }}
+          make_latest: ${{ env.RELEASE_MAKE_LATEST }}
           files: |
             ${{ env.DIST_DIR }}/Nodetool-Setup-${{ env.VERSION }}.exe
-            ${{ env.DIST_DIR }}/latest.yml
+            ${{ env.DIST_DIR }}/${{ env.UPDATE_MANIFEST }}
 
       - name: Build Electron (macOS/Linux)
         if: matrix.os != 'windows-latest'
@@ -503,23 +564,29 @@ jobs:
           fi
 
       - name: Upload macOS assets to GitHub Release
-        if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'macos-latest' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_NAME }}
+          prerelease: ${{ env.RELEASE_PRERELEASE }}
+          make_latest: ${{ env.RELEASE_MAKE_LATEST }}
           files: |
             electron/dist/*.dmg
             electron/dist/*.zip
-            electron/dist/latest-mac.yml
+            electron/dist/${{ env.UPDATE_MAC_MANIFEST }}
 
       - name: Upload Linux assets to GitHub Release
-        if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'ubuntu-latest' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_NAME }}
+          prerelease: ${{ env.RELEASE_PRERELEASE }}
+          make_latest: ${{ env.RELEASE_MAKE_LATEST }}
           files: |
             electron/dist/*.AppImage
-            electron/dist/latest-linux.yml
+            electron/dist/${{ env.UPDATE_LINUX_MANIFEST }}
 
       # ── Workflow artifacts (downloadable from the Actions run page) ────
       - name: Upload web build artifact

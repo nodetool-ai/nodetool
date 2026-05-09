@@ -634,6 +634,14 @@ const api = {
     setAutoUpdates: (enabled: boolean) =>
       ipcRenderer.invoke(IpcChannels.SETTINGS_SET_AUTO_UPDATES, enabled),
 
+    /** Get the selected desktop update channel */
+    getUpdateChannel: () =>
+      ipcRenderer.invoke(IpcChannels.SETTINGS_GET_UPDATE_CHANNEL),
+
+    /** Set the selected desktop update channel */
+    setUpdateChannel: (channel: "latest" | "nightly") =>
+      ipcRenderer.invoke(IpcChannels.SETTINGS_SET_UPDATE_CHANNEL, channel),
+
     /** Get startup settings for managed local model services */
     getModelServicesStartup: () =>
       ipcRenderer.invoke(IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP),

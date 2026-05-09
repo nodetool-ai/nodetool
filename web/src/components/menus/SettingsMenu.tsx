@@ -137,6 +137,8 @@ function SettingsPage() {
   const [closeBehavior, setCloseBehavior] = useState<
     "ask" | "quit" | "background"
   >("ask");
+  const [autoUpdatesEnabled, setAutoUpdatesEnabled] = useState(false);
+  const [updateChannel, setUpdateChannel] = useState<"latest" | "nightly">("latest");
 
   // Load close behavior setting on mount (Electron only)
   useEffect(() => {
@@ -146,6 +148,12 @@ function SettingsPage() {
         .then((action: "ask" | "quit" | "background") => {
           setCloseBehavior(action);
         });
+    }
+    if (isElectron && window.api?.settings?.getAutoUpdates) {
+      window.api.settings.getAutoUpdates().then(setAutoUpdatesEnabled);
+    }
+    if (isElectron && window.api?.settings?.getUpdateChannel) {
+      window.api.settings.getUpdateChannel().then(setUpdateChannel);
     }
   }, []);
 
@@ -158,6 +166,17 @@ function SettingsPage() {
     },
     []
   );
+
+  const handleAutoUpdatesChange = useCallback((checked: boolean) => {
+    setAutoUpdatesEnabled(checked);
+    window.api?.settings?.setAutoUpdates?.(checked);
+  }, []);
+
+  const handleUpdateChannelChange = useCallback((value: string) => {
+    const channel = value === "nightly" ? "nightly" : "latest";
+    setUpdateChannel(channel);
+    window.api?.settings?.setUpdateChannel?.(channel).then(setUpdateChannel);
+  }, []);
 
   // Subscribe to secrets store changes to update sidebar when secrets are modified
   useEffect(() => {
@@ -300,7 +319,8 @@ function SettingsPage() {
       category: "Workspace",
       items: [
         { id: "editor", label: "Editor" },
-        { id: "appearance", label: "Appearance" }
+        { id: "appearance", label: "Appearance" },
+        ...(isElectron ? [{ id: "updates", label: "Updates" }] : [])
       ]
     },
     {
@@ -468,6 +488,36 @@ function SettingsPage() {
                           onChange={handleSoundNotificationsChange}
                           description="Play a system beep sound when workflows complete, exports finish, or other important events occur."
                         />
+                      </div>
+                    )}
+
+                    {isElectron && (
+                      <div className="settings-item">
+                        <LabeledSwitch
+                          label="Automatic Updates"
+                          checked={autoUpdatesEnabled}
+                          onChange={handleAutoUpdatesChange}
+                          description="Check for and download desktop app updates from the selected release channel."
+                        />
+                      </div>
+                    )}
+
+                    {isElectron && (
+                      <div id="updates" className="settings-item">
+                        <SelectField
+                          label="Update Channel"
+                          value={updateChannel}
+                          variant="standard"
+                          onChange={handleUpdateChannelChange}
+                          options={[
+                            { value: "latest", label: "Stable" },
+                            { value: "nightly", label: "Nightly" }
+                          ]}
+                        />
+                        <Text className="description">
+                          Stable follows full releases. Nightly follows prerelease nightly builds.
+                          Nightly builds default to the Nightly channel.
+                        </Text>
                       </div>
                     )}
 

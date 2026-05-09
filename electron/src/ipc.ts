@@ -5,6 +5,7 @@ import {
   globalShortcut,
   shell,
   dialog,
+  app,
 } from "electron";
 import fs from "fs/promises";
 import path from "path";
@@ -33,6 +34,9 @@ import {
   updateSetting,
   getModelServiceStartupSettings,
   updateModelServiceStartupSettings,
+  getUpdateChannel,
+  normalizeUpdateChannel,
+  setUpdateChannel,
 } from "./settings";
 import { createPackageManagerWindow, createSettingsWindow } from "./window";
 import { IpcRequest } from "./types.d";
@@ -1329,6 +1333,23 @@ export function initializeIpcHandlers(): void {
     async (_event, enabled) => {
       logMessage(`Setting auto-updates to: ${enabled}`);
       updateSetting("autoUpdatesEnabled", enabled);
+    },
+  );
+
+  createIpcMainHandler(IpcChannels.SETTINGS_GET_UPDATE_CHANNEL, async () => {
+    const settings = await readSettingsAsync();
+    return getUpdateChannel(settings, app.getVersion());
+  });
+
+  createIpcMainHandler(
+    IpcChannels.SETTINGS_SET_UPDATE_CHANNEL,
+    async (_event, channel) => {
+      const nextChannel = normalizeUpdateChannel(channel);
+      if (!nextChannel) {
+        throw new Error(`Invalid update channel: ${String(channel)}`);
+      }
+      logMessage(`Setting update channel to: ${nextChannel}`);
+      return setUpdateChannel(nextChannel);
     },
   );
 

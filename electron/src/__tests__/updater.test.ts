@@ -14,6 +14,9 @@ const mockAutoUpdater = {
   checkForUpdates: jest.fn().mockResolvedValue(undefined),
   on: jest.fn(),
   logger: null,
+  channel: "latest",
+  allowPrerelease: false,
+  allowDowngrade: false,
 };
 
 jest.mock("electron-updater", () => ({
@@ -31,6 +34,7 @@ jest.mock("electron", () => ({
   app: {
     isPackaged: false,
     getPath: jest.fn().mockReturnValue("/mock/path"),
+    getVersion: jest.fn().mockReturnValue("1.0.0"),
   },
 }));
 
@@ -54,9 +58,11 @@ jest.mock("../state", () => ({
 // Mock settings module to control auto-updates setting
 const mockReadSettings = jest.fn().mockReturnValue({ autoUpdatesEnabled: true });
 const mockReadSettingsAsync = jest.fn().mockResolvedValue({ autoUpdatesEnabled: true });
+const mockGetUpdateChannel = jest.fn().mockReturnValue("latest");
 jest.mock("../settings", () => ({
   readSettings: mockReadSettings,
   readSettingsAsync: mockReadSettingsAsync,
+  getUpdateChannel: mockGetUpdateChannel,
 }));
 
 // Store original process.resourcesPath
@@ -68,6 +74,10 @@ describe("Auto-updater Module", () => {
     // Reset the mocks
     mockExistsSync.mockReturnValue(true);
     mockAutoUpdater.checkForUpdates.mockResolvedValue(undefined);
+    mockAutoUpdater.channel = "latest";
+    mockAutoUpdater.allowPrerelease = false;
+    mockAutoUpdater.allowDowngrade = false;
+    mockGetUpdateChannel.mockReturnValue("latest");
     // Default to auto-updates enabled for backward-compatible tests
     mockReadSettings.mockReturnValue({ autoUpdatesEnabled: true });
     mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: true });
@@ -112,11 +122,12 @@ describe("Auto-updater Module", () => {
       let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
-          app: { isPackaged: true },
+          app: { isPackaged: true, getVersion: jest.fn().mockReturnValue("1.0.0") },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
+          getUpdateChannel: mockGetUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -141,11 +152,12 @@ describe("Auto-updater Module", () => {
       let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
-          app: { isPackaged: true },
+          app: { isPackaged: true, getVersion: jest.fn().mockReturnValue("1.0.0") },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
+          getUpdateChannel: mockGetUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -169,11 +181,12 @@ describe("Auto-updater Module", () => {
       let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
-          app: { isPackaged: true },
+          app: { isPackaged: true, getVersion: jest.fn().mockReturnValue("1.0.0") },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
+          getUpdateChannel: mockGetUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -206,11 +219,12 @@ describe("Auto-updater Module", () => {
       let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
-          app: { isPackaged: true },
+          app: { isPackaged: true, getVersion: jest.fn().mockReturnValue("1.0.0") },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
+          getUpdateChannel: mockGetUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -241,11 +255,12 @@ describe("Auto-updater Module", () => {
       let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
-          app: { isPackaged: true },
+          app: { isPackaged: true, getVersion: jest.fn().mockReturnValue("1.0.0") },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
+          getUpdateChannel: mockGetUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -276,11 +291,12 @@ describe("Auto-updater Module", () => {
       let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
-          app: { isPackaged: true },
+          app: { isPackaged: true, getVersion: jest.fn().mockReturnValue("1.0.0") },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
+          getUpdateChannel: mockGetUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -308,11 +324,12 @@ describe("Auto-updater Module", () => {
       let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
-          app: { isPackaged: true },
+          app: { isPackaged: true, getVersion: jest.fn().mockReturnValue("1.0.0") },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
+          getUpdateChannel: mockGetUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -367,11 +384,12 @@ describe("Auto-updater Module", () => {
       let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
-          app: { isPackaged: true },
+          app: { isPackaged: true, getVersion: jest.fn().mockReturnValue("1.0.0") },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
+          getUpdateChannel: mockGetUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -407,11 +425,12 @@ describe("Auto-updater Module", () => {
       let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
-          app: { isPackaged: true },
+          app: { isPackaged: true, getVersion: jest.fn().mockReturnValue("1.0.0") },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
+          getUpdateChannel: mockGetUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
