@@ -24,7 +24,7 @@ Docs: [User Interface → Dashboard]({{ '/user-interface#dashboard' | relative_u
 
 Authentication screen for cloud (Supabase) deployments. Skipped automatically in local-only mode.
 
-![Login](assets/screenshots/screenshot-placeholder.svg)
+![Login](assets/screenshots/login-screen.png)
 
 Docs: [Authentication]({{ '/authentication' | relative_url }})
 
@@ -48,7 +48,7 @@ Docs: [Chain Editor]({{ '/chain-editor' | relative_url }})
 
 Read-only visualization of a saved workflow. Useful for sharing, embedding, and review.
 
-![Workflow Graph View](assets/screenshots/screenshot-placeholder.svg)
+![Workflow Graph View](assets/screenshots/workflow-graph-view.png)
 
 Docs: [Workflow Graph View]({{ '/workflow-graph-view' | relative_url }})
 
@@ -72,7 +72,7 @@ Docs: [User Interface → Standalone Chat]({{ '/user-interface#standalone-chat-w
 
 Run saved workflows through simplified form UIs inside the main app.
 
-![Mini-App Page](assets/screenshots/screenshot-placeholder.svg)
+![Mini-App Page](assets/screenshots/mini-app-page.png)
 
 Docs: [User Interface → Mini-Apps]({{ '/user-interface#mini-apps' | relative_url }})
 
@@ -80,7 +80,7 @@ Docs: [User Interface → Mini-Apps]({{ '/user-interface#mini-apps' | relative_u
 
 A dedicated full-window Mini-App runner. Launched from the tray on desktop or by a direct link.
 
-![Standalone Mini-App](assets/screenshots/screenshot-placeholder.svg)
+![Standalone Mini-App](assets/screenshots/standalone-mini-app.png)
 
 Docs: [User Interface → Mini-Apps]({{ '/user-interface#mini-apps' | relative_url }})
 
@@ -88,7 +88,7 @@ Docs: [User Interface → Mini-Apps]({{ '/user-interface#mini-apps' | relative_u
 
 Browse, search, organize, and tag every file used in your workflows.
 
-![Asset Explorer](assets/screenshots/screenshot-placeholder.svg)
+![Asset Explorer](assets/screenshots/asset-explorer.png)
 
 Docs: [Asset Management]({{ '/asset-management' | relative_url }})
 
@@ -96,7 +96,7 @@ Docs: [Asset Management]({{ '/asset-management' | relative_url }})
 
 Full-featured image editor for assets. Crop, paint, and transform without leaving NodeTool.
 
-![Asset Editor](assets/screenshots/screenshot-placeholder.svg)
+![Asset Editor](assets/screenshots/asset-editor.png)
 
 Docs: [Image Editor]({{ '/image-editor' | relative_url }})
 
@@ -574,7 +574,7 @@ Docs: [Developer Guide]({{ '/developer/' | relative_url }})
 
 Run every node's contract test from the browser.
 
-![Node Test](assets/screenshots/screenshot-placeholder.svg)
+![Node Test](assets/screenshots/node-test-page.png)
 
 Docs: [Developer Guide]({{ '/developer/' | relative_url }})
 

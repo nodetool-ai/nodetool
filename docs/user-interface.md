@@ -181,7 +181,7 @@ Launch mini-apps in dedicated windows from the system tray:
 
 Turn a workflow into a simple form-based app for sharing.
 
-![Mini-App Interface](assets/screenshots/screenshot-placeholder.svg)
+![Mini-App Interface](assets/screenshots/mini-app-page.png)
 
 ### Running a Mini-App
 
@@ -191,7 +191,7 @@ Turn a workflow into a simple form-based app for sharing.
 
 See the full [Electron Views](electron-views.md#mini-app-window) docs for the desktop runner.
 
-![Mini-App Results](assets/screenshots/screenshot-placeholder.svg)
+![Mini-App Results](assets/screenshots/standalone-mini-app.png)
 
 ---
 

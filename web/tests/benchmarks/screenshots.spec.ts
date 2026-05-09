@@ -178,10 +178,48 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "templates-grid.png");
     });
 
+    test("Login", async ({ page }) => {
+      test.skip(shouldSkip("login-screen.png"), "Already captured");
+      await gotoPage(page, "/login");
+      await saveScreenshot(page, "login-screen.png");
+    });
+
+    test("Workflow graph view", async ({ page }) => {
+      test.skip(shouldSkip("workflow-graph-view.png"), "Already captured");
+      await gotoPage(page, "/graph/wf-story-generator");
+      await waitForAnimation(page, 1200);
+      await saveScreenshot(page, "workflow-graph-view.png");
+    });
+
+    // ── Mini-apps ───────────────────────────────────────────────────────────
+    test("Mini-app page", async ({ page }) => {
+      test.skip(shouldSkip("mini-app-page.png"), "Already captured");
+      await gotoPage(page, "/apps/wf-story-generator");
+      await waitForAnimation(page, 1200);
+      await saveScreenshot(page, "mini-app-page.png");
+    });
+
+    test("Standalone mini-app", async ({ page }) => {
+      test.skip(shouldSkip("standalone-mini-app.png"), "Already captured");
+      await gotoPage(page, "/miniapp/wf-story-generator");
+      await waitForAnimation(page, 1200);
+      await saveScreenshot(page, "standalone-mini-app.png");
+    });
+
     // ── Assets ──────────────────────────────────────────────────────────────
-    // NOTE: /assets and /apps routes still crash due to deep Zustand object
-    // selector issues in useMiniAppRunner and AssetGrid sub-components.
-    // These need a broader refactor (178 remaining instances codebase-wide).
+    test("Assets", async ({ page }) => {
+      test.skip(shouldSkip("asset-explorer.png"), "Already captured");
+      await gotoPage(page, "/assets");
+      await waitForAnimation(page, 1200);
+      await saveScreenshot(page, "asset-explorer.png");
+    });
+
+    test("Asset editor", async ({ page }) => {
+      test.skip(shouldSkip("asset-editor.png"), "Already captured");
+      await gotoPage(page, "/assets/edit/asset-photo1");
+      await waitForAnimation(page, 1200);
+      await saveScreenshot(page, "asset-editor.png");
+    });
 
     // ── Collections ─────────────────────────────────────────────────────────
     test("Collections", async ({ page }) => {
@@ -237,6 +275,13 @@ if (process.env.JEST_WORKER_ID) {
       test.skip(shouldSkip("component-models.png"), "Already captured");
       await gotoPage(page, "/preview/models");
       await saveScreenshot(page, "component-models.png");
+    });
+
+    test("Node test page", async ({ page }) => {
+      test.skip(shouldSkip("node-test-page.png"), "Already captured");
+      await gotoPage(page, "/node-test");
+      await waitForAnimation(page, 1200);
+      await saveScreenshot(page, "node-test-page.png");
     });
   });
 }
