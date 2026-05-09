@@ -323,7 +323,9 @@ describe("sketch router", () => {
       expect(out.status).toBe("success");
       expect(ID.updateDoc).toHaveBeenCalled();
       const updateArgs = ID.updateDoc.mock.calls[0];
-      const persisted = JSON.parse(updateArgs?.[1]?.document as string) as ImageDocumentData;
+      const persisted = JSON.parse(
+        updateArgs?.[1]?.document as string
+      ) as ImageDocumentData;
       expect(persisted.layerBindings[0]!.versions).toHaveLength(2);
     });
 
@@ -371,7 +373,9 @@ describe("sketch router", () => {
       });
       expect(out.ok).toBe(true);
       const updateArgs = ID.updateDoc.mock.calls[0];
-      const persisted = JSON.parse(updateArgs?.[1]?.document as string) as ImageDocumentData;
+      const persisted = JSON.parse(
+        updateArgs?.[1]?.document as string
+      ) as ImageDocumentData;
       expect(persisted.layerBindings[0]!.versions).toHaveLength(0);
     });
 

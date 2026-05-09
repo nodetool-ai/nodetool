@@ -126,7 +126,8 @@ export const patchImageDocumentInput = z
     width: z.number().int().min(1).optional(),
     height: z.number().int().min(1).optional(),
     backgroundColor: z.string().optional(),
-    document: imageDocumentData.optional()
+    document: imageDocumentData.optional(),
+    thumbnailAssetId: z.string().optional()
   })
   .refine((v) => Object.keys(v).length > 0, {
     message: "at least one field is required"

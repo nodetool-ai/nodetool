@@ -86,7 +86,10 @@ export { TimelineSequence } from "./timeline-sequence.js";
 export type { TimelineDocument } from "./timeline-sequence.js";
 
 export { ImageDocument } from "./image-document.js";
-export type { ImageDocumentData, ImageDocumentResponse } from "./image-document.js";
+export type {
+  ImageDocumentData,
+  ImageDocumentResponse
+} from "./image-document.js";
 
 export { OAuthCredential } from "./oauth-credential.js";
 
@@ -111,10 +114,13 @@ export { RunLease } from "./run-lease.js";
 export {
   runSeeds,
   seedTimelineTemplates,
+  seedImageTemplates,
   seedImageEditorTemplates,
   SEED_IDS,
+  IMAGE_SEED_IDS,
   SYSTEM_USER_ID,
   TIMELINE_TEMPLATE_TAG,
+  IMAGE_TEMPLATE_TAG,
   IMAGE_EDITOR_TEMPLATE_TAG,
   LAYER_TEMPLATE_SEED_IDS
 } from "./seeds/index.js";

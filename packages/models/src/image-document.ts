@@ -50,7 +50,15 @@ export class ImageDocument extends DBModel {
     this.width ??= 1024;
     this.height ??= 1024;
     this.background_color ??= "#ffffff";
-    this.document ??= JSON.stringify({ sketch: { version: 1, canvas: { width: 1024, height: 1024 }, layers: [], activeLayerId: "" }, layerBindings: [] });
+    this.document ??= JSON.stringify({
+      sketch: {
+        version: 1,
+        canvas: { width: 1024, height: 1024 },
+        layers: [],
+        activeLayerId: ""
+      },
+      layerBindings: []
+    });
     this.thumbnail_asset_id ??= null;
     this.created_at ??= now;
     this.updated_at ??= now;
@@ -100,9 +108,7 @@ export class ImageDocument extends DBModel {
       .where(eq(imageDocuments.user_id, userId))
       .orderBy(desc(imageDocuments.updated_at))
       .limit(limit);
-    return rows.map(
-      (r: Record<string, unknown>) => new ImageDocument(r)
-    );
+    return rows.map((r: Record<string, unknown>) => new ImageDocument(r));
   }
 
   static async listByProject(
@@ -116,9 +122,7 @@ export class ImageDocument extends DBModel {
       .where(eq(imageDocuments.project_id, projectId))
       .orderBy(desc(imageDocuments.updated_at))
       .limit(limit);
-    return rows.map(
-      (r: Record<string, unknown>) => new ImageDocument(r)
-    );
+    return rows.map((r: Record<string, unknown>) => new ImageDocument(r));
   }
 
   static async updateDoc(

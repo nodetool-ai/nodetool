@@ -166,13 +166,17 @@ export class Workflow extends DBModel {
       .from(workflows)
       .where(and(...conditions))
       .orderBy(desc(workflows.updated_at))
-      .limit(tag ? 10_000 : limit + 1)
+      .limit(tag ? 10_000 : limit + 1);
 
-    let items = rows.map((r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>));
+    let items = rows.map(
+      (r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>)
+    );
 
     // Filter by tag in-memory (JSON array field)
     if (tag) {
-      items = items.filter((w: Workflow) => Array.isArray(w.tags) && w.tags.includes(tag));
+      items = items.filter(
+        (w: Workflow) => Array.isArray(w.tags) && w.tags.includes(tag)
+      );
       // Apply limit after tag filter
       const capped = items.slice(0, limit + 1);
       if (capped.length <= limit) return [capped, ""];
@@ -198,9 +202,11 @@ export class Workflow extends DBModel {
       .from(workflows)
       .where(eq(workflows.access, "public"))
       .orderBy(desc(workflows.updated_at))
-      .limit(limit + 1)
+      .limit(limit + 1);
 
-    const items = rows.map((r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>));
+    const items = rows.map(
+      (r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>)
+    );
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -219,9 +225,11 @@ export class Workflow extends DBModel {
       .from(workflows)
       .where(and(eq(workflows.user_id, userId), eq(workflows.run_mode, "tool")))
       .orderBy(desc(workflows.updated_at))
-      .limit(limit + 1)
+      .limit(limit + 1);
 
-    const items: Workflow[] = rows.map((r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>));
+    const items: Workflow[] = rows.map(
+      (r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>)
+    );
     if (items.length <= limit) {
       const tools = items.filter((w: Workflow) => w.hasToolName());
       return [tools, ""];
@@ -415,7 +423,10 @@ export class Workflow extends DBModel {
     let count = 0;
     for (const row of rows) {
       try {
-        const docStr = typeof row.document === "string" ? row.document : JSON.stringify(row.document);
+        const docStr =
+          typeof row.document === "string"
+            ? row.document
+            : JSON.stringify(row.document);
         const parsed = JSON.parse(docStr) as {
           layerBindings?: Array<{ workflowId?: unknown }>;
         };

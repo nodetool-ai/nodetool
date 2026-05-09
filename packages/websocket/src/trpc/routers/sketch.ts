@@ -21,7 +21,11 @@
  */
 
 import { z } from "zod";
-import { ImageDocument, Workflow, createTimeOrderedUuid } from "@nodetool-ai/models";
+import {
+  ImageDocument,
+  Workflow,
+  createTimeOrderedUuid
+} from "@nodetool-ai/models";
 import type { ImageDocumentData } from "@nodetool-ai/models";
 import type { LayerWorkflowBinding } from "@nodetool-ai/image-editor";
 import { computeDependencyHash } from "@nodetool-ai/image-editor/dependencyHash.js";
@@ -132,8 +136,9 @@ function inputNodeName(node: Record<string, unknown>): string | null {
   const data = node.data as Record<string, unknown> | undefined;
   return (
     (data?.name as string | undefined) ??
-    ((node.dynamic_properties as Record<string, unknown> | undefined)
-      ?.name as string | undefined) ??
+    ((node.dynamic_properties as Record<string, unknown> | undefined)?.name as
+      | string
+      | undefined) ??
     null
   );
 }
@@ -217,6 +222,8 @@ export const sketchRouter = router({
       if (input.height !== undefined) fields.height = input.height;
       if (input.backgroundColor !== undefined)
         fields.background_color = input.backgroundColor;
+      if (input.thumbnailAssetId !== undefined)
+        fields.thumbnail_asset_id = input.thumbnailAssetId;
       if (input.document !== undefined)
         fields.document = JSON.stringify(input.document);
 
@@ -318,9 +325,7 @@ export const sketchRouter = router({
           throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
         }
 
-        const version = binding.versions.find(
-          (v) => v.id === input.versionId
-        );
+        const version = binding.versions.find((v) => v.id === input.versionId);
         if (!version) {
           throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
         }
