@@ -43,7 +43,10 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import dialogStyles from "../../styles/DialogStyles";
-import { DialogActionButtons, DialogActionButtonsProps } from "./DialogActionButtons";
+import {
+  DialogActionButtons,
+  DialogActionButtonsProps
+} from "./DialogActionButtons";
 import { CloseButton } from "./CloseButton";
 import PanelHeadline from "../ui/PanelHeadline";
 
@@ -170,21 +173,27 @@ export const Dialog = memo(
       };
 
       const dialogContent = content || children;
-      const shouldShowCloseButton =
-        showCloseButton ?? (!!title && !!onClose);
-      const closeAction = shouldShowCloseButton && onClose ? (
-        <CloseButton
-          onClick={() => onClose({}, "escapeKeyDown")}
-          tooltip="Close"
-        />
-      ) : null;
-      const headerActions = (titleActions || closeAction) ? (
-        <>
-          {titleActions}
-          {closeAction}
-        </>
-      ) : null;
+      const shouldShowCloseButton = showCloseButton ?? (!!title && !!onClose);
+      const closeAction =
+        shouldShowCloseButton && onClose ? (
+          <CloseButton
+            onClick={() => onClose({}, "escapeKeyDown")}
+            tooltip="Close"
+          />
+        ) : null;
+      const headerActions =
+        titleActions || closeAction ? (
+          <>
+            {titleActions}
+            {closeAction}
+          </>
+        ) : null;
       const titleIsString = typeof title === "string";
+      const glass = theme.vars.palette.glass ?? {
+        blur: "blur(12px)",
+        backgroundDialog: theme.vars.palette.action.disabledBackground
+      };
+      const borderRadius = theme.rounded?.xxl ?? theme.shape.borderRadius;
 
       return (
         <MuiDialog
@@ -197,15 +206,15 @@ export const Dialog = memo(
           slotProps={{
             backdrop: {
               style: {
-                backdropFilter: theme.vars.palette.glass.blur,
-                backgroundColor: theme.vars.palette.glass.backgroundDialog
+                backdropFilter: glass.blur,
+                backgroundColor: glass.backgroundDialog
               }
             },
             paper: {
               style: {
-                borderRadius: theme.rounded.xxl,
+                borderRadius,
                 background: theme.vars.palette.background.paper,
-                backdropFilter: `${theme.vars.palette.glass.blur} saturate(180%)`,
+                backdropFilter: `${glass.blur} saturate(180%)`,
                 border: `1px solid ${theme.vars.palette.divider}`,
                 minWidth: minWidth ?? "min(400px, 100vw - 32px)"
               }
@@ -230,9 +239,7 @@ export const Dialog = memo(
               {dialogContent}
             </DialogContent>
           )}
-          {actions && (
-            <MuiDialogActions>{actions}</MuiDialogActions>
-          )}
+          {actions && <MuiDialogActions>{actions}</MuiDialogActions>}
           {!actions && shouldShowActions && onConfirm && (
             <DialogActionButtons
               onConfirm={onConfirm}

@@ -1,6 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 describe("cli settings and provider helpers", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
   it("uses the openai default model when openai is the chosen provider", async () => {
     vi.resetModules();
     vi.stubEnv("ANTHROPIC_API_KEY", "");
@@ -20,6 +23,8 @@ describe("cli settings and provider helpers", () => {
     vi.stubEnv("GEMINI_API_KEY", "test-gemini");
     vi.stubEnv("MISTRAL_API_KEY", "");
     vi.stubEnv("GROQ_API_KEY", "");
+    vi.stubEnv("KIMI_API_KEY", "");
+    vi.stubEnv("AKI_API_KEY", "");
 
     const { availableProviders } = await import("../src/providers.js");
 

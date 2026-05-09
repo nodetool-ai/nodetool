@@ -361,10 +361,34 @@ describe("combineMasks fast-path correctness", () => {
 
     // doc (30, 30) — in overlap: local (20,20) → min(255,255) = 255
     expect(result.data[20 * 45 + 20]).toBe(255);
-    // doc (15, 15) — included by current fast-path intersect semantics
-    expect(result.data[5 * 45 + 5]).toBe(255);
+    // doc (15, 15) — base only: min(255,0) = 0
+    expect(result.data[5 * 45 + 5]).toBe(0);
     // doc (50, 50) — in overlay only: local (40,40) → min(0,255) = 0
     expect(result.data[40 * 45 + 40]).toBe(0);
+  });
+
+  it("different-origin intersect zeros base-only and overlay-only pixels", () => {
+    // Base: doc (0,0)–(30,30) at origin (0,0)
+    const base = rectSelectionMask(64, 64, 0, 0, 30, 30);
+    // Overlay: doc (20,20)–(50,50) at origin (20,20)
+    const overlay = rectSelectionMask(64, 64, 20, 20, 30, 30);
+
+    const result = combineMasks(base, overlay, "intersect");
+
+    // Union bbox: (0,0)–(50,50) = 50×50 at origin (0,0)
+    expect(result.width).toBe(50);
+    expect(result.height).toBe(50);
+    expect(result.originX ?? 0).toBe(0);
+    expect(result.originY ?? 0).toBe(0);
+
+    // Overlap region (20,20)–(30,30) → 255
+    expect(result.data[25 * 50 + 25]).toBe(255);
+    // Base only (5,5) → 0 (overlay does not cover)
+    expect(result.data[5 * 50 + 5]).toBe(0);
+    // Overlay only (40,40) → 0 (base does not cover)
+    expect(result.data[40 * 50 + 40]).toBe(0);
+    // Outside both → 0
+    expect(result.data[10 * 50 + 40]).toBe(0);
   });
 
   it("general path used for different-origin masks", () => {

@@ -454,24 +454,27 @@ export function combineMasks(
 
   const out = createEmptyMask(uW, uH);
 
-  // Copy base into the union buffer — use subarray + set for bulk row copy
   const baseDx = box - uMinX;
   const baseDy = boy - uMinY;
-  for (let by = 0; by < base.height; by++) {
-    const dy = baseDy + by;
-    if (dy < 0 || dy >= uH) {
-      continue;
-    }
-    const srcOff = by * base.width;
-    const dstOff = dy * uW + baseDx;
-    // When the base row falls entirely within the union buffer, use bulk set
-    if (baseDx >= 0 && baseDx + base.width <= uW) {
-      out.data.set(base.data.subarray(srcOff, srcOff + base.width), dstOff);
-    } else {
-      for (let bx = 0; bx < base.width; bx++) {
-        const dx = baseDx + bx;
-        if (dx >= 0 && dx < uW) {
-          out.data[dy * uW + dx] = base.data[srcOff + bx];
+
+  // For intersect, skip copying base — pixels outside overlay must end up zero.
+  // For add/subtract, seed the union buffer with base so overlay pixels mix in.
+  if (op !== "intersect") {
+    for (let by = 0; by < base.height; by++) {
+      const dy = baseDy + by;
+      if (dy < 0 || dy >= uH) {
+        continue;
+      }
+      const srcOff = by * base.width;
+      const dstOff = dy * uW + baseDx;
+      if (baseDx >= 0 && baseDx + base.width <= uW) {
+        out.data.set(base.data.subarray(srcOff, srcOff + base.width), dstOff);
+      } else {
+        for (let bx = 0; bx < base.width; bx++) {
+          const dx = baseDx + bx;
+          if (dx >= 0 && dx < uW) {
+            out.data[dy * uW + dx] = base.data[srcOff + bx];
+          }
         }
       }
     }
@@ -493,15 +496,21 @@ export function combineMasks(
         continue;
       }
       const idx = dstRow + dx;
-      const b = out.data[idx];
       const o = overlay.data[srcRow + ox];
       let v = 0;
       if (op === "add") {
-        v = Math.min(255, b + o);
+        v = Math.min(255, out.data[idx] + o);
       } else if (op === "subtract") {
-        v = Math.max(0, b - o);
+        v = Math.max(0, out.data[idx] - o);
       } else {
-        v = Math.min(b, o);
+        // intersect: sample base directly since we didn't seed it
+        const bbx = dx - baseDx;
+        const bby = dy - baseDy;
+        const bv =
+          bbx >= 0 && bbx < base.width && bby >= 0 && bby < base.height
+            ? base.data[bby * base.width + bbx]
+            : 0;
+        v = Math.min(bv, o);
       }
       out.data[idx] = v;
     }

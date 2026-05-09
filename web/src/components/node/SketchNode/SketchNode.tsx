@@ -23,6 +23,7 @@ import React, {
 } from "react";
 import { Handle, NodeProps, NodeToolbar, Position } from "@xyflow/react";
 import { Box, Typography } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
@@ -56,6 +57,7 @@ import useSelect from "../../../hooks/nodes/useSelect";
 import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
+import { useSettingsStore } from "../../../stores/SettingsStore";
 import type { Node as FlowNode } from "@xyflow/react";
 import {
   SKETCH_OUTPUT_LAYERS_HANDLE,
@@ -980,14 +982,44 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     }
   }, [currentDocument, props.id, updateNodeProperties]);
 
+  const navigate = useNavigate();
+  const imageEditorOpenMode = useSettingsStore(
+    (s) => s.settings.imageEditorOpenMode
+  );
+
   const handleOpenEditor = useCallback(() => {
     // Use documentRef if available (may include async-loaded input image),
     // fall back to sketchDoc from serialized properties
     const docToOpen = documentRef.current || sketchDoc;
     documentRef.current = docToOpen;
+
+    // Standalone mode requires a persisted image_document id on the node.
+    // Until the node is wired to a document (NOD-319), fall back to modal.
+    const imageDocumentId = (props.data.properties as Record<string, unknown>)
+      ?.image_document_id;
+    if (
+      imageEditorOpenMode === "standalone" &&
+      typeof imageDocumentId === "string" &&
+      imageDocumentId.length > 0
+    ) {
+      const workflowId = props.data.workflow_id;
+      const fromParam = workflowId
+        ? `?from=editor:${workflowId}:${props.id}`
+        : "";
+      navigate(`/sketch/${imageDocumentId}${fromParam}`);
+      return;
+    }
+
     setEditorDocument(docToOpen);
     setIsModalOpen(true);
-  }, [sketchDoc]);
+  }, [
+    sketchDoc,
+    imageEditorOpenMode,
+    navigate,
+    props.id,
+    props.data.workflow_id,
+    props.data.properties
+  ]);
 
   const handleCloseEditor = useCallback(() => {
     flushPendingNodeSync();
