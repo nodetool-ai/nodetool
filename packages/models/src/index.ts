@@ -34,7 +34,8 @@ export {
   runLeases,
   teamTasks,
   appSettings,
-  timelineSequences
+  timelineSequences,
+  imageDocuments
 } from "./schema/index.js";
 
 // ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────
@@ -56,7 +57,8 @@ export type { JobStatus } from "./job.js";
 
 export { Workflow } from "./workflow.js";
 export {
-  WorkflowNotClipPrivateError
+  WorkflowNotClipPrivateError,
+  WorkflowNotLayerPrivateError
 } from "./workflow.js";
 export type { AccessLevel, WorkflowGraph } from "./workflow.js";
 
@@ -83,6 +85,9 @@ export { Setting } from "./setting.js";
 export { TimelineSequence } from "./timeline-sequence.js";
 export type { TimelineDocument } from "./timeline-sequence.js";
 
+export { ImageDocument } from "./image-document.js";
+export type { ImageDocumentData, ImageDocumentResponse } from "./image-document.js";
+
 export { OAuthCredential } from "./oauth-credential.js";
 
 export { Prediction } from "./prediction.js";
@@ -106,9 +111,12 @@ export { RunLease } from "./run-lease.js";
 export {
   runSeeds,
   seedTimelineTemplates,
+  seedImageEditorTemplates,
   SEED_IDS,
   SYSTEM_USER_ID,
-  TIMELINE_TEMPLATE_TAG
+  TIMELINE_TEMPLATE_TAG,
+  IMAGE_EDITOR_TEMPLATE_TAG,
+  LAYER_TEMPLATE_SEED_IDS
 } from "./seeds/index.js";
 
 // ── API Graph ───────────────────────────────────────────────────────

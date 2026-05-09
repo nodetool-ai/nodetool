@@ -28,6 +28,7 @@
     "@nodetool-ai/chat": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/dsl": "*",
+    "@nodetool-ai/image-editor": "*",
     "@nodetool-ai/elevenlabs-nodes": "*",
     "@nodetool-ai/transformers-js-nodes": "*",
     "@nodetool-ai/transformers-js-provider": "*",
