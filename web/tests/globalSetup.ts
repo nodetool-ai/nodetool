@@ -38,6 +38,8 @@ const TSX_BIN = resolve(REPO_ROOT, "node_modules/.bin/tsx");
 const BACKEND_HOST = "127.0.0.1";
 const BACKEND_PORT = 7777;
 const STARTUP_TIMEOUT_MS = 90_000;
+// Base64-encoded 32-byte placeholder key used only for screenshot tests.
+// Never use this value in production.
 const SCREENSHOT_TEST_MASTER_KEY_B64 =
   "U0NSRUVOU0hPVF9URVNUX0tFWV9ET19OT1RfVVNFISE=";
 
