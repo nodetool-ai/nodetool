@@ -65,8 +65,8 @@ jobs:
     name: Resolve release metadata
     needs: [check_changes]
     if: |
-      always() && !failure() && !cancelled() &&
-      (needs.check_changes.result == 'skipped' || needs.check_changes.outputs.has_changes == 'true')
+      !failure() && !cancelled() &&
+      (github.event_name != 'schedule' || needs.check_changes.outputs.has_changes == 'true')
     runs-on: ubuntu-latest
     outputs:
       release_channel: ${{ steps.meta.outputs.release_channel }}
@@ -149,44 +149,6 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: ${{ needs.preflight.outputs.ref }}
-
-      - name: Resolve release metadata
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ "${GITHUB_EVENT_NAME}" == "schedule" || ( "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.channel }}" == "nightly" ) ]]; then
-            # Convert RFC3339 run_started_at (YYYY-MM-DDTHH:MM:SSZ) to YYYYMMDD.
-            nightly_date="${{ github.run_started_at }}"
-            nightly_date="${nightly_date%%T*}"
-            nightly_date="${nightly_date//-/}"
-            node scripts/resolve-nightly-release.mjs \
-              --date "$nightly_date" \
-              --run-number "${{ github.run_number }}" \
-              --sha "${{ github.sha }}" \
-              --github-output
-            version="$(grep '^version=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
-            tag="$(grep '^tag=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
-            name="$(grep '^name=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
-            echo "VERSION=$version" >> "$GITHUB_ENV"
-            echo "RELEASE_TAG=$tag" >> "$GITHUB_ENV"
-            echo "RELEASE_NAME=$name" >> "$GITHUB_ENV"
-            echo "RELEASE_CHANNEL=nightly" >> "$GITHUB_ENV"
-            echo "RELEASE_PRERELEASE=true" >> "$GITHUB_ENV"
-            echo "RELEASE_MAKE_LATEST=false" >> "$GITHUB_ENV"
-            echo "UPDATE_MANIFEST=nightly.yml" >> "$GITHUB_ENV"
-            echo "UPDATE_MAC_MANIFEST=nightly-mac.yml" >> "$GITHUB_ENV"
-            echo "UPDATE_LINUX_MANIFEST=nightly-linux.yml" >> "$GITHUB_ENV"
-          else
-            # Stable manual runs must pin an explicit version; nightly runs derive one above.
-            if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.channel }}" == "stable" && "${{ github.event.inputs.version }}" == "" ]]; then
-              echo "Stable manual releases require inputs.version (for example: 1.2.3 or v1.2.3)." >&2
-              exit 1
-            fi
-            version="${VERSION#v}"
-            echo "VERSION=$version" >> "$GITHUB_ENV"
-            echo "RELEASE_TAG=v$version" >> "$GITHUB_ENV"
-            echo "RELEASE_NAME=Nodetool v$version" >> "$GITHUB_ENV"
-          fi
 
       - name: Print selected version
         run: echo "Using VERSION=$VERSION channel=$RELEASE_CHANNEL tag=$RELEASE_TAG"
@@ -293,16 +255,6 @@ jobs:
           cd ../..
           ls -lh nodetool-web-${VERSION_NO_V}.zip
           echo "archive_name=nodetool-web-${VERSION_NO_V}.zip" >> $GITHUB_OUTPUT
-
-      - name: Upload Web Build to GitHub Release
-        if: matrix.os == 'ubuntu-latest' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          name: ${{ env.RELEASE_NAME }}
-          prerelease: ${{ env.RELEASE_PRERELEASE }}
-          make_latest: ${{ env.RELEASE_MAKE_LATEST }}
-          files: ${{ steps.create_archive.outputs.archive_name }}
 
       - name: Build Electron (Windows, unpacked)
         if: matrix.os == 'windows-latest'
@@ -518,30 +470,6 @@ jobs:
           console.log(`Updated ${path.basename(latestPath)} for signed installer: sha512=${sha512.slice(0, 16)}... size=${size}`);
           NODE
 
-      - name: Upload Windows assets to GitHub Release (signed)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          name: ${{ env.RELEASE_NAME }}
-          prerelease: ${{ env.RELEASE_PRERELEASE }}
-          make_latest: ${{ env.RELEASE_MAKE_LATEST }}
-          files: |
-            ${{ env.DIST_DIR }}/Nodetool-Setup-${{ env.VERSION }}.exe
-            ${{ env.DIST_DIR }}/${{ env.UPDATE_MANIFEST }}
-
-      - name: Upload Windows assets to GitHub Release (unsigned)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'false' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          name: ${{ env.RELEASE_NAME }}
-          prerelease: ${{ env.RELEASE_PRERELEASE }}
-          make_latest: ${{ env.RELEASE_MAKE_LATEST }}
-          files: |
-            ${{ env.DIST_DIR }}/Nodetool-Setup-${{ env.VERSION }}.exe
-            ${{ env.DIST_DIR }}/${{ env.UPDATE_MANIFEST }}
-
       - name: Build Electron (macOS/Linux)
         if: matrix.os != 'windows-latest'
         shell: bash
@@ -667,31 +595,6 @@ jobs:
             exit 1
           fi
 
-      - name: Upload macOS assets to GitHub Release
-        if: matrix.os == 'macos-latest' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          name: ${{ env.RELEASE_NAME }}
-          prerelease: ${{ env.RELEASE_PRERELEASE }}
-          make_latest: ${{ env.RELEASE_MAKE_LATEST }}
-          files: |
-            electron/dist/*.dmg
-            electron/dist/*.zip
-            electron/dist/${{ env.UPDATE_MAC_MANIFEST }}
-
-      - name: Upload Linux assets to GitHub Release
-        if: matrix.os == 'ubuntu-latest' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          name: ${{ env.RELEASE_NAME }}
-          prerelease: ${{ env.RELEASE_PRERELEASE }}
-          make_latest: ${{ env.RELEASE_MAKE_LATEST }}
-          files: |
-            electron/dist/*.AppImage
-            electron/dist/${{ env.UPDATE_LINUX_MANIFEST }}
-
       # ── Workflow artifacts (downloadable from the Actions run page) ────
       - name: Upload web build artifact
         if: matrix.os == 'ubuntu-latest' && always()
@@ -714,4 +617,33 @@ jobs:
             electron/dist/*.zip
             electron/dist/*.AppImage
             electron/dist/*.exe
-            electron/dist/latest*.yml
+            electron/dist/*.yml
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [preflight, release-build]
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release-build.result == 'success' && (github.event_name != 'workflow_dispatch' || github.event.inputs.channel == 'nightly' || github.event.inputs.version != '') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: '*'
+          merge-multiple: true
+          path: release-assets
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.preflight.outputs.tag }}
+          name: ${{ needs.preflight.outputs.release_name }}
+          prerelease: ${{ needs.preflight.outputs.is_prerelease }}
+          make_latest: ${{ needs.preflight.outputs.make_latest }}
+          files: |
+            release-assets/*.zip
+            !release-assets/*win-unpacked*.zip
+            release-assets/*.dmg
+            release-assets/*.AppImage
+            release-assets/*.exe
+            release-assets/*.yml
+          fail_on_unmatched_files: true
