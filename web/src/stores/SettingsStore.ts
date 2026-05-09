@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export interface AutosaveSettings {
+interface AutosaveSettings {
   enabled: boolean;
   intervalMinutes: number; // 1-60, default 10
   saveBeforeRun: boolean;

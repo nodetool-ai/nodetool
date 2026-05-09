@@ -587,7 +587,7 @@ const nodeMenuMetadataUnsubscribers = new Set<() => void>();
  * Intended for HMR cleanup (Vite's `import.meta.hot.dispose`); can also
  * be wired into test teardown if needed.
  */
-export const cleanupNodeMenuMetadataSubscriptions = (): void => {
+const cleanupNodeMenuMetadataSubscriptions = (): void => {
   for (const unsubscribe of nodeMenuMetadataUnsubscribers) {
     try {
       unsubscribe();

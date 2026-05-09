@@ -12,7 +12,7 @@ import useModelPreferencesStore from "./ModelPreferencesStore";
 import React from "react";
 import { useSecrets } from "../hooks/useSecrets";
 
-export type SidebarTab = "favorites" | "recent";
+type SidebarTab = "favorites" | "recent";
 
 export type EnabledProvidersMap = Record<string, boolean>;
 
@@ -33,7 +33,7 @@ export type ModelType =
   | VideoModel
   | EmbeddingModel;
 
-export interface ModelMenuState<
+interface ModelMenuState<
   TModel extends ModelSelectorModel = LanguageModel
 > {
   search: string;
