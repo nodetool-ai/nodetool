@@ -166,6 +166,21 @@ describe("preload contract", () => {
     ]);
   });
 
+  test("settings update-channel methods route to expected IPC channels", () => {
+    (electronMock.ipcRenderer.invoke as jest.Mock).mockClear();
+
+    api.settings.getUpdateChannel();
+    api.settings.setUpdateChannel("nightly");
+
+    const channels = (electronMock.ipcRenderer.invoke as jest.Mock).mock.calls
+      .map((c: unknown[]) => c[0]);
+
+    expect(channels).toEqual([
+      IpcChannels.SETTINGS_GET_UPDATE_CHANNEL,
+      IpcChannels.SETTINGS_SET_UPDATE_CHANNEL,
+    ]);
+  });
+
   test("windowControls uses ipcRenderer.send (fire-and-forget), not invoke", () => {
     (electronMock.ipcRenderer.send as jest.Mock).mockClear();
     (electronMock.ipcRenderer.invoke as jest.Mock).mockClear();

@@ -139,6 +139,14 @@ function SettingsPage() {
   >("ask");
   const [autoUpdatesEnabled, setAutoUpdatesEnabled] = useState(false);
   const [updateChannel, setUpdateChannel] = useState<"latest" | "nightly">("latest");
+  const settingsApi = window.api?.settings;
+  const supportsDesktopUpdateSettings =
+    isElectron &&
+    !!settingsApi &&
+    typeof settingsApi.getAutoUpdates === "function" &&
+    typeof settingsApi.setAutoUpdates === "function" &&
+    typeof settingsApi.getUpdateChannel === "function" &&
+    typeof settingsApi.setUpdateChannel === "function";
 
   // Load close behavior setting on mount (Electron only)
   useEffect(() => {
@@ -149,13 +157,15 @@ function SettingsPage() {
           setCloseBehavior(action);
         });
     }
-    if (isElectron && window.api?.settings?.getAutoUpdates) {
-      window.api.settings.getAutoUpdates().then(setAutoUpdatesEnabled);
+    if (supportsDesktopUpdateSettings) {
+      const getAutoUpdates = settingsApi?.getAutoUpdates;
+      const getUpdateChannel = settingsApi?.getUpdateChannel;
+      if (getAutoUpdates && getUpdateChannel) {
+        getAutoUpdates().then(setAutoUpdatesEnabled);
+        getUpdateChannel().then(setUpdateChannel);
+      }
     }
-    if (isElectron && window.api?.settings?.getUpdateChannel) {
-      window.api.settings.getUpdateChannel().then(setUpdateChannel);
-    }
-  }, []);
+  }, [settingsApi, supportsDesktopUpdateSettings]);
 
   const handleCloseBehaviorChange = useCallback(
     (action: "ask" | "quit" | "background") => {
@@ -168,15 +178,36 @@ function SettingsPage() {
   );
 
   const handleAutoUpdatesChange = useCallback((checked: boolean) => {
+    if (!supportsDesktopUpdateSettings) {
+      return;
+    }
+    const setAutoUpdates = settingsApi?.setAutoUpdates;
+    if (!setAutoUpdates) {
+      return;
+    }
     setAutoUpdatesEnabled(checked);
-    window.api?.settings?.setAutoUpdates?.(checked);
-  }, []);
+    void setAutoUpdates(checked);
+  }, [settingsApi, supportsDesktopUpdateSettings]);
 
   const handleUpdateChannelChange = useCallback((value: string) => {
+    if (!supportsDesktopUpdateSettings) {
+      return;
+    }
+    const setUpdateChannelApi = settingsApi?.setUpdateChannel;
+    if (!setUpdateChannelApi) {
+      return;
+    }
     const channel = value === "nightly" ? "nightly" : "latest";
+    const previousChannel = updateChannel;
     setUpdateChannel(channel);
-    window.api?.settings?.setUpdateChannel?.(channel).then(setUpdateChannel);
-  }, []);
+    const updateRequest = setUpdateChannelApi(channel);
+    void updateRequest
+      .then(setUpdateChannel)
+      .catch((error: unknown) => {
+        setUpdateChannel(previousChannel);
+        console.error("Failed to update desktop update channel:", error);
+      });
+  }, [settingsApi, supportsDesktopUpdateSettings, updateChannel]);
 
   // Subscribe to secrets store changes to update sidebar when secrets are modified
   useEffect(() => {
@@ -491,7 +522,7 @@ function SettingsPage() {
                       </div>
                     )}
 
-                    {isElectron && (
+                    {supportsDesktopUpdateSettings && (
                       <div className="settings-item">
                         <LabeledSwitch
                           label="Automatic Updates"
@@ -502,7 +533,7 @@ function SettingsPage() {
                       </div>
                     )}
 
-                    {isElectron && (
+                    {supportsDesktopUpdateSettings && (
                       <div id="updates" className="settings-item">
                         <SelectField
                           label="Update Channel"
