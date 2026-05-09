@@ -302,6 +302,19 @@ fn coverage(distPx: f32, lineWidthPx: f32, aaPx: f32) -> f32 {
 
 @fragment
 fn fs_ants(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let EDGE_MARGIN_DOC = 1.0;
+  let CORE_WIDTH_IN_PX = 1.0;
+  let CORE_WIDTH_OUT_PX = 2.0;
+  let MIN_AA_PX = 0.75;
+  let AA_DPR_SCALE = 0.6;
+  let OUTER_HALO_WIDTH_PX = 10.0;
+  let OUTER_HALO_ALPHA = 0.05;
+  let MID_HALO_WIDTH_PX = 6.0;
+  let MID_HALO_ALPHA = 0.08;
+  let INNER_HALO_WIDTH_PX = 3.0;
+  let INNER_HALO_ALPHA = 0.045;
+  let INNER_HALO_COLOR = vec3f(30.0 / 255.0, 30.0 / 255.0, 38.0 / 255.0);
+
   let overlaySizePx = u.viewportSizePx + 2.0 * u.viewportOffsetPx;
   let overlayPosPx = uv * overlaySizePx;
   let zoom = max(u.params.y, 1e-4);
@@ -313,10 +326,10 @@ fn fs_ants(@location(0) uv: vec2f) -> @location(0) vec4f {
   let dimsF  = vec2f(f32(dims.x), f32(dims.y));
 
   if (
-    local.x < -1.0 ||
-    local.y < -1.0 ||
-    local.x > dimsF.x + 1.0 ||
-    local.y > dimsF.y + 1.0
+    local.x < -EDGE_MARGIN_DOC ||
+    local.y < -EDGE_MARGIN_DOC ||
+    local.x > dimsF.x + EDGE_MARGIN_DOC ||
+    local.y > dimsF.y + EDGE_MARGIN_DOC
   ) {
     return vec4f(0.0);
   }
@@ -354,8 +367,8 @@ fn fs_ants(@location(0) uv: vec2f) -> @location(0) vec4f {
   }
 
   let distPx = dEdge * zoom * dpr;
-  let coreWidthPx = select(1.0, 2.0, zoom < 1.0) * dpr;
-  let aaPx = max(0.75, 0.6 * dpr);
+  let coreWidthPx = select(CORE_WIDTH_IN_PX, CORE_WIDTH_OUT_PX, zoom < 1.0) * dpr;
+  let aaPx = max(MIN_AA_PX, AA_DPR_SCALE * dpr);
 
   let gx =
     select(0.0, 1.0, ef >= THRESH) -
@@ -382,13 +395,9 @@ fn fs_ants(@location(0) uv: vec2f) -> @location(0) vec4f {
   let coreColor = select(drk, lit, isLit);
 
   var out = vec4f(0.0);
-  out = compositePremul(out, vec3f(1.0, 1.0, 1.0), 0.05 * coverage(distPx, 10.0 * dpr, aaPx));
-  out = compositePremul(out, vec3f(1.0, 1.0, 1.0), 0.08 * coverage(distPx, 6.0 * dpr, aaPx));
-  out = compositePremul(
-    out,
-    vec3f(30.0 / 255.0, 30.0 / 255.0, 38.0 / 255.0),
-    0.045 * coverage(distPx, 3.0 * dpr, aaPx)
-  );
+  out = compositePremul(out, vec3f(1.0, 1.0, 1.0), OUTER_HALO_ALPHA * coverage(distPx, OUTER_HALO_WIDTH_PX * dpr, aaPx));
+  out = compositePremul(out, vec3f(1.0, 1.0, 1.0), MID_HALO_ALPHA * coverage(distPx, MID_HALO_WIDTH_PX * dpr, aaPx));
+  out = compositePremul(out, INNER_HALO_COLOR, INNER_HALO_ALPHA * coverage(distPx, INNER_HALO_WIDTH_PX * dpr, aaPx));
   out = compositePremul(out, coreColor, coverage(distPx, coreWidthPx, aaPx));
   if (out.a <= 1e-4) {
     return vec4f(0.0);

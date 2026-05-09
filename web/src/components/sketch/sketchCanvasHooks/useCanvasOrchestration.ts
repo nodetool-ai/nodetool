@@ -45,6 +45,20 @@ import type {
 } from "../sketchCanvasHooks";
 import { selectionAntCanvasMarginCssPx } from "./useOverlayRenderer";
 
+interface SelectionAntsRuntime {
+  setSelectionAntsOverlayCanvas?: (canvas: HTMLCanvasElement | null) => void;
+  setSelectionAntsViewport?: (params: {
+    viewportWidthCss: number;
+    viewportHeightCss: number;
+    panXCss: number;
+    panYCss: number;
+    marginCss: number;
+    dpr: number;
+  }) => void;
+  setSelectionOriginOverride?: (pos: { x: number; y: number } | null) => void;
+  onNeedsRedraw?: () => void;
+}
+
 // ─── Params ──────────────────────────────────────────────────────────────────
 
 export interface UseCanvasOrchestrationParams {
@@ -222,7 +236,7 @@ export function useCanvasOrchestration(
 
   // Schedule the next WebGPU frame while selection ants are drawn (pass 5 loads the blit).
   useEffect(() => {
-    const rt = runtime as { onNeedsRedraw?: () => void };
+    const rt = runtime as SelectionAntsRuntime;
     rt.onNeedsRedraw = requestRedraw;
     return () => {
       rt.onNeedsRedraw = undefined;
@@ -231,17 +245,7 @@ export function useCanvasOrchestration(
 
   const syncSelectionAntsViewport = useCallback(() => {
     const container = containerRef.current;
-    const rt = runtime as {
-      setSelectionAntsOverlayCanvas?: (canvas: HTMLCanvasElement | null) => void;
-      setSelectionAntsViewport?: (params: {
-        viewportWidthCss: number;
-        viewportHeightCss: number;
-        panXCss: number;
-        panYCss: number;
-        marginCss: number;
-        dpr: number;
-      }) => void;
-    };
+    const rt = runtime as SelectionAntsRuntime;
     rt.setSelectionAntsOverlayCanvas?.(selectionGpuCanvasRef.current);
     if (!container) {
       return;
@@ -286,12 +290,7 @@ export function useCanvasOrchestration(
     x: number;
     y: number;
   } | null) => {
-    const rt = compositing.runtime as {
-      setSelectionOriginOverride?: (p: {
-        x: number;
-        y: number;
-      } | null) => void;
-    };
+    const rt = runtime as SelectionAntsRuntime;
     rt.setSelectionOriginOverride?.(pos);
     overlay.setSelectionOriginOverride(pos);
   };
