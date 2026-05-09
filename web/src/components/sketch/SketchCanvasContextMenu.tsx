@@ -51,6 +51,7 @@ import {
   type ToolDefinition
 } from "./toolDefinitions";
 import { displayCombo } from "./shortcuts";
+import SketchToolIconLabel from "./SketchToolIconLabel";
 import { ToolSettingsPanel, getToolSettingsLabel } from "./ToolSettingsPanels";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -166,7 +167,6 @@ function ToolGridButton({
   const { Icon } = definition;
   const inactiveBg = theme.vars.palette.grey[800];
   const hoverBg = theme.vars.palette.grey[700];
-  const shortcutBg = theme.vars.palette.grey[900];
 
   return (
     <ButtonBase
@@ -184,66 +184,43 @@ function ToolGridButton({
           : inactiveBg,
         px: compact ? 0.35 : 0.75,
         py: compact ? 0.45 : 0.8,
-        alignItems: "center",
-        justifyContent: "center",
+        alignItems: "stretch",
+        justifyContent: "flex-start",
         display: "flex",
         flexDirection: "column",
         textAlign: "center",
         transition: "all 120ms ease",
+        width: "100%",
         "&:hover": {
           backgroundColor: selected
             ? alpha(theme.palette.primary.main, 0.22)
             : hoverBg,
           borderColor: selected ? "primary.main" : "text.secondary"
-        }
+        },
+        ...(!selected && {
+          "&:hover .sketch-tool-icon-label__shortcut, &:focus-visible .sketch-tool-icon-label__shortcut":
+            {
+              opacity: 1
+            }
+        })
       }}
     >
-      {shortcut ? (
-        <Box
-          sx={{
-            position: "absolute",
-            top: compact ? 4 : 8,
-            right: compact ? 4 : 8,
-            px: compact ? 0.35 : 0.5,
-            py: compact ? 0.12 : 0.1,
-            borderRadius: 1,
-            backgroundColor: shortcutBg,
-            fontSize: compact ? SKETCH_FONT.xs : SKETCH_FONT.sm,
-            fontWeight: 700,
-            lineHeight: 1.2,
-            color: "text.secondary"
-          }}
-        >
-          {shortcut}
-        </Box>
-      ) : null}
-      <Icon
-        sx={{
-          fontSize: compact ? 16 : 20,
-          color: selected ? "primary.light" : "text.primary"
-        }}
+      <SketchToolIconLabel
+        direction="column"
+        compact={compact}
+        selected={selected}
+        shortcut={shortcut || undefined}
+        label={definition.label}
+        icon={
+          <Icon
+            sx={{
+              fontSize: compact ? 16 : 20,
+              flexShrink: 0,
+              color: selected ? "primary.light" : "text.primary"
+            }}
+          />
+        }
       />
-      <Typography
-        sx={{
-          mt: compact ? 0.35 : 0.65,
-          fontSize: compact ? SKETCH_FONT.xs : SKETCH_FONT.md,
-          fontWeight: 400,
-          color: "text.secondary",
-          lineHeight: 1.15,
-          ...(compact
-            ? {
-                display: "-webkit-box",
-                WebkitBoxOrient: "vertical" as const,
-                WebkitLineClamp: 2,
-                overflow: "hidden",
-                wordBreak: "break-word" as const,
-                px: 0.15
-              }
-            : {})
-        }}
-      >
-        {definition.label}
-      </Typography>
     </ButtonBase>
   );
 }
@@ -519,51 +496,36 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           className="sketch-context-menu__header"
           sx={{
             flex: "0 0 auto",
-            height: CONTEXT_MENU_HEADER_HEIGHT_PX,
             minHeight: CONTEXT_MENU_HEADER_HEIGHT_PX,
-            maxHeight: CONTEXT_MENU_HEADER_HEIGHT_PX,
             boxSizing: "border-box",
             display: "flex",
             flexDirection: "row",
             alignItems: "center",
             gap: 1,
             px: 1.25,
-            py: 0,
+            py: 0.5,
             borderRadius: "8px",
             // border: "1px solid",
             // borderColor: alpha(theme.palette.primary.main, 0.28),
             // backgroundColor: alpha(theme.palette.primary.main, 0.1),
-            overflow: "hidden"
+            overflow: "hidden",
+            "& .sketch-context-menu__header-shortcut": {
+              opacity: 0,
+              transition: "opacity 120ms ease"
+            },
+            "&:hover .sketch-context-menu__header-shortcut, &:focus-within .sketch-context-menu__header-shortcut":
+              {
+                opacity: 1
+              }
           }}
         >
-          <Box
-            className="sketch-context-menu__header-tool-icon"
-            sx={{
-              flex: "0 0 auto",
-              width: 34,
-              height: 34,
-              borderRadius: "7px",
-              display: "grid",
-              placeItems: "center",
-              // backgroundColor: alpha(theme.palette.primary.main, 0.18),
-              color: "primary.light"
-            }}
-          >
-            <ActiveIcon sx={{ fontSize: 22 }} />
-          </Box>
-          <Typography
-            className="sketch-context-menu__header-tool-label"
-            component="span"
-            sx={{
-              flex: "0 0 auto",
-              fontSize: SKETCH_FONT.section,
-              fontWeight: 700,
-              color: "text.primary",
-              whiteSpace: "nowrap"
-            }}
-          >
-            {activeDefinition.label}
-          </Typography>
+        <SketchToolIconLabel
+          className="sketch-context-menu__header-tool"
+          direction="row"
+          label={activeDefinition.label}
+          icon={<ActiveIcon sx={{ fontSize: 22 }} />}
+          sx={{ flex: "0 1 auto", minWidth: 0 }}
+        />
           {activeShortcut ? (
             <Box
               className="sketch-context-menu__header-shortcut"
@@ -692,8 +654,8 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               </Box>
             </Box>
 
-            {/* Selection actions (visible when select tool is active or selection exists) */}
-            {(activeTool === "select" || hasActiveSelection) && (
+            {/* Selection actions: only when the select tool is active */}
+            {activeTool === "select" && (
               <Box
                 className="sketch-context-menu__selection-actions"
                 sx={{

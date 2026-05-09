@@ -11,6 +11,8 @@ export { default as SketchCanvas } from "./SketchCanvas";
 export { default as SketchToolbar } from "./SketchToolbar";
 export { default as SketchToolTopBar } from "./SketchToolTopBar";
 export { default as SketchLayersPanel } from "./SketchLayersPanel";
+export { default as SketchToolIconLabel } from "./SketchToolIconLabel";
+export type { SketchToolIconLabelProps } from "./SketchToolIconLabel";
 
 export { useSketchStore } from "./state";
 
