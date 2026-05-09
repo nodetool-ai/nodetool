@@ -61,6 +61,8 @@ const IpcChannels = {
   SETTINGS_SET_CLOSE_BEHAVIOR: "settings-set-close-behavior",
   SETTINGS_GET_AUTO_UPDATES: "settings-get-auto-updates",
   SETTINGS_SET_AUTO_UPDATES: "settings-set-auto-updates",
+  SETTINGS_GET_UPDATE_CHANNEL: "settings-get-update-channel",
+  SETTINGS_SET_UPDATE_CHANNEL: "settings-set-update-channel",
   SETTINGS_GET_MODEL_SERVICES_STARTUP: "settings-get-model-services-startup",
   SETTINGS_SET_MODEL_SERVICES_STARTUP: "settings-set-model-services-startup",
   SHOW_SETTINGS: "show-settings",
@@ -161,6 +163,21 @@ describe("preload contract", () => {
       IpcChannels.PACKAGE_LIST_INSTALLED,
       IpcChannels.PACKAGE_INSTALL,
       IpcChannels.PACKAGE_UNINSTALL,
+    ]);
+  });
+
+  test("settings update-channel methods route to expected IPC channels", () => {
+    (electronMock.ipcRenderer.invoke as jest.Mock).mockClear();
+
+    api.settings.getUpdateChannel();
+    api.settings.setUpdateChannel("nightly");
+
+    const channels = (electronMock.ipcRenderer.invoke as jest.Mock).mock.calls
+      .map((c: unknown[]) => c[0]);
+
+    expect(channels).toEqual([
+      IpcChannels.SETTINGS_GET_UPDATE_CHANNEL,
+      IpcChannels.SETTINGS_SET_UPDATE_CHANNEL,
     ]);
   });
 

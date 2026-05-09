@@ -547,6 +547,8 @@ export enum IpcChannels {
   SETTINGS_SET_CLOSE_BEHAVIOR = "settings-set-close-behavior",
   SETTINGS_GET_AUTO_UPDATES = "settings-get-auto-updates",
   SETTINGS_SET_AUTO_UPDATES = "settings-set-auto-updates",
+  SETTINGS_GET_UPDATE_CHANNEL = "settings-get-update-channel",
+  SETTINGS_SET_UPDATE_CHANNEL = "settings-set-update-channel",
   SETTINGS_GET_MODEL_SERVICES_STARTUP = "settings-get-model-services-startup",
   SETTINGS_SET_MODEL_SERVICES_STARTUP = "settings-set-model-services-startup",
   SHOW_SETTINGS = "show-settings",
@@ -702,6 +704,8 @@ export interface IpcRequest {
   [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: WindowCloseAction;
   [IpcChannels.SETTINGS_GET_AUTO_UPDATES]: void;
   [IpcChannels.SETTINGS_SET_AUTO_UPDATES]: boolean;
+  [IpcChannels.SETTINGS_GET_UPDATE_CHANNEL]: void;
+  [IpcChannels.SETTINGS_SET_UPDATE_CHANNEL]: UpdateChannel;
   [IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP]: void;
   [IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettingsUpdate;
   [IpcChannels.SHOW_SETTINGS]: void;
@@ -725,6 +729,7 @@ export interface IpcRequest {
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
+export type UpdateChannel = "latest" | "nightly";
 
 export interface ModelServicesStartupSettings {
   startLlamaCppOnStartup: boolean;
@@ -798,6 +803,8 @@ export interface IpcResponse {
   [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: void;
   [IpcChannels.SETTINGS_GET_AUTO_UPDATES]: boolean;
   [IpcChannels.SETTINGS_SET_AUTO_UPDATES]: void;
+  [IpcChannels.SETTINGS_GET_UPDATE_CHANNEL]: UpdateChannel;
+  [IpcChannels.SETTINGS_SET_UPDATE_CHANNEL]: UpdateChannel;
   [IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettings;
   [IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettings;
   [IpcChannels.SHOW_SETTINGS]: void;

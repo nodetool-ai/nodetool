@@ -15,6 +15,38 @@ type SettingsRecord = Record<string, unknown>;
 let settingsCache: SettingsRecord | null = null;
 
 const START_LLAMA_CPP_ON_STARTUP_KEY = "START_LLAMA_CPP_ON_STARTUP";
+const UPDATE_CHANNEL_KEY = "updateChannel";
+const UPDATE_CHANNEL_CONFIGURED_BY_USER_KEY = "updateChannelConfiguredByUser";
+const NIGHTLY_VERSION_PATTERN = /-nightly\.\d{8}\.\d+$/;
+
+export type UpdateChannel = "latest" | "nightly";
+
+export function isNightlyVersion(version: string): boolean {
+  return NIGHTLY_VERSION_PATTERN.test(version);
+}
+
+export function getDefaultUpdateChannel(version: string): UpdateChannel {
+  return isNightlyVersion(version) ? "nightly" : "latest";
+}
+
+export function normalizeUpdateChannel(value: unknown): UpdateChannel | null {
+  return value === "latest" || value === "nightly" ? value : null;
+}
+
+export function getUpdateChannel(settings: SettingsRecord | undefined, version: string): UpdateChannel {
+  const source = settings ?? readSettings();
+  const configuredByUser = source[UPDATE_CHANNEL_CONFIGURED_BY_USER_KEY] === true;
+  const storedChannel = normalizeUpdateChannel(source[UPDATE_CHANNEL_KEY]);
+  return configuredByUser && storedChannel ? storedChannel : getDefaultUpdateChannel(version);
+}
+
+export function setUpdateChannel(channel: UpdateChannel): UpdateChannel {
+  updateSettings({
+    [UPDATE_CHANNEL_KEY]: channel,
+    [UPDATE_CHANNEL_CONFIGURED_BY_USER_KEY]: true,
+  });
+  return channel;
+}
 
 export interface ModelServiceStartupSettings {
   startLlamaCppOnStartup: boolean;

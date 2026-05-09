@@ -119,6 +119,9 @@ function SettingsPage() {
   const setShowWelcomeOnStartup = useSettingsStore(
     (state) => state.setShowWelcomeOnStartup
   );
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   const setSoundNotifications = useSettingsStore(
     (state) => state.setSoundNotifications
   );
@@ -137,6 +140,39 @@ function SettingsPage() {
   const [closeBehavior, setCloseBehavior] = useState<
     "ask" | "quit" | "background"
   >("ask");
+  const [autoUpdatesEnabled, setAutoUpdatesEnabled] = useState(false);
+  const [updateChannel, setUpdateChannel] = useState<"latest" | "nightly">("latest");
+  const desktopUpdateSettingsApi = useMemo(() => {
+    // `isElectron` and `window.api` are static for the lifetime of the renderer session.
+    if (!isElectron) {
+      return null;
+    }
+
+    const api = window.api?.settings;
+    if (
+      !api ||
+      typeof api.getAutoUpdates !== "function" ||
+      typeof api.setAutoUpdates !== "function" ||
+      typeof api.getUpdateChannel !== "function" ||
+      typeof api.setUpdateChannel !== "function"
+    ) {
+      return null;
+    }
+
+    const getAutoUpdates = api.getAutoUpdates;
+    const setAutoUpdates = api.setAutoUpdates;
+    const getUpdateChannel = api.getUpdateChannel;
+    const setUpdateChannel = api.setUpdateChannel;
+
+    return {
+      getAutoUpdates: () => getAutoUpdates(),
+      setAutoUpdates: (enabled: boolean) => setAutoUpdates(enabled),
+      getUpdateChannel: () => getUpdateChannel(),
+      setUpdateChannel: (channel: "latest" | "nightly") =>
+        setUpdateChannel(channel),
+    };
+  }, []);
+  const supportsDesktopUpdateSettings = desktopUpdateSettingsApi !== null;
 
   // Load close behavior setting on mount (Electron only)
   useEffect(() => {
@@ -147,7 +183,21 @@ function SettingsPage() {
           setCloseBehavior(action);
         });
     }
-  }, []);
+    if (supportsDesktopUpdateSettings) {
+      desktopUpdateSettingsApi
+        .getAutoUpdates()
+        .then(setAutoUpdatesEnabled)
+        .catch((error: unknown) => {
+          console.error("Failed to load desktop auto-update setting:", error);
+        });
+      desktopUpdateSettingsApi
+        .getUpdateChannel()
+        .then(setUpdateChannel)
+        .catch((error: unknown) => {
+          console.error("Failed to load desktop update channel:", error);
+        });
+    }
+  }, [desktopUpdateSettingsApi, supportsDesktopUpdateSettings]);
 
   const handleCloseBehaviorChange = useCallback(
     (action: "ask" | "quit" | "background") => {
@@ -158,6 +208,43 @@ function SettingsPage() {
     },
     []
   );
+
+  const handleAutoUpdatesChange = useCallback((checked: boolean) => {
+    if (!supportsDesktopUpdateSettings) {
+      return;
+    }
+    const previousValue = autoUpdatesEnabled;
+    setAutoUpdatesEnabled(checked);
+    void desktopUpdateSettingsApi.setAutoUpdates(checked).catch((error: unknown) => {
+      setAutoUpdatesEnabled(previousValue);
+      console.error("Failed to update desktop auto-update setting:", error);
+      addNotification({
+        type: "error",
+        alert: true,
+        content: "Failed to save automatic update preference."
+      });
+    });
+  }, [addNotification, autoUpdatesEnabled, desktopUpdateSettingsApi, supportsDesktopUpdateSettings]);
+
+  const handleUpdateChannelChange = useCallback((value: string) => {
+    if (!supportsDesktopUpdateSettings) {
+      return;
+    }
+    const channel = value === "nightly" ? "nightly" : "latest";
+    const previousChannel = updateChannel;
+    setUpdateChannel(channel);
+    void desktopUpdateSettingsApi
+      .setUpdateChannel(channel)
+      .catch((error: unknown) => {
+        setUpdateChannel(previousChannel);
+        console.error("Failed to update desktop update channel:", error);
+        addNotification({
+          type: "error",
+          alert: true,
+          content: "Failed to save update channel preference."
+        });
+      });
+  }, [addNotification, desktopUpdateSettingsApi, supportsDesktopUpdateSettings, updateChannel]);
 
   // Subscribe to secrets store changes to update sidebar when secrets are modified
   useEffect(() => {
@@ -231,9 +318,6 @@ function SettingsPage() {
     },
     [setTimeFormat]
   );
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
   const handleClose = useCallback(() => {
     navigate(-1);
   }, [navigate]);
@@ -300,7 +384,8 @@ function SettingsPage() {
       category: "Workspace",
       items: [
         { id: "editor", label: "Editor" },
-        { id: "appearance", label: "Appearance" }
+        { id: "appearance", label: "Appearance" },
+        ...(isElectron ? [{ id: "updates", label: "Updates" }] : [])
       ]
     },
     {
@@ -468,6 +553,36 @@ function SettingsPage() {
                           onChange={handleSoundNotificationsChange}
                           description="Play a system beep sound when workflows complete, exports finish, or other important events occur."
                         />
+                      </div>
+                    )}
+
+                    {supportsDesktopUpdateSettings && (
+                      <div className="settings-item">
+                        <LabeledSwitch
+                          label="Automatic Updates"
+                          checked={autoUpdatesEnabled}
+                          onChange={handleAutoUpdatesChange}
+                          description="Check for and download desktop app updates from the selected release channel."
+                        />
+                      </div>
+                    )}
+
+                    {supportsDesktopUpdateSettings && (
+                      <div id="updates" className="settings-item">
+                        <SelectField
+                          label="Update Channel"
+                          value={updateChannel}
+                          variant="standard"
+                          onChange={handleUpdateChannelChange}
+                          options={[
+                            { value: "latest", label: "Stable" },
+                            { value: "nightly", label: "Nightly" }
+                          ]}
+                        />
+                        <Text className="description">
+                          Stable follows full releases. Nightly follows prerelease nightly builds.
+                          Nightly builds default to the Nightly channel.
+                        </Text>
                       </div>
                     )}
 
