@@ -65,7 +65,7 @@ Nightly releases should include:
 - `nightly-mac.yml`
 - `nightly-linux.yml`
 
-The publish job runs `scripts/validate-release-assets.mjs` before creating/updating the GitHub Release.
+The publish job runs `scripts/validate-release-assets.mjs` before creating/updating the GitHub Release. It then runs `scripts/smoke-release-updater-assets.mjs` to ensure each updater manifest has the expected version, checksum, path, and matching artifact file.
 
 ## Desktop updater behavior
 
