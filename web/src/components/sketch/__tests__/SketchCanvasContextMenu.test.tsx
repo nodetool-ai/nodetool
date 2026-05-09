@@ -31,8 +31,6 @@ function renderContextMenu() {
         cloneStampSettings={toolSettings.cloneStamp}
         foregroundColor="#000000"
         backgroundColor="#ffffff"
-        canUndo
-        canRedo={false}
         onClose={onClose}
         onToolChange={jest.fn()}
         onBrushSettingsChange={jest.fn()}
@@ -59,10 +57,6 @@ function renderContextMenu() {
         onLayerViaCut={jest.fn()}
         onFreeTransform={jest.fn()}
         onSwapColors={jest.fn()}
-        onUndo={jest.fn()}
-        onRedo={jest.fn()}
-        onClearLayer={jest.fn()}
-        onExportPng={jest.fn()}
       />
     </ThemeProvider>
   );

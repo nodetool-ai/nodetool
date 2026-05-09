@@ -1,7 +1,6 @@
 /**
  * ConnectedContextMenu — subscribes to activeTool, toolSettings,
- * hasActiveSelection (boolean), foregroundColor, backgroundColor,
- * canUndo, canRedo.
+ * hasActiveSelection (boolean), foregroundColor, backgroundColor.
  * Does NOT re-render on document, viewport, panelsHidden, or full
  * selection mask changes.
  *
@@ -35,10 +34,6 @@ export interface ConnectedContextMenuProps {
   onRunSegmentation: () => void;
   onClearSegmentPrompts: () => void;
   onSwapColors: () => void;
-  onUndo: () => void;
-  onRedo: () => void;
-  onClearLayer: () => void;
-  onExportPng: () => void;
   onFillSelectionWithForeground: () => void;
   onCropCanvasToSelection: () => void;
   onNewLayer: (type?: Extract<LayerType, "raster" | "mask">) => void;
@@ -57,8 +52,6 @@ export const ConnectedContextMenu = memo(function ConnectedContextMenu(
     useSketchStore((s) => s.foregroundColor) || "#ffffff";
   const backgroundColor =
     useSketchStore((s) => s.backgroundColor) || "#000000";
-  const canUndo = useSketchStore((s) => s.canUndo());
-  const canRedo = useSketchStore((s) => s.canRedo());
   const transform = useTransformAdapter({
     onTransformCommit: props.onTransformCommit,
     onTransformCancel: props.onTransformCancel,
@@ -109,8 +102,6 @@ export const ConnectedContextMenu = memo(function ConnectedContextMenu(
       adjustSaturation={props.adjSaturation}
       foregroundColor={foregroundColor}
       backgroundColor={backgroundColor}
-      canUndo={canUndo}
-      canRedo={canRedo}
       onClose={props.onClose}
       onToolChange={setActiveTool}
       onBrushSettingsChange={setBrushSettings}
@@ -156,10 +147,6 @@ export const ConnectedContextMenu = memo(function ConnectedContextMenu(
       onClearSegmentPrompts={props.onClearSegmentPrompts}
       onCheckSegmentModel={props.segmentation.checkModel}
       onSwapColors={props.onSwapColors}
-      onUndo={props.onUndo}
-      onRedo={props.onRedo}
-      onClearLayer={props.onClearLayer}
-      onExportPng={props.onExportPng}
     />
   );
 });

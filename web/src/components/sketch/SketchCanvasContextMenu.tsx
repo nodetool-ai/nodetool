@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useEffect, useState } from "react";
-import { sketchToolSettingsContainerSx, SKETCH_FONT, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
+import { sketchToolSettingsContainerSx, SKETCH_FONT } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
   Box,
@@ -9,14 +9,9 @@ import {
   IconButton,
   Popover,
   Stack,
-  Tooltip,
   Typography
 } from "@mui/material";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-import UndoIcon from "@mui/icons-material/Undo";
-import RedoIcon from "@mui/icons-material/Redo";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import InvertColorsIcon from "@mui/icons-material/InvertColors";
 import DeselectIcon from "@mui/icons-material/Deselect";
 import RestoreIcon from "@mui/icons-material/Restore";
@@ -241,8 +236,6 @@ export interface SketchCanvasContextMenuProps {
   cloneStampSettings: CloneStampSettings;
   foregroundColor: string;
   backgroundColor: string;
-  canUndo: boolean;
-  canRedo: boolean;
   onClose: () => void;
   onToolChange: (tool: SketchTool) => void;
   onBrushSettingsChange: (settings: Partial<BrushSettings>) => void;
@@ -294,10 +287,6 @@ export interface SketchCanvasContextMenuProps {
   onClearSegmentPrompts?: () => void;
   onCheckSegmentModel?: () => void;
   onSwapColors: () => void;
-  onUndo: () => void;
-  onRedo: () => void;
-  onClearLayer: () => void;
-  onExportPng: () => void;
 }
 
 const CONTEXT_MENU_HEADER_HEIGHT_PX = 52;
@@ -317,8 +306,6 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   cloneStampSettings,
   foregroundColor,
   backgroundColor,
-  canUndo,
-  canRedo,
   onClose,
   onToolChange,
   onBrushSettingsChange,
@@ -369,11 +356,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   onCancelSegmentation,
   onClearSegmentPrompts,
   onCheckSegmentModel,
-  onSwapColors,
-  onUndo,
-  onRedo,
-  onClearLayer,
-  onExportPng
+  onSwapColors
 }) => {
   const theme = useTheme();
   const activeDefinition = getToolDefinition(activeTool);
@@ -752,91 +735,6 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 </Stack>
               </Box>
             )}
-
-            <Box
-              className="sketch-context-menu__canvas-actions"
-              sx={{
-                borderRadius: "8px",
-                px: 0,
-                py: 0
-              }}
-            >
-              <SectionLabel>Canvas</SectionLabel>
-              <Stack direction="row" spacing={0.8}>
-                <Tooltip title="Undo" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                  <span>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        onUndo();
-                        onClose();
-                      }}
-                      disabled={!canUndo}
-                      aria-label="Undo"
-                      sx={{
-                        borderRadius: "8px",
-                        p: 0.65
-                      }}
-                    >
-                      <UndoIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-                <Tooltip title="Redo" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                  <span>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        onRedo();
-                        onClose();
-                      }}
-                      disabled={!canRedo}
-                      aria-label="Redo"
-                      sx={{
-                        borderRadius: "8px",
-                        p: 0.65
-                      }}
-                    >
-                      <RedoIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-                <Tooltip title="Clear Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                  <IconButton
-                    size="small"
-                    onClick={() => {
-                      onClearLayer();
-                      onClose();
-                    }}
-                    aria-label="Clear layer"
-                    sx={{
-                      color: "error.main",
-                      borderRadius: "8px",
-                      p: 0.65
-                    }}
-                  >
-                    <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Export PNG" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                  <IconButton
-                    size="small"
-                    onClick={() => {
-                      onExportPng();
-                      onClose();
-                    }}
-                    aria-label="Export PNG"
-                    sx={{
-                      color: "primary.light",
-                      borderRadius: "8px",
-                      p: 0.65
-                    }}
-                  >
-                    <SaveAltIcon sx={{ fontSize: 18 }} />
-                  </IconButton>
-                </Tooltip>
-              </Stack>
-            </Box>
           </Stack>
 
           <Box
