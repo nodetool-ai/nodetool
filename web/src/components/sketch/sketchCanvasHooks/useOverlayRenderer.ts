@@ -739,7 +739,6 @@ export function useOverlayRenderer({
       zoom,
       pan,
       cursorCanvasRef,
-      overlayCanvasRef,
       containerRef
     ]
   );

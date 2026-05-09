@@ -296,12 +296,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       selection,
       isolatedLayerId,
       foregroundColor,
-       transformPreviewByLayerIdRef,
-       requestPreviewRedrawRef,
-       invalidateLayerRef,
-       coordinatorRef,
-       setLayerTransformPreview,
-       clearLayerTransformPreview,
+      transformPreviewByLayerIdRef,
+      requestPreviewRedrawRef,
+      invalidateLayerRef,
+      coordinatorRef,
+      setLayerTransformPreview,
+      clearLayerTransformPreview,
       onZoomChange,
       onPanChange,
       onStrokeStart,
@@ -420,7 +420,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         pointerHandlers.handlePointerMove(e);
         updateCursorDocPosFromClient(e.clientX, e.clientY);
       },
-      [pointerHandlers, updateCursorDocPosFromClient]
+      [lastPointerClientRef, pointerHandlers, updateCursorDocPosFromClient]
     );
 
     const handlePointerDownWithClient = useCallback(
@@ -428,7 +428,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         lastPointerClientRef.current = { x: e.clientX, y: e.clientY };
         pointerHandlers.handlePointerDown(e);
       },
-      [pointerHandlers]
+      [lastPointerClientRef, pointerHandlers]
     );
 
     const handleMouseLeaveWithCoords = useCallback(() => {

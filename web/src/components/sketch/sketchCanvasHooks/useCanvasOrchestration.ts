@@ -196,31 +196,42 @@ export function useCanvasOrchestration(
     transformPreviewByLayerIdRef,
     coordinatorRef
   });
+  const {
+    runtime,
+    requestRedraw,
+    invalidateLayer,
+    overlayCanvasRef,
+    displayCanvasRef,
+    layerCanvasesRef,
+    redraw,
+    redrawDirty,
+    requestDirtyRedraw
+  } = compositing;
 
   // Wire the preview bridge refs to compositing output.
-  requestPreviewRedrawRef.current = compositing.requestRedraw;
-  invalidateLayerRef.current = compositing.invalidateLayer;
+  requestPreviewRedrawRef.current = requestRedraw;
+  invalidateLayerRef.current = invalidateLayer;
 
   // Sync external selection state to the runtime. During interactive commits
   // the runtime is authoritative; the store only keeps the CPU snapshot that
   // gets published at commit/history boundaries and rehydrates undo/redo here.
   useEffect(() => {
-    compositing.runtime.setSelection(selection ?? null);
-    compositing.requestRedraw();
-  }, [compositing.runtime, compositing.requestRedraw, selection]);
+    runtime.setSelection(selection ?? null);
+    requestRedraw();
+  }, [requestRedraw, runtime, selection]);
 
   // Schedule the next WebGPU frame while selection ants are drawn (pass 5 loads the blit).
   useEffect(() => {
-    const rt = compositing.runtime as { onNeedsRedraw?: () => void };
-    rt.onNeedsRedraw = compositing.requestRedraw;
+    const rt = runtime as { onNeedsRedraw?: () => void };
+    rt.onNeedsRedraw = requestRedraw;
     return () => {
       rt.onNeedsRedraw = undefined;
     };
-  }, [compositing.runtime, compositing.requestRedraw]);
+  }, [requestRedraw, runtime]);
 
   const syncSelectionAntsViewport = useCallback(() => {
     const container = containerRef.current;
-    const rt = compositing.runtime as {
+    const rt = runtime as {
       setSelectionAntsOverlayCanvas?: (canvas: HTMLCanvasElement | null) => void;
       setSelectionAntsViewport?: (params: {
         viewportWidthCss: number;
@@ -243,12 +254,12 @@ export function useCanvasOrchestration(
       marginCss: selectionAntCanvasMarginCssPx(zoom),
       dpr: window.devicePixelRatio || 1
     });
-  }, [compositing.runtime, pan.x, pan.y, zoom]);
+  }, [pan.x, pan.y, runtime, zoom]);
 
   useEffect(() => {
     syncSelectionAntsViewport();
-    compositing.requestRedraw();
-  }, [compositing.requestRedraw, syncSelectionAntsViewport]);
+    requestRedraw();
+  }, [requestRedraw, syncSelectionAntsViewport]);
 
   // ─── Overlay and cursor rendering ──────────────────────────────────
 
@@ -258,7 +269,7 @@ export function useCanvasOrchestration(
     interactionTool,
     zoom,
     pan,
-    overlayCanvasRef: compositing.overlayCanvasRef,
+    overlayCanvasRef,
     selectionGpuCanvasRef,
     selectionCanvasRef,
     cursorCanvasRef,
@@ -300,21 +311,21 @@ export function useCanvasOrchestration(
     selection,
     selectStartRef,
     lassoPointsRef,
-    displayCanvasRef: compositing.displayCanvasRef,
-    overlayCanvasRef: compositing.overlayCanvasRef,
+    displayCanvasRef,
+    overlayCanvasRef,
     cursorCanvasRef,
     gizmoCanvasRef,
     containerRef,
-    layerCanvasesRef: compositing.layerCanvasesRef,
+    layerCanvasesRef,
     mousePositionRef,
     activeStrokeRef,
-    runtime: compositing.runtime,
+    runtime,
     getOrCreateLayerCanvas: compositing.getOrCreateLayerCanvas,
-    invalidateLayer: compositing.invalidateLayer,
-    redraw: compositing.redraw,
-    redrawDirty: compositing.redrawDirty,
-    requestRedraw: compositing.requestRedraw,
-    requestDirtyRedraw: compositing.requestDirtyRedraw,
+    invalidateLayer,
+    redraw,
+    redrawDirty,
+    requestRedraw,
+    requestDirtyRedraw,
     clearOverlay: overlay.clearOverlay,
     drawSelectionOverlay: overlay.drawSelectionOverlay,
     appendSelectionOverlay: overlay.appendSelectionOverlay,
