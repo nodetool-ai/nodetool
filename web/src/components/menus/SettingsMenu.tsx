@@ -119,6 +119,9 @@ function SettingsPage() {
   const setShowWelcomeOnStartup = useSettingsStore(
     (state) => state.setShowWelcomeOnStartup
   );
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   const setSoundNotifications = useSettingsStore(
     (state) => state.setSoundNotifications
   );
@@ -139,14 +142,37 @@ function SettingsPage() {
   >("ask");
   const [autoUpdatesEnabled, setAutoUpdatesEnabled] = useState(false);
   const [updateChannel, setUpdateChannel] = useState<"latest" | "nightly">("latest");
-  const settingsApi = window.api?.settings;
-  const supportsDesktopUpdateSettings =
-    isElectron &&
-    !!settingsApi &&
-    typeof settingsApi.getAutoUpdates === "function" &&
-    typeof settingsApi.setAutoUpdates === "function" &&
-    typeof settingsApi.getUpdateChannel === "function" &&
-    typeof settingsApi.setUpdateChannel === "function";
+  const desktopUpdateSettingsApi = useMemo(() => {
+    // `isElectron` and `window.api` are static for the lifetime of the renderer session.
+    if (!isElectron) {
+      return null;
+    }
+
+    const api = window.api?.settings;
+    if (
+      !api ||
+      typeof api.getAutoUpdates !== "function" ||
+      typeof api.setAutoUpdates !== "function" ||
+      typeof api.getUpdateChannel !== "function" ||
+      typeof api.setUpdateChannel !== "function"
+    ) {
+      return null;
+    }
+
+    const getAutoUpdates = api.getAutoUpdates;
+    const setAutoUpdates = api.setAutoUpdates;
+    const getUpdateChannel = api.getUpdateChannel;
+    const setUpdateChannel = api.setUpdateChannel;
+
+    return {
+      getAutoUpdates: () => getAutoUpdates(),
+      setAutoUpdates: (enabled: boolean) => setAutoUpdates(enabled),
+      getUpdateChannel: () => getUpdateChannel(),
+      setUpdateChannel: (channel: "latest" | "nightly") =>
+        setUpdateChannel(channel),
+    };
+  }, []);
+  const supportsDesktopUpdateSettings = desktopUpdateSettingsApi !== null;
 
   // Load close behavior setting on mount (Electron only)
   useEffect(() => {
@@ -158,14 +184,20 @@ function SettingsPage() {
         });
     }
     if (supportsDesktopUpdateSettings) {
-      const getAutoUpdates = settingsApi?.getAutoUpdates;
-      const getUpdateChannel = settingsApi?.getUpdateChannel;
-      if (getAutoUpdates && getUpdateChannel) {
-        getAutoUpdates().then(setAutoUpdatesEnabled);
-        getUpdateChannel().then(setUpdateChannel);
-      }
+      desktopUpdateSettingsApi
+        .getAutoUpdates()
+        .then(setAutoUpdatesEnabled)
+        .catch((error: unknown) => {
+          console.error("Failed to load desktop auto-update setting:", error);
+        });
+      desktopUpdateSettingsApi
+        .getUpdateChannel()
+        .then(setUpdateChannel)
+        .catch((error: unknown) => {
+          console.error("Failed to load desktop update channel:", error);
+        });
     }
-  }, [settingsApi, supportsDesktopUpdateSettings]);
+  }, [desktopUpdateSettingsApi, supportsDesktopUpdateSettings]);
 
   const handleCloseBehaviorChange = useCallback(
     (action: "ask" | "quit" | "background") => {
@@ -181,33 +213,38 @@ function SettingsPage() {
     if (!supportsDesktopUpdateSettings) {
       return;
     }
-    const setAutoUpdates = settingsApi?.setAutoUpdates;
-    if (!setAutoUpdates) {
-      return;
-    }
+    const previousValue = autoUpdatesEnabled;
     setAutoUpdatesEnabled(checked);
-    void setAutoUpdates(checked);
-  }, [settingsApi, supportsDesktopUpdateSettings]);
+    void desktopUpdateSettingsApi.setAutoUpdates(checked).catch((error: unknown) => {
+      setAutoUpdatesEnabled(previousValue);
+      console.error("Failed to update desktop auto-update setting:", error);
+      addNotification({
+        type: "error",
+        alert: true,
+        content: "Failed to save automatic update preference."
+      });
+    });
+  }, [addNotification, autoUpdatesEnabled, desktopUpdateSettingsApi, supportsDesktopUpdateSettings]);
 
   const handleUpdateChannelChange = useCallback((value: string) => {
     if (!supportsDesktopUpdateSettings) {
       return;
     }
-    const setUpdateChannelApi = settingsApi?.setUpdateChannel;
-    if (!setUpdateChannelApi) {
-      return;
-    }
     const channel = value === "nightly" ? "nightly" : "latest";
     const previousChannel = updateChannel;
     setUpdateChannel(channel);
-    const updateRequest = setUpdateChannelApi(channel);
-    void updateRequest
-      .then(setUpdateChannel)
+    void desktopUpdateSettingsApi
+      .setUpdateChannel(channel)
       .catch((error: unknown) => {
         setUpdateChannel(previousChannel);
         console.error("Failed to update desktop update channel:", error);
+        addNotification({
+          type: "error",
+          alert: true,
+          content: "Failed to save update channel preference."
+        });
       });
-  }, [settingsApi, supportsDesktopUpdateSettings, updateChannel]);
+  }, [addNotification, desktopUpdateSettingsApi, supportsDesktopUpdateSettings, updateChannel]);
 
   // Subscribe to secrets store changes to update sidebar when secrets are modified
   useEffect(() => {
@@ -280,9 +317,6 @@ function SettingsPage() {
       setTimeFormat(value === "12h" ? "12h" : "24h");
     },
     [setTimeFormat]
-  );
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
   );
   const handleClose = useCallback(() => {
     navigate(-1);

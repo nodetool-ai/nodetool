@@ -59,6 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "schedule" || ( "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.channel }}" == "nightly" ) ]]; then
+            # Convert RFC3339 run_started_at (YYYY-MM-DDTHH:MM:SSZ) to YYYYMMDD.
             nightly_date="${{ github.run_started_at }}"
             nightly_date="${nightly_date%%T*}"
             nightly_date="${nightly_date//-/}"
@@ -80,8 +81,9 @@ jobs:
             echo "UPDATE_MAC_MANIFEST=nightly-mac.yml" >> "$GITHUB_ENV"
             echo "UPDATE_LINUX_MANIFEST=nightly-linux.yml" >> "$GITHUB_ENV"
           else
+            # Stable manual runs must pin an explicit version; nightly runs derive one above.
             if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.channel }}" == "stable" && "${{ github.event.inputs.version }}" == "" ]]; then
-              echo "Stable manual releases require inputs.version (without leading v)." >&2
+              echo "Stable manual releases require inputs.version (for example: 1.2.3 or v1.2.3)." >&2
               exit 1
             fi
             version="${VERSION#v}"
