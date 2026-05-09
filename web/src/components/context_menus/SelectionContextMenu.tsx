@@ -32,8 +32,8 @@ interface SelectionContextMenuProps {
 
 const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const { handleCopy } = useCopyPaste();
-  const { deleteNode, toggleBypassSelected } = useNodes((state) => ({
-    deleteNode: state.deleteNode,
+  const { deleteNodes, toggleBypassSelected } = useNodes((state) => ({
+    deleteNodes: state.deleteNodes,
     toggleBypassSelected: state.toggleBypassSelected
   }), shallow);
   const duplicateNodes = useDuplicateNodes();
@@ -95,12 +95,11 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   //delete
   const handleDelete = useCallback(() => {
     if (selectedNodes?.length) {
-      selectedNodes.forEach((node) => {
-        deleteNode(node.id);
-      });
+      // [PERF] Use batch deletion (deleteNodes) instead of iterating deleteNode(node.id) to avoid O(N) re-renders
+      deleteNodes(selectedNodes.map((node) => node.id));
     }
     closeContextMenu();
-  }, [closeContextMenu, deleteNode, selectedNodes]);
+  }, [closeContextMenu, deleteNodes, selectedNodes]);
 
   //select connected
   const handleSelectConnectedAll = useCallback(() => {
