@@ -66,7 +66,7 @@ const defaultMetadata: Record<string, NodeMetadata> = {
   }
 };
 
-export const loadMetadata = async () => {
+export const loadMetadata = async (): Promise<"success" | "error"> => {
   const response = await restFetch(
     "/api/nodes/metadata?fields=full&limit=10000"
   );

@@ -57,6 +57,12 @@ export type SearchResultGroup = {
   nodes: NodeMetadata[];
 };
 
+export interface ComputedSearchResults {
+  sortedResults: NodeMetadata[];
+  groupedResults: SearchResultGroup[];
+  allMatches: NodeMetadata[];
+}
+
 const GROUP_PRIORITY: Record<string, number> = {
   Name: 0,
   Results: 1,
@@ -698,7 +704,7 @@ export function computeSearchResults(
   strictMatch: boolean = false,
   selectedProviderType: "all" | "api" | "local" = "all",
   recentNodeTypes: readonly string[] = []
-) {
+): ComputedSearchResults {
   const selectedPathString = selectedPath.join(".");
   const hasSearchTerm = term.trim().length > 0;
   const hasTypeFilters = selectedInputType || selectedOutputType;

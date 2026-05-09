@@ -78,7 +78,7 @@ export function normalizeModelMeta(m: LanguageModel): NormalizedModelMeta {
 
 export function buildMetaIndex<TModel extends ModelSelectorModel>(
   models: TModel[]
-) {
+): Array<{ model: TModel; meta: NormalizedModelMeta }> {
   return models.map((m) => ({
     model: m,
     meta: normalizeModelMeta(m as LanguageModel)
