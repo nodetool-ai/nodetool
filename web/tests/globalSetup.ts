@@ -38,6 +38,8 @@ const TSX_BIN = resolve(REPO_ROOT, "node_modules/.bin/tsx");
 const BACKEND_HOST = "127.0.0.1";
 const BACKEND_PORT = 7777;
 const STARTUP_TIMEOUT_MS = 90_000;
+const SCREENSHOT_TEST_MASTER_KEY_B64 =
+  "U0NSRUVOU0hPVF9URVNUX0tFWV9ET19OT1RfVVNFISE=";
 
 /**
  * Poll until a TCP connection to host:port succeeds or the timeout elapses.
@@ -71,7 +73,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   // CI/headless Linux often has no keychain backend (libsecret). Provide a
   // deterministic test-only master key so screenshot-server can boot reliably.
   const screenshotTestMasterKey =
-    process.env.SECRETS_MASTER_KEY ?? "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    process.env.SECRETS_MASTER_KEY ?? SCREENSHOT_TEST_MASTER_KEY_B64;
 
   const serverProcess: ChildProcess = spawn(
     TSX_BIN,

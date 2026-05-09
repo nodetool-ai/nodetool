@@ -97,7 +97,9 @@ async function ensureVisibleText(
 
 async function ensureNoVisibleProgress(page: Page, timeout = 12000): Promise<void> {
   const progress = page.locator('[role="progressbar"], .MuiCircularProgress-root');
-  await progress.first().waitFor({ state: "hidden", timeout }).catch(() => {});
+  await progress.first().waitFor({ state: "hidden", timeout }).catch(() => {
+    // Progress indicators are not present on every route; this guard is best-effort.
+  });
 }
 
 async function waitForScreenshotReady(
