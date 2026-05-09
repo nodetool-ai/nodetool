@@ -9,7 +9,7 @@
 import { useEffect, useRef } from "react";
 import type { SketchDocument } from "../types";
 import type { SketchRuntime } from "../rendering";
-import { resolveAssetUri } from "../../../utils/resolveAssetUri";
+import { resolveAssetUri } from "../../node/output/hooks";
 import type { DisplayFrameCoordinator } from "./DisplayFrameCoordinator";
 
 export interface UseLayerHydrationParams {

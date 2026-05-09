@@ -73,6 +73,13 @@ const SOURCE_OVER_BLEND: GPUBlendState = {
   }
 };
 
+/**
+ * Per-composite advance for marching ants (fractional phase avoids `% 2` flicker
+ * when combined with fract() in WGSL).
+ * ~6s at 60fps for a gentle march (both alternating bands wrap every 2.0 phase).
+ */
+const SELECTION_ANT_PHASE_STEP = 1 / 384;
+
 // ─── Inverse affine matrix type ──────────────────────────────────────────
 
 /** 2×3 affine matrix mapping screen pixels → layer texels. */
@@ -1043,7 +1050,25 @@ export class WebGPURuntime implements SketchRuntime {
       pass.end();
     }
 
+    // ── Pass 5: Marching ants on swap chain ────────────────────────────
+    // Planned in refactor-selection.md but was missing — without this pass
+    // the uploaded mask affects tools but committed selection outlines never draw.
+    let selectionAntsActive = false;
+    if (
+      this.maskTexture &&
+      this.currentSelection &&
+      this.selectionAntsPipeline
+    ) {
+      this.antsPhase =
+        (this.antsPhase + SELECTION_ANT_PHASE_STEP) % 65536;
+      this.drawSelectionAnts(encoder, swapChainView, fullW, fullH);
+      selectionAntsActive = true;
+    }
+
     device.queue.submit([encoder.finish()]);
+    if (selectionAntsActive) {
+      this.onNeedsRedraw?.();
+    }
   }
 
   // ─── Ping-pong blend pass ───────────────────────────────────────────

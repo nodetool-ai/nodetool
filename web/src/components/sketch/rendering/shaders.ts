@@ -264,9 +264,10 @@ fn fs_blit(@location(0) uv: vec2f) -> @location(0) vec4f {
 // ─── Selection marching-ants fragment shader ─────────────────────────────
 //
 // Renders animated ants on selected-region boundaries.
-// The display canvas is at doc resolution (doc pixel = canvas pixel).
-// `uv * canvasSize` gives doc-pixel coordinates directly — no viewport
-// transform needed; CSS zoom/pan are handled externally.
+// The framebuffer is document-pixel resolution (canvas width/height = doc.canvas);
+// zoom is ONLY a CSS transform scale on that stack — not baked into backing-store size.
+// Stripe density therefore scales as ~4/z doc px (whole-pixel rounding), matching
+// checkerboardDocumentCellPx and Canvas setupScreenAnts dashLen (selectionMask.ts).
 //
 // Bind group:
 //   0 — AntsUniforms (uniform buffer)
@@ -311,11 +312,11 @@ fn fs_ants(@location(0) uv: vec2f) -> @location(0) vec4f {
 
   if (!isEdge) { return vec4f(0.0); }
 
-  // Marching dashes: dash length scales inversely with zoom so ants appear
-  // at a constant screen size regardless of zoom level (6 screen pixels).
-  let DASH = 6.0 / max(0.01, u.zoom);
-  let t = ((local.x + local.y) / DASH + u.phase) % 2.0;
-  if (t < 1.0) {
+  let z = clamp(u.zoom, 0.02, 128.0);
+  let dashLenDoc = max(1.0, round(4.0 / z));
+  let stripe = fract((local.x + local.y) / (2.0 * dashLenDoc) + u.phase);
+  let isLit = stripe < 0.5;
+  if (isLit) {
     return vec4f(1.0, 1.0, 1.0, 1.0);
   }
   return vec4f(0.0, 0.0, 0.0, 1.0);

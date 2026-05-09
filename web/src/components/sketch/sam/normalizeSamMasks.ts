@@ -1,4 +1,4 @@
-import { resolveAssetUri } from "../../../utils/resolveAssetUri";
+import { resolveAssetUri } from "../../node/output/hooks";
 import type { SegmentBackend, SegmentationMask, SegmentationSourceMetadata } from "../types";
 import type { SegmentationResponse } from "./SamService";
 

@@ -341,6 +341,7 @@ export class SamServiceNode implements SamService {
         {
           id: "sam_node",
           type: this.config.nodeType,
+          sync_mode: "on_any",
           data: nodeData
         }
       ],
@@ -526,6 +527,7 @@ export class SamServiceNode implements SamService {
         {
           id: "sam_node",
           type: "fal.image_to_image.Sam3Image",
+          sync_mode: "on_any",
           data: {
             image: { type: "image", uri: "", data: base64Data },
             point_prompts: falPrompts,

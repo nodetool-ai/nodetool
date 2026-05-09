@@ -43,6 +43,11 @@ export function selectionAntCanvasMarginCssPx(zoom: number): number {
   return Math.min(520, Math.round(32 + z * 120));
 }
 
+/** Same pacing idea as GPU ants: slow dash drift so Canvas2D preview does not sparkle. */
+function liveSelectionPreviewAntsPhase(): number {
+  return (performance.now() * 0.018) % 256;
+}
+
 export interface UseOverlayRendererParams {
   doc: SketchDocument;
   activeTool: SketchTool;
@@ -232,10 +237,11 @@ export function useOverlayRenderer({
     if (preview) {
       const { x, y, w, h } = marqueeRectFromDocPoints(preview.start, preview.end);
       if (w >= 1 && h >= 1) {
+        const phase = liveSelectionPreviewAntsPhase();
         if (doc.toolSettings.select.mode === "ellipse") {
-          drawSelectionEllipseOutline(ctx, x, y, w, h, 0, zoom);
+          drawSelectionEllipseOutline(ctx, x, y, w, h, phase, zoom);
         } else {
-          drawSelectionRectOutline(ctx, x, y, w, h, 0, zoom);
+          drawSelectionRectOutline(ctx, x, y, w, h, phase, zoom);
         }
       }
     }
@@ -423,7 +429,12 @@ export function useOverlayRenderer({
       }
       const path: Point[] = cursor ? [...points, cursor] : [...points];
       if (path.length >= 2) {
-        drawSelectionPolylineOutline(selCtx, path, 0, zoom);
+        drawSelectionPolylineOutline(
+          selCtx,
+          path,
+          liveSelectionPreviewAntsPhase(),
+          zoom
+        );
       }
       selCtx.setTransform(1, 0, 0, 1, 0, 0);
     },
