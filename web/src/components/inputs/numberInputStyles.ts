@@ -75,7 +75,13 @@ export const numberInputStyles = (theme: Theme) =>
       letterSpacing: "normal",
       fontWeight: 400,
       padding: 0,
-      marginTop: 0
+      marginTop: 0,
+      userSelect: "none",
+      WebkitUserSelect: "none",
+
+      "&::selection": {
+        backgroundColor: "transparent"
+      }
     },
 
     ".number-stepper": {
@@ -99,6 +105,12 @@ export const numberInputStyles = (theme: Theme) =>
       padding: 0,
       fontSize: "11px",
       lineHeight: 1,
+      userSelect: "none",
+      WebkitUserSelect: "none",
+
+      "&::selection": {
+        backgroundColor: "transparent"
+      },
 
       "&:hover": {
         borderColor: theme.vars.palette.primary.main,
@@ -137,6 +149,15 @@ export const numberInputStyles = (theme: Theme) =>
 
     ".editable-input-container": {
       display: "contents"
+    },
+
+    "&:not(.focused) .edit-value": {
+      userSelect: "none",
+      WebkitUserSelect: "none"
+    },
+
+    "&:not(.focused) .edit-value::selection": {
+      backgroundColor: "transparent"
     },
 
     ".edit-value input::selection": {
