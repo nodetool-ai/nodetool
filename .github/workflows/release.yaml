@@ -27,7 +27,101 @@ permissions:
   contents: write
 
 jobs:
+  check_changes:
+    name: Check for changes since last nightly
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.check.outputs.has_changes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - id: check
+        name: Compare HEAD to last nightly tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          last_nightly_tag=$(git tag --list 'v*-nightly.*' --sort=-creatordate | head -n 1)
+          if [[ -z "$last_nightly_tag" ]]; then
+            echo "No previous nightly tag found. Proceeding with release."
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          last_nightly_sha=$(git rev-parse "$last_nightly_tag^{commit}")
+          head_sha=$(git rev-parse HEAD)
+          if [[ "$last_nightly_sha" == "$head_sha" ]]; then
+            echo "No changes since last nightly release ($last_nightly_tag). Skipping."
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Changes detected since $last_nightly_tag. Proceeding."
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  preflight:
+    name: Resolve release metadata
+    needs: [check_changes]
+    if: |
+      always() && !failure() && !cancelled() &&
+      (needs.check_changes.result == 'skipped' || needs.check_changes.outputs.has_changes == 'true')
+    runs-on: ubuntu-latest
+    outputs:
+      release_channel: ${{ steps.meta.outputs.release_channel }}
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      release_name: ${{ steps.meta.outputs.name }}
+      is_prerelease: ${{ steps.meta.outputs.is_prerelease }}
+      make_latest: ${{ steps.meta.outputs.make_latest }}
+      update_manifest: ${{ steps.meta.outputs.update_manifest }}
+      update_mac_manifest: ${{ steps.meta.outputs.update_mac_manifest }}
+      update_linux_manifest: ${{ steps.meta.outputs.update_linux_manifest }}
+      ref: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - id: meta
+        name: Resolve release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "schedule" || ( "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.channel }}" == "nightly" ) ]]; then
+            nightly_date="$(date -u -d "${{ github.run_started_at }}" +%Y%m%d)"
+            node scripts/resolve-nightly-release.mjs \
+              --date "$nightly_date" \
+              --run-number "${{ github.run_number }}" \
+              --sha "${{ github.sha }}" \
+              --github-output
+            echo "release_channel=nightly" >> "$GITHUB_OUTPUT"
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "make_latest=false" >> "$GITHUB_OUTPUT"
+            echo "update_manifest=nightly.yml" >> "$GITHUB_OUTPUT"
+            echo "update_mac_manifest=nightly-mac.yml" >> "$GITHUB_OUTPUT"
+            echo "update_linux_manifest=nightly-linux.yml" >> "$GITHUB_OUTPUT"
+          else
+            raw="${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref_name }}"
+            version="${raw#v}"
+            echo "release_channel=stable" >> "$GITHUB_OUTPUT"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            echo "tag=v$version" >> "$GITHUB_OUTPUT"
+            echo "name=Nodetool v$version" >> "$GITHUB_OUTPUT"
+            if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+              echo "make_latest=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+              echo "make_latest=false" >> "$GITHUB_OUTPUT"
+            fi
+            echo "update_manifest=latest.yml" >> "$GITHUB_OUTPUT"
+            echo "update_mac_manifest=latest-mac.yml" >> "$GITHUB_OUTPUT"
+            echo "update_linux_manifest=latest-linux.yml" >> "$GITHUB_OUTPUT"
+          fi
+
   release-build:
+    needs: [preflight]
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' }}
     strategy:
       fail-fast: false
       matrix:
@@ -41,18 +135,20 @@ jobs:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      VERSION: ${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref_name }}
-      RELEASE_CHANNEL: stable
-      RELEASE_TAG: ${{ github.event.inputs.version != '' && format('v{0}', github.event.inputs.version) || github.ref_name }}
-      RELEASE_NAME: Nodetool ${{ github.event.inputs.version != '' && format('v{0}', github.event.inputs.version) || github.ref_name }}
-      RELEASE_PRERELEASE: "false"
-      RELEASE_MAKE_LATEST: "true"
-      UPDATE_MANIFEST: latest.yml
-      UPDATE_MAC_MANIFEST: latest-mac.yml
-      UPDATE_LINUX_MANIFEST: latest-linux.yml
+      VERSION: ${{ needs.preflight.outputs.version }}
+      RELEASE_CHANNEL: ${{ needs.preflight.outputs.release_channel }}
+      RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
+      RELEASE_NAME: ${{ needs.preflight.outputs.release_name }}
+      RELEASE_PRERELEASE: ${{ needs.preflight.outputs.is_prerelease }}
+      RELEASE_MAKE_LATEST: ${{ needs.preflight.outputs.make_latest }}
+      UPDATE_MANIFEST: ${{ needs.preflight.outputs.update_manifest }}
+      UPDATE_MAC_MANIFEST: ${{ needs.preflight.outputs.update_mac_manifest }}
+      UPDATE_LINUX_MANIFEST: ${{ needs.preflight.outputs.update_linux_manifest }}
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.preflight.outputs.ref }}
 
       - name: Resolve release metadata
         shell: bash

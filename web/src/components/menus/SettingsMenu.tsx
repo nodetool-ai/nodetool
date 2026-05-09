@@ -588,6 +588,36 @@ function SettingsPage() {
 
                     {isElectron && (
                       <div className="settings-item">
+                        <LabeledSwitch
+                          label="Automatic Updates"
+                          checked={autoUpdatesEnabled}
+                          onChange={handleAutoUpdatesChange}
+                          description="Check for and download desktop app updates from the selected release channel."
+                        />
+                      </div>
+                    )}
+
+                    {isElectron && (
+                      <div id="updates" className="settings-item">
+                        <SelectField
+                          label="Update Channel"
+                          value={updateChannel}
+                          variant="standard"
+                          onChange={handleUpdateChannelChange}
+                          options={[
+                            { value: "latest", label: "Stable" },
+                            { value: "nightly", label: "Nightly" }
+                          ]}
+                        />
+                        <Text className="description">
+                          Stable follows full releases. Nightly follows prerelease nightly builds.
+                          Nightly builds default to the Nightly channel.
+                        </Text>
+                      </div>
+                    )}
+
+                    {isElectron && (
+                      <div className="settings-item">
                         <SelectField
                           label="On Close Behavior"
                           value={closeBehavior}
