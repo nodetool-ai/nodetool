@@ -17,9 +17,10 @@ export type NodeOutputProps = {
   output: OutputSlot;
   isDynamic?: boolean;
   isStreamingOutput?: boolean;
+  displayName?: string;
 };
 
-const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }) => {
+const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput, displayName }) => {
   const { connectType, connectDirection, connectNodeId, connectHandleId } =
     useConnectionStore(
       (state) => ({
@@ -145,6 +146,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
       <HandleTooltip
         typeMetadata={output.type}
         paramName={output.name}
+        displayName={displayName}
         className={classConnectable}
         handlePosition="right"
         isStreamingOutput={isStreamingOutput}

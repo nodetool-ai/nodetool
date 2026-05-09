@@ -822,7 +822,7 @@ describe("SelectTool", () => {
       .mockImplementation(
         () =>
           new Promise<Uint8ClampedArray>((resolve) => {
-            resolveMask = resolve;
+            resolveMask = (mask: Uint8ClampedArray) => resolve(mask);
           })
       );
     const requestAnimationFrameSpy = jest
@@ -838,7 +838,8 @@ describe("SelectTool", () => {
 
     tool.onDown(ctx, makePointerEvent({ point: { x: 4, y: 4 } }));
     tool.onCancel?.(ctx);
-    resolveMask?.(new Uint8ClampedArray(16 * 16).fill(255));
+    const rm = resolveMask as ((mask: Uint8ClampedArray) => void) | null;
+    if (rm) rm(new Uint8ClampedArray(16 * 16).fill(255));
     await Promise.resolve();
 
     expect(ctx.onSelectionChange).not.toHaveBeenCalled();

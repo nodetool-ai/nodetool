@@ -9,10 +9,12 @@ import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workflows } from "./schema/workflows.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
+import type { WorkflowRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 // ── Types ────────────────────────────────────────────────────────────
 
 export type AccessLevel = "private" | "public";
+export type { WorkflowRunMode };
 
 export interface WorkflowGraph {
   nodes: Record<string, unknown>[];
@@ -132,7 +134,7 @@ export class Workflow extends DBModel {
     opts: {
       limit?: number;
       access?: AccessLevel;
-      runMode?: string;
+      runMode?: WorkflowRunMode | string;
       tag?: string;
     } = {}
   ): Promise<[Workflow[], string]> {

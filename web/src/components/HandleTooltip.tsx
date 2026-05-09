@@ -41,6 +41,7 @@ const formatTypeString = (typeMetadata: TypeMetadata): string => {
 type HandleTooltipProps = {
   typeMetadata: TypeMetadata;
   paramName: string;
+  displayName?: string;
   className?: string;
   children: React.ReactNode;
   handlePosition: "left" | "right";
@@ -53,6 +54,7 @@ type HandleTooltipProps = {
 const HandleTooltip = memo(function HandleTooltip({
   typeMetadata,
   paramName,
+  displayName,
   className = "",
   children,
   handlePosition,
@@ -92,7 +94,7 @@ const HandleTooltip = memo(function HandleTooltip({
     setShowTooltip(false);
   }, [isConnecting]);
 
-  const prettyName = paramName
+  const prettyName = displayName ?? paramName
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");

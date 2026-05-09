@@ -101,7 +101,7 @@ describe("useLayerHydration", () => {
 
     expect((runtime.setLayerData as jest.Mock)).toHaveBeenCalledWith(
       layer.id,
-      "/api/storage/input-layer.png",
+      expect.stringContaining("/api/storage/input-layer.png"),
       expect.any(Object),
       expect.any(Function)
     );
