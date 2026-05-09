@@ -3,6 +3,7 @@
   "references": [
     { "path": "packages/protocol" },
     { "path": "packages/timeline" },
+    { "path": "packages/image-editor" },
     { "path": "packages/config" },
     { "path": "packages/auth" },
     { "path": "packages/storage" },

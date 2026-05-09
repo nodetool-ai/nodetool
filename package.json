@@ -4,6 +4,7 @@
   "workspaces": [
     "packages/protocol",
     "packages/timeline",
+    "packages/image-editor",
     "packages/kernel",
     "packages/runtime",
     "packages/models",

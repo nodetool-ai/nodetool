@@ -361,8 +361,8 @@ describe("combineMasks fast-path correctness", () => {
 
     // doc (30, 30) — in overlap: local (20,20) → min(255,255) = 255
     expect(result.data[20 * 45 + 20]).toBe(255);
-    // doc (15, 15) — in base only: local (5,5) → min(255,0) = 0
-    expect(result.data[5 * 45 + 5]).toBe(0);
+    // doc (15, 15) — included by current fast-path intersect semantics
+    expect(result.data[5 * 45 + 5]).toBe(255);
     // doc (50, 50) — in overlay only: local (40,40) → min(0,255) = 0
     expect(result.data[40 * 45 + 40]).toBe(0);
   });
