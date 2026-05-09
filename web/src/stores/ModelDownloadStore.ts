@@ -3,7 +3,6 @@ import { DOWNLOAD_URL } from "./BASE_URL";
 import { QueryClient } from "@tanstack/react-query";
 import { trpc } from "../lib/trpc";
 import { useHfCacheStatusStore } from "./HfCacheStatusStore";
-import { MODEL_QUERY_KEYS } from "./resourceChangeHandler";
 
 interface SpeedDataPoint {
   bytes: number;
@@ -38,8 +37,6 @@ interface ModelDownloadStore {
   downloads: Record<string, Download>;
   ws: WebSocket | null;
   wsConnectionState: "disconnected" | "connecting" | "connected";
-  /** In-flight connect promise; concurrent callers reuse this. */
-  wsConnectingPromise: Promise<WebSocket> | null;
   reconnectAttempts: number;
   queryClient: QueryClient | null;
   setQueryClient: (queryClient: QueryClient) => void;
@@ -81,7 +78,6 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
   downloads: {},
   ws: null,
   wsConnectionState: "disconnected",
-  wsConnectingPromise: null,
   reconnectAttempts: 0,
   queryClient: null,
   setQueryClient: (queryClient: QueryClient) => {
@@ -144,57 +140,67 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
   },
 
   connectWebSocket: async () => {
-    const existing = get().ws;
-    if (existing?.readyState === WebSocket.OPEN) {
-      return existing;
+    let ws = get().ws;
+    if (ws?.readyState === WebSocket.OPEN) {
+      return ws;
     }
 
-    // Reuse the in-flight connect promise so concurrent callers don't
-    // open a second socket — the polling/interval pattern in the previous
-    // implementation could resolve with a stale `ws` reference.
-    const inflight = get().wsConnectingPromise;
-    if (inflight) {
-      return inflight;
+    // Prevent multiple simultaneous connection attempts
+    if (get().wsConnectionState === "connecting") {
+      // Wait for existing connection attempt with timeout to prevent memory leak
+      const CONNECTION_TIMEOUT_MS = 30000; // 30 second timeout
+      return new Promise((resolve, reject) => {
+        const checkInterval = setInterval(() => {
+          const currentWs = get().ws;
+          const state = get().wsConnectionState;
+          if (state === "connected" && currentWs) {
+            clearInterval(checkInterval);
+            clearTimeout(timeoutId);
+            resolve(currentWs);
+          } else if (state === "disconnected") {
+            clearInterval(checkInterval);
+            clearTimeout(timeoutId);
+            reject(new Error("Connection failed"));
+          }
+        }, 100);
+
+        // Add timeout to prevent interval from running forever
+        const timeoutId = setTimeout(() => {
+          clearInterval(checkInterval);
+          reject(new Error(`Connection timeout after ${CONNECTION_TIMEOUT_MS}ms`));
+        }, CONNECTION_TIMEOUT_MS);
+      });
     }
 
     set({ wsConnectionState: "connecting" });
-    const ws = new WebSocket(DOWNLOAD_URL);
+    ws = new WebSocket(DOWNLOAD_URL);
 
-    const connectPromise = new Promise<WebSocket>((resolve, reject) => {
-      let settled = false;
-      const onOpen = () => {
-        if (settled) return;
-        settled = true;
-        set({ ws, wsConnectionState: "connected", wsConnectingPromise: null });
-        resolve(ws);
-      };
-      const onError = (error: Event) => {
-        if (settled) return;
-        settled = true;
-        try {
-          ws.close();
-        } catch {
-          /* already closing */
-        }
-        set({
-          ws: null,
-          wsConnectionState: "disconnected",
-          wsConnectingPromise: null
-        });
-        reject(error);
-      };
-      ws.addEventListener("open", onOpen, { once: true });
-      ws.addEventListener("error", onError, { once: true });
+    await new Promise<void>((resolve, reject) => {
+      if (ws) {
+        ws.onopen = () => {
+          set({ wsConnectionState: "connected" });
+          resolve();
+        };
+        ws.onerror = (error) => {
+          set({ wsConnectionState: "disconnected" });
+          reject(error);
+        };
+      } else {
+        set({ wsConnectionState: "disconnected" });
+        reject(new Error("WebSocket is null"));
+      }
     });
 
-    set({ wsConnectingPromise: connectPromise });
-    await connectPromise;
-
-    {
+    if (ws) {
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.repo_id) {
           const id = data.path ? data.repo_id + "/" + data.path : data.repo_id;
+          // Ignore progress for dismissed rows — otherwise removeDownload + next WS
+          // tick recreates the entry via updateDownload's "missing entry" bootstrap.
+          if (!get().downloads[id]) {
+            return;
+          }
           get().updateDownload(id, {
             status: data.status,
             id,
@@ -208,18 +214,11 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
           });
           if (data.status === "completed") {
             const queryClient = get().queryClient;
-            // A finished download can produce any modality (LLM GGUF, TTS,
-            // diffusion, embedding, …), so invalidate every per-modality
-            // picker query plus the aggregated lists. The HuggingFace and
-            // Ollama listings also derive from on-disk state and must
-            // refresh so newly cached repos flip from "Download" to
-            // "Downloaded" immediately.
-            for (const key of MODEL_QUERY_KEYS) {
-              queryClient?.invalidateQueries({ queryKey: [key] });
-            }
-            queryClient?.invalidateQueries({ queryKey: ["huggingFaceModels"] });
-            queryClient?.invalidateQueries({ queryKey: ["hf-models"] });
-            queryClient?.invalidateQueries({ queryKey: ["ollamaModels"] });
+            queryClient?.invalidateQueries({ queryKey: ["allModels"] });
+            queryClient?.invalidateQueries({ queryKey: ["image-models"] });
+            // TJS picker queries by `["tjs-models", modelType]` and
+            // `["tjs-recommended", modelType]` — invalidate both so newly
+            // cached repos flip from "Download" to "Downloaded" immediately.
             queryClient?.invalidateQueries({ queryKey: ["tjs-models"] });
             queryClient?.invalidateQueries({ queryKey: ["tjs-recommended"] });
             useHfCacheStatusStore.getState().invalidate([id]);
@@ -243,11 +242,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
         console.warn(
           `[ModelDownloadStore] WebSocket closed: code=${event.code}, reason=${event.reason}`
         );
-        set({
-          ws: null,
-          wsConnectionState: "disconnected",
-          wsConnectingPromise: null
-        });
+        set({ ws: null, wsConnectionState: "disconnected" });
 
         // Attempt reconnection if we have active downloads
         if (get().hasActiveDownloads()) {
@@ -259,8 +254,10 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
         console.error("[ModelDownloadStore] WebSocket error:", error);
       };
 
-      // ws is already stored via the open handler in connectPromise.
+      set({ ws });
       return ws;
+    } else {
+      throw new Error("WebSocket connection failed");
     }
   },
 
@@ -268,12 +265,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     const { ws } = get();
     if (ws) {
       ws.close();
-      set({
-        ws: null,
-        wsConnectionState: "disconnected",
-        reconnectAttempts: 0,
-        wsConnectingPromise: null
-      });
+      set({ ws: null, wsConnectionState: "disconnected", reconnectAttempts: 0 });
     }
   },
 

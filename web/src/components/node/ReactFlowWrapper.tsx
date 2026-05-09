@@ -82,6 +82,9 @@ interface ReactFlowWrapperProps {
 }
 
 import GhostNode from "./GhostNode";
+import SketchNode, {
+  SKETCH_NODE_TYPE
+} from "../node/SketchNode/SketchNode";
 import MiniMapNavigator from "./MiniMapNavigator";
 import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
 import CustomEdge from "../node_editor/CustomEdge";
@@ -293,6 +296,7 @@ const ReactFlowWrapper = ({
       "kie.DynamicKie": DynamicKieSchemaNode,
       [DYNAMIC_REPLICATE_NODE_TYPE]: DynamicReplicateNode,
       [WORKFLOW_NODE_TYPE]: WorkflowNode,
+      [SKETCH_NODE_TYPE]: SketchNode,
       default: PlaceholderNode
     }),
     [baseNodeTypes]

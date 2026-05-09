@@ -82,6 +82,7 @@ describe("base node registration", () => {
     expect(registry.has("nodetool.workflows.base_node.Preview")).toBe(true);
     expect(registry.has("nodetool.audio.TextToSpeech")).toBe(true);
     expect(registry.has("nodetool.image.ImageToImage")).toBe(true);
+    expect(registry.has("nodetool.image.ImageEditor")).toBe(true);
     expect(registry.has("nodetool.video.TextToVideo")).toBe(true);
     expect(registry.has("nodetool.workspace.ReadTextFile")).toBe(true);
     expect(registry.has("nodetool.document.SplitDocument")).toBe(true);

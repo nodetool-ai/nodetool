@@ -175,7 +175,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
       return;
     }
     const rect = anchorEl.getBoundingClientRect();
-    const height = 420; // Height of the menu
+    const height = 480; // Height of the menu (popover paper)
     const spaceBelow = window.innerHeight - rect.bottom;
 
     if (spaceBelow < height && rect.top > height) {
@@ -214,8 +214,8 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         paper: {
           elevation: 24,
           style: {
-            width: "520px",
-            height: "500px",
+            width: "600px",
+            height: "560px",
             maxHeight: "90vh",
             maxWidth: "100vw",
             borderRadius: theme.vars.rounded.dialog,
@@ -321,7 +321,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         {/* Left Sidebar: Navigation */}
         <Box
           sx={{
-            width: isIconOnly ? 64 : 200,
+            width: isIconOnly ? 88 : 200,
             flexShrink: 0,
             borderRight: `1px solid ${theme.vars.palette.divider}`,
             display: "flex",

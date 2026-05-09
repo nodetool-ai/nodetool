@@ -14,10 +14,10 @@ import {
 } from "@huggingface/hub";
 import type { RepoType } from "@huggingface/hub";
 
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { resolveHfToken } from "./hf-auth.js";
+import { expandLeadingTildePath } from "./hf-expand-path.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -45,7 +45,7 @@ export interface AsyncHfDownloadOptions {
 // ---------------------------------------------------------------------------
 
 function expandTilde(p: string): string {
-  return p.startsWith("~") ? p.replace("~", os.homedir()) : p;
+  return expandLeadingTildePath(p);
 }
 
 /**

@@ -1,0 +1,576 @@
+import { act, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { SegmentSettingsPanel } from "../ToolSettingsPanels";
+import { DEFAULT_SEGMENT_SETTINGS } from "../types";
+import type { SamModelInfo } from "../sam";
+import { FAL_SAM_CAPABILITIES, LOCAL_SAM3_CAPABILITIES } from "../sam";
+import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
+import { useSketchStore } from "../state";
+
+const baseLocalSam3Info: SamModelInfo = {
+  status: "not-installed",
+  backendId: "local-sam3",
+  backendLabel: "Local SAM3",
+  capabilities: LOCAL_SAM3_CAPABILITIES,
+  nodeType: "huggingface.image_segmentation.MaskGeneration",
+  modelId: "facebook/sam3",
+  modelName: "Local SAM3",
+  errorMessage: "Local SAM3 is not ready"
+};
+
+const baseFalInfo: SamModelInfo = {
+  status: "available",
+  backendId: "fal",
+  backendLabel: "fal.ai",
+  capabilities: FAL_SAM_CAPABILITIES,
+  nodeType: "fal.image_to_image.Sam3Image",
+  modelId: "fal-ai/sam-3-1/image",
+  modelName: "SAM 3.1 (fal.ai Cloud)"
+};
+
+describe("SegmentSettingsPanel", () => {
+  let originalStartDownload: ReturnType<typeof useModelDownloadStore.getState>["startDownload"];
+  let originalCancelDownload: ReturnType<typeof useModelDownloadStore.getState>["cancelDownload"];
+  let originalSelectedLayerIds = useSketchStore.getState().selectedLayerIds;
+  let originalDocument = useSketchStore.getState().document;
+
+  beforeEach(() => {
+    originalStartDownload = useModelDownloadStore.getState().startDownload;
+    originalCancelDownload = useModelDownloadStore.getState().cancelDownload;
+    originalSelectedLayerIds = useSketchStore.getState().selectedLayerIds;
+    originalDocument = useSketchStore.getState().document;
+    useModelDownloadStore.setState({
+      downloads: {},
+      startDownload: originalStartDownload,
+      cancelDownload: originalCancelDownload
+    });
+    useSketchStore.setState({
+      selectedLayerIds: [],
+      document: originalDocument
+    });
+  });
+
+  afterEach(() => {
+    act(() => {
+      useModelDownloadStore.setState({
+        downloads: {},
+        startDownload: originalStartDownload,
+        cancelDownload: originalCancelDownload
+      });
+      useSketchStore.setState({
+        selectedLayerIds: originalSelectedLayerIds,
+        document: originalDocument
+      });
+    });
+  });
+
+  it("shows only automatic mode for the Local SAM3 backend", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={baseLocalSam3Info}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: "Point" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Box" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Auto" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Local SAM3 currently supports automatic layer split only.")
+    ).toBeInTheDocument();
+  });
+
+  it("shows Local SAM3 point and box modes only when metadata confirms them", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "point"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={{
+          ...baseLocalSam3Info,
+          status: "available",
+          capabilities: {
+            ...LOCAL_SAM3_CAPABILITIES,
+            pointPrompts: true,
+            boxPrompts: true
+          }
+        }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Point" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Box" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Segment" })).toBeInTheDocument();
+    expect(
+      screen.queryByText("Local SAM3 currently supports automatic layer split only.")
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows a Local SAM3 concept field only when metadata confirms text prompts", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "point",
+          conceptPrompt: "foreground object"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={{
+          ...baseLocalSam3Info,
+          status: "available",
+          capabilities: {
+            ...LOCAL_SAM3_CAPABILITIES,
+            textPrompts: true
+          }
+        }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole("textbox", { name: "Concept prompt" })).toHaveValue(
+      "foreground object"
+    );
+  });
+
+  it("hides the Local SAM3 concept field when text prompts are unavailable", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "point"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={{
+          ...baseLocalSam3Info,
+          status: "available",
+          capabilities: {
+            ...LOCAL_SAM3_CAPABILITIES,
+            pointPrompts: true
+          }
+        }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(
+      screen.queryByRole("textbox", { name: "Concept prompt" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the provider concept field when backend capabilities allow text prompts", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "fal",
+          promptMode: "point",
+          conceptPrompt: "foreground object"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={baseFalInfo}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole("textbox", { name: "Concept prompt" })).toHaveValue(
+      "foreground object"
+    );
+  });
+
+  it("does not assume provider prompt controls before capability metadata loads", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "fal",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={null}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: "Point" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Box" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("textbox", { name: "Concept prompt" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Auto" })).toBeInTheDocument();
+  });
+
+  it("uses the same split action label for provider auto mode when the backend is ready", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "fal",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={baseFalInfo}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Split selected layer" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Clear" })).not.toBeInTheDocument();
+  });
+
+  it("shows the provider setup hint and disables split when the provider is unavailable", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "fal",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={{
+          ...baseFalInfo,
+          status: "not-installed",
+          errorMessage: "FAL_API_KEY not configured. Add it in Settings → Secrets."
+        }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText("FAL_API_KEY not configured. Add it in Settings → Secrets.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Split selected layer" })).toBeDisabled();
+  });
+
+  it("shows the node-pack hint when Local SAM3 metadata is unavailable", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={{
+          ...baseLocalSam3Info,
+          errorMessage: "Install or enable the HuggingFace node pack"
+        }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText("Install or enable the HuggingFace node pack")
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Download Local SAM3" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Split selected layer" })).toBeDisabled();
+  });
+
+  it("shows a Local SAM3 download action when the model is missing", async () => {
+    const user = userEvent.setup();
+    const startDownload = jest.fn();
+    useModelDownloadStore.setState({ startDownload });
+
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={baseLocalSam3Info}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Download Local SAM3" }));
+
+    expect(startDownload).toHaveBeenCalledWith("facebook/sam3", "hf.model");
+  });
+
+  it("shows the Local SAM3 downloading hint from existing NodeTool download state", () => {
+    useModelDownloadStore.setState({
+      downloads: {
+        "facebook/sam3": {
+          id: "facebook/sam3",
+          status: "running",
+          downloadedBytes: 50,
+          totalBytes: 100,
+          speed: null,
+          speedHistory: []
+        }
+      }
+    });
+
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={{
+          ...baseLocalSam3Info,
+          status: "downloading",
+          downloadProgress: 0.5
+        }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText(/Local SAM3 is downloading/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Split selected layer" })).toBeDisabled();
+  });
+
+  it("shows a cancel action while Local SAM3 is downloading", async () => {
+    const user = userEvent.setup();
+    const cancelDownload = jest.fn().mockResolvedValue(undefined);
+    useModelDownloadStore.setState({
+      cancelDownload,
+      downloads: {
+        "facebook/sam3": {
+          id: "facebook/sam3",
+          status: "running",
+          downloadedBytes: 50,
+          totalBytes: 100,
+          speed: null,
+          speedHistory: []
+        }
+      }
+    });
+
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={{
+          ...baseLocalSam3Info,
+          status: "downloading",
+          downloadProgress: 0.5
+        }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Cancel download" }));
+
+    expect(cancelDownload).toHaveBeenCalledWith("facebook/sam3");
+  });
+
+  it("disables split when multiple layers are selected", () => {
+    const document = useSketchStore.getState().document;
+    const extraLayer = {
+      ...document.layers[0],
+      id: "layer-2",
+      name: "Second Layer"
+    };
+    useSketchStore.setState({
+      document: {
+        ...document,
+        layers: [...document.layers, extraLayer]
+      },
+      selectedLayerIds: [document.layers[0].id, extraLayer.id]
+    });
+
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={{
+          ...baseLocalSam3Info,
+          status: "available"
+        }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Split selected layer" })).toBeDisabled();
+    expect(
+      screen.getByText("Select exactly one raster layer to split.")
+    ).toBeInTheDocument();
+  });
+
+  it("shows the same split-selection hint for provider auto mode", () => {
+    const document = useSketchStore.getState().document;
+    const extraLayer = {
+      ...document.layers[0],
+      id: "layer-3",
+      name: "Third Layer"
+    };
+    useSketchStore.setState({
+      document: {
+        ...document,
+        layers: [...document.layers, extraLayer]
+      },
+      selectedLayerIds: [document.layers[0].id, extraLayer.id]
+    });
+
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "fal",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={baseFalInfo}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Split selected layer" })).toBeDisabled();
+    expect(
+      screen.getByText("Select exactly one raster layer to split.")
+    ).toBeInTheDocument();
+  });
+
+  it("disables split when the selected raster layer has no exportable image data", () => {
+    const document = useSketchStore.getState().document;
+    useSketchStore.setState({
+      document: {
+        ...document,
+        layers: [
+          {
+            ...document.layers[0],
+            data: null
+          }
+        ]
+      },
+      selectedLayerIds: [document.layers[0].id]
+    });
+
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={{
+          ...baseLocalSam3Info,
+          status: "available"
+        }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Split selected layer" })).toBeDisabled();
+    expect(
+      screen.getByText("Select exactly one raster layer to split.")
+    ).toBeInTheDocument();
+  });
+});

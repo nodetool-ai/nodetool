@@ -35,6 +35,9 @@ import type { Workflow, NodeMetadata, Property, OutputSlot, Node as GraphNode, E
 import BaseNode from "./components/node/BaseNode";
 import GroupNode from "./components/node/GroupNode";
 import CommentNode from "./components/node/CommentNode";
+import SketchNode, {
+  SKETCH_NODE_TYPE
+} from "./components/node/SketchNode/SketchNode";
 import PlaceholderNode from "./components/node_types/PlaceholderNode";
 import CustomEdge from "./components/node_editor/CustomEdge";
 import ControlEdge from "./components/node_editor/ControlEdge";
@@ -278,6 +281,7 @@ function GraphInner({
       ...baseNodeTypes,
       "nodetool.workflows.base_node.Group": GroupNode,
       "nodetool.workflows.base_node.Comment": CommentNode,
+      [SKETCH_NODE_TYPE]: SketchNode,
       default: PlaceholderNode
     }),
     [baseNodeTypes]
