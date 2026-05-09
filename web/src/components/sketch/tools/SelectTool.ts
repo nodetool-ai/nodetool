@@ -101,7 +101,7 @@ export class SelectTool implements ToolHandler {
     this.cancelPendingMagicWand();
   }
 
-  onCancel(): void {
+  onCancel(_ctx: ToolContext): void {
     this.cancelPendingMagicWand();
   }
 

@@ -263,13 +263,12 @@ fn fs_blit(@location(0) uv: vec2f) -> @location(0) vec4f {
 
 // ─── Selection marching-ants fragment shader ─────────────────────────────
 //
-// Renders animated ants on selected-region boundaries.
-// The framebuffer is document-pixel resolution (canvas width/height = doc.canvas);
-// zoom must match SketchCanvasPresentation scale(zoom) for this composite (passed
-// in via viewportZoom on compositeToDisplay so rAF never uses a stale default).
-// Dash length stays ~constant in screen px (dashLenDoc = 4/z). Phase marches tangentially:
-// projecting doc position onto a boundary tangent (orthogonal to summed outward normals).
-// Do NOT use (local.x + local.y) — that draws diagonal zebra stripes unrelated to contour.
+// One fragment = one document pixel (`canvasSize` = doc canvas). The UI wraps this
+// bitmap in CSS `scale(zoom)`. We used to feather by O(1/z) using **interpolated**
+// fragment position: inside a doc pixel, distance to the grid often lands near **0.5**
+// while the fade width shrank when zoomed in, so alpha hit ~0 almost everywhere except
+// accidental zooms. Fix: distance from the **pixel center** to mask edges, and **no**
+// fractional alpha — full opacity on contour texels; dashes still scale with 4/z.
 //
 // Bind group:
 //   0 — AntsUniforms (uniform buffer)
@@ -298,49 +297,73 @@ fn sampleMask(coord: vec2i, dims: vec2i) -> f32 {
 fn fs_ants(@location(0) uv: vec2f) -> @location(0) vec4f {
   let docPos = uv * u.canvasSize;
   let local  = docPos - u.maskOrigin;
-  let maskCoord = vec2i(i32(floor(local.x)), i32(floor(local.y)));
-  let dims      = vec2i(textureDimensions(maskTex));
+  let dims   = vec2i(textureDimensions(maskTex));
 
-  let center = sampleMask(maskCoord, dims);
+  let cx = floor(local.x);
+  let cy = floor(local.y);
+  let maskCoord = vec2i(i32(cx), i32(cy));
+  let pc = vec2f(cx + 0.5, cy + 0.5);
+
   let THRESH = 0.5;
-  let isSel  = center >= THRESH;
+  let c  = sampleMask(maskCoord, dims);
+  let insC = c >= THRESH;
 
-  let nf = sampleMask(maskCoord + vec2i( 0, -1), dims);
-  let sf = sampleMask(maskCoord + vec2i( 0,  1), dims);
-  let ef = sampleMask(maskCoord + vec2i( 1,  0), dims);
-  let wf = sampleMask(maskCoord + vec2i(-1,  0), dims);
-  let isEdge = isSel && (nf < THRESH || sf < THRESH || ef < THRESH || wf < THRESH);
+  let nf = sampleMask(maskCoord + vec2i(0, -1), dims);
+  let sf = sampleMask(maskCoord + vec2i(0,  1), dims);
+  let ef = sampleMask(maskCoord + vec2i(1,  0), dims);
+  let wf = sampleMask(maskCoord + vec2i(-1, 0), dims);
 
-  if (!isEdge) { return vec4f(0.0); }
+  // Min distance from **pixel center** to mask boundary segments on this cell's edges.
+  var dEdge = 1e9;
+  if ((insC != (nf >= THRESH))) {
+    dEdge = min(dEdge, abs(pc.y - cy));
+  }
+  if ((insC != (sf >= THRESH))) {
+    dEdge = min(dEdge, abs(pc.y - (cy + 1.0)));
+  }
+  if ((insC != (wf >= THRESH))) {
+    dEdge = min(dEdge, abs(pc.x - cx));
+  }
+  if ((insC != (ef >= THRESH))) {
+    dEdge = min(dEdge, abs(pc.x - (cx + 1.0)));
+  }
 
-  // Outward normal from selected interior toward any unselected 4-neighbor.
-  var nx = 0.0;
-  var ny = 0.0;
-  if (nf < THRESH) { ny -= 1.0; }
-  if (sf < THRESH) { ny += 1.0; }
-  if (wf < THRESH) { nx -= 1.0; }
-  if (ef < THRESH) { nx += 1.0; }
-  let nlen = length(vec2(nx, ny));
-  if (nlen < 1e-3) { return vec4f(0.0); }
-  nx = nx / nlen;
-  ny = ny / nlen;
-  let tx = -ny;
-  let ty = nx;
-  let phaseAlong = local.x * tx + local.y * ty;
+  if (dEdge >= 900.0) {
+    return vec4f(0.0);
+  }
 
-  let z = clamp(u.zoom, 0.02, 128.0);
+  let z = clamp(u.zoom, 0.02, 256.0);
+  // Pixel centers on contour texels sit ~0.5 doc units from axis edges; fractional
+  // feathers tied to (screenPx/z) made alpha vanish at almost every zoom — full alpha.
+  let aContour = 1.0;
+
+  let gx =
+    select(0.0, 1.0, ef >= THRESH) -
+    select(0.0, 1.0, wf >= THRESH);
+  let gy =
+    select(0.0, 1.0, sf >= THRESH) -
+    select(0.0, 1.0, nf >= THRESH);
+  let glenRaw = length(vec2(gx, gy));
+  var phaseAlong = pc.x;
+  if (glenRaw >= 1e-3) {
+    let tx = -gy / glenRaw;
+    let ty = gx / glenRaw;
+    phaseAlong = pc.x * tx + pc.y * ty;
+  }
+
   var dashLenDoc = 4.0 / z;
   dashLenDoc = clamp(dashLenDoc, 0.035, 120.0);
-
   let stripe = fract(phaseAlong / (2.0 * dashLenDoc) + u.phase);
   let isLit = stripe < 0.5;
 
   let lit = vec3f(170.0 / 255.0, 170.0 / 255.0, 170.0 / 255.0);
   let drk = vec3f(0.0, 0.0, 0.0);
-  if (isLit) {
-    return vec4f(lit, 1.0);
+  let rgb = select(drk, lit, isLit);
+  let outA = clamp(aContour, 0.0, 1.0);
+  if (outA <= 1e-4) {
+    return vec4f(0.0);
   }
-  return vec4f(drk, 1.0);
+  return vec4f(rgb * outA, outA);
 }
 `;
 

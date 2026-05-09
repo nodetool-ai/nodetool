@@ -46,11 +46,13 @@ workerScope.addEventListener("message", (event: MessageEvent<MagicWandWorkerRequ
           event.data.tolerance
         );
 
+    const mb = mask.byteOffset + mask.byteLength;
+    const maskBuffer = mask.buffer.slice(mask.byteOffset, mb);
     const response: MagicWandWorkerResponse = {
       id: event.data.id,
-      maskBuffer: mask.buffer
+      maskBuffer
     };
-    workerScope.postMessage(response, [response.maskBuffer]);
+    workerScope.postMessage(response, [maskBuffer]);
   } catch (error) {
     const response: MagicWandWorkerResponse = {
       id: event.data.id,
