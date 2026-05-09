@@ -13,6 +13,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       get: vi.fn(),
       find: vi.fn(),
       paginate: vi.fn(),
+      promoteToTemplate: vi.fn(),
       paginatePublic: vi.fn(),
       paginateTools: vi.fn(),
       create: vi.fn()
@@ -40,7 +41,12 @@ vi.mock("@nodetool-ai/kernel", () => {
   };
 });
 
-import { Workflow, WorkflowVersion, Job } from "@nodetool-ai/models";
+import {
+  Workflow,
+  WorkflowVersion,
+  Job,
+  WorkflowNotClipPrivateError
+} from "@nodetool-ai/models";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
 
 const createCaller = createCallerFactory(appRouter);
@@ -69,7 +75,8 @@ function makeWorkflow(opts: {
   user_id?: string;
   name?: string;
   access?: string;
-  run_mode?: string;
+  run_mode?: string | null;
+  tags?: string[];
   graph?: { nodes: unknown[]; edges: unknown[] };
 }) {
   const wf = {
@@ -77,11 +84,12 @@ function makeWorkflow(opts: {
     user_id: opts.user_id ?? "user-1",
     name: opts.name ?? "Test Workflow",
     access: opts.access ?? "private",
-    run_mode: opts.run_mode ?? "workflow",
+    // Preserve explicit `null` for legacy rows while defaulting only when omitted.
+    run_mode: opts.run_mode === undefined ? "workflow" : opts.run_mode,
     tool_name: null,
     package_name: null,
     path: null,
-    tags: [],
+    tags: opts.tags ?? [],
     description: "Test description",
     thumbnail: null,
     thumbnail_url: null,
@@ -171,6 +179,66 @@ describe("workflows router", () => {
       await expect(caller.workflows.list({})).rejects.toMatchObject({
         code: "UNAUTHORIZED"
       });
+    });
+
+    it("uses default run_mode filtering when no run_mode is passed", async () => {
+      const workflow = makeWorkflow({ id: "wf-default", run_mode: "workflow" });
+      const legacy = makeWorkflow({ id: "wf-legacy", run_mode: null });
+      const clip = makeWorkflow({ id: "wf-clip", run_mode: "clip" });
+      (Workflow.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
+        [workflow, legacy, clip],
+        ""
+      ]);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.list({});
+      expect(Workflow.paginate).toHaveBeenCalledWith(
+        "user-1",
+        expect.objectContaining({ runMode: undefined })
+      );
+      expect(result.workflows.map((w) => w.id)).toEqual([
+        "wf-default",
+        "wf-legacy",
+        "wf-clip"
+      ]);
+    });
+
+    it("includes clip workflows when run_mode filter is set", async () => {
+      const clip = makeWorkflow({ id: "wf-clip", run_mode: "clip" });
+      (Workflow.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
+        [clip],
+        ""
+      ]);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.list({ run_mode: "clip" });
+      expect(result.workflows.map((w) => w.id)).toEqual(["wf-clip"]);
+    });
+
+    it("filters to workflows with terminal media outputs when mediaOutput=true", async () => {
+      const withOutput = makeWorkflow({
+        id: "wf-out",
+        graph: {
+          nodes: [{ id: "out-1", type: "nodetool.output.ImageOutput", data: {} }],
+          edges: []
+        }
+      });
+      const withoutOutput = makeWorkflow({
+        id: "wf-no-out",
+        graph: {
+          nodes: [{ id: "n1", type: "nodetool.input.TextInput", data: {} }],
+          edges: []
+        }
+      });
+      (Workflow.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
+        [withOutput, withoutOutput],
+        ""
+      ]);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.list({ mediaOutput: true });
+      expect(result.workflows.map((w) => w.id)).toEqual(["wf-out"]);
+      expect(result.next).toBeNull();
     });
   });
 
@@ -653,6 +721,89 @@ describe("workflows router", () => {
       await expect(
         caller.workflows.generateName({ id: "wf-1" })
       ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    });
+  });
+
+  describe("promoteToTemplate", () => {
+    it("promotes an owned clip-private workflow", async () => {
+      const clipWf = makeWorkflow({
+        id: "wf-clip",
+        user_id: "user-1",
+        access: "private",
+        run_mode: "clip",
+        tags: ["timeline-template"]
+      });
+      const promoted = { ...clipWf, run_mode: "workflow" };
+      (Workflow.get as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(clipWf)
+        .mockResolvedValueOnce(promoted);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.promoteToTemplate({ id: "wf-clip" });
+      expect(Workflow.promoteToTemplate).toHaveBeenCalledWith("wf-clip");
+      expect(result.run_mode).toBe("workflow");
+    });
+
+    it("requires ownership", async () => {
+      const clipWf = makeWorkflow({
+        id: "wf-clip",
+        user_id: "other-user",
+        access: "private",
+        run_mode: "clip"
+      });
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(clipWf);
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.promoteToTemplate({ id: "wf-clip" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+
+    it("requires clip-private workflow input", async () => {
+      const standalone = makeWorkflow({
+        id: "wf-standalone",
+        user_id: "user-1",
+        access: "private",
+        run_mode: "workflow"
+      });
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(standalone);
+      (Workflow.promoteToTemplate as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new WorkflowNotClipPrivateError("wf-standalone")
+      );
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.promoteToTemplate({ id: "wf-standalone" })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    });
+  });
+
+  describe("terminalOutputs", () => {
+    it("returns only terminal media-output nodes", async () => {
+      const wf = makeWorkflow({
+        id: "wf-1",
+        user_id: "user-1",
+        graph: {
+          nodes: [
+            { id: "img-out", type: "nodetool.output.ImageOutput", data: { name: "Image" } },
+            { id: "video-out", type: "nodetool.output.VideoOutput", data: { name: "Video" } },
+            { id: "downstream", type: "nodetool.misc.PassThrough", data: {} }
+          ],
+          edges: [
+            {
+              source: "video-out",
+              target: "downstream",
+              sourceHandle: "output",
+              targetHandle: "input"
+            }
+          ]
+        }
+      });
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.terminalOutputs({ id: "wf-1" });
+      expect(result.outputs.map((output) => output.id)).toEqual(["img-out"]);
     });
   });
 

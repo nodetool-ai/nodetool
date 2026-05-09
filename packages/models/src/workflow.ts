@@ -4,10 +4,11 @@
  * Port of Python's `nodetool.models.workflow`.
  */
 
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, or, isNull, sql, type SQL } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workflows } from "./schema/workflows.js";
+import { timelineSequences } from "./schema/timeline-sequences.js";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -16,6 +17,20 @@ export type AccessLevel = "private" | "public";
 export interface WorkflowGraph {
   nodes: Record<string, unknown>[];
   edges: Record<string, unknown>[];
+}
+
+export class WorkflowNotClipPrivateError extends Error {
+  constructor(workflowId: string) {
+    super(`Workflow ${workflowId} is not clip-private`);
+    this.name = "WorkflowNotClipPrivateError";
+  }
+}
+
+function ensureSqlCondition(condition: SQL<unknown> | undefined): SQL<unknown> {
+  if (!condition) {
+    throw new Error("Expected SQL condition");
+  }
+  return condition;
 }
 
 export class Workflow extends DBModel {
@@ -126,7 +141,15 @@ export class Workflow extends DBModel {
 
     const conditions = [eq(workflows.user_id, userId)];
     if (access) conditions.push(eq(workflows.access, access));
-    if (runMode) conditions.push(eq(workflows.run_mode, runMode));
+    if (runMode) {
+      conditions.push(eq(workflows.run_mode, runMode));
+    } else {
+      conditions.push(
+        ensureSqlCondition(
+          or(eq(workflows.run_mode, "workflow"), isNull(workflows.run_mode))
+        )
+      );
+    }
 
     const rows = await db
       .select()
@@ -279,5 +302,65 @@ export class Workflow extends DBModel {
     });
     await clone.save();
     return clone;
+  }
+
+  static async countClipReferences(workflowId: string): Promise<number> {
+    const db = getDb();
+    const rows = await db
+      .select({ document: timelineSequences.document })
+      .from(timelineSequences)
+      .where(sql`instr(${timelineSequences.document}, ${workflowId}) > 0`);
+
+    let count = 0;
+    for (const row of rows) {
+      try {
+        const parsed = JSON.parse(row.document) as {
+          clips?: Array<{ workflowId?: unknown }>;
+        };
+        const clips = Array.isArray(parsed.clips) ? parsed.clips : [];
+        for (const clip of clips) {
+          if (clip.workflowId === workflowId) {
+            count += 1;
+          }
+        }
+      } catch {
+        // Skip invalid documents while scanning references.
+      }
+    }
+    return count;
+  }
+
+  static async deleteIfOrphaned(workflowId: string): Promise<boolean> {
+    const workflow = await Workflow.get<Workflow>(workflowId);
+    if (!workflow || workflow.run_mode !== "clip") {
+      return false;
+    }
+
+    const refs = await Workflow.countClipReferences(workflowId);
+    if (refs > 0) {
+      return false;
+    }
+
+    await workflow.delete();
+    return true;
+  }
+
+  static async promoteToTemplate(workflowId: string): Promise<void> {
+    const workflow = await Workflow.get<Workflow>(workflowId);
+    if (!workflow) {
+      throw new Error(`Workflow ${workflowId} not found`);
+    }
+    if (workflow.run_mode !== "clip" || workflow.access !== "private") {
+      throw new WorkflowNotClipPrivateError(workflowId);
+    }
+
+    const tags = Array.isArray(workflow.tags) ? [...workflow.tags] : [];
+    if (!tags.includes("timeline-template")) {
+      tags.push("timeline-template");
+    }
+
+    workflow.run_mode = "workflow";
+    workflow.tags = tags;
+    await workflow.save();
   }
 }

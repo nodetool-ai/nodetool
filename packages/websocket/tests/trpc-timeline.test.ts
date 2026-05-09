@@ -47,18 +47,27 @@ vi.mock("@nodetool-ai/models", async (orig) => {
   }
   return {
     ...actual,
+    Workflow: {
+      ...actual.Workflow,
+      cloneAsClipPrivate: vi.fn(),
+      deleteIfOrphaned: vi.fn()
+    },
     TimelineSequence: StubTimelineSequence,
     createTimeOrderedUuid: () => "version-id"
   };
 });
 
-import { TimelineSequence } from "@nodetool-ai/models";
+import { TimelineSequence, Workflow } from "@nodetool-ai/models";
 
 const TS = TimelineSequence as unknown as {
   findById: ReturnType<typeof vi.fn>;
   listByUser: ReturnType<typeof vi.fn>;
   listByProject: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
+};
+const WF = Workflow as unknown as {
+  cloneAsClipPrivate: ReturnType<typeof vi.fn>;
+  deleteIfOrphaned: ReturnType<typeof vi.fn>;
 };
 
 const createCaller = createCallerFactory(appRouter);
@@ -466,6 +475,91 @@ describe("timeline router", () => {
           versionId: "nope"
         })
       ).rejects.toThrow();
+    });
+  });
+
+  describe("clips", () => {
+    const clipDoc: TimelineDocument = {
+      tracks: [],
+      clips: [
+        {
+          id: "clip-1",
+          trackId: "t1",
+          name: "Generated",
+          startMs: 500,
+          durationMs: 1000,
+          mediaType: "video",
+          sourceType: "generated",
+          workflowId: "wf-1",
+          paramOverrides: { prompt: "hello" },
+          status: "generated",
+          locked: false,
+          versions: []
+        }
+      ],
+      markers: []
+    };
+
+    it("delete removes clip and cascades orphan cleanup", async () => {
+      TS.findById.mockResolvedValue(
+        makeSeq({ document: JSON.stringify(clipDoc) })
+      );
+      TS.update.mockResolvedValue(undefined);
+      WF.deleteIfOrphaned.mockResolvedValue(true);
+
+      const caller = createCaller(makeCtx());
+      const out = await caller.timeline.clips.delete({
+        id: "seq-1",
+        clipId: "clip-1"
+      });
+
+      expect(out.ok).toBe(true);
+      expect(WF.deleteIfOrphaned).toHaveBeenCalledWith("wf-1");
+      const updateArgs = TS.update.mock.calls[0]?.[1];
+      const persisted = JSON.parse(
+        updateArgs?.document as string
+      ) as TimelineDocument;
+      expect(persisted.clips).toHaveLength(0);
+    });
+
+    it("duplicate linked keeps workflowId and does not clone workflow row", async () => {
+      TS.findById.mockResolvedValue(
+        makeSeq({ document: JSON.stringify(clipDoc) })
+      );
+      TS.update.mockResolvedValue(undefined);
+
+      const caller = createCaller(makeCtx());
+      const out = await caller.timeline.clips.duplicate({
+        id: "seq-1",
+        clipId: "clip-1",
+        mode: "linked"
+      });
+
+      expect(WF.cloneAsClipPrivate).not.toHaveBeenCalled();
+      expect(out.id).toBe("version-id");
+      expect(out.workflowId).toBe("wf-1");
+      expect(out.paramOverrides).toEqual({ prompt: "hello" });
+    });
+
+    it("duplicate variation clones workflow and assigns new workflowId", async () => {
+      TS.findById.mockResolvedValue(
+        makeSeq({ document: JSON.stringify(clipDoc) })
+      );
+      TS.update.mockResolvedValue(undefined);
+      WF.cloneAsClipPrivate.mockResolvedValue({ id: "wf-2" });
+
+      const caller = createCaller(makeCtx());
+      const out = await caller.timeline.clips.duplicate({
+        id: "seq-1",
+        clipId: "clip-1",
+        mode: "variation",
+        deltaMs: 2000
+      });
+
+      expect(WF.cloneAsClipPrivate).toHaveBeenCalledWith("wf-1", "user-1");
+      expect(out.workflowId).toBe("wf-2");
+      expect(out.startMs).toBe(2500);
+      expect(out.paramOverrides).toEqual({ prompt: "hello" });
     });
   });
 });

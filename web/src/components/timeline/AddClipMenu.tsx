@@ -259,12 +259,12 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
     // ── Data fetching ──────────────────────────────────────────────────────
 
     const templatesQuery = trpc.workflows.list.useQuery(
-      { tag: "timeline-template", limit: 100 },
+      { tag: "timeline-template", limit: 100, mediaOutput: true },
       { staleTime: 60_000, enabled: Boolean(anchorEl) }
     );
 
     const allWorkflowsQuery = trpc.workflows.list.useQuery(
-      { limit: 100 },
+      { limit: 100, mediaOutput: true },
       { staleTime: 60_000, enabled: Boolean(anchorEl) && activeTab === "all" }
     );
 

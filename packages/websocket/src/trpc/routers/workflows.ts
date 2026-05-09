@@ -22,8 +22,14 @@
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import nodePath from "node:path";
+import { z } from "zod";
 import { withCacheBuster } from "../../lib/example-thumbnail.js";
-import { Workflow, WorkflowVersion, Job } from "@nodetool-ai/models";
+import {
+  Workflow,
+  WorkflowVersion,
+  Job,
+  WorkflowNotClipPrivateError
+} from "@nodetool-ai/models";
 import type {
   Workflow as WorkflowModel,
   WorkflowVersion as WorkflowVersionModel
@@ -115,6 +121,40 @@ function safeGraph(
     `Workflow ${workflowId} has an invalid graph; returning null: ${summarizeGraphIssues(parsed.error.issues)}`
   );
   return null;
+}
+
+const OUTPUT_NODE_MEDIA_TYPES: Record<string, "image" | "video" | "audio"> = {
+  "nodetool.output.ImageOutput": "image",
+  "nodetool.output.VideoOutput": "video",
+  "nodetool.output.AudioOutput": "audio"
+};
+
+function findTerminalMediaOutputNodes(
+  workflow: WorkflowModel
+): Array<{ id: string; type: string; data?: Record<string, unknown> }> {
+  const graph = safeGraph(workflow.id, workflow.graph);
+  const nodes = (graph?.nodes ?? []) as Array<{
+    id: string;
+    type: string;
+    data?: Record<string, unknown>;
+  }>;
+  const edges = (graph?.edges ?? []) as Array<{ source?: string }>;
+  const terminalOutputNodeIds = new Set(
+    nodes
+      .filter((n) => n.type in OUTPUT_NODE_MEDIA_TYPES)
+      .map((n) => n.id)
+  );
+  for (const edge of edges) {
+    const sourceId = edge.source;
+    if (sourceId && terminalOutputNodeIds.has(sourceId)) {
+      terminalOutputNodeIds.delete(sourceId);
+    }
+  }
+  return nodes.filter((n) => terminalOutputNodeIds.has(n.id));
+}
+
+function hasTerminalMediaOutput(workflow: WorkflowModel): boolean {
+  return findTerminalMediaOutputNodes(workflow).length > 0;
 }
 
 // ── Rate-limit tracking for autosave ───────────────────────────────────────
@@ -364,9 +404,15 @@ export const workflowsRouter = router({
         runMode: input.run_mode,
         tag: input.tag
       });
+      let filtered = workflows;
+      if (input.mediaOutput) {
+        filtered = filtered.filter((w) => hasTerminalMediaOutput(w));
+      }
       return {
-        workflows: workflows.map((w) => toWorkflowResponse(w)),
-        next: cursor || null
+        workflows: filtered.map((w) => toWorkflowResponse(w)),
+        // mediaOutput filtering happens in memory after DB pagination, so cursor
+        // pagination is intentionally disabled for this mode.
+        next: input.mediaOutput ? null : cursor || null
       };
     }),
 
@@ -823,23 +869,7 @@ export const workflowsRouter = router({
         throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
       }
 
-      // NOTE: This map also lives in the timeline router (timeline.ts).
-      // Both should be kept in sync until extracted to a shared protocol constant.
-      const OUTPUT_NODE_MEDIA_TYPES: Record<string, "image" | "video" | "audio"> = {
-        "nodetool.output.ImageOutput": "image",
-        "nodetool.output.VideoOutput": "video",
-        "nodetool.output.AudioOutput": "audio"
-      };
-
-      const graph = safeGraph(workflow.id, workflow.graph);
-      const nodes = (graph?.nodes ?? []) as Array<{
-        id: string;
-        type: string;
-        data?: Record<string, unknown>;
-      }>;
-
-      const outputs = nodes
-        .filter((n) => n.type in OUTPUT_NODE_MEDIA_TYPES)
+      const outputs = findTerminalMediaOutputNodes(workflow)
         .map((n) => ({
           id: n.id,
           type: n.type,
@@ -848,6 +878,32 @@ export const workflowsRouter = router({
         }));
 
       return { outputs };
+    }),
+
+  promoteToTemplate: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .output(workflowResponse)
+    .mutation(async ({ ctx, input }) => {
+      const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
+      if (!workflow || workflow.user_id !== ctx.userId) {
+        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+      }
+      try {
+        await Workflow.promoteToTemplate(input.id);
+      } catch (error) {
+        if (error instanceof WorkflowNotClipPrivateError) {
+          throwApiError(
+            ApiErrorCode.INVALID_INPUT,
+            "Only clip-private workflows can be promoted to templates"
+          );
+        }
+        throw error;
+      }
+      const updated = (await Workflow.get(input.id)) as WorkflowModel | null;
+      if (!updated) {
+        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+      }
+      return toWorkflowResponse(updated);
     }),
 
   // ── versions ──────────────────────────────────────────────────────────────

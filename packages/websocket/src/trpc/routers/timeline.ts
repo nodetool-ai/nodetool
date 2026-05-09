@@ -496,6 +496,78 @@ export const timelineRouter = router({
         });
 
         return newClip;
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.string(), clipId: z.string() }))
+      .output(z.object({ ok: z.literal(true) }))
+      .mutation(async ({ ctx, input }) => {
+        const seq = await loadOwned(ctx.userId, input.id);
+        const doc = seq.toDocument();
+        const clipIndex = doc.clips.findIndex((c) => c.id === input.clipId);
+        if (clipIndex === -1) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Clip not found");
+        }
+
+        const clip = doc.clips[clipIndex];
+        doc.clips.splice(clipIndex, 1);
+        await TimelineSequence.update(input.id, {
+          document: JSON.stringify(doc)
+        });
+
+        if (clip?.workflowId) {
+          await Workflow.deleteIfOrphaned(clip.workflowId);
+        }
+        return { ok: true as const };
+      }),
+
+    duplicate: protectedProcedure
+      .input(
+        z.object({
+          id: z.string(),
+          clipId: z.string(),
+          mode: z.enum(["linked", "variation"]),
+          deltaMs: z.number().default(0)
+        })
+      )
+      .output(timelineClipResponse)
+      .mutation(async ({ ctx, input }) => {
+        const seq = await loadOwned(ctx.userId, input.id);
+        const doc = seq.toDocument();
+        const src = doc.clips.find((c) => c.id === input.clipId);
+        if (!src) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Clip not found");
+        }
+
+        let newWorkflowId = src.workflowId;
+        if (input.mode === "variation" && src.workflowId) {
+          const clonedWorkflow = await Workflow.cloneAsClipPrivate(
+            src.workflowId,
+            ctx.userId
+          );
+          newWorkflowId = clonedWorkflow.id;
+        }
+
+        const newClip = makeClip({
+          ...src,
+          id: createTimeOrderedUuid(),
+          startMs: src.startMs + input.deltaMs,
+          workflowId: newWorkflowId,
+          paramOverrides: src.paramOverrides
+            ? structuredClone(src.paramOverrides)
+            : undefined,
+          status: "draft",
+          locked: false,
+          currentAssetId: undefined,
+          lastGeneratedHash: undefined,
+          versions: []
+        });
+
+        doc.clips.push(newClip);
+        await TimelineSequence.update(input.id, {
+          document: JSON.stringify(doc)
+        });
+        return newClip;
       })
   })
 });
