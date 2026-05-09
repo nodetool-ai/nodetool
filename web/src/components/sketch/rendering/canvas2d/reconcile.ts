@@ -459,10 +459,13 @@ export function invertLayerColors(
   // layer transform translation — exactly the same contract used by
   // clearLayerBySelectionMask / fillLayerBySelectionMask via
   // getLayerCompositeOffset.
-  const compositeOffset = getLayerCompositeOffset(activeLayer, {
-    width: w,
-    height: h
-  });
+  const compositeOffset = getLayerCompositeOffset(
+    activeLayer,
+    { width: w, height: h },
+    // Use the live raster metadata; document contentBounds can lag behind after
+    // a compact re-encode and would skew subsequent selection-masked inverts.
+    layerCanvas
+  );
   const cbx = compositeOffset.x;
   const cby = compositeOffset.y;
 

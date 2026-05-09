@@ -35,8 +35,10 @@ import {
   normalizePointerPressure
 } from "../pointerPen";
 import {
+  applySelectionBlendRestore,
   applySelectionMaskAlpha,
-  selectionHasAnyPixels
+  selectionHasAnyPixels,
+  selectionHasSoftEdges
 } from "../selection";
 import { restoreAlphaFromSnapshot } from "./alphaLock";
 
@@ -119,6 +121,7 @@ export class PaintSession {
 
   // ── Feathered selection mask (captured at stroke begin) ──────────
   private selectionMask: Selection | null = null;
+  private selectionSnapshot: ImageData | null = null;
 
   /** Snapshot of stroke buffer before the current Shift straight segment (for rubber-band updates). */
   private shiftRubberBandBase: HTMLCanvasElement | null = null;
@@ -214,7 +217,7 @@ export class PaintSession {
 
     this.engine.beginStroke();
 
-    // ── Capture selection mask for feathered-edge alpha modulation ──
+    // ── Capture selection mask for selection-constrained painting ───
     if (ctx.selection && selectionHasAnyPixels(ctx.selection)) {
       this.selectionMask = ctx.selection;
     } else {
@@ -239,6 +242,19 @@ export class PaintSession {
 
     // ── Create stroke buffer (if engine wants one) ───────────────────
     const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
+
+    if (!isShiftContinuation) {
+      const shouldBlendRestore =
+        this.selectionMask != null && selectionHasSoftEdges(this.selectionMask);
+      if (shouldBlendRestore) {
+        const layerCtx = layerCanvas.getContext("2d");
+        this.selectionSnapshot = layerCtx
+          ? layerCtx.getImageData(0, 0, layerCanvas.width, layerCanvas.height)
+          : null;
+      } else {
+        this.selectionSnapshot = null;
+      }
+    }
 
     if (this.engine.bufferMode === "buffered") {
       // Reuse an existing buffer when Shift is held and the previous
@@ -506,13 +522,15 @@ export class PaintSession {
       const capturedAlphaSnapshot = this.alphaSnapshot;
       const capturedDirtyRect = this.engine.getDirtyRect();
       const capturedSelMask = this.selectionMask;
+      const capturedSelectionSnapshot = this.selectionSnapshot;
       const capturedOffset = { ...this.mapper.offset };
       this.alphaSnapshot = null;
       this.selectionMask = null;
+      this.selectionSnapshot = null;
 
       activeStroke.pendingCommit = () => {
         // Apply feathered selection mask alpha to the stroke buffer
-        if (capturedSelMask) {
+        if (capturedSelMask && !capturedSelectionSnapshot) {
           applySelectionMaskAlpha(
             activeStroke.buffer,
             capturedSelMask,
@@ -541,6 +559,19 @@ export class PaintSession {
           const lCanvas = ctx.layerCanvasesRef.current.get(layer.id);
           if (lCanvas) {
             restoreAlphaFromSnapshot(lCanvas, capturedAlphaSnapshot, capturedDirtyRect);
+          }
+        }
+
+        if (capturedSelectionSnapshot && capturedSelMask) {
+          const lCanvas = ctx.layerCanvasesRef.current.get(layer.id);
+          if (lCanvas) {
+            applySelectionBlendRestore(
+              lCanvas,
+              capturedSelectionSnapshot,
+              capturedSelMask,
+              capturedOffset.x,
+              capturedOffset.y
+            );
           }
         }
 
@@ -578,7 +609,7 @@ export class PaintSession {
     ctx: ToolContext,
     stroke: ActiveStrokeInfo
   ): void {
-    if (this.selectionMask) {
+    if (this.selectionMask && !this.selectionSnapshot) {
       applySelectionMaskAlpha(
         stroke.buffer,
         this.selectionMask,
@@ -595,11 +626,22 @@ export class PaintSession {
         layerCtx.globalCompositeOperation = stroke.compositeOp;
         layerCtx.drawImage(stroke.buffer, 0, 0);
         layerCtx.restore();
+        if (this.selectionSnapshot && this.selectionMask) {
+          applySelectionBlendRestore(
+            layerCanvas,
+            this.selectionSnapshot,
+            this.selectionMask,
+            this.mapper.offset.x,
+            this.mapper.offset.y
+          );
+        }
       }
     }
     // Return stroke buffer to pool before clearing the ref.
     releaseStrokeBuffer(stroke.buffer);
     ctx.activeStrokeRef.current = null;
+    this.selectionSnapshot = null;
+    this.selectionMask = null;
     ctx.invalidateLayer?.(stroke.layerId);
     const committedBounds = getCanvasRasterBounds(
       ctx.getOrCreateLayerCanvas(stroke.layerId)

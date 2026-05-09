@@ -7,6 +7,7 @@
 import type { Point, Selection } from "../types";
 
 const THRESH = 128;
+export const MAX_SELECTION_FEATHER_RADIUS = 32;
 
 const ANT_ON = "#aaa";
 const ANT_OFF = "#000";
@@ -133,6 +134,19 @@ export function selectionHasAnyPixels(sel: Selection | null): boolean {
   }
   for (let i = 0; i < sel.data.length; i++) {
     if (sel.data[i] >= THRESH) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function selectionHasSoftEdges(sel: Selection | null): boolean {
+  if (!validateSelectionMask(sel)) {
+    return false;
+  }
+  for (let i = 0; i < sel.data.length; i++) {
+    const value = sel.data[i];
+    if (value > 0 && value < 255) {
       return true;
     }
   }
@@ -828,11 +842,15 @@ export function polygonToBinaryMask(
 
 /** Approximate Gaussian feather via repeated box blur + renormalize peaks to 255. */
 export function featherMaskAlpha(mask: Selection, radiusPx: number): void {
-  const r = Math.max(0, Math.min(64, Math.round(radiusPx)));
-  if (r <= 0) {
+  const requestedRadius = Math.max(
+    0,
+    Math.min(MAX_SELECTION_FEATHER_RADIUS, Math.round(radiusPx))
+  );
+  if (requestedRadius <= 0) {
     return;
   }
   const passes = 3;
+  const blurRadius = Math.max(1, Math.round(requestedRadius / 2));
   const { width: w, height: h, data } = mask;
   const n = w * h;
   const tmp = new Float32Array(n);
@@ -841,8 +859,8 @@ export function featherMaskAlpha(mask: Selection, radiusPx: number): void {
     cur[i] = data[i];
   }
   for (let p = 0; p < passes; p++) {
-    horizontalBoxBlurFloat(cur, tmp, w, h, r);
-    verticalBoxBlurFloat(tmp, cur, w, h, r);
+    horizontalBoxBlurFloat(cur, tmp, w, h, blurRadius);
+    verticalBoxBlurFloat(tmp, cur, w, h, blurRadius);
   }
   let peak = 0;
   for (let i = 0; i < n; i++) {
@@ -868,17 +886,18 @@ function horizontalBoxBlurFloat(
     let sum = 0;
     const diam = r * 2 + 1;
     for (let x = -r; x <= r; x++) {
-      const cx = Math.max(0, Math.min(w - 1, x));
-      sum += src[row + cx];
+      if (x >= 0 && x < w) {
+        sum += src[row + x];
+      }
     }
     for (let x = 0; x < w; x++) {
       dst[row + x] = sum / diam;
       const xOut = x - r;
       const xIn = x + r + 1;
       const vOut =
-        xOut < 0 ? src[row] : src[row + Math.min(w - 1, xOut)];
+        xOut < 0 || xOut >= w ? 0 : src[row + xOut];
       const vIn =
-        xIn >= w ? src[row + w - 1] : src[row + xIn];
+        xIn < 0 || xIn >= w ? 0 : src[row + xIn];
       sum += vIn - vOut;
     }
   }
@@ -895,17 +914,18 @@ function verticalBoxBlurFloat(
   for (let x = 0; x < w; x++) {
     let sum = 0;
     for (let y = -r; y <= r; y++) {
-      const cy = Math.max(0, Math.min(h - 1, y));
-      sum += src[cy * w + x];
+      if (y >= 0 && y < h) {
+        sum += src[y * w + x];
+      }
     }
     for (let y = 0; y < h; y++) {
       dst[y * w + x] = sum / diam;
       const yOut = y - r;
       const yIn = y + r + 1;
       const vOut =
-        yOut < 0 ? src[x] : src[Math.min(h - 1, yOut) * w + x];
+        yOut < 0 || yOut >= h ? 0 : src[yOut * w + x];
       const vIn =
-        yIn >= h ? src[(h - 1) * w + x] : src[yIn * w + x];
+        yIn < 0 || yIn >= h ? 0 : src[yIn * w + x];
       sum += vIn - vOut;
     }
   }

@@ -13,13 +13,14 @@ import {
   expandSelectionMask,
   featherMaskAlpha,
   invertMaskInPlace,
+  MAX_SELECTION_FEATHER_RADIUS,
   selectionHasAnyPixels,
   selectionToDocumentAligned,
   smoothSelectionBorders,
   trimSelectionMask
 } from "../../selection";
 
-const MAX_SELECTION_MUTATION_PADDING = 64;
+const MAX_SELECTION_MUTATION_PADDING = MAX_SELECTION_FEATHER_RADIUS;
 const MAX_SELECTION_BORDER_WIDTH = 64;
 
 /**
