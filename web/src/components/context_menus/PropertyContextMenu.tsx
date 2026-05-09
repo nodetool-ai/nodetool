@@ -17,6 +17,25 @@ import { useClipboard } from "../../hooks/browser/useClipboard";
 import { serializeValue } from "../../utils/serializeValue";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
+/** Payload from inspector multi-edit: reset/copy/remove apply to every id. */
+function resolvePropertyMenuTargetNodeIds(
+  nodeId: string | null,
+  payload: unknown
+): string[] {
+  if (payload !== null && typeof payload === "object") {
+    const raw = (payload as { inspectorBatchNodeIds?: unknown })
+      .inspectorBatchNodeIds;
+    if (
+      Array.isArray(raw) &&
+      raw.length > 0 &&
+      raw.every((x): x is string => typeof x === "string")
+    ) {
+      return [...raw];
+    }
+  }
+  return nodeId ? [nodeId] : [];
+}
+
 const PropertyContextMenuComponent: React.FC = () => {
   const theme = useTheme();
   const { writeClipboard } = useClipboard();
@@ -29,14 +48,16 @@ const PropertyContextMenuComponent: React.FC = () => {
     nodeId,
     handleId,
     description,
-    isDynamicProperty
+    isDynamicProperty,
+    payload
   } = useContextMenuStore((state) => ({
     menuPosition: state.menuPosition,
     closeContextMenu: state.closeContextMenu,
     description: state.description,
     nodeId: state.nodeId,
     handleId: state.handleId,
-    isDynamicProperty: state.isDynamicProperty
+    isDynamicProperty: state.isDynamicProperty,
+    payload: state.payload
   }));
   const { findNode, updateNodeData, updateNodeProperties } = useNodes(
     (state) => ({
@@ -59,12 +80,15 @@ const PropertyContextMenuComponent: React.FC = () => {
       event.preventDefault();
       event.stopPropagation();
     }
-    if (nodeId && handleId) {
-      const node = findNode(nodeId);
-      if (node?.data.dynamic_properties) {
-        const { [handleId]: _, ...remainingProperties } =
-          node.data.dynamic_properties;
-        updateNodeData(nodeId, { dynamic_properties: remainingProperties });
+    const targetIds = resolvePropertyMenuTargetNodeIds(nodeId, payload);
+    if (handleId) {
+      for (const nid of targetIds) {
+        const node = findNode(nid);
+        if (node?.data.dynamic_properties) {
+          const { [handleId]: _, ...remainingProperties } =
+            node.data.dynamic_properties;
+          updateNodeData(nid, { dynamic_properties: remainingProperties });
+        }
       }
     }
     closeContextMenu();
@@ -76,8 +100,10 @@ const PropertyContextMenuComponent: React.FC = () => {
       event.stopPropagation();
     }
 
-    if (nodeId && handleId) {
-      const node = findNode(nodeId);
+    const targetIds = resolvePropertyMenuTargetNodeIds(nodeId, payload);
+    const copyFromId = targetIds[0];
+    if (copyFromId && handleId) {
+      const node = findNode(copyFromId);
       if (!node) {
         closeContextMenu();
         return;
@@ -118,46 +144,45 @@ const PropertyContextMenuComponent: React.FC = () => {
       event.stopPropagation();
     }
 
-    if (nodeId && handleId) {
-      const node = findNode(nodeId);
-      if (!node) {
-        return;
-      }
+    const targetIds = resolvePropertyMenuTargetNodeIds(nodeId, payload);
+    if (handleId) {
+      for (const nid of targetIds) {
+        const node = findNode(nid);
+        if (!node) {
+          continue;
+        }
 
-      if (isDynamicProperty) {
-        // Dynamic properties (e.g. FalAI schema fields) usually keep defaults in
-        // node.data.dynamic_inputs, not in static metadata.properties.
-        const dynamicInputDefaults = node.data?.dynamic_inputs || {};
-        let defaultValue = dynamicInputDefaults?.[handleId]?.default;
+        if (isDynamicProperty) {
+          const dynamicInputDefaults = node.data?.dynamic_inputs || {};
+          let defaultValue = dynamicInputDefaults?.[handleId]?.default;
 
-        if (defaultValue === undefined) {
+          if (defaultValue === undefined) {
+            const nodeMetadata = metadata?.[node.type as string];
+            if (nodeMetadata) {
+              const propertyDef = nodeMetadata.properties.find(
+                (prop: Property) => prop.name === handleId
+              );
+              defaultValue = propertyDef?.default;
+            }
+          }
+
+          if (defaultValue !== undefined && node.data.dynamic_properties) {
+            updateNodeData(nid, {
+              dynamic_properties: {
+                ...node.data.dynamic_properties,
+                [handleId]: defaultValue
+              }
+            });
+          }
+        } else {
           const nodeMetadata = metadata?.[node.type as string];
           if (nodeMetadata) {
             const propertyDef = nodeMetadata.properties.find(
               (prop: Property) => prop.name === handleId
             );
-            defaultValue = propertyDef?.default;
-          }
-        }
-
-        if (defaultValue !== undefined && node.data.dynamic_properties) {
-          const updatedDynamicProperties = {
-            ...node.data.dynamic_properties,
-            [handleId]: defaultValue
-          };
-          updateNodeData(nodeId, {
-            dynamic_properties: updatedDynamicProperties
-          });
-        }
-      } else {
-        // For regular properties, get the default value from metadata
-        const nodeMetadata = metadata?.[node.type as string];
-        if (nodeMetadata) {
-          const propertyDef = nodeMetadata.properties.find(
-            (prop: Property) => prop.name === handleId
-          );
-          if (propertyDef) {
-            updateNodeProperties(nodeId, { [handleId]: propertyDef.default });
+            if (propertyDef) {
+              updateNodeProperties(nid, { [handleId]: propertyDef.default });
+            }
           }
         }
       }

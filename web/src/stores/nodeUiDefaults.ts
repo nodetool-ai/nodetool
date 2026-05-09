@@ -9,6 +9,8 @@ export type NodeUIProperties = {
   zIndex?: number;
   title?: string;
   color?: string;
+  /** Header-only collapsed strip — persisted across save/load */
+  collapsed?: boolean;
   bypassed?: boolean;
   /** Persisted resolved IDs for dynamic nodes so schema loaders can skip re-fetch on reload */
   model_id?: string;

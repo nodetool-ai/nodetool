@@ -23,6 +23,7 @@ import PreviewActions from "./PreviewActions";
 import { downloadPreviewAssets } from "../../../utils/downloadPreviewAssets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
 import useMetadataStore from "../../../stores/MetadataStore";
+import { NODE_COLLAPSED_LAYOUT } from "../../../styles/collapsedNodeTokens";
 
 const styles = (theme: Theme) =>
   css([
@@ -44,7 +45,11 @@ const styles = (theme: Theme) =>
         padding: 0,
         margin: 0,
         "&.collapsed": {
-          maxHeight: "60px"
+          ...NODE_COLLAPSED_LAYOUT
+        },
+        /* Fragment children flatten: hide everything except target handle + header strip */
+        "&.collapsed .preview-node-content > *:not(.react-flow__handle):not(.node-header)": {
+          display: "none !important"
         },
         label: {
           display: "none"
@@ -458,13 +463,12 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     <Container
       css={cssStyles}
       sx={selectionSx}
-      className={`preview-node nopan node-drag-handle ${
-        hasParent ? "hasParent" : ""
-      }`}
+      className={`preview-node nopan node-drag-handle node-body ${
+        hasParent ? "hasParent " : ""
+      }${props.data.collapsed ? "collapsed " : ""}`}
     >
       <div className={`preview-node-content `}>
         <Handle
-          style={{ top: "50%" }}
           id="value"
           type="target"
           position={Position.Left}
@@ -479,8 +483,6 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             metadataTitle="Preview"
             selected={props.selected}
             backgroundColor={"transparent"}
-            iconType={"any"}
-            iconBaseColor={theme.vars.palette.primary.main}
             showIcon={false}
             workflowId={props.data.workflow_id}
             hideLogs={true}

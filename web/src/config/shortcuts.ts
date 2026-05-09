@@ -365,6 +365,15 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
+    title: "Collapse / Expand Node",
+    slug: "toggleNodeCollapsed",
+    keyCombo: ["C"],
+    category: "editor",
+    description:
+      "Toggle collapsed (header-only) view on selected nodes. Double-click the header icon or title when no icon is shown.",
+    registerCombo: true
+  },
+  {
     title: "Select Connected (All)",
     slug: "selectConnectedAll",
     keyCombo: ["Shift", "C"],

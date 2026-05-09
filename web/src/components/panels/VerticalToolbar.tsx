@@ -120,17 +120,10 @@ function VerticalToolbar({
 
             <ToolbarIconButton
                 icon={<FolderSpecialIcon />}
-                tooltip={
-                    <div className="tooltip-span">
-                        <div className="tooltip-title">Workflow Assets</div>
-                        <div className="tooltip-key">
-                            <kbd>3</kbd>
-                        </div>
-                    </div>
-                }
+                tooltip="Workflow Assets"
                 tooltipPlacement="left-start"
                 onClick={handleWorkflowAssetsToggle}
-                ariaLabel="Toggle Workflow Assets panel (3)"
+                ariaLabel="Toggle Workflow Assets panel"
                 className="workflowAssets"
                 active={isActive("workflowAssets")}
             />

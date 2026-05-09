@@ -22,6 +22,7 @@ import { useReactFlow } from "@xyflow/react";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
 import { NodeData } from "../stores/NodeData";
+import { getCollapseTogglePatches } from "../stores/collapseNodeLayout";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
@@ -437,6 +438,22 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("workflow");
   }, [inspectorToggle]);
 
+  const handleToggleSelectedNodesCollapsed = useCallback(() => {
+    const selected = nodeStore.getState().getSelectedNodes();
+    if (selected.length === 0) {
+      return;
+    }
+    const { updateNodeData, updateNode, findNode } = nodeStore.getState();
+    for (const n of selected) {
+      const live = findNode(n.id) ?? n;
+      const next = !live.data.collapsed;
+      const { data: dataPatch, node: nodePatch } =
+        getCollapseTogglePatches(live, next);
+      updateNodeData(n.id, dataPatch);
+      updateNode(n.id, nodePatch);
+    }
+  }, [nodeStore]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -509,6 +526,10 @@ export const useNodeEditorShortcuts = (
       moveDown: { callback: () => handleMoveNodes({ y: 10 }) },
       bypassNode: {
         callback: handleBypassSelected,
+        active: selectedNodeCount > 0
+      },
+      toggleNodeCollapsed: {
+        callback: handleToggleSelectedNodesCollapsed,
         active: selectedNodeCount > 0
       },
       findInWorkflow: { callback: openFind },
@@ -613,6 +634,7 @@ export const useNodeEditorShortcuts = (
     handleZoomOut,
     handleZoomToPreset,
     handleBypassSelected,
+    handleToggleSelectedNodesCollapsed,
     handleFitView,
     handleSwitchTab,
     handleMoveNodes,

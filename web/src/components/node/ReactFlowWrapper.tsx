@@ -18,7 +18,8 @@ import {
   useViewport,
   useUpdateNodeInternals,
   type Edge,
-  type Node
+  type Node,
+  type NodeChange
 } from "@xyflow/react";
 
 import useConnectionStore from "../../stores/ConnectionStore";
@@ -74,7 +75,8 @@ import { usePaneEvents } from "../../hooks/handlers/usePaneEvents";
 import { useNodeEvents } from "../../hooks/handlers/useNodeEvents";
 import { useSelectionEvents } from "../../hooks/handlers/useSelectionEvents";
 import { useConnectionEvents } from "../../hooks/handlers/useConnectionEvents";
-
+import type { NodeData } from "../../stores/NodeData";
+import { scheduleNodeInternalsRefresh } from "../../utils/scheduleNodeInternalsRefresh";
 
 interface ReactFlowWrapperProps {
   workflowId: string;
@@ -89,6 +91,28 @@ import MiniMapNavigator from "./MiniMapNavigator";
 import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
 import CustomEdge from "../node_editor/CustomEdge";
 import ControlEdge from "../node_editor/ControlEdge";
+
+/** React Flow edge paths use both endpoints — refresh neighbors when one node’s DOM height changes. */
+function withEdgeNeighborNodeIds(
+  nodeIds: readonly string[],
+  edgeList: Edge[]
+): string[] {
+  const result = new Set(nodeIds);
+  for (const edge of edgeList) {
+    const src = edge.source;
+    const tgt = edge.target;
+    if (!src || !tgt) {
+      continue;
+    }
+    if (result.has(src)) {
+      result.add(tgt);
+    }
+    if (result.has(tgt)) {
+      result.add(src);
+    }
+  }
+  return [...result];
+}
 
 const ReactFlowWrapper = ({
   workflowId,
@@ -241,6 +265,56 @@ const ReactFlowWrapper = ({
     }
   }, [connecting, edges.length, updateNodeInternals]);
 
+  /** Tracks layout-driving fields so programmatic collapse/expand (no active resize drag) retriggers RF handle math */
+  const nodeLayoutSigRef = useRef<Map<string, string>>(new Map());
+  const nodeLayoutFingerprintSkipFirstRef = useRef(true);
+  useEffect(() => {
+    nodeLayoutFingerprintSkipFirstRef.current = true;
+    nodeLayoutSigRef.current.clear();
+  }, [workflowId]);
+
+  useEffect(() => {
+    const next = new Map<string, string>();
+    for (const n of nodes) {
+      const sh = n.style?.height;
+      const stylePart =
+        typeof sh === "number"
+          ? String(sh)
+          : typeof sh === "string"
+            ? sh.trim()
+            : "";
+      next.set(
+        n.id,
+        `${typeof n.height === "number" ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}`
+      );
+    }
+    const changedIds: string[] = [];
+    for (const [id, sig] of next) {
+      const prev = nodeLayoutSigRef.current.get(id);
+      if (prev !== sig) {
+        changedIds.push(id);
+        nodeLayoutSigRef.current.set(id, sig);
+      }
+    }
+    for (const id of [...nodeLayoutSigRef.current.keys()]) {
+      if (!next.has(id)) {
+        nodeLayoutSigRef.current.delete(id);
+      }
+    }
+
+    if (nodeLayoutFingerprintSkipFirstRef.current) {
+      nodeLayoutFingerprintSkipFirstRef.current = false;
+      return;
+    }
+    if (changedIds.length === 0) {
+      return;
+    }
+    scheduleNodeInternalsRefresh(
+      updateNodeInternals,
+      withEdgeNeighborNodeIds(changedIds, edges)
+    );
+  }, [nodes, edges, updateNodeInternals]);
+
   const ref = useRef<HTMLDivElement | null>(null);
   const { zoom } = useViewport();
 
@@ -391,7 +465,34 @@ const ReactFlowWrapper = ({
       reactFlowInstance
     });
 
-  const { handleNodeContextMenu, handleNodesChange } = useNodeEvents();
+  const { handleNodeContextMenu, handleNodesChange: propagateNodesChange } =
+    useNodeEvents();
+
+  const handleNodesChange = useCallback(
+    (changes: NodeChange<Node<NodeData>>[]) => {
+      propagateNodesChange(changes);
+
+      const dimIds = new Set<string>();
+      for (const c of changes) {
+        if (c.type !== "dimensions") {
+          continue;
+        }
+        /* Mid-resize we already get continuous RF updates — skip storms */
+        if ("resizing" in c && (c as { resizing?: boolean }).resizing === true) {
+          continue;
+        }
+        dimIds.add(c.id);
+      }
+      if (dimIds.size === 0) {
+        return;
+      }
+      scheduleNodeInternalsRefresh(
+        updateNodeInternals,
+        withEdgeNeighborNodeIds([...dimIds], edges)
+      );
+    },
+    [propagateNodesChange, updateNodeInternals, edges]
+  );
 
   const {
     onEdgeContextMenu,

@@ -46,6 +46,16 @@ import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { COMFY_WORKFLOW_FLAG } from "../utils/comfyWorkflowConverter";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
+import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
+
+const syncReactFlowNodeChromeClass = (node: Node<NodeData>): Node<NodeData> => ({
+  ...node,
+  className: reactFlowNodeChromeClassName(node.data)
+});
+
+const syncAllReactFlowNodeChromeClass = (
+  nodes: Node<NodeData>[]
+): Node<NodeData>[] => nodes.map(syncReactFlowNodeChromeClass);
 
 /**
  * Generates a default name for input nodes based on their type.
@@ -527,7 +537,10 @@ export const createNodeStore = (
               return true;
             });
 
-            const nodes = applyNodeChanges(filteredChanges, currentNodes);
+            const rawNodes = applyNodeChanges(filteredChanges, currentNodes);
+            const nodes = syncAllReactFlowNodeChromeClass(
+              rawNodes ?? currentNodes
+            );
             set({ nodes });
 
             // Only mark as dirty if there are actual user changes, not just internal React Flow updates
@@ -711,7 +724,7 @@ export const createNodeStore = (
             }
             node.expandParent = true;
             node.data.workflow_id = get().workflow.id;
-            set({ nodes: [...get().nodes, node] });
+            set({ nodes: [...get().nodes, syncReactFlowNodeChromeClass(node)] });
             get().setWorkflowDirty(true);
           },
           updateNode: (
@@ -730,6 +743,9 @@ export const createNodeStore = (
 
               const newNodes = [...state.nodes];
               const updatedNode = { ...newNodes[nodeIndex], ...nodeUpdate };
+              updatedNode.className = reactFlowNodeChromeClassName(
+                updatedNode.data
+              );
               newNodes[nodeIndex] = updatedNode;
 
               // If parentId is being set or changed, reorder nodes
@@ -775,9 +791,11 @@ export const createNodeStore = (
               }
               const nodes = state.nodes.slice();
               const target = nodes[index];
+              const mergedData = { ...target.data, ...data };
               nodes[index] = {
                 ...target,
-                data: { ...target.data, ...data }
+                data: mergedData,
+                className: reactFlowNodeChromeClassName(mergedData)
               };
               return { ...state, nodes };
             });
@@ -1127,11 +1145,16 @@ export const createNodeStore = (
               | ((nodes: Node<NodeData>[]) => Node<NodeData>[])
           ): void => {
             if (typeof nodesOrCallback === "function") {
-              set((state) => ({
-                nodes: nodesOrCallback(state.nodes)
-              }));
+              set((state) => {
+                const next = nodesOrCallback(state.nodes);
+                return {
+                  nodes: syncAllReactFlowNodeChromeClass(next ?? state.nodes)
+                };
+              });
             } else {
-              set({ nodes: nodesOrCallback });
+              set({
+                nodes: syncAllReactFlowNodeChromeClass(nodesOrCallback)
+              });
             }
             get().setWorkflowDirty(true);
           },
@@ -1352,7 +1375,10 @@ export const createNodeStore = (
               const newNodes = [...state.nodes];
               newNodes[index] = {
                 ...node,
-                className: newBypassed ? "bypassed" : undefined,
+                className: reactFlowNodeChromeClassName({
+                  ...node.data,
+                  bypassed: newBypassed
+                }),
                 data: { ...node.data, bypassed: newBypassed }
               };
               return { nodes: newNodes };
@@ -1369,7 +1395,10 @@ export const createNodeStore = (
               const newNodes = [...state.nodes];
               newNodes[index] = {
                 ...node,
-                className: bypassed ? "bypassed" : undefined,
+                className: reactFlowNodeChromeClassName({
+                  ...node.data,
+                  bypassed
+                }),
                 data: { ...node.data, bypassed }
               };
               return { nodes: newNodes };
@@ -1393,7 +1422,10 @@ export const createNodeStore = (
                 n.selected
                   ? {
                       ...n,
-                      className: shouldBypass ? "bypassed" : undefined,
+                      className: reactFlowNodeChromeClassName({
+                        ...n.data,
+                        bypassed: shouldBypass
+                      }),
                       data: { ...n.data, bypassed: shouldBypass }
                     }
                   : n

@@ -213,14 +213,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
     <div className="vertical-toolbar">
       {/* Drawer views section - My Stuff */}
       <Tooltip
-        title={
-          <div className="tooltip-span">
-            <div className="tooltip-title">Workflows</div>
-            <div className="tooltip-key">
-              <kbd>1</kbd>
-            </div>
-          </div>
-        }
+        title={getShortcutTooltip("toggleWorkflows")}
         placement="right-start"
         delay={TOOLTIP_ENTER_DELAY}
       >

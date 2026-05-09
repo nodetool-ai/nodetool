@@ -160,7 +160,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
 
   return (
     <>
-      <div style={OUTPUT_WRAPPER_STYLE}>
+      <div className="node-outputs-shell" style={OUTPUT_WRAPPER_STYLE}>
         {allOutputs.length > 1 || metadata?.supports_dynamic_outputs ? (
           <ul className="multi-outputs">
             {allOutputs.map((output) => (

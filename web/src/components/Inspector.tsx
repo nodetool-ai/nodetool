@@ -304,6 +304,7 @@ const Inspector: React.FC = () => {
                       nodeType="inspector"
                       data={nodesWithMetadata[0].node.data}
                       layout=""
+                      inspectorBatchNodeIds={multiNodeIds}
                       onValueChange={(newValue) =>
                         handleMultiPropertyChange(property.name, newValue)
                       }
