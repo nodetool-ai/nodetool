@@ -130,7 +130,7 @@ export function runMagicWandSelectionAsync(
     signal?.addEventListener("abort", abortHandler, { once: true });
 
     const { buffer: srcBuf, byteOffset, byteLength } = request.rgba;
-    const rgbaBuffer = srcBuf.slice(byteOffset, byteOffset + byteLength);
+    const rgbaBuffer = srcBuf.slice(byteOffset, byteOffset + byteLength) as ArrayBuffer;
 
     const message: MagicWandWorkerRequest = {
       id,

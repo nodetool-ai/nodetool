@@ -11,6 +11,12 @@
 import { act } from "@testing-library/react";
 import { useSketchStore } from "../state/useSketchStore";
 
+// magicWandAsync spawns a Worker via import.meta.url which is unsupported in Jest.
+// Mock it so tests that transitively import SelectTool can load without error.
+jest.mock("../selection/magicWandAsync", () => ({
+  runMagicWandSelectionAsync: jest.fn(() => Promise.resolve(new Uint8ClampedArray(0)))
+}));
+
 beforeEach(() => {
   act(() => {
     useSketchStore.getState().resetDocument();

@@ -149,7 +149,7 @@ describe("combineMasks", () => {
     it("with null base returns clone of overlay", () => {
       const overlay = makeMask(4, 4, [[1, 0]]);
       const result = combineMasks(null, overlay, "add");
-      expect(result.data[0 * 4 + 1]).toBe(255);
+      expect(result.data[1]).toBe(255);
     });
   });
 
@@ -368,23 +368,26 @@ describe("validateSelectionMask", () => {
 describe("rectSelectionMask", () => {
   it("produces correct dimensions", () => {
     const sel = rectSelectionMask(20, 20, 5, 5, 10, 8);
-    expect(sel.width).toBe(20);
-    expect(sel.height).toBe(20);
+    // Mask covers the selected region only, not the full canvas
+    expect(sel.width).toBe(10);
+    expect(sel.height).toBe(8);
+    expect(sel.originX).toBe(5);
+    expect(sel.originY).toBe(5);
   });
 
   it("fills the specified rectangle region", () => {
     const sel = rectSelectionMask(10, 10, 2, 3, 4, 3);
-    // Inside rect
-    expect(sel.data[3 * 10 + 2]).toBe(255);
-    expect(sel.data[5 * 10 + 5]).toBe(255);
+    // Inside rect (document coordinates)
+    expect(readMaskAt(sel, 2, 3)).toBe(255);
+    expect(readMaskAt(sel, 5, 5)).toBe(255);
     // Outside rect
-    expect(sel.data[0]).toBe(0);
-    expect(sel.data[6 * 10 + 2]).toBe(0);
+    expect(readMaskAt(sel, 0, 0)).toBe(0);
+    expect(readMaskAt(sel, 2, 6)).toBe(0);
   });
 
-  it("data length matches width * height", () => {
+  it("data length matches selection width * height", () => {
     const sel = rectSelectionMask(15, 12, 0, 0, 5, 5);
-    expect(sel.data.length).toBe(15 * 12);
+    expect(sel.data.length).toBe(5 * 5);
   });
 });
 

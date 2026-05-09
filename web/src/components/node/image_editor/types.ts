@@ -12,7 +12,11 @@ export type EditTool =
   | "rectangle"
   | "ellipse"
   | "line"
-  | "arrow";
+  | "arrow"
+  | "lasso"
+  | "magic-wand"
+  | "marquee-rect"
+  | "marquee-ellipse";
 
 export type EditAction =
   | "rotate-cw"
@@ -21,7 +25,10 @@ export type EditAction =
   | "flip-v"
   | "reset"
   | "apply-crop"
-  | "cancel-crop";
+  | "cancel-crop"
+  | "select-all"
+  | "deselect"
+  | "invert-selection";
 
 export interface Point {
   x: number;
@@ -62,6 +69,15 @@ export interface AdjustmentSettings {
   saturation: number;
 }
 
+export type SelectionMode = "replace" | "add" | "subtract" | "intersect";
+
+export interface SelectionSettings {
+  mode: SelectionMode;
+  tolerance: number;
+  featherRadius: number;
+  smoothRadius: number;
+}
+
 export interface HistoryEntry {
   imageData: ImageData;
   action: string;
@@ -92,4 +108,11 @@ export const DEFAULT_ADJUSTMENTS: AdjustmentSettings = {
   brightness: 0,
   contrast: 0,
   saturation: 0
+};
+
+export const DEFAULT_SELECTION_SETTINGS: SelectionSettings = {
+  mode: "replace",
+  tolerance: 32,
+  featherRadius: 0,
+  smoothRadius: 0
 };

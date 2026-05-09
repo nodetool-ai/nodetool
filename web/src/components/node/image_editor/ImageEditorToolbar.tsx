@@ -50,6 +50,7 @@ import type {
   SelectionSettings,
   SelectionMode
 } from "./types";
+import { DEFAULT_SELECTION_SETTINGS } from "./types";
 
 const styles = (theme: Theme) =>
   css({
@@ -221,18 +222,18 @@ interface ImageEditorToolbarProps {
   brushSettings: BrushSettings;
   shapeSettings: ShapeSettings;
   textSettings: TextSettings;
-  selectionSettings: SelectionSettings;
+  selectionSettings?: SelectionSettings;
   adjustments: AdjustmentSettings;
   zoom: number;
   isCropping: boolean;
-  hasSelection: boolean;
+  hasSelection?: boolean;
   canUndo: boolean;
   canRedo: boolean;
   onToolChange: (tool: EditTool) => void;
   onBrushSettingsChange: (settings: Partial<BrushSettings>) => void;
   onShapeSettingsChange: (settings: Partial<ShapeSettings>) => void;
   onTextSettingsChange: (settings: Partial<TextSettings>) => void;
-  onSelectionSettingsChange: (settings: Partial<SelectionSettings>) => void;
+  onSelectionSettingsChange?: (settings: Partial<SelectionSettings>) => void;
   onAdjustmentsChange: (adjustments: Partial<AdjustmentSettings>) => void;
   onAction: (action: EditAction) => void;
   onZoomChange: (zoom: number) => void;
@@ -245,11 +246,11 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
   brushSettings,
   shapeSettings,
   textSettings,
-  selectionSettings,
+  selectionSettings = DEFAULT_SELECTION_SETTINGS,
   adjustments,
   zoom,
   isCropping,
-  hasSelection,
+  hasSelection = false,
   canUndo,
   canRedo,
   onToolChange,
@@ -505,7 +506,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                   <Tooltip key={m} title={m.charAt(0).toUpperCase() + m.slice(1)}>
                     <IconButton
                       className={`action-button ${selectionSettings.mode === m ? "active" : ""}`}
-                      onClick={() => onSelectionSettingsChange({ mode: m })}
+                      onClick={() => onSelectionSettingsChange?.({ mode: m })}
                       size="small"
                       sx={selectionSettings.mode === m ? { bgcolor: "primary.main", color: "primary.contrastText" } : {}}
                     >
@@ -527,7 +528,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 <Slider
                   value={selectionSettings.tolerance}
                   onChange={(_, value) =>
-                    onSelectionSettingsChange({ tolerance: value as number })
+                    onSelectionSettingsChange?.({ tolerance: value as number })
                   }
                   min={0}
                   max={255}
@@ -544,7 +545,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               <Slider
                 value={selectionSettings.featherRadius}
                 onChange={(_, value) =>
-                  onSelectionSettingsChange({ featherRadius: value as number })
+                  onSelectionSettingsChange?.({ featherRadius: value as number })
                 }
                 min={0}
                 max={50}
@@ -560,7 +561,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               <Slider
                 value={selectionSettings.smoothRadius}
                 onChange={(_, value) =>
-                  onSelectionSettingsChange({ smoothRadius: value as number })
+                  onSelectionSettingsChange?.({ smoothRadius: value as number })
                 }
                 min={0}
                 max={20}

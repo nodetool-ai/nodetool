@@ -363,9 +363,9 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
     // ── Templates list ─────────────────────────────────────────────────────
 
     const templateWorkflows = templatesQuery.data?.workflows ?? [];
-    const allWorkflows = (allWorkflowsQuery.data?.workflows ?? []).filter(
-      (w: { run_mode?: string | null }) => !w.run_mode || w.run_mode === "workflow"
-    );
+    // The server-side default filter already restricts to standalone run_modes
+    // (run_mode IN ("workflow", null)), so no client-side filtering is needed here.
+    const allWorkflows = allWorkflowsQuery.data?.workflows ?? [];
 
     return (
       <Popover
