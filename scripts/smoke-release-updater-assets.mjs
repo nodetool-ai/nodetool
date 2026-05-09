@@ -6,9 +6,17 @@ import path from "node:path";
 const dir = path.resolve(process.argv[2] ?? "release-assets");
 const expectedVersion = process.argv[3];
 const channelArg = process.argv[4];
-const channel = channelArg === "nightly" ? "nightly" : channelArg === "stable" || channelArg === "latest" ? "latest" : null;
+const channel = (() => {
+  if (channelArg === "nightly") {
+    return "nightly";
+  }
+  if (channelArg === "stable" || channelArg === "latest") {
+    return "latest";
+  }
+  return null;
+})();
 
-if (!expectedVersion || channel == null) {
+if (!expectedVersion || channel === null) {
   console.error("Usage: smoke-release-updater-assets.mjs <asset-dir> <version> <stable|nightly>");
   process.exit(2);
 }
@@ -18,17 +26,22 @@ const manifests = [
   channel === "nightly" ? "nightly-mac.yml" : "latest-mac.yml",
   channel === "nightly" ? "nightly-linux.yml" : "latest-linux.yml",
 ];
+const MANIFEST_FIELD_PATTERN = /^([A-Za-z0-9_-]+):\s*([^\r\n]*)$/;
+// Flat electron-updater manifests are simple key-value pairs.
 const parseManifest = (manifestPath) => {
   const fields = {};
   const text = fs.readFileSync(manifestPath, "utf8");
   for (const line of text.split(/\r?\n/)) {
     const trimmed = line.trim();
-    if (trimmed.length === 0 || trimmed.startsWith("#")) {
+    if (trimmed.length === 0 || trimmed.startsWith("#") || trimmed === "---") {
       continue;
     }
-    const match = /^([A-Za-z0-9_-]+):\s*(.*)$/.exec(trimmed);
-    if (!match) {
+    if (line !== line.trimStart()) {
       continue;
+    }
+    const match = MANIFEST_FIELD_PATTERN.exec(trimmed);
+    if (!match) {
+      throw new Error(`Invalid manifest line in ${path.basename(manifestPath)}: ${line}`);
     }
     let value = match[2].trim();
     if (
@@ -50,8 +63,15 @@ const getSha512Base64 = (filePath) =>
 
 const ensurePathInDir = (baseDir, filePath) => {
   const resolvedBaseDir = path.resolve(baseDir);
-  const resolvedFilePath = path.resolve(baseDir, filePath);
-  if (resolvedFilePath !== resolvedBaseDir && !resolvedFilePath.startsWith(`${resolvedBaseDir}${path.sep}`)) {
+  const normalizedFilePath = path.normalize(filePath);
+  const resolvedFilePath = path.resolve(baseDir, normalizedFilePath);
+  const relativePath = path.relative(resolvedBaseDir, resolvedFilePath);
+  if (
+    relativePath.length === 0 ||
+    relativePath === ".." ||
+    relativePath.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativePath)
+  ) {
     throw new Error(`Manifest path escapes asset directory: ${filePath}`);
   }
   return resolvedFilePath;
