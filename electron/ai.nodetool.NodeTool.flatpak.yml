@@ -79,7 +79,7 @@ modules:
       - -Dgtk_doc=false
       - -Dintrospection=false
       - -Dgcrypt=false
-      - -Dtpm2=disabled
+      - -Dtpm2=false
     cleanup:
       - /include
       - /lib/pkgconfig
