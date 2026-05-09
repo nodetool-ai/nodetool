@@ -772,6 +772,7 @@ describe("SelectTool", () => {
     const tool = new SelectTool();
     const doc = createDefaultDocument(32, 32);
     doc.toolSettings.select.mode = "magic_wand";
+    doc.toolSettings.select.sampleAllLayers = true;
     const imageData = makeImageData(32, 32, [255, 0, 0, 255]);
     const runMagicWandSelectionAsync = jest
       .spyOn(magicWandAsync, "runMagicWandSelectionAsync")

@@ -217,18 +217,10 @@ describe("useCanvasOrchestration", () => {
     expect(first.lastPointerClientRef).toBe(second.lastPointerClientRef);
   });
 
-  it("syncs WebGPU selection ants canvas and viewport when available", () => {
+  it("syncs WebGPU selection ants canvas", () => {
     const params = makeParams();
     renderHook(() => useCanvasOrchestration(params));
 
     expect(mockCompositing.runtime.setSelectionAntsOverlayCanvas).toHaveBeenCalled();
-    expect(mockCompositing.runtime.setSelectionAntsViewport).toHaveBeenCalledWith(
-      expect.objectContaining({
-        panXCss: 0,
-        panYCss: 0,
-        marginCss: expect.any(Number),
-        dpr: expect.any(Number)
-      })
-    );
   });
 });

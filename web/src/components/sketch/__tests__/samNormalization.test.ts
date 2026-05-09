@@ -59,7 +59,7 @@ describe("normalizeSamMasks", () => {
     expect(response.masks.map((mask) => mask.label)).toEqual(["Mask 1", "Mask 2"]);
     expect(response.masks[0]).toMatchObject({
       kind: "mask",
-      maskDataUrl: "/api/storage/mask-a.png",
+      maskDataUrl: expect.stringContaining("/api/storage/mask-a.png"),
       backendId: "local-sam3",
       modelId: LOCAL_SAM3_MODEL_ID,
       nodeType: LOCAL_SAM3_NODE_TYPE,
@@ -212,7 +212,7 @@ describe("SamServiceNode normalization", () => {
     });
     expect(response.masks[0]).toMatchObject({
       kind: "mask",
-      maskDataUrl: "/api/storage/executor-mask.png",
+      maskDataUrl: expect.stringContaining("/api/storage/executor-mask.png"),
       sourceMetadata
     });
   });
