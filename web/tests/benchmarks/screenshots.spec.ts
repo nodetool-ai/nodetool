@@ -123,9 +123,36 @@ async function waitForScreenshotReady(
       break;
     }
     case "mini-app-page.png": {
-      // TODO(screenshots): Re-enable automated mini-app captures once
-      // screenshot-server API responses for `/apps/:workflowId` reliably render
-      // workflow content (title + inputs) with no persistent progress spinner.
+      await ensureVisibleText(page, /creative story generator/i);
+      await ensureNoVisibleProgress(page);
+      break;
+    }
+    case "standalone-mini-app.png": {
+      await ensureVisibleText(page, /creative story generator/i);
+      await ensureVisibleText(page, /workflow graph/i);
+      await ensureNoVisibleProgress(page);
+      break;
+    }
+    case "workflow-graph-view.png": {
+      await page
+        .locator('[data-ready="true"]')
+        .first()
+        .waitFor({ state: "visible", timeout: 20000 });
+      await page.waitForFunction(
+        () => document.querySelectorAll(".react-flow__node").length > 0,
+        undefined,
+        { timeout: 15000 }
+      );
+      break;
+    }
+    case "asset-explorer.png": {
+      await ensureVisibleText(page, /portrait_sunset\.jpg/i);
+      await ensureNoVisibleProgress(page);
+      break;
+    }
+    case "asset-editor.png": {
+      await ensureVisibleText(page, /edit:\s*portrait_sunset\.jpg/i);
+      await ensureNoVisibleProgress(page);
       break;
     }
     case "node-test-page.png": {
@@ -146,9 +173,13 @@ async function waitForScreenshotReady(
  */
 async function assertNoErrorBoundary(page: Page): Promise<void> {
   const errorEl = page.locator('[class*="errorBoundary"]').first();
-  const hasError = (await errorEl.count()) > 0;
+  const hasClassError = (await errorEl.count()) > 0;
+  const hasFallbackText = (await page.getByText("Something went wrong").count()) > 0;
+  const hasError = hasClassError || hasFallbackText;
   if (hasError) {
-    const errorText = await errorEl.innerText().catch(() => "(could not read error text)");
+    const errorText = hasClassError
+      ? await errorEl.innerText().catch(() => "(could not read error text)")
+      : await page.getByText("Something went wrong").first().innerText().catch(() => "Something went wrong");
     // Expand error details if present to get the actual error
     await page.locator('button', { hasText: /show details/i }).first().click().catch(() => {});
     await page.waitForTimeout(300);
@@ -236,6 +267,43 @@ if (process.env.JEST_WORKER_ID) {
       await gotoPage(page, "/login");
       await waitForScreenshotReady(page, "login-screen.png");
       await saveScreenshot(page, "login-screen.png");
+    });
+
+    test("Workflow graph view", async ({ page }) => {
+      test.skip(shouldSkip("workflow-graph-view.png"), "Already captured");
+      await gotoPage(page, "/graph/wf-story-generator");
+      await waitForScreenshotReady(page, "workflow-graph-view.png");
+      await saveScreenshot(page, "workflow-graph-view.png");
+    });
+
+    // ── Mini-apps ───────────────────────────────────────────────────────────
+    test("Mini-app page", async ({ page }) => {
+      test.skip(shouldSkip("mini-app-page.png"), "Already captured");
+      await gotoPage(page, "/apps/wf-story-generator");
+      await waitForScreenshotReady(page, "mini-app-page.png");
+      await saveScreenshot(page, "mini-app-page.png");
+    });
+
+    test("Standalone mini-app", async ({ page }) => {
+      test.skip(shouldSkip("standalone-mini-app.png"), "Already captured");
+      await gotoPage(page, "/miniapp/wf-story-generator");
+      await waitForScreenshotReady(page, "standalone-mini-app.png");
+      await saveScreenshot(page, "standalone-mini-app.png");
+    });
+
+    // ── Assets ──────────────────────────────────────────────────────────────
+    test("Assets", async ({ page }) => {
+      test.skip(shouldSkip("asset-explorer.png"), "Already captured");
+      await gotoPage(page, "/assets");
+      await waitForScreenshotReady(page, "asset-explorer.png");
+      await saveScreenshot(page, "asset-explorer.png");
+    });
+
+    test("Asset editor", async ({ page }) => {
+      test.skip(shouldSkip("asset-editor.png"), "Already captured");
+      await gotoPage(page, "/assets/edit/asset-photo1");
+      await waitForScreenshotReady(page, "asset-editor.png");
+      await saveScreenshot(page, "asset-editor.png");
     });
 
     // ── Collections ─────────────────────────────────────────────────────────

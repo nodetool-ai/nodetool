@@ -47,7 +47,8 @@ function makeWorkflow(
   description: string,
   tags: string[],
   updatedAt: string,
-  access: "private" | "public" = "private"
+  access: "private" | "public" = "private",
+  graph: { nodes: unknown[]; edges: unknown[] } = { nodes: [], edges: [] }
 ): Record<string, unknown> {
   return {
     id,
@@ -60,7 +61,7 @@ function makeWorkflow(
     tags,
     thumbnail: null,
     thumbnail_url: null,
-    graph: { nodes: [], edges: [] },
+    graph,
     settings: null,
     package_name: null,
     path: null,
@@ -70,13 +71,71 @@ function makeWorkflow(
   };
 }
 
+const STORY_GRAPH = {
+  nodes: [
+    {
+      id: "input-topic",
+      type: "nodetool.input.Text",
+      data: { value: "Two robots discover they can dream" },
+      ui_properties: { x: 0, y: 0, width: 320 }
+    },
+    {
+      id: "input-style",
+      type: "nodetool.input.Text",
+      data: { value: "Heartwarming sci-fi short story" },
+      ui_properties: { x: 0, y: 180, width: 320 }
+    },
+    {
+      id: "agent-main",
+      type: "nodetool.agents.OpenAIAgent",
+      data: {
+        model: "gpt-4o",
+        prompt:
+          "Write a concise story about {{input-topic.output}} in a {{input-style.output}} tone."
+      },
+      ui_properties: { x: 430, y: 90, width: 360 }
+    },
+    {
+      id: "preview-output",
+      type: "nodetool.workflows.base_node.Preview",
+      data: {},
+      ui_properties: { x: 860, y: 90, width: 280 }
+    }
+  ],
+  edges: [
+    {
+      id: "edge-topic",
+      source: "input-topic",
+      sourceHandle: "output",
+      target: "agent-main",
+      targetHandle: "prompt"
+    },
+    {
+      id: "edge-style",
+      source: "input-style",
+      sourceHandle: "output",
+      target: "agent-main",
+      targetHandle: "system_prompt"
+    },
+    {
+      id: "edge-output",
+      source: "agent-main",
+      sourceHandle: "output",
+      target: "preview-output",
+      targetHandle: "value"
+    }
+  ]
+};
+
 const MOCK_WORKFLOWS = [
   makeWorkflow(
     "wf-story-generator",
     "Creative Story Generator",
     "Generate imaginative short stories with customizable themes, characters, and narrative styles using GPT-4o",
     ["creative", "text", "ai", "gpt"],
-    "2024-12-15T11:30:00Z"
+    "2024-12-15T11:30:00Z",
+    "private",
+    STORY_GRAPH
   ),
   makeWorkflow(
     "wf-image-pipeline",
@@ -247,9 +306,9 @@ function makeAsset(
 }
 
 const MOCK_ASSETS = [
-  makeAsset("folder-images", "Images", "folder", null, 0),
-  makeAsset("folder-audio", "Audio", "folder", null, 0),
-  makeAsset("folder-docs", "Documents", "folder", null, 0),
+  makeAsset("folder-images", "Images", "folder", USER_ID, 0),
+  makeAsset("folder-audio", "Audio", "folder", USER_ID, 0),
+  makeAsset("folder-docs", "Documents", "folder", USER_ID, 0),
   makeAsset(
     "asset-photo1",
     "portrait_sunset.jpg",

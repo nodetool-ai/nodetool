@@ -9,6 +9,7 @@ import {
   getPostgresDatabaseUrl,
   loadEnvironment
 } from "@nodetool-ai/config";
+import { createHTTPHandler } from "@trpc/server/adapters/standalone";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
@@ -22,6 +23,8 @@ import {
   UnifiedWebSocketRunner,
   type WebSocketConnection
 } from "./unified-websocket-runner.js";
+import { appRouter } from "./trpc/router.js";
+import { createContextFactory } from "./trpc/context.js";
 import { ScriptedProvider, autoScript } from "@nodetool-ai/runtime";
 import { handleNodeHttpRequest, type HttpApiOptions } from "./http-api.js";
 import { initDb, initPostgresDb } from "@nodetool-ai/models";
@@ -29,6 +32,10 @@ import { initDb, initPostgresDb } from "@nodetool-ai/models";
 loadEnvironment(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.."));
 
 const log = createLogger("nodetool.websocket.server");
+const DEMO_IMAGE_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg==",
+  "base64"
+);
 
 function htmlPage(): string {
   return `<!doctype html>
@@ -1198,6 +1205,21 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
     ...(examplesDir ? { examplesDir } : {})
   };
   const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);
+  const trpcContextFactory = createContextFactory({
+    registry,
+    apiOptions: resolvedApiOptions,
+    pythonBridge: {} as Parameters<typeof createContextFactory>[0]["pythonBridge"],
+    getPythonBridgeReady: () => false
+  });
+  const trpcHandler = createHTTPHandler({
+    router: appRouter,
+    createContext: ({ req }) => {
+      (req as IncomingMessage & { userId?: string }).userId = "1";
+      return trpcContextFactory({
+        req: req as unknown as Parameters<typeof trpcContextFactory>[0]["req"]
+      });
+    }
+  });
 
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? "/", `http://${host}:${port}`);
@@ -1242,6 +1264,26 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
       res.statusCode = 200;
       res.setHeader("content-type", "application/json");
       res.end(JSON.stringify(example));
+      return;
+    }
+    if (
+      /^\/api\/storage\/asset-photo1(?:_thumb)?\.(?:jpg|jpeg|png)$/i.test(
+        url.pathname
+      )
+    ) {
+      res.statusCode = 200;
+      res.setHeader("content-type", "image/png");
+      res.setHeader("cache-control", "no-store");
+      res.end(DEMO_IMAGE_PNG);
+      return;
+    }
+    if (
+      url.pathname.startsWith("/trpc")
+    ) {
+      const originalUrl = req.url;
+      req.url = (req.url ?? "/").replace(/^\/trpc/, "") || "/";
+      void trpcHandler(req, res);
+      req.url = originalUrl;
       return;
     }
     if (
