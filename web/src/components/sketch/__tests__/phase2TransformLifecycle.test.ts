@@ -140,6 +140,11 @@ describe("TransformTool in-transform undo/redo", () => {
       transform: { x: 40, y: 40, scaleX: 1, scaleY: 1, rotation: 0 }
     };
     ctx.doc.layers = [firstLayer, secondLayer];
+    // Simulate React's onAutoPickLayer flow: when the parent receives the
+    // callback, it updates doc.activeLayerId before the next gizmo draw.
+    ctx.onAutoPickLayer = jest.fn((id: string) => {
+      ctx.doc.activeLayerId = id;
+    });
 
     tool.onActivate!(ctx);
     expect(tool.getTargetSet().getIds()).toEqual([firstLayer.id]);

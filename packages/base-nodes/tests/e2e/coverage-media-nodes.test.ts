@@ -35,6 +35,7 @@ import {
   GetMetadataNode,
   BatchToListNode,
   ImagesToListNode,
+  ImageEditorNode,
   PasteNode,
   ScaleNode,
   ResizeNode,
@@ -1366,6 +1367,38 @@ describe("image nodes — full coverage", () => {
     const result = await _n.process();
     // Dynamic node: non-null non-array values are pushed individually; nulls are skipped
     expect(result.output).toEqual(["not-array"]);
+  });
+
+  it("ImageEditorNode passes through image, mask, and layers from properties", async () => {
+    const image = imageRef();
+    const mask = imageRef();
+    const layers = [imageRef(), imageRef()];
+    const _n = new ImageEditorNode();
+    _n.assign({ image, mask, layers });
+    const result = await _n.process();
+    expect(result.image).toBe(image);
+    expect(result.mask).toBe(mask);
+    expect(result.layers).toEqual(layers);
+  });
+
+  it("ImageEditorNode forwards dynamic layer_out_* properties", async () => {
+    const overlay = imageRef();
+    const _n = new ImageEditorNode();
+    _n.assign({
+      image: imageRef(),
+      layer_out_top: overlay,
+      ignored_extra: "skip"
+    });
+    const result = await _n.process();
+    expect(result.layer_out_top).toBe(overlay);
+    expect(result).not.toHaveProperty("ignored_extra");
+  });
+
+  it("ImageEditorNode coerces non-array layers to an empty list", async () => {
+    const _n = new ImageEditorNode();
+    _n.assign({ image: imageRef(), layers: "not-an-array" });
+    const result = await _n.process();
+    expect(result.layers).toEqual([]);
   });
 });
 
