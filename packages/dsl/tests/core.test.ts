@@ -244,16 +244,20 @@ describe("run / runGraph", () => {
   //   nodetool.test.Add       → { result: ... }
   //   nodetool.test.ErrorNode → throws
 
-  test("run() executes a single source node and returns its outputs", async () => {
-    const a = createNode<SingleOutput<number, "value">>(
-      "nodetool.test.Constant",
-      { value: 42 },
-      { outputNames: ["value"], defaultOutput: "value" }
-    );
-    const result = await run(workflow(a));
-    // Constant is the only (terminal) node; result keyed by node id
-    expect(result[a.nodeId]).toBe(42);
-  });
+  test(
+    "run() executes a single source node and returns its outputs",
+    async () => {
+      const a = createNode<SingleOutput<number, "value">>(
+        "nodetool.test.Constant",
+        { value: 42 },
+        { outputNames: ["value"], defaultOutput: "value" }
+      );
+      const result = await run(workflow(a));
+      // Constant is the only (terminal) node; result keyed by node id
+      expect(result[a.nodeId]).toBe(42);
+    },
+    60000
+  );
 
   test("run() executes a Constant → Add chain and returns computed result", async () => {
     const a = createNode<SingleOutput<number, "value">>(

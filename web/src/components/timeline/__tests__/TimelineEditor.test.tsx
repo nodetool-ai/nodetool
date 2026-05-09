@@ -26,6 +26,24 @@ jest.mock("../../../hooks/useTimelineSequence", () => ({
   useTimelines: jest.fn(),
   useCreateTimeline: jest.fn()
 }));
+jest.mock("../../../hooks/timeline/useWorkflowFreshnessCheck", () => ({
+  useWorkflowFreshnessCheck: jest.fn()
+}));
+jest.mock("../../../hooks/timeline/useGenerateClip", () => ({
+  useTimelineGenerationSubscriptions: jest.fn()
+}));
+jest.mock("../../../hooks/timeline/useLoadTimelineIntoStore", () => ({
+  useLoadTimelineIntoStore: jest.fn()
+}));
+jest.mock("../../../hooks/timeline/useTimelineAutosave", () => ({
+  useTimelineAutosave: jest.fn()
+}));
+jest.mock("../../../stores/timeline/TimelineGenerationStore", () => ({
+  useGeneratingCount: jest.fn(() => 0),
+  useFailedCount: jest.fn(() => 0),
+  useGeneratingClipIds: jest.fn(() => []),
+  useFailedClipIds: jest.fn(() => [])
+}));
 
 // ── TracksRegion mock ────────────────────────────────────────────────────────
 
@@ -40,6 +58,10 @@ jest.mock("../preview/PreviewArea", () => ({
   PreviewArea: () =>
     React.createElement("div", { "data-testid": "preview-area" }, "Preview")
 }));
+jest.mock("../TimelineAssetPanel", () => ({
+  TimelineAssetPanel: () =>
+    React.createElement("div", { "data-testid": "timeline-asset-panel" }, "Assets")
+}));
 
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -47,6 +69,7 @@ import {
   useTimelines,
   useCreateTimeline
 } from "../../../hooks/useTimelineSequence";
+import { useWorkflowFreshnessCheck } from "../../../hooks/timeline/useWorkflowFreshnessCheck";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -72,6 +95,10 @@ beforeEach(() => {
   (useParams as jest.Mock).mockReturnValue({ sequenceId: "seq-1" });
   (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
   (useSearchParams as jest.Mock).mockReturnValue([mockSearchParams, jest.fn()]);
+  (useWorkflowFreshnessCheck as jest.Mock).mockReturnValue({
+    driftItems: [],
+    resolveDrift: jest.fn()
+  });
   (useTimelines as jest.Mock).mockReturnValue({ data: [] });
   (useCreateTimeline as jest.Mock).mockReturnValue({
     mutate: mockCreateMutate,
