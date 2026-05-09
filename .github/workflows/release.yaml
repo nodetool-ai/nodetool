@@ -625,6 +625,11 @@ jobs:
     if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release-build.result == 'success' && (github.event_name != 'workflow_dispatch' || github.event.inputs.channel == 'nightly' || github.event.inputs.version != '') }}
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.preflight.outputs.ref }}
+
       - name: Download release artifacts
         uses: actions/download-artifact@v8
         with:
@@ -634,6 +639,9 @@ jobs:
 
       - name: Validate release assets
         run: node scripts/validate-release-assets.mjs release-assets "${{ needs.preflight.outputs.release_channel }}"
+
+      - name: Smoke-test updater manifests
+        run: node scripts/smoke-release-updater-assets.mjs release-assets "${{ needs.preflight.outputs.version }}" "${{ needs.preflight.outputs.release_channel }}"
 
       - name: Publish release
         uses: softprops/action-gh-release@v3
