@@ -112,6 +112,9 @@ async function waitForScreenshotReady(
       break;
     }
     case "mini-app-page.png": {
+      // TODO(screenshots): Re-enable automated mini-app/assets captures once
+      // screenshot-server consistently returns transformed responses for these
+      // routes without empty/loading states.
       // Intentionally no-op.
       // Mini-app and assets screenshots are currently generated manually because
       // API transform errors in screenshot-server can intermittently return
