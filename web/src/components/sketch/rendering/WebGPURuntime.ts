@@ -1015,7 +1015,7 @@ export class WebGPURuntime implements SketchRuntime {
       activeStroke != null ? this.uploadStrokeMergePreview(activeStroke) : null;
 
     for (const layer of doc.layers) {
-      if (layer.type === "mask" || layer.type === "group") {
+      if (layer.type === "group") {
         continue;
       }
       if (!isLayerCompositeVisible(doc.layers, layer, isolatedLayerId)) {

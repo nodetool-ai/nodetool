@@ -144,6 +144,17 @@ export interface StrokeTempState {
   strokeTempCanvas: HTMLCanvasElement | null;
 }
 
+/** Options for {@link renderDocumentComposite}. */
+export interface RenderDocumentCompositeOptions {
+  /**
+   * When true, mask-type layers are drawn like raster layers (editor preview).
+   * Export/flatten paths omit this so flattened output does not paint mask pixels
+   * as a separate layer.
+   * @default false
+   */
+  includeMaskLayers?: boolean;
+}
+
 /**
  * Render document pixels only: visibility, opacity, blend modes, transforms,
  * effects, and optional active-stroke preview. This excludes display-only
@@ -156,12 +167,17 @@ export function renderDocumentComposite(
   activeStroke: ActiveStrokeInfo | null,
   layerCanvases: Map<string, HTMLCanvasElement>,
   evaluateLayerEffects: EvaluateLayerEffectsFn,
-  strokeState: StrokeTempState
+  strokeState: StrokeTempState,
+  options?: RenderDocumentCompositeOptions
 ): StrokeTempState {
+  const includeMaskLayers = options?.includeMaskLayers ?? false;
   let { strokeTempCanvas } = strokeState;
 
   for (const layer of doc.layers) {
-    if (layer.type === "mask" || layer.type === "group") {
+    if (layer.type === "group") {
+      continue;
+    }
+    if (layer.type === "mask" && !includeMaskLayers) {
       continue;
     }
     if (!isLayerCompositeVisible(doc.layers, layer, isolatedLayerId)) {
@@ -297,7 +313,8 @@ export function compositeToDisplayCanvas(
     activeStroke,
     layerCanvases,
     evaluateLayerEffects,
-    strokeState
+    strokeState,
+    { includeMaskLayers: true }
   );
 
   if (useClip) {

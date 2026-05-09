@@ -25,7 +25,8 @@ export {
 } from "./composite";
 export type {
   EvaluateLayerEffectsFn,
-  StrokeTempState
+  StrokeTempState,
+  RenderDocumentCompositeOptions
 } from "./composite";
 
 export {
