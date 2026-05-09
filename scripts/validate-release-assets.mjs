@@ -3,15 +3,32 @@ import fs from "node:fs";
 import path from "node:path";
 
 const dir = path.resolve(process.argv[2] ?? "release-assets");
-const channel = process.argv[3] === "nightly" ? "nightly" : "latest";
-const files = fs.existsSync(dir) ? fs.readdirSync(dir) : [];
+const inputChannel = process.argv[3] ?? "stable";
+const channel = inputChannel === "nightly" ? "nightly" : "stable";
+const manifestPrefix = channel === "nightly" ? "nightly" : "latest";
+let files = [];
+try {
+  if (fs.existsSync(dir)) {
+    const stats = fs.statSync(dir);
+    if (!stats.isDirectory()) {
+      throw new Error("Path exists but is not a directory");
+    }
+    files = fs.readdirSync(dir);
+  }
+} catch (error) {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`Release asset validation failed for ${inputChannel} channel.`);
+  console.error(`Directory: ${dir}`);
+  console.error(`Unable to read directory: ${message}`);
+  process.exit(1);
+}
 const has = (predicate) => files.some(predicate);
 const required = [
-  channel === "nightly" ? "nightly.yml" : "latest.yml",
-  channel === "nightly" ? "nightly-mac.yml" : "latest-mac.yml",
-  channel === "nightly" ? "nightly-linux.yml" : "latest-linux.yml",
+  `${manifestPrefix}.yml`,
+  `${manifestPrefix}-mac.yml`,
+  `${manifestPrefix}-linux.yml`,
 ];
-const missing = required.filter((file) => !files.includes(file));
+const missingFiles = required.filter((file) => !files.includes(file));
 
 const checks = [
   ["Windows installer", (f) => /^Nodetool-Setup-.+\.exe$/.test(f)],
@@ -20,17 +37,25 @@ const checks = [
   ["Linux AppImage", (f) => f.endsWith(".AppImage")],
   ["web archive", (f) => /^nodetool-web-.+\.zip$/.test(f)],
 ];
+const missingArtifacts = [];
 for (const [label, predicate] of checks) {
-  if (!has(predicate)) missing.push(label);
+  if (!has(predicate)) {
+    missingArtifacts.push(label);
+  }
 }
 
-if (missing.length > 0) {
-  console.error(`Release asset validation failed for ${channel} channel.`);
+if (missingFiles.length > 0 || missingArtifacts.length > 0) {
+  console.error(`Release asset validation failed for ${inputChannel} channel.`);
   console.error(`Directory: ${dir}`);
-  console.error(`Missing: ${missing.join(", ")}`);
+  if (missingFiles.length > 0) {
+    console.error(`Missing manifest files: ${missingFiles.join(", ")}`);
+  }
+  if (missingArtifacts.length > 0) {
+    console.error(`Missing artifact types: ${missingArtifacts.join(", ")}`);
+  }
   console.error(`Found:\n${files.map((file) => `  - ${file}`).join("\n")}`);
   process.exit(1);
 }
 
-console.log(`Release asset validation passed for ${channel} channel.`);
+console.log(`Release asset validation passed for ${inputChannel} channel.`);
 console.log(files.map((file) => `  - ${file}`).join("\n"));
