@@ -625,12 +625,20 @@ jobs:
     if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release-build.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.preflight.outputs.ref }}
+
       - name: Download release artifacts
         uses: actions/download-artifact@v8
         with:
           pattern: '*'
           merge-multiple: true
           path: release-assets
+
+      - name: Validate release assets
+        run: node scripts/validate-release-assets.mjs release-assets "${{ needs.preflight.outputs.release_channel }}"
 
       - name: Publish release
         uses: softprops/action-gh-release@v3
