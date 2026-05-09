@@ -450,8 +450,10 @@ describe("processChat", () => {
     expect(firstCall[2].role).toBe("user");
 
     // The persisted `messages` array does NOT include the memory message
-    expect(messages.find((m) => m.content?.toString().includes("Long-term memory")))
-      .toBeUndefined();
+    expect(messages.some((m) => m.content?.toString().includes("<recalled-memories>")))
+      .toBe(false);
+    expect(messages.some((m) => m.content?.toString().includes("User prefers TypeScript")))
+      .toBe(false);
 
     // remember is fired-and-forget; allow the microtask queue to flush.
     await new Promise((r) => setImmediate(r));
