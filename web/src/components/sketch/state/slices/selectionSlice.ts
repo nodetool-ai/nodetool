@@ -13,6 +13,7 @@ import {
   expandSelectionMask,
   featherMaskAlpha,
   invertMaskInPlace,
+  MAX_SELECTION_FEATHER_RADIUS,
   selectionHasAnyPixels,
   selectionToDocumentAligned,
   smoothSelectionBorders,

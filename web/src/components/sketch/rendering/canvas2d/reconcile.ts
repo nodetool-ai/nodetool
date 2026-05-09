@@ -462,6 +462,8 @@ export function invertLayerColors(
   const compositeOffset = getLayerCompositeOffset(
     activeLayer,
     { width: w, height: h },
+    // Use the live raster metadata; document contentBounds can lag behind after
+    // a compact re-encode and would skew subsequent selection-masked inverts.
     layerCanvas
   );
   const cbx = compositeOffset.x;

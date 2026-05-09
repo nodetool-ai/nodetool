@@ -22,6 +22,7 @@ import {
   sketchSliderSx,
   SKETCH_COLORS
 } from "../sketchStyles";
+import { MAX_SELECTION_FEATHER_RADIUS } from "../selection";
 import { SelectSettings, SelectToolMode } from "../types";
 import { useSketchStore } from "../state";
 import { selectModeToggleButtonSx } from "./shared";
@@ -154,7 +155,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           sx={sketchSliderSx}
           size="small"
           min={0}
-          max={64}
+          max={MAX_SELECTION_FEATHER_RADIUS}
           value={settings.featherRadius}
           onChange={(_, v) => onChange({ featherRadius: v as number })}
         />
