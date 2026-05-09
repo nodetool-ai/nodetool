@@ -34,6 +34,7 @@ const emptyMutate = () =>
 export const mockWorkflowsGet = jest.fn();
 export const mockWorkflowsCreate = jest.fn();
 export const mockTimelineClipsCreate = jest.fn();
+export const mockSketchVersionsAppend = jest.fn();
 
 export const trpc = {
   Provider: ({ children }: { children: unknown }) => children as never,
@@ -122,6 +123,25 @@ export const trpcClient = {
     update: { mutate: jest.fn(async () => ({ ok: true })) },
     clips: {
       create: { mutate: mockTimelineClipsCreate }
+    }
+  },
+  // Sketch (Image Editor) namespace
+  sketch: {
+    list: { query: emptyQuery() },
+    get: { query: emptyQuery() },
+    create: { mutate: emptyMutate() },
+    update: { mutate: jest.fn(async () => ({ ok: true })) },
+    delete: { mutate: emptyMutate() },
+    versions: {
+      list: { query: emptyQuery() },
+      append: { mutate: mockSketchVersionsAppend },
+      setFavorite: { mutate: emptyMutate() },
+      delete: { mutate: emptyMutate() }
+    },
+    layers: {
+      create: { mutate: emptyMutate() },
+      delete: { mutate: emptyMutate() },
+      duplicate: { mutate: emptyMutate() }
     }
   }
 };
