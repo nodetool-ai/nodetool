@@ -95,6 +95,11 @@ async function ensureVisibleText(
   await page.getByText(text).first().waitFor({ state: "visible", timeout });
 }
 
+/**
+ * Waits for transient loading indicators to disappear before capture.
+ * Uses a shorter timeout than text waits because these indicators should clear
+ * quickly; if they do not, the screenshot should fail fast.
+ */
 async function ensureNoVisibleProgress(page: Page, timeout = 12000): Promise<void> {
   const progress = page.locator('[role="progressbar"], .MuiCircularProgress-root');
   if ((await progress.count()) === 0) {
@@ -119,7 +124,8 @@ async function waitForScreenshotReady(
     }
     case "mini-app-page.png": {
       // TODO(screenshots): Re-enable automated mini-app captures once
-      // screenshot-server API transform responses are stable for this route.
+      // screenshot-server API responses for `/apps/:workflowId` reliably render
+      // workflow content (title + inputs) with no persistent progress spinner.
       break;
     }
     case "node-test-page.png": {
