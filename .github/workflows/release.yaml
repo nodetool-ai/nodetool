@@ -622,14 +622,9 @@ jobs:
   publish-release:
     name: Publish GitHub Release
     needs: [preflight, release-build]
-    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release-build.result == 'success' }}
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release-build.result == 'success' && (github.event_name != 'workflow_dispatch' || github.event.inputs.channel == 'nightly' || github.event.inputs.version != '') }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.preflight.outputs.ref }}
-
       - name: Download release artifacts
         uses: actions/download-artifact@v8
         with:
@@ -649,9 +644,9 @@ jobs:
           make_latest: ${{ needs.preflight.outputs.make_latest }}
           files: |
             release-assets/*.zip
+            !release-assets/*win-unpacked*.zip
             release-assets/*.dmg
             release-assets/*.AppImage
             release-assets/*.exe
             release-assets/*.yml
           fail_on_unmatched_files: true
-

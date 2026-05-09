@@ -215,6 +215,7 @@ describe("Auto-updater Module", () => {
     it("should set up auto-updater when app is packaged, config exists, and auto-updates are enabled", async () => {
       mockExistsSync.mockReturnValue(true);
       mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: true });
+      mockGetUpdateChannel.mockReturnValue("latest");
 
       let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
@@ -240,6 +241,45 @@ describe("Auto-updater Module", () => {
         repo: "nodetool",
         updaterCacheDirName: "nodetool-updater",
       });
+      expect(mockAutoUpdater.channel).toBe("latest");
+      expect(mockAutoUpdater.allowPrerelease).toBe(false);
+      expect(mockAutoUpdater.allowDowngrade).toBe(true);
+      expect(mockAutoUpdater.checkForUpdates).toHaveBeenCalled();
+    });
+
+    it("should configure nightly updater channel to allow prerelease updates", async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: true });
+      mockGetUpdateChannel.mockReturnValue("nightly");
+
+      let setupAutoUpdater: (() => Promise<void>) | undefined;
+      jest.isolateModules(() => {
+        jest.doMock("electron", () => ({
+          app: { isPackaged: true, getVersion: jest.fn().mockReturnValue("1.0.0-nightly.20260509.1") },
+        }));
+        jest.doMock("../settings", () => ({
+          readSettings: mockReadSettings,
+          readSettingsAsync: mockReadSettingsAsync,
+          getUpdateChannel: mockGetUpdateChannel,
+        }));
+        const updater = require("../updater");
+        setupAutoUpdater = updater.setupAutoUpdater;
+      });
+
+      if (setupAutoUpdater) {
+        await setupAutoUpdater();
+      }
+
+      expect(mockAutoUpdater.setFeedURL).toHaveBeenCalledWith({
+        provider: "github",
+        owner: "nodetool-ai",
+        repo: "nodetool",
+        updaterCacheDirName: "nodetool-updater",
+        channel: "nightly",
+      });
+      expect(mockAutoUpdater.channel).toBe("nightly");
+      expect(mockAutoUpdater.allowPrerelease).toBe(true);
+      expect(mockAutoUpdater.allowDowngrade).toBe(true);
       expect(mockAutoUpdater.checkForUpdates).toHaveBeenCalled();
     });
 
