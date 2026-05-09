@@ -26,7 +26,7 @@ import { Box, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
-import isEqual from "lodash/isEqual";
+import { isEqual } from "lodash";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
 import EditableTitle from "../EditableTitle";

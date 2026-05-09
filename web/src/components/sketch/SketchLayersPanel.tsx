@@ -22,7 +22,6 @@ import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   Box,
-  Button,
   IconButton,
   Menu,
   Slider,
@@ -35,7 +34,7 @@ import {
   FormControl,
   Switch
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+import CheckIcon from "@mui/icons-material/Check";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import GradientIcon from "@mui/icons-material/Gradient";
@@ -49,6 +48,7 @@ import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import FlipCameraAndroidIcon from "@mui/icons-material/FlipCameraAndroid";
+import KeyboardOutlinedIcon from "@mui/icons-material/KeyboardOutlined";
 import {
   Layer,
   BlendMode,
@@ -63,6 +63,7 @@ import type { DropPosition } from "./LayerItem";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
 import { useCollapsedSections } from "./useCollapsedSections";
 import { getMergeSelectedLayersPlan } from "./layerMergeSelection";
+import { Dialog, StateIconButton } from "../ui_primitives";
 import {
   ACTION_REGISTRY,
   BINDING_CATALOG,
@@ -148,7 +149,7 @@ function quickCycleDirectionForArrowKey(key: string): -1 | 1 | null {
   return null;
 }
 
-type PanelSectionKey = "canvasSize" | "shortcuts";
+type PanelSectionKey = "canvasSize";
 const SHORTCUT_DISPLAY_GROUPS: readonly DisplayGroup[] = [
   "Tools",
   "Edit",
@@ -595,6 +596,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     () => new Map(layers.map((layer) => [layer.id, layer])),
     [layers]
   );
+  const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
   const [dropTarget, setDropTarget] = useState<{
     realIdx: number;
     position: DropPosition;
@@ -610,8 +612,12 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   const [collapsedSections, handleToggleSection] =
     useCollapsedSections<PanelSectionKey>(
       "nodetool-sketch-layers-panel-collapsed",
-      { canvasSize: true, shortcuts: true }
+      { canvasSize: true }
     );
+
+  const handleCloseShortcutsModal = useCallback(() => {
+    setShortcutsModalOpen(false);
+  }, []);
 
   // ─── Custom canvas size state ─────────────────────────────────────
   const [customWidth, setCustomWidth] = useState(String(canvasWidth));
@@ -622,13 +628,27 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     setCustomHeight(String(canvasHeight));
   }, [canvasWidth, canvasHeight]);
 
-  const handleApplyCustomSize = useCallback(() => {
+  const canvasCustomSizeApply = useMemo(() => {
     const w = parseInt(customWidth, 10);
     const h = parseInt(customHeight, 10);
-    if (w > 0 && h > 0 && w <= 4096 && h <= 4096) {
-      onCanvasResize(w, h);
+    const valid =
+      Number.isFinite(w) &&
+      Number.isFinite(h) &&
+      w > 0 &&
+      h > 0 &&
+      w <= 4096 &&
+      h <= 4096;
+    const dirty = valid && (w !== canvasWidth || h !== canvasHeight);
+    return { valid, dirty, w, h };
+  }, [customWidth, customHeight, canvasWidth, canvasHeight]);
+
+  const handleApplyCustomSize = useCallback(() => {
+    const { valid, dirty, w, h } = canvasCustomSizeApply;
+    if (!valid || !dirty) {
+      return;
     }
-  }, [customWidth, customHeight, onCanvasResize]);
+    onCanvasResize(w, h);
+  }, [canvasCustomSizeApply, onCanvasResize]);
 
   const handleStartRename = useCallback(
     (layerId: string, currentName: string) => {
@@ -1062,9 +1082,40 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         onColorChange={onForegroundColorChange}
       />
 
-      <Typography className="section-label sketch-layers-panel__title">
-        Layers
-      </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 0.5,
+          width: "100%",
+          minHeight: 30
+        }}
+      >
+        <Typography
+          className="section-label sketch-layers-panel__title"
+          component="span"
+          sx={{ flex: 1, minWidth: 0 }}
+        >
+          Layers
+        </Typography>
+        <Tooltip
+          title="Keyboard shortcuts"
+          enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+          enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+        >
+          <IconButton
+            size="small"
+            onClick={() => {
+              setShortcutsModalOpen(true);
+            }}
+            aria-label="Open keyboard shortcuts"
+            sx={{ flexShrink: 0 }}
+          >
+            <KeyboardOutlinedIcon sx={{ fontSize: "1.125rem" }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
       {/* Add layers (row 1) + layer ops (row 2), left-aligned for predictable icon positions */}
       <Box className="layer-actions">
@@ -1644,7 +1695,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             value={customWidth}
             onChange={(e) => setCustomWidth(e.target.value)}
             inputProps={{ min: 1, max: 4096, step: 1 }}
-            sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: SKETCH_FONT.sm } }}
+            sx={{ flex: 1, minWidth: 0, "& .MuiInputLabel-root": { fontSize: SKETCH_FONT.sm } }}
           />
           <Typography sx={{ fontSize: SKETCH_FONT.md, color: SKETCH_COLORS.textFaint }}>
             ×
@@ -1657,18 +1708,20 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             value={customHeight}
             onChange={(e) => setCustomHeight(e.target.value)}
             inputProps={{ min: 1, max: 4096, step: 1 }}
-            sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: SKETCH_FONT.sm } }}
+            sx={{ flex: 1, minWidth: 0, "& .MuiInputLabel-root": { fontSize: SKETCH_FONT.sm } }}
+          />
+          <StateIconButton
+            icon={<CheckIcon sx={{ fontSize: 18 }} />}
+            tooltip="Apply canvas size"
+            ariaLabel="Apply canvas size"
+            onClick={handleApplyCustomSize}
+            isActive={canvasCustomSizeApply.dirty}
+            color="primary"
+            disabled={!canvasCustomSizeApply.dirty}
+            size="small"
+            sx={{ flexShrink: 0 }}
           />
         </Box>
-        <Button
-          size="small"
-          variant="contained"
-          fullWidth
-          onClick={handleApplyCustomSize}
-          sx={{ mt: "4px", fontSize: SKETCH_FONT.md, py: "2px" }}
-        >
-          Apply
-        </Button>
       </PanelSection>
 
       {/* ── Layer context menu ──────────────────────────────────── */}
@@ -1933,17 +1986,23 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         );
       })()}
 
-      <Divider />
-
-      {/* ── Shortcuts reference (collapsible, collapsed by default) ─ */}
-      <PanelSection
-        title="Shortcuts"
-        sectionKey="shortcuts"
-        collapsed={collapsedSections.shortcuts}
-        onToggle={handleToggleSection}
+      <Dialog
+        open={shortcutsModalOpen}
+        onClose={handleCloseShortcutsModal}
+        title="Keyboard shortcuts"
+        maxWidth="sm"
+        fullWidth
       >
-        <ShortcutReference />
-      </PanelSection>
+        <Box
+          sx={{
+            maxHeight: "min(70vh, 560px)",
+            overflowY: "auto",
+            pr: 0.5
+          }}
+        >
+          <ShortcutReference />
+        </Box>
+      </Dialog>
     </Box>
   );
 };
