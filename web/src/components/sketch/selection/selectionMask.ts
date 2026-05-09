@@ -850,6 +850,8 @@ export function featherMaskAlpha(mask: Selection, radiusPx: number): void {
     return;
   }
   const passes = 3;
+  // Repeated box blurs compound quickly; a smaller per-pass radius keeps the
+  // visible feather closer to the slider value instead of washing far outward.
   const blurRadius = Math.max(1, Math.round(requestedRadius / 2));
   const { width: w, height: h, data } = mask;
   const n = w * h;

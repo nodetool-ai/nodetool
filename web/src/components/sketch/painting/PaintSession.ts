@@ -121,6 +121,7 @@ export class PaintSession {
 
   // ── Feathered selection mask (captured at stroke begin) ──────────
   private selectionMask: Selection | null = null;
+  /** Captured layer pixels used to restore soft-edged selection falloff after commit. */
   private selectionSnapshot: ImageData | null = null;
 
   /** Snapshot of stroke buffer before the current Shift straight segment (for rubber-band updates). */
@@ -245,7 +246,7 @@ export class PaintSession {
 
     if (!isShiftContinuation) {
       const shouldBlendRestore =
-        this.selectionMask != null && selectionHasSoftEdges(this.selectionMask);
+        this.selectionMask !== null && selectionHasSoftEdges(this.selectionMask);
       if (shouldBlendRestore) {
         const layerCtx = layerCanvas.getContext("2d");
         this.selectionSnapshot = layerCtx
