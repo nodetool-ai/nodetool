@@ -37,37 +37,3 @@ export function useInputStream(inputName: string) {
 
   return { send, end };
 }
-
-/**
- * Convenience helpers for chunked streaming (text/audio) via a dedicated
- * downstream handle like "chunk" on the consumer node.
- *
- * The graph should connect this InputNode to the target node's handle
- * (e.g., RealtimeAgent's "chunk"). This hook sends chunk objects; the
- * consumer decides how to interpret them.
- */
-export function useChunkedInputStream(
-  inputName: string,
-  handle: string = "chunk"
-) {
-  const { send, end } = useInputStream(inputName);
-
-  const appendText = useCallback(
-    (content: string, done: boolean = false) => {
-      send({ type: "chunk", content, done }, handle);
-    },
-    [send, handle]
-  );
-
-  const appendAudioBase64 = useCallback(
-    (base64Pcm16: string, done: boolean = false) => {
-      send(
-        { type: "chunk", content: base64Pcm16, done, content_type: "audio" },
-        handle
-      );
-    },
-    [send, handle]
-  );
-
-  return { appendText, appendAudioBase64, end: () => end(handle) };
-}

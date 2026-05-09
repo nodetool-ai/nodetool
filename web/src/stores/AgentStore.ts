@@ -27,7 +27,7 @@ import type {
 
 export type { AgentProvider, AgentModelDescriptor } from "../lib/agent/agentTypes";
 
-export type AgentStatus =
+type AgentStatus =
   | "disconnected"
   | "connecting"
   | "connected"
@@ -36,7 +36,7 @@ export type AgentStatus =
   | "stopping"
   | "error";
 
-export interface AgentSessionHistoryEntry {
+interface AgentSessionHistoryEntry {
   id: string;
   provider: AgentProvider;
   model: string;

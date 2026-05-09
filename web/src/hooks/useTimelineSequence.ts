@@ -45,28 +45,6 @@ export const useCreateTimeline = () => {
   });
 };
 
-/** Update (partially) a timeline sequence. */
-export const useUpdateTimeline = () => {
-  const utils = trpc.useUtils();
-  return trpc.timeline.update.useMutation({
-    onSuccess: (updated) => {
-      utils.timeline.get.setData({ id: updated.id }, updated);
-      utils.timeline.list.invalidate({ projectId: updated.projectId });
-    }
-  });
-};
-
-/** Delete a timeline sequence. */
-export const useDeleteTimeline = () => {
-  const utils = trpc.useUtils();
-  return trpc.timeline.delete.useMutation({
-    onSuccess: (_data, vars) => {
-      utils.timeline.get.reset({ id: vars.id });
-      utils.timeline.list.invalidate();
-    }
-  });
-};
-
 /** Append a new clip version inside a sequence document. */
 export const useAppendClipVersion = () => {
   const utils = trpc.useUtils();

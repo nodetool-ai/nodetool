@@ -1,4 +1,4 @@
-import { spawn, spawnSync } from "child_process";
+import { spawn } from "child_process";
 import { app } from "electron";
 import { logMessage } from "./logger";
 import {
@@ -8,7 +8,7 @@ import {
   getCondaEnvPath,
 } from "./config";
 import * as path from "path";
-import * as fsp from "fs/promises";
+
 
 /** Extract the message from an unknown catch-clause error. */
 function errorMsg(error: unknown): string {
