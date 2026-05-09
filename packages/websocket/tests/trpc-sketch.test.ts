@@ -60,6 +60,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     ...actual,
     Workflow: {
       ...actual.Workflow,
+      find: vi.fn(),
       cloneAsLayerPrivate: vi.fn(),
       deleteLayerIfOrphaned: vi.fn()
     },
@@ -77,6 +78,7 @@ const ID = ImageDocument as unknown as {
   updateDoc: ReturnType<typeof vi.fn>;
 };
 const WF = Workflow as unknown as {
+  find: ReturnType<typeof vi.fn>;
   cloneAsLayerPrivate: ReturnType<typeof vi.fn>;
   deleteLayerIfOrphaned: ReturnType<typeof vi.fn>;
 };
@@ -116,13 +118,13 @@ describe("sketch router", () => {
       expect(out.map((d) => d.id)).toEqual(["a", "b"]);
     });
 
-    it("filters by projectId and excludes other users' documents", async () => {
+    it("filters by projectId scoped to current user at the DB level", async () => {
       ID.listByProject.mockResolvedValue([
-        makeDoc({ id: "a", user_id: "user-1" }),
-        makeDoc({ id: "b", user_id: "other" })
+        makeDoc({ id: "a", user_id: "user-1" })
       ]);
       const caller = createCaller(makeCtx());
       const out = await caller.sketch.list({ projectId: "p-1" });
+      expect(ID.listByProject).toHaveBeenCalledWith("p-1", "user-1");
       expect(out.map((d) => d.id)).toEqual(["a"]);
     });
 
@@ -414,27 +416,35 @@ describe("sketch router", () => {
       ]
     };
 
+    const validSourceGraph = {
+      nodes: [
+        {
+          id: "prompt",
+          type: "nodetool.input.StringInput",
+          data: { name: "prompt", value: "" }
+        },
+        {
+          id: "output",
+          type: "nodetool.output.Output",
+          data: { name: "image", value: null }
+        }
+      ],
+      edges: []
+    };
+
     it("create clones workflow and adds binding", async () => {
       ID.findById.mockResolvedValue(makeDoc());
+      WF.find.mockResolvedValue({
+        id: "source-wf",
+        user_id: "user-1",
+        access: "private",
+        graph: validSourceGraph
+      });
       WF.cloneAsLayerPrivate.mockResolvedValue({
         id: "wf-clone",
         name: "Template",
         updated_at: "2026-01-01T00:00:00Z",
-        graph: {
-          nodes: [
-            {
-              id: "prompt",
-              type: "nodetool.input.StringInput",
-              data: { name: "prompt", value: "" }
-            },
-            {
-              id: "output",
-              type: "nodetool.output.Output",
-              data: { name: "image", value: null }
-            }
-          ],
-          edges: []
-        }
+        graph: validSourceGraph
       });
       ID.updateDoc.mockResolvedValue(undefined);
 
@@ -445,6 +455,7 @@ describe("sketch router", () => {
         sourceWorkflowId: "source-wf"
       });
 
+      expect(WF.find).toHaveBeenCalledWith("user-1", "source-wf");
       expect(WF.cloneAsLayerPrivate).toHaveBeenCalledWith(
         "source-wf",
         "user-1"
@@ -454,6 +465,72 @@ describe("sketch router", () => {
       expect(out.selectedOutputNodeId).toBe("output");
       expect(out.paramOverrides).toEqual({ prompt: "" });
       expect(out.status).toBe("draft");
+    });
+
+    it("create rejects when source workflow not accessible", async () => {
+      ID.findById.mockResolvedValue(makeDoc());
+      WF.find.mockResolvedValue(null);
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.sketch.layers.create({
+          id: "doc-1",
+          layerId: "new-layer-1",
+          sourceWorkflowId: "source-wf"
+        })
+      ).rejects.toThrow();
+      expect(WF.cloneAsLayerPrivate).not.toHaveBeenCalled();
+    });
+
+    it("create does not clone when source has no image output", async () => {
+      ID.findById.mockResolvedValue(makeDoc());
+      WF.find.mockResolvedValue({
+        id: "source-wf",
+        user_id: "user-1",
+        access: "private",
+        graph: {
+          nodes: [
+            {
+              id: "prompt",
+              type: "nodetool.input.StringInput",
+              data: { name: "prompt", value: "" }
+            }
+          ],
+          edges: []
+        }
+      });
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.sketch.layers.create({
+          id: "doc-1",
+          layerId: "new-layer-1",
+          sourceWorkflowId: "source-wf"
+        })
+      ).rejects.toThrow();
+      expect(WF.cloneAsLayerPrivate).not.toHaveBeenCalled();
+    });
+
+    it("create rejects when layerId already has a binding", async () => {
+      ID.findById.mockResolvedValue(
+        makeDoc({ document: JSON.stringify(layerDoc) })
+      );
+      WF.find.mockResolvedValue({
+        id: "source-wf",
+        user_id: "user-1",
+        access: "private",
+        graph: validSourceGraph
+      });
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.sketch.layers.create({
+          id: "doc-1",
+          layerId: "layer-1",
+          sourceWorkflowId: "source-wf"
+        })
+      ).rejects.toThrow();
+      expect(WF.cloneAsLayerPrivate).not.toHaveBeenCalled();
     });
 
     it("delete removes binding and cascades orphan cleanup", async () => {
@@ -516,6 +593,23 @@ describe("sketch router", () => {
       expect(WF.cloneAsLayerPrivate).toHaveBeenCalledWith("wf-1", "user-1");
       expect(out.workflowId).toBe("wf-2");
       expect(out.paramOverrides).toEqual({ prompt: "hello" });
+    });
+
+    it("duplicate rejects when newLayerId already exists", async () => {
+      ID.findById.mockResolvedValue(
+        makeDoc({ document: JSON.stringify(layerDoc) })
+      );
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.sketch.layers.duplicate({
+          id: "doc-1",
+          layerId: "layer-1",
+          newLayerId: "layer-1",
+          mode: "linked"
+        })
+      ).rejects.toThrow();
+      expect(WF.cloneAsLayerPrivate).not.toHaveBeenCalled();
     });
 
     it("duplicate 404s on unknown layer", async () => {

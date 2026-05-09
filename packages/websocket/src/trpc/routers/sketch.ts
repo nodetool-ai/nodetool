@@ -156,9 +156,7 @@ export const sketchRouter = router({
     .output(z.array(imageDocumentListItem))
     .query(async ({ ctx, input }) => {
       const docs = input.projectId
-        ? (await ImageDocument.listByProject(input.projectId)).filter(
-            (d) => d.user_id === ctx.userId
-          )
+        ? await ImageDocument.listByProject(input.projectId, ctx.userId)
         : await ImageDocument.listByUser(ctx.userId);
       return docs.map(toListItem);
     }),
@@ -375,16 +373,35 @@ export const sketchRouter = router({
       .mutation(async ({ ctx, input }) => {
         const doc = await loadOwned(ctx.userId, input.id);
 
-        // Clone the source workflow into a layer-private row
-        const clone = await Workflow.cloneAsLayerPrivate(
-          input.sourceWorkflowId,
-          ctx.userId!
-        );
+        const data = doc.toDocumentData();
+        if (findBinding(data, input.layerId)) {
+          throwApiError(
+            ApiErrorCode.ALREADY_EXISTS,
+            `Layer binding already exists for layerId ${input.layerId}`
+          );
+        }
 
-        const nodes = (clone.graph?.nodes ?? []) as Record<string, unknown>[];
+        // Validate access to the source workflow before cloning: the caller
+        // must own it or it must be public. Using Workflow.find here keeps
+        // private workflows owned by other users out of reach.
+        const source = await Workflow.find(
+          ctx.userId!,
+          input.sourceWorkflowId
+        );
+        if (!source) {
+          throwApiError(
+            ApiErrorCode.NOT_FOUND,
+            "Source workflow not found or not accessible"
+          );
+        }
+
+        const sourceNodes = (source.graph?.nodes ?? []) as Record<
+          string,
+          unknown
+        >[];
 
         // Find terminal output nodes suitable for image layers
-        const outputNodes = nodes.filter((n) =>
+        const outputNodes = sourceNodes.filter((n) =>
           isImageOutputNode(n.type as string)
         );
 
@@ -403,7 +420,7 @@ export const sketchRouter = router({
           if (!found) {
             throwApiError(
               ApiErrorCode.INVALID_INPUT,
-              `selectedOutputNodeId ${input.selectedOutputNodeId} is not an image output node in the cloned graph`
+              `selectedOutputNodeId ${input.selectedOutputNodeId} is not an image output node in the source graph`
             );
           }
           selectedOutputNode = found;
@@ -418,13 +435,19 @@ export const sketchRouter = router({
 
         // Seed paramOverrides from each Input* node default
         const paramOverrides: Record<string, unknown> = {};
-        for (const node of nodes) {
+        for (const node of sourceNodes) {
           if (!isInputNode(node.type as string)) continue;
           const name = inputNodeName(node);
           if (name) {
             paramOverrides[name] = inputNodeDefault(node);
           }
         }
+
+        // Validation passed — clone the source workflow into a layer-private row.
+        const clone = await Workflow.cloneAsLayerPrivate(
+          input.sourceWorkflowId,
+          ctx.userId!
+        );
 
         // Compute initial dependencyHash
         const workflowUpdatedAt =
@@ -449,7 +472,6 @@ export const sketchRouter = router({
           versions: []
         };
 
-        const data = doc.toDocumentData();
         data.layerBindings.push(newBinding);
 
         await ImageDocument.updateDoc(input.id, {
@@ -500,6 +522,12 @@ export const sketchRouter = router({
         const src = findBinding(data, input.layerId);
         if (!src) {
           throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
+        }
+        if (findBinding(data, input.newLayerId)) {
+          throwApiError(
+            ApiErrorCode.ALREADY_EXISTS,
+            `Layer binding already exists for layerId ${input.newLayerId}`
+          );
         }
 
         let newWorkflowId = src.workflowId;

@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import type {
   SketchDocumentLike,
   LayerWorkflowBinding
@@ -113,13 +113,19 @@ export class ImageDocument extends DBModel {
 
   static async listByProject(
     projectId: string,
+    userId: string,
     limit = 50
   ): Promise<ImageDocument[]> {
     const db = getDb();
     const rows = await db
       .select()
       .from(imageDocuments)
-      .where(eq(imageDocuments.project_id, projectId))
+      .where(
+        and(
+          eq(imageDocuments.project_id, projectId),
+          eq(imageDocuments.user_id, userId)
+        )
+      )
       .orderBy(desc(imageDocuments.updated_at))
       .limit(limit);
     return rows.map((r: Record<string, unknown>) => new ImageDocument(r));
