@@ -35,6 +35,7 @@ import { EmptyState, FlexColumn, LoadingSpinner } from "../ui_primitives";
 import SketchEditor from "./SketchEditor";
 import { trpc } from "../../trpc/client";
 import type { SketchDocument } from "./types";
+import { useSketchLayerBindingsStore } from "../../stores/sketch/SketchLayerBindingsStore";
 
 const pageStyles = (theme: Theme) =>
   css({
@@ -69,6 +70,9 @@ const SketchEditorPage: React.FC = memo(function SketchEditorPage() {
     document: SketchDocument;
   } | null>(null);
 
+  const setBindings = useSketchLayerBindingsStore((s) => s.setBindings);
+  const resetBindings = useSketchLayerBindingsStore((s) => s.reset);
+
   useEffect(() => {
     if (!documentId) return;
     if (seed?.id === documentId) return;
@@ -78,7 +82,14 @@ const SketchEditorPage: React.FC = memo(function SketchEditorPage() {
     // Slice 1+2 widening of layer fields is handled inside the editor on load.
     const sketch = data.document.sketch as unknown as SketchDocument;
     setSeed({ id: documentId, document: sketch });
-  }, [documentId, documentQuery.data, seed?.id]);
+    setBindings(data.document.layerBindings ?? []);
+  }, [documentId, documentQuery.data, seed?.id, setBindings]);
+
+  useEffect(() => {
+    return () => {
+      resetBindings();
+    };
+  }, [documentId, resetBindings]);
 
   if (!documentId) {
     return (
