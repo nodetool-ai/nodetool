@@ -65,8 +65,8 @@ jobs:
     name: Resolve release metadata
     needs: [check_changes]
     if: |
-      !failure() && !cancelled() &&
-      (github.event_name != 'schedule' || needs.check_changes.outputs.has_changes == 'true')
+      always() && !failure() && !cancelled() &&
+      (needs.check_changes.result == 'skipped' || needs.check_changes.outputs.has_changes == 'true')
     runs-on: ubuntu-latest
     outputs:
       release_channel: ${{ steps.meta.outputs.release_channel }}
