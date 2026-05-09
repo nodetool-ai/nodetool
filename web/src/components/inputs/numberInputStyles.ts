@@ -88,7 +88,17 @@ export const numberInputStyles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "center",
       gap: "2px",
-      marginLeft: "6px"
+      marginLeft: "auto",
+      opacity: 0,
+      pointerEvents: "none",
+      transition: theme.transitions.create("opacity", {
+        duration: theme.transitions.duration.shorter
+      })
+    },
+
+    "&:hover .number-stepper": {
+      opacity: 1,
+      pointerEvents: "auto"
     },
 
     ".step-button": {
