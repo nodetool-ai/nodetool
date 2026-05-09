@@ -102,7 +102,6 @@ describe("Generic hover dispatch via onHoverMove", () => {
       "gradient",
       "eyedropper",
       "move",
-      "crop",
       "adjust"
     ] as const;
     for (const tool of noHoverTools) {

@@ -129,7 +129,7 @@ describe("TransformTool in-transform undo/redo", () => {
     tool = getToolHandler("transform") as TransformTool;
   });
 
-  it("shift+click retargets to a single layer without keeping stale target ids", () => {
+  it("click retargets to a single layer without keeping stale target ids", () => {
     const ctx = makeToolContext();
     const firstLayer = ctx.doc.layers[0];
     firstLayer.contentBounds = { x: 0, y: 0, width: 64, height: 64 };
@@ -144,11 +144,7 @@ describe("TransformTool in-transform undo/redo", () => {
     tool.onActivate!(ctx);
     expect(tool.getTargetSet().getIds()).toEqual([firstLayer.id]);
 
-    const shiftEvent = makePointerEvent({
-      nativeEvent: {
-        shiftKey: true
-      } as unknown as React.PointerEvent
-    });
+    const clickEvent = makePointerEvent();
 
     expect(
       (tool as unknown as {
@@ -157,7 +153,7 @@ describe("TransformTool in-transform undo/redo", () => {
           event: ToolPointerEvent,
           pickedOverride?: typeof secondLayer
         ) => boolean;
-      }).tryAutoSelectPick(ctx, shiftEvent, secondLayer)
+      }).tryAutoSelectPick(ctx, clickEvent, secondLayer)
     ).toBe(true);
 
     expect(tool.getTargetSet().getIds()).toEqual([secondLayer.id]);
