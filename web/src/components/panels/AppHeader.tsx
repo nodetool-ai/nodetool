@@ -17,6 +17,7 @@ import { FlexRow, Tooltip } from "../ui_primitives";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 import { isProduction } from "../../lib/env";
+import { trpcClient } from "../../trpc/client";
 
 const workspacesEnabled = !isProduction;
 
@@ -155,6 +156,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
   const isEditorActive = currentPath.startsWith("/editor");
   const isChatActive = currentPath.startsWith("/chat");
   const isAppActive = currentPath.startsWith("/apps");
+  const isSketchActive = currentPath.startsWith("/sketch");
 
   const handleEditorClick = useCallback(async () => {
     if (currentWorkflowId) {
@@ -190,6 +192,26 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
       navigate(`/apps/${currentWorkflowId}`);
     }
   }, [navigate, currentWorkflowId]);
+
+  const handleSketchClick = useCallback(async () => {
+    try {
+      const docs = await trpcClient.sketch.list.query({});
+      if (docs.length > 0) {
+        const mostRecent = docs.reduce((acc, cur) =>
+          cur.updatedAt > acc.updatedAt ? cur : acc
+        );
+        navigate(`/sketch/${mostRecent.id}`);
+        return;
+      }
+      const created = await trpcClient.sketch.create.mutate({
+        name: "Untitled image",
+        projectId: "default"
+      });
+      navigate(`/sketch/${created.id}`);
+    } catch (error) {
+      console.error("Failed to open Image Editor:", error);
+    }
+  }, [navigate]);
 
   return (
     <div className="mode-pills">
@@ -229,6 +251,18 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
             <span>App</span>
           </button>
         </span>
+      </Tooltip>
+      <Tooltip title="Image Editor" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
+        <button
+          className={`mode-pill ${isSketchActive ? "active" : ""}`}
+          onClick={handleSketchClick}
+          tabIndex={-1}
+          aria-current={isSketchActive ? "page" : undefined}
+          aria-label="Image Editor"
+          data-testid="image-editor-mode-pill"
+        >
+          <span>Image</span>
+        </button>
       </Tooltip>
     </div>
   );
@@ -359,6 +393,54 @@ const ReturnToTimelinePill = memo(function ReturnToTimelinePill() {
   );
 });
 
+/**
+ * "Return to Sketch" pill — shown in the editor header when the user arrived
+ * via "Open in Node Editor" from the sketch (image-editor) inspector.
+ * The `from` query param carries `sketch:{documentId}:{layerId}`.
+ */
+const ReturnToSketchPill = memo(function ReturnToSketchPill() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // from=sketch:{documentId}:{layerId}
+  // Require at least 3 colon-separated parts: "sketch", documentId, layerId.
+  const fromParam = searchParams.get("from") ?? "";
+  const parts = fromParam.startsWith("sketch:") ? fromParam.split(":") : [];
+  const documentId = parts.length >= 3 ? parts[1] : "";
+
+  const handleReturn = useCallback(() => {
+    navigate(`/sketch/${documentId}`);
+  }, [navigate, documentId]);
+
+  if (!documentId) return null;
+
+  return (
+    <Tooltip title="Return to Image Editor" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
+      <EditorButton
+        variant="outlined"
+        size="small"
+        onClick={handleReturn}
+        aria-label="Return to Image Editor"
+        data-testid="return-to-sketch-pill"
+        sx={{
+          height: "1.75em",
+          minWidth: "auto",
+          borderRadius: "var(--rounded-md)",
+          color: "var(--palette-primary-main)",
+          border: "1px solid var(--palette-primary-main)",
+          gap: "4px",
+          "&:hover": {
+            backgroundColor: "var(--palette-action-hover)"
+          }
+        }}
+      >
+        <ArrowBackIcon sx={{ fontSize: "14px" }} />
+        <span>Image</span>
+      </EditorButton>
+    </Tooltip>
+  );
+});
+
 const AppHeader: React.FC = memo(function AppHeader() {
   const theme = useTheme();
   const path = useLocation().pathname;
@@ -392,6 +474,8 @@ const AppHeader: React.FC = memo(function AppHeader() {
           <ModePills currentPath={path} />
           {/* Return to Timeline pill — only shown when opened from timeline */}
           {isEditorRoute && <ReturnToTimelinePill />}
+          {/* Return to Image Editor pill — only shown when opened from sketch */}
+          {isEditorRoute && <ReturnToSketchPill />}
           <Box sx={{ flexGrow: 1 }} />
         </FlexRow>
         <div className="buttons-right">

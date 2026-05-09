@@ -6,6 +6,7 @@
  */
 
 export { default as SketchEditor } from "./SketchEditor";
+export { default as SketchEditorPage } from "./SketchEditorPage";
 export { default as SketchModal } from "./SketchModal";
 export { default as SketchCanvas } from "./SketchCanvas";
 export { default as SketchToolbar } from "./SketchToolbar";
