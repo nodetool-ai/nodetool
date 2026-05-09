@@ -28,7 +28,11 @@ const Module = require("module");
 const originalRequire = Module.prototype.require;
 
 Module.prototype.require = function(id) {
-  if (id === "canvas" || id.includes("canvas")) {
+  // Only intercept the `canvas` npm package itself, not files that
+  // happen to have "canvas" in their path (e.g. rendering/canvasUtils).
+  // npm package requires are bare specifiers like "canvas" or "canvas/browser";
+  // file paths always start with "/" or ".".
+  if (id === "canvas" || /^canvas(\/|$)/.test(id)) {
     return {
       createCanvas: () => ({
         getContext: () => ({

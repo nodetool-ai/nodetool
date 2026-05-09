@@ -14,7 +14,6 @@ export default {
     "^@nodetool-ai/timeline$": "<rootDir>/../packages/timeline/src/index.ts",
     // Strip .js extensions from TypeScript ESM imports (packages use .js in source imports per ESM convention)
     "^(\\.{1,2}/.+)\\.js$": "$1",
-    canvas: "<rootDir>/src/__mocks__/canvas.ts",
     "^canvas$": "<rootDir>/src/__mocks__/canvas.ts",
     "^canvas/.*$": "<rootDir>/src/__mocks__/canvas.ts",
     "^chroma-js$": "<rootDir>/src/__mocks__/chroma-js.ts",
