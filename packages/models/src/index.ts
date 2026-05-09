@@ -34,7 +34,8 @@ export {
   runLeases,
   teamTasks,
   appSettings,
-  timelineSequences
+  timelineSequences,
+  imageDocuments
 } from "./schema/index.js";
 
 // ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────
@@ -83,6 +84,9 @@ export { Setting } from "./setting.js";
 export { TimelineSequence } from "./timeline-sequence.js";
 export type { TimelineDocument } from "./timeline-sequence.js";
 
+export { ImageDocument } from "./image-document.js";
+export type { ImageDocumentData } from "./image-document.js";
+
 export { OAuthCredential } from "./oauth-credential.js";
 
 export { Prediction } from "./prediction.js";
@@ -106,9 +110,12 @@ export { RunLease } from "./run-lease.js";
 export {
   runSeeds,
   seedTimelineTemplates,
+  seedImageTemplates,
   SEED_IDS,
+  IMAGE_SEED_IDS,
   SYSTEM_USER_ID,
-  TIMELINE_TEMPLATE_TAG
+  TIMELINE_TEMPLATE_TAG,
+  IMAGE_TEMPLATE_TAG
 } from "./seeds/index.js";
 
 // ── API Graph ───────────────────────────────────────────────────────
