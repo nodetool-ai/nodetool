@@ -89,7 +89,7 @@ type ResultsStore = {
   ) => void;
 };
 
-export const hashKey = (workflowId: string, nodeId: string) =>
+export const hashKey = (workflowId: string, nodeId: string): string =>
   `${workflowId}:${nodeId}`;
 
 /**
