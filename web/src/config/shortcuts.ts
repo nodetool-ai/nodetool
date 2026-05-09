@@ -474,27 +474,19 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
-    title: "Chat",
-    slug: "toggleChat",
-    keyCombo: ["1"],
-    category: "panel",
-    description: "Toggle Chat panel",
-    registerCombo: false
-  },
-  {
     title: "Workflows",
     slug: "toggleWorkflows",
-    keyCombo: ["2"],
+    keyCombo: ["1"],
     category: "panel",
-    description: "Toggle Workflows panel",
+    description: "Toggle Workflows panel (left sidebar)",
     registerCombo: false
   },
   {
     title: "Assets",
     slug: "toggleAssets",
-    keyCombo: ["3"],
+    keyCombo: ["2"],
     category: "panel",
-    description: "Toggle Assets panel",
+    description: "Toggle Assets panel (left sidebar)",
     registerCombo: false
   },
   {
