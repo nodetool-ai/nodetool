@@ -263,24 +263,18 @@ fn fs_blit(@location(0) uv: vec2f) -> @location(0) vec4f {
 
 // ─── Selection marching-ants fragment shader ─────────────────────────────
 //
-// One fragment = one document pixel (`canvasSize` = doc canvas). The UI wraps this
-// bitmap in CSS `scale(zoom)`. We used to feather by O(1/z) using **interpolated**
-// fragment position: inside a doc pixel, distance to the grid often lands near **0.5**
-// while the fade width shrank when zoomed in, so alpha hit ~0 almost everywhere except
-// accidental zooms. Fix: distance from the **pixel center** to mask edges, and **no**
-// fractional alpha — full opacity on contour texels; dashes still scale with 4/z.
-//
-// Bind group:
-//   0 — AntsUniforms (uniform buffer)
-//   1 — maskTexture (r8unorm, textureLoad — no sampler needed)
+// Drawn onto a screen-resolution overlay and mapped back into document space so
+// committed ants keep a Canvas-like on-screen stroke width and dash cadence.
 
 export const SELECTION_ANTS_FRAGMENT = /* wgsl */ `
 struct AntsUniforms {
   canvasSize: vec2f,
   maskOrigin: vec2f,
   maskDims:   vec2f,
-  phase:      f32,
-  zoom:       f32,
+  viewportSizePx: vec2f,
+  viewportOffsetPx: vec2f,
+  panPx: vec2f,
+  params: vec4f,
 };
 
 @group(0) @binding(0) var<uniform> u: AntsUniforms;
@@ -293,16 +287,57 @@ fn sampleMask(coord: vec2i, dims: vec2i) -> f32 {
   return textureLoad(maskTex, coord, 0).r;
 }
 
+fn compositePremul(bottom: vec4f, topColor: vec3f, topAlpha: f32) -> vec4f {
+  let a = clamp(topAlpha, 0.0, 1.0);
+  return vec4f(
+    topColor * a + bottom.rgb * (1.0 - a),
+    a + bottom.a * (1.0 - a)
+  );
+}
+
+fn coverage(distPx: f32, lineWidthPx: f32, aaPx: f32) -> f32 {
+  let halfWidth = max(lineWidthPx * 0.5, 0.0);
+  return smoothstep(halfWidth + aaPx, max(halfWidth - aaPx, 0.0), distPx);
+}
+
 @fragment
 fn fs_ants(@location(0) uv: vec2f) -> @location(0) vec4f {
-  let docPos = uv * u.canvasSize;
+  let EDGE_MARGIN_DOC = 1.0;
+  let CORE_WIDTH_IN_PX = 1.0;
+  let CORE_WIDTH_OUT_PX = 2.0;
+  let MIN_AA_PX = 0.75;
+  let AA_DPR_SCALE = 0.6;
+  let OUTER_HALO_WIDTH_PX = 10.0;
+  let OUTER_HALO_ALPHA = 0.05;
+  let MID_HALO_WIDTH_PX = 6.0;
+  let MID_HALO_ALPHA = 0.08;
+  let INNER_HALO_WIDTH_PX = 3.0;
+  let INNER_HALO_ALPHA = 0.045;
+  let INNER_HALO_COLOR = vec3f(30.0 / 255.0, 30.0 / 255.0, 38.0 / 255.0);
+
+  let overlaySizePx = u.viewportSizePx + 2.0 * u.viewportOffsetPx;
+  let overlayPosPx = uv * overlaySizePx;
+  let zoom = max(u.params.y, 1e-4);
+  let dpr = max(u.params.z, 1.0);
+  let docCenterPx = u.viewportOffsetPx + 0.5 * u.viewportSizePx + u.panPx;
+  let docPos = (overlayPosPx - docCenterPx) / (zoom * dpr) + 0.5 * u.canvasSize;
   let local  = docPos - u.maskOrigin;
   let dims   = vec2i(textureDimensions(maskTex));
+  let dimsF  = vec2f(f32(dims.x), f32(dims.y));
+
+  if (
+    local.x < -EDGE_MARGIN_DOC ||
+    local.y < -EDGE_MARGIN_DOC ||
+    local.x > dimsF.x + EDGE_MARGIN_DOC ||
+    local.y > dimsF.y + EDGE_MARGIN_DOC
+  ) {
+    return vec4f(0.0);
+  }
 
   let cx = floor(local.x);
   let cy = floor(local.y);
   let maskCoord = vec2i(i32(cx), i32(cy));
-  let pc = vec2f(cx + 0.5, cy + 0.5);
+  let localFrac = local - vec2f(cx, cy);
 
   let THRESH = 0.5;
   let c  = sampleMask(maskCoord, dims);
@@ -313,29 +348,27 @@ fn fs_ants(@location(0) uv: vec2f) -> @location(0) vec4f {
   let ef = sampleMask(maskCoord + vec2i(1,  0), dims);
   let wf = sampleMask(maskCoord + vec2i(-1, 0), dims);
 
-  // Min distance from **pixel center** to mask boundary segments on this cell's edges.
   var dEdge = 1e9;
   if ((insC != (nf >= THRESH))) {
-    dEdge = min(dEdge, abs(pc.y - cy));
+    dEdge = min(dEdge, abs(localFrac.y));
   }
   if ((insC != (sf >= THRESH))) {
-    dEdge = min(dEdge, abs(pc.y - (cy + 1.0)));
+    dEdge = min(dEdge, abs(localFrac.y - 1.0));
   }
   if ((insC != (wf >= THRESH))) {
-    dEdge = min(dEdge, abs(pc.x - cx));
+    dEdge = min(dEdge, abs(localFrac.x));
   }
   if ((insC != (ef >= THRESH))) {
-    dEdge = min(dEdge, abs(pc.x - (cx + 1.0)));
+    dEdge = min(dEdge, abs(localFrac.x - 1.0));
   }
 
   if (dEdge >= 900.0) {
     return vec4f(0.0);
   }
 
-  let z = clamp(u.zoom, 0.02, 256.0);
-  // Pixel centers on contour texels sit ~0.5 doc units from axis edges; fractional
-  // feathers tied to (screenPx/z) made alpha vanish at almost every zoom — full alpha.
-  let aContour = 1.0;
+  let distPx = dEdge * zoom * dpr;
+  let coreWidthPx = select(CORE_WIDTH_IN_PX, CORE_WIDTH_OUT_PX, zoom < 1.0) * dpr;
+  let aaPx = max(MIN_AA_PX, AA_DPR_SCALE * dpr);
 
   let gx =
     select(0.0, 1.0, ef >= THRESH) -
@@ -344,26 +377,32 @@ fn fs_ants(@location(0) uv: vec2f) -> @location(0) vec4f {
     select(0.0, 1.0, sf >= THRESH) -
     select(0.0, 1.0, nf >= THRESH);
   let glenRaw = length(vec2(gx, gy));
-  var phaseAlong = pc.x;
+  var phaseAlong = docPos.x;
   if (glenRaw >= 1e-3) {
     let tx = -gy / glenRaw;
     let ty = gx / glenRaw;
-    phaseAlong = pc.x * tx + pc.y * ty;
+    phaseAlong = docPos.x * tx + docPos.y * ty;
   }
 
-  var dashLenDoc = 4.0 / z;
-  dashLenDoc = clamp(dashLenDoc, 0.035, 120.0);
-  let stripe = fract(phaseAlong / (2.0 * dashLenDoc) + u.phase);
+  let phaseAlongPx = phaseAlong * zoom * dpr;
+  let dashLenPx = 4.0 * dpr;
+  let offsetPx = -(u.params.x / 32.0) * dashLenPx * 2.0;
+  let stripe = fract((phaseAlongPx + offsetPx) / (2.0 * dashLenPx));
   let isLit = stripe < 0.5;
 
   let lit = vec3f(170.0 / 255.0, 170.0 / 255.0, 170.0 / 255.0);
   let drk = vec3f(0.0, 0.0, 0.0);
-  let rgb = select(drk, lit, isLit);
-  let outA = clamp(aContour, 0.0, 1.0);
-  if (outA <= 1e-4) {
+  let coreColor = select(drk, lit, isLit);
+
+  var out = vec4f(0.0);
+  out = compositePremul(out, vec3f(1.0, 1.0, 1.0), OUTER_HALO_ALPHA * coverage(distPx, OUTER_HALO_WIDTH_PX * dpr, aaPx));
+  out = compositePremul(out, vec3f(1.0, 1.0, 1.0), MID_HALO_ALPHA * coverage(distPx, MID_HALO_WIDTH_PX * dpr, aaPx));
+  out = compositePremul(out, INNER_HALO_COLOR, INNER_HALO_ALPHA * coverage(distPx, INNER_HALO_WIDTH_PX * dpr, aaPx));
+  out = compositePremul(out, coreColor, coverage(distPx, coreWidthPx, aaPx));
+  if (out.a <= 1e-4) {
     return vec4f(0.0);
   }
-  return vec4f(rgb * outA, outA);
+  return out;
 }
 `;
 

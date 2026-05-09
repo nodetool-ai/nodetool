@@ -60,10 +60,12 @@ describe("WebGPU initialization", () => {
       expect(typeof proto.getOrCreateLayerCanvas).toBe("function");
       expect(typeof proto.getLayerCanvas).toBe("function");
       expect(typeof proto.deleteLayerCanvas).toBe("function");
-      expect(typeof proto.invalidateLayer).toBe("function");
-      // Compositing
-      expect(typeof proto.compositeToDisplay).toBe("function");
-      // Readback
+       expect(typeof proto.invalidateLayer).toBe("function");
+       // Compositing
+       expect(typeof proto.compositeToDisplay).toBe("function");
+       expect(typeof proto.setSelectionAntsOverlayCanvas).toBe("function");
+       expect(typeof proto.setSelectionAntsViewport).toBe("function");
+       // Readback
       expect(typeof proto.getLayerData).toBe("function");
       expect(typeof proto.snapshotLayerCanvas).toBe("function");
       expect(typeof proto.flattenToDataUrl).toBe("function");

@@ -77,6 +77,7 @@ export interface SketchCanvasPresentationProps {
   bootstrapDisplayRef: React.RefObject<HTMLCanvasElement | null>;
   displayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
+  selectionGpuCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   selectionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   cursorCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   gizmoCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -123,6 +124,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
       bootstrapDisplayRef,
       displayCanvasRef,
       overlayCanvasRef,
+      selectionGpuCanvasRef,
       selectionCanvasRef,
       cursorCanvasRef,
       gizmoCanvasRef,
@@ -208,6 +210,17 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
           />
         </div>
         {/* Screen-resolution canvas for selection marching ants. */}
+        <canvas
+          ref={selectionGpuCanvasRef}
+          className="sketch-canvas__selection-gpu cursor-overlay"
+          style={{
+            top: -selectionAntMarginPx,
+            left: -selectionAntMarginPx,
+            width: `calc(100% + ${2 * selectionAntMarginPx}px)`,
+            height: `calc(100% + ${2 * selectionAntMarginPx}px)`,
+            ...(backend === "webgpu" && !bootstrapPhaseActive ? {} : { visibility: "hidden" })
+          }}
+        />
         <canvas
           ref={selectionCanvasRef}
           className="sketch-canvas__selection cursor-overlay"

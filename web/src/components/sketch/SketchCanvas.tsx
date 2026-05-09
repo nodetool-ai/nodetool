@@ -274,6 +274,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     const {
       containerRef,
+      selectionGpuCanvasRef,
       selectionCanvasRef,
       cursorCanvasRef,
       gizmoCanvasRef,
@@ -295,12 +296,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       selection,
       isolatedLayerId,
       foregroundColor,
-       transformPreviewByLayerIdRef,
-       requestPreviewRedrawRef,
-       invalidateLayerRef,
-       coordinatorRef,
-       setLayerTransformPreview,
-       clearLayerTransformPreview,
+      transformPreviewByLayerIdRef,
+      requestPreviewRedrawRef,
+      invalidateLayerRef,
+      coordinatorRef,
+      setLayerTransformPreview,
+      clearLayerTransformPreview,
       onZoomChange,
       onPanChange,
       onStrokeStart,
@@ -419,7 +420,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         pointerHandlers.handlePointerMove(e);
         updateCursorDocPosFromClient(e.clientX, e.clientY);
       },
-      [pointerHandlers, updateCursorDocPosFromClient]
+      [lastPointerClientRef, pointerHandlers, updateCursorDocPosFromClient]
     );
 
     const handlePointerDownWithClient = useCallback(
@@ -427,7 +428,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         lastPointerClientRef.current = { x: e.clientX, y: e.clientY };
         pointerHandlers.handlePointerDown(e);
       },
-      [pointerHandlers]
+      [lastPointerClientRef, pointerHandlers]
     );
 
     const handleMouseLeaveWithCoords = useCallback(() => {
@@ -443,6 +444,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         bootstrapDisplayRef={compositing.bootstrapDisplayRef}
         displayCanvasRef={compositing.displayCanvasRef}
         overlayCanvasRef={compositing.overlayCanvasRef}
+        selectionGpuCanvasRef={selectionGpuCanvasRef}
         selectionCanvasRef={selectionCanvasRef}
         cursorCanvasRef={cursorCanvasRef}
         gizmoCanvasRef={gizmoCanvasRef}
