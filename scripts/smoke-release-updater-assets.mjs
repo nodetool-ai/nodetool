@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
-import yaml from "js-yaml";
 
 const dir = path.resolve(process.argv[2] ?? "release-assets");
 const expectedVersion = process.argv[3];
@@ -9,6 +8,11 @@ const channel = process.argv[4] === "nightly" ? "nightly" : "latest";
 if (!expectedVersion) {
   console.error("Usage: smoke-release-updater-assets.mjs <asset-dir> <version> <latest|nightly>");
   process.exit(2);
+}
+
+function readTopLevelYamlString(raw, key) {
+  const match = new RegExp(`^${key}:\\s*[\"']?([^\\r\\n\"']+)`, "m").exec(raw);
+  return match?.[1]?.trim();
 }
 
 const manifests = [
@@ -19,24 +23,25 @@ const manifests = [
 
 for (const manifest of manifests) {
   const manifestPath = path.join(dir, manifest);
-  const doc = yaml.load(fs.readFileSync(manifestPath, "utf8"));
-  if (!doc || typeof doc !== "object") {
-    throw new Error(`${manifest} is empty or invalid`);
+  const raw = fs.readFileSync(manifestPath, "utf8");
+  const version = readTopLevelYamlString(raw, "version");
+  const artifactPath = readTopLevelYamlString(raw, "path");
+  const sha512 = readTopLevelYamlString(raw, "sha512");
+
+  if (version !== expectedVersion) {
+    throw new Error(`${manifest} version ${version ?? "<missing>"} does not match ${expectedVersion}`);
   }
-  if (doc.version !== expectedVersion) {
-    throw new Error(`${manifest} version ${doc.version} does not match ${expectedVersion}`);
-  }
-  if (typeof doc.path !== "string" || doc.path.length === 0) {
+  if (!artifactPath) {
     throw new Error(`${manifest} is missing path`);
   }
-  if (typeof doc.sha512 !== "string" || doc.sha512.length === 0) {
+  if (!sha512) {
     throw new Error(`${manifest} is missing sha512`);
   }
-  const artifact = path.join(dir, path.basename(doc.path));
+  const artifact = path.join(dir, path.basename(artifactPath));
   if (!fs.existsSync(artifact)) {
-    throw new Error(`${manifest} points to missing artifact ${doc.path}`);
+    throw new Error(`${manifest} points to missing artifact ${artifactPath}`);
   }
-  console.log(`${manifest}: ${doc.version} -> ${doc.path}`);
+  console.log(`${manifest}: ${version} -> ${artifactPath}`);
 }
 
 console.log(`Updater asset smoke test passed for ${channel} ${expectedVersion}.`);
