@@ -64,8 +64,8 @@ jobs:
   release-build:
     needs: [check_changes]
     if: |
-      !failure() && !cancelled() &&
-      (github.event_name != 'schedule' || needs.check_changes.outputs.has_changes == 'true')
+      always() && !failure() && !cancelled() &&
+      (needs.check_changes.result == 'skipped' || github.event_name != 'schedule' || needs.check_changes.outputs.has_changes == 'true')
     strategy:
       fail-fast: false
       matrix:
