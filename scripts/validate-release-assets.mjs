@@ -38,8 +38,12 @@ const missingFiles = required.filter((file) => !files.includes(file));
 const checks = [
   ["Windows installer", (f) => /^Nodetool-Setup-.+\.exe$/.test(f)],
   ["macOS DMG", (f) => f.endsWith(".dmg")],
-  ["macOS zip", (f) => f.endsWith(".zip") && f.includes("Nodetool-")],
+  [
+    "macOS zip",
+    (f) => f.endsWith(".zip") && f.includes("Nodetool-") && !/win-unpacked/i.test(f),
+  ],
   ["Linux AppImage", (f) => f.endsWith(".AppImage")],
+  ["blockmap", (f) => f.endsWith(".blockmap")],
   ["web archive", (f) => /^nodetool-web-.+\.zip$/.test(f)],
 ];
 const missingArtifacts = [];

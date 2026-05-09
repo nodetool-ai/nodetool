@@ -101,6 +101,10 @@ jobs:
             echo "update_mac_manifest=nightly-mac.yml" >> "$GITHUB_OUTPUT"
             echo "update_linux_manifest=nightly-linux.yml" >> "$GITHUB_OUTPUT"
           else
+            if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -z "${{ github.event.inputs.version }}" ]]; then
+              echo "workflow_dispatch stable releases require the version input." >&2
+              exit 1
+            fi
             raw="${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref_name }}"
             version="${raw#v}"
             echo "release_channel=stable" >> "$GITHUB_OUTPUT"
@@ -310,11 +314,11 @@ jobs:
           echo "WIN_UNPACKED_ARCHIVE=${ARCHIVE_PATH}" >> "${GITHUB_ENV}"
 
       - name: Decide whether to sign (skip test tags)
-        if: matrix.os == 'windows-latest' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
+        if: matrix.os == 'windows-latest' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly' || github.event.inputs.version != '')
         shell: bash -l {0}
         run: |
           set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
+          TAG="${RELEASE_TAG:-$GITHUB_REF_NAME}"
           SHOULD_SIGN="true"
           if echo "${TAG}" | grep -Eiq -- '-test'; then
             SHOULD_SIGN="false"
@@ -323,7 +327,7 @@ jobs:
           echo "Windows signing enabled: ${SHOULD_SIGN}"
 
       - name: Sign main app exe (SSL.com eSigner)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly' || github.event.inputs.version != '')
         uses: sslcom/esigner-codesign@develop
         with:
           command: sign
@@ -337,7 +341,7 @@ jobs:
           environment_name: PROD
 
       - name: Move signed app exe back to unpacked directory
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly' || github.event.inputs.version != '')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -385,7 +389,7 @@ jobs:
           fi
 
       - name: Sign installer exe (SSL.com eSigner)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly' || github.event.inputs.version != '')
         uses: sslcom/esigner-codesign@develop
         with:
           command: sign
@@ -399,7 +403,7 @@ jobs:
           environment_name: PROD
 
       - name: Move signed installer back to dist directory
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly' || github.event.inputs.version != '')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -413,7 +417,7 @@ jobs:
           echo "Moved signed installer to ${INSTALLER_PATH}"
 
       - name: Update latest.yml sha512/size for signed installer (Windows)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly' || github.event.inputs.version != '')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -464,6 +468,12 @@ jobs:
               const url = typeof f.url === "string" ? f.url : "";
               return !url.endsWith(".blockmap");
             });
+          }
+
+          const staleBlockmapPath = `${installerPath}.blockmap`;
+          if (fs.existsSync(staleBlockmapPath)) {
+            fs.rmSync(staleBlockmapPath);
+            console.log(`Removed stale signed-installer blockmap: ${staleBlockmapPath}`);
           }
 
           fs.writeFileSync(latestPath, yaml.dump(doc, { lineWidth: 120 }), "utf8");
@@ -617,6 +627,7 @@ jobs:
             electron/dist/*.zip
             electron/dist/*.AppImage
             electron/dist/*.exe
+            electron/dist/*.blockmap
             electron/dist/*.yml
 
   publish-release:
@@ -656,5 +667,6 @@ jobs:
             release-assets/*.dmg
             release-assets/*.AppImage
             release-assets/*.exe
+            release-assets/*.blockmap
             release-assets/*.yml
           fail_on_unmatched_files: true
