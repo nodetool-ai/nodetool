@@ -6,7 +6,7 @@
  * useKeyboardModifiers and usePointerHandlerUtils respectively.
  */
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   SketchDocument,
   SketchTool,
@@ -190,6 +190,8 @@ export interface UsePointerHandlersResult {
   cancelActiveTool: () => void;
   /** Apply pending crop rectangle (crop tool). */
   commitPendingCrop: () => void;
+  /** Root container cursor (tool, space pan hint, or active pan). */
+  containerCursor: string;
 }
 
 export function usePointerHandlers({
@@ -251,22 +253,8 @@ export function usePointerHandlers({
   setLayerTransformPreview,
   clearLayerTransformPreview
 }: UsePointerHandlersParams): UsePointerHandlersResult {
-  const interactionToolCursorRef = useRef(interactionTool);
-  interactionToolCursorRef.current = interactionTool;
-  const setPanningCursor = useCallback(() => {
-    const container = containerRef.current;
-    if (container) {
-      container.style.cursor = "grabbing";
-    }
-  }, [containerRef]);
-  const clearPanningCursor = useCallback(() => {
-    const container = containerRef.current;
-    if (container) {
-      container.style.cursor = cursorStyleForTool(
-        interactionToolCursorRef.current
-      );
-    }
-  }, [containerRef]);
+  const [spaceHeldUi, setSpaceHeldUi] = useState(false);
+  const [isPanningUi, setIsPanningUi] = useState(false);
 
   // ─── Core interaction state refs ────────────────────────────────────
   const isDrawingRef = useRef(false);
@@ -288,7 +276,17 @@ export function usePointerHandlers({
 
   // ─── Keyboard modifier tracking ─────────────────────────────────────
   const { shiftHeldRef, altHeldRef, spaceHeldRef, sKeyHeldRef } =
-    useKeyboardModifiers({ isSpacePanningRef, isSizeDraggingRef });
+    useKeyboardModifiers({
+      isSpacePanningRef,
+      isSizeDraggingRef,
+      onSpaceHeldChange: setSpaceHeldUi
+    });
+
+  const containerCursor = isPanningUi
+    ? "grabbing"
+    : spaceHeldUi
+      ? "grab"
+      : cursorStyleForTool(interactionTool);
 
   // ─── Utility callbacks ───────────────────────────────────────────────
   const {
@@ -467,7 +465,7 @@ export function usePointerHandlers({
         (e.button === 0 && spaceHeldRef.current)
       ) {
         isPanningRef.current = true;
-        setPanningCursor();
+        setIsPanningUi(true);
         if (spaceHeldRef.current) {
           isSpacePanningRef.current = true;
         }
@@ -551,7 +549,6 @@ export function usePointerHandlers({
       onEyedropperPick,
       activeStrokeRef,
       drawActiveStrokePreview,
-      setPanningCursor,
       spaceHeldRef,
       sKeyHeldRef,
     ]
@@ -648,7 +645,7 @@ export function usePointerHandlers({
     (e: React.PointerEvent) => {
       if (isPanningRef.current) {
         isPanningRef.current = false;
-        clearPanningCursor();
+        setIsPanningUi(false);
         return;
       }
 
@@ -705,7 +702,6 @@ export function usePointerHandlers({
       appendSelectionOverlay,
       drawActiveStrokePreview,
       activeStrokeRef,
-      clearPanningCursor,
     ]
   );
 
@@ -731,10 +727,9 @@ export function usePointerHandlers({
   }, [cursorCanvasRef]);
 
   const handlePointerLeave = useCallback(() => {
-    clearPanningCursor();
     clearCursorOverlay();
     onCanvasLeave?.();
-  }, [clearPanningCursor, clearCursorOverlay, onCanvasLeave]);
+  }, [clearCursorOverlay, onCanvasLeave]);
 
   const handleMouseLeave = useCallback(() => {
     clearCursorOverlay();
@@ -829,6 +824,7 @@ export function usePointerHandlers({
     altHeldRef,
     selectStartRef,
     cancelActiveTool,
-    commitPendingCrop
+    commitPendingCrop,
+    containerCursor
   };
 }

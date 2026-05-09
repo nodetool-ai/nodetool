@@ -88,6 +88,8 @@ export interface SketchCanvasPresentationProps {
   zoom: number;
   pan: Point;
   interactionTool: SketchTool;
+  /** Resolved CSS cursor for the root container (tool + pan modifiers). */
+  containerCursor: string;
   bootstrapPhaseActive: boolean;
   backend: "webgpu" | "canvas2d";
 
@@ -132,7 +134,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
       canvasHeight,
       zoom,
       pan,
-      interactionTool,
+      containerCursor,
       bootstrapPhaseActive,
       backend,
       cursorDocPos,
@@ -151,7 +153,6 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
     } = props;
 
     const theme = useTheme();
-    const cursorStyle = cursorStyleForTool(interactionTool);
     const canvasStyle = canvasTransformStyle(pan, zoom);
     const selectionAntMarginPx = selectionAntCanvasMarginCssPx(zoom);
 
@@ -162,7 +163,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
           rootClassName ? `sketch-canvas ${rootClassName}` : "sketch-canvas"
         }
         css={styles(theme)}
-        style={{ cursor: cursorStyle }}
+        style={{ cursor: containerCursor }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}

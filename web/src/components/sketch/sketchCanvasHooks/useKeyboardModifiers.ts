@@ -17,8 +17,10 @@ export interface UseKeyboardModifiersResult {
 export function useKeyboardModifiers(params: {
   isSpacePanningRef: React.MutableRefObject<boolean>;
   isSizeDraggingRef: React.MutableRefObject<boolean>;
+  /** Fires once when Space becomes held / released (not on key-repeat). */
+  onSpaceHeldChange?: (held: boolean) => void;
 }): UseKeyboardModifiersResult {
-  const { isSpacePanningRef, isSizeDraggingRef } = params;
+  const { isSpacePanningRef, isSizeDraggingRef, onSpaceHeldChange } = params;
 
   const shiftHeldRef = useRef(false);
   const spaceHeldRef = useRef(false);
@@ -31,7 +33,11 @@ export function useKeyboardModifiers(params: {
         shiftHeldRef.current = true;
       }
       if (e.key === " ") {
+        const wasHeld = spaceHeldRef.current;
         spaceHeldRef.current = true;
+        if (!wasHeld) {
+          onSpaceHeldChange?.(true);
+        }
       }
       if (e.key === "s" || e.key === "S") {
         sKeyHeldRef.current = true;
@@ -46,6 +52,7 @@ export function useKeyboardModifiers(params: {
       }
       if (e.key === " ") {
         spaceHeldRef.current = false;
+        onSpaceHeldChange?.(false);
         if (isSpacePanningRef.current) {
           isSpacePanningRef.current = false;
         }
@@ -64,7 +71,7 @@ export function useKeyboardModifiers(params: {
       window.removeEventListener("keydown", handleKeyDown, true);
       window.removeEventListener("keyup", handleKeyUp, true);
     };
-  }, [isSpacePanningRef, isSizeDraggingRef]);
+  }, [isSpacePanningRef, isSizeDraggingRef, onSpaceHeldChange]);
 
   return { shiftHeldRef, altHeldRef, spaceHeldRef, sKeyHeldRef };
 }

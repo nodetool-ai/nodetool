@@ -50,6 +50,7 @@ function makeProps(
     zoom: 1,
     pan: { x: 0, y: 0 },
     interactionTool: "brush",
+    containerCursor: cursorStyleForTool("brush"),
     bootstrapPhaseActive: false,
     backend: "canvas2d",
     cursorDocPos: null,

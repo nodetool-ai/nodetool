@@ -456,6 +456,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         bootstrapPhaseActive={compositing.bootstrapPhaseActive}
         backend={compositing.backend}
         cursorDocPos={cursorDocPos}
+        containerCursor={pointerHandlers.containerCursor}
         onPointerDown={handlePointerDownWithClient}
         onPointerMove={handlePointerMoveWithCoords}
         onPointerUp={pointerHandlers.handlePointerUp}

@@ -102,7 +102,7 @@ describe("usePointerHandlers", () => {
       } as unknown as React.PointerEvent);
     });
 
-    expect(params.containerRef.current?.style.cursor).toBe("grabbing");
+    expect(result.current.containerCursor).toBe("grabbing");
 
     act(() => {
       result.current.handlePointerUp({
@@ -112,7 +112,28 @@ describe("usePointerHandlers", () => {
       } as unknown as React.PointerEvent);
     });
 
-    expect(params.containerRef.current?.style.cursor).toBe("none");
+    expect(result.current.containerCursor).toBe("none");
+  });
+
+  it("shows grab cursor while Space is held (before pan drag)", () => {
+    const params = makeParams();
+    const { result } = renderHook(() => usePointerHandlers(params));
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: " ", bubbles: true })
+      );
+    });
+
+    expect(result.current.containerCursor).toBe("grab");
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keyup", { key: " ", bubbles: true })
+      );
+    });
+
+    expect(result.current.containerCursor).toBe("none");
   });
 
   it("re-syncs TransformTool state when the active layer changes while transform stays active", () => {
