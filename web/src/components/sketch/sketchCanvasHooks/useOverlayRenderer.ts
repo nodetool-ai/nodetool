@@ -56,6 +56,7 @@ export interface UseOverlayRendererParams {
   zoom: number;
   pan: Point;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
+  selectionGpuCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   selectionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   cursorCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   /** Screen-resolution canvas for transform gizmo (not clipped by doc-stack). */
@@ -65,6 +66,7 @@ export interface UseOverlayRendererParams {
   altHeldRef: React.MutableRefObject<boolean>;
   selectStartRef: React.MutableRefObject<Point | null>;
   lassoPointsRef: React.MutableRefObject<Point[]>;
+  onScreenCanvasMetricsChange?: () => void;
 }
 
 /**
@@ -113,6 +115,7 @@ export function useOverlayRenderer({
   zoom,
   pan,
   overlayCanvasRef,
+  selectionGpuCanvasRef,
   selectionCanvasRef,
   cursorCanvasRef,
   gizmoCanvasRef,
@@ -120,7 +123,8 @@ export function useOverlayRenderer({
   shiftHeldRef,
   altHeldRef,
   selectStartRef,
-  lassoPointsRef
+  lassoPointsRef,
+  onScreenCanvasMetricsChange
 }: UseOverlayRendererParams): UseOverlayRendererResult {
 
   // ─── Screen-resolution canvas sizing (cursor + selection + gizmo) ───
@@ -128,6 +132,7 @@ export function useOverlayRenderer({
   useEffect(() => {
     const container = containerRef.current;
     const cursorCanvas = cursorCanvasRef.current;
+    const selectionGpuCanvas = selectionGpuCanvasRef.current;
     const selCanvas = selectionCanvasRef.current;
     const gizmoCanvas = gizmoCanvasRef.current;
     if (!container) {
@@ -167,6 +172,18 @@ export function useOverlayRenderer({
           selCanvas.height = sh;
         }
       }
+      if (selectionGpuCanvas) {
+        const m = selectionAntCanvasMarginCssPx(zoom);
+        const gw = Math.round((cw + 2 * m) * dpr);
+        const gh = Math.round((ch + 2 * m) * dpr);
+        if (selectionGpuCanvas.width !== gw) {
+          selectionGpuCanvas.width = gw;
+        }
+        if (selectionGpuCanvas.height !== gh) {
+          selectionGpuCanvas.height = gh;
+        }
+      }
+      onScreenCanvasMetricsChange?.();
     };
 
     updateScreenCanvasSize();
@@ -179,7 +196,15 @@ export function useOverlayRenderer({
     return () => {
       resizeObserver.disconnect();
     };
-  }, [containerRef, cursorCanvasRef, selectionCanvasRef, gizmoCanvasRef, zoom]);
+  }, [
+    containerRef,
+    cursorCanvasRef,
+    selectionGpuCanvasRef,
+    selectionCanvasRef,
+    gizmoCanvasRef,
+    onScreenCanvasMetricsChange,
+    zoom
+  ]);
 
   // ─── Overlay helpers ───────────────────────────────────────────────
 

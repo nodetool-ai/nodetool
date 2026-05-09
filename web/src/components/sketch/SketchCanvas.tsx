@@ -274,6 +274,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     const {
       containerRef,
+      selectionGpuCanvasRef,
       selectionCanvasRef,
       cursorCanvasRef,
       gizmoCanvasRef,
@@ -443,6 +444,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         bootstrapDisplayRef={compositing.bootstrapDisplayRef}
         displayCanvasRef={compositing.displayCanvasRef}
         overlayCanvasRef={compositing.overlayCanvasRef}
+        selectionGpuCanvasRef={selectionGpuCanvasRef}
         selectionCanvasRef={selectionCanvasRef}
         cursorCanvasRef={cursorCanvasRef}
         gizmoCanvasRef={gizmoCanvasRef}

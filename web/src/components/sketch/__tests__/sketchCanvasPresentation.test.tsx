@@ -41,6 +41,7 @@ function makeProps(
     bootstrapDisplayRef: React.createRef<HTMLCanvasElement>(),
     displayCanvasRef: React.createRef<HTMLCanvasElement>(),
     overlayCanvasRef: React.createRef<HTMLCanvasElement>(),
+    selectionGpuCanvasRef: React.createRef<HTMLCanvasElement>(),
     selectionCanvasRef: React.createRef<HTMLCanvasElement>(),
     cursorCanvasRef: React.createRef<HTMLCanvasElement>(),
     gizmoCanvasRef: React.createRef<HTMLCanvasElement>(),
@@ -127,9 +128,9 @@ describe("SketchCanvasPresentation", () => {
     const { container } = render(
       <SketchCanvasPresentation {...makeProps()} />
     );
-    // Should have at least the bootstrap, display, overlay, selection, cursor, gizmo canvases.
+    // Should have at least the bootstrap, display, overlay, GPU selection, selection, cursor, gizmo canvases.
     const canvases = container.querySelectorAll("canvas");
-    expect(canvases.length).toBeGreaterThanOrEqual(6);
+    expect(canvases.length).toBeGreaterThanOrEqual(7);
   });
 
   it("renders info bar with canvas dimensions and zoom", () => {

@@ -92,6 +92,16 @@ export class WebGPURuntime implements SketchRuntime {
   /** Last size passed to `GPUCanvasContext.configure` for `targetCanvas` (must reconfigure when the element resizes). */
   private configuredCanvasPixelWidth = 0;
   private configuredCanvasPixelHeight = 0;
+  private selectionAntsCanvas: HTMLCanvasElement | null = null;
+  private selectionAntsContext: GPUCanvasContext | null = null;
+  private configuredSelectionAntsPixelWidth = 0;
+  private configuredSelectionAntsPixelHeight = 0;
+  private selectionAntsViewportWidthCss = 0;
+  private selectionAntsViewportHeightCss = 0;
+  private selectionAntsPanXCss = 0;
+  private selectionAntsPanYCss = 0;
+  private selectionAntsMarginCss = 0;
+  private selectionAntsDpr = 1;
 
   // ── Pipelines ────────────────────────────────────────────────────────
   private checkerboardPipeline: GPURenderPipeline | null = null;
@@ -159,6 +169,36 @@ export class WebGPURuntime implements SketchRuntime {
 
   setSelectionOriginOverride(pos: { x: number; y: number } | null): void {
     this.selectionOriginOverride = pos;
+  }
+
+  setSelectionAntsOverlayCanvas(canvas: HTMLCanvasElement | null): void {
+    if (this.selectionAntsCanvas !== canvas) {
+      this.selectionAntsContext = null;
+      this.configuredSelectionAntsPixelWidth = 0;
+      this.configuredSelectionAntsPixelHeight = 0;
+    }
+    this.selectionAntsCanvas = canvas;
+    if (canvas === null) {
+      this.selectionAntsContext = null;
+      this.configuredSelectionAntsPixelWidth = 0;
+      this.configuredSelectionAntsPixelHeight = 0;
+    }
+  }
+
+  setSelectionAntsViewport(params: {
+    viewportWidthCss: number;
+    viewportHeightCss: number;
+    panXCss: number;
+    panYCss: number;
+    marginCss: number;
+    dpr: number;
+  }): void {
+    this.selectionAntsViewportWidthCss = params.viewportWidthCss;
+    this.selectionAntsViewportHeightCss = params.viewportHeightCss;
+    this.selectionAntsPanXCss = params.panXCss;
+    this.selectionAntsPanYCss = params.panYCss;
+    this.selectionAntsMarginCss = params.marginCss;
+    this.selectionAntsDpr = params.dpr;
   }
 
   // ── Dirty tracking ───────────────────────────────────────────────────
@@ -476,6 +516,36 @@ export class WebGPURuntime implements SketchRuntime {
     this.ensureCompositeTextures(w, h);
   }
 
+  private configureSelectionAntsContext(): GPUTextureView | null {
+    const canvas = this.selectionAntsCanvas;
+    if (!canvas || canvas.width <= 0 || canvas.height <= 0) {
+      return null;
+    }
+    const w = canvas.width;
+    const h = canvas.height;
+    if (
+      this.selectionAntsCanvas === canvas &&
+      this.selectionAntsContext &&
+      w === this.configuredSelectionAntsPixelWidth &&
+      h === this.configuredSelectionAntsPixelHeight
+    ) {
+      return this.selectionAntsContext.getCurrentTexture().createView();
+    }
+    const ctx = canvas.getContext("webgpu");
+    if (!ctx) {
+      throw new Error("Failed to get WebGPU context from selection ants canvas");
+    }
+    this.selectionAntsContext = ctx;
+    ctx.configure({
+      device: this.device,
+      format: this.presentationFormat,
+      alphaMode: "premultiplied"
+    });
+    this.configuredSelectionAntsPixelWidth = w;
+    this.configuredSelectionAntsPixelHeight = h;
+    return ctx.getCurrentTexture().createView();
+  }
+
   /**
    * Ensure ping-pong compositing textures exist at the given size.
    * Both textures need identical usages since they alternate roles.
@@ -685,8 +755,8 @@ export class WebGPURuntime implements SketchRuntime {
   private drawSelectionAnts(
     encoder: GPUCommandEncoder,
     targetView: GPUTextureView,
-    canvasW: number,
-    canvasH: number
+    docCanvasW: number,
+    docCanvasH: number
   ): void {
     if (
       !this.selectionAntsPipeline ||
@@ -699,13 +769,18 @@ export class WebGPURuntime implements SketchRuntime {
     const sel = this.currentSelection;
     const originX = this.selectionOriginOverride?.x ?? sel.originX ?? 0;
     const originY = this.selectionOriginOverride?.y ?? sel.originY ?? 0;
-    // Matches Canvas marquee phase scale: `(now * 0.018) % 256` → 0–1 for fract() in WGSL.
-    const canvasPhaseCycle = ((performance.now() * 0.018) % 256) / 256;
+    const canvasPhase = (performance.now() * 0.018) % 256;
     const uniformData = new Float32Array([
-      canvasW, canvasH,
+      docCanvasW, docCanvasH,
       originX, originY,
       sel.width, sel.height,
-      canvasPhaseCycle, this.zoom
+      this.selectionAntsViewportWidthCss * this.selectionAntsDpr,
+      this.selectionAntsViewportHeightCss * this.selectionAntsDpr,
+      this.selectionAntsMarginCss * this.selectionAntsDpr,
+      this.selectionAntsMarginCss * this.selectionAntsDpr,
+      this.selectionAntsPanXCss * this.selectionAntsDpr,
+      this.selectionAntsPanYCss * this.selectionAntsDpr,
+      canvasPhase, this.zoom, this.selectionAntsDpr, 0
     ]);
     const uniformBuffer = this.device.createBuffer({
       size: uniformData.byteLength,
@@ -725,7 +800,8 @@ export class WebGPURuntime implements SketchRuntime {
       colorAttachments: [
         {
           view: targetView,
-          loadOp: "load",
+          clearValue: { r: 0, g: 0, b: 0, a: 0 },
+          loadOp: "clear",
           storeOp: "store"
         }
       ]
@@ -885,6 +961,7 @@ export class WebGPURuntime implements SketchRuntime {
 
     const device = this.device;
     const swapChainView = this.context.getCurrentTexture().createView();
+    const selectionAntsView = this.configureSelectionAntsContext();
     const encoder = device.createCommandEncoder({ label: "composite-frame" });
 
     const fullW = targetCanvas.width;
@@ -1054,12 +1131,30 @@ export class WebGPURuntime implements SketchRuntime {
     // Pass 5: marching ants overlay (fullscreen, samples GPU mask texture).
     let selectionAntsActive = false;
     if (
+      selectionAntsView &&
       this.maskTexture &&
       this.currentSelection &&
       this.selectionAntsPipeline
     ) {
-      this.drawSelectionAnts(encoder, swapChainView, fullW, fullH);
+      this.drawSelectionAnts(
+        encoder,
+        selectionAntsView,
+        doc.canvas.width,
+        doc.canvas.height
+      );
       selectionAntsActive = true;
+    } else if (selectionAntsView) {
+      const pass = encoder.beginRenderPass({
+        colorAttachments: [
+          {
+            view: selectionAntsView,
+            clearValue: { r: 0, g: 0, b: 0, a: 0 },
+            loadOp: "clear",
+            storeOp: "store"
+          }
+        ]
+      });
+      pass.end();
     }
 
     device.queue.submit([encoder.finish()]);

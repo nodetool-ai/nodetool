@@ -21,7 +21,9 @@ const mockCompositing = {
   runtime: {
     dispose: jest.fn(),
     setSelection: jest.fn(),
-    setSelectionOriginOverride: jest.fn()
+    setSelectionOriginOverride: jest.fn(),
+    setSelectionAntsOverlayCanvas: jest.fn(),
+    setSelectionAntsViewport: jest.fn()
   },
   backend: "canvas2d" as const,
   getOrCreateLayerCanvas: jest.fn(),
@@ -127,6 +129,7 @@ describe("useCanvasOrchestration", () => {
     expect(result.current.containerRef).toBeDefined();
     expect(result.current.containerRef.current).toBeNull(); // not mounted
     expect(result.current.selectionCanvasRef).toBeDefined();
+    expect(result.current.selectionGpuCanvasRef).toBeDefined();
     expect(result.current.cursorCanvasRef).toBeDefined();
     expect(result.current.gizmoCanvasRef).toBeDefined();
     expect(result.current.lastPointerClientRef).toBeDefined();
@@ -207,9 +210,25 @@ describe("useCanvasOrchestration", () => {
     const second = result.current;
 
     expect(first.containerRef).toBe(second.containerRef);
+    expect(first.selectionGpuCanvasRef).toBe(second.selectionGpuCanvasRef);
     expect(first.selectionCanvasRef).toBe(second.selectionCanvasRef);
     expect(first.cursorCanvasRef).toBe(second.cursorCanvasRef);
     expect(first.gizmoCanvasRef).toBe(second.gizmoCanvasRef);
     expect(first.lastPointerClientRef).toBe(second.lastPointerClientRef);
+  });
+
+  it("syncs WebGPU selection ants canvas and viewport when available", () => {
+    const params = makeParams();
+    renderHook(() => useCanvasOrchestration(params));
+
+    expect(mockCompositing.runtime.setSelectionAntsOverlayCanvas).toHaveBeenCalled();
+    expect(mockCompositing.runtime.setSelectionAntsViewport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        panXCss: 0,
+        panYCss: 0,
+        marginCss: expect.any(Number),
+        dpr: expect.any(Number)
+      })
+    );
   });
 });

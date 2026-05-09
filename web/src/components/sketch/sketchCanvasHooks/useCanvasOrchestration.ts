@@ -21,7 +21,7 @@
  * passed as `doc` / `docWithTools`.
  */
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type {
   SketchDocument,
   SketchTool,
@@ -43,6 +43,7 @@ import type {
   UseOverlayRendererResult,
   UsePointerHandlersResult
 } from "../sketchCanvasHooks";
+import { selectionAntCanvasMarginCssPx } from "./useOverlayRenderer";
 
 // ─── Params ──────────────────────────────────────────────────────────────────
 
@@ -109,6 +110,7 @@ export interface UseCanvasOrchestrationParams {
 export interface UseCanvasOrchestrationResult {
   // ── Refs exposed to presentation ───────────────────────────────────
   containerRef: React.RefObject<HTMLDivElement | null>;
+  selectionGpuCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   selectionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   cursorCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   gizmoCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -168,6 +170,7 @@ export function useCanvasOrchestration(
 
   // ─── Shared refs (created here to avoid circular deps between hooks) ─
   const containerRef = useRef<HTMLDivElement>(null);
+  const selectionGpuCanvasRef = useRef<HTMLCanvasElement>(null);
   const selectionCanvasRef = useRef<HTMLCanvasElement>(null);
   const cursorCanvasRef = useRef<HTMLCanvasElement>(null);
   const gizmoCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -215,6 +218,38 @@ export function useCanvasOrchestration(
     };
   }, [compositing.runtime, compositing.requestRedraw]);
 
+  const syncSelectionAntsViewport = useCallback(() => {
+    const container = containerRef.current;
+    const rt = compositing.runtime as {
+      setSelectionAntsOverlayCanvas?: (canvas: HTMLCanvasElement | null) => void;
+      setSelectionAntsViewport?: (params: {
+        viewportWidthCss: number;
+        viewportHeightCss: number;
+        panXCss: number;
+        panYCss: number;
+        marginCss: number;
+        dpr: number;
+      }) => void;
+    };
+    rt.setSelectionAntsOverlayCanvas?.(selectionGpuCanvasRef.current);
+    if (!container) {
+      return;
+    }
+    rt.setSelectionAntsViewport?.({
+      viewportWidthCss: container.clientWidth,
+      viewportHeightCss: container.clientHeight,
+      panXCss: pan.x,
+      panYCss: pan.y,
+      marginCss: selectionAntCanvasMarginCssPx(zoom),
+      dpr: window.devicePixelRatio || 1
+    });
+  }, [compositing.runtime, pan.x, pan.y, zoom]);
+
+  useEffect(() => {
+    syncSelectionAntsViewport();
+    compositing.requestRedraw();
+  }, [compositing.requestRedraw, syncSelectionAntsViewport]);
+
   // ─── Overlay and cursor rendering ──────────────────────────────────
 
   const overlay = useOverlayRenderer({
@@ -224,6 +259,7 @@ export function useCanvasOrchestration(
     zoom,
     pan,
     overlayCanvasRef: compositing.overlayCanvasRef,
+    selectionGpuCanvasRef,
     selectionCanvasRef,
     cursorCanvasRef,
     gizmoCanvasRef,
@@ -231,7 +267,8 @@ export function useCanvasOrchestration(
     shiftHeldRef,
     altHeldRef,
     selectStartRef,
-    lassoPointsRef
+    lassoPointsRef,
+    onScreenCanvasMetricsChange: syncSelectionAntsViewport
   });
 
   const setSelectionOriginOverride = (pos: {
@@ -312,6 +349,7 @@ export function useCanvasOrchestration(
 
   return {
     containerRef,
+    selectionGpuCanvasRef,
     selectionCanvasRef,
     cursorCanvasRef,
     gizmoCanvasRef,
