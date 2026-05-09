@@ -183,8 +183,16 @@ export class Canvas2DRuntime implements SketchRuntime {
     doc: SketchDocument,
     isolatedLayerId: string | null | undefined,
     activeStroke: ActiveStrokeInfo | null,
-    dirtyRect?: DirtyRect | null
+    dirtyRect?: DirtyRect | null,
+    viewportZoom?: number
   ): void {
+    if (
+      viewportZoom != null &&
+      Number.isFinite(viewportZoom) &&
+      viewportZoom > 0
+    ) {
+      this.zoom = viewportZoom;
+    }
     const nextState = compositeToDisplayCanvas(
       targetCanvas,
       doc,

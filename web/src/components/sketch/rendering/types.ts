@@ -125,7 +125,9 @@ export interface SketchRuntime {
     doc: SketchDocument,
     isolatedLayerId: string | null | undefined,
     activeStroke: ActiveStrokeInfo | null,
-    dirtyRect?: DirtyRect | null
+    dirtyRect?: DirtyRect | null,
+    /** CSS viewport zoom (same value as canvas `scale(zoom)`). When set, runtimes apply it for this frame so rAF compositing cannot use a stale `runtime.zoom` from an earlier render. */
+    viewportZoom?: number
   ): void;
 
   // ─── Readback / export ───────────────────────────────────────────────

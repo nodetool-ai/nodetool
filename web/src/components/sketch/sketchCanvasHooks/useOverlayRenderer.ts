@@ -2,8 +2,10 @@
  * useOverlayRenderer
  *
  * Manages overlay canvas drawing for shape/gradient/crop/selection preview
- * (document-sized bitmap), viewport-layer pixel grid + live selection previews
- * on the screen-resolution selection canvas, and cursor canvas rendering.
+ * (document-sized bitmap), viewport-layer pixel grid + in-progress marquee/lasso
+ * previews on the screen-resolution selection canvas, and cursor canvas rendering.
+ * Finalized selection marching ants are drawn in WebGPU (`WebGPURuntime` pass 5),
+ * not here — this path only covers live drag feedback.
  */
 
 import { useCallback, useEffect, useRef } from "react";
@@ -31,8 +33,6 @@ import {
   drawSelectionRectOutline,
   marqueeRectFromDocPoints
 } from "../selection";
-
-
 
 /**
  * Extra CSS pixels around the sketch viewport for the selection marching-ants bitmap.
@@ -82,7 +82,7 @@ export type GizmoDrawCallback = (
 export interface UseOverlayRendererResult {
   clearOverlay: () => void;
   drawSelectionOverlay: () => void;
-  /** Kept for pointer-tool wiring; committed-selection movement is rendered by the runtime. */
+  /** No-op — WebGPU runtime handles origin during selection moves; pointer keeps one call site. */
   setSelectionOriginOverride: (pos: { x: number; y: number } | null) => void;
   /** Repaint selection-canvas chrome on top without clearing the document overlay. */
   appendSelectionOverlay: () => void;
@@ -225,16 +225,24 @@ export function useOverlayRenderer({
 
   // In-progress drag preview (start+end in doc coords). Kept in a ref so the
   // selection-canvas repaint can composite it on top of the pixel grid.
-  const selectionDragPreviewRef = useRef<{ start: Point; end: Point } | null>(null);
+  const selectionDragPreviewRef = useRef<{ start: Point; end: Point } | null>(
+    null
+  );
+  const selectionLassoLiveRef = useRef<{
+    points: Point[];
+    cursor: Point | null;
+  } | null>(null);
 
-  /** Pixel grid (when zoom allows) + live selection drag preview. */
+  /** Pixel grid + live marquee/lasso previews. Committed mask outline → WebGPU pass 5. */
   const paintSelectionCanvas = useCallback(() => {
     const ctx = beginSelectionLayerPaint();
     if (!ctx) {
       return;
     }
     const preview = selectionDragPreviewRef.current;
-    if (preview) {
+    const lassoLive = selectionLassoLiveRef.current;
+
+    if (preview !== null) {
       const { x, y, w, h } = marqueeRectFromDocPoints(preview.start, preview.end);
       if (w >= 1 && h >= 1) {
         const phase = liveSelectionPreviewAntsPhase();
@@ -245,19 +253,36 @@ export function useOverlayRenderer({
         }
       }
     }
+
+    if (lassoLive !== null && lassoLive.points.length >= 1) {
+      const pathPts: Point[] = lassoLive.cursor
+        ? [...lassoLive.points, lassoLive.cursor]
+        : [...lassoLive.points];
+      if (pathPts.length >= 2) {
+        drawSelectionPolylineOutline(
+          ctx,
+          pathPts,
+          liveSelectionPreviewAntsPhase(),
+          zoom
+        );
+      }
+    }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [beginSelectionLayerPaint, zoom, doc.toolSettings.select.mode]);
+  }, [
+    beginSelectionLayerPaint,
+    zoom,
+    doc.toolSettings.select.mode
+  ]);
 
   const paintSelectionCanvasRef = useRef(paintSelectionCanvas);
   paintSelectionCanvasRef.current = paintSelectionCanvas;
 
-  // Retained so pointer-tool wiring does not need a separate overlay/runtime split.
-  // Committed selection movement is now rendered by the runtime, not the selection canvas.
   const setSelectionOriginOverride: UseOverlayRendererResult["setSelectionOriginOverride"] =
     useCallback(() => {}, []);
 
   const drawSelectionOverlay = useCallback(() => {
     selectionDragPreviewRef.current = null;
+    selectionLassoLiveRef.current = null;
     const overlay = overlayCanvasRef.current;
     if (overlay) {
       const ctx = overlay.getContext("2d");
@@ -422,23 +447,11 @@ export function useOverlayRenderer({
         return;
       }
       ovCtx.clearRect(0, 0, overlay.width, overlay.height);
-
-      const selCtx = beginSelectionLayerPaint();
-      if (!selCtx) {
-        return;
-      }
-      const path: Point[] = cursor ? [...points, cursor] : [...points];
-      if (path.length >= 2) {
-        drawSelectionPolylineOutline(
-          selCtx,
-          path,
-          liveSelectionPreviewAntsPhase(),
-          zoom
-        );
-      }
-      selCtx.setTransform(1, 0, 0, 1, 0, 0);
+      selectionDragPreviewRef.current = null;
+      selectionLassoLiveRef.current = { points, cursor };
+      paintSelectionCanvasRef.current();
     },
-    [overlayCanvasRef, zoom, beginSelectionLayerPaint]
+    [overlayCanvasRef]
   );
 
   // ─── Cursor rendering ──────────────────────────────────────────────

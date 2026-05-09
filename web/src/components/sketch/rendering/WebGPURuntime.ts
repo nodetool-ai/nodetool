@@ -73,13 +73,6 @@ const SOURCE_OVER_BLEND: GPUBlendState = {
   }
 };
 
-/**
- * Per-composite advance for marching ants (fractional phase avoids `% 2` flicker
- * when combined with fract() in WGSL).
- * ~6s at 60fps for a gentle march (both alternating bands wrap every 2.0 phase).
- */
-const SELECTION_ANT_PHASE_STEP = 1 / 384;
-
 // ─── Inverse affine matrix type ──────────────────────────────────────────
 
 /** 2×3 affine matrix mapping screen pixels → layer texels. */
@@ -159,8 +152,6 @@ export class WebGPURuntime implements SketchRuntime {
    */
   zoom = 1;
 
-  /** Animating phase for marching-ants shader (increments each composite). */
-  antsPhase = 0;
   /** Called after compositing when the runtime needs continuous redraws (ants animation). */
   onNeedsRedraw?: () => void;
   /** Overrides currentSelection.originX/Y during a live move-drag, without committing to the store. */
@@ -708,12 +699,13 @@ export class WebGPURuntime implements SketchRuntime {
     const sel = this.currentSelection;
     const originX = this.selectionOriginOverride?.x ?? sel.originX ?? 0;
     const originY = this.selectionOriginOverride?.y ?? sel.originY ?? 0;
-    // 8 floats: canvasSize(2) + maskOrigin(2) + maskDims(2) + phase(1) + zoom(1)
+    // Matches Canvas marquee phase scale: `(now * 0.018) % 256` → 0–1 for fract() in WGSL.
+    const canvasPhaseCycle = ((performance.now() * 0.018) % 256) / 256;
     const uniformData = new Float32Array([
       canvasW, canvasH,
       originX, originY,
       sel.width, sel.height,
-      this.antsPhase, this.zoom
+      canvasPhaseCycle, this.zoom
     ]);
     const uniformBuffer = this.device.createBuffer({
       size: uniformData.byteLength,
@@ -864,11 +856,20 @@ export class WebGPURuntime implements SketchRuntime {
     doc: SketchDocument,
     isolatedLayerId: string | null | undefined,
     activeStroke: ActiveStrokeInfo | null,
-    _dirtyRect?: DirtyRect | null
+    _dirtyRect?: DirtyRect | null,
+    viewportZoom?: number
   ): void {
     // Guard against device loss
     if (this._deviceLost) {
       return;
+    }
+
+    if (
+      viewportZoom != null &&
+      Number.isFinite(viewportZoom) &&
+      viewportZoom > 0
+    ) {
+      this.zoom = viewportZoom;
     }
 
     this.configureContext(targetCanvas);
@@ -1050,17 +1051,13 @@ export class WebGPURuntime implements SketchRuntime {
       pass.end();
     }
 
-    // ── Pass 5: Marching ants on swap chain ────────────────────────────
-    // Planned in refactor-selection.md but was missing — without this pass
-    // the uploaded mask affects tools but committed selection outlines never draw.
+    // Pass 5: marching ants overlay (fullscreen, samples GPU mask texture).
     let selectionAntsActive = false;
     if (
       this.maskTexture &&
       this.currentSelection &&
       this.selectionAntsPipeline
     ) {
-      this.antsPhase =
-        (this.antsPhase + SELECTION_ANT_PHASE_STEP) % 65536;
       this.drawSelectionAnts(encoder, swapChainView, fullW, fullH);
       selectionAntsActive = true;
     }

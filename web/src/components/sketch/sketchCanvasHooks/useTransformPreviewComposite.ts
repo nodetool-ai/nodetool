@@ -26,6 +26,8 @@ export interface UseTransformPreviewCompositeParams {
   isolatedLayerId?: string | null;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
   backend: "webgpu" | "canvas2d";
+  /** Current sketch viewport zoom (must match presentation `scale(zoom)`). */
+  viewportZoom: number;
 }
 
 export interface UseTransformPreviewCompositeResult {
@@ -41,7 +43,8 @@ export function useTransformPreviewComposite({
   bootstrapPhaseActive,
   isolatedLayerId,
   activeStrokeRef,
-  backend
+  backend,
+  viewportZoom
 }: UseTransformPreviewCompositeParams): UseTransformPreviewCompositeResult {
   /** Composite layers into display canvas, optionally clipped to a dirty rect. */
   const compositeToDisplay = useCallback(
@@ -83,7 +86,8 @@ export function useTransformPreviewComposite({
         compositeDoc,
         isolatedLayerId ?? null,
         activeStroke,
-        dirtyRect
+        dirtyRect,
+        viewportZoom
       );
       return true;
     },
@@ -96,7 +100,8 @@ export function useTransformPreviewComposite({
       activeStrokeRef,
       backend,
       bootstrapPhaseActive,
-      transformPreviewByLayerIdRef
+      transformPreviewByLayerIdRef,
+      viewportZoom
     ]
   );
 

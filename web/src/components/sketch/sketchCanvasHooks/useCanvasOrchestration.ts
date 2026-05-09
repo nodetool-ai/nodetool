@@ -182,11 +182,6 @@ export function useCanvasOrchestration(
   const altHeldRef = useRef(false);
   const selectStartRef = useRef<Point | null>(null);
   const lassoPointsRef = useRef<Point[]>([]);
-  const setSelectionOriginOverride = (pos: { x: number; y: number } | null) => {
-    const rt = compositing.runtime as { setSelectionOriginOverride?: (pos: { x: number; y: number } | null) => void };
-    rt.setSelectionOriginOverride?.(pos);
-    overlay.setSelectionOriginOverride(pos);
-  };
 
   // ─── Compositing (layer canvases, redraw) ──────────────────────────
 
@@ -211,11 +206,13 @@ export function useCanvasOrchestration(
     compositing.requestRedraw();
   }, [compositing.runtime, compositing.requestRedraw, selection]);
 
-  // Wire continuous redraw callback so the GPU ants can animate at rAF rate.
+  // Schedule the next WebGPU frame while selection ants are drawn (pass 5 loads the blit).
   useEffect(() => {
     const rt = compositing.runtime as { onNeedsRedraw?: () => void };
     rt.onNeedsRedraw = compositing.requestRedraw;
-    return () => { rt.onNeedsRedraw = undefined; };
+    return () => {
+      rt.onNeedsRedraw = undefined;
+    };
   }, [compositing.runtime, compositing.requestRedraw]);
 
   // ─── Overlay and cursor rendering ──────────────────────────────────
@@ -236,6 +233,20 @@ export function useCanvasOrchestration(
     selectStartRef,
     lassoPointsRef
   });
+
+  const setSelectionOriginOverride = (pos: {
+    x: number;
+    y: number;
+  } | null) => {
+    const rt = compositing.runtime as {
+      setSelectionOriginOverride?: (p: {
+        x: number;
+        y: number;
+      } | null) => void;
+    };
+    rt.setSelectionOriginOverride?.(pos);
+    overlay.setSelectionOriginOverride(pos);
+  };
 
   // ─── Pointer handlers ──────────────────────────────────────────────
 

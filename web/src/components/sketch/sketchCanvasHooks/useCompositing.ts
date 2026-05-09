@@ -153,7 +153,8 @@ export function useCompositing({
       bootstrapPhaseActive,
       isolatedLayerId,
       activeStrokeRef,
-      backend
+      backend,
+      viewportZoom: externalZoom
     });
 
   // Keep the ref in sync so rAF callbacks always use the latest composite fn.
