@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, createElement, memo } from "react";
+import React, { useCallback, createElement, memo, useMemo } from "react";
 import { shallow } from "zustand/shallow";
 import { Property } from "../../stores/ApiTypes";
 import PropertyLabel from "./PropertyLabel";
@@ -63,6 +63,10 @@ import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { NodeData } from "../../stores/NodeData";
 import { useInputNodeAutoRun } from "../../hooks/nodes/useInputNodeAutoRun";
 import { inferOutputKeysFromCode, inferInputKeysFromCode } from "../../utils/codeOutputInference";
+
+const RESET_BUTTON_OFFSET_CSS = css({
+  "--property-reset-button-offset": "40px"
+});
 
 const propertyInputContainerStyles = (theme: Theme) =>
   css({
@@ -447,6 +451,10 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   onValueChange
 }: PropertyInputProps) => {
   const theme = useTheme();
+  const containerCss = useMemo(
+    () => propertyInputContainerStyles(theme),
+    [theme]
+  );
   const { updateNodeProperties, findNode, updateNodeData } = useNodes(
     (state) => ({
       updateNodeProperties: state.updateNodeProperties,
@@ -764,11 +772,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     <div
       className={`property-input-container${isChanged ? " value-changed" : ""}`}
       css={[
-        propertyInputContainerStyles(theme),
-        hasTopRightPropertyActions &&
-          css({
-            "--property-reset-button-offset": "40px"
-          })
+        containerCss,
+        hasTopRightPropertyActions && RESET_BUTTON_OFFSET_CSS
       ]}
       onContextMenu={onContextMenu}
       onDoubleClick={handleDoubleClick}

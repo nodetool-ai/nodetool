@@ -291,6 +291,7 @@ interface PreviewNodeProps extends NodeProps {
 
 const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -448,10 +449,15 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
   useSyncEdgeSelection(props.id, Boolean(props.selected));
 
+  const selectionSx = useMemo(
+    () => getPreviewNodeSelectionSx(theme, Boolean(props.selected)),
+    [theme, props.selected]
+  );
+
   return (
     <Container
-      css={styles(theme)}
-      sx={getPreviewNodeSelectionSx(theme, Boolean(props.selected))}
+      css={cssStyles}
+      sx={selectionSx}
       className={`preview-node nopan node-drag-handle ${
         hasParent ? "hasParent" : ""
       }`}
