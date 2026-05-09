@@ -150,6 +150,44 @@ jobs:
         with:
           ref: ${{ needs.preflight.outputs.ref }}
 
+      - name: Resolve release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "schedule" || ( "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.channel }}" == "nightly" ) ]]; then
+            # Convert RFC3339 run_started_at (YYYY-MM-DDTHH:MM:SSZ) to YYYYMMDD.
+            nightly_date="${{ github.run_started_at }}"
+            nightly_date="${nightly_date%%T*}"
+            nightly_date="${nightly_date//-/}"
+            node scripts/resolve-nightly-release.mjs \
+              --date "$nightly_date" \
+              --run-number "${{ github.run_number }}" \
+              --sha "${{ github.sha }}" \
+              --github-output
+            version="$(grep '^version=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
+            tag="$(grep '^tag=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
+            name="$(grep '^name=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
+            echo "VERSION=$version" >> "$GITHUB_ENV"
+            echo "RELEASE_TAG=$tag" >> "$GITHUB_ENV"
+            echo "RELEASE_NAME=$name" >> "$GITHUB_ENV"
+            echo "RELEASE_CHANNEL=nightly" >> "$GITHUB_ENV"
+            echo "RELEASE_PRERELEASE=true" >> "$GITHUB_ENV"
+            echo "RELEASE_MAKE_LATEST=false" >> "$GITHUB_ENV"
+            echo "UPDATE_MANIFEST=nightly.yml" >> "$GITHUB_ENV"
+            echo "UPDATE_MAC_MANIFEST=nightly-mac.yml" >> "$GITHUB_ENV"
+            echo "UPDATE_LINUX_MANIFEST=nightly-linux.yml" >> "$GITHUB_ENV"
+          else
+            # Stable manual runs must pin an explicit version; nightly runs derive one above.
+            if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.channel }}" == "stable" && "${{ github.event.inputs.version }}" == "" ]]; then
+              echo "Stable manual releases require inputs.version (for example: 1.2.3 or v1.2.3)." >&2
+              exit 1
+            fi
+            version="${VERSION#v}"
+            echo "VERSION=$version" >> "$GITHUB_ENV"
+            echo "RELEASE_TAG=v$version" >> "$GITHUB_ENV"
+            echo "RELEASE_NAME=Nodetool v$version" >> "$GITHUB_ENV"
+          fi
+
       - name: Print selected version
         run: echo "Using VERSION=$VERSION channel=$RELEASE_CHANNEL tag=$RELEASE_TAG"
 
