@@ -13,18 +13,20 @@
  *   │ [Playhead]   ← absolute-positioned over all lanes    │
  *   └──────────────────────────────────────────────────────┘
  *
- * Also renders global keyboard shortcuts for clip operations:
+ * Also registers window-level keyboard shortcuts for clip operations:
  *   Delete/Backspace → deleteSelected
  *   Ctrl+D           → duplicateSelected
  *   Ctrl+Shift+D     → duplicate + shift by clip duration
- *   Ctrl+S           → splitSelectedAtPlayhead
+ *   S                → splitSelectedAtPlayhead
+ *   V / C            → select / cut tool
  *   Ctrl+Z / Ctrl+Y  → undo / redo
+ * Shortcuts are skipped when focus is in a text input or contenteditable.
  *
  * Zoom: scroll wheel on the lane area changes msPerPx.
  * Horizontal scroll: native overflow-x scroll on the scrollable panel.
  */
 
-import React, { memo, useCallback, useRef } from "react";
+import React, { memo, useCallback, useEffect, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -59,8 +61,7 @@ const containerStyles = (theme: Theme) =>
     width: "100%",
     height: "100%",
     overflow: "hidden",
-    backgroundColor: theme.vars.palette.background.default,
-    outline: "none"
+    backgroundColor: theme.vars.palette.background.default
   });
 
 const toolbarStyles = (theme: Theme) =>
@@ -206,9 +207,25 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     );
 
     // ── Keyboard shortcuts ─────────────────────────────────────────────────
+    //
+    // Attached at window level so the shortcuts work regardless of which
+    // element has focus inside the timeline editor. (Clicking a clip doesn't
+    // transfer focus to the tracks region, since Clip's pointerdown calls
+    // preventDefault to suppress text selection — which also suppresses the
+    // browser's default focus action.) Text inputs and contenteditable
+    // regions are skipped so typing isn't hijacked.
 
-    const handleKeyDown = useCallback(
-      (e: React.KeyboardEvent<HTMLDivElement>) => {
+    useEffect(() => {
+      const isEditableTarget = (target: EventTarget | null): boolean =>
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLElement && target.isContentEditable);
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (isEditableTarget(e.target)) {
+          return;
+        }
+
         const isCtrl = e.ctrlKey || e.metaKey;
 
         // Delete / Backspace → delete selected
@@ -218,48 +235,47 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         ) {
           e.preventDefault();
           deleteSelected(selectedClipIds);
+          return;
         }
 
         // Ctrl+D → duplicate selected (same position)
         if (isCtrl && e.key === "d" && !e.shiftKey) {
           e.preventDefault();
           duplicateSelected(selectedClipIds);
+          return;
         }
 
         // Ctrl+Shift+D → duplicate + shift by a fixed offset (1 s)
         if (isCtrl && e.shiftKey && e.key === "D") {
           e.preventDefault();
           duplicateSelected(selectedClipIds, DUPLICATE_OFFSET_MS);
+          return;
         }
 
         // S → split at playhead (no modifier; avoid hijacking browser Ctrl+S)
         if (e.key === "s" && !isCtrl && !e.shiftKey && !e.altKey) {
-          // Don't fire when focus is inside a text input (e.g. track name editor)
-          if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-            return;
-          }
           e.preventDefault();
           splitSelectedAtPlayhead(currentTimeMs, selectedClipIds);
+          return;
         }
 
-        // V → select tool, C → cut tool (FCP-style; ignore in text inputs)
+        // V → select tool, C → cut tool (FCP-style)
         if (
           (e.key === "v" || e.key === "c") &&
           !isCtrl &&
           !e.shiftKey &&
           !e.altKey
         ) {
-          if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-            return;
-          }
           e.preventDefault();
           setActiveTool(e.key === "v" ? "select" : "cut");
+          return;
         }
 
         // Ctrl+Z → undo
         if (isCtrl && !e.shiftKey && e.key === "z") {
           e.preventDefault();
           getTimelineTemporal().undo();
+          return;
         }
 
         // Ctrl+Shift+Z / Ctrl+Y → redo
@@ -270,16 +286,18 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           e.preventDefault();
           getTimelineTemporal().redo();
         }
-      },
-      [
-        selectedClipIds,
-        deleteSelected,
-        duplicateSelected,
-        splitSelectedAtPlayhead,
-        currentTimeMs,
-        setActiveTool
-      ]
-    );
+      };
+
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [
+      selectedClipIds,
+      deleteSelected,
+      duplicateSelected,
+      splitSelectedAtPlayhead,
+      currentTimeMs,
+      setActiveTool
+    ]);
 
     const totalTracksHeight = tracks.reduce(
       (sum, t) => sum + (t.heightPx ?? DEFAULT_TRACK_HEIGHT_PX),
@@ -290,8 +308,6 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       <div
         css={containerStyles(theme)}
         style={{ height: heightPx }}
-        tabIndex={0}
-        onKeyDown={handleKeyDown}
         data-testid="tracks-region"
         aria-label="Tracks region"
       >
