@@ -737,11 +737,11 @@ describe("lasso + magic-wand selection-mode coverage", () => {
   describe("selection mask properties", () => {
     it("rectSelectionMask has correct width, height, and implicit origin (0,0)", () => {
       const sel = rectSelectionMask(64, 48, 10, 5, 20, 15);
-      expect(sel.width).toBe(64);
-      expect(sel.height).toBe(48);
-      // originX/originY default to undefined (implicit 0)
-      expect(sel.originX ?? 0).toBe(0);
-      expect(sel.originY ?? 0).toBe(0);
+      // Mask covers only the selection region, with origin set to the selection start
+      expect(sel.width).toBe(20);
+      expect(sel.height).toBe(15);
+      expect(sel.originX).toBe(10);
+      expect(sel.originY).toBe(5);
 
       const bounds = getSelectionBounds(sel);
       expect(bounds).toEqual({ x: 10, y: 5, width: 20, height: 15 });

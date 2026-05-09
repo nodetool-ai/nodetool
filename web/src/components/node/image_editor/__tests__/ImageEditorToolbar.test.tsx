@@ -16,7 +16,7 @@ jest.mock("../../../../stores/KeyPressedStore", () => ({
 }));
 
 import ImageEditorToolbar from "../ImageEditorToolbar";
-import { DEFAULT_BRUSH_SETTINGS, DEFAULT_ADJUSTMENTS, DEFAULT_SHAPE_SETTINGS, DEFAULT_TEXT_SETTINGS } from "../types";
+import { DEFAULT_BRUSH_SETTINGS, DEFAULT_ADJUSTMENTS, DEFAULT_SHAPE_SETTINGS, DEFAULT_TEXT_SETTINGS, DEFAULT_SELECTION_SETTINGS } from "../types";
 
 describe("ImageEditorToolbar", () => {
   const mockOnToolChange = jest.fn();
@@ -28,6 +28,7 @@ describe("ImageEditorToolbar", () => {
   const mockOnZoomChange = jest.fn();
   const mockOnUndo = jest.fn();
   const mockOnRedo = jest.fn();
+  const mockOnSelectionSettingsChange = jest.fn();
 
   const defaultProps = {
     tool: "select" as const,
@@ -35,6 +36,8 @@ describe("ImageEditorToolbar", () => {
     shapeSettings: DEFAULT_SHAPE_SETTINGS,
     textSettings: DEFAULT_TEXT_SETTINGS,
     adjustments: DEFAULT_ADJUSTMENTS,
+    selectionSettings: DEFAULT_SELECTION_SETTINGS,
+    hasSelection: false,
     zoom: 1,
     isCropping: false,
     canUndo: false,
@@ -44,6 +47,7 @@ describe("ImageEditorToolbar", () => {
     onShapeSettingsChange: mockOnShapeSettingsChange,
     onTextSettingsChange: mockOnTextSettingsChange,
     onAdjustmentsChange: mockOnAdjustmentsChange,
+    onSelectionSettingsChange: mockOnSelectionSettingsChange,
     onAction: mockOnAction,
     onZoomChange: mockOnZoomChange,
     onUndo: mockOnUndo,

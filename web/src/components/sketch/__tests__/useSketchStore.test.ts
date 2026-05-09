@@ -23,7 +23,7 @@ describe("useSketchStore", () => {
     });
 
     it("starts with brush tool", () => {
-      expect(useSketchStore.getState().activeTool).toBe("brush");
+      expect(useSketchStore.getState().activeTool).toBe("select");
     });
 
     it("starts with zoom 1", () => {
@@ -50,7 +50,7 @@ describe("useSketchStore", () => {
         useSketchStore.getState().setTransientMoveModifierHeld(true);
       });
       expect(useSketchStore.getState().transientMoveModifierHeld).toBe(true);
-      expect(useSketchStore.getState().activeTool).toBe("brush");
+      expect(useSketchStore.getState().activeTool).toBe("select");
       act(() => {
         useSketchStore.getState().setActiveTool("pencil");
       });
@@ -491,7 +491,7 @@ describe("useSketchStore", () => {
       const state = useSketchStore.getState();
       expect(state.document.canvas.width).toBe(256);
       expect(state.document.layers).toHaveLength(1);
-      expect(state.activeTool).toBe("brush");
+      expect(state.activeTool).toBe("select");
       expect(state.zoom).toBe(1);
     });
   });

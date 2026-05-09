@@ -134,7 +134,7 @@ describe("Phase 2 Batch 3 Features", () => {
       // This test verifies the store has the activeTool tracking needed for
       // the keyboard handler.
       const state = useSketchStore.getState();
-      expect(state.activeTool).toBe("brush");
+      expect(state.activeTool).toBe("select");
     });
   });
 

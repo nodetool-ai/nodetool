@@ -182,11 +182,13 @@ describe("workflows router", () => {
     });
 
     it("uses default run_mode filtering when no run_mode is passed", async () => {
+      // The router passes runMode: undefined to Workflow.paginate; paginate itself
+      // applies the default DB filter (run_mode IN ("workflow", null)) which excludes
+      // embedded modes like "clip", "layer", and "image".
       const workflow = makeWorkflow({ id: "wf-default", run_mode: "workflow" });
       const legacy = makeWorkflow({ id: "wf-legacy", run_mode: null });
-      const clip = makeWorkflow({ id: "wf-clip", run_mode: "clip" });
       (Workflow.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
-        [workflow, legacy, clip],
+        [workflow, legacy],
         ""
       ]);
 
@@ -198,9 +200,25 @@ describe("workflows router", () => {
       );
       expect(result.workflows.map((w) => w.id)).toEqual([
         "wf-default",
-        "wf-legacy",
-        "wf-clip"
+        "wf-legacy"
       ]);
+    });
+
+    it("does not include embedded run_modes (clip/layer/image) in default listing", async () => {
+      // When no run_mode filter is supplied, the router passes runMode: undefined to
+      // paginate(), which then applies `run_mode IN ("workflow", null)` at the DB level.
+      // This test verifies the router delegates filtering to paginate rather than doing
+      // its own secondary filter.
+      const standalone = makeWorkflow({ id: "wf-standalone", run_mode: "workflow" });
+      (Workflow.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
+        [standalone],
+        ""
+      ]);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.list({});
+      // Only the standalone workflow is returned (paginate filtered out clip/layer/image)
+      expect(result.workflows.map((w) => w.id)).toEqual(["wf-standalone"]);
     });
 
     it("includes clip workflows when run_mode filter is set", async () => {
@@ -213,6 +231,30 @@ describe("workflows router", () => {
       const caller = createCaller(makeCtx());
       const result = await caller.workflows.list({ run_mode: "clip" });
       expect(result.workflows.map((w) => w.id)).toEqual(["wf-clip"]);
+    });
+
+    it("supports explicit run_mode filter for layer and image embedded workflows", async () => {
+      const layer = makeWorkflow({ id: "wf-layer", run_mode: "layer" });
+      const image = makeWorkflow({ id: "wf-image", run_mode: "image" });
+      (Workflow.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
+        [layer],
+        ""
+      ]);
+
+      const caller = createCaller(makeCtx());
+      const layerResult = await caller.workflows.list({ run_mode: "layer" });
+      expect(layerResult.workflows.map((w) => w.id)).toEqual(["wf-layer"]);
+      expect(Workflow.paginate).toHaveBeenCalledWith(
+        "user-1",
+        expect.objectContaining({ runMode: "layer" })
+      );
+
+      (Workflow.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
+        [image],
+        ""
+      ]);
+      const imageResult = await caller.workflows.list({ run_mode: "image" });
+      expect(imageResult.workflows.map((w) => w.id)).toEqual(["wf-image"]);
     });
 
     it("filters to workflows with terminal media outputs when mediaOutput=true", async () => {
