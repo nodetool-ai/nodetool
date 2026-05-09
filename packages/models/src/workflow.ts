@@ -29,6 +29,13 @@ export class WorkflowNotClipPrivateError extends Error {
   }
 }
 
+export class WorkflowNotLayerPrivateError extends Error {
+  constructor(workflowId: string) {
+    super(`Workflow ${workflowId} is not layer-private`);
+    this.name = "WorkflowNotLayerPrivateError";
+  }
+}
+
 function ensureSqlCondition(condition: SQL<unknown> | undefined): SQL<unknown> {
   if (!condition) {
     throw new Error("Expected SQL condition");
@@ -159,13 +166,17 @@ export class Workflow extends DBModel {
       .from(workflows)
       .where(and(...conditions))
       .orderBy(desc(workflows.updated_at))
-      .limit(tag ? 10_000 : limit + 1)
+      .limit(tag ? 10_000 : limit + 1);
 
-    let items = rows.map((r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>));
+    let items = rows.map(
+      (r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>)
+    );
 
     // Filter by tag in-memory (JSON array field)
     if (tag) {
-      items = items.filter((w: Workflow) => Array.isArray(w.tags) && w.tags.includes(tag));
+      items = items.filter(
+        (w: Workflow) => Array.isArray(w.tags) && w.tags.includes(tag)
+      );
       // Apply limit after tag filter
       const capped = items.slice(0, limit + 1);
       if (capped.length <= limit) return [capped, ""];
@@ -191,9 +202,11 @@ export class Workflow extends DBModel {
       .from(workflows)
       .where(eq(workflows.access, "public"))
       .orderBy(desc(workflows.updated_at))
-      .limit(limit + 1)
+      .limit(limit + 1);
 
-    const items = rows.map((r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>));
+    const items = rows.map(
+      (r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>)
+    );
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -212,9 +225,11 @@ export class Workflow extends DBModel {
       .from(workflows)
       .where(and(eq(workflows.user_id, userId), eq(workflows.run_mode, "tool")))
       .orderBy(desc(workflows.updated_at))
-      .limit(limit + 1)
+      .limit(limit + 1);
 
-    const items: Workflow[] = rows.map((r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>));
+    const items: Workflow[] = rows.map(
+      (r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>)
+    );
     if (items.length <= limit) {
       const tools = items.filter((w: Workflow) => w.hasToolName());
       return [tools, ""];
@@ -367,6 +382,8 @@ export class Workflow extends DBModel {
     await workflow.save();
   }
 
+  // ── Layer lifecycle (mirrors clip lifecycle) ───────────────────────
+
   static async cloneAsLayerPrivate(
     sourceId: string,
     ownerUserId: string
@@ -406,12 +423,18 @@ export class Workflow extends DBModel {
     let count = 0;
     for (const row of rows) {
       try {
-        const parsed = JSON.parse(row.document) as {
-          layers?: Array<{ workflowId?: unknown }>;
+        const docStr =
+          typeof row.document === "string"
+            ? row.document
+            : JSON.stringify(row.document);
+        const parsed = JSON.parse(docStr) as {
+          layerBindings?: Array<{ workflowId?: unknown }>;
         };
-        const layers = Array.isArray(parsed.layers) ? parsed.layers : [];
-        for (const layer of layers) {
-          if (layer.workflowId === workflowId) {
+        const bindings = Array.isArray(parsed.layerBindings)
+          ? parsed.layerBindings
+          : [];
+        for (const binding of bindings) {
+          if (binding.workflowId === workflowId) {
             count += 1;
           }
         }
@@ -435,5 +458,24 @@ export class Workflow extends DBModel {
 
     await workflow.delete();
     return true;
+  }
+
+  static async promoteLayerToTemplate(workflowId: string): Promise<void> {
+    const workflow = await Workflow.get<Workflow>(workflowId);
+    if (!workflow) {
+      throw new Error(`Workflow ${workflowId} not found`);
+    }
+    if (workflow.run_mode !== "layer" || workflow.access !== "private") {
+      throw new WorkflowNotLayerPrivateError(workflowId);
+    }
+
+    const tags = Array.isArray(workflow.tags) ? [...workflow.tags] : [];
+    if (!tags.includes("image-template")) {
+      tags.push("image-template");
+    }
+
+    workflow.run_mode = "workflow";
+    workflow.tags = tags;
+    await workflow.save();
   }
 }

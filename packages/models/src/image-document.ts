@@ -1,14 +1,29 @@
 import { eq, desc } from "drizzle-orm";
+import type {
+  SketchDocumentLike,
+  LayerWorkflowBinding
+} from "@nodetool-ai/image-editor";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { imageDocuments } from "./schema/image-documents.js";
 
 export interface ImageDocumentData {
-  layers: unknown[];
-  guides: unknown[];
-  artboards: unknown[];
-  activeLayerId: string | null;
-  maskLayerId: string | null;
+  sketch: SketchDocumentLike;
+  layerBindings: LayerWorkflowBinding[];
+}
+
+export interface ImageDocumentResponse {
+  id: string;
+  projectId: string;
+  workflowId?: string;
+  name: string;
+  width: number;
+  height: number;
+  backgroundColor: string;
+  document: ImageDocumentData;
+  thumbnailAssetId?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export class ImageDocument extends DBModel {
@@ -36,11 +51,13 @@ export class ImageDocument extends DBModel {
     this.height ??= 1024;
     this.background_color ??= "#ffffff";
     this.document ??= JSON.stringify({
-      layers: [],
-      guides: [],
-      artboards: [],
-      activeLayerId: null,
-      maskLayerId: null
+      sketch: {
+        version: 1,
+        canvas: { width: 1024, height: 1024 },
+        layers: [],
+        activeLayerId: ""
+      },
+      layerBindings: []
     });
     this.thumbnail_asset_id ??= null;
     this.created_at ??= now;
@@ -49,33 +66,18 @@ export class ImageDocument extends DBModel {
 
   override beforeSave(): void {
     this.updated_at = new Date().toISOString();
-    const doc = JSON.parse(this.document);
-    if (!Array.isArray(doc.layers)) {
-      throw new Error("document must contain a layers array");
+    const doc = JSON.parse(this.document) as ImageDocumentData;
+    if (!doc.sketch || !Array.isArray(doc.layerBindings)) {
+      throw new Error("document must contain sketch and layerBindings");
     }
   }
 
-  toDocument(): ImageDocumentData {
+  toDocumentData(): ImageDocumentData {
     return JSON.parse(this.document) as ImageDocumentData;
   }
 
-  fromDocument(doc: ImageDocumentData): void {
-    this.document = JSON.stringify(doc);
-  }
-
-  toImageDocumentResponse(): {
-    id: string;
-    projectId: string;
-    workflowId?: string;
-    name: string;
-    width: number;
-    height: number;
-    backgroundColor: string;
-    document: string;
-    thumbnailAssetId?: string;
-    createdAt: string;
-    updatedAt: string;
-  } {
+  toResponse(): ImageDocumentResponse {
+    const doc = this.toDocumentData();
     return {
       id: this.id,
       projectId: this.project_id,
@@ -84,7 +86,7 @@ export class ImageDocument extends DBModel {
       width: this.width,
       height: this.height,
       backgroundColor: this.background_color,
-      document: this.document,
+      document: doc,
       thumbnailAssetId: this.thumbnail_asset_id ?? undefined,
       createdAt: this.created_at,
       updatedAt: this.updated_at
@@ -106,9 +108,7 @@ export class ImageDocument extends DBModel {
       .where(eq(imageDocuments.user_id, userId))
       .orderBy(desc(imageDocuments.updated_at))
       .limit(limit);
-    return rows.map(
-      (r: Record<string, unknown>) => new ImageDocument(r)
-    );
+    return rows.map((r: Record<string, unknown>) => new ImageDocument(r));
   }
 
   static async listByProject(
@@ -122,12 +122,10 @@ export class ImageDocument extends DBModel {
       .where(eq(imageDocuments.project_id, projectId))
       .orderBy(desc(imageDocuments.updated_at))
       .limit(limit);
-    return rows.map(
-      (r: Record<string, unknown>) => new ImageDocument(r)
-    );
+    return rows.map((r: Record<string, unknown>) => new ImageDocument(r));
   }
 
-  static async update(
+  static async updateDoc(
     id: string,
     fields: Partial<{
       name: string;
@@ -149,10 +147,5 @@ export class ImageDocument extends DBModel {
     Object.assign(doc, fields);
     await doc.save();
     return doc;
-  }
-
-  async touchUpdatedAt(): Promise<void> {
-    this.updated_at = new Date().toISOString();
-    await this.save();
   }
 }

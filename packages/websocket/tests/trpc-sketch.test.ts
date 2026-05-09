@@ -10,7 +10,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     user_id = "user-1";
     project_id = "p-1";
     id = "doc-1";
-    name = "Untitled";
+    name = "Test Document";
     width = 1024;
     height = 1024;
     background_color = "#ffffff";
@@ -19,21 +19,24 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     updated_at = "2026-01-01T00:00:00Z";
     created_at = "2026-01-01T00:00:00Z";
     document = JSON.stringify({
-      layers: [],
-      guides: [],
-      artboards: [],
-      activeLayerId: null,
-      maskLayerId: null
+      sketch: {
+        version: 1,
+        canvas: { width: 1024, height: 1024 },
+        layers: [],
+        activeLayerId: ""
+      },
+      layerBindings: []
     });
     constructor(init: Record<string, unknown> = {}) {
       Object.assign(this, init);
     }
     save = vi.fn().mockResolvedValue(undefined);
     delete = vi.fn().mockResolvedValue(undefined);
-    toDocument(): ImageDocumentData {
+    toDocumentData(): ImageDocumentData {
       return JSON.parse(this.document) as ImageDocumentData;
     }
-    toImageDocumentResponse() {
+    toResponse() {
+      const doc = this.toDocumentData();
       return {
         id: this.id,
         projectId: this.project_id,
@@ -42,7 +45,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
         width: this.width,
         height: this.height,
         backgroundColor: this.background_color,
-        document: this.document,
+        document: doc,
         thumbnailAssetId: this.thumbnail_asset_id ?? undefined,
         createdAt: this.created_at,
         updatedAt: this.updated_at
@@ -51,22 +54,31 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     static findById = vi.fn();
     static listByUser = vi.fn();
     static listByProject = vi.fn();
-    static update = vi.fn();
+    static updateDoc = vi.fn();
   }
   return {
     ...actual,
+    Workflow: {
+      ...actual.Workflow,
+      cloneAsLayerPrivate: vi.fn(),
+      deleteLayerIfOrphaned: vi.fn()
+    },
     ImageDocument: StubImageDocument,
-    createTimeOrderedUuid: () => "version-id"
+    createTimeOrderedUuid: () => "test-uuid"
   };
 });
 
-import { ImageDocument } from "@nodetool-ai/models";
+import { ImageDocument, Workflow } from "@nodetool-ai/models";
 
 const ID = ImageDocument as unknown as {
   findById: ReturnType<typeof vi.fn>;
   listByUser: ReturnType<typeof vi.fn>;
   listByProject: ReturnType<typeof vi.fn>;
-  update: ReturnType<typeof vi.fn>;
+  updateDoc: ReturnType<typeof vi.fn>;
+};
+const WF = Workflow as unknown as {
+  cloneAsLayerPrivate: ReturnType<typeof vi.fn>;
+  deleteLayerIfOrphaned: ReturnType<typeof vi.fn>;
 };
 
 const createCaller = createCallerFactory(appRouter);
@@ -156,17 +168,26 @@ describe("sketch router", () => {
   });
 
   describe("update", () => {
-    it("patches document fields", async () => {
+    it("merges document fields", async () => {
       ID.findById.mockResolvedValue(makeDoc());
       const updated = makeDoc({ name: "Renamed" });
-      ID.update.mockResolvedValue(updated);
+      ID.updateDoc.mockResolvedValue(updated);
       const caller = createCaller(makeCtx());
       const out = await caller.sketch.update({
         id: "doc-1",
-        name: "Renamed"
+        name: "Renamed",
+        document: {
+          sketch: {
+            version: 1,
+            canvas: { width: 1024, height: 1024 },
+            layers: [],
+            activeLayerId: ""
+          },
+          layerBindings: []
+        }
       });
       expect(out.name).toBe("Renamed");
-      expect(ID.update).toHaveBeenCalled();
+      expect(ID.updateDoc).toHaveBeenCalled();
     });
 
     it("rejects stale baseUpdatedAt", async () => {
@@ -187,7 +208,7 @@ describe("sketch router", () => {
       ID.findById.mockResolvedValue(
         makeDoc({ updated_at: "2026-01-02T00:00:00Z" })
       );
-      ID.update.mockResolvedValue(makeDoc({ name: "X" }));
+      ID.updateDoc.mockResolvedValue(makeDoc({ name: "X" }));
       const caller = createCaller(makeCtx());
       const out = await caller.sketch.update({
         id: "doc-1",
@@ -199,12 +220,30 @@ describe("sketch router", () => {
   });
 
   describe("delete", () => {
-    it("deletes when owned", async () => {
-      const doc = makeDoc();
+    it("deletes when owned and cascades orphan cleanup", async () => {
+      const docData: ImageDocumentData = {
+        sketch: {
+          version: 1,
+          canvas: { width: 1024, height: 1024 },
+          layers: [],
+          activeLayerId: ""
+        },
+        layerBindings: [
+          {
+            layerId: "layer-1",
+            workflowId: "wf-1",
+            status: "draft",
+            versions: []
+          }
+        ]
+      };
+      const doc = makeDoc({ document: JSON.stringify(docData) });
       ID.findById.mockResolvedValue(doc);
+      WF.deleteLayerIfOrphaned.mockResolvedValue(true);
       const caller = createCaller(makeCtx());
       await caller.sketch.delete({ id: "doc-1" });
       expect(doc.delete).toHaveBeenCalled();
+      expect(WF.deleteLayerIfOrphaned).toHaveBeenCalledWith("wf-1");
     });
 
     it("404 when not owned", async () => {
@@ -215,11 +254,18 @@ describe("sketch router", () => {
   });
 
   describe("versions", () => {
-    const docWithLayer: ImageDocumentData = {
-      layers: [
+    const docWithBinding: ImageDocumentData = {
+      sketch: {
+        version: 1,
+        canvas: { width: 1024, height: 1024 },
+        layers: [],
+        activeLayerId: ""
+      },
+      layerBindings: [
         {
-          id: "layer-1",
-          name: "Layer",
+          layerId: "layer-1",
+          workflowId: "wf-1",
+          status: "generated",
           versions: [
             {
               id: "v0",
@@ -233,16 +279,12 @@ describe("sketch router", () => {
             }
           ]
         }
-      ],
-      guides: [],
-      artboards: [],
-      activeLayerId: "layer-1",
-      maskLayerId: null
+      ]
     };
 
     it("list returns the layer versions", async () => {
       ID.findById.mockResolvedValue(
-        makeDoc({ document: JSON.stringify(docWithLayer) })
+        makeDoc({ document: JSON.stringify(docWithBinding) })
       );
       const caller = createCaller(makeCtx());
       const out = await caller.sketch.versions.list({
@@ -255,7 +297,7 @@ describe("sketch router", () => {
 
     it("list 404s on unknown layer", async () => {
       ID.findById.mockResolvedValue(
-        makeDoc({ document: JSON.stringify(docWithLayer) })
+        makeDoc({ document: JSON.stringify(docWithBinding) })
       );
       const caller = createCaller(makeCtx());
       await expect(
@@ -265,9 +307,9 @@ describe("sketch router", () => {
 
     it("append adds a new version and persists", async () => {
       ID.findById.mockResolvedValue(
-        makeDoc({ document: JSON.stringify(docWithLayer) })
+        makeDoc({ document: JSON.stringify(docWithBinding) })
       );
-      ID.update.mockResolvedValue(undefined);
+      ID.updateDoc.mockResolvedValue(undefined);
       const caller = createCaller(makeCtx());
       const out = await caller.sketch.versions.append({
         id: "doc-1",
@@ -277,22 +319,21 @@ describe("sketch router", () => {
         dependencyHash: "h2",
         workflowUpdatedAt: "2026-01-02T00:00:00Z"
       });
-      expect(out.id).toBe("version-id");
+      expect(out.id).toBe("test-uuid");
       expect(out.status).toBe("success");
-      expect(ID.update).toHaveBeenCalled();
-      const updateArgs = ID.update.mock.calls[0]?.[1];
+      expect(ID.updateDoc).toHaveBeenCalled();
+      const updateArgs = ID.updateDoc.mock.calls[0];
       const persisted = JSON.parse(
-        updateArgs?.document as string
+        updateArgs?.[1]?.document as string
       ) as ImageDocumentData;
-      const layer = (persisted.layers as Array<{ versions: unknown[] }>)[0];
-      expect(layer.versions).toHaveLength(2);
+      expect(persisted.layerBindings[0]!.versions).toHaveLength(2);
     });
 
     it("setFavorite toggles the favorite flag", async () => {
       ID.findById.mockResolvedValue(
-        makeDoc({ document: JSON.stringify(docWithLayer) })
+        makeDoc({ document: JSON.stringify(docWithBinding) })
       );
-      ID.update.mockResolvedValue(undefined);
+      ID.updateDoc.mockResolvedValue(undefined);
       const caller = createCaller(makeCtx());
       const out = await caller.sketch.versions.setFavorite({
         id: "doc-1",
@@ -301,12 +342,12 @@ describe("sketch router", () => {
         favorite: true
       });
       expect(out.favorite).toBe(true);
-      expect(ID.update).toHaveBeenCalled();
+      expect(ID.updateDoc).toHaveBeenCalled();
     });
 
     it("setFavorite 404s on unknown version", async () => {
       ID.findById.mockResolvedValue(
-        makeDoc({ document: JSON.stringify(docWithLayer) })
+        makeDoc({ document: JSON.stringify(docWithBinding) })
       );
       const caller = createCaller(makeCtx());
       await expect(
@@ -321,9 +362,9 @@ describe("sketch router", () => {
 
     it("delete removes the version and persists", async () => {
       ID.findById.mockResolvedValue(
-        makeDoc({ document: JSON.stringify(docWithLayer) })
+        makeDoc({ document: JSON.stringify(docWithBinding) })
       );
-      ID.update.mockResolvedValue(undefined);
+      ID.updateDoc.mockResolvedValue(undefined);
       const caller = createCaller(makeCtx());
       const out = await caller.sketch.versions.delete({
         id: "doc-1",
@@ -331,17 +372,16 @@ describe("sketch router", () => {
         versionId: "v0"
       });
       expect(out.ok).toBe(true);
-      const updateArgs = ID.update.mock.calls[0]?.[1];
+      const updateArgs = ID.updateDoc.mock.calls[0];
       const persisted = JSON.parse(
-        updateArgs?.document as string
+        updateArgs?.[1]?.document as string
       ) as ImageDocumentData;
-      const layer = (persisted.layers as Array<{ versions: unknown[] }>)[0];
-      expect(layer.versions).toHaveLength(0);
+      expect(persisted.layerBindings[0]!.versions).toHaveLength(0);
     });
 
     it("delete 404s on unknown version", async () => {
       ID.findById.mockResolvedValue(
-        makeDoc({ document: JSON.stringify(docWithLayer) })
+        makeDoc({ document: JSON.stringify(docWithBinding) })
       );
       const caller = createCaller(makeCtx());
       await expect(
@@ -349,6 +389,144 @@ describe("sketch router", () => {
           id: "doc-1",
           layerId: "layer-1",
           versionId: "nope"
+        })
+      ).rejects.toThrow();
+    });
+  });
+
+  describe("layers", () => {
+    const layerDoc: ImageDocumentData = {
+      sketch: {
+        version: 1,
+        canvas: { width: 1024, height: 1024 },
+        layers: [],
+        activeLayerId: ""
+      },
+      layerBindings: [
+        {
+          layerId: "layer-1",
+          workflowId: "wf-1",
+          selectedOutputNodeId: "output",
+          paramOverrides: { prompt: "hello" },
+          status: "generated",
+          versions: []
+        }
+      ]
+    };
+
+    it("create clones workflow and adds binding", async () => {
+      ID.findById.mockResolvedValue(makeDoc());
+      WF.cloneAsLayerPrivate.mockResolvedValue({
+        id: "wf-clone",
+        name: "Template",
+        updated_at: "2026-01-01T00:00:00Z",
+        graph: {
+          nodes: [
+            {
+              id: "prompt",
+              type: "nodetool.input.StringInput",
+              data: { name: "prompt", value: "" }
+            },
+            {
+              id: "output",
+              type: "nodetool.output.Output",
+              data: { name: "image", value: null }
+            }
+          ],
+          edges: []
+        }
+      });
+      ID.updateDoc.mockResolvedValue(undefined);
+
+      const caller = createCaller(makeCtx());
+      const out = await caller.sketch.layers.create({
+        id: "doc-1",
+        layerId: "new-layer-1",
+        sourceWorkflowId: "source-wf"
+      });
+
+      expect(WF.cloneAsLayerPrivate).toHaveBeenCalledWith(
+        "source-wf",
+        "user-1"
+      );
+      expect(out.layerId).toBe("new-layer-1");
+      expect(out.workflowId).toBe("wf-clone");
+      expect(out.selectedOutputNodeId).toBe("output");
+      expect(out.paramOverrides).toEqual({ prompt: "" });
+      expect(out.status).toBe("draft");
+    });
+
+    it("delete removes binding and cascades orphan cleanup", async () => {
+      ID.findById.mockResolvedValue(
+        makeDoc({ document: JSON.stringify(layerDoc) })
+      );
+      ID.updateDoc.mockResolvedValue(undefined);
+      WF.deleteLayerIfOrphaned.mockResolvedValue(true);
+
+      const caller = createCaller(makeCtx());
+      const out = await caller.sketch.layers.delete({
+        id: "doc-1",
+        layerId: "layer-1"
+      });
+
+      expect(out.ok).toBe(true);
+      expect(WF.deleteLayerIfOrphaned).toHaveBeenCalledWith("wf-1");
+      const updateArgs = ID.updateDoc.mock.calls[0];
+      const persisted = JSON.parse(
+        updateArgs?.[1]?.document as string
+      ) as ImageDocumentData;
+      expect(persisted.layerBindings).toHaveLength(0);
+    });
+
+    it("duplicate linked keeps workflowId", async () => {
+      ID.findById.mockResolvedValue(
+        makeDoc({ document: JSON.stringify(layerDoc) })
+      );
+      ID.updateDoc.mockResolvedValue(undefined);
+
+      const caller = createCaller(makeCtx());
+      const out = await caller.sketch.layers.duplicate({
+        id: "doc-1",
+        layerId: "layer-1",
+        newLayerId: "layer-2",
+        mode: "linked"
+      });
+
+      expect(WF.cloneAsLayerPrivate).not.toHaveBeenCalled();
+      expect(out.layerId).toBe("layer-2");
+      expect(out.workflowId).toBe("wf-1");
+      expect(out.paramOverrides).toEqual({ prompt: "hello" });
+    });
+
+    it("duplicate variation clones workflow and assigns new workflowId", async () => {
+      ID.findById.mockResolvedValue(
+        makeDoc({ document: JSON.stringify(layerDoc) })
+      );
+      ID.updateDoc.mockResolvedValue(undefined);
+      WF.cloneAsLayerPrivate.mockResolvedValue({ id: "wf-2" });
+
+      const caller = createCaller(makeCtx());
+      const out = await caller.sketch.layers.duplicate({
+        id: "doc-1",
+        layerId: "layer-1",
+        newLayerId: "layer-3",
+        mode: "variation"
+      });
+
+      expect(WF.cloneAsLayerPrivate).toHaveBeenCalledWith("wf-1", "user-1");
+      expect(out.workflowId).toBe("wf-2");
+      expect(out.paramOverrides).toEqual({ prompt: "hello" });
+    });
+
+    it("duplicate 404s on unknown layer", async () => {
+      ID.findById.mockResolvedValue(makeDoc());
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.sketch.layers.duplicate({
+          id: "doc-1",
+          layerId: "nope",
+          newLayerId: "layer-2",
+          mode: "linked"
         })
       ).rejects.toThrow();
     });

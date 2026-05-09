@@ -1,4 +1,6 @@
 import { pgTable, text, integer, index } from "drizzle-orm/pg-core";
+import { jsonText } from "./helpers.js";
+import type { ImageDocumentData } from "../image-document.js";
 
 export const imageDocuments = pgTable(
   "image_documents",
@@ -11,7 +13,7 @@ export const imageDocuments = pgTable(
     width: integer("width").notNull().default(1024),
     height: integer("height").notNull().default(1024),
     background_color: text("background_color").notNull().default("#ffffff"),
-    document: text("document").notNull(),
+    document: jsonText<ImageDocumentData>()("document").notNull(),
     thumbnail_asset_id: text("thumbnail_asset_id"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()

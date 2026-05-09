@@ -1404,7 +1404,7 @@ export const migrations: MigrationDef[] = [
     }
   },
 
-  // ── Create image_documents ───────────────────────────────────────────
+  // ── Create image_documents ──────────────────────────────────────
   {
     version: "20260509_000000",
     name: "create_image_documents",
