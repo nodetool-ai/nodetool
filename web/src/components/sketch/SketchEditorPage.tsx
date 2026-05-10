@@ -14,8 +14,8 @@
  *
  * `useEditorLifecycle` hydrates the global sketch store from the initial
  * document/session state when the route first resolves. React Query background
- * refetches would still replace that initial seed and clobber in-progress
- * edits, so this page:
+ * refetches would replace that initial seed and clobber in-progress edits
+ * managed by the autosave system, so this page:
  *
  *   1. Disables all background refetches for the load query.
  *   2. Captures the first non-null payload per `documentId` into local state
@@ -55,7 +55,7 @@ const SketchEditorPage: React.FC = memo(function SketchEditorPage() {
     {
       enabled: !!documentId,
       // Background refetches would replace `initialDocument` and clobber
-      // unsaved edits until NOD-319 wires autosave. Disable them here.
+      // unsaved edits managed by the autosave system. Disable them here.
       staleTime: Infinity,
       refetchOnMount: false,
       refetchOnWindowFocus: false,

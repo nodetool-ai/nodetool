@@ -40,10 +40,7 @@ export interface SketchPersistenceSnapshot {
 }
 
 function cloneValue<T>(value: T): T {
-  if (typeof structuredClone === "function") {
-    return structuredClone(value);
-  }
-  return JSON.parse(JSON.stringify(value)) as T;
+  return structuredClone(value);
 }
 
 export function stripHistoryCanvasSnapshots(
@@ -118,14 +115,33 @@ export function getDataUrlByteLength(dataUrl: string): number {
   return Math.max(0, Math.floor((base64Payload.length * 3) / 4) - padding);
 }
 
+function hashString(str: string): string {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+  h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+  h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+
 export function computeImageDocumentHash(
   sketch: PersistedSketchEditorState,
   layerBindings: LayerWorkflowBinding[]
 ): string {
-  return JSON.stringify({
-    sketch,
-    layerBindings
-  });
+  return hashString(JSON.stringify({ sketch, layerBindings }));
+}
+
+export function serializeImageDocument(
+  sketch: PersistedSketchEditorState,
+  layerBindings: LayerWorkflowBinding[]
+): string {
+  return JSON.stringify({ sketch, layerBindings });
 }
 
 export function getImageDocumentByteLength(
@@ -133,7 +149,7 @@ export function getImageDocumentByteLength(
   layerBindings: LayerWorkflowBinding[]
 ): number {
   return new TextEncoder().encode(
-    computeImageDocumentHash(sketch, layerBindings)
+    serializeImageDocument(sketch, layerBindings)
   ).length;
 }
 

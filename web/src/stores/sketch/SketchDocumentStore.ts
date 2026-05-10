@@ -23,6 +23,8 @@ import {
   type SketchPersistenceSnapshot
 } from "./persistence";
 
+import type { ImageDocumentData } from "@nodetool-ai/protocol/api-schemas/sketch";
+
 type SketchDocumentResponse = Awaited<ReturnType<typeof trpcClient.sketch.get.query>>;
 
 interface ExternalizationResult {
@@ -64,25 +66,16 @@ export const useSketchDocumentStore = create<SketchDocumentStoreState>((set) => 
       hasConflict: false
     }),
   markSaving: () =>
-    set((state) => ({
-      ...state,
-      saveState: "saving",
-      hasConflict: false
-    })),
+    set({ saveState: "saving", hasConflict: false }),
   markSaved: (updatedAt, serverHash) =>
-    set((state) => ({
-      ...state,
+    set({
       baseUpdatedAt: updatedAt,
       lastServerHash: serverHash,
       saveState: "idle",
       hasConflict: false
-    })),
+    }),
   markSaveFailed: (conflict) =>
-    set((state) => ({
-      ...state,
-      saveState: "error",
-      hasConflict: conflict
-    })),
+    set({ saveState: "error", hasConflict: conflict }),
   reset: () =>
     set({
       documentId: null,
@@ -174,29 +167,21 @@ async function externalizeOversizedBitmaps(
     return candidates.sort((a, b) => b.bytes - a.bytes);
   };
 
-  let totalBytes = getImageDocumentByteLength(nextSketch, layerBindings);
-  while (true) {
-    const candidates = buildCandidates();
-    const candidate = candidates.find(
-      (entry) =>
-        entry.bytes > MAX_INLINE_LAYER_BYTES ||
-        totalBytes > MAX_PERSISTED_IMAGE_DOCUMENT_BYTES
-    );
-    if (!candidate) {
+  const candidates = buildCandidates();
+
+  for (const candidate of candidates) {
+    const totalBytes = getImageDocumentByteLength(nextSketch, layerBindings);
+    if (candidate.bytes <= MAX_INLINE_LAYER_BYTES && totalBytes <= MAX_PERSISTED_IMAGE_DOCUMENT_BYTES) {
       break;
     }
 
     const sourceData = candidate.getValue();
+    if (typeof sourceData !== "string" || !sourceData.startsWith("data:")) {
+      continue;
+    }
 
-    let uri =
-      typeof sourceData === "string" && sourceData.startsWith("data:")
-        ? uploadedRefs.get(sourceData)
-        : undefined;
+    let uri = uploadedRefs.get(sourceData);
     if (!uri) {
-      if (typeof sourceData !== "string" || !sourceData.startsWith("data:")) {
-        continue;
-      }
-
       const asset = await useAssetStore.getState().createAsset(
         await dataUrlToFile(sourceData, candidate.fileName)
       );
@@ -208,7 +193,6 @@ async function externalizeOversizedBitmaps(
     if (candidate.layerId) {
       externalizedLayerIds.add(candidate.layerId);
     }
-    totalBytes = getImageDocumentByteLength(nextSketch, layerBindings);
   }
 
   return {
@@ -277,7 +261,7 @@ async function saveSnapshot(documentId: string, name: string): Promise<void> {
       backgroundColor: prepared.sketch.canvas.backgroundColor,
       baseUpdatedAt: store.baseUpdatedAt ?? undefined,
       document: {
-        sketch: prepared.sketch as unknown as SketchDocumentResponse["document"]["sketch"],
+        sketch: prepared.sketch as ImageDocumentData["sketch"],
         layerBindings
       }
     });
@@ -380,7 +364,26 @@ export function useStandaloneSketchDocument(
       timeoutRef.current = setTimeout(flush, SKETCH_DOCUMENT_AUTOSAVE_DEBOUNCE_MS);
     };
 
+    const selectPersistenceFields = (state: ReturnType<typeof useSketchStore.getState>) => ({
+      document: state.document,
+      activeTool: state.activeTool,
+      historyIndex: state.historyIndex,
+      historyLength: state.history.length
+    });
+    let prevSelected = selectPersistenceFields(useSketchStore.getState());
+
     const unsubscribeSketch = useSketchStore.subscribe((state) => {
+      const nextSelected = selectPersistenceFields(state);
+      if (
+        nextSelected.document === prevSelected.document &&
+        nextSelected.activeTool === prevSelected.activeTool &&
+        nextSelected.historyIndex === prevSelected.historyIndex &&
+        nextSelected.historyLength === prevSelected.historyLength
+      ) {
+        return;
+      }
+      prevSelected = nextSelected;
+
       const nextHash = computeImageDocumentHash(
         toPersistedSketchEditorState({
           document: state.document,

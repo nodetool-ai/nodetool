@@ -781,41 +781,45 @@ export function useCanvasGeometryActions({
 
   const handleDropAsset = useCallback(
     async (asset: Asset) => {
-      const assetUri = `asset://${asset.id}`;
-      const sourceUrl = resolveAssetUri(asset.get_url ?? assetUri);
-      const response = await fetch(sourceUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to load dropped asset ${asset.id}`);
-      }
-      const blob = await response.blob();
-      const bitmap = await createImageBitmap(blob);
-      const nextLayer = createDefaultLayer(
-        asset.name || `Imported ${document.layers.length + 1}`,
-        "raster",
-        bitmap.width,
-        bitmap.height
-      );
-      bitmap.close();
-      nextLayer.locked = true;
-      nextLayer.exposedAsInput = false;
-      nextLayer.exposedAsOutput = false;
-      nextLayer.imageReference = {
-        uri: assetUri,
-        naturalWidth: nextLayer.contentBounds.width,
-        naturalHeight: nextLayer.contentBounds.height,
-        objectFit: "fill"
-      };
-
-      pushHistory("import asset");
-      setDocument({
-        ...document,
-        layers: [...document.layers, nextLayer],
-        activeLayerId: nextLayer.id,
-        metadata: {
-          ...document.metadata,
-          updatedAt: new Date().toISOString()
+      try {
+        const assetUri = `asset://${asset.id}`;
+        const sourceUrl = resolveAssetUri(asset.get_url ?? assetUri);
+        const response = await fetch(sourceUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to load dropped asset ${asset.id}`);
         }
-      });
+        const blob = await response.blob();
+        const bitmap = await createImageBitmap(blob);
+        const nextLayer = createDefaultLayer(
+          asset.name || `Imported ${document.layers.length + 1}`,
+          "raster",
+          bitmap.width,
+          bitmap.height
+        );
+        bitmap.close();
+        nextLayer.locked = true;
+        nextLayer.exposedAsInput = false;
+        nextLayer.exposedAsOutput = false;
+        nextLayer.imageReference = {
+          uri: assetUri,
+          naturalWidth: nextLayer.contentBounds.width,
+          naturalHeight: nextLayer.contentBounds.height,
+          objectFit: "fill"
+        };
+
+        pushHistory("import asset");
+        setDocument({
+          ...document,
+          layers: [...document.layers, nextLayer],
+          activeLayerId: nextLayer.id,
+          metadata: {
+            ...document.metadata,
+            updatedAt: new Date().toISOString()
+          }
+        });
+      } catch (error) {
+        console.error("Failed to import dropped asset:", error);
+      }
     },
     [document, pushHistory, setDocument]
   );
