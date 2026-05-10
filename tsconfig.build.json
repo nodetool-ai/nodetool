@@ -31,6 +31,7 @@
     { "path": "packages/chat" },
     { "path": "packages/websocket" },
     { "path": "packages/cli" },
+    { "path": "packages/sdk" },
     { "path": "packages/sandbox" },
     { "path": "packages/sandbox-agent" },
     { "path": "packages/sandbox-tools" }

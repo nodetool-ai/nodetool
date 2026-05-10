@@ -11,6 +11,7 @@
     "packages/node-sdk",
     "packages/base-nodes",
     "packages/dsl",
+    "packages/sdk",
     "packages/code-runners",
     "packages/fal-codegen",
     "packages/fal-nodes",
@@ -37,7 +38,8 @@
     "packages/sandbox-agent",
     "packages/sandbox-tools",
     "web",
-    "electron"
+    "electron",
+    "examples/chat_app"
   ],
   "scripts": {
     "postinstall": "node -e \"try{require('fs').unlinkSync('node_modules/.electron-native-rebuild-stamp')}catch{}\"",
