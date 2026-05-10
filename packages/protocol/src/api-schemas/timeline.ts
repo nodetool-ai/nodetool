@@ -166,7 +166,7 @@ export const createClipInput = z.object({
   id: z.string(),
   trackId: z.string(),
   startMs: z.number().int().min(0),
-  /** The source standalone workflow to clone into a clip-private `run_mode = "clip"` row. */
+  /** The source workflow the clip will run. The clip references it directly; no clone is created. */
   sourceWorkflowId: z.string(),
   /**
    * Override which terminal node's output becomes the clip's media.

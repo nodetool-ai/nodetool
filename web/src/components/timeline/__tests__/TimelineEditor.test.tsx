@@ -95,10 +95,7 @@ beforeEach(() => {
   (useParams as jest.Mock).mockReturnValue({ sequenceId: "seq-1" });
   (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
   (useSearchParams as jest.Mock).mockReturnValue([mockSearchParams, jest.fn()]);
-  (useWorkflowFreshnessCheck as jest.Mock).mockReturnValue({
-    driftItems: [],
-    resolveDrift: jest.fn()
-  });
+  (useWorkflowFreshnessCheck as jest.Mock).mockReturnValue(undefined);
   (useTimelines as jest.Mock).mockReturnValue({ data: [] });
   (useCreateTimeline as jest.Mock).mockReturnValue({
     mutate: mockCreateMutate,

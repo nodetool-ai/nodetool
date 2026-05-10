@@ -22,13 +22,19 @@ import {
   workflowQueryKey
 } from "../../serverState/useWorkflow";
 import { useSketchGenerationStore } from "../../stores/sketch/SketchGenerationStore";
+import { useSketchLayerBindingsStore } from "../../stores/sketch/SketchLayerBindingsStore";
+import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
+import { useAssetStore } from "../../stores/AssetStore";
+import { getAssetUrl } from "../../utils/assetHelpers";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import type { Node as WorkflowGraphNode } from "../../stores/ApiTypes";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
-import useErrorStore from "../../stores/ErrorStore";
+import useErrorStore, {
+  nodeErrorToDisplayString
+} from "../../stores/ErrorStore";
 import { normalizeOutputUpdateValue } from "../../stores/outputUpdateValue";
 import type { OutputUpdate } from "../../stores/ApiTypes";
 import {
@@ -75,6 +81,43 @@ interface JobSubscriptionContext {
 
 const jobSubscriptions = new Map<string, () => void>();
 const jobContexts = new Map<string, JobSubscriptionContext>();
+
+const loadImageAsDataUrl = (url: string): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Failed to get canvas context"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+    img.src = url;
+  });
+
+const applyAssetToLayer = async (
+  layerId: string,
+  assetId: string
+): Promise<void> => {
+  const setLayerData = useSketchCanvasRefStore.getState().setLayerData;
+  if (!setLayerData) return;
+  try {
+    const asset = await useAssetStore.getState().get(assetId);
+    const url = getAssetUrl(asset);
+    if (!url) return;
+    const dataUrl = await loadImageAsDataUrl(url);
+    setLayerData(layerId, dataUrl);
+  } catch (error) {
+    console.warn("Failed to apply generated asset to layer", error);
+  }
+};
 
 const isActiveStatus = (status: string): boolean =>
   status === "queued" || status === "running";
@@ -180,6 +223,21 @@ const handleJobMessage = async (
   const status = message.status;
   const generationStore = useSketchGenerationStore.getState();
 
+  // Sync the per-workflow runner state so a stale "running" doesn't block
+  // subsequent runs. The runner only auto-subscribes when the workflow is
+  // open in the editor; layer-template workflows usually aren't.
+  if (
+    status === "completed" ||
+    status === "cancelled" ||
+    status === "failed" ||
+    status === "timed_out"
+  ) {
+    getWorkflowRunnerStore(context.workflowId).setState({
+      state: status === "completed" || status === "cancelled" ? "idle" : "error",
+      job_id: null
+    });
+  }
+
   if (status === "queued") {
     generationStore.updateJobStatus(jobId, "queued");
     return;
@@ -198,9 +256,37 @@ const handleJobMessage = async (
         )
       : undefined;
 
+    // A workflow can finish with status "completed" even if a node errored
+    // mid-flight (the runner reports per-node failures via node_update and
+    // still emits a terminal job_update). Detect that by the missing output
+    // asset and any per-node error, then surface it as a job-level failure
+    // instead of silently clearing the job.
+    if (!assetId) {
+      const errorsState = useErrorStore.getState().errors;
+      const prefix = `${context.workflowId}:`;
+      let nodeErrorMessage: string | undefined;
+      for (const [key, err] of Object.entries(errorsState)) {
+        if (!key.startsWith(prefix)) {
+          continue;
+        }
+        const display = nodeErrorToDisplayString(err);
+        if (display) {
+          nodeErrorMessage = display;
+          break;
+        }
+      }
+      const errorMessage =
+        nodeErrorMessage ??
+        "Workflow finished without producing an output asset.";
+      generationStore.updateJobStatus(jobId, "failed", { errorMessage });
+      context.onFailed?.(errorMessage);
+      unsubscribeJob(jobId);
+      return;
+    }
+
     generationStore.updateJobStatus(jobId, "completed", { assetId });
 
-    if (assetId && context.dependencyHash && context.workflowUpdatedAt) {
+    if (context.dependencyHash && context.workflowUpdatedAt) {
       try {
         const version = await trpcClient.sketch.versions.append.mutate({
           id: context.documentId,
@@ -212,6 +298,17 @@ const handleJobMessage = async (
           paramOverridesSnapshot: context.paramOverridesSnapshot,
           status: "success"
         });
+
+        useSketchLayerBindingsStore.getState().recordGeneratedVersion(
+          context.layerId,
+          {
+            version,
+            dependencyHash: context.dependencyHash,
+            assetId
+          }
+        );
+
+        await applyAssetToLayer(context.layerId, assetId);
 
         context.onComplete?.({
           jobId,
@@ -232,6 +329,8 @@ const handleJobMessage = async (
           );
         generationStore.updateJobStatus(jobId, "failed", { errorMessage });
         context.onFailed?.(errorMessage);
+        unsubscribeJob(jobId);
+        return;
       }
     }
 
@@ -374,6 +473,10 @@ export const useGenerateLayer = (
     if (!binding.workflowId) {
       throw new Error("Layer is not bound to a workflow");
     }
+
+    // Clear stale node errors from a previous run on this workflow so a
+    // retry doesn't immediately show the prior failure in the panel.
+    useErrorStore.getState().clearErrors(binding.workflowId);
 
     const workflow = await queryClient.fetchQuery({
       queryKey: workflowQueryKey(binding.workflowId),

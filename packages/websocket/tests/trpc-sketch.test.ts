@@ -61,9 +61,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     ...actual,
     Workflow: {
       ...actual.Workflow,
-      find: vi.fn(),
-      cloneAsLayerPrivate: vi.fn(),
-      deleteLayerIfOrphaned: vi.fn()
+      find: vi.fn()
     },
     ImageDocument: StubImageDocument,
     createTimeOrderedUuid: () => "test-uuid"
@@ -81,8 +79,6 @@ const ID = ImageDocument as unknown as {
 };
 const WF = Workflow as unknown as {
   find: ReturnType<typeof vi.fn>;
-  cloneAsLayerPrivate: ReturnType<typeof vi.fn>;
-  deleteLayerIfOrphaned: ReturnType<typeof vi.fn>;
 };
 
 const createCaller = createCallerFactory(appRouter);
@@ -272,7 +268,7 @@ describe("sketch router", () => {
   });
 
   describe("delete", () => {
-    it("deletes when owned and cascades orphan cleanup", async () => {
+    it("deletes when owned without touching bound workflows", async () => {
       const docData: ImageDocumentData = {
         sketch: {
           version: 1,
@@ -291,11 +287,9 @@ describe("sketch router", () => {
       };
       const doc = makeDoc({ document: JSON.stringify(docData) });
       ID.findById.mockResolvedValue(doc);
-      WF.deleteLayerIfOrphaned.mockResolvedValue(true);
       const caller = createCaller(makeCtx());
       await caller.sketch.delete({ id: "doc-1" });
       expect(doc.delete).toHaveBeenCalled();
-      expect(WF.deleteLayerIfOrphaned).toHaveBeenCalledWith("wf-1");
     });
 
     it("404 when not owned", async () => {
@@ -482,16 +476,12 @@ describe("sketch router", () => {
       edges: []
     };
 
-    it("create clones workflow and adds binding", async () => {
+    it("create binds directly to source workflow id", async () => {
       ID.findById.mockResolvedValue(makeDoc());
       WF.find.mockResolvedValue({
         id: "source-wf",
         user_id: "user-1",
         access: "private",
-        graph: validSourceGraph
-      });
-      WF.cloneAsLayerPrivate.mockResolvedValue({
-        id: "wf-clone",
         name: "Template",
         updated_at: "2026-01-01T00:00:00Z",
         graph: validSourceGraph
@@ -506,12 +496,8 @@ describe("sketch router", () => {
       });
 
       expect(WF.find).toHaveBeenCalledWith("user-1", "source-wf");
-      expect(WF.cloneAsLayerPrivate).toHaveBeenCalledWith(
-        "source-wf",
-        "user-1"
-      );
       expect(out.layerId).toBe("new-layer-1");
-      expect(out.workflowId).toBe("wf-clone");
+      expect(out.workflowId).toBe("source-wf");
       expect(out.selectedOutputNodeId).toBe("output");
       expect(out.paramOverrides).toEqual({ prompt: "" });
       expect(out.status).toBe("draft");
@@ -529,15 +515,16 @@ describe("sketch router", () => {
           sourceWorkflowId: "source-wf"
         })
       ).rejects.toThrow();
-      expect(WF.cloneAsLayerPrivate).not.toHaveBeenCalled();
     });
 
-    it("create does not clone when source has no image output", async () => {
+    it("create rejects when source has no image output", async () => {
       ID.findById.mockResolvedValue(makeDoc());
       WF.find.mockResolvedValue({
         id: "source-wf",
         user_id: "user-1",
         access: "private",
+        name: "Template",
+        updated_at: "2026-01-01T00:00:00Z",
         graph: {
           nodes: [
             {
@@ -558,7 +545,6 @@ describe("sketch router", () => {
           sourceWorkflowId: "source-wf"
         })
       ).rejects.toThrow();
-      expect(WF.cloneAsLayerPrivate).not.toHaveBeenCalled();
     });
 
     it("create rejects when layerId already has a binding", async () => {
@@ -569,6 +555,8 @@ describe("sketch router", () => {
         id: "source-wf",
         user_id: "user-1",
         access: "private",
+        name: "Template",
+        updated_at: "2026-01-01T00:00:00Z",
         graph: validSourceGraph
       });
 
@@ -580,15 +568,13 @@ describe("sketch router", () => {
           sourceWorkflowId: "source-wf"
         })
       ).rejects.toThrow();
-      expect(WF.cloneAsLayerPrivate).not.toHaveBeenCalled();
     });
 
-    it("delete removes binding and cascades orphan cleanup", async () => {
+    it("delete removes only the binding", async () => {
       ID.findById.mockResolvedValue(
         makeDoc({ document: JSON.stringify(layerDoc) })
       );
       ID.updateDoc.mockResolvedValue(undefined);
-      WF.deleteLayerIfOrphaned.mockResolvedValue(true);
 
       const caller = createCaller(makeCtx());
       const out = await caller.sketch.layers.delete({
@@ -597,7 +583,6 @@ describe("sketch router", () => {
       });
 
       expect(out.ok).toBe(true);
-      expect(WF.deleteLayerIfOrphaned).toHaveBeenCalledWith("wf-1");
       const updateArgs = ID.updateDoc.mock.calls[0];
       const persisted = JSON.parse(
         updateArgs?.[1]?.document as string
@@ -605,7 +590,7 @@ describe("sketch router", () => {
       expect(persisted.layerBindings).toHaveLength(0);
     });
 
-    it("duplicate linked keeps workflowId", async () => {
+    it("duplicate copies overrides and shares the workflow", async () => {
       ID.findById.mockResolvedValue(
         makeDoc({ document: JSON.stringify(layerDoc) })
       );
@@ -615,34 +600,13 @@ describe("sketch router", () => {
       const out = await caller.sketch.layers.duplicate({
         id: "doc-1",
         layerId: "layer-1",
-        newLayerId: "layer-2",
-        mode: "linked"
+        newLayerId: "layer-2"
       });
 
-      expect(WF.cloneAsLayerPrivate).not.toHaveBeenCalled();
       expect(out.layerId).toBe("layer-2");
       expect(out.workflowId).toBe("wf-1");
       expect(out.paramOverrides).toEqual({ prompt: "hello" });
-    });
-
-    it("duplicate variation clones workflow and assigns new workflowId", async () => {
-      ID.findById.mockResolvedValue(
-        makeDoc({ document: JSON.stringify(layerDoc) })
-      );
-      ID.updateDoc.mockResolvedValue(undefined);
-      WF.cloneAsLayerPrivate.mockResolvedValue({ id: "wf-2" });
-
-      const caller = createCaller(makeCtx());
-      const out = await caller.sketch.layers.duplicate({
-        id: "doc-1",
-        layerId: "layer-1",
-        newLayerId: "layer-3",
-        mode: "variation"
-      });
-
-      expect(WF.cloneAsLayerPrivate).toHaveBeenCalledWith("wf-1", "user-1");
-      expect(out.workflowId).toBe("wf-2");
-      expect(out.paramOverrides).toEqual({ prompt: "hello" });
+      expect(out.status).toBe("draft");
     });
 
     it("duplicate rejects when newLayerId already exists", async () => {
@@ -655,11 +619,9 @@ describe("sketch router", () => {
         caller.sketch.layers.duplicate({
           id: "doc-1",
           layerId: "layer-1",
-          newLayerId: "layer-1",
-          mode: "linked"
+          newLayerId: "layer-1"
         })
       ).rejects.toThrow();
-      expect(WF.cloneAsLayerPrivate).not.toHaveBeenCalled();
     });
 
     it("duplicate 404s on unknown layer", async () => {
@@ -669,8 +631,7 @@ describe("sketch router", () => {
         caller.sketch.layers.duplicate({
           id: "doc-1",
           layerId: "nope",
-          newLayerId: "layer-2",
-          mode: "linked"
+          newLayerId: "layer-2"
         })
       ).rejects.toThrow();
     });

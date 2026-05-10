@@ -4,12 +4,10 @@
  * Port of Python's `nodetool.models.workflow`.
  */
 
-import { eq, and, desc, or, isNull, sql, type SQL } from "drizzle-orm";
+import { eq, and, desc, or, isNull, type SQL } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workflows } from "./schema/workflows.js";
-import { timelineSequences } from "./schema/timeline-sequences.js";
-import { imageDocuments } from "./schema/image-documents.js";
 import type { WorkflowRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -20,20 +18,6 @@ export type { WorkflowRunMode };
 export interface WorkflowGraph {
   nodes: Record<string, unknown>[];
   edges: Record<string, unknown>[];
-}
-
-export class WorkflowNotClipPrivateError extends Error {
-  constructor(workflowId: string) {
-    super(`Workflow ${workflowId} is not clip-private`);
-    this.name = "WorkflowNotClipPrivateError";
-  }
-}
-
-export class WorkflowNotLayerPrivateError extends Error {
-  constructor(workflowId: string) {
-    super(`Workflow ${workflowId} is not layer-private`);
-    this.name = "WorkflowNotLayerPrivateError";
-  }
 }
 
 function ensureSqlCondition(condition: SQL<unknown> | undefined): SQL<unknown> {
@@ -154,9 +138,17 @@ export class Workflow extends DBModel {
     if (runMode) {
       conditions.push(eq(workflows.run_mode, runMode));
     } else {
+      // Default listing surfaces standalone workflows plus legacy layer/clip
+      // rows (the layer/clip clone-on-bind machinery has been removed; these
+      // rows now show up alongside regular workflows).
       conditions.push(
         ensureSqlCondition(
-          or(eq(workflows.run_mode, "workflow"), isNull(workflows.run_mode))
+          or(
+            eq(workflows.run_mode, "workflow"),
+            eq(workflows.run_mode, "layer"),
+            eq(workflows.run_mode, "clip"),
+            isNull(workflows.run_mode)
+          )
         )
       );
     }
@@ -286,196 +278,4 @@ export class Workflow extends DBModel {
     return row ? new Workflow(row as Record<string, unknown>) : null;
   }
 
-  /**
-   * Clone an existing workflow into a new `run_mode = "clip"` row owned by
-   * `ownerUserId`. The clone has an empty `tags` set and no tool_name, so it
-   * is invisible in standalone workflow listings.
-   *
-   * Returns the new persisted Workflow.
-   */
-  static async cloneAsClipPrivate(
-    sourceId: string,
-    ownerUserId: string
-  ): Promise<Workflow> {
-    const source = await Workflow.get<Workflow>(sourceId);
-    if (!source) {
-      throw new Error(`Source workflow ${sourceId} not found`);
-    }
-    const clone = new Workflow({
-      user_id: ownerUserId,
-      name: source.name,
-      description: source.description ?? "",
-      tags: [],
-      thumbnail: null,
-      thumbnail_url: null,
-      graph: source.graph,
-      settings: source.settings ?? null,
-      package_name: null,
-      path: null,
-      tool_name: null,
-      run_mode: "clip",
-      workspace_id: source.workspace_id ?? null,
-      html_app: null,
-      access: "private"
-    });
-    await clone.save();
-    return clone;
-  }
-
-  static async countClipReferences(workflowId: string): Promise<number> {
-    const db = getDb();
-    const rows = await db
-      .select({ document: timelineSequences.document })
-      .from(timelineSequences)
-      .where(sql`instr(${timelineSequences.document}, ${workflowId}) > 0`);
-
-    let count = 0;
-    for (const row of rows) {
-      try {
-        const parsed = JSON.parse(row.document) as {
-          clips?: Array<{ workflowId?: unknown }>;
-        };
-        const clips = Array.isArray(parsed.clips) ? parsed.clips : [];
-        for (const clip of clips) {
-          if (clip.workflowId === workflowId) {
-            count += 1;
-          }
-        }
-      } catch {
-        // Skip invalid documents while scanning references.
-      }
-    }
-    return count;
-  }
-
-  static async deleteIfOrphaned(workflowId: string): Promise<boolean> {
-    const workflow = await Workflow.get<Workflow>(workflowId);
-    if (!workflow || workflow.run_mode !== "clip") {
-      return false;
-    }
-
-    const refs = await Workflow.countClipReferences(workflowId);
-    if (refs > 0) {
-      return false;
-    }
-
-    await workflow.delete();
-    return true;
-  }
-
-  static async promoteToTemplate(workflowId: string): Promise<void> {
-    const workflow = await Workflow.get<Workflow>(workflowId);
-    if (!workflow) {
-      throw new Error(`Workflow ${workflowId} not found`);
-    }
-    if (workflow.run_mode !== "clip" || workflow.access !== "private") {
-      throw new WorkflowNotClipPrivateError(workflowId);
-    }
-
-    const tags = Array.isArray(workflow.tags) ? [...workflow.tags] : [];
-    if (!tags.includes("timeline-template")) {
-      tags.push("timeline-template");
-    }
-
-    workflow.run_mode = "workflow";
-    workflow.tags = tags;
-    await workflow.save();
-  }
-
-  // ── Layer lifecycle (mirrors clip lifecycle) ───────────────────────
-
-  static async cloneAsLayerPrivate(
-    sourceId: string,
-    ownerUserId: string
-  ): Promise<Workflow> {
-    const source = await Workflow.get<Workflow>(sourceId);
-    if (!source) {
-      throw new Error(`Source workflow ${sourceId} not found`);
-    }
-    const clone = new Workflow({
-      user_id: ownerUserId,
-      name: source.name,
-      description: source.description ?? "",
-      tags: [],
-      thumbnail: null,
-      thumbnail_url: null,
-      graph: source.graph,
-      settings: source.settings ?? null,
-      package_name: null,
-      path: null,
-      tool_name: null,
-      run_mode: "layer",
-      workspace_id: source.workspace_id ?? null,
-      html_app: null,
-      access: "private"
-    });
-    await clone.save();
-    return clone;
-  }
-
-  static async countLayerReferences(workflowId: string): Promise<number> {
-    const db = getDb();
-    const rows = await db
-      .select({ document: imageDocuments.document })
-      .from(imageDocuments)
-      .where(sql`instr(${imageDocuments.document}, ${workflowId}) > 0`);
-
-    let count = 0;
-    for (const row of rows) {
-      try {
-        const docStr =
-          typeof row.document === "string"
-            ? row.document
-            : JSON.stringify(row.document);
-        const parsed = JSON.parse(docStr) as {
-          layerBindings?: Array<{ workflowId?: unknown }>;
-        };
-        const bindings = Array.isArray(parsed.layerBindings)
-          ? parsed.layerBindings
-          : [];
-        for (const binding of bindings) {
-          if (binding.workflowId === workflowId) {
-            count += 1;
-          }
-        }
-      } catch {
-        // Skip invalid documents while scanning references.
-      }
-    }
-    return count;
-  }
-
-  static async deleteLayerIfOrphaned(workflowId: string): Promise<boolean> {
-    const workflow = await Workflow.get<Workflow>(workflowId);
-    if (!workflow || workflow.run_mode !== "layer") {
-      return false;
-    }
-
-    const refs = await Workflow.countLayerReferences(workflowId);
-    if (refs > 0) {
-      return false;
-    }
-
-    await workflow.delete();
-    return true;
-  }
-
-  static async promoteLayerToTemplate(workflowId: string): Promise<void> {
-    const workflow = await Workflow.get<Workflow>(workflowId);
-    if (!workflow) {
-      throw new Error(`Workflow ${workflowId} not found`);
-    }
-    if (workflow.run_mode !== "layer" || workflow.access !== "private") {
-      throw new WorkflowNotLayerPrivateError(workflowId);
-    }
-
-    const tags = Array.isArray(workflow.tags) ? [...workflow.tags] : [];
-    if (!tags.includes("image-template")) {
-      tags.push("image-template");
-    }
-
-    workflow.run_mode = "workflow";
-    workflow.tags = tags;
-    await workflow.save();
-  }
 }

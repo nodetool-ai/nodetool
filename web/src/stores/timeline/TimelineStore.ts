@@ -158,9 +158,12 @@ export interface TimelineStoreState {
   /** Restore a clip to a previously generated version (purely local; autosave persists on next save cycle). */
   restoreVersion: (clipId: string, versionId: string) => void;
 
-  duplicateClipLinked: (clipId: string, deltaMs?: number) => void;
-
-  duplicateClipAsVariation: (clipId: string, deltaMs?: number) => Promise<string>;
+  /**
+   * Duplicate a clip. Both the source and the duplicate reference the same
+   * source workflow id; their `paramOverrides` are independent. Tweak the
+   * duplicate's overrides to get a variation.
+   */
+  duplicateClip: (clipId: string, deltaMs?: number) => Promise<string>;
 
   setClipLocked: (clipId: string, locked: boolean) => void;
 
@@ -201,11 +204,9 @@ export interface TimelineStoreState {
   setClipsOutputNode: (workflowId: string, selectedOutputNodeId: string) => void;
 
   /**
-   * Create a generated clip by cloning `sourceWorkflowId` into a
-   * `run_mode = "clip"` workflow row, then inserting the clip into the
-   * current sequence document.
-   *
-   * Returns the id of the newly created clip.
+   * Create a generated clip bound to `sourceWorkflowId` (no clone) and
+   * insert it into the current sequence document. Returns the id of the
+   * newly created clip.
    */
   addGeneratedClip: (
     sourceWorkflowId: string,
@@ -582,47 +583,10 @@ export const createTimelineStore = (
             };
           }),
 
-        duplicateClipLinked: (clipId, deltaMs = 0) =>
-          set((state) => {
-            const src = state.clips.find((c) => c.id === clipId);
-            if (!src) {
-              return state;
-            }
-            const newClip = makeClip({
-              ...src,
-              id: createTimeOrderedUuid(),
-              startMs: src.startMs + deltaMs,
-              paramOverrides: src.paramOverrides
-                ? structuredClone(src.paramOverrides)
-                : undefined,
-              status: "draft",
-              locked: false,
-              currentAssetId: undefined,
-              lastGeneratedHash: undefined,
-              versions: []
-            });
-            return { clips: [...state.clips, newClip] };
-          }),
-
-        duplicateClipAsVariation: async (clipId, deltaMs = 0) => {
+        duplicateClip: async (clipId, deltaMs = 0) => {
           const src = get().clips.find((c) => c.id === clipId);
           if (!src) {
             throw new Error(`Clip ${clipId} not found`);
-          }
-
-          let newWorkflowId: string | undefined;
-
-          if (src.workflowId) {
-            const original = await trpcClient.workflows.get.query({ id: src.workflowId });
-            const cloned = await trpcClient.workflows.create.mutate({
-              name: `${original.name} (variation)`,
-              access: original.access ?? "private",
-              graph: original.graph,
-              description: original.description,
-              tags: original.tags,
-              run_mode: "clip"
-            });
-            newWorkflowId = cloned.id;
           }
 
           let newClipId: string | undefined;
@@ -635,7 +599,7 @@ export const createTimelineStore = (
               ...currentSrc,
               id: createTimeOrderedUuid(),
               startMs: currentSrc.startMs + deltaMs,
-              workflowId: newWorkflowId,
+              workflowId: currentSrc.workflowId,
               paramOverrides: currentSrc.paramOverrides
                 ? structuredClone(currentSrc.paramOverrides)
                 : undefined,
@@ -650,7 +614,9 @@ export const createTimelineStore = (
           });
 
           if (!newClipId) {
-            throw new Error(`Source clip ${clipId} was deleted before variation could be created`);
+            throw new Error(
+              `Source clip ${clipId} was deleted before duplicate could be created`
+            );
           }
           return newClipId;
         },

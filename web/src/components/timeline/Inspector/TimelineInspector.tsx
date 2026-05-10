@@ -31,7 +31,6 @@ import {
   Toast
 } from "../../ui_primitives";
 import { ClipActions } from "./ClipActions";
-import { NodePropertyEditor } from "./NodePropertyEditor";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
 
 const containerStyles = css({
@@ -140,7 +139,6 @@ export const TimelineInspector: React.FC = memo(() => {
   const [blurOpen, setBlurOpen] = usePersistedFold("blur");
   const [transitionOpen, setTransitionOpen] = usePersistedFold("transition");
   const [actionsOpen, setActionsOpen] = usePersistedFold("actions");
-  const [parametersOpen, setParametersOpen] = usePersistedFold("parameters");
 
   const clip = useTimelineStore((s) => (clipId ? s.clips.find((c) => c.id === clipId) : null));
   const track = useTimelineStore((s) => (clip ? s.tracks.find((t) => t.id === clip.trackId) : null));
@@ -551,16 +549,6 @@ export const TimelineInspector: React.FC = memo(() => {
           </FlexColumn>
         </CollapsibleSection>
 
-        {clip.workflowId && (
-          <CollapsibleSection title="Parameters" open={parametersOpen} onToggle={setParametersOpen}>
-            <FlexColumn css={sectionContentStyles} gap={1}>
-              <NodePropertyEditor
-                clipId={clip.id}
-                workflowId={clip.workflowId}
-              />
-            </FlexColumn>
-          </CollapsibleSection>
-        )}
       </FlexColumn>
       <Toast open={toast !== null} message={toast ?? ""} onClose={() => setToast(null)} severity="info" />
     </Panel>

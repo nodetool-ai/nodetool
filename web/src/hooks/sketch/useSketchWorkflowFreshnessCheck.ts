@@ -1,6 +1,18 @@
-/** Sketch-document workflow freshness + structural drift check — mirrors `useWorkflowFreshnessCheck`. */
+/**
+ * Sketch-document freshness check.
+ *
+ * Bindings reference the source workflow id directly (no clones), so on
+ * document load we reconcile against the current workflow graph:
+ *   - mark layers stale when the workflow has updated since the last
+ *     successful run
+ *   - merge paramOverrides against the current Input* node set (drop
+ *     removed names, seed added ones with defaults)
+ *   - if a binding's selectedOutputNodeId no longer exists, auto-pick the
+ *     first remaining image-output node — silently, with the layer staying
+ *     marked stale so the user knows to re-run
+ */
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { trpcClient } from "../../trpc/client";
 import {
   useSketchLayerBindingsStore,
@@ -14,27 +26,6 @@ interface GraphNode {
   id: string;
   type: string;
   data?: Record<string, unknown>;
-}
-
-export interface OutputNodeOption {
-  id: string;
-  label: string;
-}
-
-export interface LayerDriftItem {
-  /** The workflow whose selected output node was deleted. */
-  workflowId: string;
-  /** Layer ids affected (all share the same workflowId). */
-  layerIds: string[];
-  /** Output nodes currently available in the workflow. */
-  availableOutputNodes: OutputNodeOption[];
-}
-
-export interface UseSketchWorkflowFreshnessCheckReturn {
-  /** Non-empty when at least one workflow lost its selected output node. */
-  driftItems: LayerDriftItem[];
-  /** Apply the user's chosen output node to every binding in the workflow. */
-  resolveDrift: (workflowId: string, newOutputNodeId: string) => void;
 }
 
 function isAfter(
@@ -57,7 +48,7 @@ function latestSuccessfulWorkflowUpdatedAt(
 
 export function useSketchWorkflowFreshnessCheck(
   documentId: string | null | undefined
-): UseSketchWorkflowFreshnessCheckReturn {
+): void {
   const markStaleForWorkflow = useSketchLayerBindingsStore(
     (s) => s.markStaleForWorkflow
   );
@@ -65,8 +56,6 @@ export function useSketchWorkflowFreshnessCheck(
   const setBindingsOutputNode = useSketchLayerBindingsStore(
     (s) => s.setBindingsOutputNode
   );
-
-  const [driftItems, setDriftItems] = useState<LayerDriftItem[]>([]);
 
   const lastCheckedDocumentId = useRef<string | null>(null);
 
@@ -79,17 +68,12 @@ export function useSketchWorkflowFreshnessCheck(
 
     const workflowIds = new Set<string>();
     for (const b of bindings) {
-      if (
-        b.workflowId &&
-        b.versions.some((v) => v.status === "success")
-      ) {
+      if (b.workflowId) {
         workflowIds.add(b.workflowId);
       }
     }
 
     if (workflowIds.size === 0) return;
-
-    const newDriftItems: LayerDriftItem[] = [];
 
     await Promise.all(
       [...workflowIds].map(async (workflowId) => {
@@ -155,41 +139,27 @@ export function useSketchWorkflowFreshnessCheck(
           }
         }
 
-        const layersWithMissingOutput = affected.filter(
+        const hasMissingOutput = affected.some(
           (b) =>
             b.selectedOutputNodeId &&
             !currentOutputIds.has(b.selectedOutputNodeId)
         );
-
-        if (layersWithMissingOutput.length > 0) {
-          newDriftItems.push({
-            workflowId,
-            layerIds: layersWithMissingOutput.map((b) => b.layerId),
-            availableOutputNodes: currentOutputNodes.map((n) => ({
-              id: n.id,
-              label: (n.data?.name as string | undefined) ?? n.id
-            }))
-          });
+        if (hasMissingOutput && currentOutputNodes.length > 0) {
+          setBindingsOutputNode(workflowId, currentOutputNodes[0]!.id);
+          markStaleForWorkflow(workflowId);
         }
       })
     );
-
-    setDriftItems(newDriftItems);
-  }, [documentId, markStaleForWorkflow, applyInputDrift]);
+  }, [
+    documentId,
+    markStaleForWorkflow,
+    applyInputDrift,
+    setBindingsOutputNode
+  ]);
 
   useEffect(() => {
     if (!documentId || lastCheckedDocumentId.current === documentId) return;
     lastCheckedDocumentId.current = documentId;
     void runCheck();
   }, [documentId, runCheck]);
-
-  const resolveDrift = useCallback(
-    (workflowId: string, newOutputNodeId: string) => {
-      setBindingsOutputNode(workflowId, newOutputNodeId);
-      setDriftItems((prev) => prev.filter((d) => d.workflowId !== workflowId));
-    },
-    [setBindingsOutputNode]
-  );
-
-  return { driftItems, resolveDrift };
 }

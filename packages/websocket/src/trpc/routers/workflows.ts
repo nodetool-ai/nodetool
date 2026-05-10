@@ -22,13 +22,11 @@
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import nodePath from "node:path";
-import { z } from "zod";
 import { withCacheBuster } from "../../lib/example-thumbnail.js";
 import {
   Workflow,
   WorkflowVersion,
-  Job,
-  WorkflowNotClipPrivateError
+  Job
 } from "@nodetool-ai/models";
 import type {
   Workflow as WorkflowModel,
@@ -878,32 +876,6 @@ export const workflowsRouter = router({
         }));
 
       return { outputs };
-    }),
-
-  promoteToTemplate: protectedProcedure
-    .input(z.object({ id: z.string() }))
-    .output(workflowResponse)
-    .mutation(async ({ ctx, input }) => {
-      const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-      if (!workflow || workflow.user_id !== ctx.userId) {
-        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      }
-      try {
-        await Workflow.promoteToTemplate(input.id);
-      } catch (error) {
-        if (error instanceof WorkflowNotClipPrivateError) {
-          throwApiError(
-            ApiErrorCode.INVALID_INPUT,
-            "Only clip-private workflows can be promoted to templates"
-          );
-        }
-        throw error;
-      }
-      const updated = (await Workflow.get(input.id)) as WorkflowModel | null;
-      if (!updated) {
-        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      }
-      return toWorkflowResponse(updated);
     }),
 
   // ── versions ──────────────────────────────────────────────────────────────
