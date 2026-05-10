@@ -14,6 +14,27 @@ export interface UseWheelZoomResult {
   handleWheel: (e: React.WheelEvent) => void;
 }
 
+interface PendingWheel {
+  zoomDelta: number;
+  panX: number;
+  panY: number;
+  clientX: number;
+  clientY: number;
+}
+
+// macOS trackpad pinch arrives as a wheel event with ctrlKey=true synthesized by the browser.
+// cmd/ctrl + wheel also zooms for mouse users. Plain wheel/two-finger swipe pans.
+type WheelInput = Pick<
+  WheelEvent,
+  "deltaX"
+  | "deltaY"
+  | "clientX"
+  | "clientY"
+  | "ctrlKey"
+  | "metaKey"
+  | "preventDefault"
+>;
+
 export function useWheelZoom({
   zoom,
   pan,
@@ -21,67 +42,75 @@ export function useWheelZoom({
   onZoomChange,
   onPanChange,
 }: UseWheelZoomParams): UseWheelZoomResult {
-  // Accumulate wheel deltas and apply them once per animation frame.
-  // This prevents multiple wheel events per frame from each causing
-  // separate state updates and React re-renders.
-  const zoomRafRef = useRef<number | null>(null);
-  const pendingZoomRef = useRef<{
-    deltaY: number;
-    clientX: number;
-    clientY: number;
-  } | null>(null);
+  // Coalesce wheel events into one update per animation frame.
+  const rafRef = useRef<number | null>(null);
+  const pendingRef = useRef<PendingWheel | null>(null);
 
   const handleZoomWheel = useCallback(
-    (
-      event: Pick<WheelEvent, "deltaY" | "clientX" | "clientY" | "preventDefault">
-    ) => {
+    (event: WheelInput) => {
       event.preventDefault();
-      // Accumulate delta; keep the latest pointer position for centering.
-      const pending = pendingZoomRef.current;
-      if (pending) {
-        pending.deltaY += event.deltaY;
-        pending.clientX = event.clientX;
-        pending.clientY = event.clientY;
-      } else {
-        pendingZoomRef.current = {
-          deltaY: event.deltaY,
-          clientX: event.clientX,
-          clientY: event.clientY,
-        };
-      }
-      if (zoomRafRef.current === null) {
-        zoomRafRef.current = requestAnimationFrame(() => {
-          zoomRafRef.current = null;
-          const p = pendingZoomRef.current;
-          if (!p) {
-            return;
-          }
-          pendingZoomRef.current = null;
 
-          const factor = 1.3;
-          const wheelDelta = p.deltaY > 0 ? 1 / factor : factor;
-          const newZoom = Math.max(
-            SKETCH_ZOOM_MIN,
-            Math.min(SKETCH_ZOOM_MAX, zoom * wheelDelta)
-          );
-          const container = containerRef.current;
-          if (container) {
-            const rect = container.getBoundingClientRect();
-            const mouseX = p.clientX - rect.left;
-            const mouseY = p.clientY - rect.top;
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const offsetX = mouseX - centerX - pan.x;
-            const offsetY = mouseY - centerY - pan.y;
-            const zoomRatio = newZoom / zoom;
-            onPanChange({
-              x: pan.x + offsetX * (1 - zoomRatio),
-              y: pan.y + offsetY * (1 - zoomRatio),
-            });
-          }
-          onZoomChange(newZoom);
-        });
+      const isZoom = event.ctrlKey || event.metaKey;
+      const pending = pendingRef.current ?? {
+        zoomDelta: 0,
+        panX: 0,
+        panY: 0,
+        clientX: event.clientX,
+        clientY: event.clientY,
+      };
+      pending.clientX = event.clientX;
+      pending.clientY = event.clientY;
+      if (isZoom) {
+        pending.zoomDelta += event.deltaY;
+      } else {
+        pending.panX += event.deltaX;
+        pending.panY += event.deltaY;
       }
+      pendingRef.current = pending;
+
+      if (rafRef.current !== null) {
+        return;
+      }
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        const p = pendingRef.current;
+        if (!p) {
+          return;
+        }
+        pendingRef.current = null;
+
+        let newX = pan.x - p.panX;
+        let newY = pan.y - p.panY;
+        let newZoom = zoom;
+
+        if (p.zoomDelta !== 0) {
+          // Clamp so a single mouse-wheel notch (~100+) doesn't overwhelm trackpad pinches (~1-20).
+          const clamped = Math.max(-50, Math.min(50, p.zoomDelta));
+          const factor = Math.exp(-clamped * 0.01);
+          newZoom = Math.max(
+            SKETCH_ZOOM_MIN,
+            Math.min(SKETCH_ZOOM_MAX, zoom * factor)
+          );
+
+          // Anchor zoom at the cursor so the point under it stays put.
+          const container = containerRef.current;
+          if (container && newZoom !== zoom) {
+            const rect = container.getBoundingClientRect();
+            const offsetX = p.clientX - rect.left - rect.width / 2 - newX;
+            const offsetY = p.clientY - rect.top - rect.height / 2 - newY;
+            const zoomRatio = newZoom / zoom;
+            newX += offsetX * (1 - zoomRatio);
+            newY += offsetY * (1 - zoomRatio);
+          }
+        }
+
+        if (newX !== pan.x || newY !== pan.y) {
+          onPanChange({ x: newX, y: newY });
+        }
+        if (newZoom !== zoom) {
+          onZoomChange(newZoom);
+        }
+      });
     },
     [zoom, pan, onZoomChange, onPanChange, containerRef]
   );
