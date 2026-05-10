@@ -1,149 +1,111 @@
-# NodeTool Chat (standalone example)
+# NodeTool Chat — shadcn/ui example
 
-A dependency-free, single-page AI chat that talks to the **TypeScript NodeTool
-server** (`packages/websocket`).
+A polished React chat client for the NodeTool TypeScript server.
+Built with **Vite + React 19 + Tailwind + shadcn/ui** on top of
+[`@nodetool-ai/sdk`](../../packages/sdk).
 
-Open it in any modern browser after starting the server — no build step, no
-framework, ~700 lines of vanilla JS.
+![Empty state](docs/screenshots/01-empty-state.png)
+![After a reply](docs/screenshots/03-after-reply.png)
+![Model picker grouped by provider](docs/screenshots/04-model-picker.png)
 
 ```
 examples/chat_app/
-├── index.html              Markup, layout, script tags
-├── nodetool_logo.png       Logo asset
-├── js/
-│   ├── markdown.js         Tiny Markdown → HTML renderer (no deps)
-│   ├── chat-client.js      tRPC + WebSocket transport (msgpack-encoded)
-│   ├── ui.js               DOM construction + update helpers
-│   └── main.js             App state, orchestration, event wiring
+├── index.html
+├── vite.config.ts
+├── tailwind.config.ts
+├── postcss.config.cjs
+├── tsconfig.json
+├── package.json
 ├── scripts/
-│   └── live-test.mjs       End-to-end smoke test against a running server
-└── styles/                 Design tokens, layout, components
+│   └── live-test.mjs              SDK-driven E2E smoke test
+└── src/
+    ├── main.tsx                   QueryClient + Tooltip + Toaster providers
+    ├── App.tsx                    Top-level state: threads, messages, socket
+    ├── styles.css                 Tailwind + shadcn theme tokens
+    ├── lib/
+    │   ├── sdk.ts                 createNodetoolClient() singleton
+    │   └── utils.ts               cn() helper
+    └── components/
+        ├── sidebar.tsx
+        ├── composer.tsx
+        ├── message-list.tsx
+        ├── model-picker.tsx
+        ├── connection-dot.tsx
+        └── ui/                    Vendored shadcn primitives
+            ├── button.tsx
+            ├── textarea.tsx
+            ├── scroll-area.tsx
+            ├── select.tsx
+            ├── separator.tsx
+            ├── tooltip.tsx
+            └── avatar.tsx
 ```
-
----
 
 ## Quick start
 
 ```bash
-# 1. Start the TS NodeTool server (from repo root)
+# 1. From the repo root, build packages and install deps
 nvm use
+npm install
 npm run build:packages
-npm run dev:nodetool -- serve --port 7777
 
-# 2. In another terminal, serve the example folder over HTTP
-#    (do NOT open index.html via file:// — CORS will reject it)
-cd examples/chat_app && python3 -m http.server 8080
-
-# 3. Open http://localhost:8080
-```
-
-The server binds to `localhost` only by default. Localhost connections bypass
-auth and use the built-in user `"1"`, so no token is needed.
-
----
-
-## Talking to a fake provider (no API keys required)
-
-The runtime ships a `FakeProvider` that streams a configurable canned reply.
-Enable it with one env var, then point the chat at it:
-
-```bash
+# 2. Start the NodeTool server with the fake provider enabled
 NODETOOL_ENABLE_FAKE_PROVIDER=1 npm run dev:nodetool -- serve --port 7777
+
+# 3. In another terminal, start the example dev server
+npm run dev --workspace=@nodetool-ai/example-chat-app
+
+# 4. Open http://localhost:5173
 ```
 
-In the UI, the model dropdown will show `Fake Model v1`, `Fake Model v2`,
-`Fake Fast Model` under the `fake` provider. Pick one and chat — every prompt
-streams back `Hello, this is a fake response!` in 10-character chunks.
+The Vite dev server proxies `/trpc`, `/api`, and `/ws` to
+`http://localhost:7777`. Override with `PROXY_API_TARGET=...` if your
+NodeTool server runs elsewhere.
 
-A scripted end-to-end check is included:
+## End-to-end smoke test
+
+Drives the full flow without the browser:
 
 ```bash
 NODETOOL_ENABLE_FAKE_PROVIDER=1 npm run dev:nodetool -- serve --port 7777   # one terminal
-node examples/chat_app/scripts/live-test.mjs                                # another terminal
+npm run live-test --workspace=@nodetool-ai/example-chat-app                 # another
 ```
 
-It exercises the same flow the browser does (providers → threads.create →
-ws chat_message → chunks → final message → threads.delete) and prints PASS/FAIL.
+The test prints PASS/FAIL for each stage and exits with the failure count.
 
----
+## How it uses the SDK
 
-## Architecture
+```ts
+import { createNodetoolClient } from "@nodetool-ai/sdk";
 
-The TS server speaks three protocols. The chat client uses all three:
+const nodetool = createNodetoolClient({ baseUrl: "http://localhost:7777" });
 
-| Resource                       | Transport                                                 |
-| ------------------------------ | --------------------------------------------------------- |
-| Threads (CRUD)                 | tRPC at `POST /trpc/threads.{create,update,delete}`, `GET /trpc/threads.list` |
-| Messages (read)                | tRPC at `GET /trpc/messages.list`                         |
-| Providers + LLM models         | tRPC at `GET /trpc/models.providers` and `/trpc/models.llmByProvider` |
-| Chat round-trip + streaming    | WebSocket at `/ws` (msgpack frames; JSON fallback)        |
+// Fully-typed tRPC surface — all routers (threads, messages, models, …)
+const { threads } = await nodetool.trpc.threads.list.query({ limit: 50 });
 
-### tRPC envelope
+// Convenience helper for the most common chat-startup query
+const models = await nodetool.listLanguageModels();
 
-The server is configured with the `superjson` transformer, so every tRPC
-request and response is wrapped:
-
-```json
-// Request
-POST /trpc/threads.create
-Content-Type: application/json
-{"json": {"title": "New Chat"}}
-
-// Response
-{"result": {"data": {"json": {"id": "…", "title": "New Chat", …}}}}
+// Streaming chat WebSocket — typed events
+const socket = nodetool.chat();
+socket.on("chunk",   (e) => /* e.content, e.done */);
+socket.on("message", (m) => /* final assistant message */);
+socket.on("error",   (e) => /* server-side failure */);
+socket.connect();
+socket.send({ threadId, text: "hi", model: "fake-model-v1", provider: "fake" });
+socket.stop(threadId);
 ```
 
-`ChatClient._trpc()` hides the wrapping; callers pass and receive plain values.
+See [`packages/sdk/README.md`](../../packages/sdk/README.md) for the full
+SDK surface, including the typed `ChatEvent` union and connection
+state machine.
 
-### WebSocket commands sent by this client
+## Stack at a glance
 
-| Direction       | Frame                                                                                     |
-| --------------- | ----------------------------------------------------------------------------------------- |
-| Client → Server | `{ command: "chat_message", data: { type: "message", role: "user", content, thread_id, model, provider, agent_mode, tools, collections } }` |
-| Client → Server | `{ command: "stop", data: { thread_id } }` (was `stop_generation` on the legacy Python server) |
-
-### WebSocket frames consumed by this client
-
-| `data.type`           | Meaning                                                  |
-| --------------------- | -------------------------------------------------------- |
-| `chunk`               | Streaming text — append to active assistant bubble       |
-| `message`             | Full message (assistant final or echoed user)            |
-| `tool_call`           | Tool invocation — render an inline indicator             |
-| `generation_stopped`  | Server acked a `stop` command                            |
-| `thread_update`       | New derived title for the thread                         |
-| `error`               | Server-side failure                                      |
-
-All other frame types (`planning_update`, `task_update`, etc.) are ignored.
-
----
-
-## Customisation
-
-Point at a different server by editing `js/main.js`:
-
-```js
-var client = new ChatClient({
-  apiUrl: "http://my-nodetool-server:7777",
-  wsUrl:  "ws://my-nodetool-server:7777/ws"
-});
-```
-
-For remote servers that require auth, pass a Bearer token. It is sent on every
-REST/tRPC call and appended as `?token=…` on the WebSocket URL:
-
-```js
-var client = new ChatClient({
-  apiUrl: "https://…",
-  wsUrl:  "wss://…",
-  authToken: localStorage.getItem("nodetool_token")
-});
-```
-
----
-
-## Relation to the main app
-
-This example is intentionally a thin slice of the full NodeTool web app
-(`web/`), which adds the visual workflow editor, mini-app launcher, asset
-manager, model downloader, and more. The full app uses the same tRPC routers,
-REST endpoints, and WebSocket protocol that this client targets.
+- **`@nodetool-ai/sdk`** — typed tRPC client + chat WebSocket
+- **TanStack Query v5** — caching & invalidation for threads/messages/models
+- **Tailwind CSS v3** + **shadcn/ui** primitives (vendored, not generated)
+- **Radix UI** for accessible scroll area, select, tooltip, separator, avatar
+- **react-markdown + remark-gfm** for assistant message rendering
+- **Sonner** toasts for inline errors
+- **lucide-react** icons
