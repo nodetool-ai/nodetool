@@ -12,6 +12,7 @@ import {
   splitDocument
 } from "@nodetool-ai/vectorstore";
 import type { HttpApiOptions } from "./http-api.js";
+import { notifyResourceChange } from "./resource-events.js";
 
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -79,6 +80,11 @@ export async function handleCollectionRequest(
           }
         }))
       );
+      notifyResourceChange({
+        event: "updated",
+        resource_type: "collection",
+        resource: { id: collectionName }
+      });
     }
 
     return jsonResponse({
