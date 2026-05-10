@@ -38,6 +38,10 @@ const TSX_BIN = resolve(REPO_ROOT, "node_modules/.bin/tsx");
 const BACKEND_HOST = "127.0.0.1";
 const BACKEND_PORT = 7777;
 const STARTUP_TIMEOUT_MS = 90_000;
+// Base64-encoded 32-byte placeholder key used only for screenshot tests.
+// Never use this value in production.
+const SCREENSHOT_TEST_MASTER_KEY_B64 =
+  "U0NSRUVOU0hPVF9URVNUX0tFWV9ET19OT1RfVVNFISE=";
 
 /**
  * Poll until a TCP connection to host:port succeeds or the timeout elapses.
@@ -68,6 +72,16 @@ async function waitForPort(
 export default async function globalSetup(): Promise<() => Promise<void>> {
   console.log("[globalSetup] Starting screenshot backend server…");
 
+  // CI/headless Linux often has no keychain backend (libsecret). Provide a
+  // deterministic test-only master key so screenshot-server can boot reliably.
+  if (process.env.NODE_ENV === "production" && !process.env.SECRETS_MASTER_KEY) {
+    throw new Error(
+      "[globalSetup] SECRETS_MASTER_KEY must be set when NODE_ENV=production"
+    );
+  }
+  const screenshotTestMasterKey =
+    process.env.SECRETS_MASTER_KEY ?? SCREENSHOT_TEST_MASTER_KEY_B64;
+
   const serverProcess: ChildProcess = spawn(
     TSX_BIN,
     ["--conditions", "development", SERVER_SCRIPT],
@@ -76,6 +90,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
         ...process.env,
         PORT: String(BACKEND_PORT),
         HOST: BACKEND_HOST,
+        SECRETS_MASTER_KEY: screenshotTestMasterKey,
         // Suppress noisy Python detection on machines without Python
         METADATA_ROOTS: ""
       },

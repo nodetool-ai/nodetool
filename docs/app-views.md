@@ -24,7 +24,7 @@ Docs: [User Interface → Dashboard]({{ '/user-interface#dashboard' | relative_u
 
 Authentication screen for cloud (Supabase) deployments. Skipped automatically in local-only mode.
 
-![Login](assets/screenshots/screenshot-placeholder.svg)
+![Login](assets/screenshots/login-screen.png)
 
 Docs: [Authentication]({{ '/authentication' | relative_url }})
 
@@ -574,7 +574,7 @@ Docs: [Developer Guide]({{ '/developer/' | relative_url }})
 
 Run every node's contract test from the browser.
 
-![Node Test](assets/screenshots/screenshot-placeholder.svg)
+![Node Test](assets/screenshots/node-test-page.png)
 
 Docs: [Developer Guide]({{ '/developer/' | relative_url }})
 

@@ -87,15 +87,99 @@ async function gotoPage(page: Page, url: string): Promise<void> {
   await assertNoErrorBoundary(page);
 }
 
+async function ensureVisibleText(
+  page: Page,
+  text: string | RegExp,
+  timeout = 15000
+): Promise<void> {
+  await page.getByText(text).first().waitFor({ state: "visible", timeout });
+}
+
+/**
+ * Waits for transient loading indicators to disappear before capture.
+ * Uses a shorter timeout than text waits because these indicators should clear
+ * quickly; if they do not, the screenshot should fail fast.
+ */
+async function ensureNoVisibleProgress(page: Page, timeout = 12000): Promise<void> {
+  const progress = page.locator('[role="progressbar"], .MuiCircularProgress-root');
+  if ((await progress.count()) === 0) {
+    return;
+  }
+  await progress.first().waitFor({ state: "hidden", timeout }).catch((error) => {
+    console.warn(`  ⚠ Progress indicator remained visible: ${String(error)}`);
+    throw error;
+  });
+}
+
+async function waitForScreenshotReady(
+  page: Page,
+  screenshotName: string
+): Promise<void> {
+  switch (screenshotName) {
+    case "login-screen.png": {
+      await page
+        .getByRole("button", { name: /sign in with google/i })
+        .waitFor({ state: "visible", timeout: 15000 });
+      break;
+    }
+    case "mini-app-page.png": {
+      await ensureVisibleText(page, /creative story generator/i);
+      await ensureNoVisibleProgress(page);
+      break;
+    }
+    case "standalone-mini-app.png": {
+      await ensureVisibleText(page, /creative story generator/i);
+      await ensureVisibleText(page, /workflow graph/i);
+      await ensureNoVisibleProgress(page);
+      break;
+    }
+    case "workflow-graph-view.png": {
+      await page
+        .locator('[data-ready="true"]')
+        .first()
+        .waitFor({ state: "visible", timeout: 20000 });
+      await page.waitForFunction(
+        () => document.querySelectorAll(".react-flow__node").length > 0,
+        undefined,
+        { timeout: 15000 }
+      );
+      break;
+    }
+    case "asset-explorer.png": {
+      await ensureVisibleText(page, /portrait_sunset\.jpg/i);
+      await ensureNoVisibleProgress(page);
+      break;
+    }
+    case "asset-editor.png": {
+      await ensureVisibleText(page, /edit:\s*portrait_sunset\.jpg/i);
+      await ensureNoVisibleProgress(page);
+      break;
+    }
+    case "node-test-page.png": {
+      await ensureVisibleText(page, /node integration tests/i);
+      await ensureVisibleText(page, /run all/i);
+      await ensureNoVisibleProgress(page);
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+}
+
 /**
  * Fail the test if the React Router error boundary is visible.
  * The boundary renders with class `errorBoundaryStyles` and the text "Something went wrong".
  */
 async function assertNoErrorBoundary(page: Page): Promise<void> {
   const errorEl = page.locator('[class*="errorBoundary"]').first();
-  const hasError = (await errorEl.count()) > 0;
+  const hasClassError = (await errorEl.count()) > 0;
+  const hasFallbackText = (await page.getByText("Something went wrong").count()) > 0;
+  const hasError = hasClassError || hasFallbackText;
   if (hasError) {
-    const errorText = await errorEl.innerText().catch(() => "(could not read error text)");
+    const errorText = hasClassError
+      ? await errorEl.innerText().catch(() => "(could not read error text)")
+      : await page.getByText("Something went wrong").first().innerText().catch(() => "Something went wrong");
     // Expand error details if present to get the actual error
     await page.locator('button', { hasText: /show details/i }).first().click().catch(() => {});
     await page.waitForTimeout(300);
@@ -178,10 +262,49 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "templates-grid.png");
     });
 
+    test("Login", async ({ page }) => {
+      test.skip(shouldSkip("login-screen.png"), "Already captured");
+      await gotoPage(page, "/login");
+      await waitForScreenshotReady(page, "login-screen.png");
+      await saveScreenshot(page, "login-screen.png");
+    });
+
+    test("Workflow graph view", async ({ page }) => {
+      test.skip(shouldSkip("workflow-graph-view.png"), "Already captured");
+      await gotoPage(page, "/graph/wf-story-generator");
+      await waitForScreenshotReady(page, "workflow-graph-view.png");
+      await saveScreenshot(page, "workflow-graph-view.png");
+    });
+
+    // ── Mini-apps ───────────────────────────────────────────────────────────
+    test("Mini-app page", async ({ page }) => {
+      test.skip(shouldSkip("mini-app-page.png"), "Already captured");
+      await gotoPage(page, "/apps/wf-story-generator");
+      await waitForScreenshotReady(page, "mini-app-page.png");
+      await saveScreenshot(page, "mini-app-page.png");
+    });
+
+    test("Standalone mini-app", async ({ page }) => {
+      test.skip(shouldSkip("standalone-mini-app.png"), "Already captured");
+      await gotoPage(page, "/miniapp/wf-story-generator");
+      await waitForScreenshotReady(page, "standalone-mini-app.png");
+      await saveScreenshot(page, "standalone-mini-app.png");
+    });
+
     // ── Assets ──────────────────────────────────────────────────────────────
-    // NOTE: /assets and /apps routes still crash due to deep Zustand object
-    // selector issues in useMiniAppRunner and AssetGrid sub-components.
-    // These need a broader refactor (178 remaining instances codebase-wide).
+    test("Assets", async ({ page }) => {
+      test.skip(shouldSkip("asset-explorer.png"), "Already captured");
+      await gotoPage(page, "/assets");
+      await waitForScreenshotReady(page, "asset-explorer.png");
+      await saveScreenshot(page, "asset-explorer.png");
+    });
+
+    test("Asset editor", async ({ page }) => {
+      test.skip(shouldSkip("asset-editor.png"), "Already captured");
+      await gotoPage(page, "/assets/edit/asset-photo1");
+      await waitForScreenshotReady(page, "asset-editor.png");
+      await saveScreenshot(page, "asset-editor.png");
+    });
 
     // ── Collections ─────────────────────────────────────────────────────────
     test("Collections", async ({ page }) => {
@@ -237,6 +360,13 @@ if (process.env.JEST_WORKER_ID) {
       test.skip(shouldSkip("component-models.png"), "Already captured");
       await gotoPage(page, "/preview/models");
       await saveScreenshot(page, "component-models.png");
+    });
+
+    test("Node test page", async ({ page }) => {
+      test.skip(shouldSkip("node-test-page.png"), "Already captured");
+      await gotoPage(page, "/node-test");
+      await waitForScreenshotReady(page, "node-test-page.png");
+      await saveScreenshot(page, "node-test-page.png");
     });
   });
 }
