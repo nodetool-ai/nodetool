@@ -290,15 +290,15 @@ const SketchModal: React.FC<SketchModalProps> = ({
         {/* ── Actions (right-aligned) ── */}
         <Box sx={{ display: "flex", alignItems: "center", gap: "2px" }}>
           <Tooltip title={`Undo (${displayCombo("undo")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <span>
-              <IconButton size="small" onClick={() => editorRef.current?.undo()} disabled={!canUndo}>
+            <span style={{ display: 'inline-flex' }}>
+              <IconButton size="small" aria-label="Undo" onClick={() => editorRef.current?.undo()} disabled={!canUndo}>
                 <UndoIcon sx={{ fontSize: "18px" }} />
               </IconButton>
             </span>
           </Tooltip>
           <Tooltip title={`Redo (${displayCombo("redo")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <span>
-              <IconButton size="small" onClick={() => editorRef.current?.redo()} disabled={!canRedo}>
+            <span style={{ display: 'inline-flex' }}>
+              <IconButton size="small" aria-label="Redo" onClick={() => editorRef.current?.redo()} disabled={!canRedo}>
                 <RedoIcon sx={{ fontSize: "18px" }} />
               </IconButton>
             </span>
@@ -321,6 +321,9 @@ const SketchModal: React.FC<SketchModalProps> = ({
           <Tooltip title={`Symmetry: ${symmetryLabel}`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
               size="small"
+              aria-label="Symmetry menu"
+              aria-haspopup="true"
+              aria-expanded={Boolean(symmetryAnchorEl)}
               onClick={(e) => setSymmetryAnchorEl(e.currentTarget)}
               color={symmetryActive ? "primary" : "default"}
             >
@@ -365,7 +368,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
           </Menu>
 
           <Tooltip title={`Export PNG (${displayCombo("export-png")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <IconButton size="small" onClick={() => editorRef.current?.exportPng()}>
+            <IconButton size="small" aria-label="Export PNG" onClick={() => editorRef.current?.exportPng()}>
               <SaveAltIcon sx={{ fontSize: "18px" }} />
             </IconButton>
           </Tooltip>
@@ -377,22 +380,22 @@ const SketchModal: React.FC<SketchModalProps> = ({
               <Caption sx={{ color: "warning.main", whiteSpace: "nowrap" }}>
                 Discard changes?
               </Caption>
-              <IconButton size="small" color="error" onClick={() => { editorRef.current?.discardToInitial(); onClose(); }}>
+              <IconButton size="small" aria-label="Confirm discard" color="error" onClick={() => { editorRef.current?.discardToInitial(); onClose(); }}>
                 <TrashIcon width={16} height={16} />
               </IconButton>
-              <IconButton size="small" onClick={() => setConfirmDiscard(false)}>
+              <IconButton size="small" aria-label="Cancel discard" onClick={() => setConfirmDiscard(false)}>
                 <CloseIcon sx={{ fontSize: "16px" }} />
               </IconButton>
             </>
           ) : (
             <>
               <Tooltip title="Discard all changes and close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                <IconButton size="small" onClick={() => setConfirmDiscard(true)} sx={{ color: "grey.500" }}>
+                <IconButton size="small" aria-label="Discard changes" onClick={() => setConfirmDiscard(true)} sx={{ color: "grey.500" }}>
                   <TrashIcon width={16} height={16} />
                 </IconButton>
               </Tooltip>
               <Tooltip title={`Close (${displayCombo("cancel-or-deselect")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                <IconButton size="small" onClick={handleRequestClose}>
+                <IconButton size="small" aria-label="Close" onClick={handleRequestClose}>
                   <CloseIcon fontSize="small" />
                 </IconButton>
               </Tooltip>

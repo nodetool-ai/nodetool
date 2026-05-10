@@ -1,28 +1,6 @@
-/**
- * useInpaintHere
- *
- * Action hook for the "Generate via Inpaint Here" flow.
- *
- * Steps performed by `inpaintHere()`:
- *   1. Reads the current selection from the sketch store. If the selection
- *      is empty, returns early with `{ ok: false, reason: "no-selection" }`.
- *   2. Flattens the canvas (visible layers) into a PNG data URL — the
- *      "rasterized context image" the inpaint workflow uses.
- *   3. Rasterizes the selection grid into a canvas-sized PNG mask data URL.
- *   4. Inserts a new raster layer above the active layer in the sketch
- *      store, named "Inpaint Here".
- *   5. Calls `trpc.sketch.layers.create` with the seeded Inpaint template
- *      workflow id, then upserts the returned binding.
- *   6. Seeds the binding's `paramOverrides` with `image` and `mask`
- *      data URLs and recomputes the dependency hash.
- *   7. Dispatches a `sketch:focus-prompt-input` DOM event so the inspector
- *      can focus the prompt field on the new layer.
- *
- * The hook does not start generation — the user clicks Generate after
- * tweaking the prompt.
- */
+/** Selection-driven Inpaint Here action — see PR description. */
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { LAYER_TEMPLATE_SEED_IDS } from "@nodetool-ai/image-editor";
 import { trpcClient } from "../../trpc/client";
@@ -34,7 +12,11 @@ import { selectionToMaskDataUrl } from "../../lib/sketch/selectionMaskImage";
 
 export type InpaintHereResult =
   | { ok: true; layerId: string }
-  | { ok: false; reason: "no-selection" | "no-document" | "no-canvas" | "error"; message?: string };
+  | {
+      ok: false;
+      reason: "no-selection" | "no-document" | "no-canvas" | "error";
+      message?: string;
+    };
 
 export interface UseInpaintHereResult {
   inpaintHere: () => Promise<InpaintHereResult>;
@@ -45,9 +27,10 @@ export const FOCUS_PROMPT_INPUT_EVENT = "sketch:focus-prompt-input";
 
 export function useInpaintHere(): UseInpaintHereResult {
   const [isBusy, setIsBusy] = useState(false);
+  const busyRef = useRef(false);
 
   const inpaintHere = useCallback(async (): Promise<InpaintHereResult> => {
-    if (isBusy) {
+    if (busyRef.current) {
       return { ok: false, reason: "error", message: "Already running" };
     }
     const documentId = useSketchDocumentStore.getState().documentId;
@@ -66,6 +49,7 @@ export function useInpaintHere(): UseInpaintHereResult {
       return { ok: false, reason: "no-canvas" };
     }
 
+    busyRef.current = true;
     setIsBusy(true);
     try {
       const compositeDataUrl = flatten();
@@ -79,9 +63,9 @@ export function useInpaintHere(): UseInpaintHereResult {
         return { ok: false, reason: "no-selection" };
       }
 
-      // Insert the new raster layer above the active layer; the sketch
-      // store's `addLayer` already returns the new id and activates it.
-      const newLayerId = useSketchStore.getState().addLayer("Inpaint Here", "raster");
+      const newLayerId = useSketchStore
+        .getState()
+        .addLayer("Inpaint Here", "raster");
 
       let binding;
       try {
@@ -91,7 +75,6 @@ export function useInpaintHere(): UseInpaintHereResult {
           sourceWorkflowId: LAYER_TEMPLATE_SEED_IDS.inpaint
         });
       } catch (err) {
-        // Roll back the local layer if the server-side bind failed.
         useSketchStore.getState().removeLayer(newLayerId);
         return {
           ok: false,
@@ -100,18 +83,18 @@ export function useInpaintHere(): UseInpaintHereResult {
         };
       }
 
-      // Persist the seeded image/mask overrides.
       const seededOverrides = {
         ...(binding.paramOverrides ?? {}),
         image: { type: "image", uri: compositeDataUrl },
         mask: { type: "image", uri: maskDataUrl }
       };
 
-      const bindingsStore = useSketchLayerBindingsStore.getState();
-      bindingsStore.upsertBinding({ ...binding, paramOverrides: seededOverrides });
-      bindingsStore.setParamOverrides(newLayerId, seededOverrides);
+      // upsertBinding recomputes the dependency hash from the seeded
+      // overrides, so a second setParamOverrides call would be pure churn.
+      useSketchLayerBindingsStore
+        .getState()
+        .upsertBinding({ ...binding, paramOverrides: seededOverrides });
 
-      // Notify any prompt-input field on the inspector that it should focus.
       if (typeof window !== "undefined") {
         window.dispatchEvent(
           new CustomEvent(FOCUS_PROMPT_INPUT_EVENT, {
@@ -122,9 +105,10 @@ export function useInpaintHere(): UseInpaintHereResult {
 
       return { ok: true, layerId: newLayerId };
     } finally {
+      busyRef.current = false;
       setIsBusy(false);
     }
-  }, [isBusy]);
+  }, []);
 
   return { inpaintHere, isBusy };
 }

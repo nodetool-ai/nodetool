@@ -1,20 +1,5 @@
 /** @jsxImportSource @emotion/react */
-/**
- * GeneratedLayerPanel
- *
- * Inspector panel shown when a generated sketch layer is selected. Composes:
- *   - GeneratedLayerHeader      — name, status badge, generated timestamp
- *   - LayerNodeStack            — vertical topo-sorted node list w/ selection
- *   - LayerNodePropertyEditor   — editable Input* fields or read-only summary
- *   - LayerActions              — Generate, Lock, Revert, Duplicate Linked,
- *                                 Duplicate Variation, Open in Node Editor.
- *   - LayerVersionList          — version history with restore / favorite /
- *                                 delete (NOD-323).
- *
- * Owns the SelectedLayerNodeStore interaction: resets the selected node
- * whenever the active `layerId` changes, defaulting to
- * `binding.selectedOutputNodeId`.
- */
+/** Inspector panel for generated sketch layers — composes header, node stack, properties, actions, and version history. */
 
 import React, { memo, useCallback, useEffect } from "react";
 

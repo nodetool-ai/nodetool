@@ -23,7 +23,8 @@ import {
   type SketchPersistenceSnapshot
 } from "./persistence";
 
-import type { ImageDocumentData } from "@nodetool-ai/protocol/api-schemas/sketch.js";
+import type { sketch } from "@nodetool-ai/protocol/api-schemas";
+type ImageDocumentData = sketch.ImageDocumentData;
 
 type SketchDocumentResponse = Awaited<ReturnType<typeof trpcClient.sketch.get.query>>;
 

@@ -1,14 +1,4 @@
-/**
- * SketchCanvasRefStore
- *
- * Tiny Zustand store that holds non-reactive getters into the live
- * `SketchCanvasRef`. The sketch editor registers the getters at mount and
- * any consumer (Inpaint Here, Re-generate Stale Layers, etc.) reads them
- * without prop-drilling the canvas ref or duplicating compositing code.
- *
- * The getters return `null` when the canvas is unavailable so callers can
- * gracefully no-op (e.g. before the sketch has mounted).
- */
+/** Non-reactive canvas getters published by SketchEditor for hooks that need flatten/mask access. */
 
 import { create } from "zustand";
 

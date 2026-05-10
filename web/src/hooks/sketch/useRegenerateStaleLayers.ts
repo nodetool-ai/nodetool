@@ -1,22 +1,6 @@
-/**
- * useRegenerateStaleLayers
- *
- * Preflight + execution helper for the "Re-generate Stale Layers" button.
- *
- * `regenerateStaleLayers()` walks the bindings, picks the layers whose
- * `status === "stale"`, and runs them in dependency order:
- *   - Layers without input dependencies on other generated layers go first.
- *   - Subsequent waves wait for layers they depend on.
- *
- * For NOD-323 we keep the dependency model simple: layers are scheduled
- * one at a time (sequentially) so any inputs that come from a previously
- * regenerated layer's output asset are already up to date by the time the
- * next layer starts. The user can cancel partway via the cancel control on
- * the panel; `regenerateStaleLayers()` resolves once the queue is drained
- * or the first failure is surfaced.
- */
+/** Re-generate Stale Layers preflight + sequential drainer — see PR description. */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { trpcClient } from "../../trpc/client";
 import { queryClient } from "../../queryClient";
@@ -36,9 +20,7 @@ import {
 } from "../../stores/sketch/SketchGenerationStore";
 
 export interface RegenerateStalePreflight {
-  /** Total stale layer ids that would run. */
   staleLayerIds: string[];
-  /** Layer ids skipped because they're locked. */
   lockedLayerIds: string[];
 }
 
@@ -52,18 +34,43 @@ export interface UseRegenerateStaleLayersResult {
   isBusy: boolean;
 }
 
-function waitForJobToFinish(jobId: string): Promise<LayerJobState["status"]> {
+function waitForJobToFinish(
+  jobId: string,
+  signal: AbortSignal
+): Promise<LayerJobState["status"] | "aborted"> {
   return new Promise((resolve) => {
+    let unsubscribe: (() => void) | null = null;
+
+    const cleanup = (): void => {
+      if (unsubscribe) {
+        unsubscribe();
+        unsubscribe = null;
+      }
+      signal.removeEventListener("abort", onAbort);
+    };
+
+    const onAbort = (): void => {
+      cleanup();
+      resolve("aborted");
+    };
+
     const check = (): boolean => {
+      if (signal.aborted) {
+        cleanup();
+        resolve("aborted");
+        return true;
+      }
       const job = Object.values(
         useSketchGenerationStore.getState().layerJobs
       ).find((j) => j.jobId === jobId);
       if (!job) {
-        // Job was cleared (completed or cancelled paths clear the entry).
+        // Job entry cleared — completed/cancelled cleared the entry.
+        cleanup();
         resolve("completed");
         return true;
       }
       if (job.status === "completed" || job.status === "failed") {
+        cleanup();
         resolve(job.status);
         return true;
       }
@@ -71,16 +78,25 @@ function waitForJobToFinish(jobId: string): Promise<LayerJobState["status"]> {
     };
 
     if (check()) return;
-    const unsubscribe = useSketchGenerationStore.subscribe(() => {
-      if (check()) {
-        unsubscribe();
-      }
+    signal.addEventListener("abort", onAbort);
+    unsubscribe = useSketchGenerationStore.subscribe(() => {
+      check();
     });
   });
 }
 
 export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
   const [isBusy, setIsBusy] = useState(false);
+  const busyRef = useRef(false);
+  // Aborted on unmount so any in-flight `waitForJobToFinish` resolves and
+  // its Zustand subscription is unsubscribed.
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   const preflight = useCallback((): RegenerateStalePreflight => {
     const bindings = Object.values(
@@ -99,13 +115,16 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
   }, []);
 
   const regenerateStaleLayers = useCallback(async () => {
-    if (isBusy) {
+    if (busyRef.current) {
       return { started: 0, skipped: 0, failed: 0 };
     }
     const documentId = useSketchDocumentStore.getState().documentId;
     if (!documentId) {
       return { started: 0, skipped: 0, failed: 0 };
     }
+    const controller = new AbortController();
+    abortRef.current = controller;
+    busyRef.current = true;
     setIsBusy(true);
     let started = 0;
     let skipped = 0;
@@ -114,13 +133,10 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
       const { staleLayerIds } = preflight();
       const generationStore = useSketchGenerationStore.getState();
       for (const layerId of staleLayerIds) {
+        if (controller.signal.aborted) break;
         const binding =
           useSketchLayerBindingsStore.getState().bindings[layerId];
-        if (!binding || binding.status !== "stale") {
-          skipped++;
-          continue;
-        }
-        if (!binding.workflowId) {
+        if (!binding || binding.status !== "stale" || !binding.workflowId) {
           skipped++;
           continue;
         }
@@ -150,7 +166,13 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
           }
           generationStore.registerJob(layerId, jobId, binding.workflowId);
 
-          const finalStatus = await waitForJobToFinish(jobId);
+          const finalStatus = await waitForJobToFinish(
+            jobId,
+            controller.signal
+          );
+          if (finalStatus === "aborted") {
+            break;
+          }
           if (finalStatus === "failed") {
             failed++;
             // Stop on first failure so the user can address it before the
@@ -159,8 +181,6 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
           }
           started++;
 
-          // Persist the version on the server so the next preflight will
-          // see the updated `lastGeneratedHash`.
           if (binding.dependencyHash) {
             const result = generationStore.resolveOutputAssetId(
               binding.workflowId,
@@ -179,7 +199,6 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
                   status: "success"
                 });
               } catch {
-                // Surface but do not abort the queue.
                 failed++;
               }
             }
@@ -190,10 +209,14 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
         }
       }
     } finally {
+      busyRef.current = false;
       setIsBusy(false);
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+      }
     }
     return { started, skipped, failed };
-  }, [isBusy, preflight]);
+  }, [preflight]);
 
   return { preflight, regenerateStaleLayers, isBusy };
 }

@@ -1,18 +1,5 @@
 /** @jsxImportSource @emotion/react */
-/**
- * SketchAIToolbar
- *
- * Compact action row holding the document-scoped AI-layer controls:
- *
- *   - "Inpaint Here" — creates a new generated layer above the active
- *     layer, seeded with the current selection mask + a flattened
- *     context image, bound to the seeded Inpaint template.
- *   - "Re-generate Stale Layers" — runs every binding currently flagged
- *     `stale` in dependency order (sequential, single-job at a time).
- *
- * Both actions surface a confirmation Dialog so the user can review the
- * impact before kicking off potentially-expensive workflow runs.
- */
+/** Inpaint Here + Re-generate Stale Layers toolbar — see PR description. */
 
 import React, { memo, useCallback, useState } from "react";
 import { useTheme } from "@mui/material/styles";
@@ -29,15 +16,32 @@ import {
 } from "../../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useSketchStore } from "../state/useSketchStore";
+import { useSketchLayerBindingsStore } from "../../../stores/sketch/SketchLayerBindingsStore";
 import { useInpaintHere } from "../../../hooks/sketch/useInpaintHere";
 import { useRegenerateStaleLayers } from "../../../hooks/sketch/useRegenerateStaleLayers";
 
 const SketchAIToolbarInner: React.FC = () => {
   const theme = useTheme();
   const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
+  // Derive the counts directly via Zustand selectors so we don't iterate
+  // every binding on every render of the toolbar.
+  const staleCount = useSketchLayerBindingsStore(
+    (s) =>
+      Object.values(s.bindings).reduce(
+        (n, b) => n + (b.status === "stale" ? 1 : 0),
+        0
+      )
+  );
+  const lockedCount = useSketchLayerBindingsStore(
+    (s) =>
+      Object.values(s.bindings).reduce(
+        (n, b) => n + (b.status === "locked" ? 1 : 0),
+        0
+      )
+  );
 
   const { inpaintHere, isBusy: inpaintBusy } = useInpaintHere();
-  const { preflight, regenerateStaleLayers, isBusy: regenBusy } =
+  const { regenerateStaleLayers, isBusy: regenBusy } =
     useRegenerateStaleLayers();
 
   const [error, setError] = useState<string | null>(null);
@@ -62,9 +66,6 @@ const SketchAIToolbarInner: React.FC = () => {
       }
     }
   }, [inpaintHere]);
-
-  const { staleLayerIds, lockedLayerIds } = preflight();
-  const staleCount = staleLayerIds.length;
 
   const handleConfirmRegen = useCallback(async () => {
     setConfirmRegenOpen(false);
@@ -145,11 +146,11 @@ const SketchAIToolbarInner: React.FC = () => {
         <Text size="small" sx={{ mb: 1 }}>
           {staleCount} stale layer{staleCount === 1 ? " is" : "s are"} ready to
           run.
-          {lockedLayerIds.length > 0 && (
+          {lockedCount > 0 && (
             <>
               {" "}
-              {lockedLayerIds.length} locked layer
-              {lockedLayerIds.length === 1 ? " is" : "s are"} skipped.
+              {lockedCount} locked layer
+              {lockedCount === 1 ? " is" : "s are"} skipped.
             </>
           )}{" "}
           Layers run sequentially; the queue stops at the first failure so you

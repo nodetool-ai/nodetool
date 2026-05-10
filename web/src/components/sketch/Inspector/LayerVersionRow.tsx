@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-/** Single row in the generated-layer version history list. */
+/** One row in the generated-layer version history list. */
 
 import React, { memo, useCallback, useState } from "react";
 import { css } from "@emotion/react";

@@ -37,7 +37,7 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, forwardRef, useEffect, useState } from "react";
+import React, { memo, forwardRef, useCallback, useEffect, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Container, FlexColumn, FlexRow } from "../ui_primitives";
@@ -157,10 +157,16 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   );
   const pendingDrift =
     driftItems.find((d) => !dismissedDrift.has(d.workflowId)) ?? null;
-  const handleDismissDrift = (): void => {
-    if (!pendingDrift) return;
-    setDismissedDrift((prev) => new Set(prev).add(pendingDrift.workflowId));
-  };
+  const handleDismissDrift = useCallback(() => {
+    const workflowId = pendingDrift?.workflowId;
+    if (!workflowId) return;
+    setDismissedDrift((prev) => {
+      if (prev.has(workflowId)) return prev;
+      const next = new Set(prev);
+      next.add(workflowId);
+      return next;
+    });
+  }, [pendingDrift?.workflowId]);
 
   return (
     <FlexRow className="sketch-editor" css={styles(theme)}>

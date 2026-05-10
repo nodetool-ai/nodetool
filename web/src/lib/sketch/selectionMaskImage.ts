@@ -1,16 +1,4 @@
-/**
- * Selection-mask → PNG data URL conversion.
- *
- * The sketch editor stores a `Selection` as a document-space byte grid
- * (`width × height`, 0–255). Inpaint Here needs that mask as a PNG image
- * sized to the canvas, so the bound workflow can hand it directly to an
- * `nodetool.input.ImageInput` field.
- *
- * `selectionToMaskDataUrl` rasterizes the selection grid into a canvas-sized
- * PNG: each pixel's alpha is the selection's value (0 = unmasked, 255 =
- * fully selected), with white RGB so the mask is visible in standard
- * preview UIs.
- */
+/** Rasterize a `Selection` grid into a canvas-sized white-on-alpha PNG mask. */
 
 import type { Selection } from "../../components/sketch/types/selection";
 

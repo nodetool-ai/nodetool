@@ -1,7 +1,4 @@
-/**
- * Thin wrappers around `trpc.sketch.versions.*` with consistent cache
- * invalidation. Mirrors `useClipVersions` for the timeline.
- */
+/** Thin wrappers around `trpc.sketch.versions.*` — mirrors `useClipVersions`. */
 
 import { trpc } from "../../trpc/client";
 

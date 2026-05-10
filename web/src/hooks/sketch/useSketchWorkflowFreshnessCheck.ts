@@ -1,24 +1,4 @@
-/**
- * useSketchWorkflowFreshnessCheck
- *
- * When the sketch editor mounts (or re-mounts after returning from the node
- * editor), this hook:
- *
- * 1. Collects all unique workflowIds referenced by generated-layer bindings.
- * 2. Fetches the latest workflow data for each (cache-bypassing) so we see
- *    fresh `updated_at` timestamps.
- * 3. For each binding whose workflow has a newer `updated_at` than the most
- *    recent successful version's `workflowUpdatedAt`, marks the binding stale
- *    via `markStaleForWorkflow`.
- * 4. Detects structural drift:
- *    - Input* nodes added → seed `paramOverrides` with default values.
- *    - Input* nodes removed → drop the corresponding override keys.
- *    - `selectedOutputNodeId` no longer present → surface a `LayerDriftItem`
- *      so the caller can show `LayerStructuralDriftDialog`.
- *
- * Mirrors `useWorkflowFreshnessCheck` (timeline) — retargeted to the sketch
- * binding store and image-document layers.
- */
+/** Sketch-document workflow freshness + structural drift check — mirrors `useWorkflowFreshnessCheck`. */
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { trpcClient } from "../../trpc/client";

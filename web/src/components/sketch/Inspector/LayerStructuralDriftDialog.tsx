@@ -1,16 +1,5 @@
 /** @jsxImportSource @emotion/react */
-/**
- * LayerStructuralDriftDialog
- *
- * Shown when a generated layer's `selectedOutputNodeId` no longer exists in
- * its bound workflow (output node deleted in the node editor).
- *
- * The user must pick a replacement output node before the affected layers
- * can be regenerated. When multiple layers share the workflow, the choice
- * applies to all of them simultaneously.
- *
- * Mirrors `StructuralDriftDialog` from the timeline.
- */
+/** Replacement-output-node prompt for layers whose bound output node was deleted. */
 
 import React, { memo, useState, useCallback, useEffect } from "react";
 import {

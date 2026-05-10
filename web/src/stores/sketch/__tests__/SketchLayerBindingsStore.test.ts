@@ -273,17 +273,24 @@ describe("SketchLayerBindingsStore", () => {
       useSketchLayerBindingsStore.getState().bindings["layer-1"].status
     ).toBe("stale");
 
-    // Append a synthetic earlier version to restore
-    const binding = useSketchLayerBindingsStore.getState().bindings["layer-1"];
-    binding.versions.push({
-      id: "v0",
-      createdAt: "",
-      jobId: "j0",
-      assetId: "a-0",
-      workflowUpdatedAt: "",
-      dependencyHash: seeded.dependencyHash!,
-      paramOverridesSnapshot: { prompt: "hello" },
-      status: "success"
+    // Re-upsert the binding with an extra version so we can restore it
+    // without mutating store state directly.
+    const current = useSketchLayerBindingsStore.getState().bindings["layer-1"];
+    useSketchLayerBindingsStore.getState().upsertBinding({
+      ...current,
+      versions: [
+        ...current.versions,
+        {
+          id: "v0",
+          createdAt: "",
+          jobId: "j0",
+          assetId: "a-0",
+          workflowUpdatedAt: "",
+          dependencyHash: seeded.dependencyHash!,
+          paramOverridesSnapshot: { prompt: "hello" },
+          status: "success"
+        }
+      ]
     });
     useSketchLayerBindingsStore.getState().restoreVersion("layer-1", "v0");
     const restored = useSketchLayerBindingsStore.getState().bindings["layer-1"];

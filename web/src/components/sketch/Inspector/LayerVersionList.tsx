@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 /** Collapsible version history list for a single generated layer. */
 
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -90,7 +90,10 @@ export const LayerVersionList: React.FC<LayerVersionListProps> = memo(
       [deleteMutation, documentId, layerId]
     );
 
-    const sorted = versions ? [...versions].reverse() : [];
+    const sorted = useMemo(
+      () => (versions ? [...versions].reverse() : []),
+      [versions]
+    );
     const count = sorted.length;
 
     return (

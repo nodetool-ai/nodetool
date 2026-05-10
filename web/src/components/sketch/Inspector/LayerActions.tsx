@@ -1,17 +1,5 @@
 /** @jsxImportSource @emotion/react */
-/**
- * LayerActions
- *
- * Inspector action toolbar for a generated sketch layer. Mirrors
- * `ClipActions`, retargeted from clip → layer:
- *
- *   - Generate / Cancel — drives the bound workflow via `useGenerateLayer`.
- *   - Duplicate Linked  — server clone keeping the same workflow id.
- *   - Duplicate Variation — clones the workflow + layer for an independent take.
- *   - Lock / Unlock     — successful generations skip locked layers.
- *   - Revert            — clears the current asset back to draft.
- *   - Open in Node Editor — round-trips with `?from=sketch:{documentId}:{layerId}`.
- */
+/** Generated-layer inspector action toolbar — see PR description. */
 
 import React, { memo, useCallback, useRef, useState } from "react";
 import { css } from "@emotion/react";
@@ -72,7 +60,9 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
     const addLayer = useSketchStore((s) => s.addLayer);
     const setActiveLayer = useSketchStore((s) => s.setActiveLayer);
     const removeLayer = useSketchStore((s) => s.removeLayer);
-    const layers = useSketchStore((s) => s.document.layers);
+    const sourceName = useSketchStore(
+      (s) => s.document.layers.find((l) => l.id === layerId)?.name ?? "Layer"
+    );
 
     const isLocked = binding.status === "locked";
 
@@ -94,8 +84,6 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
     const [variationError, setVariationError] = useState<string | null>(null);
     const [generationError, setGenerationError] = useState<string | null>(null);
     const [linkedBusy, setLinkedBusy] = useState(false);
-
-    const sourceName = layers.find((l) => l.id === layerId)?.name ?? "Layer";
 
     const handleDuplicateLinked = useCallback(async () => {
       if (!documentId || linkedBusy) {
