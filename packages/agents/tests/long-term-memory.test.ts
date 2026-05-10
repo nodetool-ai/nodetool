@@ -524,7 +524,7 @@ describe("LongTermMemory secret/credential filtering", () => {
     ]
   ])("drops suspected %s without persisting", async (_label, mkText) => {
     const text = mkText();
-    const memory = makeMemory();
+    const memory = createMemory();
     const stored = await memory.remember(text);
     expect(stored).toBeNull();
     const recalled = await memory.recall("anything", { k: 10 });
@@ -532,7 +532,7 @@ describe("LongTermMemory secret/credential filtering", () => {
   });
 
   it("still stores ordinary user facts that mention the word 'password'", async () => {
-    const memory = makeMemory();
+    const memory = createMemory();
     const stored = await memory.remember(
       "User prefers password managers over browser autofill"
     );
