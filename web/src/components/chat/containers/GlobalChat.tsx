@@ -71,6 +71,10 @@ const GlobalChat: React.FC = () => {
   const setAgentPlanner = useGlobalChatStore(
     (state) => state.setAgentPlanner
   );
+  const memoryEnabled = useGlobalChatStore((state) => state.memoryEnabled);
+  const setMemoryEnabled = useGlobalChatStore(
+    (state) => state.setMemoryEnabled
+  );
 
   // Task updates (change during execution)
   const currentPlanningUpdate = useGlobalChatStore((state) => state.currentPlanningUpdate);
@@ -640,6 +644,8 @@ const GlobalChat: React.FC = () => {
               onAgentModeToggle={setAgentMode}
               agentPlanner={agentPlanner}
               onAgentPlannerChange={setAgentPlanner}
+              memoryEnabled={memoryEnabled}
+              onMemoryToggle={setMemoryEnabled}
               currentPlanningUpdate={currentPlanningUpdate}
               currentTaskUpdate={taskUpdateForDisplay}
               currentLogUpdate={currentLogUpdate}

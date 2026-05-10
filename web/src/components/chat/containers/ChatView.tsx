@@ -102,6 +102,8 @@ type ChatViewProps = {
   onAgentPlannerChange?: (
     planner: import("../composer/AgentModeSelector").AgentPlanner
   ) => void;
+  memoryEnabled?: boolean;
+  onMemoryToggle?: (enabled: boolean) => void;
   helpMode?: boolean;
   workflowAssistant?: boolean;
   currentPlanningUpdate?: PlanningUpdate | null;
@@ -158,6 +160,8 @@ const ChatView = ({
   onAgentModeToggle,
   agentPlanner,
   onAgentPlannerChange,
+  memoryEnabled,
+  onMemoryToggle,
   helpMode = false,
   currentPlanningUpdate,
   currentTaskUpdate,
@@ -263,6 +267,8 @@ const ChatView = ({
         onAgentModeToggle={onAgentModeToggle}
         agentPlanner={agentPlanner}
         onAgentPlannerChange={onAgentPlannerChange}
+        memoryEnabled={memoryEnabled}
+        onMemoryToggle={onMemoryToggle}
         allowedProviders={allowedProviders}
         requireToolSupport={requireToolSupport}
         variant={composerVariant}

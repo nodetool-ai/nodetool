@@ -152,6 +152,13 @@ interface LlmAgentSessionOptions {
   systemPrompt?: string;
   /** Existing thread id to resume; otherwise a new thread is created lazily. */
   threadId?: string;
+  /**
+   * Per-session opt-in for long-term memory. The renderer surfaces a
+   * toggle for this. When omitted, defaults to the global env gate
+   * (`NODETOOL_MEMORY_ENABLED`). When explicitly `false`, memory stays
+   * inert for the whole session even if the env gate is on.
+   */
+  memoryEnabled?: boolean;
 }
 
 /**
@@ -201,6 +208,12 @@ class LlmAgentSession implements AgentQuerySession {
    * not configured" (e.g. no embedding provider).
    */
   private longTermMemory: LongTermMemory | null | undefined = undefined;
+  /**
+   * Tri-state opt-in: `undefined` → fall back to env (default off);
+   * `true` → force-enable; `false` → force-disable. Mutable via
+   * {@link setMemoryEnabled} so the toggle can flip mid-session.
+   */
+  private memoryEnabled: boolean | undefined;
 
   constructor(opts: LlmAgentSessionOptions) {
     if (!opts.userId) {
@@ -213,6 +226,17 @@ class LlmAgentSession implements AgentQuerySession {
     // Lazy: thread row is created on first send so we don't write to the DB
     // for sessions the user opens but never sends a message in.
     this.threadId = opts.threadId ?? "";
+    this.memoryEnabled = opts.memoryEnabled;
+  }
+
+  /**
+   * Flip the memory opt-in for subsequent sends. Drops any cached
+   * resolution so the next send() re-resolves under the new flag.
+   */
+  setMemoryEnabled(enabled: boolean | undefined): void {
+    if (this.memoryEnabled === enabled) return;
+    this.memoryEnabled = enabled;
+    this.longTermMemory = undefined;
   }
 
   /**
@@ -362,7 +386,10 @@ class LlmAgentSession implements AgentQuerySession {
             // shared bucket — but the env gate for opting in still applies.
             workspaceId: this.threadId || undefined,
             extractionProvider: provider,
-            extractionModel: this.model
+            extractionModel: this.model,
+            // Honour the per-session opt-in from the renderer. `undefined`
+            // means "use the env default" (which is itself default-off).
+            enabled: this.memoryEnabled
           });
         } catch (err) {
           this.longTermMemory = null;
@@ -559,6 +586,7 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
     resumeSessionId?: string;
     systemPrompt?: string;
     chatProviderId?: string;
+    memoryEnabled?: boolean;
   }): AgentQuerySession {
     if (!options.chatProviderId) {
       throw new Error(
@@ -576,6 +604,7 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
       // The renderer's `resumeSessionId` is our DB thread id — `send()`
       // hydrates from `Message.paginate(threadId)` on first call.
       threadId: options.resumeSessionId,
+      memoryEnabled: options.memoryEnabled,
     });
   }
 

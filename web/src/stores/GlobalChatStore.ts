@@ -112,6 +112,17 @@ export interface GlobalChatState {
   agentPlanner: "multi" | "graph";
   setAgentPlanner: (planner: "multi" | "graph") => void;
 
+  // Long-term memory opt-in
+  /**
+   * When true, the server resolves a per-user, per-thread `LongTermMemory`
+   * for this chat session: relevant items are recalled into the system
+   * prompt before each LLM call, and new memories are mined from the
+   * conversation after each turn. Default off — memory is a trust
+   * boundary, not a quiet convenience. Persisted across reloads.
+   */
+  memoryEnabled: boolean;
+  setMemoryEnabled: (enabled: boolean) => void;
+
   // Agent execution trace
   agentExecutionToolCalls: AgentExecutionToolCalls;
 
@@ -226,6 +237,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
       setAgentMode: (enabled: boolean) => set({ agentMode: enabled }),
       agentPlanner: "multi",
       setAgentPlanner: (planner) => set({ agentPlanner: planner }),
+
+      memoryEnabled: false,
+      setMemoryEnabled: (enabled: boolean) => set({ memoryEnabled: enabled }),
 
       // Agent execution trace
       agentExecutionToolCalls: {},
@@ -473,6 +487,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           workflowId,
           agentMode,
           agentPlanner,
+          memoryEnabled,
           selectedModel,
           selectedTools,
           selectedCollections,
@@ -549,6 +564,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           thread_id: threadId,
           agent_mode: agentMode,
           agent_planner: agentMode ? effectiveAgentPlanner : undefined,
+          memory_enabled: memoryEnabled,
           ...(mediaGeneration ? { media_generation: mediaGeneration } : {})
         } as Message;
 
@@ -566,6 +582,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           // Only send agent_planner when agent_mode is on; the server picks a
           // sensible default otherwise.
           agent_planner: agentMode ? effectiveAgentPlanner : undefined,
+          memory_enabled: memoryEnabled,
           model: isMediaGeneration
             ? mediaGeneration?.model ?? message.model ?? selectedModel?.id
             : selectedModel?.id,
@@ -1118,7 +1135,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
         lastUsedThreadId: state.lastUsedThreadId,
         selectedModel: state.selectedModel,
         selectedTools: state.selectedTools,
-        selectedCollections: state.selectedCollections
+        selectedCollections: state.selectedCollections,
+        memoryEnabled: state.memoryEnabled
       }) as GlobalChatState,
       migrate: (persistedState, _version) => {
         // Corrupt localStorage (string, null, etc.) must yield a usable

@@ -476,6 +476,14 @@ export interface Message {
    * wired, otherwise "multi") for backward compatibility.
    */
   agent_planner?: "multi" | "graph" | null;
+  /**
+   * Per-message opt-in for long-term memory recall + extraction. When
+   * `true`, the websocket session resolves a per-user, per-thread
+   * `LongTermMemory` instance and folds recalled items into the system
+   * prompt. When `false` or omitted, memory stays inert for this
+   * message even if the global env flag is set.
+   */
+  memory_enabled?: boolean | null;
   help_mode?: boolean | null;
   agent_execution_id?: string | null;
   execution_event_type?: string | null;
