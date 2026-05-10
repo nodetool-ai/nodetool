@@ -214,11 +214,22 @@ export interface AgentOptions {
   /**
    * Optional long-term memory. When provided, items relevant to the agent's
    * objective are recalled before planning and folded into the system prompt
-   * so the planner and every step inherit the same context. After execution
-   * the objective + final result are mined for new memories on a best-effort
-   * basis.
+   * so the planner and every step inherit the same context.
+   *
+   * **Writes are opt-in.** Agent runs do NOT auto-mine the objective +
+   * final result for memories by default — agent results are generated
+   * output, not user-confirmed facts, and persisting them across sessions
+   * pollutes the store with hallucinations or run-specific artefacts.
+   * Agents can still publish memories explicitly via the `ltm_remember`
+   * tool. To re-enable automatic mining for a specific agent, set
+   * {@link AgentOptions.autoPersistMemory} to `true`.
    */
   longTermMemory?: LongTermMemory | null;
+  /**
+   * If `true`, mine the objective + final result for memories on a
+   * best-effort basis when the run finishes. Defaults to `false`.
+   */
+  autoPersistMemory?: boolean;
 }
 
 export class Agent extends BaseAgent {
@@ -234,6 +245,7 @@ export class Agent extends BaseAgent {
   private readonly skillDirs: string[];
   private readonly initialTask?: Task;
   private readonly longTermMemory: LongTermMemory | null;
+  private readonly autoPersistMemory: boolean;
   /** The multi-task plan, set after planning. */
   taskPlan: TaskPlan | null = null;
 
@@ -263,6 +275,7 @@ export class Agent extends BaseAgent {
     this.skillDirs = opts.skillDirs ?? [];
     this.initialTask = opts.task;
     this.longTermMemory = opts.longTermMemory ?? null;
+    this.autoPersistMemory = opts.autoPersistMemory === true;
     if (opts.task) {
       this.task = opts.task;
     }
@@ -692,6 +705,7 @@ export class Agent extends BaseAgent {
    * swallowed (already logged inside the LTM module).
    */
   private persistAgentRunMemory(): void {
+    if (!this.autoPersistMemory) return;
     if (!this.longTermMemory || !this.longTermMemory.isReady()) return;
     const resultText =
       this.results === null || this.results === undefined

@@ -356,6 +356,11 @@ class LlmAgentSession implements AgentQuerySession {
           this.longTermMemory = await createDefaultLongTermMemory({
             userId: this.userId,
             namespace: "chat",
+            // Scope per chat thread so memories from one conversation don't
+            // bleed into an unrelated thread for the same user. When no
+            // thread id is available (one-shot session), fall back to the
+            // shared bucket — but the env gate for opting in still applies.
+            workspaceId: this.threadId || undefined,
             extractionProvider: provider,
             extractionModel: this.model
           });

@@ -28,6 +28,16 @@ export interface ProviderEmbeddingOptions {
   provider: EmbeddingProvider;
   model: string;
   dimensions?: number;
+  /**
+   * User scope for secret resolution. Embedding API keys are looked up via
+   * `getSecret(envKey, userId)` so each user's stored credentials are used
+   * for their own embedding calls. Defaults to `"1"` (the legacy single-user
+   * scope) for backward compatibility, but multi-user contexts (chat
+   * sessions, agent runs scoped to a userId) MUST pass the real userId or
+   * recall/write will silently fail when the requested user has a different
+   * key than the global one.
+   */
+  userId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -44,6 +54,7 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
   private provider: EmbeddingProvider;
   private model: string;
   private dimensions?: number;
+  private userId: string;
   private _apiKey: string | null = null;
   private _keyResolved = false;
 
@@ -51,6 +62,7 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
     this.provider = opts.provider;
     this.model = opts.model;
     this.dimensions = opts.dimensions;
+    this.userId = opts.userId ?? "1";
     this.name = `${opts.provider}/${opts.model}`;
   }
 
@@ -69,8 +81,11 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
     };
 
     const envKey = envKeyMap[this.provider];
+    // Per-user secret first; fall back to env. Do NOT fall back to a
+    // different user's secret — that would let one user's key power
+    // another user's embedding calls.
     this._apiKey =
-      (await getSecret(envKey, "1").catch(() => null)) ??
+      (await getSecret(envKey, this.userId).catch(() => null)) ??
       process.env[envKey] ??
       null;
     return this._apiKey;
@@ -341,8 +356,8 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
  * @param dimensions Optional output dimensions for text-embedding-3-* models.
  */
 export class OpenAIEmbeddingFunction extends ProviderEmbeddingFunction {
-  constructor(model = "text-embedding-3-small", dimensions?: number) {
-    super({ provider: "openai", model, dimensions });
+  constructor(model = "text-embedding-3-small", dimensions?: number, userId?: string) {
+    super({ provider: "openai", model, dimensions, userId });
   }
 }
 
@@ -352,8 +367,8 @@ export class OpenAIEmbeddingFunction extends ProviderEmbeddingFunction {
  * @param model Defaults to `nomic-embed-text`.
  */
 export class OllamaEmbeddingFunction extends ProviderEmbeddingFunction {
-  constructor(model = "nomic-embed-text") {
-    super({ provider: "ollama", model });
+  constructor(model = "nomic-embed-text", userId?: string) {
+    super({ provider: "ollama", model, userId });
   }
 }
 
@@ -363,8 +378,8 @@ export class OllamaEmbeddingFunction extends ProviderEmbeddingFunction {
  * @param model Defaults to `text-embedding-004`.
  */
 export class GeminiEmbeddingFunction extends ProviderEmbeddingFunction {
-  constructor(model = "text-embedding-004") {
-    super({ provider: "gemini", model });
+  constructor(model = "text-embedding-004", userId?: string) {
+    super({ provider: "gemini", model, userId });
   }
 }
 
@@ -374,8 +389,8 @@ export class GeminiEmbeddingFunction extends ProviderEmbeddingFunction {
  * @param model Defaults to `mistral-embed`.
  */
 export class MistralEmbeddingFunction extends ProviderEmbeddingFunction {
-  constructor(model = "mistral-embed") {
-    super({ provider: "mistral", model });
+  constructor(model = "mistral-embed", userId?: string) {
+    super({ provider: "mistral", model, userId });
   }
 }
 
@@ -385,8 +400,8 @@ export class MistralEmbeddingFunction extends ProviderEmbeddingFunction {
  * @param model Defaults to `embed-v4.0`.
  */
 export class CohereEmbeddingFunction extends ProviderEmbeddingFunction {
-  constructor(model = "embed-v4.0", dimensions?: number) {
-    super({ provider: "cohere", model, dimensions });
+  constructor(model = "embed-v4.0", dimensions?: number, userId?: string) {
+    super({ provider: "cohere", model, dimensions, userId });
   }
 }
 
@@ -396,8 +411,8 @@ export class CohereEmbeddingFunction extends ProviderEmbeddingFunction {
  * @param model Defaults to `voyage-3.5`.
  */
 export class VoyageEmbeddingFunction extends ProviderEmbeddingFunction {
-  constructor(model = "voyage-3.5", dimensions?: number) {
-    super({ provider: "voyage", model, dimensions });
+  constructor(model = "voyage-3.5", dimensions?: number, userId?: string) {
+    super({ provider: "voyage", model, dimensions, userId });
   }
 }
 
@@ -407,8 +422,8 @@ export class VoyageEmbeddingFunction extends ProviderEmbeddingFunction {
  * @param model Defaults to `jina-embeddings-v3`.
  */
 export class JinaEmbeddingFunction extends ProviderEmbeddingFunction {
-  constructor(model = "jina-embeddings-v3", dimensions?: number) {
-    super({ provider: "jina", model, dimensions });
+  constructor(model = "jina-embeddings-v3", dimensions?: number, userId?: string) {
+    super({ provider: "jina", model, dimensions, userId });
   }
 }
 
@@ -429,12 +444,15 @@ export class JinaEmbeddingFunction extends ProviderEmbeddingFunction {
  */
 export function getProviderEmbeddingFunction(
   embeddingModel: string,
-  provider?: string | null
+  provider?: string | null,
+  opts?: { userId?: string }
 ): EmbeddingFunction | null {
+  const userId = opts?.userId;
   if (provider) {
     return new ProviderEmbeddingFunction({
       provider: provider as EmbeddingProvider,
-      model: embeddingModel
+      model: embeddingModel,
+      userId
     });
   }
 
@@ -443,33 +461,33 @@ export function getProviderEmbeddingFunction(
     embeddingModel.startsWith("text-embedding-004") ||
     embeddingModel.startsWith("gemini-embedding-")
   ) {
-    return new GeminiEmbeddingFunction(embeddingModel);
+    return new GeminiEmbeddingFunction(embeddingModel, userId);
   }
 
   if (embeddingModel.startsWith("text-embedding-")) {
-    return new OpenAIEmbeddingFunction(embeddingModel);
+    return new OpenAIEmbeddingFunction(embeddingModel, undefined, userId);
   }
 
   if (embeddingModel.startsWith("mistral-embed")) {
-    return new MistralEmbeddingFunction(embeddingModel);
+    return new MistralEmbeddingFunction(embeddingModel, userId);
   }
 
   if (embeddingModel.startsWith("embed-")) {
-    return new CohereEmbeddingFunction(embeddingModel);
+    return new CohereEmbeddingFunction(embeddingModel, undefined, userId);
   }
 
   if (embeddingModel.startsWith("voyage-")) {
-    return new VoyageEmbeddingFunction(embeddingModel);
+    return new VoyageEmbeddingFunction(embeddingModel, undefined, userId);
   }
 
   if (embeddingModel.startsWith("jina-")) {
-    return new JinaEmbeddingFunction(embeddingModel);
+    return new JinaEmbeddingFunction(embeddingModel, undefined, userId);
   }
 
   // Default to Ollama for local models (nomic-embed-text, all-minilm, mxbai-embed-large, etc.)
   const ollamaUrl = process.env.OLLAMA_API_URL;
   if (ollamaUrl) {
-    return new OllamaEmbeddingFunction(embeddingModel);
+    return new OllamaEmbeddingFunction(embeddingModel, userId);
   }
 
   log.warn(
