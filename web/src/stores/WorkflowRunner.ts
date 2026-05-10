@@ -264,17 +264,30 @@ export const createWorkflowRunnerStore = (
       subgraphNodeIds?: Set<string>
     ) => {
       const currentState = get().state;
-      if (
+      const currentJobId = get().job_id;
+      const wsConnected = globalWebSocketManager.isConnectionOpen();
+      const busy =
         currentState === "connecting" ||
         currentState === "running" ||
         currentState === "paused" ||
-        currentState === "suspended"
-      ) {
+        currentState === "suspended";
+      // A stuck "running" state with no active job_id or no live WS means we
+      // never received a terminal job_update (e.g. WS dropped, worker crashed).
+      // Reset so the user can retry instead of getting permanently blocked.
+      const stuck = busy && (!currentJobId || !wsConnected);
+      if (busy && !stuck) {
         console.warn(
           `WorkflowRunner[${workflowId}]: Ignoring run request while workflow is busy`,
           { currentState }
         );
         return;
+      }
+      if (stuck) {
+        console.warn(
+          `WorkflowRunner[${workflowId}]: Recovering from stuck state`,
+          { currentState, currentJobId, wsConnected }
+        );
+        set({ state: "idle", job_id: null });
       }
 
       console.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
