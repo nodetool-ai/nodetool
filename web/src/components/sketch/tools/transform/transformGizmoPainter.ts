@@ -204,8 +204,8 @@ export function paintTransformGizmo(
 export class GizmoRedrawScheduler {
   private scheduled = false;
   private rafId: number | null = null;
-  /** Bumped on cancel so a stale rAF callback never runs (belt-and-suspenders). */
-  private token = 0;
+  /** Incremented on cancel so a late/stale rAF closure never runs after `cancelPending`. */
+  private callbackGeneration = 0;
 
   /**
    * Schedule a gizmo redraw on the next animation frame.
@@ -216,14 +216,13 @@ export class GizmoRedrawScheduler {
       return;
     }
     this.scheduled = true;
-    const frameToken = ++this.token;
+    const generation = this.callbackGeneration;
     this.rafId = requestAnimationFrame(() => {
       this.rafId = null;
-      if (frameToken !== this.token) {
-        this.scheduled = false;
+      this.scheduled = false;
+      if (generation !== this.callbackGeneration) {
         return;
       }
-      this.scheduled = false;
       callback();
     });
   }
@@ -239,7 +238,7 @@ export class GizmoRedrawScheduler {
       this.rafId = null;
     }
     this.scheduled = false;
-    this.token++;
+    this.callbackGeneration += 1;
   }
 
   /** Whether a redraw is currently scheduled. */
