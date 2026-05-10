@@ -24,6 +24,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { useSketchStore } from "../state";
 import type { SketchDocument, SketchTool } from "../types";
 import type { SketchCanvasRef } from "../SketchCanvas";
+import type { SketchPersistenceSnapshot } from "../../../stores/sketch/persistence";
 import {
   useHistoryActions,
   useLayerActions,
@@ -40,6 +41,7 @@ import {
 
 export interface UseEditorSessionParams {
   initialDocument?: SketchDocument;
+  initialEditorState?: SketchPersistenceSnapshot;
   onDocumentChange?: (doc: SketchDocument) => void;
   onExportImage?: (dataUrl: string) => void;
   onExportMask?: (dataUrl: string | null) => void;
@@ -47,6 +49,7 @@ export interface UseEditorSessionParams {
 
 export function useEditorSession({
   initialDocument,
+  initialEditorState,
   onDocumentChange,
   onExportImage,
   onExportMask
@@ -178,6 +181,7 @@ export function useEditorSession({
     handleCanvasResizeHandlesEnabledChange
   } = useEditorLifecycle({
     initialDocument,
+    initialEditorState,
     onDocumentChange,
     setDocument: sessionStore.setDocument,
     activeTool,

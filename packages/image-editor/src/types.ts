@@ -43,6 +43,7 @@ export interface LayerWorkflowBinding {
 }
 
 export interface SketchLayerLike {
+  [key: string]: unknown;
   id: string;
   name: string;
   type: "raster" | "mask" | "group";
@@ -53,14 +54,46 @@ export interface SketchLayerLike {
   exposedAsOutput?: boolean;
 }
 
+export interface SketchViewportLike {
+  zoom: number;
+  pan: {
+    x: number;
+    y: number;
+  };
+}
+
+export interface PersistedHistoryEntryLike {
+  changedLayerIds?: string[];
+  layerSnapshots: Record<string, string | null>;
+  layerStructure: Record<string, unknown>[];
+  documentCanvas: {
+    width: number;
+    height: number;
+    backgroundColor?: string;
+  };
+  activeLayerId: string;
+  maskLayerId: string | null;
+  selection?: unknown;
+  restoreMode: "full" | "structure-only";
+  action: string;
+  timestamp: number;
+}
+
 export interface SketchDocumentLike {
   version: number;
   canvas: {
     width: number;
     height: number;
+    backgroundColor?: string;
   };
   layers: SketchLayerLike[];
   activeLayerId: string;
+  maskLayerId?: string | null;
+  toolSettings?: Record<string, unknown>;
+  activeTool?: string;
+  viewport?: SketchViewportLike;
+  history?: PersistedHistoryEntryLike[];
+  historyIndex?: number;
   metadata?: {
     createdAt: string;
     updatedAt: string;

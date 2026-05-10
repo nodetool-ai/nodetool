@@ -84,10 +84,38 @@ export class ImageDocument extends DBModel {
     this.background_color ??= "#ffffff";
     this.document ??= JSON.stringify({
       sketch: {
-        version: 1,
-        canvas: { width: 1024, height: 1024 },
-        layers: [],
-        activeLayerId: ""
+        version: 3,
+        canvas: { width: 1024, height: 1024, backgroundColor: "#ffffff" },
+        layers: [
+          {
+            id: "layer-1",
+            name: "Layer 1",
+            type: "raster",
+            visible: true,
+            opacity: 1,
+            locked: false,
+            alphaLock: false,
+            blendMode: "normal",
+            data: null,
+            transform: { x: 0, y: 0 },
+            contentBounds: {
+              x: 0,
+              y: 0,
+              width: 1024,
+              height: 1024
+            },
+            effects: []
+          }
+        ],
+        activeLayerId: "layer-1",
+        maskLayerId: null,
+        activeTool: "brush",
+        viewport: {
+          zoom: 1,
+          pan: { x: 0, y: 0 }
+        },
+        history: [],
+        historyIndex: -1
       },
       layerBindings: []
     });

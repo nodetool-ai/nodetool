@@ -229,6 +229,7 @@ export function useCanvasActions({
     handleCut: geometryActions.handleCut,
     handlePaste: geometryActions.handlePaste,
     handleDropImage: geometryActions.handleDropImage,
+    handleDropAsset: geometryActions.handleDropAsset,
     adjBrightness: geometryActions.adjBrightness,
     adjContrast: geometryActions.adjContrast,
     adjSaturation: geometryActions.adjSaturation,

@@ -6,8 +6,10 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import type { Asset } from "../../../stores/ApiTypes";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import {
+  createDefaultLayer,
   type LayerContentBounds,
   type LayerTransform,
   type Point,
@@ -23,6 +25,7 @@ import {
   resolveSketchPasteImageCanvas,
   writeImageCanvasToSystemClipboardPng
 } from "../sketchClipboard";
+import { resolveAssetUri } from "../../node/output/hooks";
 
 // ── Module-level helpers ────────────────────────────────────────────
 
@@ -183,6 +186,7 @@ export function useCanvasGeometryActions({
   document,
   pushHistory,
   updateLayerData,
+  setDocument,
   setZoom,
   setPan,
   resizeCanvas,
@@ -775,6 +779,51 @@ export function useCanvasGeometryActions({
     [canvasRef, document.activeLayerId, pushHistory, syncPixelLayerFromCanvas]
   );
 
+  const handleDropAsset = useCallback(
+    async (asset: Asset) => {
+      try {
+        const assetUri = `asset://${asset.id}`;
+        const sourceUrl = resolveAssetUri(asset.get_url ?? assetUri);
+        const response = await fetch(sourceUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to load dropped asset ${asset.id}`);
+        }
+        const blob = await response.blob();
+        const bitmap = await createImageBitmap(blob);
+        const nextLayer = createDefaultLayer(
+          asset.name || `Imported ${document.layers.length + 1}`,
+          "raster",
+          bitmap.width,
+          bitmap.height
+        );
+        bitmap.close();
+        nextLayer.locked = true;
+        nextLayer.exposedAsInput = false;
+        nextLayer.exposedAsOutput = false;
+        nextLayer.imageReference = {
+          uri: assetUri,
+          naturalWidth: nextLayer.contentBounds.width,
+          naturalHeight: nextLayer.contentBounds.height,
+          objectFit: "fill"
+        };
+
+        pushHistory("import asset");
+        setDocument({
+          ...document,
+          layers: [...document.layers, nextLayer],
+          activeLayerId: nextLayer.id,
+          metadata: {
+            ...document.metadata,
+            updatedAt: new Date().toISOString()
+          }
+        });
+      } catch (error) {
+        console.error("Failed to import dropped asset:", error);
+      }
+    },
+    [document, pushHistory, setDocument]
+  );
+
   // ─── Adjustment preview (auto-apply with snapshot) ─────────────
   const adjustmentBaseRef = useRef<HTMLCanvasElement | null>(null);
   const [adjBrightness, setAdjBrightness] = useState(0);
@@ -911,6 +960,7 @@ export function useCanvasGeometryActions({
     handleCut,
     handlePaste,
     handleDropImage,
+    handleDropAsset,
     adjBrightness,
     adjContrast,
     adjSaturation,

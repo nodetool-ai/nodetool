@@ -43,6 +43,7 @@ import type { Theme } from "@mui/material/styles";
 import { Container, FlexColumn, FlexRow } from "../ui_primitives";
 import TransformContextMenu from "./TransformContextMenu";
 import type { SketchDocument } from "./types";
+import type { SketchPersistenceSnapshot } from "../../stores/sketch/persistence";
 import { useEditorSession, useEditorCommands } from "./hooks";
 import {
   ConnectedToolbar,
@@ -77,6 +78,7 @@ export interface SketchEditorHandle {
 
 export interface SketchEditorProps {
   initialDocument?: SketchDocument;
+  initialEditorState?: SketchPersistenceSnapshot;
   onDocumentChange?: (doc: SketchDocument) => void;
   onExportImage?: (dataUrl: string) => void;
   onExportMask?: (dataUrl: string | null) => void;
@@ -86,6 +88,7 @@ export interface SketchEditorProps {
 
 const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function SketchEditor({
   initialDocument,
+  initialEditorState,
   onDocumentChange,
   onExportImage,
   onExportMask,
@@ -96,6 +99,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   // ─── Session layer (all transient editor-session state) ─────────────
   const session = useEditorSession({
     initialDocument,
+    initialEditorState,
     onDocumentChange,
     onExportImage,
     onExportMask
@@ -171,6 +175,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onEyedropperPick={session.colorActions.handleEyedropperPick}
             onAutoPickLayer={session.layerStore.setActiveLayer}
             onDropImage={session.canvasActions.handleDropImage}
+            onDropAsset={session.canvasActions.handleDropAsset}
             onCanvasResizeStart={
               session.canvasResizeHandlesEnabled
                 ? session.canvasActions.handleCanvasResizeStart

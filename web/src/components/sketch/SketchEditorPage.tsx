@@ -10,13 +10,12 @@
  * the same components that render in the in-node `SketchModal`. Modal mode
  * remains unchanged.
  *
- * ## Seed-once contract (until NOD-319 wires persistence)
+ * ## Seed-once contract
  *
- * `useEditorLifecycle` calls `setDocument(initialDocument)` whenever the
- * `initialDocument` prop identity changes. React Query background refetches
- * (focus, staleTime, invalidation) would otherwise emit a fresh object and
- * silently overwrite in-progress edits. Until autosave + conflict handling
- * land in NOD-319, this page:
+ * `useEditorLifecycle` hydrates the global sketch store from the initial
+ * document/session state when the route first resolves. React Query background
+ * refetches would replace that initial seed and clobber in-progress edits
+ * managed by the autosave system, so this page:
  *
  *   1. Disables all background refetches for the load query.
  *   2. Captures the first non-null payload per `documentId` into local state
@@ -36,6 +35,7 @@ import SketchEditor from "./SketchEditor";
 import { trpc } from "../../trpc/client";
 import type { SketchDocument } from "./types";
 import { useSketchLayerBindingsStore } from "../../stores/sketch/SketchLayerBindingsStore";
+import { useStandaloneSketchDocument } from "../../stores/sketch/SketchDocumentStore";
 
 const pageStyles = (theme: Theme) =>
   css({
@@ -55,7 +55,7 @@ const SketchEditorPage: React.FC = memo(function SketchEditorPage() {
     {
       enabled: !!documentId,
       // Background refetches would replace `initialDocument` and clobber
-      // unsaved edits until NOD-319 wires autosave. Disable them here.
+      // unsaved edits managed by the autosave system. Disable them here.
       staleTime: Infinity,
       refetchOnMount: false,
       refetchOnWindowFocus: false,
@@ -70,20 +70,18 @@ const SketchEditorPage: React.FC = memo(function SketchEditorPage() {
     document: SketchDocument;
   } | null>(null);
 
-  const setBindings = useSketchLayerBindingsStore((s) => s.setBindings);
+  const initialEditorState = useStandaloneSketchDocument(
+    documentQuery.data,
+    !!documentId
+  );
   const resetBindings = useSketchLayerBindingsStore((s) => s.reset);
 
   useEffect(() => {
     if (!documentId) return;
     if (seed?.id === documentId) return;
-    const data = documentQuery.data;
-    if (!data) return;
-    // The persisted `sketch` payload is the on-disk shape of `SketchDocument`.
-    // Slice 1+2 widening of layer fields is handled inside the editor on load.
-    const sketch = data.document.sketch as unknown as SketchDocument;
-    setSeed({ id: documentId, document: sketch });
-    setBindings(data.document.layerBindings ?? []);
-  }, [documentId, documentQuery.data, seed?.id, setBindings]);
+    if (!initialEditorState) return;
+    setSeed({ id: documentId, document: initialEditorState.document });
+  }, [documentId, initialEditorState, seed?.id]);
 
   useEffect(() => {
     return () => {
@@ -139,7 +137,10 @@ const SketchEditorPage: React.FC = memo(function SketchEditorPage() {
 
   return (
     <div className="sketch-editor-page" css={styles}>
-      <SketchEditor initialDocument={seed.document} />
+      <SketchEditor
+        initialDocument={seed.document}
+        initialEditorState={initialEditorState ?? undefined}
+      />
     </div>
   );
 });

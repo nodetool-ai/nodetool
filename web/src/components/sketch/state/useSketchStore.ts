@@ -32,6 +32,7 @@ import type {
   SelectionSlice,
   UiSlice
 } from "./slices";
+import { normalizeSketchDocument, type HistoryEntry, type Point, type SketchDocument, type SketchTool } from "../types";
 
 export { SKETCH_ZOOM_MIN, SKETCH_ZOOM_MAX };
 
@@ -50,3 +51,32 @@ export const useSketchStore = create<SketchStore>((...a) => ({
   ...createSelectionSlice(...a),
   ...createUiSlice(...a)
 }));
+
+export interface PersistedSketchStoreState {
+  document: SketchDocument;
+  activeTool?: SketchTool;
+  zoom?: number;
+  pan?: Point;
+  history?: HistoryEntry[];
+  historyIndex?: number;
+}
+
+export function hydrateSketchStore(state: PersistedSketchStoreState): void {
+  const normalized = normalizeSketchDocument(state.document);
+  useSketchStore.setState({
+    document: normalized,
+    toolSettings: normalized.toolSettings,
+    activeTool: state.activeTool ?? "select",
+    transientMoveModifierHeld: false,
+    zoom:
+      typeof state.zoom === "number"
+        ? Math.max(SKETCH_ZOOM_MIN, Math.min(SKETCH_ZOOM_MAX, state.zoom))
+        : 1,
+    pan: state.pan ?? { x: 0, y: 0 },
+    history: state.history ?? [],
+    historyIndex: typeof state.historyIndex === "number" ? state.historyIndex : -1,
+    isDrawing: false,
+    selectedLayerIds: [],
+    layerShiftRangeAnchorId: null
+  });
+}

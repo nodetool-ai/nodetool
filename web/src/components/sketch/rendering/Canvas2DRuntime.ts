@@ -26,6 +26,7 @@ import {
   deserializeLayerData,
   getLayerDataFromCanvas
 } from "./canvas2d/layerIO";
+import { resolveAssetUri } from "../../node/output/hooks";
 import {
   combineMasks,
   trimSelectionMask,
@@ -354,7 +355,7 @@ export class Canvas2DRuntime implements SketchRuntime {
     // For HTTP(S) URLs, use fetch + createImageBitmap for off-main-thread
     // decoding. This reduces main-thread blocking during editor startup when
     // multiple imageReference layers load simultaneously.
-    const imageSrc = decoded.image;
+    const imageSrc = resolveAssetUri(decoded.image);
     if (
       typeof createImageBitmap === "function" &&
       (imageSrc.startsWith("http://") ||
