@@ -154,6 +154,11 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           boxShadow: "0 0 3px rgba(0, 0, 0, 0.1)",
           marginRight: "4px",
           flexShrink: 0,
+          // Hit target must be this div (not nested SVG), otherwise React Flow / d3-drag may not
+          // treat the gesture as starting on `.node-drag-handle` in some browsers.
+          "& *": {
+            pointerEvents: "none"
+          },
           "& svg": {
             transform: "scale(0.9)"
           }
@@ -285,14 +290,11 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         setIsEditingTitle(true);
         return;
       }
-      /** No header icon: collapse/expand from the title strip (e.g. Preview). */
-      if (!showIcon) {
-        event.stopPropagation();
-        event.preventDefault();
-        toggleCollapsed();
-      }
+      event.stopPropagation();
+      event.preventDefault();
+      toggleCollapsed();
     },
-    [isTitleEditable, showIcon, toggleCollapsed]
+    [isTitleEditable, toggleCollapsed]
   );
 
   const handleTitleKeyDown = useCallback(
@@ -370,7 +372,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       <FlexRow className="header-left" gap={1} align="center">
         {hasIcon && showIcon && (
           <div
-            className="node-icon nodrag nopan"
+            className="node-icon node-drag-handle"
             style={iconBackgroundStyle}
             onDoubleClick={handleIconDoubleClick}
           >

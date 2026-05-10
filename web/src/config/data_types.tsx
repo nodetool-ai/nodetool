@@ -83,27 +83,41 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   asset,
   audio,
   bool,
+  bytes: file,
   chunk,
+  collection: database,
   dataframe,
   dict,
   enum: _enum,
+  embedding_model: tensor,
   file,
   float,
+  font: documentIcon,
   folder,
   image,
+  image_size: language_model,
   int,
   list,
   model,
   model_ref: model,
   language_model,
+  llama_cpp_model: language_model,
+  llama_model: language_model,
+  mistral_model: language_model,
   image_model,
+  model_3d_model: model_3d,
+  none: notype,
   str,
   tensor,
   text,
   message: thread_message,
+  torch_tensor: tensor,
+  tts_model: audio,
+  asr_model: audio,
+  video_model: video,
   union,
   video,
-  database,
+  "tjs.cached": language_model,
   task,
   thread,
   workflow: dataframe,
@@ -429,6 +443,90 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "tensor"
   },
   {
+    value: "asr_model",
+    label: "ASR Model",
+    description:
+      "Reference to an automatic speech recognition model for transcribing audio.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "model"
+  },
+  {
+    value: "bytes",
+    label: "Bytes",
+    description:
+      "Raw binary data (e.g. downloaded file bodies). Typically converted to assets or decoded downstream.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "InsertDriveFile"
+  },
+  {
+    value: "collection",
+    label: "Collection",
+    description:
+      "Reference to a vector / document collection used for retrieval and indexing (e.g. RAG).",
+    color: colour("collection"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "Storage"
+  },
+  {
+    value: "font",
+    label: "Font",
+    description:
+      "Font asset reference (e.g. for video subtitles or rasterized text overlays). Behaves like other asset-backed pins.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "TextFields"
+  },
+  {
+    value: "image_size",
+    label: "Image size",
+    description:
+      "Structured width/height (and related) dimensions for generation or preprocessing nodes.",
+    color: colour("scalar"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "AspectRatio"
+  },
+  {
+    value: "llama_cpp_model",
+    label: "Llama.cpp model",
+    description:
+      "Reference to a local GGUF / llama.cpp–compatible checkpoint for LlamaCpp-backed nodes.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "ViewInAr"
+  },
+  {
+    value: "llama_model",
+    label: "Llama model (HF)",
+    description:
+      "Reference to a Hugging Face/transformers-compatible Llama-family model selector.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "ViewInAr"
+  },
+  {
     value: "message",
     label: "Message",
     description:
@@ -441,10 +539,22 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "Message"
   },
   {
-    value: "taesd",
-    label: "TAESD",
+    value: "mistral_model",
+    label: "Mistral model",
     description:
-      "Tiny Autoencoder for Stable Diffusion. Enables fast image previews during generation.",
+      "Reference to a Mistral model for nodes that expose provider-specific selectors.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "ViewInAr"
+  },
+  {
+    value: "model_3d_model",
+    label: "3D pipeline model",
+    description:
+      "Provider selector for 3D generation APIs (e.g. Meshy), distinct from an output model_3d asset.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -453,16 +563,16 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "ModelTraining"
   },
   {
-    value: "database",
-    label: "Database",
+    value: "none",
+    label: "None",
     description:
-      "Connection to a database for storing and querying structured data.",
-    color: colour("reference"),
-    textColor: "var(--palette-action-active)",
+      "No meaningful output value — used for nodes that exist for side effects (e.g. delete/move) rather than wiring data onward.",
+    color: colour("execution"),
+    textColor: "dark",
     name: "",
     slug: "",
     namespace: "",
-    icon: "Database"
+    icon: "NotInterested"
   },
   {
     value: "task",
@@ -505,6 +615,54 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     label: "Image Model",
     description:
       "Reference to an image generation or processing model for visual AI tasks.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "model"
+  },
+  {
+    value: "tjs.cached",
+    label: "Transformers.js model (tjs.*)",
+    description:
+      "Cached Transformers.js / ONNX hub model selectors. Ports use runtime-specific names such as tjs.text_generation or tjs.text_classification; they behave like model references for browser-side inference.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "ViewInAr"
+  },
+  {
+    value: "torch_tensor",
+    label: "Torch tensor",
+    description:
+      "PyTorch-backed tensor blob (often latents). Used mainly by Hugging Face–side nodes and Python interoperability.",
+    color: colour("matrix"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "DataObject"
+  },
+  {
+    value: "tts_model",
+    label: "TTS model",
+    description:
+      "Reference to a text-to-speech model for speech synthesis pipelines.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "model"
+  },
+  {
+    value: "video_model",
+    label: "Video model",
+    description:
+      "Reference to a video generation or processing model selector.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -600,6 +758,37 @@ const NODETOOL_DATA_TYPES: DataType[] = [
 let DATA_TYPES: DataType[] = [...NODETOOL_DATA_TYPES, ...COMFY_DATA_TYPES];
 const DATA_TYPE_MAP: Record<string, DataType> = {};
 
+/** Resolved built-in datatype for coloring, icons, and Help blurbs (includes tjs.* family). */
+function bundledDataTypeForTypeName(normalizedBaseName: string): DataType | undefined {
+  const direct = DATA_TYPE_MAP[normalizedBaseName];
+  if (direct) {
+    return direct;
+  }
+  if (
+    normalizedBaseName.startsWith("tjs.") &&
+    normalizedBaseName !== "tjs.cached" &&
+    DATA_TYPE_MAP["tjs.cached"]
+  ) {
+    return DATA_TYPE_MAP["tjs.cached"];
+  }
+  return undefined;
+}
+
+/** SVG React icon key — supports tjs.* → tjs.cached. */
+function svgIconComponentKey(normalizedBaseName: string): string {
+  if (iconMap[normalizedBaseName]) {
+    return normalizedBaseName;
+  }
+  if (
+    normalizedBaseName.startsWith("tjs.") &&
+    normalizedBaseName !== "tjs.cached" &&
+    iconMap["tjs.cached"]
+  ) {
+    return "tjs.cached";
+  }
+  return normalizedBaseName;
+}
+
 type IconProps = React.SVGProps<SVGSVGElement> & {
   containerStyle?: React.CSSProperties;
   bgStyle?: React.CSSProperties;
@@ -626,8 +815,13 @@ const iconStyles = (_theme: Theme) => ({
 });
 
 export function datatypeByName(name: string): DataType | null {
-  const normalizedName = normalizeTypeName(name);
-  return DATA_TYPE_MAP[normalizedName] || DATA_TYPE_MAP["notype"] || null;
+  const stripped = name.replace(/^nodetool\./, "");
+  const normalizedName = normalizeTypeName(stripped);
+  const hit = bundledDataTypeForTypeName(normalizedName);
+  if (hit) {
+    return hit;
+  }
+  return DATA_TYPE_MAP["notype"] ?? null;
 }
 
 interface IconForTypeProps extends IconProps {
@@ -662,9 +856,13 @@ export const IconForType = memo(function IconForType({
   const normalizedName = normalizeTypeName(name);
   const dataType = datatypeByName(normalizedName);
   const description = dataType?.description || "";
-  const IconComponent = normalizedName
-    ? iconMap[normalizedName] || iconMap["any"] || iconMap["notype"]
-    : iconMap["notype"];
+  const svgKey = normalizedName
+    ? svgIconComponentKey(normalizedName)
+    : "notype";
+  const IconComponent =
+    svgKey && iconMap[svgKey]
+      ? iconMap[svgKey]
+      : iconMap["any"] || iconMap["notype"];
   const resolvedSize = `${ICON_SIZE_MAP[iconSize] ?? ICON_SIZE_MAP.normal}px`;
 
   const iconInner = (
@@ -726,27 +924,23 @@ export const IconForType = memo(function IconForType({
 isEqual);
 
 export function colorForType(type: string): string {
-  const normalizedType = normalizeTypeName(type);
-  const foundType = DATA_TYPE_MAP[normalizedType];
-  return foundType?.color || stringToColor(type);
+  const n = normalizeTypeName(type.replace(/^nodetool\./, ""));
+  return bundledDataTypeForTypeName(n)?.color || stringToColor(type);
 }
 
 export function textColorForType(type: string): string {
-  const normalizedType = normalizeTypeName(type);
-  const foundType = DATA_TYPE_MAP[normalizedType];
-  return foundType?.textColor || "#eee";
+  const n = normalizeTypeName(type.replace(/^nodetool\./, ""));
+  return bundledDataTypeForTypeName(n)?.textColor || "#eee";
 }
 
 export function descriptionForType(type: string): string {
-  const normalizedType = normalizeTypeName(type);
-  const foundType = DATA_TYPE_MAP[normalizedType];
-  return foundType?.description || "";
+  const n = normalizeTypeName(type.replace(/^nodetool\./, ""));
+  return bundledDataTypeForTypeName(n)?.description || "";
 }
 
 export function labelForType(type: string): string {
-  const normalizedType = normalizeTypeName(type);
-  const foundType = DATA_TYPE_MAP[normalizedType];
-  return foundType?.label || "";
+  const n = normalizeTypeName(type.replace(/^nodetool\./, ""));
+  return bundledDataTypeForTypeName(n)?.label || "";
 }
 
 // Alphabetical ordering for ease of lookup
