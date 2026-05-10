@@ -157,6 +157,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
   const isChatActive = currentPath.startsWith("/chat");
   const isAppActive = currentPath.startsWith("/apps");
   const isSketchActive = currentPath.startsWith("/sketch");
+  const isTimelineActive = currentPath.startsWith("/timeline");
 
   const handleEditorClick = useCallback(async () => {
     if (currentWorkflowId) {
@@ -213,6 +214,26 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
     }
   }, [navigate]);
 
+  const handleTimelineClick = useCallback(async () => {
+    try {
+      const seqs = await trpcClient.timeline.list.query({});
+      if (seqs.length > 0) {
+        const mostRecent = seqs.reduce((acc, cur) =>
+          cur.updatedAt > acc.updatedAt ? cur : acc
+        );
+        navigate(`/timeline/${mostRecent.id}`);
+        return;
+      }
+      const created = await trpcClient.timeline.create.mutate({
+        name: "Untitled sequence",
+        projectId: "default"
+      });
+      navigate(`/timeline/${created.id}`);
+    } catch (error) {
+      console.error("Failed to open Timeline:", error);
+    }
+  }, [navigate]);
+
   return (
     <div className="mode-pills">
       <Tooltip title="Editor" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
@@ -251,6 +272,18 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
             <span>App</span>
           </button>
         </span>
+      </Tooltip>
+      <Tooltip title="Timeline" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
+        <button
+          className={`mode-pill ${isTimelineActive ? "active" : ""}`}
+          onClick={handleTimelineClick}
+          tabIndex={-1}
+          aria-current={isTimelineActive ? "page" : undefined}
+          aria-label="Timeline"
+          data-testid="timeline-mode-pill"
+        >
+          <span>Timeline</span>
+        </button>
       </Tooltip>
       <Tooltip title="Image Editor" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
         <button
