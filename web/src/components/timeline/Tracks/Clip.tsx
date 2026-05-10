@@ -22,7 +22,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import LockIcon from "@mui/icons-material/Lock";
 
-import type { TimelineClip, ClipStatus } from "@nodetool-ai/timeline";
+import type { TimelineClip, TimelineTrack, ClipStatus } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
   useTimelineUIStore,
@@ -40,6 +40,19 @@ import type { ClipGenerationState, ClipErrorState } from "../status/clipStatusRe
 import { useClipThumbnails } from "./useClipThumbnails";
 import { useAudioPeaks } from "./useAudioPeaks";
 import { samplePeaksWindow } from "./audioPeaks";
+import { isCompatibleWithTrack } from "../dnd/assetToClipAdapter";
+
+/** Clip-side wrapper: TimelineClip.mediaType also includes "overlay";
+ *  treat those as video-track-compatible. */
+function isClipCompatibleWithTrack(
+  clipMediaType: TimelineClip["mediaType"],
+  trackType: TimelineTrack["type"]
+): boolean {
+  if (clipMediaType === "overlay") {
+    return trackType === "video" || trackType === "overlay";
+  }
+  return isCompatibleWithTrack(clipMediaType, trackType);
+}
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -369,87 +382,136 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       }
       e.preventDefault();
       e.stopPropagation();
-      e.currentTarget.setPointerCapture(e.pointerId);
+
+      // We use window-level pointer listeners (not setPointerCapture on this
+      // element) because moveClip(id, _, toTrackId) re-parents the clip into
+      // a different TrackLane mid-drag, which would unmount the captured
+      // element and abort the gesture. Window listeners survive remounts.
       dragStartXRef.current = e.clientX;
       dragStartMsRef.current = clip.startMs;
       isDraggingRef.current = false;
-    },
-    [clip, activeTool, msPerPx, splitClipAtTime]
-  );
 
-  const handleDragPointerMove = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!clip || clip.locked || e.buttons !== 1) {
-        return;
-      }
-      const deltaPx = e.clientX - dragStartXRef.current;
-      if (!isDraggingRef.current && Math.abs(deltaPx) < 3) {
-        return;
-      }
-      isDraggingRef.current = true;
-      const disableSnap = e.altKey;
+      const onMove = (ev: PointerEvent) => {
+        if (ev.buttons !== 1) return;
+        const freshClip = useTimelineStore
+          .getState()
+          .clips.find((c) => c.id === clipId);
+        if (!freshClip || freshClip.locked) return;
 
-      // Build snap candidates lazily — avoids subscribing to allClips/currentTimeMs
-      // in render, which would re-render every Clip on any clip state change.
-      const { clips: allClips, durationMs } = useTimelineStore.getState();
-      const { currentTimeMs } = useTimelinePlaybackStore.getState();
-      const snapCandidatesSet = new Set<number>();
-      snapCandidatesSet.add(currentTimeMs);
-      for (let t = 0; t <= durationMs + 1000; t += 1000) {
-        snapCandidatesSet.add(t);
-      }
-      for (const c of allClips) {
-        if (c.id !== clip.id) {
-          snapCandidatesSet.add(c.startMs);
-          snapCandidatesSet.add(c.startMs + c.durationMs);
+        const deltaPx = ev.clientX - dragStartXRef.current;
+        if (!isDraggingRef.current && Math.abs(deltaPx) < 3) {
+          return;
         }
-      }
-      const snapCandidates = Array.from(snapCandidatesSet);
+        isDraggingRef.current = true;
+        const disableSnap = ev.altKey;
 
-      // Compute a position-independent delta: how many ms the pointer has moved
-      // from drag-start, minus any drift already applied to clip.startMs by
-      // previous frames. This avoids accumulating floating-point error across
-      // many intermediate PointerMove events.
-      const pointerMs = deltaPx * msPerPx;
-      const alreadyAppliedMs = clip.startMs - dragStartMsRef.current;
-      const adjustedDeltaMs = pointerMs - alreadyAppliedMs;
+        const { clips: allClips, durationMs } = useTimelineStore.getState();
+        const { currentTimeMs } = useTimelinePlaybackStore.getState();
+        const snapCandidatesSet = new Set<number>();
+        snapCandidatesSet.add(currentTimeMs);
+        for (let t = 0; t <= durationMs + 1000; t += 1000) {
+          snapCandidatesSet.add(t);
+        }
+        for (const c of allClips) {
+          if (c.id !== freshClip.id) {
+            snapCandidatesSet.add(c.startMs);
+            snapCandidatesSet.add(c.startMs + c.durationMs);
+          }
+        }
+        const snapCandidates = Array.from(snapCandidatesSet);
 
-      // Read selection lazily to avoid re-subscribing the entire Clip on selection changes.
-      const { selectedClipIds } = useTimelineUIStore.getState();
+        const pointerMs = deltaPx * msPerPx;
+        const alreadyAppliedMs = freshClip.startMs - dragStartMsRef.current;
+        const adjustedDeltaMs = pointerMs - alreadyAppliedMs;
 
-      if (isSelected && selectedClipIds.size > 1) {
-        moveSelectedClips(
-          clip.id,
-          selectedClipIds,
-          adjustedDeltaMs,
-          undefined,
-          snapCandidates,
-          msPerPx,
-          disableSnap
-        );
-      } else {
-        moveClip(
-          clip.id,
-          adjustedDeltaMs,
-          undefined,
-          snapCandidates,
-          msPerPx,
-          disableSnap
-        );
-      }
+        const { selectedClipIds } = useTimelineUIStore.getState();
+        const isMulti =
+          selectedClipIds.has(freshClip.id) && selectedClipIds.size > 1;
+
+        // Cross-track hit-test (single-clip drags only). Commit the track
+        // change immediately so the clip visually follows the cursor into
+        // the new lane.
+        let crossTrackTargetId: string | undefined;
+        if (!isMulti) {
+          const elements = document.elementsFromPoint(ev.clientX, ev.clientY);
+          let foundLaneId: string | null = null;
+          for (const el of elements) {
+            if (!(el instanceof HTMLElement)) continue;
+            const lane = el.closest<HTMLElement>(
+              "[data-testid^='track-lane-']"
+            );
+            if (lane) {
+              foundLaneId =
+                lane.dataset.testid?.slice("track-lane-".length) ?? null;
+              break;
+            }
+          }
+          if (foundLaneId && foundLaneId !== freshClip.trackId) {
+            const targetTrack = useTimelineStore
+              .getState()
+              .tracks.find((t) => t.id === foundLaneId);
+            if (
+              targetTrack &&
+              !targetTrack.locked &&
+              isClipCompatibleWithTrack(freshClip.mediaType, targetTrack.type)
+            ) {
+              crossTrackTargetId = targetTrack.id;
+            }
+          }
+        }
+
+        if (isMulti) {
+          moveSelectedClips(
+            freshClip.id,
+            selectedClipIds,
+            adjustedDeltaMs,
+            undefined,
+            snapCandidates,
+            msPerPx,
+            disableSnap
+          );
+        } else {
+          moveClip(
+            freshClip.id,
+            adjustedDeltaMs,
+            crossTrackTargetId,
+            snapCandidates,
+            msPerPx,
+            disableSnap
+          );
+        }
+      };
+
+      const onUpOrCancel = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUpOrCancel);
+        window.removeEventListener("pointercancel", onUpOrCancel);
+        // Defer dragging flag reset so the synthetic click that follows
+        // pointerup is still suppressed by handleClick.
+        const wasDragging = isDraggingRef.current;
+        if (wasDragging) {
+          setTimeout(() => {
+            isDraggingRef.current = false;
+          }, 0);
+        } else {
+          isDraggingRef.current = false;
+        }
+      };
+
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUpOrCancel);
+      window.addEventListener("pointercancel", onUpOrCancel);
     },
     [
       clip,
+      activeTool,
       msPerPx,
-      isSelected,
+      splitClipAtTime,
+      clipId,
       moveClip,
       moveSelectedClips
     ]
   );
-
-  const handleDragPointerUp = useCallback(() => {
-    isDraggingRef.current = false;
-  }, []);
 
   // ── Click (selection) ───────────────────────────────────────────────────
 
@@ -573,8 +635,6 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       derivedStatus={derivedStatus}
       statusInfo={statusInfo}
       handleDragPointerDown={handleDragPointerDown}
-      handleDragPointerMove={handleDragPointerMove}
-      handleDragPointerUp={handleDragPointerUp}
       handleClick={handleClick}
       handleTrimStartPointerDown={handleTrimStartPointerDown}
       handleTrimStartPointerMove={handleTrimStartPointerMove}
@@ -593,8 +653,6 @@ interface ClipBodyProps {
   derivedStatus: ClipStatus;
   statusInfo: typeof CLIP_STATUS_MAP[ClipStatus];
   handleDragPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
-  handleDragPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
-  handleDragPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   handleTrimStartPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimStartPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
@@ -611,8 +669,6 @@ const ClipBody: React.FC<ClipBodyProps> = ({
   derivedStatus,
   statusInfo,
   handleDragPointerDown,
-  handleDragPointerMove,
-  handleDragPointerUp,
   handleClick,
   handleTrimStartPointerDown,
   handleTrimStartPointerMove,
@@ -716,8 +772,6 @@ const ClipBody: React.FC<ClipBodyProps> = ({
       css={clipStyles(theme, isSelected, clip.locked)}
       style={{ left: leftPx, width: widthPx, cursor: cutMode ? "crosshair" : undefined }}
       onPointerDown={handleDragPointerDown}
-      onPointerMove={handleDragPointerMove}
-      onPointerUp={handleDragPointerUp}
       onClick={handleClick}
       data-testid={`clip-${clipId}`}
       aria-selected={isSelected}
