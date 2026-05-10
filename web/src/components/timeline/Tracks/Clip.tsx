@@ -152,12 +152,21 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
 
     if (!peaks || !durationMs) return;
 
-    const barCount = Math.max(1, Math.floor(cssWidth / 2));
+    // Visible audio window is the intersection of [inPointMs, outPointMs]
+    // with the source [0, durationMs]. Anything beyond the source renders
+    // as empty space rather than stretching the waveform.
+    const visibleInMs = Math.max(0, Math.min(durationMs, inPointMs));
+    const visibleOutMs = Math.max(visibleInMs, Math.min(durationMs, outPointMs));
+    const clipSpanMs = Math.max(1, outPointMs - inPointMs);
+    const visibleSpanMs = visibleOutMs - visibleInMs;
+    const visibleWidthPx = cssWidth * (visibleSpanMs / clipSpanMs);
+
+    const barCount = Math.max(1, Math.floor(visibleWidthPx / 2));
     const slice = samplePeaksWindow(
       peaks,
       durationMs,
-      inPointMs,
-      outPointMs,
+      visibleInMs,
+      visibleOutMs,
       barCount
     );
     const mid = cssHeight / 2;
@@ -165,8 +174,8 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
     for (let i = 0; i < slice.length; i += 1) {
       const amp = slice[i];
       const h = Math.max(1, amp * (cssHeight - 2));
-      const x = (i / slice.length) * cssWidth;
-      const w = Math.max(1, cssWidth / slice.length - 0.5);
+      const x = (i / slice.length) * visibleWidthPx;
+      const w = Math.max(1, visibleWidthPx / slice.length - 0.5);
       ctx.fillRect(x, mid - h / 2, w, h);
     }
   }, [peaks, durationMs, inPointMs, outPointMs, widthPx, theme]);
@@ -253,6 +262,41 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const trimClipEnd = useTimelineStore((s) => s.trimClipEnd);
   const splitClipAtTime = useTimelineStore((s) => s.splitClipAtTime);
   const activeTool = useTimelineUIStore((s) => s.activeTool);
+
+  // Source-duration cap for trim-end. Only enforced for audio clips —
+  // extending past the source has no sensible result (the playback engine
+  // stops at outPointMs and the waveform visually stretches).
+  //
+  // We resolve the URL here and decode the buffer via useAudioPeaks so the
+  // cap reflects the *actual* decoded duration rather than asset metadata
+  // (which can be null for some assets). The result is cached per URL.
+  const getAssetFromStore = useAssetStore((s) => s.get);
+  const [resolvedAudioUrl, setResolvedAudioUrl] = useState<string | undefined>(
+    undefined
+  );
+  useEffect(() => {
+    if (clip?.mediaType !== "audio" || !clip.currentAssetId) {
+      setResolvedAudioUrl(undefined);
+      return;
+    }
+    let cancelled = false;
+    getAssetFromStore(clip.currentAssetId)
+      .then((asset) => {
+        if (!cancelled) setResolvedAudioUrl(getAssetUrl(asset) ?? undefined);
+      })
+      .catch(() => {
+        // Asset unavailable — leave cap unset; trim falls back to free behavior.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [clip?.mediaType, clip?.currentAssetId, getAssetFromStore]);
+
+  const { durationMs: decodedAudioDurationMs } = useAudioPeaks(resolvedAudioUrl);
+  const audioSourceDurationMs =
+    clip?.mediaType === "audio" && decodedAudioDurationMs
+      ? decodedAudioDurationMs
+      : undefined;
 
   // ── Derived status (PRD §5.5) ────────────────────────────────────────────
 
@@ -505,10 +549,10 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       e.stopPropagation();
       const deltaPx = e.clientX - trimEndRef.current.startX;
       const deltaMs = deltaPx * msPerPx;
-      trimClipEnd(clip.id, deltaMs);
+      trimClipEnd(clip.id, deltaMs, audioSourceDurationMs);
       trimEndRef.current.startX = e.clientX;
     },
-    [clip, msPerPx, trimClipEnd]
+    [clip, msPerPx, trimClipEnd, audioSourceDurationMs]
   );
 
   if (!clip) {

@@ -122,7 +122,11 @@ export interface TimelineStoreState {
    * Throws (and no-ops) if the result would produce a non-positive duration.
    */
   trimClipStart: (clipId: string, deltaMs: number) => void;
-  trimClipEnd: (clipId: string, deltaMs: number) => void;
+  trimClipEnd: (
+    clipId: string,
+    deltaMs: number,
+    maxSourceDurationMs?: number
+  ) => void;
 
   /** Split the clip at the given time. The clip must contain that time. */
   splitClipAtTime: (clipId: string, atMs: number) => void;
@@ -454,14 +458,24 @@ export const createTimelineStore = (
             }
           }),
 
-        trimClipEnd: (clipId, deltaMs) =>
+        trimClipEnd: (clipId, deltaMs, maxSourceDurationMs) =>
           set((state) => {
             const clip = state.clips.find((c) => c.id === clipId);
             if (!clip) {
               return state;
             }
             try {
-              const trimmed = trimClip(clip, "end", deltaMs);
+              // Clamp deltaMs so that outPointMs cannot exceed source duration.
+              let clampedDelta = deltaMs;
+              if (maxSourceDurationMs !== undefined) {
+                const currentOutPointMs =
+                  clip.outPointMs ?? (clip.inPointMs ?? 0) + clip.durationMs;
+                const maxGrow = maxSourceDurationMs - currentOutPointMs;
+                if (clampedDelta > maxGrow) {
+                  clampedDelta = Math.max(0, maxGrow);
+                }
+              }
+              const trimmed = trimClip(clip, "end", clampedDelta);
               return {
                 clips: state.clips.map((c) =>
                   c.id === clipId ? trimmed : c

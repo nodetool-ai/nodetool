@@ -37,6 +37,7 @@ import { PlaybackClock } from "./PlaybackClock";
 import { AudioGraph } from "./AudioGraph";
 import { PreviewCompositor } from "./PreviewCompositor";
 import { getAssetUrl } from "../../../utils/assetHelpers";
+import { useCombo } from "../../../stores/KeyPressedStore";
 
 function formatTimecode(timeMs: number, fps: number): string {
   const totalFrames = Math.floor((timeMs / 1000) * fps);
@@ -129,18 +130,26 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
   ({ fps = 30, sequenceWidth = 1920, sequenceHeight = 1080 }) => {
     const theme = useTheme();
 
-    const { currentTimeMs, isPlaying, play, pause, stop, setCurrentTimeMs } =
-      useTimelinePlaybackStore(
-        (s) => ({
-          currentTimeMs: s.currentTimeMs,
-          isPlaying: s.isPlaying,
-          play: s.play,
-          pause: s.pause,
-          stop: s.stop,
-          setCurrentTimeMs: s.setCurrentTimeMs
-        }),
-        shallow
-      );
+    const {
+      currentTimeMs,
+      isPlaying,
+      play,
+      pause,
+      stop,
+      setCurrentTimeMs,
+      seekNonce
+    } = useTimelinePlaybackStore(
+      (s) => ({
+        currentTimeMs: s.currentTimeMs,
+        isPlaying: s.isPlaying,
+        play: s.play,
+        pause: s.pause,
+        stop: s.stop,
+        setCurrentTimeMs: s.setCurrentTimeMs,
+        seekNonce: s.seekNonce
+      }),
+      shallow
+    );
 
     const { clips, tracks, durationMs } = useTimelineStore(
       (s) => ({
@@ -184,7 +193,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           (c.status === "generated" ||
             c.status === "stale" ||
             c.status === "locked") &&
-          c.startMs < startMs + c.durationMs &&
           c.startMs + c.durationMs > startMs
       );
 
@@ -230,6 +238,20 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       graphRef.current.stopAll();
       graphRef.current.suspend();
     }, [stop]);
+
+    // On external seek while playing, restart audio scheduling + clock at the
+    // new position so audio re-aligns with the playhead. We key on seekNonce
+    // (bumped only by store.seek()) so frame-by-frame clock updates don't
+    // trigger a restart.
+    useEffect(() => {
+      if (seekNonce === 0 || !isPlaying) {
+        return;
+      }
+      graphRef.current.stopAll();
+      void handlePlay();
+      // handlePlay reads the latest currentTimeMs from the store.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [seekNonce]);
 
     const handlePlayPauseToggle = useCallback(() => {
       if (isPlaying) {
@@ -317,13 +339,11 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       }
     }, []);
 
+    useCombo([" "], handlePlayPauseToggle);
+
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLDivElement>) => {
         switch (e.key) {
-          case " ":
-            e.preventDefault();
-            handlePlayPauseToggle();
-            break;
           case "ArrowLeft":
             e.preventDefault();
             if (e.shiftKey) {

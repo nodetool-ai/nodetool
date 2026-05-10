@@ -134,30 +134,39 @@ export class AudioGraph {
       clipGain.gain.value = volumeLinear;
 
       const now = ctx.currentTime;
+      // Schedule the clip's start on the audio clock. If the clip begins in
+      // the future (relative to the playhead), defer src.start; otherwise
+      // start immediately with a buffer offset for mid-clip seeks.
+      const clipLeadSec = Math.max(0, (clip.startMs - currentTimeMs) / 1000);
+      const bufferOffsetSec =
+        Math.max(0, currentTimeMs - clip.startMs) / 1000 +
+        (clip.inPointMs ?? 0) / 1000;
+      const remainingMs =
+        clip.startMs + clip.durationMs - Math.max(currentTimeMs, clip.startMs);
+      const durationSec = Math.max(0, remainingMs / 1000);
+      const startAt = now + clipLeadSec;
+
       if (clip.fadeInMs && clip.fadeInMs > 0) {
         const fadeEndMs = clip.startMs + clip.fadeInMs;
         if (currentTimeMs < fadeEndMs) {
           // Ramp from the interpolated in-progress gain to full volume.
           const offsetInFadeMs = Math.max(0, currentTimeMs - clip.startMs);
           const startGain = volumeLinear * (offsetInFadeMs / clip.fadeInMs);
-          const remainingSec = (fadeEndMs - currentTimeMs) / 1000;
-          clipGain.gain.setValueAtTime(startGain, now);
-          clipGain.gain.linearRampToValueAtTime(volumeLinear, now + remainingSec);
+          const remainingSec = (fadeEndMs - Math.max(currentTimeMs, clip.startMs)) / 1000;
+          clipGain.gain.setValueAtTime(startGain, startAt);
+          clipGain.gain.linearRampToValueAtTime(volumeLinear, startAt + remainingSec);
         } else {
-          // Past the fade-in region — pin explicitly to volumeLinear.
-          clipGain.gain.setValueAtTime(volumeLinear, now);
+          clipGain.gain.setValueAtTime(volumeLinear, startAt);
         }
       }
 
-      // Fade-out envelope.
       if (clip.fadeOutMs && clip.fadeOutMs > 0) {
-        const clipEndSec =
-          (clip.startMs + clip.durationMs - currentTimeMs) / 1000;
+        const clipEndAt = startAt + durationSec;
         const fadeSec = clip.fadeOutMs / 1000;
-        const fadeOutStartSec = Math.max(0, clipEndSec - fadeSec);
-        if (fadeOutStartSec < clipEndSec) {
-          clipGain.gain.setValueAtTime(volumeLinear, now + fadeOutStartSec);
-          clipGain.gain.linearRampToValueAtTime(0, now + clipEndSec);
+        const fadeOutStartAt = Math.max(startAt, clipEndAt - fadeSec);
+        if (fadeOutStartAt < clipEndAt) {
+          clipGain.gain.setValueAtTime(volumeLinear, fadeOutStartAt);
+          clipGain.gain.linearRampToValueAtTime(0, clipEndAt);
         }
       }
 
@@ -165,14 +174,7 @@ export class AudioGraph {
       const trackGain = this.getTrackGain(clip.trackId);
       clipGain.connect(trackGain);
 
-      // Offset into the buffer for mid-clip seeks.
-      const clipOffsetMs =
-        currentTimeMs - clip.startMs + (clip.inPointMs ?? 0);
-      const offsetSec = Math.max(0, clipOffsetMs / 1000);
-      const remainingMs = clip.startMs + clip.durationMs - currentTimeMs;
-      const durationSec = Math.max(0, remainingMs / 1000);
-
-      src.start(0, offsetSec, durationSec);
+      src.start(startAt, bufferOffsetSec, durationSec);
 
       this.clipSources.set(clip.id, src);
       this.clipGains.set(clip.id, clipGain);

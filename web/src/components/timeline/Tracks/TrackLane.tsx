@@ -25,6 +25,7 @@ import AddIcon from "@mui/icons-material/Add";
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { Clip } from "./Clip";
 import { ContextMenu, WarningBanner } from "../../ui_primitives";
 import { AddClipMenu } from "../AddClipMenu";
@@ -120,6 +121,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
   const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
   const clearSelection = useTimelineUIStore((s) => s.clearSelection);
+  const seek = useTimelinePlaybackStore((s) => s.seek);
   const setSelection = useTimelineUIStore((s) => s.setSelection);
   const addImportedClip = useTimelineStore((s) => s.addImportedClip);
 
@@ -301,13 +303,18 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
       e.currentTarget.setPointerCapture(e.pointerId);
       const rect = e.currentTarget.getBoundingClientRect();
+      const localX = e.clientX - rect.left;
       rbStartRef.current = {
-        x: e.clientX - rect.left,
+        x: localX,
         y: e.clientY - rect.top
       };
       isRubberBandingRef.current = true;
+
+      // Move the playhead to the clicked position.
+      const timeMs = Math.round((localX + scrollLeftPx) * msPerPx);
+      seek(timeMs);
     },
-    [clearSelection]
+    [clearSelection, scrollLeftPx, msPerPx, seek]
   );
 
   const handleLanePointerMove = useCallback(

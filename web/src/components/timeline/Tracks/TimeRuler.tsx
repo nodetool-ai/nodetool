@@ -128,9 +128,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
 
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
     const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
-    const setCurrentTimeMs = useTimelinePlaybackStore(
-      (s) => s.setCurrentTimeMs
-    );
+    const seek = useTimelinePlaybackStore((s) => s.seek);
     const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
 
     // ── Draw ────────────────────────────────────────────────────────────────
@@ -227,9 +225,9 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
     const handlePointerDown = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
         e.currentTarget.setPointerCapture(e.pointerId);
-        setCurrentTimeMs(pxToMs(e.clientX));
+        seek(pxToMs(e.clientX));
       },
-      [pxToMs, setCurrentTimeMs]
+      [pxToMs, seek]
     );
 
     const handlePointerMove = useCallback(
@@ -237,9 +235,9 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
         if (e.buttons !== 1) {
           return;
         }
-        setCurrentTimeMs(pxToMs(e.clientX));
+        seek(pxToMs(e.clientX));
       },
-      [pxToMs, setCurrentTimeMs]
+      [pxToMs, seek]
     );
 
     return (
