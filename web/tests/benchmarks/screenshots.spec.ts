@@ -781,5 +781,260 @@ if (process.env.JEST_WORKER_ID) {
       }
       await saveScreenshot(page, "mobile-language-model-selection.png");
     });
+
+    // Mobile mini-apps list is a mobile-app-only feature: there is no separate
+    // mini-apps list page in the web app (the mobile dashboard /dashboard is
+    // already captured as dashboard-mobile.png). The placeholder stays in the
+    // docs until the mobile React Native screenshots are wired up.
+
+    // ── Editor surfaces triggered by interaction ───────────────────────────
+    //
+    // These captures need a UI trigger (keyboard shortcut or right-click) to
+    // reveal the surface. They share the editor scaffold from the captures
+    // above but invoke the trigger and wait for the dialog to mount.
+
+    test("Editor – node menu (Space)", async ({ page }) => {
+      test.skip(shouldSkip("editor-node-menu.png"), "Already captured");
+      await openEditorWithNodes(page);
+      // Move pointer onto the canvas first; the Space shortcut anchors the
+      // menu at the cursor.
+      const canvas = page.locator(".react-flow").first();
+      const box = await canvas.boundingBox();
+      if (box) {
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      }
+      await page.keyboard.press(" ").catch(() => {});
+      const menu = page
+        .locator('.node-menu, [class*="NodeMenu"], [data-testid="node-menu"]')
+        .first();
+      await menu
+        .waitFor({ state: "visible", timeout: 5000 })
+        .catch(() => {});
+      await waitForAnimation(page, 500);
+      await saveScreenshot(page, "editor-node-menu.png");
+    });
+
+    test("Editor – find in workflow (Ctrl/Cmd+F)", async ({ page }) => {
+      test.skip(
+        shouldSkip("editor-find-in-workflow.png"),
+        "Already captured"
+      );
+      await openEditorWithNodes(page);
+      // Click the canvas so the editor has focus before sending the shortcut.
+      await page.locator(".react-flow").first().click().catch(() => {});
+      await page.keyboard.press("Control+F").catch(() => {});
+      const dialog = page
+        .locator('[class*="findInWorkflow"], [class*="FindInWorkflow"], [role="dialog"]')
+        .first();
+      const opened = await dialog
+        .waitFor({ state: "visible", timeout: 4000 })
+        .then(() => true)
+        .catch(() => false);
+      if (!opened) {
+        await page.keyboard.press("Meta+F").catch(() => {});
+        await dialog
+          .waitFor({ state: "visible", timeout: 4000 })
+          .catch(() => {});
+      }
+      await waitForAnimation(page, 400);
+      await saveScreenshot(page, "editor-find-in-workflow.png");
+    });
+
+    test("Editor – context menu (right-click)", async ({ page }) => {
+      test.skip(shouldSkip("editor-context-menu.png"), "Already captured");
+      await openEditorWithNodes(page);
+      const node = page.locator(".react-flow__node").first();
+      await node.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
+      await node.click({ button: "right" }).catch(() => {});
+      const menu = page
+        .locator('.MuiMenu-paper, [role="menu"], [class*="ContextMenu"]')
+        .first();
+      await menu
+        .waitFor({ state: "visible", timeout: 4000 })
+        .catch(() => {});
+      await waitForAnimation(page, 300);
+      await saveScreenshot(page, "editor-context-menu.png");
+    });
+
+    test("Editor – workflow assistant", async ({ page }) => {
+      test.skip(
+        shouldSkip("editor-workflow-assistant.png"),
+        "Already captured"
+      );
+      await openEditorWithNodes(page, {
+        right: { visible: true, activeView: "assistant" }
+      });
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "editor-workflow-assistant.png");
+    });
+
+    // ── Component-preview captures ─────────────────────────────────────────
+    //
+    // Each preview route renders a single dialog/modal pre-opened so we can
+    // capture it without driving a complex UI trigger.
+
+    type PreviewSpec = {
+      preview: string;
+      filename: string;
+      ready?: (page: Page) => Promise<void>;
+      viewport?: { width: number; height: number };
+    };
+
+    const previewSpecs: PreviewSpec[] = [
+      {
+        preview: "confirm-dialog",
+        filename: "confirm-dialog.png",
+        ready: async (p) => {
+          await p
+            .getByRole("button", { name: /delete|confirm/i })
+            .first()
+            .waitFor({ state: "visible", timeout: 8000 })
+            .catch(() => {});
+        }
+      },
+      {
+        preview: "color-picker",
+        filename: "color-picker.png",
+        ready: async (p) => {
+          await p
+            .getByText(/swatches|harmony|gradient/i)
+            .first()
+            .waitFor({ state: "visible", timeout: 8000 })
+            .catch(() => {});
+        }
+      },
+      {
+        preview: "text-editor",
+        filename: "text-code-editor.png",
+        ready: async (p) => {
+          // Monaco editor mounts asynchronously; wait for the textarea or its
+          // scroll container before capturing.
+          await p
+            .locator(".monaco-editor, .view-lines, textarea")
+            .first()
+            .waitFor({ state: "visible", timeout: 15000 })
+            .catch(() => {});
+          await waitForAnimation(p, 600);
+        }
+      },
+      {
+        preview: "dataframe-editor",
+        filename: "dataframe-editor.png",
+        ready: async (p) => {
+          await p
+            .getByText(/Wireless Headphones|Yoga Mat|Hooded Sweatshirt/i)
+            .first()
+            .waitFor({ state: "visible", timeout: 8000 })
+            .catch(() => {});
+        }
+      },
+      {
+        preview: "image-compare",
+        filename: "image-compare.png",
+        ready: async (p) => {
+          await p
+            .locator('img[alt="Before"], img[alt="After"]')
+            .first()
+            .waitFor({ state: "visible", timeout: 12000 })
+            .catch(() => {});
+          await waitForAnimation(p, 400);
+        }
+      },
+      {
+        preview: "recommended-models",
+        filename: "recommended-models.png",
+        ready: async (p) => {
+          await p
+            .getByText(/Stable Diffusion XL Base|FLUX\.1 Schnell/i)
+            .first()
+            .waitFor({ state: "visible", timeout: 8000 })
+            .catch(() => {});
+        }
+      },
+      {
+        preview: "delete-model",
+        filename: "model-delete-confirm.png",
+        ready: async (p) => {
+          await p
+            .getByText(/Confirm Deletion|Delete .*stable-diffusion/i)
+            .first()
+            .waitFor({ state: "visible", timeout: 8000 })
+            .catch(() => {});
+        }
+      },
+      {
+        preview: "download-manager",
+        filename: "download-manager.png",
+        ready: async (p) => {
+          await p
+            .getByText(/Model Downloads|Download Progress|Recommended Models/i)
+            .first()
+            .waitFor({ state: "visible", timeout: 8000 })
+            .catch(() => {});
+        }
+      },
+      {
+        preview: "node-readme",
+        filename: "node-readme.png",
+        ready: async (p) => {
+          // Wait for node title or description block to render.
+          await p
+            .locator('[data-preview="node-readme"]')
+            .first()
+            .waitFor({ state: "visible", timeout: 8000 })
+            .catch(() => {});
+          await waitForAnimation(p, 400);
+        }
+      },
+      {
+        preview: "workflow-form",
+        filename: "workflow-form.png",
+        ready: async (p) => {
+          await p
+            .getByLabel(/name|description/i)
+            .first()
+            .waitFor({ state: "visible", timeout: 8000 })
+            .catch(() => {});
+        }
+      },
+      {
+        preview: "workflow-delete",
+        filename: "workflow-delete.png",
+        ready: async (p) => {
+          await p
+            .getByRole("button", { name: /delete|confirm/i })
+            .first()
+            .waitFor({ state: "visible", timeout: 8000 })
+            .catch(() => {});
+        }
+      },
+      {
+        preview: "vibecoding-modal",
+        filename: "vibecoding-modal.png",
+        ready: async (p) => {
+          await p
+            .getByText(/VibeCoding|Story Generator/i)
+            .first()
+            .waitFor({ state: "visible", timeout: 8000 })
+            .catch(() => {});
+          await waitForAnimation(p, 600);
+        }
+      }
+    ];
+
+    for (const spec of previewSpecs) {
+      test(`Preview – ${spec.preview}`, async ({ page }) => {
+        test.skip(shouldSkip(spec.filename), "Already captured");
+        if (spec.viewport) {
+          await page.setViewportSize(spec.viewport);
+        }
+        await gotoPage(page, `/preview/${spec.preview}`);
+        if (spec.ready) {
+          await spec.ready(page);
+        }
+        await waitForAnimation(page, 600);
+        await saveScreenshot(page, spec.filename);
+      });
+    }
   });
 }
