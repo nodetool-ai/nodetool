@@ -23,7 +23,8 @@ import {
   type SketchPersistenceSnapshot
 } from "./persistence";
 
-import type { ImageDocumentData } from "@nodetool-ai/protocol/api-schemas/sketch";
+import type { sketch } from "@nodetool-ai/protocol/api-schemas";
+type ImageDocumentData = sketch.ImageDocumentData;
 
 type SketchDocumentResponse = Awaited<ReturnType<typeof trpcClient.sketch.get.query>>;
 
@@ -261,7 +262,7 @@ async function saveSnapshot(documentId: string, name: string): Promise<void> {
       backgroundColor: prepared.sketch.canvas.backgroundColor,
       baseUpdatedAt: store.baseUpdatedAt ?? undefined,
       document: {
-        sketch: prepared.sketch as ImageDocumentData["sketch"],
+        sketch: prepared.sketch as unknown as ImageDocumentData["sketch"],
         layerBindings
       }
     });

@@ -117,6 +117,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@openai/codex-sdk": "^0.118.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^4.1.2",
@@ -126,12 +127,12 @@
     "tsx": "^4.0.0",
     "turbo": "^2.9.6",
     "typescript-eslint": "^8.56.1",
-    "vitest": "^4.1.2",
-    "@openai/codex-sdk": "^0.118.0"
+    "vitest": "^4.1.2"
   },
   "dependencies": {
     "keytar": "^7.9.0",
-    "msgpackr": "^1.11.9"
+    "msgpackr": "^1.11.9",
+    "ts-node": "^10.9.2"
   },
   "engines": {
     "node": ">=22.0.0 <23.0.0"
