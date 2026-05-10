@@ -135,10 +135,17 @@ export interface TimelineStoreState {
   splitSelectedAtPlayhead: (currentTimeMs: number, selectedIds: Set<string>) => void;
 
   /**
-   * Duplicate selected clips (offset by `offsetMs`, default 0 = placed at same
-   * start — callers should apply a reasonable offset).
+   * Duplicate selected clips. Each duplicate is placed immediately after its
+   * source clip (startMs = source.startMs + source.durationMs + offsetMs).
+   * Default `offsetMs` of 0 means "right after"; pass a positive value to add
+   * a gap between source and duplicate.
+   *
+   * Returns the IDs of the newly created clips so callers can update selection.
    */
-  duplicateSelected: (selectedIds: Set<string>, offsetMs?: number) => void;
+  duplicateSelected: (
+    selectedIds: Set<string>,
+    offsetMs?: number
+  ) => string[];
 
   /** Delete selected clips. */
   deleteSelected: (selectedIds: Set<string>) => void;
@@ -166,6 +173,10 @@ export interface TimelineStoreState {
    * Duplicate a clip. Both the source and the duplicate reference the same
    * source workflow id; their `paramOverrides` are independent. Tweak the
    * duplicate's overrides to get a variation.
+   *
+   * The duplicate is placed immediately after the source clip
+   * (startMs = source.startMs + source.durationMs + deltaMs). Default
+   * `deltaMs` of 0 means "right after"; pass a positive value for a gap.
    */
   duplicateClip: (clipId: string, deltaMs?: number) => Promise<string>;
 
@@ -528,19 +539,24 @@ export const createTimelineStore = (
             return { clips: nextClips };
           }),
 
-        duplicateSelected: (selectedIds, offsetMs = 0) =>
+        duplicateSelected: (selectedIds, offsetMs = 0) => {
+          const newIds: string[] = [];
           set((state) => {
             const newClips = state.clips
               .filter((c) => selectedIds.has(c.id))
-              .map((c) =>
-                makeClip({
+              .map((c) => {
+                const id = createTimeOrderedUuid();
+                newIds.push(id);
+                return makeClip({
                   ...c,
-                  id: createTimeOrderedUuid(),
-                  startMs: c.startMs + offsetMs
-                })
-              );
+                  id,
+                  startMs: c.startMs + c.durationMs + offsetMs
+                });
+              });
             return { clips: [...state.clips, ...newClips] };
-          }),
+          });
+          return newIds;
+        },
 
         deleteSelected: (selectedIds) =>
           set((state) => ({
@@ -612,7 +628,7 @@ export const createTimelineStore = (
             const newClip = makeClip({
               ...currentSrc,
               id: createTimeOrderedUuid(),
-              startMs: currentSrc.startMs + deltaMs,
+              startMs: currentSrc.startMs + currentSrc.durationMs + deltaMs,
               workflowId: currentSrc.workflowId,
               paramOverrides: currentSrc.paramOverrides
                 ? structuredClone(currentSrc.paramOverrides)

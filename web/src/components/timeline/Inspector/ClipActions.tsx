@@ -14,6 +14,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useGenerateClip } from "../../../hooks/timeline/useGenerateClip";
 import { ToolbarIconButton, FlexRow, Text, Dialog, TextInput, Toast } from "../../ui_primitives";
 
@@ -53,6 +54,7 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
     const sequenceId = useTimelineStore((s) => s.sequenceId);
 
     const duplicateClip = useTimelineStore((s) => s.duplicateClip);
+    const selectClip = useTimelineUIStore((s) => s.selectClip);
     const setClipLocked = useTimelineStore((s) => s.setClipLocked);
     const replaceClipOutput = useTimelineStore((s) => s.replaceClipOutput);
     const { generateClip, cancelClipGeneration, isActive, isGenerating } =
@@ -72,7 +74,8 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
       duplicateBusyRef.current = true;
       setDuplicateBusy(true);
       try {
-        await duplicateClip(clipId, duplicateOffsetMs);
+        const newClipId = await duplicateClip(clipId, duplicateOffsetMs);
+        selectClip(newClipId);
       } catch (err) {
         setDuplicateError(
           err instanceof Error ? err.message : "Failed to duplicate clip"
@@ -81,7 +84,7 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
         duplicateBusyRef.current = false;
         setDuplicateBusy(false);
       }
-    }, [clipId, duplicateOffsetMs, duplicateClip]);
+    }, [clipId, duplicateOffsetMs, duplicateClip, selectClip]);
 
     // ── Lock ───────────────────────────────────────────────────────────────
 

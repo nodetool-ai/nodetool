@@ -15,8 +15,8 @@
  *
  * Also registers window-level keyboard shortcuts for clip operations:
  *   Delete/Backspace → deleteSelected
- *   Ctrl+D           → duplicateSelected
- *   Ctrl+Shift+D     → duplicate + shift by clip duration
+ *   Ctrl+D           → duplicateSelected (places duplicate right after source)
+ *   Ctrl+Shift+D     → duplicateSelected with extra 1 s gap after source
  *   S                → splitSelectedAtPlayhead
  *   V / C            → select / cut tool
  *   Ctrl+Z / Ctrl+Y  → undo / redo
@@ -50,7 +50,7 @@ import { assetMediaType } from "../dnd/assetToClipAdapter";
 
 const DEFAULT_TRACK_HEIGHT_PX = 64;
 const ZOOM_SENSITIVITY = 0.001;
-/** Offset applied to duplicated clips when using Ctrl+Shift+D (ms). */
+/** Extra gap (ms) inserted after the source clip when using Ctrl+Shift+D. */
 const DUPLICATE_OFFSET_MS = 1000;
 
 // ── Styles ─────────────────────────────────────────────────────────────────
@@ -112,6 +112,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
     const setActiveTool = useTimelineUIStore((s) => s.setActiveTool);
+    const setSelection = useTimelineUIStore((s) => s.setSelection);
     const deleteSelected = useTimelineStore((s) => s.deleteSelected);
     const duplicateSelected = useTimelineStore((s) => s.duplicateSelected);
     const splitSelectedAtPlayhead = useTimelineStore(
@@ -238,17 +239,19 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           return;
         }
 
-        // Ctrl+D → duplicate selected (same position)
+        // Ctrl+D → duplicate selected (placed right after each source)
         if (isCtrl && e.key === "d" && !e.shiftKey) {
           e.preventDefault();
-          duplicateSelected(selectedClipIds);
+          const newIds = duplicateSelected(selectedClipIds);
+          if (newIds.length > 0) setSelection(newIds);
           return;
         }
 
-        // Ctrl+Shift+D → duplicate + shift by a fixed offset (1 s)
+        // Ctrl+Shift+D → duplicate with an extra 1 s gap after each source
         if (isCtrl && e.shiftKey && e.key === "D") {
           e.preventDefault();
-          duplicateSelected(selectedClipIds, DUPLICATE_OFFSET_MS);
+          const newIds = duplicateSelected(selectedClipIds, DUPLICATE_OFFSET_MS);
+          if (newIds.length > 0) setSelection(newIds);
           return;
         }
 
@@ -294,6 +297,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       selectedClipIds,
       deleteSelected,
       duplicateSelected,
+      setSelection,
       splitSelectedAtPlayhead,
       currentTimeMs,
       setActiveTool

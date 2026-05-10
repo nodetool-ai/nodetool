@@ -290,14 +290,23 @@ describe("TimelineStore — duplicateSelected", () => {
     store = mkStore();
   });
 
-  it("duplicates clips and applies offset", () => {
+  it("places duplicates after source plus offset", () => {
     const { clip } = addTrackAndClip(store, { startMs: 0, durationMs: 2000 });
     store.getState().duplicateSelected(new Set([clip.id]), 500);
     const clips = store.getState().clips;
     expect(clips).toHaveLength(2);
     const duplicate = clips.find((c) => c.id !== clip.id)!;
-    expect(duplicate.startMs).toBe(500);
+    expect(duplicate.startMs).toBe(2500);
     expect(duplicate.durationMs).toBe(2000);
+  });
+
+  it("places duplicate immediately after source when offset is omitted", () => {
+    const { clip } = addTrackAndClip(store, { startMs: 100, durationMs: 1500 });
+    store.getState().duplicateSelected(new Set([clip.id]));
+    const duplicate = store
+      .getState()
+      .clips.find((c) => c.id !== clip.id)!;
+    expect(duplicate.startMs).toBe(1600);
   });
 
   it("duplicated clip has a new unique ID", () => {
@@ -549,12 +558,20 @@ describe("TimelineStore — duplicateClip", () => {
     expect(newClip.workflowId).toBe("wf-123");
   });
 
-  it("applies deltaMs offset to the new clip start", async () => {
+  it("places duplicate after source plus deltaMs offset", async () => {
     const store = mkStore();
     const { clip } = addTrackAndClip(store, { startMs: 500, durationMs: 1000 });
     await store.getState().duplicateClip(clip.id, 2000);
     const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
-    expect(newClip.startMs).toBe(2500);
+    expect(newClip.startMs).toBe(3500);
+  });
+
+  it("places duplicate immediately after source when deltaMs is omitted", async () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, { startMs: 500, durationMs: 1000 });
+    await store.getState().duplicateClip(clip.id);
+    const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
+    expect(newClip.startMs).toBe(1500);
   });
 
   it("gives the duplicate an independent copy of paramOverrides", async () => {
