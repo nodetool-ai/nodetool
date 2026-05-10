@@ -10,7 +10,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import OutputRenderer from "../../node/OutputRenderer";
 import { MiniAppResult } from "../types";
 import { Workflow, Node } from "../../../stores/ApiTypes";
-import type { NodeUIProperties } from "../../../stores/nodeUiDefaults";
+import { parseNodeUIProperties } from "../../../stores/nodeUiDefaults";
 
 interface MiniAppResultsProps {
   results: MiniAppResult[];
@@ -45,7 +45,7 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
     return new Set(
       workflow.graph.nodes
         .filter((node: Node) => {
-          const uiProps = node.ui_properties as NodeUIProperties | undefined;
+          const uiProps = parseNodeUIProperties(node.ui_properties);
           return (
             // Exclude bypassed nodes
             uiProps?.bypassed ||
@@ -75,8 +75,8 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
       (node) => node.type?.includes(".output.")
     );
     const activeOutputNodes = outputNodes.filter((node: Node) => {
-      const uiProps = node.ui_properties as NodeUIProperties | undefined;
-      return !uiProps?.bypassed;
+      const uiProps = parseNodeUIProperties(node.ui_properties);
+      return !uiProps.bypassed;
     });
 
     return {

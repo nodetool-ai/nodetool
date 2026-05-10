@@ -1,7 +1,7 @@
 import { Node } from "@xyflow/react";
 import { Workflow, Node as GraphNode } from "./ApiTypes";
 import { NodeData } from "./NodeData";
-import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
+import { parseNodeUIProperties, DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import useMetadataStore from "./MetadataStore";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
@@ -11,7 +11,7 @@ export function graphNodeToReactFlowNode(
   workflow: Workflow,
   node: GraphNode
 ): Node<NodeData> {
-  const ui_properties = node.ui_properties as NodeUIProperties;
+  const ui_properties = parseNodeUIProperties(node.ui_properties);
   const isCollapsed = ui_properties?.collapsed === true;
   const isPreviewNode = node.type === "nodetool.workflows.base_node.Preview";
   const isCompareImagesNode = node.type === "nodetool.compare.CompareImages";
@@ -80,14 +80,18 @@ export function graphNodeToReactFlowNode(
     }),
     data: {
       properties: (() => {
-        const props = (node.data || {}) as Record<string, unknown>;
+        const raw = node.data;
+        const props: Record<string, unknown> =
+          raw && typeof raw === "object" && !Array.isArray(raw)
+            ? (raw as Record<string, unknown>)
+            : {};
         const meta = useMetadataStore.getState().getMetadata(node.type);
         if (meta?.properties) {
           return applyDefaultModels(props, meta.properties);
         }
         return props;
       })(),
-      dynamic_properties: (node.dynamic_properties || {}) as Record<string, unknown>,
+      dynamic_properties: node.dynamic_properties ?? {},
       dynamic_outputs: node.dynamic_outputs || {},
       sync_mode: node.sync_mode,
       selectable,
