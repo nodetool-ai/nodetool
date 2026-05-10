@@ -6,23 +6,23 @@
  *
  * Renders individual UI components in isolation so Playwright can capture
  * zoomed-in, focused screenshots for documentation without needing the full
- * application context.
- *
- * Usage:
- *   /preview                  - Shows the index of all available previews
- *   /preview/app-header       - The application header bar
- *   /preview/node-menu        - The node search / add-node popup
- *   /preview/chat-composer    - The chat input composer
- *   /preview/model-card       - A single model card
- *   /preview/dashboard-card   - A workflow dashboard card
- *   /preview/settings         - The settings dialog
+ * application context. Each preview pre-opens any dialog/modal that would
+ * normally need a UI trigger so a single navigation produces a clean capture.
  */
 
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Text, Caption, LoadingSpinner, Surface } from "../ui_primitives";
+import {
+  DataframeRef,
+  NodeMetadata,
+  UnifiedModel,
+  Workflow
+} from "../../stores/ApiTypes";
+import useMetadataStore from "../../stores/MetadataStore";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
 const AppHeader = React.lazy(() => import("../panels/AppHeader"));
 const ModelListIndex = React.lazy(
@@ -30,6 +30,36 @@ const ModelListIndex = React.lazy(
 );
 const AssetExplorer = React.lazy(() => import("../assets/AssetExplorer"));
 const Portal = React.lazy(() => import("../portal/Portal"));
+const ConfirmDialog = React.lazy(() => import("../dialogs/ConfirmDialog"));
+const ColorPickerModal = React.lazy(
+  () => import("../color_picker/ColorPickerModal")
+);
+const TextEditorModal = React.lazy(
+  () => import("../properties/TextEditorModal")
+);
+const DataframeEditorModal = React.lazy(
+  () => import("../properties/DataframeEditorModal")
+);
+const ImageComparer = React.lazy(() => import("../widgets/ImageComparer"));
+const RecommendedModels = React.lazy(
+  () => import("../hugging_face/RecommendedModels")
+);
+const DeleteModelDialog = React.lazy(
+  () => import("../hugging_face/model_list/DeleteModelDialog")
+);
+const DownloadManagerDialog = React.lazy(
+  () => import("../hugging_face/DownloadManagerDialog")
+);
+const NodeInfo = React.lazy(() => import("../node_menu/NodeInfo"));
+const VibeCodingModal = React.lazy(
+  () => import("../vibecoding/VibeCodingModal")
+);
+const WorkflowFormModal = React.lazy(
+  () => import("../workflows/WorkflowFormModal")
+);
+const WorkflowDeleteDialog = React.lazy(
+  () => import("../workflows/WorkflowDeleteDialog")
+);
 
 interface PreviewEntry {
   id: string;
@@ -62,8 +92,255 @@ const PREVIEWS: PreviewEntry[] = [
     label: "Asset Explorer",
     description: "Asset browser and file manager",
     viewport: { width: 1920, height: 1080 }
+  },
+  {
+    id: "confirm-dialog",
+    label: "Confirm Dialog",
+    description: "Generic confirm prompt"
+  },
+  {
+    id: "color-picker",
+    label: "Color Picker Modal",
+    description: "Rich color picker with harmony, swatches and gradient"
+  },
+  {
+    id: "text-editor",
+    label: "Text / Code Editor Modal",
+    description: "Expanded editor for long string properties"
+  },
+  {
+    id: "dataframe-editor",
+    label: "DataFrame Editor Modal",
+    description: "Spreadsheet-style editor for tabular properties"
+  },
+  {
+    id: "image-compare",
+    label: "Image Compare",
+    description: "Side-by-side comparison of two images"
+  },
+  {
+    id: "recommended-models",
+    label: "Recommended Models",
+    description: "Recommended-models picker shown for missing models"
+  },
+  {
+    id: "delete-model",
+    label: "Delete Model Confirmation",
+    description: "Safety prompt before removing a model"
+  },
+  {
+    id: "download-manager",
+    label: "Download Manager",
+    description: "Track, retry and pause model downloads"
+  },
+  {
+    id: "node-readme",
+    label: "Node README / Help",
+    description: "In-app documentation for a single node"
+  },
+  {
+    id: "workflow-form",
+    label: "Workflow Form",
+    description: "Edit workflow metadata"
+  },
+  {
+    id: "workflow-delete",
+    label: "Workflow Delete Confirmation",
+    description: "Safe-delete prompt for workflows"
+  },
+  {
+    id: "vibecoding-modal",
+    label: "VibeCoding Modal",
+    description: "AI-assisted custom UI generator"
   }
 ];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const FullscreenBox: React.FC<{
+  preview: string;
+  children: React.ReactNode;
+}> = ({ preview, children }) => (
+  <Box
+    data-preview={preview}
+    sx={{ width: "100%", minHeight: "100vh" }}
+  >
+    <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
+  </Box>
+);
+
+// A UnifiedModel stub used by the recommended-models preview so we don't depend
+// on a backend-supplied list.
+const SAMPLE_RECOMMENDED_MODELS: UnifiedModel[] = [
+  {
+    id: "stabilityai/stable-diffusion-xl-base-1.0",
+    name: "Stable Diffusion XL Base",
+    type: "hf.stable_diffusion_xl",
+    repo_id: "stabilityai/stable-diffusion-xl-base-1.0",
+    description:
+      "High-resolution latent text-to-image diffusion model from Stability AI.",
+    pipeline_tag: "text-to-image",
+    tags: ["stable-diffusion", "text-to-image"],
+    downloads: 12_000_000,
+    likes: 4500,
+    size_on_disk: 6_900_000_000
+  },
+  {
+    id: "black-forest-labs/FLUX.1-schnell",
+    name: "FLUX.1 Schnell",
+    type: "hf.flux",
+    repo_id: "black-forest-labs/FLUX.1-schnell",
+    description:
+      "Fast 12B-parameter rectified flow transformer for state-of-the-art image generation.",
+    pipeline_tag: "text-to-image",
+    tags: ["flux", "text-to-image"],
+    downloads: 1_200_000,
+    likes: 3200,
+    size_on_disk: 24_000_000_000
+  },
+  {
+    id: "openai/whisper-large-v3",
+    name: "Whisper Large v3",
+    type: "hf.whisper",
+    repo_id: "openai/whisper-large-v3",
+    description:
+      "OpenAI's robust multilingual speech-to-text model. Trained on 5M hours.",
+    pipeline_tag: "automatic-speech-recognition",
+    tags: ["asr", "speech-to-text"],
+    downloads: 8_500_000,
+    likes: 2900,
+    size_on_disk: 3_100_000_000
+  }
+];
+
+const SAMPLE_NODE_README: NodeMetadata = {
+  title: "Generate Image (Stable Diffusion)",
+  description:
+    "Generate an image from a text prompt using a Stable Diffusion pipeline.\n\nUse keys: prompt | text | image\n\nThis node loads a Stable Diffusion checkpoint and renders an image at the requested resolution. Adjust the guidance scale to trade prompt fidelity for diversity, and the number of inference steps to trade latency for quality.\n\nUse cases:\n- Concept art and storyboarding\n- Product mock-ups and ad creatives\n- Style exploration",
+  namespace: "nodetool.image.generate",
+  node_type: "nodetool.image.generate.GenerateImage",
+  layout: "default",
+  properties: [
+    {
+      name: "prompt",
+      type: { type: "str" } as never,
+      default: "A cinematic photo of a cat astronaut on the moon",
+      title: "Prompt",
+      description: "The text description of the image to generate."
+    },
+    {
+      name: "negative_prompt",
+      type: { type: "str" } as never,
+      default: "blurry, low quality",
+      title: "Negative prompt",
+      description: "Concepts to discourage from the generated image."
+    },
+    {
+      name: "steps",
+      type: { type: "int" } as never,
+      default: 30,
+      title: "Steps",
+      description: "Number of denoising steps. Higher = better but slower."
+    },
+    {
+      name: "guidance_scale",
+      type: { type: "float" } as never,
+      default: 7.5,
+      title: "Guidance scale",
+      description: "Strength of prompt conditioning."
+    }
+  ] as never,
+  outputs: [
+    {
+      name: "image",
+      type: { type: "image" } as never,
+      stream: false
+    }
+  ] as never,
+  recommended_models: SAMPLE_RECOMMENDED_MODELS,
+  basic_fields: ["prompt", "steps"],
+  required_settings: [],
+  is_dynamic: false,
+  is_streaming_output: false,
+  expose_as_tool: false,
+  supports_dynamic_outputs: false
+};
+
+const SAMPLE_DATAFRAME: DataframeRef = {
+  type: "dataframe",
+  uri: "",
+  columns: [
+    { name: "id", data_type: "int", description: "Row id" },
+    { name: "product", data_type: "string", description: "Product name" },
+    { name: "category", data_type: "string", description: "Category" },
+    { name: "price", data_type: "float", description: "Price (USD)" },
+    { name: "in_stock", data_type: "bool", description: "Availability" }
+  ],
+  data: [
+    [1, "Hooded Sweatshirt", "Apparel", 49.99, true],
+    [2, "Wireless Headphones", "Electronics", 129.0, true],
+    [3, "Ceramic Mug", "Home", 14.5, false],
+    [4, "Notebook (A5)", "Stationery", 8.75, true],
+    [5, "Yoga Mat", "Fitness", 35.0, true],
+    [6, "Espresso Machine", "Kitchen", 219.0, false],
+    [7, "Bluetooth Speaker", "Electronics", 89.99, true],
+    [8, "Travel Backpack", "Apparel", 75.5, true]
+  ]
+};
+
+const SAMPLE_TEXT = `// Pulse Sequencer - emits beat events on a clock signal
+import { Node } from "@nodetool-ai/node-sdk";
+
+interface PulseProps {
+  bpm: number;
+  beats_per_bar: number;
+}
+
+export class PulseSequencer extends Node {
+  static category = "audio.timing";
+
+  bpm = 120;
+  beats_per_bar = 4;
+
+  async *genProcess() {
+    const interval_ms = 60_000 / this.bpm;
+    let beat = 0;
+    while (true) {
+      yield { type: "beat", index: beat % this.beats_per_bar };
+      await new Promise((r) => setTimeout(r, interval_ms));
+      beat += 1;
+    }
+  }
+}
+`;
+
+const SAMPLE_WORKFLOW: Workflow = {
+  id: "wf-preview-stub",
+  user_id: "1",
+  name: "Story Generator",
+  description:
+    "Generate a short illustrated story from a topic and a style.",
+  tags: ["agent", "text"],
+  thumbnail: null,
+  thumbnail_url: null,
+  graph: { nodes: [], edges: [] },
+  settings: null,
+  package_name: null,
+  path: null,
+  run_mode: "workflow",
+  workspace_id: null,
+  html_app: null,
+  access: "private",
+  created_at: "2024-09-01T09:00:00Z",
+  updated_at: "2024-09-15T14:33:00Z"
+};
+
+// Two public placeholder images keep the comparer working without backend
+// assets — chosen for visual contrast so the slider position is obvious.
+const SAMPLE_IMAGE_A =
+  "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=900&q=80&auto=format&fit=crop";
+const SAMPLE_IMAGE_B =
+  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=900&q=80&auto=format&fit=crop";
 
 // ─── Individual preview renderers ─────────────────────────────────────────────
 
@@ -82,28 +359,240 @@ const PreviewAppHeader: React.FC = () => {
 };
 
 const PreviewDashboard: React.FC = () => (
-  <Box data-preview="dashboard" sx={{ width: "100%", height: "100vh" }}>
-    <Suspense fallback={<LoadingSpinner />}>
-      <Portal />
-    </Suspense>
-  </Box>
+  <FullscreenBox preview="dashboard">
+    <Portal />
+  </FullscreenBox>
 );
 
 const PreviewModels: React.FC = () => (
-  <Box data-preview="models" sx={{ width: "100%", height: "100vh" }}>
-    <Suspense fallback={<LoadingSpinner />}>
-      <ModelListIndex />
+  <FullscreenBox preview="models">
+    <ModelListIndex />
+  </FullscreenBox>
+);
+
+const PreviewAssets: React.FC = () => (
+  <FullscreenBox preview="assets">
+    <AssetExplorer />
+  </FullscreenBox>
+);
+
+const PreviewConfirmDialog: React.FC = () => (
+  <Box data-preview="confirm-dialog" sx={{ width: "100%", height: "100vh" }}>
+    <Suspense fallback={null}>
+      <ConfirmDialog
+        open
+        onClose={() => undefined}
+        onConfirm={() => undefined}
+        title="Delete this workflow?"
+        content="This action cannot be undone. The workflow and its run history will be removed from the workspace."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </Suspense>
   </Box>
 );
 
-const PreviewAssets: React.FC = () => (
-  <Box data-preview="assets" sx={{ width: "100%", height: "100vh" }}>
-    <Suspense fallback={<LoadingSpinner />}>
-      <AssetExplorer />
+const PreviewColorPicker: React.FC = () => (
+  <Box data-preview="color-picker" sx={{ width: "100%", height: "100vh" }}>
+    <Suspense fallback={null}>
+      <ColorPickerModal
+        color="#7c5cff"
+        alpha={1}
+        onChange={() => undefined}
+        onClose={() => undefined}
+      />
     </Suspense>
   </Box>
 );
+
+const PreviewTextEditor: React.FC = () => (
+  <Box data-preview="text-editor" sx={{ width: "100%", height: "100vh" }}>
+    <Suspense fallback={null}>
+      <TextEditorModal
+        value={SAMPLE_TEXT}
+        onChange={() => undefined}
+        onClose={() => undefined}
+        propertyName="code"
+        propertyDescription="TypeScript source for a custom node"
+        language="typescript"
+      />
+    </Suspense>
+  </Box>
+);
+
+const PreviewDataframeEditor: React.FC = () => (
+  <Box data-preview="dataframe-editor" sx={{ width: "100%", height: "100vh" }}>
+    <Suspense fallback={null}>
+      <DataframeEditorModal
+        value={SAMPLE_DATAFRAME}
+        onChange={() => undefined}
+        onClose={() => undefined}
+        propertyName="catalog"
+        propertyDescription="Sample product catalog"
+      />
+    </Suspense>
+  </Box>
+);
+
+const PreviewImageCompare: React.FC = () => (
+  <Box
+    data-preview="image-compare"
+    sx={{ width: "100%", height: "100vh", position: "relative" }}
+  >
+    <Suspense fallback={<LoadingSpinner />}>
+      <ImageComparer
+        imageA={SAMPLE_IMAGE_A}
+        imageB={SAMPLE_IMAGE_B}
+        labelA="Before"
+        labelB="After"
+      />
+    </Suspense>
+  </Box>
+);
+
+const PreviewRecommendedModels: React.FC = () => {
+  const theme = useTheme();
+  return (
+    <Box
+      data-preview="recommended-models"
+      sx={{
+        width: "100%",
+        minHeight: "100vh",
+        p: 4,
+        bgcolor: theme.palette.background.paper
+      }}
+    >
+      <Text size="big" weight={700} sx={{ mb: 1 }}>
+        Recommended Models
+      </Text>
+      <Text size="small" color="secondary" sx={{ mb: 3 }}>
+        These models are recommended for the selected node.
+      </Text>
+      <Suspense fallback={<LoadingSpinner />}>
+        <RecommendedModels
+          recommendedModels={SAMPLE_RECOMMENDED_MODELS}
+          startDownload={() => undefined}
+        />
+      </Suspense>
+    </Box>
+  );
+};
+
+const PreviewDeleteModel: React.FC = () => (
+  <Box data-preview="delete-model" sx={{ width: "100%", height: "100vh" }}>
+    <Suspense fallback={null}>
+      <DeleteModelDialog
+        modelId="stabilityai/stable-diffusion-xl-base-1.0"
+        onClose={() => undefined}
+      />
+    </Suspense>
+  </Box>
+);
+
+const PreviewDownloadManager: React.FC = () => {
+  const openDialog = useModelDownloadStore((s) => s.openDialog);
+  useEffect(() => {
+    openDialog();
+  }, [openDialog]);
+  return (
+    <Box data-preview="download-manager" sx={{ width: "100%", height: "100vh" }}>
+      <Suspense fallback={null}>
+        <DownloadManagerDialog />
+      </Suspense>
+    </Box>
+  );
+};
+
+const PreviewNodeReadme: React.FC = () => {
+  const theme = useTheme();
+  // Prefer real metadata from the store if it has loaded — otherwise fall back
+  // to the bundled sample so the preview always renders meaningful content.
+  const metadata = useMetadataStore((s) => s.metadata);
+  const sample = useMemo(() => {
+    const candidate =
+      metadata?.["nodetool.agents.Agent"] ??
+      metadata?.["nodetool.input.StringInput"] ??
+      Object.values(metadata ?? {})[0];
+    return candidate ?? SAMPLE_NODE_README;
+  }, [metadata]);
+
+  return (
+    <Box
+      data-preview="node-readme"
+      sx={{
+        width: "100%",
+        minHeight: "100vh",
+        p: 4,
+        bgcolor: theme.palette.background.default
+      }}
+    >
+      <Box
+        sx={{
+          maxWidth: 720,
+          mx: "auto",
+          bgcolor: theme.palette.background.paper,
+          borderRadius: 2,
+          border: `1px solid ${theme.palette.divider}`,
+          overflow: "hidden"
+        }}
+      >
+        <Suspense fallback={<LoadingSpinner />}>
+          <NodeInfo nodeMetadata={sample} showConnections={true} />
+        </Suspense>
+      </Box>
+    </Box>
+  );
+};
+
+const PreviewWorkflowForm: React.FC = () => (
+  <Box data-preview="workflow-form" sx={{ width: "100%", height: "100vh" }}>
+    <Suspense fallback={null}>
+      <WorkflowFormModal
+        open
+        onClose={() => undefined}
+        workflow={SAMPLE_WORKFLOW}
+        availableTags={["agent", "image", "audio", "rag", "demo"]}
+      />
+    </Suspense>
+  </Box>
+);
+
+const PreviewWorkflowDelete: React.FC = () => (
+  <Box data-preview="workflow-delete" sx={{ width: "100%", height: "100vh" }}>
+    <Suspense fallback={null}>
+      <WorkflowDeleteDialog
+        open
+        onClose={() => undefined}
+        workflowsToDelete={[SAMPLE_WORKFLOW]}
+      />
+    </Suspense>
+  </Box>
+);
+
+const PreviewVibeCodingModal: React.FC = () => {
+  // Seed an html_app so the preview pane has content instead of a blank state.
+  const seeded: Workflow = {
+    ...SAMPLE_WORKFLOW,
+    html_app:
+      "<!doctype html><html><head><title>Story</title>" +
+      "<style>body{font-family:system-ui;margin:0;padding:24px;background:#0e0e10;color:#eee}" +
+      "h1{color:#7c5cff;margin:0 0 12px}.card{background:#1a1a1d;padding:16px;border-radius:8px;max-width:520px}</style>" +
+      "</head><body><h1>Story Generator</h1><div class=\"card\"><p>Topic</p>" +
+      "<input style=\"width:100%;padding:8px;background:#0e0e10;color:#eee;border:1px solid #333;border-radius:4px\" value=\"Two robots discover they can dream\"/>" +
+      "<button style=\"margin-top:12px;padding:8px 16px;background:#7c5cff;color:#fff;border:0;border-radius:4px\">Generate</button></div></body></html>"
+  };
+  return (
+    <Box data-preview="vibecoding-modal" sx={{ width: "100%", height: "100vh" }}>
+      <Suspense fallback={null}>
+        <VibeCodingModal
+          open
+          workflow={seeded}
+          onClose={() => undefined}
+        />
+      </Suspense>
+    </Box>
+  );
+};
 
 // ─── Preview index page ────────────────────────────────────────────────────────
 
@@ -186,7 +675,19 @@ const COMPONENT_MAP: Record<string, React.FC> = {
   "app-header": PreviewAppHeader,
   dashboard: PreviewDashboard,
   models: PreviewModels,
-  assets: PreviewAssets
+  assets: PreviewAssets,
+  "confirm-dialog": PreviewConfirmDialog,
+  "color-picker": PreviewColorPicker,
+  "text-editor": PreviewTextEditor,
+  "dataframe-editor": PreviewDataframeEditor,
+  "image-compare": PreviewImageCompare,
+  "recommended-models": PreviewRecommendedModels,
+  "delete-model": PreviewDeleteModel,
+  "download-manager": PreviewDownloadManager,
+  "node-readme": PreviewNodeReadme,
+  "workflow-form": PreviewWorkflowForm,
+  "workflow-delete": PreviewWorkflowDelete,
+  "vibecoding-modal": PreviewVibeCodingModal
 };
 
 const ComponentPreview: React.FC = () => {

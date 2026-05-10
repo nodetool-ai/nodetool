@@ -150,7 +150,7 @@ Docs: [Editor Panels → Left Panel]({{ '/editor-panels#left-panel' | relative_u
 
 Search, browse categories, and insert nodes onto the canvas.
 
-![Node Menu](assets/screenshots/screenshot-placeholder.svg)
+![Node Menu](assets/screenshots/editor-node-menu.png)
 
 Docs: [Workflow Editor → Finding Nodes]({{ '/workflow-editor#finding-nodes' | relative_url }})
 
@@ -198,7 +198,7 @@ Docs: [Workflow Editor → Multiple Workflows]({{ '/workflow-editor#multiple-wor
 
 Right-click menus for every object on the canvas.
 
-![Context Menu](assets/screenshots/screenshot-placeholder.svg)
+![Context Menu](assets/screenshots/editor-context-menu.png)
 
 Docs: [Workflow Editor → Context Menus]({{ '/workflow-editor#context-menus' | relative_url }})
 
@@ -206,7 +206,7 @@ Docs: [Workflow Editor → Context Menus]({{ '/workflow-editor#context-menus' | 
 
 Dialog for searching within the current workflow.
 
-![Find in Workflow](assets/screenshots/screenshot-placeholder.svg)
+![Find in Workflow](assets/screenshots/editor-find-in-workflow.png)
 
 Docs: [Workflow Editor → Finding Nodes]({{ '/workflow-editor#finding-nodes' | relative_url }})
 
@@ -222,7 +222,7 @@ Docs: [User Interface → Command Menu]({{ '/user-interface#command-menu' | rela
 
 Side-panel chat that can read and modify the open workflow.
 
-![Workflow Assistant](assets/screenshots/screenshot-placeholder.svg)
+![Workflow Assistant](assets/screenshots/editor-workflow-assistant.png)
 
 Docs: [Global Chat → Workflow Integration]({{ '/global-chat#workflow-integration' | relative_url }})
 
@@ -230,7 +230,7 @@ Docs: [Global Chat → Workflow Integration]({{ '/global-chat#workflow-integrati
 
 AI-assisted custom UI generator for workflows.
 
-![VibeCoding](assets/screenshots/screenshot-placeholder.svg)
+![VibeCoding](assets/screenshots/vibecoding-modal.png)
 
 Docs: [VibeCoding]({{ '/vibecoding' | relative_url }})
 
@@ -260,7 +260,7 @@ Docs: [Configuration → API Keys]({{ '/configuration#api-keys' | relative_url }
 
 Opens from the "Missing Model" indicator on nodes.
 
-![Recommended Models](assets/screenshots/screenshot-placeholder.svg)
+![Recommended Models](assets/screenshots/recommended-models.png)
 
 Docs: [Models Manager → Recommended Models]({{ '/models-manager#recommended-models' | relative_url }})
 
@@ -276,7 +276,7 @@ Docs: [Models & Providers]({{ '/models-and-providers' | relative_url }})
 
 Track, retry, and pause model and asset downloads.
 
-![Download Manager](assets/screenshots/screenshot-placeholder.svg)
+![Download Manager](assets/screenshots/download-manager.png)
 
 Docs: [Models Manager → Downloading Models]({{ '/models-manager#downloading-models' | relative_url }})
 
@@ -292,7 +292,7 @@ Docs: [HuggingFace Integration]({{ '/huggingface' | relative_url }})
 
 Safety prompt before removing a model from the local cache.
 
-![Delete Model](assets/screenshots/screenshot-placeholder.svg)
+![Delete Model](assets/screenshots/model-delete-confirm.png)
 
 Docs: [Models Manager → Managing Models]({{ '/models-manager#managing-models' | relative_url }})
 
@@ -308,7 +308,7 @@ Docs: [Getting Started]({{ '/getting-started' | relative_url }})
 
 Edit workflow metadata — name, description, thumbnail, tags.
 
-![Workflow Form](assets/screenshots/screenshot-placeholder.svg)
+![Workflow Form](assets/screenshots/workflow-form.png)
 
 Docs: [Workflow Editor]({{ '/workflow-editor' | relative_url }})
 
@@ -316,7 +316,7 @@ Docs: [Workflow Editor]({{ '/workflow-editor' | relative_url }})
 
 Safe delete with an undo window.
 
-![Workflow Delete](assets/screenshots/screenshot-placeholder.svg)
+![Workflow Delete](assets/screenshots/workflow-delete.png)
 
 Docs: [Workflow Editor]({{ '/workflow-editor' | relative_url }})
 
@@ -348,7 +348,7 @@ Docs: [Configuration]({{ '/configuration' | relative_url }})
 
 Generic yes/no prompt used across the app.
 
-![Confirm](assets/screenshots/screenshot-placeholder.svg)
+![Confirm](assets/screenshots/confirm-dialog.png)
 
 Docs: N/A — reusable primitive.
 
@@ -356,7 +356,7 @@ Docs: N/A — reusable primitive.
 
 Side-by-side comparison for before/after image workflows.
 
-![Image Compare](assets/screenshots/screenshot-placeholder.svg)
+![Image Compare](assets/screenshots/image-compare.png)
 
 Docs: [Image Editor]({{ '/image-editor' | relative_url }})
 
@@ -364,7 +364,7 @@ Docs: [Image Editor]({{ '/image-editor' | relative_url }})
 
 Rich color picker with harmony, swatches, gradients, and contrast check.
 
-![Color Picker](assets/screenshots/screenshot-placeholder.svg)
+![Color Picker](assets/screenshots/color-picker.png)
 
 Docs: [Workflow Editor → Color Picker]({{ '/workflow-editor#color-picker' | relative_url }})
 
@@ -372,7 +372,7 @@ Docs: [Workflow Editor → Color Picker]({{ '/workflow-editor#color-picker' | re
 
 Expanded editor for long string properties with syntax highlight.
 
-![Text Editor](assets/screenshots/screenshot-placeholder.svg)
+![Text Editor](assets/screenshots/text-code-editor.png)
 
 Docs: [Workflow Editor]({{ '/workflow-editor' | relative_url }})
 
@@ -380,7 +380,7 @@ Docs: [Workflow Editor]({{ '/workflow-editor' | relative_url }})
 
 Inline spreadsheet-style editor for tabular properties.
 
-![DataFrame Editor](assets/screenshots/screenshot-placeholder.svg)
+![DataFrame Editor](assets/screenshots/dataframe-editor.png)
 
 Docs: [Workflow Editor]({{ '/workflow-editor' | relative_url }})
 
@@ -396,7 +396,7 @@ Docs: [Image Editor]({{ '/image-editor' | relative_url }})
 
 Documentation viewer for individual nodes and the "What's this?" tooltips.
 
-![Node Help](assets/screenshots/screenshot-placeholder.svg)
+![Node Help](assets/screenshots/node-readme.png)
 
 Docs: [Node Reference]({{ '/nodes/' | relative_url }})
 
