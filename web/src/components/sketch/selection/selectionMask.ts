@@ -132,7 +132,7 @@ export function selectionHasAnyPixels(sel: Selection | null): boolean {
     return false;
   }
   for (let i = 0; i < sel.data.length; i++) {
-    if (sel.data[i] >= THRESH) {
+    if (sel.data[i] > 0) {
       return true;
     }
   }
@@ -155,10 +155,10 @@ export function selectionHitTest(
   docX: number,
   docY: number
 ): boolean {
-  return sampleMask(sel, Math.floor(docX), Math.floor(docY)) >= THRESH;
+  return sampleMask(sel, Math.floor(docX), Math.floor(docY)) > 0;
 }
 
-/** Axis-aligned bounds of pixels with alpha ≥ threshold. */
+/** Axis-aligned bounds of pixels with any mask alpha (includes feather tails). */
 export function getSelectionBounds(
   sel: Selection
 ): { x: number; y: number; width: number; height: number } | null {
@@ -173,7 +173,7 @@ export function getSelectionBounds(
   for (let y = 0; y < h; y++) {
     const row = y * w;
     for (let x = 0; x < w; x++) {
-      if (data[row + x] >= THRESH) {
+      if (data[row + x] > 0) {
         if (x < minX) {
           minX = x;
         }
@@ -527,8 +527,8 @@ export function combineMasks(
 
 /**
  * Trim a selection mask down to the smallest bounding box that still contains
- * active pixels (mask values >= 128). Returns `null` when the mask has no
- * active pixels. The trimmed result preserves document placement by adding the
+ * any nonzero alpha (including feather tails). Returns `null` when the mask has
+ * no active pixels. The trimmed result preserves document placement by adding the
  * trimmed offset to `originX` / `originY`.
  */
 export function trimSelectionMask(sel: Selection | null): Selection | null {
@@ -835,7 +835,11 @@ export function polygonToBinaryMask(
   return out;
 }
 
-/** Approximate Gaussian feather via repeated box blur + renormalize peaks to 255. */
+/**
+ * Approximate Gaussian feather via repeated box blur.
+ * Values are clamped to 0–255 without peak renormalization (Photoshop-like:
+ * thin selections stay softer in the middle instead of being contrast-stretched).
+ */
 export function featherMaskAlpha(mask: Selection, radiusPx: number): void {
   const r = Math.max(0, Math.min(64, Math.round(radiusPx)));
   if (r <= 0) {
@@ -853,15 +857,8 @@ export function featherMaskAlpha(mask: Selection, radiusPx: number): void {
     horizontalBoxBlurFloat(cur, tmp, w, h, r);
     verticalBoxBlurFloat(tmp, cur, w, h, r);
   }
-  let peak = 0;
   for (let i = 0; i < n; i++) {
-    if (cur[i] > peak) {
-      peak = cur[i];
-    }
-  }
-  const scale = peak > 1e-6 ? 255 / peak : 0;
-  for (let i = 0; i < n; i++) {
-    data[i] = Math.max(0, Math.min(255, Math.round(cur[i] * scale)));
+    data[i] = Math.max(0, Math.min(255, Math.round(cur[i])));
   }
 }
 

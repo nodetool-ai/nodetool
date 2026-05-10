@@ -19,7 +19,19 @@ import {
   trimSelectionMask
 } from "../../selection";
 
-const MAX_SELECTION_MUTATION_PADDING = 64;
+/** Max pad around ROI for blur-like ops; must cover ~3× feather radius for edges. */
+const MAX_SELECTION_MUTATION_PADDING = 256;
+
+/** Extra blur bleed beyond nominal feather radius (box blur × 3 passes). */
+const FEATHER_MUTATION_PAD_FACTOR = 3;
+
+function featherMutationPaddingPx(featherRadius: number): number {
+  const r = Math.max(0, Math.round(featherRadius));
+  return Math.min(
+    MAX_SELECTION_MUTATION_PADDING,
+    Math.ceil(r * FEATHER_MUTATION_PAD_FACTOR)
+  );
+}
 const MAX_SELECTION_BORDER_WIDTH = 64;
 
 /**
@@ -198,13 +210,7 @@ export const createSelectionSlice: StateCreator<
     }
     const copy = cloneSelectionRegion(
       sel!,
-      Math.max(
-        0,
-        Math.min(
-          MAX_SELECTION_MUTATION_PADDING,
-          Math.round(state.toolSettings.select.featherRadius)
-        )
-      )
+      featherMutationPaddingPx(state.toolSettings.select.featherRadius)
     );
     featherMaskAlpha(copy, state.toolSettings.select.featherRadius);
     get().setSelection(finalizeMutatedSelection(copy));

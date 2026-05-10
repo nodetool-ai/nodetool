@@ -235,10 +235,10 @@ describe("selectionHasAnyPixels", () => {
     expect(selectionHasAnyPixels(null)).toBe(false);
   });
 
-  it("returns false when all values are just below threshold (127)", () => {
+  it("returns true when all values are uniform feather tails (127)", () => {
     const sel = createEmptyMask(4, 4);
     sel.data.fill(127);
-    expect(selectionHasAnyPixels(sel)).toBe(false);
+    expect(selectionHasAnyPixels(sel)).toBe(true);
   });
 
   it("returns true when any value is exactly at threshold (128)", () => {

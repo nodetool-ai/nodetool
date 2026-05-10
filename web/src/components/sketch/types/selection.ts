@@ -8,7 +8,9 @@
 
 /**
  * Document-space selection: `data` is a byte grid (0–255) of size `width×height`.
- * Values ≥ 128 are treated as selected for tools and marching ants.
+ * Values ≥ 128 are used for marching ants / edge detection; any value > 0 is
+ * treated as active selection and included in bounds / hit-testing so feather
+ * tails behave consistently when painting.
  * Optional `originX` / `originY` place the grid's (0,0) cell at document
  * coordinates; omit or use 0 when the buffer aligns with the canvas top-left
  * (normal marquee / wand). Used when moving a selection so pixels are not lost
