@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { formatFileSize, getSizeCategory, SIZE_FILTERS, type SizeFilterKey } from '../formatUtils';
+import { formatFileSize, SIZE_FILTERS, type SizeFilterKey } from '../formatUtils';
 
 describe('formatFileSize', () => {
   test('formats bytes correctly', () => {
@@ -68,38 +68,6 @@ describe('formatFileSize', () => {
     expect(formatFileSize(1023)).toBe('1023 B');
     expect(formatFileSize(1024)).toBe('1 KB');
     expect(formatFileSize(1025)).toBe('1 KB');
-  });
-});
-
-describe('getSizeCategory', () => {
-  test('categorizes empty files', () => {
-    expect(getSizeCategory(0)).toBe('empty');
-  });
-
-  test('categorizes small files (< 1MB)', () => {
-    expect(getSizeCategory(1)).toBe('small');
-    expect(getSizeCategory(1024)).toBe('small'); // 1 KB
-    expect(getSizeCategory(1024 * 100)).toBe('small'); // 100 KB
-    expect(getSizeCategory(1024 * 1024 - 1)).toBe('small'); // Just under 1 MB
-  });
-
-  test('categorizes medium files (1-10MB)', () => {
-    expect(getSizeCategory(1024 * 1024)).toBe('medium'); // 1 MB
-    expect(getSizeCategory(1024 * 1024 * 5)).toBe('medium'); // 5 MB
-    expect(getSizeCategory(1024 * 1024 * 10 - 1)).toBe('medium'); // Just under 10 MB
-  });
-
-  test('categorizes large files (10-100MB)', () => {
-    expect(getSizeCategory(1024 * 1024 * 10)).toBe('large'); // 10 MB
-    expect(getSizeCategory(1024 * 1024 * 50)).toBe('large'); // 50 MB
-    expect(getSizeCategory(1024 * 1024 * 100 - 1)).toBe('large'); // Just under 100 MB
-  });
-
-  test('categorizes extra large files (> 100MB)', () => {
-    expect(getSizeCategory(1024 * 1024 * 100)).toBe('xlarge'); // 100 MB
-    expect(getSizeCategory(1024 * 1024 * 500)).toBe('xlarge'); // 500 MB
-    expect(getSizeCategory(1024 * 1024 * 1024)).toBe('xlarge'); // 1 GB
-    expect(getSizeCategory(1024 * 1024 * 1024 * 10)).toBe('xlarge'); // 10 GB
   });
 });
 

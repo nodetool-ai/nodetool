@@ -20,7 +20,7 @@ const SELECT_NODE_TYPES = [
 /**
  * Checks if a node type is a Select node (outputs enum-like type).
  */
-export function isSelectNodeType(nodeType: string): boolean {
+function isSelectNodeType(nodeType: string): boolean {
   return SELECT_NODE_TYPES.includes(nodeType);
 }
 
@@ -28,7 +28,7 @@ export function isSelectNodeType(nodeType: string): boolean {
  * Gets the effective output type for a Select node based on its properties.
  * Returns an enum TypeMetadata with type_name and values from the node's properties.
  */
-export function getSelectNodeEffectiveOutputType(
+function getSelectNodeEffectiveOutputType(
   node: Node<NodeData>
 ): TypeMetadata {
   const props = node.data.properties || {};

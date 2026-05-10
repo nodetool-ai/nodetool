@@ -1,6 +1,5 @@
 import {
-  validateIdentifierName,
-  startsWithNumber
+  validateIdentifierName
 } from "../identifierValidation";
 
 describe("validateIdentifierName", () => {
@@ -86,26 +85,3 @@ describe("validateIdentifierName", () => {
   });
 });
 
-describe("startsWithNumber", () => {
-  it("returns true for names starting with numbers", () => {
-    expect(startsWithNumber("1output")).toBe(true);
-    expect(startsWithNumber("0")).toBe(true);
-    expect(startsWithNumber("99problems")).toBe(true);
-  });
-
-  it("returns false for names starting with letters", () => {
-    expect(startsWithNumber("output1")).toBe(false);
-    expect(startsWithNumber("myProp")).toBe(false);
-    expect(startsWithNumber("Output")).toBe(false);
-  });
-
-  it("returns false for names starting with underscore", () => {
-    expect(startsWithNumber("_private")).toBe(false);
-    expect(startsWithNumber("_123")).toBe(false);
-  });
-
-  it("handles whitespace correctly", () => {
-    expect(startsWithNumber("  1output")).toBe(true);
-    expect(startsWithNumber("  output")).toBe(false);
-  });
-});
