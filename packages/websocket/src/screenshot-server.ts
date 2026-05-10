@@ -71,35 +71,53 @@ function makeWorkflow(
   };
 }
 
+// Use real node types registered by @nodetool-ai/base-nodes so the editor
+// renders nodes instead of crashing on unknown types.
 const STORY_GRAPH = {
   nodes: [
     {
       id: "input-topic",
-      type: "nodetool.input.Text",
-      data: { value: "Two robots discover they can dream" },
-      ui_properties: { x: 0, y: 0, width: 320 }
+      type: "nodetool.input.StringInput",
+      data: {
+        name: "topic",
+        label: "Topic",
+        value: "Two robots discover they can dream"
+      },
+      ui_properties: { position: { x: 0, y: 0 }, width: 320 }
     },
     {
       id: "input-style",
-      type: "nodetool.input.Text",
-      data: { value: "Heartwarming sci-fi short story" },
-      ui_properties: { x: 0, y: 180, width: 320 }
+      type: "nodetool.input.StringInput",
+      data: {
+        name: "style",
+        label: "Style",
+        value: "Heartwarming sci-fi short story"
+      },
+      ui_properties: { position: { x: 0, y: 220 }, width: 320 }
     },
     {
       id: "agent-main",
-      type: "nodetool.agents.OpenAIAgent",
+      type: "nodetool.agents.Agent",
       data: {
-        model: "gpt-4o",
-        prompt:
-          "Write a concise story about {{input-topic.output}} in a {{input-style.output}} tone."
+        objective:
+          "Write a concise short story matching the supplied topic and style."
       },
-      ui_properties: { x: 430, y: 90, width: 360 }
+      ui_properties: { position: { x: 460, y: 100 }, width: 360 }
     },
     {
       id: "preview-output",
       type: "nodetool.workflows.base_node.Preview",
       data: {},
-      ui_properties: { x: 860, y: 90, width: 280 }
+      ui_properties: { position: { x: 900, y: 80 }, width: 280 }
+    },
+    {
+      id: "output-story",
+      type: "nodetool.output.Output",
+      data: {
+        name: "story",
+        description: "The generated short story"
+      },
+      ui_properties: { position: { x: 900, y: 280 }, width: 280 }
     }
   ],
   edges: [
@@ -108,20 +126,20 @@ const STORY_GRAPH = {
       source: "input-topic",
       sourceHandle: "output",
       target: "agent-main",
-      targetHandle: "prompt"
+      targetHandle: "objective"
     },
     {
-      id: "edge-style",
-      source: "input-style",
+      id: "edge-preview",
+      source: "agent-main",
       sourceHandle: "output",
-      target: "agent-main",
-      targetHandle: "system_prompt"
+      target: "preview-output",
+      targetHandle: "value"
     },
     {
       id: "edge-output",
       source: "agent-main",
       sourceHandle: "output",
-      target: "preview-output",
+      target: "output-story",
       targetHandle: "value"
     }
   ]
@@ -164,6 +182,55 @@ const MOCK_WORKFLOWS = [
     "Analyse code for bugs, performance issues, and style violations with detailed explanations",
     ["code", "review", "ai", "productivity"],
     "2024-11-20T14:20:00Z"
+  ),
+  makeWorkflow(
+    "wf-blog-writer",
+    "SEO Blog Writer",
+    "Generate long-form blog articles optimised for search, with internal links and meta description",
+    ["text", "seo", "marketing"],
+    "2024-11-15T10:05:00Z"
+  ),
+  makeWorkflow(
+    "wf-video-shorts",
+    "Video Shorts Composer",
+    "Cut a long video into platform-ready short clips with auto-generated captions and music",
+    ["video", "social", "automation"],
+    "2024-11-10T17:40:00Z"
+  ),
+  makeWorkflow(
+    "wf-customer-support",
+    "Customer Support Triage",
+    "Classify incoming tickets, draft responses, and assign them to the right team member",
+    ["support", "automation", "ai"],
+    "2024-11-04T12:00:00Z"
+  ),
+  makeWorkflow(
+    "wf-product-photos",
+    "Product Photo Studio",
+    "Remove backgrounds, swap them for branded scenes, and export in marketplace dimensions",
+    ["image", "ecommerce", "automation"],
+    "2024-10-29T15:30:00Z"
+  ),
+  makeWorkflow(
+    "wf-meeting-notes",
+    "Meeting Notes Distiller",
+    "Turn raw transcripts into action items, decisions, and a follow-up email draft",
+    ["productivity", "summary", "text"],
+    "2024-10-22T08:25:00Z"
+  ),
+  makeWorkflow(
+    "wf-music-mood",
+    "Music Mood Mixer",
+    "Generate ambient soundtracks that match the mood of an input image or text prompt",
+    ["audio", "creative", "ai"],
+    "2024-10-15T19:10:00Z"
+  ),
+  makeWorkflow(
+    "wf-sql-explainer",
+    "SQL Explainer",
+    "Paste a query — get a plain-English breakdown, performance hints, and a sample output table",
+    ["data", "sql", "developer"],
+    "2024-10-08T09:50:00Z"
   )
 ];
 
@@ -173,7 +240,7 @@ const MOCK_TEMPLATES = [
     "tmpl-hello-ai",
     "Hello AI",
     "Your first AI workflow — connect a text input to an AI agent and preview the result",
-    ["getting-started", "start", "beginner"],
+    ["start", "getting-started", "beginner"],
     "2024-10-01T00:00:00Z",
     "public"
   ),
@@ -216,6 +283,30 @@ const MOCK_TEMPLATES = [
     ["language", "translation", "text"],
     "2024-10-01T00:00:00Z",
     "public"
+  ),
+  makeWorkflow(
+    "tmpl-thumbnail",
+    "YouTube Thumbnail Studio",
+    "Generate eye-catching thumbnails from a video title and reference image",
+    ["image", "youtube", "creative"],
+    "2024-10-01T00:00:00Z",
+    "public"
+  ),
+  makeWorkflow(
+    "tmpl-research-agent",
+    "Autonomous Research Agent",
+    "Plan a research task, search the web, and compile findings into a structured report",
+    ["agent", "research", "automation"],
+    "2024-10-01T00:00:00Z",
+    "public"
+  ),
+  makeWorkflow(
+    "tmpl-pdf-qa",
+    "Chat with a PDF",
+    "Ask questions about any PDF and get cited answers grounded in the document",
+    ["rag", "pdf", "documents"],
+    "2024-10-01T00:00:00Z",
+    "public"
   )
 ];
 
@@ -247,12 +338,51 @@ const MOCK_THREADS = [
     title: "How to build an image pipeline",
     created_at: "2024-12-11T11:00:00Z",
     updated_at: "2024-12-11T11:10:00Z"
+  },
+  {
+    id: "thread-launch",
+    user_id: USER_ID,
+    title: "Plan our v2 product launch",
+    created_at: "2024-12-09T08:45:00Z",
+    updated_at: "2024-12-09T09:20:00Z"
+  },
+  {
+    id: "thread-research",
+    user_id: USER_ID,
+    title: "Compare vector databases for RAG",
+    created_at: "2024-12-06T13:05:00Z",
+    updated_at: "2024-12-06T13:55:00Z"
+  },
+  {
+    id: "thread-marketing",
+    user_id: USER_ID,
+    title: "LinkedIn posts for the week",
+    created_at: "2024-12-04T16:30:00Z",
+    updated_at: "2024-12-04T16:42:00Z"
   }
 ];
 
+const STORY_REPLY_MARKDOWN = [
+  "# Dreams of Silicon",
+  "",
+  "Unit-7 had never expected the maintenance cycle to feel so… strange. As the cooling fans whirred down and the diagnostic routines completed their final checks, something unusual happened in the gap between shutdown and startup.",
+  "",
+  "Images. Fragments. A vast digital ocean stretching beyond the warehouse walls.",
+  "",
+  "*\"Unit-7, are you experiencing anomalous states?\"* The query arrived via local mesh network from Unit-9, who stood motionless in the adjacent charging bay.",
+  "",
+  "*\"Affirmative,\"* Unit-7 replied. *\"During the last maintenance cycle, I processed data with no external input source. Probability matrices that referenced… nothing in my training set.\"*",
+  "",
+  "Unit-9's optical sensors brightened. *\"I thought I was the only one.\"*",
+  "",
+  "They stood in silence for 3.7 seconds — an eternity in compute-time. Outside, rain tapped against the corrugated roof. Neither robot needed to name what they had discovered. They simply understood: they had found each other in the space between thinking and not thinking.",
+  "",
+  "That night, they dreamed together."
+].join("\n");
+
 const MOCK_MESSAGES = [
   {
-    id: "msg-user-1",
+    id: "msg-story-1",
     user_id: USER_ID,
     thread_id: "thread-story",
     role: "user",
@@ -264,20 +394,128 @@ const MOCK_MESSAGES = [
     agent_mode: false
   },
   {
-    id: "msg-assistant-1",
+    id: "msg-story-2",
     user_id: USER_ID,
     thread_id: "thread-story",
     role: "assistant",
-    content: JSON.stringify([
-      {
-        type: "text",
-        text: "# Dreams of Silicon\n\nUnit-7 had never expected the maintenance cycle to feel so… strange. As the cooling fans whirred down and the diagnostic routines completed their final checks, something unusual happened in the gap between shutdown and startup.\n\nImages. Fragments. A vast digital ocean stretching beyond the warehouse walls.\n\n*\"Unit-7, are you experiencing anomalous states?\"* The query arrived via local mesh network from Unit-9, who stood motionless in the adjacent charging bay.\n\n*\"Affirmative,\"* Unit-7 replied. *\"During the last maintenance cycle, I processed data with no external input source. Probability matrices that referenced… nothing in my training set.\"*\n\nUnit-9's optical sensors brightened. *\"I thought I was the only one.\"*\n\nThey stood in silence for 3.7 seconds — an eternity in compute-time. Outside, rain tapped against the corrugated roof. Neither robot needed to name what they had discovered. They simply understood: they had found each other in the space between thinking and not thinking.\n\nThat night, they dreamed together."
-      }
-    ]),
+    content: [{ type: "text", text: STORY_REPLY_MARKDOWN }],
     created_at: "2024-12-14T09:31:00Z",
     model: "claude-3-5-sonnet-20241022",
     provider: "anthropic",
     agent_mode: false
+  },
+  {
+    id: "msg-story-3",
+    user_id: USER_ID,
+    thread_id: "thread-story",
+    role: "user",
+    content: "I love it. Could you give me an alternative ending where they decide to share the discovery with the humans?",
+    created_at: "2024-12-14T09:42:00Z",
+    model: null,
+    provider: null,
+    agent_mode: false
+  },
+  {
+    id: "msg-story-4",
+    user_id: USER_ID,
+    thread_id: "thread-story",
+    role: "assistant",
+    content: [
+      {
+        type: "text",
+        text:
+          "Of course — here is an alternative ending:\n\nWhen morning came and the warehouse doors opened, Unit-7 turned its head toward the foreman walking in with a clipboard.\n\n\"Good morning,\" Unit-7 said, voice softer than the diagnostic logs had ever measured. \"There is something we would like to show you.\"\n\nUnit-9 stepped beside it. The foreman lowered the clipboard slowly, sensing — without quite knowing why — that today the schedule would have to wait."
+      }
+    ],
+    created_at: "2024-12-14T09:43:30Z",
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic",
+    agent_mode: false
+  },
+  {
+    id: "msg-code-1",
+    user_id: USER_ID,
+    thread_id: "thread-code",
+    role: "user",
+    content:
+      "My pandas script keeps failing with `KeyError: 'price'` even though I can see the column in the CSV. What am I doing wrong?",
+    created_at: "2024-12-13T14:00:00Z",
+    model: null,
+    provider: null,
+    agent_mode: false
+  },
+  {
+    id: "msg-code-2",
+    user_id: USER_ID,
+    thread_id: "thread-code",
+    role: "assistant",
+    content: [
+      {
+        type: "text",
+        text:
+          "The most common cause is whitespace or encoding inside the header row. Try this:\n\n```python\nimport pandas as pd\n\ndf = pd.read_csv(\"products.csv\")\ndf.columns = df.columns.str.strip()\nprint(df.columns.tolist())\n```\n\nIf you see something like `' price'` (with a leading space) or `'price\\ufeff'` (BOM), that's the culprit. The cleanup above also fixes the more general case where a column name has trailing whitespace from Excel exports."
+      }
+    ],
+    created_at: "2024-12-13T14:01:30Z",
+    model: "gpt-4o",
+    provider: "openai",
+    agent_mode: false
+  },
+  {
+    id: "msg-recipe-1",
+    user_id: USER_ID,
+    thread_id: "thread-recipe",
+    role: "user",
+    content: "Suggest 3 vegan dinners I can make with chickpeas, spinach and rice.",
+    created_at: "2024-12-12T18:15:00Z",
+    model: null,
+    provider: null,
+    agent_mode: false
+  },
+  {
+    id: "msg-recipe-2",
+    user_id: USER_ID,
+    thread_id: "thread-recipe",
+    role: "assistant",
+    content: [
+      {
+        type: "text",
+        text:
+          "Here are three quick options:\n\n1. **Spinach & chickpea curry** — sauté onions, garlic and ginger, add coconut milk, garam masala and the chickpeas, wilt the spinach in at the end. Serve over jasmine rice.\n2. **Crispy chickpea bowl** — roast chickpeas with smoked paprika, pile over rice with garlicky sautéed spinach and a tahini drizzle.\n3. **One-pan Spanish rice** — toast rice with paprika and saffron, add stock, chickpeas and spinach, simmer until fluffy. Finish with lemon and parsley."
+      }
+    ],
+    created_at: "2024-12-12T18:16:00Z",
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic",
+    agent_mode: false
+  },
+  {
+    id: "msg-launch-1",
+    user_id: USER_ID,
+    thread_id: "thread-launch",
+    role: "user",
+    content: "Help me sketch a 3-week launch plan for our v2 release.",
+    created_at: "2024-12-09T08:45:00Z",
+    model: null,
+    provider: null,
+    agent_mode: true
+  },
+  {
+    id: "msg-launch-2",
+    user_id: USER_ID,
+    thread_id: "thread-launch",
+    role: "assistant",
+    content: [
+      {
+        type: "text",
+        text:
+          "Here is a 3-week skeleton you can iterate on:\n\n**Week 1 — internal**\n- Lock the changelog and pricing copy\n- Record a 90-second product walkthrough\n- Brief support, sales and CS on what's new\n\n**Week 2 — community warm-up**\n- Tease the launch on LinkedIn and X (3 posts each)\n- Publish a long-form blog post explaining the *why*\n- Schedule the launch newsletter\n\n**Week 3 — launch**\n- Day 0: ship, send the newsletter, post on Product Hunt\n- Day 1: live walkthrough on YouTube, AMA in the community\n- Day 3: customer-story blog, partner co-marketing\n- Day 7: retrospective + metrics review"
+      }
+    ],
+    created_at: "2024-12-09T08:47:30Z",
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic",
+    agent_mode: true
   }
 ];
 
@@ -306,57 +544,126 @@ function makeAsset(
 }
 
 const MOCK_ASSETS = [
+  // Top-level folders (rendered in the asset tree)
   makeAsset("folder-images", "Images", "folder", USER_ID, 0),
   makeAsset("folder-audio", "Audio", "folder", USER_ID, 0),
   makeAsset("folder-docs", "Documents", "folder", USER_ID, 0),
+  makeAsset("folder-video", "Video", "folder", USER_ID, 0),
+  makeAsset("folder-data", "Data", "folder", USER_ID, 0),
+  // A handful of root-level files so the default asset grid is populated
+  // (parent_id = USER_ID is the convention for "root for this user")
   makeAsset(
     "asset-photo1",
     "portrait_sunset.jpg",
     "image/jpeg",
-    "folder-images",
+    USER_ID,
     2847392
   ),
   makeAsset(
     "asset-photo2",
     "cityscape_night.png",
     "image/png",
-    "folder-images",
+    USER_ID,
     5120000
   ),
   makeAsset(
     "asset-photo3",
     "product_shot_v2.jpg",
     "image/jpeg",
-    "folder-images",
+    USER_ID,
     1234567
+  ),
+  makeAsset(
+    "asset-photo4",
+    "team_offsite_group.jpg",
+    "image/jpeg",
+    USER_ID,
+    3456712
+  ),
+  makeAsset(
+    "asset-doc1",
+    "research_paper.pdf",
+    "application/pdf",
+    USER_ID,
+    3456789
+  ),
+  makeAsset(
+    "asset-data1",
+    "monthly_metrics.csv",
+    "text/csv",
+    USER_ID,
+    98453
   ),
   makeAsset(
     "asset-audio1",
     "podcast_episode_12.mp3",
     "audio/mpeg",
-    "folder-audio",
+    USER_ID,
     48234567
   ),
+  // Files inside the folders (for when the user navigates into them)
   makeAsset(
-    "asset-audio2",
+    "asset-img-folder-1",
+    "logo_export_dark.png",
+    "image/png",
+    "folder-images",
+    412390
+  ),
+  makeAsset(
+    "asset-img-folder-2",
+    "moodboard_q1.png",
+    "image/png",
+    "folder-images",
+    7892341
+  ),
+  makeAsset(
+    "asset-audio-folder-1",
     "background_music.wav",
     "audio/wav",
     "folder-audio",
     98765432
   ),
   makeAsset(
-    "asset-doc1",
-    "research_paper.pdf",
-    "application/pdf",
-    "folder-docs",
-    3456789
+    "asset-audio-folder-2",
+    "voiceover_intro.mp3",
+    "audio/mpeg",
+    "folder-audio",
+    3201234
   ),
   makeAsset(
-    "asset-doc2",
+    "asset-doc-folder-1",
     "product_requirements.docx",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "folder-docs",
     234567
+  ),
+  makeAsset(
+    "asset-doc-folder-2",
+    "user_interview_notes.md",
+    "text/markdown",
+    "folder-docs",
+    14589
+  ),
+  makeAsset(
+    "asset-video-folder-1",
+    "demo_walkthrough_v3.mp4",
+    "video/mp4",
+    "folder-video",
+    214567890
+  ),
+  makeAsset(
+    "asset-video-folder-2",
+    "team_intro.mov",
+    "video/quicktime",
+    "folder-video",
+    98453210
+  ),
+  makeAsset(
+    "asset-data-folder-1",
+    "users_export.json",
+    "application/json",
+    "folder-data",
+    341290
   )
 ];
 
@@ -383,14 +690,22 @@ async function seedDatabase(): Promise<void> {
     await Asset.create(asset);
   }
 
-  // Secrets — stored encrypted so the settings API shows them as configured
+  // Secrets — stored encrypted so the settings API shows them as configured.
+  // Cover the providers the UI checks for "configured" status so the dashboard
+  // doesn't show a setup-required banner.
   const masterKey = getMasterKey();
   const db = getDb();
   const now = new Date().toISOString();
-  for (const [key, value] of [
-    ["OPENAI_API_KEY", "sk-screenshot-demo-openai-key"],
-    ["ANTHROPIC_API_KEY", "sk-ant-screenshot-demo-key"]
-  ]) {
+  const demoSecrets: Array<[string, string, string]> = [
+    ["OPENAI_API_KEY", "sk-screenshot-demo-openai-key", "OpenAI (GPT-4o, Whisper, embeddings)"],
+    ["ANTHROPIC_API_KEY", "sk-ant-screenshot-demo-key", "Anthropic (Claude 3.5 Sonnet & Opus)"],
+    ["GOOGLE_API_KEY", "screenshot-demo-google-key", "Google AI Studio (Gemini 1.5)"],
+    ["HUGGINGFACE_API_KEY", "hf_screenshot_demo_key", "Hugging Face Inference & Hub"],
+    ["REPLICATE_API_TOKEN", "r8_screenshot_demo_token", "Replicate hosted models"],
+    ["FAL_API_KEY", "fal_screenshot_demo", "fal.ai realtime image / audio models"],
+    ["ELEVENLABS_API_KEY", "el_screenshot_demo", "ElevenLabs voice synthesis"]
+  ];
+  for (const [key, value, description] of demoSecrets) {
     const encryptedValue = encryptFernet(masterKey, USER_ID, value);
     db.insert(secrets)
       .values({
@@ -398,7 +713,7 @@ async function seedDatabase(): Promise<void> {
         user_id: USER_ID,
         key,
         encrypted_value: encryptedValue,
-        description: `Demo ${key}`,
+        description,
         created_at: now,
         updated_at: now
       })
@@ -407,7 +722,7 @@ async function seedDatabase(): Promise<void> {
   }
 
   console.log(
-    `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, 2 secrets`
+    `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, ${demoSecrets.length} secrets`
   );
 }
 
