@@ -43,7 +43,9 @@ describe("asset import", () => {
         resizeCanvas: jest.fn(),
         offsetAllPaintLayersTransform: jest.fn(),
         commitPixelLayerChange: jest.fn(),
-        syncPixelLayerFromCanvas: jest.fn(),
+        syncPixelLayerFromCanvas: (() => null) as (
+          layerId: string
+        ) => string | null,
         reconcileAllLayerTransforms: jest.fn(),
         syncSketchOutputsNow: jest.fn()
       })
@@ -83,4 +85,3 @@ describe("asset import", () => {
     );
   });
 });
-

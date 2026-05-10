@@ -14,6 +14,9 @@ import { useStandaloneSketchDocument, useSketchDocumentStore } from "../SketchDo
 import { useSketchLayerBindingsStore } from "../SketchLayerBindingsStore";
 
 const updateMutate = trpcClient.sketch.update.mutate as unknown as jest.Mock;
+type StandaloneResponse = NonNullable<
+  Parameters<typeof useStandaloneSketchDocument>[0]
+>;
 
 function buildHistoryEntry(layerId: string, data: string): HistoryEntry {
   return {
@@ -46,7 +49,7 @@ function buildHistoryEntry(layerId: string, data: string): HistoryEntry {
   };
 }
 
-function buildResponse() {
+function buildResponse(): StandaloneResponse {
   const doc = createDefaultDocument(32, 32);
   doc.canvas.backgroundColor = "#ffffff";
   return {
@@ -63,7 +66,7 @@ function buildResponse() {
         viewport: { zoom: 1, pan: { x: 0, y: 0 } },
         history: [],
         historyIndex: -1
-      },
+      } as unknown as StandaloneResponse["document"]["sketch"],
       layerBindings: []
     },
     createdAt: "2026-01-01T00:00:00Z",
@@ -78,7 +81,7 @@ describe("useStandaloneSketchDocument", () => {
   beforeEach(() => {
     jest.useFakeTimers();
     updateMutate.mockReset();
-    updateMutate.mockResolvedValue({
+    (updateMutate as any).mockResolvedValue({
       ...buildResponse(),
       updatedAt: "2026-01-01T00:00:01Z"
     });
