@@ -258,6 +258,38 @@ export function pickTopmostTransformableLayer(
 }
 
 /**
+ * Count how many layers in `targetIds` have an opaque pixel at `docPoint`.
+ * Used to decide whether multi-layer transform should collapse to one layer
+ * (single contributor at the pointer) vs stay union (overlap region).
+ */
+export function countTransformTargetsHitAtDocPoint(
+  layers: Layer[],
+  layerCanvases: Map<string, HTMLCanvasElement>,
+  targetIds: readonly string[],
+  docPoint: Point,
+  ensureLayerCanvas?: (layerId: string) => HTMLCanvasElement | null | undefined
+): number {
+  let count = 0;
+  for (const id of targetIds) {
+    const layer = layers.find((l) => l.id === id);
+    if (!layer || layer.type === "group") {
+      continue;
+    }
+    let layerCanvas = layerCanvases.get(id);
+    if (!layerCanvas && ensureLayerCanvas) {
+      layerCanvas = ensureLayerCanvas(id) ?? undefined;
+    }
+    if (!layerCanvas) {
+      continue;
+    }
+    if (hitTestLayerAtDocPoint(layer, layerCanvas, docPoint)) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+/**
  * Resolve the gizmo bounds for a layer and create a target entry.
  */
 export function resolveTargetEntry(

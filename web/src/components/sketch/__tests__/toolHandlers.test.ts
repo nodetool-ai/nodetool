@@ -624,6 +624,76 @@ describe("TransformTool", () => {
     expect(tool.getPivotPoint()).toBeNull();
   });
 
+  it("collapses layers-panel multi-select transform when only one target paints at the pointer", () => {
+    useSketchStore.setState((state) => ({
+      ...state,
+      toolSettings: {
+        ...state.toolSettings,
+        transform: {
+          ...state.toolSettings.transform,
+          autoSelect: true
+        }
+      }
+    }));
+
+    const tool = new TransformTool();
+    const doc = createDefaultDocument(256, 256);
+    const bottom = doc.layers[0];
+    bottom.contentBounds = { x: 0, y: 0, width: 32, height: 32 };
+
+    const top = createDefaultLayer("Top", "raster", 32, 32);
+    top.transform = { x: 140, y: 0 };
+    top.contentBounds = { x: 0, y: 0, width: 32, height: 32 };
+    doc.layers = [bottom, top];
+    doc.activeLayerId = top.id;
+
+    const bottomCanvas = document.createElement("canvas");
+    bottomCanvas.width = 32;
+    bottomCanvas.height = 32;
+    bottomCanvas.getContext("2d")!.fillRect(0, 0, 32, 32);
+
+    const topCanvas = document.createElement("canvas");
+    topCanvas.width = 32;
+    topCanvas.height = 32;
+    topCanvas.getContext("2d")!.fillRect(0, 0, 32, 32);
+
+    const onAutoPickLayer = jest.fn((layerId: string) => {
+      doc.activeLayerId = layerId;
+      useSketchStore.setState((s) => ({
+        selectedLayerIds: [],
+        document: { ...s.document, activeLayerId: layerId }
+      }));
+    });
+
+    useSketchStore.setState((s) => ({
+      ...s,
+      selectedLayerIds: [bottom.id, top.id]
+    }));
+
+    const ctx = makeToolContext({
+      doc,
+      layerCanvasesRef: {
+        current: new Map([
+          [bottom.id, bottomCanvas],
+          [top.id, topCanvas]
+        ])
+      },
+      onAutoPickLayer
+    });
+
+    tool.onActivate!(ctx);
+    expect(tool.getMultiTargetLayerIds().length).toBe(2);
+
+    expect(tool.onDown(ctx, makePointerEvent({ point: { x: 10, y: 10 } }))).toBe(false);
+    expect(onAutoPickLayer).toHaveBeenCalledWith(bottom.id);
+    expect(tool.getMultiTargetLayerIds()).toEqual([bottom.id]);
+
+    useSketchStore.setState((s) => ({
+      ...s,
+      selectedLayerIds: []
+    }));
+  });
+
   it("does not auto-retarget on interior move clicks when layers overlap", () => {
     useSketchStore.setState((state) => ({
       ...state,

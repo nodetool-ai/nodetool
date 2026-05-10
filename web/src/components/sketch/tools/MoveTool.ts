@@ -175,10 +175,11 @@ export class MoveTool implements ToolHandler {
       }
     } else if (event.nativeEvent.altKey && ctx.onAutoPickLayer) {
       // Alt+click: auto-pick topmost non-transparent layer (affine-aware)
+      const { isolatedLayerId } = useSketchStore.getState();
       for (let i = doc.layers.length - 1; i >= 0; i--) {
         const layer = doc.layers[i];
         const skipForHit =
-          !isLayerCompositeVisible(doc.layers, layer, null) ||
+          !isLayerCompositeVisible(doc.layers, layer, isolatedLayerId) ||
           (layer.locked && !layer.imageReference);
         if (skipForHit) {
           continue;
@@ -199,11 +200,12 @@ export class MoveTool implements ToolHandler {
       const storeSettings = useSketchStore.getState().toolSettings;
       const autoSelect = storeSettings?.move?.autoSelect ?? true;
       if (autoSelect && ctx.onAutoPickLayer) {
+        const { isolatedLayerId } = useSketchStore.getState();
         const picked = pickTopmostTransformableLayer(
           doc.layers,
           ctx.layerCanvasesRef.current,
           pt,
-          null,
+          isolatedLayerId,
           ctx.getOrCreateLayerCanvas
         );
         if (picked && picked.id !== doc.activeLayerId) {

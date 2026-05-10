@@ -85,6 +85,7 @@ import { createPreviewSession, type PreviewSession } from "./previewSession";
 import {
   TransformTargetSet,
   pickTopmostTransformableLayer,
+  countTransformTargetsHitAtDocPoint,
   resolveTransformTargetLayerIds,
   type TransformTargetEntry
 } from "./transformTargetSet";
@@ -287,20 +288,50 @@ export class TransformTool implements ToolHandler {
       } else {
         const storeSettings = useSketchStore.getState().toolSettings;
         const autoSelect = storeSettings?.transform?.autoSelect ?? true;
-        if (
-          !this.isMultiTarget() &&
-          autoSelect &&
-          !ctx.selection
-        ) {
-          const picked = this.tryAutoSelectPick(ctx, event);
-          if (picked) {
-            return false;
+        if (autoSelect && !ctx.selection) {
+          if (!this.isMultiTarget()) {
+            const switched = this.tryAutoSelectPick(ctx, event);
+            if (switched) {
+              return false;
+            }
+          } else {
+            const picked = this.peekAutoSelectPick(ctx, pt);
+            if (picked && this.tryAutoSelectPick(ctx, event, picked)) {
+              return false;
+            }
           }
         }
         if (ctx.selection) {
           ctx.onSelectionChange?.(null);
         }
         return false;
+      }
+    }
+
+    // 4. Multi-target union: clicks usually land in handle==="move" because the
+    //    union bounds cover all targets. When exactly one selected layer paints
+    //    at the pointer (non-overlap), collapse auto-select to that layer.
+    if (handle === "move") {
+      const storeSettings = useSketchStore.getState().toolSettings;
+      const autoSelect = storeSettings?.transform?.autoSelect ?? true;
+      if (this.isMultiTarget() && autoSelect && !ctx.selection) {
+        const contributorHits = countTransformTargetsHitAtDocPoint(
+          ctx.doc.layers,
+          ctx.layerCanvasesRef.current,
+          this.multiTargetLayerIds,
+          pt,
+          ctx.getOrCreateLayerCanvas
+        );
+        if (contributorHits === 1) {
+          const picked = this.peekAutoSelectPick(ctx, pt);
+          if (
+            picked &&
+            this.multiTargetLayerIds.includes(picked.id) &&
+            this.tryAutoSelectPick(ctx, event, picked)
+          ) {
+            return false;
+          }
+        }
       }
     }
 
@@ -559,9 +590,6 @@ export class TransformTool implements ToolHandler {
     event: ToolPointerEvent,
     pickedOverride?: Layer | null
   ): boolean {
-    if (this.isMultiTarget()) {
-      return false;
-    }
     const primaryId = this.multiTargetLayerIds[0];
     if (!primaryId) {
       return false;
@@ -569,7 +597,14 @@ export class TransformTool implements ToolHandler {
 
     const picked = pickedOverride ?? this.peekAutoSelectPick(ctx, event.point);
 
-    if (!picked || picked.id === primaryId) {
+    if (!picked) {
+      return false;
+    }
+
+    // Single-target: only retarget when the topmost pixel belongs to another layer.
+    // Multi-target (layers panel multi-select): any concrete hit collapses to that
+    // layer so auto-select works while a union transform is armed.
+    if (!this.isMultiTarget() && picked.id === primaryId) {
       return false;
     }
 
@@ -594,10 +629,17 @@ export class TransformTool implements ToolHandler {
 
   private syncTransformTargets(ctx: ToolContext): void {
     const store = useSketchStore.getState();
+    const storeActiveId = store.document.activeLayerId;
+    const docActiveId = ctx.doc.activeLayerId;
+    const activeLayerIdForResolve =
+      storeActiveId != null &&
+      ctx.doc.layers.some((l) => l.id === storeActiveId)
+        ? storeActiveId
+        : docActiveId;
     const ids = resolveTransformTargetLayerIds(
       ctx.doc,
       store.selectedLayerIds,
-      ctx.doc.activeLayerId
+      activeLayerIdForResolve
     );
     this.multiTargetLayerIds = ids;
 
@@ -769,11 +811,12 @@ export class TransformTool implements ToolHandler {
   }
 
   private peekAutoSelectPick(ctx: ToolContext, docPoint: Point): Layer | null {
+    const { isolatedLayerId } = useSketchStore.getState();
     return pickTopmostTransformableLayer(
       ctx.doc.layers,
       ctx.layerCanvasesRef.current,
       docPoint,
-      null,
+      isolatedLayerId,
       ctx.getOrCreateLayerCanvas
     );
   }
