@@ -93,6 +93,78 @@ describe("handleResourceChange", () => {
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ["assets"]
     });
+
+    // The plural ["assets"] key does not prefix-match the singular form,
+    // so detail queries need an explicit invalidation.
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["asset", "asset-789"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["textAsset", "asset-789"]
+    });
+  });
+
+  it("invalidates settings queries on setting update", () => {
+    const update: ResourceChangeUpdate = {
+      type: "resource_change",
+      event: "updated",
+      resource_type: "setting",
+      resource: { id: "user-1:THEME", etag: "s1" }
+    };
+
+    handleResourceChange(update);
+
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["settings"]
+    });
+  });
+
+  it("invalidates messages query when a message resource includes thread_id", () => {
+    const update: ResourceChangeUpdate = {
+      type: "resource_change",
+      event: "created",
+      resource_type: "message",
+      resource: { id: "msg-1", thread_id: "thread-101" }
+    };
+
+    handleResourceChange(update);
+
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["messages"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["messages", "thread-101"]
+    });
+  });
+
+  it("invalidates the workflow versions list when scoped to a workflow", () => {
+    const update: ResourceChangeUpdate = {
+      type: "resource_change",
+      event: "created",
+      resource_type: "workflowversion",
+      resource: { id: "ver-1", workflow_id: "workflow-123" }
+    };
+
+    handleResourceChange(update);
+
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["workflow", "workflow-123", "versions"]
+    });
+  });
+
+  it("invalidates collections on collection mutation", () => {
+    const update: ResourceChangeUpdate = {
+      type: "resource_change",
+      event: "created",
+      resource_type: "collection",
+      resource: { id: "my-coll" }
+    };
+
+    handleResourceChange(update);
+
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["collections"]
+    });
   });
 
   it("invalidates thread and messages queries on thread update", () => {

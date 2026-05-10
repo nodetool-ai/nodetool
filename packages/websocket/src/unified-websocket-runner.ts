@@ -10,6 +10,7 @@ import {
   buildAssetUrl
 } from "@nodetool-ai/config";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
+import { resourceEvents, type ResourceChangePayload } from "./resource-events.js";
 import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
 import { resolveContentUrls, resolveContentForProvider } from "./resolve-media-urls.js";
 import {
@@ -4558,12 +4559,14 @@ export class UnifiedWebSocketRunner {
   private registerObserver(): void {
     if (this.observerRegistered) return;
     ModelObserver.subscribe(this.onModelChange);
+    resourceEvents.on("change", this.onResourceEvent);
     this.observerRegistered = true;
   }
 
   private unregisterObserver(): void {
     if (!this.observerRegistered) return;
     ModelObserver.unsubscribe(this.onModelChange);
+    resourceEvents.off("change", this.onResourceEvent);
     this.observerRegistered = false;
   }
 
@@ -4572,14 +4575,42 @@ export class UnifiedWebSocketRunner {
     event: ModelChangeEvent
   ): void => {
     if (!this.websocket) return;
+    // Only forward changes for models the connected user owns. Models without
+    // a `user_id` (runtime-internal types) are forwarded to every connection.
+    const ownerId = (instance as DBModel & { user_id?: string }).user_id;
+    if (ownerId && this.userId && ownerId !== this.userId) return;
+
+    const resource: Record<string, unknown> = {
+      id: instance.partitionValue(),
+      etag: instance.getEtag()
+    };
+    // Include scope fields for resource types whose cache is keyed on a
+    // parent id (Message → thread_id, WorkflowVersion → workflow_id, etc.).
+    // Frontend handlers use these to narrow invalidation.
+    const data = instance as Record<string, unknown>;
+    for (const field of ["workflow_id", "thread_id", "parent_id"] as const) {
+      const value = data[field];
+      if (typeof value === "string" && value.length > 0) {
+        resource[field] = value;
+      }
+    }
+
     void this.sendMessage({
       type: "resource_change",
       event,
       resource_type: instance.constructor.name.toLowerCase(),
-      resource: {
-        id: instance.partitionValue(),
-        etag: instance.getEtag()
-      }
+      resource
+    });
+  };
+
+  private onResourceEvent = (payload: ResourceChangePayload): void => {
+    if (!this.websocket) return;
+    if (payload.userId && this.userId && payload.userId !== this.userId) return;
+    void this.sendMessage({
+      type: "resource_change",
+      event: payload.event,
+      resource_type: payload.resource_type,
+      resource: payload.resource
     });
   };
 
