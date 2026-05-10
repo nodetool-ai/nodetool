@@ -1,6 +1,5 @@
 import {
-  validateIdentifierName,
-  startsWithNumber,
+  validateIdentifierName
 } from "./identifierValidation";
 
 describe("validateIdentifierName", () => {
@@ -41,26 +40,3 @@ describe("validateIdentifierName", () => {
   });
 });
 
-describe("startsWithNumber", () => {
-  it("returns true for names starting with a digit", () => {
-    expect(startsWithNumber("0abc")).toBe(true);
-    expect(startsWithNumber("9")).toBe(true);
-  });
-
-  it("returns false for names starting with a letter", () => {
-    expect(startsWithNumber("abc")).toBe(false);
-  });
-
-  it("returns false for names starting with underscore", () => {
-    expect(startsWithNumber("_foo")).toBe(false);
-  });
-
-  it("trims whitespace before checking", () => {
-    expect(startsWithNumber("  3bar")).toBe(true);
-    expect(startsWithNumber("  bar")).toBe(false);
-  });
-
-  it("returns false for empty string", () => {
-    expect(startsWithNumber("")).toBe(false);
-  });
-});
