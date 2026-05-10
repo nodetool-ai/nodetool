@@ -2,8 +2,7 @@
  * SketchLayersPanel
  *
  * Panel for managing layers: visibility, reorder, add, delete, duplicate,
- * rename, opacity, and mask designation. Also contains canvas size presets
- * and keyboard shortcuts reference.
+ * rename, opacity, and mask designation. Also contains canvas size presets.
  */
 
 /** @jsxImportSource @emotion/react */
@@ -49,7 +48,6 @@ import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import FlipCameraAndroidIcon from "@mui/icons-material/FlipCameraAndroid";
-import KeyboardOutlinedIcon from "@mui/icons-material/KeyboardOutlined";
 import {
   Layer,
   BlendMode,
@@ -64,15 +62,7 @@ import type { DropPosition } from "./LayerItem";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
 import { useCollapsedSections } from "./useCollapsedSections";
 import { getMergeSelectedLayersPlan } from "./layerMergeSelection";
-import { Dialog, StateIconButton } from "../ui_primitives";
-import {
-  ACTION_REGISTRY,
-  BINDING_CATALOG,
-  displayBinding,
-  type BindingEntry,
-  type DisplayGroup,
-  type SketchActionId
-} from "./shortcuts";
+import { StateIconButton } from "../ui_primitives";
 
 /**
  * Layer row modifiers: `getModifierState` helps when `draggable` rows omit flags on
@@ -151,123 +141,6 @@ function quickCycleDirectionForArrowKey(key: string): -1 | 1 | null {
 }
 
 type PanelSectionKey = "canvasSize";
-const SHORTCUT_DISPLAY_GROUPS: readonly DisplayGroup[] = [
-  "Tools",
-  "Edit",
-  "Selection",
-  "Canvas",
-  "Color",
-  "Paint",
-  "Layers",
-  "Mode: Transform",
-  "Mode: Crop"
-];
-const PANEL_SHORTCUT_NOTES: Partial<Record<SketchActionId, string>> = {
-  "blend-mode-prev": "Blend mode dropdown",
-  "blend-mode-next": "Blend mode dropdown",
-  "canvas-preset-prev": "Canvas preset dropdown",
-  "canvas-preset-next": "Canvas preset dropdown"
-};
-
-function isUnmodifiedGlobalDigitBinding(entry: BindingEntry): boolean {
-  return (
-    entry.scope === "global" &&
-    !entry.modifiers.ctrl &&
-    !entry.modifiers.shift &&
-    !entry.modifiers.alt &&
-    /^\d$/.test(entry.key)
-  );
-}
-
-function formatShortcutCombos(entries: ReadonlyArray<BindingEntry>): string {
-  const digitEntries = entries
-    .filter(isUnmodifiedGlobalDigitBinding)
-    .map((entry) => Number(entry.key))
-    .sort((a, b) => a - b);
-
-  if (
-    digitEntries.length === entries.length &&
-    digitEntries.length > 1 &&
-    digitEntries.every(
-      (digit, index) => digit === digitEntries[0] + index
-    )
-  ) {
-    return `${digitEntries[0]}–${digitEntries[digitEntries.length - 1]}`;
-  }
-
-  return [...new Set(entries.map((entry) => displayBinding(entry)))].join(" / ");
-}
-
-const SHORTCUT_REFERENCE_GROUPS = SHORTCUT_DISPLAY_GROUPS.map((displayGroup) => {
-  const rows = ACTION_REGISTRY.flatMap((action) => {
-    if (action.displayGroup !== displayGroup) {
-      return [];
-    }
-
-    const entries = BINDING_CATALOG.filter((entry) => entry.actionId === action.id);
-    if (entries.length === 0) {
-      return [];
-    }
-
-    return [{
-      actionId: action.id,
-      combo: formatShortcutCombos(entries),
-      label: action.label,
-      note: PANEL_SHORTCUT_NOTES[action.id]
-    }];
-  });
-
-  return {
-    displayGroup,
-    rows
-  };
-}).filter((group) => group.rows.length > 0);
-
-const ShortcutReference = memo(function ShortcutReference() {
-  return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      {SHORTCUT_REFERENCE_GROUPS.map((group) => (
-        <Box key={group.displayGroup}>
-          <Typography
-            sx={{
-              mb: 0.5,
-              fontSize: SKETCH_FONT.xs,
-              fontWeight: 700,
-              color: "grey.400",
-              textTransform: "uppercase",
-              letterSpacing: "0.04em"
-            }}
-          >
-            {group.displayGroup}
-          </Typography>
-          <Box
-            component="dl"
-            sx={{
-              fontSize: SKETCH_FONT.section,
-              color: SKETCH_COLORS.textMuted,
-              display: "grid",
-              gridTemplateColumns: "auto 1fr",
-              gap: "1px 6px",
-              m: 0,
-              "& dt": { fontWeight: 700, color: "grey.300", textAlign: "right" },
-              "& dd": { m: 0 }
-            }}
-          >
-            {group.rows.map((row) => (
-              <React.Fragment key={row.actionId}>
-                <dt>{row.combo}</dt>
-                <dd>
-                  {row.label}
-                  {row.note ? ` — ${row.note}` : ""}
-                </dd>
-              </React.Fragment>
-            ))}
-          </Box>
-        </Box>
-      ))}
-    </Box>
-  );
-});
 
 // ─── Collapsible PanelSection component ───────────────────────────────────
 
@@ -597,7 +470,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     () => new Map(layers.map((layer) => [layer.id, layer])),
     [layers]
   );
-  const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
   const [dropTarget, setDropTarget] = useState<{
     realIdx: number;
     position: DropPosition;
@@ -615,10 +487,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       "nodetool-sketch-layers-panel-collapsed",
       { canvasSize: true }
     );
-
-  const handleCloseShortcutsModal = useCallback(() => {
-    setShortcutsModalOpen(false);
-  }, []);
 
   // ─── Custom canvas size state ─────────────────────────────────────
   const [customWidth, setCustomWidth] = useState(String(canvasWidth));
@@ -1083,40 +951,13 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         onColorChange={onForegroundColorChange}
       />
 
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 0.5,
-          width: "100%",
-          minHeight: 30
-        }}
+      <Typography
+        className="section-label sketch-layers-panel__title"
+        component="span"
+        sx={{ display: "block", width: "100%", minHeight: 30, lineHeight: "30px" }}
       >
-        <Typography
-          className="section-label sketch-layers-panel__title"
-          component="span"
-          sx={{ flex: 1, minWidth: 0 }}
-        >
-          Layers
-        </Typography>
-        <Tooltip
-          title="Keyboard shortcuts"
-          enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-          enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
-        >
-          <IconButton
-            size="small"
-            onClick={() => {
-              setShortcutsModalOpen(true);
-            }}
-            aria-label="Open keyboard shortcuts"
-            sx={{ flexShrink: 0 }}
-          >
-            <KeyboardOutlinedIcon sx={{ fontSize: "1.125rem" }} />
-          </IconButton>
-        </Tooltip>
-      </Box>
+        Layers
+      </Typography>
 
       {/* Add layers (row 1) + layer ops (row 2), left-aligned for predictable icon positions */}
       <Box className="layer-actions">
@@ -1987,23 +1828,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         );
       })()}
 
-      <Dialog
-        open={shortcutsModalOpen}
-        onClose={handleCloseShortcutsModal}
-        title="Keyboard shortcuts"
-        maxWidth="sm"
-        fullWidth
-      >
-        <Box
-          sx={{
-            maxHeight: "min(70vh, 560px)",
-            overflowY: "auto",
-            pr: 0.5
-          }}
-        >
-          <ShortcutReference />
-        </Box>
-      </Dialog>
     </Box>
   );
 };

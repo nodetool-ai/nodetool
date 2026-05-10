@@ -29,7 +29,9 @@ import RedoIcon from "@mui/icons-material/Redo";
 import FlipIcon from "@mui/icons-material/Flip";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import CheckIcon from "@mui/icons-material/Check";
+import KeyboardOutlinedIcon from "@mui/icons-material/KeyboardOutlined";
 import SketchEditor, { SketchEditorHandle } from "./SketchEditor";
+import { SketchShortcutReference } from "./SketchShortcutReference";
 import { PenPressureSettingsPanel } from "./ToolSettingsPanels";
 import { useSketchStore } from "./state";
 import {
@@ -48,7 +50,7 @@ import {
   settingRowChildrenSx
 } from "./sketchStyles";
 import { displayCombo } from "./shortcuts";
-import { Caption, Divider, Text, Tooltip } from "../ui_primitives";
+import { Caption, Dialog, Divider, Text, Tooltip } from "../ui_primitives";
 
 function isPressureSketchTool(tool: SketchTool): boolean {
   return tool === "brush" || tool === "pencil" || tool === "eraser";
@@ -116,6 +118,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
   const editorRef = useRef<SketchEditorHandle>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [symmetryAnchorEl, setSymmetryAnchorEl] = useState<HTMLElement | null>(null);
+  const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
 
   const symmetryMode = useSketchStore((s) => s.symmetryMode);
   const symmetryRays = useSketchStore((s) => s.symmetryRays);
@@ -150,6 +153,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
   useEffect(() => {
     if (!open) {
       setConfirmDiscard(false);
+      setShortcutsModalOpen(false);
     }
   }, [open]);
 
@@ -160,12 +164,15 @@ const SketchModal: React.FC<SketchModalProps> = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      if (shortcutsModalOpen) {
+        return;
+      }
       if (e.key === "Escape") {
         if (confirmDiscard) { setConfirmDiscard(false); }
         else { handleRequestClose(); }
       }
     },
-    [handleRequestClose, confirmDiscard]
+    [handleRequestClose, confirmDiscard, shortcutsModalOpen]
   );
 
   if (!open) {
@@ -267,6 +274,16 @@ const SketchModal: React.FC<SketchModalProps> = ({
             </span>
           </Tooltip>
 
+          <Tooltip title="Keyboard shortcuts" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+            <IconButton
+              size="small"
+              onClick={() => setShortcutsModalOpen(true)}
+              aria-label="Open keyboard shortcuts"
+            >
+              <KeyboardOutlinedIcon sx={{ fontSize: "18px" }} />
+            </IconButton>
+          </Tooltip>
+
           <Divider orientation="vertical" flexItem sx={{ mx: "4px" }} />
 
           <Tooltip title={`Symmetry: ${symmetryLabel}`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
@@ -360,6 +377,25 @@ const SketchModal: React.FC<SketchModalProps> = ({
           onExportMask={onExportMask}
         />
       </Box>
+
+      <Dialog
+        open={shortcutsModalOpen}
+        onClose={() => setShortcutsModalOpen(false)}
+        title="Keyboard shortcuts"
+        maxWidth="sm"
+        fullWidth
+        sx={{ zIndex: SKETCH_Z_INDEX.popover }}
+      >
+        <Box
+          sx={{
+            maxHeight: "min(70vh, 560px)",
+            overflowY: "auto",
+            pr: 0.5
+          }}
+        >
+          <SketchShortcutReference />
+        </Box>
+      </Dialog>
     </Box>,
     window.document.body
   );
