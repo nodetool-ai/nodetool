@@ -1,6 +1,9 @@
 import { EventEmitter } from "../EventEmitter";
 import { UNIFIED_WS_URL } from "../../stores/BASE_URL";
-import { handleResourceChange } from "../../stores/resourceChangeHandler";
+import {
+  handleResourceChange,
+  invalidateAllResourceQueries
+} from "../../stores/resourceChangeHandler";
 import { handleSystemStats } from "../../stores/systemStatsHandler";
 import { ResourceChangeUpdate } from "../../stores/ApiTypes";
 import { ConnectionState, WebSocketManager } from "./WebSocketManager";
@@ -51,6 +54,7 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   private isConnecting = false;
   private isConnected = false;
   private networkListenersSetup = false;
+  private hasEverConnected = false;
   private networkCleanup: (() => void) | null = null;
 
   private constructor() {
@@ -111,8 +115,17 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
         console.info("GlobalWebSocketManager: Connected");
         this.isConnected = true;
         this.isConnecting = false;
+
+        // After a reconnect, any `resource_change` events emitted while we
+        // were offline are gone — refresh every active query so the UI
+        // catches up. Skip on the first connection of the session.
+        if (this.hasEverConnected) {
+          invalidateAllResourceQueries();
+        }
+        this.hasEverConnected = true;
+
         this.emit("open");
-        
+
         // Send frontend tools manifest to the server on connection
         this.sendToolsManifest();
       });

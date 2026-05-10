@@ -16,6 +16,7 @@ import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
+import { notifyResourceChange } from "../../resource-events.js";
 import {
   listOutput,
   getInput,
@@ -130,6 +131,12 @@ export const collectionsRouter = router({
         metadata
       });
 
+      notifyResourceChange({
+        event: "created",
+        resource_type: "collection",
+        resource: { id: collection.name }
+      });
+
       return {
         name: collection.name,
         metadata: normalizeMetadata(collection.metadata),
@@ -158,6 +165,12 @@ export const collectionsRouter = router({
       const newName = input.rename ?? collection.name;
       await collection.modify({ name: newName, metadata: merged });
 
+      notifyResourceChange({
+        event: "updated",
+        resource_type: "collection",
+        resource: { id: newName }
+      });
+
       const count = await collection.count();
       return {
         name: newName,
@@ -176,6 +189,11 @@ export const collectionsRouter = router({
       } catch (err) {
         rethrowAsTrpc(err);
       }
+      notifyResourceChange({
+        event: "deleted",
+        resource_type: "collection",
+        resource: { id: input.name }
+      });
       return { message: `Collection ${input.name} deleted successfully` };
     }),
 

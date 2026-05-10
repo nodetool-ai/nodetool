@@ -214,13 +214,28 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
           });
           if (data.status === "completed") {
             const queryClient = get().queryClient;
-            queryClient?.invalidateQueries({ queryKey: ["allModels"] });
-            queryClient?.invalidateQueries({ queryKey: ["image-models"] });
-            // TJS picker queries by `["tjs-models", modelType]` and
-            // `["tjs-recommended", modelType]` — invalidate both so newly
-            // cached repos flip from "Download" to "Downloaded" immediately.
-            queryClient?.invalidateQueries({ queryKey: ["tjs-models"] });
-            queryClient?.invalidateQueries({ queryKey: ["tjs-recommended"] });
+            // A finished download can affect any provider's model list — the
+            // user might pick the new local model in the chat selector, the
+            // image picker, etc. Invalidate every model-scoped cache.
+            const MODEL_CACHE_KEYS = [
+              "allModels",
+              "language-models",
+              "image-models",
+              "video-models",
+              "tts-models",
+              "asr-models",
+              "embedding-models",
+              "huggingFaceModels",
+              "ollamaModels",
+              // TJS picker queries by `["tjs-models", modelType]` and
+              // `["tjs-recommended", modelType]` — invalidate both so newly
+              // cached repos flip from "Download" to "Downloaded" immediately.
+              "tjs-models",
+              "tjs-recommended"
+            ] as const;
+            for (const key of MODEL_CACHE_KEYS) {
+              queryClient?.invalidateQueries({ queryKey: [key] });
+            }
             useHfCacheStatusStore.getState().invalidate([id]);
 
             // Restart llama-server if a llama_cpp model was downloaded

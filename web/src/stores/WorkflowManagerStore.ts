@@ -505,6 +505,14 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           access: "public",
           graph: workflow.graph as never
         });
+
+        get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
+        get().queryClient?.invalidateQueries({ queryKey: ["templates"] });
+        get().queryClient?.invalidateQueries({
+          queryKey: ["workflow", workflow.id]
+        });
+        get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
+
         return data as unknown as Workflow;
       },
 
