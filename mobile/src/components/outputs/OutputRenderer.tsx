@@ -35,11 +35,7 @@ interface DataframeColumn {
 }
 
 type OutputRendererProps = {
-  // OutputRenderer accepts arbitrary runtime values from the backend
-  // and dispatches on a discriminated `type` field. The shape is
-  // dynamic and well-defended at runtime, so `any` is appropriate here.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  value: any;
+  value: unknown;
 };
 
 /**
@@ -89,7 +85,6 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
   const codeTheme = mode === "dark" ? atomDark : tomorrow;
   const monoFont = Platform.OS === "ios" ? "Menlo" : "monospace";
 
-  // Skip empty values
   if (
     value === undefined ||
     value === null ||
@@ -101,6 +96,10 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
   ) {
     return null;
   }
+
+  // Typed views for property access in switch cases. typeFor() confirms
+  // shape at runtime before the value enters each branch.
+  const v = value as Record<string, unknown>;
 
   switch (type) {
     // ── Primitives ──────────────────────────────────────────────
@@ -121,32 +120,29 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
         </Text>
       );
 
-    // ── Typed text (e.g. {type: "text", text: "..."}) ───────────
     case "text": {
-      const textVal = value?.text ?? "";
+      const textVal = v.text ?? "";
       if (typeof textVal !== "string" || !textVal) {return null;}
       return <MarkdownRenderer content={textVal} />;
     }
 
-    // ── Image ───────────────────────────────────────────────────
     case "image": {
-      // Array of images
-      if (Array.isArray(value?.data)) {
+      if (Array.isArray(v.data)) {
         return (
           <View style={styles.container}>
-            {value.data.map((v: unknown, i: number) => (
+            {(v.data as unknown[]).map((item: unknown, i: number) => (
               <View
                 key={i}
                 style={[styles.arrayItem, { borderLeftColor: colors.border }]}
               >
-                <OutputRenderer value={v} />
+                <OutputRenderer value={item} />
               </View>
             ))}
           </View>
         );
       }
 
-      const imgSource = value?.uri || value?.data;
+      const imgSource = v.uri || v.data;
       if (!imgSource) {
         return (
           <Text style={[styles.error, { color: colors.error }]}>
@@ -175,9 +171,8 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
       );
     }
 
-    // ── Audio ────────────────────────────────────────────────────
     case "audio": {
-      const audioUri = resolveMediaUri(value?.uri);
+      const audioUri = resolveMediaUri(v.uri as string | undefined);
       if (!audioUri) {
         return (
           <Text style={[styles.placeholder, { color: colors.textSecondary }]}>
@@ -196,9 +191,8 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
       );
     }
 
-    // ── Video ────────────────────────────────────────────────────
     case "video": {
-      const videoUri = resolveMediaUri(value?.uri);
+      const videoUri = resolveMediaUri(v.uri as string | undefined);
       if (!videoUri) {
         return (
           <Text style={[styles.placeholder, { color: colors.textSecondary }]}>
@@ -217,9 +211,8 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
       );
     }
 
-    // ── HTML ─────────────────────────────────────────────────────
     case "html": {
-      const htmlUri = resolveMediaUri(value?.uri);
+      const htmlUri = resolveMediaUri(v.uri as string | undefined);
       if (htmlUri) {
         return (
           <TouchableOpacity
@@ -239,9 +232,8 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
       );
     }
 
-    // ── Document ─────────────────────────────────────────────────
     case "document": {
-      const docUri = resolveMediaUri(value?.uri);
+      const docUri = resolveMediaUri(v.uri as string | undefined);
       if (docUri) {
         return (
           <TouchableOpacity
@@ -254,12 +246,11 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
           </TouchableOpacity>
         );
       }
-      return renderJSON(value, codeTheme, colors, mode, monoFont);
+      return renderJSON(v, codeTheme, colors, mode, monoFont);
     }
 
-    // ── Datetime ─────────────────────────────────────────────────
     case "datetime": {
-      const formatted = formatDatetime(value);
+      const formatted = formatDatetime(v as { year: number; month: number; day: number; hour: number; minute: number; second: number });
       return (
         <Text style={[styles.text, { color: colors.text }]}>
           {formatted}
@@ -267,54 +258,52 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
       );
     }
 
-    // ── Email ────────────────────────────────────────────────────
     case "email":
       return (
         <View style={styles.container}>
           <View style={[styles.emailHeader, { borderBottomColor: colors.borderLight }]}>
-            {value.sender && (
+            {!!v.sender && (
               <Text style={[styles.emailField, { color: colors.textSecondary }]}>
                 <Text style={styles.emailLabel}>From: </Text>
-                {value.sender}
+                {String(v.sender)}
               </Text>
             )}
-            {value.to && (
+            {!!v.to && (
               <Text style={[styles.emailField, { color: colors.textSecondary }]}>
                 <Text style={styles.emailLabel}>To: </Text>
-                {value.to}
+                {String(v.to)}
               </Text>
             )}
-            {value.cc && (
+            {!!v.cc && (
               <Text style={[styles.emailField, { color: colors.textSecondary }]}>
                 <Text style={styles.emailLabel}>CC: </Text>
-                {value.cc}
+                {String(v.cc)}
               </Text>
             )}
-            {value.subject && (
+            {!!v.subject && (
               <Text style={[styles.emailSubject, { color: colors.text }]}>
-                {value.subject}
+                {String(v.subject)}
               </Text>
             )}
           </View>
-          {value.body && <MarkdownRenderer content={value.body} />}
+          {typeof v.body === "string" && <MarkdownRenderer content={v.body} />}
         </View>
       );
 
-    // ── Task ─────────────────────────────────────────────────────
     case "task":
       return (
         <View style={styles.container}>
-          {value.title && (
+          {!!v.title && (
             <Text style={[styles.taskTitle, { color: colors.text }]}>
-              {value.title}
+              {String(v.title)}
             </Text>
           )}
-          {value.description && (
-            <MarkdownRenderer content={value.description} />
+          {typeof v.description === "string" && (
+            <MarkdownRenderer content={v.description} />
           )}
-          {Array.isArray(value.steps) && value.steps.length > 0 && (
+          {Array.isArray(v.steps) && v.steps.length > 0 && (
             <View style={styles.taskSteps}>
-              {value.steps.map((step: unknown, i: number) => {
+              {(v.steps as unknown[]).map((step: unknown, i: number) => {
                 const s = step as string | TaskStep;
                 return (
                 <View key={i} style={styles.taskStep}>
@@ -334,20 +323,20 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
 
     // ── Task Plan ────────────────────────────────────────────────
     case "task_plan": {
-      const tasks = Array.isArray(value.tasks) ? value.tasks : [];
+      const tasks = Array.isArray(v.tasks) ? (v.tasks as unknown[]) : [];
       return (
         <View style={styles.container}>
-          {value.title && (
+          {!!v.title && (
             <Text style={[styles.taskTitle, { color: colors.text }]}>
-              {value.title}
+              {String(v.title)}
             </Text>
           )}
-          {tasks.map((task: TypedValue, i: number) => (
+          {tasks.map((task: unknown, i: number) => (
             <View
               key={i}
               style={[styles.arrayItem, { borderLeftColor: colors.primary }]}
             >
-              <OutputRenderer value={{ ...task, type: "task" }} />
+              <OutputRenderer value={{ ...(task as Record<string, unknown>), type: "task" }} />
             </View>
           ))}
         </View>
@@ -358,42 +347,40 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
     case "calendar_event":
       return (
         <View style={[styles.calendarEvent, { borderColor: colors.borderLight }]}>
-          {value.title && (
+          {!!v.title && (
             <Text style={[styles.calendarTitle, { color: colors.text }]}>
-              {value.title}
+              {String(v.title)}
             </Text>
           )}
-          {(value.start_date || value.start_time) && (
+          {!!(v.start_date || v.start_time) && (
             <Text style={[styles.calendarMeta, { color: colors.textSecondary }]}>
-              {value.start_date}{value.start_time ? ` at ${value.start_time}` : ""}
-              {value.end_time ? ` – ${value.end_time}` : ""}
+              {String(v.start_date ?? "")}{v.start_time ? ` at ${String(v.start_time)}` : ""}
+              {v.end_time ? ` – ${String(v.end_time)}` : ""}
             </Text>
           )}
-          {value.location && (
+          {!!v.location && (
             <Text style={[styles.calendarMeta, { color: colors.textSecondary }]}>
-              📍 {value.location}
+              📍 {String(v.location)}
             </Text>
           )}
-          {value.notes && <MarkdownRenderer content={value.notes} />}
+          {typeof v.notes === "string" && <MarkdownRenderer content={v.notes} />}
         </View>
       );
 
     // ── Chunk ────────────────────────────────────────────────────
     case "chunk": {
-      const chunk = value;
-      const contentType = chunk.content_type;
+      const contentType = v.content_type;
 
       if (contentType === "image") {
-        return <OutputRenderer value={{ type: "image", uri: chunk.content }} />;
+        return <OutputRenderer value={{ type: "image", uri: v.content }} />;
       }
       if (contentType === "video") {
-        return <OutputRenderer value={{ type: "video", uri: chunk.content }} />;
+        return <OutputRenderer value={{ type: "video", uri: v.content }} />;
       }
       if (contentType === "audio") {
-        return <OutputRenderer value={{ type: "audio", uri: chunk.content }} />;
+        return <OutputRenderer value={{ type: "audio", uri: v.content }} />;
       }
-      // text or default
-      const chunkText = typeof chunk.content === "string" ? chunk.content : "";
+      const chunkText = typeof v.content === "string" ? v.content : "";
       if (!chunkText) {return null;}
       return <MarkdownRenderer content={chunkText} />;
     }
@@ -402,7 +389,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
     case "classification_result":
       return (
         <Text style={[styles.text, { color: colors.text }]}>
-          {value.label}: {typeof value.score === "number" ? value.score.toFixed(4) : value.score}
+          {String(v.label)}: {typeof v.score === "number" ? v.score.toFixed(4) : String(v.score)}
         </Text>
       );
 
@@ -410,7 +397,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
     case "segmentation_result":
       return (
         <View style={styles.container}>
-          {Object.entries(value)
+          {Object.entries(v)
             .filter(([k]) => k !== "type")
             .map(([key, val]) => (
               <View
@@ -425,17 +412,19 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
 
     // ── Dataframe (table) ────────────────────────────────────────
     case "dataframe": {
-      const columns = Array.isArray(value.columns) ? value.columns : [];
-      const data = Array.isArray(value.data) ? value.data : [];
+      const columns = Array.isArray(v.columns) ? (v.columns as unknown[]) : [];
+      const data = Array.isArray(v.data) ? (v.data as unknown[]) : [];
       if (columns.length === 0 || data.length === 0) {
-        return renderJSON(value, codeTheme, colors, mode, monoFont);
+        return renderJSON(v, codeTheme, colors, mode, monoFont);
       }
       return (
         <ScrollView horizontal showsHorizontalScrollIndicator>
           <View>
             {/* Header row */}
             <View style={[styles.tableRow, { backgroundColor: mode === "dark" ? "#2A2A2A" : "#E8E8E8" }]}>
-              {columns.map((col: string | DataframeColumn, i: number) => (
+              {columns.map((col, i) => {
+                const c = col as string | DataframeColumn;
+                return (
                 <Text
                   key={i}
                   style={[
@@ -445,12 +434,15 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
                   ]}
                   numberOfLines={1}
                 >
-                  {typeof col === "object" ? col.name : col}
+                  {typeof c === "object" && c !== null ? String((c as DataframeColumn).name) : String(c)}
                 </Text>
-              ))}
+                );
+              })}
             </View>
             {/* Data rows (limit to 50 for performance) */}
-            {data.slice(0, 50).map((row: unknown[] | Record<string, unknown>, rowIdx: number) => (
+            {data.slice(0, 50).map((rawRow, rowIdx) => {
+              const row = rawRow as unknown[] | Record<string, unknown>;
+              return (
               <View
                 key={rowIdx}
                 style={[
@@ -460,7 +452,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
                     : "transparent" },
                 ]}
               >
-                {(Array.isArray(row) ? row : Object.values(row)).map((cell: unknown, cellIdx: number) => (
+                {(Array.isArray(row) ? row : Object.values(row as Record<string, unknown>)).map((cell: unknown, cellIdx: number) => (
                   <Text
                     key={cellIdx}
                     style={[styles.tableCell, { color: colors.text, borderColor: colors.border }]}
@@ -470,7 +462,8 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
                   </Text>
                 ))}
               </View>
-            ))}
+              );
+            })}
             {data.length > 50 && (
               <Text style={[styles.placeholder, { color: colors.textSecondary, padding: 8 }]}>
                 Showing 50 of {data.length} rows
@@ -483,14 +476,16 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
 
     // ── NumPy Array / Tensor ─────────────────────────────────────
     case "np_array": {
-      const shape = Array.isArray(value.shape) ? value.shape.join(" × ") : "unknown";
-      const dtype = value.dtype || "float";
+      const shapeArr = Array.isArray(v.shape) ? (v.shape as unknown[]) : [];
+      const shape = shapeArr.length > 0 ? shapeArr.join(" × ") : "unknown";
+      const dtype = v.dtype || "float";
+      const npData = Array.isArray(v.data) ? (v.data as unknown[]) : [];
       return (
         <View style={styles.container}>
           <Text style={[styles.tensorLabel, { color: colors.textSecondary }]}>
-            Tensor: {shape} ({dtype})
+            Tensor: {shape} ({String(dtype)})
           </Text>
-          {Array.isArray(value.data) && (
+          {npData.length > 0 && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <Text
                 style={[
@@ -502,9 +497,9 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
                 ]}
               >
                 {JSON.stringify(
-                  value.data.length > 100 ? value.data.slice(0, 100) : value.data
+                  npData.length > 100 ? npData.slice(0, 100) : npData
                 )}
-                {value.data.length > 100 ? " ..." : ""}
+                {npData.length > 100 ? " ..." : ""}
               </Text>
             </ScrollView>
           )}
@@ -514,12 +509,14 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
 
     // ── JSON (explicit type) ─────────────────────────────────────
     case "json":
-      return renderJSON(value, codeTheme, colors, mode, monoFont);
+      return renderJSON(v, codeTheme, colors, mode, monoFont);
 
     // ── Image Comparison ─────────────────────────────────────────
     case "image_comparison": {
-      const imgA = resolveMediaUri(value?.image_a?.uri);
-      const imgB = resolveMediaUri(value?.image_b?.uri);
+      const imageA = v.image_a as Record<string, unknown> | undefined;
+      const imageB = v.image_b as Record<string, unknown> | undefined;
+      const imgA = resolveMediaUri(imageA?.uri as string | undefined);
+      const imgB = resolveMediaUri(imageB?.uri as string | undefined);
       return (
         <View style={styles.comparisonContainer}>
           {imgA && (
@@ -542,20 +539,21 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
 
     // ── Array ────────────────────────────────────────────────────
     case "array": {
-      if (value.length === 0) {return null;}
+      const arr = value as unknown[];
+      if (arr.length === 0) {return null;}
 
-      const firstItem = value[0];
+      const firstItem = arr[0];
 
       // Array of strings → list
-      if (typeof firstItem === "string" && (value as unknown[]).every((v) => typeof v === "string")) {
+      if (typeof firstItem === "string" && arr.every((item) => typeof item === "string")) {
         return (
           <View style={styles.container}>
-            {value.map((v: string, i: number) => (
+            {(arr as string[]).map((item: string, i: number) => (
               <View
                 key={i}
                 style={[styles.listItem, { backgroundColor: mode === "dark" ? "#2A2A2A" : "#F0F0F0" }]}
               >
-                <Text style={[styles.listItemText, { color: colors.text }]}>{v}</Text>
+                <Text style={[styles.listItemText, { color: colors.text }]}>{item}</Text>
               </View>
             ))}
           </View>
@@ -575,8 +573,8 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
                 },
               ]}
             >
-              [{value.slice(0, 100).join(", ")}
-              {value.length > 100 ? ", ..." : ""}]
+              [{(arr as number[]).slice(0, 100).join(", ")}
+              {arr.length > 100 ? ", ..." : ""}]
             </Text>
           </ScrollView>
         );
@@ -584,16 +582,17 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
 
       // Array of typed objects
       if (typeof firstItem === "object" && firstItem !== null) {
+        const first = firstItem as Record<string, unknown>;
         // Chunks
-        if (firstItem.type === "chunk") {
-          const allText = (value as TypedValue[]).every(
+        if (first.type === "chunk") {
+          const allText = (arr as TypedValue[]).every(
             (c) =>
               !c?.content_type ||
               c.content_type === "text" ||
               c.content_type === ""
           );
           if (allText) {
-            const text = (value as TypedValue[])
+            const text = (arr as TypedValue[])
               .map((c) => (typeof c.content === "string" ? c.content : ""))
               .join("");
             return <MarkdownRenderer content={text} />;
@@ -601,38 +600,38 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
           // Mixed chunks: render each
           return (
             <View style={styles.container}>
-              {(value as unknown[]).map((v: unknown, i: number) => (
-                <OutputRenderer key={i} value={v} />
+              {arr.map((item: unknown, i: number) => (
+                <OutputRenderer key={i} value={item} />
               ))}
             </View>
           );
         }
 
         // Array of images → grid
-        if (firstItem.type === "image") {
+        if (first.type === "image") {
           return (
             <View style={styles.imageGrid}>
-              {(value as unknown[]).map((v: unknown, i: number) => (
-                <OutputRenderer key={i} value={v} />
+              {arr.map((item: unknown, i: number) => (
+                <OutputRenderer key={i} value={item} />
               ))}
             </View>
           );
         }
 
         // Array of other typed objects (audio, video, etc.)
-        if (["audio", "video", "html", "task"].includes(firstItem.type)) {
+        if (typeof first.type === "string" && ["audio", "video", "html", "task"].includes(first.type)) {
           return (
             <View style={styles.container}>
-              {(value as unknown[]).map((v: unknown, i: number) => (
-                <OutputRenderer key={i} value={v} />
+              {arr.map((item: unknown, i: number) => (
+                <OutputRenderer key={i} value={item} />
               ))}
             </View>
           );
         }
 
         // Array of plain objects → dataframe-like table
-        if (!firstItem.type) {
-          const keys = Object.keys(firstItem);
+        if (!first.type) {
+          const keys = Object.keys(first);
           if (keys.length > 0) {
             return (
               <ScrollView horizontal showsHorizontalScrollIndicator>
@@ -648,7 +647,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
                       </Text>
                     ))}
                   </View>
-                  {(value as Record<string, unknown>[]).slice(0, 50).map((row, rowIdx: number) => (
+                  {(arr as Record<string, unknown>[]).slice(0, 50).map((row, rowIdx: number) => (
                     <View
                       key={rowIdx}
                       style={[
@@ -669,9 +668,9 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
                       ))}
                     </View>
                   ))}
-                  {value.length > 50 && (
+                  {arr.length > 50 && (
                     <Text style={[styles.placeholder, { color: colors.textSecondary, padding: 8 }]}>
-                      Showing 50 of {value.length} rows
+                      Showing 50 of {arr.length} rows
                     </Text>
                   )}
                 </View>
@@ -684,7 +683,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
       // Fallback: render each item recursively
       return (
         <View style={styles.container}>
-          {(value as unknown[]).map((item: unknown, index: number) => (
+          {arr.map((item: unknown, index: number) => (
             <View
               key={index}
               style={[styles.arrayItem, { borderLeftColor: colors.border }]}
@@ -698,7 +697,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
 
     // ── Object (generic, with key/value display) ─────────────────
     case "object": {
-      const entries = Object.entries(value).filter(([k]) => k !== "type");
+      const entries = Object.entries(v).filter(([k]) => k !== "type");
 
       // Single-key object: unwrap and render value directly
       if (entries.length === 1) {
@@ -733,7 +732,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
       }
       return (
         <Text style={[styles.text, { color: colors.text }]}>
-          {value?.toString?.() ?? ""}
+          {typeof value === "string" ? value : String(value ?? "")}
         </Text>
       );
   }

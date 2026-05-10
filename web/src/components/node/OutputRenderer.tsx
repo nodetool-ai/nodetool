@@ -16,7 +16,10 @@ import {
   NPArray,
   TaskPlan,
   Task,
-  CalendarEvent
+  CalendarEvent,
+  PlotlyConfig,
+  SVGElement,
+  AssetRef
 } from "../../stores/ApiTypes";
 import AudioPlayer from "../audio/AudioPlayer";
 import ThreadMessageList from "./ThreadMessageList";
@@ -44,11 +47,11 @@ import {
 import { TextRenderer } from "./output/TextRenderer";
 import { BooleanRenderer } from "./output/BooleanRenderer";
 import { DatetimeRenderer } from "./output/DatetimeRenderer";
-import { EmailRenderer } from "./output/EmailRenderer";
+import { EmailRenderer, type Email } from "./output/EmailRenderer";
 import { ArrayRenderer } from "./output/ArrayRenderer";
 import { AssetGrid } from "./output/AssetGrid";
 import { ChunkRenderer } from "./output/ChunkRenderer";
-import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
+import { ImageComparisonRenderer, type ImageComparisonData } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
@@ -294,7 +297,7 @@ const useDraggableScroll = () => {
 };
 
 export type OutputRendererProps = {
-  value: any;
+  value: unknown;
   showTextActions?: boolean;
 };
 
@@ -329,7 +332,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     }
 
     let bytes: Uint8Array | null = null;
-    const data = value?.data;
+    const obj = value as Record<string, unknown>;
+    const data = obj?.data;
 
     if (data instanceof Uint8Array) {
       bytes = data;
@@ -402,57 +406,56 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
   const signedValueUrl = useSignedUrl(valueUri);
 
   const renderContent = useMemo(() => {
+    // Typed views for property access in switch cases. typeFor() confirms
+    // shape at runtime before the value enters each branch.
+    const v = value as Record<string, unknown>;
+
     switch (type) {
       case "plotly_config":
-        return <PlotlyRenderer config={value} />;
+        return <PlotlyRenderer config={value as PlotlyConfig} />;
       case "image_comparison":
-        return <ImageComparisonRenderer value={value} />;
+        return <ImageComparisonRenderer value={value as ImageComparisonData} />;
       case "image":
-        if (Array.isArray(value.data)) {
+        if (Array.isArray(v.data)) {
           const seen = new Map<string, number>();
-          return value.data.map((v: string | Uint8Array) => (
+          return (v.data as (string | Uint8Array)[]).map((item) => (
             <ImageView
-              key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
-              source={v}
+              key={withOccurrenceSuffix(stableKeyForOutputValue(item), seen)}
+              source={item}
             />
           ));
         } else {
           let imageSource: string | Uint8Array;
-          if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
+          if (typeof v.uri === "string" && v.uri !== "" && !v.uri.startsWith("memory://")) {
             imageSource = signedValueUrl;
-          } else if (value?.data instanceof Uint8Array) {
-            imageSource = value.data;
-          } else if (Array.isArray(value?.data)) {
-            imageSource = new Uint8Array(value.data);
-          } else if (typeof value?.data === "string") {
-            imageSource = value.data;
+          } else if (v.data instanceof Uint8Array) {
+            imageSource = v.data;
+          } else if (Array.isArray(v.data)) {
+            imageSource = new Uint8Array(v.data as number[]);
+          } else if (typeof v.data === "string") {
+            imageSource = v.data;
           } else {
             imageSource = "";
           }
           return <ImageView source={imageSource} />;
         }
       case "audio": {
-        // Handle different audio data formats
         let audioSource: string | Uint8Array;
 
-        if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
+        if (typeof v.uri === "string" && v.uri !== "" && !v.uri.startsWith("memory://")) {
           audioSource = signedValueUrl;
-        } else if (Array.isArray(value?.data)) {
-          // Convert array of bytes to Uint8Array
-          audioSource = new Uint8Array(value.data);
-        } else if (value?.data instanceof Uint8Array) {
-          // Already a Uint8Array
-          audioSource = value.data;
-        } else if (typeof value?.data === "string") {
-          // Data URI or base64 string
-          audioSource = value.data;
+        } else if (Array.isArray(v.data)) {
+          audioSource = new Uint8Array(v.data as number[]);
+        } else if (v.data instanceof Uint8Array) {
+          audioSource = v.data;
+        } else if (typeof v.data === "string") {
+          audioSource = v.data;
         } else {
-          // Fallback
           audioSource = "";
         }
 
-        const metadata = (value as { metadata?: { format?: string } }).metadata || {};
-        let mimeType = getMimeTypeFromUri(value?.uri);
+        const metadata = (v.metadata as { format?: string } | undefined) ?? {};
+        let mimeType = getMimeTypeFromUri(v.uri as string | undefined);
         if (!mimeType) {
           mimeType = metadata.format === "wav" ? "audio/wav" : "audio/mp3";
         }
@@ -470,7 +473,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       }
       case "html": {
         const uri =
-          value?.uri && typeof value.uri === "string" && !value.uri.startsWith("memory://")
+          typeof v.uri === "string" && v.uri && !v.uri.startsWith("memory://")
             ? signedValueUrl
             : "";
         if (uri) {
@@ -485,12 +488,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         }
 
         let html = "";
-        if (typeof value?.data === "string") {
-          html = value.data;
-        } else if (value?.data instanceof Uint8Array) {
-          html = new TextDecoder("utf-8").decode(value.data);
-        } else if (Array.isArray(value?.data)) {
-          html = new TextDecoder("utf-8").decode(new Uint8Array(value.data));
+        if (typeof v.data === "string") {
+          html = v.data;
+        } else if (v.data instanceof Uint8Array) {
+          html = new TextDecoder("utf-8").decode(v.data);
+        } else if (Array.isArray(v.data)) {
+          html = new TextDecoder("utf-8").decode(new Uint8Array(v.data as number[]));
         }
 
         if (!html) {
@@ -508,7 +511,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       }
       case "document": {
         const rawUri =
-          value?.uri && typeof value.uri === "string" ? value.uri : "";
+          typeof v.uri === "string" ? v.uri : "";
         const uriFromRef =
           rawUri && !rawUri.startsWith("memory://") ? signedValueUrl : "";
         const uri = uriFromRef || documentDataPreview.url;
@@ -539,7 +542,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           );
         }
 
-        return <JSONRenderer value={value} showActions={showTextActions} />;
+        return <JSONRenderer value={v} showActions={showTextActions} />;
       }
       case "video":
         return (
@@ -551,19 +554,14 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         );
       case "model_3d": {
         const rawUri: string =
-          (value && typeof value === "object" && typeof value.uri === "string"
-            ? value.uri
-            : "") || "";
+          typeof v.uri === "string" ? v.uri : "";
 
         if (!rawUri) {
-          return <JSONRenderer value={value} showActions={showTextActions} />;
+          return <JSONRenderer value={v} showActions={showTextActions} />;
         }
 
         const url = signedValueUrl;
-        const format =
-          value && typeof value === "object" && typeof (value as Record<string, unknown>).format === "string"
-            ? ((value as Record<string, unknown>).format as string)
-            : undefined;
+        const format = typeof v.format === "string" ? v.format : undefined;
         const contentType = getMimeTypeFromUri(url) ||
           (format === "gltf" ? "model/gltf+json" : "model/gltf-binary");
 
@@ -594,18 +592,15 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           </div>
         );
       case "object": {
-        const keys = Object.keys(value);
-        const vals = Object.values(value);
+        const keys = Object.keys(v);
+        const vals = Object.values(v);
 
-        // For empty objects, return null
         if (keys.length === 0) {
           return null;
         }
 
-        // Single-key object: render the value directly (unwrap the object)
         if (keys.length === 1) {
           const singleValue = vals[0];
-          // If it's a primitive, render it directly
           if (typeof singleValue === "string") {
             return (
               <TextRenderer text={singleValue} showActions={showTextActions} />
@@ -622,18 +617,16 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           if (typeof singleValue === "boolean") {
             return <BooleanRenderer value={singleValue} />;
           }
-          // For objects/arrays, recurse
           return (
             <OutputRenderer value={singleValue} showTextActions={showTextActions} />
           );
         }
 
-        // Multi-key object: use ObjectRenderer for clean sectioned display
         return (
           <ObjectRenderer
-            value={value}
-            renderValue={(v) => (
-              <OutputRenderer value={v} showTextActions={showTextActions} />
+            value={v}
+            renderValue={(item) => (
+              <OutputRenderer value={item} showTextActions={showTextActions} />
             )}
           />
         );
@@ -644,12 +637,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         return <TaskPlanView data={value as TaskPlan} />;
       case "calendar_event":
         return <CalendarEventView event={value as CalendarEvent} />;
-      case "array":
-        if (value.length > 0) {
-          if (value[0] === undefined || value[0] === null) {
+      case "array": {
+        const arr = value as unknown[];
+        if (arr.length > 0) {
+          if (arr[0] === undefined || arr[0] === null) {
             return null;
           }
-          if (typeof value[0] === "string" && value.every((v: unknown) => typeof v === "string")) {
+          if (typeof arr[0] === "string" && arr.every((item: unknown) => typeof item === "string")) {
             const seen = new Map<string, number>();
             return (
               <div
@@ -664,10 +658,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 }}
               >
                 <List sx={{ p: 1 }}>
-                  {value.map((v: string) => (
+                  {(arr as string[]).map((item) => (
                     <ListItem
                       key={withOccurrenceSuffix(
-                        stableKeyForOutputValue(v),
+                        stableKeyForOutputValue(item),
                         seen
                       )}
                       sx={{
@@ -682,7 +676,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                         primaryTypographyProps={{
                           sx: { whiteSpace: "pre-wrap" }
                         }}
-                        primary={v}
+                        primary={item}
                       />
                     </ListItem>
                   ))}
@@ -690,13 +684,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
               </div>
             );
           }
-          if (typeof value[0] === "number") {
+          if (typeof arr[0] === "number") {
             return (
-              <ListTable data={value} data_type="float" editable={false} />
+              <ListTable data={arr as number[]} data_type="float" editable={false} />
             );
           }
-          if (typeof value[0] === "object") {
-            if (value.every((item: unknown) => isAudioChunkLike(item))) {
+          if (typeof arr[0] === "object") {
+            if (arr.every((item: unknown) => isAudioChunkLike(item))) {
               const seen = new Map<string, number>();
               return (
                 <div
@@ -711,7 +705,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                   }}
                 >
                   <List sx={{ p: 1 }}>
-                    {value.map((chunk: { timestamp: [number, number]; text: string }) => {
+                    {(arr as { timestamp: [number, number]; text: string }[]).map((chunk) => {
                       const key = withOccurrenceSuffix(
                         `audio-chunk:${chunk.timestamp[0]}:${chunk.timestamp[1]}:${hashStringBounded(chunk.text)}`,
                         seen
@@ -749,8 +743,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 </div>
               );
             }
-            if (value[0].type === "chunk") {
-              const chunks = value as Chunk[];
+            const first = arr[0] as Record<string, unknown>;
+            if (first.type === "chunk") {
+              const chunks = arr as Chunk[];
               const audioChunks = chunks.filter(
                 (c) => c.content_type === "audio"
               );
@@ -834,28 +829,28 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 </Container>
               );
             }
-            if (value[0].type === "svg_element") {
-              return renderSVGDocument(value);
+            if (first.type === "svg_element") {
+              return renderSVGDocument(arr as SVGElement[]);
             }
-            if (value[0].type === "thread_message") {
-              return <ThreadMessageList messages={value as Message[]} />;
+            if (first.type === "thread_message") {
+              return <ThreadMessageList messages={arr as Message[]} />;
             }
-            if (value[0].type === "image") {
+            if (first.type === "image") {
               return (
-                <AssetGrid values={value} onOpenIndex={onDoubleClickAsset} />
+                <AssetGrid values={arr as AssetRef[]} onOpenIndex={onDoubleClickAsset} />
               );
             }
-            if (["audio", "video", "html"].includes(value[0].type)) {
+            if (["audio", "video", "html"].includes(first.type as string)) {
               const seen = new Map<string, number>();
               return (
                 <Container>
-                  {value.map((v: unknown) => (
+                  {arr.map((item) => (
                     <OutputRenderer
                       key={withOccurrenceSuffix(
-                        stableKeyForOutputValue(v),
+                        stableKeyForOutputValue(item),
                         seen
                       )}
-                      value={v}
+                      value={item}
                       showTextActions={showTextActions}
                     />
                   ))}
@@ -863,12 +858,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
               );
             }
             const columnType = (
-              v: unknown
+              cell: unknown
             ): "string" | "float" | "int" | "datetime" | "object" => {
-              if (typeof v === "string") {
+              if (typeof cell === "string") {
                 return "string";
               }
-              if (typeof v === "number") {
+              if (typeof cell === "number") {
                 return "float";
               }
               return "object";
@@ -876,8 +871,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             const df: DataframeRef = {
               type: "dataframe" as const,
               uri: "",
-              data: value.map((v: Record<string, unknown>) => Object.values(v)),
-              columns: Object.entries(value[0]).map((i) => ({
+              data: (arr as Record<string, unknown>[]).map((row) => Object.values(row)),
+              columns: Object.entries(first).map((i) => ({
                 name: i[0],
                 data_type: columnType(i[1]),
                 description: ""
@@ -891,23 +886,24 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           <Container>
             {(() => {
               const seen = new Map<string, number>();
-              return value.map((v: unknown) => (
+              return arr.map((item) => (
                 <OutputRenderer
-                  key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
-                  value={v}
+                  key={withOccurrenceSuffix(stableKeyForOutputValue(item), seen)}
+                  value={item}
                   showTextActions={showTextActions}
                 />
               ));
             })()}
           </Container>
         );
+      }
       case "segmentation_result":
         return (
           <div>
-            {Object.entries(value).map((v: [string, unknown]) => (
+            {Object.entries(v).map(([key, val]) => (
               <OutputRenderer
-                key={v[0]}
-                value={v[1]}
+                key={key}
+                value={val}
                 showTextActions={showTextActions}
               />
             ))}
@@ -916,11 +912,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "classification_result":
         return (
           <div>
-            {value["label"]}: {value["score"]}
+            {String(v["label"])}: {String(v["score"])}
           </div>
         );
       case "svg_element":
-        return renderSVGDocument(value);
+        return renderSVGDocument(value as SVGElement[]);
       case "boolean": {
         return <BooleanRenderer value={value as boolean} />;
       }
@@ -928,20 +924,20 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         return <DatetimeRenderer value={value as Datetime} />;
       }
       case "email":
-        return <EmailRenderer value={value} />;
+        return <EmailRenderer value={value as Email} />;
       case "chunk": {
         const chunk = value as Chunk;
         return <ChunkRenderer chunk={chunk} />;
       }
       case "json":
-        return <JSONRenderer value={value} showActions={showTextActions} />;
+        return <JSONRenderer value={v} showActions={showTextActions} />;
       default:
         if (value !== null && typeof value === "object") {
-          return <JSONRenderer value={value} showActions={showTextActions} />;
+          return <JSONRenderer value={value as Record<string, unknown>} showActions={showTextActions} />;
         }
         return (
           <TextRenderer
-            text={value?.toString?.() ?? ""}
+            text={typeof value === "string" ? value : String(value ?? "")}
             showActions={showTextActions}
           />
         );
