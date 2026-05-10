@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { ChatChunkEvent, ChatMessageEvent, ChatSocket } from "@nodetool-ai/sdk";
+import type {
+  ChatChunkEvent,
+  ChatMessageEvent,
+  ChatSocket,
+  ChatToolCallEvent
+} from "@nodetool-ai/sdk";
 import { nodetool } from "@/lib/sdk";
 import { Sidebar } from "@/components/sidebar";
 import { Composer } from "@/components/composer";
@@ -77,14 +82,42 @@ export function App() {
   } | null>(null);
 
   const rows: ChatRow[] = useMemo(() => {
-    const persisted: ChatRow[] = (messagesQuery.data?.messages ?? []).map(
-      (m) => ({
-        kind: "message" as const,
-        id: m.id ?? `srv-${m.created_at}`,
-        role: m.role as "user" | "assistant" | "system" | "tool",
-        text: extractText(m.content)
-      })
-    );
+    const messages = messagesQuery.data?.messages ?? [];
+    const lastUserIndex = messages.findLastIndex((m) => m.role === "user");
+    const persisted: ChatRow[] = messages.flatMap((m, index) => {
+      const afterLastUser = index > lastUserIndex;
+
+      // Tool activity from previous turns is noisy in the transcript. Keep it
+      // hidden in history, but show tool calls/results for the active turn.
+      if (m.role === "tool") {
+        if (!afterLastUser) return [];
+        return [
+          {
+            kind: "tool_call" as const,
+            id: m.id ?? `tool-${m.created_at}`,
+            name: getStringProp(m, "name") ?? "tool"
+          }
+        ];
+      }
+
+      const toolCallRows = afterLastUser
+        ? extractToolCalls(m.tool_calls, m.id ?? `srv-${m.created_at}`)
+        : [];
+      const text = extractText(m.content);
+      const messageRows: ChatRow[] =
+        m.role === "system" || !text
+          ? []
+          : [
+              {
+                kind: "message" as const,
+                id: m.id ?? `srv-${m.created_at}`,
+                role: m.role as "user" | "assistant",
+                text
+              }
+            ];
+
+      return [...messageRows, ...toolCallRows];
+    });
     return [...persisted, ...localRows];
   }, [messagesQuery.data, localRows]);
 
@@ -122,6 +155,16 @@ export function App() {
         setStreaming(false);
       }
     });
+    const offToolCall = socket.on("tool_call", (e: ChatToolCallEvent) => {
+      setLocalRows((prev) => [
+        ...prev,
+        {
+          kind: "tool_call",
+          id: e.tool_call_id ?? `local-tool-${Date.now()}`,
+          name: e.name
+        }
+      ]);
+    });
     const offMessage = socket.on("message", (m: ChatMessageEvent) => {
       if (m.role !== "assistant") return;
       // Server has persisted the assistant message. Refetch the list and
@@ -140,6 +183,7 @@ export function App() {
     return () => {
       offState();
       offChunk();
+      offToolCall();
       offMessage();
       offError();
       socket.disconnect();
@@ -233,7 +277,7 @@ export function App() {
       />
 
       <main className="flex flex-1 min-w-0 flex-col">
-        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border/60 bg-background/40 px-6 backdrop-blur">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-background/95 px-6">
           <div className="flex min-w-0 items-center gap-3">
             <h1 className="truncate text-sm font-medium">
               {activeThread?.title ?? "New conversation"}
@@ -293,4 +337,29 @@ function extractText(content: unknown): string {
       .join("");
   }
   return "";
+}
+
+function extractToolCalls(toolCalls: unknown, idPrefix: string): ChatRow[] {
+  if (!Array.isArray(toolCalls)) return [];
+  return toolCalls.map((call, index) => {
+    const fn = getObjectProp(call, "function");
+    return {
+      kind: "tool_call",
+      id: getStringProp(call, "id") ?? `${idPrefix}-tool-${index}`,
+      name:
+        getStringProp(call, "name") ?? getStringProp(fn, "name") ?? "tool"
+    };
+  });
+}
+
+function getObjectProp(value: unknown, key: string): Record<string, unknown> | null {
+  if (!value || typeof value !== "object") return null;
+  const prop = (value as Record<string, unknown>)[key];
+  return prop && typeof prop === "object" ? (prop as Record<string, unknown>) : null;
+}
+
+function getStringProp(value: unknown, key: string): string | null {
+  if (!value || typeof value !== "object") return null;
+  const prop = (value as Record<string, unknown>)[key];
+  return typeof prop === "string" && prop.length > 0 ? prop : null;
 }

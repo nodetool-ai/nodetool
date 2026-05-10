@@ -32,12 +32,12 @@ export function Sidebar({
   onDelete
 }: Props) {
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-r border-border/60 bg-card/30 backdrop-blur">
+    <aside className="flex w-72 shrink-0 flex-col border-r border-border bg-card/70">
       <div className="flex h-14 items-center justify-between gap-2 px-4">
         <div className="flex items-center gap-2">
           <Logo />
           <span className="text-sm font-semibold tracking-tight">
-            NodeTool <span className="text-primary">Chat</span>
+            NodeTool <span className="text-muted-foreground">Chat</span>
           </span>
         </div>
         <Tooltip>
@@ -105,7 +105,7 @@ export function Sidebar({
 
 function Logo() {
   return (
-    <span className="flex size-7 items-center justify-center rounded-md bg-primary/15 text-primary">
+    <span className="flex size-7 items-center justify-center rounded-md border border-border bg-muted text-foreground">
       <svg
         viewBox="0 0 24 24"
         fill="none"

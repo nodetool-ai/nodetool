@@ -32,10 +32,10 @@ export function Composer({ onSend, onStop, disabled, streaming }: Props) {
   }
 
   return (
-    <div className="border-t border-border/60 bg-background/60 px-6 py-4 backdrop-blur">
+    <div className="border-t border-border bg-background/95 px-6 py-4">
       <div
         className={cn(
-          "relative flex items-end gap-2 rounded-xl border border-input bg-card/60 p-2 shadow-sm transition focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/20",
+          "relative flex items-end gap-2 rounded-xl border border-input bg-card p-2 transition focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20",
           disabled && "opacity-60"
         )}
       >

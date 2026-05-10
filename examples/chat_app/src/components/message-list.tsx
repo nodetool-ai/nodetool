@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Bot, User, Sparkles } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Bot, Wrench } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
@@ -65,8 +64,8 @@ function MessageRow({
   if (row.kind === "tool_call") {
     return (
       <div className="flex items-center gap-2 self-start rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
-        <Sparkles className="size-3.5 text-primary" />
-        Calling tool: <span className="font-mono">{row.name}</span>
+        <Wrench className="size-3.5 text-muted-foreground" />
+        Calling tool: <span className="font-mono text-foreground">{row.name}</span>
       </div>
     );
   }
@@ -76,24 +75,13 @@ function MessageRow({
   const showCaret = isAssistant && isLast && streaming;
 
   return (
-    <div className={cn("flex gap-3", isUser && "flex-row-reverse")}>
-      <Avatar
-        className={cn(
-          "mt-1 ring-1 ring-border/60",
-          isUser ? "bg-primary/15 text-primary" : "bg-muted"
-        )}
-      >
-        <AvatarFallback className={cn(isUser && "bg-primary/15 text-primary")}>
-          {isUser ? <User className="size-4" /> : <Bot className="size-4" />}
-        </AvatarFallback>
-      </Avatar>
-
+    <div className={cn("flex", isUser && "justify-end")}>
       <div
         className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-3 shadow-sm border border-border/40",
+          "max-w-[80%] px-4 py-3",
           isUser
-            ? "bg-primary text-primary-foreground rounded-tr-sm"
-            : "bg-card/80 backdrop-blur rounded-tl-sm"
+            ? "rounded-xl rounded-tr-sm bg-foreground text-background"
+            : "text-foreground"
         )}
       >
         {row.text ? (
@@ -126,8 +114,8 @@ function EmptyState() {
   return (
     <div className="aurora flex flex-1 items-center justify-center px-6">
       <div className="max-w-md text-center">
-        <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/30">
-          <Sparkles className="size-6" />
+        <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground">
+          <Bot className="size-6" />
         </div>
         <h2 className="text-2xl font-semibold tracking-tight">
           Start a conversation
