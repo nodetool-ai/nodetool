@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -114,11 +114,11 @@ function getOutputFromResult(result: unknown): unknown {
   return result;
 }
 
-export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
+export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNodeCard({
   node, index, totalNodes, workflowId, previousNodes,
   onToggleExpanded, onUpdateProperty, onSetOutput, onSetInputMapping,
   onRemove, onDuplicate, onMoveUp, onMoveDown,
-}) => {
+}) {
   const theme = useTheme();
   const nsColor = getNsColor(node.metadata.namespace);
 
@@ -274,4 +274,16 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
       </Collapse>
     </Box>
   );
-};
+}, (prev, next) => {
+  if (prev.node !== next.node) return false;
+  if (prev.index !== next.index) return false;
+  if (prev.totalNodes !== next.totalNodes) return false;
+  if (prev.workflowId !== next.workflowId) return false;
+  const pn = prev.previousNodes;
+  const nn = next.previousNodes;
+  if (pn.length !== nn.length) return false;
+  for (let i = 0; i < pn.length; i++) {
+    if (pn[i] !== nn[i]) return false;
+  }
+  return true;
+});
