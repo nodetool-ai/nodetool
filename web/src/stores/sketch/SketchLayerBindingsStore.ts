@@ -139,6 +139,44 @@ interface SketchLayerBindingsState {
    */
   markStaleForWorkflow: (workflowId: string) => void;
 
+  /**
+   * Restore a previous version: points `currentAssetId` and
+   * `paramOverrides` at the version's snapshot, sets `lastGeneratedHash`
+   * from the version's hash, and recomputes status (typically "generated"
+   * if the recomputed dependency hash matches, else "stale"). No-op on
+   * non-success versions or unknown ids.
+   */
+  restoreVersion: (layerId: string, versionId: string) => void;
+
+  /** Toggle the locked flag — successful generations skip locked layers. */
+  setLocked: (layerId: string, locked: boolean) => void;
+
+  /**
+   * Revert a generated layer to an empty draft: clears `currentAssetId`,
+   * `lastGeneratedHash`, and resets status to "draft". Versions are kept
+   * so the user can still restore them.
+   */
+  revert: (layerId: string) => void;
+
+  /**
+   * Replace the entire `paramOverrides` map for a layer (e.g. version
+   * restore). Recomputes the dependency hash and status.
+   */
+  setParamOverrides: (
+    layerId: string,
+    paramOverrides: Record<string, unknown>
+  ) => void;
+
+  /**
+   * Apply a new `selectedOutputNodeId` to every binding referencing the
+   * given workflow id. Also marks affected bindings stale through the
+   * recompute path.
+   */
+  setBindingsOutputNode: (
+    workflowId: string,
+    selectedOutputNodeId: string
+  ) => void;
+
   /** Reset to an empty state. Test helper. */
   reset: () => void;
 }
@@ -399,6 +437,111 @@ export const useSketchLayerBindingsStore = create<SketchLayerBindingsState>(
         return mutated
           ? { bindings: nextBindings, extras: nextExtras }
           : state;
+      }),
+
+    restoreVersion: (layerId, versionId) =>
+      set((state) => {
+        const binding = state.bindings[layerId];
+        if (!binding) {
+          return state;
+        }
+        const version = binding.versions.find((v) => v.id === versionId);
+        if (!version || version.status !== "success") {
+          return state;
+        }
+        // Restore the snapshotted overrides + asset, then recompute so the
+        // status flips to "generated" (hash matches) or "stale" (the live
+        // dependency hash drifted past the restored one).
+        const restored: LayerWorkflowBinding = {
+          ...binding,
+          currentAssetId: version.assetId,
+          paramOverrides: { ...version.paramOverridesSnapshot },
+          lastGeneratedHash: version.dependencyHash
+        };
+        const updated = recomputeBinding(
+          restored,
+          getExtras(state.extras, layerId)
+        );
+        return { bindings: { ...state.bindings, [layerId]: updated } };
+      }),
+
+    setLocked: (layerId, locked) =>
+      set((state) => {
+        const binding = state.bindings[layerId];
+        if (!binding) {
+          return state;
+        }
+        if (locked) {
+          if (binding.status === "locked") {
+            return state;
+          }
+          return {
+            bindings: {
+              ...state.bindings,
+              [layerId]: { ...binding, status: "locked" }
+            }
+          };
+        }
+        // Unlocking: re-derive status from the binding's hashes.
+        const cleared: LayerWorkflowBinding = { ...binding, status: "draft" };
+        const updated = recomputeBinding(
+          cleared,
+          getExtras(state.extras, layerId)
+        );
+        return { bindings: { ...state.bindings, [layerId]: updated } };
+      }),
+
+    revert: (layerId) =>
+      set((state) => {
+        const binding = state.bindings[layerId];
+        if (!binding) {
+          return state;
+        }
+        const reverted: LayerWorkflowBinding = {
+          ...binding,
+          currentAssetId: undefined,
+          lastGeneratedHash: undefined,
+          status: "draft"
+        };
+        const updated = recomputeBinding(
+          reverted,
+          getExtras(state.extras, layerId)
+        );
+        return { bindings: { ...state.bindings, [layerId]: updated } };
+      }),
+
+    setParamOverrides: (layerId, paramOverrides) =>
+      set((state) => {
+        const binding = state.bindings[layerId];
+        if (!binding) {
+          return state;
+        }
+        const updated = recomputeBinding(
+          { ...binding, paramOverrides: { ...paramOverrides } },
+          getExtras(state.extras, layerId)
+        );
+        return { bindings: { ...state.bindings, [layerId]: updated } };
+      }),
+
+    setBindingsOutputNode: (workflowId, selectedOutputNodeId) =>
+      set((state) => {
+        let mutated = false;
+        const nextBindings: Record<string, LayerWorkflowBinding> = {};
+        for (const [layerId, binding] of Object.entries(state.bindings)) {
+          if (
+            binding.workflowId !== workflowId ||
+            binding.selectedOutputNodeId === selectedOutputNodeId
+          ) {
+            nextBindings[layerId] = binding;
+            continue;
+          }
+          mutated = true;
+          nextBindings[layerId] = recomputeBinding(
+            { ...binding, selectedOutputNodeId },
+            getExtras(state.extras, layerId)
+          );
+        }
+        return mutated ? { bindings: nextBindings } : state;
       }),
 
     reset: () => set({ bindings: {}, extras: {} })

@@ -6,13 +6,14 @@
  *   - GeneratedLayerHeader      — name, status badge, generated timestamp
  *   - LayerNodeStack            — vertical topo-sorted node list w/ selection
  *   - LayerNodePropertyEditor   — editable Input* fields or read-only summary
+ *   - LayerActions              — Generate, Lock, Revert, Duplicate Linked,
+ *                                 Duplicate Variation, Open in Node Editor.
+ *   - LayerVersionList          — version history with restore / favorite /
+ *                                 delete (NOD-323).
  *
  * Owns the SelectedLayerNodeStore interaction: resets the selected node
  * whenever the active `layerId` changes, defaulting to
  * `binding.selectedOutputNodeId`.
- *
- * Generation actions are NOT wired in this issue (NOD-321 stops short of
- * execution); a placeholder section explains where the controls will land.
  */
 
 import React, { memo, useCallback, useEffect } from "react";
@@ -20,9 +21,9 @@ import React, { memo, useCallback, useEffect } from "react";
 import type { Layer } from "../types";
 import { useLayerBinding } from "../../../stores/sketch/SketchLayerBindingsStore";
 import { useSelectedLayerNodeStore } from "../../../stores/sketch/SelectedLayerNodeStore";
+import { useSketchDocumentStore } from "../../../stores/sketch/SketchDocumentStore";
 import { useWorkflow } from "../../../serverState/useWorkflow";
 import {
-  Caption,
   CollapsibleSection,
   EmptyState,
   FlexColumn,
@@ -32,6 +33,8 @@ import {
 import { GeneratedLayerHeader } from "./GeneratedLayerHeader";
 import { LayerNodeStack } from "./LayerNodeStack";
 import { LayerNodePropertyEditor } from "./LayerNodePropertyEditor";
+import { LayerActions } from "./LayerActions";
+import { LayerVersionList } from "./LayerVersionList";
 
 export interface GeneratedLayerPanelProps {
   layer: Layer;
@@ -40,6 +43,7 @@ export interface GeneratedLayerPanelProps {
 export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
   ({ layer }) => {
     const binding = useLayerBinding(layer.id);
+    const documentId = useSketchDocumentStore((s) => s.documentId);
 
     const selectedLayerNodeId = useSelectedLayerNodeStore(
       (s) => s.selectedLayerNodeId
@@ -121,10 +125,12 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
           </CollapsibleSection>
 
           <CollapsibleSection title="Actions" defaultOpen>
-            <Caption color="secondary">
-              Generation, lock, and version controls land in NOD-323.
-            </Caption>
+            <LayerActions layerId={layer.id} binding={binding} />
           </CollapsibleSection>
+
+          {documentId && (
+            <LayerVersionList documentId={documentId} layerId={layer.id} />
+          )}
         </FlexColumn>
       </Panel>
     );
