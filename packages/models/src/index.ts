@@ -10,6 +10,7 @@ export {
   initDb,
   initPostgresDb,
   initTestDb,
+  migrateSqliteDb,
   getDb,
   getDbType,
   getRawDb,
