@@ -22,10 +22,13 @@ import {
   drawPixelGrid,
   PENCIL_PIXEL_CURSOR_MIN_ZOOM
 } from "../drawingUtils";
-import { SKETCH_FULL_OPACITY_THRESHOLD } from "../painting/strokeRendering";
 import {
-  clientToDocumentCanvas,
-  documentCanvasToClient
+  SKETCH_FULL_OPACITY_THRESHOLD,
+  snapStrokeDabCenterDoc
+} from "../painting/strokeRendering";
+import {
+  sketchClientToDocCanvas,
+  sketchDocCanvasToClient
 } from "../tools/transform/handleGeometry";
 import {
   drawSelectionEllipseOutline,
@@ -59,6 +62,8 @@ export interface UseOverlayRendererParams {
   selectionGpuCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   selectionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   cursorCanvasRef: React.RefObject<HTMLCanvasElement | null>;
+  /** Composited document canvas (CSS transformed); must match pointer UV mapping. */
+  displayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   /** Screen-resolution canvas for transform gizmo (not clipped by doc-stack). */
   gizmoCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -118,6 +123,7 @@ export function useOverlayRenderer({
   selectionGpuCanvasRef,
   selectionCanvasRef,
   cursorCanvasRef,
+  displayCanvasRef,
   gizmoCanvasRef,
   containerRef,
   shiftHeldRef,
@@ -508,14 +514,87 @@ export function useOverlayRenderer({
       }
       const scaleX = cursorCanvas.width / rw;
       const scaleY = cursorCanvas.height / rh;
-      const localX = (clientX - cRect.left) * scaleX;
-      const localY = (clientY - cRect.top) * scaleY;
+
+      const container = containerRef.current;
+      const contRect = container?.getBoundingClientRect();
+      const docW = doc.canvas.width;
+      const docH = doc.canvas.height;
+
+      const pencilLikeDabSnap = (): { size: number; opacity: number } | null => {
+        if (interactionTool === "pencil") {
+          const p = doc.toolSettings.pencil;
+          return { size: p.size, opacity: p.opacity };
+        }
+        if (interactionTool === "eraser") {
+          const eraser = doc.toolSettings.eraser;
+          const eraserMode =
+            eraser.mode ??
+            (eraser as { tip?: "brush" | "pencil" }).tip ??
+            "brush";
+          if (eraserMode === "pencil") {
+            return { size: eraser.size, opacity: eraser.opacity };
+          }
+        }
+        return null;
+      };
+
+      const dabSnap = pencilLikeDabSnap();
+      let docPt: Point | null = null;
+      let anchorClientX = clientX;
+      let anchorClientY = clientY;
+      if (contRect && contRect.width > 0 && contRect.height > 0) {
+        docPt = sketchClientToDocCanvas(
+          clientX,
+          clientY,
+          displayCanvasRef.current,
+          contRect,
+          zoom,
+          pan,
+          docW,
+          docH
+        );
+      }
+      // `PencilEngine.stabilize` snaps to integer grid before `dabAt`; preview must use
+      // the same grid so 1px crisp dabs match. Eraser pencil mode does not integer-snap in
+      // `EraserEngine.stabilize`, so keep continuous doc coords there.
+      const dabDocCoords =
+        docPt &&
+        dabSnap &&
+        interactionTool === "pencil"
+          ? { x: Math.round(docPt.x), y: Math.round(docPt.y) }
+          : docPt;
+      if (contRect && contRect.width > 0 && contRect.height > 0 && docPt) {
+        const anchorDoc =
+          dabSnap && dabDocCoords
+            ? snapStrokeDabCenterDoc(
+                dabDocCoords.x,
+                dabDocCoords.y,
+                dabSnap.size,
+                dabSnap.opacity
+              )
+            : docPt;
+        const ac = sketchDocCanvasToClient(
+          anchorDoc.x,
+          anchorDoc.y,
+          displayCanvasRef.current,
+          contRect,
+          zoom,
+          pan,
+          docW,
+          docH
+        );
+        anchorClientX = ac.x;
+        anchorClientY = ac.y;
+      }
+      const localX = (anchorClientX - cRect.left) * scaleX;
+      const localY = (anchorClientY - cRect.top) * scaleY;
 
       let size: number;
       let roundness = 1;
       let angle = 0;
       let hardnessScale = 1;
-      let isPencilHighZoom = false;
+      /** Crisp 1×1 doc-pixel dab preview — same thresholds as `drawPencilStroke` `usePixelCrispDab`. */
+      let showCrispPixelCursor = false;
       if (interactionTool === "brush") {
         size = doc.toolSettings.brush.size;
         roundness = doc.toolSettings.brush.roundness;
@@ -534,18 +613,13 @@ export function useOverlayRenderer({
           // Show the approximate 25% opacity contour as the cursor edge
           hardnessScale = innerStop + (1 - innerStop) * 0.5;
         }
-        // At size ≤ 1.25 with full opacity the stroke snaps each dab to an integer pixel;
-        // show the same pixel-aligned square cursor so cursor and ink land at the same spot.
-        if (
-          size <= 1.25 &&
-          doc.toolSettings.brush.opacity >= SKETCH_FULL_OPACITY_THRESHOLD &&
-          zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM
-        ) {
-          isPencilHighZoom = true;
-        }
       } else if (interactionTool === "pencil") {
         size = doc.toolSettings.pencil.size;
-        isPencilHighZoom = zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM;
+        const p = doc.toolSettings.pencil;
+        showCrispPixelCursor =
+          zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM &&
+          p.opacity >= SKETCH_FULL_OPACITY_THRESHOLD &&
+          p.size <= 1.25;
       } else if (interactionTool === "blur") {
         size = doc.toolSettings.blur.size;
       } else if (interactionTool === "clone_stamp") {
@@ -573,40 +647,25 @@ export function useOverlayRenderer({
             hardnessScale = innerStop + (1 - innerStop) * 0.5;
           }
         } else {
-          // Pencil-mode eraser snaps dabs to integer pixels for size ≤ 1.25.
-          if (
-            size <= 1.25 &&
+          showCrispPixelCursor =
+            zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM &&
             eraser.opacity >= SKETCH_FULL_OPACITY_THRESHOLD &&
-            zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM
-          ) {
-            isPencilHighZoom = true;
-          }
+            eraser.size <= 1.25;
         }
       }
 
-      // ── Pencil pixel-snap cursor at high zoom ─────────────────────────
-      if (isPencilHighZoom) {
-        // Show a pixel-aligned square cursor that snaps to the grid
-        const container = containerRef.current;
-        if (container) {
-          const contRect = container.getBoundingClientRect();
-          const docW = doc.canvas.width;
-          const docH = doc.canvas.height;
-          const docPt = clientToDocumentCanvas(
-            clientX,
-            clientY,
-            contRect,
-            zoom,
-            pan,
-            docW,
-            docH
-          );
-          const docX = Math.floor(docPt.x);
-          const docY = Math.floor(docPt.y);
-          const tlClient = documentCanvasToClient(
-            docX,
-            docY,
-            contRect,
+      // ── Crisp pencil dab: 1 doc pixel (matches fillRect(ix,iy,1,1)) ────────
+      if (showCrispPixelCursor && dabDocCoords) {
+        const containerEl = containerRef.current;
+        if (containerEl) {
+          const contBounds = containerEl.getBoundingClientRect();
+          const ix = Math.round(dabDocCoords.x - 0.5);
+          const iy = Math.round(dabDocCoords.y - 0.5);
+          const tlClient = sketchDocCanvasToClient(
+            ix,
+            iy,
+            displayCanvasRef.current,
+            contBounds,
             zoom,
             pan,
             docW,
@@ -614,7 +673,7 @@ export function useOverlayRenderer({
           );
           const pixelScreenX = (tlClient.x - cRect.left) * scaleX;
           const pixelScreenY = (tlClient.y - cRect.top) * scaleY;
-          const pixelSize = size * zoom;
+          const pixelSize = zoom;
 
           ctx.save();
           // Filled pixel preview with tool color at low opacity
@@ -681,23 +740,22 @@ export function useOverlayRenderer({
       // Clone stamp: draw a crosshair at the clone source position
       if (interactionTool === "clone_stamp") {
         const cloneHandler = getToolHandler("clone_stamp");
-        const cloneSource = cloneHandler instanceof CloneStampTool
+            const cloneSource = cloneHandler instanceof CloneStampTool
           ? cloneHandler.getCloneSource()
           : null;
         if (cloneSource) {
-          const container = containerRef.current;
-          if (container) {
-            const contRect = container.getBoundingClientRect();
-            const docW = doc.canvas.width;
-            const docH = doc.canvas.height;
-            const srcClient = documentCanvasToClient(
+          const containerEl = containerRef.current;
+          if (containerEl) {
+            const contBounds = containerEl.getBoundingClientRect();
+            const srcClient = sketchDocCanvasToClient(
               cloneSource.x,
               cloneSource.y,
-              contRect,
+              displayCanvasRef.current,
+              contBounds,
               zoom,
               pan,
-              docW,
-              docH
+              doc.canvas.width,
+              doc.canvas.height
             );
             const srcX = (srcClient.x - cRect.left) * scaleX;
             const srcY = (srcClient.y - cRect.top) * scaleY;
@@ -739,7 +797,8 @@ export function useOverlayRenderer({
       zoom,
       pan,
       cursorCanvasRef,
-      containerRef
+      containerRef,
+      displayCanvasRef
     ]
   );
 

@@ -16,6 +16,8 @@ import {
   docRectToScreen,
   clientToDocumentCanvas,
   documentCanvasToClient,
+  sketchClientToDocCanvas,
+  sketchDocCanvasToClient,
   scaledHalfExtents,
   isInRotateZone,
   hitTestPivot,
@@ -521,6 +523,54 @@ describe("gizmo viewport conversion", () => {
 
     expect(backToClient.x).toBeCloseTo(clientPt.x, 5);
     expect(backToClient.y).toBeCloseTo(clientPt.y, 5);
+  });
+
+  it("sketchClientToDocCanvas round-trips with sketchDocCanvasToClient via display rect", () => {
+    const zoom = 2;
+    const pan = { x: 10, y: -20 };
+    const docW = 512;
+    const docH = 384;
+    const containerRect = { left: 100, top: 50, width: 800, height: 600 };
+    const mockDisplay = {
+      getBoundingClientRect: (): DOMRect =>
+        ({
+          left: 200,
+          top: 100,
+          width: 400,
+          height: 300,
+          right: 600,
+          bottom: 400,
+          x: 200,
+          y: 100,
+          toJSON: () => ({})
+        }) as DOMRect
+    } as HTMLCanvasElement;
+
+    const clientPt = { x: 340, y: 215 };
+    const docPt = sketchClientToDocCanvas(
+      clientPt.x,
+      clientPt.y,
+      mockDisplay,
+      containerRect,
+      zoom,
+      pan,
+      docW,
+      docH
+    );
+    const back = sketchDocCanvasToClient(
+      docPt.x,
+      docPt.y,
+      mockDisplay,
+      containerRect,
+      zoom,
+      pan,
+      docW,
+      docH
+    );
+    expect(back.x).toBeCloseTo(clientPt.x, 5);
+    expect(back.y).toBeCloseTo(clientPt.y, 5);
+    expect(Number.isFinite(docPt.x)).toBe(true);
+    expect(Number.isFinite(docPt.y)).toBe(true);
   });
 
   it("scaledHalfExtents respects scale factors", () => {

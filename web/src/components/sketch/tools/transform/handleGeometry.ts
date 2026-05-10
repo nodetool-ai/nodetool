@@ -443,6 +443,76 @@ export function documentCanvasToClient(
 }
 
 /**
+ * Pointer client → document canvas. Matches compositing / pointer painting
+ * ({@link usePointerHandlerUtils} `screenToCanvas`): when the composited
+ * display canvas is available, map through its transformed layout rect; otherwise
+ * fall back to pan/zoom math in {@link clientToDocumentCanvas}.
+ */
+export function sketchClientToDocCanvas(
+  clientX: number,
+  clientY: number,
+  displayCanvas: HTMLCanvasElement | null,
+  containerRect: ContainerRect,
+  zoom: number,
+  pan: Point,
+  docCanvasWidth: number,
+  docCanvasHeight: number
+): Point {
+  if (displayCanvas) {
+    const rect = displayCanvas.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      return {
+        x: ((clientX - rect.left) / rect.width) * docCanvasWidth,
+        y: ((clientY - rect.top) / rect.height) * docCanvasHeight
+      };
+    }
+  }
+  return clientToDocumentCanvas(
+    clientX,
+    clientY,
+    containerRect,
+    zoom,
+    pan,
+    docCanvasWidth,
+    docCanvasHeight
+  );
+}
+
+/**
+ * Document canvas → pointer client (inverse of {@link sketchClientToDocCanvas}
+ * for coordinates inside the viewport). Use for brush/cursor overlay alignment.
+ */
+export function sketchDocCanvasToClient(
+  docX: number,
+  docY: number,
+  displayCanvas: HTMLCanvasElement | null,
+  containerRect: ContainerRect,
+  zoom: number,
+  pan: Point,
+  docCanvasWidth: number,
+  docCanvasHeight: number
+): Point {
+  if (displayCanvas) {
+    const rect = displayCanvas.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      return {
+        x: rect.left + (docX / docCanvasWidth) * rect.width,
+        y: rect.top + (docY / docCanvasHeight) * rect.height
+      };
+    }
+  }
+  return documentCanvasToClient(
+    docX,
+    docY,
+    containerRect,
+    zoom,
+    pan,
+    docCanvasWidth,
+    docCanvasHeight
+  );
+}
+
+/**
  * Map a document canvas point (bitmap space 0…canvas dimensions) to gizmo–canvas
  * device pixels. Mirrors {@link usePointerHandlerUtils}' `screenToCanvas`: uses the
  * display canvas UV mapping when available, otherwise {@link documentCanvasToClient}.
