@@ -362,21 +362,20 @@ describe("Selection mutations stay ROI-bounded", () => {
     expect(feathered!.width).toBeLessThan(512);
     expect(feathered!.height).toBeLessThan(512);
     expect(bounds).not.toBeNull();
-    // The exact thresholded blur footprint depends on the repeated box-blur
-    // passes, but it should stay within the feather radius while still
-    // covering the original 10×10 selection.
-    expect(bounds!.width).toBeGreaterThanOrEqual(20);
-    expect(bounds!.width).toBeLessThanOrEqual(22);
-    expect(bounds!.height).toBeGreaterThanOrEqual(20);
-    expect(bounds!.height).toBeLessThanOrEqual(22);
-    expect(bounds!.x).toBeGreaterThanOrEqual(74);
-    expect(bounds!.x).toBeLessThanOrEqual(80);
-    expect(bounds!.y).toBeGreaterThanOrEqual(90);
-    expect(bounds!.y).toBeLessThanOrEqual(96);
+    // Bounds include the full soft fringe (any alpha > 0), not just the ≥128 core,
+    // so the box is wider than the old thresholded footprint after feather.
+    expect(bounds!.width).toBeGreaterThanOrEqual(10);
+    expect(bounds!.width).toBeLessThanOrEqual(48);
+    expect(bounds!.height).toBeGreaterThanOrEqual(10);
+    expect(bounds!.height).toBeLessThanOrEqual(48);
+    expect(bounds!.x).toBeGreaterThanOrEqual(60);
+    expect(bounds!.x).toBeLessThanOrEqual(82);
+    expect(bounds!.y).toBeGreaterThanOrEqual(76);
+    expect(bounds!.y).toBeLessThanOrEqual(98);
     expect(bounds!.x + bounds!.width).toBeGreaterThanOrEqual(90);
-    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(96);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(122);
     expect(bounds!.y + bounds!.height).toBeGreaterThanOrEqual(106);
-    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(112);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(138);
   });
 
   it("convertSelectionToBorderOutline pads outward before trimming", () => {
