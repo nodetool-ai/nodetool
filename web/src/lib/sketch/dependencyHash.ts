@@ -8,11 +8,13 @@
  * lights up immediately, without waiting for a server round-trip.
  *
  * The hash itself is opaque — only equality matters — so we use a synchronous
- * 64-bit FNV-1a over the same canonical serialization the server uses,
- * formatted as 16 lower-case hex characters and prefixed with the `v1c:`
- * version marker. `lastGeneratedHash` is captured from the same client-side
- * computation when generation completes, so comparisons stay consistent
- * regardless of the server's initial seed.
+ * 64-bit FNV-1a over the same canonical serialization the server uses. The
+ * `v1c:` version marker is folded into the hashed payload (so changing the
+ * algorithm later invalidates older hashes) but is NOT prepended to the
+ * returned digest. The function returns 16 lower-case hex characters.
+ * `lastGeneratedHash` is captured from the same client-side computation when
+ * generation completes, so comparisons stay consistent regardless of the
+ * server's initial seed.
  */
 export interface LayerDependencyHashInput {
   workflowId: string;

@@ -3,17 +3,24 @@
  *
  * Client-side mirror of `LayerWorkflowBinding[]` from the persisted image
  * document. Stores the per-layer workflow binding (workflow id, output node,
- * param overrides, dependency hashes, status, version history) and exposes
- * the mutators the inspector needs.
+ * param overrides, dependency hashes, status, version history) and the
+ * extras the inspector needs (input asset hashes, workflow drift token).
  *
  * Responsibilities:
  *   - Hold bindings keyed by `layerId`.
- *   - Recompute `dependencyHash` whenever param overrides or input asset
- *     references change (browser-friendly hash from `lib/sketch/dependencyHash`).
- *   - Recompute layer `status` from the binding's hashes + active job:
+ *   - Recompute `dependencyHash` whenever param overrides, input asset
+ *     hashes, the selected output node, or the workflow drift token change
+ *     (browser-friendly hash from `lib/sketch/dependencyHash`).
+ *   - Recompute layer `status` from the binding's hashes:
  *     `dependencyHash !== lastGeneratedHash && lastGeneratedHash` → "stale".
  *   - Note the latest generation result via `recordGeneratedVersion`, which
  *     advances `lastGeneratedHash` so the layer stops being stale.
+ *
+ * Asset hashes and the workflow drift token are kept in a parallel
+ * `extras` map keyed by layer id. They are not part of the persisted
+ * `LayerWorkflowBinding` shape but are folded into every recompute, so a
+ * later `setParamOverride` cannot accidentally drop earlier asset-hash or
+ * workflow-drift inputs and flip the binding back to "generated".
  *
  * NOD-321 only wires the in-memory store; persistence/autosave lands later.
  */
@@ -40,9 +47,32 @@ export interface RecordGeneratedVersionInput {
   assetId: string;
 }
 
+/**
+ * Per-layer values that affect the dependency hash but are not part of the
+ * `LayerWorkflowBinding` shape persisted on the server.
+ */
+interface LayerHashExtras {
+  /** Sorted-but-otherwise-opaque hashes of input assets fed into the layer. */
+  inputAssetHashes: string[];
+  /**
+   * Monotonically increasing token bumped by `markStaleForWorkflow` to
+   * invalidate every binding referencing a workflow whose graph has drifted.
+   * Folded into the dependency hash so the staleness survives any later
+   * recompute path (e.g. `setParamOverride`).
+   */
+  workflowDriftToken: number;
+}
+
+const EMPTY_EXTRAS: LayerHashExtras = {
+  inputAssetHashes: [],
+  workflowDriftToken: 0
+};
+
 interface SketchLayerBindingsState {
   /** Bindings keyed by `layerId`. */
   bindings: Record<string, LayerWorkflowBinding>;
+  /** Per-layer hash inputs that aren't part of the persisted binding. */
+  extras: Record<string, LayerHashExtras>;
 
   /** Replace all bindings (e.g. after document load). */
   setBindings: (bindings: LayerWorkflowBinding[]) => void;
@@ -74,8 +104,8 @@ interface SketchLayerBindingsState {
   /**
    * Replace the set of input asset hashes used by the dependency hash
    * (e.g. when the inputs change because the source raster was repainted).
-   * Marks the layer stale when the resulting hash differs from
-   * `lastGeneratedHash`.
+   * The hashes are persisted in `extras` so they participate in every
+   * subsequent recompute, not just this one.
    */
   setInputAssetHashes: (layerId: string, hashes: string[]) => void;
 
@@ -101,36 +131,34 @@ interface SketchLayerBindingsState {
     removed: string[]
   ) => void;
 
-  /** Mark every binding referencing the workflow as stale. */
+  /**
+   * Mark every binding referencing the workflow as stale. Bumps each
+   * affected layer's drift token so the staleness is encoded in the
+   * dependency hash and survives later recomputes until the next
+   * `recordGeneratedVersion`.
+   */
   markStaleForWorkflow: (workflowId: string) => void;
 
   /** Reset to an empty state. Test helper. */
   reset: () => void;
 }
 
-interface RecomputeContext {
-  /** Asset hashes used as additional dependency-hash inputs. */
-  inputAssetHashes?: string[];
-}
-
 const recomputeBinding = (
   binding: LayerWorkflowBinding,
-  ctx: RecomputeContext = {}
+  extras: LayerHashExtras
 ): LayerWorkflowBinding => {
   // The bound workflow's `updated_at` is not stored client-side; workflow
-  // graph drift propagates separately via `markStaleForWorkflow`. We fold the
-  // selected output node id into the hash so changing it invalidates results.
+  // graph drift is tracked separately via the per-layer `workflowDriftToken`.
+  // We fold the selected output node id and drift token into the hash so
+  // any change there invalidates the previously generated result.
   const hashInput: LayerDependencyHashInput = {
-    workflowId: `${binding.workflowId}:${binding.selectedOutputNodeId ?? ""}`,
+    workflowId: `${binding.workflowId}:${binding.selectedOutputNodeId ?? ""}:${extras.workflowDriftToken}`,
     workflowUpdatedAt: "",
     paramOverrides: binding.paramOverrides ?? {},
-    inputAssetHashes: ctx.inputAssetHashes ?? []
+    inputAssetHashes: extras.inputAssetHashes
   };
   const dependencyHash = computeLayerDependencyHash(hashInput);
-  const status = deriveStatus({
-    ...binding,
-    dependencyHash
-  });
+  const status = deriveStatus({ ...binding, dependencyHash });
   return { ...binding, dependencyHash, status };
 };
 
@@ -150,39 +178,63 @@ function deriveStatus(binding: LayerWorkflowBinding): LayerStatus {
   if (!binding.lastGeneratedHash) {
     return "draft";
   }
-  if (binding.dependencyHash && binding.dependencyHash !== binding.lastGeneratedHash) {
+  if (
+    binding.dependencyHash &&
+    binding.dependencyHash !== binding.lastGeneratedHash
+  ) {
     return "stale";
   }
   return "generated";
 }
 
+const getExtras = (
+  extras: Record<string, LayerHashExtras>,
+  layerId: string
+): LayerHashExtras => extras[layerId] ?? EMPTY_EXTRAS;
+
 export const useSketchLayerBindingsStore = create<SketchLayerBindingsState>(
   (set, get) => ({
     bindings: {},
+    extras: {},
 
     setBindings: (incoming) =>
-      set(() => ({
-        bindings: Object.fromEntries(
-          incoming.map((b) => [b.layerId, recomputeBinding(b)])
-        )
-      })),
+      set(() => {
+        // Loading bindings from the persisted document resets per-layer
+        // hash extras: any in-memory drift token / asset hashes belonged to
+        // the previous document.
+        const nextBindings: Record<string, LayerWorkflowBinding> = {};
+        const nextExtras: Record<string, LayerHashExtras> = {};
+        for (const b of incoming) {
+          nextExtras[b.layerId] = { ...EMPTY_EXTRAS };
+          nextBindings[b.layerId] = recomputeBinding(b, nextExtras[b.layerId]);
+        }
+        return { bindings: nextBindings, extras: nextExtras };
+      }),
 
     upsertBinding: (binding) =>
-      set((state) => ({
-        bindings: {
-          ...state.bindings,
-          [binding.layerId]: recomputeBinding(binding)
-        }
-      })),
+      set((state) => {
+        const extras = getExtras(state.extras, binding.layerId);
+        return {
+          bindings: {
+            ...state.bindings,
+            [binding.layerId]: recomputeBinding(binding, extras)
+          },
+          extras: state.extras[binding.layerId]
+            ? state.extras
+            : { ...state.extras, [binding.layerId]: { ...EMPTY_EXTRAS } }
+        };
+      }),
 
     removeBinding: (layerId) =>
       set((state) => {
         if (!(layerId in state.bindings)) {
           return state;
         }
-        const next = { ...state.bindings };
-        delete next[layerId];
-        return { bindings: next };
+        const nextBindings = { ...state.bindings };
+        delete nextBindings[layerId];
+        const nextExtras = { ...state.extras };
+        delete nextExtras[layerId];
+        return { bindings: nextBindings, extras: nextExtras };
       }),
 
     getBinding: (layerId) => get().bindings[layerId],
@@ -197,10 +249,10 @@ export const useSketchLayerBindingsStore = create<SketchLayerBindingsState>(
           ...(binding.paramOverrides ?? {}),
           [inputName]: value
         };
-        const updated = recomputeBinding({
-          ...binding,
-          paramOverrides: nextOverrides
-        });
+        const updated = recomputeBinding(
+          { ...binding, paramOverrides: nextOverrides },
+          getExtras(state.extras, layerId)
+        );
         return { bindings: { ...state.bindings, [layerId]: updated } };
       }),
 
@@ -210,12 +262,13 @@ export const useSketchLayerBindingsStore = create<SketchLayerBindingsState>(
         if (!binding || binding.selectedOutputNodeId === selectedOutputNodeId) {
           return state;
         }
-        const updated = recomputeBinding({
-          ...binding,
-          selectedOutputNodeId,
-          // Selecting a different output node invalidates the previous result.
-          status: "stale"
-        });
+        // Selecting a different output node invalidates the previous result;
+        // the hash recompute already encodes the change so `deriveStatus`
+        // will surface "stale" once a `lastGeneratedHash` exists.
+        const updated = recomputeBinding(
+          { ...binding, selectedOutputNodeId },
+          getExtras(state.extras, layerId)
+        );
         return { bindings: { ...state.bindings, [layerId]: updated } };
       }),
 
@@ -225,8 +278,16 @@ export const useSketchLayerBindingsStore = create<SketchLayerBindingsState>(
         if (!binding) {
           return state;
         }
-        const updated = recomputeBinding(binding, { inputAssetHashes: hashes });
-        return { bindings: { ...state.bindings, [layerId]: updated } };
+        const prev = getExtras(state.extras, layerId);
+        const nextExtras: LayerHashExtras = {
+          ...prev,
+          inputAssetHashes: [...hashes]
+        };
+        const updated = recomputeBinding(binding, nextExtras);
+        return {
+          bindings: { ...state.bindings, [layerId]: updated },
+          extras: { ...state.extras, [layerId]: nextExtras }
+        };
       }),
 
     markStale: (layerId) =>
@@ -279,10 +340,10 @@ export const useSketchLayerBindingsStore = create<SketchLayerBindingsState>(
       set((state) => {
         let mutated = false;
         const removedSet = new Set(removed);
-        const next: Record<string, LayerWorkflowBinding> = {};
+        const nextBindings: Record<string, LayerWorkflowBinding> = {};
         for (const [layerId, binding] of Object.entries(state.bindings)) {
           if (binding.workflowId !== workflowId) {
-            next[layerId] = binding;
+            nextBindings[layerId] = binding;
             continue;
           }
           const overrides = { ...(binding.paramOverrides ?? {}) };
@@ -300,37 +361,47 @@ export const useSketchLayerBindingsStore = create<SketchLayerBindingsState>(
             }
           }
           if (!touched) {
-            next[layerId] = binding;
+            nextBindings[layerId] = binding;
             continue;
           }
           mutated = true;
-          next[layerId] = recomputeBinding({
-            ...binding,
-            paramOverrides: overrides
-          });
+          nextBindings[layerId] = recomputeBinding(
+            { ...binding, paramOverrides: overrides },
+            getExtras(state.extras, layerId)
+          );
         }
-        return mutated ? { bindings: next } : state;
+        return mutated ? { bindings: nextBindings } : state;
       }),
 
     markStaleForWorkflow: (workflowId) =>
       set((state) => {
         let mutated = false;
-        const next: Record<string, LayerWorkflowBinding> = {};
+        const nextBindings: Record<string, LayerWorkflowBinding> = {};
+        const nextExtras: Record<string, LayerHashExtras> = { ...state.extras };
         for (const [layerId, binding] of Object.entries(state.bindings)) {
-          if (
-            binding.workflowId === workflowId &&
-            binding.status !== "stale"
-          ) {
-            next[layerId] = { ...binding, status: "stale" };
-            mutated = true;
-          } else {
-            next[layerId] = binding;
+          if (binding.workflowId !== workflowId) {
+            nextBindings[layerId] = binding;
+            continue;
           }
+          // Bumping the drift token forces the recomputed `dependencyHash`
+          // to differ from `lastGeneratedHash` until the next successful
+          // generation, so a later `setParamOverride` cannot accidentally
+          // flip the binding back to "generated".
+          const prev = getExtras(state.extras, layerId);
+          const bumped: LayerHashExtras = {
+            ...prev,
+            workflowDriftToken: prev.workflowDriftToken + 1
+          };
+          nextExtras[layerId] = bumped;
+          nextBindings[layerId] = recomputeBinding(binding, bumped);
+          mutated = true;
         }
-        return mutated ? { bindings: next } : state;
+        return mutated
+          ? { bindings: nextBindings, extras: nextExtras }
+          : state;
       }),
 
-    reset: () => set({ bindings: {} })
+    reset: () => set({ bindings: {}, extras: {} })
   })
 );
 

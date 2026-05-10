@@ -117,17 +117,37 @@ describe("SketchLayerBindingsStore", () => {
     expect(stored.status).toBe("stale");
   });
 
-  it("markStaleForWorkflow marks every binding for that workflow", () => {
+  it("markStaleForWorkflow only invalidates bindings for that workflow", () => {
     useSketchLayerBindingsStore
       .getState()
       .setBindings([
         makeBinding({ layerId: "a" }),
         makeBinding({ layerId: "b", workflowId: "wf-2" })
       ]);
+    // Mark each binding as already generated so workflow drift flips them to
+    // "stale" rather than the (uninteresting) "draft" of a never-generated
+    // binding.
+    for (const layerId of ["a", "b"] as const) {
+      const seeded = useSketchLayerBindingsStore.getState().bindings[layerId];
+      useSketchLayerBindingsStore.getState().recordGeneratedVersion(layerId, {
+        version: {
+          id: `v-${layerId}`,
+          createdAt: "",
+          jobId: "j",
+          assetId: layerId,
+          workflowUpdatedAt: "",
+          dependencyHash: seeded.dependencyHash!,
+          paramOverridesSnapshot: seeded.paramOverrides!,
+          status: "success"
+        },
+        dependencyHash: seeded.dependencyHash!,
+        assetId: layerId
+      });
+    }
     useSketchLayerBindingsStore.getState().markStaleForWorkflow("wf-1");
     const state = useSketchLayerBindingsStore.getState();
     expect(state.bindings["a"].status).toBe("stale");
-    expect(state.bindings["b"].status).toBe("draft");
+    expect(state.bindings["b"].status).toBe("generated");
   });
 
   it("applyInputDrift seeds added inputs and drops removed ones", () => {
@@ -151,6 +171,75 @@ describe("SketchLayerBindingsStore", () => {
     const after = useSketchLayerBindingsStore.getState().bindings["layer-1"]
       .dependencyHash;
     expect(after).not.toBe(before);
+  });
+
+  it("setInputAssetHashes persists hashes across later recomputes", () => {
+    useSketchLayerBindingsStore.getState().setBindings([makeBinding()]);
+    useSketchLayerBindingsStore
+      .getState()
+      .setInputAssetHashes("layer-1", ["asset-hash-a"]);
+    const afterAssets = useSketchLayerBindingsStore.getState().bindings[
+      "layer-1"
+    ].dependencyHash;
+
+    // A subsequent param override must produce a different hash than the
+    // baseline-without-assets, proving the asset hashes were folded in
+    // again instead of being silently dropped.
+    useSketchLayerBindingsStore
+      .getState()
+      .setParamOverride("layer-1", "prompt", "world");
+    const afterOverride = useSketchLayerBindingsStore.getState().bindings[
+      "layer-1"
+    ].dependencyHash;
+    expect(afterOverride).not.toBe(afterAssets);
+
+    const baselineWithoutAssets = (() => {
+      useSketchLayerBindingsStore.getState().setBindings([
+        makeBinding({ paramOverrides: { prompt: "world" } })
+      ]);
+      return useSketchLayerBindingsStore.getState().bindings["layer-1"]
+        .dependencyHash;
+    })();
+    expect(afterOverride).not.toBe(baselineWithoutAssets);
+  });
+
+  it("markStaleForWorkflow stays sticky across later recomputes", () => {
+    useSketchLayerBindingsStore.getState().setBindings([makeBinding()]);
+    const seeded = useSketchLayerBindingsStore.getState().bindings["layer-1"];
+    useSketchLayerBindingsStore.getState().recordGeneratedVersion("layer-1", {
+      version: {
+        id: "v1",
+        createdAt: "",
+        jobId: "j",
+        assetId: "a",
+        workflowUpdatedAt: "",
+        dependencyHash: seeded.dependencyHash!,
+        paramOverridesSnapshot: seeded.paramOverrides!,
+        status: "success"
+      },
+      dependencyHash: seeded.dependencyHash!,
+      assetId: "a"
+    });
+    expect(
+      useSketchLayerBindingsStore.getState().bindings["layer-1"].status
+    ).toBe("generated");
+
+    // Workflow drift bumps the per-layer drift token; the recomputed hash
+    // diverges from `lastGeneratedHash` so the binding flips to stale.
+    useSketchLayerBindingsStore.getState().markStaleForWorkflow("wf-1");
+    expect(
+      useSketchLayerBindingsStore.getState().bindings["layer-1"].status
+    ).toBe("stale");
+
+    // Reverting overrides to the originally-generated value must NOT flip
+    // the binding back to "generated" while the workflow drift is still in
+    // effect — the drift token keeps the dependency hash diverged.
+    useSketchLayerBindingsStore
+      .getState()
+      .setParamOverride("layer-1", "prompt", seeded.paramOverrides!.prompt);
+    expect(
+      useSketchLayerBindingsStore.getState().bindings["layer-1"].status
+    ).toBe("stale");
   });
 
   it("removeBinding deletes the entry", () => {
