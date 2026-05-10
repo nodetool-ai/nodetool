@@ -5,7 +5,10 @@
  * Handles modifier keys for combine operations:
  *   Shift = add, Alt = subtract, Shift+Alt = intersect
  * Marquee modifiers (live during drag):
- *   Shift = constrain to square/circle, Alt = draw from center
+ *   Alt = draw from center
+ *   Shift = constrain to square/circle — unless Shift was already held at
+ *   pointer-down for add/intersect; then the first Shift hold is only combine,
+ *   and constrain applies after Shift is released and pressed again.
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
@@ -55,6 +58,13 @@ export class SelectTool implements ToolHandler {
   // Modifier capture at pointer-down for combine op
   private selectionDragModifiers: ModifierSnapshot | null = null;
   private marqueeCombineAtDown: ModifierSnapshot | null = null;
+  /**
+   * When true, Shift was down at marquee pointer-down for add/intersect.
+   * Square/circle constrain is suppressed until Shift is released once during
+   * this drag, then Shift may be pressed again for constrain.
+   */
+  private marqueeShiftHeldForCombineAtDown = false;
+  private marqueeShiftConstrainArmed = false;
 
   // Marquee drag threshold
   private marqueeDocDragSeen = false;
@@ -85,6 +95,18 @@ export class SelectTool implements ToolHandler {
       this.magicWandAbortController.abort();
       this.magicWandAbortController = null;
     }
+  }
+
+  /** Live Shift→constrain for rect/ellipse marquee, accounting for Shift-at-down add/intersect. */
+  private marqueeConstrainSquareNow(ctx: ToolContext): boolean {
+    const shift = ctx.shiftHeldRef.current;
+    if (this.marqueeShiftHeldForCombineAtDown) {
+      if (!shift) {
+        this.marqueeShiftConstrainArmed = true;
+      }
+      return shift && this.marqueeShiftConstrainArmed;
+    }
+    return shift;
   }
 
   /** Schedule a deferred selection clear for responsive pointer-down. */
@@ -326,6 +348,8 @@ export class SelectTool implements ToolHandler {
       y: event.nativeEvent.clientY
     };
     this.marqueeCombineAtDown = captureModifiers(ctx.shiftHeldRef, ctx.altHeldRef);
+    this.marqueeShiftHeldForCombineAtDown = this.marqueeCombineAtDown.shift;
+    this.marqueeShiftConstrainArmed = false;
     this.selectionDragModifiers = null;
     const marqueeOpAtDown = selectionCombineMode(
       this.marqueeCombineAtDown.shift,
@@ -402,7 +426,7 @@ export class SelectTool implements ToolHandler {
           pt,
           {
             fromCenter: ctx.altHeldRef.current,
-            constrainSquare: ctx.shiftHeldRef.current
+            constrainSquare: this.marqueeConstrainSquareNow(ctx)
           }
         );
         ctx.drawOverlaySelection(start, end);
@@ -499,7 +523,7 @@ export class SelectTool implements ToolHandler {
         selMode === "rectangle" || selMode === "ellipse"
           ? marqueeAdjustedDocPoints(anchor, pt, {
               fromCenter: ctx.altHeldRef.current,
-              constrainSquare: ctx.shiftHeldRef.current
+              constrainSquare: this.marqueeConstrainSquareNow(ctx)
             })
           : { start: anchor, end: pt };
       const { x, y, w, h } = marqueeRectFromDocPoints(mStart, mEnd);
@@ -516,6 +540,8 @@ export class SelectTool implements ToolHandler {
       const marqueeDragged = this.marqueeDocDragSeen;
       this.marqueeDocDragSeen = false;
       this.marqueePointerDownClient = null;
+      this.marqueeShiftHeldForCombineAtDown = false;
+      this.marqueeShiftConstrainArmed = false;
       if (
         w >= 1 &&
         h >= 1 &&

@@ -856,6 +856,47 @@ describe("SelectTool", () => {
     );
   });
 
+  it("marquee: Shift held from pointer-down for add does not constrain until Shift is released and pressed again", () => {
+    const tool = new SelectTool();
+    const shiftHeldRef = { current: true };
+    const ctx = makeToolContext({ shiftHeldRef });
+
+    tool.onDown(ctx, makePointerEvent({ point: { x: 5, y: 5 } }));
+
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 20, y: 25 } }), []);
+    expect(ctx.drawOverlaySelection).toHaveBeenLastCalledWith(
+      { x: 5, y: 5 },
+      { x: 20, y: 25 }
+    );
+
+    shiftHeldRef.current = false;
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 20, y: 30 } }), []);
+    expect(ctx.drawOverlaySelection).toHaveBeenLastCalledWith(
+      { x: 5, y: 5 },
+      { x: 20, y: 30 }
+    );
+
+    shiftHeldRef.current = true;
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 20, y: 35 } }), []);
+    expect(ctx.drawOverlaySelection).toHaveBeenLastCalledWith(
+      { x: 5, y: 5 },
+      { x: 35, y: 35 }
+    );
+  });
+
+  it("marquee: Shift during drag still constrains when Shift was not down at pointer-down (replace)", () => {
+    const tool = new SelectTool();
+    const shiftHeldRef = { current: false };
+    const ctx = makeToolContext({ shiftHeldRef });
+    tool.onDown(ctx, makePointerEvent({ point: { x: 5, y: 5 } }));
+    shiftHeldRef.current = true;
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 20, y: 35 } }), []);
+    expect(ctx.drawOverlaySelection).toHaveBeenLastCalledWith(
+      { x: 5, y: 5 },
+      { x: 35, y: 35 }
+    );
+  });
+
   it("runs magic-wand selection through the async worker path", async () => {
     const tool = new SelectTool();
     const doc = createDefaultDocument(32, 32);
