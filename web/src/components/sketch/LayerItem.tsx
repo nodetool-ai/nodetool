@@ -22,7 +22,9 @@ import type { Layer } from "./types";
 import { summarizeLayerImageReference } from "./types";
 import { getLayerDataImageUrl } from "./serialization";
 import { SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
-import { Text, Tooltip } from "../ui_primitives";
+import { StatusIndicator, Text, Tooltip } from "../ui_primitives";
+import type { LayerStatus } from "@nodetool-ai/image-editor";
+import { LAYER_STATUS_MAP } from "./Inspector/layerStatusMapping";
 
 /** Base left padding for the layer row (px). */
 const BASE_PADDING = 8;
@@ -81,6 +83,12 @@ export interface LayerItemProps {
   onDrop: (realIdx: number, e: React.DragEvent) => void;
   onDragEnd: () => void;
   onToggleGroupCollapsed?: (groupId: string) => void;
+  /**
+   * Generation lifecycle status for layers backed by a workflow binding.
+   * Omitted (undefined) for plain painted / mask / group rows so they render
+   * with no status badge.
+   */
+  bindingStatus?: LayerStatus;
 }
 
 const LayerItem: React.FC<LayerItemProps> = ({
@@ -112,7 +120,8 @@ const LayerItem: React.FC<LayerItemProps> = ({
   onDragOver,
   onDrop,
   onDragEnd,
-  onToggleGroupCollapsed
+  onToggleGroupCollapsed,
+  bindingStatus
 }) => {
   const isGroup = layer.type === "group";
   const thumbnailSrc = isGroup ? null : getLayerDataImageUrl(layer.data);
@@ -373,6 +382,15 @@ const LayerItem: React.FC<LayerItemProps> = ({
             >
               {layer.name}
             </Text>
+            {bindingStatus && (
+              <StatusIndicator
+                className="layer-status-badge"
+                status={LAYER_STATUS_MAP[bindingStatus].status}
+                pulse={LAYER_STATUS_MAP[bindingStatus].pulse}
+                tooltip={LAYER_STATUS_MAP[bindingStatus].label}
+                size="small"
+              />
+            )}
           </Box>
         )}
 

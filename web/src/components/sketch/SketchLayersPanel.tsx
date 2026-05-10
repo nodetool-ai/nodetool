@@ -59,6 +59,7 @@ import {
 } from "./types";
 import LayerItem from "./LayerItem";
 import type { DropPosition } from "./LayerItem";
+import { useSketchLayerBindingsStore } from "../../stores/sketch/SketchLayerBindingsStore";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
 import { useCollapsedSections } from "./useCollapsedSections";
 import { getMergeSelectedLayersPlan } from "./layerMergeSelection";
@@ -487,6 +488,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       "nodetool-sketch-layers-panel-collapsed",
       { canvasSize: true }
     );
+
+  // ─── Per-layer generation status (for status badges) ──────────────
+  // Subscribe to the bindings dictionary so each row picks up status flips
+  // (draft → stale → generated → failed) without manual prop drilling.
+  const layerBindings = useSketchLayerBindingsStore((s) => s.bindings);
 
   // ─── Custom canvas size state ─────────────────────────────────────
   const [customWidth, setCustomWidth] = useState(String(canvasWidth));
@@ -1240,6 +1246,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               onDrop={handleDrop}
               onDragEnd={handleDragEnd}
               onToggleGroupCollapsed={onToggleGroupCollapsed}
+              bindingStatus={layerBindings[layer.id]?.status}
             />
           );
         })}

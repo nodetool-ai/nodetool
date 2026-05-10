@@ -51,6 +51,7 @@ import {
   ConnectedContextMenu,
   SketchCanvasPane
 } from "./editor-shell";
+import { SketchInspector } from "./Inspector";
 
 const styles = (theme: Theme) =>
   css({
@@ -185,7 +186,13 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         </Container>
       </FlexColumn>
 
-      {/* ConnectedLayersPanel handles its own panelsHidden check */}
+      {/* Right column: layers panel above, generated-layer inspector below.
+          Both subscribe directly to the sketch store so panelsHidden hides
+          them independently of the rest of the editor. */}
+      <FlexColumn
+        sx={{ minHeight: 0, flexShrink: 0 }}
+        gap={0}
+      >
       <ConnectedLayersPanel
         onClearLayer={session.canvasActions.handleClearLayer}
         onFlipHorizontal={session.layerActions.handleFlipHorizontal}
@@ -225,6 +232,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         }
         onLoadLayerAsSelection={session.canvasActions.handleLoadLayerAsSelection}
       />
+        <SketchInspector />
+      </FlexColumn>
 
       <ConnectedContextMenu
         open={session.canvasActions.contextMenu !== null}
