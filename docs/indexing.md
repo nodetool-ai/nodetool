@@ -10,7 +10,7 @@ NodeTool ships a lightweight ingestion pipeline for semantic search and retrieva
 ## Overview
 
 - **Collection metadata** (`CollectionResponse` in `@nodetool-ai/protocol` `packages/protocol/src/api-types.ts`) stores ingest configuration, including an optional workflow ID.
-- **Vector store** -- the default backend is SQLite-vec (`@nodetool-ai/vectorstore` `packages/vectorstore/src/sqlite-vec-store.ts`), with a Chroma-compatible chunking helper in `packages/vectorstore/src/chroma-client.ts`.
+- **Vector store** -- the default backend is SQLite-vec (`@nodetool-ai/vectorstore` `packages/vectorstore/src/sqlite-vec-store.ts`), with a Chroma-compatible chunking helper in `packages/vectorstore/src/chroma-client.ts`. Embeddings flow through the `VectorProvider` abstraction — see [Vector Storage](vector-storage.md) for swapping backends (Supabase/pgvector, Pinecone).
 - **Indexing route** -- `indexFileToCollection()` (`@nodetool-ai/deploy` `packages/deploy/src/collection-routes.ts`) orchestrates ingestion based on collection metadata.
 
 ### Default Flow

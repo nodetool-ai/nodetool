@@ -78,6 +78,8 @@ function toRecordMetadata(raw: Record<string, unknown> | null): RecordMetadata {
 class SqliteVecCollectionAdapter implements VectorCollection {
   constructor(private inner: VecCollection) {}
 
+  // `name` / `metadata` proxy through to the inner VecCollection so that
+  // `modify()` (which mutates the inner state) is observable on this handle.
   get name(): string {
     return this.inner.name;
   }
@@ -143,6 +145,7 @@ class SqliteVecCollectionAdapter implements VectorCollection {
     return r.ids.map((id, i) => ({
       id,
       document: r.documents[i] ?? null,
+      uri: r.uris[i] ?? null,
       metadata: toRecordMetadata(r.metadatas[i] ?? null)
     }));
   }
@@ -160,13 +163,14 @@ class SqliteVecCollectionAdapter implements VectorCollection {
     const ids = r.ids[0] ?? [];
     const docs = r.documents[0] ?? [];
     const metas = r.metadatas[0] ?? [];
+    const uris = r.uris[0] ?? [];
     const dists = r.distances[0] ?? [];
 
     return ids.map((id, i) => ({
       id,
       document: docs[i] ?? null,
       metadata: toRecordMetadata(metas[i] ?? null),
-      uri: null,
+      uri: uris[i] ?? null,
       distance: dists[i] ?? 0
     }));
   }
