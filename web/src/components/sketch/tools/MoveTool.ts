@@ -183,9 +183,9 @@ export class MoveTool implements ToolHandler {
         if (skipForHit) {
           continue;
         }
-        const layerCanvas = ctx.layerCanvasesRef.current.get(layer.id);
+        let layerCanvas = ctx.layerCanvasesRef.current.get(layer.id);
         if (!layerCanvas) {
-          continue;
+          layerCanvas = ctx.getOrCreateLayerCanvas(layer.id);
         }
         if (hitTestLayerAtDocPoint(layer, layerCanvas, pt)) {
           ctx.onAutoPickLayer(layer.id);
@@ -203,7 +203,8 @@ export class MoveTool implements ToolHandler {
           doc.layers,
           ctx.layerCanvasesRef.current,
           pt,
-          null
+          null,
+          ctx.getOrCreateLayerCanvas
         );
         if (picked && picked.id !== doc.activeLayerId) {
           ctx.onAutoPickLayer(picked.id);

@@ -562,25 +562,23 @@ export class TransformTool implements ToolHandler {
     if (this.isMultiTarget()) {
       return false;
     }
-    const { doc } = ctx;
-
-    const picked = pickedOverride ?? this.peekAutoSelectPick(ctx, event.point);
-
-    if (!picked) {
+    const primaryId = this.multiTargetLayerIds[0];
+    if (!primaryId) {
       return false;
     }
 
-    // Switch the active layer to the picked layer so the gizmo and
-    // preview session operate on it.
-    if (picked.id !== doc.activeLayerId) {
-      this.pivotPoint = null;
-      this.pivotPointAtMoveStart = null;
-      this.hoveredHandle = null;
-      ctx.onAutoPickLayer?.(picked.id);
+    const picked = pickedOverride ?? this.peekAutoSelectPick(ctx, event.point);
+
+    if (!picked || picked.id === primaryId) {
+      return false;
     }
 
+    this.pivotPoint = null;
+    this.pivotPointAtMoveStart = null;
+    this.hoveredHandle = null;
+    ctx.onAutoPickLayer?.(picked.id);
+    ctx.getOrCreateLayerCanvas(picked.id);
     this.syncSingleLayer(ctx, picked);
-
     this.drawGizmo(ctx);
     return true;
   }
@@ -775,7 +773,8 @@ export class TransformTool implements ToolHandler {
       ctx.doc.layers,
       ctx.layerCanvasesRef.current,
       docPoint,
-      null
+      null,
+      ctx.getOrCreateLayerCanvas
     );
   }
 
