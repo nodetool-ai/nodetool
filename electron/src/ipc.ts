@@ -1014,9 +1014,12 @@ export function initializeIpcHandlers(): void {
 
   createIpcMainHandler(IpcChannels.FRONTEND_LOG, async (_event, data) => {
     const source = data.source?.trim() ? `[${data.source.trim()}] ` : "";
+    // Cap forwarded messages so a runaway log doesn't spam the file, but
+    // leave room for full error messages and short stack-trace headers.
+    const MAX_FORWARDED_MESSAGE_LENGTH = 4000;
     const message =
-      data.message.length > 80
-        ? data.message.slice(0, 80) + "…"
+      data.message.length > MAX_FORWARDED_MESSAGE_LENGTH
+        ? data.message.slice(0, MAX_FORWARDED_MESSAGE_LENGTH) + "…"
         : data.message;
     logMessage(`${source}${message}`, data.level);
   });
