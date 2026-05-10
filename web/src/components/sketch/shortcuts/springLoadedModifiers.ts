@@ -1,8 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { isMac } from "../../../utils/platform";
 import { useSketchStore } from "../state";
 
 const SPRING_BLOCKED_TOOLS = new Set(["crop", "segment"]);
+
+export interface UseSpringLoadedModifiersOptions {
+  /** When true, Ctrl/Cmd spring-load is not applied (e.g. shortcuts overlay open). */
+  isSuspended?: () => boolean;
+}
 
 function isSpringModifierPhysicalKey(e: KeyboardEvent): boolean {
   return isMac()
@@ -23,9 +28,19 @@ function isSpringModifierStillHeld(e: KeyboardEvent): boolean {
  *
  * Attaches its own capture-phase window listeners. Cleared on window blur.
  */
-export function useSpringLoadedModifiers(): void {
+export function useSpringLoadedModifiers(
+  options?: UseSpringLoadedModifiersOptions
+): void {
+  const optsRef = useRef(options);
+  optsRef.current = options;
+
   useEffect(() => {
+    const suspended = (): boolean => Boolean(optsRef.current?.isSuspended?.());
+
     const onKeyDown = (e: KeyboardEvent): void => {
+      if (suspended()) {
+        return;
+      }
       if (e.repeat) return;
 
       if (isSpringModifierPhysicalKey(e)) {
@@ -38,6 +53,10 @@ export function useSpringLoadedModifiers(): void {
     };
 
     const onKeyUp = (e: KeyboardEvent): void => {
+      if (suspended()) {
+        useSketchStore.getState().setTransientMoveModifierHeld(false);
+        return;
+      }
       if (isSpringModifierPhysicalKey(e) || !isSpringModifierStillHeld(e)) {
         useSketchStore.getState().setTransientMoveModifierHeld(false);
       }

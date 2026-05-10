@@ -19,9 +19,20 @@ import { isMac } from "../../../utils/platform";
 import "../../../styles/keyboard.css";
 import { keyboardLayouts } from "./keyboard_layouts";
 import { useKeyPressedStore } from "../../../stores/KeyPressedStore";
+import { physicalKeyToLayoutButtonId } from "./physicalKeyboardLayoutKey";
 
 interface KeyboardShortcutsViewProps {
   shortcuts?: Shortcut[];
+  /**
+   * When false, skips window capture-phase key listeners so embedding views (e.g. sketch editor)
+   * keep receiving keyboard input.
+   * @default true
+   */
+  listenToPhysicalKeyboard?: boolean;
+  /**
+   * Image editor overlay: shortcuts use category `image-editor` only (not Node Editor / Panels).
+   */
+  imageEditorShortcuts?: boolean;
 }
 
 /**
@@ -34,8 +45,18 @@ interface HoverHandlers {
 }
 const hoverHandlerMap = new WeakMap<HTMLElement, HoverHandlers>();
 
+type CategoryFilter =
+  | "all"
+  | "editor"
+  | "panel"
+  | "assets"
+  | "workflow"
+  | "image-editor";
+
 const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
-  shortcuts = NODE_EDITOR_SHORTCUTS
+  shortcuts = NODE_EDITOR_SHORTCUTS,
+  listenToPhysicalKeyboard = true,
+  imageEditorShortcuts = false
 }) => {
   const [os, setOs] = useState<"mac" | "win">(isMac() ? "mac" : "win");
   const [layoutName, setLayoutName] = useState<"english" | "german">(() => {
@@ -44,9 +65,26 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     }
     return "english";
   });
-  const [categoryFilter, setCategoryFilter] = useState<
-    "all" | "editor" | "panel" | "assets" | "workflow"
-  >("all");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>(() =>
+    imageEditorShortcuts ? "image-editor" : "all"
+  );
+
+  useEffect(() => {
+    if (!imageEditorShortcuts) {
+      return;
+    }
+    setCategoryFilter((current) => {
+      if (
+        current === "workflow" ||
+        current === "assets" ||
+        current === "editor" ||
+        current === "panel"
+      ) {
+        return "image-editor";
+      }
+      return current;
+    });
+  }, [imageEditorShortcuts, shortcuts]);
   const containerRef = useRef<HTMLDivElement>(null);
   const isKeyPressedRef = useRef(false);
   const [hoverSlugs, setHoverSlugs] = useState<string[] | null>(null);
@@ -191,20 +229,28 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         m[lowKey].push(s.slug);
       });
     });
-    // For ctrl/meta, group switchToTab shortcuts into one
-    if (os === "mac") {
-      if (!m["meta"]) {m["meta"] = [];}
-      m["meta"] = m["meta"].filter((slug) => !/^switchToTab\d+$/.test(slug));
-      m["meta"].push("switchToTabGroup");
-    } else {
-      if (!m["control"]) {m["control"] = [];}
-      m["control"] = m["control"].filter(
-        (slug) => !/^switchToTab\d+$/.test(slug)
-      );
-      m["control"].push("switchToTabGroup");
+    const hasTabShortcuts = shortcuts.some((s) =>
+      /^switchToTab\d+$/.test(s.slug)
+    );
+    if (hasTabShortcuts) {
+      if (os === "mac") {
+        if (!m["meta"]) {
+          m["meta"] = [];
+        }
+        m["meta"] = m["meta"].filter((slug) => !/^switchToTab\d+$/.test(slug));
+        m["meta"].push("switchToTabGroup");
+      } else {
+        if (!m["control"]) {
+          m["control"] = [];
+        }
+        m["control"] = m["control"].filter(
+          (slug) => !/^switchToTab\d+$/.test(slug)
+        );
+        m["control"].push("switchToTabGroup");
+      }
     }
     return m;
-  }, [activeShortcuts, os]);
+  }, [activeShortcuts, os, shortcuts]);
 
   const handleButtonMouseEnter = (button: string, e: React.MouseEvent) => {
     if (isKeyPressedRef.current) {return;}
@@ -274,11 +320,14 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
 
   const setPaused = useKeyPressedStore((state) => state.setPaused);
   useEffect(() => {
+    if (!listenToPhysicalKeyboard) {
+      return;
+    }
     setPaused(true);
     return () => {
       setPaused(false);
     };
-  }, [setPaused]);
+  }, [listenToPhysicalKeyboard, setPaused]);
 
   const onKeyPress = useCallback(
     (button: string) => {
@@ -310,15 +359,22 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   }, []);
 
   useEffect(() => {
+    if (!listenToPhysicalKeyboard) {
+      return;
+    }
     const handleKeyDown = (event: KeyboardEvent) => {
-      event.preventDefault();
-      const button = event.key === " " ? "space" : event.key;
+      if (event.key !== "Escape" && event.key !== "Tab") {
+        event.preventDefault();
+      }
+      const button = physicalKeyToLayoutButtonId(event.key);
       onKeyPress(button);
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
-      event.preventDefault();
-      const button = event.key === " " ? "space" : event.key;
+      if (event.key !== "Escape" && event.key !== "Tab") {
+        event.preventDefault();
+      }
+      const button = physicalKeyToLayoutButtonId(event.key);
       onKeyReleased(button);
     };
 
@@ -329,7 +385,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
       window.removeEventListener("keydown", handleKeyDown, true);
       window.removeEventListener("keyup", handleKeyUp, true);
     };
-  }, [onKeyPress, onKeyReleased]);
+  }, [listenToPhysicalKeyboard, onKeyPress, onKeyReleased]);
 
   const currentHoverSlugs = keyboardHoverSlugs || hoverSlugs;
   const currentTooltipAnchorEl = keyboardTooltipAnchorEl || tooltipAnchorEl;
@@ -361,15 +417,21 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
       <ToggleButtonGroup
         value={categoryFilter}
         exclusive
-        onChange={(_, v) => v && setCategoryFilter(v)}
+        onChange={(_, v: CategoryFilter | null) => v && setCategoryFilter(v)}
         size="small"
-        sx={{ mb: 2, ml: 8 }}
+        sx={{ mb: 2, ml: imageEditorShortcuts ? 2 : 8 }}
       >
         <ToggleButton value="all">All</ToggleButton>
-        <ToggleButton value="editor">Editor</ToggleButton>
-        <ToggleButton value="workflow">Workflow</ToggleButton>
-        <ToggleButton value="panel">Panels</ToggleButton>
-        <ToggleButton value="assets">Assets</ToggleButton>
+        {imageEditorShortcuts ? (
+          <ToggleButton value="image-editor">Image Editor</ToggleButton>
+        ) : (
+          <>
+            <ToggleButton value="editor">Editor</ToggleButton>
+            <ToggleButton value="workflow">Workflow</ToggleButton>
+            <ToggleButton value="panel">Panels</ToggleButton>
+            <ToggleButton value="assets">Assets</ToggleButton>
+          </>
+        )}
       </ToggleButtonGroup>
 
       <div ref={containerRef} className="keyboard-view">
@@ -388,6 +450,9 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         <Tooltip
           open={!!currentHoverSlugs}
           placement="bottom"
+          disableHoverListener
+          disableFocusListener
+          disableTouchListener
           title={
             <div
               style={{
@@ -413,7 +478,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
                       </div>
                     </div>
                   ) : (
-                    getShortcutTooltip(slug, os, "full", true)
+                    getShortcutTooltip(slug, os, "full", true, shortcuts)
                   )}
                 </React.Fragment>
               ))}

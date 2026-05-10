@@ -79,13 +79,16 @@ export interface SketchEditorProps {
   onDocumentChange?: (doc: SketchDocument) => void;
   onExportImage?: (dataUrl: string) => void;
   onExportMask?: (dataUrl: string | null) => void;
+  /** When true, window keyboard shortcuts for the editor are disabled (e.g. shortcuts help open). */
+  suspendKeyboardShortcuts?: boolean;
 }
 
 const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function SketchEditor({
   initialDocument,
   onDocumentChange,
   onExportImage,
-  onExportMask
+  onExportMask,
+  suspendKeyboardShortcuts
 }, ref) {
   const theme = useTheme();
 
@@ -111,7 +114,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     segmentation: session.segmentation,
     canvasStore: session.canvasStore,
     colorStore: session.colorStore,
-    sessionStore: session.sessionStore
+    sessionStore: session.sessionStore,
+    suspendKeyboardShortcuts
   });
 
   return (

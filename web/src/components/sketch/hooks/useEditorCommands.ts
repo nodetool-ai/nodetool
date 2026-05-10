@@ -52,6 +52,9 @@ export interface UseEditorCommandsParams {
   canvasStore: ReturnType<typeof useCanvasStoreActions>;
   colorStore: ReturnType<typeof useColorStoreActions>;
   sessionStore: ReturnType<typeof useSessionStoreActions>;
+
+  /** While true, sketch editor keyboard shortcuts do not run (shortcuts overlay open). */
+  suspendKeyboardShortcuts?: boolean;
 }
 
 export interface EditorCommandsResult {
@@ -79,7 +82,8 @@ export function useEditorCommands({
   segmentation,
   canvasStore,
   colorStore,
-  sessionStore
+  sessionStore,
+  suspendKeyboardShortcuts
 }: UseEditorCommandsParams): EditorCommandsResult {
   // ─── Segmentation bridge callbacks ─────────────────────────────────
   const handleRunSegmentation = useCallback(() => {
@@ -174,7 +178,8 @@ export function useEditorCommands({
     handleFreeTransform,
     handleRepeatLastTransform: canvasActions.handleRepeatLastTransform,
     handleRepeatLastTransformOnCopy:
-      canvasActions.handleRepeatLastTransformOnCopy
+      canvasActions.handleRepeatLastTransformOnCopy,
+    suspendKeyboardShortcuts
   });
 
   // ─── Imperative handle ─────────────────────────────────────────────

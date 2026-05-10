@@ -13,3 +13,4 @@ export type { ActionHandler, ActionHandlerMap } from "./actionHandlers";
 export { ACTION_HANDLERS } from "./actionHandlers";
 
 export { useSpringLoadedModifiers } from "./springLoadedModifiers";
+export type { UseSpringLoadedModifiersOptions } from "./springLoadedModifiers";

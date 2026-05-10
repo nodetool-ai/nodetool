@@ -9,7 +9,7 @@
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactDOM from "react-dom";
-import { useTheme } from "@mui/material/styles";
+import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   Box,
@@ -31,8 +31,10 @@ import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import CheckIcon from "@mui/icons-material/Check";
 import KeyboardOutlinedIcon from "@mui/icons-material/KeyboardOutlined";
 import SketchEditor, { SketchEditorHandle } from "./SketchEditor";
-import { SketchShortcutReference } from "./SketchShortcutReference";
+import { SKETCH_KEYBOARD_SHORTCUTS } from "./sketchKeyboardShortcuts";
 import { PenPressureSettingsPanel } from "./ToolSettingsPanels";
+import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
+import { ShortcutsSearchableList } from "../content/Help/ShortcutsSearchableList";
 import { useSketchStore } from "./state";
 import {
   SketchDocument,
@@ -50,7 +52,14 @@ import {
   settingRowChildrenSx
 } from "./sketchStyles";
 import { displayCombo } from "./shortcuts";
-import { Caption, Dialog, Divider, Text, Tooltip } from "../ui_primitives";
+import {
+  Caption,
+  Divider,
+  TabGroup,
+  TabPanel,
+  Text,
+  Tooltip
+} from "../ui_primitives";
 
 function isPressureSketchTool(tool: SketchTool): boolean {
   return tool === "brush" || tool === "pencil" || tool === "eraser";
@@ -118,7 +127,10 @@ const SketchModal: React.FC<SketchModalProps> = ({
   const editorRef = useRef<SketchEditorHandle>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [symmetryAnchorEl, setSymmetryAnchorEl] = useState<HTMLElement | null>(null);
-  const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
+  const [shortcutsPaneOpen, setShortcutsPaneOpen] = useState(false);
+  const [shortcutsSubTab, setShortcutsSubTab] = useState<
+    "shortcuts" | "keyboard"
+  >("shortcuts");
 
   const symmetryMode = useSketchStore((s) => s.symmetryMode);
   const symmetryRays = useSketchStore((s) => s.symmetryRays);
@@ -153,9 +165,23 @@ const SketchModal: React.FC<SketchModalProps> = ({
   useEffect(() => {
     if (!open) {
       setConfirmDiscard(false);
-      setShortcutsModalOpen(false);
+      setShortcutsPaneOpen(false);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!shortcutsPaneOpen) {
+      setShortcutsSubTab("shortcuts");
+      return;
+    }
+    const onWindowKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShortcutsPaneOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onWindowKeyDown, true);
+    return () => window.removeEventListener("keydown", onWindowKeyDown, true);
+  }, [shortcutsPaneOpen]);
 
   const handleRequestClose = useCallback(() => {
     editorRef.current?.flushPendingChanges();
@@ -164,15 +190,19 @@ const SketchModal: React.FC<SketchModalProps> = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (shortcutsModalOpen) {
-        return;
-      }
       if (e.key === "Escape") {
-        if (confirmDiscard) { setConfirmDiscard(false); }
-        else { handleRequestClose(); }
+        if (shortcutsPaneOpen) {
+          setShortcutsPaneOpen(false);
+          return;
+        }
+        if (confirmDiscard) {
+          setConfirmDiscard(false);
+        } else {
+          handleRequestClose();
+        }
       }
     },
-    [handleRequestClose, confirmDiscard, shortcutsModalOpen]
+    [handleRequestClose, confirmDiscard, shortcutsPaneOpen]
   );
 
   if (!open) {
@@ -277,8 +307,10 @@ const SketchModal: React.FC<SketchModalProps> = ({
           <Tooltip title="Keyboard shortcuts" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
               size="small"
-              onClick={() => setShortcutsModalOpen(true)}
-              aria-label="Open keyboard shortcuts"
+              onClick={() => setShortcutsPaneOpen((open) => !open)}
+              aria-label={shortcutsPaneOpen ? "Hide keyboard shortcuts" : "Show keyboard shortcuts"}
+              aria-expanded={shortcutsPaneOpen}
+              color={shortcutsPaneOpen ? "primary" : "default"}
             >
               <KeyboardOutlinedIcon sx={{ fontSize: "18px" }} />
             </IconButton>
@@ -368,34 +400,167 @@ const SketchModal: React.FC<SketchModalProps> = ({
           )}
         </Box>
       </Box>
-      <Box className="sketch-modal-body">
+      <Box
+        className="sketch-modal-body"
+        sx={{
+          flex: 1,
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          overflow: "hidden"
+        }}
+      >
         <SketchEditor
           ref={editorRef}
           initialDocument={initialDocument}
           onDocumentChange={onDocumentChange}
           onExportImage={onExportImage}
           onExportMask={onExportMask}
+          suspendKeyboardShortcuts={shortcutsPaneOpen}
         />
+        {shortcutsPaneOpen ? (
+          <>
+            <Box
+              aria-hidden
+              onClick={() => setShortcutsPaneOpen(false)}
+              sx={{
+                position: "absolute",
+                inset: 0,
+                zIndex: SKETCH_Z_INDEX.overlay,
+                backgroundColor: alpha(theme.palette.common.black, 0.45)
+              }}
+            />
+            <Box
+              component="section"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="sketch-shortcuts-heading"
+              onClick={(e) => e.stopPropagation()}
+              sx={{
+                position: "absolute",
+                top: "max(48px, 9vh)",
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: "min(920px, calc(100% - 24px))",
+                height: "80vh",
+                maxHeight: "80vh",
+                zIndex: SKETCH_Z_INDEX.popover,
+                display: "flex",
+                flexDirection: "column",
+                borderRadius: 2,
+                border: `1px solid ${theme.vars.palette.grey[700]}`,
+                backgroundColor: theme.vars.palette.grey[800],
+                boxShadow: theme.shadows[12],
+                overflow: "hidden"
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 1,
+                  px: SKETCH_SPACING.md,
+                  py: SKETCH_SPACING.sm,
+                  borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+                  flexShrink: 0
+                }}
+              >
+                <Text id="sketch-shortcuts-heading" sx={{ fontWeight: 600 }}>
+                  Keyboard shortcuts
+                </Text>
+                <Tooltip title="Close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+                  <IconButton
+                    size="small"
+                    onClick={() => setShortcutsPaneOpen(false)}
+                    aria-label="Close keyboard shortcuts"
+                  >
+                    <CloseIcon sx={{ fontSize: "18px" }} />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+              <Box
+                sx={{
+                  flex: 1,
+                  minHeight: 0,
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column"
+                }}
+              >
+                <TabGroup
+                  aria-label="Image editor shortcuts"
+                  tabs={[
+                    { value: "shortcuts", label: "Shortcuts" },
+                    { value: "keyboard", label: "Keyboard" }
+                  ]}
+                  value={shortcutsSubTab}
+                  onChange={(v) =>
+                    setShortcutsSubTab(v as "shortcuts" | "keyboard")
+                  }
+                  size="small"
+                  fullWidth
+                  sx={{
+                    flexShrink: 0,
+                    px: SKETCH_SPACING.md,
+                    pt: SKETCH_SPACING.sm,
+                    borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+                  }}
+                />
+                <Box
+                  sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                    px: SKETCH_SPACING.md,
+                    pb: SKETCH_SPACING.md,
+                    pt: SKETCH_SPACING.sm
+                  }}
+                >
+                  <TabPanel
+                    value="shortcuts"
+                    activeValue={shortcutsSubTab}
+                    sx={{
+                      flex: 1,
+                      minHeight: 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      overflow: "hidden",
+                      py: 0
+                    }}
+                  >
+                    <ShortcutsSearchableList
+                      shortcuts={SKETCH_KEYBOARD_SHORTCUTS}
+                      searchPlaceholder="Search shortcuts"
+                      rootSx={{ flex: 1, minHeight: 0 }}
+                      scrollSx={{ flex: 1, minHeight: 0 }}
+                    />
+                  </TabPanel>
+                  <TabPanel
+                    value="keyboard"
+                    activeValue={shortcutsSubTab}
+                    sx={{
+                      flex: 1,
+                      minHeight: 0,
+                      overflow: "auto",
+                      py: 0
+                    }}
+                  >
+                    <KeyboardShortcutsView
+                      shortcuts={SKETCH_KEYBOARD_SHORTCUTS}
+                      listenToPhysicalKeyboard
+                      imageEditorShortcuts
+                    />
+                  </TabPanel>
+                </Box>
+              </Box>
+            </Box>
+          </>
+        ) : null}
       </Box>
-
-      <Dialog
-        open={shortcutsModalOpen}
-        onClose={() => setShortcutsModalOpen(false)}
-        title="Keyboard shortcuts"
-        maxWidth="sm"
-        fullWidth
-        sx={{ zIndex: SKETCH_Z_INDEX.popover }}
-      >
-        <Box
-          sx={{
-            maxHeight: "min(70vh, 560px)",
-            overflowY: "auto",
-            pr: 0.5
-          }}
-        >
-          <SketchShortcutReference />
-        </Box>
-      </Dialog>
     </Box>,
     window.document.body
   );
