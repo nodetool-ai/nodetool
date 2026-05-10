@@ -84,8 +84,23 @@ function shouldSkip(filename: string): boolean {
  *
  * Must run before navigation so React reads the values on first mount.
  */
-async function seedLocalStorage(page: Page): Promise<void> {
-  await page.addInitScript(() => {
+/**
+ * Optional pre-set panel visibility, applied via localStorage before the page
+ * mounts. Each editor panel is hidden by default — pass `true` for the panels
+ * you want visible in the screenshot.
+ */
+type PanelOverrides = {
+  left?: { visible?: boolean; activeView?: "workflowGrid" | "assets" };
+  right?: { visible?: boolean; activeView?: string };
+  bottom?: { visible?: boolean; activeView?: string };
+};
+
+async function seedLocalStorage(
+  page: Page,
+  panels?: PanelOverrides
+): Promise<void> {
+  const panelsArg = panels ?? {};
+  await page.addInitScript((panelsInBrowser: PanelOverrides) => {
     try {
       window.localStorage.setItem(
         "onboarding",
@@ -119,10 +134,53 @@ async function seedLocalStorage(page: Page): Promise<void> {
           version: 0
         })
       );
+
+      const writePanel = (
+        key: string,
+        size: number,
+        defaultView: string,
+        opts: { visible?: boolean; activeView?: string } | undefined
+      ) => {
+        if (!opts) return;
+        window.localStorage.setItem(
+          key,
+          JSON.stringify({
+            state: {
+              panel: {
+                panelSize: size,
+                isVisible: opts.visible ?? false,
+                activeView: opts.activeView ?? defaultView
+              }
+            },
+            // The persist version must match each store's `version: 1`,
+            // otherwise zustand discards the persisted state on rehydrate.
+            version: 1
+          })
+        );
+      };
+
+      writePanel(
+        "left-panel-storage",
+        360,
+        "workflowGrid",
+        panelsInBrowser.left
+      );
+      writePanel(
+        "right-panel-storage",
+        380,
+        "inspector",
+        panelsInBrowser.right
+      );
+      writePanel(
+        "bottom-panel-storage",
+        320,
+        "trace",
+        panelsInBrowser.bottom
+      );
     } catch {
       /* ignore — localStorage may be unavailable in some browser contexts */
     }
-  });
+  }, panelsArg);
 }
 
 /**
@@ -135,8 +193,12 @@ async function seedLocalStorage(page: Page): Promise<void> {
  *
  * Asserts that no React ErrorBoundary is visible (which would indicate a crash).
  */
-async function gotoPage(page: Page, url: string): Promise<void> {
-  await seedLocalStorage(page);
+async function gotoPage(
+  page: Page,
+  url: string,
+  panels?: PanelOverrides
+): Promise<void> {
+  await seedLocalStorage(page, panels);
   await page.goto(url);
 
   // Wait for the loading overlay to clear. We check by role/aria-label so the
@@ -538,6 +600,186 @@ if (process.env.JEST_WORKER_ID) {
       await gotoPage(page, "/node-test");
       await waitForScreenshotReady(page, "node-test-page.png");
       await saveScreenshot(page, "node-test-page.png");
+    });
+
+    // ── Editor surfaces (panels, toolbars, modals) ─────────────────────────
+    //
+    // These captures all use /editor/wf-story-generator (a seeded workflow
+    // with nodes), then either pre-open a panel via localStorage seeding or
+    // trigger a UI surface with a keyboard shortcut.
+
+    async function openEditorWithNodes(
+      page: Page,
+      panels?: PanelOverrides
+    ): Promise<void> {
+      await gotoPage(page, "/editor/wf-story-generator", panels);
+      await page
+        .waitForFunction(
+          () => document.querySelectorAll(".react-flow__node").length > 0,
+          undefined,
+          { timeout: 15000 }
+        )
+        .catch(() => {});
+      await waitForAnimation(page, 800);
+    }
+
+    test("Editor – left panel open", async ({ page }) => {
+      test.skip(shouldSkip("editor-left-panel.png"), "Already captured");
+      await openEditorWithNodes(page, {
+        left: { visible: true, activeView: "workflowGrid" }
+      });
+      await saveScreenshot(page, "editor-left-panel.png");
+    });
+
+    test("Editor – right panel (Inspector)", async ({ page }) => {
+      test.skip(shouldSkip("editor-right-panel.png"), "Already captured");
+      await openEditorWithNodes(page, {
+        right: { visible: true }
+      });
+      await saveScreenshot(page, "editor-right-panel.png");
+    });
+
+    test("Editor – bottom panel", async ({ page }) => {
+      test.skip(shouldSkip("editor-bottom-panel.png"), "Already captured");
+      await openEditorWithNodes(page, {
+        bottom: { visible: true }
+      });
+      await saveScreenshot(page, "editor-bottom-panel.png");
+    });
+
+    test("Editor – node canvas", async ({ page }) => {
+      test.skip(shouldSkip("editor-node-canvas.png"), "Already captured");
+      await openEditorWithNodes(page);
+      // Element-screenshot the ReactFlow viewport for a clean canvas-only
+      // image, which is what the docs page wants. Fallback to full page if
+      // the element isn't found.
+      const ok = await saveElementScreenshot(
+        page,
+        ".react-flow",
+        "editor-node-canvas.png",
+        8000
+      );
+      if (!ok) {
+        await saveScreenshot(page, "editor-node-canvas.png");
+      }
+    });
+
+    test("Editor – floating toolbar", async ({ page }) => {
+      test.skip(shouldSkip("editor-floating-toolbar.png"), "Already captured");
+      await openEditorWithNodes(page);
+      await page
+        .locator(".floating-toolbar")
+        .first()
+        .waitFor({ state: "visible", timeout: 10000 })
+        .catch(() => {});
+      const ok = await saveElementScreenshot(
+        page,
+        ".floating-toolbar",
+        "editor-floating-toolbar.png",
+        8000
+      );
+      if (!ok) {
+        await saveScreenshot(page, "editor-floating-toolbar.png");
+      }
+    });
+
+    test("Editor – tabs bar", async ({ page }) => {
+      test.skip(shouldSkip("editor-tabs-bar.png"), "Already captured");
+      await openEditorWithNodes(page);
+      // The header strip with workflow tabs sits at the top of the editor
+      // chrome. We capture a thin strip from the top of the viewport.
+      const fullPath = path.join(SCREENSHOT_DIR, "editor-tabs-bar.png");
+      await page.screenshot({
+        path: fullPath,
+        clip: { x: 0, y: 0, width: DESKTOP_VIEWPORT.width, height: 96 }
+      });
+      console.log("  📸 editor-tabs-bar.png (clipped)");
+    });
+
+    test("Editor – command menu (Cmd/Ctrl+K)", async ({ page }) => {
+      test.skip(shouldSkip("editor-command-menu.png"), "Already captured");
+      await openEditorWithNodes(page);
+      // Trigger the global Command Menu shortcut. Using both modifiers covers
+      // Mac (Meta) and Linux/Windows (Control) so the test works regardless
+      // of how Playwright reports the platform.
+      await page.keyboard.press("Control+K").catch(() => {});
+      const dialog = page.locator(".command-menu-dialog");
+      const opened = await dialog
+        .waitFor({ state: "visible", timeout: 5000 })
+        .then(() => true)
+        .catch(() => false);
+      if (!opened) {
+        await page.keyboard.press("Meta+K").catch(() => {});
+        await dialog
+          .waitFor({ state: "visible", timeout: 5000 })
+          .catch(() => {});
+      }
+      await waitForAnimation(page, 400);
+      await saveScreenshot(page, "editor-command-menu.png");
+    });
+
+    test("Editor – quick add node (Cmd/Ctrl+Shift+A)", async ({ page }) => {
+      test.skip(shouldSkip("editor-quick-add-node.png"), "Already captured");
+      await openEditorWithNodes(page);
+      await page.keyboard.press("Control+Shift+A").catch(() => {});
+      const fallbackKey = "Meta+Shift+A";
+      // Wait for any modal/dialog/role=dialog to appear
+      const dialog = page
+        .locator(
+          '[role="dialog"], .MuiDialog-paper, .MuiPopover-paper, .quick-add-node'
+        )
+        .first();
+      const opened = await dialog
+        .waitFor({ state: "visible", timeout: 5000 })
+        .then(() => true)
+        .catch(() => false);
+      if (!opened) {
+        await page.keyboard.press(fallbackKey).catch(() => {});
+        await dialog
+          .waitFor({ state: "visible", timeout: 5000 })
+          .catch(() => {});
+      }
+      await waitForAnimation(page, 400);
+      await saveScreenshot(page, "editor-quick-add-node.png");
+    });
+
+    // ── Mobile viewport captures ────────────────────────────────────────────
+
+    test("Mobile – mini-app runner", async ({ page }) => {
+      test.skip(shouldSkip("mobile-mini-app-runner.png"), "Already captured");
+      await page.setViewportSize({ width: 375, height: 812 });
+      await gotoPage(page, "/miniapp/wf-story-generator");
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "mobile-mini-app-runner.png");
+    });
+
+    test("Mobile – settings", async ({ page }) => {
+      test.skip(shouldSkip("mobile-settings.png"), "Already captured");
+      await page.setViewportSize({ width: 375, height: 812 });
+      await gotoPage(page, "/settings");
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "mobile-settings.png");
+    });
+
+    test("Mobile – language model selection", async ({ page }) => {
+      test.skip(
+        shouldSkip("mobile-language-model-selection.png"),
+        "Already captured"
+      );
+      await page.setViewportSize({ width: 375, height: 812 });
+      await gotoPage(page, "/settings");
+      await waitForAnimation(page, 600);
+      // Try to find a tab/section that mentions models/providers and open it.
+      const target = page
+        .getByRole("tab")
+        .filter({ hasText: /model|provider/i })
+        .first();
+      if ((await target.count()) > 0) {
+        await target.click().catch(() => {});
+        await waitForAnimation(page, 400);
+      }
+      await saveScreenshot(page, "mobile-language-model-selection.png");
     });
   });
 }

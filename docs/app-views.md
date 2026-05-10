@@ -48,7 +48,7 @@ Docs: [Chain Editor]({{ '/chain-editor' | relative_url }})
 
 Read-only visualization of a saved workflow. Useful for sharing, embedding, and review.
 
-![Workflow Graph View](assets/screenshots/screenshot-placeholder.svg)
+![Workflow Graph View](assets/screenshots/workflow-graph-view.png)
 
 Docs: [Workflow Graph View]({{ '/workflow-graph-view' | relative_url }})
 
@@ -72,7 +72,7 @@ Docs: [User Interface → Standalone Chat]({{ '/user-interface#standalone-chat-w
 
 Run saved workflows through simplified form UIs inside the main app.
 
-![Mini-App Page](assets/screenshots/screenshot-placeholder.svg)
+![Mini-App Page](assets/screenshots/mini-app-page.png)
 
 Docs: [User Interface → Mini-Apps]({{ '/user-interface#mini-apps' | relative_url }})
 
@@ -80,7 +80,7 @@ Docs: [User Interface → Mini-Apps]({{ '/user-interface#mini-apps' | relative_u
 
 A dedicated full-window Mini-App runner. Launched from the tray on desktop or by a direct link.
 
-![Standalone Mini-App](assets/screenshots/screenshot-placeholder.svg)
+![Standalone Mini-App](assets/screenshots/standalone-mini-app.png)
 
 Docs: [User Interface → Mini-Apps]({{ '/user-interface#mini-apps' | relative_url }})
 
@@ -88,7 +88,7 @@ Docs: [User Interface → Mini-Apps]({{ '/user-interface#mini-apps' | relative_u
 
 Browse, search, organize, and tag every file used in your workflows.
 
-![Asset Explorer](assets/screenshots/screenshot-placeholder.svg)
+![Asset Explorer](assets/screenshots/asset-explorer.png)
 
 Docs: [Asset Management]({{ '/asset-management' | relative_url }})
 
@@ -96,7 +96,7 @@ Docs: [Asset Management]({{ '/asset-management' | relative_url }})
 
 Full-featured image editor for assets. Crop, paint, and transform without leaving NodeTool.
 
-![Asset Editor](assets/screenshots/screenshot-placeholder.svg)
+![Asset Editor](assets/screenshots/asset-editor.png)
 
 Docs: [Image Editor]({{ '/image-editor' | relative_url }})
 
@@ -142,7 +142,7 @@ Docs: [User Interface → App Header]({{ '/user-interface#the-app-header' | rela
 
 Collapsible drawer with tabs for navigating workspace content without leaving the canvas.
 
-![Left Panel](assets/screenshots/screenshot-placeholder.svg)
+![Left Panel](assets/screenshots/editor-left-panel.png)
 
 Docs: [Editor Panels → Left Panel]({{ '/editor-panels#left-panel' | relative_url }})
 
@@ -158,7 +158,7 @@ Docs: [Workflow Editor → Finding Nodes]({{ '/workflow-editor#finding-nodes' | 
 
 Tabs for node properties, workflow assistant, logs, jobs, trace, agent, version history, and workspace tree.
 
-![Inspector](assets/screenshots/screenshot-placeholder.svg)
+![Inspector](assets/screenshots/editor-right-panel.png)
 
 Docs: [Editor Panels → Right Panel]({{ '/editor-panels#right-panel-inspector' | relative_url }})
 
@@ -166,7 +166,7 @@ Docs: [Editor Panels → Right Panel]({{ '/editor-panels#right-panel-inspector' 
 
 Runtime diagnostics dock — quick access to the terminal, execution trace, job queue, and raw logs.
 
-![Bottom Panel](assets/screenshots/screenshot-placeholder.svg)
+![Bottom Panel](assets/screenshots/editor-bottom-panel.png)
 
 Docs: [Editor Panels → Bottom Panel]({{ '/editor-panels#bottom-panel' | relative_url }})
 
@@ -174,7 +174,7 @@ Docs: [Editor Panels → Bottom Panel]({{ '/editor-panels#bottom-panel' | relati
 
 Context-sensitive actions that appear over the canvas (run, pause, resume, stop, layout).
 
-![Floating Toolbar](assets/screenshots/screenshot-placeholder.svg)
+![Floating Toolbar](assets/screenshots/editor-floating-toolbar.png)
 
 Docs: [Editor Panels → Floating Toolbar]({{ '/editor-panels#floating-toolbar' | relative_url }})
 
@@ -182,7 +182,7 @@ Docs: [Editor Panels → Floating Toolbar]({{ '/editor-panels#floating-toolbar' 
 
 The infinite work surface where nodes are placed and connected.
 
-![Canvas with Workflow](assets/screenshots/screenshot-placeholder.svg)
+![Canvas with Workflow](assets/screenshots/editor-node-canvas.png)
 
 Docs: [Workflow Editor → Canvas Basics]({{ '/workflow-editor#canvas-basics' | relative_url }})
 
@@ -190,7 +190,7 @@ Docs: [Workflow Editor → Canvas Basics]({{ '/workflow-editor#canvas-basics' | 
 
 Switch between open workflows without losing state.
 
-![Workflow Tabs](assets/screenshots/screenshot-placeholder.svg)
+![Workflow Tabs](assets/screenshots/editor-tabs-bar.png)
 
 Docs: [Workflow Editor → Multiple Workflows]({{ '/workflow-editor#multiple-workflows' | relative_url }})
 
@@ -214,7 +214,7 @@ Docs: [Workflow Editor → Finding Nodes]({{ '/workflow-editor#finding-nodes' | 
 
 Global command palette — go anywhere, run anything.
 
-![Command Menu](assets/screenshots/screenshot-placeholder.svg)
+![Command Menu](assets/screenshots/editor-command-menu.png)
 
 Docs: [User Interface → Command Menu]({{ '/user-interface#command-menu' | relative_url }})
 
@@ -324,7 +324,7 @@ Docs: [Workflow Editor]({{ '/workflow-editor' | relative_url }})
 
 Add a node without opening the full Node Menu — useful when chaining off a connection.
 
-![Quick Add Node](assets/screenshots/screenshot-placeholder.svg)
+![Quick Add Node](assets/screenshots/editor-quick-add-node.png)
 
 Docs: [Workflow Editor → Adding Nodes]({{ '/workflow-editor#add-nodes' | relative_url }})
 
@@ -422,7 +422,7 @@ Browse mini-apps published by your server.
 
 Run an individual mini-app with touch-first controls.
 
-![Mini App Runner](assets/screenshots/screenshot-placeholder.svg)
+![Mini App Runner](assets/screenshots/mobile-mini-app-runner.png)
 
 ### Mobile Chat
 
@@ -458,13 +458,13 @@ Linear chain layout for small screens.
 
 Configure the server URL, storage, and appearance.
 
-![Mobile Settings](assets/screenshots/screenshot-placeholder.svg)
+![Mobile Settings](assets/screenshots/mobile-settings.png)
 
 ### Mobile Language Model Selection
 
 Choose the default LLM for chat.
 
-![Mobile Model Selection](assets/screenshots/screenshot-placeholder.svg)
+![Mobile Model Selection](assets/screenshots/mobile-language-model-selection.png)
 
 ### Mobile Dashboard (Tablet)
 
