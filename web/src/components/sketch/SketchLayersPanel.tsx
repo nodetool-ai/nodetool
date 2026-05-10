@@ -372,6 +372,7 @@ const styles = (theme: Theme) =>
 export interface SketchLayersPanelProps {
   foregroundColor: string;
   onForegroundColorChange: (color: string) => void;
+  showColorPicker?: boolean;
   layers: Layer[];
   activeLayerId: string;
   /** When length ≥ 2, rows use multi-select highlighting (Ctrl/Cmd toggle; Shift range). */
@@ -421,6 +422,7 @@ export interface SketchLayersPanelProps {
 const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   foregroundColor,
   onForegroundColorChange,
+  showColorPicker = true,
   layers,
   activeLayerId,
   selectedLayerIds,
@@ -952,10 +954,12 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   return (
     <Box className="sketch-layers-panel" css={styles(theme)}>
       {/* ── Color Selector ── */}
-      <HueTriangleColorPicker
-        color={foregroundColor}
-        onColorChange={onForegroundColorChange}
-      />
+      {showColorPicker && (
+        <HueTriangleColorPicker
+          color={foregroundColor}
+          onColorChange={onForegroundColorChange}
+        />
+      )}
 
       <Typography
         className="section-label sketch-layers-panel__title"

@@ -77,6 +77,7 @@ export const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
     <SketchLayersPanel
       foregroundColor={foregroundColor}
       onForegroundColorChange={handleFgColorChange}
+      showColorPicker={false}
       layers={layers}
       activeLayerId={activeLayerId}
       selectedLayerIds={selectedLayerIds}
