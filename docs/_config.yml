@@ -65,6 +65,7 @@ header_pages:
   - comparisons.md
   - tips-and-tricks.md
   - global-chat.md
+  - long-term-memory.md
   - models.md
   - providers.md
   - huggingface.md
