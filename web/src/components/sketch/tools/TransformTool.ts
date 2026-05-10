@@ -13,8 +13,9 @@
  *
  * Modifiers:
  *   - Shift: constrain proportions (scale) or snap angle (rotate)
- *            When clicking outside the gizmo with auto-select: retarget
- *            the current transform layer.
+ *   - Auto-select retargets the layer only on clicks outside the gizmo that are
+ *     not in the outside-box rotate band — never while scaling, rotating, moving,
+ *     or dragging the pivot.
  *   - Alt: scale from center (keep center fixed)
  *
  * The gizmo is drawn on a dedicated screen-resolution canvas (`gizmoCanvasRef`)
@@ -25,9 +26,9 @@
  * read one live preview source. See `previewSession.ts`.
  *
  * Transform-targeting flow:
- *   - An optional auto-select toggle (stored in `TransformSettings`) controls
- *     whether clicking opaque pixels targets the topmost visible transformable
- *     layer without requiring a panel switch.
+ *   - An optional auto-select toggle (`TransformSettings.autoSelect`) targets the
+ *     topmost layer at the click point only when the click is outside the gizmo
+ *     and outside the rotate band — not during move/scale/rotate/pivot drags.
  *   - With layers-panel multi-select (2+ layers) or a selected/active **group**,
  *     targets expand to all eligible raster/mask descendants and share one union
  *     gizmo; a single document-space affine delta applies to every target layer.
@@ -80,9 +81,6 @@ import {
   paintTransformGizmo,
   GizmoRedrawScheduler
 } from "./transform/transformGizmoPainter";
-import {
-  applyCursorFeedback
-} from "./transform/transformHoverPolicy";
 import { createPreviewSession, type PreviewSession } from "./previewSession";
 import {
   TransformTargetSet,
@@ -139,6 +137,8 @@ export class TransformTool implements ToolHandler {
    * Reset when the tool is activated/deactivated.
    */
   private pivotPoint: Point | null = null;
+  /** Pivot snapshot at pointer-down when dragging `move` with a custom pivot. */
+  private pivotPointAtMoveStart: Point | null = null;
 
   // ── Transform target set ──────────────────────────────────────────────────
   /** Current transform target (separate from raw panel multi-select expansion). */
@@ -175,6 +175,7 @@ export class TransformTool implements ToolHandler {
     this.hoveredHandle = null;
     this.gestureActive = false;
     this.pivotPoint = null;
+    this.pivotPointAtMoveStart = null;
     this.activeTransformMode = "auto";
     this.dragStartCorners = null;
     this.adjustmentUndoStack = [];
@@ -189,6 +190,7 @@ export class TransformTool implements ToolHandler {
     this.activeHandle = null;
     this.hoveredHandle = null;
     this.pivotPoint = null;
+    this.pivotPointAtMoveStart = null;
     this.activeTransformMode = "auto";
     this.dragStartCorners = null;
     this.adjustmentUndoStack = [];
@@ -202,6 +204,7 @@ export class TransformTool implements ToolHandler {
     this.hoveredHandle = null;
     this.gestureActive = false;
     this.pivotPoint = null;
+    this.pivotPointAtMoveStart = null;
     this.activeTransformMode = "auto";
     this.dragStartCorners = null;
     this.session.clear(ctx);
@@ -267,6 +270,7 @@ export class TransformTool implements ToolHandler {
     if (handle === "move" || handle === null) {
       const pivotDoc = this.getEffectivePivot(currentTransform);
       if (hitTestPivot(pivotDoc, pt, ctx.zoom)) {
+        this.pivotPointAtMoveStart = null;
         this.activeHandle = "pivot";
         this.dragStart = pt;
         this.dragStartTransform = { ...currentTransform };
@@ -274,44 +278,25 @@ export class TransformTool implements ToolHandler {
       }
     }
 
-    if (handle === "move") {
-      const storeSettings = useSketchStore.getState().toolSettings;
-      const autoSelect = storeSettings?.transform?.autoSelect ?? true;
-      // Only auto-select a different layer when there is no active selection mask
-      if (
-        !this.isMultiTarget() &&
-        autoSelect &&
-        !ctx.selection
-      ) {
-        const picked = this.peekAutoSelectPick(ctx, pt);
-        if (picked && picked.id !== doc.activeLayerId) {
-          this.tryAutoSelectPick(ctx, event, picked);
-          return false;
-        }
-      }
-    }
-
-    // 3. If the click misses the gizmo, try auto-select targeting first,
-    //    then fall back to outside-box rotation zone.
+    // 3. Outside-box rotate beats auto-select (same rotate cursor/handle UX).
+    //    Auto-select only runs on misses outside both handles and rotate margin —
+    //    never from interior move clicks (avoids accidental layer switches while translating).
     if (!handle) {
-      const storeSettings = useSketchStore.getState().toolSettings;
-      const autoSelect = storeSettings?.transform?.autoSelect ?? true;
-      // Only auto-select a different layer when there is no active selection mask
-      if (
-        !this.isMultiTarget() &&
-        autoSelect &&
-        !ctx.selection
-      ) {
-        const picked = this.tryAutoSelectPick(ctx, event);
-        if (picked) {
-          return false; // Layer retargeted, no drag started
-        }
-      }
-      // No handle hit and no auto-select pick — check the rotate zone.
       if (isInRotateZone(currentTransform, this.rasterBounds, pt, ctx.zoom)) {
         handle = "rotate";
       } else {
-        // Click outside the gizmo: clear any active selection
+        const storeSettings = useSketchStore.getState().toolSettings;
+        const autoSelect = storeSettings?.transform?.autoSelect ?? true;
+        if (
+          !this.isMultiTarget() &&
+          autoSelect &&
+          !ctx.selection
+        ) {
+          const picked = this.tryAutoSelectPick(ctx, event);
+          if (picked) {
+            return false;
+          }
+        }
         if (ctx.selection) {
           ctx.onSelectionChange?.(null);
         }
@@ -320,6 +305,11 @@ export class TransformTool implements ToolHandler {
     }
 
     this.activeHandle = handle;
+    if (handle === "move" && this.pivotPoint !== null) {
+      this.pivotPointAtMoveStart = { ...this.pivotPoint };
+    } else {
+      this.pivotPointAtMoveStart = null;
+    }
     this.dragStart = pt;
     this.dragStartTransform = { ...currentTransform };
     this.dragStartCorners =
@@ -485,17 +475,36 @@ export class TransformTool implements ToolHandler {
       this.session.update(ctx, newTransform);
     }
 
+    if (
+      this.activeHandle === "move" &&
+      this.pivotPoint !== null &&
+      this.pivotPointAtMoveStart !== null &&
+      this.dragStart
+    ) {
+      const dx = pt.x - this.dragStart.x;
+      const dy = pt.y - this.dragStart.y;
+      this.pivotPoint = {
+        x: this.pivotPointAtMoveStart.x + dx,
+        y: this.pivotPointAtMoveStart.y + dy
+      };
+    }
+
     // Batch gizmo redraws with rAF to avoid redundant per-event paints
     this.gizmoScheduler.scheduleRedraw(() => this.drawGizmo(ctx));
   }
 
   onUp(ctx: ToolContext): void {
+    // Invalidate any batched gizmo draw from the last onMove; otherwise an rAF
+    // can fire after commit and re-sync from stale ctx.doc (wrong position).
+    this.gizmoScheduler.cancelPending();
+
     // Pivot drag ends without committing a transform — just redraw the gizmo
     // at the new pivot position.
     if (this.activeHandle === "pivot") {
       this.activeHandle = null;
       this.dragStart = null;
       this.dragStartCorners = null;
+      this.pivotPointAtMoveStart = null;
       this.activeTransformMode = "auto";
       this.drawGizmo(ctx);
       return;
@@ -519,6 +528,7 @@ export class TransformTool implements ToolHandler {
     this.activeHandle = null;
     this.dragStart = null;
     this.dragStartCorners = null;
+    this.pivotPointAtMoveStart = null;
     this.activeTransformMode = "auto";
     // Without this, idle draw/sync skip retargeting until tool reactivation.
     this.gestureActive = false;
@@ -564,6 +574,7 @@ export class TransformTool implements ToolHandler {
     // preview session operate on it.
     if (picked.id !== doc.activeLayerId) {
       this.pivotPoint = null;
+      this.pivotPointAtMoveStart = null;
       this.hoveredHandle = null;
       ctx.onAutoPickLayer?.(picked.id);
     }
@@ -906,7 +917,7 @@ export class TransformTool implements ToolHandler {
    */
   onHoverMove(ctx: ToolContext, event: ToolPointerEvent): void {
     const cursor = this.getHoverCursor(ctx, event.point);
-    applyCursorFeedback(ctx, cursor);
+    ctx.setTransformHoverCursor?.(cursor);
   }
 
   // ── Pivot helpers ──────────────────────────────────────────────────────────
@@ -928,6 +939,7 @@ export class TransformTool implements ToolHandler {
   /** Reset the pivot to the layer center (null = default). */
   resetPivot(): void {
     this.pivotPoint = null;
+    this.pivotPointAtMoveStart = null;
   }
 
   // ── Gizmo drawing ─────────────────────────────────────────────────────────

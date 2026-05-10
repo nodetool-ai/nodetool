@@ -464,6 +464,24 @@ describe("TransformTool", () => {
     );
   });
 
+  it("translates the custom pivot with the layer during a move drag", () => {
+    const tool = new TransformTool();
+    const doc = createDefaultDocument(64, 64);
+    const ctx = makeToolContext({ doc });
+    tool.onActivate!(ctx);
+
+    expect(tool.onDown(ctx, makePointerEvent({ point: { x: 32, y: 32 } }))).toBe(true);
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 84, y: 32 } }));
+    tool.onUp!(ctx);
+    expect(tool.getPivotPoint()).toEqual({ x: 84, y: 32 });
+
+    expect(tool.onDown(ctx, makePointerEvent({ point: { x: 15, y: 15 } }))).toBe(true);
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 25, y: 20 } }));
+    expect(tool.getPivotPoint()).toEqual({ x: 94, y: 37 });
+    tool.onUp!(ctx);
+    expect(tool.getPivotPoint()).toEqual({ x: 94, y: 37 });
+  });
+
   it("clears gestureActive on pointer up so syncActiveLayer follows a new active layer", () => {
     const tool = new TransformTool();
     const doc = createDefaultDocument(64, 64);
@@ -606,7 +624,7 @@ describe("TransformTool", () => {
     expect(tool.getPivotPoint()).toBeNull();
   });
 
-  it("retargets to the topmost overlapping layer on interior clicks when auto-select is enabled", () => {
+  it("does not auto-retarget on interior move clicks when layers overlap", () => {
     useSketchStore.setState((state) => ({
       ...state,
       toolSettings: {
@@ -654,9 +672,9 @@ describe("TransformTool", () => {
 
     tool.onActivate!(ctx);
 
-    expect(tool.onDown(ctx, makePointerEvent({ point: { x: 16, y: 16 } }))).toBe(false);
-    expect(onAutoPickLayer).toHaveBeenCalledWith(topLayer.id);
-    expect(doc.activeLayerId).toBe(topLayer.id);
+    expect(tool.onDown(ctx, makePointerEvent({ point: { x: 16, y: 16 } }))).toBe(true);
+    expect(onAutoPickLayer).not.toHaveBeenCalled();
+    expect(doc.activeLayerId).toBe(activeLayer.id);
   });
 
   it("keeps handle hits on the current target ahead of auto-retargeting", () => {

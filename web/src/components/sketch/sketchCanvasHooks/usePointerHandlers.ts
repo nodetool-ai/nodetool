@@ -282,11 +282,23 @@ export function usePointerHandlers({
       onSpaceHeldChange: setSpaceHeldUi
     });
 
+  const [transformHoverCursor, setTransformHoverCursor] = useState<
+    string | null
+  >(null);
+
+  useEffect(() => {
+    if (interactionTool !== "transform") {
+      setTransformHoverCursor(null);
+    }
+  }, [interactionTool]);
+
   const containerCursor = isPanningUi
     ? "grabbing"
     : spaceHeldUi
       ? "grab"
-      : cursorStyleForTool(interactionTool);
+      : interactionTool === "transform" && transformHoverCursor !== null
+        ? transformHoverCursor
+        : cursorStyleForTool(interactionTool);
 
   // ─── Utility callbacks ───────────────────────────────────────────────
   const {
@@ -400,6 +412,7 @@ export function usePointerHandlers({
     selectStartRef,
     lassoPointsRef,
     getFullCompositeImageData,
+    setTransformHoverCursor,
   });
 
   // ─── Tool pointer event helpers ────────────────────────────────────
@@ -728,11 +741,13 @@ export function usePointerHandlers({
 
   const handlePointerLeave = useCallback(() => {
     clearCursorOverlay();
+    setTransformHoverCursor(null);
     onCanvasLeave?.();
   }, [clearCursorOverlay, onCanvasLeave]);
 
   const handleMouseLeave = useCallback(() => {
     clearCursorOverlay();
+    setTransformHoverCursor(null);
   }, [clearCursorOverlay]);
 
   const handleContextMenu = useCallback(

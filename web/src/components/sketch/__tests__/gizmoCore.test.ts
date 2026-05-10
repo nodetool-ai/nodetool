@@ -30,7 +30,7 @@ import {
   PIVOT_HIT_RADIUS,
   PIVOT_SNAP_DISTANCE
 } from "../tools/transform/handleGeometry";
-import { cursorForHandle } from "../tools/transform/cursorMapping";
+import { cursorForHandle, ROTATE_CURSOR_CSS } from "../tools/transform/cursorMapping";
 import {
   getTransformHoverInfo,
   isPointInsideGizmo
@@ -256,8 +256,10 @@ describe("gizmo hover cursor behavior", () => {
     expect(cursorForHandle("move", 0)).toBe("move");
   });
 
-  it("returns 'grab' for rotate handle", () => {
-    expect(cursorForHandle("rotate", 0)).toBe("grab");
+  it("returns rotate cursor (SVG url) for rotate handle", () => {
+    expect(cursorForHandle("rotate", 0)).toBe(ROTATE_CURSOR_CSS);
+    expect(cursorForHandle("rotate", 0)).toContain("url(");
+    expect(cursorForHandle("rotate", 0)).toContain("grab");
   });
 
   it("returns resize cursors for scale handles at 0 rotation", () => {
@@ -398,7 +400,7 @@ describe("outside-box rotate zone", () => {
       zoom
     );
     expect(info.handle).toBe("rotate");
-    expect(info.cursor).toBe("grab");
+    expect(info.cursor).toBe(ROTATE_CURSOR_CSS);
   });
 
   it("getTransformHoverInfo returns null for points well outside", () => {
@@ -808,5 +810,27 @@ describe("GizmoRedrawScheduler", () => {
     expect(scheduler.isScheduled).toBe(true);
 
     jest.useRealTimers();
+  });
+
+  it("cancelPending drops the callback even if rAF runs later", () => {
+    let storedCb: FrameRequestCallback | null = null;
+    const rafSpy = jest.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+      storedCb = cb as FrameRequestCallback;
+      return 7 as unknown as number;
+    });
+    const cancelSpy = jest.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+
+    const scheduler = new GizmoRedrawScheduler();
+    const callback = jest.fn();
+    scheduler.scheduleRedraw(callback);
+    scheduler.cancelPending();
+
+    expect(storedCb).not.toBeNull();
+    storedCb!(0);
+    expect(callback).not.toHaveBeenCalled();
+    expect(scheduler.isScheduled).toBe(false);
+
+    rafSpy.mockRestore();
+    cancelSpy.mockRestore();
   });
 });

@@ -60,7 +60,9 @@ export function isPointInsideGizmo(
 }
 
 /**
- * Apply cursor feedback to the container element based on hover state.
+ * Apply cursor feedback on the sketch container (direct `style.cursor`).
+ * Prefer wiring hover through {@link ToolContext.setTransformHoverCursor} for
+ * the Transform tool so the presentation layer stays in sync with React.
  */
 export function applyCursorFeedback(
   ctx: ToolContext,
