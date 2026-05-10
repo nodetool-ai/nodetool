@@ -430,6 +430,8 @@ export type PropertyInputProps = {
   propertyIndex?: string;
   controlKeyPressed?: boolean;
   isInspector?: boolean;
+  /** When the inspector edits multiple nodes, reset/context menu apply to all of these ids. */
+  inspectorBatchNodeIds?: readonly string[];
   tabIndex?: number;
   isDynamicProperty?: boolean;
   hideActionIcons?: boolean;
@@ -448,6 +450,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   isDynamicProperty,
   hideActionIcons,
   isInspector,
+  inspectorBatchNodeIds,
   onValueChange
 }: PropertyInputProps) => {
   const theme = useTheme();
@@ -464,6 +467,12 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     shallow
   );
   const metadata = useMetadataStore((state) => state.metadata);
+
+  const targetNodeIds = useMemo(
+    () =>
+      inspectorBatchNodeIds?.length ? [...inspectorBatchNodeIds] : [id],
+    [inspectorBatchNodeIds, id]
+  );
 
   // Auto-run hook for input nodes - triggers downstream workflow execution on property changes
   const { onPropertyChange, onPropertyChangeComplete } = useInputNodeAutoRun({
@@ -587,10 +596,11 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         prop.type,
         prop.name,
         prop.description || undefined,
-        isDynamicProperty
+        isDynamicProperty,
+        targetNodeIds.length > 1 ? { inspectorBatchNodeIds: targetNodeIds } : undefined
       );
     },
-    [id, isDynamicProperty, openContextMenu]
+    [id, isDynamicProperty, openContextMenu, targetNodeIds]
   );
 
   // Reset property to default value
@@ -598,47 +608,45 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     (event: React.MouseEvent<HTMLDivElement>) => {
       event.preventDefault();
       if (controlKeyPressed) {
-        // Reset to default value with Ctrl+Right-click
-        const node = findNode(id);
-        if (!node || !node.data) {
-          return;
-        }
+        // Reset to default value with Ctrl+Right-click (all nodes in inspector batch if any)
+        for (const nodeId of targetNodeIds) {
+          const node = findNode(nodeId);
+          if (!node?.data) {
+            continue;
+          }
 
-        if (isDynamicProperty) {
-          // For dynamic properties, get default from metadata or the property object itself
-          const nodeMetadata = metadata?.[node.type as string];
-          let defaultValue = property.default;
+          if (isDynamicProperty) {
+            const nodeMetadata = metadata?.[node.type as string];
+            let defaultValue = property.default;
 
-          if (nodeMetadata) {
-            const propertyDef = nodeMetadata.properties.find(
-              (prop: Property) => prop.name === property.name
-            );
-            if (propertyDef) {
-              defaultValue = propertyDef.default;
+            if (nodeMetadata) {
+              const propertyDef = nodeMetadata.properties.find(
+                (prop: Property) => prop.name === property.name
+              );
+              if (propertyDef) {
+                defaultValue = propertyDef.default;
+              }
             }
-          }
 
-          if (defaultValue !== undefined && node.data.dynamic_properties) {
-            const updatedDynamicProperties = {
-              ...node.data.dynamic_properties,
-              [property.name]: defaultValue
-            };
-            updateNodeData(id, {
-              dynamic_properties: updatedDynamicProperties
-            });
-          }
-        } else {
-          // For regular properties, get default from metadata or property
-          const nodeMetadata = metadata?.[node.type as string];
-          if (nodeMetadata) {
-            const propertyDef = nodeMetadata.properties.find(
-              (prop: Property) => prop.name === property.name
-            );
-            const defaultValue = propertyDef?.default ?? property.default;
-            updateNodeProperties(id, { [property.name]: defaultValue });
+            if (defaultValue !== undefined && node.data.dynamic_properties) {
+              updateNodeData(nodeId, {
+                dynamic_properties: {
+                  ...node.data.dynamic_properties,
+                  [property.name]: defaultValue
+                }
+              });
+            }
           } else {
-            // Fallback to property.default if metadata not available
-            updateNodeProperties(id, { [property.name]: property.default });
+            const nodeMetadata = metadata?.[node.type as string];
+            if (nodeMetadata) {
+              const propertyDef = nodeMetadata.properties.find(
+                (prop: Property) => prop.name === property.name
+              );
+              const defaultValue = propertyDef?.default ?? property.default;
+              updateNodeProperties(nodeId, { [property.name]: defaultValue });
+            } else {
+              updateNodeProperties(nodeId, { [property.name]: property.default });
+            }
           }
         }
       } else {
@@ -648,10 +656,10 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     [
       controlKeyPressed,
       findNode,
-      id,
       isDynamicProperty,
       metadata,
       property,
+      targetNodeIds,
       updateNodeData,
       updateNodeProperties,
       handlePropertyContextMenu
@@ -659,43 +667,53 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   );
 
   const handleResetToDefault = useCallback(() => {
-    const node = findNode(id);
-    if (!node || !node.data) {
-      return;
-    }
-    if (isDynamicProperty) {
-      const dynamicInputDefaults = node.data?.dynamic_inputs || {};
-      let defaultValue = dynamicInputDefaults?.[property.name]?.default;
-      if (defaultValue === undefined) {
+    for (const nodeId of targetNodeIds) {
+      const node = findNode(nodeId);
+      if (!node?.data) {
+        continue;
+      }
+      if (isDynamicProperty) {
+        const dynamicInputDefaults = node.data.dynamic_inputs || {};
+        let defaultValue = dynamicInputDefaults?.[property.name]?.default;
+        if (defaultValue === undefined) {
+          const nodeMetadata = metadata?.[node.type as string];
+          if (nodeMetadata) {
+            const propertyDef = nodeMetadata.properties.find(
+              (prop: Property) => prop.name === property.name
+            );
+            defaultValue = propertyDef?.default ?? property.default;
+          }
+        }
+        if (defaultValue !== undefined && node.data.dynamic_properties) {
+          updateNodeData(nodeId, {
+            dynamic_properties: {
+              ...node.data.dynamic_properties,
+              [property.name]: defaultValue
+            }
+          });
+        }
+      } else {
         const nodeMetadata = metadata?.[node.type as string];
         if (nodeMetadata) {
           const propertyDef = nodeMetadata.properties.find(
             (prop: Property) => prop.name === property.name
           );
-          defaultValue = propertyDef?.default ?? property.default;
+          const defaultValue = propertyDef?.default ?? property.default;
+          updateNodeProperties(nodeId, { [property.name]: defaultValue });
+        } else {
+          updateNodeProperties(nodeId, { [property.name]: property.default });
         }
       }
-      if (defaultValue !== undefined && node.data.dynamic_properties) {
-        updateNodeData(id, {
-          dynamic_properties: {
-            ...node.data.dynamic_properties,
-            [property.name]: defaultValue
-          }
-        });
-      }
-    } else {
-      const nodeMetadata = metadata?.[node.type as string];
-      if (nodeMetadata) {
-        const propertyDef = nodeMetadata.properties.find(
-          (prop: Property) => prop.name === property.name
-        );
-        const defaultValue = propertyDef?.default ?? property.default;
-        updateNodeProperties(id, { [property.name]: defaultValue });
-      } else {
-        updateNodeProperties(id, { [property.name]: property.default });
-      }
     }
-  }, [findNode, id, isDynamicProperty, metadata, property, updateNodeData, updateNodeProperties]);
+  }, [
+    findNode,
+    isDynamicProperty,
+    metadata,
+    property,
+    targetNodeIds,
+    updateNodeData,
+    updateNodeProperties
+  ]);
 
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [editedName, setEditedName] = React.useState(property.name);

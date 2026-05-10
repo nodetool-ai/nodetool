@@ -9,11 +9,23 @@
 
 import type { TransformHandle } from "./handleGeometry";
 
+const ROTATE_CURSOR_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">' +
+  '<path d="M14 8a6 6 0 1 1-5.2 7.79" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round"/>' +
+  '<path d="M14 8a6 6 0 1 1-5.2 7.79" fill="none" stroke="#212121" stroke-width="1.75" stroke-linecap="round"/>' +
+  '<path d="M14 6l3.5 6h-7z" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>' +
+  "</svg>";
+
+/** Curved-arrow cursor for rotate (dedicated handle + outside-box zone); hotspot centered. */
+export const ROTATE_CURSOR_CSS =
+  `url("data:image/svg+xml,${encodeURIComponent(ROTATE_CURSOR_SVG)}") 14 14, grab`;
+
 /**
  * CSS cursor for a given transform handle, accounting for layer rotation.
  *
  * Scale handles are mapped to directional resize cursors that rotate with
- * the layer. The rotation handle shows "grab" and the move area shows "move".
+ * the layer. The rotation handle and outside-box rotate zone use
+ * {@link ROTATE_CURSOR_CSS}. The move area shows "move".
  */
 export function cursorForHandle(
   handle: TransformHandle | null,
@@ -26,7 +38,7 @@ export function cursorForHandle(
     return "move";
   }
   if (handle === "rotate") {
-    return "grab";
+    return ROTATE_CURSOR_CSS;
   }
   if (handle === "pivot") {
     return "crosshair";

@@ -11,7 +11,7 @@ export interface Shortcut {
   /** Base key combo (Windows / Linux). Example: ["Control", "C"] */
   keyCombo: string[];
   /** Shortcut category */
-  category: "editor" | "panel" | "assets" | "workflow";
+  category: "editor" | "panel" | "assets" | "workflow" | "image-editor";
   /** macOS-specific combo; if omitted, keys are derived automatically */
   keyComboMac?: string[];
   /** Tooltip/body text */
@@ -65,34 +65,12 @@ export const expandShortcutsForOS = (
   });
 };
 
-/**
- * Returns a JSX tooltip for a given shortcut slug.
- *
- * The tooltip contains the shortcut's title and key combinations for different operating systems.
- *
- * @param slug The slug of the shortcut to get the tooltip for.
- * @param os The operating system to display the shortcut for. Defaults to the current OS.
- * @param mode The display mode for the tooltip. 'full' shows title and combo, 'combo' shows only the key combo.
- * @param showDescription Whether to show the shortcut's description in the tooltip.
- * @returns A React element for the tooltip, or the original slug if the shortcut is not found.
- * Example structure:
- * <div class="tooltip-span">
- *   <div class="tooltip-title">Run Workflow</div>
- *   <div class="tooltip-key"><kbd>CTRL</kbd>+<kbd>Enter</kbd> / <kbd>⌘</kbd>+<kbd>Enter</kbd></div>
- * </div>
- */
-export const getShortcutTooltip = (
-  slug: string,
-  os: "mac" | "win" | "both" = typeof navigator !== "undefined" &&
-  navigator.userAgent.includes("Mac")
-    ? "mac"
-    : "win",
-  mode: "full" | "combo" = "full",
-  showDescription = false
-): React.ReactElement | string => {
-  const sc = NODE_EDITOR_SHORTCUTS.find((s) => s.slug === slug);
-  if (!sc) {return slug;}
-
+function getShortcutTooltipFromShortcut(
+  sc: Shortcut,
+  os: "mac" | "win" | "both",
+  mode: "full" | "combo",
+  showDescription: boolean
+): React.ReactElement | string {
   const winCombo = sc.keyCombo.join(" + ");
   const macCombo = (sc.keyComboMac ?? sc.keyCombo.map(mapKeyForMac)).join(
     " + "
@@ -129,7 +107,6 @@ export const getShortcutTooltip = (
     }
   };
 
-  // Helper to render combo as <kbd> elements
   const renderSeries = (comboStr: string, prefix = ""): React.ReactNode[] => {
     const parts = comboStr.split(" + ");
     return parts.flatMap((part, idx) => {
@@ -183,9 +160,43 @@ export const getShortcutTooltip = (
   }
 
   return React.createElement("div", { className: "tooltip-span" }, ...children);
-};
+}
 
-// --- NODE EDITOR SHORTCUTS --------------------------------------------------
+/**
+ * Returns a JSX tooltip for a given shortcut slug.
+ *
+ * The tooltip contains the shortcut's title and key combinations for different operating systems.
+ *
+ * @param slug The slug of the shortcut to get the tooltip for.
+ * @param os The operating system to display the shortcut for. Defaults to the current OS.
+ * @param mode The display mode for the tooltip. 'full' shows title and combo, 'combo' shows only the key combo.
+ * @param showDescription Whether to show the shortcut's description in the tooltip.
+ * @param catalog Shortcut list to resolve `slug` against (defaults to node editor shortcuts).
+ * @returns A React element for the tooltip, or the original slug if the shortcut is not found.
+ * Example structure:
+ * <div class="tooltip-span">
+ *   <div class="tooltip-title">Run Workflow</div>
+ *   <div class="tooltip-key"><kbd>CTRL</kbd>+<kbd>Enter</kbd> / <kbd>⌘</kbd>+<kbd>Enter</kbd></div>
+ * </div>
+ */
+export const getShortcutTooltip = (
+  slug: string,
+  os: "mac" | "win" | "both" = typeof navigator !== "undefined" &&
+  navigator.userAgent.includes("Mac")
+    ? "mac"
+    : "win",
+  mode: "full" | "combo" = "full",
+  showDescription = false,
+  catalog?: readonly Shortcut[]
+): React.ReactElement | string => {
+  const resolvedCatalog = catalog ?? NODE_EDITOR_SHORTCUTS;
+  const sc = resolvedCatalog.find((s) => s.slug === slug);
+  if (!sc) {
+    return slug;
+  }
+
+  return getShortcutTooltipFromShortcut(sc, os, mode, showDescription);
+};
 
 /**
  * The master list of all keyboard shortcuts available in the node editor and surrounding UI.
@@ -365,6 +376,15 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
+    title: "Collapse / Expand Node",
+    slug: "toggleNodeCollapsed",
+    keyCombo: ["C"],
+    category: "editor",
+    description:
+      "Toggle collapsed (header-only) view on selected nodes. Double-click the header icon or title when no icon is shown.",
+    registerCombo: true
+  },
+  {
     title: "Select Connected (All)",
     slug: "selectConnectedAll",
     keyCombo: ["Shift", "C"],
@@ -474,27 +494,19 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
-    title: "Chat",
-    slug: "toggleChat",
-    keyCombo: ["1"],
-    category: "panel",
-    description: "Toggle Chat panel",
-    registerCombo: false
-  },
-  {
     title: "Workflows",
     slug: "toggleWorkflows",
-    keyCombo: ["2"],
+    keyCombo: ["1"],
     category: "panel",
-    description: "Toggle Workflows panel",
+    description: "Toggle Workflows panel (left sidebar)",
     registerCombo: false
   },
   {
     title: "Assets",
     slug: "toggleAssets",
-    keyCombo: ["3"],
+    keyCombo: ["2"],
     category: "panel",
-    description: "Toggle Assets panel",
+    description: "Toggle Assets panel (left sidebar)",
     registerCombo: false
   },
   {
@@ -778,5 +790,6 @@ export const SHORTCUT_CATEGORIES: Record<Shortcut["category"], string> = {
   workflow: "Workflows",
   panel: "Panels",
   editor: "Node Editor",
-  assets: "Asset Viewer"
+  assets: "Asset Viewer",
+  "image-editor": "Image Editor"
 };

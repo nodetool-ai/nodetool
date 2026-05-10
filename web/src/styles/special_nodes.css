@@ -92,6 +92,37 @@
   border: 1px solid var(--palette-grey-700) !important;
 }
 
+/* Preview target handle — global .handle-left uses top:5px; align with title row expanded + strip when collapsed */
+.react-flow__node-nodetool\.workflows\.base_node\.Preview:not(.collapsed)
+  .preview-node
+  .react-flow__handle-left {
+  top: var(--preview-target-handle-top-expanded) !important;
+}
+
+.react-flow__node-nodetool\.workflows\.base_node\.Preview:not(.collapsed)
+  .preview-node
+  .react-flow__handle-left:hover {
+  transform: translate(0, -50%) scale(1.75, 1.5) !important;
+}
+
+.react-flow__node-nodetool\.workflows\.base_node\.Preview.collapsed
+  .preview-node
+  .react-flow__handle-left:not(.control-handle) {
+  top: calc(
+    var(--node-collapsed-handle-mid-y) + var(--preview-target-handle-extra-top-collapsed)
+  ) !important;
+}
+
+.react-flow__node-nodetool\.workflows\.base_node\.Preview.collapsed
+  .preview-node
+  .react-flow__handle-left:not(.control-handle):hover {
+  top: calc(
+    var(--node-collapsed-handle-mid-y) + var(--preview-target-handle-extra-top-collapsed)
+  ) !important;
+  transform: translate(0, calc(-50% - var(--node-collapsed-handle-y-nudge)))
+    scale(1.75, 1.5) !important;
+}
+
 /* Constant node */
 .react-flow__node-nodetool\.constant\.Audio .node-property .property-label,
 .react-flow__node-nodetool\.constant\.Image .node-property .property-label,

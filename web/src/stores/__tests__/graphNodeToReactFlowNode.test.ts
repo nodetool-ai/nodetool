@@ -260,6 +260,45 @@ describe("graphNodeToReactFlowNode", () => {
       const result = graphNodeToReactFlowNode(workflow, graphNode);
 
       expect(result.data.collapsed).toBe(false);
+      expect(result.className).toBeUndefined();
+    });
+
+    it("restores collapsed from ui_properties and syncs RF shell className", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        ui_properties: { collapsed: true }
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.data.collapsed).toBe(true);
+      expect(result.className).toBe("collapsed");
+    });
+
+    it("pairs bypassed chrome with collapsed", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        ui_properties: { bypassed: true, collapsed: true }
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.className).toBe("bypassed collapsed");
+      expect(result.data.bypassed).toBe(true);
+      expect(result.data.collapsed).toBe(true);
+    });
+
+    it("when collapsed, keeps expanded height in data and uses strip for RF layout", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        ui_properties: { collapsed: true, height: 220, width: 300 }
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.height).toBe(45);
+      expect(result.style?.height).toBe(45);
+      expect(result.data.expandedHeightPx).toBe(220);
     });
   });
 

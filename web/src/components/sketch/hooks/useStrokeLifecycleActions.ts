@@ -132,13 +132,14 @@ export function useStrokeLifecycleActions({
       ? { [activeLayerId]: activeLayerSnapshot }
       : undefined;
 
-    window.requestAnimationFrame(() => {
-      pushHistory(
-        actionLabel,
-        layerSnapshots,
-        isTransformOnlyGesture ? { restoreMode: "structure-only" } : undefined
-      );
-    });
+    // Push synchronously so the checkpoint is ordered before any deferred
+    // stroke merge / next gesture — deferring with rAF allowed two strokes to
+    // share one undo entry when the next stroke started in the same frame.
+    pushHistory(
+      actionLabel,
+      layerSnapshots,
+      isTransformOnlyGesture ? { restoreMode: "structure-only" } : undefined
+    );
   }, [
     document.activeLayerId,
     canvasRef,

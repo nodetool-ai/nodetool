@@ -14,6 +14,7 @@ export {
   strokePressureMultiplier,
   paintPressureForEngine,
   SKETCH_FULL_OPACITY_THRESHOLD,
+  snapStrokeDabCenterDoc,
   stampAlongStroke,
   expandDirtyRect,
   expandDirtyRectFromPoints,

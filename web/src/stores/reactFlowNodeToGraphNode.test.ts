@@ -181,4 +181,46 @@ describe("reactFlowNodeToGraphNode", () => {
 
     expect(result.type).toBe("");
   });
+
+  it("omits collapsed in ui_properties when expanded", () => {
+    const result = reactFlowNodeToGraphNode(makeNode());
+
+    expect(uiProps(result).collapsed).toBeUndefined();
+  });
+
+  it("persists collapsed:true in ui_properties when node.data.collapsed is true", () => {
+    const result = reactFlowNodeToGraphNode(
+      makeNode({
+        data: {
+          properties: { text: "hello" },
+          selectable: true,
+          dynamic_properties: {},
+          workflow_id: "wf-1",
+          collapsed: true
+        }
+      })
+    );
+
+    expect(uiProps(result).collapsed).toBe(true);
+  });
+
+  it("when collapsed, saves expanded body height to ui_properties.height from expandedHeightPx", () => {
+    const result = reactFlowNodeToGraphNode(
+      makeNode({
+        height: 45,
+        width: 280,
+        style: { width: 280, height: 45 },
+        data: {
+          properties: { text: "hello" },
+          selectable: true,
+          dynamic_properties: {},
+          workflow_id: "wf-1",
+          collapsed: true,
+          expandedHeightPx: 200
+        }
+      })
+    );
+
+    expect(uiProps(result).height).toBe(200);
+  });
 });

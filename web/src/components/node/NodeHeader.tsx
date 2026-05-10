@@ -6,6 +6,7 @@ import { shallow } from "zustand/shallow";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import isEqual from "fast-deep-equal";
 import { NodeData } from "../../stores/NodeData";
+import { getCollapseTogglePatches } from "../../stores/collapseNodeLayout";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
@@ -90,14 +91,16 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
-  const { updateNode, updateNodeData, workflowId: nodeWorkflowId } = useNodes(
-    (state) => ({
-      updateNode: state.updateNode,
-      updateNodeData: state.updateNodeData,
-      workflowId: state.workflow?.id
-    }),
-    shallow
-  );
+  const { updateNode, updateNodeData, findNode, workflowId: nodeWorkflowId } =
+    useNodes(
+      (state) => ({
+        updateNode: state.updateNode,
+        updateNodeData: state.updateNodeData,
+        findNode: state.findNode,
+        workflowId: state.workflow?.id
+      }),
+      shallow
+    );
   const targetWorkflowId = workflowId || nodeWorkflowId || "";
   // O(1) lookup via pre-keyed map — avoids filtering the full logs array on
   // every store update (which previously ran for every NodeHeader in the graph).
@@ -225,6 +228,29 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     updateNode(id, { selected: true });
   }, [id, updateNode]);
 
+  const toggleCollapsed = useCallback(() => {
+    const node = findNode(id);
+    if (!node) {
+      return;
+    }
+    const next = !node.data.collapsed;
+    const { data: dataPatch, node: nodePatch } = getCollapseTogglePatches(
+      node,
+      next
+    );
+    updateNodeData(id, dataPatch);
+    updateNode(id, nodePatch);
+  }, [findNode, id, updateNode, updateNodeData]);
+
+  const handleIconDoubleClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      event.preventDefault();
+      toggleCollapsed();
+    },
+    [toggleCollapsed]
+  );
+
   const handleOpenLogsDialog = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setLogsDialogOpen(true);
@@ -254,13 +280,19 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
 
   const handleTitleDoubleClick = useCallback(
     (event: React.MouseEvent<HTMLSpanElement>) => {
-      if (!isTitleEditable) {
+      if (isTitleEditable) {
+        event.stopPropagation();
+        setIsEditingTitle(true);
         return;
       }
-      event.stopPropagation();
-      setIsEditingTitle(true);
+      /** No header icon: collapse/expand from the title strip (e.g. Preview). */
+      if (!showIcon) {
+        event.stopPropagation();
+        event.preventDefault();
+        toggleCollapsed();
+      }
     },
-    [isTitleEditable]
+    [isTitleEditable, showIcon, toggleCollapsed]
   );
 
   const handleTitleKeyDown = useCallback(
@@ -338,8 +370,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       <FlexRow className="header-left" gap={1} align="center">
         {hasIcon && showIcon && (
           <div
-            className="node-icon"
+            className="node-icon nodrag nopan"
             style={iconBackgroundStyle}
+            onDoubleClick={handleIconDoubleClick}
           >
             <IconForType
               iconName={iconType!}

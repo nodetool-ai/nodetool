@@ -667,6 +667,28 @@ export const IconForType = memo(function IconForType({
     : iconMap["notype"];
   const resolvedSize = `${ICON_SIZE_MAP[iconSize] ?? ICON_SIZE_MAP.normal}px`;
 
+  const iconInner = (
+    <div className="icon-bg" style={bgStyle}>
+      <IconComponent {...svgProps} />
+    </div>
+  );
+
+  if (!showTooltip) {
+    return (
+      <div
+        css={iconStyles(theme)}
+        style={{
+          width: resolvedSize,
+          height: resolvedSize,
+          ...containerStyle
+        }}
+        className="icon-container"
+      >
+        {iconInner}
+      </div>
+    );
+  }
+
   return (
     <div
       css={iconStyles(theme)}
@@ -680,29 +702,23 @@ export const IconForType = memo(function IconForType({
       <Tooltip
         enterDelay={TOOLTIP_ENTER_DELAY}
         title={
-          showTooltip ? (
-            <span
-              style={{
-                textAlign: "left",
-                backgroundColor: "transparent",
-                color: "var(--palette-action-active)",
-                display: "block",
-                fontSize: "var(--fontSizeNormal)",
-                fontFamily: "var(--fontFamily1)"
-              }}
-            >
-              {name.toUpperCase()} <br />
-              {description}
-            </span>
-          ) : (
-            ""
-          )
+          <span
+            style={{
+              textAlign: "left",
+              backgroundColor: "transparent",
+              color: "var(--palette-action-active)",
+              display: "block",
+              fontSize: "var(--fontSizeNormal)",
+              fontFamily: "var(--fontFamily1)"
+            }}
+          >
+            {name.toUpperCase()} <br />
+            {description}
+          </span>
         }
         placement="top"
       >
-        <div className="icon-bg" style={bgStyle}>
-          <IconComponent {...svgProps} />
-        </div>
+        {iconInner}
       </Tooltip>
     </div>
   );

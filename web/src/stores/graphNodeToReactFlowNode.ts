@@ -4,12 +4,15 @@ import { NodeData } from "./NodeData";
 import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import useMetadataStore from "./MetadataStore";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
+import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
+import { NODE_COLLAPSED_STRIP_HEIGHT_PX } from "./collapseNodeLayout";
 
 export function graphNodeToReactFlowNode(
   workflow: Workflow,
   node: GraphNode
 ): Node<NodeData> {
   const ui_properties = node.ui_properties as NodeUIProperties;
+  const isCollapsed = ui_properties?.collapsed === true;
   const isPreviewNode = node.type === "nodetool.workflows.base_node.Preview";
   const isCompareImagesNode = node.type === "nodetool.compare.CompareImages";
 
@@ -44,6 +47,16 @@ export function graphNodeToReactFlowNode(
     defaultHeight = 350;
   }
 
+  const strip = NODE_COLLAPSED_STRIP_HEIGHT_PX;
+  const expandedHeightPxForData =
+    isCollapsed &&
+    typeof defaultHeight === "number" &&
+    defaultHeight > strip
+      ? defaultHeight
+      : undefined;
+  const reactFlowHeight = isCollapsed ? strip : defaultHeight;
+  const reactFlowStyleHeight = isCollapsed ? strip : defaultHeight;
+
   const isBypassed = ui_properties?.bypassed || false;
 
   // PreviewNodes are selectable via click and selection box, 
@@ -61,7 +74,10 @@ export function graphNodeToReactFlowNode(
       node.type === "nodetool.workflows.base_node.Group"
     ),
     selectable,
-    className: isBypassed ? "bypassed" : undefined,
+    className: reactFlowNodeChromeClassName({
+      bypassed: isBypassed,
+      collapsed: isCollapsed
+    }),
     data: {
       properties: (() => {
         const props = (node.data || {}) as Record<string, unknown>;
@@ -75,23 +91,26 @@ export function graphNodeToReactFlowNode(
       dynamic_outputs: node.dynamic_outputs || {},
       sync_mode: node.sync_mode,
       selectable,
-      collapsed: false,
+      collapsed: isCollapsed,
       bypassed: isBypassed,
       workflow_id: workflow.id,
       title: ui_properties?.title,
       color: ui_properties?.color,
       originalType: node.type,
       model_id: ui_properties?.model_id,
-      endpoint_id: ui_properties?.endpoint_id
+      endpoint_id: ui_properties?.endpoint_id,
+      ...(expandedHeightPxForData != null
+        ? { expandedHeightPx: expandedHeightPxForData }
+        : {})
     },
     position: ui_properties?.position || { x: 0, y: 0 },
     // Set both top-level width/height (used by ReactFlow after resize) and style (for initial render)
     // ReactFlow's applyNodeChanges sets node.width/height when user resizes, so we restore them here
     width: defaultWidth,
-    height: defaultHeight,
+    height: reactFlowHeight,
     style: {
       width: defaultWidth,
-      height: defaultHeight
+      height: reactFlowStyleHeight
     },
     zIndex:
       node.type === "nodetool.group.Loop" ||

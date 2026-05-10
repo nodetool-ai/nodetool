@@ -60,6 +60,11 @@ export interface UseEditorKeyboardShortcutsParams {
   handleFreeTransform?: () => void;
   handleRepeatLastTransform?: () => void;
   handleRepeatLastTransformOnCopy?: () => void;
+  /**
+   * When true (e.g. keyboard shortcuts overlay open), editor shortcuts are ignored
+   * so keys can reach the overlay / on-screen keyboard demo.
+   */
+  suspendKeyboardShortcuts?: boolean;
 }
 
 export function useEditorKeyboardShortcuts(
@@ -68,7 +73,9 @@ export function useEditorKeyboardShortcuts(
   const paramsRef = useRef(params);
   paramsRef.current = params;
 
-  useSpringLoadedModifiers();
+  useSpringLoadedModifiers({
+    isSuspended: () => Boolean(paramsRef.current.suspendKeyboardShortcuts)
+  });
 
   const heldArrowsRef = useRef<Record<ArrowKey, boolean>>({
     ArrowUp: false,
@@ -125,6 +132,10 @@ export function useEditorKeyboardShortcuts(
       // Let interactive controls (inputs, comboboxes, etc.) handle their own events.
       if (isInteractiveTarget(document.activeElement)) return;
 
+      if (paramsRef.current.suspendKeyboardShortcuts) {
+        return;
+      }
+
       // Prevent all sketch key events from bleeding into the node editor.
       e.stopPropagation();
 
@@ -155,6 +166,11 @@ export function useEditorKeyboardShortcuts(
 
     const keyupHandler = (e: KeyboardEvent): void => {
       if (isInteractiveTarget(document.activeElement)) return;
+
+      if (paramsRef.current.suspendKeyboardShortcuts) {
+        return;
+      }
+
       e.stopPropagation();
 
       if (e.key === "Shift" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
@@ -183,4 +199,24 @@ export function useEditorKeyboardShortcuts(
       if (hadArrowHeld) paramsRef.current.syncSketchOutputsNow();
     };
   }, []);
+
+  useEffect(() => {
+    if (!params.suspendKeyboardShortcuts) {
+      return;
+    }
+    if (nudgeRafRef.current !== null) {
+      cancelAnimationFrame(nudgeRafRef.current);
+      nudgeRafRef.current = null;
+    }
+    nudgeHistoryPendingRef.current = false;
+    heldArrowsRef.current = {
+      ArrowUp: false,
+      ArrowDown: false,
+      ArrowLeft: false,
+      ArrowRight: false
+    };
+    shiftHeldRef.current = false;
+    paramsRef.current.syncSketchOutputsNow();
+    useSketchStore.getState().setTransientMoveModifierHeld(false);
+  }, [params.suspendKeyboardShortcuts]);
 }

@@ -218,13 +218,16 @@ export class TransformTargetSet {
  * @param layerCanvases  Map of layer ID → canvas element.
  * @param docPoint       Click point in document space.
  * @param isolatedLayerId  Currently isolated layer (for visibility check).
+ * @param ensureLayerCanvas When set, called if `layerCanvases` has no entry yet so
+ *   hit-testing can run after lazy allocation (matches runtime hydration).
  * @returns The picked layer, or null if no hit.
  */
 export function pickTopmostTransformableLayer(
   layers: Layer[],
   layerCanvases: Map<string, HTMLCanvasElement>,
   docPoint: Point,
-  isolatedLayerId: string | null | undefined
+  isolatedLayerId: string | null | undefined,
+  ensureLayerCanvas?: (layerId: string) => HTMLCanvasElement | null | undefined
 ): Layer | null {
   for (let i = layers.length - 1; i >= 0; i--) {
     const layer = layers[i];
@@ -240,7 +243,10 @@ export function pickTopmostTransformableLayer(
     if (layer.type === "group") {
       continue;
     }
-    const layerCanvas = layerCanvases.get(layer.id);
+    let layerCanvas = layerCanvases.get(layer.id);
+    if (!layerCanvas && ensureLayerCanvas) {
+      layerCanvas = ensureLayerCanvas(layer.id) ?? undefined;
+    }
     if (!layerCanvas) {
       continue;
     }
@@ -249,6 +255,38 @@ export function pickTopmostTransformableLayer(
     }
   }
   return null;
+}
+
+/**
+ * Count how many layers in `targetIds` have an opaque pixel at `docPoint`.
+ * Used to decide whether multi-layer transform should collapse to one layer
+ * (single contributor at the pointer) vs stay union (overlap region).
+ */
+export function countTransformTargetsHitAtDocPoint(
+  layers: Layer[],
+  layerCanvases: Map<string, HTMLCanvasElement>,
+  targetIds: readonly string[],
+  docPoint: Point,
+  ensureLayerCanvas?: (layerId: string) => HTMLCanvasElement | null | undefined
+): number {
+  let count = 0;
+  for (const id of targetIds) {
+    const layer = layers.find((l) => l.id === id);
+    if (!layer || layer.type === "group") {
+      continue;
+    }
+    let layerCanvas = layerCanvases.get(id);
+    if (!layerCanvas && ensureLayerCanvas) {
+      layerCanvas = ensureLayerCanvas(id) ?? undefined;
+    }
+    if (!layerCanvas) {
+      continue;
+    }
+    if (hitTestLayerAtDocPoint(layer, layerCanvas, docPoint)) {
+      count += 1;
+    }
+  }
+  return count;
 }
 
 /**

@@ -62,6 +62,30 @@ export function paintPressureForEngine(
 /** Tool opacity at or above this is treated as fully opaque (no pressure fade, crisp eraser stamp, etc.). */
 export const SKETCH_FULL_OPACITY_THRESHOLD = 0.999;
 
+/**
+ * Document-space dab center matching `drawPencilStroke` / pencil-mode eraser `dabAt`.
+ * Maps continuous pointer `(x, y)` to where ink is centered so brush/pencil previews
+ * match stamped pixels (integer arc centers or half-integer crisp-cell centers).
+ */
+export function snapStrokeDabCenterDoc(
+  x: number,
+  y: number,
+  effectiveSize: number,
+  effectiveOpacity: number
+): Point {
+  const snapDabs = effectiveOpacity >= SKETCH_FULL_OPACITY_THRESHOLD;
+  const usePixelCrispDab = snapDabs && effectiveSize <= 1.25;
+  if (usePixelCrispDab) {
+    const ix = Math.round(x - 0.5);
+    const iy = Math.round(y - 0.5);
+    return { x: ix + 0.5, y: iy + 0.5 };
+  }
+  if (snapDabs) {
+    return { x: Math.round(x), y: Math.round(y) };
+  }
+  return { x, y };
+}
+
 // ─── Private helpers ────────────────────────────────────────────────────────
 
 /**

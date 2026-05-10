@@ -39,7 +39,7 @@ import {
   getDocumentViewportLayerBounds,
   getLayerCompositeOffset
 } from "../painting";
-import { clientToDocumentCanvas } from "../tools/transform/handleGeometry";
+import { sketchClientToDocCanvas } from "../tools/transform/handleGeometry";
 
 export interface UsePointerHandlerUtilsParams {
   zoom: number;
@@ -110,25 +110,15 @@ export function usePointerHandlerUtils({
   // ─── Coordinate transform ──────────────────────────────────────────
   const screenToCanvas = useCallback(
     (clientX: number, clientY: number): Point => {
-      const displayCanvas = displayCanvasRef.current;
-      if (displayCanvas) {
-        const rect = displayCanvas.getBoundingClientRect();
-        if (rect.width > 0 && rect.height > 0) {
-          return {
-            x: ((clientX - rect.left) / rect.width) * doc.canvas.width,
-            y: ((clientY - rect.top) / rect.height) * doc.canvas.height
-          };
-        }
-      }
-
       const container = containerRef.current;
       if (!container) {
         return { x: 0, y: 0 };
       }
       const rect = container.getBoundingClientRect();
-      return clientToDocumentCanvas(
+      return sketchClientToDocCanvas(
         clientX,
         clientY,
+        displayCanvasRef.current,
         rect,
         zoom,
         pan,

@@ -277,6 +277,7 @@ export function useCanvasOrchestration(
     selectionGpuCanvasRef,
     selectionCanvasRef,
     cursorCanvasRef,
+    displayCanvasRef,
     gizmoCanvasRef,
     containerRef,
     shiftHeldRef,

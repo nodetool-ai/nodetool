@@ -1,81 +1,130 @@
-/* COLLAPSED NODE */
-.node-body.collapsed {
-  height: 60px;
+/* COLLAPSED NODE — React Flow adds .collapsed to the outer `.react-flow__node` (see NodeStore);
+   inner `.node-body.collapsed` mirrors `data.collapsed` in custom node UIs.
+   Tokens: `--node-collapsed-*` in vars.css; TS: collapsedNodeTokens.ts */
+
+.node-body.collapsed,
+.react-flow__node.collapsed > *:first-child.node-body,
+.react-flow__node.collapsed.preview-node,
+.react-flow__node.collapsed.output-node {
+  height: var(--node-collapsed-height) !important;
+  min-height: var(--node-collapsed-min-height) !important;
+  max-height: var(--node-collapsed-max-height) !important;
+  overflow: var(--node-collapsed-overflow) !important;
 }
-.node-body.collapsed .node-property {
+
+.react-flow__node.collapsed {
+  height: var(--node-collapsed-height) !important;
+  /* Side handles protrude past the compact strip — do not clip on the RF shell */
+  overflow: visible !important;
+}
+
+/* BaseNode (`base-node`): hide chrome but keep sockets (handles live under NodeContent). */
+.node-body.base-node.collapsed > *:not(.node-header):not(.react-flow__handle):not(
+    .header-wrapper
+  ):not(.node-content-container) {
+  display: none !important;
+}
+
+.node-body.base-node.collapsed > .node-content-container {
+  display: flex !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  flex: none !important;
+  overflow: visible !important;
+  clip-path: none !important;
+  pointer-events: none !important;
+  z-index: 4 !important;
+}
+
+.node-body.base-node.collapsed
+  > .node-content-container .handle-tooltip-wrapper,
+.node-body.base-node.collapsed > .node-content-container .handle-popup,
+.node-body.base-node.collapsed
+  > .node-content-container .output-handle-container,
+.node-body.base-node.collapsed
+  > .node-content-container .react-flow__handle {
+  pointer-events: auto !important;
+}
+
+/* Inputs: hide PropertyField siblings of the socket column (.handle-popup wraps Handle + tooltip). */
+.node-body.collapsed .node-property > *:not(.handle-popup) {
+  display: none !important;
+}
+
+.node-body.collapsed .node-property-form,
+.node-body.collapsed .node-progress {
+  display: none !important;
+}
+
+/* Outputs: label/actions live beside .output-handle-container (DynamicOutputItem + NodeOutputs wrapper). */
+.node-body.collapsed
+  .node-outputs-shell
+  ul.multi-outputs
+  > li
+  > *:not(.output-handle-container) {
+  display: none !important;
+}
+
+.node-body.collapsed
+  .node-outputs-shell
+  > *:not(ul.multi-outputs):not(.output-handle-container) {
+  display: none !important;
+}
+
+/*
+ * Input rows: no position:relative — it would make .handle-popup's position:absolute
+ * anchor to each row instead of the node strip (handles vanish or sit wrong).
+ */
+.node-body.collapsed .node-property:has(.react-flow__handle) {
+  position: static !important;
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.node-body.collapsed .output-handle-container {
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+/* Inputs wrapper margin pushes sockets when “More” exists — flush when collapsed */
+.node-body.collapsed .node-inputs {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.node-body.collapsed .node-property:not(:has(.react-flow__handle)) {
+  position: static !important;
   height: 0;
   min-height: unset;
   margin-bottom: 0;
   margin-top: 0;
+  overflow: visible !important;
 }
+
 .node-body.collapsed .node-property * {
   font-size: 0 !important;
   line-height: 0 !important;
 }
+
 .node-body.collapsed .expand-button-container {
   display: none !important;
 }
+
 .node-body.collapsed .node-header {
-  height: 1.7em;
-  min-height: unset;
+  flex-shrink: 0;
 }
+
 .node-body.collapsed .node-title {
   font-size: var(--fontSizeSmall);
-}
-
-.node-body.collapsed .node-property label,
-.node-body.collapsed .inner-property p {
-  font-size: var(--fontSizeTiny);
-  top: 2px;
-}
-
-.node-body.collapsed .value {
-  font-size: var(--fontSizeTiny);
-  top: 2px;
-  height: 15px;
-}
-
-.node-body.collapsed .react-flow__handle-left {
-  top: 12px;
-  height: 9px;
-}
-
-.node-body.collapsed .node-property .MuiSlider-root .MuiSlider-track {
-  border-bottom-width: 1px;
-  top: -8px;
-}
-
-.node-body.collapsed .dropzone,
-.node-body.collapsed video {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  height: 14px;
-  padding: 0;
-  margin: 0;
-  top: 0;
-  max-width: 70px;
-  outline: 0 none;
-}
-
-.node-body.collapsed .dropzone p {
-  font-size: var(--fontSizeTiny);
-  padding: 0 2px;
-  margin: 0;
-}
-
-.node-body.collapsed .dropzone img {
-  padding: 0 2px;
-  margin: 0;
-  max-height: 12px;
-}
-
-.node-body.collapsed .MuiSlider-track {
-  opacity: 0.6;
-}
-.node-body.collapsed .dataframe-editor {
-  height: 0;
-  opacity: 0;
 }
 
 .node-body.collapsed .MuiInput-root,
@@ -108,7 +157,210 @@
   display: block;
 }
 
-/* LOOP COLLAPSED */
+/*
+ * Vertical alignment: anchors must sit under .react-flow__node (collapsed height),
+ * not tiny wrappers (.handle-popup, 0-high overlays). Center wrappers on the strip midline,
+ * then place handles at top:0 of that anchor (scale-only transforms).
+ */
+.react-flow__node.collapsed .handle-popup {
+  position: absolute !important;
+  top: var(--node-collapsed-handle-mid-y) !important;
+  bottom: auto !important;
+  left: 0 !important;
+  transform: translateY(calc(-50% - var(--node-collapsed-handle-y-nudge))) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: fit-content !important;
+  overflow: visible !important;
+}
+
+.react-flow__node.collapsed .output-handle-container {
+  position: absolute !important;
+  top: var(--node-collapsed-handle-mid-y) !important;
+  bottom: auto !important;
+  right: 0 !important;
+  left: auto !important;
+  transform: translateY(calc(-50% - var(--node-collapsed-handle-y-nudge))) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: fit-content !important;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.react-flow__node.collapsed ul.multi-outputs {
+  margin: 0 !important;
+  width: auto !important;
+  /* Default ul is position:relative — abs output handles then use list top, not header strip */
+  position: static !important;
+}
+
+.react-flow__node.collapsed ul.multi-outputs li {
+  padding: 0 !important;
+  margin: 0 !important;
+  position: static !important;
+}
+
+.react-flow__node.collapsed .react-flow__handle:not(.control-handle) {
+  position: absolute !important;
+  /* Midpoint of collapsed strip (.react-flow__node height === --node-collapsed-height) */
+  top: var(--node-collapsed-handle-mid-y) !important;
+  bottom: auto !important;
+  margin-top: 0 !important;
+}
+
+.react-flow__node.collapsed .handle-popup .react-flow__handle:not(.control-handle),
+.react-flow__node.collapsed .output-handle-container .react-flow__handle:not(.control-handle) {
+  /* Parent wrappers are already centred on the strip midline */
+  top: 0 !important;
+}
+
+.react-flow__node.collapsed .react-flow__handle-left:not(.control-handle),
+.react-flow__node.collapsed .react-flow__handle-right:not(.control-handle) {
+  transform: translate(0, calc(-50% - var(--node-collapsed-handle-y-nudge)));
+}
+
+.react-flow__node.collapsed .handle-popup .react-flow__handle-left:not(.control-handle),
+.react-flow__node.collapsed .output-handle-container .react-flow__handle-left:not(.control-handle),
+.react-flow__node.collapsed .handle-popup .react-flow__handle-right:not(.control-handle),
+.react-flow__node.collapsed .output-handle-container .react-flow__handle-right:not(.control-handle) {
+  transform: none !important;
+}
+
+.react-flow__node.collapsed .react-flow__handle-left:not(.control-handle) {
+  transform-origin: right center !important;
+}
+
+.react-flow__node.collapsed .react-flow__handle-right:not(.control-handle) {
+  transform-origin: left center !important;
+}
+
+.react-flow__node.collapsed .react-flow__handle-left:not(.control-handle):hover {
+  transform: translate(0, calc(-50% - var(--node-collapsed-handle-y-nudge)))
+    scale(1.75, 1.5) !important;
+}
+
+.react-flow__node.collapsed .react-flow__handle-right:not(.control-handle):hover {
+  transform: translate(0, calc(-50% - var(--node-collapsed-handle-y-nudge)))
+    scale(1.75, 1.5) !important;
+}
+
+.react-flow__node.collapsed .handle-popup .react-flow__handle-left:not(.control-handle):hover,
+.react-flow__node.collapsed .output-handle-container .react-flow__handle-left:not(.control-handle):hover,
+.react-flow__node.collapsed .handle-popup .react-flow__handle-right:not(.control-handle):hover,
+.react-flow__node.collapsed .output-handle-container .react-flow__handle-right:not(.control-handle):hover {
+  transform: scale(1.75, 1.5) !important;
+}
+
+.react-flow__node.collapsed .react-flow__handle.control-handle-top {
+  left: calc(50% - var(--node-collapsed-control-split)) !important;
+  transform: translate(
+    -50%,
+    calc(-50% - var(--node-collapsed-handle-y-nudge))
+  ) !important;
+}
+
+.react-flow__node.collapsed .react-flow__handle.control-handle-bottom {
+  left: calc(50% + var(--node-collapsed-control-split)) !important;
+  transform: translate(
+    -50%,
+    calc(-50% - var(--node-collapsed-handle-y-nudge))
+  ) !important;
+}
+
+/* Agent control handles: anchored to collapsed strip midpoint (above generic handle top:0 rule) */
+.react-flow__node.collapsed .react-flow__handle.control-handle {
+  top: var(--node-collapsed-handle-mid-y) !important;
+  bottom: auto !important;
+  transform: translate(
+    -50%,
+    calc(-50% - var(--node-collapsed-handle-y-nudge))
+  ) !important;
+}
+
+/* Agent tool/source handle — user-requested drop below strip midline (only agents mount bottom control). */
+.react-flow__node.collapsed .react-flow__handle.control-handle.control-handle-bottom {
+  top: calc(
+      var(--node-collapsed-handle-mid-y) + var(--node-collapsed-agent-control-bottom-drop)
+    )
+    !important;
+}
+
+/* Collect + streaming outputs are taller than default handles — keep within 45px strip */
+.react-flow__node.collapsed .react-flow__handle-left.collect-handle:not(.control-handle) {
+  transform: translate(
+      0,
+      calc(
+        -50% - var(--node-collapsed-handle-y-nudge) -
+          var(--node-collapsed-tall-handle-extra-nudge)
+      )
+    )
+    !important;
+}
+
+.react-flow__node.collapsed .react-flow__handle-right.streaming-handle:not(.control-handle) {
+  transform: translate(
+      0,
+      calc(
+        -50% - var(--node-collapsed-handle-y-nudge) -
+          var(--node-collapsed-tall-handle-extra-nudge)
+      )
+    )
+    !important;
+}
+
+.react-flow__node.collapsed .handle-popup .react-flow__handle-left.collect-handle:not(.control-handle),
+.react-flow__node.collapsed .handle-popup .react-flow__handle-right.streaming-handle:not(.control-handle),
+.react-flow__node.collapsed
+  .output-handle-container
+  .react-flow__handle-right.streaming-handle:not(.control-handle) {
+  transform: translate(
+      0,
+      calc(-1 * var(--node-collapsed-tall-handle-extra-nudge))
+    )
+    !important;
+}
+
+.react-flow__node.collapsed .react-flow__handle-left.collect-handle:not(.control-handle):hover {
+  transform: translate(
+      0,
+      calc(
+        -50% - var(--node-collapsed-handle-y-nudge) -
+          var(--node-collapsed-tall-handle-extra-nudge)
+      )
+    )
+    scale(1.3, 1) !important;
+}
+
+.react-flow__node.collapsed .react-flow__handle-right.streaming-handle:not(.control-handle):hover {
+  transform: translate(
+      0,
+      calc(
+        -50% - var(--node-collapsed-handle-y-nudge) -
+          var(--node-collapsed-tall-handle-extra-nudge)
+      )
+    )
+    scale(1.3, 1) !important;
+}
+
+.react-flow__node.collapsed .handle-popup .react-flow__handle-left.collect-handle:not(.control-handle):hover,
+.react-flow__node.collapsed .handle-popup .react-flow__handle-right.streaming-handle:not(.control-handle):hover,
+.react-flow__node.collapsed
+  .output-handle-container
+  .react-flow__handle-right.streaming-handle:not(.control-handle):hover {
+  transform: translate(0, calc(-1 * var(--node-collapsed-tall-handle-extra-nudge)))
+    scale(1.3, 1) !important;
+}
+
+.react-flow__node-nodetool\.constant\.String
+  .constant-string-node.node-body.collapsed
+  .header-wrapper
+  .input-handle-wrapper {
+  top: var(--node-collapsed-handle-mid-y) !important;
+  transform: translateY(calc(-50% - var(--node-collapsed-handle-y-nudge))) !important;
+}
+
 .react-flow__node-nodetool\.group\.Loop .loop-node.collapsed {
   min-height: 7em;
   height: 7em;

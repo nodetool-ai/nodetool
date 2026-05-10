@@ -186,6 +186,12 @@ export interface ToolContext {
 
   // ── Full composite readback (magic wand, eyedropper) ───────────────
   getFullCompositeImageData?: () => ImageData | null;
+
+  /**
+   * Transform tool: drives {@link SketchCanvasPresentation}'s container cursor.
+   * Pass `null` to fall back to the default transform cursor (`move`).
+   */
+  setTransformHoverCursor?: (cursor: string | null) => void;
 }
 
 // ─── Pointer event data ───────────────────────────────────────────────────

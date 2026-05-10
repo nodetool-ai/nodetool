@@ -1,4 +1,5 @@
 import type { Theme } from "@mui/material/styles";
+import { NODE_COLLAPSED_BASE_NODE_SX } from "../../styles/collapsedNodeTokens";
 
 type BaseNodeSelectionStyleArgs = {
   selected: boolean;
@@ -10,6 +11,8 @@ type BaseNodeSelectionStyleArgs = {
   parentColor: string | null;
   theme: Theme;
   minHeight: number;
+  /** Header-only layout; must override `height: 100%` so global `.node-body.collapsed` can take effect visually */
+  collapsed?: boolean;
 };
 
 const CRISP_NO_BLUR_STYLES = {
@@ -54,16 +57,23 @@ export const getBaseNodeSelectionStyles = ({
   baseColor,
   parentColor,
   theme,
-  minHeight
+  minHeight,
+  collapsed = false
 }: BaseNodeSelectionStyleArgs) => {
   const resolvedBaseColor = baseColor || theme.vars.palette.primary.main;
   const defaultBorder = `1px solid color-mix(in srgb, ${theme.vars.palette.grey[800]} 84%, transparent)`;
 
+  const sizeStyles = collapsed
+    ? NODE_COLLAPSED_BASE_NODE_SX
+    : {
+        height: "100%" as const,
+        minHeight,
+        overflow: "visible" as const
+      };
+
   return {
     display: "flex" as const,
-    height: "100%",
-    minHeight,
-    overflow: "visible" as const,
+    ...sizeStyles,
     border: isLoading ? "none" : defaultBorder,
     ...theme.applyStyles("dark", {
       border: isLoading ? "none" : defaultBorder

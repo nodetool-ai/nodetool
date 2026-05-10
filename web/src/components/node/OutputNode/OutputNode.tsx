@@ -24,6 +24,7 @@ import PreviewActions from "../PreviewNode/PreviewActions";
 import { downloadPreviewAssets } from "../../../utils/downloadPreviewAssets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
 import useMetadataStore from "../../../stores/MetadataStore";
+import { NODE_COLLAPSED_LAYOUT } from "../../../styles/collapsedNodeTokens";
 
 const styles = (theme: Theme) =>
   css([
@@ -45,7 +46,10 @@ const styles = (theme: Theme) =>
         padding: 0,
         margin: 0,
         "&.collapsed": {
-          maxHeight: "60px"
+          ...NODE_COLLAPSED_LAYOUT
+        },
+        "&.collapsed .node-header ~ *": {
+          display: "none !important"
         },
         label: {
           display: "none"
@@ -415,8 +419,9 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
     <Container
       css={styles(theme)}
       sx={getOutputNodeSelectionSx(theme, Boolean(props.selected))}
-      className={`output-node nopan node-drag-handle ${hasParent ? "hasParent" : ""
-        }`}
+      className={`output-node nopan node-drag-handle node-body ${
+        hasParent ? "hasParent " : ""
+      }${props.data.collapsed ? "collapsed " : ""}`}
     >
       <div className={`output-node-content `}>
         <>
@@ -430,7 +435,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
             backgroundColor={"transparent"}
             iconType={"any"}
             iconBaseColor={theme.vars.palette.secondary.main}
-            showIcon={false}
+            showIcon={true}
             workflowId={props.data.workflow_id}
             hideLogs={true}
           />

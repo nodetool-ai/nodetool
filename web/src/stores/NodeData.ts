@@ -21,6 +21,8 @@ export type NodeData = {
   codeNodeMode?: "snippet";
   color?: string;
   collapsed?: boolean;
+  /** Last expanded body height (px) before header-only collapse — restore on expand; not in `properties` */
+  expandedHeightPx?: number;
   bypassed?: boolean; // When true, node is bypassed and passes inputs through to outputs
   showResultPreference?: boolean; // User preference: true = show results after run, false/undefined = show inputs
   // Original node type from the workflow graph (useful when React Flow falls back to "default" type)

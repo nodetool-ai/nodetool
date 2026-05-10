@@ -83,6 +83,27 @@ function stripAdvancedTransformFields(
   return rest;
 }
 
+/** Runtime canvas snapshots for history restore (multi-layer bake, etc.). */
+function snapshotLayersForHistory(
+  canvasRef: RefObject<SketchCanvasRef | null>,
+  layerIds: readonly string[]
+): Record<string, HTMLCanvasElement | null> | undefined {
+  const canvas = canvasRef.current;
+  if (!canvas || layerIds.length === 0) {
+    return undefined;
+  }
+  const out: Record<string, HTMLCanvasElement | null> = {};
+  let any = false;
+  for (const id of layerIds) {
+    const snap = canvas.snapshotLayerCanvas(id);
+    out[id] = snap;
+    if (snap) {
+      any = true;
+    }
+  }
+  return any ? out : undefined;
+}
+
 export function useTransformActions({
   canvasRef,
   document,
@@ -385,6 +406,7 @@ export function useTransformActions({
       transformToolHandler.isMultiTarget()
     ) {
       const ids = [...transformToolHandler.getMultiTargetLayerIds()];
+      pushHistory("transform bake", snapshotLayersForHistory(canvasRef, ids));
       const primary =
         document.layers.find((l) => l.id === document.activeLayerId) ??
         document.layers.find((l) => l.id === ids[0]);
@@ -424,6 +446,10 @@ export function useTransformActions({
 
     const selectionSession = selectionFreeTransformRef.current;
     if (selectionSession && selectionSession.layerId === activeLayerId) {
+      pushHistory(
+        "transform bake",
+        snapshotLayersForHistory(canvasRef, [activeLayerId])
+      );
       storeLastCommittedTransform(activeLayer.transform, true);
       canvas.reconcileLayerToDocumentSpace(activeLayerId);
       const transformedSelectionCanvas = canvas.snapshotLayerCanvas(activeLayerId);
@@ -456,6 +482,10 @@ export function useTransformActions({
       return;
     }
 
+    pushHistory(
+      "transform bake",
+      snapshotLayersForHistory(canvasRef, [activeLayerId])
+    );
     const newData = canvas.reconcileLayerToDocumentSpace(activeLayerId);
     storeLastCommittedTransform(activeLayer.transform, false);
     if (newData !== null) {
@@ -486,7 +516,8 @@ export function useTransformActions({
     restoreSelectionFreeTransformState,
     clearSelectionFreeTransformSession,
     setSelection,
-    syncSketchOutputsNow
+    syncSketchOutputsNow,
+    pushHistory
   ]);
 
   /** Cancel: restore the original transform. */
@@ -559,6 +590,10 @@ export function useTransformActions({
         return;
       }
 
+      pushHistory(
+        "transform bake",
+        snapshotLayersForHistory(canvasRef, [layerId])
+      );
       const data = canvasRef.current.reconcileLayerToDocumentSpace(layerId);
       commitLayerTransform(layerId, { x: 0, y: 0 });
       setLayerContentBounds(layerId, {
@@ -574,6 +609,7 @@ export function useTransformActions({
       document.canvas.width,
       document.canvas.height,
       canvasRef,
+      pushHistory,
       commitLayerTransform,
       setLayerContentBounds,
       updateLayerData
@@ -680,6 +716,7 @@ export function useTransformActions({
       if (!layer) {
         return;
       }
+      pushTransformHistory("transform rotate");
       const current = layer.transform;
       const newRotation = (current.rotation ?? 0) + angleRad;
       setLayerTransform(activeLayerId, {
@@ -687,7 +724,12 @@ export function useTransformActions({
         rotation: newRotation
       });
     },
-    [document.activeLayerId, document.layers, setLayerTransform]
+    [
+      document.activeLayerId,
+      document.layers,
+      pushTransformHistory,
+      setLayerTransform
+    ]
   );
 
   /** Flip the active layer's transform horizontally (negate scaleX). */
@@ -697,12 +739,18 @@ export function useTransformActions({
     if (!layer) {
       return;
     }
+    pushTransformHistory("transform flip horizontal");
     const current = layer.transform;
     setLayerTransform(activeLayerId, {
       ...stripAdvancedTransformFields(current),
       scaleX: -(current.scaleX ?? 1)
     });
-  }, [document.activeLayerId, document.layers, setLayerTransform]);
+  }, [
+    document.activeLayerId,
+    document.layers,
+    pushTransformHistory,
+    setLayerTransform
+  ]);
 
   /** Flip the active layer's transform vertically (negate scaleY). */
   const handleTransformFlipV = useCallback(() => {
@@ -711,12 +759,18 @@ export function useTransformActions({
     if (!layer) {
       return;
     }
+    pushTransformHistory("transform flip vertical");
     const current = layer.transform;
     setLayerTransform(activeLayerId, {
       ...stripAdvancedTransformFields(current),
       scaleY: -(current.scaleY ?? 1)
     });
-  }, [document.activeLayerId, document.layers, setLayerTransform]);
+  }, [
+    document.activeLayerId,
+    document.layers,
+    pushTransformHistory,
+    setLayerTransform
+  ]);
 
   const handleRepeatLastTransform = useCallback(() => {
     const record = lastCommittedTransformRef.current;

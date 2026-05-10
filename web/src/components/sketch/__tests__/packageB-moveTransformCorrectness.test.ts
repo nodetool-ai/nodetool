@@ -55,7 +55,7 @@ import {
   computeWarpTransform,
   resolveTransformGestureMode
 } from "../tools/transform/computeTransform";
-import { cursorForHandle } from "../tools/transform/cursorMapping";
+import { cursorForHandle, ROTATE_CURSOR_CSS } from "../tools/transform/cursorMapping";
 
 // ─── Test helpers ────────────────────────────────────────────────────────────
 
@@ -914,8 +914,8 @@ describe("Package B: cursor mapping", () => {
     expect(cursorForHandle("move", 0)).toBe("move");
   });
 
-  it("returns 'grab' for rotate handle", () => {
-    expect(cursorForHandle("rotate", 0)).toBe("grab");
+  it("returns rotate cursor for rotate handle", () => {
+    expect(cursorForHandle("rotate", 0)).toBe(ROTATE_CURSOR_CSS);
   });
 
   it("returns 'default' for null handle", () => {

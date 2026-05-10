@@ -16,6 +16,8 @@ import {
   docRectToScreen,
   clientToDocumentCanvas,
   documentCanvasToClient,
+  sketchClientToDocCanvas,
+  sketchDocCanvasToClient,
   scaledHalfExtents,
   isInRotateZone,
   hitTestPivot,
@@ -28,7 +30,7 @@ import {
   PIVOT_HIT_RADIUS,
   PIVOT_SNAP_DISTANCE
 } from "../tools/transform/handleGeometry";
-import { cursorForHandle } from "../tools/transform/cursorMapping";
+import { cursorForHandle, ROTATE_CURSOR_CSS } from "../tools/transform/cursorMapping";
 import {
   getTransformHoverInfo,
   isPointInsideGizmo
@@ -254,8 +256,10 @@ describe("gizmo hover cursor behavior", () => {
     expect(cursorForHandle("move", 0)).toBe("move");
   });
 
-  it("returns 'grab' for rotate handle", () => {
-    expect(cursorForHandle("rotate", 0)).toBe("grab");
+  it("returns rotate cursor (SVG url) for rotate handle", () => {
+    expect(cursorForHandle("rotate", 0)).toBe(ROTATE_CURSOR_CSS);
+    expect(cursorForHandle("rotate", 0)).toContain("url(");
+    expect(cursorForHandle("rotate", 0)).toContain("grab");
   });
 
   it("returns resize cursors for scale handles at 0 rotation", () => {
@@ -396,7 +400,7 @@ describe("outside-box rotate zone", () => {
       zoom
     );
     expect(info.handle).toBe("rotate");
-    expect(info.cursor).toBe("grab");
+    expect(info.cursor).toBe(ROTATE_CURSOR_CSS);
   });
 
   it("getTransformHoverInfo returns null for points well outside", () => {
@@ -521,6 +525,54 @@ describe("gizmo viewport conversion", () => {
 
     expect(backToClient.x).toBeCloseTo(clientPt.x, 5);
     expect(backToClient.y).toBeCloseTo(clientPt.y, 5);
+  });
+
+  it("sketchClientToDocCanvas round-trips with sketchDocCanvasToClient via display rect", () => {
+    const zoom = 2;
+    const pan = { x: 10, y: -20 };
+    const docW = 512;
+    const docH = 384;
+    const containerRect = { left: 100, top: 50, width: 800, height: 600 };
+    const mockDisplay = {
+      getBoundingClientRect: (): DOMRect =>
+        ({
+          left: 200,
+          top: 100,
+          width: 400,
+          height: 300,
+          right: 600,
+          bottom: 400,
+          x: 200,
+          y: 100,
+          toJSON: () => ({})
+        }) as DOMRect
+    } as HTMLCanvasElement;
+
+    const clientPt = { x: 340, y: 215 };
+    const docPt = sketchClientToDocCanvas(
+      clientPt.x,
+      clientPt.y,
+      mockDisplay,
+      containerRect,
+      zoom,
+      pan,
+      docW,
+      docH
+    );
+    const back = sketchDocCanvasToClient(
+      docPt.x,
+      docPt.y,
+      mockDisplay,
+      containerRect,
+      zoom,
+      pan,
+      docW,
+      docH
+    );
+    expect(back.x).toBeCloseTo(clientPt.x, 5);
+    expect(back.y).toBeCloseTo(clientPt.y, 5);
+    expect(Number.isFinite(docPt.x)).toBe(true);
+    expect(Number.isFinite(docPt.y)).toBe(true);
   });
 
   it("scaledHalfExtents respects scale factors", () => {
@@ -758,5 +810,27 @@ describe("GizmoRedrawScheduler", () => {
     expect(scheduler.isScheduled).toBe(true);
 
     jest.useRealTimers();
+  });
+
+  it("cancelPending drops the callback even if rAF runs later", () => {
+    let storedCb: FrameRequestCallback | null = null;
+    const rafSpy = jest.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+      storedCb = cb as FrameRequestCallback;
+      return 7 as unknown as number;
+    });
+    const cancelSpy = jest.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+
+    const scheduler = new GizmoRedrawScheduler();
+    const callback = jest.fn();
+    scheduler.scheduleRedraw(callback);
+    scheduler.cancelPending();
+
+    expect(storedCb).not.toBeNull();
+    storedCb!(0);
+    expect(callback).not.toHaveBeenCalled();
+    expect(scheduler.isScheduled).toBe(false);
+
+    rafSpy.mockRestore();
+    cancelSpy.mockRestore();
   });
 });

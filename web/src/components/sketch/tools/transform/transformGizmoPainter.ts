@@ -203,6 +203,9 @@ export function paintTransformGizmo(
  */
 export class GizmoRedrawScheduler {
   private scheduled = false;
+  private rafId: number | null = null;
+  /** Incremented on cancel so a late/stale rAF closure never runs after `cancelPending`. */
+  private callbackGeneration = 0;
 
   /**
    * Schedule a gizmo redraw on the next animation frame.
@@ -213,10 +216,29 @@ export class GizmoRedrawScheduler {
       return;
     }
     this.scheduled = true;
-    requestAnimationFrame(() => {
+    const generation = this.callbackGeneration;
+    this.rafId = requestAnimationFrame(() => {
+      this.rafId = null;
       this.scheduled = false;
+      if (generation !== this.callbackGeneration) {
+        return;
+      }
       callback();
     });
+  }
+
+  /**
+   * Drop any pending redraw (e.g. pointer-up must not let a stale rAF callback
+   * run after commit — it would sync from a pre-render `ctx.doc` and repaint
+   * the gizmo at the old transform until the next viewport change).
+   */
+  cancelPending(): void {
+    if (this.rafId !== null) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+    this.scheduled = false;
+    this.callbackGeneration += 1;
   }
 
   /** Whether a redraw is currently scheduled. */

@@ -28,6 +28,7 @@ import {
   useNodesInitialized
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import "../../styles/collapsed.css";
 
 import { fetchWorkflowById } from "../../serverState/useWorkflow";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";

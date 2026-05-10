@@ -26,17 +26,19 @@ import {
 import { hitTestLayerAtDocPoint } from "../painting/sampleDocument";
 import { mergeTransformPreview } from "../painting/transformPreview";
 import {
-  getEffectiveRasterBounds,
-  getTransformedExtents
+  resolveGizmoBounds,
+  getTransformedExtents,
+  getTransformedCorners
 } from "../painting/resolvedLayerGeometry";
-import { docRectToScreen } from "./transform/handleGeometry";
+import { docToScreen } from "./transform/handleGeometry";
 import { drawOffCanvasIndicator } from "./gizmo";
 import { useSketchStore } from "../state/useSketchStore";
 import { createPreviewSession, type PreviewSession } from "./previewSession";
 import { pickTopmostTransformableLayer } from "./transformTargetSet";
 
-/** Paint a dashed outline for off-canvas layer extents on the gizmo canvas.
- *  Uses shared resolved-geometry seam for bounds and shared gizmo primitives. */
+/** Paint corner brackets for off-canvas layer extents on the gizmo canvas.
+ *  Uses {@link resolveGizmoBounds} (same contract as TransformTool) and maps the
+ *  transformed quad to screen space so bounds track tight content and rotation. */
 function paintOffCanvasGizmo(
   ctx: ToolContext,
   layerId: string,
@@ -47,20 +49,13 @@ function paintOffCanvasGizmo(
     return;
   }
 
-  // Use resolved raster bounds (shared seam) instead of ad-hoc canvas lookup
   const layerCanvas = ctx.layerCanvasesRef.current.get(layerId);
-  const rasterBounds = getEffectiveRasterBounds(
-    layer,
-    layerCanvas,
-    ctx.doc.canvas
-  );
-  // Compute the axis-aligned bounding box of the transformed layer
+  const rasterBounds = resolveGizmoBounds(layer, layerCanvas, ctx.doc.canvas);
   const extents = getTransformedExtents(transform, rasterBounds);
 
   const cw = ctx.doc.canvas.width;
   const ch = ctx.doc.canvas.height;
 
-  // Only show gizmo when the layer visually extends outside the canvas
   const extendsOutside =
     extents.x < 0 ||
     extents.y < 0 ||
@@ -71,22 +66,17 @@ function paintOffCanvasGizmo(
     return;
   }
 
-  ctx.drawGizmo((gc, dpr, containerW, containerH) => {
-    const r = docRectToScreen(
-      extents.x,
-      extents.y,
-      extents.width,
-      extents.height,
-      cw,
-      ch,
-      ctx.zoom,
-      ctx.pan,
-      containerW,
-      containerH,
-      dpr
-    );
+  const docCorners = getTransformedCorners(transform, rasterBounds);
 
-    drawOffCanvasIndicator(gc, r, dpr);
+  ctx.drawGizmo((gc, dpr, containerW, containerH) => {
+    const screenCorners: [Point, Point, Point, Point] = [
+      docToScreen(docCorners[0].x, docCorners[0].y, cw, ch, ctx.zoom, ctx.pan, containerW, containerH, dpr),
+      docToScreen(docCorners[1].x, docCorners[1].y, cw, ch, ctx.zoom, ctx.pan, containerW, containerH, dpr),
+      docToScreen(docCorners[2].x, docCorners[2].y, cw, ch, ctx.zoom, ctx.pan, containerW, containerH, dpr),
+      docToScreen(docCorners[3].x, docCorners[3].y, cw, ch, ctx.zoom, ctx.pan, containerW, containerH, dpr)
+    ];
+
+    drawOffCanvasIndicator(gc, screenCorners, dpr);
   });
 }
 
@@ -185,17 +175,18 @@ export class MoveTool implements ToolHandler {
       }
     } else if (event.nativeEvent.altKey && ctx.onAutoPickLayer) {
       // Alt+click: auto-pick topmost non-transparent layer (affine-aware)
+      const { isolatedLayerId } = useSketchStore.getState();
       for (let i = doc.layers.length - 1; i >= 0; i--) {
         const layer = doc.layers[i];
         const skipForHit =
-          !isLayerCompositeVisible(doc.layers, layer, null) ||
+          !isLayerCompositeVisible(doc.layers, layer, isolatedLayerId) ||
           (layer.locked && !layer.imageReference);
         if (skipForHit) {
           continue;
         }
-        const layerCanvas = ctx.layerCanvasesRef.current.get(layer.id);
+        let layerCanvas = ctx.layerCanvasesRef.current.get(layer.id);
         if (!layerCanvas) {
-          continue;
+          layerCanvas = ctx.getOrCreateLayerCanvas(layer.id);
         }
         if (hitTestLayerAtDocPoint(layer, layerCanvas, pt)) {
           ctx.onAutoPickLayer(layer.id);
@@ -209,11 +200,13 @@ export class MoveTool implements ToolHandler {
       const storeSettings = useSketchStore.getState().toolSettings;
       const autoSelect = storeSettings?.move?.autoSelect ?? true;
       if (autoSelect && ctx.onAutoPickLayer) {
+        const { isolatedLayerId } = useSketchStore.getState();
         const picked = pickTopmostTransformableLayer(
           doc.layers,
           ctx.layerCanvasesRef.current,
           pt,
-          null
+          isolatedLayerId,
+          ctx.getOrCreateLayerCanvas
         );
         if (picked && picked.id !== doc.activeLayerId) {
           ctx.onAutoPickLayer(picked.id);

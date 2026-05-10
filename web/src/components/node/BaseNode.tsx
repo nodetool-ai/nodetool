@@ -68,6 +68,8 @@ import {
 // CONSTANTS
 const BASE_HEIGHT = 0; // Minimum height for the node
 const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
+/** Cap metadata-driven minHeight so many-output types do not force huge boxes (collapse snapshot / RF measure). */
+const MAX_OUTPUT_DRIVEN_MIN_HEIGHT_PX = 320;
 const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
 const MIN_NODE_HEIGHT = 100;
@@ -118,6 +120,14 @@ const NODE_CONTENT_CONTAINER_STYLE: React.CSSProperties = {
   width: "100%",
   overflow: "visible",
   clipPath: "inset(0 -60px)"
+};
+
+/** Collapsed: no side clip-path — clipping a zero-height box can hide sockets and confuse RF measurements */
+const NODE_CONTENT_CONTAINER_COLLAPSED_STYLE: React.CSSProperties = {
+  flex: "1 1 auto",
+  minHeight: 0,
+  width: "100%",
+  overflow: "visible"
 };
 
 const resizer = (
@@ -238,22 +248,36 @@ const getNodeStyles = (colors: string[]) =>
 
 const getStyleProps = (
   parentId: string | undefined,
-  nodeType: { isInputNode: boolean; isOutputNode: boolean },
+  nodeType: {
+    isInputNode: boolean;
+    isOutputNode: boolean;
+    isAgentNode: boolean;
+  },
   isLoading: boolean,
-  metadata: NodeMetadata | undefined
+  metadata: NodeMetadata | undefined,
+  collapsed: boolean | undefined
 ) => {
   const hasParent = Boolean(parentId);
+  const outputCountMin = metadata
+    ? BASE_HEIGHT + (metadata.outputs?.length ?? 0) * INCREMENT_PER_OUTPUT
+    : BASE_HEIGHT;
+  /**
+   * Agent: many logical outputs — use a sane floor only.
+   * Other nodes: same formula but capped so `min-height` cannot dominate measured height on collapse.
+   */
+  const minHeight = nodeType.isAgentNode
+    ? MIN_NODE_HEIGHT
+    : Math.min(outputCountMin, MAX_OUTPUT_DRIVEN_MIN_HEIGHT_PX);
   return {
     className: `base-node node-body
       ${hasParent ? "has-parent" : ""}
+      ${collapsed ? "collapsed " : ""}
       ${nodeType.isInputNode ? " input-node" : ""}
       ${nodeType.isOutputNode ? " output-node" : ""}
       ${isLoading ? " loading is-loading" : " loading "}`
       .replace(/\s+/g, " ")
       .trim(),
-    minHeight: metadata
-      ? BASE_HEIGHT + (metadata.outputs?.length ?? 0) * INCREMENT_PER_OUTPUT
-      : BASE_HEIGHT
+    minHeight
   };
 };
 
@@ -429,8 +453,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Style
   const styleProps = useMemo(
-    () => getStyleProps(parentId, nodeType, isLoading, metadata),
-    [parentId, nodeType, isLoading, metadata]
+    () =>
+      getStyleProps(parentId, nodeType, isLoading, metadata, data.collapsed),
+    [parentId, nodeType, isLoading, metadata, data.collapsed]
   );
 
   // Single subscription instead of 5 — one listener per node instead of five
@@ -619,7 +644,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         baseColor,
         parentColor,
         theme,
-        minHeight: styleProps.minHeight
+        minHeight: styleProps.minHeight,
+        collapsed: Boolean(data.collapsed)
       }),
     [
       selected,
@@ -630,8 +656,17 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       baseColor,
       parentColor,
       theme,
-      styleProps.minHeight
+      styleProps.minHeight,
+      data.collapsed
     ]
+  );
+
+  const nodeContentContainerStyle = useMemo<React.CSSProperties>(
+    () =>
+      data.collapsed
+        ? NODE_CONTENT_CONTAINER_COLLAPSED_STYLE
+        : NODE_CONTENT_CONTAINER_STYLE,
+    [data.collapsed]
   );
 
   const onToggleAdvancedFields = useCallback(() => {
@@ -718,7 +753,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         title={displayTitle}
         metadataTitle={metadata.title}
         hasParent={hasParent}
-        iconType={metadata?.outputs?.[0]?.type?.type}
+        iconType={
+          metadata?.outputs?.[0]?.type?.type ??
+          metadata?.properties?.[0]?.type?.type ??
+          "any"
+        }
         iconBaseColor={baseColor}
         workflowId={workflow_id}
         showResultButton={Boolean(!isOverlayVisible && hasToggleableResult)}
@@ -743,7 +782,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       />
       <div
         className="node-content-container"
-        style={NODE_CONTENT_CONTAINER_STYLE}
+        style={nodeContentContainerStyle}
       >
         <NodeContent
           id={id}

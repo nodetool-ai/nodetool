@@ -80,12 +80,6 @@ describe("structure-only history runtime snapshots", () => {
   });
 
   it("captures active-layer snapshots for transform-only stroke history entries", () => {
-    const originalRequestAnimationFrame = window.requestAnimationFrame;
-    window.requestAnimationFrame = ((callback: FrameRequestCallback) => {
-      callback(0);
-      return 1;
-    }) as typeof window.requestAnimationFrame;
-
     const documentState = useSketchStore.getState().document;
     const activeLayerId = documentState.activeLayerId;
     const snapshot = window.document.createElement("canvas");
@@ -97,34 +91,30 @@ describe("structure-only history runtime snapshots", () => {
       }
     } as any;
 
-    try {
-      const { result } = renderHook(() =>
-        useStrokeLifecycleActions({
-          canvasRef,
-          document: documentState,
-          activeTool: "brush",
-          interactionTool: "move",
-          pushHistory,
-          updateLayerData: jest.fn(),
-          setLayerContentBounds: jest.fn(),
-          pendingExportSyncRef: {
-            current: { image: false, mask: false }
-          } as any
-        })
-      );
+    const { result } = renderHook(() =>
+      useStrokeLifecycleActions({
+        canvasRef,
+        document: documentState,
+        activeTool: "brush",
+        interactionTool: "move",
+        pushHistory,
+        updateLayerData: jest.fn(),
+        setLayerContentBounds: jest.fn(),
+        pendingExportSyncRef: {
+          current: { image: false, mask: false }
+        } as any
+      })
+    );
 
-      act(() => {
-        result.current.handleStrokeStart();
-      });
+    act(() => {
+      result.current.handleStrokeStart();
+    });
 
-      expect(pushHistory).toHaveBeenCalledWith(
-        "move layer",
-        { [activeLayerId]: snapshot },
-        { restoreMode: "structure-only" }
-      );
-    } finally {
-      window.requestAnimationFrame = originalRequestAnimationFrame;
-    }
+    expect(pushHistory).toHaveBeenCalledWith(
+      "move layer",
+      { [activeLayerId]: snapshot },
+      { restoreMode: "structure-only" }
+    );
   });
 
   it("uses captured tip snapshots so structure-only redo updates runtime immediately", () => {
