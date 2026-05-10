@@ -28,8 +28,7 @@ import {
   BOUNDING_BOX_DASH_ON,
   BOUNDING_BOX_DASH_OFF,
   OFF_CANVAS_INDICATOR_COLOR,
-  OFF_CANVAS_DASH_ON,
-  OFF_CANVAS_DASH_OFF,
+  OFF_CANVAS_CORNER_ARM_CSS,
   CROP_DIM_COLOR,
   CROP_BORDER_COLOR,
   CROP_GRID_COLOR
@@ -353,23 +352,54 @@ export function drawTransformGizmo(
 // ─── Off-canvas indicator ────────────────────────────────────────────────────
 
 /**
- * Draw a dashed rectangle indicating off-canvas layer extents.
+ * Draw corner brackets for layer extents that spill outside the document
+ * (MoveTool). Uses the transformed quad in screen space — solid strokes at
+ * each vertex, no full bounding rectangle.
  *
- * @param gc - Canvas context
- * @param screenRect - Screen-space rect (x, y, w, h) in gizmo canvas pixels
+ * @param screenCorners - Four corners in gizmo canvas pixels (TL, TR, BR, BL)
  * @param dpr - Device pixel ratio
  */
 export function drawOffCanvasIndicator(
   gc: CanvasRenderingContext2D,
-  screenRect: { x: number; y: number; w: number; h: number },
+  screenCorners: [Point, Point, Point, Point],
   dpr: number
 ): void {
+  const armBase = OFF_CANVAS_CORNER_ARM_CSS * dpr;
   gc.save();
   gc.strokeStyle = OFF_CANVAS_INDICATOR_COLOR;
-  gc.lineWidth = dpr;
-  gc.setLineDash([OFF_CANVAS_DASH_ON * dpr, OFF_CANVAS_DASH_OFF * dpr]);
-  gc.strokeRect(screenRect.x, screenRect.y, screenRect.w, screenRect.h);
+  gc.lineWidth = Math.max(1, dpr);
+  gc.lineCap = "square";
   gc.setLineDash([]);
+
+  for (let i = 0; i < 4; i++) {
+    const p = screenCorners[i]!;
+    const prev = screenCorners[(i + 3) % 4]!;
+    const next = screenCorners[(i + 1) % 4]!;
+    const e1x = p.x - prev.x;
+    const e1y = p.y - prev.y;
+    const e2x = next.x - p.x;
+    const e2y = next.y - p.y;
+    const len1 = Math.hypot(e1x, e1y);
+    const len2 = Math.hypot(e2x, e2y);
+    if (len1 < 1e-6 || len2 < 1e-6) {
+      continue;
+    }
+    const L = Math.min(armBase, len1 * 0.49, len2 * 0.49);
+    if (L < 1e-6) {
+      continue;
+    }
+    const ux = e2x / len2;
+    const uy = e2y / len2;
+    const vx = -e1x / len1;
+    const vy = -e1y / len1;
+    gc.beginPath();
+    gc.moveTo(p.x, p.y);
+    gc.lineTo(p.x + ux * L, p.y + uy * L);
+    gc.moveTo(p.x, p.y);
+    gc.lineTo(p.x + vx * L, p.y + vy * L);
+    gc.stroke();
+  }
+
   gc.restore();
 }
 
