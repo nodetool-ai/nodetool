@@ -86,6 +86,7 @@ const MAX_SUCCESSFUL_VERSIONS = 10;
 const MAX_FAILED_VERSIONS = 5;
 
 const okOutput = z.object({ ok: z.literal(true) });
+const DEFAULT_SKETCH_ACTIVE_TOOL = "brush";
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -207,11 +208,44 @@ export const sketchRouter = router({
     .output(imageDocumentResponse)
     .mutation(async ({ ctx, input }) => {
       const now = new Date().toISOString();
-      const defaultSketch = {
-        version: 1,
-        canvas: { width: input.width, height: input.height },
-        layers: [],
-        activeLayerId: "",
+      const initialLayerId = createTimeOrderedUuid();
+      const defaultSketch: ImageDocumentData["sketch"] = {
+        version: 3,
+        canvas: {
+          width: input.width,
+          height: input.height,
+          backgroundColor: input.backgroundColor
+        },
+        layers: [
+          {
+            id: initialLayerId,
+            name: "Layer 1",
+            type: "raster",
+            visible: true,
+            opacity: 1,
+            locked: false,
+            alphaLock: false,
+            blendMode: "normal",
+            data: null,
+            transform: { x: 0, y: 0 },
+            contentBounds: {
+              x: 0,
+              y: 0,
+              width: input.width,
+              height: input.height
+            },
+            effects: []
+          }
+        ],
+        activeLayerId: initialLayerId,
+        maskLayerId: null,
+        activeTool: DEFAULT_SKETCH_ACTIVE_TOOL,
+        viewport: {
+          zoom: 1,
+          pan: { x: 0, y: 0 }
+        },
+        history: [],
+        historyIndex: -1,
         metadata: { createdAt: now, updatedAt: now }
       };
       const docData: ImageDocumentData = {

@@ -4,6 +4,7 @@
  * so the parent SketchEditor doesn't need to forward them.
  */
 import React, { memo, useCallback, useEffect } from "react";
+import type { Asset } from "../../../stores/ApiTypes";
 import SketchCanvas, { type SketchCanvasRef } from "../SketchCanvas";
 import { useSketchStore } from "../state";
 import type { LayerContentBounds, LayerTransform, Point } from "../types";
@@ -38,6 +39,7 @@ export interface SketchCanvasPaneProps {
   onEyedropperPick?: (color: string) => void;
   onAutoPickLayer?: (layerId: string) => void;
   onDropImage?: (file: File) => void;
+  onDropAsset?: (asset: Asset) => void;
   onCanvasResizeStart?: () => void;
   onCanvasResize?: (
     width: number,
@@ -67,6 +69,7 @@ export const SketchCanvasPane = memo(function SketchCanvasPane({
   onEyedropperPick,
   onAutoPickLayer,
   onDropImage,
+  onDropAsset,
   onCanvasResizeStart,
   onCanvasResize,
   segmentation
@@ -140,6 +143,7 @@ export const SketchCanvasPane = memo(function SketchCanvasPane({
       onAutoPickLayer={onAutoPickLayer}
       foregroundColor={foregroundColor}
       onDropImage={onDropImage}
+      onDropAsset={onDropAsset}
       onCanvasResizeStart={onCanvasResizeStart}
       onCanvasResize={onCanvasResize}
     />

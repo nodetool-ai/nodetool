@@ -20,9 +20,10 @@ import {
   useState
 } from "react";
 import type { SketchDocument, SketchTool } from "../types";
-import type { SketchCanvasRef } from "../SketchCanvas";
+import { hydrateSketchStore } from "../state";
 import type { useCanvasActions } from "./useCanvasActions";
 import type { useSegmentation } from "./useSegmentation";
+import type { SketchPersistenceSnapshot } from "../../../stores/sketch/persistence";
 
 const SKETCH_CANVAS_RESIZE_HANDLES_STORAGE_KEY =
   "nodetool-sketch-canvas-resize-handles";
@@ -46,6 +47,7 @@ function readCanvasResizeHandlesEnabled(): boolean {
 
 export interface UseEditorLifecycleParams {
   initialDocument: SketchDocument | undefined;
+  initialEditorState?: SketchPersistenceSnapshot;
   onDocumentChange: ((doc: SketchDocument) => void) | undefined;
 
   // Store actions
@@ -70,6 +72,7 @@ export interface EditorLifecycleResult {
 
 export function useEditorLifecycle({
   initialDocument,
+  initialEditorState,
   onDocumentChange,
   setDocument,
   activeTool,
@@ -140,11 +143,20 @@ export function useEditorLifecycle({
   // ─── Seed global store from prop before SketchCanvas mounts ───────
   useLayoutEffect(() => {
     initialDocumentRef.current = initialDocument;
-    if (initialDocument) {
+    if (initialEditorState) {
+      hydrateSketchStore({
+        document: initialEditorState.document,
+        activeTool: initialEditorState.activeTool,
+        zoom: initialEditorState.zoom,
+        pan: initialEditorState.pan,
+        history: initialEditorState.history,
+        historyIndex: initialEditorState.historyIndex
+      });
+    } else if (initialDocument) {
       setDocument(initialDocument);
     }
     setCanvasReady(true);
-  }, [initialDocument, setDocument]);
+  }, [initialDocument, initialEditorState, setDocument]);
 
   // ─── Autosave on document changes ─────────────────────────────────
   // ## Autosave boundary contract

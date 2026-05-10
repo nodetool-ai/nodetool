@@ -56,14 +56,48 @@ export const sketchLayerLike = z.object({
 
 // ── Sketch document (minimal for protocol) ─────────────────────────────────
 
+const pointLike = z.object({
+  x: z.number(),
+  y: z.number()
+});
+
+const persistedHistoryEntry = z.object({
+  changedLayerIds: z.array(z.string()).optional(),
+  layerSnapshots: z.record(z.string(), z.string().nullable()),
+  layerStructure: z.array(z.record(z.string(), z.unknown())),
+  documentCanvas: z.object({
+    width: z.number(),
+    height: z.number(),
+    backgroundColor: z.string().optional()
+  }),
+  activeLayerId: z.string(),
+  maskLayerId: z.string().nullable(),
+  selection: z.unknown().optional(),
+  restoreMode: z.enum(["full", "structure-only"]),
+  action: z.string(),
+  timestamp: z.number()
+});
+
 export const sketchDocumentLike = z.object({
   version: z.number(),
   canvas: z.object({
     width: z.number(),
-    height: z.number()
+    height: z.number(),
+    backgroundColor: z.string().optional()
   }),
-  layers: z.array(sketchLayerLike),
+  layers: z.array(z.unknown()),
   activeLayerId: z.string(),
+  maskLayerId: z.string().nullable().optional(),
+  toolSettings: z.record(z.string(), z.unknown()).optional(),
+  activeTool: z.string().optional(),
+  viewport: z
+    .object({
+      zoom: z.number(),
+      pan: pointLike
+    })
+    .optional(),
+  history: z.array(persistedHistoryEntry).optional(),
+  historyIndex: z.number().optional(),
   metadata: z
     .object({
       createdAt: z.string(),

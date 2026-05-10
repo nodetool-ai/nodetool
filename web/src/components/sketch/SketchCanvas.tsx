@@ -19,6 +19,11 @@ import React, {
   useRef,
   forwardRef
 } from "react";
+import type { Asset } from "../../stores/ApiTypes";
+import {
+  deserializeDragData,
+  DRAG_DATA_MIME
+} from "../../lib/dragdrop/serialization";
 import { useSketchStore } from "./state";
 import type {
   SketchDocument,
@@ -194,6 +199,8 @@ export interface SketchCanvasProps {
   onCanvasLeave?: () => void;
   /** Called when an image file is dropped onto the canvas. */
   onDropImage?: (file: File) => void;
+  /** Called when an imported image asset is dropped onto the canvas. */
+  onDropAsset?: (asset: Asset) => void;
   /** Called once when the user begins dragging a canvas resize handle (use for history snapshot). */
   onCanvasResizeStart?: () => void;
   /** Called on every pointer-move while dragging a canvas resize handle. */
@@ -241,6 +248,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       className: rootClassName,
       onCanvasLeave,
       onDropImage,
+      onDropAsset,
       onCanvasResizeStart,
       onCanvasResize
     } = props;
@@ -321,7 +329,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // ─── Drag-and-drop image import ─────────────────────────────────
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
-      if (e.dataTransfer.types.includes("Files")) {
+      if (
+        e.dataTransfer.types.includes("Files") ||
+        e.dataTransfer.types.includes(DRAG_DATA_MIME) ||
+        e.dataTransfer.types.includes("asset")
+      ) {
         e.preventDefault();
         e.dataTransfer.dropEffect = "copy";
       }
@@ -330,17 +342,25 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const handleDrop = useCallback(
       (e: React.DragEvent) => {
         e.preventDefault();
-        if (!onDropImage) {
+        const dragData = deserializeDragData(e.dataTransfer);
+        const draggedAsset =
+          dragData?.type === "asset" ? (dragData.payload as Asset) : null;
+        if (
+          draggedAsset &&
+          draggedAsset.content_type.startsWith("image/") &&
+          onDropAsset
+        ) {
+          onDropAsset(draggedAsset);
           return;
         }
         const file = Array.from(e.dataTransfer.files).find((f) =>
           f.type.startsWith("image/")
         );
-        if (file) {
+        if (file && onDropImage) {
           onDropImage(file);
         }
       },
-      [onDropImage]
+      [onDropAsset, onDropImage]
     );
 
     // ─── Imperative handle ──────────────────────────────────────────────

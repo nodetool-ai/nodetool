@@ -188,6 +188,18 @@ describe("sketch router", () => {
       expect(out.width).toBe(1024);
       expect(out.height).toBe(1024);
       expect(out.backgroundColor).toBe("#ffffff");
+      expect(out.document.sketch.canvas.backgroundColor).toBe("#ffffff");
+      expect(out.document.sketch.layers).toHaveLength(1);
+      expect(out.document.sketch.activeLayerId).toBe(
+        out.document.sketch.layers[0]?.id
+      );
+      expect(out.document.sketch.activeTool).toBe("brush");
+      expect(out.document.sketch.viewport).toEqual({
+        zoom: 1,
+        pan: { x: 0, y: 0 }
+      });
+      expect(out.document.sketch.history).toEqual([]);
+      expect(out.document.sketch.historyIndex).toBe(-1);
     });
   });
 
@@ -203,15 +215,31 @@ describe("sketch router", () => {
         document: {
           sketch: {
             version: 1,
-            canvas: { width: 1024, height: 1024 },
+            canvas: {
+              width: 1024,
+              height: 1024,
+              backgroundColor: "#ffffff"
+            },
             layers: [],
-            activeLayerId: ""
+            activeLayerId: "",
+            activeTool: "move",
+            viewport: {
+              zoom: 2,
+              pan: { x: 12, y: -4 }
+            },
+            history: [],
+            historyIndex: -1
           },
           layerBindings: []
         }
       });
       expect(out.name).toBe("Renamed");
       expect(ID.updateDoc).toHaveBeenCalled();
+      expect(ID.updateDoc.mock.calls[0]?.[1]).toEqual(
+        expect.objectContaining({
+          document: expect.stringContaining('"activeTool":"move"')
+        })
+      );
     });
 
     it("rejects stale baseUpdatedAt", async () => {
