@@ -12,7 +12,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
 import { createLogger } from "@nodetool-ai/config";
-import type { BaseProvider } from "@nodetool-ai/runtime";
+import type { BaseProvider, Message } from "@nodetool-ai/runtime";
 import { withAgentSpanGen } from "@nodetool-ai/runtime";
 
 const log = createLogger("nodetool.agents.agent");

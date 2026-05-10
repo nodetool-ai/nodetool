@@ -877,7 +877,7 @@ export function formatMemoryForPrompt(items: LongTermMemoryItem[]): string {
     // Strip delimiter variants, then escape any remaining angle brackets so
     // tag-shaped user data stays inert inside the untrusted-content block.
     const sanitized = item.text
-      .replace(/<\s*\/?\s*recalled-memories\b[^>]*>/gi, "")
+      .replace(/<\s*\/?recalled-memories\b[^>]*>/gi, "")
       .replace(/[<>]/g, (char) => (char === "<" ? "&lt;" : "&gt;"));
     lines.push(`- [${item.kind}] ${sanitized}`);
   }
