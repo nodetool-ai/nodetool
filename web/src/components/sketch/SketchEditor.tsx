@@ -37,7 +37,7 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, forwardRef } from "react";
+import React, { memo, forwardRef, useCallback, useEffect, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Container, FlexColumn, FlexRow } from "../ui_primitives";
@@ -52,7 +52,14 @@ import {
   ConnectedContextMenu,
   SketchCanvasPane
 } from "./editor-shell";
-import { SketchInspector } from "./Inspector";
+import {
+  SketchInspector,
+  SketchAIToolbar,
+  LayerStructuralDriftDialog
+} from "./Inspector";
+import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
+import { useSketchDocumentStore } from "../../stores/sketch/SketchDocumentStore";
+import { useSketchWorkflowFreshnessCheck } from "../../hooks/sketch/useSketchWorkflowFreshnessCheck";
 
 const styles = (theme: Theme) =>
   css({
@@ -122,6 +129,44 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     sessionStore: session.sessionStore,
     suspendKeyboardShortcuts
   });
+
+  // Register live canvas getters into the global ref store so consumers
+  // (Inpaint Here, Re-generate Stale, etc.) can read the composite without
+  // prop-drilling the canvas ref.
+  const setCanvasGetters = useSketchCanvasRefStore((s) => s.setGetters);
+  const clearCanvasGetters = useSketchCanvasRefStore((s) => s.clearGetters);
+  useEffect(() => {
+    const canvasRef = session.canvasRef;
+    setCanvasGetters({
+      flattenToDataUrl: () => canvasRef.current?.flattenToDataUrl() ?? "",
+      getMaskDataUrl: () => canvasRef.current?.getMaskDataUrl() ?? null
+    });
+    return () => {
+      clearCanvasGetters();
+    };
+  }, [session.canvasRef, setCanvasGetters, clearCanvasGetters]);
+
+  // Run the workflow-freshness check when the editor mounts so layers
+  // bound to workflows updated outside the sketch (e.g. in the node
+  // editor) are flagged stale and structural drift surfaces a dialog.
+  const documentId = useSketchDocumentStore((s) => s.documentId);
+  const { driftItems, resolveDrift } =
+    useSketchWorkflowFreshnessCheck(documentId);
+  const [dismissedDrift, setDismissedDrift] = useState<Set<string>>(
+    () => new Set()
+  );
+  const pendingDrift =
+    driftItems.find((d) => !dismissedDrift.has(d.workflowId)) ?? null;
+  const handleDismissDrift = useCallback(() => {
+    const workflowId = pendingDrift?.workflowId;
+    if (!workflowId) return;
+    setDismissedDrift((prev) => {
+      if (prev.has(workflowId)) return prev;
+      const next = new Set(prev);
+      next.add(workflowId);
+      return next;
+    });
+  }, [pendingDrift?.workflowId]);
 
   return (
     <FlexRow className="sketch-editor" css={styles(theme)}>
@@ -237,6 +282,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         }
         onLoadLayerAsSelection={session.canvasActions.handleLoadLayerAsSelection}
       />
+        <SketchAIToolbar />
         <SketchInspector />
       </FlexColumn>
 
@@ -265,6 +311,12 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         onLayerViaCopy={commands.handleLayerViaCopy}
         onLayerViaCut={commands.handleLayerViaCut}
         onFreeTransform={commands.handleFreeTransform}
+      />
+
+      <LayerStructuralDriftDialog
+        driftItem={pendingDrift}
+        onResolve={resolveDrift}
+        onDismiss={handleDismissDrift}
       />
 
       <TransformContextMenu

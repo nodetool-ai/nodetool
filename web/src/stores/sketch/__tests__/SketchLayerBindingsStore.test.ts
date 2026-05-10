@@ -247,4 +247,109 @@ describe("SketchLayerBindingsStore", () => {
     useSketchLayerBindingsStore.getState().removeBinding("layer-1");
     expect(useSketchLayerBindingsStore.getState().bindings["layer-1"]).toBeUndefined();
   });
+
+  it("restoreVersion swaps overrides and lastGeneratedHash to the version snapshot", () => {
+    useSketchLayerBindingsStore.getState().setBindings([makeBinding()]);
+    const seeded = useSketchLayerBindingsStore.getState().bindings["layer-1"];
+    useSketchLayerBindingsStore.getState().recordGeneratedVersion("layer-1", {
+      version: {
+        id: "v1",
+        createdAt: "",
+        jobId: "j",
+        assetId: "a-1",
+        workflowUpdatedAt: "",
+        dependencyHash: seeded.dependencyHash!,
+        paramOverridesSnapshot: { prompt: "hello" },
+        status: "success"
+      },
+      dependencyHash: seeded.dependencyHash!,
+      assetId: "a-1"
+    });
+
+    useSketchLayerBindingsStore
+      .getState()
+      .setParamOverride("layer-1", "prompt", "world");
+    expect(
+      useSketchLayerBindingsStore.getState().bindings["layer-1"].status
+    ).toBe("stale");
+
+    // Re-upsert the binding with an extra version so we can restore it
+    // without mutating store state directly.
+    const current = useSketchLayerBindingsStore.getState().bindings["layer-1"];
+    useSketchLayerBindingsStore.getState().upsertBinding({
+      ...current,
+      versions: [
+        ...current.versions,
+        {
+          id: "v0",
+          createdAt: "",
+          jobId: "j0",
+          assetId: "a-0",
+          workflowUpdatedAt: "",
+          dependencyHash: seeded.dependencyHash!,
+          paramOverridesSnapshot: { prompt: "hello" },
+          status: "success"
+        }
+      ]
+    });
+    useSketchLayerBindingsStore.getState().restoreVersion("layer-1", "v0");
+    const restored = useSketchLayerBindingsStore.getState().bindings["layer-1"];
+    expect(restored.currentAssetId).toBe("a-0");
+    expect(restored.paramOverrides).toEqual({ prompt: "hello" });
+    expect(restored.status).toBe("generated");
+  });
+
+  it("setLocked flips status to locked and revert returns to draft", () => {
+    useSketchLayerBindingsStore.getState().setBindings([makeBinding()]);
+    const seeded = useSketchLayerBindingsStore.getState().bindings["layer-1"];
+    useSketchLayerBindingsStore.getState().recordGeneratedVersion("layer-1", {
+      version: {
+        id: "v1",
+        createdAt: "",
+        jobId: "j",
+        assetId: "a-1",
+        workflowUpdatedAt: "",
+        dependencyHash: seeded.dependencyHash!,
+        paramOverridesSnapshot: seeded.paramOverrides!,
+        status: "success"
+      },
+      dependencyHash: seeded.dependencyHash!,
+      assetId: "a-1"
+    });
+
+    useSketchLayerBindingsStore.getState().setLocked("layer-1", true);
+    expect(
+      useSketchLayerBindingsStore.getState().bindings["layer-1"].status
+    ).toBe("locked");
+
+    useSketchLayerBindingsStore.getState().setLocked("layer-1", false);
+    expect(
+      useSketchLayerBindingsStore.getState().bindings["layer-1"].status
+    ).toBe("generated");
+
+    useSketchLayerBindingsStore.getState().revert("layer-1");
+    const after = useSketchLayerBindingsStore.getState().bindings["layer-1"];
+    expect(after.currentAssetId).toBeUndefined();
+    expect(after.lastGeneratedHash).toBeUndefined();
+    expect(after.status).toBe("draft");
+  });
+
+  it("setBindingsOutputNode applies to every binding sharing the workflow", () => {
+    useSketchLayerBindingsStore
+      .getState()
+      .setBindings([
+        makeBinding({ layerId: "a" }),
+        makeBinding({ layerId: "b" }),
+        makeBinding({ layerId: "c", workflowId: "wf-other" })
+      ]);
+
+    useSketchLayerBindingsStore
+      .getState()
+      .setBindingsOutputNode("wf-1", "out-2");
+
+    const state = useSketchLayerBindingsStore.getState();
+    expect(state.bindings["a"].selectedOutputNodeId).toBe("out-2");
+    expect(state.bindings["b"].selectedOutputNodeId).toBe("out-2");
+    expect(state.bindings["c"].selectedOutputNodeId).toBe("out-1");
+  });
 });
