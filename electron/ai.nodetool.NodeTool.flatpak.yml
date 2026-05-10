@@ -78,7 +78,6 @@ modules:
       - -Dvapi=false
       - -Dgtk_doc=false
       - -Dintrospection=false
-      - -Dgcrypt=false
       - -Dtpm2=false
     cleanup:
       - /include
