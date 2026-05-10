@@ -3,7 +3,14 @@ import Database from "better-sqlite3";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { closeDb, getDb, getRawDb, initDb, initTestDb } from "../src/db.js";
+import {
+  closeDb,
+  getDb,
+  getRawDb,
+  initDb,
+  initTestDb,
+  migrateSqliteDb
+} from "../src/db.js";
 
 describe("db", () => {
   let tempDir: string | null = null;
@@ -81,6 +88,28 @@ describe("db", () => {
     expect(jobCols).toContain("execution_id");
     expect(jobCols).toContain("metadata_json");
     expect(jobCols).toContain("suspension_metadata_json");
+  });
+
+  it("migrateSqliteDb applies SQLite migrations without initializing the global DB", async () => {
+    tempDir = mkdtempSync(join(tmpdir(), "nodetool-models-db-"));
+    const dbPath = join(tempDir, "migrations.sqlite");
+
+    const applied = await migrateSqliteDb(dbPath);
+
+    expect(applied.length).toBeGreaterThan(0);
+    expect(() => getDb()).toThrow(/not initialized/i);
+
+    const sqlite = new Database(dbPath);
+    try {
+      const imageDocuments = sqlite
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'image_documents'"
+        )
+        .get();
+      expect(imageDocuments).toBeTruthy();
+    } finally {
+      sqlite.close();
+    }
   });
 
   it("closeDb resets both the drizzle and raw database handles", async () => {

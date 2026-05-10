@@ -465,6 +465,7 @@ describe("Built-in migrations", () => {
     expect(await adapter.tableExists("run_events")).toBe(true);
     expect(await adapter.tableExists("run_leases")).toBe(true);
     expect(await adapter.tableExists("timeline_sequences")).toBe(true);
+    expect(await adapter.tableExists("image_documents")).toBe(true);
   });
 
   it("should be idempotent (running twice produces same result)", async () => {

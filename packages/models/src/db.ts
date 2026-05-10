@@ -12,6 +12,10 @@ import {
 } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema/index.js";
 import * as pgSchema from "./schema-pg/index.js";
+import {
+  MigrationRunner,
+  SQLiteMigrationAdapter
+} from "./migrations/index.js";
 
 export type DbDialect = "sqlite" | "postgres";
 
@@ -134,6 +138,25 @@ export function getRawDb(): Database.Database {
       "SQLite database not initialized. Raw access is only available for SQLite."
     );
   return _sqlite;
+}
+
+/**
+ * Apply pending SQLite migrations to a database file without initializing the
+ * global Drizzle connection. Used by local backend startup before initDb().
+ */
+export async function migrateSqliteDb(dbPath: string): Promise<string[]> {
+  const sqlite = new Database(dbPath);
+  sqlite.pragma("journal_mode = WAL");
+  sqlite.pragma("busy_timeout = 30000");
+  sqlite.pragma("synchronous = NORMAL");
+
+  try {
+    const adapter = new SQLiteMigrationAdapter(sqlite);
+    const runner = new MigrationRunner(adapter);
+    return await runner.migrate();
+  } finally {
+    sqlite.close();
+  }
 }
 
 /**

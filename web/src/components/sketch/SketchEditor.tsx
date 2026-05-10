@@ -40,11 +40,20 @@ import { css } from "@emotion/react";
 import React, { memo, forwardRef, useCallback, useEffect, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Container, FlexColumn, FlexRow } from "../ui_primitives";
+import {
+  CollapsibleSection,
+  Container,
+  FlexColumn,
+  FlexRow
+} from "../ui_primitives";
 import TransformContextMenu from "./TransformContextMenu";
 import type { SketchDocument } from "./types";
 import type { SketchPersistenceSnapshot } from "../../stores/sketch/persistence";
-import { useEditorSession, useEditorCommands } from "./hooks";
+import {
+  useColorIntentRouter,
+  useEditorSession,
+  useEditorCommands
+} from "./hooks";
 import {
   ConnectedToolbar,
   ConnectedToolTopBar,
@@ -60,6 +69,9 @@ import {
 import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
 import { useSketchDocumentStore } from "../../stores/sketch/SketchDocumentStore";
 import { useSketchWorkflowFreshnessCheck } from "../../hooks/sketch/useSketchWorkflowFreshnessCheck";
+import { SKETCH_SIZE } from "./sketchStyles";
+import HueTriangleColorPicker from "./HueTriangleColorPicker";
+import { useSketchStore } from "./state/useSketchStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -82,6 +94,21 @@ export interface SketchEditorHandle {
   discardToInitial: () => void;
   flushPendingChanges: () => void;
 }
+
+const ConnectedColorPanel = memo(function ConnectedColorPanel() {
+  const foregroundColor =
+    useSketchStore((s) => s.foregroundColor) || "#ffffff";
+  const handleFgColorChange = useColorIntentRouter();
+
+  return (
+    <Container padding="none" sx={{ p: 1 }}>
+      <HueTriangleColorPicker
+        color={foregroundColor}
+        onColorChange={handleFgColorChange}
+      />
+    </Container>
+  );
+});
 
 export interface SketchEditorProps {
   initialDocument?: SketchDocument;
@@ -240,50 +267,108 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           Both subscribe directly to the sketch store so panelsHidden hides
           them independently of the rest of the editor. */}
       <FlexColumn
-        sx={{ minHeight: 0, flexShrink: 0 }}
+        sx={{
+          width: SKETCH_SIZE.panelWidth,
+          minWidth: SKETCH_SIZE.panelWidth,
+          maxWidth: SKETCH_SIZE.panelWidth,
+          minHeight: 0,
+          flexShrink: 0,
+          backgroundColor: theme.vars.palette.grey[800],
+          borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
+          overflow: "hidden"
+        }}
         gap={0}
       >
-      <ConnectedLayersPanel
-        onClearLayer={session.canvasActions.handleClearLayer}
-        onFlipHorizontal={session.layerActions.handleFlipHorizontal}
-        onFlipVertical={session.layerActions.handleFlipVertical}
-        onMergeDown={session.layerActions.handleMergeDown}
-        onFlattenVisible={session.layerActions.handleFlattenVisible}
-        onTrimLayerToBounds={session.canvasActions.handleTrimLayerToBounds}
-        onCropCanvasToActiveLayerVisiblePixels={
-          session.canvasActions.handleCropCanvasToActiveLayerVisiblePixels
-        }
-        onCropCanvasToActiveLayerExtents={
-          session.canvasActions.handleCropCanvasToActiveLayerExtents
-        }
-        onCanvasResize={session.canvasActions.handleCanvasResize}
-        onToggleVisibility={session.layerActions.handleToggleVisibility}
-        onAddLayer={(fillColor) => session.layerActions.handleAddLayer({ fillColor: fillColor ?? undefined })}
-        onRemoveLayer={session.layerActions.handleRemoveLayer}
-        onDuplicateLayer={session.layerActions.handleDuplicateLayer}
-        onReorderLayers={session.layerActions.handleReorderLayers}
-        onSetMaskLayer={session.layerActions.handleSetMaskLayer}
-        onToggleAlphaLock={session.layerActions.handleToggleAlphaLock}
-        onToggleExposedInput={session.layerActions.handleToggleExposedInput}
-        onToggleExposedOutput={session.layerActions.handleToggleExposedOutput}
-        onLayerOpacityChange={session.layerActions.handleSetLayerOpacity}
-        onLayerBlendModeChange={session.layerActions.handleSetLayerBlendMode}
-        onRenameLayer={session.layerActions.handleRenameLayer}
-        onAddGroup={session.layerActions.handleAddGroup}
-        onToggleGroupCollapsed={session.layerActions.handleToggleGroupCollapsed}
-        onMoveLayerToGroup={session.layerActions.handleMoveLayerToGroup}
-        onUngroupLayer={session.layerActions.handleUngroupLayer}
-        onGroupSelectedLayers={session.layerActions.handleGroupSelectedLayers}
-        onMergeSelectedLayers={session.layerActions.handleMergeSelectedLayers}
-        onDeleteSelectedLayers={session.layerActions.handleDeleteSelectedLayers}
-        canvasResizeHandlesEnabled={session.canvasResizeHandlesEnabled}
-        onCanvasResizeHandlesEnabledChange={
-          session.handleCanvasResizeHandlesEnabledChange
-        }
-        onLoadLayerAsSelection={session.canvasActions.handleLoadLayerAsSelection}
-      />
-        <SketchAIToolbar />
-        <SketchInspector />
+        <CollapsibleSection
+          title="Color"
+          defaultOpen
+          compact
+          sx={{
+            borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+            "& > [role='button']": {
+              padding: theme.spacing(0.75, 1),
+              backgroundColor: theme.vars.palette.grey[800]
+            }
+          }}
+        >
+          <ConnectedColorPanel />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Layers"
+          defaultOpen
+          compact
+          sx={{
+            minHeight: 0,
+            borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+            "& > [role='button']": {
+              padding: theme.spacing(0.75, 1),
+              backgroundColor: theme.vars.palette.grey[800]
+            }
+          }}
+        >
+          <ConnectedLayersPanel
+            onClearLayer={session.canvasActions.handleClearLayer}
+            onFlipHorizontal={session.layerActions.handleFlipHorizontal}
+            onFlipVertical={session.layerActions.handleFlipVertical}
+            onMergeDown={session.layerActions.handleMergeDown}
+            onFlattenVisible={session.layerActions.handleFlattenVisible}
+            onTrimLayerToBounds={session.canvasActions.handleTrimLayerToBounds}
+            onCropCanvasToActiveLayerVisiblePixels={
+              session.canvasActions.handleCropCanvasToActiveLayerVisiblePixels
+            }
+            onCropCanvasToActiveLayerExtents={
+              session.canvasActions.handleCropCanvasToActiveLayerExtents
+            }
+            onCanvasResize={session.canvasActions.handleCanvasResize}
+            onToggleVisibility={session.layerActions.handleToggleVisibility}
+            onAddLayer={(fillColor) =>
+              session.layerActions.handleAddLayer({
+                fillColor: fillColor ?? undefined
+              })
+            }
+            onRemoveLayer={session.layerActions.handleRemoveLayer}
+            onDuplicateLayer={session.layerActions.handleDuplicateLayer}
+            onReorderLayers={session.layerActions.handleReorderLayers}
+            onSetMaskLayer={session.layerActions.handleSetMaskLayer}
+            onToggleAlphaLock={session.layerActions.handleToggleAlphaLock}
+            onToggleExposedInput={session.layerActions.handleToggleExposedInput}
+            onToggleExposedOutput={session.layerActions.handleToggleExposedOutput}
+            onLayerOpacityChange={session.layerActions.handleSetLayerOpacity}
+            onLayerBlendModeChange={session.layerActions.handleSetLayerBlendMode}
+            onRenameLayer={session.layerActions.handleRenameLayer}
+            onAddGroup={session.layerActions.handleAddGroup}
+            onToggleGroupCollapsed={session.layerActions.handleToggleGroupCollapsed}
+            onMoveLayerToGroup={session.layerActions.handleMoveLayerToGroup}
+            onUngroupLayer={session.layerActions.handleUngroupLayer}
+            onGroupSelectedLayers={session.layerActions.handleGroupSelectedLayers}
+            onMergeSelectedLayers={session.layerActions.handleMergeSelectedLayers}
+            onDeleteSelectedLayers={session.layerActions.handleDeleteSelectedLayers}
+            canvasResizeHandlesEnabled={session.canvasResizeHandlesEnabled}
+            onCanvasResizeHandlesEnabledChange={
+              session.handleCanvasResizeHandlesEnabledChange
+            }
+            onLoadLayerAsSelection={session.canvasActions.handleLoadLayerAsSelection}
+          />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Generated Layer"
+          defaultOpen
+          compact
+          sx={{
+            minHeight: 0,
+            flex: 1,
+            "& > [role='button']": {
+              padding: theme.spacing(0.75, 1),
+              backgroundColor: theme.vars.palette.grey[800],
+              borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+            }
+          }}
+        >
+          <SketchAIToolbar />
+          <SketchInspector />
+        </CollapsibleSection>
       </FlexColumn>
 
       <ConnectedContextMenu

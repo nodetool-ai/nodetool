@@ -34,7 +34,12 @@ import {
   PythonStdioBridge
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
-import { initDb, initPostgresDb, runSeeds } from "@nodetool-ai/models";
+import {
+  initDb,
+  initPostgresDb,
+  migrateSqliteDb,
+  runSeeds
+} from "@nodetool-ai/models";
 import { Tool, BUILTIN_TOOL_CLASSES } from "@nodetool-ai/agents";
 import { registerPythonProviders } from "./models-api.js";
 import type { HttpApiOptions } from "./http-api.js";
@@ -220,6 +225,13 @@ try {
   } else {
     const dbPath = getDefaultDbPath();
     mkdirSync(dirname(dbPath), { recursive: true });
+    const appliedMigrations = await migrateSqliteDb(dbPath);
+    if (appliedMigrations.length > 0) {
+      log.info(`SQLite migrations applied [${startupMs()}]`, {
+        count: appliedMigrations.length,
+        versions: appliedMigrations
+      });
+    }
     initDb(dbPath);
     log.info(`SQLite database ready [${startupMs()}]`, { path: dbPath });
   }

@@ -4,51 +4,51 @@
 @tailwind components;
 @tailwind utilities;
 
-/* shadcn classic dark theme — slate-tinted neutrals + violet accent */
+/* Linear-inspired neutrals: crisp dark surfaces, no purple AI accent. */
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 240 10% 4%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 240 10% 4%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 263 70% 60%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 263 70% 60%;
-    --radius: 0.75rem;
+    --popover-foreground: 240 10% 4%;
+    --primary: 240 6% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 240 5% 65%;
+    --radius: 0.625rem;
   }
 
   .dark {
-    --background: 224 71% 4%;
-    --foreground: 210 40% 98%;
-    --card: 224 71% 4%;
-    --card-foreground: 210 40% 98%;
-    --popover: 224 71% 4%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 263 70% 65%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 215 27.9% 16.9%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 215 27.9% 16.9%;
-    --muted-foreground: 217.9 10.6% 64.9%;
-    --accent: 215 27.9% 16.9%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 215 27.9% 16.9%;
-    --input: 215 27.9% 16.9%;
-    --ring: 263 70% 65%;
+    --background: 240 6% 7%;
+    --foreground: 0 0% 93%;
+    --card: 240 5% 10%;
+    --card-foreground: 0 0% 93%;
+    --popover: 240 5% 9%;
+    --popover-foreground: 0 0% 93%;
+    --primary: 0 0% 92%;
+    --primary-foreground: 240 6% 8%;
+    --secondary: 240 4% 14%;
+    --secondary-foreground: 0 0% 92%;
+    --muted: 240 4% 14%;
+    --muted-foreground: 240 5% 64%;
+    --accent: 240 4% 16%;
+    --accent-foreground: 0 0% 94%;
+    --destructive: 0 63% 44%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 4% 18%;
+    --input: 240 4% 20%;
+    --ring: 240 5% 52%;
   }
 }
 
@@ -62,12 +62,11 @@
   }
 }
 
-/* Subtle animated gradient backdrop for the empty state */
+/* Very subtle neutral depth, no colorful glow. */
 .aurora {
   background:
-    radial-gradient(40rem 40rem at 10% 0%, hsl(263 70% 65% / 0.08), transparent 60%),
-    radial-gradient(30rem 30rem at 90% 100%, hsl(192 80% 60% / 0.06), transparent 60%),
-    radial-gradient(40rem 40rem at 50% 60%, hsl(280 70% 60% / 0.05), transparent 60%);
+    radial-gradient(42rem 28rem at 50% -10%, hsl(0 0% 100% / 0.035), transparent 62%),
+    linear-gradient(180deg, hsl(240 5% 9% / 0.45), hsl(240 6% 7% / 0));
 }
 
 /* Markdown body styling */
@@ -94,7 +93,7 @@
   @apply bg-transparent p-0 text-[0.85em];
 }
 .prose-chat a {
-  @apply text-primary underline underline-offset-2;
+  @apply text-foreground underline underline-offset-2 decoration-muted-foreground hover:decoration-foreground;
 }
 .prose-chat h1,
 .prose-chat h2,
