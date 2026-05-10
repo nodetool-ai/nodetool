@@ -49,3 +49,6 @@
 ## 2026-04-24 - Tooltips on disabled Material-UI IconButtons
 **Learning:** By default, disabled HTML elements (like the `<IconButton disabled>`) do not fire mouse events (like `hover` or `mouseenter`). Because of this, any `<Tooltip>` wrapping the disabled button fails to appear, hiding important state context from the user.
 **Action:** When wrapping a potentially `disabled` Material-UI component (like an `<IconButton disabled>`) inside a `<Tooltip>`, wrap the disabled component in a `<span style={{ display: 'inline-flex' }}>` tag. The `inline-flex` display preserves the intended component layout and alignment while capturing the pointer events so the tooltip can appear.
+## 2026-05-09 - Dynamic aria-labels in Dialogs/Drawers
+**Learning:** Found that generic UI containers like `DrawerPanel` used hardcoded `aria-label="Close drawer"` on their close buttons, limiting context for screen reader users when multiple drawers exist.
+**Action:** When creating or updating generic container components with close buttons, use dynamic `aria-label`s based on the container's title (e.g., `aria-label={title ? \`Close ${title} drawer\` : "Close drawer"}`) to provide specific context.

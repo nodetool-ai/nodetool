@@ -100,7 +100,7 @@ const DrawerPanelInternal: React.FC<DrawerPanelProps> = ({
             <IconButton
               onClick={onClose as React.MouseEventHandler}
               size="small"
-              aria-label="Close drawer"
+              aria-label={title ? `Close ${title} drawer` : "Close drawer"}
             >
               <CloseIcon fontSize="small" />
             </IconButton>
