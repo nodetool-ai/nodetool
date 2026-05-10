@@ -35,7 +35,6 @@ export {
 
 export {
   SupabaseProvider,
-  type PgClient,
   type SupabaseProviderOptions
 } from "./supabase-provider.js";
 

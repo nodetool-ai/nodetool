@@ -85,17 +85,23 @@ export function createVectorProviderFromEnv(
     }
 
     case "supabase": {
-      const databaseUrl =
-        env.NODETOOL_VECTOR_DATABASE_URL ?? env.SUPABASE_DB_URL;
-      if (!databaseUrl) {
+      // Same env vars the @nodetool-ai/storage Supabase backend uses, so a
+      // single Supabase project can back both file storage and vectors.
+      const url = env.SUPABASE_URL;
+      const apiKey =
+        env.SUPABASE_SERVICE_ROLE_KEY ?? env.SUPABASE_KEY;
+      if (!url || !apiKey) {
         throw new ProviderConfigError(
-          "NODETOOL_VECTOR_PROVIDER=supabase but no Postgres connection " +
-            "string was found. Set NODETOOL_VECTOR_DATABASE_URL or " +
-            "SUPABASE_DB_URL to a postgresql:// URL with pgvector enabled."
+          "NODETOOL_VECTOR_PROVIDER=supabase but SUPABASE_URL and " +
+            "SUPABASE_KEY (or SUPABASE_SERVICE_ROLE_KEY) are not set. " +
+            "The provider also needs the migration in " +
+            "packages/vectorstore/sql/supabase-migration.sql installed " +
+            "on the project."
         );
       }
       return new SupabaseProvider({
-        databaseUrl,
+        url,
+        apiKey,
         schema: env.NODETOOL_VECTOR_SCHEMA
       });
     }

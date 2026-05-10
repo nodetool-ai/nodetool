@@ -1,60 +1,267 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   CollectionNotFoundError,
   ProviderConfigError,
   SupabaseProvider,
   UnsupportedFilterError,
-  type EmbeddingFunction,
-  type PgClient
+  type EmbeddingFunction
 } from "../src/index.js";
 
-/**
- * Stub PgClient that records every executed query and returns canned
- * results for selected SQL fragments. The matching is intentionally
- * loose — match-by-substring is enough to drive the provider through
- * its branches without rebuilding the SQL parser.
- */
-class FakePg implements PgClient {
-  readonly calls: Array<{ sql: string; params: readonly unknown[] }> = [];
-  private readonly handlers: Array<{
-    match: RegExp | string;
-    rows: (params: readonly unknown[]) => Record<string, unknown>[];
-  }> = [];
-  ended = false;
+// ---------------------------------------------------------------------------
+// FakeSupabase — a record-and-replay stand-in for @supabase/supabase-js.
+//
+// Real supabase-js exposes a fluent query builder where every chainable
+// call returns the same builder, and the builder is itself a thenable
+// whose `then` resolves to `{data, error, count?}`. We fake just enough
+// of that shape to drive SupabaseProvider through every branch we use.
+// ---------------------------------------------------------------------------
 
-  on(
-    match: RegExp | string,
-    rows:
-      | Record<string, unknown>[]
-      | ((params: readonly unknown[]) => Record<string, unknown>[])
-  ): this {
-    const fn = typeof rows === "function" ? rows : () => rows;
-    this.handlers.push({ match, rows: fn });
+interface Call {
+  table?: string;
+  rpc?: string;
+  op:
+    | "select"
+    | "insert"
+    | "upsert"
+    | "update"
+    | "delete"
+    | "rpc";
+  args: unknown;
+  filters: Array<[string, string, unknown]>;
+  options: Record<string, unknown>;
+  result?: { data: unknown; error: unknown; count?: number };
+}
+
+type Resolver = (call: Call) => {
+  data: unknown;
+  error?: { message: string } | null;
+  count?: number;
+};
+
+class FakeSupabase {
+  readonly calls: Call[] = [];
+  private resolvers: Array<{
+    match: (c: Call) => boolean;
+    resolve: Resolver;
+  }> = [];
+
+  on(match: (c: Call) => boolean, resolve: Resolver | { data: unknown; error?: unknown; count?: number }): this {
+    const fn: Resolver =
+      typeof resolve === "function"
+        ? resolve
+        : () => ({
+            data: resolve.data,
+            error: (resolve.error ?? null) as { message: string } | null,
+            count: resolve.count
+          });
+    this.resolvers.push({ match, resolve: fn });
     return this;
   }
 
-  async query<T>(sql: string, params: readonly unknown[] = []): Promise<T[]> {
-    this.calls.push({ sql, params });
-    for (const h of this.handlers) {
-      const ok =
-        typeof h.match === "string" ? sql.includes(h.match) : h.match.test(sql);
-      if (ok) return h.rows(params) as T[];
-    }
-    return [];
+  from(table: string): FakeQueryBuilder {
+    return new FakeQueryBuilder(this, table);
   }
 
-  async end(): Promise<void> {
-    this.ended = true;
+  rpc(name: string, args: unknown): Thenable {
+    const call: Call = {
+      rpc: name,
+      op: "rpc",
+      args,
+      filters: [],
+      options: {}
+    };
+    this.calls.push(call);
+    return makeThenable(call, this.resolvers);
   }
 
-  /** Find the first call whose SQL includes a substring. */
-  find(match: string | RegExp): { sql: string; params: readonly unknown[] } {
-    const c = this.calls.find((x) =>
-      typeof match === "string" ? x.sql.includes(match) : match.test(x.sql)
-    );
-    if (!c) throw new Error(`No call matched: ${match}`);
+  // No-op pieces of the real client.
+  schema(): FakeSupabase {
+    return this;
+  }
+
+  find(filter: (c: Call) => boolean): Call {
+    const c = this.calls.find(filter);
+    if (!c) throw new Error("No call matched");
     return c;
   }
+
+  asSupabase(): SupabaseClient {
+    return this as unknown as SupabaseClient;
+  }
+}
+
+interface Thenable {
+  then<T>(
+    onFulfilled?: (v: { data: unknown; error: unknown; count?: number }) => T
+  ): Promise<T>;
+}
+
+function makeThenable(
+  call: Call,
+  resolvers: Array<{ match: (c: Call) => boolean; resolve: Resolver }>
+): Thenable {
+  return {
+    then(onFulfilled) {
+      for (const r of resolvers) {
+        if (r.match(call)) {
+          const res = r.resolve(call);
+          const out = {
+            data: res.data,
+            error: res.error ?? null,
+            count: res.count
+          };
+          call.result = out;
+          return Promise.resolve(out).then(onFulfilled);
+        }
+      }
+      const out = { data: null, error: null, count: 0 };
+      call.result = out;
+      return Promise.resolve(out).then(onFulfilled);
+    }
+  };
+}
+
+class FakeQueryBuilder {
+  private call: Call;
+  constructor(
+    private readonly fake: FakeSupabase,
+    table: string
+  ) {
+    this.call = {
+      table,
+      op: "select",
+      args: undefined,
+      filters: [],
+      options: {}
+    };
+    this.fake.calls.push(this.call);
+  }
+
+  select(cols: string, opts?: Record<string, unknown>): this {
+    this.call.op = "select";
+    this.call.args = cols;
+    if (opts) Object.assign(this.call.options, opts);
+    return this;
+  }
+
+  insert(values: unknown): this {
+    this.call.op = "insert";
+    this.call.args = values;
+    return this;
+  }
+
+  upsert(values: unknown, opts?: Record<string, unknown>): this {
+    this.call.op = "upsert";
+    this.call.args = values;
+    if (opts) Object.assign(this.call.options, opts);
+    return this;
+  }
+
+  update(values: unknown): this {
+    this.call.op = "update";
+    this.call.args = values;
+    return this;
+  }
+
+  delete(): this {
+    this.call.op = "delete";
+    return this;
+  }
+
+  eq(field: string, value: unknown): this {
+    this.call.filters.push(["eq", field, value]);
+    return this;
+  }
+
+  in(field: string, values: unknown): this {
+    this.call.filters.push(["in", field, values]);
+    return this;
+  }
+
+  is(field: string, value: unknown): this {
+    this.call.filters.push(["is", field, value]);
+    return this;
+  }
+
+  ilike(field: string, value: unknown): this {
+    this.call.filters.push(["ilike", field, value]);
+    return this;
+  }
+
+  contains(field: string, value: unknown): this {
+    this.call.filters.push(["contains", field, value]);
+    return this;
+  }
+
+  match(value: unknown): this {
+    this.call.filters.push(["match", "*", value]);
+    return this;
+  }
+
+  order(col: string): this {
+    this.call.options.order = col;
+    return this;
+  }
+
+  limit(n: number): this {
+    this.call.options.limit = n;
+    return this;
+  }
+
+  range(from: number, to: number): this {
+    this.call.options.range = [from, to];
+    return this;
+  }
+
+  single(): Thenable {
+    this.call.options.single = true;
+    return this.thenable();
+  }
+
+  maybeSingle(): Thenable {
+    this.call.options.maybeSingle = true;
+    return this.thenable();
+  }
+
+  private thenable(): Thenable {
+    return makeThenable(this.call, this.fake["resolvers"]);
+  }
+
+  then<T>(
+    onFulfilled?: (v: { data: unknown; error: unknown; count?: number }) => T
+  ): Promise<T> {
+    return this.thenable().then(onFulfilled);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Test helpers
+// ---------------------------------------------------------------------------
+
+function registryRow(over: Partial<{
+  name: string;
+  metadata: unknown;
+  dimension: number | null;
+  metric: string;
+}> = {}) {
+  return {
+    name: over.name ?? "docs",
+    metadata: over.metadata ?? {},
+    dimension: over.dimension === undefined ? 3 : over.dimension,
+    metric: over.metric ?? "cosine"
+  };
+}
+
+function isSelectFromRegistry(c: Call): boolean {
+  return (
+    c.table === "nodetool_vec_collections" &&
+    c.op === "select"
+  );
+}
+
+function isMaybeSingleRegistry(c: Call): boolean {
+  return isSelectFromRegistry(c) && c.options.maybeSingle === true;
 }
 
 const fakeEf: EmbeddingFunction = {
@@ -63,70 +270,35 @@ const fakeEf: EmbeddingFunction = {
   }
 };
 
-let pg: FakePg;
+let fake: FakeSupabase;
 let provider: SupabaseProvider;
 
 beforeEach(() => {
-  pg = new FakePg();
-  provider = new SupabaseProvider({ client: pg });
+  fake = new FakeSupabase();
+  provider = new SupabaseProvider({ client: fake.asSupabase() });
 });
 
+// ---------------------------------------------------------------------------
+
 describe("SupabaseProvider — config", () => {
-  it("requires databaseUrl when no client is injected", () => {
+  it("requires url+apiKey or a pre-built client", () => {
     expect(() => new SupabaseProvider({})).toThrow(ProviderConfigError);
+    expect(() => new SupabaseProvider({ url: "https://x" })).toThrow(
+      ProviderConfigError
+    );
   });
 
   it("identifies as supabase", () => {
     expect(provider.name).toBe("supabase");
   });
-
-  it("rejects malformed collection names", async () => {
-    await expect(
-      provider.createCollection({ name: "bad name!" })
-    ).rejects.toBeInstanceOf(ProviderConfigError);
-    await expect(
-      provider.getCollection({ name: "1leading-digit" })
-    ).rejects.toBeInstanceOf(ProviderConfigError);
-  });
-});
-
-describe("SupabaseProvider — schema bootstrap", () => {
-  it("creates the vector extension and registry on first use", async () => {
-    pg.on(/CREATE TABLE IF NOT EXISTS .*nodetool_vec_collections/i, []);
-    pg.on(/INSERT INTO/, []);
-    pg.on(/CREATE TABLE IF NOT EXISTS .*nodetool_vec_docs/i, []);
-
-    await provider.createCollection({ name: "docs", dimension: 3 });
-
-    const sqls = pg.calls.map((c) => c.sql);
-    expect(sqls.some((s) => /CREATE EXTENSION IF NOT EXISTS vector/i.test(s))).toBe(
-      true
-    );
-    expect(
-      sqls.some((s) =>
-        /CREATE TABLE IF NOT EXISTS "public"\."nodetool_vec_collections"/i.test(s)
-      )
-    ).toBe(true);
-  });
-
-  it("only initialises once per provider instance", async () => {
-    pg.on(/INSERT INTO/, []);
-    pg.on(/CREATE TABLE IF NOT EXISTS/, []);
-
-    await provider.createCollection({ name: "a", dimension: 3 });
-    await provider.createCollection({ name: "b", dimension: 3 });
-
-    const extCalls = pg.calls.filter((c) =>
-      /CREATE EXTENSION/i.test(c.sql)
-    );
-    expect(extCalls).toHaveLength(1);
-  });
 });
 
 describe("SupabaseProvider — collection lifecycle", () => {
-  it("createCollection writes to the registry and creates a per-collection table", async () => {
-    pg.on(/INSERT INTO/, []);
-    pg.on(/CREATE TABLE/, []);
+  it("createCollection inserts into the registry table", async () => {
+    fake.on(
+      (c) => c.table === "nodetool_vec_collections" && c.op === "insert",
+      { data: null, error: null }
+    );
 
     await provider.createCollection({
       name: "docs",
@@ -135,41 +307,44 @@ describe("SupabaseProvider — collection lifecycle", () => {
       metric: "cosine"
     });
 
-    const insert = pg.find("INSERT INTO");
-    expect(insert.params[0]).toBe("docs");
-    expect(insert.params[1]).toBe("nodetool_vec_docs");
-    expect(JSON.parse(insert.params[2] as string).embedding_model).toBe("fake");
-    expect(insert.params[3]).toBe(3);
-    expect(insert.params[4]).toBe("cosine");
-
-    const ddl = pg.find(/nodetool_vec_docs.*\(\s*\n?\s*id\s+text PRIMARY KEY/s);
-    expect(ddl.sql).toContain("vector(3)");
+    const insert = fake.find(
+      (c) => c.table === "nodetool_vec_collections" && c.op === "insert"
+    );
+    expect(insert.args).toMatchObject({
+      name: "docs",
+      dimension: 3,
+      metric: "cosine",
+      metadata: { embedding_model: "fake" }
+    });
   });
 
   it("getCollection throws CollectionNotFoundError when missing", async () => {
-    pg.on(/SELECT name, table_name/, []);
+    fake.on(isMaybeSingleRegistry, { data: null, error: null });
     await expect(
       provider.getCollection({ name: "missing" })
     ).rejects.toBeInstanceOf(CollectionNotFoundError);
   });
 
   it("listCollections decodes registry rows", async () => {
-    pg.on(/SELECT name, table_name/, [
+    fake.on(
+      (c) => isSelectFromRegistry(c) && c.options.order === "name",
       {
-        name: "a",
-        table_name: "nodetool_vec_a",
-        metadata: { kind: "x" },
-        dimension: 3,
-        metric: "cosine"
-      },
-      {
-        name: "b",
-        table_name: "nodetool_vec_b",
-        metadata: '{"kind":"y"}',
-        dimension: null,
-        metric: "l2"
+        data: [
+          {
+            name: "a",
+            metadata: { kind: "x" },
+            dimension: 3
+          },
+          {
+            name: "b",
+            metadata: '{"kind":"y"}',
+            dimension: null
+          }
+        ],
+        error: null
       }
-    ]);
+    );
+
     const cols = await provider.listCollections();
     expect(cols.map((c) => c.name)).toEqual(["a", "b"]);
     expect(cols[0].metadata.kind).toBe("x");
@@ -178,80 +353,65 @@ describe("SupabaseProvider — collection lifecycle", () => {
     expect(cols[1].dimension).toBeUndefined();
   });
 
-  it("deleteCollection drops the table and removes the registry row", async () => {
-    pg.on(/SELECT name, table_name/, [
-      {
-        name: "docs",
-        table_name: "nodetool_vec_docs",
-        metadata: {},
-        dimension: 3,
-        metric: "cosine"
-      }
-    ]);
-    pg.on(/DROP TABLE/, []);
-    pg.on(/DELETE FROM/, []);
+  it("deleteCollection removes the registry row (FK cascades records)", async () => {
+    fake.on(isMaybeSingleRegistry, {
+      data: registryRow({ name: "docs" }),
+      error: null
+    });
+    fake.on(
+      (c) => c.table === "nodetool_vec_collections" && c.op === "delete",
+      { data: null, error: null }
+    );
 
     await provider.deleteCollection("docs");
 
-    expect(pg.calls.some((c) => /DROP TABLE.*nodetool_vec_docs/.test(c.sql))).toBe(
-      true
+    const del = fake.find(
+      (c) => c.table === "nodetool_vec_collections" && c.op === "delete"
     );
-    expect(
-      pg.calls.some((c) => /DELETE FROM.*nodetool_vec_collections/.test(c.sql))
-    ).toBe(true);
+    expect(del.filters).toContainEqual(["eq", "name", "docs"]);
   });
 });
 
 describe("SupabaseProvider — record operations", () => {
-  function registryHandlerFor(state: {
-    name: string;
-    table_name: string;
-    metadata?: Record<string, unknown>;
-    dimension?: number | null;
-    metric?: string;
-  }) {
-    return [
-      {
-        name: state.name,
-        table_name: state.table_name,
-        metadata: state.metadata ?? {},
-        dimension: state.dimension ?? null,
-        metric: state.metric ?? "cosine"
-      }
-    ];
-  }
+  beforeEach(() => {
+    fake.on(isMaybeSingleRegistry, { data: registryRow(), error: null });
+  });
 
-  it("upsert encodes embeddings as pgvector literals", async () => {
-    pg.on(/SELECT name, table_name/, registryHandlerFor({
-      name: "docs",
-      table_name: "nodetool_vec_docs",
-      dimension: 3
-    }));
-    pg.on(/INSERT INTO/, []);
+  it("upsert encodes embeddings as pgvector text literals", async () => {
+    fake.on(
+      (c) => c.table === "nodetool_vec_records" && c.op === "upsert",
+      { data: null, error: null }
+    );
 
     const col = await provider.getCollection({ name: "docs" });
     await col.upsert([
-      { id: "1", document: "hi", embedding: [0.1, 0.2, 0.3], metadata: { k: "v" } }
+      {
+        id: "1",
+        document: "hi",
+        embedding: [0.1, 0.2, 0.3],
+        metadata: { k: "v" }
+      }
     ]);
 
-    const insert = pg.find("INSERT INTO \"public\".\"nodetool_vec_docs\"");
-    // Params: id, document, embedding-literal, uri, metadata-json
-    expect(insert.params[0]).toBe("1");
-    expect(insert.params[1]).toBe("hi");
-    expect(insert.params[2]).toBe("[0.1,0.2,0.3]");
-    expect(insert.params[3]).toBeNull();
-    expect(JSON.parse(insert.params[4] as string).k).toBe("v");
-    expect(insert.sql).toContain("::vector");
-    expect(insert.sql).toContain("ON CONFLICT (id) DO UPDATE");
+    const upsert = fake.find(
+      (c) => c.table === "nodetool_vec_records" && c.op === "upsert"
+    );
+    const rows = upsert.args as Array<Record<string, unknown>>;
+    expect(rows[0]).toMatchObject({
+      collection: "docs",
+      id: "1",
+      document: "hi",
+      embedding: "[0.1,0.2,0.3]",
+      metadata: { k: "v" }
+    });
+    expect(upsert.options.onConflict).toBe("collection,id");
   });
 
   it("upsert auto-generates embeddings via the embedding function", async () => {
-    pg.on(/SELECT name, table_name/, registryHandlerFor({
-      name: "docs",
-      table_name: "nodetool_vec_docs",
-      dimension: 3
-    }));
-    pg.on(/INSERT INTO/, []);
+    fake.on(
+      (c) => c.table === "nodetool_vec_records" && c.op === "upsert",
+      { data: null, error: null }
+    );
 
     const col = await provider.getCollection({
       name: "docs",
@@ -262,45 +422,58 @@ describe("SupabaseProvider — record operations", () => {
       { id: "b", document: "beta" }
     ]);
 
-    const insert = pg.find("INSERT INTO \"public\".\"nodetool_vec_docs\"");
-    // 5 params per row × 2 rows = 10 params
-    expect(insert.params).toHaveLength(10);
-    // Param 2 is the first row's embedding literal.
-    expect(insert.params[2]).toMatch(/^\[\d+,\d+,1\]$/);
+    const upsert = fake.find(
+      (c) => c.table === "nodetool_vec_records" && c.op === "upsert"
+    );
+    const rows = upsert.args as Array<Record<string, unknown>>;
+    expect(rows).toHaveLength(2);
+    expect(rows[0].embedding).toMatch(/^\[\d+,\d+,1\]$/);
   });
 
   it("upsert pins dimension on first embedding when registry says null", async () => {
-    pg.on(/SELECT name, table_name/, registryHandlerFor({
-      name: "docs",
-      table_name: "nodetool_vec_docs",
-      dimension: null
-    }));
-    pg.on(/UPDATE/, []);
-    pg.on(/ALTER TABLE/, []);
-    pg.on(/INSERT INTO/, []);
+    fake = new FakeSupabase();
+    provider = new SupabaseProvider({ client: fake.asSupabase() });
+    fake.on(isMaybeSingleRegistry, {
+      data: registryRow({ dimension: null }),
+      error: null
+    });
+    fake.on(
+      (c) => c.table === "nodetool_vec_collections" && c.op === "update",
+      { data: null, error: null }
+    );
+    fake.on(
+      (c) => c.table === "nodetool_vec_records" && c.op === "upsert",
+      { data: null, error: null }
+    );
 
     const col = await provider.getCollection({ name: "docs" });
-    await col.upsert([
-      { id: "1", embedding: [1, 2, 3, 4] }
-    ]);
+    await col.upsert([{ id: "1", embedding: [1, 2, 3, 4] }]);
 
-    const update = pg.calls.find((c) =>
-      /UPDATE[\s\S]*nodetool_vec_collections[\s\S]*SET dimension/.test(c.sql)
+    const update = fake.find(
+      (c) => c.table === "nodetool_vec_collections" && c.op === "update"
     );
-    expect(update?.params[0]).toBe(4);
-
-    const alter = pg.calls.find((c) => /ALTER TABLE/.test(c.sql));
-    expect(alter?.sql).toContain("vector(4)");
+    expect((update.args as { dimension: number }).dimension).toBe(4);
+    expect(update.filters).toContainEqual(["is", "dimension", null]);
   });
 
-  it("query by embedding builds a pgvector ORDER BY", async () => {
-    pg.on(/SELECT name, table_name/, registryHandlerFor({
-      name: "docs",
-      table_name: "nodetool_vec_docs",
-      dimension: 3,
-      metric: "cosine"
-    }));
-    pg.on(/SELECT id, document, uri, metadata,\s+embedding/, [
+  it("query by embedding invokes the match RPC", async () => {
+    fake.on((c) => c.rpc === "nodetool_vec_match", {
+      data: [
+        {
+          id: "a",
+          document: "alpha",
+          uri: "u",
+          metadata: { k: "v" },
+          distance: 0.123
+        }
+      ],
+      error: null
+    });
+
+    const col = await provider.getCollection({ name: "docs" });
+    const matches = await col.query({ embedding: [0.1, 0.2, 0.3], topK: 5 });
+
+    expect(matches).toEqual([
       {
         id: "a",
         document: "alpha",
@@ -310,176 +483,206 @@ describe("SupabaseProvider — record operations", () => {
       }
     ]);
 
-    const col = await provider.getCollection({ name: "docs" });
-    const matches = await col.query({ embedding: [0.1, 0.2, 0.3], topK: 5 });
-
-    expect(matches).toHaveLength(1);
-    expect(matches[0].id).toBe("a");
-    expect(matches[0].uri).toBe("u");
-    expect(matches[0].distance).toBe(0.123);
-
-    const sel = pg.find(/embedding <=> \$1::vector AS distance/);
-    expect(sel.sql).toContain("ORDER BY embedding <=> $1::vector");
-    expect(sel.params[0]).toBe("[0.1,0.2,0.3]");
-  });
-
-  it("query supports L2 metric via <-> operator", async () => {
-    pg.on(/SELECT name, table_name/, registryHandlerFor({
-      name: "docs",
-      table_name: "nodetool_vec_docs",
-      dimension: 3,
-      metric: "l2"
-    }));
-    pg.on(/SELECT id, document, uri, metadata/, []);
-
-    const col = await provider.getCollection({ name: "docs" });
-    await col.query({ embedding: [1, 2, 3], topK: 5 });
-
-    const sel = pg.find(/embedding <-> \$1::vector AS distance/);
-    expect(sel.sql).toContain("embedding <-> $1::vector");
-  });
-
-  it("query translates metadata equality filters", async () => {
-    pg.on(/SELECT name, table_name/, registryHandlerFor({
-      name: "docs",
-      table_name: "nodetool_vec_docs",
-      dimension: 3
-    }));
-    pg.on(/SELECT id, document, uri, metadata,\s+embedding/, []);
-
-    const col = await provider.getCollection({ name: "docs" });
-    await col.query({
-      embedding: [1, 2, 3],
-      filter: { kind: "greeting" }
+    const rpc = fake.find((c) => c.rpc === "nodetool_vec_match");
+    expect(rpc.args).toEqual({
+      p_collection: "docs",
+      p_query_embedding: "[0.1,0.2,0.3]",
+      p_match_count: 5,
+      p_metadata_filter: {},
+      p_document_match: null
     });
-
-    const sel = pg.find(/embedding <=> \$1::vector AS distance/);
-    expect(sel.sql).toMatch(/WHERE metadata->>\$2 = \$3/);
-    // Param positions: $1 = vector literal, $2 = field name, $3 = value, $4 = limit
-    expect(sel.params[1]).toBe("kind");
-    expect(sel.params[2]).toBe("greeting");
   });
 
-  it("query translates $in / $and / $document.$contains", async () => {
-    pg.on(/SELECT name, table_name/, registryHandlerFor({
+  it("query auto-embeds text via the embedding function", async () => {
+    fake.on((c) => c.rpc === "nodetool_vec_match", { data: [], error: null });
+
+    const col = await provider.getCollection({
       name: "docs",
-      table_name: "nodetool_vec_docs",
-      dimension: 3
-    }));
-    pg.on(/SELECT id, document, uri, metadata,\s+embedding/, []);
+      embeddingFunction: fakeEf
+    });
+    await col.query({ text: "hello", topK: 3 });
+
+    const rpc = fake.find((c) => c.rpc === "nodetool_vec_match");
+    expect((rpc.args as { p_query_embedding: string }).p_query_embedding).toMatch(
+      /^\[\d+,\d+,1\]$/
+    );
+  });
+
+  it("query splits filters into metadata + document_match", async () => {
+    fake.on((c) => c.rpc === "nodetool_vec_match", { data: [], error: null });
 
     const col = await provider.getCollection({ name: "docs" });
     await col.query({
       embedding: [1, 2, 3],
       filter: {
         $and: [
-          { kind: { $in: ["a", "b"] } },
+          { kind: "greeting" },
+          { lang: { $eq: "en" } },
           { $document: { $contains: "fox" } }
         ]
       }
     });
 
-    const sel = pg.find(/embedding <=> \$1::vector AS distance/);
-    expect(sel.sql).toMatch(/= ANY\(/);
-    expect(sel.sql).toMatch(/document ILIKE/);
+    const rpc = fake.find((c) => c.rpc === "nodetool_vec_match");
+    expect((rpc.args as { p_metadata_filter: unknown }).p_metadata_filter).toEqual({
+      kind: "greeting",
+      lang: "en"
+    });
+    expect((rpc.args as { p_document_match: string }).p_document_match).toBe(
+      "fox"
+    );
   });
 
-  it("query rejects unknown operators loudly", async () => {
-    pg.on(/SELECT name, table_name/, registryHandlerFor({
-      name: "docs",
-      table_name: "nodetool_vec_docs",
-      dimension: 3
-    }));
-
+  it("query rejects $or and rich operators loudly", async () => {
+    fake.on((c) => c.rpc === "nodetool_vec_match", { data: [], error: null });
     const col = await provider.getCollection({ name: "docs" });
+
     await expect(
       col.query({
         embedding: [1, 2, 3],
-        filter: { kind: { $weird: "x" } }
+        filter: { $or: [{ kind: "a" }, { kind: "b" }] }
+      })
+    ).rejects.toBeInstanceOf(UnsupportedFilterError);
+
+    await expect(
+      col.query({
+        embedding: [1, 2, 3],
+        filter: { score: { $gt: 5 } }
       })
     ).rejects.toBeInstanceOf(UnsupportedFilterError);
   });
 
-  it("get fetches by ids and decodes metadata", async () => {
-    pg.on(/SELECT name, table_name/, registryHandlerFor({
-      name: "docs",
-      table_name: "nodetool_vec_docs",
-      dimension: 3
-    }));
-    pg.on(/SELECT id, document, uri, metadata FROM/, [
+  it("query falls back to keyword search without an embedding function", async () => {
+    fake.on(
+      (c) => c.table === "nodetool_vec_records" && c.op === "select",
       {
-        id: "1",
-        document: "hi",
-        uri: "u",
-        metadata: { k: "v" }
+        data: [
+          { id: "a", document: "alpha", uri: null, metadata: {} }
+        ],
+        error: null
       }
-    ]);
+    );
+
+    const col = await provider.getCollection({ name: "docs" });
+    const matches = await col.query({ text: "alpha", topK: 5 });
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0].distance).toBe(0);
+
+    const select = fake.find(
+      (c) => c.table === "nodetool_vec_records" && c.op === "select"
+    );
+    expect(select.filters).toContainEqual(["eq", "collection", "docs"]);
+    expect(select.filters).toContainEqual(["ilike", "document", "%alpha%"]);
+    expect(select.options.limit).toBe(5);
+  });
+
+  it("query by uri uses ilike on uri column", async () => {
+    fake.on(
+      (c) =>
+        c.table === "nodetool_vec_records" &&
+        c.op === "select" &&
+        c.filters.some(([op, field]) => op === "ilike" && field === "uri"),
+      {
+        data: [{ id: "a", document: "x", uri: "file:///a", metadata: {} }],
+        error: null
+      }
+    );
+
+    const col = await provider.getCollection({ name: "docs" });
+    const matches = await col.query({ uri: "/a", topK: 5 });
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0].uri).toBe("file:///a");
+  });
+
+  it("get fetches by ids with proper PostgREST filters", async () => {
+    fake.on(
+      (c) =>
+        c.table === "nodetool_vec_records" &&
+        c.op === "select" &&
+        c.filters.some(([op]) => op === "in"),
+      {
+        data: [
+          { id: "1", document: "hi", uri: "u", metadata: { k: "v" } }
+        ],
+        error: null
+      }
+    );
 
     const col = await provider.getCollection({ name: "docs" });
     const recs = await col.get({ ids: ["1"] });
+
     expect(recs).toHaveLength(1);
     expect(recs[0].uri).toBe("u");
     expect(recs[0].metadata.k).toBe("v");
 
-    const sel = pg.find(/SELECT id, document, uri, metadata FROM/);
-    expect(sel.sql).toContain("id = ANY($1)");
+    const sel = fake.find(
+      (c) =>
+        c.table === "nodetool_vec_records" &&
+        c.op === "select" &&
+        c.filters.some(([op]) => op === "in")
+    );
+    expect(sel.filters).toContainEqual(["eq", "collection", "docs"]);
+    expect(sel.filters).toContainEqual(["in", "id", ["1"]]);
   });
 
-  it("count returns the integer count", async () => {
-    pg.on(/SELECT name, table_name/, registryHandlerFor({
-      name: "docs",
-      table_name: "nodetool_vec_docs",
-      dimension: 3
-    }));
-    pg.on(/count\(\*\)/, [{ count: 7 }]);
+  it("count uses a head-only select with exact count", async () => {
+    fake.on(
+      (c) =>
+        c.table === "nodetool_vec_records" &&
+        c.op === "select" &&
+        c.options.head === true,
+      { data: null, error: null, count: 7 }
+    );
 
     const col = await provider.getCollection({ name: "docs" });
     expect(await col.count()).toBe(7);
+
+    const sel = fake.find(
+      (c) =>
+        c.table === "nodetool_vec_records" &&
+        c.op === "select" &&
+        c.options.head === true
+    );
+    expect(sel.options.count).toBe("exact");
   });
 
-  it("delete issues DELETE WHERE id = ANY($1)", async () => {
-    pg.on(/SELECT name, table_name/, registryHandlerFor({
-      name: "docs",
-      table_name: "nodetool_vec_docs",
-      dimension: 3
-    }));
-    pg.on(/DELETE FROM/, []);
+  it("delete removes records by id within the collection", async () => {
+    fake.on(
+      (c) => c.table === "nodetool_vec_records" && c.op === "delete",
+      { data: null, error: null }
+    );
 
     const col = await provider.getCollection({ name: "docs" });
     await col.delete(["a", "b"]);
 
-    const del = pg.find("DELETE FROM");
-    expect(del.sql).toContain("id = ANY($1)");
-    expect(del.params[0]).toEqual(["a", "b"]);
+    const del = fake.find(
+      (c) => c.table === "nodetool_vec_records" && c.op === "delete"
+    );
+    expect(del.filters).toContainEqual(["eq", "collection", "docs"]);
+    expect(del.filters).toContainEqual(["in", "id", ["a", "b"]]);
   });
 
-  it("modify renames the table and refreshes the handle state", async () => {
-    pg.on(/SELECT name, table_name/, registryHandlerFor({
-      name: "before",
-      table_name: "nodetool_vec_before",
-      dimension: 3
-    }));
-    pg.on(/ALTER TABLE/, []);
-    pg.on(/UPDATE/, []);
+  it("modify renames the collection in the registry and refreshes the handle", async () => {
+    fake.on(
+      (c) => c.table === "nodetool_vec_collections" && c.op === "update",
+      { data: null, error: null }
+    );
 
-    const col = await provider.getCollection({ name: "before" });
+    const col = await provider.getCollection({ name: "docs" });
     await col.modify({ name: "after", metadata: { v: 2 } });
 
     expect(col.name).toBe("after");
     expect(col.metadata.v).toBe(2);
 
-    const alter = pg.find(/ALTER TABLE/);
-    expect(alter.sql).toContain("RENAME TO");
-
-    const updates = pg.calls.filter((c) => /UPDATE/.test(c.sql));
-    // 1 for name+table_name change, 1 for metadata
-    expect(updates.length).toBeGreaterThanOrEqual(2);
-  });
-});
-
-describe("SupabaseProvider — close()", () => {
-  it("does not end injected clients", async () => {
-    await provider.close();
-    expect(pg.ended).toBe(false);
+    const updates = fake.calls.filter(
+      (c) => c.table === "nodetool_vec_collections" && c.op === "update"
+    );
+    expect(updates).toHaveLength(2);
+    expect(updates[0].args).toEqual({ name: "after" });
+    expect(updates[0].filters).toContainEqual(["eq", "name", "docs"]);
+    expect(updates[1].args).toEqual({ metadata: { v: 2 } });
+    expect(updates[1].filters).toContainEqual(["eq", "name", "after"]);
   });
 });

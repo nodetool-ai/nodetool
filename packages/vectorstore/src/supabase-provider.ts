@@ -1,20 +1,20 @@
 /**
- * Supabase / Postgres + pgvector implementation of the VectorProvider
- * interface.
+ * Supabase implementation of the VectorProvider interface, on top of
+ * `@supabase/supabase-js`.
  *
- * Storage model:
- *   - one registry table (default: `nodetool_vec_collections`) tracking
- *     collection name, backing table, dimension, metric, and metadata;
- *   - one Postgres table per collection (default prefix: `nodetool_vec_`)
- *     with columns (id text PK, document text, embedding vector(dim),
- *     uri text, metadata jsonb).
+ * Storage layout (must be installed once via `sql/supabase-migration.sql`):
  *
- * The provider uses `postgres` (postgres.js) by default but accepts an
- * injectable `PgClient` so tests can stub the SQL layer without a live
- * database. The pgvector extension is required — `init()` runs
- * `CREATE EXTENSION IF NOT EXISTS vector;` once on first use.
+ *   - `nodetool_vec_collections(name PK, metadata jsonb, dimension int, metric text)`
+ *   - `nodetool_vec_records(collection FK, id, document, embedding vector, uri, metadata jsonb)`
+ *   - RPC `nodetool_vec_match(collection, query_embedding, match_count, metadata_filter, document_match)`
+ *
+ * PostgREST cannot use pgvector operators directly, so similarity search
+ * goes through `client.rpc('nodetool_vec_match', ...)`. CRUD on the two
+ * tables uses the standard query builder. This matches the pattern in
+ * Supabase's own AI guides (https://supabase.com/docs/guides/ai).
  */
 
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   CollectionNotFoundError,
   ProviderConfigError,
@@ -34,78 +34,121 @@ import {
 import type { EmbeddingFunction } from "./sqlite-vec-store.js";
 
 // ---------------------------------------------------------------------------
-// PgClient — minimal SQL surface, injectable for tests
-// ---------------------------------------------------------------------------
-
-/**
- * Minimal Postgres client surface used by `SupabaseProvider`. The default
- * implementation wraps `postgres` (postgres.js); tests pass a stub.
- */
-export interface PgClient {
-  query<T = Record<string, unknown>>(
-    sql: string,
-    params?: readonly unknown[]
-  ): Promise<T[]>;
-  end(): Promise<void>;
-}
-
-// ---------------------------------------------------------------------------
 // Options
 // ---------------------------------------------------------------------------
 
 export interface SupabaseProviderOptions {
-  /** Postgres connection string (`postgresql://...`). */
-  databaseUrl?: string;
-  /** Schema housing the registry and collection tables. Defaults to "public". */
+  /** Supabase project URL (e.g. https://xyz.supabase.co). */
+  url?: string;
+  /** Supabase API key. Use the service-role key for server-side use. */
+  apiKey?: string;
+  /** Postgres schema housing the registry and records tables. Defaults to "public". */
   schema?: string;
-  /** Registry table name. Defaults to "nodetool_vec_collections". */
-  registryTable?: string;
-  /** Per-collection table name prefix. Defaults to "nodetool_vec_". */
-  tablePrefix?: string;
-  /** Pre-built SQL client (for tests / shared connection pools). */
-  client?: PgClient;
-  /** Default embedding function applied to text-only upserts/queries. */
+  /** Pre-built Supabase client. Used by tests; if set, url/apiKey are ignored. */
+  client?: SupabaseClient;
+  /** Default embedding function applied when records/queries are text-only. */
   defaultEmbeddingFunction?: EmbeddingFunction;
+  /** Override registry table name. Defaults to "nodetool_vec_collections". */
+  registryTable?: string;
+  /** Override records table name. Defaults to "nodetool_vec_records". */
+  recordsTable?: string;
+  /** Override match RPC name. Defaults to "nodetool_vec_match". */
+  matchRpc?: string;
 }
 
 // ---------------------------------------------------------------------------
-// Identifiers — collection names are projected onto a table name. Postgres
-// allows arbitrary identifiers under double quotes, but we restrict the
-// alphabet to keep DDL injection-proof and to fit pg's 63-char identifier
-// limit (with prefix room).
+// Filter translation
+//
+// PostgREST filter chains can't express the full VectorFilter contract
+// (no $and across nested predicates, no document substring). For the
+// `nodetool_vec_match` RPC we translate filters into TWO inputs:
+//
+//   p_metadata_filter : jsonb     applied via `metadata @> filter`
+//   p_document_match  : text|null applied via `document ILIKE '%' || x || '%'`
+//
+// The metadata side therefore only supports flat equality on metadata
+// fields and `$and` of equalities. Anything richer ($gt/$lt/$or/$ne/$in)
+// throws UnsupportedFilterError loudly so callers know what's missing.
 // ---------------------------------------------------------------------------
 
-const NAME_RE = /^[A-Za-z][A-Za-z0-9_-]*$/;
-const MAX_NAME_LEN = 48;
+interface SplitFilter {
+  metadata: Record<string, string | number | boolean | null>;
+  documentMatch: string | null;
+}
 
-function validateCollectionName(name: string): void {
-  if (typeof name !== "string" || !name) {
-    throw new ProviderConfigError("Collection name must be a non-empty string");
-  }
-  if (name.length > MAX_NAME_LEN || !NAME_RE.test(name)) {
-    throw new ProviderConfigError(
-      `Invalid collection name '${name}': must match ^[A-Za-z][A-Za-z0-9_-]{0,${
-        MAX_NAME_LEN - 1
-      }}$`
+function splitFilter(filter: VectorFilter | undefined): SplitFilter {
+  const out: SplitFilter = { metadata: {}, documentMatch: null };
+  if (!filter) return out;
+
+  for (const [key, val] of Object.entries(filter)) {
+    if (key === "$document") {
+      out.documentMatch = readDocumentContains(val);
+      continue;
+    }
+    if (key === "$and") {
+      if (!Array.isArray(val)) {
+        throw new UnsupportedFilterError("$and requires an array");
+      }
+      for (const sub of val as VectorFilter[]) {
+        const merged = splitFilter(sub);
+        if (merged.documentMatch) {
+          if (out.documentMatch && out.documentMatch !== merged.documentMatch) {
+            throw new UnsupportedFilterError(
+              "Multiple $document.$contains predicates are not supported"
+            );
+          }
+          out.documentMatch = merged.documentMatch;
+        }
+        Object.assign(out.metadata, merged.metadata);
+      }
+      continue;
+    }
+    if (key === "$or") {
+      throw new UnsupportedFilterError(
+        "$or is not supported by SupabaseProvider — use one match per branch instead"
+      );
+    }
+
+    if (val === null || ["string", "number", "boolean"].includes(typeof val)) {
+      out.metadata[key] = val as string | number | boolean | null;
+      continue;
+    }
+    if (typeof val === "object" && val !== null) {
+      const obj = val as Record<string, unknown>;
+      if ("$eq" in obj && Object.keys(obj).length === 1) {
+        out.metadata[key] = coerceScalar(obj.$eq);
+        continue;
+      }
+    }
+    throw new UnsupportedFilterError(
+      `SupabaseProvider supports only flat metadata equality and ` +
+        `$document.$contains. Got '${key}: ${JSON.stringify(val)}'.`
     );
   }
+  return out;
 }
 
-/** Map a validated collection name to a SQL-safe table name (no hyphens). */
-function tableNameFor(prefix: string, name: string): string {
-  return prefix + name.replace(/-/g, "_");
+function readDocumentContains(val: unknown): string {
+  if (!val || typeof val !== "object") {
+    throw new UnsupportedFilterError("$document requires an object");
+  }
+  const obj = val as Record<string, unknown>;
+  if (typeof obj.$contains === "string") return obj.$contains;
+  throw new UnsupportedFilterError(
+    "$document only supports { $contains: string } in SupabaseProvider"
+  );
 }
 
-function quoteIdent(name: string): string {
-  return `"${name.replace(/"/g, '""')}"`;
-}
-
-function qualified(schema: string, table: string): string {
-  return `${quoteIdent(schema)}.${quoteIdent(table)}`;
+function coerceScalar(v: unknown): string | number | boolean | null {
+  if (v === null) return null;
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+    return v;
+  }
+  return String(v);
 }
 
 // ---------------------------------------------------------------------------
-// pgvector encoding — pg accepts `'[1,2,3]'::vector` as the literal form.
+// pgvector encoding — pgvector's input format is the string '[1,2,3]'.
 // ---------------------------------------------------------------------------
 
 function encodePgVector(embedding: readonly number[]): string {
@@ -116,150 +159,10 @@ function encodePgVector(embedding: readonly number[]): string {
 }
 
 // ---------------------------------------------------------------------------
-// Filter translation: VectorFilter → SQL fragment + parameters
+// Helpers
 // ---------------------------------------------------------------------------
 
-class ParamCollector {
-  readonly values: unknown[] = [];
-  push(v: unknown): string {
-    this.values.push(v);
-    return `$${this.values.length}`;
-  }
-}
-
-const COMPARISON_OPS: Record<string, string> = {
-  $gt: ">",
-  $gte: ">=",
-  $lt: "<",
-  $lte: "<="
-};
-
-function translateFilter(
-  filter: VectorFilter,
-  params: ParamCollector
-): string {
-  const parts: string[] = [];
-  for (const [key, val] of Object.entries(filter)) {
-    if (key === "$and" || key === "$or") {
-      if (!Array.isArray(val)) {
-        throw new UnsupportedFilterError(`${key} requires an array`);
-      }
-      const sub = (val as VectorFilter[])
-        .map((f) => translateFilter(f, params))
-        .filter((s) => s.length > 0);
-      if (sub.length === 0) continue;
-      const op = key === "$and" ? " AND " : " OR ";
-      parts.push(`(${sub.map((s) => `(${s})`).join(op)})`);
-      continue;
-    }
-
-    if (key === "$document") {
-      parts.push(translateDocumentFilter(val, params));
-      continue;
-    }
-
-    parts.push(translateFieldPredicate(key, val, params));
-  }
-  return parts.join(" AND ");
-}
-
-function translateDocumentFilter(
-  val: unknown,
-  params: ParamCollector
-): string {
-  if (!val || typeof val !== "object") {
-    throw new UnsupportedFilterError("$document requires an object");
-  }
-  const obj = val as Record<string, unknown>;
-  if (typeof obj.$contains === "string") {
-    return `document ILIKE '%' || ${params.push(obj.$contains)} || '%'`;
-  }
-  if (Array.isArray(obj.$or)) {
-    const subs = obj.$or.map((sub) => {
-      if (
-        sub &&
-        typeof sub === "object" &&
-        typeof (sub as { $contains?: unknown }).$contains === "string"
-      ) {
-        return `document ILIKE '%' || ${params.push(
-          (sub as { $contains: string }).$contains
-        )} || '%'`;
-      }
-      throw new UnsupportedFilterError(
-        "$document.$or members must be { $contains: string }"
-      );
-    });
-    return `(${subs.join(" OR ")})`;
-  }
-  throw new UnsupportedFilterError(
-    "$document supports only { $contains } or { $or: [{$contains}, ...] }"
-  );
-}
-
-function translateFieldPredicate(
-  field: string,
-  val: unknown,
-  params: ParamCollector
-): string {
-  const path = `metadata->>${params.push(field)}`;
-
-  if (val === null) {
-    return `${path} IS NULL`;
-  }
-
-  if (typeof val !== "object" || Array.isArray(val)) {
-    return `${path} = ${params.push(String(val))}`;
-  }
-
-  const ops = val as Record<string, unknown>;
-  const fragments: string[] = [];
-  for (const [op, opVal] of Object.entries(ops)) {
-    switch (op) {
-      case "$eq":
-        fragments.push(`${path} = ${params.push(String(opVal))}`);
-        break;
-      case "$ne":
-        fragments.push(`${path} <> ${params.push(String(opVal))}`);
-        break;
-      case "$gt":
-      case "$gte":
-      case "$lt":
-      case "$lte":
-        fragments.push(
-          `(${path})::numeric ${COMPARISON_OPS[op]} ${params.push(opVal)}`
-        );
-        break;
-      case "$in": {
-        if (!Array.isArray(opVal)) {
-          throw new UnsupportedFilterError("$in requires an array");
-        }
-        fragments.push(
-          `${path} = ANY(${params.push(opVal.map((x) => String(x)))})`
-        );
-        break;
-      }
-      default:
-        throw new UnsupportedFilterError(`Unsupported operator: ${op}`);
-    }
-  }
-  return fragments.join(" AND ");
-}
-
-// ---------------------------------------------------------------------------
-// Registry row shape
-// ---------------------------------------------------------------------------
-
-interface RegistryRow {
-  name: string;
-  table_name: string;
-  metadata: CollectionMetadata | string | null;
-  dimension: number | null;
-  metric: string | null;
-}
-
-function parseMetadata(
-  raw: CollectionMetadata | string | null | undefined
-): CollectionMetadata {
+function parseMetadata(raw: unknown): CollectionMetadata {
   if (!raw) return {};
   if (typeof raw === "string") {
     try {
@@ -268,7 +171,8 @@ function parseMetadata(
       return {};
     }
   }
-  return raw;
+  if (typeof raw === "object") return raw as CollectionMetadata;
+  return {};
 }
 
 function toRecordMetadata(raw: unknown): RecordMetadata {
@@ -290,16 +194,19 @@ function toRecordMetadata(raw: unknown): RecordMetadata {
 }
 
 // ---------------------------------------------------------------------------
-// Collection adapter
+// Collection state
 // ---------------------------------------------------------------------------
 
 interface CollectionState {
   name: string;
-  tableName: string;
   metadata: CollectionMetadata;
   dimension: number | null;
-  metric: string;
+  metric: "cosine" | "l2" | "ip";
 }
+
+// ---------------------------------------------------------------------------
+// Collection adapter
+// ---------------------------------------------------------------------------
 
 class SupabaseCollectionAdapter implements VectorCollection {
   constructor(
@@ -316,16 +223,16 @@ class SupabaseCollectionAdapter implements VectorCollection {
     return this.state.metadata;
   }
 
-  private get tableSql(): string {
-    return qualified(this.provider.schema, this.state.tableName);
-  }
-
   async count(): Promise<number> {
-    const client = await this.provider.getClient();
-    const rows = await client.query<{ count: string | number }>(
-      `SELECT count(*)::int AS count FROM ${this.tableSql}`
-    );
-    return Number(rows[0]?.count ?? 0);
+    const client = this.provider.getClient();
+    const result = await client
+      .from(this.provider.recordsTable)
+      .select("*", { count: "exact", head: true })
+      .eq("collection", this.state.name);
+    if (result.error) {
+      throw new Error(`Supabase: ${result.error.message}`);
+    }
+    return result.count ?? 0;
   }
 
   async upsert(input: VectorRecord[]): Promise<void> {
@@ -357,53 +264,44 @@ class SupabaseCollectionAdapter implements VectorCollection {
       const sample = records.find(
         (r) => r.embedding && r.embedding.length > 0
       );
-      if (sample && sample.embedding) {
+      if (sample?.embedding) {
         const dim = sample.embedding.length;
         await this.provider.setDimension(this.state.name, dim);
         this.state = { ...this.state, dimension: dim };
       }
     }
 
-    const client = await this.provider.getClient();
+    const rows = records.map((r) => ({
+      collection: this.state.name,
+      id: r.id,
+      document: r.document ?? null,
+      // pgvector accepts the text form '[1,2,3]'; PostgREST forwards it as
+      // a JSON string, Postgres casts on the column type.
+      embedding: r.embedding ? encodePgVector(r.embedding) : null,
+      uri: r.uri ?? null,
+      metadata: r.metadata ?? {}
+    }));
 
-    // Build (placeholder, value) pairs in SQL column order so the resulting
-    // `params` array reads top-to-bottom as (id, document, embedding, uri,
-    // metadata) per row — both for clarity and so tests can index params
-    // positionally.
-    const params: unknown[] = [];
-    const valuesSql: string[] = [];
-    for (const r of records) {
-      const idPh = pushParam(params, r.id);
-      const docPh = pushParam(params, r.document ?? null);
-      const embPh = r.embedding
-        ? `${pushParam(params, encodePgVector(r.embedding))}::vector`
-        : "NULL";
-      const uriPh = pushParam(params, r.uri ?? null);
-      const metaPh = pushParam(
-        params,
-        JSON.stringify(r.metadata ?? {})
-      );
-      valuesSql.push(`(${idPh}, ${docPh}, ${embPh}, ${uriPh}, ${metaPh}::jsonb)`);
+    const client = this.provider.getClient();
+    const { error } = await client
+      .from(this.provider.recordsTable)
+      .upsert(rows, { onConflict: "collection,id" });
+    if (error) {
+      throw new Error(`Supabase: ${error.message}`);
     }
-
-    const sql = `
-      INSERT INTO ${this.tableSql} (id, document, embedding, uri, metadata)
-      VALUES ${valuesSql.join(", ")}
-      ON CONFLICT (id) DO UPDATE SET
-        document = EXCLUDED.document,
-        embedding = EXCLUDED.embedding,
-        uri = EXCLUDED.uri,
-        metadata = EXCLUDED.metadata
-    `;
-    await client.query(sql, params);
   }
 
   async delete(ids: string[]): Promise<void> {
     if (ids.length === 0) return;
-    const client = await this.provider.getClient();
-    await client.query(`DELETE FROM ${this.tableSql} WHERE id = ANY($1)`, [
-      ids
-    ]);
+    const client = this.provider.getClient();
+    const { error } = await client
+      .from(this.provider.recordsTable)
+      .delete()
+      .eq("collection", this.state.name)
+      .in("id", ids);
+    if (error) {
+      throw new Error(`Supabase: ${error.message}`);
+    }
   }
 
   async get(opts?: {
@@ -411,137 +309,163 @@ class SupabaseCollectionAdapter implements VectorCollection {
     limit?: number;
     offset?: number;
   }): Promise<VectorRecord[]> {
-    const client = await this.provider.getClient();
-    const params: unknown[] = [];
-    let where = "";
+    const client = this.provider.getClient();
+    let q = client
+      .from(this.provider.recordsTable)
+      .select("id, document, uri, metadata")
+      .eq("collection", this.state.name)
+      .order("id");
     if (opts?.ids && opts.ids.length > 0) {
-      where = `WHERE id = ANY(${pushParam(params, opts.ids)})`;
+      q = q.in("id", opts.ids);
     }
-    let limitSql = "";
-    if (opts?.limit !== undefined) {
-      limitSql += ` LIMIT ${pushParam(params, opts.limit)}`;
+    if (opts?.limit !== undefined || opts?.offset !== undefined) {
+      const from = opts?.offset ?? 0;
+      const limit = opts?.limit ?? 1000;
+      q = q.range(from, from + limit - 1);
     }
-    if (opts?.offset !== undefined) {
-      limitSql += ` OFFSET ${pushParam(params, opts.offset)}`;
+    const { data, error } = await q;
+    if (error) {
+      throw new Error(`Supabase: ${error.message}`);
     }
-    const rows = await client.query<{
-      id: string;
-      document: string | null;
-      uri: string | null;
-      metadata: unknown;
-    }>(
-      `SELECT id, document, uri, metadata FROM ${this.tableSql} ${where} ORDER BY id ${limitSql}`,
-      params
-    );
-    return rows.map((r) => ({
-      id: r.id,
-      document: r.document,
-      uri: r.uri,
+    return (data ?? []).map((r) => ({
+      id: r.id as string,
+      document: (r.document as string | null) ?? null,
+      uri: (r.uri as string | null) ?? null,
       metadata: toRecordMetadata(r.metadata)
     }));
   }
 
   async query(query: VectorQuery): Promise<VectorMatch[]> {
-    const client = await this.provider.getClient();
+    const split = splitFilter(query.filter);
     const topK = query.topK ?? 10;
 
-    const params: unknown[] = [];
-    const collector = new ParamCollector();
-    // We share `params` by re-using collector's behaviour explicitly:
-    // ParamCollector pushes into its own array, so we'll merge afterwards.
-    const filterSql = query.filter
-      ? translateFilter(query.filter, collector)
-      : "";
-
-    // Determine query mode.
     let queryEmbedding = query.embedding;
     if (!queryEmbedding && query.text && this.embeddingFunction) {
       const [emb] = await this.embeddingFunction.generate([query.text]);
       queryEmbedding = emb;
     }
 
-    // Path 1: vector search.
+    // Vector search via the RPC.
     if (queryEmbedding && queryEmbedding.length > 0) {
-      const embParam = pushParam(params, encodePgVector(queryEmbedding));
-      // Append filter params after vector params to keep $N order in the
-      // final SQL string.
-      const filterParamOffset = params.length;
-      const filterSqlAdjusted = filterSql.replace(
-        /\$(\d+)/g,
-        (_, n) => `$${Number(n) + filterParamOffset}`
-      );
-      params.push(...collector.values);
-      const limitParam = pushParam(params, topK);
-      const operator = pickDistanceOperator(this.state.metric);
-      const where = filterSqlAdjusted ? `WHERE ${filterSqlAdjusted}` : "";
-      const sql = `
-        SELECT id, document, uri, metadata,
-               embedding ${operator} ${embParam}::vector AS distance
-        FROM ${this.tableSql}
-        ${where}
-        ORDER BY embedding ${operator} ${embParam}::vector
-        LIMIT ${limitParam}
-      `;
-      const rows = await client.query<MatchRow>(sql, params);
-      return rows.map(rowToMatch);
+      const client = this.provider.getClient();
+      const { data, error } = await client.rpc(this.provider.matchRpc, {
+        p_collection: this.state.name,
+        p_query_embedding: encodePgVector(queryEmbedding),
+        p_match_count: topK,
+        p_metadata_filter: split.metadata,
+        p_document_match: split.documentMatch
+      });
+      if (error) {
+        throw new Error(`Supabase: ${error.message}`);
+      }
+      return ((data ?? []) as MatchRow[]).map(rowToMatch);
     }
 
-    // Path 2: text-only without embedding function — keyword search.
+    // Keyword search on `document` (no embedding function available).
     if (query.text) {
-      const textParam = pushParam(params, query.text);
-      const filterParamOffset = params.length;
-      const filterSqlAdjusted = filterSql.replace(
-        /\$(\d+)/g,
-        (_, n) => `$${Number(n) + filterParamOffset}`
-      );
-      params.push(...collector.values);
-      const limitParam = pushParam(params, topK);
-      const where = filterSqlAdjusted
-        ? `AND ${filterSqlAdjusted}`
-        : "";
-      const sql = `
-        SELECT id, document, uri, metadata, 0::float8 AS distance
-        FROM ${this.tableSql}
-        WHERE document ILIKE '%' || ${textParam} || '%'
-        ${where}
-        ORDER BY id
-        LIMIT ${limitParam}
-      `;
-      const rows = await client.query<MatchRow>(sql, params);
-      return rows.map(rowToMatch);
+      return this.keywordSearch(query.text, topK, split);
     }
 
-    // Path 3: URI substring search.
+    // URI substring search.
     if (query.uri) {
-      const uriParam = pushParam(params, query.uri);
-      const filterParamOffset = params.length;
-      const filterSqlAdjusted = filterSql.replace(
-        /\$(\d+)/g,
-        (_, n) => `$${Number(n) + filterParamOffset}`
-      );
-      params.push(...collector.values);
-      const limitParam = pushParam(params, topK);
-      const where = filterSqlAdjusted ? `AND ${filterSqlAdjusted}` : "";
-      const sql = `
-        SELECT id, document, uri, metadata, 0::float8 AS distance
-        FROM ${this.tableSql}
-        WHERE uri ILIKE '%' || ${uriParam} || '%'
-        ${where}
-        ORDER BY id
-        LIMIT ${limitParam}
-      `;
-      const rows = await client.query<MatchRow>(sql, params);
-      return rows.map(rowToMatch);
+      return this.uriSearch(query.uri, topK, split);
     }
 
     return [];
+  }
+
+  private async keywordSearch(
+    text: string,
+    topK: number,
+    split: SplitFilter
+  ): Promise<VectorMatch[]> {
+    const client = this.provider.getClient();
+    let q = client
+      .from(this.provider.recordsTable)
+      .select("id, document, uri, metadata")
+      .eq("collection", this.state.name)
+      .ilike("document", `%${escapeLike(text)}%`)
+      .limit(topK);
+    if (Object.keys(split.metadata).length > 0) {
+      q = q.contains("metadata", split.metadata);
+    }
+    if (split.documentMatch && split.documentMatch !== text) {
+      q = q.ilike("document", `%${escapeLike(split.documentMatch)}%`);
+    }
+    const { data, error } = await q;
+    if (error) {
+      throw new Error(`Supabase: ${error.message}`);
+    }
+    return (data ?? []).map((r) => ({
+      id: r.id as string,
+      document: (r.document as string | null) ?? null,
+      uri: (r.uri as string | null) ?? null,
+      metadata: toRecordMetadata(r.metadata),
+      distance: 0
+    }));
+  }
+
+  private async uriSearch(
+    uri: string,
+    topK: number,
+    split: SplitFilter
+  ): Promise<VectorMatch[]> {
+    const client = this.provider.getClient();
+    let q = client
+      .from(this.provider.recordsTable)
+      .select("id, document, uri, metadata")
+      .eq("collection", this.state.name)
+      .ilike("uri", `%${escapeLike(uri)}%`)
+      .limit(topK);
+    if (Object.keys(split.metadata).length > 0) {
+      q = q.contains("metadata", split.metadata);
+    }
+    if (split.documentMatch) {
+      q = q.ilike("document", `%${escapeLike(split.documentMatch)}%`);
+    }
+    const { data, error } = await q;
+    if (error) {
+      throw new Error(`Supabase: ${error.message}`);
+    }
+    return (data ?? []).map((r) => ({
+      id: r.id as string,
+      document: (r.document as string | null) ?? null,
+      uri: (r.uri as string | null) ?? null,
+      metadata: toRecordMetadata(r.metadata),
+      distance: 0
+    }));
   }
 
   async modify(opts: {
     name?: string;
     metadata?: CollectionMetadata;
   }): Promise<void> {
-    const next = await this.provider.modifyCollection(this.state, opts);
+    const client = this.provider.getClient();
+    let next: CollectionState = { ...this.state };
+
+    if (opts.name !== undefined && opts.name !== this.state.name) {
+      // FK has ON UPDATE CASCADE so records follow.
+      const { error } = await client
+        .from(this.provider.registryTable)
+        .update({ name: opts.name })
+        .eq("name", this.state.name);
+      if (error) {
+        throw new Error(`Supabase: ${error.message}`);
+      }
+      next = { ...next, name: opts.name };
+    }
+
+    if (opts.metadata !== undefined) {
+      const { error } = await client
+        .from(this.provider.registryTable)
+        .update({ metadata: opts.metadata })
+        .eq("name", next.name);
+      if (error) {
+        throw new Error(`Supabase: ${error.message}`);
+      }
+      next = { ...next, metadata: { ...opts.metadata } };
+    }
+
     this.state = next;
   }
 }
@@ -564,21 +488,8 @@ function rowToMatch(r: MatchRow): VectorMatch {
   };
 }
 
-function pushParam(params: unknown[], v: unknown): string {
-  params.push(v);
-  return `$${params.length}`;
-}
-
-function pickDistanceOperator(metric: string): string {
-  switch (metric) {
-    case "l2":
-      return "<->";
-    case "ip":
-      return "<#>";
-    case "cosine":
-    default:
-      return "<=>";
-  }
+function escapeLike(s: string): string {
+  return s.replace(/([%_\\])/g, "\\$1");
 }
 
 // ---------------------------------------------------------------------------
@@ -589,70 +500,60 @@ export class SupabaseProvider implements VectorProvider {
   readonly name = "supabase";
   readonly schema: string;
   readonly registryTable: string;
-  readonly tablePrefix: string;
-  private readonly databaseUrl?: string;
+  readonly recordsTable: string;
+  readonly matchRpc: string;
+  private readonly url: string | undefined;
+  private readonly apiKey: string | undefined;
   private readonly defaultEf?: EmbeddingFunction;
-  private clientPromise: Promise<PgClient> | null;
-  private initPromise: Promise<void> | null = null;
-  private readonly ownsClient: boolean;
+  private client: SupabaseClient | null;
 
   constructor(opts: SupabaseProviderOptions = {}) {
-    if (!opts.client && !opts.databaseUrl) {
+    if (!opts.client && (!opts.url || !opts.apiKey)) {
       throw new ProviderConfigError(
-        "SupabaseProvider requires either databaseUrl or a pre-built client"
+        "SupabaseProvider requires `url` and `apiKey`, or a pre-built `client`"
       );
     }
+    this.url = opts.url;
+    this.apiKey = opts.apiKey;
     this.schema = opts.schema ?? "public";
     this.registryTable = opts.registryTable ?? "nodetool_vec_collections";
-    this.tablePrefix = opts.tablePrefix ?? "nodetool_vec_";
-    this.databaseUrl = opts.databaseUrl;
+    this.recordsTable = opts.recordsTable ?? "nodetool_vec_records";
+    this.matchRpc = opts.matchRpc ?? "nodetool_vec_match";
     this.defaultEf = opts.defaultEmbeddingFunction;
-    this.ownsClient = !opts.client;
-    this.clientPromise = opts.client ? Promise.resolve(opts.client) : null;
+    this.client = opts.client ?? null;
   }
 
-  async getClient(): Promise<PgClient> {
-    if (!this.clientPromise) {
-      this.clientPromise = createDefaultPgClient(this.databaseUrl!);
+  /** Returns the underlying client, instantiating one on first use. */
+  getClient(): SupabaseClient {
+    if (!this.client) {
+      // Use the default-schema client; per-query schema scoping happens at
+      // the call site via `client.schema(this.schema)` if needed. Passing
+      // `db.schema` to createClient narrows the generic to a literal string
+      // type and breaks assignment, which doesn't add value for our use.
+      this.client = createClient(this.url!, this.apiKey!, {
+        auth: { persistSession: false }
+      });
     }
-    const client = await this.clientPromise;
-    if (!this.initPromise) {
-      this.initPromise = this.init(client);
-    }
-    await this.initPromise;
-    return client;
-  }
-
-  private async init(client: PgClient): Promise<void> {
-    await client.query(`CREATE EXTENSION IF NOT EXISTS vector`);
-    await client.query(
-      `CREATE TABLE IF NOT EXISTS ${qualified(this.schema, this.registryTable)} (
-         name        text PRIMARY KEY,
-         table_name  text NOT NULL,
-         metadata    jsonb NOT NULL DEFAULT '{}'::jsonb,
-         dimension   int,
-         metric      text NOT NULL DEFAULT 'cosine',
-         created_at  timestamptz NOT NULL DEFAULT now()
-       )`
-    );
+    return this.client;
   }
 
   async listCollections(): Promise<CollectionInfo[]> {
-    const client = await this.getClient();
-    const rows = await client.query<RegistryRow>(
-      `SELECT name, table_name, metadata, dimension, metric
-       FROM ${qualified(this.schema, this.registryTable)}
-       ORDER BY name`
-    );
-    return rows.map((r) => ({
-      name: r.name,
+    const client = this.getClient();
+    const { data, error } = await client
+      .from(this.registryTable)
+      .select("name, metadata, dimension")
+      .order("name");
+    if (error) {
+      throw new Error(`Supabase: ${error.message}`);
+    }
+    return (data ?? []).map((r) => ({
+      name: r.name as string,
       metadata: parseMetadata(r.metadata),
-      dimension: r.dimension ?? undefined
+      dimension: (r.dimension as number | null) ?? undefined
     }));
   }
 
   async getCollection(opts: GetCollectionOptions): Promise<VectorCollection> {
-    validateCollectionName(opts.name);
     const state = await this.fetchRegistry(opts.name);
     if (!state) throw new CollectionNotFoundError(opts.name);
     return new SupabaseCollectionAdapter(
@@ -665,38 +566,24 @@ export class SupabaseProvider implements VectorProvider {
   async createCollection(
     opts: CreateCollectionOptions
   ): Promise<VectorCollection> {
-    validateCollectionName(opts.name);
-    const tableName = tableNameFor(this.tablePrefix, opts.name);
-    const metric = opts.metric ?? "cosine";
+    const metric = (opts.metric ?? "cosine") as "cosine" | "l2" | "ip";
     const metadata = opts.metadata ?? {};
+    const dimension = opts.dimension ?? null;
 
-    const client = await this.getClient();
-    await client.query(
-      `INSERT INTO ${qualified(this.schema, this.registryTable)}
-         (name, table_name, metadata, dimension, metric)
-       VALUES ($1, $2, $3::jsonb, $4, $5)`,
-      [
-        opts.name,
-        tableName,
-        JSON.stringify(metadata),
-        opts.dimension ?? null,
-        metric
-      ]
-    );
-
-    await this.createCollectionTable(tableName, opts.dimension ?? null);
-
-    const state: CollectionState = {
+    const client = this.getClient();
+    const { error } = await client.from(this.registryTable).insert({
       name: opts.name,
-      tableName,
       metadata,
-      dimension: opts.dimension ?? null,
+      dimension,
       metric
-    };
+    });
+    if (error) {
+      throw new Error(`Supabase: ${error.message}`);
+    }
 
     return new SupabaseCollectionAdapter(
       this,
-      state,
+      { name: opts.name, metadata, dimension, metric },
       opts.embeddingFunction ?? this.defaultEf ?? null
     );
   }
@@ -715,157 +602,57 @@ export class SupabaseProvider implements VectorProvider {
   }
 
   async deleteCollection(name: string): Promise<void> {
-    validateCollectionName(name);
     const state = await this.fetchRegistry(name);
     if (!state) throw new CollectionNotFoundError(name);
-
-    const client = await this.getClient();
-    await client.query(
-      `DROP TABLE IF EXISTS ${qualified(this.schema, state.tableName)}`
-    );
-    await client.query(
-      `DELETE FROM ${qualified(this.schema, this.registryTable)} WHERE name = $1`,
-      [name]
-    );
+    const client = this.getClient();
+    // FK cascades records — just delete the registry row.
+    const { error } = await client
+      .from(this.registryTable)
+      .delete()
+      .eq("name", name);
+    if (error) {
+      throw new Error(`Supabase: ${error.message}`);
+    }
   }
 
-  async close(): Promise<void> {
-    if (!this.ownsClient || !this.clientPromise) return;
-    try {
-      const c = await this.clientPromise;
-      await c.end();
-    } catch {
-      // ignore
-    } finally {
-      this.clientPromise = null;
-      this.initPromise = null;
-    }
+  close(): void {
+    // supabase-js does not hold a persistent connection; nothing to close.
   }
 
   // ----- internal helpers -------------------------------------------------
 
+  /** Update the dimension column on first embedding-bearing upsert. */
   async setDimension(name: string, dimension: number): Promise<void> {
-    const client = await this.getClient();
-    await client.query(
-      `UPDATE ${qualified(this.schema, this.registryTable)}
-       SET dimension = $1 WHERE name = $2 AND dimension IS NULL`,
-      [dimension, name]
-    );
-    const state = await this.fetchRegistry(name);
-    if (state) {
-      await this.alterEmbeddingDimension(state.tableName, dimension);
+    const client = this.getClient();
+    const { error } = await client
+      .from(this.registryTable)
+      .update({ dimension })
+      .eq("name", name)
+      .is("dimension", null);
+    if (error) {
+      throw new Error(`Supabase: ${error.message}`);
     }
-  }
-
-  async modifyCollection(
-    state: CollectionState,
-    opts: { name?: string; metadata?: CollectionMetadata }
-  ): Promise<CollectionState> {
-    const client = await this.getClient();
-    let next: CollectionState = { ...state };
-
-    if (opts.name !== undefined && opts.name !== state.name) {
-      validateCollectionName(opts.name);
-      const newTable = tableNameFor(this.tablePrefix, opts.name);
-      await client.query(
-        `ALTER TABLE ${qualified(
-          this.schema,
-          state.tableName
-        )} RENAME TO ${quoteIdent(newTable)}`
-      );
-      await client.query(
-        `UPDATE ${qualified(this.schema, this.registryTable)}
-         SET name = $1, table_name = $2 WHERE name = $3`,
-        [opts.name, newTable, state.name]
-      );
-      next = { ...next, name: opts.name, tableName: newTable };
-    }
-
-    if (opts.metadata !== undefined) {
-      await client.query(
-        `UPDATE ${qualified(this.schema, this.registryTable)}
-         SET metadata = $1::jsonb WHERE name = $2`,
-        [JSON.stringify(opts.metadata), next.name]
-      );
-      next = { ...next, metadata: { ...opts.metadata } };
-    }
-
-    return next;
   }
 
   private async fetchRegistry(name: string): Promise<CollectionState | null> {
-    const client = await this.getClient();
-    const rows = await client.query<RegistryRow>(
-      `SELECT name, table_name, metadata, dimension, metric
-       FROM ${qualified(this.schema, this.registryTable)}
-       WHERE name = $1`,
-      [name]
-    );
-    const row = rows[0];
-    if (!row) return null;
+    const client = this.getClient();
+    const { data, error } = await client
+      .from(this.registryTable)
+      .select("name, metadata, dimension, metric")
+      .eq("name", name)
+      .maybeSingle();
+    if (error) {
+      throw new Error(`Supabase: ${error.message}`);
+    }
+    if (!data) return null;
     return {
-      name: row.name,
-      tableName: row.table_name,
-      metadata: parseMetadata(row.metadata),
-      dimension: row.dimension ?? null,
-      metric: row.metric ?? "cosine"
+      name: data.name as string,
+      metadata: parseMetadata(data.metadata),
+      dimension: (data.dimension as number | null) ?? null,
+      metric: ((data.metric as string | null) ?? "cosine") as
+        | "cosine"
+        | "l2"
+        | "ip"
     };
   }
-
-  private async createCollectionTable(
-    tableName: string,
-    dimension: number | null
-  ): Promise<void> {
-    const client = await this.getClient();
-    const embeddingType = dimension ? `vector(${dimension})` : "vector";
-    await client.query(
-      `CREATE TABLE IF NOT EXISTS ${qualified(this.schema, tableName)} (
-         id        text PRIMARY KEY,
-         document  text,
-         embedding ${embeddingType},
-         uri       text,
-         metadata  jsonb NOT NULL DEFAULT '{}'::jsonb
-       )`
-    );
-  }
-
-  private async alterEmbeddingDimension(
-    tableName: string,
-    dimension: number
-  ): Promise<void> {
-    const client = await this.getClient();
-    // Tighten an unsized `vector` column to `vector(<dim>)` once we know the
-    // dimension. Safe to run repeatedly: `USING embedding::vector(<dim>)`.
-    await client.query(
-      `ALTER TABLE ${qualified(
-        this.schema,
-        tableName
-      )} ALTER COLUMN embedding TYPE vector(${dimension}) USING embedding::vector(${dimension})`
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Default postgres.js-backed PgClient
-// ---------------------------------------------------------------------------
-
-async function createDefaultPgClient(databaseUrl: string): Promise<PgClient> {
-  const { default: postgres } = (await import("postgres")) as {
-    default: (
-      url: string,
-      opts?: Record<string, unknown>
-    ) => {
-      unsafe: <T>(q: string, p?: readonly unknown[]) => Promise<T[]>;
-      end: (opts?: { timeout?: number }) => Promise<void>;
-    };
-  };
-  const sql = postgres(databaseUrl, {
-    max: 5,
-    idle_timeout: 20,
-    connect_timeout: 10
-  });
-  return {
-    query: (q, params = []) => sql.unsafe(q, params),
-    end: () => sql.end({ timeout: 5 })
-  };
 }
