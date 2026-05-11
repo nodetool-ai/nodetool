@@ -1,5 +1,20 @@
-import type { ClipEffect, ClipColorEffect } from "@nodetool-ai/timeline";
-import { blurComputeShader, effectsComputeShader } from "./shaders";
+import type {
+  ClipEffect,
+  ClipColorEffect,
+  TrackEffect,
+  TrackColorCorrectionEffect,
+  TrackVideoBlurEffect,
+  TrackSharpenEffect,
+  TrackVignetteEffect,
+  TrackChromaKeyEffect
+} from "@nodetool-ai/timeline";
+import {
+  blurComputeShader,
+  effectsComputeShader,
+  sharpenComputeShader,
+  vignetteComputeShader,
+  chromaKeyComputeShader
+} from "./shaders";
 
 interface AggregatedColor {
   brightness: number;
@@ -26,6 +41,12 @@ const NEUTRAL_COLOR: AggregatedColor = {
 const COLOR_UNIFORM_BYTES = 32;
 const BLUR_UNIFORM_BYTES = 16;
 const DIMS_UNIFORM_BYTES = 16;
+// sharpen: amount, threshold, _pad x 2 → 16 bytes
+const SHARPEN_UNIFORM_BYTES = 16;
+// vignette: intensity, radius, softness, _pad → 16 bytes
+const VIGNETTE_UNIFORM_BYTES = 16;
+// chromaKey: keyR, keyG, keyB, tolerance, softness, spill, _pad x 2 → 32 bytes
+const CHROMAKEY_UNIFORM_BYTES = 32;
 
 interface IntermediatePool {
   width: number;
@@ -48,10 +69,16 @@ export class WebGPUEffectsProcessor {
 
   private effectsPipeline: GPUComputePipeline;
   private blurPipeline: GPUComputePipeline;
+  private sharpenPipeline: GPUComputePipeline;
+  private vignettePipeline: GPUComputePipeline;
+  private chromaKeyPipeline: GPUComputePipeline;
   private bindGroupLayout: GPUBindGroupLayout;
 
   private colorBuffer: GPUBuffer;
   private blurBuffer: GPUBuffer;
+  private sharpenBuffer: GPUBuffer;
+  private vignetteBuffer: GPUBuffer;
+  private chromaKeyBuffer: GPUBuffer;
 
   private pools = new Map<string, IntermediatePool>();
 
@@ -102,6 +129,30 @@ export class WebGPUEffectsProcessor {
         entryPoint: "main"
       }
     });
+    this.sharpenPipeline = device.createComputePipeline({
+      label: "preview-sharpen",
+      layout,
+      compute: {
+        module: device.createShaderModule({ code: sharpenComputeShader }),
+        entryPoint: "main"
+      }
+    });
+    this.vignettePipeline = device.createComputePipeline({
+      label: "preview-vignette",
+      layout,
+      compute: {
+        module: device.createShaderModule({ code: vignetteComputeShader }),
+        entryPoint: "main"
+      }
+    });
+    this.chromaKeyPipeline = device.createComputePipeline({
+      label: "preview-chromakey",
+      layout,
+      compute: {
+        module: device.createShaderModule({ code: chromaKeyComputeShader }),
+        entryPoint: "main"
+      }
+    });
 
     this.colorBuffer = device.createBuffer({
       label: "preview-color-uniforms",
@@ -111,6 +162,21 @@ export class WebGPUEffectsProcessor {
     this.blurBuffer = device.createBuffer({
       label: "preview-blur-uniforms",
       size: BLUR_UNIFORM_BYTES,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    });
+    this.sharpenBuffer = device.createBuffer({
+      label: "preview-sharpen-uniforms",
+      size: SHARPEN_UNIFORM_BYTES,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    });
+    this.vignetteBuffer = device.createBuffer({
+      label: "preview-vignette-uniforms",
+      size: VIGNETTE_UNIFORM_BYTES,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    });
+    this.chromaKeyBuffer = device.createBuffer({
+      label: "preview-chromakey-uniforms",
+      size: CHROMAKEY_UNIFORM_BYTES,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
   }
@@ -130,18 +196,40 @@ export class WebGPUEffectsProcessor {
     source: GPUTexture,
     width: number,
     height: number,
-    effects: ClipEffect[]
+    clipEffects: ClipEffect[],
+    trackEffects: TrackEffect[] = []
   ): GPUTexture {
-    const enabled = effects.filter((e) => e.enabled);
-    if (enabled.length === 0) return source;
+    const enabledClip = clipEffects.filter((e) => e.enabled);
+    const enabledTrack = trackEffects.filter((e) => e.enabled);
 
-    const color = aggregateColor(enabled);
-    const blur = enabled.find((e): e is ClipEffect & { type: "blur" } =>
-      e.type === "blur"
+    // Aggregate color & blur across clip + track scopes.
+    const color = aggregateColor(enabledClip, enabledTrack);
+    const blurRadius = aggregateBlurRadius(enabledClip, enabledTrack);
+    const sharpen = enabledTrack.find(
+      (e): e is TrackSharpenEffect => e.type === "sharpen"
     );
+    const vignette = enabledTrack.find(
+      (e): e is TrackVignetteEffect => e.type === "vignette"
+    );
+    const chromaKey = enabledTrack.find(
+      (e): e is TrackChromaKeyEffect => e.type === "chromaKey"
+    );
+
     const colorActive = isColorActive(color);
-    const blurActive = blur != null && blur.radius >= 0.5;
-    if (!colorActive && !blurActive) return source;
+    const blurActive = blurRadius >= 0.5;
+    const sharpenActive = sharpen != null && sharpen.amount > 0.001;
+    const vignetteActive = vignette != null && vignette.intensity > 0.001;
+    const chromaKeyActive = chromaKey != null && chromaKey.tolerance > 0.001;
+
+    if (
+      !colorActive &&
+      !blurActive &&
+      !sharpenActive &&
+      !vignetteActive &&
+      !chromaKeyActive
+    ) {
+      return source;
+    }
 
     const pool = this.getPool(poolKey, width, height);
     const encoder = this.device.createCommandEncoder({
@@ -156,16 +244,28 @@ export class WebGPUEffectsProcessor {
     );
     pool.currentIndex = 0;
 
+    if (chromaKeyActive && chromaKey) {
+      this.writeChromaKey(chromaKey);
+      this.dispatch(encoder, pool, this.chromaKeyPipeline);
+    }
     if (colorActive) {
       this.writeColor(color);
       this.dispatch(encoder, pool, this.effectsPipeline);
     }
-    if (blurActive && blur) {
-      // Horizontal then vertical pass.
-      this.writeBlur(blur.radius, blur.sigma ?? blur.radius / 3, 1, 0);
+    if (blurActive) {
+      const sigma = blurRadius / 3;
+      this.writeBlur(blurRadius, sigma, 1, 0);
       this.dispatch(encoder, pool, this.blurPipeline);
-      this.writeBlur(blur.radius, blur.sigma ?? blur.radius / 3, 0, 1);
+      this.writeBlur(blurRadius, sigma, 0, 1);
       this.dispatch(encoder, pool, this.blurPipeline);
+    }
+    if (sharpenActive && sharpen) {
+      this.writeSharpen(sharpen);
+      this.dispatch(encoder, pool, this.sharpenPipeline);
+    }
+    if (vignetteActive && vignette) {
+      this.writeVignette(vignette);
+      this.dispatch(encoder, pool, this.vignettePipeline);
     }
 
     this.device.queue.submit([encoder.finish()]);
@@ -191,6 +291,31 @@ export class WebGPUEffectsProcessor {
     this.device.queue.writeBuffer(this.blurBuffer, 0, data.buffer, 0, data.byteLength);
   }
 
+  private writeSharpen(s: TrackSharpenEffect): void {
+    const data = new Float32Array([s.amount, s.threshold, 0, 0]);
+    this.device.queue.writeBuffer(this.sharpenBuffer, 0, data.buffer, 0, data.byteLength);
+  }
+
+  private writeVignette(v: TrackVignetteEffect): void {
+    const data = new Float32Array([v.intensity, v.radius, v.softness, 0]);
+    this.device.queue.writeBuffer(this.vignetteBuffer, 0, data.buffer, 0, data.byteLength);
+  }
+
+  private writeChromaKey(c: TrackChromaKeyEffect): void {
+    const rgb = hexToRgb(c.keyColor);
+    const data = new Float32Array([
+      rgb[0],
+      rgb[1],
+      rgb[2],
+      c.tolerance,
+      c.softness,
+      c.spill,
+      0,
+      0
+    ]);
+    this.device.queue.writeBuffer(this.chromaKeyBuffer, 0, data.buffer, 0, data.byteLength);
+  }
+
   private dispatch(
     encoder: GPUCommandEncoder,
     pool: IntermediatePool,
@@ -199,7 +324,15 @@ export class WebGPUEffectsProcessor {
     const inIdx = pool.currentIndex;
     const outIdx = (1 - inIdx) as 0 | 1;
     const uniformBuffer =
-      pipeline === this.effectsPipeline ? this.colorBuffer : this.blurBuffer;
+      pipeline === this.effectsPipeline
+        ? this.colorBuffer
+        : pipeline === this.blurPipeline
+          ? this.blurBuffer
+          : pipeline === this.sharpenPipeline
+            ? this.sharpenBuffer
+            : pipeline === this.vignettePipeline
+              ? this.vignetteBuffer
+              : this.chromaKeyBuffer;
 
     const bindGroup = this.device.createBindGroup({
       layout: this.bindGroupLayout,
@@ -288,12 +421,18 @@ export class WebGPUEffectsProcessor {
     this.pools.clear();
     this.colorBuffer.destroy();
     this.blurBuffer.destroy();
+    this.sharpenBuffer.destroy();
+    this.vignetteBuffer.destroy();
+    this.chromaKeyBuffer.destroy();
   }
 }
 
-function aggregateColor(effects: ClipEffect[]): AggregatedColor {
+function aggregateColor(
+  clipEffects: ClipEffect[],
+  trackEffects: TrackEffect[]
+): AggregatedColor {
   const out: AggregatedColor = { ...NEUTRAL_COLOR };
-  for (const e of effects) {
+  for (const e of clipEffects) {
     if (e.type !== "color") continue;
     const c = e as ClipColorEffect;
     out.brightness += c.brightness ?? 0;
@@ -305,6 +444,18 @@ function aggregateColor(effects: ClipEffect[]): AggregatedColor {
     out.shadows += c.shadows ?? 0;
     out.highlights += c.highlights ?? 0;
   }
+  for (const e of trackEffects) {
+    if (e.type !== "colorCorrection") continue;
+    const c = e as TrackColorCorrectionEffect;
+    out.brightness += c.brightness;
+    out.contrast *= c.contrast;
+    out.saturation *= c.saturation;
+    out.hue += c.hue;
+    out.temperature += c.temperature;
+    out.tint += c.tint;
+    out.shadows += c.shadows;
+    out.highlights += c.highlights;
+  }
   out.brightness = clamp(out.brightness, -1, 1);
   out.contrast = clamp(out.contrast, 0, 4);
   out.saturation = clamp(out.saturation, 0, 4);
@@ -314,6 +465,27 @@ function aggregateColor(effects: ClipEffect[]): AggregatedColor {
   out.shadows = clamp(out.shadows, -1, 1);
   out.highlights = clamp(out.highlights, -1, 1);
   return out;
+}
+
+function aggregateBlurRadius(
+  clipEffects: ClipEffect[],
+  trackEffects: TrackEffect[]
+): number {
+  let radius = 0;
+  for (const e of clipEffects) {
+    if (e.type === "blur") radius += e.radius;
+  }
+  for (const e of trackEffects) {
+    if (e.type === "videoBlur") radius += (e as TrackVideoBlurEffect).radius;
+  }
+  return Math.min(40, radius);
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return [0, 1, 0];
+  const v = parseInt(m[1], 16);
+  return [((v >> 16) & 0xff) / 255, ((v >> 8) & 0xff) / 255, (v & 0xff) / 255];
 }
 
 function isColorActive(c: AggregatedColor): boolean {

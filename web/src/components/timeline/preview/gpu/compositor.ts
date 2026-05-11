@@ -391,10 +391,20 @@ export class WebGPUCompositor {
       const src = this.uploadSource(layer);
       if (!src) continue;
 
-      const effectsList = layer.effects ?? [];
+      const clipEffectsList = layer.effects ?? [];
+      const trackEffectsList = layer.trackEffects ?? [];
+      const hasAnyEffects =
+        clipEffectsList.length > 0 || trackEffectsList.length > 0;
       const processedTexture =
-        effectsList.length > 0 && this.effects
-          ? this.effects.process(layer.id, src.texture, src.width, src.height, effectsList)
+        hasAnyEffects && this.effects
+          ? this.effects.process(
+              layer.id,
+              src.texture,
+              src.width,
+              src.height,
+              clipEffectsList,
+              trackEffectsList
+            )
           : src.texture;
 
       const transform = layer.transform ?? IDENTITY_TRANSFORM;

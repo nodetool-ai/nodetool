@@ -14,7 +14,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { shallow } from "zustand/shallow";
 
-import type { TimelineClip } from "@nodetool-ai/timeline";
+import type { TimelineClip, TrackEffect } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useAssetStore } from "../../../stores/AssetStore";
@@ -113,6 +113,7 @@ interface ActiveVideoSlot {
   transform?: TimelineClip["transform"];
   borderRadius?: number;
   effects?: TimelineClip["effects"];
+  trackEffects?: TrackEffect[];
 }
 
 interface ActiveImageLayer {
@@ -125,6 +126,7 @@ interface ActiveImageLayer {
   transform?: TimelineClip["transform"];
   borderRadius?: number;
   effects?: TimelineClip["effects"];
+  trackEffects?: TrackEffect[];
 }
 
 function isClipActive(clip: TimelineClip, currentTimeMs: number): boolean {
@@ -402,7 +404,8 @@ export const PreviewCompositor: React.FC = memo(() => {
             status: clip.status,
             transform: clip.transform,
             borderRadius: clip.borderRadius,
-            effects: clip.effects
+            effects: clip.effects,
+            trackEffects: track.effects
           });
           if (!url) {
             placeholders.push({
@@ -425,7 +428,8 @@ export const PreviewCompositor: React.FC = memo(() => {
               assetUrl: url,
               transform: clip.transform,
               borderRadius: clip.borderRadius,
-              effects: clip.effects
+              effects: clip.effects,
+              trackEffects: track.effects
             });
           } else if (!url) {
             placeholders.push({
@@ -589,7 +593,8 @@ export const PreviewCompositor: React.FC = memo(() => {
         zIndex: trackZ(slot.trackIndex),
         transform: slot.transform,
         borderRadius: slot.borderRadius,
-        effects: slot.effects
+        effects: slot.effects,
+        trackEffects: slot.trackEffects
       });
     });
 
@@ -605,7 +610,8 @@ export const PreviewCompositor: React.FC = memo(() => {
         zIndex: trackZ(layer.trackIndex),
         transform: layer.transform,
         borderRadius: layer.borderRadius,
-        effects: layer.effects
+        effects: layer.effects,
+        trackEffects: layer.trackEffects
       });
     }
 
