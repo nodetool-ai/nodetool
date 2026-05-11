@@ -39,7 +39,7 @@ const PACKAGE_DESCRIPTION_OVERRIDES: Record<string, string> = {
     "Accelerates FLUX and Qwen image models with Nunchaku quantization kernels. Install this only if you plan to run Nunchaku-optimized HuggingFace models.",
 };
 
-function getPackageDescription(pkg: Pick<RegistryPackageItem, "repo_id" | "description">): string {
+export function getPackageDescription(pkg: Pick<RegistryPackageItem, "repo_id" | "description">): string {
   const override = PACKAGE_DESCRIPTION_OVERRIDES[pkg.repo_id.toLowerCase()];
   if (override) {
     return override;
@@ -47,7 +47,7 @@ function getPackageDescription(pkg: Pick<RegistryPackageItem, "repo_id" | "descr
   return typeof pkg.description === "string" ? pkg.description.trim() : "";
 }
 
-function needsTorchPlatformDetection(packageName: string): boolean {
+export function needsTorchPlatformDetection(packageName: string): boolean {
   return TORCH_DEPENDENT_PACKAGES.has(canonicalizePackageName(packageName));
 }
 

@@ -83,10 +83,10 @@ async function isLlamaCppInstalled(): Promise<boolean> {
  * Internal event emitter for main-process events.
  * Used to notify the tray when server state changes.
  */
-const trayEvents = new EventEmitter();
+export const trayEvents = new EventEmitter();
 
 // Event types for type safety
-const TrayEventTypes = {
+export const TrayEventTypes = {
   SERVER_STATE_CHANGED: "server-state-changed",
   WORKFLOWS_CHANGED: "workflows-changed",
 } as const;
