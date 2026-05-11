@@ -24,19 +24,37 @@ interface Props {
 }
 
 export function MessageList({ rows, streaming }: Props) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
 
-  // Auto-scroll to bottom on every change so streaming chunks stay in view.
+  function handleScroll() {
+    const viewport = getViewport(rootRef.current);
+    if (!viewport) return;
+    const distanceFromBottom =
+      viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+    stickToBottomRef.current = distanceFromBottom < 80;
+  }
+
+  // Keep streaming in view only while the user is already near the bottom.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [rows.length, rows[rows.length - 1]]);
+    if (!stickToBottomRef.current) return;
+    bottomRef.current?.scrollIntoView({
+      behavior: streaming ? "auto" : "smooth",
+      block: "end"
+    });
+  }, [rows.length, rows[rows.length - 1], streaming]);
 
   if (rows.length === 0) {
     return <EmptyState />;
   }
 
   return (
-    <ScrollArea className="aurora flex-1 min-h-0">
+    <ScrollArea
+      ref={rootRef}
+      onScrollCapture={handleScroll}
+      className="aurora flex-1 min-h-0"
+    >
       <div className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-8">
         {rows.map((row, i) => (
           <MessageRow
@@ -101,6 +119,13 @@ function MessageRow({
         )}
       </div>
     </div>
+  );
+}
+
+function getViewport(root: HTMLDivElement | null): HTMLElement | null {
+  return (
+    root?.querySelector<HTMLElement>("[data-radix-scroll-area-viewport]") ??
+    null
   );
 }
 
