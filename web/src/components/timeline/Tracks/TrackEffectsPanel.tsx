@@ -52,16 +52,47 @@ const containerStyles = (theme: Theme) =>
     borderTop: `1px solid ${theme.vars.palette.divider}`,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     color: theme.vars.palette.text.primary,
-    overflowY: "auto",
-    overflowX: "hidden",
-    boxSizing: "border-box"
+    overflow: "hidden",
+    boxSizing: "border-box",
+    display: "flex",
+    flexDirection: "column"
   });
 
-const effectCardStyles = (theme: Theme) =>
+const deviceRackStyles = (theme: Theme) =>
+  css({
+    display: "flex",
+    flexDirection: "row",
+    gap: theme.spacing(1),
+    alignItems: "stretch",
+    flex: 1,
+    minHeight: 0,
+    overflowX: "auto",
+    overflowY: "hidden"
+  });
+
+// Per-effect-type card width (Ableton-style fixed-width "devices").
+const DEVICE_WIDTHS: Record<TrackEffect["type"], number> = {
+  gain: 200,
+  eq3: 420,
+  filter: 240,
+  compressor: 380
+};
+
+const effectCardStyles = (theme: Theme, width: number) =>
   css({
     border: `1px solid ${theme.vars.palette.divider}`,
     borderRadius: 4,
-    padding: theme.spacing(0.75, 1)
+    padding: theme.spacing(0.75, 1),
+    width,
+    minWidth: width,
+    maxWidth: width,
+    height: "100%",
+    boxSizing: "border-box",
+    display: "flex",
+    flexDirection: "column",
+    background: theme.vars.palette.background.paper,
+    overflowY: "auto",
+    overflowX: "hidden"
   });
 
 const effectHeaderStyles = css({
@@ -1268,7 +1299,10 @@ const EffectCard: React.FC<EffectCardProps> = memo(
     const disabled = !effect.enabled;
 
     return (
-      <div css={effectCardStyles(theme)} data-testid={`effect-${effect.id}`}>
+      <div
+        css={effectCardStyles(theme, DEVICE_WIDTHS[effect.type])}
+        data-testid={`effect-${effect.id}`}
+      >
         <FlexRow css={effectHeaderStyles} sx={{ mb: 0.5 }}>
           <FlexRow gap={0.5} align="center">
             <LabeledSwitch
@@ -1412,7 +1446,7 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
             No effects. Click <strong>Add</strong> to insert one.
           </Text>
         ) : (
-          <FlexColumn gap={0.75}>
+          <div css={deviceRackStyles(theme)}>
             {effects.map((effect, index) => (
               <EffectCard
                 key={effect.id}
@@ -1422,7 +1456,7 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
                 total={effects.length}
               />
             ))}
-          </FlexColumn>
+          </div>
         )}
       </div>
     );
