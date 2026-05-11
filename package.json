@@ -70,6 +70,7 @@
     "lint:fix": "oxlint packages/*/src web/src electron mobile/src --fix",
     "lint:packages": "oxlint packages/*/src",
     "lint:eslint": "eslint packages/*/src",
+    "task": "node ./scripts/tasks.mjs",
     "workflow": "node ./scripts/run-workflow.mjs",
     "chat": "node ./packages/cli/dist/index.js",
     "nodetool": "node ./packages/cli/dist/nodetool.js",

@@ -1,0 +1,45 @@
+---
+layout: default
+---
+{% assign plan_tasks = site.tasks | where: "plan", page.id | sort: "id" %}
+{% assign total = plan_tasks.size %}
+{% assign done = plan_tasks | where: "state", "done" | size %}
+{% assign progress = 0 %}
+{% if total > 0 %}{% assign progress = done | times: 100 | divided_by: total %}{% endif %}
+<article class="plan">
+  <p class="breadcrumb"><a href="{{ '/plans/' | relative_url }}">&larr; Plans</a></p>
+  <h1>{{ page.title }}</h1>
+  <ul class="meta">
+    <li><strong>ID:</strong> <code>{{ page.id }}</code></li>
+    <li><strong>State:</strong> <span class="state state-{{ page.state }}">{{ page.state }}</span></li>
+    {% if page.owner %}<li><strong>Owner:</strong> {{ page.owner }}</li>{% endif %}
+    <li><strong>Created:</strong> {{ page.created }}</li>
+    {% if page.tags %}<li><strong>Tags:</strong> {% for t in page.tags %}<span class="tag">{{ t }}</span> {% endfor %}</li>{% endif %}
+  </ul>
+  <div class="progress">
+    <div class="progress-bar" style="width: {{ progress }}%"></div>
+    <span class="progress-label">{{ done }} / {{ total }} tasks done ({{ progress }}%)</span>
+  </div>
+  <div class="plan-body">
+    {{ content }}
+  </div>
+  <h2>Tasks</h2>
+  {% if plan_tasks.size == 0 %}
+    <p><em>No tasks yet.</em></p>
+  {% else %}
+    <table class="tasks-table">
+      <thead><tr><th>ID</th><th>Title</th><th>State</th><th>Assignee</th><th>Updated</th></tr></thead>
+      <tbody>
+        {% for t in plan_tasks %}
+          <tr>
+            <td><code>{{ t.id }}</code></td>
+            <td><a href="{{ t.url | relative_url }}">{{ t.title }}</a></td>
+            <td><span class="state state-{{ t.state }}">{{ t.state }}</span></td>
+            <td>{{ t.assignee | default: "—" }}</td>
+            <td>{{ t.updated | date: "%Y-%m-%d" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</article>

@@ -1,0 +1,10 @@
+<div class="task-card">
+  <a href="{{ include.t.url | relative_url }}">
+    <span class="task-id">{{ include.t.id }}</span>
+    <span class="task-title">{{ include.t.title }}</span>
+  </a>
+  <div class="task-meta">
+    {% if include.t.assignee %}<span class="assignee">@{{ include.t.assignee }}</span>{% endif %}
+    {% if include.t.tags %}{% for tag in include.t.tags %}<span class="tag">{{ tag }}</span>{% endfor %}{% endif %}
+  </div>
+</div>
