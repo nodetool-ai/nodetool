@@ -4,8 +4,13 @@
 
 import * as repo from "./lib/repo";
 import * as agent from "./lib/agent";
+import { db } from "./db";
 import { TASK_STATES, isTerminalStatus, type TaskState } from "./lib/types";
 import { assistantText, toolUses, type SdkMessageEnvelope } from "./lib/sdk-message";
+
+function isTaskState(s: string): s is TaskState {
+  return (TASK_STATES as readonly string[]).includes(s);
+}
 
 type Args = { _: string[]; [k: string]: unknown };
 
@@ -43,7 +48,12 @@ function asArray(v: unknown): string[] | undefined {
 function cmdList(args: Args) {
   const filters: Parameters<typeof repo.listTasks>[0] = {};
   const state = asString(args.state);
-  if (state) filters.state = state as TaskState;
+  if (state) {
+    if (!isTaskState(state)) {
+      throw new Error(`Invalid --state: ${state}. Allowed: ${TASK_STATES.join(", ")}`);
+    }
+    filters.state = state;
+  }
   const plan = asString(args.plan);
   if (plan) filters.planId = plan;
   const assignee = asString(args.assignee);
@@ -440,15 +450,24 @@ async function main() {
       default:
         throw new Error(`Unknown command: ${cmd}`);
     }
-    process.exit(code);
+    shutdown(code);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     console.error(`tasks: ${message}`);
-    process.exit(1);
+    shutdown(1);
   }
+}
+
+function shutdown(code: number): never {
+  try {
+    db.$client.close();
+  } catch {
+    // ignore — process is exiting anyway
+  }
+  process.exit(code);
 }
 
 main().catch((err) => {
   console.error("tasks:", err instanceof Error ? err.message : String(err));
-  process.exit(1);
+  shutdown(1);
 });

@@ -26,11 +26,15 @@ export function SessionLog({ sessionId, initialEvents, initialStatus, live }: Pr
   const [streaming, setStreaming] = useState(live);
   const router = useRouter();
   const endRef = useRef<HTMLDivElement>(null);
+  // Track the highest event id we've seen so reconnects don't replay events
+  // we already have. Initialized from the SSR'd batch, then advanced in the
+  // onmessage handler — using a ref so we don't reopen the EventSource on
+  // every new event.
+  const lastIdRef = useRef<number>(initialEvents[initialEvents.length - 1]?.id ?? 0);
 
   useEffect(() => {
     if (!live) return;
-    const lastId = events[events.length - 1]?.id ?? 0;
-    const es = new EventSource(`/api/sessions/${sessionId}/events?since=${lastId}`);
+    const es = new EventSource(`/api/sessions/${sessionId}/events?since=${lastIdRef.current}`);
     es.onmessage = (msg) => {
       const event = JSON.parse(msg.data);
       if (event.type === "_eos") {
@@ -38,6 +42,9 @@ export function SessionLog({ sessionId, initialEvents, initialStatus, live }: Pr
         setStreaming(false);
         router.refresh();
         return;
+      }
+      if (typeof event.id === "number" && event.id > lastIdRef.current) {
+        lastIdRef.current = event.id;
       }
       setEvents((prev) => [...prev, event]);
       if (event.type === "status") {
@@ -50,8 +57,7 @@ export function SessionLog({ sessionId, initialEvents, initialStatus, live }: Pr
       setStreaming(false);
     };
     return () => es.close();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, live]);
+  }, [sessionId, live, router]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });

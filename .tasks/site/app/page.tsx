@@ -14,6 +14,8 @@ export default async function DashboardPage() {
   const activePlans = plans.filter((p) => p.state === "accepted");
   const countMap = repo.taskCountsByState();
   const counts = TASK_BOARD_STATES.map((s) => ({ state: s, n: countMap[s] ?? 0 }));
+  // Batched single-query progress for every active plan in the list.
+  const progressByPlan = repo.planProgressBatch(activePlans.map((p) => p.id));
 
   return (
     <div className="space-y-10">
@@ -59,7 +61,12 @@ export default async function DashboardPage() {
           </div>
           <div className="divide-y divide-border/60 rounded-lg border border-border/60 bg-card/40">
             {activePlans.map((p) => {
-              const { done, total, pct, open } = repo.planProgress(p.id);
+              const { done, total, pct, open } = progressByPlan.get(p.id) ?? {
+                done: 0,
+                total: 0,
+                pct: 0,
+                open: 0,
+              };
               return (
                 <Link
                   key={p.id}

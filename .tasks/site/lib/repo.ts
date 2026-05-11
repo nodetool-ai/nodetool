@@ -126,6 +126,33 @@ export function planProgress(planId: string): PlanProgress {
   return { total, done, pct, open };
 }
 
+// Batched planProgress for N plans in a single GROUP BY query. Returns
+// a Map keyed by plan id; plans with no tasks are still present with
+// zeroed counts so callers can index unconditionally.
+export function planProgressBatch(planIds: string[]): Map<string, PlanProgress> {
+  const out = new Map<string, PlanProgress>();
+  for (const id of planIds) out.set(id, { total: 0, done: 0, pct: 0, open: 0 });
+  if (planIds.length === 0) return out;
+  const rows = db
+    .select({ planId: tasks.planId, state: tasks.state, n: count() })
+    .from(tasks)
+    .where(inArray(tasks.planId, planIds))
+    .groupBy(tasks.planId, tasks.state)
+    .all();
+  // First pass: accumulate totals and done.
+  for (const r of rows) {
+    if (r.state === "cancelled") continue;
+    const p = out.get(r.planId)!;
+    p.total += Number(r.n);
+    if (r.state === "done") p.done += Number(r.n);
+  }
+  for (const p of out.values()) {
+    p.open = p.total - p.done;
+    p.pct = p.total === 0 ? 0 : Math.round((p.done / p.total) * 100);
+  }
+  return out;
+}
+
 // ──────────────────────────────────────────────────────────
 // Task queries
 // ──────────────────────────────────────────────────────────

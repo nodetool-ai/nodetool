@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PlansIndexPage() {
   const plans = repo.listPlans();
+  const progressByPlan = repo.planProgressBatch(plans.map((p) => p.id));
   return (
     <div className="space-y-8">
       <header className="flex items-start justify-between gap-4">
@@ -23,7 +24,12 @@ export default async function PlansIndexPage() {
       ) : (
         <div className="divide-y divide-border/60 rounded-lg border border-border/60 bg-card/40">
           {plans.map((p) => {
-            const { done, total, pct, open } = repo.planProgress(p.id);
+            const { done, total, pct, open } = progressByPlan.get(p.id) ?? {
+              done: 0,
+              total: 0,
+              pct: 0,
+              open: 0,
+            };
             return (
               <Link
                 key={p.id}
