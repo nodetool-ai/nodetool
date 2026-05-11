@@ -92,9 +92,7 @@ export const useWorkflowAssetStore = create<WorkflowAssetStore>(
         const data = await trpcClient.assets.list.query({
           workflow_id: workflowId
         });
-        const assets = normalizeAssetList(
-          (data.assets ?? []) as unknown as Asset[]
-        );
+        const assets = normalizeAssetList(data.assets ?? []);
 
         if (!isCurrent()) {
           return assets;
