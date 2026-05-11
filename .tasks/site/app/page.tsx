@@ -12,10 +12,8 @@ export default async function DashboardPage() {
   const tasks = repo.listTasks();
   const plans = repo.listPlans();
   const activePlans = plans.filter((p) => p.state === "accepted");
-  const counts = TASK_BOARD_STATES.map((s) => ({
-    state: s,
-    n: tasks.filter((t) => t.state === s).length,
-  }));
+  const countMap = repo.taskCountsByState();
+  const counts = TASK_BOARD_STATES.map((s) => ({ state: s, n: countMap[s] ?? 0 }));
 
   return (
     <div className="space-y-10">

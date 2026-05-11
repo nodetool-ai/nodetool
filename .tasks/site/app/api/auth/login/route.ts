@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { safeEqual } from "@/lib/safe-equal";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
     );
   }
   const body = await req.json().catch(() => ({}));
-  if (body?.token !== TOKEN) {
+  if (typeof body?.token !== "string" || !safeEqual(body.token, TOKEN)) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
   const res = NextResponse.json({ ok: true });

@@ -158,13 +158,15 @@ export function startSession(input: StartSessionInput): AgentSessionFull {
   return session;
 }
 
-export function listSessions(): AgentSessionFull[] {
-  return db
+export function listSessions(taskId?: string): AgentSessionFull[] {
+  const q = db
     .select()
     .from(agentSessions)
-    .orderBy(desc(agentSessions.startedAt))
-    .all()
-    .map(hydrateSession);
+    .orderBy(desc(agentSessions.startedAt));
+  const rows = taskId
+    ? q.where(eq(agentSessions.taskId, taskId)).all()
+    : q.all();
+  return rows.map(hydrateSession);
 }
 
 const TERMINAL_STATUSES = ["completed", "failed", "cancelled"];
@@ -198,20 +200,36 @@ export function getSessionEvents(
   const where = sinceId > 0
     ? and(eq(agentEvents.sessionId, sessionId), gt(agentEvents.id, sinceId))
     : eq(agentEvents.sessionId, sessionId);
-  const rows = db
+  // When limited, fetch the most-recent N by id DESC and reverse to get
+  // chronological order. Without a limit, fetch all in ascending order.
+  if (limit && limit > 0) {
+    const tail = db
+      .select()
+      .from(agentEvents)
+      .where(where)
+      .orderBy(desc(agentEvents.id))
+      .limit(limit)
+      .all();
+    tail.reverse();
+    return tail.map(toEventRow);
+  }
+  return db
     .select()
     .from(agentEvents)
     .where(where)
     .orderBy(asc(agentEvents.id))
-    .all();
-  const slice = limit && rows.length > limit ? rows.slice(rows.length - limit) : rows;
-  return slice.map((e) => ({
+    .all()
+    .map(toEventRow);
+}
+
+function toEventRow(e: typeof agentEvents.$inferSelect): AgentEventRow {
+  return {
     id: e.id,
     sessionId: e.sessionId,
     type: e.type,
     payload: safeJson(e.payload),
     createdAt: e.createdAt,
-  }));
+  };
 }
 
 export function subscribe(sessionId: number, listener: (event: AgentEventRow) => void): () => void {
@@ -499,10 +517,32 @@ function fail(sessionId: number, error: string) {
 }
 
 function updateSession(sessionId: number, patch: Partial<AgentSessionFull>) {
+  // Explicit camel → snake column map. Avoids the implicit assumption that
+  // every TS field name maps via a regex; any future field has to be added
+  // here, which is exactly what we want.
+  const COLUMN: Record<keyof AgentSessionFull, string | null> = {
+    id: null, // never updated
+    taskId: "task_id",
+    status: "status",
+    model: "model",
+    branch: "branch",
+    worktreePath: "worktree_path",
+    prUrl: "pr_url",
+    error: "error",
+    totalCostUsd: "total_cost_usd",
+    inputTokens: "input_tokens",
+    outputTokens: "output_tokens",
+    sdkSessionId: "sdk_session_id",
+    resumeOf: "resume_of",
+    startedAt: "started_at",
+    completedAt: "completed_at",
+  };
   const values: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(patch)) {
+  for (const [k, v] of Object.entries(patch) as [keyof AgentSessionFull, unknown][]) {
     if (v === undefined) continue;
-    values[camelToSnake(k)] = v;
+    const col = COLUMN[k];
+    if (!col) continue;
+    values[col] = v;
   }
   if (Object.keys(values).length === 0) return;
   db.update(agentSessions).set(values).where(eq(agentSessions.id, sessionId)).run();
@@ -659,10 +699,6 @@ function safeJson(s: string): unknown {
   } catch {
     return s;
   }
-}
-
-function camelToSnake(s: string): string {
-  return s.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
 }
 
 function describe(err: unknown): string {

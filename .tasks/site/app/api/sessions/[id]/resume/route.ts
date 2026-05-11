@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import * as agent from "@/lib/agent";
+import { startSessionSchema } from "@/lib/validators";
 import { errorResponse } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
@@ -13,11 +14,15 @@ export async function POST(
     const priorId = parseInt(id, 10);
     const prior = agent.getSession(priorId);
     if (!prior) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    const body = req.headers.get("content-length") === "0" ? {} : await req.json().catch(() => ({}));
+    const raw =
+      req.headers.get("content-length") === "0"
+        ? {}
+        : await req.json().catch(() => ({}));
+    const input = startSessionSchema.parse(raw);
     const session = agent.startSession({
       taskId: prior.taskId,
-      model: body.model ?? prior.model ?? undefined,
-      baseBranch: body.baseBranch,
+      model: input.model ?? prior.model ?? undefined,
+      baseBranch: input.baseBranch,
       resumeOf: priorId,
     });
     return NextResponse.json(session, { status: 201 });

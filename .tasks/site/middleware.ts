@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { safeEqual } from "./lib/safe-equal";
 
 // Optional bearer-token gate. When NODETOOL_TASKS_TOKEN is set, every route
 // requires either a matching `Authorization: Bearer <token>` header (for CLI
@@ -7,13 +8,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 const TOKEN = process.env.NODETOOL_TASKS_TOKEN;
 const COOKIE = "nodetool_tasks_token";
-
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
 
 function authorized(req: NextRequest): boolean {
   if (!TOKEN) return true;

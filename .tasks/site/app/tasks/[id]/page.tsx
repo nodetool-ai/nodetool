@@ -11,6 +11,7 @@ import { RunAgentButton } from "@/components/run-agent-button";
 import { SessionStatusPill } from "@/components/session-status-pill";
 import { AddNoteForm } from "@/components/add-note-form";
 import { AddCriterionForm } from "@/components/add-criterion-form";
+import { Meta } from "@/components/meta";
 import { formatDate, formatDateTime, relativeDate } from "@/lib/utils";
 import { isTerminalStatus } from "@/lib/types";
 
@@ -25,7 +26,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
   const deps = task.dependencies
     .map((depId) => repo.getTask(depId))
     .filter((t): t is NonNullable<typeof t> => Boolean(t));
-  const sessions = agent.listSessions().filter((s) => s.taskId === task.id);
+  const sessions = agent.listSessions(task.id);
   const activeSession = sessions.find((s) => !isTerminalStatus(s.status));
 
   return (
@@ -190,24 +191,3 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
   );
 }
 
-function Meta({
-  label,
-  children,
-  hint,
-  className,
-}: {
-  label: string;
-  children: React.ReactNode;
-  hint?: string;
-  className?: string;
-}) {
-  return (
-    <div className={className}>
-      <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</dt>
-      <dd className="mt-1 text-foreground">
-        {children}
-        {hint && <span className="ml-1.5 text-muted-foreground">({hint})</span>}
-      </dd>
-    </div>
-  );
-}

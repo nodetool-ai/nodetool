@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 import { ChevronRight, Wrench, MessageSquare, Terminal, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn, formatDateTime } from "@/lib/utils";
 import type { AgentEventRow, SessionStatus } from "@/lib/types";
+import {
+  assistantText,
+  toolResults,
+  toolUses,
+  type SdkContentBlock,
+  type SdkMessageEnvelope,
+} from "@/lib/sdk-message";
 
 interface Props {
   sessionId: number;
@@ -180,24 +187,17 @@ function Row({
   );
 }
 
-function AgentEventRow({ when, message }: { when: Date; message?: Record<string, unknown> }) {
+function AgentEventRow({ when, message }: { when: Date; message?: SdkMessageEnvelope }) {
   if (!message) return null;
-  const type = String(message.type ?? "");
-  if (type === "assistant") {
-    const content = (message.message as { content?: unknown[] } | undefined)?.content ?? [];
-    const text = content
-      .filter((b: any) => b?.type === "text")
-      .map((b: any) => b.text)
-      .join("\n")
-      .trim();
-    const tools = content.filter((b: any) => b?.type === "tool_use");
+  if (message.type === "assistant") {
+    const blocks = message.message?.content;
+    const text = assistantText(blocks);
+    const tools = toolUses(blocks);
     return (
       <Row icon={<MessageSquare className="size-3.5 text-state-review" />} when={when}>
         <div className="space-y-1.5">
-          {text && (
-            <div className="whitespace-pre-wrap text-foreground/90">{text}</div>
-          )}
-          {tools.map((t: any, i: number) => (
+          {text && <div className="whitespace-pre-wrap text-foreground/90">{text}</div>}
+          {tools.map((t: SdkContentBlock, i: number) => (
             <div
               key={i}
               className="inline-flex items-center gap-1.5 rounded border border-border/60 bg-muted/40 px-2 py-0.5 text-[11px] mr-1"
@@ -210,9 +210,8 @@ function AgentEventRow({ when, message }: { when: Date; message?: Record<string,
       </Row>
     );
   }
-  if (type === "user") {
-    const content = (message.message as { content?: unknown[] } | undefined)?.content ?? [];
-    const results = content.filter((b: any) => b?.type === "tool_result");
+  if (message.type === "user") {
+    const results = toolResults(message.message?.content);
     if (results.length === 0) return null;
     return (
       <Row icon={<ChevronRight className="size-3.5 text-muted-foreground" />} when={when} dense>
@@ -222,7 +221,7 @@ function AgentEventRow({ when, message }: { when: Date; message?: Record<string,
           </summary>
           <pre className="mt-2 whitespace-pre-wrap font-mono text-[11px] leading-5 text-muted-foreground">
             {results
-              .map((r: any) => (typeof r.content === "string" ? r.content : JSON.stringify(r.content)))
+              .map((r) => (typeof r.content === "string" ? r.content : JSON.stringify(r.content)))
               .join("\n---\n")
               .slice(0, 2000)}
           </pre>
@@ -230,8 +229,8 @@ function AgentEventRow({ when, message }: { when: Date; message?: Record<string,
       </Row>
     );
   }
-  if (type === "result") {
-    const subtype = String((message as any).subtype ?? "");
+  if (message.type === "result") {
+    const subtype = message.subtype ?? "";
     return (
       <Row icon={<CheckCircle2 className="size-3.5 text-state-done" />} when={when}>
         <span className="text-foreground">Agent finished</span>
@@ -239,7 +238,7 @@ function AgentEventRow({ when, message }: { when: Date; message?: Record<string,
       </Row>
     );
   }
-  if (type === "system") {
+  if (message.type === "system") {
     return (
       <Row icon={<ChevronRight className="size-3.5 text-muted-foreground" />} when={when} dense>
         <span className="text-[11px] text-muted-foreground">system event</span>

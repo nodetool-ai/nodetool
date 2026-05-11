@@ -5,6 +5,7 @@
 import * as repo from "./lib/repo";
 import * as agent from "./lib/agent";
 import { TASK_STATES, isTerminalStatus, type TaskState } from "./lib/types";
+import { assistantText, toolUses, type SdkMessageEnvelope } from "./lib/sdk-message";
 
 type Args = { _: string[]; [k: string]: unknown };
 
@@ -335,16 +336,13 @@ function printAgentEvent(event: { type: string; payload: unknown; createdAt: Dat
       break;
     }
     case "agent": {
-      const m = p as { type?: string; message?: { content?: unknown[] } };
+      const m = p as SdkMessageEnvelope;
       if (m?.type === "assistant") {
-        const text = (m.message?.content ?? [])
-          .filter((b: any) => b?.type === "text")
-          .map((b: any) => b.text)
-          .join("\n")
-          .trim();
+        const text = assistantText(m.message?.content);
         if (text) console.log(`[${ts}] ◆ ${text}`);
-        const tools = (m.message?.content ?? []).filter((b: any) => b?.type === "tool_use");
-        for (const t of tools as any[]) console.log(`[${ts}]   • tool: ${t.name}`);
+        for (const t of toolUses(m.message?.content)) {
+          console.log(`[${ts}]   • tool: ${t.name}`);
+        }
       } else if (m?.type === "result") {
         console.log(`[${ts}] ✓ result`);
       }

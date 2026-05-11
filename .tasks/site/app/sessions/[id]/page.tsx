@@ -7,6 +7,7 @@ import { SessionStatusPill } from "@/components/session-status-pill";
 import { SessionLog } from "@/components/session-log";
 import { CancelSessionButton } from "@/components/cancel-session-button";
 import { ResumeSessionButton } from "@/components/resume-session-button";
+import { Meta } from "@/components/meta";
 import { formatDateTime, relativeDate } from "@/lib/utils";
 import { isTerminalStatus } from "@/lib/types";
 
@@ -137,24 +138,3 @@ export default async function SessionPage({
   );
 }
 
-function Meta({
-  label,
-  children,
-  hint,
-  className,
-}: {
-  label: string;
-  children: React.ReactNode;
-  hint?: string;
-  className?: string;
-}) {
-  return (
-    <div className={className}>
-      <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</dt>
-      <dd className="mt-1 text-foreground">
-        {children}
-        {hint && <span className="ml-1.5 text-muted-foreground">({hint})</span>}
-      </dd>
-    </div>
-  );
-}

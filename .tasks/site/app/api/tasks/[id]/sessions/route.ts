@@ -11,7 +11,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    return NextResponse.json(agent.listSessions().filter((s) => s.taskId === id));
+    return NextResponse.json(agent.listSessions(id));
   } catch (e) {
     return errorResponse(e);
   }
