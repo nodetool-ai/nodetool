@@ -118,10 +118,30 @@ export function useTimelineAutosave(
     };
     scheduleFn = schedule;
 
+    // Skip subscriber updates that don't change persisted document fields.
+    // Otherwise the server's `setBaseUpdatedAt` write after each save loops
+    // back into the subscriber and triggers an infinite save→response cycle.
+    let lastSequenceId: string | null = null;
+    let lastTracks: TimelineStoreState["tracks"] | null = null;
+    let lastClips: TimelineStoreState["clips"] | null = null;
+    let lastMarkers: TimelineStoreState["markers"] | null = null;
+    let lastDurationMs: number | null = null;
+
     const unsubscribe = useTimelineStore.subscribe((state) => {
-      const snapshot = pickSnapshot(state);
-      if (!snapshot.sequenceId) return;
-      pendingRef.current = snapshot;
+      if (!state.sequenceId) return;
+      const docUnchanged =
+        state.sequenceId === lastSequenceId &&
+        state.tracks === lastTracks &&
+        state.clips === lastClips &&
+        state.markers === lastMarkers &&
+        state.durationMs === lastDurationMs;
+      if (docUnchanged) return;
+      lastSequenceId = state.sequenceId;
+      lastTracks = state.tracks;
+      lastClips = state.clips;
+      lastMarkers = state.markers;
+      lastDurationMs = state.durationMs;
+      pendingRef.current = pickSnapshot(state);
       schedule();
     });
 
