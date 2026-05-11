@@ -54,6 +54,77 @@ export interface TimelineTrack {
   solo?: boolean;
   /** Pixel height of the track row in the timeline UI. */
   heightPx?: number;
+  /**
+   * Audio DSP chain applied after the track gain stage and before the master
+   * bus. Effects are applied in order. Only meaningful on `audio` tracks; the
+   * runtime ignores the chain for non-audio tracks.
+   */
+  effects?: TrackEffect[];
+}
+
+// ── Track DSP effects ───────────────────────────────────────────────────────
+
+export type TrackEffect =
+  | TrackGainEffect
+  | TrackEq3Effect
+  | TrackFilterEffect
+  | TrackCompressorEffect;
+
+export interface TrackGainEffect {
+  id: string;
+  type: "gain";
+  enabled: boolean;
+  /** Gain in decibels. Default 0. */
+  gainDb: number;
+}
+
+export interface TrackEq3Effect {
+  id: string;
+  type: "eq3";
+  enabled: boolean;
+  /** Low-shelf corner frequency in Hz. Default 200. */
+  lowFreq: number;
+  /** Low-shelf gain in dB. Default 0. */
+  lowGainDb: number;
+  /** Mid peaking centre frequency in Hz. Default 1000. */
+  midFreq: number;
+  /** Mid peaking Q. Default 1. */
+  midQ: number;
+  /** Mid peaking gain in dB. Default 0. */
+  midGainDb: number;
+  /** High-shelf corner frequency in Hz. Default 5000. */
+  highFreq: number;
+  /** High-shelf gain in dB. Default 0. */
+  highGainDb: number;
+}
+
+export type TrackFilterMode = "lowpass" | "highpass" | "bandpass";
+
+export interface TrackFilterEffect {
+  id: string;
+  type: "filter";
+  enabled: boolean;
+  mode: TrackFilterMode;
+  /** Cutoff or centre frequency in Hz. Default 1000. */
+  frequency: number;
+  /** Filter Q. Default 1. */
+  q: number;
+}
+
+export interface TrackCompressorEffect {
+  id: string;
+  type: "compressor";
+  enabled: boolean;
+  /** Threshold in dB. Default -24. */
+  thresholdDb: number;
+  /** Compression ratio. Default 4. */
+  ratio: number;
+  /** Attack time in milliseconds. Default 3. */
+  attackMs: number;
+  /** Release time in milliseconds. Default 250. */
+  releaseMs: number;
+  /** Knee in dB. Default 30. */
+  kneeDb: number;
 }
 
 export interface TimelineClip {

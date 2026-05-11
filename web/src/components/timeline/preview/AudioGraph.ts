@@ -1,4 +1,12 @@
-import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
+import type {
+  TimelineClip,
+  TimelineTrack,
+  TrackCompressorEffect,
+  TrackEffect,
+  TrackEq3Effect,
+  TrackFilterEffect,
+  TrackGainEffect
+} from "@nodetool-ai/timeline";
 
 export interface ScheduledAudioClip {
   clip: TimelineClip;
@@ -6,10 +14,32 @@ export interface ScheduledAudioClip {
   assetUrl: string;
 }
 
+/**
+ * Internal state for a single effect's audio nodes. Each effect chains
+ * `input → ...internal... → output` so the chain can wire them in series.
+ */
+interface EffectUnit {
+  effect: TrackEffect;
+  input: AudioNode;
+  output: AudioNode;
+  /** All allocated nodes — disconnected on rebuild. */
+  nodes: AudioNode[];
+}
+
+interface TrackChainState {
+  /** trackGain output is always connected to the head of `units` (or directly to masterGain if empty). */
+  trackGain: GainNode;
+  /** Last applied snapshot — used to skip rebuilds when reference-equal. */
+  effects: TrackEffect[];
+  units: EffectUnit[];
+}
+
+const DB_TO_LIN = (db: number): number => Math.pow(10, db / 20);
+
 export class AudioGraph {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
-  private trackGains = new Map<string, GainNode>();
+  private trackChains = new Map<string, TrackChainState>();
   private clipGains = new Map<string, GainNode>();
   private clipSources = new Map<string, AudioBufferSourceNode>();
   private bufferCache = new Map<string, AudioBuffer>();
@@ -61,14 +91,210 @@ export class AudioGraph {
     return promise;
   }
 
+  // ── Effect chain ────────────────────────────────────────────────────────
+
+  private getOrCreateTrackChain(trackId: string): TrackChainState {
+    let chain = this.trackChains.get(trackId);
+    if (chain) return chain;
+
+    const ctx = this.getContext();
+    const trackGain = ctx.createGain();
+    trackGain.connect(this.masterGain!);
+    chain = { trackGain, effects: [], units: [] };
+    this.trackChains.set(trackId, chain);
+    return chain;
+  }
+
+  /** Returns the input node clips on this track should connect into. */
   private getTrackGain(trackId: string): GainNode {
-    if (!this.trackGains.has(trackId)) {
-      const ctx = this.getContext();
-      const gain = ctx.createGain();
-      gain.connect(this.masterGain!);
-      this.trackGains.set(trackId, gain);
+    return this.getOrCreateTrackChain(trackId).trackGain;
+  }
+
+  private buildEffectUnit(effect: TrackEffect): EffectUnit | null {
+    const ctx = this.getContext();
+    switch (effect.type) {
+      case "gain": {
+        const node = ctx.createGain();
+        this.applyGainEffect(node, effect);
+        return { effect, input: node, output: node, nodes: [node] };
+      }
+      case "eq3": {
+        const low = ctx.createBiquadFilter();
+        low.type = "lowshelf";
+        const mid = ctx.createBiquadFilter();
+        mid.type = "peaking";
+        const high = ctx.createBiquadFilter();
+        high.type = "highshelf";
+        this.applyEq3Effect(low, mid, high, effect);
+        low.connect(mid);
+        mid.connect(high);
+        return {
+          effect,
+          input: low,
+          output: high,
+          nodes: [low, mid, high]
+        };
+      }
+      case "filter": {
+        const node = ctx.createBiquadFilter();
+        this.applyFilterEffect(node, effect);
+        return { effect, input: node, output: node, nodes: [node] };
+      }
+      case "compressor": {
+        const node = ctx.createDynamicsCompressor();
+        this.applyCompressorEffect(node, effect);
+        return { effect, input: node, output: node, nodes: [node] };
+      }
+      default:
+        return null;
     }
-    return this.trackGains.get(trackId)!;
+  }
+
+  private applyGainEffect(node: GainNode, e: TrackGainEffect): void {
+    node.gain.value = DB_TO_LIN(e.gainDb);
+  }
+
+  private applyEq3Effect(
+    low: BiquadFilterNode,
+    mid: BiquadFilterNode,
+    high: BiquadFilterNode,
+    e: TrackEq3Effect
+  ): void {
+    low.frequency.value = e.lowFreq;
+    low.gain.value = e.lowGainDb;
+    mid.frequency.value = e.midFreq;
+    mid.Q.value = e.midQ;
+    mid.gain.value = e.midGainDb;
+    high.frequency.value = e.highFreq;
+    high.gain.value = e.highGainDb;
+  }
+
+  private applyFilterEffect(
+    node: BiquadFilterNode,
+    e: TrackFilterEffect
+  ): void {
+    node.type = e.mode;
+    node.frequency.value = e.frequency;
+    node.Q.value = e.q;
+  }
+
+  private applyCompressorEffect(
+    node: DynamicsCompressorNode,
+    e: TrackCompressorEffect
+  ): void {
+    node.threshold.value = e.thresholdDb;
+    node.ratio.value = e.ratio;
+    node.attack.value = e.attackMs / 1000;
+    node.release.value = e.releaseMs / 1000;
+    node.knee.value = e.kneeDb;
+  }
+
+  /**
+   * True if `next` and `prev` have the same enabled effects in the same order
+   * (matched by id+type). When this is true we can update parameters in place
+   * instead of tearing the chain down.
+   */
+  private chainStructureMatches(
+    prev: EffectUnit[],
+    next: TrackEffect[]
+  ): boolean {
+    const nextActive = next.filter((e) => e.enabled);
+    if (prev.length !== nextActive.length) return false;
+    for (let i = 0; i < prev.length; i++) {
+      const p = prev[i].effect;
+      const n = nextActive[i];
+      if (p.id !== n.id || p.type !== n.type) return false;
+    }
+    return true;
+  }
+
+  private updateChainParams(prev: EffectUnit[], next: TrackEffect[]): void {
+    const nextActive = next.filter((e) => e.enabled);
+    for (let i = 0; i < prev.length; i++) {
+      const unit = prev[i];
+      const e = nextActive[i];
+      switch (e.type) {
+        case "gain":
+          this.applyGainEffect(unit.nodes[0] as GainNode, e);
+          break;
+        case "eq3":
+          this.applyEq3Effect(
+            unit.nodes[0] as BiquadFilterNode,
+            unit.nodes[1] as BiquadFilterNode,
+            unit.nodes[2] as BiquadFilterNode,
+            e
+          );
+          break;
+        case "filter":
+          this.applyFilterEffect(unit.nodes[0] as BiquadFilterNode, e);
+          break;
+        case "compressor":
+          this.applyCompressorEffect(
+            unit.nodes[0] as DynamicsCompressorNode,
+            e
+          );
+          break;
+      }
+      unit.effect = e;
+    }
+  }
+
+  /**
+   * Set the DSP chain for a track. The chain is wired between trackGain and
+   * masterGain; enabled effects are applied in array order. When the effect
+   * structure (ids + types of enabled effects) matches the previous call we
+   * update parameters in place; otherwise we rebuild from scratch.
+   */
+  setTrackEffects(trackId: string, effects: TrackEffect[]): void {
+    if (!this.ctx) {
+      // No context yet — store a marker by upserting state. We can't build
+      // nodes until the context exists; the chain will be (re)applied the
+      // next time the context is created via `scheduleClips`.
+      return;
+    }
+    const chain = this.getOrCreateTrackChain(trackId);
+    if (chain.effects === effects) return; // reference-equal — nothing to do
+
+    if (this.chainStructureMatches(chain.units, effects)) {
+      this.updateChainParams(chain.units, effects);
+      chain.effects = effects;
+      return;
+    }
+
+    // Rebuild: disconnect current chain.
+    try {
+      chain.trackGain.disconnect();
+    } catch {
+      /* not connected */
+    }
+    for (const unit of chain.units) {
+      for (const n of unit.nodes) {
+        try {
+          n.disconnect();
+        } catch {
+          /* not connected */
+        }
+      }
+    }
+    chain.units = [];
+
+    // Build new chain from enabled effects.
+    const newUnits: EffectUnit[] = [];
+    for (const effect of effects) {
+      if (!effect.enabled) continue;
+      const unit = this.buildEffectUnit(effect);
+      if (unit) newUnits.push(unit);
+    }
+    chain.units = newUnits;
+    chain.effects = effects;
+
+    // Wire up: trackGain → unit[0] → unit[1] → ... → masterGain.
+    let prevOutput: AudioNode = chain.trackGain;
+    for (const unit of newUnits) {
+      prevOutput.connect(unit.input);
+      prevOutput = unit.output;
+    }
+    prevOutput.connect(this.masterGain!);
   }
 
   /** Solo rule: if any audio track is soloed, non-solo tracks are silenced. */
@@ -81,10 +307,11 @@ export class AudioGraph {
     const now = this.ctx.currentTime;
 
     for (const track of audioTracks) {
-      const gain = this.getTrackGain(track.id);
+      const chain = this.getOrCreateTrackChain(track.id);
       const muted = track.muted === true || (hasSolo && !track.solo);
       // Use a short ramp instead of a hard cut to avoid clicks.
-      gain.gain.setTargetAtTime(muted ? 0 : 1, now, 0.01);
+      chain.trackGain.gain.setTargetAtTime(muted ? 0 : 1, now, 0.01);
+      this.setTrackEffects(track.id, track.effects ?? []);
     }
   }
 
@@ -203,10 +430,23 @@ export class AudioGraph {
 
   dispose(): void {
     this.stopAll();
-    for (const gain of this.trackGains.values()) {
-      gain.disconnect();
+    for (const chain of this.trackChains.values()) {
+      try {
+        chain.trackGain.disconnect();
+      } catch {
+        /* not connected */
+      }
+      for (const unit of chain.units) {
+        for (const n of unit.nodes) {
+          try {
+            n.disconnect();
+          } catch {
+            /* not connected */
+          }
+        }
+      }
     }
-    this.trackGains.clear();
+    this.trackChains.clear();
     void this.ctx?.close();
     this.ctx = null;
     this.masterGain = null;

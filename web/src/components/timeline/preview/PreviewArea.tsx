@@ -174,6 +174,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       };
     }, []);
 
+    // Live-apply track gain/solo/mute and DSP chain changes so effect tweaks
+    // are audible immediately without waiting for the next play/seek cycle.
+    useEffect(() => {
+      const graph = graphRef.current;
+      if (!graph.context) return;
+      graph.updateTracks(tracks);
+    }, [tracks]);
+
     const handlePlay = useCallback(async () => {
       play();
       const graph = graphRef.current;

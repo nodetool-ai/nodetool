@@ -31,13 +31,15 @@ import {
   snap,
   makeTrack,
   makeClip,
+  makeTrackEffect,
   createTimeOrderedUuid
 } from "@nodetool-ai/timeline";
 import type {
   TimelineSequence,
   TimelineTrack,
   TimelineClip,
-  TimelineMarker
+  TimelineMarker,
+  TrackEffect
 } from "@nodetool-ai/timeline";
 import type { Asset } from "../ApiTypes";
 import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
@@ -86,6 +88,25 @@ export interface TimelineStoreState {
   setTrackMuted: (trackId: string, muted: boolean) => void;
   setTrackSolo: (trackId: string, solo: boolean) => void;
   setTrackName: (trackId: string, name: string) => void;
+
+  // ── Track DSP effects ────────────────────────────────────────────────────
+
+  /** Append a new effect of the given type to the track's DSP chain. */
+  addTrackEffect: (trackId: string, type: TrackEffect["type"]) => void;
+  /** Patch a single effect by id. Type-narrowed at the call site. */
+  updateTrackEffect: (
+    trackId: string,
+    effectId: string,
+    patch: Partial<TrackEffect>
+  ) => void;
+  /** Remove an effect from the track's chain. */
+  removeTrackEffect: (trackId: string, effectId: string) => void;
+  /** Move an effect within the chain (oldIndex → newIndex). */
+  moveTrackEffect: (
+    trackId: string,
+    oldIndex: number,
+    newIndex: number
+  ) => void;
 
   // ── Clip mutations ───────────────────────────────────────────────────────
 
@@ -360,6 +381,61 @@ export const createTimelineStore = (
             tracks: state.tracks.map((t) =>
               t.id === trackId ? { ...t, name } : t
             )
+          })),
+
+        // ── Track DSP effects ─────────────────────────────────────────────
+
+        addTrackEffect: (trackId, type) =>
+          set((state) => ({
+            tracks: state.tracks.map((t) => {
+              if (t.id !== trackId) return t;
+              const effects = [...(t.effects ?? []), makeTrackEffect(type)];
+              return { ...t, effects };
+            })
+          })),
+
+        updateTrackEffect: (trackId, effectId, patch) =>
+          set((state) => ({
+            tracks: state.tracks.map((t) => {
+              if (t.id !== trackId) return t;
+              const effects = (t.effects ?? []).map((e) =>
+                e.id === effectId
+                  ? ({ ...e, ...patch } as TrackEffect)
+                  : e
+              );
+              return { ...t, effects };
+            })
+          })),
+
+        removeTrackEffect: (trackId, effectId) =>
+          set((state) => ({
+            tracks: state.tracks.map((t) => {
+              if (t.id !== trackId) return t;
+              const effects = (t.effects ?? []).filter(
+                (e) => e.id !== effectId
+              );
+              return { ...t, effects };
+            })
+          })),
+
+        moveTrackEffect: (trackId, oldIndex, newIndex) =>
+          set((state) => ({
+            tracks: state.tracks.map((t) => {
+              if (t.id !== trackId) return t;
+              const effects = [...(t.effects ?? [])];
+              if (
+                oldIndex < 0 ||
+                oldIndex >= effects.length ||
+                newIndex < 0 ||
+                newIndex >= effects.length ||
+                oldIndex === newIndex
+              ) {
+                return t;
+              }
+              const [moved] = effects.splice(oldIndex, 1);
+              effects.splice(newIndex, 0, moved);
+              return { ...t, effects };
+            })
           })),
 
         // ── Clips ───────────────────────────────────────────────────────────

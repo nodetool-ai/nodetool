@@ -26,7 +26,7 @@
  * Horizontal scroll: native overflow-x scroll on the scrollable panel.
  */
 
-import React, { memo, useCallback, useEffect, useRef } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -40,6 +40,8 @@ import { TrackLane } from "./TrackLane";
 import { TimeRuler } from "./TimeRuler";
 import { Playhead } from "./Playhead";
 import { AddTrackButton } from "./AddTrackButton";
+import { TrackEffectsPanel } from "./TrackEffectsPanel";
+import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { ToolToggle } from "../ToolToggle";
 import { FlexColumn, FlexRow } from "../../ui_primitives";
 import { deserializeDragData } from "../../../lib/dragdrop";
@@ -303,10 +305,31 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       setActiveTool
     ]);
 
+    const expandedFxTrackId = useTimelineUIStore(
+      (s) => s.expandedFxTrackId
+    );
+
     const totalTracksHeight = tracks.reduce(
-      (sum, t) => sum + (t.heightPx ?? DEFAULT_TRACK_HEIGHT_PX),
+      (sum, t) =>
+        sum +
+        (t.heightPx ?? DEFAULT_TRACK_HEIGHT_PX) +
+        (t.id === expandedFxTrackId ? FX_PANEL_HEIGHT_PX : 0),
       0
     );
+
+    // The FX panel sticks to the left of the scroll viewport so it stays
+    // visible while clips scroll horizontally. Its width matches the
+    // scrollable area's visible width.
+    const [fxPanelWidth, setFxPanelWidth] = useState(0);
+    useEffect(() => {
+      const el = scrollableRef.current;
+      if (!el) return;
+      const update = () => setFxPanelWidth(el.clientWidth);
+      update();
+      const ro = new ResizeObserver(update);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, []);
 
     return (
       <div
@@ -334,13 +357,26 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
         {/* ── Track rows ──────────────────────────────────────────────── */}
         <FlexRow
-          sx={{ height: lanesHeight, overflow: "hidden" }}
+          sx={{
+            height: lanesHeight,
+            overflowY: "auto",
+            overflowX: "hidden",
+            alignItems: "flex-start"
+          }}
           fullWidth
         >
           {/* Header column */}
           <div css={headerColumnStyles}>
             {tracks.map((track) => (
-              <TrackHeader key={track.id} track={track} />
+              <React.Fragment key={track.id}>
+                <TrackHeader track={track} />
+                {expandedFxTrackId === track.id && (
+                  <div
+                    style={{ height: FX_PANEL_HEIGHT_PX }}
+                    aria-hidden="true"
+                  />
+                )}
+              </React.Fragment>
             ))}
             <AddTrackButton />
           </div>
@@ -359,7 +395,22 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               style={{ width: totalWidthPx, height: totalTracksHeight }}
             >
               {tracks.map((track) => (
-                <TrackLane key={track.id} track={track} />
+                <React.Fragment key={track.id}>
+                  <TrackLane track={track} />
+                  {expandedFxTrackId === track.id && (
+                    <div
+                      style={{
+                        position: "sticky",
+                        left: 0,
+                        width: fxPanelWidth,
+                        height: FX_PANEL_HEIGHT_PX,
+                        zIndex: 2
+                      }}
+                    >
+                      <TrackEffectsPanel trackId={track.id} />
+                    </div>
+                  )}
+                </React.Fragment>
               ))}
             </div>
 

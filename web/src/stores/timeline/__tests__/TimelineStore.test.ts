@@ -143,6 +143,72 @@ describe("TimelineStore — tracks", () => {
   });
 });
 
+describe("TimelineStore — track DSP effects", () => {
+  let store: ReturnType<typeof mkStore>;
+  let trackId: string;
+
+  beforeEach(() => {
+    store = mkStore();
+    store.getState().addTrack("audio", "A1");
+    trackId = store.getState().tracks[0].id;
+  });
+
+  it("addTrackEffect appends an effect with defaults", () => {
+    store.getState().addTrackEffect(trackId, "gain");
+    const effects = store.getState().tracks[0].effects;
+    expect(effects).toHaveLength(1);
+    expect(effects?.[0].type).toBe("gain");
+    expect(effects?.[0].enabled).toBe(true);
+  });
+
+  it("addTrackEffect supports all effect types", () => {
+    store.getState().addTrackEffect(trackId, "eq3");
+    store.getState().addTrackEffect(trackId, "filter");
+    store.getState().addTrackEffect(trackId, "compressor");
+    const types = store.getState().tracks[0].effects?.map((e) => e.type);
+    expect(types).toEqual(["eq3", "filter", "compressor"]);
+  });
+
+  it("updateTrackEffect patches the matching effect", () => {
+    store.getState().addTrackEffect(trackId, "gain");
+    const effectId = store.getState().tracks[0].effects![0].id;
+    store
+      .getState()
+      .updateTrackEffect(trackId, effectId, { gainDb: 6, enabled: false });
+    const e = store.getState().tracks[0].effects![0];
+    expect(e.type).toBe("gain");
+    if (e.type === "gain") {
+      expect(e.gainDb).toBe(6);
+    }
+    expect(e.enabled).toBe(false);
+  });
+
+  it("removeTrackEffect drops the effect by id", () => {
+    store.getState().addTrackEffect(trackId, "gain");
+    store.getState().addTrackEffect(trackId, "filter");
+    const filterId = store.getState().tracks[0].effects![1].id;
+    store.getState().removeTrackEffect(trackId, filterId);
+    const effects = store.getState().tracks[0].effects!;
+    expect(effects).toHaveLength(1);
+    expect(effects[0].type).toBe("gain");
+  });
+
+  it("moveTrackEffect reorders effects", () => {
+    store.getState().addTrackEffect(trackId, "gain");
+    store.getState().addTrackEffect(trackId, "filter");
+    store.getState().addTrackEffect(trackId, "compressor");
+    store.getState().moveTrackEffect(trackId, 2, 0);
+    const types = store.getState().tracks[0].effects?.map((e) => e.type);
+    expect(types).toEqual(["compressor", "gain", "filter"]);
+  });
+
+  it("moveTrackEffect is a no-op for out-of-bounds indices", () => {
+    store.getState().addTrackEffect(trackId, "gain");
+    store.getState().moveTrackEffect(trackId, 0, 5);
+    expect(store.getState().tracks[0].effects).toHaveLength(1);
+  });
+});
+
 // ── Clip mutations ─────────────────────────────────────────────────────────
 
 describe("TimelineStore — moveClip", () => {
