@@ -1,8 +1,25 @@
 import type { FastifyPluginAsync } from "fastify";
+import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { sql } from "drizzle-orm";
 import { getDb, getDbType, getRawDb } from "@nodetool-ai/models";
 
 const serverStartTime = Date.now();
+
+// Read version from package.json
+function getVersion(): string {
+  try {
+    const packageJsonPath = resolve(
+      dirname(fileURLToPath(import.meta.url)),
+      "../../package.json"
+    );
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+    return packageJson.version || "unknown";
+  } catch {
+    return "unknown";
+  }
+}
 
 const healthRoute: FastifyPluginAsync = async (app) => {
   /**
@@ -47,6 +64,18 @@ const healthRoute: FastifyPluginAsync = async (app) => {
    */
   app.get("/ready", async (_req, reply) => {
     return reply.status(200).send({ status: "ok" });
+  });
+
+  /**
+   * GET /api/health — version and uptime information.
+   * Returns 200 with version from package.json and uptime in seconds.
+   * No authentication required.
+   */
+  app.get("/api/health", async (_req, reply) => {
+    return reply.status(200).send({
+      version: getVersion(),
+      uptime: Math.floor((Date.now() - serverStartTime) / 1000)
+    });
   });
 };
 
