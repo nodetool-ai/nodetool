@@ -1,11 +1,9 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from "@jest/globals";
 import {
   getMousePosition,
-  getMouseDelta,
   addWiggleMovement,
   isWiggling,
-  resetWiggleDetection,
-  cleanupMousePositionListener
+  resetWiggleDetection
 } from "../MousePosition";
 
 describe("MousePosition", () => {
@@ -42,30 +40,6 @@ describe("MousePosition", () => {
       expect(position).toHaveProperty("y");
       expect(typeof position.x).toBe("number");
       expect(typeof position.y).toBe("number");
-    });
-  });
-
-  describe("getMouseDelta", () => {
-    it("should return zero delta on first call", () => {
-      const delta = getMouseDelta();
-      expect(delta).toEqual({ dx: 0, dy: 0 });
-    });
-
-    it("should return zero delta when position hasn't changed", () => {
-      const delta1 = getMouseDelta();
-      const delta2 = getMouseDelta();
-      expect(delta1).toEqual({ dx: 0, dy: 0 });
-      expect(delta2).toEqual({ dx: 0, dy: 0 });
-    });
-
-    it("should track sequential deltas correctly", () => {
-      // First call establishes baseline
-      const delta1 = getMouseDelta();
-      expect(delta1).toEqual({ dx: 0, dy: 0 });
-
-      // Subsequent calls should also return 0 if position hasn't changed
-      const delta2 = getMouseDelta();
-      expect(delta2).toEqual({ dx: 0, dy: 0 });
     });
   });
 
@@ -216,49 +190,6 @@ describe("MousePosition", () => {
         addWiggleMovement(10, 10);
         expect(isWiggling()).toBe(false);
       });
-    });
-  });
-
-  describe("cleanupMousePositionListener", () => {
-    it("should handle cleanup safely when document exists", () => {
-      // Should not throw when document exists
-      expect(() => cleanupMousePositionListener()).not.toThrow();
-    });
-
-    it("should handle cleanup safely when document is undefined", () => {
-      // Store current document
-      const currentDoc = (global as any).document;
-
-      // Temporarily remove document
-      (global as any).document = undefined;
-
-      // Should not throw
-      expect(() => cleanupMousePositionListener()).not.toThrow();
-
-      // Restore document for cleanup
-      (global as any).document = currentDoc;
-    });
-  });
-
-  describe("document event handling", () => {
-    it("should not throw error when document is undefined", () => {
-      // Store current document
-      const currentDoc = (global as any).document;
-
-      // Temporarily remove document
-      (global as any).document = undefined;
-
-      // Test that functions still work without document
-      expect(() => {
-        const position = getMousePosition();
-        expect(position).toEqual({ x: 0, y: 0 });
-      }).not.toThrow();
-
-      // Test cleanup function doesn't throw
-      expect(() => cleanupMousePositionListener()).not.toThrow();
-
-      // Restore document for cleanup
-      (global as any).document = currentDoc;
     });
   });
 

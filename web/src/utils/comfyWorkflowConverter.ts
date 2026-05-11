@@ -471,21 +471,21 @@ export function comfyPromptToNodeToolGraph(prompt: ComfyUIPrompt): Graph {
 /**
  * Check if a node type is a ComfyUI node
  */
-export function isComfyUINode(nodeType: string): boolean {
+function isComfyUINode(nodeType: string): boolean {
   return nodeType.startsWith("comfy.");
 }
 
 /**
  * Check if a graph contains any ComfyUI nodes
  */
-export function graphHasComfyUINodes(graph: Graph): boolean {
+function graphHasComfyUINodes(graph: Graph): boolean {
   return graph.nodes.some((node) => isComfyUINode(node.type));
 }
 
 /**
  * Check whether workflow settings explicitly mark a workflow as ComfyUI.
  */
-export function hasComfyWorkflowFlag(
+function hasComfyWorkflowFlag(
   settings?: Record<string, unknown> | null
 ): boolean {
   return settings?.[COMFY_WORKFLOW_FLAG] === true;
