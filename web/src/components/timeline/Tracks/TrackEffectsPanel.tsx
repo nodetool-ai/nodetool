@@ -746,66 +746,482 @@ const FilterEditor: React.FC<EffectEditorProps<TrackFilterEffect>> = ({
   </FlexColumn>
 );
 
+// ── Compressor visualizer (Logic-style transfer curve) ──────────────────────
+
+const COMP_DB_MIN = -60;
+const COMP_DB_MAX = 0;
+const COMP_GRAPH_SIZE = 180;
+
+const compTransferDb = (
+  inputDb: number,
+  threshold: number,
+  ratio: number,
+  knee: number
+): number => {
+  const half = knee / 2;
+  const delta = inputDb - threshold;
+  if (knee > 0 && delta > -half && delta < half) {
+    const x = delta + half;
+    return inputDb + (1 / ratio - 1) * (x * x) / (2 * knee);
+  }
+  if (delta <= 0) return inputDb;
+  return threshold + delta / ratio;
+};
+
+const compXY = (db: number, size: number) => {
+  const t = (db - COMP_DB_MIN) / (COMP_DB_MAX - COMP_DB_MIN);
+  return t * size;
+};
+
+const compFromX = (x: number, size: number) =>
+  COMP_DB_MIN + (x / size) * (COMP_DB_MAX - COMP_DB_MIN);
+
+const compFromY = (y: number, size: number) =>
+  COMP_DB_MIN + ((size - y) / size) * (COMP_DB_MAX - COMP_DB_MIN);
+
+const compGraphStyles = (theme: Theme) =>
+  css({
+    width: COMP_GRAPH_SIZE,
+    height: COMP_GRAPH_SIZE,
+    border: `1px solid ${theme.vars.palette.divider}`,
+    borderRadius: 4,
+    background: `linear-gradient(135deg, ${theme.vars.palette.background.paper} 0%, rgba(0,0,0,0.3) 100%)`,
+    display: "block",
+    flexShrink: 0,
+    touchAction: "none",
+    userSelect: "none"
+  });
+
+const compReadoutGridStyles = (theme: Theme) =>
+  css({
+    flex: 1,
+    minWidth: 0,
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: theme.spacing(0.5)
+  });
+
+const compTileStyles = (theme: Theme, accent?: string) =>
+  css({
+    border: `1px solid ${theme.vars.palette.divider}`,
+    borderTop: accent ? `2px solid ${accent}` : undefined,
+    borderRadius: 3,
+    padding: theme.spacing(0.5, 0.75),
+    background: theme.vars.palette.background.paper,
+    display: "flex",
+    flexDirection: "column",
+    gap: 4
+  });
+
+const compTileLabelStyles = (theme: Theme) =>
+  css({
+    fontSize: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    color: theme.vars.palette.text.secondary
+  });
+
+const compTileValueStyles = (theme: Theme) =>
+  css({
+    fontSize: 13,
+    fontVariantNumeric: "tabular-nums",
+    color: theme.vars.palette.text.primary,
+    fontWeight: 500
+  });
+
+const COMP_ACCENT = "#ff7a59";
+const COMP_THRESH_COLOR = "#ffd24a";
+
+type CompDrag = "threshold" | "ratio" | null;
+
+interface CompressorCurveProps {
+  effect: TrackCompressorEffect;
+  onPatch: (patch: Partial<TrackCompressorEffect>) => void;
+  disabled: boolean;
+}
+
+const CompressorCurve: React.FC<CompressorCurveProps> = ({
+  effect,
+  onPatch,
+  disabled
+}) => {
+  const theme = useTheme();
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [drag, setDrag] = useState<CompDrag>(null);
+  const size = COMP_GRAPH_SIZE;
+
+  const curvePath = useMemo(() => {
+    const samples = 80;
+    let d = "";
+    for (let i = 0; i <= samples; i++) {
+      const dbIn = COMP_DB_MIN + (i / samples) * (COMP_DB_MAX - COMP_DB_MIN);
+      const dbOut = compTransferDb(
+        dbIn,
+        effect.thresholdDb,
+        effect.ratio,
+        effect.kneeDb
+      );
+      const x = compXY(dbIn, size);
+      const y = size - compXY(dbOut, size);
+      d += (i === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1);
+    }
+    return d;
+  }, [effect.thresholdDb, effect.ratio, effect.kneeDb, size]);
+
+  const fillPath = useMemo(
+    () =>
+      curvePath +
+      " L " +
+      size +
+      " " +
+      size +
+      " L 0 " +
+      size +
+      " Z",
+    [curvePath, size]
+  );
+
+  // Threshold handle sits on the curve at input = threshold.
+  const thrX = compXY(effect.thresholdDb, size);
+  const thrYDb = compTransferDb(
+    effect.thresholdDb,
+    effect.thresholdDb,
+    effect.ratio,
+    effect.kneeDb
+  );
+  const thrY = size - compXY(thrYDb, size);
+
+  // Ratio handle: sits at input = -3 dB on the curve. Vertical drag changes ratio.
+  const ratioRefInput = -3;
+  const ratioOutDb = compTransferDb(
+    ratioRefInput,
+    effect.thresholdDb,
+    effect.ratio,
+    effect.kneeDb
+  );
+  const ratioX = compXY(ratioRefInput, size);
+  const ratioY = size - compXY(ratioOutDb, size);
+
+  const onDown = useCallback(
+    (which: CompDrag) => (e: React.PointerEvent<SVGElement>) => {
+      if (disabled) return;
+      (e.target as Element).setPointerCapture(e.pointerId);
+      setDrag(which);
+      e.stopPropagation();
+    },
+    [disabled]
+  );
+
+  const onMove = useCallback(
+    (e: React.PointerEvent<SVGElement>) => {
+      if (!drag || !svgRef.current) return;
+      const rect = svgRef.current.getBoundingClientRect();
+      const px = clamp(e.clientX - rect.left, 0, rect.width);
+      const py = clamp(e.clientY - rect.top, 0, rect.height);
+      if (drag === "threshold") {
+        // Drag along the X axis primarily; clamp threshold.
+        const t = clamp(compFromX(px * (size / rect.width), size), -60, 0);
+        onPatch({ thresholdDb: parseFloat(t.toFixed(1)) });
+      } else if (drag === "ratio") {
+        // Vertical drag controls ratio. Output at ratioRefInput is the Y position.
+        const outDb = compFromY(py * (size / rect.height), size);
+        const delta = ratioRefInput - effect.thresholdDb;
+        // Solve for ratio: outDb = thresh + delta/ratio (above knee) or near-1:1 below.
+        if (delta <= 0) {
+          // Reference point below threshold — fall back to slider behavior using py.
+          const r = clamp(
+            1 + (rect.height - py) / rect.height * 19,
+            1,
+            20
+          );
+          onPatch({ ratio: parseFloat(r.toFixed(2)) });
+        } else {
+          const compressedDelta = outDb - effect.thresholdDb;
+          if (compressedDelta <= 0.01) {
+            onPatch({ ratio: 20 });
+          } else {
+            const r = clamp(delta / compressedDelta, 1, 20);
+            onPatch({ ratio: parseFloat(r.toFixed(2)) });
+          }
+        }
+      }
+    },
+    [drag, onPatch, size, effect.thresholdDb]
+  );
+
+  const onUp = useCallback(
+    (e: React.PointerEvent<SVGElement>) => {
+      if (drag) {
+        try {
+          (e.target as Element).releasePointerCapture(e.pointerId);
+        } catch {
+          // ignore
+        }
+      }
+      setDrag(null);
+    },
+    [drag]
+  );
+
+  // Threshold-line wheel changes knee width.
+  const onThreshWheel = useCallback(
+    (e: React.WheelEvent<SVGElement>) => {
+      if (disabled) return;
+      e.preventDefault();
+      const next = clamp(
+        effect.kneeDb + (e.deltaY > 0 ? -1 : 1),
+        0,
+        40
+      );
+      onPatch({ kneeDb: parseFloat(next.toFixed(1)) });
+    },
+    [effect.kneeDb, onPatch, disabled]
+  );
+
+  const gridDbs = [-48, -36, -24, -12];
+  const gridColor = theme.vars.palette.divider;
+  const labelColor = theme.vars.palette.text.disabled;
+
+  return (
+    <svg
+      ref={svgRef}
+      css={compGraphStyles(theme)}
+      viewBox={`0 0 ${size} ${size}`}
+      preserveAspectRatio="none"
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+      onPointerCancel={onUp}
+    >
+      {/* Grid */}
+      {gridDbs.map((db) => {
+        const p = compXY(db, size);
+        return (
+          <g key={`g-${db}`}>
+            <line
+              x1={p}
+              y1={0}
+              x2={p}
+              y2={size}
+              stroke={gridColor}
+              strokeWidth={0.5}
+              strokeDasharray="2 3"
+              opacity={0.5}
+            />
+            <line
+              x1={0}
+              y1={size - p}
+              x2={size}
+              y2={size - p}
+              stroke={gridColor}
+              strokeWidth={0.5}
+              strokeDasharray="2 3"
+              opacity={0.5}
+            />
+            <text
+              x={p + 2}
+              y={size - 4}
+              fill={labelColor}
+              fontSize={9}
+              fontFamily="ui-monospace, monospace"
+            >
+              {db}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* Identity 1:1 line */}
+      <line
+        x1={0}
+        y1={size}
+        x2={size}
+        y2={0}
+        stroke={theme.vars.palette.text.disabled}
+        strokeWidth={0.75}
+        strokeDasharray="3 3"
+        opacity={0.6}
+      />
+
+      {/* Compressed area fill */}
+      <path
+        d={fillPath}
+        fill={COMP_ACCENT}
+        opacity={disabled ? 0.06 : 0.14}
+      />
+
+      {/* Transfer curve */}
+      <path
+        d={curvePath}
+        fill="none"
+        stroke={disabled ? theme.vars.palette.text.disabled : COMP_ACCENT}
+        strokeWidth={1.75}
+        strokeLinejoin="round"
+      />
+
+      {/* Threshold guide line */}
+      <line
+        x1={thrX}
+        y1={0}
+        x2={thrX}
+        y2={size}
+        stroke={COMP_THRESH_COLOR}
+        strokeWidth={0.75}
+        strokeDasharray="2 4"
+        opacity={0.6}
+        pointerEvents="none"
+      />
+
+      {/* Threshold handle */}
+      <circle
+        cx={thrX}
+        cy={thrY}
+        r={11}
+        fill={COMP_THRESH_COLOR}
+        opacity={0.18}
+        pointerEvents="none"
+      />
+      <circle
+        cx={thrX}
+        cy={thrY}
+        r={6.5}
+        fill={theme.vars.palette.background.paper}
+        stroke={COMP_THRESH_COLOR}
+        strokeWidth={2}
+        style={{ cursor: disabled ? "default" : "ew-resize" }}
+        onPointerDown={onDown("threshold")}
+        onWheel={onThreshWheel}
+      />
+      <text
+        x={thrX}
+        y={thrY + 3}
+        textAnchor="middle"
+        fontSize={9}
+        fontWeight={700}
+        fill={COMP_THRESH_COLOR}
+        pointerEvents="none"
+      >
+        T
+      </text>
+
+      {/* Ratio handle */}
+      <circle
+        cx={ratioX}
+        cy={ratioY}
+        r={11}
+        fill={COMP_ACCENT}
+        opacity={0.18}
+        pointerEvents="none"
+      />
+      <circle
+        cx={ratioX}
+        cy={ratioY}
+        r={6.5}
+        fill={theme.vars.palette.background.paper}
+        stroke={COMP_ACCENT}
+        strokeWidth={2}
+        style={{ cursor: disabled ? "default" : "ns-resize" }}
+        onPointerDown={onDown("ratio")}
+      />
+      <text
+        x={ratioX}
+        y={ratioY + 3}
+        textAnchor="middle"
+        fontSize={9}
+        fontWeight={700}
+        fill={COMP_ACCENT}
+        pointerEvents="none"
+      >
+        R
+      </text>
+    </svg>
+  );
+};
+
+const formatMs = (ms: number) =>
+  ms < 100 ? `${ms.toFixed(1)} ms` : `${Math.round(ms)} ms`;
+
 const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
   effect,
   onPatch,
   disabled
-}) => (
-  <FlexColumn gap={0.25}>
-    <ParamRow
-      label="Threshold"
-      value={effect.thresholdDb}
-      min={-60}
-      max={0}
-      step={0.5}
-      unit="dB"
-      format={(v) => v.toFixed(1)}
-      onChange={(v) => onPatch({ thresholdDb: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Ratio"
-      value={effect.ratio}
-      min={1}
-      max={20}
-      step={0.1}
-      format={(v) => `${v.toFixed(1)}:1`}
-      onChange={(v) => onPatch({ ratio: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Attack"
-      value={effect.attackMs}
-      min={0}
-      max={500}
-      step={1}
-      unit="ms"
-      onChange={(v) => onPatch({ attackMs: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Release"
-      value={effect.releaseMs}
-      min={0}
-      max={2000}
-      step={1}
-      unit="ms"
-      onChange={(v) => onPatch({ releaseMs: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Knee"
-      value={effect.kneeDb}
-      min={0}
-      max={40}
-      step={0.5}
-      unit="dB"
-      format={(v) => v.toFixed(1)}
-      onChange={(v) => onPatch({ kneeDb: v })}
-      disabled={disabled}
-    />
-  </FlexColumn>
-);
+}) => {
+  const theme = useTheme();
+  return (
+    <FlexColumn gap={0.75}>
+      <FlexRow gap={1} align="stretch">
+        <CompressorCurve
+          effect={effect}
+          onPatch={onPatch}
+          disabled={disabled}
+        />
+        <div css={compReadoutGridStyles(theme)}>
+          <div css={compTileStyles(theme, COMP_THRESH_COLOR)}>
+            <span css={compTileLabelStyles(theme)}>Threshold</span>
+            <span css={compTileValueStyles(theme)}>
+              {effect.thresholdDb.toFixed(1)} dB
+            </span>
+          </div>
+          <div css={compTileStyles(theme, COMP_ACCENT)}>
+            <span css={compTileLabelStyles(theme)}>Ratio</span>
+            <span css={compTileValueStyles(theme)}>
+              {effect.ratio.toFixed(1)}:1
+            </span>
+          </div>
+          <div css={compTileStyles(theme)}>
+            <span css={compTileLabelStyles(theme)}>Knee</span>
+            <span css={compTileValueStyles(theme)}>
+              {effect.kneeDb.toFixed(1)} dB
+            </span>
+          </div>
+          <div css={compTileStyles(theme)}>
+            <span css={compTileLabelStyles(theme)}>Attack</span>
+            <span css={compTileValueStyles(theme)}>
+              {formatMs(effect.attackMs)}
+            </span>
+          </div>
+        </div>
+      </FlexRow>
+      <FlexColumn gap={0.25}>
+        <ParamRow
+          label="Attack"
+          value={effect.attackMs}
+          min={0}
+          max={500}
+          step={1}
+          unit="ms"
+          onChange={(v) => onPatch({ attackMs: v })}
+          disabled={disabled}
+        />
+        <ParamRow
+          label="Release"
+          value={effect.releaseMs}
+          min={0}
+          max={2000}
+          step={1}
+          unit="ms"
+          onChange={(v) => onPatch({ releaseMs: v })}
+          disabled={disabled}
+        />
+        <ParamRow
+          label="Knee"
+          value={effect.kneeDb}
+          min={0}
+          max={40}
+          step={0.5}
+          unit="dB"
+          format={(v) => v.toFixed(1)}
+          onChange={(v) => onPatch({ kneeDb: v })}
+          disabled={disabled}
+        />
+      </FlexColumn>
+      <Tooltip title="Drag T to set threshold, R to set ratio. Scroll on T to change knee width.">
+        <Text size="tiny" color="secondary">
+          Drag T = threshold · R = ratio · scroll T = knee
+        </Text>
+      </Tooltip>
+    </FlexColumn>
+  );
+};
 
 // ── Effect card ─────────────────────────────────────────────────────────────
 
