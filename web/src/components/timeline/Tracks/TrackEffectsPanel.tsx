@@ -11,7 +11,7 @@
  * Only enabled effects are wired into the live audio graph.
  */
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -220,87 +220,488 @@ const GainEditor: React.FC<EffectEditorProps<TrackGainEffect>> = ({
   />
 );
 
+// ── 3-Band EQ visualizer (Logic-style) ──────────────────────────────────────
+
+const EQ_FS = 48000;
+const EQ_F_MIN = 20;
+const EQ_F_MAX = 20000;
+const EQ_DB_RANGE = 18;
+const EQ_GRAPH_HEIGHT = 160;
+
+type Band = "low" | "mid" | "high";
+
+const BAND_COLORS: Record<Band, string> = {
+  low: "#4ea3ff",
+  mid: "#7be08a",
+  high: "#ffb24a"
+};
+
+const BAND_RANGES: Record<Band, { fMin: number; fMax: number }> = {
+  low: { fMin: 40, fMax: 400 },
+  mid: { fMin: 100, fMax: 8000 },
+  high: { fMin: 2000, fMax: 16000 }
+};
+
+const clamp = (v: number, a: number, b: number) =>
+  v < a ? a : v > b ? b : v;
+
+const freqToX = (f: number, width: number) => {
+  const logMin = Math.log10(EQ_F_MIN);
+  const logMax = Math.log10(EQ_F_MAX);
+  return ((Math.log10(f) - logMin) / (logMax - logMin)) * width;
+};
+
+const xToFreq = (x: number, width: number) => {
+  const logMin = Math.log10(EQ_F_MIN);
+  const logMax = Math.log10(EQ_F_MAX);
+  return Math.pow(10, logMin + (x / width) * (logMax - logMin));
+};
+
+const dbToY = (db: number, height: number) =>
+  height / 2 - (db / EQ_DB_RANGE) * (height / 2);
+
+const yToDb = (y: number, height: number) =>
+  ((height / 2 - y) / (height / 2)) * EQ_DB_RANGE;
+
+// Biquad magnitude in dB at frequency f (Hz), using RBJ cookbook coefficients.
+const biquadMagDb = (
+  type: "lowshelf" | "highshelf" | "peaking",
+  f: number,
+  f0: number,
+  gainDb: number,
+  q: number
+): number => {
+  if (gainDb === 0 && type !== "peaking") return 0;
+  if (gainDb === 0 && type === "peaking") return 0;
+  const A = Math.pow(10, gainDb / 40);
+  const w0 = (2 * Math.PI * f0) / EQ_FS;
+  const cw = Math.cos(w0);
+  const sw = Math.sin(w0);
+
+  let b0 = 1,
+    b1 = 0,
+    b2 = 0,
+    a0 = 1,
+    a1 = 0,
+    a2 = 0;
+
+  if (type === "peaking") {
+    const alpha = sw / (2 * q);
+    b0 = 1 + alpha * A;
+    b1 = -2 * cw;
+    b2 = 1 - alpha * A;
+    a0 = 1 + alpha / A;
+    a1 = -2 * cw;
+    a2 = 1 - alpha / A;
+  } else if (type === "lowshelf") {
+    const S = 1;
+    const alpha =
+      (sw / 2) * Math.sqrt((A + 1 / A) * (1 / S - 1) + 2);
+    const sqA = 2 * Math.sqrt(A) * alpha;
+    b0 = A * (A + 1 - (A - 1) * cw + sqA);
+    b1 = 2 * A * (A - 1 - (A + 1) * cw);
+    b2 = A * (A + 1 - (A - 1) * cw - sqA);
+    a0 = A + 1 + (A - 1) * cw + sqA;
+    a1 = -2 * (A - 1 + (A + 1) * cw);
+    a2 = A + 1 + (A - 1) * cw - sqA;
+  } else {
+    const S = 1;
+    const alpha =
+      (sw / 2) * Math.sqrt((A + 1 / A) * (1 / S - 1) + 2);
+    const sqA = 2 * Math.sqrt(A) * alpha;
+    b0 = A * (A + 1 + (A - 1) * cw + sqA);
+    b1 = -2 * A * (A - 1 + (A + 1) * cw);
+    b2 = A * (A + 1 + (A - 1) * cw - sqA);
+    a0 = A + 1 - (A - 1) * cw + sqA;
+    a1 = 2 * (A - 1 - (A + 1) * cw);
+    a2 = A + 1 - (A - 1) * cw - sqA;
+  }
+
+  const w = (2 * Math.PI * f) / EQ_FS;
+  const c1 = Math.cos(w);
+  const s1 = Math.sin(w);
+  const c2 = Math.cos(2 * w);
+  const s2 = Math.sin(2 * w);
+
+  const numRe = b0 + b1 * c1 + b2 * c2;
+  const numIm = -(b1 * s1 + b2 * s2);
+  const denRe = a0 + a1 * c1 + a2 * c2;
+  const denIm = -(a1 * s1 + a2 * s2);
+
+  const numMag2 = numRe * numRe + numIm * numIm;
+  const denMag2 = denRe * denRe + denIm * denIm;
+  if (denMag2 === 0) return 0;
+  return 10 * Math.log10(numMag2 / denMag2);
+};
+
+const eqCurveStyles = (theme: Theme) =>
+  css({
+    width: "100%",
+    height: EQ_GRAPH_HEIGHT,
+    border: `1px solid ${theme.vars.palette.divider}`,
+    borderRadius: 4,
+    background: `linear-gradient(to bottom, ${theme.vars.palette.background.paper} 0%, rgba(0,0,0,0.25) 100%)`,
+    display: "block",
+    touchAction: "none",
+    userSelect: "none"
+  });
+
+const bandReadoutStyles = (theme: Theme, color: string) =>
+  css({
+    flex: 1,
+    minWidth: 0,
+    border: `1px solid ${theme.vars.palette.divider}`,
+    borderTop: `2px solid ${color}`,
+    borderRadius: 3,
+    padding: theme.spacing(0.5, 0.75),
+    background: theme.vars.palette.background.paper,
+    fontSize: theme.typography.caption.fontSize,
+    display: "flex",
+    flexDirection: "column",
+    gap: 2
+  });
+
+const readoutRowStyles = (theme: Theme) =>
+  css({
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 4,
+    color: theme.vars.palette.text.secondary,
+    "& > b": {
+      color: theme.vars.palette.text.primary,
+      fontWeight: 500,
+      fontVariantNumeric: "tabular-nums"
+    }
+  });
+
+interface Eq3CurveProps {
+  effect: TrackEq3Effect;
+  onPatch: (patch: Partial<TrackEq3Effect>) => void;
+  disabled: boolean;
+}
+
+const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
+  const theme = useTheme();
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [width, setWidth] = useState(600);
+  const [dragBand, setDragBand] = useState<Band | null>(null);
+
+  // Track SVG width to compute layout in user space.
+  React.useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w && w > 0) setWidth(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const height = EQ_GRAPH_HEIGHT;
+
+  // Sample the combined frequency response.
+  const curvePath = useMemo(() => {
+    const samples = 256;
+    const logMin = Math.log10(EQ_F_MIN);
+    const logMax = Math.log10(EQ_F_MAX);
+    let d = "";
+    for (let i = 0; i <= samples; i++) {
+      const f = Math.pow(10, logMin + ((logMax - logMin) * i) / samples);
+      const db =
+        biquadMagDb("lowshelf", f, effect.lowFreq, effect.lowGainDb, 0.7) +
+        biquadMagDb("peaking", f, effect.midFreq, effect.midGainDb, effect.midQ) +
+        biquadMagDb("highshelf", f, effect.highFreq, effect.highGainDb, 0.7);
+      const x = freqToX(f, width);
+      const y = dbToY(clamp(db, -EQ_DB_RANGE, EQ_DB_RANGE), height);
+      d += (i === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1);
+    }
+    return d;
+  }, [
+    effect.lowFreq,
+    effect.lowGainDb,
+    effect.midFreq,
+    effect.midGainDb,
+    effect.midQ,
+    effect.highFreq,
+    effect.highGainDb,
+    width,
+    height
+  ]);
+
+  // Fill area between curve and 0 dB centerline.
+  const fillPath = useMemo(() => {
+    return (
+      curvePath +
+      " L " +
+      width.toFixed(1) +
+      " " +
+      (height / 2).toFixed(1) +
+      " L 0 " +
+      (height / 2).toFixed(1) +
+      " Z"
+    );
+  }, [curvePath, width, height]);
+
+  const handlePointerDown = useCallback(
+    (band: Band) => (e: React.PointerEvent<SVGElement>) => {
+      if (disabled) return;
+      (e.target as Element).setPointerCapture(e.pointerId);
+      setDragBand(band);
+      e.stopPropagation();
+    },
+    [disabled]
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<SVGElement>) => {
+      if (!dragBand || !svgRef.current) return;
+      const rect = svgRef.current.getBoundingClientRect();
+      const x = clamp(e.clientX - rect.left, 0, rect.width);
+      const y = clamp(e.clientY - rect.top, 0, rect.height);
+      const freq = xToFreq(x, rect.width);
+      const db = yToDb(y, rect.height);
+      const { fMin, fMax } = BAND_RANGES[dragBand];
+      const clampedFreq = clamp(freq, fMin, fMax);
+      const clampedDb = clamp(db, -EQ_DB_RANGE, EQ_DB_RANGE);
+      if (dragBand === "low") {
+        onPatch({ lowFreq: clampedFreq, lowGainDb: clampedDb });
+      } else if (dragBand === "mid") {
+        onPatch({ midFreq: clampedFreq, midGainDb: clampedDb });
+      } else {
+        onPatch({ highFreq: clampedFreq, highGainDb: clampedDb });
+      }
+    },
+    [dragBand, onPatch]
+  );
+
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent<SVGElement>) => {
+      if (dragBand) {
+        try {
+          (e.target as Element).releasePointerCapture(e.pointerId);
+        } catch {
+          // ignore — capture may have already ended
+        }
+      }
+      setDragBand(null);
+    },
+    [dragBand]
+  );
+
+  // Scroll-wheel on mid handle adjusts Q.
+  const handleMidWheel = useCallback(
+    (e: React.WheelEvent<SVGElement>) => {
+      if (disabled) return;
+      e.preventDefault();
+      const next = clamp(
+        effect.midQ * (e.deltaY > 0 ? 0.9 : 1.1),
+        0.1,
+        10
+      );
+      onPatch({ midQ: parseFloat(next.toFixed(2)) });
+    },
+    [effect.midQ, onPatch, disabled]
+  );
+
+  // Static grid: log decade lines + dB lines.
+  const gridFreqs = [50, 100, 200, 500, 1000, 2000, 5000, 10000];
+  const gridDbs = [-12, -6, 0, 6, 12];
+
+  const gridColor = theme.vars.palette.divider;
+  const labelColor = theme.vars.palette.text.disabled;
+
+  const handles: { band: Band; freq: number; gainDb: number }[] = [
+    { band: "low", freq: effect.lowFreq, gainDb: effect.lowGainDb },
+    { band: "mid", freq: effect.midFreq, gainDb: effect.midGainDb },
+    { band: "high", freq: effect.highFreq, gainDb: effect.highGainDb }
+  ];
+
+  return (
+    <svg
+      ref={svgRef}
+      css={eqCurveStyles(theme)}
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="none"
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+    >
+      {/* dB grid */}
+      {gridDbs.map((db) => {
+        const y = dbToY(db, height);
+        return (
+          <g key={`db-${db}`}>
+            <line
+              x1={0}
+              x2={width}
+              y1={y}
+              y2={y}
+              stroke={gridColor}
+              strokeWidth={db === 0 ? 1 : 0.5}
+              strokeDasharray={db === 0 ? undefined : "2 3"}
+              opacity={db === 0 ? 0.8 : 0.5}
+            />
+            <text
+              x={4}
+              y={y - 2}
+              fill={labelColor}
+              fontSize={9}
+              fontFamily="ui-monospace, monospace"
+            >
+              {db > 0 ? `+${db}` : db}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* Frequency grid */}
+      {gridFreqs.map((f) => {
+        const x = freqToX(f, width);
+        return (
+          <g key={`f-${f}`}>
+            <line
+              x1={x}
+              x2={x}
+              y1={0}
+              y2={height}
+              stroke={gridColor}
+              strokeWidth={0.5}
+              strokeDasharray="2 3"
+              opacity={0.5}
+            />
+            <text
+              x={x + 2}
+              y={height - 4}
+              fill={labelColor}
+              fontSize={9}
+              fontFamily="ui-monospace, monospace"
+            >
+              {f >= 1000 ? `${f / 1000}k` : f}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* Response fill + curve */}
+      <path
+        d={fillPath}
+        fill={theme.vars.palette.primary.main}
+        opacity={disabled ? 0.08 : 0.18}
+      />
+      <path
+        d={curvePath}
+        fill="none"
+        stroke={
+          disabled
+            ? theme.vars.palette.text.disabled
+            : theme.vars.palette.primary.light
+        }
+        strokeWidth={1.75}
+        strokeLinejoin="round"
+      />
+
+      {/* Band handles */}
+      {handles.map(({ band, freq, gainDb }) => {
+        const x = freqToX(freq, width);
+        const y = dbToY(gainDb, height);
+        const color = BAND_COLORS[band];
+        const isMid = band === "mid";
+        return (
+          <g key={band}>
+            <circle
+              cx={x}
+              cy={y}
+              r={11}
+              fill={color}
+              opacity={0.18}
+              pointerEvents="none"
+            />
+            <circle
+              cx={x}
+              cy={y}
+              r={6.5}
+              fill={theme.vars.palette.background.paper}
+              stroke={color}
+              strokeWidth={2}
+              style={{ cursor: disabled ? "default" : "grab" }}
+              onPointerDown={handlePointerDown(band)}
+              onWheel={isMid ? handleMidWheel : undefined}
+            />
+            <text
+              x={x}
+              y={y + 3}
+              textAnchor="middle"
+              fontSize={9}
+              fontWeight={700}
+              fill={color}
+              pointerEvents="none"
+            >
+              {band === "low" ? "L" : band === "mid" ? "M" : "H"}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+const formatHz = (hz: number) =>
+  hz >= 1000 ? `${(hz / 1000).toFixed(hz >= 10000 ? 1 : 2)} kHz` : `${Math.round(hz)} Hz`;
+
 const Eq3Editor: React.FC<EffectEditorProps<TrackEq3Effect>> = ({
   effect,
   onPatch,
   disabled
-}) => (
-  <FlexColumn gap={0.25}>
-    <ParamRow
-      label="Low"
-      value={effect.lowGainDb}
-      min={-18}
-      max={18}
-      step={0.1}
-      unit="dB"
-      format={(v) => v.toFixed(1)}
-      onChange={(v) => onPatch({ lowGainDb: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Low Freq"
-      value={effect.lowFreq}
-      min={40}
-      max={400}
-      step={1}
-      unit="Hz"
-      onChange={(v) => onPatch({ lowFreq: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Mid"
-      value={effect.midGainDb}
-      min={-18}
-      max={18}
-      step={0.1}
-      unit="dB"
-      format={(v) => v.toFixed(1)}
-      onChange={(v) => onPatch({ midGainDb: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Mid Freq"
-      value={effect.midFreq}
-      min={100}
-      max={8000}
-      step={10}
-      unit="Hz"
-      onChange={(v) => onPatch({ midFreq: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="Mid Q"
-      value={effect.midQ}
-      min={0.1}
-      max={10}
-      step={0.1}
-      format={(v) => v.toFixed(1)}
-      onChange={(v) => onPatch({ midQ: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="High"
-      value={effect.highGainDb}
-      min={-18}
-      max={18}
-      step={0.1}
-      unit="dB"
-      format={(v) => v.toFixed(1)}
-      onChange={(v) => onPatch({ highGainDb: v })}
-      disabled={disabled}
-    />
-    <ParamRow
-      label="High Freq"
-      value={effect.highFreq}
-      min={2000}
-      max={16000}
-      step={50}
-      unit="Hz"
-      onChange={(v) => onPatch({ highFreq: v })}
-      disabled={disabled}
-    />
-  </FlexColumn>
-);
+}) => {
+  const theme = useTheme();
+  return (
+    <FlexColumn gap={0.75}>
+      <Eq3Curve effect={effect} onPatch={onPatch} disabled={disabled} />
+      <FlexRow gap={0.5}>
+        <div css={bandReadoutStyles(theme, BAND_COLORS.low)}>
+          <div css={readoutRowStyles(theme)}>
+            <span>Low shelf</span>
+            <b>{effect.lowGainDb >= 0 ? "+" : ""}{effect.lowGainDb.toFixed(1)} dB</b>
+          </div>
+          <div css={readoutRowStyles(theme)}>
+            <span>Freq</span>
+            <b>{formatHz(effect.lowFreq)}</b>
+          </div>
+        </div>
+        <div css={bandReadoutStyles(theme, BAND_COLORS.mid)}>
+          <div css={readoutRowStyles(theme)}>
+            <span>Mid peak</span>
+            <b>{effect.midGainDb >= 0 ? "+" : ""}{effect.midGainDb.toFixed(1)} dB</b>
+          </div>
+          <div css={readoutRowStyles(theme)}>
+            <span>Freq</span>
+            <b>{formatHz(effect.midFreq)}</b>
+          </div>
+          <div css={readoutRowStyles(theme)}>
+            <span>Q</span>
+            <b>{effect.midQ.toFixed(2)}</b>
+          </div>
+        </div>
+        <div css={bandReadoutStyles(theme, BAND_COLORS.high)}>
+          <div css={readoutRowStyles(theme)}>
+            <span>High shelf</span>
+            <b>{effect.highGainDb >= 0 ? "+" : ""}{effect.highGainDb.toFixed(1)} dB</b>
+          </div>
+          <div css={readoutRowStyles(theme)}>
+            <span>Freq</span>
+            <b>{formatHz(effect.highFreq)}</b>
+          </div>
+        </div>
+      </FlexRow>
+      <Tooltip title="Drag handles to set frequency & gain. Scroll on the mid handle to change Q.">
+        <Text size="tiny" color="secondary">
+          Drag bands · scroll mid for Q
+        </Text>
+      </Tooltip>
+    </FlexColumn>
+  );
+};
 
 const FilterEditor: React.FC<EffectEditorProps<TrackFilterEffect>> = ({
   effect,
