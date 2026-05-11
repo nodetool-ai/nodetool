@@ -68,11 +68,66 @@ export const trackCompressorEffect = z.object({
   kneeDb: z.number()
 });
 
+// ── Track video effects ──────────────────────────────────────────────────────
+
+export const trackColorCorrectionEffect = z.object({
+  id: z.string(),
+  type: z.literal("colorCorrection"),
+  enabled: z.boolean(),
+  brightness: z.number(),
+  contrast: z.number(),
+  saturation: z.number(),
+  hue: z.number(),
+  temperature: z.number(),
+  tint: z.number(),
+  shadows: z.number(),
+  highlights: z.number()
+});
+
+export const trackVideoBlurEffect = z.object({
+  id: z.string(),
+  type: z.literal("videoBlur"),
+  enabled: z.boolean(),
+  radius: z.number()
+});
+
+export const trackSharpenEffect = z.object({
+  id: z.string(),
+  type: z.literal("sharpen"),
+  enabled: z.boolean(),
+  amount: z.number(),
+  threshold: z.number()
+});
+
+export const trackVignetteEffect = z.object({
+  id: z.string(),
+  type: z.literal("vignette"),
+  enabled: z.boolean(),
+  intensity: z.number(),
+  radius: z.number(),
+  softness: z.number()
+});
+
+export const trackChromaKeyEffect = z.object({
+  id: z.string(),
+  type: z.literal("chromaKey"),
+  enabled: z.boolean(),
+  keyColor: z.string(),
+  tolerance: z.number(),
+  softness: z.number(),
+  spill: z.number()
+});
+
 export const trackEffect = z.discriminatedUnion("type", [
   trackGainEffect,
   trackEq3Effect,
   trackFilterEffect,
-  trackCompressorEffect
+  trackCompressorEffect,
+  trackColorCorrectionEffect,
+  trackVideoBlurEffect,
+  trackSharpenEffect,
+  trackVignetteEffect,
+  trackChromaKeyEffect
 ]);
 export type TrackEffect = z.infer<typeof trackEffect>;
 

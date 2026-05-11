@@ -25,7 +25,12 @@ import type {
   TrackGainEffect,
   TrackEq3Effect,
   TrackFilterEffect,
-  TrackCompressorEffect
+  TrackCompressorEffect,
+  TrackColorCorrectionEffect,
+  TrackVideoBlurEffect,
+  TrackSharpenEffect,
+  TrackVignetteEffect,
+  TrackChromaKeyEffect
 } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
@@ -74,7 +79,12 @@ const DEVICE_WIDTHS: Record<TrackEffect["type"], number> = {
   gain: 200,
   eq3: 420,
   filter: 240,
-  compressor: 380
+  compressor: 380,
+  colorCorrection: 320,
+  videoBlur: 220,
+  sharpen: 240,
+  vignette: 260,
+  chromaKey: 280
 };
 
 const effectCardStyles = (
@@ -200,14 +210,27 @@ const EFFECT_LABELS: Record<TrackEffect["type"], string> = {
   gain: "Gain",
   eq3: "3-Band EQ",
   filter: "Filter",
-  compressor: "Compressor"
+  compressor: "Compressor",
+  colorCorrection: "Color",
+  videoBlur: "Blur",
+  sharpen: "Sharpen",
+  vignette: "Vignette",
+  chromaKey: "Chroma Key"
 };
 
-const EFFECT_TYPES: TrackEffect["type"][] = [
+const AUDIO_EFFECT_TYPES: TrackEffect["type"][] = [
   "gain",
   "eq3",
   "filter",
   "compressor"
+];
+
+const VIDEO_EFFECT_TYPES: TrackEffect["type"][] = [
+  "colorCorrection",
+  "videoBlur",
+  "sharpen",
+  "vignette",
+  "chromaKey"
 ];
 
 // ── Parameter row ───────────────────────────────────────────────────────────
@@ -1286,6 +1309,309 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
   );
 };
 
+// ── Video effect editors ────────────────────────────────────────────────────
+
+const ColorCorrectionEditor: React.FC<
+  EffectEditorProps<TrackColorCorrectionEffect>
+> = ({ effect, onPatch, disabled }) => (
+  <FlexColumn gap={0.25}>
+    <ParamRow
+      label="Brightness"
+      value={effect.brightness}
+      min={-1}
+      max={1}
+      step={0.01}
+      format={(v) => v.toFixed(2)}
+      onChange={(v) => onPatch({ brightness: v })}
+      disabled={disabled}
+    />
+    <ParamRow
+      label="Contrast"
+      value={effect.contrast}
+      min={0}
+      max={4}
+      step={0.01}
+      format={(v) => v.toFixed(2)}
+      onChange={(v) => onPatch({ contrast: v })}
+      disabled={disabled}
+    />
+    <ParamRow
+      label="Saturation"
+      value={effect.saturation}
+      min={0}
+      max={4}
+      step={0.01}
+      format={(v) => v.toFixed(2)}
+      onChange={(v) => onPatch({ saturation: v })}
+      disabled={disabled}
+    />
+    <ParamRow
+      label="Hue"
+      value={effect.hue}
+      min={-180}
+      max={180}
+      step={1}
+      unit="°"
+      onChange={(v) => onPatch({ hue: v })}
+      disabled={disabled}
+    />
+    <ParamRow
+      label="Temp"
+      value={effect.temperature}
+      min={-1}
+      max={1}
+      step={0.01}
+      format={(v) => v.toFixed(2)}
+      onChange={(v) => onPatch({ temperature: v })}
+      disabled={disabled}
+    />
+    <ParamRow
+      label="Tint"
+      value={effect.tint}
+      min={-1}
+      max={1}
+      step={0.01}
+      format={(v) => v.toFixed(2)}
+      onChange={(v) => onPatch({ tint: v })}
+      disabled={disabled}
+    />
+    <ParamRow
+      label="Shadows"
+      value={effect.shadows}
+      min={-1}
+      max={1}
+      step={0.01}
+      format={(v) => v.toFixed(2)}
+      onChange={(v) => onPatch({ shadows: v })}
+      disabled={disabled}
+    />
+    <ParamRow
+      label="Highlights"
+      value={effect.highlights}
+      min={-1}
+      max={1}
+      step={0.01}
+      format={(v) => v.toFixed(2)}
+      onChange={(v) => onPatch({ highlights: v })}
+      disabled={disabled}
+    />
+  </FlexColumn>
+);
+
+const previewBoxStyles = (theme: Theme) =>
+  css({
+    width: "100%",
+    aspectRatio: "16 / 9",
+    border: `1px solid ${theme.vars.palette.divider}`,
+    borderRadius: 4,
+    overflow: "hidden",
+    position: "relative",
+    background:
+      "linear-gradient(135deg, #243b53 0%, #486581 35%, #9fb3c8 100%)"
+  });
+
+const VideoBlurEditor: React.FC<
+  EffectEditorProps<TrackVideoBlurEffect>
+> = ({ effect, onPatch, disabled }) => {
+  const theme = useTheme();
+  return (
+    <FlexColumn gap={0.5}>
+      <div css={previewBoxStyles(theme)}>
+        <div
+          css={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage:
+              "radial-gradient(circle at 30% 40%, rgba(255,255,255,0.35), transparent 40%), radial-gradient(circle at 75% 65%, rgba(255,80,80,0.4), transparent 35%)",
+            filter: `blur(${effect.radius}px)`,
+            opacity: disabled ? 0.4 : 1
+          }}
+        />
+      </div>
+      <ParamRow
+        label="Radius"
+        value={effect.radius}
+        min={0}
+        max={40}
+        step={0.5}
+        unit="px"
+        format={(v) => v.toFixed(1)}
+        onChange={(v) => onPatch({ radius: v })}
+        disabled={disabled}
+      />
+    </FlexColumn>
+  );
+};
+
+const SharpenEditor: React.FC<
+  EffectEditorProps<TrackSharpenEffect>
+> = ({ effect, onPatch, disabled }) => (
+  <FlexColumn gap={0.25}>
+    <ParamRow
+      label="Amount"
+      value={effect.amount}
+      min={0}
+      max={2}
+      step={0.01}
+      format={(v) => v.toFixed(2)}
+      onChange={(v) => onPatch({ amount: v })}
+      disabled={disabled}
+    />
+    <ParamRow
+      label="Threshold"
+      value={effect.threshold}
+      min={0}
+      max={1}
+      step={0.01}
+      format={(v) => v.toFixed(2)}
+      onChange={(v) => onPatch({ threshold: v })}
+      disabled={disabled}
+    />
+  </FlexColumn>
+);
+
+const VignetteEditor: React.FC<
+  EffectEditorProps<TrackVignetteEffect>
+> = ({ effect, onPatch, disabled }) => {
+  const theme = useTheme();
+  // Visualize as a radial fade in a 16:9 box.
+  const innerStop = Math.max(0, effect.radius - effect.softness);
+  return (
+    <FlexColumn gap={0.5}>
+      <div
+        css={previewBoxStyles(theme)}
+        style={{
+          opacity: disabled ? 0.4 : 1
+        }}
+      >
+        <div
+          css={{
+            position: "absolute",
+            inset: 0,
+            background: `radial-gradient(ellipse at center, transparent ${(
+              innerStop * 100
+            ).toFixed(0)}%, rgba(0,0,0,${effect.intensity.toFixed(
+              2
+            )}) ${(effect.radius * 100).toFixed(0)}%)`
+          }}
+        />
+      </div>
+      <ParamRow
+        label="Intensity"
+        value={effect.intensity}
+        min={0}
+        max={1}
+        step={0.01}
+        format={(v) => v.toFixed(2)}
+        onChange={(v) => onPatch({ intensity: v })}
+        disabled={disabled}
+      />
+      <ParamRow
+        label="Radius"
+        value={effect.radius}
+        min={0.1}
+        max={1.5}
+        step={0.01}
+        format={(v) => v.toFixed(2)}
+        onChange={(v) => onPatch({ radius: v })}
+        disabled={disabled}
+      />
+      <ParamRow
+        label="Softness"
+        value={effect.softness}
+        min={0}
+        max={1}
+        step={0.01}
+        format={(v) => v.toFixed(2)}
+        onChange={(v) => onPatch({ softness: v })}
+        disabled={disabled}
+      />
+    </FlexColumn>
+  );
+};
+
+const swatchStyles = (theme: Theme) =>
+  css({
+    width: 28,
+    height: 28,
+    borderRadius: 4,
+    border: `1px solid ${theme.vars.palette.divider}`,
+    cursor: "pointer",
+    padding: 0,
+    background: "none",
+    flexShrink: 0,
+    "&::-webkit-color-swatch": { border: "none", borderRadius: 3 },
+    "&::-moz-color-swatch": { border: "none", borderRadius: 3 }
+  });
+
+const ChromaKeyEditor: React.FC<
+  EffectEditorProps<TrackChromaKeyEffect>
+> = ({ effect, onPatch, disabled }) => {
+  const theme = useTheme();
+  return (
+    <FlexColumn gap={0.5}>
+      <FlexRow gap={0.75} align="center">
+        <span
+          css={{
+            fontSize: theme.typography.caption.fontSize,
+            color: theme.vars.palette.text.secondary,
+            width: 70
+          }}
+        >
+          Key color
+        </span>
+        <input
+          type="color"
+          css={swatchStyles(theme)}
+          value={effect.keyColor}
+          disabled={disabled}
+          onChange={(e) => onPatch({ keyColor: e.target.value })}
+          aria-label="Chroma key color"
+        />
+        <span
+          css={{
+            fontSize: theme.typography.caption.fontSize,
+            color: theme.vars.palette.text.primary,
+            fontVariantNumeric: "tabular-nums"
+          }}
+        >
+          {effect.keyColor.toUpperCase()}
+        </span>
+      </FlexRow>
+      <ParamRow
+        label="Tolerance"
+        value={effect.tolerance}
+        min={0}
+        max={1}
+        step={0.01}
+        format={(v) => v.toFixed(2)}
+        onChange={(v) => onPatch({ tolerance: v })}
+        disabled={disabled}
+      />
+      <ParamRow
+        label="Softness"
+        value={effect.softness}
+        min={0}
+        max={1}
+        step={0.01}
+        format={(v) => v.toFixed(2)}
+        onChange={(v) => onPatch({ softness: v })}
+        disabled={disabled}
+      />
+      <ParamRow
+        label="Spill"
+        value={effect.spill}
+        min={0}
+        max={1}
+        step={0.01}
+        format={(v) => v.toFixed(2)}
+        onChange={(v) => onPatch({ spill: v })}
+        disabled={disabled}
+      />
+    </FlexColumn>
+  );
+};
+
 // ── Effect card ─────────────────────────────────────────────────────────────
 
 interface EffectCardProps {
@@ -1445,6 +1771,41 @@ const EffectCard: React.FC<EffectCardProps> = memo(
             disabled={disabled}
           />
         )}
+        {effect.type === "colorCorrection" && (
+          <ColorCorrectionEditor
+            effect={effect}
+            onPatch={patch}
+            disabled={disabled}
+          />
+        )}
+        {effect.type === "videoBlur" && (
+          <VideoBlurEditor
+            effect={effect}
+            onPatch={patch}
+            disabled={disabled}
+          />
+        )}
+        {effect.type === "sharpen" && (
+          <SharpenEditor
+            effect={effect}
+            onPatch={patch}
+            disabled={disabled}
+          />
+        )}
+        {effect.type === "vignette" && (
+          <VignetteEditor
+            effect={effect}
+            onPatch={patch}
+            disabled={disabled}
+          />
+        )}
+        {effect.type === "chromaKey" && (
+          <ChromaKeyEditor
+            effect={effect}
+            onPatch={patch}
+            disabled={disabled}
+          />
+        )}
       </div>
     );
   }
@@ -1489,6 +1850,12 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
       return null;
     }
 
+    const isVideo = track.type === "video";
+    const availableTypes = isVideo
+      ? VIDEO_EFFECT_TYPES
+      : AUDIO_EFFECT_TYPES;
+    const chainLabel = isVideo ? "FX Chain" : "DSP Chain";
+
     return (
       <div css={containerStyles(theme)} data-testid="track-effects-panel">
         <FlexRow
@@ -1496,7 +1863,7 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
           sx={{ mb: 1, alignItems: "center" }}
         >
           <Text size="small" weight={600}>
-            DSP Chain — {track.name}
+            {chainLabel} — {track.name}
           </Text>
           <button css={addButtonStyles(theme)} onClick={handleOpenAdd}>
             <AddIcon />
@@ -1509,7 +1876,7 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
             anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
             transformOrigin={{ vertical: "top", horizontal: "right" }}
           >
-            {EFFECT_TYPES.map((t) => (
+            {availableTypes.map((t) => (
               <NodeMenuItem key={t} onClick={() => handleAdd(t)}>
                 {EFFECT_LABELS[t]}
               </NodeMenuItem>
