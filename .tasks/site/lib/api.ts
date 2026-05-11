@@ -2,17 +2,6 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { RepoError } from "./repo";
 
-export function handle<T>(fn: () => T | Promise<T>) {
-  return async () => {
-    try {
-      const result = await fn();
-      return NextResponse.json(result);
-    } catch (e) {
-      return errorResponse(e);
-    }
-  };
-}
-
 export function errorResponse(e: unknown): NextResponse {
   if (e instanceof ZodError) {
     return NextResponse.json(

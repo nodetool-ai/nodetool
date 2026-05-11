@@ -8,11 +8,21 @@ import { NextRequest, NextResponse } from "next/server";
 const TOKEN = process.env.NODETOOL_TASKS_TOKEN;
 const COOKIE = "nodetool_tasks_token";
 
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 function authorized(req: NextRequest): boolean {
   if (!TOKEN) return true;
   const header = req.headers.get("authorization") ?? "";
-  if (header.startsWith("Bearer ") && header.slice(7) === TOKEN) return true;
-  return req.cookies.get(COOKIE)?.value === TOKEN;
+  if (header.startsWith("Bearer ")) {
+    return safeEqual(header.slice(7), TOKEN);
+  }
+  const cookie = req.cookies.get(COOKIE)?.value;
+  return cookie ? safeEqual(cookie, TOKEN) : false;
 }
 
 export function middleware(req: NextRequest) {

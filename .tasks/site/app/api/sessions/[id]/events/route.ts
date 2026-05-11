@@ -17,7 +17,11 @@ export async function GET(
   }
 
   const sinceParam = req.nextUrl.searchParams.get("since");
+  const limitParam = req.nextUrl.searchParams.get("limit");
   const since = sinceParam ? parseInt(sinceParam, 10) : 0;
+  // Cap the initial replay so a long session doesn't blow up a reconnecting
+  // client. Live events stream in regardless once the replay completes.
+  const limit = limitParam ? Math.max(1, Math.min(2000, parseInt(limitParam, 10))) : 500;
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -32,8 +36,9 @@ export async function GET(
         }
       };
 
-      // Replay buffered events.
-      for (const e of agent.getSessionEvents(sessionId, since)) send(e);
+      // Replay buffered events, capped to the requested limit so long
+      // sessions don't blow up the initial frame.
+      for (const e of agent.getSessionEvents(sessionId, since, limit)) send(e);
 
       const live = agent.isLive(sessionId);
       if (!live) {

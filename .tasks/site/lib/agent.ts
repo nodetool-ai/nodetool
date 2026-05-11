@@ -17,7 +17,7 @@ import { mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { and, eq, desc, asc, inArray, notInArray } from "drizzle-orm";
+import { and, eq, desc, asc, gt, inArray, notInArray } from "drizzle-orm";
 
 import { db } from "@/db";
 import { agentEvents, agentSessions } from "@/db/schema";
@@ -167,11 +167,22 @@ export function listSessions(): AgentSessionFull[] {
     .map(hydrateSession);
 }
 
+const TERMINAL_STATUSES = ["completed", "failed", "cancelled"];
+
 export function listActiveSessions(taskId?: string): AgentSessionFull[] {
-  const all = listSessions();
-  return all.filter(
-    (s) => !isTerminalStatus(s.status) && (!taskId || s.taskId === taskId)
-  );
+  const where = taskId
+    ? and(
+        notInArray(agentSessions.status, TERMINAL_STATUSES),
+        eq(agentSessions.taskId, taskId)
+      )
+    : notInArray(agentSessions.status, TERMINAL_STATUSES);
+  return db
+    .select()
+    .from(agentSessions)
+    .where(where)
+    .orderBy(desc(agentSessions.startedAt))
+    .all()
+    .map(hydrateSession);
 }
 
 export function getSession(id: number): AgentSessionFull | null {
@@ -184,14 +195,16 @@ export function getSessionEvents(
   sinceId = 0,
   limit?: number
 ): AgentEventRow[] {
-  const all = db
+  const where = sinceId > 0
+    ? and(eq(agentEvents.sessionId, sessionId), gt(agentEvents.id, sinceId))
+    : eq(agentEvents.sessionId, sessionId);
+  const rows = db
     .select()
     .from(agentEvents)
-    .where(eq(agentEvents.sessionId, sessionId))
+    .where(where)
     .orderBy(asc(agentEvents.id))
-    .all()
-    .filter((e) => e.id > sinceId);
-  const slice = limit && all.length > limit ? all.slice(all.length - limit) : all;
+    .all();
+  const slice = limit && rows.length > limit ? rows.slice(rows.length - limit) : rows;
   return slice.map((e) => ({
     id: e.id,
     sessionId: e.sessionId,

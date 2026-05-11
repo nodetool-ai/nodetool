@@ -1,8 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import * as repo from "@/lib/repo";
-import { createTaskSchema } from "@/lib/validators";
+import { createTaskSchema, taskStateEnum } from "@/lib/validators";
 import { errorResponse } from "@/lib/api";
-import type { TaskState } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +9,14 @@ export async function GET(req: NextRequest) {
   try {
     const sp = req.nextUrl.searchParams;
     const filters: Parameters<typeof repo.listTasks>[0] = {};
-    const state = sp.get("state");
-    if (state) filters.state = state as TaskState;
+    const rawState = sp.get("state");
+    if (rawState) {
+      const parsed = taskStateEnum.safeParse(rawState);
+      if (!parsed.success) {
+        return NextResponse.json({ error: `Invalid state: ${rawState}` }, { status: 400 });
+      }
+      filters.state = parsed.data;
+    }
     const plan = sp.get("plan");
     if (plan) filters.planId = plan;
     const assignee = sp.get("assignee");

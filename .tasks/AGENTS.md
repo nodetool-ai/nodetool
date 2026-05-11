@@ -88,6 +88,24 @@ While running, the agent can call back into the task system via
 five MCP tools — see [README.md](README.md) for the list. Use them
 as you work; don't batch.
 
+### Security note
+
+The orchestrator runs the SDK with `permissionMode: "bypassPermissions"`
+— the agent has full filesystem and shell access inside its worktree,
+and that worktree shares the host's git config + `gh` credentials.
+Triggering an agent is therefore equivalent to handing somebody a
+local shell in your repo. Implications:
+
+- Don't enable a publicly reachable `/api/tasks/:id/sessions` without
+  also setting `NODETOOL_TASKS_TOKEN` to gate it.
+- A malicious task body could direct the agent to do anything inside
+  the worktree (and only the worktree — repo-level state is isolated).
+- Agent sessions push branches and open PRs with your `gh` identity.
+
+If you need a tighter sandbox, set permissions to an explicit allowlist
+and curate the tool set instead — but `bypassPermissions` is the
+intended default for the autonomous loop.
+
 ## Don'ts
 
 - Don't bypass the state machine. The server enforces transitions; the
