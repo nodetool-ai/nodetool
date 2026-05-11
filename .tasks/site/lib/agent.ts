@@ -17,10 +17,10 @@ import { mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { and, eq, desc, asc, gt, inArray, notInArray } from "drizzle-orm";
+import { and, eq, desc, asc, gt, inArray, isNotNull, notInArray } from "drizzle-orm";
 
 import { db } from "@/db";
-import { agentEvents, agentSessions } from "@/db/schema";
+import { agentEvents, agentSessions, tasks } from "@/db/schema";
 import * as repo from "./repo";
 import {
   isTerminalStatus,
@@ -49,6 +49,8 @@ declare global {
   var __agentRunners: Map<number, RunnerState> | undefined;
   // eslint-disable-next-line no-var
   var __agentReaperRan: boolean | undefined;
+  // eslint-disable-next-line no-var
+  var __agentPrWatcher: NodeJS.Timeout | undefined;
 }
 
 const runners: Map<number, RunnerState> = globalThis.__agentRunners ?? new Map();
@@ -63,6 +65,18 @@ if (!globalThis.__agentReaperRan) {
   } catch (err) {
     console.error("agent: reaper failed:", err);
   }
+}
+
+// Periodically check open PRs and transition the linked task to `done` once
+// the PR is merged. Opening a PR only moves a task to `review`; merge is what
+// completes it.
+const PR_POLL_MS = Number(process.env.NODETOOL_TASKS_PR_POLL_MS ?? 60_000);
+if (!globalThis.__agentPrWatcher && PR_POLL_MS > 0) {
+  globalThis.__agentPrWatcher = setInterval(() => {
+    pollMergedPrs().catch((err) => console.error("agent: pr watcher failed:", err));
+  }, PR_POLL_MS);
+  // Don't keep the event loop alive just for the watcher.
+  globalThis.__agentPrWatcher.unref?.();
 }
 
 function reapOrphans() {
@@ -94,6 +108,85 @@ function reapOrphans() {
       cleanupWorktree(orphan.worktreePath).catch(() => {});
     }
   }
+}
+
+async function pollMergedPrs(): Promise<void> {
+  // Most-recent session per task that has a PR url and whose task is still in
+  // review. Doing this in SQL: join tasks, filter by state, then group by task
+  // in JS to take the freshest session.
+  const rows = db
+    .select({
+      sessionId: agentSessions.id,
+      taskId: agentSessions.taskId,
+      prUrl: agentSessions.prUrl,
+      startedAt: agentSessions.startedAt,
+    })
+    .from(agentSessions)
+    .innerJoin(tasks, eq(tasks.id, agentSessions.taskId))
+    .where(and(isNotNull(agentSessions.prUrl), eq(tasks.state, "review")))
+    .all();
+
+  const latestByTask = new Map<string, (typeof rows)[number]>();
+  for (const r of rows) {
+    const prev = latestByTask.get(r.taskId);
+    if (!prev || r.startedAt > prev.startedAt) latestByTask.set(r.taskId, r);
+  }
+
+  for (const r of latestByTask.values()) {
+    if (!r.prUrl) continue;
+    const info = await ghPrState(r.prUrl);
+    if (!info) continue;
+    if (info.state !== "MERGED") continue;
+    try {
+      repo.transitionTask(r.taskId, {
+        state: "done",
+        note: `PR merged: ${r.prUrl}`,
+      });
+      emit(r.sessionId, "pr_merged", { url: r.prUrl, mergedAt: info.mergedAt });
+    } catch (err) {
+      // Likely open criteria; leave in review and surface why.
+      try {
+        repo.addNote(
+          r.taskId,
+          "claude-agent",
+          `PR merged but could not transition to done: ${describe(err)}`
+        );
+      } catch {
+        // ignore
+      }
+    }
+  }
+}
+
+interface PrState {
+  state: string; // "OPEN" | "MERGED" | "CLOSED"
+  mergedAt: string | null;
+}
+
+function ghPrState(prUrl: string): Promise<PrState | null> {
+  return new Promise((resolveP) => {
+    const child = spawn("gh", ["pr", "view", prUrl, "--json", "state,mergedAt"], {
+      env: process.env,
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (d) => (stdout += d.toString()));
+    child.stderr.on("data", (d) => (stderr += d.toString()));
+    child.on("error", () => resolveP(null));
+    child.on("close", (code) => {
+      if (code !== 0) {
+        if (stderr) console.warn("gh pr view failed:", stderr.trim());
+        resolveP(null);
+        return;
+      }
+      try {
+        const parsed = JSON.parse(stdout) as PrState;
+        resolveP(parsed);
+      } catch {
+        resolveP(null);
+      }
+    });
+  });
 }
 
 // ──────────────────────────────────────────────────────────
@@ -517,32 +610,11 @@ function fail(sessionId: number, error: string) {
 }
 
 function updateSession(sessionId: number, patch: Partial<AgentSessionFull>) {
-  // Explicit camel → snake column map. Avoids the implicit assumption that
-  // every TS field name maps via a regex; any future field has to be added
-  // here, which is exactly what we want.
-  const COLUMN: Record<keyof AgentSessionFull, string | null> = {
-    id: null, // never updated
-    taskId: "task_id",
-    status: "status",
-    model: "model",
-    branch: "branch",
-    worktreePath: "worktree_path",
-    prUrl: "pr_url",
-    error: "error",
-    totalCostUsd: "total_cost_usd",
-    inputTokens: "input_tokens",
-    outputTokens: "output_tokens",
-    sdkSessionId: "sdk_session_id",
-    resumeOf: "resume_of",
-    startedAt: "started_at",
-    completedAt: "completed_at",
-  };
   const values: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(patch) as [keyof AgentSessionFull, unknown][]) {
+  for (const [k, v] of Object.entries(patch)) {
     if (v === undefined) continue;
-    const col = COLUMN[k];
-    if (!col) continue;
-    values[col] = v;
+    if (k === "id") continue;
+    values[k] = v;
   }
   if (Object.keys(values).length === 0) return;
   db.update(agentSessions).set(values).where(eq(agentSessions.id, sessionId)).run();
