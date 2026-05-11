@@ -1,7 +1,8 @@
 import type {
   ClipEffect,
   ClipTransform,
-  TimelineClip
+  TimelineClip,
+  TrackEffect
 } from "@nodetool-ai/timeline";
 
 export type CompositorBlendMode = NonNullable<TimelineClip["blendMode"]>;
@@ -21,8 +22,14 @@ export interface CompositeLayer {
   transform?: ClipTransform;
   /** Rounded-corner radius in source pixels. Default 0. */
   borderRadius?: number;
-  /** GPU effects applied as a pre-pass before this layer's composite draw. */
+  /** Per-clip GPU effects applied as a pre-pass before this layer's draw. */
   effects?: ClipEffect[];
+  /**
+   * Track-level video effects applied after `effects`, mirroring the audio
+   * DSP chain on audio tracks. Only video-type variants of TrackEffect are
+   * acted on; audio variants are ignored.
+   */
+  trackEffects?: TrackEffect[];
 }
 
 export interface CompositorInitResult {

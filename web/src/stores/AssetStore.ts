@@ -248,9 +248,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * @returns A promise that resolves to the asset.
    */
   get: async (id: string) => {
-    const raw = (await trpcClient.assets.get.query({
+    const raw = await trpcClient.assets.get.query({
       id
-    })) as unknown as Asset;
+    });
     const data = normalizeAssetUrls(raw);
     get().add(data);
     return data;
@@ -271,11 +271,11 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       ...(query.content_type ? { content_type: query.content_type } : {}),
       ...(query.workflow_id ? { workflow_id: query.workflow_id } : {})
     });
-    const normalized = normalizeAssetList(data.assets as unknown as Asset[]);
+    const normalized = normalizeAssetList(data.assets);
     for (const asset of normalized) {
       get().add(asset);
     }
-    return { ...(data as unknown as AssetList), assets: normalized };
+    return { ...data, assets: normalized };
   },
 
   /**
@@ -288,7 +288,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       content_type: "folder"
     });
     return buildFolderTree(
-      normalizeAssetList(data.assets as unknown as Asset[]),
+      normalizeAssetList(data.assets),
       sortBy === "updated_at" ? "updated_at" : "name"
     );
   },
@@ -312,7 +312,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         return { next: "", assets: [] } as AssetList;
       }
       setCurrentFolder(asset);
-      if (asset?.parent_id !== "") {
+      if (asset?.parent_id) {
         get()
           .get(asset.parent_id)
           .then((parent) => {
@@ -554,7 +554,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     // Use provided values or fall back to previous values for required fields.
     // This ensures we don't accidentally clear fields like parent_id when only
     // updating the name.
-    const data = (await trpcClient.assets.update.mutate({
+    const data = await trpcClient.assets.update.mutate({
       id: req.id,
       name: req.name !== undefined ? req.name : prev.name,
       parent_id:
@@ -570,7 +570,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       ...(req.data_encoding !== undefined
         ? { data_encoding: req.data_encoding }
         : {})
-    })) as unknown as Asset;
+    });
     const normalized = normalizeAssetUrls(data);
     get().add(normalized);
     get().invalidateQueries(["assets", { parent_id: prev.parent_id }]);

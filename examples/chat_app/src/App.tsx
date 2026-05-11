@@ -14,7 +14,7 @@ import { MessageList, type ChatRow } from "@/components/message-list";
 import { ModelPicker } from "@/components/model-picker";
 import { ConnectionDot } from "@/components/connection-dot";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Menu, Trash2 } from "lucide-react";
 
 interface Selected {
   id: string;
@@ -56,6 +56,11 @@ export function App() {
     onSuccess: (_, id) => {
       qc.invalidateQueries({ queryKey: ["threads"] });
       qc.removeQueries({ queryKey: ["messages", id] });
+      setLocalRowsByThread((prev) => removeThreadRows(prev, id));
+      if (streamingRef.current?.threadId === id) {
+        streamingRef.current = null;
+        setStreaming(false);
+      }
       if (activeThreadId === id) setActiveThreadId(null);
     }
   });
@@ -75,9 +80,12 @@ export function App() {
   // Local-only messages (optimistic user echo + streaming assistant chunks)
   // are merged with the server-persisted list. Once the server frame arrives
   // we drop the local stand-in.
-  const [localRows, setLocalRows] = useState<ChatRow[]>([]);
+  const [localRowsByThread, setLocalRowsByThread] = useState<
+    Record<string, ChatRow[]>
+  >({});
   const streamingRef = useRef<{
     threadId: string;
+    assistantRowId: string;
     text: string;
   } | null>(null);
 
@@ -118,8 +126,11 @@ export function App() {
 
       return [...messageRows, ...toolCallRows];
     });
-    return [...persisted, ...localRows];
-  }, [messagesQuery.data, localRows]);
+    return [
+      ...persisted,
+      ...(activeThreadId ? localRowsByThread[activeThreadId] ?? [] : [])
+    ];
+  }, [activeThreadId, messagesQuery.data, localRowsByThread]);
 
   /* ─── Chat WebSocket ─────────────────────────────────────── */
 
@@ -138,44 +149,59 @@ export function App() {
       const cur = streamingRef.current;
       if (!cur) return;
       cur.text += e.content ?? "";
-      // Update the last assistant row in localRows, replacing the placeholder
-      // pen-glyph with the streaming text as it arrives.
-      setLocalRows((prev) => {
-        const next = [...prev];
-        for (let i = next.length - 1; i >= 0; i--) {
-          const row = next[i];
-          if (row.kind === "message" && row.role === "assistant") {
-            next[i] = { ...row, text: cur.text };
-            break;
-          }
-        }
-        return next;
-      });
-      if (e.done) {
-        setStreaming(false);
-      }
+      // Update only the assistant placeholder for the currently streaming
+      // thread, so chunks cannot bleed into another conversation after nav.
+      setLocalRowsByThread((prev) => ({
+        ...prev,
+        [cur.threadId]: (prev[cur.threadId] ?? []).map((row) =>
+          row.kind === "message" && row.id === cur.assistantRowId
+            ? { ...row, text: cur.text }
+            : row
+        )
+      }));
+      // Keep the composer locked until the final persisted message frame
+      // arrives; otherwise a new send could race with local row cleanup.
     });
     const offToolCall = socket.on("tool_call", (e: ChatToolCallEvent) => {
-      setLocalRows((prev) => [
+      const threadId =
+        getStringProp(e, "thread_id") ?? streamingRef.current?.threadId;
+      if (!threadId || threadId !== streamingRef.current?.threadId) return;
+      setLocalRowsByThread((prev) => ({
         ...prev,
-        {
-          kind: "tool_call",
-          id: e.tool_call_id ?? `local-tool-${Date.now()}`,
-          name: e.name
-        }
-      ]);
+        [threadId]: [
+          ...(prev[threadId] ?? []),
+          {
+            kind: "tool_call",
+            id: e.tool_call_id ?? `local-tool-${Date.now()}`,
+            name: e.name
+          }
+        ]
+      }));
     });
     const offMessage = socket.on("message", (m: ChatMessageEvent) => {
-      if (m.role !== "assistant") return;
+      if (m.role !== "assistant" || !m.thread_id) return;
+      const threadId = m.thread_id;
       // Server has persisted the assistant message. Refetch the list and
       // drop our local stream stand-in.
       streamingRef.current = null;
-      setLocalRows([]);
-      qc.invalidateQueries({ queryKey: ["messages", m.thread_id] });
+      setStreaming(false);
+      setLocalRowsByThread((prev) => removeThreadRows(prev, threadId));
+      qc.invalidateQueries({ queryKey: ["messages", threadId] });
       qc.invalidateQueries({ queryKey: ["threads"] }); // updated_at moved
     });
     const offError = socket.on("error", (e) => {
+      const cur = streamingRef.current;
       setStreaming(false);
+      streamingRef.current = null;
+      if (cur) {
+        setLocalRowsByThread((prev) =>
+          replaceAssistantPlaceholderWithError(
+            prev,
+            cur.threadId,
+            cur.assistantRowId
+          )
+        );
+      }
       toast.error(e.message ?? "Server error");
     });
 
@@ -213,20 +239,26 @@ export function App() {
     if (!threadId) {
       const t = await createThread.mutateAsync("New Chat");
       threadId = t.id;
+      setActiveThreadId(threadId);
     }
 
     // Optimistic user + placeholder assistant rows.
-    setLocalRows((prev) => [
+    const now = Date.now();
+    const assistantRowId = `local-a-${now}`;
+    setLocalRowsByThread((prev) => ({
       ...prev,
-      { kind: "message", id: `local-u-${Date.now()}`, role: "user", text },
-      {
-        kind: "message",
-        id: `local-a-${Date.now()}`,
-        role: "assistant",
-        text: ""
-      }
-    ]);
-    streamingRef.current = { threadId, text: "" };
+      [threadId]: [
+        ...(prev[threadId] ?? []),
+        { kind: "message", id: `local-u-${now}`, role: "user", text },
+        {
+          kind: "message",
+          id: assistantRowId,
+          role: "assistant",
+          text: ""
+        }
+      ]
+    }));
+    streamingRef.current = { threadId, assistantRowId, text: "" };
     setStreaming(true);
 
     try {
@@ -239,7 +271,7 @@ export function App() {
     } catch (err) {
       setStreaming(false);
       streamingRef.current = null;
-      setLocalRows([]);
+      setLocalRowsByThread((prev) => removeThreadRows(prev, threadId));
       toast.error(
         err instanceof Error ? err.message : "Failed to send message"
       );
@@ -247,10 +279,12 @@ export function App() {
   }
 
   function handleStop() {
-    if (!activeThreadId) return;
-    socketRef.current?.stop(activeThreadId);
+    const threadId = streamingRef.current?.threadId;
+    if (!threadId) return;
+    socketRef.current?.stop(threadId);
   }
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const activeThread = threads.find((t) => t.id === activeThreadId);
 
   /* ─── Render ──────────────────────────────────────────────── */
@@ -260,17 +294,17 @@ export function App() {
       <Sidebar
         threads={threads}
         activeThreadId={activeThreadId}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
         onSelect={(id) => {
           if (id !== activeThreadId) {
-            setLocalRows([]);
-            streamingRef.current = null;
-            setStreaming(false);
             setActiveThreadId(id);
           }
+          setSidebarOpen(false);
         }}
         onNewChat={() => {
-          setLocalRows([]);
           createThread.mutate("New Chat");
+          setSidebarOpen(false);
         }}
         onDelete={(id) => deleteThread.mutate(id)}
         connectionState={conn}
@@ -279,6 +313,15 @@ export function App() {
       <main className="flex flex-1 min-w-0 flex-col">
         <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-background/95 px-6">
           <div className="flex min-w-0 items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open sidebar"
+            >
+              <Menu className="size-4" />
+            </Button>
             <h1 className="truncate text-sm font-medium">
               {activeThread?.title ?? "New conversation"}
             </h1>
@@ -289,6 +332,7 @@ export function App() {
               models={modelsQuery.data ?? []}
               value={model}
               onChange={setModel}
+              loading={modelsQuery.isLoading}
             />
             {activeThread && (
               <Button
@@ -350,6 +394,33 @@ function extractToolCalls(toolCalls: unknown, idPrefix: string): ChatRow[] {
         getStringProp(call, "name") ?? getStringProp(fn, "name") ?? "tool"
     };
   });
+}
+
+function removeThreadRows(
+  rowsByThread: Record<string, ChatRow[]>,
+  threadId: string
+): Record<string, ChatRow[]> {
+  const next = { ...rowsByThread };
+  delete next[threadId];
+  return next;
+}
+
+function replaceAssistantPlaceholderWithError(
+  rowsByThread: Record<string, ChatRow[]>,
+  threadId: string,
+  assistantRowId: string
+): Record<string, ChatRow[]> {
+  return {
+    ...rowsByThread,
+    [threadId]: (rowsByThread[threadId] ?? []).map((row) =>
+      row.kind === "message" && row.id === assistantRowId
+        ? {
+            ...row,
+            text: "Sorry, the connection failed before I could finish responding."
+          }
+        : row
+    )
+  };
 }
 
 function getObjectProp(value: unknown, key: string): Record<string, unknown> | null {

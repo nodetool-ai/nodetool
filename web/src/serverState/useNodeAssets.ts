@@ -15,7 +15,7 @@ import { normalizeAssetList } from "../utils/normalizeAsset";
 const fetchNodeAssets = async (nodeId: string): Promise<Asset[]> => {
   try {
     const data = await trpcClient.assets.list.query({ node_id: nodeId });
-    return normalizeAssetList((data.assets ?? []) as unknown as Asset[]);
+    return normalizeAssetList(data.assets ?? []);
   } catch (error) {
     console.error("Failed to fetch node assets:", error);
     throw error;

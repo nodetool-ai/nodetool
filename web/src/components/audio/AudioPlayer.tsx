@@ -128,7 +128,7 @@ const formatTime = (time: number) => {
 
 const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
   const theme = useTheme();
-  const wsprops = getWsprops(theme);
+  const wsprops = useMemo(() => getWsprops(theme), [theme]);
   const {
     source,
     alwaysShowControls = wsprops.alwaysShowControls,
@@ -360,9 +360,11 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     };
   }, [onPlay, onPause]);
 
+  const cssStyles = useMemo(() => styles(theme), [theme]);
+
   return (
     <div
-      css={styles(theme)}
+      css={cssStyles}
       onClick={(e) => {
         e.stopPropagation();
       }}

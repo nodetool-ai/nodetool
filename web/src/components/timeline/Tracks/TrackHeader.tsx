@@ -201,6 +201,8 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
   );
 
   const isAudioTrack = track.type === "audio";
+  const supportsEffects =
+    track.type === "audio" || track.type === "video";
   const effectsCount = track.effects?.length ?? 0;
   const hasActiveEffects =
     track.effects?.some((e) => e.enabled) ?? false;
@@ -263,7 +265,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
 
         {isAudioTrack && (
           <>
-            <Tooltip title={track.muted ? "Unmute" : "Mute"}>
+            <Tooltip title={track.muted ? "Unmute" : "Mute"} key="mute">
               <button
                 css={iconButtonStyles(theme, !track.muted)}
                 onClick={() => setTrackMuted(track.id, !track.muted)}
@@ -284,25 +286,27 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
                 <span style={{ fontSize: 11, fontWeight: 700 }}>S</span>
               </button>
             </Tooltip>
-
-            <Tooltip
-              title={
-                effectsCount === 0
-                  ? "Effects chain (empty)"
-                  : `Effects chain (${effectsCount})`
-              }
-            >
-              <button
-                css={iconButtonStyles(theme, hasActiveEffects || fxExpanded)}
-                onClick={handleFxToggle}
-                aria-label={fxExpanded ? "Hide effects chain" : "Show effects chain"}
-                aria-pressed={fxExpanded}
-                data-testid={`track-fx-${track.id}`}
-              >
-                <GraphicEqIcon />
-              </button>
-            </Tooltip>
           </>
+        )}
+
+        {supportsEffects && (
+          <Tooltip
+            title={
+              effectsCount === 0
+                ? "Effects chain (empty)"
+                : `Effects chain (${effectsCount})`
+            }
+          >
+            <button
+              css={iconButtonStyles(theme, hasActiveEffects || fxExpanded)}
+              onClick={handleFxToggle}
+              aria-label={fxExpanded ? "Hide effects chain" : "Show effects chain"}
+              aria-pressed={fxExpanded}
+              data-testid={`track-fx-${track.id}`}
+            >
+              <GraphicEqIcon />
+            </button>
+          </Tooltip>
         )}
 
         <Tooltip title="Remove track">

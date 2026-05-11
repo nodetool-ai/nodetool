@@ -55,9 +55,11 @@ export interface TimelineTrack {
   /** Pixel height of the track row in the timeline UI. */
   heightPx?: number;
   /**
-   * Audio DSP chain applied after the track gain stage and before the master
-   * bus. Effects are applied in order. Only meaningful on `audio` tracks; the
-   * runtime ignores the chain for non-audio tracks.
+   * Effect chain applied after the track's primary stage. On `audio` tracks
+   * these are DSP effects (gain, EQ, filter, compressor). On `video` tracks
+   * these are GPU video effects (color correction, blur, sharpen, vignette,
+   * chroma key). Effects are applied in order. The runtime ignores effects
+   * whose type doesn't match the track type.
    */
   effects?: TrackEffect[];
 }
@@ -68,7 +70,23 @@ export type TrackEffect =
   | TrackGainEffect
   | TrackEq3Effect
   | TrackFilterEffect
-  | TrackCompressorEffect;
+  | TrackCompressorEffect
+  | TrackColorCorrectionEffect
+  | TrackVideoBlurEffect
+  | TrackSharpenEffect
+  | TrackVignetteEffect
+  | TrackChromaKeyEffect;
+
+/** Audio-side effect types. */
+export type AudioTrackEffectType = "gain" | "eq3" | "filter" | "compressor";
+
+/** Video-side effect types. */
+export type VideoTrackEffectType =
+  | "colorCorrection"
+  | "videoBlur"
+  | "sharpen"
+  | "vignette"
+  | "chromaKey";
 
 export interface TrackGainEffect {
   id: string;
@@ -125,6 +143,74 @@ export interface TrackCompressorEffect {
   releaseMs: number;
   /** Knee in dB. Default 30. */
   kneeDb: number;
+}
+
+// ── Video track effects ─────────────────────────────────────────────────────
+
+export interface TrackColorCorrectionEffect {
+  id: string;
+  type: "colorCorrection";
+  enabled: boolean;
+  /** -1..1, default 0 */
+  brightness: number;
+  /** 0..4, default 1 */
+  contrast: number;
+  /** 0..4, default 1 */
+  saturation: number;
+  /** degrees -180..180, default 0 */
+  hue: number;
+  /** -1..1 (cool→warm), default 0 */
+  temperature: number;
+  /** -1..1 (green→magenta), default 0 */
+  tint: number;
+  /** -1..1, default 0 */
+  shadows: number;
+  /** -1..1, default 0 */
+  highlights: number;
+}
+
+export interface TrackVideoBlurEffect {
+  id: string;
+  type: "videoBlur";
+  enabled: boolean;
+  /** Blur radius in source pixels (0..40 typical). Default 4. */
+  radius: number;
+}
+
+export interface TrackSharpenEffect {
+  id: string;
+  type: "sharpen";
+  enabled: boolean;
+  /** Amount of sharpening 0..2. Default 0.5. */
+  amount: number;
+  /** Edge threshold 0..1. Default 0. */
+  threshold: number;
+}
+
+export interface TrackVignetteEffect {
+  id: string;
+  type: "vignette";
+  enabled: boolean;
+  /** Vignette intensity 0..1. Default 0.4. */
+  intensity: number;
+  /** Outer radius (relative to frame half-diagonal) 0.1..1.5. Default 0.9. */
+  radius: number;
+  /** Softness of the falloff 0..1. Default 0.5. */
+  softness: number;
+}
+
+export interface TrackChromaKeyEffect {
+  id: string;
+  type: "chromaKey";
+  enabled: boolean;
+  /** Key colour as `#rrggbb`. Default `#00ff00`. */
+  keyColor: string;
+  /** Match tolerance 0..1. Default 0.2. */
+  tolerance: number;
+  /** Edge softness 0..1. Default 0.1. */
+  softness: number;
+  /** Spill suppression 0..1. Default 0.5. */
+  spill: number;
 }
 
 export interface TimelineClip {

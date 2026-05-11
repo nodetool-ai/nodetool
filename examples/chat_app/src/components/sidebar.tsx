@@ -1,4 +1,5 @@
-import { MessageSquarePlus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { MessageSquarePlus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -22,6 +23,8 @@ interface Props {
   onNewChat: () => void;
   onDelete: (id: string) => void;
   connectionState: string;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 export function Sidebar({
@@ -29,10 +32,33 @@ export function Sidebar({
   activeThreadId,
   onSelect,
   onNewChat,
-  onDelete
+  onDelete,
+  isOpen,
+  onClose
 }: Props) {
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  function confirmDelete(id: string) {
+    onDelete(id);
+    setPendingDeleteId(null);
+  }
+
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-r border-border bg-card/70">
+    <>
+      {isOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-30 bg-background/80 backdrop-blur-sm md:hidden"
+          onClick={onClose}
+          aria-label="Close sidebar"
+        />
+      )}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-border bg-card/95 transition-transform md:static md:z-auto md:translate-x-0 md:bg-card/70",
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
       <div className="flex h-14 items-center justify-between gap-2 px-4">
         <div className="flex items-center gap-2">
           <Logo />
@@ -40,19 +66,30 @@ export function Sidebar({
             NodeTool <span className="text-muted-foreground">Chat</span>
           </span>
         </div>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={onNewChat}
-              aria-label="New conversation"
-            >
-              <MessageSquarePlus className="size-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">New conversation</TooltipContent>
-        </Tooltip>
+        <div className="flex items-center gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={onNewChat}
+                aria-label="New conversation"
+              >
+                <MessageSquarePlus className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">New conversation</TooltipContent>
+          </Tooltip>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="md:hidden"
+            onClick={onClose}
+            aria-label="Close sidebar"
+          >
+            <X className="size-4" />
+          </Button>
+        </div>
       </div>
       <Separator />
 
@@ -85,21 +122,51 @@ export function Sidebar({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-1 top-1/2 size-7 -translate-y-1/2 opacity-0 group-hover:opacity-100"
+                  className="absolute right-1 top-1/2 size-7 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm("Delete this conversation?")) onDelete(t.id);
+                    setPendingDeleteId(t.id);
                   }}
-                  aria-label="Delete"
+                  aria-label={`Delete ${t.title || "Untitled"}`}
                 >
                   <Trash2 className="size-3.5" />
                 </Button>
+                {pendingDeleteId === t.id && (
+                  <div
+                    className="absolute right-1 top-9 z-10 w-48 rounded-md border border-border bg-popover p-2 text-xs shadow-lg"
+                    role="dialog"
+                    aria-label="Confirm delete conversation"
+                  >
+                    <p className="mb-2 text-muted-foreground">
+                      Delete this conversation?
+                    </p>
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => setPendingDeleteId(null)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => confirmDelete(t.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       </ScrollArea>
-    </aside>
+      </aside>
+    </>
   );
 }
 

@@ -22,7 +22,12 @@ import type {
   TrackGainEffect,
   TrackEq3Effect,
   TrackFilterEffect,
-  TrackCompressorEffect
+  TrackCompressorEffect,
+  TrackColorCorrectionEffect,
+  TrackVideoBlurEffect,
+  TrackSharpenEffect,
+  TrackVignetteEffect,
+  TrackChromaKeyEffect
 } from "./types.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -161,6 +166,54 @@ export function makeTrackEffect(type: TrackEffect["type"]): TrackEffect {
         releaseMs: 250,
         kneeDb: 30
       } satisfies TrackCompressorEffect;
+    case "colorCorrection":
+      return {
+        id,
+        type: "colorCorrection",
+        enabled: true,
+        brightness: 0,
+        contrast: 1,
+        saturation: 1,
+        hue: 0,
+        temperature: 0,
+        tint: 0,
+        shadows: 0,
+        highlights: 0
+      } satisfies TrackColorCorrectionEffect;
+    case "videoBlur":
+      return {
+        id,
+        type: "videoBlur",
+        enabled: true,
+        radius: 4
+      } satisfies TrackVideoBlurEffect;
+    case "sharpen":
+      return {
+        id,
+        type: "sharpen",
+        enabled: true,
+        amount: 0.5,
+        threshold: 0
+      } satisfies TrackSharpenEffect;
+    case "vignette":
+      return {
+        id,
+        type: "vignette",
+        enabled: true,
+        intensity: 0.4,
+        radius: 0.9,
+        softness: 0.5
+      } satisfies TrackVignetteEffect;
+    case "chromaKey":
+      return {
+        id,
+        type: "chromaKey",
+        enabled: true,
+        keyColor: "#00ff00",
+        tolerance: 0.2,
+        softness: 0.1,
+        spill: 0.5
+      } satisfies TrackChromaKeyEffect;
   }
 }
 
