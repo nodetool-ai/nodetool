@@ -1,7 +1,23 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import matter from "gray-matter";
 import { marked } from "marked";
+
+function resolveDotTasksRoot(): string {
+  const fromCwd = join(process.cwd(), "..");
+  if (existsSync(join(fromCwd, "tasks"))) {
+    return fromCwd;
+  }
+  /** Dev / workers where `cwd` is not `.tasks/site` — avoid empty `generateStaticParams`. */
+  const fromSource = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+  if (existsSync(join(fromSource, "tasks"))) {
+    return fromSource;
+  }
+  return fromCwd;
+}
+
+const ROOT = resolveDotTasksRoot();
 
 export type TaskState = "todo" | "in_progress" | "review" | "blocked" | "done" | "cancelled";
 export type PlanState = "draft" | "proposed" | "accepted" | "done" | "cancelled";
@@ -58,7 +74,6 @@ export interface Plan {
   bodyHtml: string;
 }
 
-const ROOT = join(process.cwd(), "..");
 const PLANS_DIR = join(ROOT, "plans");
 const TASKS_DIR = join(ROOT, "tasks");
 
