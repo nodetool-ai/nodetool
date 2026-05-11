@@ -28,12 +28,12 @@ jobs:
           bundler-cache: true
           working-directory: ./docs
 
-      - name: Setup Ruby (.tasks)
-        uses: ruby/setup-ruby@v1
+      - name: Setup Node (.tasks/site)
+        uses: actions/setup-node@v5
         with:
-          ruby-version: '3.3'
-          bundler-cache: true
-          working-directory: ./.tasks
+          node-version-file: ".nvmrc"
+          cache: npm
+          cache-dependency-path: .tasks/site/package-lock.json
 
       - name: Setup Pages
         id: pages
@@ -46,17 +46,20 @@ jobs:
         env:
           JEKYLL_ENV: production
 
-      - name: Build .tasks with Jekyll
-        run: |
-          cd .tasks
-          bundle exec jekyll build --baseurl "${{ steps.pages.outputs.base_path }}/tasks"
+      - name: Install tasks site deps
+        run: npm ci
+        working-directory: .tasks/site
+
+      - name: Build tasks site (Next.js)
+        run: npm run build
+        working-directory: .tasks/site
         env:
-          JEKYLL_ENV: production
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}/tasks
 
       - name: Merge tasks site into docs site
         run: |
           mkdir -p docs/_site/tasks
-          cp -R .tasks/_site/. docs/_site/tasks/
+          cp -R .tasks/site/out/. docs/_site/tasks/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5

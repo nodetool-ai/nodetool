@@ -7,17 +7,13 @@ linter (`scripts/tasks.mjs`) enforces it.
 
 ```
 .tasks/
-├── _plans/                              # Jekyll collection: plans
+├── plans/                              # Data: one markdown file per plan
 │   └── 2026-05-11-feature-slug.md
-├── _tasks/                              # Jekyll collection: tasks
+├── tasks/                              # Data: one markdown file per task
 │   └── T-20260511-0001-task-slug.md
-├── _layouts/                            # HTML templates
-├── _includes/
-├── assets/
-├── index.md                             # Dashboard
-├── _config.yml                          # Jekyll config
-├── SCHEMA.md                            # This file
-├── AGENTS.md                            # Agent workflow contract
+├── site/                               # Next.js + shadcn dashboard (Linear-style)
+├── SCHEMA.md                           # This file
+├── AGENTS.md                           # Agent workflow contract
 └── README.md
 ```
 
@@ -25,8 +21,8 @@ One file = one plan or task. Never edit two task files in the same commit.
 
 ## File naming
 
-- **Plan**: `_plans/YYYY-MM-DD-slug.md`. Slug is lowercase kebab-case.
-- **Task**: `_tasks/T-YYYYMMDD-NNNN-slug.md`. `NNNN` is a per-day counter,
+- **Plan**: `plans/YYYY-MM-DD-slug.md`. Slug is lowercase kebab-case.
+- **Task**: `tasks/T-YYYYMMDD-NNNN-slug.md`. `NNNN` is a per-day counter,
   zero-padded to 4 digits. The CLI auto-assigns the next free counter.
 
 ## Plan frontmatter

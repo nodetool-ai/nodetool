@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 6% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 6% 10%;
+    --primary: 240 6% 10%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 240 6% 10%;
+    --radius: 0.5rem;
+
+    --state-todo: 240 4% 60%;
+    --state-progress: 38 92% 50%;
+    --state-review: 270 76% 65%;
+    --state-blocked: 0 72% 60%;
+    --state-done: 152 60% 45%;
+    --state-cancelled: 240 4% 50%;
+  }
+
+  .dark {
+    --background: 240 6% 6%;
+    --foreground: 0 0% 98%;
+    --card: 240 6% 8%;
+    --card-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 6% 10%;
+    --secondary: 240 4% 14%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 4% 14%;
+    --muted-foreground: 240 5% 64%;
+    --accent: 240 4% 14%;
+    --accent-foreground: 0 0% 98%;
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 240 5% 84%;
+
+    --state-todo: 240 5% 64%;
+    --state-progress: 38 92% 55%;
+    --state-review: 270 70% 70%;
+    --state-blocked: 0 65% 65%;
+    --state-done: 152 55% 55%;
+    --state-cancelled: 240 5% 50%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { font-feature-settings: "rlig" 1, "calt" 1, "cv11" 1; -webkit-font-smoothing: antialiased; }
+  body { @apply bg-background text-foreground; font-synthesis-weight: none; text-rendering: optimizeLegibility; }
+}
+
+/* Prose tweaks to feel Linear-like, not blog-like. */
+.prose-tasks {
+  @apply text-[15px] leading-7 text-foreground/90;
+}
+.prose-tasks h1 { @apply text-xl font-semibold mt-8 mb-3 text-foreground; }
+.prose-tasks h2 { @apply text-base font-semibold mt-7 mb-2 text-foreground; }
+.prose-tasks h3 { @apply text-sm font-semibold mt-5 mb-2 text-foreground; }
+.prose-tasks p { @apply my-3; }
+.prose-tasks ul { @apply my-3 space-y-1.5 list-none pl-0; }
+.prose-tasks li { @apply pl-6 relative; }
+.prose-tasks li::before { content: ""; @apply absolute left-1.5 top-2.5 w-1 h-1 rounded-full bg-muted-foreground; }
+.prose-tasks li:has(input[type="checkbox"])::before { display: none; }
+.prose-tasks li input[type="checkbox"] {
+  @apply mr-2 -ml-6 align-middle h-3.5 w-3.5 rounded-sm border border-border bg-background accent-foreground/90 appearance-none;
+  vertical-align: -0.125em;
+}
+.prose-tasks li input[type="checkbox"]:checked {
+  background-color: hsl(var(--state-done));
+  border-color: hsl(var(--state-done));
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z'/%3E%3C/svg%3E");
+  background-size: 80%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.prose-tasks code { @apply font-mono text-[0.85em] bg-muted px-1.5 py-0.5 rounded text-foreground; }
+.prose-tasks pre { @apply my-4 p-4 bg-muted rounded-md overflow-x-auto text-sm leading-6; }
+.prose-tasks pre code { @apply bg-transparent p-0; }
+.prose-tasks a { @apply text-foreground underline decoration-muted-foreground underline-offset-4 hover:decoration-foreground; }
+.prose-tasks strong { @apply font-semibold text-foreground; }
+.prose-tasks hr { @apply my-8 border-border; }
+.prose-tasks blockquote { @apply my-4 border-l-2 border-border pl-4 italic text-muted-foreground; }

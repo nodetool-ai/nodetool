@@ -16,11 +16,12 @@ merge conflicts when many agents work in parallel.
 
 # Approach
 
-- One file per plan (`.tasks/_plans/`), one file per task (`.tasks/_tasks/`).
+- One file per plan (`.tasks/plans/`), one file per task (`.tasks/tasks/`).
 - YAML frontmatter carries state, IDs, dependencies, ownership.
 - Append-only Notes section per task, with date-stamped headings.
 - A small CLI (`npm run task`) creates, transitions, and validates tasks.
-- A Jekyll site renders the dashboard for humans (deployed to GitHub Pages).
+- A Linear-style Next.js + shadcn/ui dashboard at `.tasks/site/` renders
+  the data, deployed to GitHub Pages under `/tasks/`.
 - A CI workflow runs the validator on every PR touching `.tasks/`.
 
 # Out of scope

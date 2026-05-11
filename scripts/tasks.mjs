@@ -8,8 +8,8 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
-const TASKS_DIR = join(ROOT, ".tasks", "_tasks");
-const PLANS_DIR = join(ROOT, ".tasks", "_plans");
+const TASKS_DIR = join(ROOT, ".tasks", "tasks");
+const PLANS_DIR = join(ROOT, ".tasks", "plans");
 
 const TASK_STATES = ["todo", "in_progress", "review", "blocked", "done", "cancelled"];
 const PLAN_STATES = ["draft", "proposed", "accepted", "done", "cancelled"];

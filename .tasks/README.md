@@ -42,14 +42,20 @@ non-event.
 
 ## Browse the dashboard
 
-The site renders to `<your-pages-url>/tasks/`. Locally:
+Linear-style Next.js + shadcn/ui site, deployed at `<your-pages-url>/tasks/`.
+Locally:
 
 ```bash
-cd .tasks
-bundle install
-bundle exec jekyll serve
-# open http://localhost:4000/tasks/
+cd .tasks/site
+npm install
+npm run dev
+# open http://localhost:3000
 ```
 
-If you don't have Ruby installed, the markdown files are still fully
-readable on GitHub.
+Built with `npm run build` (static export to `out/`). The GitHub Pages
+deploy lives in `.github/workflows/jekyll.yml` — the tasks site is
+built alongside the docs site and merged into the same artifact under
+`/tasks/`.
+
+If you don't have Node installed, the markdown files in `plans/` and
+`tasks/` are still fully readable on GitHub.
