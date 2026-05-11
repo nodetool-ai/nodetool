@@ -8,6 +8,7 @@ import { StateIcon } from "@/components/state-icon";
 import { MarkdownBody } from "@/components/markdown-body";
 import { Progress } from "@/components/ui/progress";
 import { TaskRow } from "@/components/task-row";
+import { NewTaskForm } from "@/components/new-task-form";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -59,7 +60,10 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       <MarkdownBody source={plan.body} />
 
       <section className="mt-12">
-        <h2 className="text-sm font-semibold tracking-tight mb-3">Tasks</h2>
+        <div className="flex items-baseline justify-between mb-3">
+          <h2 className="text-sm font-semibold tracking-tight">Tasks</h2>
+          <NewTaskForm planId={plan.id} />
+        </div>
         {tasks.length === 0 ? (
           <p className="text-sm text-muted-foreground">No tasks yet.</p>
         ) : (

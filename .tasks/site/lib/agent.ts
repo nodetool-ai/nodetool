@@ -236,7 +236,7 @@ async function runSession(sessionId: number, taskId: string, model: string, base
     }
 
     setStatus(sessionId, "running");
-    await runAgent({ sessionId, task, model, worktreePath, abort });
+    const { summary } = await runAgent({ sessionId, task, model, worktreePath, abort });
 
     if (abort.signal.aborted) return;
 
@@ -244,7 +244,7 @@ async function runSession(sessionId: number, taskId: string, model: string, base
     await sh(["git", "push", "-u", "origin", branch], worktreePath, sessionId);
 
     setStatus(sessionId, "opening_pr");
-    const prUrl = await openPr({ sessionId, task, branch, baseBranch, worktreePath });
+    const prUrl = await openPr({ sessionId, task, branch, baseBranch, worktreePath, summary });
     if (prUrl) {
       updateSession(sessionId, { prUrl });
       emit(sessionId, "pr", { url: prUrl });
@@ -290,7 +290,17 @@ interface RunAgentArgs {
   abort: AbortController;
 }
 
-async function runAgent({ sessionId, task, model, worktreePath, abort }: RunAgentArgs) {
+interface AgentRunResult {
+  summary: string | null;
+}
+
+async function runAgent({
+  sessionId,
+  task,
+  model,
+  worktreePath,
+  abort,
+}: RunAgentArgs): Promise<AgentRunResult> {
   const prompt = buildPrompt(task);
   emit(sessionId, "prompt", { prompt });
 
@@ -318,10 +328,35 @@ async function runAgent({ sessionId, task, model, worktreePath, abort }: RunAgen
     },
   });
 
+  let summary: string | null = null;
+  let lastAssistantText: string | null = null;
+
   for await (const message of stream) {
-    if (abort.signal.aborted) return;
+    if (abort.signal.aborted) return { summary };
     emit(sessionId, "agent", message);
+
+    // Track the last assistant text block as a fallback summary.
+    const m = message as {
+      type?: string;
+      message?: { content?: Array<{ type?: string; text?: string }> };
+      result?: string;
+      is_error?: boolean;
+    };
+    if (m.type === "assistant" && m.message?.content) {
+      const text = m.message.content
+        .filter((b) => b?.type === "text" && b.text)
+        .map((b) => b.text!)
+        .join("\n")
+        .trim();
+      if (text) lastAssistantText = text;
+    }
+    // The terminal result message carries the official summary.
+    if (m.type === "result" && !m.is_error && typeof m.result === "string") {
+      summary = m.result.trim() || null;
+    }
   }
+
+  return { summary: summary ?? lastAssistantText };
 }
 
 function buildPrompt(task: NonNullable<ReturnType<typeof repo.getTask>>): string {
@@ -353,7 +388,13 @@ function buildPrompt(task: NonNullable<ReturnType<typeof repo.getTask>>): string
   lines.push("- Do NOT push and do NOT open a PR — the orchestrator does both after you finish.");
   lines.push("- Run typecheck and lint where it applies; fix any errors you introduce.");
   lines.push("- This is a non-interactive run. Make reasonable decisions; do not ask questions.");
-  lines.push("- When you are done, stop. Output a brief summary of what you did and any caveats.");
+  lines.push("");
+  lines.push("# Finishing");
+  lines.push("- Commit, then stop. Do NOT push, do NOT open the PR — the orchestrator does both.");
+  lines.push("- Your final assistant message becomes the PR description. Write a clean summary:");
+  lines.push("  - 1-3 sentences explaining what you did and why");
+  lines.push("  - bullet list of the main files / behaviours that changed if non-trivial");
+  lines.push("  - call out any caveats, follow-ups, or skipped acceptance criteria");
   return lines.join("\n");
 }
 
@@ -441,14 +482,22 @@ interface OpenPrArgs {
   branch: string;
   baseBranch: string;
   worktreePath: string;
+  summary: string | null;
 }
 
-async function openPr({ sessionId, task, branch, baseBranch, worktreePath }: OpenPrArgs): Promise<string | null> {
+async function openPr({
+  sessionId,
+  task,
+  branch,
+  baseBranch,
+  worktreePath,
+  summary,
+}: OpenPrArgs): Promise<string | null> {
   const title = `[${task.id}] ${task.title}`;
-  const summary = `Closes task **${task.id}**.\n\n${task.body.trim() || "_(no description)_"}`;
+  const body = buildPrBody(task, summary);
   try {
     const out = await sh(
-      ["gh", "pr", "create", "--title", title, "--body", summary, "--base", baseBranch, "--head", branch],
+      ["gh", "pr", "create", "--title", title, "--body", body, "--base", baseBranch, "--head", branch],
       worktreePath,
       sessionId
     );
@@ -460,6 +509,24 @@ async function openPr({ sessionId, task, branch, baseBranch, worktreePath }: Ope
     });
     return null;
   }
+}
+
+function buildPrBody(
+  task: NonNullable<ReturnType<typeof repo.getTask>>,
+  summary: string | null
+): string {
+  const sections: string[] = [];
+  if (summary) sections.push(summary);
+  else if (task.body.trim()) sections.push(task.body.trim());
+  sections.push(`---`);
+  sections.push(`Closes task **${task.id}**: ${task.title}.`);
+  if (task.criteria.length > 0) {
+    sections.push(
+      `\n### Acceptance criteria\n` +
+        task.criteria.map((c) => `- [${c.done ? "x" : " "}] ${c.text}`).join("\n")
+    );
+  }
+  return sections.join("\n\n");
 }
 
 // ──────────────────────────────────────────────────────────

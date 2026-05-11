@@ -29,14 +29,15 @@ export default async function DashboardPage() {
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             {counts.map((c) => (
-              <div
+              <Link
                 key={c.state}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-secondary/40 px-2 py-1 text-xs"
+                href={`/tasks?state=${c.state}`}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-secondary/40 px-2 py-1 text-xs hover:bg-secondary transition-colors"
               >
                 <StateIcon state={c.state} />
                 <span className="text-foreground">{STATE_LABEL[c.state]}</span>
                 <span className="text-muted-foreground tabular-nums">{c.n}</span>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

@@ -3,12 +3,14 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import * as repo from "@/lib/repo";
 import * as agent from "@/lib/agent";
-import { StateBadge } from "@/components/state-badge";
 import { StateIcon } from "@/components/state-icon";
+import { StateChanger } from "@/components/state-changer";
 import { MarkdownBody } from "@/components/markdown-body";
 import { CriterionCheckbox } from "@/components/criterion-checkbox";
 import { RunAgentButton } from "@/components/run-agent-button";
 import { SessionStatusPill } from "@/components/session-status-pill";
+import { AddNoteForm } from "@/components/add-note-form";
+import { AddCriterionForm } from "@/components/add-criterion-form";
 import { formatDate, formatDateTime, relativeDate } from "@/lib/utils";
 import { isTerminalStatus } from "@/lib/types";
 
@@ -48,7 +50,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
 
       <dl className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-y-3 gap-x-6 text-xs">
         <Meta label="State">
-          <StateBadge state={task.state} />
+          <StateChanger taskId={task.id} current={task.state} assignee={task.assignee} />
         </Meta>
         <Meta label="Assignee">{task.assignee ? `@${task.assignee}` : "—"}</Meta>
         <Meta label="Plan">
@@ -104,31 +106,40 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
         <MarkdownBody source={task.body} />
       </section>
 
-      {task.criteria.length > 0 && (
-        <section className="mt-10 space-y-3">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-sm font-semibold tracking-tight">Acceptance criteria</h2>
+      <section className="mt-10 space-y-3">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-sm font-semibold tracking-tight">Acceptance criteria</h2>
+          {task.criteria.length > 0 && (
             <span className="text-xs text-muted-foreground tabular-nums">
               {task.criteria.filter((c) => c.done).length} / {task.criteria.length} done
             </span>
-          </div>
-          <ul className="space-y-0">
-            {task.criteria.map((c) => (
-              <CriterionCheckbox
-                key={c.id}
-                taskId={task.id}
-                criterionId={c.id}
-                initialDone={c.done}
-                text={c.text}
-              />
-            ))}
-          </ul>
-        </section>
-      )}
+          )}
+        </div>
+        {task.criteria.length === 0 && (
+          <p className="text-xs text-muted-foreground italic">No criteria yet.</p>
+        )}
+        <ul className="space-y-0">
+          {task.criteria.map((c) => (
+            <CriterionCheckbox
+              key={c.id}
+              taskId={task.id}
+              criterionId={c.id}
+              initialDone={c.done}
+              text={c.text}
+            />
+          ))}
+        </ul>
+        <AddCriterionForm taskId={task.id} />
+      </section>
 
-      {task.notes.length > 0 && (
-        <section className="mt-10 space-y-3">
+      <section className="mt-10 space-y-3">
+        <div className="flex items-baseline justify-between">
           <h2 className="text-sm font-semibold tracking-tight">Notes</h2>
+          <AddNoteForm taskId={task.id} defaultAuthor={task.assignee ?? undefined} />
+        </div>
+        {task.notes.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic">No notes yet.</p>
+        ) : (
           <ol className="space-y-3">
             {task.notes.map((n) => (
               <li key={n.id} className="rounded-md border border-border/60 bg-card/30 px-4 py-3">
@@ -144,8 +155,8 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
               </li>
             ))}
           </ol>
-        </section>
-      )}
+        )}
+      </section>
 
       {sessions.length > 0 && (
         <section className="mt-10 space-y-3">

@@ -2,6 +2,7 @@ import Link from "next/link";
 import * as repo from "@/lib/repo";
 import { StateBadge } from "@/components/state-badge";
 import { Progress } from "@/components/ui/progress";
+import { NewPlanForm } from "@/components/new-plan-form";
 
 export const dynamic = "force-dynamic";
 
@@ -9,9 +10,12 @@ export default async function PlansIndexPage() {
   const plans = repo.listPlans();
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-xl font-semibold tracking-tight">Plans</h1>
-        <p className="text-sm text-muted-foreground">{plans.length} total.</p>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Plans</h1>
+          <p className="text-sm text-muted-foreground">{plans.length} total.</p>
+        </div>
+        <NewPlanForm />
       </header>
 
       {plans.length === 0 ? (
