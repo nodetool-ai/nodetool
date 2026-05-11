@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { sqliteTable, text, integer, primaryKey, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, primaryKey, index } from "drizzle-orm/sqlite-core";
 
 const NOW = sql`(unixepoch('subsec') * 1000)`;
 
@@ -104,6 +104,11 @@ export const agentSessions = sqliteTable(
     worktreePath: text("worktree_path"),
     prUrl: text("pr_url"),
     error: text("error"),
+    totalCostUsd: real("total_cost_usd"),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    sdkSessionId: text("sdk_session_id"),
+    resumeOf: integer("resume_of"),
     startedAt: integer("started_at", { mode: "timestamp_ms" }).notNull().default(NOW),
     completedAt: integer("completed_at", { mode: "timestamp_ms" }),
   },

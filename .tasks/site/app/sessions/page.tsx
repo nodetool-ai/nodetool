@@ -52,6 +52,7 @@ export default async function SessionsPage() {
                 <span>started {relativeDate(s.startedAt)}</span>
                 {s.completedAt && <span>· {formatDateTime(s.completedAt)}</span>}
                 {s.model && <span className="font-mono">{s.model}</span>}
+                {s.totalCostUsd !== null && <span>· ${s.totalCostUsd.toFixed(4)}</span>}
                 {s.error && <span className="text-state-blocked">{s.error}</span>}
               </div>
             </Link>

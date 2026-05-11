@@ -49,16 +49,21 @@ acceptance_criteria      checkable items per task
   position    INTEGER  ordering within task
 
 agent_sessions           one row per Claude Agent SDK run on a task
-  id            INTEGER  AUTOINC PK
-  task_id       TEXT     FK → tasks.id ON DELETE CASCADE
-  status        TEXT     see session status machine
-  model         TEXT     e.g. claude-sonnet-4-5
-  branch        TEXT     e.g. claude/agent-42
-  worktree_path TEXT     absolute path to the git worktree
-  pr_url        TEXT     filled in after gh pr create
-  error         TEXT     populated on failure
-  started_at    INTEGER  ms epoch
-  completed_at  INTEGER  ms epoch, nullable
+  id              INTEGER  AUTOINC PK
+  task_id         TEXT     FK → tasks.id ON DELETE CASCADE
+  status          TEXT     see session status machine
+  model           TEXT     e.g. claude-sonnet-4-5
+  branch          TEXT     e.g. claude/agent-42
+  worktree_path   TEXT     absolute path to the git worktree
+  pr_url          TEXT     filled in after gh pr create
+  error           TEXT     populated on failure
+  total_cost_usd  REAL     captured from SDK result.total_cost_usd
+  input_tokens    INTEGER  captured from SDK result.usage
+  output_tokens   INTEGER  captured from SDK result.usage
+  sdk_session_id  TEXT     SDK's own session id; lets us resume later
+  resume_of       INTEGER  prior agent_sessions.id this run continues
+  started_at      INTEGER  ms epoch
+  completed_at    INTEGER  ms epoch, nullable
 
 agent_events             append-only log per session (replay + SSE source)
   id          INTEGER  AUTOINC PK

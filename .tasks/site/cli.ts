@@ -250,8 +250,9 @@ async function cmdAgent(args: Args) {
       return 0;
     }
     for (const s of sessions) {
+      const cost = s.totalCostUsd !== null ? `$${s.totalCostUsd.toFixed(4)}` : "";
       console.log(
-        `#${pad(String(s.id), 4)} ${pad(s.status, 12)} ${pad(s.taskId, 18)} ${s.branch ?? "—"} ${s.prUrl ?? ""}`
+        `#${pad(String(s.id), 4)} ${pad(s.status, 12)} ${pad(s.taskId, 18)} ${pad(s.branch ?? "—", 28)} ${pad(cost, 10)} ${s.prUrl ?? ""}`
       );
     }
     return 0;
@@ -264,6 +265,22 @@ async function cmdAgent(args: Args) {
     console.log(`#${session.id}: ${session.status}`);
     return 0;
   }
+  if (sub === "resume") {
+    args._.shift();
+    const sid = args._.shift();
+    if (!sid) throw new Error("Usage: agent resume <session-id> [--model=...] [--no-follow]");
+    const prior = agent.getSession(parseInt(sid, 10));
+    if (!prior) throw new Error(`Session #${sid} not found`);
+    const session = agent.startSession({
+      taskId: prior.taskId,
+      model: asString(args.model) ?? prior.model ?? undefined,
+      resumeOf: prior.id,
+    });
+    console.log(`Resumed as session #${session.id} (from #${prior.id})`);
+    if (args["no-follow"]) return 0;
+    await tailSession(session.id);
+    return 0;
+  }
 
   // Default: agent <task-id> [--model=...] [--no-follow]
   const taskId = args._.shift();
@@ -274,12 +291,22 @@ async function cmdAgent(args: Args) {
   });
   console.log(`Started session #${session.id} for ${taskId}`);
   if (args["no-follow"]) return 0;
+  await tailSession(session.id);
+  return 0;
+}
 
-  // Tail events until terminal.
+// Tail a session through to a terminal status. Single code path:
+// if the session is already terminal at attach time, drain stored events
+// and return immediately. Otherwise subscribe and wait for the bus to
+// emit a terminal status event.
+async function tailSession(sessionId: number) {
+  const current = agent.getSession(sessionId);
+  if (current && isTerminalStatus(current.status)) {
+    for (const e of agent.getSessionEvents(sessionId)) printAgentEvent(e);
+    return;
+  }
   await new Promise<void>((resolveP) => {
-    let lastEventId = 0;
-    const off = agent.subscribe(session.id, (event) => {
-      lastEventId = event.id;
+    const off = agent.subscribe(sessionId, (event) => {
       printAgentEvent(event);
       if (event.type === "status") {
         const s = (event.payload as { status?: string })?.status;
@@ -289,19 +316,7 @@ async function cmdAgent(args: Args) {
         }
       }
     });
-    // Poll occasionally in case the bus closes (e.g. session already terminal).
-    const poll = setInterval(() => {
-      const s = agent.getSession(session.id);
-      if (!s) return;
-      if (isTerminalStatus(s.status)) {
-        clearInterval(poll);
-        off();
-        for (const e of agent.getSessionEvents(session.id, lastEventId)) printAgentEvent(e);
-        resolveP();
-      }
-    }, 1000);
   });
-  return 0;
 }
 
 function printAgentEvent(event: { type: string; payload: unknown; createdAt: Date }) {
@@ -369,6 +384,8 @@ Commands:
                                     events. Use --no-follow to detach.
   agent list [--json]               List all agent sessions.
   agent cancel <session-id>         Cancel an active session.
+  agent resume <session-id>         Resume a prior (terminal) session; pass
+                                    --model=... to change models on resume.
 
 States:
   Tasks: ${TASK_STATES.join(", ")}

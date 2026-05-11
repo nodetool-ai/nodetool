@@ -97,6 +97,11 @@ export interface AgentSessionFull {
   worktreePath: string | null;
   prUrl: string | null;
   error: string | null;
+  totalCostUsd: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  sdkSessionId: string | null;
+  resumeOf: number | null;
   startedAt: Date;
   completedAt: Date | null;
 }

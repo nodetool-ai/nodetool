@@ -107,6 +107,25 @@ Each session:
 Multiple sessions run in parallel. Live event stream is available at
 `GET /api/sessions/[id]/events` (SSE) and rendered on
 `/sessions/[id]`. Cancel via `POST /api/sessions/[id]/cancel`.
+Resume a failed or cancelled session with the same SDK conversation
+via `POST /api/sessions/[id]/resume` (or `npm run task -- agent resume
+<id>`).
+
+While running, the agent has access to an in-process MCP server with
+five tools scoped to its task:
+
+```
+mcp__nodetool_tasks__add_note(body)
+mcp__nodetool_tasks__check_criterion(criterion)     # match by id or text substring
+mcp__nodetool_tasks__uncheck_criterion(criterion)
+mcp__nodetool_tasks__add_criterion(text)
+mcp__nodetool_tasks__list_criteria()
+```
+
+Each tool call goes straight to the same `lib/repo.ts` the web UI
+uses, so progress is visible live. The orchestrator also captures
+the SDK's `total_cost_usd` and token counts on every run and surfaces
+them on the session detail page.
 
 Requires:
 - `ANTHROPIC_API_KEY` in env

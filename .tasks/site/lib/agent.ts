@@ -104,6 +104,7 @@ export interface StartSessionInput {
   taskId: string;
   model?: string;
   baseBranch?: string;
+  resumeOf?: number;
 }
 
 export function startSession(input: StartSessionInput): AgentSessionFull {
@@ -117,20 +118,42 @@ export function startSession(input: StartSessionInput): AgentSessionFull {
     );
   }
 
+  let sdkSessionId: string | null = null;
+  if (input.resumeOf) {
+    const prior = getSession(input.resumeOf);
+    if (!prior) throw new repo.RepoError(`Prior session #${input.resumeOf} not found`, 404);
+    if (prior.taskId !== input.taskId) {
+      throw new repo.RepoError(`Session #${input.resumeOf} belongs to a different task`, 400);
+    }
+    if (!prior.sdkSessionId) {
+      throw new repo.RepoError(
+        `Session #${input.resumeOf} has no SDK session id — nothing to resume`,
+        400
+      );
+    }
+    sdkSessionId = prior.sdkSessionId;
+  }
+
   const inserted = db
     .insert(agentSessions)
     .values({
       taskId: input.taskId,
       status: "pending",
       model: input.model ?? DEFAULT_MODEL,
+      resumeOf: input.resumeOf ?? null,
       startedAt: new Date(),
     })
     .returning()
     .all();
   const session = hydrateSession(inserted[0]);
 
-  // Don't await; background work continues independently.
-  void runSession(session.id, input.taskId, session.model ?? DEFAULT_MODEL, input.baseBranch ?? "main");
+  void runSession(
+    session.id,
+    input.taskId,
+    session.model ?? DEFAULT_MODEL,
+    input.baseBranch ?? "main",
+    sdkSessionId ?? undefined
+  );
 
   return session;
 }
@@ -156,21 +179,26 @@ export function getSession(id: number): AgentSessionFull | null {
   return row ? hydrateSession(row) : null;
 }
 
-export function getSessionEvents(sessionId: number, sinceId = 0): AgentEventRow[] {
-  return db
+export function getSessionEvents(
+  sessionId: number,
+  sinceId = 0,
+  limit?: number
+): AgentEventRow[] {
+  const all = db
     .select()
     .from(agentEvents)
     .where(eq(agentEvents.sessionId, sessionId))
     .orderBy(asc(agentEvents.id))
     .all()
-    .filter((e) => e.id > sinceId)
-    .map((e) => ({
-      id: e.id,
-      sessionId: e.sessionId,
-      type: e.type,
-      payload: safeJson(e.payload),
-      createdAt: e.createdAt,
-    }));
+    .filter((e) => e.id > sinceId);
+  const slice = limit && all.length > limit ? all.slice(all.length - limit) : all;
+  return slice.map((e) => ({
+    id: e.id,
+    sessionId: e.sessionId,
+    type: e.type,
+    payload: safeJson(e.payload),
+    createdAt: e.createdAt,
+  }));
 }
 
 export function subscribe(sessionId: number, listener: (event: AgentEventRow) => void): () => void {
@@ -203,7 +231,13 @@ export function cancelSession(sessionId: number): AgentSessionFull {
 // Background worker
 // ──────────────────────────────────────────────────────────
 
-async function runSession(sessionId: number, taskId: string, model: string, baseBranch: string) {
+async function runSession(
+  sessionId: number,
+  taskId: string,
+  model: string,
+  baseBranch: string,
+  resumeSdkSessionId?: string
+) {
   const abort = new AbortController();
   const bus = new EventEmitter();
   runners.set(sessionId, { abort, bus });
@@ -222,6 +256,7 @@ async function runSession(sessionId: number, taskId: string, model: string, base
     await sh(["git", "worktree", "add", "-b", branch, worktreePath, baseBranch], REPO_ROOT, sessionId);
     updateSession(sessionId, { branch, worktreePath });
     emit(sessionId, "worktree", { branch, worktreePath });
+    if (resumeSdkSessionId) emit(sessionId, "resume", { sdkSessionId: resumeSdkSessionId });
 
     if (task.state === "todo" || task.state === "blocked") {
       try {
@@ -236,7 +271,14 @@ async function runSession(sessionId: number, taskId: string, model: string, base
     }
 
     setStatus(sessionId, "running");
-    const { summary } = await runAgent({ sessionId, task, model, worktreePath, abort });
+    const { summary } = await runAgent({
+      sessionId,
+      task,
+      model,
+      worktreePath,
+      abort,
+      resumeSdkSessionId,
+    });
 
     if (abort.signal.aborted) return;
 
@@ -288,6 +330,7 @@ interface RunAgentArgs {
   model: string;
   worktreePath: string;
   abort: AbortController;
+  resumeSdkSessionId?: string;
 }
 
 interface AgentRunResult {
@@ -300,19 +343,23 @@ async function runAgent({
   model,
   worktreePath,
   abort,
+  resumeSdkSessionId,
 }: RunAgentArgs): Promise<AgentRunResult> {
   const prompt = buildPrompt(task);
   emit(sessionId, "prompt", { prompt });
 
   // Lazy import — keeps the SDK out of the bundle when unused.
-  const { query } = (await import("@anthropic-ai/claude-agent-sdk")) as {
+  const sdk = (await import("@anthropic-ai/claude-agent-sdk")) as {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     query: (args: { prompt: string; options?: any }) => AsyncIterable<unknown>;
   };
+  // Lazy import the MCP server too — it pulls in zod via the SDK.
+  const { createTaskMcpServer } = await import("./agent-mcp");
 
   const env = sanitizeEnv(process.env);
+  const mcpServer = createTaskMcpServer(task.id, "claude-agent");
 
-  const stream = query({
+  const stream = sdk.query({
     prompt,
     options: {
       cwd: worktreePath,
@@ -325,6 +372,8 @@ async function runAgent({
         type: "preset",
         preset: "claude_code",
       },
+      mcpServers: { nodetool_tasks: mcpServer },
+      resume: resumeSdkSessionId,
     },
   });
 
@@ -335,13 +384,23 @@ async function runAgent({
     if (abort.signal.aborted) return { summary };
     emit(sessionId, "agent", message);
 
-    // Track the last assistant text block as a fallback summary.
     const m = message as {
       type?: string;
+      subtype?: string;
+      session_id?: string;
       message?: { content?: Array<{ type?: string; text?: string }> };
       result?: string;
       is_error?: boolean;
+      total_cost_usd?: number;
+      usage?: { input_tokens?: number; output_tokens?: number };
     };
+
+    // Persist the SDK session id from the system init message so future
+    // sessions can resume from it.
+    if (m.type === "system" && m.subtype === "init" && m.session_id) {
+      updateSession(sessionId, { sdkSessionId: m.session_id });
+    }
+
     if (m.type === "assistant" && m.message?.content) {
       const text = m.message.content
         .filter((b) => b?.type === "text" && b.text)
@@ -350,9 +409,15 @@ async function runAgent({
         .trim();
       if (text) lastAssistantText = text;
     }
-    // The terminal result message carries the official summary.
-    if (m.type === "result" && !m.is_error && typeof m.result === "string") {
-      summary = m.result.trim() || null;
+
+    if (m.type === "result") {
+      if (!m.is_error && typeof m.result === "string") summary = m.result.trim() || null;
+      // Record cost + tokens regardless of success.
+      updateSession(sessionId, {
+        totalCostUsd: m.total_cost_usd ?? null,
+        inputTokens: m.usage?.input_tokens ?? null,
+        outputTokens: m.usage?.output_tokens ?? null,
+      });
     }
   }
 
@@ -388,6 +453,14 @@ function buildPrompt(task: NonNullable<ReturnType<typeof repo.getTask>>): string
   lines.push("- Do NOT push and do NOT open a PR — the orchestrator does both after you finish.");
   lines.push("- Run typecheck and lint where it applies; fix any errors you introduce.");
   lines.push("- This is a non-interactive run. Make reasonable decisions; do not ask questions.");
+  lines.push("");
+  lines.push("# Task-system MCP tools");
+  lines.push("- mcp__nodetool_tasks__add_note(body): log a decision so the next person can see why.");
+  lines.push("- mcp__nodetool_tasks__check_criterion(criterion): mark an acceptance criterion done.");
+  lines.push("- mcp__nodetool_tasks__uncheck_criterion(criterion): undo if you check the wrong one.");
+  lines.push("- mcp__nodetool_tasks__add_criterion(text): add a criterion you discovered along the way.");
+  lines.push("- mcp__nodetool_tasks__list_criteria(): see the current state of criteria.");
+  lines.push("Use these as you work — don't batch them until the end. Match criteria by substring.");
   lines.push("");
   lines.push("# Finishing");
   lines.push("- Commit, then stop. Do NOT push, do NOT open the PR — the orchestrator does both.");
@@ -543,6 +616,11 @@ function hydrateSession(row: typeof agentSessions.$inferSelect): AgentSessionFul
     worktreePath: row.worktreePath,
     prUrl: row.prUrl,
     error: row.error,
+    totalCostUsd: row.totalCostUsd,
+    inputTokens: row.inputTokens,
+    outputTokens: row.outputTokens,
+    sdkSessionId: row.sdkSessionId,
+    resumeOf: row.resumeOf,
     startedAt: row.startedAt,
     completedAt: row.completedAt,
   };

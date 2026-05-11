@@ -70,4 +70,5 @@ export const updateCriterionSchema = z.object({
 export const startSessionSchema = z.object({
   model: z.string().optional(),
   baseBranch: z.string().optional(),
+  resumeOf: z.number().int().positive().optional(),
 });

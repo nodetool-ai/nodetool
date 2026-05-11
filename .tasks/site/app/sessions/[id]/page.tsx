@@ -6,8 +6,11 @@ import * as repo from "@/lib/repo";
 import { SessionStatusPill } from "@/components/session-status-pill";
 import { SessionLog } from "@/components/session-log";
 import { CancelSessionButton } from "@/components/cancel-session-button";
+import { ResumeSessionButton } from "@/components/resume-session-button";
 import { formatDateTime, relativeDate } from "@/lib/utils";
 import { isTerminalStatus } from "@/lib/types";
+
+const INITIAL_EVENT_LIMIT = 100;
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +24,10 @@ export default async function SessionPage({
   const session = agent.getSession(sessionId);
   if (!session) notFound();
   const task = repo.getTask(session.taskId);
-  const events = agent.getSessionEvents(sessionId);
+  const events = agent.getSessionEvents(sessionId, 0, INITIAL_EVENT_LIMIT);
   const live = agent.isLive(sessionId);
+  const terminal = isTerminalStatus(session.status);
+  const resumable = terminal && session.status !== "completed" && !!session.sdkSessionId;
 
   return (
     <article className="mx-auto max-w-3xl space-y-6">
@@ -60,7 +65,8 @@ export default async function SessionPage({
               PR ↗
             </a>
           )}
-          {!isTerminalStatus(session.status) && <CancelSessionButton sessionId={session.id} />}
+          {!terminal && <CancelSessionButton sessionId={session.id} />}
+          {resumable && <ResumeSessionButton sessionId={session.id} />}
         </div>
       </header>
 
@@ -79,6 +85,31 @@ export default async function SessionPage({
         <Meta label="Completed">
           {session.completedAt ? formatDateTime(session.completedAt) : "—"}
         </Meta>
+        <Meta label="Cost">
+          {session.totalCostUsd !== null ? `$${session.totalCostUsd.toFixed(4)}` : "—"}
+        </Meta>
+        <Meta label="Tokens">
+          {session.inputTokens !== null || session.outputTokens !== null
+            ? `${(session.inputTokens ?? 0).toLocaleString()} in · ${(session.outputTokens ?? 0).toLocaleString()} out`
+            : "—"}
+        </Meta>
+        {session.resumeOf !== null && (
+          <Meta label="Resumed from">
+            <Link
+              href={`/sessions/${session.resumeOf}`}
+              className="font-mono text-foreground hover:underline"
+            >
+              #{session.resumeOf}
+            </Link>
+          </Meta>
+        )}
+        {session.sdkSessionId && (
+          <Meta label="SDK session">
+            <code className="font-mono text-[11px] text-muted-foreground">
+              {session.sdkSessionId}
+            </code>
+          </Meta>
+        )}
         {session.worktreePath && (
           <Meta label="Worktree" className="col-span-2 md:col-span-4">
             <code className="font-mono text-[11px] text-foreground/80">

@@ -77,8 +77,16 @@ REST: `POST /api/tasks/:id/sessions`. SSE log:
 task detail page → live log at `/sessions/:id`.
 
 A task can only have one active session at a time — start another
-after cancelling or letting the current one finish. Requires
-`ANTHROPIC_API_KEY` and an authed `gh` CLI.
+after cancelling or letting the current one finish. To pick up
+where a failed run left off, use the Resume button (or `agent
+resume <id>`): the new session passes the prior SDK session id to
+`query()` so the model has its prior conversation in context.
+
+Requires `ANTHROPIC_API_KEY` and an authed `gh` CLI.
+
+While running, the agent can call back into the task system via
+five MCP tools — see [README.md](README.md) for the list. Use them
+as you work; don't batch.
 
 ## Don'ts
 
