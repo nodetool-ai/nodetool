@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { LayoutDashboard, ListTodo, Target } from "lucide-react";
+import { LayoutDashboard, ListTodo, Target, Sparkles } from "lucide-react";
 
 const nav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/tasks/", label: "Tasks", icon: ListTodo },
-  { href: "/plans/", label: "Plans", icon: Target },
+  { href: "/tasks", label: "Tasks", icon: ListTodo },
+  { href: "/plans", label: "Plans", icon: Target },
+  { href: "/sessions", label: "Sessions", icon: Sparkles },
 ];
 
 export function SiteHeader() {

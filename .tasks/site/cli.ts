@@ -3,7 +3,8 @@
 // Imports repo functions directly — no HTTP server needed.
 
 import * as repo from "./lib/repo";
-import { STATE_LABEL, TASK_STATES, type TaskState } from "./lib/types";
+import * as agent from "./lib/agent";
+import { STATE_LABEL, TASK_STATES, isTerminalStatus, type TaskState } from "./lib/types";
 
 type Args = { _: string[]; [k: string]: unknown };
 
@@ -235,6 +236,114 @@ function cmdPlanTransition(args: Args) {
   return 0;
 }
 
+async function cmdAgent(args: Args) {
+  const sub = args._[0];
+  if (sub === "list") {
+    args._.shift();
+    const sessions = agent.listSessions();
+    if (args.json) {
+      console.log(JSON.stringify(sessions, null, 2));
+      return 0;
+    }
+    if (sessions.length === 0) {
+      console.log("(no sessions)");
+      return 0;
+    }
+    for (const s of sessions) {
+      console.log(
+        `#${pad(String(s.id), 4)} ${pad(s.status, 12)} ${pad(s.taskId, 18)} ${s.branch ?? "—"} ${s.prUrl ?? ""}`
+      );
+    }
+    return 0;
+  }
+  if (sub === "cancel") {
+    args._.shift();
+    const sid = args._.shift();
+    if (!sid) throw new Error("Usage: agent cancel <session-id>");
+    const session = agent.cancelSession(parseInt(sid, 10));
+    console.log(`#${session.id}: ${session.status}`);
+    return 0;
+  }
+
+  // Default: agent <task-id> [--model=...] [--no-follow]
+  const taskId = args._.shift();
+  if (!taskId) throw new Error("Usage: agent <task-id> [--model=...] [--no-follow]");
+  const session = agent.startSession({
+    taskId,
+    model: asString(args.model),
+  });
+  console.log(`Started session #${session.id} for ${taskId}`);
+  if (args["no-follow"]) return 0;
+
+  // Tail events until terminal.
+  await new Promise<void>((resolveP) => {
+    let lastEventId = 0;
+    const off = agent.subscribe(session.id, (event) => {
+      lastEventId = event.id;
+      printAgentEvent(event);
+      if (event.type === "status") {
+        const s = (event.payload as { status?: string })?.status;
+        if (s && ["completed", "failed", "cancelled"].includes(s)) {
+          off();
+          resolveP();
+        }
+      }
+    });
+    // Poll occasionally in case the bus closes (e.g. session already terminal).
+    const poll = setInterval(() => {
+      const s = agent.getSession(session.id);
+      if (!s) return;
+      if (isTerminalStatus(s.status)) {
+        clearInterval(poll);
+        off();
+        for (const e of agent.getSessionEvents(session.id, lastEventId)) printAgentEvent(e);
+        resolveP();
+      }
+    }, 1000);
+  });
+  return 0;
+}
+
+function printAgentEvent(event: { type: string; payload: unknown; createdAt: Date }) {
+  const ts = event.createdAt.toISOString().slice(11, 19);
+  const p = event.payload as Record<string, unknown> | undefined;
+  switch (event.type) {
+    case "status":
+      console.log(`[${ts}] ▸ ${String(p?.status)}${p?.error ? ` — ${p.error}` : ""}`);
+      break;
+    case "shell":
+      console.log(`[${ts}] $ ${String(p?.cmd)}`);
+      break;
+    case "shell_out": {
+      const s = String(p?.data ?? "").trimEnd();
+      if (s) console.log(s.split("\n").map((l) => `         ${l}`).join("\n"));
+      break;
+    }
+    case "agent": {
+      const m = p as { type?: string; message?: { content?: unknown[] } };
+      if (m?.type === "assistant") {
+        const text = (m.message?.content ?? [])
+          .filter((b: any) => b?.type === "text")
+          .map((b: any) => b.text)
+          .join("\n")
+          .trim();
+        if (text) console.log(`[${ts}] ◆ ${text}`);
+        const tools = (m.message?.content ?? []).filter((b: any) => b?.type === "tool_use");
+        for (const t of tools as any[]) console.log(`[${ts}]   • tool: ${t.name}`);
+      } else if (m?.type === "result") {
+        console.log(`[${ts}] ✓ result`);
+      }
+      break;
+    }
+    case "pr":
+      console.log(`[${ts}] PR: ${String(p?.url)}`);
+      break;
+    case "warning":
+      console.warn(`[${ts}] ! ${String(p?.message)}`);
+      break;
+  }
+}
+
 function help() {
   console.log(`Usage: npm run task -- <command> [args]
 
@@ -256,6 +365,11 @@ Commands:
   crit undone <criterion-id>        Mark criterion undone.
   crit rm <criterion-id>            Remove criterion.
 
+  agent <T-...> [--model=...]       Start an agent session for a task and tail
+                                    events. Use --no-follow to detach.
+  agent list [--json]               List all agent sessions.
+  agent cancel <session-id>         Cancel an active session.
+
 States:
   Tasks: ${TASK_STATES.join(", ")}
 
@@ -267,7 +381,7 @@ DB: .tasks/data.db (override with NODETOOL_TASKS_DB env var).
 // Entry
 // ──────────────────────────────────────────────────────────
 
-function main() {
+async function main() {
   const args = parseArgs(process.argv.slice(2));
   const cmd = args._.shift();
   try {
@@ -301,6 +415,9 @@ function main() {
       case "crit":
         code = cmdCrit(args);
         break;
+      case "agent":
+        code = await cmdAgent(args);
+        break;
       case "help":
       case undefined:
         help();
@@ -316,4 +433,7 @@ function main() {
   }
 }
 
-main();
+main().catch((err) => {
+  console.error("tasks:", err instanceof Error ? err.message : String(err));
+  process.exit(1);
+});

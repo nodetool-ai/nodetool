@@ -75,3 +75,40 @@ export interface PlanProgress {
   pct: number;
   open: number;
 }
+
+export const SESSION_STATUSES = [
+  "pending",
+  "preparing",
+  "running",
+  "pushing",
+  "opening_pr",
+  "completed",
+  "failed",
+  "cancelled",
+] as const;
+export type SessionStatus = (typeof SESSION_STATUSES)[number];
+
+export interface AgentSessionFull {
+  id: number;
+  taskId: string;
+  status: SessionStatus;
+  model: string | null;
+  branch: string | null;
+  worktreePath: string | null;
+  prUrl: string | null;
+  error: string | null;
+  startedAt: Date;
+  completedAt: Date | null;
+}
+
+export interface AgentEventRow {
+  id: number;
+  sessionId: number;
+  type: string;
+  payload: unknown;
+  createdAt: Date;
+}
+
+export function isTerminalStatus(s: SessionStatus): boolean {
+  return s === "completed" || s === "failed" || s === "cancelled";
+}

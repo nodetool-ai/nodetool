@@ -66,3 +66,8 @@ export const updateCriterionSchema = z.object({
   done: z.boolean().optional(),
   text: z.string().min(1).max(500).optional(),
 });
+
+export const startSessionSchema = z.object({
+  model: z.string().optional(),
+  baseBranch: z.string().optional(),
+});

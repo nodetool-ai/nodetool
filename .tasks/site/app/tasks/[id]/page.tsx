@@ -2,11 +2,15 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import * as repo from "@/lib/repo";
+import * as agent from "@/lib/agent";
 import { StateBadge } from "@/components/state-badge";
 import { StateIcon } from "@/components/state-icon";
 import { MarkdownBody } from "@/components/markdown-body";
 import { CriterionCheckbox } from "@/components/criterion-checkbox";
+import { RunAgentButton } from "@/components/run-agent-button";
+import { SessionStatusPill } from "@/components/session-status-pill";
 import { formatDate, formatDateTime, relativeDate } from "@/lib/utils";
+import { isTerminalStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +23,8 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
   const deps = task.dependencies
     .map((depId) => repo.getTask(depId))
     .filter((t): t is NonNullable<typeof t> => Boolean(t));
+  const sessions = agent.listSessions().filter((s) => s.taskId === task.id);
+  const activeSession = sessions.find((s) => !isTerminalStatus(s.status));
 
   return (
     <article className="mx-auto max-w-3xl">
@@ -29,11 +35,16 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
         <ArrowLeft className="size-3.5" /> Tasks
       </Link>
 
-      <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
-        <StateIcon state={task.state} className="size-4" />
-        <span className="tabular-nums">{task.id}</span>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+            <StateIcon state={task.state} className="size-4" />
+            <span className="tabular-nums">{task.id}</span>
+          </div>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight leading-tight">{task.title}</h1>
+        </div>
+        <RunAgentButton taskId={task.id} hasActive={Boolean(activeSession)} />
       </div>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight leading-tight">{task.title}</h1>
 
       <dl className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-y-3 gap-x-6 text-xs">
         <Meta label="State">
@@ -133,6 +144,35 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
               </li>
             ))}
           </ol>
+        </section>
+      )}
+
+      {sessions.length > 0 && (
+        <section className="mt-10 space-y-3">
+          <h2 className="text-sm font-semibold tracking-tight">Agent sessions</h2>
+          <div className="rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60 overflow-hidden">
+            {sessions.map((s) => (
+              <Link
+                key={s.id}
+                href={`/sessions/${s.id}`}
+                className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/40 transition-colors"
+              >
+                <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                  #{s.id}
+                </span>
+                <SessionStatusPill status={s.status} />
+                {s.branch && (
+                  <code className="font-mono text-[11px] text-muted-foreground">{s.branch}</code>
+                )}
+                {s.prUrl && (
+                  <span className="text-[11px] text-muted-foreground">PR ↗</span>
+                )}
+                <span className="ml-auto text-[11px] text-muted-foreground tabular-nums">
+                  {relativeDate(s.startedAt)}
+                </span>
+              </Link>
+            ))}
+          </div>
         </section>
       )}
     </article>

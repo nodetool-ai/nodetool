@@ -69,9 +69,41 @@ PATCH  /api/tasks/:id/criteria/:cid  # { done?, text? }
 DELETE /api/tasks/:id/criteria/:cid
 ```
 
+## Agent sessions
+
+Trigger an autonomous Claude Agent SDK run on any task — from the web
+("Run agent" button on the task detail page), from REST, or from the CLI:
+
+```bash
+npm run task -- agent T-20260511-0001 [--model=claude-sonnet-4-5]
+npm run task -- agent list
+npm run task -- agent cancel <session-id>
+```
+
+Each session:
+
+1. Creates a fresh git worktree at `.tasks/.worktrees/<sessionId>/` on a
+   new branch `claude/agent-<sessionId>`
+2. Transitions the task to `in_progress` (assignee `claude-agent`)
+3. Runs the SDK with `permissionMode: "bypassPermissions"`, the task
+   body and acceptance criteria as the prompt, and the worktree as cwd
+4. Pushes the branch and opens a PR via `gh pr create`
+5. Transitions the task to `review` (or `blocked` on failure) and adds
+   a note linking the PR
+
+Multiple sessions run in parallel. Live event stream is available at
+`GET /api/sessions/[id]/events` (SSE) and rendered on
+`/sessions/[id]`. Cancel via `POST /api/sessions/[id]/cancel`.
+
+Requires:
+- `ANTHROPIC_API_KEY` in env
+- `gh` CLI installed and authenticated for PR creation
+- A `main` branch on `origin` (override per-session via `baseBranch`)
+
 ## Tech
 
 - **Next.js 15** (App Router, dynamic SSR)
 - **Drizzle ORM** + **better-sqlite3** (WAL mode, FK enforcement)
 - **Zod** request validation
+- **Claude Agent SDK** for autonomous task execution
 - **shadcn-style** UI (no Radix dep) + Tailwind v3 + Linear-style status glyphs
