@@ -18,8 +18,7 @@ import type { Theme } from "@mui/material/styles";
 import Menu from "@mui/material/Menu";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 
 import type {
   TrackEffect,
@@ -78,8 +77,14 @@ const DEVICE_WIDTHS: Record<TrackEffect["type"], number> = {
   compressor: 380
 };
 
-const effectCardStyles = (theme: Theme, width: number) =>
+const effectCardStyles = (
+  theme: Theme,
+  width: number,
+  dragOver: "left" | "right" | null,
+  dragging: boolean
+) =>
   css({
+    position: "relative",
     border: `1px solid ${theme.vars.palette.divider}`,
     borderRadius: 4,
     padding: theme.spacing(0.75, 1),
@@ -92,7 +97,34 @@ const effectCardStyles = (theme: Theme, width: number) =>
     flexDirection: "column",
     background: theme.vars.palette.background.paper,
     overflowY: "auto",
-    overflowX: "hidden"
+    overflowX: "hidden",
+    opacity: dragging ? 0.4 : 1,
+    transition: "opacity 0.12s",
+    "&::before": dragOver
+      ? {
+          content: '""',
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          [dragOver === "left" ? "left" : "right"]: -5,
+          width: 3,
+          borderRadius: 2,
+          background: theme.vars.palette.primary.main,
+          boxShadow: `0 0 8px ${theme.vars.palette.primary.main}`,
+          pointerEvents: "none"
+        }
+      : undefined
+  });
+
+const dragHandleStyles = (theme: Theme) =>
+  css({
+    cursor: "grab",
+    color: theme.vars.palette.text.disabled,
+    display: "flex",
+    alignItems: "center",
+    "&:active": { cursor: "grabbing" },
+    "&:hover": { color: theme.vars.palette.text.secondary },
+    "& svg": { fontSize: 16 }
   });
 
 const effectHeaderStyles = css({
@@ -1260,15 +1292,19 @@ interface EffectCardProps {
   trackId: string;
   effect: TrackEffect;
   index: number;
-  total: number;
 }
 
+const DRAG_MIME = "application/x-nodetool-effect-index";
+
 const EffectCard: React.FC<EffectCardProps> = memo(
-  ({ trackId, effect, index, total }) => {
+  ({ trackId, effect, index }) => {
     const theme = useTheme();
     const updateTrackEffect = useTimelineStore((s) => s.updateTrackEffect);
     const removeTrackEffect = useTimelineStore((s) => s.removeTrackEffect);
     const moveTrackEffect = useTimelineStore((s) => s.moveTrackEffect);
+
+    const [dragOver, setDragOver] = useState<"left" | "right" | null>(null);
+    const [dragging, setDragging] = useState(false);
 
     const handleEnabledChange = useCallback(
       (enabled: boolean) => {
@@ -1281,14 +1317,6 @@ const EffectCard: React.FC<EffectCardProps> = memo(
       removeTrackEffect(trackId, effect.id);
     }, [trackId, effect.id, removeTrackEffect]);
 
-    const handleMoveUp = useCallback(() => {
-      moveTrackEffect(trackId, index, index - 1);
-    }, [trackId, index, moveTrackEffect]);
-
-    const handleMoveDown = useCallback(() => {
-      moveTrackEffect(trackId, index, index + 1);
-    }, [trackId, index, moveTrackEffect]);
-
     // The store's `updateTrackEffect` patch type is `Partial<TrackEffect>` —
     // we narrow per-type below so the editor receives the right `Partial<E>`.
     const patch = useCallback(
@@ -1296,15 +1324,83 @@ const EffectCard: React.FC<EffectCardProps> = memo(
       [trackId, effect.id, updateTrackEffect]
     );
 
+    const handleDragStart = useCallback(
+      (e: React.DragEvent<HTMLDivElement>) => {
+        e.dataTransfer.setData(DRAG_MIME, String(index));
+        e.dataTransfer.effectAllowed = "move";
+        setDragging(true);
+      },
+      [index]
+    );
+
+    const handleDragEnd = useCallback(() => {
+      setDragging(false);
+      setDragOver(null);
+    }, []);
+
+    const handleDragOver = useCallback(
+      (e: React.DragEvent<HTMLDivElement>) => {
+        if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        const rect = e.currentTarget.getBoundingClientRect();
+        const isLeft = e.clientX - rect.left < rect.width / 2;
+        setDragOver(isLeft ? "left" : "right");
+      },
+      []
+    );
+
+    const handleDragLeave = useCallback(() => {
+      setDragOver(null);
+    }, []);
+
+    const handleDrop = useCallback(
+      (e: React.DragEvent<HTMLDivElement>) => {
+        const raw = e.dataTransfer.getData(DRAG_MIME);
+        setDragOver(null);
+        if (!raw) return;
+        const from = parseInt(raw, 10);
+        if (Number.isNaN(from) || from === index) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const dropLeft = e.clientX - rect.left < rect.width / 2;
+        let to = dropLeft ? index : index + 1;
+        // Adjust target when the dragged item came from before this one.
+        if (from < to) to -= 1;
+        if (to === from) return;
+        moveTrackEffect(trackId, from, to);
+      },
+      [index, moveTrackEffect, trackId]
+    );
+
     const disabled = !effect.enabled;
 
     return (
       <div
-        css={effectCardStyles(theme, DEVICE_WIDTHS[effect.type])}
+        css={effectCardStyles(
+          theme,
+          DEVICE_WIDTHS[effect.type],
+          dragOver,
+          dragging
+        )}
         data-testid={`effect-${effect.id}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         <FlexRow css={effectHeaderStyles} sx={{ mb: 0.5 }}>
           <FlexRow gap={0.5} align="center">
+            <Tooltip title="Drag to reorder">
+              <div
+                css={dragHandleStyles(theme)}
+                draggable
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                aria-label="Drag to reorder effect"
+                role="button"
+              >
+                <DragIndicatorIcon />
+              </div>
+            </Tooltip>
             <LabeledSwitch
               label={EFFECT_LABELS[effect.type]}
               checked={effect.enabled}
@@ -1313,26 +1409,6 @@ const EffectCard: React.FC<EffectCardProps> = memo(
             />
           </FlexRow>
           <FlexRow gap={0.25}>
-            <Tooltip title="Move up">
-              <button
-                css={iconButtonStyles(theme, index === 0)}
-                onClick={handleMoveUp}
-                disabled={index === 0}
-                aria-label="Move effect up"
-              >
-                <ArrowUpwardIcon />
-              </button>
-            </Tooltip>
-            <Tooltip title="Move down">
-              <button
-                css={iconButtonStyles(theme, index === total - 1)}
-                onClick={handleMoveDown}
-                disabled={index === total - 1}
-                aria-label="Move effect down"
-              >
-                <ArrowDownwardIcon />
-              </button>
-            </Tooltip>
             <Tooltip title="Remove effect">
               <button
                 css={iconButtonStyles(theme)}
@@ -1453,7 +1529,6 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
                 trackId={trackId}
                 effect={effect}
                 index={index}
-                total={effects.length}
               />
             ))}
           </div>
