@@ -1,14 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import {
-  getAllPlans,
-  getPlanBySlug,
-  getTasksByPlan,
-  planProgress,
-  STATE_LABEL,
-  TASK_BOARD_STATES,
-} from "@/lib/tasks";
+import * as repo from "@/lib/repo";
+import { STATE_LABEL, TASK_BOARD_STATES, type TaskState } from "@/lib/types";
 import { StateBadge } from "@/components/state-badge";
 import { StateIcon } from "@/components/state-icon";
 import { MarkdownBody } from "@/components/markdown-body";
@@ -16,24 +10,22 @@ import { Progress } from "@/components/ui/progress";
 import { TaskRow } from "@/components/task-row";
 import { formatDate } from "@/lib/utils";
 
-export const dynamicParams = false;
+export const dynamic = "force-dynamic";
 
-export function generateStaticParams() {
-  return getAllPlans().map((p) => ({ slug: p.slug }));
-}
-
-export default async function PlanPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const plan = getPlanBySlug(slug);
+export default async function PlanPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const plan = repo.getPlan(id);
   if (!plan) notFound();
 
-  const tasks = getTasksByPlan(plan.id);
-  const { done, total, pct } = planProgress(plan.id);
+  const tasks = repo.listTasks({ planId: plan.id });
+  const { done, total, pct } = repo.planProgress(plan.id);
+
+  const groupOrder: TaskState[] = [...TASK_BOARD_STATES, "cancelled"];
 
   return (
     <article className="mx-auto max-w-3xl">
       <Link
-        href="/plans/"
+        href="/plans"
         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-6"
       >
         <ArrowLeft className="size-3.5" /> Plans
@@ -46,17 +38,17 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <StateBadge state={plan.state} />
-        {plan.owner && (
-          <span className="text-xs text-muted-foreground">@{plan.owner}</span>
-        )}
-        <span className="text-xs text-muted-foreground">Created {formatDate(plan.created)}</span>
+        {plan.owner && <span className="text-xs text-muted-foreground">@{plan.owner}</span>}
+        <span className="text-xs text-muted-foreground">Created {formatDate(plan.createdAt)}</span>
       </div>
 
       {total > 0 && (
         <div className="mt-5 rounded-lg border border-border/60 bg-card/40 px-4 py-3">
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">Progress</span>
-            <span className="tabular-nums">{done} / {total} done &middot; {pct}%</span>
+            <span className="tabular-nums">
+              {done} / {total} done · {pct}%
+            </span>
           </div>
           <Progress value={pct} className="mt-2 h-1" />
         </div>
@@ -64,7 +56,7 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
 
       <div className="my-8 h-px bg-border/60" />
 
-      <MarkdownBody html={plan.bodyHtml} />
+      <MarkdownBody source={plan.body} />
 
       <section className="mt-12">
         <h2 className="text-sm font-semibold tracking-tight mb-3">Tasks</h2>
@@ -72,7 +64,7 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
           <p className="text-sm text-muted-foreground">No tasks yet.</p>
         ) : (
           <div className="space-y-6">
-            {TASK_BOARD_STATES.concat(["cancelled"] as const).map((state) => {
+            {groupOrder.map((state) => {
               const group = tasks.filter((t) => t.state === state);
               if (group.length === 0) return null;
               return (

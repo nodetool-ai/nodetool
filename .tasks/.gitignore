@@ -1,5 +1,3 @@
-_site/
-.jekyll-cache/
-.sass-cache/
-vendor/
-Gemfile.lock
+data.db
+data.db-shm
+data.db-wal

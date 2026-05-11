@@ -1,4 +1,4 @@
-import { STATE_LABEL, type PlanState, type TaskState } from "@/lib/tasks";
+import { STATE_LABEL, type PlanState, type TaskState } from "@/lib/types";
 import { StateIcon } from "./state-icon";
 import { cn } from "@/lib/utils";
 

@@ -1,16 +1,14 @@
-name: Validate tasks
+name: Validate tasks site
 
 on:
   pull_request:
     paths:
       - ".tasks/**"
-      - "scripts/tasks.mjs"
       - ".github/workflows/tasks-validate.yml"
   push:
     branches: [main]
     paths:
       - ".tasks/**"
-      - "scripts/tasks.mjs"
 
 jobs:
   validate:
@@ -22,14 +20,12 @@ jobs:
           node-version-file: ".nvmrc"
           cache: npm
           cache-dependency-path: .tasks/site/package-lock.json
-      - name: Validate plans and tasks
-        run: node scripts/tasks.mjs validate
-      - name: Install site deps
+      - name: Install
         run: npm ci
         working-directory: .tasks/site
-      - name: Typecheck site
+      - name: Typecheck
         run: npm run typecheck
         working-directory: .tasks/site
-      - name: Build site
+      - name: Build
         run: npm run build
         working-directory: .tasks/site

@@ -1,61 +1,77 @@
 # NodeTool Tasks
 
-Markdown-native task system. Plans and tasks live as files in this
-directory, versioned with the code. Designed so humans and AI agents
-can work in parallel without merge conflicts.
+SQLite-backed task system for NodeTool development. The Next.js server
+at `.tasks/site/` owns the database; the same code is reused by API
+routes, the dashboard pages, and the `npm run task` CLI.
 
-- **[SCHEMA.md](SCHEMA.md)** — frontmatter schema and state machines
+- **[SCHEMA.md](SCHEMA.md)** — DB schema, state machines, REST surface
 - **[AGENTS.md](AGENTS.md)** — workflow contract for humans and agents
 
-## Quick start
-
-```bash
-# List all tasks
-npm run task list
-
-# Filter by state
-npm run task list -- --state=todo
-
-# Create a new plan
-npm run task new plan --title="Add streaming workflow execution"
-
-# Create a new task under a plan
-npm run task new task --plan=P-2026-05-11-streaming --title="Wire up SSE endpoint"
-
-# Move a task forward
-npm run task transition T-20260511-0001 in_progress --assignee=claude
-npm run task transition T-20260511-0001 review
-npm run task transition T-20260511-0001 done
-
-# Validate everything (frontmatter + state machine + structure)
-npm run task validate
-```
-
-`npm run task validate` runs in CI on every PR touching `.tasks/`.
-
-## Why one file per task?
-
-So that two parallel PRs never touch the same file. Combined with
-unique filenames (`T-YYYYMMDD-NNNN-slug.md`), append-only Notes,
-and a generated dashboard (no central index), merges become a
-non-event.
-
-## Browse the dashboard
-
-Linear-style Next.js + shadcn/ui site, deployed at `<your-pages-url>/tasks/`.
-Locally:
+## Run
 
 ```bash
 cd .tasks/site
 npm install
-npm run dev
-# open http://localhost:3000
+npm run db:seed    # demo plan + tasks (idempotent)
+npm run dev        # http://localhost:3000
 ```
 
-Built with `npm run build` (static export to `out/`). The GitHub Pages
-deploy lives in `.github/workflows/jekyll.yml` — the tasks site is
-built alongside the docs site and merged into the same artifact under
-`/tasks/`.
+The SQLite file lives at `.tasks/data.db` (gitignored). Override with
+`NODETOOL_TASKS_DB=/path/to/db`.
 
-If you don't have Node installed, the markdown files in `plans/` and
-`tasks/` are still fully readable on GitHub.
+## CLI
+
+`npm run task -- <cmd>` from the repo root:
+
+```bash
+npm run task -- list                                          # all tasks
+npm run task -- list --state=todo
+npm run task -- plans                                         # list plans
+npm run task -- show T-20260511-0001                          # task detail
+npm run task -- show P-2026-05-11-task-system                 # plan detail
+
+npm run task -- new plan --title="Streaming exec"             # → P-2026-MM-DD-streaming-exec
+npm run task -- new task --plan=P-... --title="Wire up SSE" \
+    --assignee=claude --tags=backend,ssr \
+    --criteria="endpoint returns 200,sse frames flush"
+
+npm run task -- transition T-... in_progress --assignee=claude
+npm run task -- transition T-... review
+npm run task -- transition T-... done                         # gated by open criteria
+
+npm run task -- note T-... --body="implementation choice X" --author=alice
+npm run task -- crit add T-... --text="latency p95 < 50ms"
+npm run task -- crit done <criterion-id>
+```
+
+The CLI imports `lib/repo.ts` directly — no HTTP server required.
+
+## REST
+
+Same operations are exposed for external clients (e.g. agents):
+
+```
+GET    /api/plans
+POST   /api/plans
+GET    /api/plans/:id              # → plan + tasks + progress
+PATCH  /api/plans/:id
+DELETE /api/plans/:id
+
+GET    /api/tasks?state=todo&plan=P-...
+POST   /api/tasks
+GET    /api/tasks/:id
+PATCH  /api/tasks/:id
+DELETE /api/tasks/:id
+POST   /api/tasks/:id/transition   # { state, assignee?, note? }
+POST   /api/tasks/:id/notes        # { author, body }
+POST   /api/tasks/:id/criteria     # { text }
+PATCH  /api/tasks/:id/criteria/:cid  # { done?, text? }
+DELETE /api/tasks/:id/criteria/:cid
+```
+
+## Tech
+
+- **Next.js 15** (App Router, dynamic SSR)
+- **Drizzle ORM** + **better-sqlite3** (WAL mode, FK enforcement)
+- **Zod** request validation
+- **shadcn-style** UI (no Radix dep) + Tailwind v3 + Linear-style status glyphs

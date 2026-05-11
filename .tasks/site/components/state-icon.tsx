@@ -1,4 +1,4 @@
-import type { TaskState, PlanState } from "@/lib/tasks";
+import type { TaskState, PlanState } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 // Linear-style status glyphs. Drawn as small inline SVGs so they line up

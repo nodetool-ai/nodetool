@@ -1,20 +1,17 @@
 import Link from "next/link";
-import {
-  getAllPlans,
-  getAllTasks,
-  getTasksByPlan,
-  planProgress,
-  STATE_LABEL,
-  TASK_BOARD_STATES,
-} from "@/lib/tasks";
+import * as repo from "@/lib/repo";
+import { STATE_LABEL, TASK_BOARD_STATES } from "@/lib/types";
 import { KanbanBoard } from "@/components/kanban-board";
 import { Progress } from "@/components/ui/progress";
 import { StateBadge } from "@/components/state-badge";
 import { StateIcon } from "@/components/state-icon";
 
-export default function DashboardPage() {
-  const tasks = getAllTasks();
-  const activePlans = getAllPlans().filter((p) => p.state === "accepted");
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
+  const tasks = repo.listTasks();
+  const plans = repo.listPlans();
+  const activePlans = plans.filter((p) => p.state === "accepted");
   const counts = TASK_BOARD_STATES.map((s) => ({
     state: s,
     n: tasks.filter((t) => t.state === s).length,
@@ -27,7 +24,7 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
             <p className="text-sm text-muted-foreground">
-              {tasks.length} tasks across {getAllPlans().length} plans.
+              {tasks.length} tasks across {plans.length} plans.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
@@ -45,30 +42,29 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section>
-        <KanbanBoard tasks={tasks} />
-      </section>
+      {tasks.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <section>
+          <KanbanBoard tasks={tasks} />
+        </section>
+      )}
 
-      <section className="space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-sm font-semibold tracking-tight">Active plans</h2>
-          <Link href="/plans/" className="text-xs text-muted-foreground hover:text-foreground">
-            All plans →
-          </Link>
-        </div>
-        {activePlans.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No accepted plans.</p>
-        ) : (
+      {activePlans.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold tracking-tight">Active plans</h2>
+            <Link href="/plans" className="text-xs text-muted-foreground hover:text-foreground">
+              All plans →
+            </Link>
+          </div>
           <div className="divide-y divide-border/60 rounded-lg border border-border/60 bg-card/40">
             {activePlans.map((p) => {
-              const { done, total, pct } = planProgress(p.id);
-              const open = getTasksByPlan(p.id).filter(
-                (t) => t.state !== "done" && t.state !== "cancelled"
-              ).length;
+              const { done, total, pct, open } = repo.planProgress(p.id);
               return (
                 <Link
                   key={p.id}
-                  href={`/plans/${p.slug}/`}
+                  href={`/plans/${p.id}`}
                   className="flex items-center gap-4 px-4 py-3 hover:bg-muted/40 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
@@ -81,15 +77,30 @@ export default function DashboardPage() {
                   <div className="hidden sm:flex flex-col items-end gap-1 w-48">
                     <Progress value={pct} className="w-full" />
                     <div className="text-[11px] text-muted-foreground tabular-nums">
-                      {done} / {total} done &middot; {open} open
+                      {done} / {total} done · {open} open
                     </div>
                   </div>
                 </Link>
               );
             })}
           </div>
-        )}
-      </section>
+        </section>
+      )}
     </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <section className="rounded-lg border border-dashed border-border/60 bg-secondary/20 p-12 text-center">
+      <h2 className="text-base font-semibold">No tasks yet</h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Create your first plan and task with the CLI:
+      </p>
+      <pre className="mt-4 inline-block text-left text-xs bg-muted px-3 py-2 rounded-md font-mono leading-6">
+        npm run task new plan --title="Hello world"{"\n"}
+        npm run task new task --plan=P-... --title="First task"
+      </pre>
+    </section>
   );
 }

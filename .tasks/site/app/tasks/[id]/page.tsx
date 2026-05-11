@@ -1,38 +1,29 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import {
-  getAllTasks,
-  getPlanBySlug,
-  getTaskBySlug,
-  getAllPlans,
-} from "@/lib/tasks";
+import * as repo from "@/lib/repo";
 import { StateBadge } from "@/components/state-badge";
 import { StateIcon } from "@/components/state-icon";
 import { MarkdownBody } from "@/components/markdown-body";
-import { formatDate, relativeDate } from "@/lib/utils";
+import { CriterionCheckbox } from "@/components/criterion-checkbox";
+import { formatDate, formatDateTime, relativeDate } from "@/lib/utils";
 
-export const dynamicParams = false;
+export const dynamic = "force-dynamic";
 
-export function generateStaticParams() {
-  return getAllTasks().map((t) => ({ slug: t.slug }));
-}
-
-export default async function TaskPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const task = getTaskBySlug(slug);
+export default async function TaskPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const task = repo.getTask(id);
   if (!task) notFound();
 
-  const plan = getAllPlans().find((p) => p.id === task.plan);
-  const planSlug = plan?.slug;
+  const plan = repo.getPlan(task.planId);
   const deps = task.dependencies
-    .map((id) => getAllTasks().find((t) => t.id === id))
+    .map((depId) => repo.getTask(depId))
     .filter((t): t is NonNullable<typeof t> => Boolean(t));
 
   return (
     <article className="mx-auto max-w-3xl">
       <Link
-        href="/tasks/"
+        href="/tasks"
         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-6"
       >
         <ArrowLeft className="size-3.5" /> Tasks
@@ -50,23 +41,26 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
         </Meta>
         <Meta label="Assignee">{task.assignee ? `@${task.assignee}` : "—"}</Meta>
         <Meta label="Plan">
-          {plan && planSlug ? (
-            <Link href={`/plans/${planSlug}/`} className="text-foreground hover:underline">
+          {plan ? (
+            <Link href={`/plans/${plan.id}`} className="text-foreground hover:underline">
               {plan.title}
             </Link>
           ) : (
-            <span className="text-muted-foreground">{task.plan}</span>
+            <span className="text-muted-foreground">{task.planId}</span>
           )}
         </Meta>
-        <Meta label="Updated" hint={relativeDate(task.updated)}>
-          {formatDate(task.updated)}
+        <Meta label="Updated" hint={relativeDate(task.updatedAt)}>
+          {formatDate(task.updatedAt)}
         </Meta>
         {task.estimate && <Meta label="Estimate">{task.estimate}</Meta>}
         {task.tags?.length ? (
           <Meta label="Tags">
             <div className="flex flex-wrap gap-1">
               {task.tags.map((t) => (
-                <span key={t} className="rounded border border-border/60 px-1.5 py-px text-[10px] uppercase tracking-wide">
+                <span
+                  key={t}
+                  className="rounded border border-border/60 px-1.5 py-px text-[10px] uppercase tracking-wide"
+                >
                   {t}
                 </span>
               ))}
@@ -79,7 +73,7 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
               {deps.map((d) => (
                 <Link
                   key={d.id}
-                  href={`/tasks/${d.slug}/`}
+                  href={`/tasks/${d.id}`}
                   className="inline-flex items-center gap-1.5 rounded border border-border/60 bg-secondary/40 px-2 py-1 hover:bg-secondary"
                 >
                   <StateIcon state={d.state} />
@@ -94,7 +88,53 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
 
       <div className="my-8 h-px bg-border/60" />
 
-      <MarkdownBody html={task.bodyHtml} />
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold tracking-tight">Description</h2>
+        <MarkdownBody source={task.body} />
+      </section>
+
+      {task.criteria.length > 0 && (
+        <section className="mt-10 space-y-3">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold tracking-tight">Acceptance criteria</h2>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {task.criteria.filter((c) => c.done).length} / {task.criteria.length} done
+            </span>
+          </div>
+          <ul className="space-y-0">
+            {task.criteria.map((c) => (
+              <CriterionCheckbox
+                key={c.id}
+                taskId={task.id}
+                criterionId={c.id}
+                initialDone={c.done}
+                text={c.text}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {task.notes.length > 0 && (
+        <section className="mt-10 space-y-3">
+          <h2 className="text-sm font-semibold tracking-tight">Notes</h2>
+          <ol className="space-y-3">
+            {task.notes.map((n) => (
+              <li key={n.id} className="rounded-md border border-border/60 bg-card/30 px-4 py-3">
+                <div className="flex items-baseline justify-between text-[11px] text-muted-foreground">
+                  <span>
+                    <span className="text-foreground/80">@{n.author}</span>
+                    {" · "}
+                    {formatDateTime(n.createdAt)}
+                  </span>
+                  <span>{relativeDate(n.createdAt)}</span>
+                </div>
+                <div className="mt-1.5 text-sm whitespace-pre-wrap text-foreground/90">{n.body}</div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
     </article>
   );
 }

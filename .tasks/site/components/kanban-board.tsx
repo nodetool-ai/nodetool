@@ -1,8 +1,8 @@
-import { STATE_LABEL, TASK_BOARD_STATES, type Task, type TaskState } from "@/lib/tasks";
+import { STATE_LABEL, TASK_BOARD_STATES, type TaskFull, type TaskState } from "@/lib/types";
 import { StateIcon } from "./state-icon";
 import { TaskCard } from "./task-card";
 
-export function KanbanBoard({ tasks }: { tasks: Task[] }) {
+export function KanbanBoard({ tasks }: { tasks: TaskFull[] }) {
   const byState = groupBy(tasks);
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -13,7 +13,7 @@ export function KanbanBoard({ tasks }: { tasks: Task[] }) {
   );
 }
 
-function Column({ state, tasks }: { state: TaskState; tasks: Task[] }) {
+function Column({ state, tasks }: { state: TaskState; tasks: TaskFull[] }) {
   return (
     <div className="rounded-lg border border-border/60 bg-secondary/30 min-h-[200px]">
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border/60">
@@ -32,8 +32,8 @@ function Column({ state, tasks }: { state: TaskState; tasks: Task[] }) {
   );
 }
 
-function groupBy(tasks: Task[]): Record<TaskState, Task[]> {
-  const acc = {} as Record<TaskState, Task[]>;
+function groupBy(tasks: TaskFull[]): Record<TaskState, TaskFull[]> {
+  const acc = {} as Record<TaskState, TaskFull[]>;
   for (const t of tasks) (acc[t.state] ??= []).push(t);
   return acc;
 }

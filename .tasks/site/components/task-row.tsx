@@ -1,12 +1,12 @@
 import Link from "next/link";
-import type { Task } from "@/lib/tasks";
+import type { TaskFull } from "@/lib/types";
 import { StateIcon } from "./state-icon";
 import { relativeDate } from "@/lib/utils";
 
-export function TaskRow({ task }: { task: Task }) {
+export function TaskRow({ task }: { task: TaskFull }) {
   return (
     <Link
-      href={`/tasks/${task.slug}/`}
+      href={`/tasks/${task.id}`}
       className="group flex items-center gap-3 px-3 py-2.5 -mx-3 rounded-md hover:bg-muted/60 transition-colors"
     >
       <StateIcon state={task.state} />
@@ -28,7 +28,7 @@ export function TaskRow({ task }: { task: Task }) {
         </span>
       )}
       <span className="hidden lg:inline-block text-xs text-muted-foreground tabular-nums w-20 text-right">
-        {relativeDate(task.updated)}
+        {relativeDate(task.updatedAt)}
       </span>
     </Link>
   );

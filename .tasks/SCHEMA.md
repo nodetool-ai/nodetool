@@ -1,72 +1,76 @@
-# Task & Plan Schema
+# DB schema & state machines
 
-This document is the source of truth for the markdown task system. The
-linter (`scripts/tasks.mjs`) enforces it.
+The DB lives at `.tasks/data.db`. Schema is in
+[`.tasks/site/db/schema.ts`](site/db/schema.ts); the initial SQL is
+in [`.tasks/site/db/migrations/0000_init.sql`](site/db/migrations/0000_init.sql).
+Migrations run automatically the first time the DB is opened.
 
-## File layout
-
-```
-.tasks/
-├── plans/                              # Data: one markdown file per plan
-│   └── 2026-05-11-feature-slug.md
-├── tasks/                              # Data: one markdown file per task
-│   └── T-20260511-0001-task-slug.md
-├── site/                               # Next.js + shadcn dashboard (Linear-style)
-├── SCHEMA.md                           # This file
-├── AGENTS.md                           # Agent workflow contract
-└── README.md
-```
-
-One file = one plan or task. Never edit two task files in the same commit.
-
-## File naming
-
-- **Plan**: `plans/YYYY-MM-DD-slug.md`. Slug is lowercase kebab-case.
-- **Task**: `tasks/T-YYYYMMDD-NNNN-slug.md`. `NNNN` is a per-day counter,
-  zero-padded to 4 digits. The CLI auto-assigns the next free counter.
-
-## Plan frontmatter
-
-```yaml
----
-id: P-2026-05-11-task-system    # P-<created-date>-<slug>
-title: "Markdown Task System"   # required, 1 line
-state: accepted                 # required: draft|proposed|accepted|done|cancelled
-owner: alice                    # optional, free-text handle
-created: 2026-05-11             # required, YYYY-MM-DD
-updated: 2026-05-11             # optional, YYYY-MM-DD
-tags: [tooling, agents]         # optional list of strings
----
-```
-
-### Plan state machine
+## Tables
 
 ```
-draft  ──▶ proposed ──▶ accepted ──▶ done
+plans                    one row per plan
+  id          TEXT  PK         e.g. P-2026-05-11-task-system
+  title       TEXT  NOT NULL
+  state       TEXT  NOT NULL   see plan state machine
+  owner       TEXT
+  body        TEXT  default ''  free-form markdown
+  tags        TEXT  default '[]'  JSON array
+  created_at  INTEGER  ms epoch
+  updated_at  INTEGER  ms epoch
+
+tasks                    one row per task
+  id          TEXT  PK         e.g. T-20260511-0001
+  title       TEXT  NOT NULL
+  state       TEXT  NOT NULL   see task state machine
+  plan_id     TEXT  FK → plans.id ON DELETE CASCADE
+  assignee    TEXT
+  body        TEXT  default ''  free-form markdown
+  estimate    TEXT
+  tags        TEXT  default '[]'  JSON array
+  created_at, updated_at
+
+task_dependencies        many-to-many
+  task_id        TEXT  FK → tasks.id  ON DELETE CASCADE
+  depends_on_id  TEXT  FK → tasks.id  ON DELETE CASCADE
+  PRIMARY KEY (task_id, depends_on_id)
+
+task_notes               append-only activity log
+  id          INTEGER  AUTOINC PK
+  task_id     TEXT     FK → tasks.id  ON DELETE CASCADE
+  author      TEXT     NOT NULL
+  body        TEXT     NOT NULL
+  created_at  INTEGER  ms epoch
+
+acceptance_criteria      checkable items per task
+  id          INTEGER  AUTOINC PK
+  task_id     TEXT     FK → tasks.id  ON DELETE CASCADE
+  text        TEXT     NOT NULL
+  done        INTEGER  boolean (0/1)
+  position    INTEGER  ordering within task
+```
+
+## ID format
+
+- **Plans**: `P-YYYY-MM-DD-slug` (slug is auto-derived from the title on create)
+- **Tasks**: `T-YYYYMMDD-NNNN` (NNNN is a per-day counter, assigned by the repo)
+
+You can override the ID on creation, but the format is enforced by the
+zod validator on the API.
+
+## State machines
+
+### Plans
+
+```
+draft ──▶ proposed ──▶ accepted ──▶ done
   │           │             │
   └───────────┴─────────────┴──▶ cancelled
 ```
 
-A plan is `done` when every task it owns is `done` or `cancelled`.
+A plan is considered "done" when every non-cancelled task is `done`.
+The transition is **not** automatic — set it explicitly.
 
-## Task frontmatter
-
-```yaml
----
-id: T-20260511-0001                      # T-<YYYYMMDD>-<NNNN>
-title: "Design task file format"         # required, 1 line
-state: in_progress                       # required: see state machine below
-plan: P-2026-05-11-task-system           # required, must match an existing plan id
-assignee: claude                         # required for non-todo states; free-text handle
-dependencies: []                         # optional list of task ids that must be `done` first
-created: 2026-05-11T10:00:00Z            # required, ISO 8601
-updated: 2026-05-11T11:30:00Z            # required, ISO 8601 — bump on every edit
-estimate: 2h                             # optional, free-text
-tags: [design]                           # optional list of strings
----
-```
-
-### Task state machine
+### Tasks
 
 ```
 todo ──▶ in_progress ──▶ review ──▶ done
@@ -76,7 +80,7 @@ todo ──▶ in_progress ──▶ review ──▶ done
   └───────────┴─▶ cancelled
 ```
 
-Allowed transitions (linter enforces):
+Allowed transitions (enforced by `repo.transitionTask`):
 
 | From          | Allowed `→`                                 |
 |---------------|---------------------------------------------|
@@ -84,48 +88,14 @@ Allowed transitions (linter enforces):
 | `in_progress` | `review`, `done`, `blocked`, `cancelled`    |
 | `review`      | `in_progress`, `done`, `cancelled`          |
 | `blocked`     | `in_progress`, `cancelled`                  |
-| `done`        | (terminal — reopen by creating a new task)  |
+| `done`        | (terminal — create a new task to reopen)    |
 | `cancelled`   | (terminal)                                  |
 
-Going to `in_progress` requires:
-- `assignee` is set
-- All `dependencies` are `done`
+Going to `in_progress` requires an `assignee`.
+Going to `done` requires all acceptance criteria to be checked.
 
-Going to `done` requires:
-- All `- [ ]` checkboxes in the body are checked
+## REST surface
 
-## Task body structure
-
-Required sections, in this order:
-
-```markdown
-# Description
-What needs to happen, in plain prose.
-
-# Acceptance criteria
-- [ ] Concrete, testable statement
-- [ ] Another one
-
-# Notes
-## YYYY-MM-DD — handle
-Append-only log. New entries go at the bottom under a new date heading.
-Never edit prior entries.
-```
-
-The linter checks that `# Description`, `# Acceptance criteria`, and `# Notes`
-all exist as level-1 headings.
-
-## Conflict-avoidance invariants
-
-These are the rules that make merges trivial:
-
-1. **One task per file**, one file per task.
-2. **Filenames are globally unique** via the ID.
-3. **No central index file.** The dashboard is generated from frontmatter.
-4. **Append-only notes.** Date-stamped headings, never rewrite.
-5. **Exclusive ownership.** Only `assignee` edits a task in-flight.
-6. **Atomic commits.** A commit touches one task file (plus any code it owns).
-
-If two PRs touch the same task file, the conflict is real and intentional —
-two agents claimed the same work. The merger picks a winner; the loser
-re-bases or picks a different task.
+See [README.md](README.md#rest). Each route is a thin wrapper around a
+function in [`lib/repo.ts`](site/lib/repo.ts); the CLI calls the same
+functions directly.
