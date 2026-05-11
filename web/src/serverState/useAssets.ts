@@ -86,7 +86,7 @@ export const useAssets = (_initialFolderId: string | null = null) => {
     });
     return {
       ...data,
-      assets: normalizeAssetList(data.assets as unknown as Asset[])
+      assets: normalizeAssetList(data.assets)
     };
   }, [workflowFilter]);
 
