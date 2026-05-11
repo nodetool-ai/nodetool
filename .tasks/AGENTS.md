@@ -3,6 +3,15 @@
 You (human or AI agent) are picking up work from this task system.
 Read [SCHEMA.md](SCHEMA.md) first; this file describes the workflow.
 
+## Two ways to do a task
+
+1. **Yourself.** Claim it, code it, transition it. The flow below.
+2. **Delegate to a Claude Agent SDK session.** Hit the "Run agent"
+   button on the task page or `npm run task -- agent <T-...>`. The
+   orchestrator opens a worktree, runs the agent, pushes the branch,
+   opens a PR, and moves the task to `review`. Skip the rest of this
+   doc unless you need to babysit a failed session.
+
 ## Picking up a task
 
 1. `npm run task -- list --state=todo`
@@ -47,6 +56,29 @@ npm run task -- transition T-20260511-0001 blocked \
 ```
 
 Then pick a different task.
+
+## Delegating to a Claude Agent session
+
+Each session runs in an isolated git worktree on a fresh branch,
+opens a PR via `gh pr create` when finished, and transitions the
+task to `review` (or `blocked` on failure). Multiple sessions can
+run in parallel against different tasks.
+
+```bash
+npm run task -- agent T-20260511-0001                 # start + tail
+npm run task -- agent T-20260511-0001 --no-follow     # detach
+npm run task -- agent T-20260511-0001 --model=claude-opus-4-7
+npm run task -- agent list                            # all runs
+npm run task -- agent cancel <session-id>             # abort
+```
+
+REST: `POST /api/tasks/:id/sessions`. SSE log:
+`GET /api/sessions/:id/events`. Web: "Run agent" button on the
+task detail page → live log at `/sessions/:id`.
+
+A task can only have one active session at a time — start another
+after cancelling or letting the current one finish. Requires
+`ANTHROPIC_API_KEY` and an authed `gh` CLI.
 
 ## Don'ts
 

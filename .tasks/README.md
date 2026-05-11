@@ -67,6 +67,12 @@ POST   /api/tasks/:id/notes        # { author, body }
 POST   /api/tasks/:id/criteria     # { text }
 PATCH  /api/tasks/:id/criteria/:cid  # { done?, text? }
 DELETE /api/tasks/:id/criteria/:cid
+
+POST   /api/tasks/:id/sessions     # { model?, baseBranch? } — start agent
+GET    /api/sessions[?active=true]
+GET    /api/sessions/:id           # → session + full event log
+GET    /api/sessions/:id/events    # SSE, ?since=<eventId> to resume
+POST   /api/sessions/:id/cancel
 ```
 
 ## Agent sessions

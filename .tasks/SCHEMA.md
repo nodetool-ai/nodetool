@@ -47,6 +47,26 @@ acceptance_criteria      checkable items per task
   text        TEXT     NOT NULL
   done        INTEGER  boolean (0/1)
   position    INTEGER  ordering within task
+
+agent_sessions           one row per Claude Agent SDK run on a task
+  id            INTEGER  AUTOINC PK
+  task_id       TEXT     FK → tasks.id ON DELETE CASCADE
+  status        TEXT     see session status machine
+  model         TEXT     e.g. claude-sonnet-4-5
+  branch        TEXT     e.g. claude/agent-42
+  worktree_path TEXT     absolute path to the git worktree
+  pr_url        TEXT     filled in after gh pr create
+  error         TEXT     populated on failure
+  started_at    INTEGER  ms epoch
+  completed_at  INTEGER  ms epoch, nullable
+
+agent_events             append-only log per session (replay + SSE source)
+  id          INTEGER  AUTOINC PK
+  session_id  INTEGER  FK → agent_sessions.id ON DELETE CASCADE
+  type        TEXT     status | shell | shell_out | stderr | agent
+                       | prompt | worktree | pr | warning
+  payload     TEXT     JSON
+  created_at  INTEGER  ms epoch
 ```
 
 ## ID format
@@ -93,6 +113,19 @@ Allowed transitions (enforced by `repo.transitionTask`):
 
 Going to `in_progress` requires an `assignee`.
 Going to `done` requires all acceptance criteria to be checked.
+
+### Agent sessions
+
+```
+pending ─▶ preparing ─▶ running ─▶ pushing ─▶ opening_pr ─▶ completed
+                │           │           │           │
+                └───────────┴───────────┴───────────┴─▶ failed
+                                                    │
+                                                    └─▶ cancelled
+```
+
+A session never moves backwards. Terminal states (`completed`, `failed`,
+`cancelled`) close the SSE stream and drop the in-process bus.
 
 ## REST surface
 
