@@ -17,8 +17,14 @@ export interface TimelinePlaybackState {
   currentTimeMs: number;
   isPlaying: boolean;
   rate: number;
+  /** Bumped on every external seek; used by playback to restart the audio
+   *  clock at the new position. The playback clock itself does NOT bump this
+   *  when advancing currentTimeMs frame-by-frame. */
+  seekNonce: number;
 
   setCurrentTimeMs: (timeMs: number) => void;
+  /** Seek to a new position (bumps seekNonce). */
+  seek: (timeMs: number) => void;
   setIsPlaying: (playing: boolean) => void;
   setRate: (rate: number) => void;
   play: () => void;
@@ -31,8 +37,14 @@ export const useTimelinePlaybackStore = create<TimelinePlaybackState>(
     currentTimeMs: 0,
     isPlaying: false,
     rate: 1,
+    seekNonce: 0,
 
     setCurrentTimeMs: (timeMs) => set({ currentTimeMs: timeMs }),
+    seek: (timeMs) =>
+      set((s) => ({
+        currentTimeMs: Math.max(0, timeMs),
+        seekNonce: s.seekNonce + 1
+      })),
     setIsPlaying: (playing) => set({ isPlaying: playing }),
     setRate: (rate) => set({ rate }),
     play: () => set({ isPlaying: true }),

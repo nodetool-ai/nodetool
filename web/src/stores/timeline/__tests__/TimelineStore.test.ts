@@ -15,11 +15,7 @@ import type { Asset } from "../../ApiTypes";
 // exports correctly. Jest's moduleNameMapper redirects TimelineStore.ts's
 // own `trpc/client` import to the same file, so both share the same module
 // instance at runtime.
-import {
-  mockWorkflowsGet,
-  mockWorkflowsCreate,
-  mockTimelineClipsCreate
-} from "../../../__mocks__/trpcClientMock";
+import { mockTimelineClipsCreate } from "../../../__mocks__/trpcClientMock";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -144,6 +140,72 @@ describe("TimelineStore — tracks", () => {
     const trackId = store.getState().tracks[0].id;
     store.getState().setTrackName(trackId, "new name");
     expect(store.getState().tracks[0].name).toBe("new name");
+  });
+});
+
+describe("TimelineStore — track DSP effects", () => {
+  let store: ReturnType<typeof mkStore>;
+  let trackId: string;
+
+  beforeEach(() => {
+    store = mkStore();
+    store.getState().addTrack("audio", "A1");
+    trackId = store.getState().tracks[0].id;
+  });
+
+  it("addTrackEffect appends an effect with defaults", () => {
+    store.getState().addTrackEffect(trackId, "gain");
+    const effects = store.getState().tracks[0].effects;
+    expect(effects).toHaveLength(1);
+    expect(effects?.[0].type).toBe("gain");
+    expect(effects?.[0].enabled).toBe(true);
+  });
+
+  it("addTrackEffect supports all effect types", () => {
+    store.getState().addTrackEffect(trackId, "eq3");
+    store.getState().addTrackEffect(trackId, "filter");
+    store.getState().addTrackEffect(trackId, "compressor");
+    const types = store.getState().tracks[0].effects?.map((e) => e.type);
+    expect(types).toEqual(["eq3", "filter", "compressor"]);
+  });
+
+  it("updateTrackEffect patches the matching effect", () => {
+    store.getState().addTrackEffect(trackId, "gain");
+    const effectId = store.getState().tracks[0].effects![0].id;
+    store
+      .getState()
+      .updateTrackEffect(trackId, effectId, { gainDb: 6, enabled: false });
+    const e = store.getState().tracks[0].effects![0];
+    expect(e.type).toBe("gain");
+    if (e.type === "gain") {
+      expect(e.gainDb).toBe(6);
+    }
+    expect(e.enabled).toBe(false);
+  });
+
+  it("removeTrackEffect drops the effect by id", () => {
+    store.getState().addTrackEffect(trackId, "gain");
+    store.getState().addTrackEffect(trackId, "filter");
+    const filterId = store.getState().tracks[0].effects![1].id;
+    store.getState().removeTrackEffect(trackId, filterId);
+    const effects = store.getState().tracks[0].effects!;
+    expect(effects).toHaveLength(1);
+    expect(effects[0].type).toBe("gain");
+  });
+
+  it("moveTrackEffect reorders effects", () => {
+    store.getState().addTrackEffect(trackId, "gain");
+    store.getState().addTrackEffect(trackId, "filter");
+    store.getState().addTrackEffect(trackId, "compressor");
+    store.getState().moveTrackEffect(trackId, 2, 0);
+    const types = store.getState().tracks[0].effects?.map((e) => e.type);
+    expect(types).toEqual(["compressor", "gain", "filter"]);
+  });
+
+  it("moveTrackEffect is a no-op for out-of-bounds indices", () => {
+    store.getState().addTrackEffect(trackId, "gain");
+    store.getState().moveTrackEffect(trackId, 0, 5);
+    expect(store.getState().tracks[0].effects).toHaveLength(1);
   });
 });
 
@@ -294,14 +356,23 @@ describe("TimelineStore — duplicateSelected", () => {
     store = mkStore();
   });
 
-  it("duplicates clips and applies offset", () => {
+  it("places duplicates after source plus offset", () => {
     const { clip } = addTrackAndClip(store, { startMs: 0, durationMs: 2000 });
     store.getState().duplicateSelected(new Set([clip.id]), 500);
     const clips = store.getState().clips;
     expect(clips).toHaveLength(2);
     const duplicate = clips.find((c) => c.id !== clip.id)!;
-    expect(duplicate.startMs).toBe(500);
+    expect(duplicate.startMs).toBe(2500);
     expect(duplicate.durationMs).toBe(2000);
+  });
+
+  it("places duplicate immediately after source when offset is omitted", () => {
+    const { clip } = addTrackAndClip(store, { startMs: 100, durationMs: 1500 });
+    store.getState().duplicateSelected(new Set([clip.id]));
+    const duplicate = store
+      .getState()
+      .clips.find((c) => c.id !== clip.id)!;
+    expect(duplicate.startMs).toBe(1600);
   });
 
   it("duplicated clip has a new unique ID", () => {
@@ -531,53 +602,60 @@ describe("TimelineStore — restoreVersion", () => {
   });
 });
 
-describe("TimelineStore — duplicateClipLinked", () => {
-  it("creates a second clip with a new id", () => {
+describe("TimelineStore — duplicateClip", () => {
+  it("creates a second clip with a new id", async () => {
     const store = mkStore();
     const { clip } = addTrackAndClip(store, { startMs: 0, durationMs: 2000 });
-    store.getState().duplicateClipLinked(clip.id);
+    await store.getState().duplicateClip(clip.id);
     const clips = store.getState().clips;
     expect(clips).toHaveLength(2);
     expect(clips[0].id).not.toBe(clips[1].id);
   });
 
-  it("shares the same workflowId as the source", () => {
+  it("shares the same workflowId as the source", async () => {
     const store = mkStore();
     const { clip } = addTrackAndClip(store, {
       startMs: 0,
       durationMs: 1000,
       workflowId: "wf-123"
     });
-    store.getState().duplicateClipLinked(clip.id);
+    await store.getState().duplicateClip(clip.id);
     const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
     expect(newClip.workflowId).toBe("wf-123");
   });
 
-  it("applies deltaMs offset to the new clip start", () => {
+  it("places duplicate after source plus deltaMs offset", async () => {
     const store = mkStore();
     const { clip } = addTrackAndClip(store, { startMs: 500, durationMs: 1000 });
-    store.getState().duplicateClipLinked(clip.id, 2000);
+    await store.getState().duplicateClip(clip.id, 2000);
     const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
-    expect(newClip.startMs).toBe(2500);
+    expect(newClip.startMs).toBe(3500);
   });
 
-  it("gives the duplicate an independent copy of paramOverrides", () => {
+  it("places duplicate immediately after source when deltaMs is omitted", async () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, { startMs: 500, durationMs: 1000 });
+    await store.getState().duplicateClip(clip.id);
+    const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
+    expect(newClip.startMs).toBe(1500);
+  });
+
+  it("gives the duplicate an independent copy of paramOverrides", async () => {
     const store = mkStore();
     const { clip } = addTrackAndClip(store, {
       startMs: 0,
       durationMs: 1000,
       paramOverrides: { speed: 1 }
     });
-    store.getState().duplicateClipLinked(clip.id);
+    await store.getState().duplicateClip(clip.id);
     const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
 
-    // Mutating one clip's overrides does not affect the other
     store.getState().patchClip(newClip.id, { paramOverrides: { speed: 2 } });
     const original = store.getState().clips.find((c) => c.id === clip.id)!;
     expect(original.paramOverrides?.speed).toBe(1);
   });
 
-  it("resets generation state on the duplicate", () => {
+  it("resets generation state on the duplicate", async () => {
     const store = mkStore();
     const { clip } = addTrackAndClip(store, {
       startMs: 0,
@@ -585,143 +663,8 @@ describe("TimelineStore — duplicateClipLinked", () => {
       currentAssetId: "asset-abc",
       lastGeneratedHash: "hash-xyz"
     });
-    store.getState().duplicateClipLinked(clip.id);
+    await store.getState().duplicateClip(clip.id);
     const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
-    expect(newClip.currentAssetId).toBeUndefined();
-    expect(newClip.lastGeneratedHash).toBeUndefined();
-    expect(newClip.status).toBe("draft");
-  });
-
-  it("resets locked to false even when source is locked", () => {
-    const store = mkStore();
-    const { clip } = addTrackAndClip(store, { startMs: 0, durationMs: 1000 });
-    store.getState().setClipLocked(clip.id, true);
-    store.getState().duplicateClipLinked(clip.id);
-    const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
-    expect(newClip.locked).toBe(false);
-    // Source remains locked
-    const src = store.getState().clips.find((c) => c.id === clip.id)!;
-    expect(src.locked).toBe(true);
-  });
-
-  it("deep-copies paramOverrides so nested values are independent", () => {
-    const store = mkStore();
-    const { clip } = addTrackAndClip(store, {
-      startMs: 0,
-      durationMs: 1000,
-      paramOverrides: { nested: { value: 42 } }
-    });
-    store.getState().duplicateClipLinked(clip.id);
-    const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
-    // Mutate via patchClip — original nested object must not be affected
-    store.getState().patchClip(newClip.id, {
-      paramOverrides: { nested: { value: 99 } }
-    });
-    const original = store.getState().clips.find((c) => c.id === clip.id)!;
-    const nested = original.paramOverrides?.nested as { value: number } | undefined;
-    expect(nested?.value).toBe(42);
-  });
-
-  it("no-ops for unknown clip id", () => {
-    const store = mkStore();
-    addTrackAndClip(store);
-    store.getState().duplicateClipLinked("nonexistent");
-    expect(store.getState().clips).toHaveLength(1);
-  });
-});
-
-describe("TimelineStore — duplicateClipAsVariation", () => {
-  beforeEach(() => {
-    mockWorkflowsGet.mockReset();
-    mockWorkflowsCreate.mockReset();
-  });
-
-  it("creates a second clip with a new id and new workflowId", async () => {
-    const store = mkStore();
-    const { clip } = addTrackAndClip(store, {
-      startMs: 0,
-      durationMs: 2000,
-      workflowId: "wf-original"
-    });
-
-    mockWorkflowsGet.mockResolvedValue({
-      id: "wf-original",
-      name: "My Workflow",
-      access: "private",
-      graph: { nodes: [], edges: [] },
-      description: null,
-      tags: []
-    });
-    mockWorkflowsCreate.mockResolvedValue({ id: "wf-variation" });
-
-    const newClipId = await store.getState().duplicateClipAsVariation(clip.id);
-
-    const clips = store.getState().clips;
-    expect(clips).toHaveLength(2);
-    const newClip = clips.find((c) => c.id === newClipId)!;
-    expect(newClip.workflowId).toBe("wf-variation");
-    expect(newClip.workflowId).not.toBe(clip.workflowId);
-  });
-
-  it("applies deltaMs offset", async () => {
-    const store = mkStore();
-    const { clip } = addTrackAndClip(store, { startMs: 500, durationMs: 1000 });
-
-    mockWorkflowsGet.mockResolvedValue({
-      id: undefined,
-      name: "W",
-      access: "private",
-      graph: { nodes: [], edges: [] },
-      description: null,
-      tags: []
-    });
-    mockWorkflowsCreate.mockResolvedValue({ id: "wf-new" });
-
-    await store.getState().duplicateClipAsVariation(clip.id, 2000);
-    const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
-    expect(newClip.startMs).toBe(2500);
-  });
-
-  it("skips API calls when clip has no workflowId", async () => {
-    const store = mkStore();
-    const { clip } = addTrackAndClip(store, { startMs: 0, durationMs: 1000 });
-    // No workflowId on the clip
-    const newClipId = await store.getState().duplicateClipAsVariation(clip.id);
-    expect(mockWorkflowsGet).not.toHaveBeenCalled();
-    expect(mockWorkflowsCreate).not.toHaveBeenCalled();
-    const newClip = store.getState().clips.find((c) => c.id === newClipId)!;
-    expect(newClip.workflowId).toBeUndefined();
-  });
-
-  it("rejects when source clip does not exist", async () => {
-    const store = mkStore();
-    await expect(
-      store.getState().duplicateClipAsVariation("nonexistent")
-    ).rejects.toThrow("Clip nonexistent not found");
-  });
-
-  it("resets generation state on the new clip", async () => {
-    const store = mkStore();
-    const { clip } = addTrackAndClip(store, {
-      startMs: 0,
-      durationMs: 1000,
-      currentAssetId: "asset-xyz",
-      lastGeneratedHash: "hash-abc",
-      workflowId: "wf-src"
-    });
-
-    mockWorkflowsGet.mockResolvedValue({
-      id: "wf-src",
-      name: "W",
-      access: "private",
-      graph: { nodes: [], edges: [] },
-      description: null,
-      tags: []
-    });
-    mockWorkflowsCreate.mockResolvedValue({ id: "wf-cloned" });
-
-    const newClipId = await store.getState().duplicateClipAsVariation(clip.id);
-    const newClip = store.getState().clips.find((c) => c.id === newClipId)!;
     expect(newClip.currentAssetId).toBeUndefined();
     expect(newClip.lastGeneratedHash).toBeUndefined();
     expect(newClip.status).toBe("draft");
@@ -731,10 +674,36 @@ describe("TimelineStore — duplicateClipAsVariation", () => {
     const store = mkStore();
     const { clip } = addTrackAndClip(store, { startMs: 0, durationMs: 1000 });
     store.getState().setClipLocked(clip.id, true);
-
-    const newClipId = await store.getState().duplicateClipAsVariation(clip.id);
-    const newClip = store.getState().clips.find((c) => c.id === newClipId)!;
+    await store.getState().duplicateClip(clip.id);
+    const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
     expect(newClip.locked).toBe(false);
+    const src = store.getState().clips.find((c) => c.id === clip.id)!;
+    expect(src.locked).toBe(true);
+  });
+
+  it("deep-copies paramOverrides so nested values are independent", async () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, {
+      startMs: 0,
+      durationMs: 1000,
+      paramOverrides: { nested: { value: 42 } }
+    });
+    await store.getState().duplicateClip(clip.id);
+    const newClip = store.getState().clips.find((c) => c.id !== clip.id)!;
+    store.getState().patchClip(newClip.id, {
+      paramOverrides: { nested: { value: 99 } }
+    });
+    const original = store.getState().clips.find((c) => c.id === clip.id)!;
+    const nested = original.paramOverrides?.nested as { value: number } | undefined;
+    expect(nested?.value).toBe(42);
+  });
+
+  it("rejects when source clip does not exist", async () => {
+    const store = mkStore();
+    addTrackAndClip(store);
+    await expect(
+      store.getState().duplicateClip("nonexistent")
+    ).rejects.toThrow("Clip nonexistent not found");
   });
 });
 

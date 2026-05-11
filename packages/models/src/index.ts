@@ -57,10 +57,6 @@ export { Job } from "./job.js";
 export type { JobStatus } from "./job.js";
 
 export { Workflow } from "./workflow.js";
-export {
-  WorkflowNotClipPrivateError,
-  WorkflowNotLayerPrivateError
-} from "./workflow.js";
 export type { AccessLevel, WorkflowGraph } from "./workflow.js";
 
 export { WorkflowVersion } from "./workflow-version.js";

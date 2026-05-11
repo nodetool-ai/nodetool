@@ -1,23 +1,35 @@
 /** @jsxImportSource @emotion/react */
-/** Inspector panel for generated sketch layers — composes header, node stack, properties, actions, and version history. */
+/** Inspector panel for generated sketch layers — header, inputs form, actions, and version history. */
 
-import React, { memo, useCallback, useEffect } from "react";
+import React, { memo, useCallback, useMemo } from "react";
+import { css } from "@emotion/react";
+import { Box } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 import type { Layer } from "../types";
-import { useLayerBinding } from "../../../stores/sketch/SketchLayerBindingsStore";
-import { useSelectedLayerNodeStore } from "../../../stores/sketch/SelectedLayerNodeStore";
+import type { Node } from "../../../stores/ApiTypes";
+import { useLayerBinding, useSketchLayerBindingsStore } from "../../../stores/sketch/SketchLayerBindingsStore";
 import { useSketchDocumentStore } from "../../../stores/sketch/SketchDocumentStore";
 import { useWorkflow } from "../../../serverState/useWorkflow";
+import { NodeContext } from "../../../contexts/NodeContext";
+import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
+import { createNodeStore, type NodeStore } from "../../../stores/NodeStore";
 import {
-  CollapsibleSection,
+  AlertBanner,
   EmptyState,
   FlexColumn,
   LoadingSpinner,
   Panel
 } from "../../ui_primitives";
+import MiniAppInputsForm from "../../miniapps/components/MiniAppInputsForm";
+import type {
+  InputNodeData,
+  MiniAppInputDefinition
+} from "../../miniapps/types";
+import { getInputKind } from "../../miniapps/utils";
+import { useSketchGenerationStore } from "../../../stores/sketch/SketchGenerationStore";
 import { GeneratedLayerHeader } from "./GeneratedLayerHeader";
-import { LayerNodeStack } from "./LayerNodeStack";
-import { LayerNodePropertyEditor } from "./LayerNodePropertyEditor";
 import { LayerActions } from "./LayerActions";
 import { LayerVersionList } from "./LayerVersionList";
 
@@ -25,32 +37,117 @@ export interface GeneratedLayerPanelProps {
   layer: Layer;
 }
 
+const inputsSectionStyles = (theme: Theme) =>
+  css({
+    padding: theme.spacing(2, 1.25),
+    borderTop: `1px solid ${theme.vars.palette.grey[700]}`
+  });
+
+const actionsSectionStyles = (theme: Theme) =>
+  css({
+    padding: theme.spacing(0.75, 0.5),
+    borderTop: `1px solid ${theme.vars.palette.grey[700]}`
+  });
+
+const inputsContainerStyles = (theme: Theme) =>
+  css({
+    ".inputs-card, .application-card": {
+      background: "transparent",
+      border: "none",
+      padding: 0
+    },
+    ".inputs-card": {
+      padding: 0
+    },
+    ".inputs-shell": {
+      display: "flex",
+      flexDirection: "column",
+      gap: theme.spacing(2.5)
+    },
+    ".input-field": {
+      display: "flex",
+      flexDirection: "column",
+      gap: theme.spacing(0.5),
+      padding: 0
+    },
+    ".input-field-control": {
+      display: "flex",
+      flexDirection: "column",
+      gap: theme.spacing(0.5)
+    },
+    // Description Caption rendered below each control by MiniAppInputsForm.
+    // Make it smaller and more muted so it reads as helper text, not a label.
+    ".input-field > .MuiTypography-root": {
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.text.disabled,
+      lineHeight: 1.35,
+      marginTop: theme.spacing(0.25)
+    }
+  });
+
 export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
   ({ layer }) => {
+    const theme = useTheme();
     const binding = useLayerBinding(layer.id);
     const documentId = useSketchDocumentStore((s) => s.documentId);
-
-    const selectedLayerNodeId = useSelectedLayerNodeStore(
-      (s) => s.selectedLayerNodeId
-    );
-    const resetForLayer = useSelectedLayerNodeStore((s) => s.resetForLayer);
-    const setSelectedLayerNodeId = useSelectedLayerNodeStore(
-      (s) => s.setSelectedLayerNodeId
-    );
-
-    const selectedOutputNodeId = binding?.selectedOutputNodeId ?? null;
-
-    useEffect(() => {
-      resetForLayer(selectedOutputNodeId);
-    }, [layer.id, selectedOutputNodeId, resetForLayer]);
-
-    const handleSelectNode = useCallback(
-      (nodeId: string) => setSelectedLayerNodeId(nodeId),
-      [setSelectedLayerNodeId]
+    const setParamOverride = useSketchLayerBindingsStore(
+      (s) => s.setParamOverride
     );
 
     const workflowId = binding?.workflowId ?? null;
     const { data: workflow, isLoading, isError } = useWorkflow(workflowId);
+
+    // Property components rendered by MiniAppInputsForm (IntegerProperty,
+    // SliderProperty, …) call `useTemporalNodes`, which throws unless a
+    // NodeContext is in scope. Reuse the WorkflowManager's node store when
+    // the bound workflow is open in the editor; otherwise stand up a
+    // transient store backed by the fetched workflow data so the form can
+    // render without registering this layer-private workflow as "open".
+    const managerNodeStore = useWorkflowManager((state) =>
+      workflowId ? state.nodeStores[workflowId] : undefined
+    );
+    const transientNodeStore = useMemo<NodeStore | null>(() => {
+      if (managerNodeStore || !workflow) {
+        return null;
+      }
+      return createNodeStore(workflow);
+    }, [managerNodeStore, workflow]);
+    const nodeStoreForForm = managerNodeStore ?? transientNodeStore;
+
+    const jobState = useSketchGenerationStore(
+      (s) => s.layerJobs[layer.id]
+    );
+    const clearJob = useSketchGenerationStore((s) => s.clearJob);
+    const jobErrorMessage =
+      jobState?.status === "failed" ? jobState.errorMessage : undefined;
+
+    const inputDefinitions = useMemo<MiniAppInputDefinition[]>(() => {
+      const nodes = (workflow?.graph?.nodes ?? []) as Node[];
+      return nodes
+        .map((node) => {
+          const kind = getInputKind(node.type);
+          if (!kind) {
+            return null;
+          }
+          return {
+            nodeId: node.id,
+            nodeType: node.type,
+            kind,
+            data: node.data as InputNodeData
+          } satisfies MiniAppInputDefinition;
+        })
+        .filter(
+          (definition): definition is MiniAppInputDefinition =>
+            definition !== null
+        );
+    }, [workflow]);
+
+    const handleInputChange = useCallback(
+      (name: string, value: unknown) => {
+        setParamOverride(layer.id, name, value);
+      },
+      [layer.id, setParamOverride]
+    );
 
     if (!binding) {
       return (
@@ -65,53 +162,70 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
       );
     }
 
-    const graphNodes = workflow?.graph?.nodes ?? [];
-    const graphEdges = workflow?.graph?.edges ?? [];
+    const paramOverrides = binding.paramOverrides ?? {};
 
     return (
-      <Panel sx={{ width: "100%", overflow: "auto" }}>
+      <Panel
+        sx={{
+          width: "100%",
+          overflow: "auto",
+          backgroundColor: theme.vars.palette.grey[800]
+        }}
+      >
         <FlexColumn gap={0}>
           <GeneratedLayerHeader layer={layer} binding={binding} />
 
-          <CollapsibleSection title="Workflow Nodes" defaultOpen>
+          {jobErrorMessage && (
+            <Box sx={{ px: 1.25, pb: 1 }}>
+              <AlertBanner
+                severity="error"
+                compact
+                title="Generation failed"
+                onClose={() => clearJob(layer.id)}
+              >
+                {jobErrorMessage}
+              </AlertBanner>
+            </Box>
+          )}
+
+          <Box css={inputsSectionStyles(theme)}>
             {isLoading && <LoadingSpinner size="small" />}
             {isError && (
               <EmptyState
                 variant="error"
                 size="small"
-                description="Failed to load workflow graph."
+                description="Failed to load workflow inputs."
               />
             )}
-            {!isLoading && !isError && selectedOutputNodeId && (
-              <LayerNodeStack
-                nodes={graphNodes}
-                edges={graphEdges}
-                selectedOutputNodeId={selectedOutputNodeId}
-                selectedNodeId={selectedLayerNodeId}
-                workflowId={binding.workflowId}
-                onSelectNode={handleSelectNode}
-              />
+            {!isLoading && !isError && workflow && (
+              <>
+                {inputDefinitions.length === 0 ? (
+                  <EmptyState
+                    variant="empty"
+                    size="small"
+                    description="This workflow has no editable input parameters."
+                  />
+                ) : nodeStoreForForm ? (
+                  <NodeContext.Provider value={nodeStoreForForm}>
+                    <Box css={inputsContainerStyles(theme)}>
+                      <MiniAppInputsForm
+                        workflow={workflow}
+                        inputDefinitions={inputDefinitions}
+                        inputValues={paramOverrides}
+                        onInputChange={handleInputChange}
+                      />
+                    </Box>
+                  </NodeContext.Provider>
+                ) : (
+                  <LoadingSpinner size="small" />
+                )}
+              </>
             )}
-            {!isLoading && !isError && !selectedOutputNodeId && (
-              <EmptyState
-                variant="empty"
-                size="small"
-                description="No output node configured for this layer."
-              />
-            )}
-          </CollapsibleSection>
+          </Box>
 
-          <CollapsibleSection title="Properties" defaultOpen>
-            <LayerNodePropertyEditor
-              layerId={layer.id}
-              workflowId={binding.workflowId}
-              selectedNodeId={selectedLayerNodeId}
-            />
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Actions" defaultOpen>
+          <Box css={actionsSectionStyles(theme)}>
             <LayerActions layerId={layer.id} binding={binding} />
-          </CollapsibleSection>
+          </Box>
 
           {documentId && (
             <LayerVersionList documentId={documentId} layerId={layer.id} />

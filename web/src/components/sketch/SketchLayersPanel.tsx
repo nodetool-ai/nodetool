@@ -34,6 +34,7 @@ import {
   Switch
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import CheckIcon from "@mui/icons-material/Check";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -64,6 +65,7 @@ import HueTriangleColorPicker from "./HueTriangleColorPicker";
 import { useCollapsedSections } from "./useCollapsedSections";
 import { getMergeSelectedLayersPlan } from "./layerMergeSelection";
 import { StateIconButton } from "../ui_primitives";
+import { CreateGeneratedLayerDialog } from "./Inspector/CreateGeneratedLayerDialog";
 
 /**
  * Layer row modifiers: `getModifierState` helps when `draggable` rows omit flags on
@@ -495,6 +497,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   // Subscribe to the bindings dictionary so each row picks up status flips
   // (draft → stale → generated → failed) without manual prop drilling.
   const layerBindings = useSketchLayerBindingsStore((s) => s.bindings);
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
 
   // ─── Custom canvas size state ─────────────────────────────────────
   const [customWidth, setCustomWidth] = useState(String(canvasWidth));
@@ -1083,6 +1086,33 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }}
             >
               <CreateNewFolderIcon
+                sx={{ fontSize: "14px", color: theme.vars.palette.grey[400] }}
+              />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title="Generate Layer from any workflow with image output"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
+            <IconButton
+              size="small"
+              onClick={() => setGenerateDialogOpen(true)}
+              data-testid="layers-panel-generate-layer"
+              sx={{
+                width: 26,
+                height: 26,
+                padding: 0,
+                borderRadius: "3px",
+                border: `1px solid ${theme.vars.palette.grey[500]}`,
+                backgroundColor: theme.vars.palette.grey[700],
+                "&:hover": {
+                  borderColor: theme.vars.palette.grey[300],
+                  backgroundColor: theme.vars.palette.grey[600]
+                }
+              }}
+            >
+              <AddPhotoAlternateIcon
                 sx={{ fontSize: "14px", color: theme.vars.palette.grey[400] }}
               />
             </IconButton>
@@ -1839,6 +1869,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         );
       })()}
 
+      <CreateGeneratedLayerDialog
+        open={generateDialogOpen}
+        onClose={() => setGenerateDialogOpen(false)}
+      />
     </Box>
   );
 };

@@ -15,8 +15,8 @@
  *
  * Also registers window-level keyboard shortcuts for clip operations:
  *   Delete/Backspace → deleteSelected
- *   Ctrl+D           → duplicateSelected
- *   Ctrl+Shift+D     → duplicate + shift by clip duration
+ *   Ctrl+D           → duplicateSelected (places duplicate right after source)
+ *   Ctrl+Shift+D     → duplicateSelected with extra 1 s gap after source
  *   S                → splitSelectedAtPlayhead
  *   V / C            → select / cut tool
  *   Ctrl+Z / Ctrl+Y  → undo / redo
@@ -26,7 +26,7 @@
  * Horizontal scroll: native overflow-x scroll on the scrollable panel.
  */
 
-import React, { memo, useCallback, useEffect, useRef } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -40,6 +40,8 @@ import { TrackLane } from "./TrackLane";
 import { TimeRuler } from "./TimeRuler";
 import { Playhead } from "./Playhead";
 import { AddTrackButton } from "./AddTrackButton";
+import { TrackEffectsPanel } from "./TrackEffectsPanel";
+import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { ToolToggle } from "../ToolToggle";
 import { FlexColumn, FlexRow } from "../../ui_primitives";
 import { deserializeDragData } from "../../../lib/dragdrop";
@@ -50,7 +52,7 @@ import { assetMediaType } from "../dnd/assetToClipAdapter";
 
 const DEFAULT_TRACK_HEIGHT_PX = 64;
 const ZOOM_SENSITIVITY = 0.001;
-/** Offset applied to duplicated clips when using Ctrl+Shift+D (ms). */
+/** Extra gap (ms) inserted after the source clip when using Ctrl+Shift+D. */
 const DUPLICATE_OFFSET_MS = 1000;
 
 // ── Styles ─────────────────────────────────────────────────────────────────
@@ -112,6 +114,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
     const setActiveTool = useTimelineUIStore((s) => s.setActiveTool);
+    const setSelection = useTimelineUIStore((s) => s.setSelection);
     const deleteSelected = useTimelineStore((s) => s.deleteSelected);
     const duplicateSelected = useTimelineStore((s) => s.duplicateSelected);
     const splitSelectedAtPlayhead = useTimelineStore(
@@ -238,17 +241,19 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           return;
         }
 
-        // Ctrl+D → duplicate selected (same position)
+        // Ctrl+D → duplicate selected (placed right after each source)
         if (isCtrl && e.key === "d" && !e.shiftKey) {
           e.preventDefault();
-          duplicateSelected(selectedClipIds);
+          const newIds = duplicateSelected(selectedClipIds);
+          if (newIds.length > 0) setSelection(newIds);
           return;
         }
 
-        // Ctrl+Shift+D → duplicate + shift by a fixed offset (1 s)
+        // Ctrl+Shift+D → duplicate with an extra 1 s gap after each source
         if (isCtrl && e.shiftKey && e.key === "D") {
           e.preventDefault();
-          duplicateSelected(selectedClipIds, DUPLICATE_OFFSET_MS);
+          const newIds = duplicateSelected(selectedClipIds, DUPLICATE_OFFSET_MS);
+          if (newIds.length > 0) setSelection(newIds);
           return;
         }
 
@@ -294,15 +299,37 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       selectedClipIds,
       deleteSelected,
       duplicateSelected,
+      setSelection,
       splitSelectedAtPlayhead,
       currentTimeMs,
       setActiveTool
     ]);
 
+    const expandedFxTrackId = useTimelineUIStore(
+      (s) => s.expandedFxTrackId
+    );
+
     const totalTracksHeight = tracks.reduce(
-      (sum, t) => sum + (t.heightPx ?? DEFAULT_TRACK_HEIGHT_PX),
+      (sum, t) =>
+        sum +
+        (t.heightPx ?? DEFAULT_TRACK_HEIGHT_PX) +
+        (t.id === expandedFxTrackId ? FX_PANEL_HEIGHT_PX : 0),
       0
     );
+
+    // The FX panel sticks to the left of the scroll viewport so it stays
+    // visible while clips scroll horizontally. Its width matches the
+    // scrollable area's visible width.
+    const [fxPanelWidth, setFxPanelWidth] = useState(0);
+    useEffect(() => {
+      const el = scrollableRef.current;
+      if (!el) return;
+      const update = () => setFxPanelWidth(el.clientWidth);
+      update();
+      const ro = new ResizeObserver(update);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, []);
 
     return (
       <div
@@ -330,13 +357,26 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
         {/* ── Track rows ──────────────────────────────────────────────── */}
         <FlexRow
-          sx={{ height: lanesHeight, overflow: "hidden" }}
+          sx={{
+            height: lanesHeight,
+            overflowY: "auto",
+            overflowX: "hidden",
+            alignItems: "flex-start"
+          }}
           fullWidth
         >
           {/* Header column */}
           <div css={headerColumnStyles}>
             {tracks.map((track) => (
-              <TrackHeader key={track.id} track={track} />
+              <React.Fragment key={track.id}>
+                <TrackHeader track={track} />
+                {expandedFxTrackId === track.id && (
+                  <div
+                    style={{ height: FX_PANEL_HEIGHT_PX }}
+                    aria-hidden="true"
+                  />
+                )}
+              </React.Fragment>
             ))}
             <AddTrackButton />
           </div>
@@ -355,7 +395,22 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               style={{ width: totalWidthPx, height: totalTracksHeight }}
             >
               {tracks.map((track) => (
-                <TrackLane key={track.id} track={track} />
+                <React.Fragment key={track.id}>
+                  <TrackLane track={track} />
+                  {expandedFxTrackId === track.id && (
+                    <div
+                      style={{
+                        position: "sticky",
+                        left: 0,
+                        width: fxPanelWidth,
+                        height: FX_PANEL_HEIGHT_PX,
+                        zIndex: 2
+                      }}
+                    >
+                      <TrackEffectsPanel trackId={track.id} />
+                    </div>
+                  )}
+                </React.Fragment>
               ))}
             </div>
 

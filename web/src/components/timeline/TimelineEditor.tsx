@@ -43,7 +43,6 @@ import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import { PreviewArea } from "./preview/PreviewArea";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
 import { ActivityIndicator } from "./ActivityIndicator";
-import { StructuralDriftDialog } from "./Inspector/StructuralDriftDialog";
 import {
   useGeneratingCount,
   useFailedCount
@@ -238,9 +237,8 @@ export const TimelineEditor: React.FC = memo(() => {
   // Persist subsequent edits back via trpc.timeline.update (debounced).
   useTimelineAutosave();
 
-  // Workflow freshness check — runs on mount after returning from the node editor
-  const { driftItems, resolveDrift } = useWorkflowFreshnessCheck(sequenceId ?? null);
-  const currentDriftItem = driftItems[0] ?? null;
+  // Reconcile clips against current workflow state on mount.
+  useWorkflowFreshnessCheck(sequenceId ?? null);
   useTimelineGenerationSubscriptions();
 
   // Zoom ← wired to TimelineUIStore so TracksRegion + BottomStatusBar stay in sync
@@ -438,11 +436,6 @@ export const TimelineEditor: React.FC = memo(() => {
         failedCount={failedCount}
       />
 
-      {/* ── Structural drift dialog ────────────────────────────────── */}
-      <StructuralDriftDialog
-        driftItem={currentDriftItem}
-        onResolve={resolveDrift}
-      />
     </FlexColumn>
   );
 });

@@ -6,8 +6,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
+import { Fab } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import CallSplitIcon from "@mui/icons-material/CallSplit";
 import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
@@ -23,7 +23,9 @@ import {
 } from "../../../stores/sketch/SketchLayerBindingsStore";
 import { useSketchStore } from "../state/useSketchStore";
 import { useGenerateLayer } from "../../../hooks/sketch/useGenerateLayer";
-import { ToolbarIconButton, FlexRow, Toast } from "../../ui_primitives";
+import { ToolbarIconButton, FlexRow, Toast, Tooltip } from "../../ui_primitives";
+import { cn } from "../../editor_ui/editorUtils";
+import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 const actionsRowStyles = (theme: Theme) =>
   css({
@@ -39,6 +41,71 @@ const sectionLabelStyles = (theme: Theme) =>
     color: theme.vars.palette.text.secondary,
     userSelect: "none",
     paddingRight: theme.spacing(0.5)
+  });
+
+/**
+ * Primary run button — mirrors the FloatingToolBar's primary Fab so the
+ * run/stop affordance feels consistent across the app.
+ *  - Idle: primary background with a soft glow.
+ *  - Hover: rounds to a circle and brightens.
+ *  - Running: grey background with a spinning conic-gradient ring.
+ */
+const runButtonStyles = (theme: Theme) =>
+  css({
+    width: 32,
+    height: 32,
+    minHeight: 32,
+    position: "relative",
+    overflow: "visible",
+    borderRadius: "var(--rounded-xxl)",
+    border: "none",
+    boxShadow: `0 3px 12px ${theme.vars.palette.success.main}40, 0 0 14px ${theme.vars.palette.success.main}25`,
+    backgroundColor: theme.vars.palette.primary.main,
+    color: theme.vars.palette.primary.contrastText,
+    transition: "all 0.3s ease",
+
+    "& svg": {
+      fontSize: 18
+    },
+
+    "&:hover": {
+      borderRadius: "var(--rounded-circle)",
+      backgroundColor: theme.vars.palette.primary.light,
+      boxShadow: `0 4px 14px ${theme.vars.palette.primary.main}60, 0 0 20px ${theme.vars.palette.success.main}40`
+    },
+
+    "&.Mui-disabled": {
+      opacity: 0.4,
+      pointerEvents: "none",
+      boxShadow: "none"
+    },
+
+    "&.running": {
+      backgroundColor: theme.vars.palette.grey[800],
+      color: theme.vars.palette.grey[100],
+      borderRadius: "var(--rounded-circle)",
+      boxShadow: `0 2px 8px ${theme.vars.palette.common.black}30`,
+      "&::after": {
+        content: '""',
+        position: "absolute",
+        inset: "-3px",
+        borderRadius: "inherit",
+        padding: "3px",
+        background: `conic-gradient(from 0deg, transparent 40%, ${theme.vars.palette.primary.main} 95%, ${theme.vars.palette.primary.main})`,
+        WebkitMask:
+          "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+        WebkitMaskComposite: "xor",
+        maskComposite: "exclude",
+        animation: "border-spin 2s linear infinite",
+        pointerEvents: "none",
+        zIndex: -1
+      }
+    },
+
+    "@keyframes border-spin": {
+      "0%": { transform: "rotate(0deg)" },
+      "100%": { transform: "rotate(360deg)" }
+    }
   });
 
 export interface LayerActionsProps {
@@ -79,71 +146,40 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
         }
       });
 
-    const variationBusyRef = useRef(false);
-    const [variationBusy, setVariationBusy] = useState(false);
-    const [variationError, setVariationError] = useState<string | null>(null);
+    const duplicateBusyRef = useRef(false);
+    const [duplicateBusy, setDuplicateBusy] = useState(false);
+    const [duplicateError, setDuplicateError] = useState<string | null>(null);
     const [generationError, setGenerationError] = useState<string | null>(null);
-    const [linkedBusy, setLinkedBusy] = useState(false);
+    // Re-entrancy guard for the run button: a second click before the
+    // job state propagates back from the runner would otherwise call
+    // generateLayer() twice and the second call gets dropped by the
+    // WorkflowRunner ("Ignoring run request while workflow is busy").
+    const generatePendingRef = useRef(false);
+    const [generatePending, setGeneratePending] = useState(false);
 
-    const handleDuplicateLinked = useCallback(async () => {
-      if (!documentId || linkedBusy) {
+    const handleDuplicate = useCallback(async () => {
+      if (!documentId || duplicateBusyRef.current) {
         return;
       }
-      setLinkedBusy(true);
+      duplicateBusyRef.current = true;
+      setDuplicateBusy(true);
       const newLayerId = addLayer(`${sourceName} (copy)`, "raster");
       try {
         const newBinding = await trpcClient.sketch.layers.duplicate.mutate({
           id: documentId,
           layerId,
-          newLayerId,
-          mode: "linked"
+          newLayerId
         });
         upsertBinding(newBinding);
         setActiveLayer(newLayerId);
       } catch (err) {
-        // Roll back the visual layer if the server bind failed.
         removeLayer(newLayerId);
-        setVariationError(
+        setDuplicateError(
           err instanceof Error ? err.message : "Failed to duplicate layer"
         );
       } finally {
-        setLinkedBusy(false);
-      }
-    }, [
-      addLayer,
-      documentId,
-      layerId,
-      linkedBusy,
-      removeLayer,
-      setActiveLayer,
-      sourceName,
-      upsertBinding
-    ]);
-
-    const handleDuplicateVariation = useCallback(async () => {
-      if (!documentId || variationBusyRef.current) {
-        return;
-      }
-      variationBusyRef.current = true;
-      setVariationBusy(true);
-      const newLayerId = addLayer(`${sourceName} (variation)`, "raster");
-      try {
-        const newBinding = await trpcClient.sketch.layers.duplicate.mutate({
-          id: documentId,
-          layerId,
-          newLayerId,
-          mode: "variation"
-        });
-        upsertBinding(newBinding);
-        setActiveLayer(newLayerId);
-      } catch (err) {
-        removeLayer(newLayerId);
-        setVariationError(
-          err instanceof Error ? err.message : "Failed to create variation"
-        );
-      } finally {
-        variationBusyRef.current = false;
-        setVariationBusy(false);
+        duplicateBusyRef.current = false;
+        setDuplicateBusy(false);
       }
     }, [
       addLayer,
@@ -164,6 +200,11 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
     }, [layerId, revert]);
 
     const handleGenerate = useCallback(async () => {
+      if (generatePendingRef.current) {
+        return;
+      }
+      generatePendingRef.current = true;
+      setGeneratePending(true);
       try {
         await generateLayer();
       } catch (err) {
@@ -172,6 +213,9 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
             ? err.message
             : "Failed to start layer generation"
         );
+      } finally {
+        generatePendingRef.current = false;
+        setGeneratePending(false);
       }
     }, [generateLayer]);
 
@@ -199,50 +243,50 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
         <FlexRow css={actionsRowStyles(theme)}>
           <span css={sectionLabelStyles(theme)}>Layer</span>
 
-          <ToolbarIconButton
-            icon={
-              isActive ? (
-                <StopIcon fontSize="small" />
-              ) : (
-                <PlayArrowIcon fontSize="small" />
-              )
-            }
-            tooltip={
+          <Tooltip
+            title={
               isActive
                 ? "Cancel generation"
-                : "Generate layer from the bound workflow and overrides"
+                : generatePending
+                  ? "Starting…"
+                  : "Generate layer from the bound workflow and overrides"
             }
-            onClick={
-              isActive
-                ? () => void handleCancelGeneration()
-                : () => void handleGenerate()
-            }
-            active={isGenerating}
-            aria-label={isActive ? "Cancel layer generation" : "Generate layer"}
-            disabled={!binding.workflowId || isLocked}
-            data-testid="layer-action-generate"
-          />
+            delay={TOOLTIP_ENTER_DELAY}
+            placement="top"
+          >
+            <span style={{ display: "inline-flex" }}>
+              <Fab
+                size="small"
+                css={runButtonStyles(theme)}
+                className={cn((isGenerating || generatePending) && "running")}
+                onClick={
+                  isActive
+                    ? () => void handleCancelGeneration()
+                    : () => void handleGenerate()
+                }
+                disabled={
+                  !binding.workflowId ||
+                  isLocked ||
+                  (!isActive && generatePending)
+                }
+                disableRipple
+                aria-label={
+                  isActive ? "Cancel layer generation" : "Generate layer"
+                }
+                data-testid="layer-action-generate"
+              >
+                {isActive || generatePending ? <StopIcon /> : <PlayArrowIcon />}
+              </Fab>
+            </span>
+          </Tooltip>
 
           <ToolbarIconButton
             icon={<ContentCopyIcon fontSize="small" />}
-            tooltip="Duplicate Linked — same graph, independent param overrides"
-            onClick={() => void handleDuplicateLinked()}
-            disabled={linkedBusy || !documentId}
-            aria-label="Duplicate layer linked"
-            data-testid="layer-action-duplicate-linked"
-          />
-
-          <ToolbarIconButton
-            icon={<CallSplitIcon fontSize="small" />}
-            tooltip={
-              variationBusy
-                ? "Cloning workflow…"
-                : "Duplicate as Variation — clones graph for an independent take"
-            }
-            onClick={() => void handleDuplicateVariation()}
-            disabled={variationBusy || !documentId}
-            aria-label="Duplicate layer as variation"
-            data-testid="layer-action-duplicate-variation"
+            tooltip="Duplicate — copies overrides; tweak params for a variation"
+            onClick={() => void handleDuplicate()}
+            disabled={duplicateBusy || !documentId}
+            aria-label="Duplicate layer"
+            data-testid="layer-action-duplicate"
           />
 
           <ToolbarIconButton
@@ -285,10 +329,10 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
         </FlexRow>
 
         <Toast
-          open={variationError !== null}
-          message={variationError ?? ""}
+          open={duplicateError !== null}
+          message={duplicateError ?? ""}
           severity="error"
-          onClose={() => setVariationError(null)}
+          onClose={() => setDuplicateError(null)}
           vertical="top"
           horizontal="center"
         />

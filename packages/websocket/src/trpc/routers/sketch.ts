@@ -302,18 +302,7 @@ export const sketchRouter = router({
     .output(okOutput)
     .mutation(async ({ ctx, input }) => {
       const doc = await loadOwned(ctx.userId, input.id);
-      const data = doc.toDocumentData();
-      const workflowIds = data.layerBindings
-        .map((b) => b.workflowId)
-        .filter(Boolean) as string[];
-
-      // Delete the document first so countLayerReferences no longer
-      // finds it, then cascade-delete orphaned layer workflows.
       await doc.delete();
-
-      for (const wfId of workflowIds) {
-        await Workflow.deleteLayerIfOrphaned(wfId);
-      }
       return { ok: true as const };
     }),
 
@@ -435,9 +424,9 @@ export const sketchRouter = router({
           );
         }
 
-        // Validate access to the source workflow before cloning: the caller
-        // must own it or it must be public. Using Workflow.find here keeps
-        // private workflows owned by other users out of reach.
+        // Validate access to the source workflow: caller must own it or it
+        // must be public. Workflow.find filters out private workflows owned
+        // by other users.
         const source = await Workflow.find(
           ctx.userId!,
           input.sourceWorkflowId
@@ -454,7 +443,6 @@ export const sketchRouter = router({
           unknown
         >[];
 
-        // Find terminal output nodes suitable for image layers
         const outputNodes = sourceNodes.filter((n) =>
           isImageOutputNode(n.type as string)
         );
@@ -487,7 +475,6 @@ export const sketchRouter = router({
           );
         }
 
-        // Seed paramOverrides from each Input* node default
         const paramOverrides: Record<string, unknown> = {};
         for (const node of sourceNodes) {
           if (!isInputNode(node.type as string)) continue;
@@ -497,18 +484,11 @@ export const sketchRouter = router({
           }
         }
 
-        // Validation passed — clone the source workflow into a layer-private row.
-        const clone = await Workflow.cloneAsLayerPrivate(
-          input.sourceWorkflowId,
-          ctx.userId!
-        );
-
-        // Compute initial dependencyHash
         const workflowUpdatedAt =
-          (clone.updated_at as string | undefined | null) ??
+          (source.updated_at as string | undefined | null) ??
           new Date().toISOString();
         const dependencyHash = computeDependencyHash({
-          workflowId: clone.id,
+          workflowId: source.id,
           workflowUpdatedAt,
           paramOverrides,
           inputAssetHashes: []
@@ -516,7 +496,7 @@ export const sketchRouter = router({
 
         const newBinding: LayerWorkflowBinding = {
           layerId: input.layerId,
-          workflowId: clone.id,
+          workflowId: source.id,
           selectedOutputNodeId: selectedOutputNode.id as string,
           paramOverrides,
           dependencyHash,
@@ -526,46 +506,32 @@ export const sketchRouter = router({
           versions: []
         };
 
-        try {
-          return await mutateOwnedDocumentData(ctx.userId, input.id, (latest) => {
-            if (findBinding(latest, input.layerId)) {
-              throwApiError(
-                ApiErrorCode.ALREADY_EXISTS,
-                `Layer binding already exists for layerId ${input.layerId}`
-              );
-            }
-            latest.layerBindings.push(newBinding);
-            return newBinding;
-          });
-        } catch (error) {
-          await Workflow.deleteLayerIfOrphaned(clone.id);
-          throw error;
-        }
+        return await mutateOwnedDocumentData(ctx.userId, input.id, (latest) => {
+          if (findBinding(latest, input.layerId)) {
+            throwApiError(
+              ApiErrorCode.ALREADY_EXISTS,
+              `Layer binding already exists for layerId ${input.layerId}`
+            );
+          }
+          latest.layerBindings.push(newBinding);
+          return newBinding;
+        });
       }),
 
     delete: protectedProcedure
       .input(z.object({ id: z.string(), layerId: z.string() }))
       .output(okOutput)
       .mutation(async ({ ctx, input }) => {
-        const binding = await mutateOwnedDocumentData(
-          ctx.userId,
-          input.id,
-          (data) => {
-            const bindingIndex = data.layerBindings.findIndex(
-              (b) => b.layerId === input.layerId
-            );
-            if (bindingIndex === -1) {
-              throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
-            }
-
-            const [removed] = data.layerBindings.splice(bindingIndex, 1);
-            return removed!;
+        await mutateOwnedDocumentData(ctx.userId, input.id, (data) => {
+          const bindingIndex = data.layerBindings.findIndex(
+            (b) => b.layerId === input.layerId
+          );
+          if (bindingIndex === -1) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
           }
-        );
-
-        if (binding.workflowId) {
-          await Workflow.deleteLayerIfOrphaned(binding.workflowId);
-        }
+          data.layerBindings.splice(bindingIndex, 1);
+          return null;
+        });
         return { ok: true as const };
       }),
 
@@ -574,80 +540,40 @@ export const sketchRouter = router({
         z.object({
           id: z.string(),
           layerId: z.string(),
-          newLayerId: z.string(),
-          mode: z.enum(["linked", "variation"])
+          newLayerId: z.string()
         })
       )
       .output(createLayerResponse)
       .mutation(async ({ ctx, input }) => {
-        const doc = await loadOwned(ctx.userId, input.id);
-        const data = doc.toDocumentData();
-        const src = findBinding(data, input.layerId);
-        if (!src) {
-          throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
-        }
-        if (findBinding(data, input.newLayerId)) {
-          throwApiError(
-            ApiErrorCode.ALREADY_EXISTS,
-            `Layer binding already exists for layerId ${input.newLayerId}`
-          );
-        }
-
-        const sourceWorkflowId = src.workflowId;
-        let clonedWorkflowId: string | undefined;
-        if (input.mode === "variation" && sourceWorkflowId) {
-          const clonedWorkflow = await Workflow.cloneAsLayerPrivate(
-            sourceWorkflowId,
-            ctx.userId
-          );
-          clonedWorkflowId = clonedWorkflow.id;
-        }
-
-        try {
-          return await mutateOwnedDocumentData(ctx.userId, input.id, (latest) => {
-            const latestSrc = findBinding(latest, input.layerId);
-            if (!latestSrc) {
-              throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
-            }
-            if (findBinding(latest, input.newLayerId)) {
-              throwApiError(
-                ApiErrorCode.ALREADY_EXISTS,
-                `Layer binding already exists for layerId ${input.newLayerId}`
-              );
-            }
-            if (
-              input.mode === "variation" &&
-              latestSrc.workflowId !== sourceWorkflowId
-            ) {
-              throwApiError(
-                ApiErrorCode.ALREADY_EXISTS,
-                "Layer binding changed concurrently; retry the operation"
-              );
-            }
-
-            const newBinding: LayerWorkflowBinding = {
-              layerId: input.newLayerId,
-              workflowId: clonedWorkflowId ?? latestSrc.workflowId,
-              selectedOutputNodeId: latestSrc.selectedOutputNodeId,
-              paramOverrides: latestSrc.paramOverrides
-                ? structuredClone(latestSrc.paramOverrides)
-                : undefined,
-              dependencyHash: latestSrc.dependencyHash,
-              lastGeneratedHash: undefined,
-              currentAssetId: undefined,
-              status: "draft",
-              versions: []
-            };
-
-            latest.layerBindings.push(newBinding);
-            return newBinding;
-          });
-        } catch (error) {
-          if (clonedWorkflowId) {
-            await Workflow.deleteLayerIfOrphaned(clonedWorkflowId);
+        return await mutateOwnedDocumentData(ctx.userId, input.id, (latest) => {
+          const src = findBinding(latest, input.layerId);
+          if (!src) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
           }
-          throw error;
-        }
+          if (findBinding(latest, input.newLayerId)) {
+            throwApiError(
+              ApiErrorCode.ALREADY_EXISTS,
+              `Layer binding already exists for layerId ${input.newLayerId}`
+            );
+          }
+
+          const newBinding: LayerWorkflowBinding = {
+            layerId: input.newLayerId,
+            workflowId: src.workflowId,
+            selectedOutputNodeId: src.selectedOutputNodeId,
+            paramOverrides: src.paramOverrides
+              ? structuredClone(src.paramOverrides)
+              : undefined,
+            dependencyHash: src.dependencyHash,
+            lastGeneratedHash: undefined,
+            currentAssetId: undefined,
+            status: "draft",
+            versions: []
+          };
+
+          latest.layerBindings.push(newBinding);
+          return newBinding;
+        });
       })
   })
 });

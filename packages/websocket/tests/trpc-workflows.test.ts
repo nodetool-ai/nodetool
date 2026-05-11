@@ -13,7 +13,6 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       get: vi.fn(),
       find: vi.fn(),
       paginate: vi.fn(),
-      promoteToTemplate: vi.fn(),
       paginatePublic: vi.fn(),
       paginateTools: vi.fn(),
       create: vi.fn()
@@ -44,8 +43,7 @@ vi.mock("@nodetool-ai/kernel", () => {
 import {
   Workflow,
   WorkflowVersion,
-  Job,
-  WorkflowNotClipPrivateError
+  Job
 } from "@nodetool-ai/models";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
 
@@ -763,60 +761,6 @@ describe("workflows router", () => {
       await expect(
         caller.workflows.generateName({ id: "wf-1" })
       ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-    });
-  });
-
-  describe("promoteToTemplate", () => {
-    it("promotes an owned clip-private workflow", async () => {
-      const clipWf = makeWorkflow({
-        id: "wf-clip",
-        user_id: "user-1",
-        access: "private",
-        run_mode: "clip",
-        tags: ["timeline-template"]
-      });
-      const promoted = { ...clipWf, run_mode: "workflow" };
-      (Workflow.get as ReturnType<typeof vi.fn>)
-        .mockResolvedValueOnce(clipWf)
-        .mockResolvedValueOnce(promoted);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.workflows.promoteToTemplate({ id: "wf-clip" });
-      expect(Workflow.promoteToTemplate).toHaveBeenCalledWith("wf-clip");
-      expect(result.run_mode).toBe("workflow");
-    });
-
-    it("requires ownership", async () => {
-      const clipWf = makeWorkflow({
-        id: "wf-clip",
-        user_id: "other-user",
-        access: "private",
-        run_mode: "clip"
-      });
-      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(clipWf);
-
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.workflows.promoteToTemplate({ id: "wf-clip" })
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    });
-
-    it("requires clip-private workflow input", async () => {
-      const standalone = makeWorkflow({
-        id: "wf-standalone",
-        user_id: "user-1",
-        access: "private",
-        run_mode: "workflow"
-      });
-      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(standalone);
-      (Workflow.promoteToTemplate as ReturnType<typeof vi.fn>).mockRejectedValue(
-        new WorkflowNotClipPrivateError("wf-standalone")
-      );
-
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.workflows.promoteToTemplate({ id: "wf-standalone" })
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     });
   });
 

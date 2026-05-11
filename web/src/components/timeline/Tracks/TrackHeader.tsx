@@ -21,17 +21,23 @@ import LockOpenIcon from "@mui/icons-material/LockOpen";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { Tooltip } from "../../ui_primitives";
+import {
+  DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX,
+  FX_PANEL_HEIGHT_PX
+} from "./trackHeight";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
 export const TRACK_HEADER_WIDTH_PX = 160;
 const MIN_TRACK_HEIGHT_PX = 40;
 const MAX_TRACK_HEIGHT_PX = 300;
-const DEFAULT_TRACK_HEIGHT_PX = 64;
+const DEFAULT_TRACK_HEIGHT_PX = SHARED_DEFAULT_TRACK_HEIGHT_PX;
 const RESIZE_HANDLE_HEIGHT_PX = 6;
 
 // ── Styles ─────────────────────────────────────────────────────────────────
@@ -195,6 +201,19 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
   );
 
   const isAudioTrack = track.type === "audio";
+  const effectsCount = track.effects?.length ?? 0;
+  const hasActiveEffects =
+    track.effects?.some((e) => e.enabled) ?? false;
+
+  // ── Inline FX panel toggle ──────────────────────────────────────────────
+
+  const fxExpanded = useTimelineUIStore(
+    (s) => s.expandedFxTrackId === track.id
+  );
+  const toggleExpandedFx = useTimelineUIStore((s) => s.toggleExpandedFx);
+  const handleFxToggle = useCallback(() => {
+    toggleExpandedFx(track.id);
+  }, [toggleExpandedFx, track.id]);
 
   return (
     <div
@@ -263,6 +282,24 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
                 aria-pressed={!!track.solo}
               >
                 <span style={{ fontSize: 11, fontWeight: 700 }}>S</span>
+              </button>
+            </Tooltip>
+
+            <Tooltip
+              title={
+                effectsCount === 0
+                  ? "Effects chain (empty)"
+                  : `Effects chain (${effectsCount})`
+              }
+            >
+              <button
+                css={iconButtonStyles(theme, hasActiveEffects || fxExpanded)}
+                onClick={handleFxToggle}
+                aria-label={fxExpanded ? "Hide effects chain" : "Show effects chain"}
+                aria-pressed={fxExpanded}
+                data-testid={`track-fx-${track.id}`}
+              >
+                <GraphicEqIcon />
               </button>
             </Tooltip>
           </>

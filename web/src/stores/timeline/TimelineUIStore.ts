@@ -36,6 +36,12 @@ export interface TimelineUIState {
   scrollLeftPx: number;
   /** Whether the tracks area is in fullscreen mode. */
   fullscreen: boolean;
+  /**
+   * ID of the audio track whose DSP chain editor is currently expanded
+   * inline below the track row, or null if none. Only one chain editor is
+   * shown at a time to keep vertical layout tractable.
+   */
+  expandedFxTrackId: string | null;
 
   // ── Selection ────────────────────────────────────────────────────────────
 
@@ -69,6 +75,16 @@ export interface TimelineUIState {
   // ── Tool ─────────────────────────────────────────────────────────────────
 
   setActiveTool: (tool: TimelineTool) => void;
+
+  // ── FX panel ─────────────────────────────────────────────────────────────
+
+  /**
+   * Expand the DSP chain editor for the given track inline below its row.
+   * Pass null to collapse any open editor.
+   */
+  setExpandedFxTrackId: (trackId: string | null) => void;
+  /** Toggle the inline DSP chain editor for the given track. */
+  toggleExpandedFx: (trackId: string) => void;
 }
 
 const MIN_MS_PER_PX = 0.5;
@@ -81,6 +97,7 @@ export const useTimelineUIStore = create<TimelineUIState>((set, get) => ({
   msPerPx: 10,
   scrollLeftPx: 0,
   fullscreen: false,
+  expandedFxTrackId: null,
 
   selectClip: (id) => set({ selectedClipIds: new Set([id]) }),
 
@@ -120,7 +137,15 @@ export const useTimelineUIStore = create<TimelineUIState>((set, get) => ({
 
   toggleFullscreen: () => set((state) => ({ fullscreen: !state.fullscreen })),
 
-  setActiveTool: (tool) => set({ activeTool: tool })
+  setActiveTool: (tool) => set({ activeTool: tool }),
+
+  setExpandedFxTrackId: (trackId) => set({ expandedFxTrackId: trackId }),
+
+  toggleExpandedFx: (trackId) =>
+    set((state) => ({
+      expandedFxTrackId:
+        state.expandedFxTrackId === trackId ? null : trackId
+    }))
 }));
 
 // ── Convenience selectors ──────────────────────────────────────────────────

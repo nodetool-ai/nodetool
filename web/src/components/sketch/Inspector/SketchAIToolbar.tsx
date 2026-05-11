@@ -5,6 +5,7 @@ import React, { memo, useCallback, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 
 import {
   Dialog,
@@ -19,6 +20,7 @@ import { useSketchStore } from "../state/useSketchStore";
 import { useSketchLayerBindingsStore } from "../../../stores/sketch/SketchLayerBindingsStore";
 import { useInpaintHere } from "../../../hooks/sketch/useInpaintHere";
 import { useRegenerateStaleLayers } from "../../../hooks/sketch/useRegenerateStaleLayers";
+import { CreateGeneratedLayerDialog } from "./CreateGeneratedLayerDialog";
 
 const SketchAIToolbarInner: React.FC = () => {
   const theme = useTheme();
@@ -46,6 +48,7 @@ const SketchAIToolbarInner: React.FC = () => {
 
   const [error, setError] = useState<string | null>(null);
   const [confirmRegenOpen, setConfirmRegenOpen] = useState(false);
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
 
   const handleInpaint = useCallback(async () => {
     const result = await inpaintHere();
@@ -111,6 +114,23 @@ const SketchAIToolbarInner: React.FC = () => {
         </Tooltip>
 
         <Tooltip
+          title="Generate Layer — bind a new layer to any workflow with an image output."
+          delay={TOOLTIP_ENTER_DELAY}
+          placement="bottom"
+        >
+          <span>
+            <EditorButton
+              onClick={() => setGenerateDialogOpen(true)}
+              size="small"
+              startIcon={<AddPhotoAlternateIcon fontSize="small" />}
+              data-testid="sketch-action-generate-layer"
+            >
+              Generate Layer
+            </EditorButton>
+          </span>
+        </Tooltip>
+
+        <Tooltip
           title={
             staleCount === 0
               ? "No stale layers."
@@ -132,6 +152,11 @@ const SketchAIToolbarInner: React.FC = () => {
           </span>
         </Tooltip>
       </FlexRow>
+
+      <CreateGeneratedLayerDialog
+        open={generateDialogOpen}
+        onClose={() => setGenerateDialogOpen(false)}
+      />
 
       <Dialog
         open={confirmRegenOpen}

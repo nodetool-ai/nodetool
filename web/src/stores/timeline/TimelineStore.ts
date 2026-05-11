@@ -31,13 +31,15 @@ import {
   snap,
   makeTrack,
   makeClip,
+  makeTrackEffect,
   createTimeOrderedUuid
 } from "@nodetool-ai/timeline";
 import type {
   TimelineSequence,
   TimelineTrack,
   TimelineClip,
-  TimelineMarker
+  TimelineMarker,
+  TrackEffect
 } from "@nodetool-ai/timeline";
 import type { Asset } from "../ApiTypes";
 import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
@@ -87,6 +89,25 @@ export interface TimelineStoreState {
   setTrackSolo: (trackId: string, solo: boolean) => void;
   setTrackName: (trackId: string, name: string) => void;
 
+  // ── Track DSP effects ────────────────────────────────────────────────────
+
+  /** Append a new effect of the given type to the track's DSP chain. */
+  addTrackEffect: (trackId: string, type: TrackEffect["type"]) => void;
+  /** Patch a single effect by id. Type-narrowed at the call site. */
+  updateTrackEffect: (
+    trackId: string,
+    effectId: string,
+    patch: Partial<TrackEffect>
+  ) => void;
+  /** Remove an effect from the track's chain. */
+  removeTrackEffect: (trackId: string, effectId: string) => void;
+  /** Move an effect within the chain (oldIndex → newIndex). */
+  moveTrackEffect: (
+    trackId: string,
+    oldIndex: number,
+    newIndex: number
+  ) => void;
+
   // ── Clip mutations ───────────────────────────────────────────────────────
 
   /**
@@ -122,7 +143,11 @@ export interface TimelineStoreState {
    * Throws (and no-ops) if the result would produce a non-positive duration.
    */
   trimClipStart: (clipId: string, deltaMs: number) => void;
-  trimClipEnd: (clipId: string, deltaMs: number) => void;
+  trimClipEnd: (
+    clipId: string,
+    deltaMs: number,
+    maxSourceDurationMs?: number
+  ) => void;
 
   /** Split the clip at the given time. The clip must contain that time. */
   splitClipAtTime: (clipId: string, atMs: number) => void;
@@ -131,10 +156,17 @@ export interface TimelineStoreState {
   splitSelectedAtPlayhead: (currentTimeMs: number, selectedIds: Set<string>) => void;
 
   /**
-   * Duplicate selected clips (offset by `offsetMs`, default 0 = placed at same
-   * start — callers should apply a reasonable offset).
+   * Duplicate selected clips. Each duplicate is placed immediately after its
+   * source clip (startMs = source.startMs + source.durationMs + offsetMs).
+   * Default `offsetMs` of 0 means "right after"; pass a positive value to add
+   * a gap between source and duplicate.
+   *
+   * Returns the IDs of the newly created clips so callers can update selection.
    */
-  duplicateSelected: (selectedIds: Set<string>, offsetMs?: number) => void;
+  duplicateSelected: (
+    selectedIds: Set<string>,
+    offsetMs?: number
+  ) => string[];
 
   /** Delete selected clips. */
   deleteSelected: (selectedIds: Set<string>) => void;
@@ -158,9 +190,16 @@ export interface TimelineStoreState {
   /** Restore a clip to a previously generated version (purely local; autosave persists on next save cycle). */
   restoreVersion: (clipId: string, versionId: string) => void;
 
-  duplicateClipLinked: (clipId: string, deltaMs?: number) => void;
-
-  duplicateClipAsVariation: (clipId: string, deltaMs?: number) => Promise<string>;
+  /**
+   * Duplicate a clip. Both the source and the duplicate reference the same
+   * source workflow id; their `paramOverrides` are independent. Tweak the
+   * duplicate's overrides to get a variation.
+   *
+   * The duplicate is placed immediately after the source clip
+   * (startMs = source.startMs + source.durationMs + deltaMs). Default
+   * `deltaMs` of 0 means "right after"; pass a positive value for a gap.
+   */
+  duplicateClip: (clipId: string, deltaMs?: number) => Promise<string>;
 
   setClipLocked: (clipId: string, locked: boolean) => void;
 
@@ -201,11 +240,9 @@ export interface TimelineStoreState {
   setClipsOutputNode: (workflowId: string, selectedOutputNodeId: string) => void;
 
   /**
-   * Create a generated clip by cloning `sourceWorkflowId` into a
-   * `run_mode = "clip"` workflow row, then inserting the clip into the
-   * current sequence document.
-   *
-   * Returns the id of the newly created clip.
+   * Create a generated clip bound to `sourceWorkflowId` (no clone) and
+   * insert it into the current sequence document. Returns the id of the
+   * newly created clip.
    */
   addGeneratedClip: (
     sourceWorkflowId: string,
@@ -346,6 +383,61 @@ export const createTimelineStore = (
             )
           })),
 
+        // ── Track DSP effects ─────────────────────────────────────────────
+
+        addTrackEffect: (trackId, type) =>
+          set((state) => ({
+            tracks: state.tracks.map((t) => {
+              if (t.id !== trackId) return t;
+              const effects = [...(t.effects ?? []), makeTrackEffect(type)];
+              return { ...t, effects };
+            })
+          })),
+
+        updateTrackEffect: (trackId, effectId, patch) =>
+          set((state) => ({
+            tracks: state.tracks.map((t) => {
+              if (t.id !== trackId) return t;
+              const effects = (t.effects ?? []).map((e) =>
+                e.id === effectId
+                  ? ({ ...e, ...patch } as TrackEffect)
+                  : e
+              );
+              return { ...t, effects };
+            })
+          })),
+
+        removeTrackEffect: (trackId, effectId) =>
+          set((state) => ({
+            tracks: state.tracks.map((t) => {
+              if (t.id !== trackId) return t;
+              const effects = (t.effects ?? []).filter(
+                (e) => e.id !== effectId
+              );
+              return { ...t, effects };
+            })
+          })),
+
+        moveTrackEffect: (trackId, oldIndex, newIndex) =>
+          set((state) => ({
+            tracks: state.tracks.map((t) => {
+              if (t.id !== trackId) return t;
+              const effects = [...(t.effects ?? [])];
+              if (
+                oldIndex < 0 ||
+                oldIndex >= effects.length ||
+                newIndex < 0 ||
+                newIndex >= effects.length ||
+                oldIndex === newIndex
+              ) {
+                return t;
+              }
+              const [moved] = effects.splice(oldIndex, 1);
+              effects.splice(newIndex, 0, moved);
+              return { ...t, effects };
+            })
+          })),
+
         // ── Clips ───────────────────────────────────────────────────────────
 
         moveClip: (clipId, deltaMs, toTrackId, snapCandidates, msPerPx, disableSnap) =>
@@ -453,14 +545,24 @@ export const createTimelineStore = (
             }
           }),
 
-        trimClipEnd: (clipId, deltaMs) =>
+        trimClipEnd: (clipId, deltaMs, maxSourceDurationMs) =>
           set((state) => {
             const clip = state.clips.find((c) => c.id === clipId);
             if (!clip) {
               return state;
             }
             try {
-              const trimmed = trimClip(clip, "end", deltaMs);
+              // Clamp deltaMs so that outPointMs cannot exceed source duration.
+              let clampedDelta = deltaMs;
+              if (maxSourceDurationMs !== undefined) {
+                const currentOutPointMs =
+                  clip.outPointMs ?? (clip.inPointMs ?? 0) + clip.durationMs;
+                const maxGrow = maxSourceDurationMs - currentOutPointMs;
+                if (clampedDelta > maxGrow) {
+                  clampedDelta = Math.max(0, maxGrow);
+                }
+              }
+              const trimmed = trimClip(clip, "end", clampedDelta);
               return {
                 clips: state.clips.map((c) =>
                   c.id === clipId ? trimmed : c
@@ -513,19 +615,24 @@ export const createTimelineStore = (
             return { clips: nextClips };
           }),
 
-        duplicateSelected: (selectedIds, offsetMs = 0) =>
+        duplicateSelected: (selectedIds, offsetMs = 0) => {
+          const newIds: string[] = [];
           set((state) => {
             const newClips = state.clips
               .filter((c) => selectedIds.has(c.id))
-              .map((c) =>
-                makeClip({
+              .map((c) => {
+                const id = createTimeOrderedUuid();
+                newIds.push(id);
+                return makeClip({
                   ...c,
-                  id: createTimeOrderedUuid(),
-                  startMs: c.startMs + offsetMs
-                })
-              );
+                  id,
+                  startMs: c.startMs + c.durationMs + offsetMs
+                });
+              });
             return { clips: [...state.clips, ...newClips] };
-          }),
+          });
+          return newIds;
+        },
 
         deleteSelected: (selectedIds) =>
           set((state) => ({
@@ -582,47 +689,10 @@ export const createTimelineStore = (
             };
           }),
 
-        duplicateClipLinked: (clipId, deltaMs = 0) =>
-          set((state) => {
-            const src = state.clips.find((c) => c.id === clipId);
-            if (!src) {
-              return state;
-            }
-            const newClip = makeClip({
-              ...src,
-              id: createTimeOrderedUuid(),
-              startMs: src.startMs + deltaMs,
-              paramOverrides: src.paramOverrides
-                ? structuredClone(src.paramOverrides)
-                : undefined,
-              status: "draft",
-              locked: false,
-              currentAssetId: undefined,
-              lastGeneratedHash: undefined,
-              versions: []
-            });
-            return { clips: [...state.clips, newClip] };
-          }),
-
-        duplicateClipAsVariation: async (clipId, deltaMs = 0) => {
+        duplicateClip: async (clipId, deltaMs = 0) => {
           const src = get().clips.find((c) => c.id === clipId);
           if (!src) {
             throw new Error(`Clip ${clipId} not found`);
-          }
-
-          let newWorkflowId: string | undefined;
-
-          if (src.workflowId) {
-            const original = await trpcClient.workflows.get.query({ id: src.workflowId });
-            const cloned = await trpcClient.workflows.create.mutate({
-              name: `${original.name} (variation)`,
-              access: original.access ?? "private",
-              graph: original.graph,
-              description: original.description,
-              tags: original.tags,
-              run_mode: "clip"
-            });
-            newWorkflowId = cloned.id;
           }
 
           let newClipId: string | undefined;
@@ -634,8 +704,8 @@ export const createTimelineStore = (
             const newClip = makeClip({
               ...currentSrc,
               id: createTimeOrderedUuid(),
-              startMs: currentSrc.startMs + deltaMs,
-              workflowId: newWorkflowId,
+              startMs: currentSrc.startMs + currentSrc.durationMs + deltaMs,
+              workflowId: currentSrc.workflowId,
               paramOverrides: currentSrc.paramOverrides
                 ? structuredClone(currentSrc.paramOverrides)
                 : undefined,
@@ -650,7 +720,9 @@ export const createTimelineStore = (
           });
 
           if (!newClipId) {
-            throw new Error(`Source clip ${clipId} was deleted before variation could be created`);
+            throw new Error(
+              `Source clip ${clipId} was deleted before duplicate could be created`
+            );
           }
           return newClipId;
         },
