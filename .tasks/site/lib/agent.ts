@@ -17,7 +17,7 @@ import { mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { eq, desc, asc, inArray } from "drizzle-orm";
+import { and, eq, desc, asc, inArray, notInArray } from "drizzle-orm";
 
 import { db } from "@/db";
 import { agentEvents, agentSessions } from "@/db/schema";
@@ -33,6 +33,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "..", "..", "..");
 const WORKTREE_ROOT = resolve(REPO_ROOT, ".tasks", ".worktrees");
 const DEFAULT_MODEL = process.env.NODETOOL_AGENT_MODEL ?? "claude-sonnet-4-5";
+const KEEP_WORKTREES = !!process.env.NODETOOL_TASKS_KEEP_WORKTREES;
 
 // ──────────────────────────────────────────────────────────
 // In-process state (held on globalThis so HMR doesn't drop sessions)
@@ -46,10 +47,54 @@ interface RunnerState {
 declare global {
   // eslint-disable-next-line no-var
   var __agentRunners: Map<number, RunnerState> | undefined;
+  // eslint-disable-next-line no-var
+  var __agentReaperRan: boolean | undefined;
 }
 
 const runners: Map<number, RunnerState> = globalThis.__agentRunners ?? new Map();
 if (!globalThis.__agentRunners) globalThis.__agentRunners = runners;
+
+// On module load, mark any non-terminal sessions left behind by a previous
+// process as failed. Removes their worktrees too.
+if (!globalThis.__agentReaperRan) {
+  globalThis.__agentReaperRan = true;
+  try {
+    reapOrphans();
+  } catch (err) {
+    console.error("agent: reaper failed:", err);
+  }
+}
+
+function reapOrphans() {
+  const orphans = db
+    .select()
+    .from(agentSessions)
+    .where(notInArray(agentSessions.status, ["completed", "failed", "cancelled"]))
+    .all();
+  for (const orphan of orphans) {
+    if (runners.has(orphan.id)) continue;
+    const now = new Date();
+    db.update(agentSessions)
+      .set({
+        status: "failed",
+        error: orphan.error ?? "Orphaned by server restart",
+        completedAt: now,
+      })
+      .where(eq(agentSessions.id, orphan.id))
+      .run();
+    db.insert(agentEvents)
+      .values({
+        sessionId: orphan.id,
+        type: "status",
+        payload: JSON.stringify({ status: "failed", error: "Orphaned by server restart" }),
+        createdAt: now,
+      })
+      .run();
+    if (orphan.worktreePath) {
+      cleanupWorktree(orphan.worktreePath).catch(() => {});
+    }
+  }
+}
 
 // ──────────────────────────────────────────────────────────
 // Public API
@@ -150,6 +195,7 @@ export function cancelSession(sessionId: number): AgentSessionFull {
   updateSession(sessionId, { status: "cancelled", completedAt: new Date() });
   emit(sessionId, "status", { status: "cancelled" });
   closeBus(sessionId);
+  if (session.worktreePath) cleanupWorktree(session.worktreePath).catch(() => {});
   return getSession(sessionId)!;
 }
 
@@ -232,6 +278,7 @@ async function runSession(sessionId: number, taskId: string, model: string, base
     }
   } finally {
     closeBus(sessionId);
+    if (worktreePath) cleanupWorktree(worktreePath).catch(() => {});
   }
 }
 
@@ -485,4 +532,14 @@ function sanitizeEnv(input: NodeJS.ProcessEnv): Record<string, string> {
     out[k] = v;
   }
   return out;
+}
+
+function cleanupWorktree(path: string): Promise<void> {
+  if (KEEP_WORKTREES) return Promise.resolve();
+  if (!path || !existsSync(path)) return Promise.resolve();
+  return new Promise((resolveP) => {
+    const child = spawn("git", ["worktree", "remove", "--force", path], { cwd: REPO_ROOT });
+    child.on("close", () => resolveP());
+    child.on("error", () => resolveP());
+  });
 }

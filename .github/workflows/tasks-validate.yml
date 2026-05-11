@@ -26,6 +26,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
         working-directory: .tasks/site
+      - name: Test
+        run: npm test
+        working-directory: .tasks/site
       - name: Build
         run: npm run build
         working-directory: .tasks/site

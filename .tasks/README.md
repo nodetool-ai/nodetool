@@ -19,6 +19,13 @@ npm run dev        # http://localhost:3000
 The SQLite file lives at `.tasks/data.db` (gitignored). Override with
 `NODETOOL_TASKS_DB=/path/to/db`.
 
+By default the dev server is open — anyone with network access can
+mutate state and start agent runs. To gate it, set
+`NODETOOL_TASKS_TOKEN=<secret>`: every HTTP route then requires a
+matching `Authorization: Bearer <token>` header (CLI clients) or
+session cookie (web users sign in at `/login`). The CLI talks to the
+DB directly, so the gate doesn't apply there.
+
 ## CLI
 
 `npm run task -- <cmd>` from the repo root:
@@ -106,10 +113,18 @@ Requires:
 - `gh` CLI installed and authenticated for PR creation
 - A `main` branch on `origin` (override per-session via `baseBranch`)
 
+## Tests
+
+`npm test` from `.tasks/site` runs the Vitest suite against an
+in-memory SQLite DB. Coverage focuses on `lib/repo.ts`: state
+machine transitions, criteria gating, dependency validation,
+sequential task-ID minting, plan progress.
+
 ## Tech
 
 - **Next.js 15** (App Router, dynamic SSR)
 - **Drizzle ORM** + **better-sqlite3** (WAL mode, FK enforcement)
 - **Zod** request validation
 - **Claude Agent SDK** for autonomous task execution
+- **Vitest** for the repo-layer test suite
 - **shadcn-style** UI (no Radix dep) + Tailwind v3 + Linear-style status glyphs

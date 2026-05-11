@@ -4,7 +4,7 @@
 
 import * as repo from "./lib/repo";
 import * as agent from "./lib/agent";
-import { STATE_LABEL, TASK_STATES, isTerminalStatus, type TaskState } from "./lib/types";
+import { TASK_STATES, isTerminalStatus, type TaskState } from "./lib/types";
 
 type Args = { _: string[]; [k: string]: unknown };
 
