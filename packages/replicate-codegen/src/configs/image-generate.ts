@@ -578,6 +578,22 @@ export const imageGenerateConfig: ModuleConfig = {
         image: { propType: "image" },
         face_image: { propType: "image" }
       }
+    },
+    "openai/gpt-image-2": {
+      className: "GPT_Image_2",
+      returnType: "image"
+    },
+    "google/nano-banana-2": {
+      className: "Nano_Banana_2",
+      returnType: "image"
+    },
+    "prunaai/z-image-turbo": {
+      className: "Z_Image_Turbo",
+      returnType: "image"
+    },
+    "xai/grok-imagine-image-quality": {
+      className: "Grok_Imagine_Image_Quality",
+      returnType: "image"
     }
   }
 };

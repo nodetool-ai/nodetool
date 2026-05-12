@@ -155,6 +155,11 @@ export const imageUpscaleConfig: ModuleConfig = {
       className: "InvSR",
       returnType: "image",
       fieldOverrides: { image: { propType: "image" } }
+    },
+    "philz1337x/clarity-pro-upscaler": {
+      className: "Clarity_Pro_Upscaler",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" } }
     }
   }
 };

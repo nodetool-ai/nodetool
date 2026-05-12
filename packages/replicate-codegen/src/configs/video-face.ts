@@ -120,6 +120,26 @@ export const videoFaceConfig: ModuleConfig = {
       className: "FlashFace",
       returnType: "image",
       fieldOverrides: { face_image: { propType: "image" } }
+    },
+    "prunaai/p-video-avatar": {
+      className: "P_Video_Avatar",
+      returnType: "video"
+    },
+    "heygen/lipsync-precision": {
+      className: "HeyGen_Lipsync_Precision",
+      returnType: "video",
+      fieldOverrides: {
+        video: { propType: "video" },
+        audio: { propType: "audio" }
+      }
+    },
+    "heygen/lipsync-speed": {
+      className: "HeyGen_Lipsync_Speed",
+      returnType: "video",
+      fieldOverrides: {
+        video: { propType: "video" },
+        audio: { propType: "audio" }
+      }
     }
   }
 };

@@ -60,6 +60,16 @@ export const audioTranscribeConfig: ModuleConfig = {
       className: "Speaker_Diarization_3",
       returnType: "str",
       fieldOverrides: { audio: { propType: "audio" } }
+    },
+    "elevenlabs/scribe-v2": {
+      className: "ElevenLabs_Scribe_V2",
+      returnType: "str",
+      fieldOverrides: { audio: { propType: "audio" } }
+    },
+    "xai/grok-speech-to-text": {
+      className: "Grok_Speech_To_Text",
+      returnType: "str",
+      fieldOverrides: { audio: { propType: "audio" } }
     }
   }
 };

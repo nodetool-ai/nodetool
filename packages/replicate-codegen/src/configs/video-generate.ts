@@ -246,6 +246,26 @@ export const videoGenerateConfig: ModuleConfig = {
     "minimax/video-01-director": {
       className: "Video_01_Director",
       returnType: "video"
+    },
+    "bytedance/seedance-2.0": {
+      className: "Seedance_2",
+      returnType: "video"
+    },
+    "google/veo-3.1-lite": {
+      className: "Veo_3_1_Lite",
+      returnType: "video"
+    },
+    "alibaba/happyhorse-1.0": {
+      className: "HappyHorse_1",
+      returnType: "video"
+    },
+    "pixverse/pixverse-v6": {
+      className: "Pixverse_V6",
+      returnType: "video"
+    },
+    "xai/grok-imagine-video": {
+      className: "Grok_Imagine_Video",
+      returnType: "video"
     }
   }
 };
