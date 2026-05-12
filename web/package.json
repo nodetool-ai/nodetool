@@ -14,7 +14,7 @@
     "@lexical/markdown": "^0.32.1",
     "@lexical/react": "^0.32.1",
     "@lexical/rich-text": "^0.32.1",
-    "@lexical/selection": "^0.32.1",
+    "@lexical/selection": "^0.44.0",
     "@lexical/utils": "^0.32.1",
     "@lobehub/icons-static-svg": "^1.88.0",
     "@monaco-editor/react": "^4.7.0",
