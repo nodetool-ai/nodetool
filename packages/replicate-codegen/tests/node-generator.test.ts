@@ -249,6 +249,17 @@ describe("NodeGenerator.generate()", () => {
     );
   });
 
+  it("passes list scalar fields through without stringifying arrays", () => {
+    const spec = makeSpec({
+      inputFields: [
+        makeField({ name: "texts", propType: "list[str]", default: [] })
+      ]
+    });
+    const code = gen.generate(spec, "text-embed");
+    expect(code).toContain(`const texts = this.texts ?? [];`);
+    expect(code).not.toContain(`String(this.texts`);
+  });
+
   it("includes scalar vars in args object", () => {
     const spec = makeSpec({
       inputFields: [
@@ -327,6 +338,28 @@ describe("NodeGenerator.generate()", () => {
     const code = gen.generate(spec, "audio-to-audio");
     expect(code).toContain(`isRefSet(audioRef)`);
     expect(code).toContain(`assetToUrl(audioRef!, apiKey)`);
+  });
+
+  it("generates list media input handling with per-item assetToUrl calls", () => {
+    const spec = makeSpec({
+      inputFields: [
+        makeField({
+          name: "images",
+          propType: "list[image]",
+          tsType: "string",
+          default: []
+        })
+      ]
+    });
+    const code = gen.generate(spec, "image-to-image");
+    expect(code).toContain(
+      `const imagesRefs = Array.isArray(this.images) ? this.images : [];`
+    );
+    expect(code).toContain(`for (const ref of imagesRefs)`);
+    expect(code).toContain(
+      `const url = await assetToUrl(ref as Record<string, unknown>, apiKey);`
+    );
+    expect(code).toContain(`if (imagesUrls.length) args["images"] = imagesUrls;`);
   });
 
   // ── process() — output handling ───────────────────────────────────────────

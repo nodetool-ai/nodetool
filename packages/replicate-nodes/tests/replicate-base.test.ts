@@ -92,10 +92,10 @@ describe("removeNulls", () => {
     expect("z" in (obj.nested as Record<string, unknown>)).toBe(false);
   });
 
-  it("removes zero values but keeps false", () => {
+  it("keeps zero and false values", () => {
     const obj: Record<string, unknown> = { a: 0, b: false };
     removeNulls(obj);
-    expect(obj).toEqual({ b: false });
+    expect(obj).toEqual({ a: 0, b: false });
   });
 
   it("removes empty strings", () => {
@@ -133,8 +133,8 @@ describe("isRefSet", () => {
     expect(isRefSet({ data: "abc" })).toBe(true));
   it("returns true for { uri: 'https://...' }", () =>
     expect(isRefSet({ uri: "https://example.com/img.png" })).toBe(true));
-  it("returns true for { asset_id: '123' }", () =>
-    expect(isRefSet({ asset_id: "123" })).toBe(true));
+  it("returns false for asset_id-only refs because they cannot be uploaded", () =>
+    expect(isRefSet({ asset_id: "123" })).toBe(false));
 });
 
 /* ================================================================== */

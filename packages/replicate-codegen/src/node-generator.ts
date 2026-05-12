@@ -41,6 +41,9 @@ function fieldToVarName(name: string): string {
 
 /** Return a cast expression for the given propType */
 function castFn(propType: string): string {
+  if (propType.startsWith("list[") || propType.startsWith("dict[")) {
+    return "";
+  }
   switch (propType) {
     case "int":
     case "float":
@@ -101,6 +104,10 @@ function assetKind(field: FieldDef): "image" | "video" | "audio" | "none" {
   if (field.propType === "audio" || field.propType === "list[audio]")
     return "audio";
   return "none";
+}
+
+function isListAsset(field: FieldDef): boolean {
+  return field.propType.startsWith("list[") && assetKind(field) !== "none";
 }
 
 // ---------------------------------------------------------------------------
@@ -331,9 +338,13 @@ export class NodeGenerator {
       const varName = fieldToVarName(field.name);
       const defLit = defaultLiteral(field.default, field.propType);
       const cast = castFn(field.propType);
-      lines.push(
-        `    const ${varName} = ${cast}(this.${field.name} ?? ${defLit});`
-      );
+      if (cast) {
+        lines.push(
+          `    const ${varName} = ${cast}(this.${field.name} ?? ${defLit});`
+        );
+      } else {
+        lines.push(`    const ${varName} = this.${field.name} ?? ${defLit};`);
+      }
     }
 
     if (scalarFields.length > 0) lines.push(``);
@@ -353,17 +364,35 @@ export class NodeGenerator {
       const apiName = field.apiParamName ?? field.name;
 
       lines.push(``);
-      lines.push(
-        `    const ${varName}Ref = this.${field.name} as Record<string, unknown> | undefined;`
-      );
-      lines.push(`    if (isRefSet(${varName}Ref)) {`);
-      lines.push(
-        `      const ${varName}Url = await assetToUrl(${varName}Ref!, apiKey);`
-      );
-      lines.push(
-        `      if (${varName}Url) args[${JSON.stringify(apiName)}] = ${varName}Url;`
-      );
-      lines.push(`    }`);
+      if (isListAsset(field)) {
+        lines.push(
+          `    const ${varName}Refs = Array.isArray(this.${field.name}) ? this.${field.name} : [];`
+        );
+        lines.push(`    const ${varName}Urls: string[] = [];`);
+        lines.push(`    for (const ref of ${varName}Refs) {`);
+        lines.push(`      if (isRefSet(ref)) {`);
+        lines.push(
+          `        const url = await assetToUrl(ref as Record<string, unknown>, apiKey);`
+        );
+        lines.push(`        if (url) ${varName}Urls.push(url);`);
+        lines.push(`      }`);
+        lines.push(`    }`);
+        lines.push(
+          `    if (${varName}Urls.length) args[${JSON.stringify(apiName)}] = ${varName}Urls;`
+        );
+      } else {
+        lines.push(
+          `    const ${varName}Ref = this.${field.name} as Record<string, unknown> | undefined;`
+        );
+        lines.push(`    if (isRefSet(${varName}Ref)) {`);
+        lines.push(
+          `      const ${varName}Url = await assetToUrl(${varName}Ref!, apiKey);`
+        );
+        lines.push(
+          `      if (${varName}Url) args[${JSON.stringify(apiName)}] = ${varName}Url;`
+        );
+        lines.push(`    }`);
+      }
     }
 
     lines.push(`    removeNulls(args);`);

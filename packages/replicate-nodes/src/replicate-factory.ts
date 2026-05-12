@@ -82,6 +82,10 @@ function assetKind(
   return "none";
 }
 
+function isListAsset(propType: string): boolean {
+  return propType.startsWith("list[") && isAssetPropType(propType);
+}
+
 function defaultForPropType(propType: string): unknown {
   switch (propType) {
     case "bool":
@@ -103,6 +107,9 @@ function defaultForPropType(propType: string): unknown {
 
 function castValue(value: unknown, propType: string): unknown {
   if (value === null || value === undefined) return value;
+  if (propType.startsWith("list[") || propType.startsWith("dict[")) {
+    return value;
+  }
   switch (propType) {
     case "int":
     case "float":
@@ -119,7 +126,8 @@ const EXCLUDED_FIELDS = new Set(["prompt_template"]);
 async function buildArgs(
   instance: BaseNode,
   spec: ReplicateManifestEntry,
-  apiKey: string
+  apiKey: string,
+  context?: Parameters<BaseNode["process"]>[0]
 ): Promise<Record<string, unknown>> {
   const args: Record<string, unknown> = {};
 
@@ -132,10 +140,26 @@ async function buildArgs(
     const kind = assetKind(field.propType);
 
     if (kind !== "none") {
-      const ref = value as Record<string, unknown> | undefined;
-      if (isRefSet(ref)) {
-        const url = await assetToUrl(ref!, apiKey);
-        if (url) args[apiName] = url;
+      if (isListAsset(field.propType)) {
+        const refs = Array.isArray(value) ? value : [];
+        const urls: string[] = [];
+        for (const ref of refs) {
+          if (isRefSet(ref)) {
+            const url = await assetToUrl(
+              ref as Record<string, unknown>,
+              apiKey,
+              context
+            );
+            if (url) urls.push(url);
+          }
+        }
+        if (urls.length) args[apiName] = urls;
+      } else {
+        const ref = value as Record<string, unknown> | undefined;
+        if (isRefSet(ref)) {
+          const url = await assetToUrl(ref!, apiKey, context);
+          if (url) args[apiName] = url;
+        }
       }
     } else {
       args[apiName] = castValue(value, field.propType);
@@ -185,9 +209,11 @@ export function createReplicateNodeClass(
   const specRef = spec;
 
   const ReplicateNodeClass = class extends BaseNode {
-    async process(): Promise<Record<string, unknown>> {
+    async process(
+      context?: Parameters<BaseNode["process"]>[0]
+    ): Promise<Record<string, unknown>> {
       const apiKey = getReplicateApiKey(this._secrets);
-      const args = await buildArgs(this, specRef, apiKey);
+      const args = await buildArgs(this, specRef, apiKey, context);
       const res = await replicateSubmit(apiKey, specRef.endpointId, args);
       return mapOutput(specRef, res.output);
     }
