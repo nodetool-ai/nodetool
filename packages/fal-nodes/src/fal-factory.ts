@@ -114,7 +114,8 @@ function castValue(value: unknown, propType: string): unknown {
 async function buildArgs(
   instance: BaseNode,
   spec: FalManifestEntry,
-  apiKey: string
+  apiKey: string,
+  context?: ProcessingContext
 ): Promise<Record<string, unknown>> {
   const args: Record<string, unknown> = {};
 
@@ -131,11 +132,31 @@ async function buildArgs(
           const urls: string[] = [];
           for (const ref of list) {
             if (isRefSet(ref)) {
-              const u = await assetToFalUrl(apiKey, ref);
+              const u = await assetToFalUrl(apiKey, ref, context);
               if (u) urls.push(u);
             }
           }
           if (urls.length) args[apiName] = urls;
+        }
+      } else if (field.nestedAssetKey) {
+        const ref = value as Record<string, unknown> | undefined;
+        if (isRefSet(ref)) {
+          const url = await assetToFalUrl(apiKey, ref!, context);
+          if (url) {
+            const nested: Record<string, unknown> = {
+              [field.nestedAssetKey]: url
+            };
+            const subFields = spec.inputFields.filter(
+              (subField) => subField.parentField === field.name
+            );
+            for (const subField of subFields) {
+              const subValue = (instance as unknown as Record<string, unknown>)[
+                subField.name
+              ];
+              nested[subField.name] = castValue(subValue, subField.propType);
+            }
+            args[apiName] = nested;
+          }
         }
       } else {
         const ref = value as Record<string, unknown> | undefined;
@@ -143,8 +164,8 @@ async function buildArgs(
           const url =
             kind === "image"
               ? ((await imageToDataUrl(ref!)) ??
-                (await assetToFalUrl(apiKey, ref!)))
-              : await assetToFalUrl(apiKey, ref!);
+                (await assetToFalUrl(apiKey, ref!, context)))
+              : await assetToFalUrl(apiKey, ref!, context);
           if (url) args[apiName] = url;
         }
       }
@@ -248,7 +269,7 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     ): Promise<Record<string, unknown>> {
       if (isImageOutput) return {};
       const apiKey = getFalApiKey(this._secrets);
-      const args = await buildArgs(this, specRef, apiKey);
+      const args = await buildArgs(this, specRef, apiKey, context);
       const res = await falSubmit(apiKey, endpointId, args);
       return mapOutput(specRef, res);
     }
@@ -261,7 +282,7 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
         return;
       }
       const apiKey = getFalApiKey(this._secrets);
-      const args = await buildArgs(this, specRef, apiKey);
+      const args = await buildArgs(this, specRef, apiKey, context);
       const res = await falSubmit(apiKey, endpointId, args);
       const images = res.images as Array<{
         url: string;

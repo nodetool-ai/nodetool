@@ -153,8 +153,8 @@ describe("isRefSet", () => {
     expect(isRefSet({ data: "abc" })).toBe(true));
   it("returns true for { uri: 'https://...' }", () =>
     expect(isRefSet({ uri: "https://example.com/img.png" })).toBe(true));
-  it("returns true for { asset_id: '123' }", () =>
-    expect(isRefSet({ asset_id: "123" })).toBe(true));
+  it("returns false for asset_id-only refs because they cannot be uploaded", () =>
+    expect(isRefSet({ asset_id: "123" })).toBe(false));
   it("returns true for object with all three fields", () =>
     expect(
       isRefSet({ data: "abc", uri: "https://x.com", asset_id: "id" })
@@ -301,6 +301,29 @@ describe("assetToFalUrl", () => {
 
     const url = await assetToFalUrl(apiKey, { data: b64, type: "image" });
     expect(url).toBe("https://v3.fal.media/files/img.png");
+  });
+
+  it("uploads local URI bytes from ProcessingContext storage before fetching", async () => {
+    const context = {
+      storage: {
+        retrieve: vi.fn(async () => new Uint8Array([1, 2, 3]))
+      }
+    };
+    mockStorageUpload.mockResolvedValueOnce(
+      "https://v3.fal.media/files/context.png"
+    );
+
+    const url = await assetToFalUrl(
+      apiKey,
+      { uri: "/api/storage/local.png", type: "image" },
+      context
+    );
+
+    expect(url).toBe("https://v3.fal.media/files/context.png");
+    expect(context.storage.retrieve).toHaveBeenCalledWith(
+      "/api/storage/local.png"
+    );
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("returns null when no uri and no data", async () => {

@@ -77,9 +77,16 @@ export async function falUpload(
 // Resolve asset ref to FAL-accessible URL
 // ---------------------------------------------------------------------------
 
+interface UploadContext {
+  storage?: {
+    retrieve(uri: string): Promise<Uint8Array | null | undefined>;
+  } | null;
+}
+
 export async function assetToFalUrl(
   apiKey: string,
-  ref: Record<string, unknown>
+  ref: Record<string, unknown>,
+  context?: UploadContext
 ): Promise<string | null> {
   const uri = ref.uri as string | undefined;
   // Only pass through URLs that FAL can definitely access (their own CDN)
@@ -92,6 +99,11 @@ export async function assetToFalUrl(
   }
   // For non-HTTPS URIs (http://, file://, relative paths, etc.), try to fetch and upload
   if (uri) {
+    const bytes = await context?.storage?.retrieve(uri);
+    if (bytes) {
+      return falUpload(apiKey, bytes, inferContentType(ref.type as string));
+    }
+
     try {
       // Resolve relative paths (e.g. /api/storage/...) against local server
       const fetchUrl = uri.startsWith("/")
@@ -171,7 +183,7 @@ export function inferContentType(assetType: string | undefined): string {
 export function isRefSet(ref: unknown): boolean {
   if (!ref || typeof ref !== "object") return false;
   const r = ref as Record<string, unknown>;
-  return Boolean(r.data || r.uri || r.asset_id);
+  return Boolean(r.data || r.uri);
 }
 
 // ---------------------------------------------------------------------------
