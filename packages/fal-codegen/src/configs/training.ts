@@ -110,18 +110,6 @@ export const config: ModuleConfig = {
         "Rapid prototyping"
       ]
     },
-    "fal-ai/ltx2-v2v-trainer": {
-      className: "Ltx2V2VTrainer",
-      docstring: "LTX-2 Video to Video Trainer",
-      tags: ["training", "fine-tuning", "lora", "model-training"],
-      useCases: [
-        "Automated content generation",
-        "Creative workflows",
-        "Batch processing",
-        "Professional applications",
-        "Rapid prototyping"
-      ]
-    },
     "fal-ai/ltx2-video-trainer": {
       className: "Ltx2VideoTrainer",
       docstring: "LTX-2 Video Trainer",

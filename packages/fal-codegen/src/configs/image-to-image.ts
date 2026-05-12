@@ -1329,88 +1329,12 @@ export const config: ModuleConfig = {
     },
 
     // Face Swap
-    "half-moon-ai/ai-face-swap/faceswapimage": {
-      className: "AiFaceSwapImage",
-      docstring:
-        "AI Face Swap replaces faces in images with source faces while maintaining natural appearance.",
-      tags: ["image", "face-swap", "ai", "face-manipulation"],
-      useCases: [
-        "Swap faces between images",
-        "Replace faces in photos",
-        "Create face-swapped variations",
-        "Generate face replacement results",
-        "Produce face-substituted images"
-      ],
-      basicFields: ["image"]
-    },
 
     // AI Home
-    "half-moon-ai/ai-home/style": {
-      className: "AiHomeStyle",
-      docstring:
-        "AI Home Style transforms interior spaces with different design styles and aesthetics.",
-      tags: [
-        "image",
-        "interior-design",
-        "style-transfer",
-        "home",
-        "decoration"
-      ],
-      useCases: [
-        "Transform interior design styles",
-        "Apply different home aesthetics",
-        "Create styled room variations",
-        "Generate interior design options",
-        "Produce home styling transformations"
-      ],
-      basicFields: ["image", "prompt"]
-    },
 
-    "half-moon-ai/ai-home/edit": {
-      className: "AiHomeEdit",
-      docstring:
-        "AI Home Edit modifies interior spaces with renovations, furniture changes, and design adjustments.",
-      tags: ["image", "interior-design", "editing", "home", "renovation"],
-      useCases: [
-        "Edit interior spaces",
-        "Modify room furniture and decor",
-        "Create renovation visualizations",
-        "Generate design modification options",
-        "Produce home editing results"
-      ],
-      basicFields: ["image", "prompt"]
-    },
 
     // AI Baby and Aging
-    "half-moon-ai/ai-baby-and-aging-generator/single": {
-      className: "AiBabyAndAgingGeneratorSingle",
-      docstring:
-        "AI Baby and Aging Generator Single shows age progression or regression for a single person.",
-      tags: ["image", "aging", "age-progression", "face-manipulation"],
-      useCases: [
-        "Show age progression of person",
-        "Generate younger or older versions",
-        "Create aging visualizations",
-        "Produce age transformation results",
-        "Visualize person at different ages"
-      ],
-      basicFields: ["image"]
-    },
 
-    "half-moon-ai/ai-baby-and-aging-generator/multi": {
-      className: "AiBabyAndAgingGeneratorMulti",
-      docstring:
-        "AI Baby and Aging Generator Multi shows age progression or regression for multiple people in one image.",
-      tags: ["image", "aging", "age-progression", "multi-face"],
-      useCases: [
-        "Show age progression for multiple people",
-        "Generate family aging visualizations",
-        "Create multi-person aging results",
-        "Produce group age transformations",
-        "Visualize multiple people at different ages"
-      ],
-      basicFields: ["image"]
-    },
 
     // Wan Image
     "wan/v2.6/image-to-image": {
@@ -2740,18 +2664,6 @@ export const config: ModuleConfig = {
     "fal-ai/film": {
       className: "Film",
       docstring: "FILM",
-      tags: ["editing", "transformation", "image-to-image", "img2img"],
-      useCases: [
-        "Professional photo editing and enhancement",
-        "Creative image transformations",
-        "Batch image processing workflows",
-        "Product photography refinement",
-        "Automated image optimization"
-      ]
-    },
-    "fal-ai/calligrapher": {
-      className: "Calligrapher",
-      docstring: "Calligrapher",
       tags: ["editing", "transformation", "image-to-image", "img2img"],
       useCases: [
         "Professional photo editing and enhancement",
@@ -4884,30 +4796,6 @@ export const config: ModuleConfig = {
     "fal-ai/omni-zero": {
       className: "OmniZero",
       docstring: "Any pose, any style, any identity",
-      tags: ["editing", "transformation", "image-to-image", "img2img"],
-      useCases: [
-        "Professional photo editing and enhancement",
-        "Creative image transformations",
-        "Batch image processing workflows",
-        "Product photography refinement",
-        "Automated image optimization"
-      ]
-    },
-    "fal-ai/hyper-sdxl/image-to-image": {
-      className: "HyperSdxlImageToImage",
-      docstring: "Hyper-charge SDXL's performance and creativity.",
-      tags: ["editing", "transformation", "image-to-image", "img2img"],
-      useCases: [
-        "Professional photo editing and enhancement",
-        "Creative image transformations",
-        "Batch image processing workflows",
-        "Product photography refinement",
-        "Automated image optimization"
-      ]
-    },
-    "fal-ai/hyper-sdxl/inpainting": {
-      className: "HyperSdxlInpainting",
-      docstring: "Hyper-charge SDXL's performance and creativity.",
       tags: ["editing", "transformation", "image-to-image", "img2img"],
       useCases: [
         "Professional photo editing and enhancement",

@@ -74,7 +74,7 @@
     "chat": "node ./packages/cli/dist/index.js",
     "nodetool": "node ./packages/cli/dist/nodetool.js",
     "generate:node-docs": "node scripts/generate-node-docs.mjs",
-    "generate:fal": "npm run generate --workspace=packages/fal-codegen",
+    "generate:fal": "npm run generate --workspace=packages/fal-codegen -- --strict",
     "generate:replicate": "npm run generate --workspace=packages/replicate-codegen -- --all --manifest --strict",
     "generate:kie": "npm run generate --workspace=packages/kie-codegen -- --all --refresh-configs",
     "generate:aki": "tsx packages/runtime/scripts/generate-aki-manifest.ts",

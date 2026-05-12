@@ -74,18 +74,6 @@ export const config: ModuleConfig = {
         "Rapid prototyping"
       ]
     },
-    "fal-ai/longcat-multi-avatar/image-audio-to-video/multi-speaker": {
-      className: "LongcatMultiAvatarImageAudioToVideoMultiSpeaker",
-      docstring: "Longcat Multi Avatar",
-      tags: ["video", "generation", "audio-to-video", "visualization"],
-      useCases: [
-        "Automated content generation",
-        "Creative workflows",
-        "Batch processing",
-        "Professional applications",
-        "Rapid prototyping"
-      ]
-    },
     "fal-ai/longcat-single-avatar/image-audio-to-video": {
       className: "LongcatSingleAvatarImageAudioToVideo",
       docstring:
