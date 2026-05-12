@@ -2,14 +2,6 @@ import type { ModuleConfig } from "../types.js";
 
 export const videoGenerateConfig: ModuleConfig = {
   configs: {
-    "luma/ray": {
-      className: "Ray",
-      returnType: "video",
-      fieldOverrides: {
-        start_image_url: { propType: "image" },
-        end_image_url: { propType: "image" }
-      }
-    },
     "lucataco/hotshot-xl": {
       className: "HotshotXL",
       returnType: "video"

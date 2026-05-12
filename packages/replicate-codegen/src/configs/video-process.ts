@@ -12,14 +12,6 @@ export const videoProcessConfig: ModuleConfig = {
       returnType: "video",
       fieldOverrides: { video: { propType: "video" } }
     },
-    "google/film-frame-interpolation": {
-      className: "Film_Frame_Interpolation",
-      returnType: "video",
-      fieldOverrides: {
-        frame1: { propType: "image" },
-        frame2: { propType: "image" }
-      }
-    },
     "pollinations/real-basicvsr-video-superresolution": {
       className: "RealBasicVSR",
       returnType: "video",
@@ -52,10 +44,6 @@ export const videoProcessConfig: ModuleConfig = {
     },
     "wan-video/wan-2.2-s2v": {
       className: "Wan_2_2_S2V",
-      returnType: "video"
-    },
-    "wan-ai/wan-2.2-s2v": {
-      className: "Wan_AI_2_2_S2V",
       returnType: "video"
     },
     "veed/fabric-1.0": {
