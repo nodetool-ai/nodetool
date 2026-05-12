@@ -21,11 +21,11 @@ const NIGHTLY_VERSION_PATTERN = /-nightly\.\d{8}\.\d+$/;
 
 export type UpdateChannel = "latest" | "nightly";
 
-export function isNightlyVersion(version: string): boolean {
+function isNightlyVersion(version: string): boolean {
   return NIGHTLY_VERSION_PATTERN.test(version);
 }
 
-export function getDefaultUpdateChannel(version: string): UpdateChannel {
+function getDefaultUpdateChannel(version: string): UpdateChannel {
   return isNightlyVersion(version) ? "nightly" : "latest";
 }
 
@@ -48,11 +48,11 @@ export function setUpdateChannel(channel: UpdateChannel): UpdateChannel {
   return channel;
 }
 
-export interface ModelServiceStartupSettings {
+interface ModelServiceStartupSettings {
   startLlamaCppOnStartup: boolean;
 }
 
-export interface ModelServiceStartupSettingsUpdate {
+interface ModelServiceStartupSettingsUpdate {
   startLlamaCppOnStartup?: boolean;
 }
 

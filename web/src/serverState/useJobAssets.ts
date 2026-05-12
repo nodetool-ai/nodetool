@@ -5,7 +5,7 @@ import { normalizeAssetList } from "../utils/normalizeAsset";
 
 const fetchJobAssets = async (jobId: string): Promise<Asset[]> => {
   const data = await trpcClient.assets.list.query({ job_id: jobId });
-  return normalizeAssetList((data.assets ?? []) as unknown as Asset[]);
+  return normalizeAssetList(data.assets ?? []);
 };
 
 export const useJobAssets = (jobId: string) => {

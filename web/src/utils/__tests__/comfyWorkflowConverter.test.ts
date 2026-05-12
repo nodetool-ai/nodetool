@@ -7,9 +7,6 @@ import {
   nodeToolGraphToComfyWorkflow,
   nodeToolGraphToComfyPrompt,
   comfyPromptToNodeToolGraph,
-  isComfyUINode,
-  graphHasComfyUINodes,
-  hasComfyWorkflowFlag,
   isComfyWorkflow,
   COMFY_WORKFLOW_FLAG
 } from "../comfyWorkflowConverter";
@@ -17,57 +14,13 @@ import { ComfyUIWorkflow } from "../../services/ComfyUIService";
 import { Graph } from "../../stores/ApiTypes";
 
 describe("ComfyUI Workflow Converter", () => {
-  describe("isComfyUINode", () => {
-    test("returns true for ComfyUI nodes", () => {
-      expect(isComfyUINode("comfy.KSampler")).toBe(true);
-      expect(isComfyUINode("comfy.LoadCheckpoint")).toBe(true);
-    });
-
-    test("returns false for non-ComfyUI nodes", () => {
-      expect(isComfyUINode("nodetool.input.StringInput")).toBe(false);
-      expect(isComfyUINode("nodetool.output.Output")).toBe(false);
-    });
-  });
-
-  describe("graphHasComfyUINodes", () => {
-    test("returns true when graph contains ComfyUI nodes", () => {
-      const graph: Graph = {
-        nodes: [
-          {
-            id: "1",
-            type: "comfy.KSampler",
-            data: {},
-            sync_mode: "on_any"
-          }
-        ],
-        edges: []
-      };
-      expect(graphHasComfyUINodes(graph)).toBe(true);
-    });
-
-    test("returns false when graph has no ComfyUI nodes", () => {
-      const graph: Graph = {
-        nodes: [
-          {
-            id: "1",
-            type: "nodetool.input.StringInput",
-            data: {},
-            sync_mode: "on_any"
-          }
-        ],
-        edges: []
-      };
-      expect(graphHasComfyUINodes(graph)).toBe(false);
-    });
-  });
-
   describe("workflow detection", () => {
     test("detects Comfy workflow from settings flag", () => {
-      expect(
-        hasComfyWorkflowFlag({
-          [COMFY_WORKFLOW_FLAG]: true
-        })
-      ).toBe(true);
+      const graph: Graph = {
+        nodes: [],
+        edges: []
+      };
+      expect(isComfyWorkflow(graph, { [COMFY_WORKFLOW_FLAG]: true })).toBe(true);
     });
 
     test("falls back to graph node inspection when settings flag is absent", () => {

@@ -207,7 +207,7 @@ export interface CalendarEvent {
 export interface Asset {
   id: string;
   user_id: string;
-  parent_id: string;
+  parent_id: string | null;
   name: string;
   content_type: string;
   size?: number | null;

@@ -23,6 +23,24 @@ export default defineConfig(({ mode }) => {
         "/api": { target: apiTarget, changeOrigin: true },
         "/ws": { target: apiTarget, ws: true, changeOrigin: true }
       }
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            react: ["react", "react-dom"],
+            markdown: ["react-markdown", "remark-gfm"],
+            ui: [
+              "@radix-ui/react-avatar",
+              "@radix-ui/react-scroll-area",
+              "@radix-ui/react-select",
+              "@radix-ui/react-separator",
+              "@radix-ui/react-slot",
+              "@radix-ui/react-tooltip"
+            ]
+          }
+        }
+      }
     }
   };
 });

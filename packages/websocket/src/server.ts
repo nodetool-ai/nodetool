@@ -580,6 +580,7 @@ app.addHook("onRequest", async (req, reply) => {
   if (
     pathname === "/health" ||
     pathname === "/ready" ||
+    pathname === "/api/health" ||
     pathname.startsWith("/api/oauth/") ||
     pathname === "/api/assets/packages" ||
     pathname.startsWith("/api/assets/packages/") ||

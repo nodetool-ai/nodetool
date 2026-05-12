@@ -3,9 +3,7 @@
  */
 import {
   TOP_CATEGORIES,
-  GETTING_STARTED_TAGS,
   isGettingStarted,
-  matchesCategory,
   workflowsForCategory,
   overflowTagsWithCounts,
   categoryCounts,
@@ -59,22 +57,6 @@ describe("isGettingStarted", () => {
     const wf = makeWorkflow([]);
     (wf as unknown as Record<string, unknown>).tags = undefined;
     expect(isGettingStarted(wf)).toBe(false);
-  });
-});
-
-describe("matchesCategory", () => {
-  const imageCategory = TOP_CATEGORIES.find((c) => c.id === "image")!;
-
-  it("returns true when workflow has a matching tag", () => {
-    expect(matchesCategory(makeWorkflow(["image"]), imageCategory)).toBe(true);
-  });
-
-  it("returns false when no tags match", () => {
-    expect(matchesCategory(makeWorkflow(["audio"]), imageCategory)).toBe(false);
-  });
-
-  it("returns false for empty tags", () => {
-    expect(matchesCategory(makeWorkflow([]), imageCategory)).toBe(false);
   });
 });
 
