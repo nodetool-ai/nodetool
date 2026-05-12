@@ -34,7 +34,6 @@ export const audioSpeechConfig: ModuleConfig = {
     "cjwbw/parler-tts": { className: "Parler_TTS", returnType: "audio" },
     "cjwbw/voicecraft": { className: "VoiceCraft", returnType: "audio" },
     "chenxwh/openvoice": { className: "OpenVoice", returnType: "audio" },
-    "playht/text-to-speech": { className: "PlayHT_TTS", returnType: "audio" },
     "x-lance/f5-tts": { className: "F5_TTS", returnType: "audio" },
     "fermatresearch/spanish-f5-tts": {
       className: "Spanish_F5_TTS",

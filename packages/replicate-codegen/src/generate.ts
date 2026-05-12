@@ -4,6 +4,7 @@
  *
  * Usage:
  *   npx tsx src/generate.ts --all
+ *   npx tsx src/generate.ts --all --manifest --strict
  *   npx tsx src/generate.ts --module image-generate
  *   npx tsx src/generate.ts --all --no-cache
  *   npx tsx src/generate.ts --all --output-dir ../replicate-nodes/src/generated
@@ -28,6 +29,7 @@ const { values } = parseArgs({
     "no-cache": { type: "boolean", default: false },
     "from-metadata": { type: "string" },
     manifest: { type: "boolean", default: false },
+    strict: { type: "boolean", default: false },
     "output-dir": {
       type: "string",
       default: join(process.cwd(), "..", "replicate-nodes", "src", "generated")
@@ -35,41 +37,81 @@ const { values } = parseArgs({
   }
 });
 
-async function generateModule(
-  moduleName: string,
+interface GenerationFailure {
+  modelId: string;
+  error: unknown;
+}
+
+interface GeneratedSpecs {
+  specs: NodeSpec[];
+  failures: GenerationFailure[];
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+async function fetchSpecsFromConfig(
   config: ModuleConfig,
-  outputDir: string,
   useCache: boolean
-): Promise<number> {
+): Promise<GeneratedSpecs> {
   const fetcher = new SchemaFetcher();
   const parser = new SchemaParser();
   const generator = new NodeGenerator();
+  const specs: NodeSpec[] = [];
+  const failures: GenerationFailure[] = [];
 
-  const specs: { spec: ReturnType<SchemaParser["parse"]>; modelId: string }[] =
-    [];
   for (const modelId of Object.keys(config.configs)) {
     try {
       console.log(`  Fetching ${modelId}...`);
       const schema = await fetcher.fetchSchema(modelId, useCache);
       const spec = parser.parse(schema);
-      // Apply config overrides
+      spec.endpointId = modelId;
       const nodeConfig = config.configs[modelId];
-      const applied = nodeConfig
-        ? generator.applyConfig(spec, nodeConfig)
-        : spec;
-      specs.push({ spec: applied, modelId });
-    } catch (e) {
-      console.error(`  ERROR: ${modelId}: ${e}`);
+      specs.push(nodeConfig ? generator.applyConfig(spec, nodeConfig) : spec);
+    } catch (error) {
+      failures.push({ modelId, error });
+      console.error(`  ERROR: ${modelId}: ${errorMessage(error)}`);
     }
   }
 
+  return { specs, failures };
+}
+
+function throwIfStrictFailures(
+  strict: boolean,
+  failures: GenerationFailure[]
+): void {
+  if (!strict || failures.length === 0) return;
+  const details = failures
+    .map(({ modelId, error }) => `  - ${modelId}: ${errorMessage(error)}`)
+    .join("\n");
+  throw new Error(
+    `Replicate generation failed for ${failures.length} configured model(s):\n${details}`
+  );
+}
+
+function requireReplicateToken(strict: boolean): void {
+  if (!strict || process.env.REPLICATE_API_TOKEN) return;
+  throw new Error(
+    "REPLICATE_API_TOKEN is required for strict Replicate generation. Set it before running npm run generate:replicate."
+  );
+}
+
+async function generateModule(
+  moduleName: string,
+  config: ModuleConfig,
+  outputDir: string,
+  useCache: boolean,
+  strict: boolean
+): Promise<number> {
+  const generator = new NodeGenerator();
+  const { specs, failures } = await fetchSpecsFromConfig(config, useCache);
+  throwIfStrictFailures(strict, failures);
+
   if (specs.length === 0) return 0;
 
-  const moduleCode = generator.generateModule(
-    moduleName,
-    specs.map((s) => s.spec),
-    config
-  );
+  const moduleCode = generator.generateModule(moduleName, specs, config);
 
   await mkdir(outputDir, { recursive: true });
   const outFile = join(outputDir, `${moduleName}.ts`);
@@ -264,6 +306,45 @@ async function generateManifestFromMetadata(
   console.log(`Wrote ${manifest.length} nodes to ${outputPath}`);
 }
 
+async function generateManifestFromConfigs(
+  moduleEntries: Array<[string, ModuleConfig]>,
+  outputPath: string,
+  useCache: boolean,
+  strict: boolean
+): Promise<void> {
+  const manifest: ManifestEntry[] = [];
+  const failures: GenerationFailure[] = [];
+
+  for (const [moduleDotName, config] of moduleEntries) {
+    const moduleName = moduleDotName.replace(/\./g, "-");
+    console.log(`\n=== ${moduleName} ===`);
+    const generated = await fetchSpecsFromConfig(config, useCache);
+    failures.push(...generated.failures);
+
+    for (const spec of generated.specs) {
+      if (manifest.some((entry) => entry.className === spec.className)) {
+        continue;
+      }
+      manifest.push({
+        endpointId: spec.endpointId,
+        className: spec.className,
+        moduleName,
+        docstring: spec.docstring,
+        tags: spec.tags,
+        useCases: spec.useCases,
+        outputType: spec.outputType,
+        inputFields: spec.inputFields,
+        outputFields: spec.outputFields,
+        enums: spec.enums
+      });
+    }
+  }
+
+  throwIfStrictFailures(strict, failures);
+  await writeFile(outputPath, JSON.stringify(manifest, null, 2));
+  console.log(`Wrote ${manifest.length} nodes to ${outputPath}`);
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -271,27 +352,56 @@ async function generateManifestFromMetadata(
 async function main(): Promise<void> {
   const outputDir = values["output-dir"]!;
   const useCache = !values["no-cache"];
+  const strict = values.strict!;
+  requireReplicateToken(strict);
+  const manifestPath = join(
+    process.cwd(),
+    "..",
+    "replicate-nodes",
+    "src",
+    "replicate-manifest.json"
+  );
 
   if (values.manifest && values["from-metadata"]) {
-    const manifestPath = join(
-      process.cwd(),
-      "..",
-      "replicate-nodes",
-      "src",
-      "replicate-manifest.json"
-    );
     await generateManifestFromMetadata(values["from-metadata"], manifestPath);
     return;
   }
 
   if (values["from-metadata"]) {
     await generateFromMetadata(values["from-metadata"], outputDir);
+  } else if (values.manifest && values.all) {
+    await generateManifestFromConfigs(
+      Object.entries(allConfigs),
+      manifestPath,
+      useCache,
+      strict
+    );
+  } else if (values.manifest && values.module) {
+    const dotName = values.module.replace(/-/g, ".");
+    const config = allConfigs[dotName] ?? allConfigs[values.module];
+    if (!config) {
+      console.error(`Unknown module: ${values.module}`);
+      console.error(`Available: ${Object.keys(allConfigs).join(", ")}`);
+      process.exit(1);
+    }
+    await generateManifestFromConfigs(
+      [[dotName, config]],
+      manifestPath,
+      useCache,
+      strict
+    );
   } else if (values.all) {
     let total = 0;
     for (const [name, config] of Object.entries(allConfigs)) {
       const dashName = name.replace(/\./g, "-");
       console.log(`\n=== ${dashName} ===`);
-      total += await generateModule(dashName, config, outputDir, useCache);
+      total += await generateModule(
+        dashName,
+        config,
+        outputDir,
+        useCache,
+        strict
+      );
     }
     console.log(`\nTotal: ${total} nodes generated`);
   } else if (values.module) {
@@ -303,9 +413,11 @@ async function main(): Promise<void> {
       process.exit(1);
     }
     const dashName = values.module.replace(/\./g, "-");
-    await generateModule(dashName, config, outputDir, useCache);
+    await generateModule(dashName, config, outputDir, useCache, strict);
   } else {
-    console.error("Usage: --module <name> | --all | --from-metadata <path>");
+    console.error(
+      "Usage: --module <name> | --all | --from-metadata <path> [--manifest] [--strict]"
+    );
     process.exit(1);
   }
 }

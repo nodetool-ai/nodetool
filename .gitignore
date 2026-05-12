@@ -68,6 +68,8 @@ key.pem
 
 # Dev
 .codegen-cache/
+.schema-cache/
+packages/replicate-nodes/src/generated/
 .codegpt
 __plans__
 .memory
