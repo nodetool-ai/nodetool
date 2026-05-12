@@ -8,7 +8,7 @@
     "@emotion/styled": "^11.14.1",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
-    "@lexical/code": "^0.32.1",
+    "@lexical/code": "^0.44.0",
     "@lexical/link": "^0.32.1",
     "@lexical/list": "^0.32.1",
     "@lexical/markdown": "^0.32.1",
