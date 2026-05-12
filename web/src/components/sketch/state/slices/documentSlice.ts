@@ -239,8 +239,8 @@ export const createDocumentSlice: StateCreator<
 
   addLayer: (name?: string, type: "raster" | "mask" = "raster") => {
     const { width, height } = get().document.canvas;
-    const baseName =
-      name || `Layer ${get().document.layers.length + 1}`;
+    const beforeLayerCount = get().document.layers.length;
+    const baseName = name || `Layer ${beforeLayerCount + 1}`;
     const layerBase = createDefaultLayer(baseName, type, width, height);
     const newLayerId = layerBase.id;
     set((state) => {

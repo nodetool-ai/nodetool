@@ -21,6 +21,7 @@ import {
 } from "react";
 import type { SketchDocument, SketchTool } from "../types";
 import { hydrateSketchStore } from "../state";
+import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import type { useCanvasActions } from "./useCanvasActions";
 import type { useSegmentation } from "./useSegmentation";
 import type { SketchPersistenceSnapshot } from "../../../stores/sketch/persistence";
@@ -48,6 +49,13 @@ function readCanvasResizeHandlesEnabled(): boolean {
 export interface UseEditorLifecycleParams {
   initialDocument: SketchDocument | undefined;
   initialEditorState?: SketchPersistenceSnapshot;
+  /**
+   * Stable id of the document being edited. When supplied and equal to the
+   * session store's `documentId`, the initial hydrate is skipped so the
+   * global sketch store keeps the user's latest edits — necessary because
+   * the trpc cache may be stale while an autosave is mid-flight.
+   */
+  documentId?: string;
   onDocumentChange: ((doc: SketchDocument) => void) | undefined;
 
   // Store actions
@@ -73,6 +81,7 @@ export interface EditorLifecycleResult {
 export function useEditorLifecycle({
   initialDocument,
   initialEditorState,
+  documentId,
   onDocumentChange,
   setDocument,
   activeTool,
@@ -141,22 +150,38 @@ export function useEditorLifecycle({
   }, [activeTool, canvasActions, segmentation]);
 
   // ─── Seed global store from prop before SketchCanvas mounts ───────
+  //
+  // The hydrate is deliberately gated. `useSketchStore` is a GLOBAL store
+  // that retains the user's latest edits across SketchEditorPage unmounts.
+  // On revisit of the same document we'd otherwise re-hydrate it from the
+  // trpc cache — and that cache lags real edits whenever an autosave is
+  // mid-flight on the way out of the page, which would wipe a freshly-added
+  // layer the moment the user comes back. The session store's
+  // `documentId` is the authoritative "currently loaded doc" marker and
+  // persists across unmounts; if it already matches the incoming id we
+  // trust the in-memory store and skip the rehydrate.
   useLayoutEffect(() => {
     initialDocumentRef.current = initialDocument;
-    if (initialEditorState) {
-      hydrateSketchStore({
-        document: initialEditorState.document,
-        activeTool: initialEditorState.activeTool,
-        zoom: initialEditorState.zoom,
-        pan: initialEditorState.pan,
-        history: initialEditorState.history,
-        historyIndex: initialEditorState.historyIndex
-      });
-    } else if (initialDocument) {
-      setDocument(initialDocument);
+
+    const sessionDocId = useSketchSessionStore.getState().documentId;
+    const isSameDocRevisit =
+      documentId !== undefined && sessionDocId === documentId;
+    if (!isSameDocRevisit) {
+      if (initialEditorState) {
+        hydrateSketchStore({
+          document: initialEditorState.document,
+          activeTool: initialEditorState.activeTool,
+          zoom: initialEditorState.zoom,
+          pan: initialEditorState.pan,
+          history: initialEditorState.history,
+          historyIndex: initialEditorState.historyIndex
+        });
+      } else if (initialDocument) {
+        setDocument(initialDocument);
+      }
     }
     setCanvasReady(true);
-  }, [initialDocument, initialEditorState, setDocument]);
+  }, [documentId, initialDocument, initialEditorState, setDocument]);
 
   // ─── Autosave on document changes ─────────────────────────────────
   // ## Autosave boundary contract

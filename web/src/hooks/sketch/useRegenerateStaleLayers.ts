@@ -12,8 +12,7 @@ import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import type { Node as WorkflowGraphNode } from "../../stores/ApiTypes";
-import { useSketchLayerBindingsStore } from "../../stores/sketch/SketchLayerBindingsStore";
-import { useSketchDocumentStore } from "../../stores/sketch/SketchDocumentStore";
+import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import {
   useSketchGenerationStore,
   type LayerJobState
@@ -100,7 +99,7 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
 
   const preflight = useCallback((): RegenerateStalePreflight => {
     const bindings = Object.values(
-      useSketchLayerBindingsStore.getState().bindings
+      useSketchSessionStore.getState().bindings
     );
     const staleLayerIds: string[] = [];
     const lockedLayerIds: string[] = [];
@@ -118,7 +117,7 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
     if (busyRef.current) {
       return { started: 0, skipped: 0, failed: 0 };
     }
-    const documentId = useSketchDocumentStore.getState().documentId;
+    const documentId = useSketchSessionStore.getState().documentId;
     if (!documentId) {
       return { started: 0, skipped: 0, failed: 0 };
     }
@@ -135,16 +134,17 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
       for (const layerId of staleLayerIds) {
         if (controller.signal.aborted) break;
         const binding =
-          useSketchLayerBindingsStore.getState().bindings[layerId];
+          useSketchSessionStore.getState().bindings[layerId];
         if (!binding || binding.status !== "stale" || !binding.workflowId) {
           skipped++;
           continue;
         }
+        const workflowId = binding.workflowId;
 
         try {
           const workflow = await queryClient.fetchQuery({
-            queryKey: workflowQueryKey(binding.workflowId),
-            queryFn: () => fetchWorkflowById(binding.workflowId),
+            queryKey: workflowQueryKey(workflowId),
+            queryFn: () => fetchWorkflowById(workflowId),
             staleTime: 0
           });
           const graphNodes = workflow.graph?.nodes ?? [];
@@ -154,7 +154,7 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
           );
           const edges = graphEdges.map(graphEdgeToReactFlowEdge);
 
-          const runnerStore = getWorkflowRunnerStore(binding.workflowId);
+          const runnerStore = getWorkflowRunnerStore(workflowId);
           await runnerStore
             .getState()
             .run(binding.paramOverrides ?? {}, workflow, nodes, edges);
@@ -164,7 +164,7 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
             failed++;
             continue;
           }
-          generationStore.registerJob(layerId, jobId, binding.workflowId);
+          generationStore.registerJob(layerId, jobId, workflowId);
 
           const finalStatus = await waitForJobToFinish(
             jobId,
@@ -183,7 +183,7 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
 
           if (binding.dependencyHash) {
             const result = generationStore.resolveOutputAssetId(
-              binding.workflowId,
+              workflowId,
               binding.selectedOutputNodeId ?? ""
             );
             if (result) {

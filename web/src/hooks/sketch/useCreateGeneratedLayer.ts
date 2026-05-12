@@ -4,8 +4,7 @@ import { useCallback, useRef, useState } from "react";
 
 import { trpcClient } from "../../trpc/client";
 import { useSketchStore } from "../../components/sketch/state/useSketchStore";
-import { useSketchDocumentStore } from "../../stores/sketch/SketchDocumentStore";
-import { useSketchLayerBindingsStore } from "../../stores/sketch/SketchLayerBindingsStore";
+import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 
 export interface CreateGeneratedLayerOptions {
   workflowId: string;
@@ -37,7 +36,7 @@ export function useCreateGeneratedLayer(): UseCreateGeneratedLayerResult {
       if (busyRef.current) {
         return { ok: false, reason: "busy" };
       }
-      const documentId = useSketchDocumentStore.getState().documentId;
+      const documentId = useSketchSessionStore.getState().documentId;
       if (!documentId) {
         return { ok: false, reason: "no-document" };
       }
@@ -56,7 +55,7 @@ export function useCreateGeneratedLayer(): UseCreateGeneratedLayerResult {
           sourceWorkflowId: options.workflowId,
           selectedOutputNodeId: options.selectedOutputNodeId
         });
-        useSketchLayerBindingsStore.getState().upsertBinding(binding);
+        useSketchSessionStore.getState().upsertBinding(binding);
         useSketchStore.getState().setActiveLayer(newLayerId);
         return { ok: true, layerId: newLayerId };
       } catch (err) {

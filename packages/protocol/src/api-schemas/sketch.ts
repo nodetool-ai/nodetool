@@ -17,13 +17,39 @@ export const layerVersion = z.object({
 });
 export type LayerVersion = z.infer<typeof layerVersion>;
 
-// ── Layer workflow binding ──────────────────────────────────────────────────
+// ── Layer binding (workflow-bound + direct-gen) ─────────────────────────────
 
+export const layerBindingKind = z.enum([
+  "workflow",
+  "text-to-image",
+  "image-to-image"
+]);
+
+/**
+ * Unified per-layer generation binding. The `kind` discriminator selects
+ * between workflow-bound and direct-generation modes; mode-specific fields
+ * are optional so a single shape can travel through the persisted document
+ * and the tRPC routers without a discriminated union schema (which would
+ * complicate the legacy "no kind" → workflow back-compat path).
+ */
 export const layerWorkflowBinding = z.object({
   layerId: z.string(),
-  workflowId: z.string(),
+  /** Absent on legacy data — treat as "workflow". */
+  kind: layerBindingKind.optional(),
+  // Workflow-bound ──────────────────────────────────────────────────────
+  workflowId: z.string().optional(),
   selectedOutputNodeId: z.string().optional(),
   paramOverrides: z.record(z.string(), z.unknown()).optional(),
+  // Direct-gen ──────────────────────────────────────────────────────────
+  prompt: z.string().optional(),
+  provider: z.string().optional(),
+  model: z.string().optional(),
+  sourceLayerId: z.string().nullable().optional(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  strength: z.number().optional(),
+  numInferenceSteps: z.number().optional(),
+  // Common ───────────────────────────────────────────────────────────────
   dependencyHash: z.string().optional(),
   lastGeneratedHash: z.string().optional(),
   currentAssetId: z.string().optional(),

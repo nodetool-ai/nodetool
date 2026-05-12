@@ -16,7 +16,7 @@ import {
   EmptyState,
   ToolbarIconButton
 } from "../../ui_primitives";
-import { useSketchLayerBindingsStore } from "../../../stores/sketch/SketchLayerBindingsStore";
+import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import {
   useLayerVersions,
   useSetLayerVersionFavorite,
@@ -58,7 +58,7 @@ export const LayerVersionList: React.FC<LayerVersionListProps> = memo(
 
     const setFavoriteMutation = useSetLayerVersionFavorite();
     const deleteMutation = useDeleteLayerVersion();
-    const restoreVersion = useSketchLayerBindingsStore((s) => s.restoreVersion);
+    const restoreVersion = useSketchSessionStore((s) => s.restoreVersion);
 
     const toggleExpanded = useCallback(() => {
       setExpanded((v) => !v);

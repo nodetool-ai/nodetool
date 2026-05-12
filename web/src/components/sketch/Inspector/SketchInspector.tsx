@@ -17,12 +17,13 @@ import React, { memo } from "react";
 import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useSketchStore } from "../state/useSketchStore";
-import { useLayerBinding } from "../../../stores/sketch/SketchLayerBindingsStore";
+import { useLayerBinding } from "../../../stores/sketch/SketchSessionStore";
 import { SKETCH_SIZE } from "../sketchStyles";
 import { EmptyState } from "../../ui_primitives";
 import { GeneratedLayerPanel } from "./GeneratedLayerPanel";
 import { ImportedLayerPanel } from "./ImportedLayerPanel";
 import { PaintedLayerPanel } from "./PaintedLayerPanel";
+import { DirectGenLayerPanel } from "./DirectGenLayerPanel";
 
 const SketchInspectorInner: React.FC = () => {
   const theme = useTheme();
@@ -57,6 +58,11 @@ const SketchInspectorInner: React.FC = () => {
         description="Select a layer to inspect."
       />
     );
+  } else if (
+    binding &&
+    (binding.kind === "text-to-image" || binding.kind === "image-to-image")
+  ) {
+    body = <DirectGenLayerPanel layer={layer} binding={binding} />;
   } else if (binding) {
     body = <GeneratedLayerPanel layer={layer} />;
   } else if (layer.imageReference) {

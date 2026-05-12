@@ -16,11 +16,10 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 
 import { trpcClient } from "../../../trpc/client";
-import { useSketchDocumentStore } from "../../../stores/sketch/SketchDocumentStore";
 import {
-  useSketchLayerBindingsStore,
+  useSketchSessionStore,
   type LayerWorkflowBinding
-} from "../../../stores/sketch/SketchLayerBindingsStore";
+} from "../../../stores/sketch/SketchSessionStore";
 import { useSketchStore } from "../state/useSketchStore";
 import { useGenerateLayer } from "../../../hooks/sketch/useGenerateLayer";
 import { ToolbarIconButton, FlexRow, Toast, Tooltip } from "../../ui_primitives";
@@ -118,11 +117,11 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
     const theme = useTheme();
     const navigate = useNavigate();
 
-    const documentId = useSketchDocumentStore((s) => s.documentId);
+    const documentId = useSketchSessionStore((s) => s.documentId);
 
-    const setLocked = useSketchLayerBindingsStore((s) => s.setLocked);
-    const upsertBinding = useSketchLayerBindingsStore((s) => s.upsertBinding);
-    const revert = useSketchLayerBindingsStore((s) => s.revert);
+    const setLocked = useSketchSessionStore((s) => s.setLocked);
+    const upsertBinding = useSketchSessionStore((s) => s.upsertBinding);
+    const revert = useSketchSessionStore((s) => s.revert);
 
     const addLayer = useSketchStore((s) => s.addLayer);
     const setActiveLayer = useSketchStore((s) => s.setActiveLayer);
@@ -138,7 +137,7 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
         binding: {
           documentId: documentId ?? "",
           layerId,
-          workflowId: binding.workflowId,
+          workflowId: binding.workflowId ?? "",
           selectedOutputNodeId: binding.selectedOutputNodeId,
           paramOverrides: binding.paramOverrides,
           dependencyHash: binding.dependencyHash,

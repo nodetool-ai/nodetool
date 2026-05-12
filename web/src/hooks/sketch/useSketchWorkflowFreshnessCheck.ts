@@ -15,9 +15,9 @@
 import { useEffect, useRef, useCallback } from "react";
 import { trpcClient } from "../../trpc/client";
 import {
-  useSketchLayerBindingsStore,
+  useSketchSessionStore,
   type LayerWorkflowBinding
-} from "../../stores/sketch/SketchLayerBindingsStore";
+} from "../../stores/sketch/SketchSessionStore";
 
 const INPUT_PREFIX = "nodetool.input.";
 const OUTPUT_PREFIX = "nodetool.output.";
@@ -49,11 +49,11 @@ function latestSuccessfulWorkflowUpdatedAt(
 export function useSketchWorkflowFreshnessCheck(
   documentId: string | null | undefined
 ): void {
-  const markStaleForWorkflow = useSketchLayerBindingsStore(
+  const markStaleForWorkflow = useSketchSessionStore(
     (s) => s.markStaleForWorkflow
   );
-  const applyInputDrift = useSketchLayerBindingsStore((s) => s.applyInputDrift);
-  const setBindingsOutputNode = useSketchLayerBindingsStore(
+  const applyInputDrift = useSketchSessionStore((s) => s.applyInputDrift);
+  const setBindingsOutputNode = useSketchSessionStore(
     (s) => s.setBindingsOutputNode
   );
 
@@ -63,7 +63,7 @@ export function useSketchWorkflowFreshnessCheck(
     if (!documentId) return;
 
     const bindings = Object.values(
-      useSketchLayerBindingsStore.getState().bindings
+      useSketchSessionStore.getState().bindings
     );
 
     const workflowIds = new Set<string>();

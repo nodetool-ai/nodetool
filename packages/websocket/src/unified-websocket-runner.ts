@@ -4402,6 +4402,109 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * Run a one-shot media-generation request (text-to-image or image-to-image)
+   * and return the produced asset ids. Mirrors the image / image_edit
+   * branches of `handleMediaGenerationMessage` but skips the chat-thread
+   * machinery — the caller wants asset ids, not a streamed Message row.
+   *
+   * Used by the `generate_media` RPC for the sketch editor's direct-gen
+   * layers; the chat-path equivalents stay in `handleMediaGenerationMessage`
+   * for now to avoid touching that long flow in this slice.
+   */
+  private async runDirectMediaGeneration(
+    req: {
+      mode: "image" | "image_edit";
+      provider: string;
+      model: string;
+      prompt: string;
+      sourceAssetId?: string;
+      width?: number;
+      height?: number;
+      strength?: number;
+      numInferenceSteps?: number;
+      variations?: number;
+    }
+  ): Promise<{ asset_ids: string[] }> {
+    if (!this.resolveProvider) {
+      throw new Error("No provider resolver configured");
+    }
+    if (!req.model) {
+      throw new Error("model is required");
+    }
+    if (!req.prompt || !req.prompt.trim()) {
+      throw new Error("prompt is required");
+    }
+
+    const userId = this.userId ?? "1";
+    const provider = await this.resolveProvider(req.provider, userId);
+    const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
+
+    const imageModel: ProviderImageModel = {
+      id: req.model,
+      name: req.model,
+      provider: req.provider
+    };
+
+    const storeAsset = async (bytes: Uint8Array): Promise<string> => {
+      const asset = new Asset({
+        user_id: userId,
+        workflow_id: null,
+        name: `${req.mode}_${Date.now()}`,
+        content_type: "image/png",
+        parent_id: null
+      });
+      const fileName = `${asset.id}.png`;
+      await storeAssetWithThumbnail(asset.id, fileName, bytes, "image/png");
+      asset.size = bytes.length;
+      await asset.save();
+      return asset.id;
+    };
+
+    let images: Uint8Array[];
+    if (req.mode === "image") {
+      const params: TextToImageParams = {
+        model: imageModel,
+        prompt: req.prompt,
+        width: req.width,
+        height: req.height
+      };
+      images = await provider.textToImages(params, variations);
+    } else {
+      if (!req.sourceAssetId) {
+        throw new Error("source_asset_id is required for image_edit");
+      }
+      const sourceAsset = await Asset.find(userId, req.sourceAssetId);
+      if (!sourceAsset) {
+        throw new Error(`Source asset not found: ${req.sourceAssetId}`);
+      }
+      const ext =
+        (sourceAsset.content_type ?? "image/png").split("/")[1] ?? "png";
+      const adapter = getAssetAdapter();
+      const sourceBytes = await adapter.retrieve(
+        adapter.uriForKey(`${req.sourceAssetId}.${ext}`)
+      );
+      if (!sourceBytes) {
+        throw new Error(`Source asset bytes not found: ${req.sourceAssetId}`);
+      }
+      const params: ImageToImageParams = {
+        model: imageModel,
+        prompt: req.prompt,
+        targetWidth: req.width ?? null,
+        targetHeight: req.height ?? null,
+        strength: req.strength ?? null,
+        numInferenceSteps: req.numInferenceSteps ?? null
+      };
+      images = await provider.imageToImages(sourceBytes, params, variations);
+    }
+
+    const assetIds: string[] = [];
+    for (const bytes of images) {
+      assetIds.push(await storeAsset(bytes));
+    }
+    return { asset_ids: assetIds };
+  }
+
+  /**
    * Build a tRPC caller bound to this connection's `userId`. Used to dispatch
    * the read-only RPC commands (list_workflows, get_workflow, list_assets,
    * get_asset, list_nodes, get_node) onto the existing tRPC routers — single
@@ -4667,6 +4770,48 @@ export class UnifiedWebSocketRunner {
         const caller = this.getTrpcCaller();
         return this.runRpc(command, () =>
           caller.nodes.get({ node_type: String(data.node_type ?? "") })
+        );
+      }
+      case "generate_media": {
+        const rawMode = data.mode;
+        const mode =
+          rawMode === "image_edit" ? "image_edit" : ("image" as const);
+        const provider = String(data.provider ?? this.defaultProvider);
+        const model = String(data.model ?? this.defaultModel);
+        const prompt = String(data.prompt ?? "");
+        const sourceAssetId =
+          typeof data.source_asset_id === "string"
+            ? (data.source_asset_id as string)
+            : undefined;
+        const width =
+          typeof data.width === "number" ? (data.width as number) : undefined;
+        const height =
+          typeof data.height === "number" ? (data.height as number) : undefined;
+        const strength =
+          typeof data.strength === "number"
+            ? (data.strength as number)
+            : undefined;
+        const numInferenceSteps =
+          typeof data.num_inference_steps === "number"
+            ? (data.num_inference_steps as number)
+            : undefined;
+        const variations =
+          typeof data.variations === "number"
+            ? (data.variations as number)
+            : undefined;
+        return this.runRpc(command, () =>
+          this.runDirectMediaGeneration({
+            mode: mode as "image" | "image_edit",
+            provider,
+            model,
+            prompt,
+            sourceAssetId,
+            width,
+            height,
+            strength,
+            numInferenceSteps,
+            variations
+          })
         );
       }
       default:

@@ -34,8 +34,7 @@ import { EmptyState, FlexColumn, LoadingSpinner } from "../ui_primitives";
 import SketchEditor from "./SketchEditor";
 import { trpc } from "../../trpc/client";
 import type { SketchDocument } from "./types";
-import { useSketchLayerBindingsStore } from "../../stores/sketch/SketchLayerBindingsStore";
-import { useStandaloneSketchDocument } from "../../stores/sketch/SketchDocumentStore";
+import { useStandaloneSketchDocument } from "../../stores/sketch/SketchSessionStore";
 
 const pageStyles = (theme: Theme) =>
   css({
@@ -74,7 +73,6 @@ const SketchEditorPage: React.FC = memo(function SketchEditorPage() {
     documentQuery.data,
     !!documentId
   );
-  const resetBindings = useSketchLayerBindingsStore((s) => s.reset);
 
   useEffect(() => {
     if (!documentId) return;
@@ -83,11 +81,12 @@ const SketchEditorPage: React.FC = memo(function SketchEditorPage() {
     setSeed({ id: documentId, document: initialEditorState.document });
   }, [documentId, initialEditorState, seed?.id]);
 
-  useEffect(() => {
-    return () => {
-      resetBindings();
-    };
-  }, [documentId, resetBindings]);
+  // NOTE: we used to `resetBindings()` on unmount, but React's LIFO cleanup
+  // ordering meant it ran BEFORE `useStandaloneSketchDocument`'s autosave
+  // flush — so the flush captured an empty bindings store and persisted
+  // `layerBindings: []`, wiping the entire side-table on every navigation.
+  // The next load's `setBindings(response.document.layerBindings)` replaces
+  // them in full, so the explicit reset is unnecessary.
 
   if (!documentId) {
     return (
@@ -138,6 +137,7 @@ const SketchEditorPage: React.FC = memo(function SketchEditorPage() {
   return (
     <div className="sketch-editor-page" css={styles}>
       <SketchEditor
+        documentId={documentId}
         initialDocument={seed.document}
         initialEditorState={initialEditorState ?? undefined}
       />

@@ -347,12 +347,16 @@ export type UnifiedCommandType =
   | "list_assets"
   | "get_asset"
   | "list_nodes"
-  | "get_node";
+  | "get_node"
+  | "generate_media";
 
 /**
  * Read-only RPC commands that require a `request_id` and return a single
  * `rpc_response` frame. Distinguished from streaming commands (run_job,
  * chat_message, etc.) which fire-and-forget and stream results back.
+ *
+ * `generate_media` is included here because the sketch editor and other
+ * non-chat callers want a single asset id back, not a streamed Message row.
  */
 export type RpcCommandType =
   | "list_workflows"
@@ -360,7 +364,8 @@ export type RpcCommandType =
   | "list_assets"
   | "get_asset"
   | "list_nodes"
-  | "get_node";
+  | "get_node"
+  | "generate_media";
 
 export interface WebSocketCommandEnvelope<
   C extends UnifiedCommandType = UnifiedCommandType,
@@ -414,6 +419,31 @@ export interface ListNodesRequest {
 
 export interface GetNodeRequest {
   node_type: string;
+}
+
+/**
+ * Request payload for the `generate_media` RPC. Drives the sketch editor's
+ * direct-generation layers (text-to-image and image-to-image) — bypasses the
+ * chat path so no thread/Message row is created. Returns `{ asset_ids: string[] }`.
+ */
+export interface GenerateMediaRequest {
+  /** "image" = text-to-image; "image_edit" = image-to-image. */
+  mode: "image" | "image_edit";
+  provider: string;
+  model: string;
+  prompt: string;
+  /** Required when mode === "image_edit". Bytes are loaded server-side. */
+  source_asset_id?: string;
+  width?: number;
+  height?: number;
+  strength?: number;
+  num_inference_steps?: number;
+  /** Number of variations to request (1..8, clamped server-side). */
+  variations?: number;
+}
+
+export interface GenerateMediaResponse {
+  asset_ids: string[];
 }
 
 export interface RpcErrorPayload {
