@@ -342,20 +342,6 @@ export const config: ModuleConfig = {
       basicFields: ["image", "prompt"]
     },
 
-    "fal-ai/hunyuan-video/image-to-video": {
-      className: "HunyuanImageToVideo",
-      docstring:
-        "Hunyuan Video generates high-quality videos from images with advanced AI.",
-      tags: ["video", "generation", "hunyuan", "tencent", "image-to-video"],
-      useCases: [
-        "Generate cinematic videos from images",
-        "Create high-quality animations",
-        "Produce professional video content",
-        "Animate images with detail",
-        "Generate advanced video effects"
-      ],
-      basicFields: ["image", "prompt"]
-    },
 
     "fal-ai/ltx-video/image-to-video": {
       className: "LTXImageToVideo",
@@ -388,27 +374,6 @@ export const config: ModuleConfig = {
       basicFields: ["image", "prompt"]
     },
 
-    "fal-ai/kling-video/v1/pro/image-to-video": {
-      className: "KlingVideoV1ProImageToVideo",
-      docstring:
-        "Kling Video v1 Pro generates professional quality videos from images.",
-      tags: [
-        "video",
-        "generation",
-        "kling",
-        "pro",
-        "professional",
-        "image-to-video"
-      ],
-      useCases: [
-        "Generate professional videos",
-        "Create high-quality animations",
-        "Produce premium video content",
-        "Generate cinematic outputs",
-        "Create professional grade videos"
-      ],
-      basicFields: ["image", "prompt"]
-    },
 
     "fal-ai/pixverse/v5.6/transition": {
       className: "PixverseV56Transition",
@@ -1243,19 +1208,6 @@ export const config: ModuleConfig = {
       ]
     },
 
-    "fal-ai/decart/lucy-5b/image-to-video": {
-      className: "DecartLucy5bImageToVideo",
-      docstring:
-        "Lucy-5B is a model that can create 5-second I2V videos in under 5 seconds, achieving >1x RTF end-to-end",
-      tags: ["video", "animation", "image-to-video", "img2vid"],
-      useCases: [
-        "Animate static images",
-        "Create engaging social media content",
-        "Product demonstrations",
-        "Marketing and promotional videos",
-        "Visual storytelling"
-      ]
-    },
 
     "fal-ai/pixverse/v5/transition": {
       className: "PixverseV5Transition",

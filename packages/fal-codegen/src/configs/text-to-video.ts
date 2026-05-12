@@ -241,20 +241,6 @@ export const config: ModuleConfig = {
       basicFields: ["prompt"]
     },
 
-    "fal-ai/kling-video/v1/pro/text-to-video": {
-      className: "KlingVideoV1ProTextToVideo",
-      docstring:
-        "Kling Video v1 Pro generates high-quality professional videos from text prompts.",
-      tags: ["video", "generation", "kling", "pro", "text-to-video", "txt2vid"],
-      useCases: [
-        "Generate professional grade videos",
-        "Create high-quality marketing content",
-        "Produce cinematic video sequences",
-        "Generate detailed video scenes",
-        "Create premium video content"
-      ],
-      basicFields: ["prompt"]
-    },
 
     "fal-ai/mochi-v1": {
       className: "MochiV1",
@@ -278,28 +264,6 @@ export const config: ModuleConfig = {
       basicFields: ["prompt"]
     },
 
-    "fal-ai/runway-gen3/turbo/text-to-video": {
-      className: "RunwayGen3TurboTextToVideo",
-      docstring:
-        "Runway Gen-3 Turbo generates videos quickly from text with high quality output.",
-      tags: [
-        "video",
-        "generation",
-        "runway",
-        "gen3",
-        "turbo",
-        "text-to-video",
-        "txt2vid"
-      ],
-      useCases: [
-        "Generate videos rapidly from text",
-        "Create quick video prototypes",
-        "Produce fast video iterations",
-        "Generate real-time video content",
-        "Create efficient video workflows"
-      ],
-      basicFields: ["prompt"]
-    },
 
     "fal-ai/stable-video": {
       className: "StableVideo",
@@ -338,87 +302,9 @@ export const config: ModuleConfig = {
       basicFields: ["prompt"]
     },
 
-    "fal-ai/wan-cinematic": {
-      className: "WanCinematic",
-      docstring:
-        "Wan Cinematic generates cinematic quality videos from text with professional aesthetics.",
-      tags: [
-        "video",
-        "generation",
-        "cinematic",
-        "professional",
-        "text-to-video",
-        "txt2vid"
-      ],
-      useCases: [
-        "Generate cinematic video sequences",
-        "Create film-quality content",
-        "Produce professional video clips",
-        "Generate movie-like scenes",
-        "Create dramatic video content"
-      ],
-      basicFields: ["prompt"]
-    },
 
-    "fal-ai/minimax-video/v1": {
-      className: "MinimaxVideoV1",
-      docstring:
-        "Minimax Video v1 generates videos from text with efficient resource usage.",
-      tags: ["video", "generation", "minimax", "text-to-video", "txt2vid"],
-      useCases: [
-        "Generate videos efficiently",
-        "Create video content with minimal resources",
-        "Produce lightweight video outputs",
-        "Generate scalable video content",
-        "Create optimized video workflows"
-      ],
-      basicFields: ["prompt"]
-    },
 
-    "fal-ai/minimax-video/v1/turbo": {
-      className: "MinimaxVideoV1Turbo",
-      docstring:
-        "Minimax Video v1 Turbo generates videos from text at maximum speed.",
-      tags: [
-        "video",
-        "generation",
-        "minimax",
-        "turbo",
-        "fast",
-        "text-to-video",
-        "txt2vid"
-      ],
-      useCases: [
-        "Generate videos at maximum speed",
-        "Create rapid video iterations",
-        "Produce instant video previews",
-        "Generate real-time video responses",
-        "Create ultra-fast video workflows"
-      ],
-      basicFields: ["prompt"]
-    },
 
-    "fal-ai/pyramidflow": {
-      className: "PyramidFlow",
-      docstring:
-        "PyramidFlow generates videos with hierarchical processing for smooth motion.",
-      tags: [
-        "video",
-        "generation",
-        "pyramid",
-        "flow",
-        "text-to-video",
-        "txt2vid"
-      ],
-      useCases: [
-        "Generate smooth motion videos",
-        "Create fluid video animations",
-        "Produce high-quality motion sequences",
-        "Generate temporally coherent videos",
-        "Create professional motion graphics"
-      ],
-      basicFields: ["prompt"]
-    },
 
     "fal-ai/luma-dream-machine": {
       className: "LumaDreamMachineTextToVideo",
@@ -464,161 +350,12 @@ export const config: ModuleConfig = {
       basicFields: ["prompt"]
     },
 
-    "fal-ai/luma-photon-flash": {
-      className: "LumaPhotonFlashVideo",
-      docstring:
-        "Luma Photon Flash generates photorealistic videos quickly with optimized speed.",
-      tags: [
-        "video",
-        "generation",
-        "luma",
-        "photon",
-        "flash",
-        "fast",
-        "text-to-video"
-      ],
-      useCases: [
-        "Generate photorealistic videos rapidly",
-        "Create realistic video previews",
-        "Produce fast photorealistic content",
-        "Generate quick realistic sequences",
-        "Create efficient realistic workflows"
-      ],
-      basicFields: ["prompt"]
-    },
 
-    "fal-ai/luma-ray2": {
-      className: "LumaRay2",
-      docstring:
-        "Luma Ray2 generates advanced video content with improved ray tracing techniques.",
-      tags: [
-        "video",
-        "generation",
-        "luma",
-        "ray2",
-        "advanced",
-        "text-to-video"
-      ],
-      useCases: [
-        "Generate ray-traced video content",
-        "Create advanced lighting effects",
-        "Produce high-quality rendered videos",
-        "Generate realistic lighting sequences",
-        "Create professional visual effects"
-      ],
-      basicFields: ["prompt"]
-    },
 
-    "fal-ai/luma-ray2/turbo": {
-      className: "LumaRay2Turbo",
-      docstring:
-        "Luma Ray2 Turbo generates ray-traced videos with optimized rendering speed.",
-      tags: [
-        "video",
-        "generation",
-        "luma",
-        "ray2",
-        "turbo",
-        "fast",
-        "text-to-video"
-      ],
-      useCases: [
-        "Generate ray-traced videos quickly",
-        "Create fast rendered previews",
-        "Produce efficient visual effects",
-        "Generate rapid lighting iterations",
-        "Create optimized rendering workflows"
-      ],
-      basicFields: ["prompt"]
-    },
 
-    "fal-ai/qihoo-t2v": {
-      className: "QihooT2V",
-      docstring:
-        "Qihoo T2V generates videos from text with Chinese language optimization.",
-      tags: [
-        "video",
-        "generation",
-        "qihoo",
-        "chinese",
-        "text-to-video",
-        "txt2vid"
-      ],
-      useCases: [
-        "Generate videos from Chinese text",
-        "Create multilingual video content",
-        "Produce localized video scenes",
-        "Generate culturally relevant videos",
-        "Create international video content"
-      ],
-      basicFields: ["prompt"]
-    },
 
-    "fal-ai/wan-show-1": {
-      className: "WanShow1",
-      docstring:
-        "Wan Show 1 generates presentation-style videos from text for showcasing ideas.",
-      tags: [
-        "video",
-        "generation",
-        "presentation",
-        "showcase",
-        "text-to-video"
-      ],
-      useCases: [
-        "Generate presentation videos",
-        "Create showcase content",
-        "Produce pitch videos",
-        "Generate demo videos",
-        "Create educational presentations"
-      ],
-      basicFields: ["prompt"]
-    },
 
-    "fal-ai/luma-photon/v2": {
-      className: "LumaPhotonV2",
-      docstring:
-        "Luma Photon v2 generates photorealistic videos with improved quality and detail.",
-      tags: [
-        "video",
-        "generation",
-        "luma",
-        "photon",
-        "v2",
-        "photorealistic",
-        "text-to-video"
-      ],
-      useCases: [
-        "Generate high-quality photorealistic videos",
-        "Create detailed realistic scenes",
-        "Produce cinematic realistic content",
-        "Generate professional video outputs",
-        "Create premium photorealistic sequences"
-      ],
-      basicFields: ["prompt"]
-    },
 
-    "fal-ai/luma-dream-machine/v1.6": {
-      className: "LumaDreamMachineV16",
-      docstring:
-        "Luma Dream Machine v1.6 generates creative videos with enhanced dream-like effects.",
-      tags: [
-        "video",
-        "generation",
-        "luma",
-        "dream-machine",
-        "v1.6",
-        "text-to-video"
-      ],
-      useCases: [
-        "Generate enhanced dreamlike videos",
-        "Create surreal video art",
-        "Produce creative visual content",
-        "Generate artistic video sequences",
-        "Create imaginative video effects"
-      ],
-      basicFields: ["prompt"]
-    },
 
     "fal-ai/pixverse/v5.6/text-to-video": {
       className: "PixverseV56TextToVideo",
@@ -1531,19 +1268,6 @@ export const config: ModuleConfig = {
       ]
     },
 
-    "fal-ai/wan/v2.1/1.3b/text-to-video": {
-      className: "WanV2113bTextToVideo",
-      docstring:
-        "Wan-2.1 1.3B is a text-to-video model that generates high-quality videos with high visual quality and motion diversity from text promptsat faster speeds.",
-      tags: ["video", "generation", "text-to-video", "txt2vid"],
-      useCases: [
-        "AI-generated video content",
-        "Marketing and advertising videos",
-        "Educational content creation",
-        "Social media video posts",
-        "Automated video production"
-      ]
-    },
 
     "fal-ai/wan-t2v": {
       className: "WanT2v",

@@ -2439,18 +2439,6 @@ export const config: ModuleConfig = {
       ]
     },
 
-    "fal-ai/hyper-sdxl": {
-      className: "HyperSdxl",
-      docstring: "Hyper-charge SDXL's performance and creativity.",
-      tags: ["generation", "text-to-image", "txt2img", "ai-art"],
-      useCases: [
-        "AI-powered art generation",
-        "Marketing and advertising visuals",
-        "Concept art and ideation",
-        "Social media content creation",
-        "Rapid prototyping and mockups"
-      ]
-    },
 
     "fal-ai/fast-lcm-diffusion": {
       className: "FastLcmDiffusion",

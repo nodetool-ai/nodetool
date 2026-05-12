@@ -190,41 +190,6 @@ export const config: ModuleConfig = {
       ],
       basicFields: ["text"]
     },
-    "fal-ai/lumina-next-music": {
-      className: "LuminaNextMusic",
-      docstring:
-        "Lumina Next Music generates advanced music compositions with sophisticated arrangements.",
-      tags: [
-        "audio",
-        "music",
-        "generation",
-        "lumina",
-        "advanced",
-        "text-to-audio"
-      ],
-      useCases: [
-        "Generate sophisticated music",
-        "Create complex arrangements",
-        "Produce advanced compositions",
-        "Generate professional music",
-        "Create layered soundtracks"
-      ],
-      basicFields: ["prompt"]
-    },
-    "fal-ai/suno-ai": {
-      className: "SunoAI",
-      docstring:
-        "Suno AI generates complete songs with vocals and instrumentals from text.",
-      tags: ["audio", "music", "song", "generation", "suno", "text-to-audio"],
-      useCases: [
-        "Generate complete songs",
-        "Create vocal tracks with music",
-        "Produce original songs",
-        "Generate music with lyrics",
-        "Create full audio productions"
-      ],
-      basicFields: ["prompt"]
-    },
     "fal-ai/stable-audio": {
       className: "StableAudio",
       docstring:
@@ -259,95 +224,6 @@ export const config: ModuleConfig = {
         "Create voice replications"
       ],
       basicFields: ["text"]
-    },
-    "fal-ai/joyous": {
-      className: "Joyous",
-      docstring:
-        "Joyous generates upbeat and cheerful music from text descriptions.",
-      tags: [
-        "audio",
-        "music",
-        "generation",
-        "upbeat",
-        "cheerful",
-        "text-to-audio"
-      ],
-      useCases: [
-        "Generate cheerful music",
-        "Create upbeat soundtracks",
-        "Produce happy audio content",
-        "Generate positive music",
-        "Create energetic compositions"
-      ],
-      basicFields: ["prompt"]
-    },
-    "fal-ai/metavoice": {
-      className: "MetaVoice",
-      docstring:
-        "MetaVoice generates natural speech with advanced voice characteristics control.",
-      tags: ["audio", "tts", "speech", "metavoice", "text-to-speech"],
-      useCases: [
-        "Generate natural speech",
-        "Control voice characteristics",
-        "Create varied voice outputs",
-        "Produce customized speech",
-        "Generate flexible audio content"
-      ],
-      basicFields: ["text"]
-    },
-    "fal-ai/piper-tts": {
-      className: "PiperTTS",
-      docstring: "Piper TTS generates fast, efficient speech with low latency.",
-      tags: ["audio", "tts", "speech", "fast", "efficient", "text-to-speech"],
-      useCases: [
-        "Fast speech generation",
-        "Low-latency TTS",
-        "Efficient audio production",
-        "Real-time speech synthesis",
-        "Quick voiceover creation"
-      ],
-      basicFields: ["text"]
-    },
-    "fal-ai/riffusion": {
-      className: "Riffusion",
-      docstring:
-        "Riffusion generates music using diffusion models for creative audio synthesis.",
-      tags: [
-        "audio",
-        "music",
-        "generation",
-        "diffusion",
-        "riffusion",
-        "text-to-audio"
-      ],
-      useCases: [
-        "Generate creative music",
-        "Create experimental audio",
-        "Produce unique soundscapes",
-        "Generate artistic compositions",
-        "Create innovative music"
-      ],
-      basicFields: ["prompt"]
-    },
-    "fal-ai/vocalremover": {
-      className: "VocalRemover",
-      docstring:
-        "Vocal Remover separates vocals from music to create instrumental versions.",
-      tags: [
-        "audio",
-        "vocal-separation",
-        "karaoke",
-        "instrumental",
-        "processing"
-      ],
-      useCases: [
-        "Create karaoke tracks",
-        "Extract instrumentals",
-        "Remove vocals from songs",
-        "Separate audio stems",
-        "Create background music"
-      ],
-      basicFields: ["audio"]
     },
     "fal-ai/minimax-music/v2": {
       className: "MinimaxMusicV2",

@@ -4,6 +4,7 @@
  *
  * Usage:
  *   npx tsx src/generate.ts
+ *   npx tsx src/generate.ts --strict
  *   npx tsx src/generate.ts --no-cache
  *   npx tsx src/generate.ts --output fal-manifest.json
  */
@@ -20,6 +21,7 @@ import type { NodeSpec } from "./types.js";
 const { values } = parseArgs({
   options: {
     "no-cache": { type: "boolean", default: false },
+    strict: { type: "boolean", default: false },
     output: {
       type: "string",
       default: join(process.cwd(), "..", "fal-nodes", "src", "fal-manifest.json")
@@ -27,8 +29,31 @@ const { values } = parseArgs({
   }
 });
 
+interface GenerationFailure {
+  endpointId: string;
+  error: unknown;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function throwIfStrictFailures(
+  strict: boolean,
+  failures: GenerationFailure[]
+): void {
+  if (!strict || failures.length === 0) return;
+  const details = failures
+    .map(({ endpointId, error }) => `  - ${endpointId}: ${errorMessage(error)}`)
+    .join("\n");
+  throw new Error(
+    `FAL generation failed for ${failures.length} configured endpoint(s):\n${details}`
+  );
+}
+
 async function main(): Promise<void> {
   const useCache = !values["no-cache"];
+  const strict = values.strict!;
   const outputPath = values.output!;
 
   const fetcher = new SchemaFetcher();
@@ -36,6 +61,7 @@ async function main(): Promise<void> {
   const generator = new NodeGenerator();
 
   const allSpecs: Array<NodeSpec & { moduleName: string }> = [];
+  const failures: GenerationFailure[] = [];
 
   for (const [name, config] of Object.entries(allConfigs)) {
     const dashName = name.replace(/_/g, "-");
@@ -52,11 +78,13 @@ async function main(): Promise<void> {
           : spec;
         allSpecs.push({ ...applied, moduleName: name });
       } catch (e) {
-        console.error(`  ERROR: ${endpointId}: ${e}`);
+        failures.push({ endpointId, error: e });
+        console.error(`  ERROR: ${endpointId}: ${errorMessage(e)}`);
       }
     }
   }
 
+  throwIfStrictFailures(strict, failures);
   await writeFile(outputPath, JSON.stringify(allSpecs, null, 2));
   console.log(`\nWrote ${allSpecs.length} specs to ${outputPath}`);
 }

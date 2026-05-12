@@ -169,34 +169,6 @@ export const config: ModuleConfig = {
       ],
       basicFields: ["text"]
     },
-    "fal-ai/indo-voice": {
-      className: "IndoVoice",
-      docstring:
-        "IndoVoice TTS generates Indonesian language speech with natural pronunciation and intonation.",
-      tags: ["speech", "synthesis", "text-to-speech", "tts", "indonesian"],
-      useCases: [
-        "Generate Indonesian speech",
-        "Create Indonesian narration",
-        "Produce Indonesian voice-overs",
-        "Generate localized audio content",
-        "Create Indonesian audio books"
-      ],
-      basicFields: ["text"]
-    },
-    "fal-ai/cosyvoice-turbo": {
-      className: "CosyvoiceTurbo",
-      docstring:
-        "CosyVoice Turbo generates high-quality speech with fast processing speed and natural voice.",
-      tags: ["speech", "synthesis", "text-to-speech", "tts", "turbo", "fast"],
-      useCases: [
-        "Generate speech quickly",
-        "Create fast voice narration",
-        "Produce rapid audio content",
-        "Generate speech with turbo speed",
-        "Create efficient voice-overs"
-      ],
-      basicFields: ["text"]
-    },
     "fal-ai/kling-video/v1/tts": {
       className: "KlingVideoV1Tts",
       docstring:
