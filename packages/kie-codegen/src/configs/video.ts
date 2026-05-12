@@ -1,2784 +1,5158 @@
 import type { ModuleConfig } from "../types.js";
 
-const IMAGE_REF = {
-  type: "image" as const,
-  uri: "",
-  asset_id: null,
-  data: null,
-  metadata: null
-};
-const AUDIO_REF = {
-  type: "audio" as const,
-  uri: "",
-  asset_id: null,
-  data: null,
-  metadata: null
-};
-const VIDEO_REF = {
-  type: "video" as const,
-  uri: "",
-  asset_id: null,
-  data: null,
-  metadata: null,
-  duration: null,
-  format: null
-};
-
 export const videoConfig: ModuleConfig = {
-  moduleName: "video",
-  defaultPollInterval: 8000,
-  defaultMaxAttempts: 450,
-  nodes: [
-    // -----------------------------------------------------------------------
-    // 1. KlingTextToVideo
-    // -----------------------------------------------------------------------
+  "moduleName": "video",
+  "defaultPollInterval": 8000,
+  "defaultMaxAttempts": 450,
+  "nodes": [
     {
-      className: "KlingTextToVideo",
-      modelId: "kling-2.6/text-to-video",
-      title: "Kling 2.6 Text To Video",
-      description:
-        "Generate videos from text using Kuaishou's Kling 2.6 model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, text-to-video, 2.6\n\n    Kling 2.6 produces high-quality videos from text descriptions with\n    realistic motion, natural lighting, and cinematic detail.",
-      outputType: "video",
-      fields: [
+      "className": "GrokImagineTextToVideo",
+      "modelId": "grok-imagine/text-to-video",
+      "title": "Grok Imagine Text to Video",
+      "description": "Grok Imagine Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt describing the desired video motion. Required field. - Should be detailed and specific about the desired visual motion - Describe movement, action sequences, camera work, and timing - Include details about subjects, environments, and motion dynamics - Maximum length: 5000 characters - Supports English language prompts",
+          "required": true
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated video.",
-          values: ["16:9", "9:16", "1:1"]
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "2:3",
+          "title": "Aspect Ratio",
+          "description": "Specifies the width-to-height ratio of the generated video. Controls the aspect ratio of the output. - **2:3**: Portrait orientation (vertical) - **3:2**: Landscape orientation (horizontal) - **1:1**: Square format - **16:9**: Wide screen format - **9:16**: Tall screen format Default: 2:3",
+          "required": false,
+          "values": [
+            "2:3",
+            "3:2",
+            "1:1",
+            "16:9",
+            "9:16"
+          ]
         },
         {
-          name: "duration",
-          type: "int",
-          default: 5,
-          title: "Duration",
-          description: "Video duration in seconds.",
-          min: 1,
-          max: 10
+          "name": "mode",
+          "type": "enum",
+          "default": "normal",
+          "title": "Mode",
+          "description": "Specifies the generation mode affecting the style and intensity of motion. - **fun**: More creative and playful interpretation - **normal**: Balanced approach with good motion quality - **spicy**: More dynamic and intense motion effects Default: normal",
+          "required": false,
+          "values": [
+            "fun",
+            "normal",
+            "spicy"
+          ]
         },
         {
-          name: "resolution",
-          type: "enum",
-          default: "768P",
-          title: "Resolution",
-          description: "Video resolution.",
-          values: ["768P"]
+          "name": "duration",
+          "type": "float",
+          "default": 0,
+          "title": "Duration",
+          "description": "The duration of the generated video (in seconds) (6-30). (Minimum: 6, Maximum: 30, Step: 1)",
+          "required": false
         },
         {
-          name: "seed",
-          type: "int",
-          default: -1,
-          title: "Seed",
-          description:
-            "Random seed for reproducible results. Use -1 for random seed."
+          "name": "resolution",
+          "type": "enum",
+          "default": "480p",
+          "title": "Resolution",
+          "description": "The resolution of the generated video.",
+          "required": false,
+          "values": [
+            "480p",
+            "720p"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
         }
       ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 2. KlingImageToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "KlingImageToVideo",
-      modelId: "kling-2.6/image-to-video",
-      title: "Kling 2.6 Image To Video",
-      description:
-        "Generate videos from images using Kuaishou's Kling 2.6 model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, image-to-video, 2.6\n\n    Transforms static images into dynamic videos with realistic motion\n    and temporal consistency while preserving the original visual style.",
-      outputType: "video",
-      fields: [
+      "validation": [
         {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "Optional text prompt to guide the video generation."
-        },
-        {
-          name: "image1",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image1",
-          description: "First source image for the video generation."
-        },
-        {
-          name: "image2",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image2",
-          description: "Second source image (optional)."
-        },
-        {
-          name: "image3",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image3",
-          description: "Third source image (optional)."
-        },
-        {
-          name: "sound",
-          type: "bool",
-          default: false,
-          title: "Sound",
-          description: "Whether to generate sound for the video."
-        },
-        {
-          name: "duration",
-          type: "int",
-          default: 5,
-          title: "Duration",
-          description: "Video duration in seconds."
-        }
-      ],
-      uploads: [
-        {
-          field: "image1",
-          kind: "image",
-          paramName: "image_urls",
-          groupKey: "images"
-        },
-        {
-          field: "image2",
-          kind: "image",
-          paramName: "image_urls",
-          groupKey: "images"
-        },
-        {
-          field: "image3",
-          kind: "image",
-          paramName: "image_urls",
-          groupKey: "images"
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 3. KlingAIAvatarStandard
-    // -----------------------------------------------------------------------
     {
-      className: "KlingAIAvatarStandard",
-      modelId: "kling/ai-avatar-standard",
-      title: "Kling AIAvatar Standard",
-      description:
-        "Generate talking avatar videos using Kuaishou's Kling AI via Kie.ai.\n\n    kie, kling, kuaishou, avatar, video generation, ai, talking-head, lip-sync\n\n    Transforms a photo plus audio track into a lip-synced talking avatar video\n    with natural-looking speech animation and consistent identity.",
-      outputType: "video",
-      fields: [
+      "className": "GrokImagineImageToVideo",
+      "modelId": "grok-imagine/image-to-video",
+      "title": "Grok Imagine Image to Video",
+      "description": "Grok Imagine Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
         {
-          name: "image",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image",
-          description: "The face/character image to animate."
+          "name": "images",
+          "type": "list[video]",
+          "default": [],
+          "title": "Images",
+          "description": "Provide an external image URL as a reference for video generation. Up to 7 images are supported. Do not use it simultaneously with task_id. In your prompt, reference an uploaded image by typing @image(n) followed by a space (for example: @image1 a sunset over the ocean). - Supports JPEG, PNG, and WEBP formats - Maximum file size for each image: 10MB - The Spicy mode is not available when using external images - The array can contain a maximum of seven URLs",
+          "required": false
         },
         {
-          name: "audio",
-          type: "audio",
-          default: AUDIO_REF,
-          title: "Audio",
-          description: "The audio track for lip-syncing."
+          "name": "task_id",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "Task ID from a previously generated Grok image. Use with index to select a specific image. Do not use with image_urls. - Use task ID from grok-imagine/text-to-image generations - Supports all modes including Spicy - Maximum length: 100 characters",
+          "required": false
         },
         {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "Optional text to guide emotions and expressions."
+          "name": "index",
+          "type": "int",
+          "default": 0,
+          "title": "Index",
+          "description": "When using task_id, specify which image to use (Grok generates 6 images per task). Only works with task_id. - 0-based index (0-5) - Ignored if image_urls is provided - Default: 0",
+          "required": false,
+          "min": 0,
+          "max": 5
         },
         {
-          name: "mode",
-          type: "enum",
-          default: "standard",
-          title: "Mode",
-          description:
-            "Generation mode: 'standard' or 'pro' for higher quality.",
-          values: ["standard", "pro"]
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt describing the desired video motion. Optional field. - Should be detailed and specific about the desired visual motion - Describe movement, action sequences, camera work, and timing - Include details about subjects, environments, and motion dynamics - Maximum length: 5000 characters - Supports English language prompts",
+          "required": false
+        },
+        {
+          "name": "mode",
+          "type": "enum",
+          "default": "normal",
+          "title": "Mode",
+          "description": "Specifies the generation mode affecting the style and intensity of motion. Note: Spicy mode is not available for external image inputs. - **fun**: More creative and playful interpretation - **normal**: Balanced approach with good motion quality - **spicy**: More dynamic and intense motion effects (not available for external images) Default: normal",
+          "required": false,
+          "values": [
+            "fun",
+            "normal",
+            "spicy"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "str",
+          "default": "",
+          "title": "Duration",
+          "description": "The duration of the generated video (in seconds) (6-30). (Minimum: 6, Maximum: 30, Step: 1)",
+          "required": false
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "480p",
+          "title": "Resolution",
+          "description": "The resolution of the generated video.",
+          "required": false,
+          "values": [
+            "480p",
+            "720p"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "Image ratio selection only applies to multi-image generation mode. In single-image mode, the video width and height are referenced to the image width and height.",
+          "required": false,
+          "values": [
+            "2:3",
+            "3:2",
+            "1:1",
+            "16:9",
+            "9:16"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
         }
       ],
-      uploads: [
-        { field: "image", kind: "image", paramName: "image_url" },
-        { field: "audio", kind: "audio", paramName: "audio_url" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 4. KlingAIAvatarPro
-    // -----------------------------------------------------------------------
-    {
-      className: "KlingAIAvatarPro",
-      modelId: "kling/ai-avatar-pro",
-      title: "Kling AIAvatar Pro",
-      description:
-        "Generate talking avatar videos using Kuaishou's Kling AI via Kie.ai.\n\n    kie, kling, kuaishou, avatar, video generation, ai, talking-head, lip-sync\n\n    Transforms a photo plus audio track into a lip-synced talking avatar video\n    with natural-looking speech animation and consistent identity.",
-      outputType: "video",
-      fields: [
+      "uploads": [
         {
-          name: "image",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image",
-          description: "The face/character image to animate."
-        },
-        {
-          name: "audio",
-          type: "audio",
-          default: AUDIO_REF,
-          title: "Audio",
-          description: "The audio track for lip-syncing."
-        },
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "Optional text to guide emotions and expressions."
-        },
-        {
-          name: "mode",
-          type: "enum",
-          default: "standard",
-          title: "Mode",
-          description:
-            "Generation mode: 'standard' or 'pro' for higher quality.",
-          values: ["standard", "pro"]
-        }
-      ],
-      uploads: [
-        { field: "image", kind: "image", paramName: "image_url" },
-        { field: "audio", kind: "audio", paramName: "audio_url" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 5. GrokImagineTextToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "GrokImagineTextToVideo",
-      modelId: "grok-imagine/text-to-video",
-      title: "Grok Imagine Text To Video",
-      description:
-        "Generate videos from text using xAI's Grok Imagine model via Kie.ai.\n\n    kie, grok, xai, video generation, ai, text-to-video, multimodal\n\n    Grok Imagine generates videos from text prompts using xAI's\n    multimodal generation capabilities.",
-      outputType: "video",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "1080p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["720p", "1080p"]
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "medium",
-          title: "Duration",
-          description: "The duration tier of the video.",
-          values: ["short", "medium", "long"]
-        }
-      ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 6. GrokImagineImageToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "GrokImagineImageToVideo",
-      modelId: "grok-imagine/image-to-video",
-      title: "Grok Imagine Image To Video",
-      description:
-        "Generate videos from images using xAI's Grok Imagine model via Kie.ai.\n\n    kie, grok, xai, video generation, ai, image-to-video, multimodal\n\n    Grok Imagine transforms images into videos using xAI's\n    multimodal generation capabilities.",
-      outputType: "video",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "Optional text guide for the animation."
-        },
-        {
-          name: "image",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image",
-          description: "The source image to animate."
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "medium",
-          title: "Duration",
-          description: "The duration tier of the video.",
-          values: ["short", "medium", "long"]
-        }
-      ],
-      uploads: [{ field: "image", kind: "image", paramName: "image_url" }]
-    },
-
-    // -----------------------------------------------------------------------
-    // 7. SeedanceV1LiteTextToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "SeedanceV1LiteTextToVideo",
-      modelId: "bytedance/v1-lite-text-to-video",
-      title: "Seedance V1 Lite Text To Video",
-      description:
-        "Bytedance 1.0 - text-to-video-lite via Kie.ai.\n\n    kie, seedance, bytedance, video generation, ai, text-to-video, lite\n\n    Seedance V1 Lite offers efficient text-to-video generation\n    with good quality and faster processing times.",
-      outputType: "video",
-      fields: [
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated video.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9", "9:21"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "720p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["720p"]
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description: "The duration of the video in seconds.",
-          values: ["5", "10"]
-        },
-        {
-          name: "remove_watermark",
-          type: "bool",
-          default: true,
-          title: "Remove Watermark",
-          description: "Whether to remove the watermark from the video."
-        },
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
-        }
-      ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 8. SeedanceV1ProTextToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "SeedanceV1ProTextToVideo",
-      modelId: "bytedance/v1-pro-text-to-video",
-      title: "Seedance V1 Pro Text To Video",
-      description: "Bytedance 1.0 - text-to-video-pro via Kie.ai.",
-      outputType: "video",
-      fields: [
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated video.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9", "9:21"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "720p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["720p"]
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description: "The duration of the video in seconds.",
-          values: ["5", "10"]
-        },
-        {
-          name: "remove_watermark",
-          type: "bool",
-          default: true,
-          title: "Remove Watermark",
-          description: "Whether to remove the watermark from the video."
-        },
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
-        }
-      ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 9. SeedanceV1LiteImageToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "SeedanceV1LiteImageToVideo",
-      modelId: "bytedance/v1-lite-image-to-video",
-      title: "Seedance V1 Lite Image To Video",
-      description: "Bytedance 1.0 - image-to-video-lite via Kie.ai.",
-      outputType: "video",
-      fields: [
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated video.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9", "9:21"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "720p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["720p"]
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description: "The duration of the video in seconds.",
-          values: ["5", "10"]
-        },
-        {
-          name: "remove_watermark",
-          type: "bool",
-          default: true,
-          title: "Remove Watermark",
-          description: "Whether to remove the watermark from the video."
-        },
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "Optional text guide for the video generation."
-        },
-        {
-          name: "image1",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image1",
-          description: "First source image for the video generation."
-        },
-        {
-          name: "image2",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image2",
-          description: "Second source image (optional)."
-        },
-        {
-          name: "image3",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image3",
-          description: "Third source image (optional)."
-        }
-      ],
-      uploads: [
-        {
-          field: "image1",
-          kind: "image",
-          paramName: "image_urls",
-          groupKey: "images"
-        },
-        {
-          field: "image2",
-          kind: "image",
-          paramName: "image_urls",
-          groupKey: "images"
-        },
-        {
-          field: "image3",
-          kind: "image",
-          paramName: "image_urls",
-          groupKey: "images"
+          "field": "images",
+          "kind": "video",
+          "isList": true,
+          "paramName": "image_urls"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 10. SeedanceV1ProImageToVideo
-    // -----------------------------------------------------------------------
     {
-      className: "SeedanceV1ProImageToVideo",
-      modelId: "bytedance/v1-pro-image-to-video",
-      title: "Seedance V1 Pro Image To Video",
-      description: "Bytedance 1.0 - image-to-video-pro via Kie.ai.",
-      outputType: "video",
-      fields: [
+      "className": "GrokImagineUpscale",
+      "modelId": "grok-imagine/upscale",
+      "title": "Grok Imagine - Video Upscale",
+      "description": "Grok Imagine - Video Upscale via Kie.ai.\n\n    kie, video, ai\n\n    Grok Imagine - Video Upscale",
+      "outputType": "video",
+      "fields": [
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated video.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9", "9:21"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "720p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["720p"]
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description: "The duration of the video in seconds.",
-          values: ["5", "10"]
-        },
-        {
-          name: "remove_watermark",
-          type: "bool",
-          default: true,
-          title: "Remove Watermark",
-          description: "Whether to remove the watermark from the video."
-        },
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "Optional text guide for the video generation."
-        },
-        {
-          name: "image1",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image1",
-          description: "First source image for the video generation."
-        },
-        {
-          name: "image2",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image2",
-          description: "Second source image (optional)."
-        },
-        {
-          name: "image3",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image3",
-          description: "Third source image (optional)."
+          "name": "task_id",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "Task ID from a previously successful video generation task. Required field. - Must be from a Kie AI video generation model (e.g., grok-imagine/text-to-video) - The original video generation must have completed successfully - Only Kie AI–generated task IDs are supported",
+          "required": true
         }
       ],
-      uploads: [
+      "validation": [
         {
-          field: "image1",
-          kind: "image",
-          paramName: "image_urls",
-          groupKey: "images"
-        },
-        {
-          field: "image2",
-          kind: "image",
-          paramName: "image_urls",
-          groupKey: "images"
-        },
-        {
-          field: "image3",
-          kind: "image",
-          paramName: "image_urls",
-          groupKey: "images"
+          "field": "task_id",
+          "rule": "not_empty",
+          "message": "Task Id is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 11. SeedanceV1ProFastImageToVideo
-    // -----------------------------------------------------------------------
     {
-      className: "SeedanceV1ProFastImageToVideo",
-      modelId: "bytedance/v1-pro-fast-image-to-video",
-      title: "Seedance V1 Pro Fast Image To Video",
-      description: "Bytedance 1.0 - fast-image-to-video-pro via Kie.ai.",
-      outputType: "video",
-      fields: [
+      "className": "GrokImagineExtend",
+      "modelId": "grok-imagine/extend",
+      "title": "Grok Imagine - Video Extend",
+      "description": "Grok Imagine - Video Extend via Kie.ai.\n\n    kie, video, ai\n\n    Grok Imagine - Video Extend",
+      "outputType": "video",
+      "fields": [
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated video.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9", "9:21"]
+          "name": "task_id",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "Task ID from a previously successful video generation task. Required field. - Must be from a Kie AI video generation model (e.g., grok-imagine/text-to-video) - The original video generation must have completed successfully - Only Kie AI–generated task IDs are supported",
+          "required": true
         },
         {
-          name: "resolution",
-          type: "enum",
-          default: "720p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["720p"]
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text instructions describing the required movement of the video. Required field. - Provide a detailed description of how you would like the video to expand and continue. - You can specify camera movements, scene changes, object actions, etc. - The more specific the prompt words are, the more likely the generated effect will match your expectations. - Supports input in both Chinese and English.",
+          "required": true
         },
         {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description: "The duration of the video in seconds.",
-          values: ["5", "10"]
+          "name": "extend_at",
+          "type": "str",
+          "default": "",
+          "title": "Extend At",
+          "description": "The starting position of the video extension. Optional field.",
+          "required": true
         },
         {
-          name: "remove_watermark",
-          type: "bool",
-          default: true,
-          title: "Remove Watermark",
-          description: "Whether to remove the watermark from the video."
-        },
-        {
-          name: "image1",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image1",
-          description: "First source image for the video generation."
-        },
-        {
-          name: "image2",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image2",
-          description: "Second source image (optional)."
-        },
-        {
-          name: "image3",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image3",
-          description: "Third source image (optional)."
+          "name": "extend_times",
+          "type": "enum",
+          "default": "6",
+          "title": "Extend Times",
+          "description": "Duration of video extension (in seconds). Required field. - `6`: Expand 6 seconds of video content - `10`: Expand 10 seconds of video content - The longer the extension duration, the longer the time required for generation - Select the appropriate duration based on the complexity of the scene",
+          "required": true,
+          "values": [
+            "6",
+            "10"
+          ]
         }
       ],
-      uploads: [
+      "validation": [
         {
-          field: "image1",
-          kind: "image",
-          paramName: "image_urls",
-          groupKey: "images"
+          "field": "task_id",
+          "rule": "not_empty",
+          "message": "Task Id is required"
         },
         {
-          field: "image2",
-          kind: "image",
-          paramName: "image_urls",
-          groupKey: "images"
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         },
         {
-          field: "image3",
-          kind: "image",
-          paramName: "image_urls",
-          groupKey: "images"
+          "field": "extend_at",
+          "rule": "not_empty",
+          "message": "Extend At is required"
+        },
+        {
+          "field": "extend_times",
+          "rule": "not_empty",
+          "message": "Extend Times is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 12. Seedance2TextToVideo
-    // -----------------------------------------------------------------------
     {
-      className: "Seedance2TextToVideo",
-      modelId: "bytedance/seedance-2",
-      title: "Seedance 2.0 Text To Video",
-      description:
-        "Generate videos from text using ByteDance's Seedance 2.0 model via Kie.ai.\n\n    kie, seedance, bytedance, video generation, ai, text-to-video, 2.0\n\n    Seedance 2.0 is a multimodal AI video model optimized for fast and realistic\n    video generation with strong multi-shot consistency and dynamic camera control.\n\n    Use cases:\n    - Generate cinematic videos from text descriptions\n    - Create realistic content with natural motion\n    - Produce videos with optional audio generation",
-      outputType: "video",
-      fields: [
+      "className": "Kling26TextToVideo",
+      "modelId": "kling-2.6/text-to-video",
+      "title": "Kling 2.6 Text to Video",
+      "description": "Kling 2.6 Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the video to generate. (3-2500 characters)"
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt for video generation (maximum length: 1000 characters)",
+          "required": true
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "Video aspect ratio.",
-          values: ["1:1", "4:3", "3:4", "16:9", "9:16", "21:9", "adaptive"]
+          "name": "sound",
+          "type": "bool",
+          "default": false,
+          "title": "Sound",
+          "description": "This parameter specifies whether the generated video contains sound (boolean: true/false)",
+          "required": true
         },
         {
-          name: "resolution",
-          type: "enum",
-          default: "720p",
-          title: "Resolution",
-          description: "Video resolution. 480p for faster generation, 720p for balance.",
-          values: ["480p", "720p"]
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "This parameter defines the video aspect ratio",
+          "required": true,
+          "values": [
+            "1:1",
+            "16:9",
+            "9:16"
+          ]
         },
         {
-          name: "duration",
-          type: "int",
-          default: 8,
-          title: "Duration",
-          description: "Video duration in seconds (4, 8, or 12).",
-          values: ["4", "8", "12"]
-        },
-        {
-          name: "generate_audio",
-          type: "bool",
-          default: false,
-          title: "Generate Audio",
-          description: "Whether to generate audio for the video. Enabling audio increases cost."
-        },
-        {
-          name: "web_search",
-          type: "bool",
-          default: false,
-          title: "Web Search",
-          description: "Use online search to enhance generation."
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "Video duration (unit: seconds)",
+          "required": true,
+          "values": [
+            "5",
+            "10"
+          ]
         }
       ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 13. Seedance2ImageToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "Seedance2ImageToVideo",
-      modelId: "bytedance/seedance-2",
-      title: "Seedance 2.0 Image To Video",
-      description:
-        "Animate images into video using ByteDance's Seedance 2.0 model via Kie.ai.\n\n    kie, seedance, bytedance, video generation, ai, image-to-video, 2.0\n\n    Seedance 2.0 transforms static images into dynamic videos with realistic motion\n    and temporal consistency. Supports first frame, last frame, and reference images.\n\n    Use cases:\n    - Animate product images or artwork\n    - Create videos from first/last frame images\n    - Generate motion from static scenes",
-      outputType: "video",
-      fields: [
+      "validation": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the video motion. (3-2500 characters)"
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         },
         {
-          name: "first_frame",
-          type: "image",
-          default: IMAGE_REF,
-          title: "First Frame",
-          description: "First frame image to animate from."
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
         },
         {
-          name: "last_frame",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Last Frame",
-          description: "Last frame image (optional, for first+last frame mode)."
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "Video aspect ratio.",
-          values: ["1:1", "4:3", "3:4", "16:9", "9:16", "21:9", "adaptive"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "720p",
-          title: "Resolution",
-          description: "Video resolution. 480p for faster generation, 720p for balance.",
-          values: ["480p", "720p"]
-        },
-        {
-          name: "duration",
-          type: "int",
-          default: 8,
-          title: "Duration",
-          description: "Video duration in seconds (4, 8, or 12).",
-          values: ["4", "8", "12"]
-        },
-        {
-          name: "generate_audio",
-          type: "bool",
-          default: false,
-          title: "Generate Audio",
-          description: "Whether to generate audio for the video. Enabling audio increases cost."
-        },
-        {
-          name: "web_search",
-          type: "bool",
-          default: false,
-          title: "Web Search",
-          description: "Use online search to enhance generation."
-        }
-      ],
-      uploads: [
-        {
-          field: "first_frame",
-          kind: "image",
-          paramName: "first_frame_url"
-        },
-        {
-          field: "last_frame",
-          kind: "image",
-          paramName: "last_frame_url"
-        }
-      ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 14. HailuoTextToVideoPro
-    // -----------------------------------------------------------------------
-    {
-      className: "HailuoTextToVideoPro",
-      modelId: "hailuo/2-3-text-to-video-pro",
-      title: "Hailuo 2.3 Pro Text To Video",
-      description:
-        "Generate videos from text using MiniMax's Hailuo 2.3 Pro model via Kie.ai.\n\n    kie, hailuo, minimax, video generation, ai, text-to-video, pro\n\n    Hailuo 2.3 Pro offers the highest quality text-to-video generation with\n    realistic motion, detailed textures, and cinematic quality.",
-      outputType: "video",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "6",
-          title: "Duration",
-          description:
-            "The duration of the video in seconds. 10s is not supported for 1080p.",
-          values: ["6", "10"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "768P",
-          title: "Resolution",
-          description: "Video resolution.",
-          values: ["768P", "1080P"]
-        }
-      ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 13. HailuoTextToVideoStandard
-    // -----------------------------------------------------------------------
-    {
-      className: "HailuoTextToVideoStandard",
-      modelId: "hailuo/2-3-text-to-video-standard",
-      title: "Hailuo 2.3 Standard Text To Video",
-      description:
-        "Generate videos from text using MiniMax's Hailuo 2.3 Standard model via Kie.ai.\n\n    kie, hailuo, minimax, video generation, ai, text-to-video, standard, fast",
-      outputType: "video",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "6",
-          title: "Duration",
-          description:
-            "The duration of the video in seconds. 10s is not supported for 1080p.",
-          values: ["6", "10"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "768P",
-          title: "Resolution",
-          description: "Video resolution.",
-          values: ["768P", "1080P"]
-        }
-      ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 14. HailuoImageToVideoPro
-    // -----------------------------------------------------------------------
-    {
-      className: "HailuoImageToVideoPro",
-      modelId: "hailuo/2-3-image-to-video-pro",
-      title: "Hailuo 2.3 Pro Image To Video",
-      description:
-        "Generate videos from images using MiniMax's Hailuo 2.3 Pro model via Kie.ai.\n\n    kie, hailuo, minimax, video generation, ai, image-to-video, pro\n\n    Hailuo 2.3 Pro offers the highest quality image-to-video generation with\n    realistic motion, detailed textures, and cinematic quality.",
-      outputType: "video",
-      fields: [
-        {
-          name: "image",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image",
-          description: "The reference image to animate into a video."
-        },
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "Optional text to guide the video generation."
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "6",
-          title: "Duration",
-          description:
-            "The duration of the video in seconds. 10s is not supported for 1080p.",
-          values: ["6", "10"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "768P",
-          title: "Resolution",
-          description: "Video resolution.",
-          values: ["768P", "1080P"]
-        }
-      ],
-      uploads: [{ field: "image", kind: "image", paramName: "image_url" }]
-    },
-
-    // -----------------------------------------------------------------------
-    // 15. HailuoImageToVideoStandard
-    // -----------------------------------------------------------------------
-    {
-      className: "HailuoImageToVideoStandard",
-      modelId: "hailuo/2-3-image-to-video-standard",
-      title: "Hailuo 2.3 Standard Image To Video",
-      description:
-        "Generate videos from images using MiniMax's Hailuo 2.3 Standard model via Kie.ai.\n\n    kie, hailuo, minimax, video generation, ai, image-to-video, standard, fast\n\n    Hailuo 2.3 Standard offers efficient image-to-video generation with good quality\n    and faster processing times for practical use cases.",
-      outputType: "video",
-      fields: [
-        {
-          name: "image",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image",
-          description: "The reference image to animate into a video."
-        },
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "Optional text to guide the video generation."
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "6",
-          title: "Duration",
-          description:
-            "The duration of the video in seconds. 10s is not supported for 1080p.",
-          values: ["6", "10"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "768P",
-          title: "Resolution",
-          description: "Video resolution.",
-          values: ["768P", "1080P"]
-        }
-      ],
-      uploads: [{ field: "image", kind: "image", paramName: "image_url" }]
-    },
-
-    // -----------------------------------------------------------------------
-    // 16. Kling25TurboTextToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "Kling25TurboTextToVideo",
-      modelId: "kling/v2-5-turbo-text-to-video-pro",
-      title: "Kling 2.5 Turbo Text To Video",
-      description:
-        "Generate videos from text using Kuaishou's Kling 2.5 Turbo model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, text-to-video, turbo\n\n    Kling 2.5 Turbo offers improved prompt adherence, fluid motion,\n    consistent artistic styles, and realistic physics simulation.",
-      outputType: "video",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description: "Video duration in seconds.",
-          values: ["5", "10"]
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated video.",
-          values: ["16:9", "9:16", "1:1"]
-        },
-        {
-          name: "negative_prompt",
-          type: "str",
-          default: "",
-          title: "Negative Prompt",
-          description: "Things to avoid in the generated video."
-        },
-        {
-          name: "cfg_scale",
-          type: "float",
-          default: 0.5,
-          title: "Cfg Scale",
-          description:
-            "The CFG scale for prompt adherence. Lower values allow more creativity.",
-          min: 0,
-          max: 1
-        }
-      ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 17. Kling25TurboImageToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "Kling25TurboImageToVideo",
-      modelId: "kling/v2-5-turbo-image-to-video-pro",
-      title: "Kling 2.5 Turbo Image To Video",
-      description:
-        "Generate videos from images using Kuaishou's Kling 2.5 Turbo model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, image-to-video, turbo\n\n    Transforms a static image into a dynamic video while preserving\n    visual style, colors, lighting, and texture.",
-      outputType: "video",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "Text description to guide the video generation."
-        },
-        {
-          name: "image",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image",
-          description: "The source image to animate."
-        },
-        {
-          name: "tail_image",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Tail Image",
-          description: "Tail frame image for the video (optional)."
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description: "Video duration in seconds.",
-          values: ["5", "10"]
-        },
-        {
-          name: "negative_prompt",
-          type: "str",
-          default: "",
-          title: "Negative Prompt",
-          description: "Elements to avoid in the video."
-        },
-        {
-          name: "cfg_scale",
-          type: "float",
-          default: 0.5,
-          title: "Cfg Scale",
-          description:
-            "The CFG scale for prompt adherence. Lower values allow more creativity.",
-          min: 0,
-          max: 1
-        }
-      ],
-      uploads: [{ field: "image", kind: "image", paramName: "image_url" }]
-    },
-
-    // -----------------------------------------------------------------------
-    // 18. Sora2ProTextToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "Sora2ProTextToVideo",
-      modelId: "sora-2-pro-text-to-video",
-      title: "Sora 2 Pro Text To Video",
-      description:
-        "Generate videos from text using Sora 2 Pro via Kie.ai.\n\n    kie, sora, openai, video generation, ai, text-to-video, pro\n\n    Sora 2 Pro generates high-quality videos from text descriptions\n    with advanced motion and temporal consistency.",
-      outputType: "video",
-      fields: [
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "landscape",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated video.",
-          values: ["landscape", "portrait", "square"]
-        },
-        {
-          name: "remove_watermark",
-          type: "bool",
-          default: true,
-          title: "Remove Watermark",
-          description: "Whether to remove the watermark from the video."
-        },
-        {
-          name: "n_frames",
-          type: "enum",
-          default: "10",
-          title: "N Frames",
-          description: "Number of frames for the video output.",
-          values: ["10", "15"]
-        },
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
-        }
-      ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 19. Sora2ProImageToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "Sora2ProImageToVideo",
-      modelId: "sora-2-pro-image-to-video",
-      title: "Sora 2 Pro Image To Video",
-      description:
-        "Generate videos from images using Sora 2 Pro via Kie.ai.\n\n    kie, sora, openai, video generation, ai, image-to-video, pro\n\n    Sora 2 Pro transforms images into high-quality videos with\n    realistic motion and temporal consistency.",
-      outputType: "video",
-      fields: [
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "landscape",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated video.",
-          values: ["landscape", "portrait", "square"]
-        },
-        {
-          name: "remove_watermark",
-          type: "bool",
-          default: true,
-          title: "Remove Watermark",
-          description: "Whether to remove the watermark from the video."
-        },
-        {
-          name: "n_frames",
-          type: "enum",
-          default: "10",
-          title: "N Frames",
-          description: "Number of frames for the video output.",
-          values: ["10", "15"]
-        },
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "Optional text guide for the video generation."
-        },
-        {
-          name: "image",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image",
-          description: "The source image to animate."
-        }
-      ],
-      uploads: [{ field: "image", kind: "image", paramName: "image_url" }]
-    },
-
-    // -----------------------------------------------------------------------
-    // 20. Sora2ProStoryboard
-    // -----------------------------------------------------------------------
-    {
-      className: "Sora2ProStoryboard",
-      modelId: "sora-2-pro-storyboard",
-      title: "Sora 2 Pro Storyboard",
-      description:
-        "Generate videos from storyboards using Sora 2 Pro via Kie.ai.\n\n    kie, sora, openai, video generation, ai, storyboard, pro\n\n    Sora 2 Pro creates videos from storyboard sequences with\n    consistent characters and scenes across frames.",
-      outputType: "video",
-      fields: [
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "landscape",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated video.",
-          values: ["landscape", "portrait", "square"]
-        },
-        {
-          name: "remove_watermark",
-          type: "bool",
-          default: true,
-          title: "Remove Watermark",
-          description: "Whether to remove the watermark from the video."
-        },
-        {
-          name: "n_frames",
-          type: "enum",
-          default: "10",
-          title: "N Frames",
-          description: "Number of frames for the video output.",
-          values: ["10", "15", "25"]
-        },
-        {
-          name: "shots",
-          type: "str",
-          default: "",
-          title: "Shots",
-          description: "The shots to generate, with columns: Scene, duration."
-        },
-        {
-          name: "images",
-          type: "list[image]",
-          default: [],
-          title: "Images",
-          description: "The images to use for the video generation."
-        }
-      ],
-      uploads: [
-        {
-          field: "images",
-          kind: "image",
-          isList: true,
-          paramName: "image_urls"
+          "field": "duration",
+          "rule": "not_empty",
+          "message": "Duration is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 21. Sora2TextToVideo
-    // -----------------------------------------------------------------------
     {
-      className: "Sora2TextToVideo",
-      modelId: "sora-2-text-to-video",
-      title: "Sora 2 Text To Video",
-      description:
-        "Generate videos from text using Sora 2 Standard via Kie.ai.\n\n    kie, sora, openai, video generation, ai, text-to-video, standard\n\n    Sora 2 Standard generates quality videos from text descriptions\n    with efficient processing and good visual quality.",
-      outputType: "video",
-      fields: [
+      "className": "Kling26ImageToVideo",
+      "modelId": "kling-2.6/image-to-video",
+      "title": "Kling 2.6 Image to Video",
+      "description": "Kling 2.6 Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "landscape",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated video.",
-          values: ["landscape", "portrait", "square"]
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt for video generation (maximum length: 1000 characters)",
+          "required": true
         },
         {
-          name: "remove_watermark",
-          type: "bool",
-          default: true,
-          title: "Remove Watermark",
-          description: "Whether to remove the watermark from the video."
+          "name": "images",
+          "type": "list[video]",
+          "default": [],
+          "title": "Images",
+          "description": "Image URLs for video generation. (Uploaded file URLs, not file content; supported types: image/jpeg, image/png; maximum file size: 10.0MB)",
+          "required": true
         },
         {
-          name: "n_frames",
-          type: "enum",
-          default: "10",
-          title: "N Frames",
-          description: "Number of frames for the video output.",
-          values: ["10", "15"]
+          "name": "sound",
+          "type": "bool",
+          "default": false,
+          "title": "Sound",
+          "description": "This parameter specifies whether the generated video contains sound (boolean: true/false)",
+          "required": true
         },
         {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "Video duration (unit: seconds)",
+          "required": true,
+          "values": [
+            "5",
+            "10"
+          ]
         }
       ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 22. WanMultiShotTextToVideoPro
-    // -----------------------------------------------------------------------
-    {
-      className: "WanMultiShotTextToVideoPro",
-      modelId: "wan/multi-shot-text-to-video-pro",
-      title: "Wan 2.1 Multi-Shot Text To Video",
-      description:
-        "Generate videos from text using Alibaba's Wan 2.1 model via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, text-to-video, multi-shot, 2.1\n\n    Wan 2.1 Multi-Shot generates complex videos with multiple shots\n    and scene transitions from text descriptions.",
-      outputType: "video",
-      fields: [
+      "uploads": [
         {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated video.",
-          values: ["16:9", "9:16", "1:1", "4:3", "3:4"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "1080p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["720p", "1080p"]
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description: "The duration of the video in seconds.",
-          values: ["5", "10"]
-        },
-        {
-          name: "remove_watermark",
-          type: "bool",
-          default: true,
-          title: "Remove Watermark",
-          description: "Whether to remove the watermark from the video."
+          "field": "images",
+          "kind": "video",
+          "isList": true,
+          "paramName": "image_urls"
         }
       ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 23. Wan26TextToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "Wan26TextToVideo",
-      modelId: "wan/2-6-text-to-video",
-      title: "Wan 2.6 Text To Video",
-      description:
-        "Generate videos from text using Alibaba's Wan 2.6 model via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, text-to-video, 2.6\n\n    Wan 2.6 generates high-quality videos from text descriptions\n    with advanced motion and visual fidelity.",
-      outputType: "video",
-      fields: [
+      "validation": [
         {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         },
         {
-          name: "duration",
-          type: "enum",
-          default: "5s",
-          title: "Duration",
-          description: "The duration of the video in seconds.",
-          values: ["5s", "10"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "1080p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["1080p", "720p"]
-        }
-      ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 24. Wan26ImageToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "Wan26ImageToVideo",
-      modelId: "wan/2-6-image-to-video",
-      title: "Wan 2.6 Image To Video",
-      description:
-        "Generate videos from images using Alibaba's Wan 2.6 model via Kie.ai.",
-      outputType: "video",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
-        },
-        {
-          name: "image1",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image1",
-          description: "First source image for the video generation."
-        },
-        {
-          name: "image2",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image2",
-          description: "Second source image (optional)."
-        },
-        {
-          name: "image3",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image3",
-          description: "Third source image (optional)."
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description: "The duration of the video in seconds.",
-          values: ["5", "10"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "1080p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["1080p", "720p"]
-        }
-      ],
-      uploads: [{ field: "image1", kind: "image", paramName: "image_url" }]
-    },
-
-    // -----------------------------------------------------------------------
-    // 25. Wan26VideoToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "Wan26VideoToVideo",
-      modelId: "wan/2-6-video-to-video",
-      title: "Wan 2.6 Video To Video",
-      description:
-        "Generate videos from videos using Alibaba's Wan 2.6 model via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, video-to-video, 2.6\n\n    Wan 2.6 transforms and enhances existing videos with AI-powered\n    editing and style transfer capabilities.",
-      outputType: "video",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the changes."
-        },
-        {
-          name: "video1",
-          type: "video",
-          default: VIDEO_REF,
-          title: "Video1",
-          description: "First source video for the video-to-video task."
-        },
-        {
-          name: "video2",
-          type: "video",
-          default: VIDEO_REF,
-          title: "Video2",
-          description: "Second source video (optional)."
-        },
-        {
-          name: "video3",
-          type: "video",
-          default: VIDEO_REF,
-          title: "Video3",
-          description: "Third source video (optional)."
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description: "The duration of the video in seconds.",
-          values: ["5", "10"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "1080p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["1080p", "720p"]
-        }
-      ],
-      uploads: [{ field: "video1", kind: "video", paramName: "video_url" }]
-    },
-
-    // -----------------------------------------------------------------------
-    // 26. TopazVideoUpscale
-    // -----------------------------------------------------------------------
-    {
-      className: "TopazVideoUpscale",
-      modelId: "topaz/video-upscale",
-      title: "Topaz Video Upscale",
-      description: "Upscale and enhance videos using Topaz Labs AI via Kie.ai.",
-      outputType: "video",
-      fields: [
-        {
-          name: "video",
-          type: "video",
-          default: VIDEO_REF,
-          title: "Video",
-          description: "The video to upscale."
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "1080p",
-          title: "Resolution",
-          description: "Target resolution for upscaling.",
-          values: ["1080p", "4k"]
-        },
-        {
-          name: "denoise",
-          type: "bool",
-          default: true,
-          title: "Denoise",
-          description: "Apply denoising to reduce artifacts."
-        }
-      ],
-      uploads: [{ field: "video", kind: "video", paramName: "video_url" }]
-    },
-
-    // -----------------------------------------------------------------------
-    // 27. InfinitalkV1
-    // -----------------------------------------------------------------------
-    {
-      className: "InfinitalkV1",
-      modelId: "infinitalk/from-audio",
-      title: "Infinitalk V1",
-      description:
-        "Generate videos using Infinitalk v1 (image-to-video) via Kie.ai.",
-      outputType: "video",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "Optional text guide for the video generation."
-        },
-        {
-          name: "image",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image",
-          description: "The source image."
-        },
-        {
-          name: "audio",
-          type: "audio",
-          default: AUDIO_REF,
-          title: "Audio",
-          description: "The source audio track."
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "480p",
-          title: "Resolution",
-          description: "Video resolution.",
-          values: ["480p"]
-        }
-      ],
-      uploads: [
-        { field: "image", kind: "image", paramName: "image_url" },
-        { field: "audio", kind: "audio", paramName: "audio_url" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 28. Veo31TextToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "Veo31TextToVideo",
-      modelId: "veo-3-1/text-to-video",
-      title: "Veo 31 Text To Video",
-      description:
-        "Generate videos from text using Google's Veo 3.1 via Kie.ai.\n\n    kie, google, veo, veo3, veo3.1, video generation, ai, text-to-video\n\n    Veo 3.1 offers native 9:16 vertical video support, multilingual prompt processing,\n    and significant cost savings (25% of Google's direct API pricing).",
-      outputType: "video",
-      fields: [
-        {
-          name: "model",
-          type: "enum",
-          default: "veo3_fast",
-          title: "Model",
-          description: "The model to use for video generation.",
-          values: ["veo3", "veo3_fast"]
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "Video aspect ratio.",
-          values: ["16:9", "9:16"]
-        },
-        {
-          name: "call_back_url",
-          type: "str",
-          default: "",
-          title: "Call Back Url",
-          description: "Optional callback URL for task completion."
-        },
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
-        }
-      ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 29. RunwayGen3AlphaTextToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "RunwayGen3AlphaTextToVideo",
-      modelId: "runway/gen3-alpha-text-to-video",
-      title: "Runway Gen-3 Alpha Text To Video",
-      description:
-        "Generate videos from text using Runway's Gen-3 Alpha model via Kie.ai.\n\n    kie, runway, gen-3, gen3alpha, video generation, ai, text-to-video\n\n    Runway Gen-3 Alpha produces high-quality videos from text descriptions\n    with advanced motion and temporal consistency.",
-      outputType: "video",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description:
-            "The aspect ratio of the generated video. Required for text-to-video generation.",
-          values: ["16:9", "4:3", "1:1", "3:4", "9:16"]
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description:
-            "Video duration in seconds. If 10-second video is selected, 1080p resolution cannot be used.",
-          values: ["5", "10"]
-        },
-        {
-          name: "quality",
-          type: "enum",
-          default: "720p",
-          title: "Quality",
-          description:
-            "Video resolution. If 1080p is selected, 10-second video cannot be generated.",
-          values: ["720p", "1080p"]
-        },
-        {
-          name: "water_mark",
-          type: "str",
-          default: "",
-          title: "Water Mark",
-          description:
-            "Video watermark text content. An empty string indicates no watermark."
-        },
-        {
-          name: "call_back_url",
-          type: "str",
-          default: "",
-          title: "Call Back Url",
-          description:
-            "Optional callback URL to receive task completion updates."
-        }
-      ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 30. RunwayGen3AlphaImageToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "RunwayGen3AlphaImageToVideo",
-      modelId: "runway/gen3-alpha-image-to-video",
-      title: "Runway Gen-3 Alpha Image To Video",
-      description:
-        "Generate videos from images using Runway's Gen-3 Alpha model via Kie.ai.\n\n    kie, runway, gen-3, gen3alpha, video generation, ai, image-to-video\n\n    Runway Gen-3 Alpha transforms static images into dynamic videos\n    with realistic motion and temporal consistency.",
-      outputType: "video",
-      fields: [
-        {
-          name: "image",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image",
-          description: "Reference image to base the video on."
-        },
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description:
-            "Optional text to guide the video generation. Maximum length is 1800 characters."
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description:
-            "Video duration in seconds. If 10-second video is selected, 1080p resolution cannot be used.",
-          values: ["5", "10"]
-        },
-        {
-          name: "quality",
-          type: "enum",
-          default: "720p",
-          title: "Quality",
-          description:
-            "Video resolution. If 1080p is selected, 10-second video cannot be generated.",
-          values: ["720p", "1080p"]
-        },
-        {
-          name: "water_mark",
-          type: "str",
-          default: "",
-          title: "Water Mark",
-          description:
-            "Video watermark text content. An empty string indicates no watermark."
-        },
-        {
-          name: "call_back_url",
-          type: "str",
-          default: "",
-          title: "Call Back Url",
-          description:
-            "Optional callback URL to receive task completion updates."
-        }
-      ],
-      uploads: [{ field: "image", kind: "image", paramName: "image_url" }]
-    },
-
-    // -----------------------------------------------------------------------
-    // 31. RunwayGen3AlphaExtendVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "RunwayGen3AlphaExtendVideo",
-      modelId: "runway/gen3-alpha-extend-video",
-      title: "Runway Gen-3 Alpha Extend Video",
-      description:
-        "Extend videos using Runway's Gen-3 Alpha model via Kie.ai.\n\n    kie, runway, gen-3, gen3alpha, video generation, ai, video-extension\n\n    Runway Gen-3 Alpha can extend existing videos with additional generated content.",
-      outputType: "video",
-      fields: [
-        {
-          name: "video_url",
-          type: "str",
-          default: "",
-          title: "Video Url",
-          description: "The source video URL to extend."
-        },
-        {
-          name: "prompt",
-          type: "str",
-          default: "Continue the motion naturally with smooth transitions.",
-          title: "Prompt",
-          description:
-            "Text prompt to guide the video extension. Maximum length is 1800 characters."
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description:
-            "Duration to extend the video by in seconds. If 10-second extension is selected, 1080p resolution cannot be used.",
-          values: ["5", "10"]
-        },
-        {
-          name: "quality",
-          type: "enum",
-          default: "720p",
-          title: "Quality",
-          description:
-            "Video resolution. If 1080p is selected, 10-second extension cannot be generated.",
-          values: ["720p", "1080p"]
-        },
-        {
-          name: "water_mark",
-          type: "str",
-          default: "",
-          title: "Water Mark",
-          description:
-            "Video watermark text content. An empty string indicates no watermark."
-        },
-        {
-          name: "call_back_url",
-          type: "str",
-          default: "",
-          title: "Call Back Url",
-          description:
-            "Optional callback URL to receive task completion updates."
+          "field": "duration",
+          "rule": "not_empty",
+          "message": "Duration is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 32. RunwayAlephVideo
-    // -----------------------------------------------------------------------
     {
-      className: "RunwayAlephVideo",
-      modelId: "runway/aleph-video",
-      title: "Runway Aleph Video",
-      description:
-        "Generate videos using Runway's Aleph model via Kie.ai.\n\n    kie, runway, aleph, video generation, ai, text-to-video\n\n    Aleph is Runway's advanced video generation model offering\n    high-quality output with sophisticated motion handling.",
-      outputType: "video",
-      fields: [
+      "className": "KlingV21MasterImageToVideo",
+      "modelId": "kling/v2-1-master-image-to-video",
+      "title": "Kling - V2.5 Turbo Image to Video Pro",
+      "description": "Kling - V2.5 Turbo Image to Video Pro via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt describing the video to generate (Max length: 2500 characters)",
+          "required": true
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description:
-            "The aspect ratio of the generated video. Required for text-to-video generation.",
-          values: ["16:9", "9:16", "1:1"]
+          "name": "image",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Image",
+          "description": "URL of the image to be used for the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
+          "required": true
         },
         {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description:
-            "Video duration in seconds. If 10-second video is selected, 1080p resolution cannot be used.",
-          values: ["5", "10"]
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "The duration of the generated video in seconds",
+          "required": false,
+          "values": [
+            "5",
+            "10"
+          ]
         },
         {
-          name: "quality",
-          type: "enum",
-          default: "720p",
-          title: "Quality",
-          description:
-            "Video resolution. If 1080p is selected, 10-second video cannot be generated.",
-          values: ["720p", "1080p"]
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Negative prompt to exclude certain elements from the video (Max length: 500 characters)",
+          "required": false
         },
         {
-          name: "water_mark",
-          type: "str",
-          default: "",
-          title: "Water Mark",
-          description:
-            "Video watermark text content. An empty string indicates no watermark."
-        },
+          "name": "cfg_scale",
+          "type": "float",
+          "default": 0.5,
+          "title": "Cfg Scale",
+          "description": "The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt (Min: 0, Max: 1, Step: 0.1) (step: 0.1)",
+          "required": false,
+          "min": 0,
+          "max": 1
+        }
+      ],
+      "uploads": [
         {
-          name: "call_back_url",
-          type: "str",
-          default: "",
-          title: "Call Back Url",
-          description:
-            "Optional callback URL to receive task completion updates."
+          "field": "image",
+          "kind": "video",
+          "paramName": "image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 33. LumaModifyVideo
-    // -----------------------------------------------------------------------
     {
-      className: "LumaModifyVideo",
-      modelId: "luma/modify-video",
-      title: "Luma Modify Video",
-      description:
-        "Modify and enhance videos using Luma's API via Kie.ai.\n\n    kie, luma, video modification, ai, video-editing\n\n    Luma's video modification API allows for sophisticated video editing\n    and enhancement capabilities.",
-      outputType: "video",
-      fields: [
+      "className": "KlingV25TurboTextToVideoPro",
+      "modelId": "kling/v2-5-turbo-text-to-video-pro",
+      "title": "Kling - V2.5 Turbo Text to Video Pro",
+      "description": "Kling - V2.5 Turbo Text to Video Pro via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
         {
-          name: "video",
-          type: "video",
-          default: VIDEO_REF,
-          title: "Video",
-          description: "The source video to modify."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text description of the video you want to generate (Max length: 2500 characters)",
+          "required": true
         },
         {
-          name: "prompt",
-          type: "str",
-          default: "Enhance the video quality and add smooth motion.",
-          title: "Prompt",
-          description: "Text prompt describing the modifications to make."
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "The duration of the generated video in seconds",
+          "required": false,
+          "values": [
+            "5",
+            "10"
+          ]
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the output video.",
-          values: ["16:9", "9:16", "1:1"]
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated video frame",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16",
+            "1:1"
+          ]
         },
         {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description: "Duration of the modified video segment.",
-          values: ["5", "10"]
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Things to avoid in the generated video (Max length: 2500 characters)",
+          "required": false
+        },
+        {
+          "name": "cfg_scale",
+          "type": "float",
+          "default": 0.5,
+          "title": "Cfg Scale",
+          "description": "The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt (Min: 0, Max: 1, Step: 0.1) (step: 0.1)",
+          "required": false,
+          "min": 0,
+          "max": 1
         }
       ],
-      uploads: [{ field: "video", kind: "video", paramName: "video_url" }]
-    },
-
-    // -----------------------------------------------------------------------
-    // 34. Veo31ImageToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "Veo31ImageToVideo",
-      modelId: "veo-3-1/image-to-video",
-      title: "Veo 3.1 Image To Video",
-      description:
-        "Generate videos from images using Google's Veo 3.1 model via Kie.ai.\n\n    kie, google, veo, veo3, veo3.1, video generation, ai, image-to-video, i2v\n\n    Supports single image (image comes alive) or two images (first and last frames transition).\n    For two images, the first image serves as the video's first frame and the second as the last frame.",
-      outputType: "video",
-      fields: [
+      "validation": [
         {
-          name: "model",
-          type: "enum",
-          default: "veo3_fast",
-          title: "Model",
-          description: "The model to use for video generation.",
-          values: ["veo3", "veo3_fast"]
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "Video aspect ratio.",
-          values: ["16:9", "9:16"]
-        },
-        {
-          name: "call_back_url",
-          type: "str",
-          default: "",
-          title: "Call Back Url",
-          description: "Optional callback URL for task completion."
-        },
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description:
-            "Optional text prompt describing how the image should come alive."
-        },
-        {
-          name: "image1",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image1",
-          description:
-            "First source image. Required. Serves as the video's first frame."
-        },
-        {
-          name: "image2",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image2",
-          description:
-            "Second source image (optional). If provided, serves as the video's last frame."
-        }
-      ],
-      uploads: [{ field: "image1", kind: "image", paramName: "image_url" }]
-    },
-
-    // -----------------------------------------------------------------------
-    // 35. Veo31ReferenceToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "Veo31ReferenceToVideo",
-      modelId: "veo-3-1/reference-to-video",
-      title: "Veo 3.1 Reference To Video",
-      description:
-        "Generate videos from reference images using Google's Veo 3.1 Fast model via Kie.ai.\n\n    kie, google, veo, veo3, veo3.1, video generation, ai, reference-to-video, material-to-video\n\n    Material-to-video generation based on reference images. Only supports veo3_fast model\n    and requires 1-3 reference images.",
-      outputType: "video",
-      fields: [
-        {
-          name: "model",
-          type: "enum",
-          default: "veo3_fast",
-          title: "Model",
-          description: "The model to use for video generation.",
-          values: ["veo3", "veo3_fast"]
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "Video aspect ratio.",
-          values: ["16:9", "9:16"]
-        },
-        {
-          name: "call_back_url",
-          type: "str",
-          default: "",
-          title: "Call Back Url",
-          description: "Optional callback URL for task completion."
-        },
-        {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "Text prompt describing the desired video content."
-        },
-        {
-          name: "image1",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image1",
-          description:
-            "First reference image. Required. Minimum 1, maximum 3 images."
-        },
-        {
-          name: "image2",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image2",
-          description: "Second reference image (optional)."
-        },
-        {
-          name: "image3",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image3",
-          description: "Third reference image (optional)."
-        }
-      ],
-      uploads: [
-        {
-          field: "image1",
-          kind: "image",
-          paramName: "image_urls",
-          groupKey: "images"
-        },
-        {
-          field: "image2",
-          kind: "image",
-          paramName: "image_urls",
-          groupKey: "images"
-        },
-        {
-          field: "image3",
-          kind: "image",
-          paramName: "image_urls",
-          groupKey: "images"
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 36. KlingMotionControl
-    // -----------------------------------------------------------------------
     {
-      className: "KlingMotionControl",
-      modelId: "kling-2.6/motion-control",
-      title: "Kling 2.6 Motion Control",
-      description:
-        "Generate videos with motion control using Kuaishou's Kling 2.6 model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, motion-control, character-animation, 2.6\n\n    Kling Motion Control generates videos where character actions are guided by a reference video,\n    while the visual appearance is based on a reference image. Perfect for character animation\n    and motion transfer tasks.",
-      outputType: "video",
-      fields: [
+      "className": "KlingAiAvatarStandard",
+      "modelId": "kling/ai-avatar-standard",
+      "title": "Kling AI Avatar Standard",
+      "description": "Kling AI Avatar Standard via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "The cartoon character is dancing.",
-          title: "Prompt",
-          description:
-            "A text description of the desired output. Maximum 2500 characters."
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "The URL of the image to use as your avatar (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
+          "required": true
         },
         {
-          name: "image",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image",
-          description:
-            "Reference image. The characters, backgrounds, and other elements in the generated video are based on this image. Supports .jpg/.jpeg/.png, max 10MB, size needs to be greater than 300px, aspect ratio 2:5 to 5:2."
+          "name": "audio",
+          "type": "audio",
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Audio",
+          "description": "The URL of the audio file (must be the URL of the uploaded file, not the file content; supported formats: audio/mpeg, audio/wav, audio/x-wav, audio/aac, audio/mp4, audio/ogg; audio size is limited to 100M, and the duration cannot exceed 5 minutes)",
+          "required": true
         },
         {
-          name: "video",
-          type: "video",
-          default: VIDEO_REF,
-          title: "Video",
-          description:
-            "Reference video. The character actions in the generated video will be consistent with this reference video. Supports .mp4/.mov, max 100MB, 3-30 seconds duration depending on character_orientation."
-        },
-        {
-          name: "character_orientation",
-          type: "enum",
-          default: "video",
-          title: "Character Orientation",
-          description:
-            "Generate the orientation of the characters in the video. 'image': same orientation as the person in the picture (max 10s video). 'video': consistent with the orientation of the characters in the video (max 30s video).",
-          values: ["image", "video"]
-        },
-        {
-          name: "mode",
-          type: "enum",
-          default: "720p",
-          title: "Mode",
-          description:
-            "Output resolution mode. Use '720p' for 720p or '1080p' for 1080p.",
-          values: ["720p", "1080p"]
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The prompt to use for the video generation (Max length: 5000 characters)",
+          "required": true
         }
       ],
-      uploads: [{ field: "image", kind: "image", paramName: "image_url" }]
-    },
-
-    // -----------------------------------------------------------------------
-    // 37. Kling21TextToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "Kling21TextToVideo",
-      modelId: "kling/v2-1-master-text-to-video",
-      title: "Kling 2.1 Text To Video",
-      description:
-        "Generate videos from text using Kuaishou's Kling 2.1 model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, text-to-video, 2.1\n\n    Kling 2.1 powers cutting-edge video generation with hyper-realistic motion,\n    advanced physics, and high-resolution outputs up to 1080p.\n\n    Use cases:\n    - Generate high-quality videos from text descriptions\n    - Create dynamic, professional-grade video content\n    - Produce videos with realistic motion and physics",
-      outputType: "video",
-      fields: [
+      "uploads": [
         {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated video.",
-          values: ["16:9", "9:16", "1:1"]
-        },
-        {
-          name: "duration",
-          type: "int",
-          default: 5,
-          title: "Duration",
-          description: "Video duration in seconds.",
-          min: 1,
-          max: 10
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "720P",
-          title: "Resolution",
-          description: "Video resolution.",
-          values: ["720P", "1080P"]
-        },
-        {
-          name: "mode",
-          type: "enum",
-          default: "standard",
-          title: "Mode",
-          description: "Generation mode: standard or pro for higher quality.",
-          values: ["standard", "pro"]
-        },
-        {
-          name: "seed",
-          type: "int",
-          default: -1,
-          title: "Seed",
-          description:
-            "Random seed for reproducible results. Use -1 for random seed."
+          "field": "audio",
+          "kind": "audio",
+          "paramName": "audio_url"
         }
       ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 38. Kling21ImageToVideo
-    // -----------------------------------------------------------------------
     {
-      className: "Kling21ImageToVideo",
-      modelId: "kling/v2-1-master-image-to-video",
-      title: "Kling 2.1 Image To Video",
-      description:
-        "Generate videos from images using Kuaishou's Kling 2.1 model via Kie.ai.\n\n    kie, kling, kuaishou, video generation, ai, image-to-video, 2.1\n\n    Kling 2.1 transforms static images into dynamic videos with hyper-realistic\n    motion and advanced physics simulation.\n\n    Use cases:\n    - Animate static images with realistic motion\n    - Create videos from photos and artwork\n    - Produce dynamic content from still images",
-      outputType: "video",
-      fields: [
+      "className": "KlingAiAvatarPro",
+      "modelId": "kling/ai-avatar-pro",
+      "title": "Kling AI Avatar Pro",
+      "description": "Kling AI Avatar Pro via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "Text prompt to guide the video generation."
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "The URL of the image to use as your avatar (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
+          "required": true
         },
         {
-          name: "image1",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image1",
-          description: "First source image for the video generation."
+          "name": "audio",
+          "type": "audio",
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Audio",
+          "description": "The URL of the audio file (must be the URL of the uploaded file, not the file content; supported formats: audio/mpeg, audio/wav, audio/x-wav, audio/aac, audio/mp4, audio/ogg; audio size is limited to 100M, and the duration cannot exceed 5 minutes)",
+          "required": true
         },
         {
-          name: "image2",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image2",
-          description: "Second source image (optional)."
-        },
-        {
-          name: "image3",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image3",
-          description: "Third source image (optional)."
-        },
-        {
-          name: "sound",
-          type: "bool",
-          default: false,
-          title: "Sound",
-          description: "Whether to generate sound for the video."
-        },
-        {
-          name: "duration",
-          type: "int",
-          default: 5,
-          title: "Duration",
-          description: "Video duration in seconds."
-        },
-        {
-          name: "mode",
-          type: "enum",
-          default: "standard",
-          title: "Mode",
-          description: "Generation mode: standard or pro for higher quality.",
-          values: ["standard", "pro"]
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The prompt to use for the video generation (Max length: 5000 characters)",
+          "required": true
         }
       ],
-      uploads: [{ field: "image1", kind: "image", paramName: "image_url" }]
-    },
-
-    // -----------------------------------------------------------------------
-    // 39. Wan25TextToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "Wan25TextToVideo",
-      modelId: "wan/2-5-text-to-video",
-      title: "Wan 2.5 Text To Video",
-      description:
-        "Generate videos from text using Alibaba's Wan 2.5 model via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, text-to-video, 2.5\n\n    Wan 2.5 is designed for cinematic AI video generation with native audio\n    synchronization including dialogue, ambient sound, and background music.\n\n    Use cases:\n    - Generate cinematic videos from text descriptions\n    - Create videos with synchronized audio\n    - Produce content for social media and advertising",
-      outputType: "video",
-      fields: [
+      "uploads": [
         {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
         },
         {
-          name: "duration",
-          type: "enum",
-          default: "5s",
-          title: "Duration",
-          description: "The duration of the video in seconds.",
-          values: ["5s", "10s"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "1080p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["1080p", "720p"]
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated video.",
-          values: ["16:9", "9:16", "1:1"]
+          "field": "audio",
+          "kind": "audio",
+          "paramName": "audio_url"
         }
       ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 40. Wan25ImageToVideo
-    // -----------------------------------------------------------------------
     {
-      className: "Wan25ImageToVideo",
-      modelId: "wan/2-5-image-to-video",
-      title: "Wan 2.5 Image To Video",
-      description:
-        "Generate videos from images using Alibaba's Wan 2.5 model via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, image-to-video, 2.5\n\n    Wan 2.5 transforms images into cinematic videos with native audio\n    synchronization.\n\n    Use cases:\n    - Animate static images with cinematic quality\n    - Create videos from photos with audio\n    - Produce dynamic content from still images",
-      outputType: "video",
-      fields: [
+      "className": "KlingV21MasterImageToVideo2",
+      "modelId": "kling/v2-1-master-image-to-video",
+      "title": "Kling V2.1 Master Image to Video",
+      "description": "Kling V2.1 Master Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt describing the video to generate (Max length: 5000 characters)",
+          "required": true
         },
         {
-          name: "image1",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image1",
-          description: "First source image for the video generation."
+          "name": "image",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Image",
+          "description": "URL of the image to be used for the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
+          "required": true
         },
         {
-          name: "image2",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image2",
-          description: "Second source image (optional)."
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "The duration of the generated video in seconds",
+          "required": false,
+          "values": [
+            "5",
+            "10"
+          ]
         },
         {
-          name: "image3",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image3",
-          description: "Third source image (optional)."
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Negative prompt to exclude certain elements from the video (Max length: 500 characters)",
+          "required": false
         },
         {
-          name: "duration",
-          type: "enum",
-          default: "5s",
-          title: "Duration",
-          description: "The duration of the video in seconds.",
-          values: ["5s", "10s"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "1080p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["1080p", "720p"]
+          "name": "cfg_scale",
+          "type": "float",
+          "default": 0.5,
+          "title": "Cfg Scale",
+          "description": "The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt (Min: 0, Max: 1, Step: 0.1) (step: 0.1)",
+          "required": false,
+          "min": 0,
+          "max": 1
         }
       ],
-      uploads: [{ field: "image1", kind: "image", paramName: "image_url" }]
-    },
-
-    // -----------------------------------------------------------------------
-    // 41. WanAnimate
-    // -----------------------------------------------------------------------
-    {
-      className: "WanAnimate",
-      modelId: "wan/2-2-animate-move",
-      title: "Wan 2.2 Animate",
-      description:
-        "Generate character animation videos using Alibaba's Wan 2.2 Animate via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, image-to-video, animate, character\n\n    Wan 2.2 Animate generates realistic character videos with motion, expressions,\n    and lighting from static images.\n\n    Use cases:\n    - Animate character images with realistic motion\n    - Create character-driven video content\n    - Produce animated videos from portraits or character art",
-      outputType: "video",
-      fields: [
+      "uploads": [
         {
-          name: "prompt",
-          type: "str",
-          default:
-            "The character is moving naturally with realistic expressions.",
-          title: "Prompt",
-          description: "The text prompt describing the character animation."
-        },
-        {
-          name: "image",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image",
-          description: "Character image to animate."
-        },
-        {
-          name: "duration",
-          type: "enum",
-          default: "3",
-          title: "Duration",
-          description: "The duration of the video in seconds.",
-          values: ["3", "5"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "720p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["720p", "1080p"]
+          "field": "image",
+          "kind": "video",
+          "paramName": "image_url"
         }
       ],
-      uploads: [{ field: "image", kind: "image", paramName: "image_url" }]
-    },
-
-    // -----------------------------------------------------------------------
-    // 42. WanSpeechToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "WanSpeechToVideo",
-      modelId: "wan/2-2-a14b-speech-to-video-turbo",
-      title: "Wan 2.2 Speech To Video",
-      description:
-        "Generate videos from speech using Alibaba's Wan 2.2 A14B Turbo via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, speech-to-video, lip-sync\n\n    Wan 2.2 A14B Turbo Speech to Video turns static images and audio clips\n    into dynamic, expressive videos.\n\n    Use cases:\n    - Create talking head videos from images and audio\n    - Generate lip-synced content for presentations\n    - Produce dynamic videos from voice recordings",
-      outputType: "video",
-      fields: [
+      "validation": [
         {
-          name: "image",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image",
-          description: "Character/face image to animate."
-        },
-        {
-          name: "audio",
-          type: "audio",
-          default: AUDIO_REF,
-          title: "Audio",
-          description: "Audio file for speech/lip-sync."
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "720p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["720p", "1080p"]
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
-      ],
-      uploads: [
-        { field: "image", kind: "image", paramName: "image_url" },
-        { field: "audio", kind: "audio", paramName: "audio_url" }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 43. Wan22TextToVideo
-    // -----------------------------------------------------------------------
     {
-      className: "Wan22TextToVideo",
-      modelId: "wan/2-2-a14b-text-to-video-turbo",
-      title: "Wan 2.2 Text To Video",
-      description:
-        "Generate videos from text using Alibaba's Wan 2.2 A14B Turbo via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, text-to-video, 2.2\n\n    Wan 2.2 A14B Turbo delivers smooth 720p@24fps clips with cinematic quality,\n    stable motion, and consistent visual style.\n\n    Use cases:\n    - Generate high-quality videos from text\n    - Create content for diverse creative uses\n    - Produce consistent video clips with stable motion",
-      outputType: "video",
-      fields: [
+      "className": "KlingV21MasterTextToVideo",
+      "modelId": "kling/v2-1-master-text-to-video",
+      "title": "Kling V2.1 Master Text to Video",
+      "description": "Kling V2.1 Master Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt describing the video you want to generate (Max length: 5000 characters)",
+          "required": true
         },
         {
-          name: "duration",
-          type: "enum",
-          default: "3",
-          title: "Duration",
-          description: "The duration of the video in seconds.",
-          values: ["3", "5"]
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "The duration of the generated video in seconds",
+          "required": false,
+          "values": [
+            "5",
+            "10"
+          ]
         },
         {
-          name: "resolution",
-          type: "enum",
-          default: "720p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["720p"]
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated video frame",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16",
+            "1:1"
+          ]
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated video.",
-          values: ["16:9", "9:16", "1:1"]
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Elements to avoid in the generated video (Max length: 500 characters)",
+          "required": false
+        },
+        {
+          "name": "cfg_scale",
+          "type": "float",
+          "default": 0.5,
+          "title": "Cfg Scale",
+          "description": "The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt (Min: 0, Max: 1, Step: 0.1) (step: 0.1)",
+          "required": false,
+          "min": 0,
+          "max": 1
         }
       ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 44. Wan22ImageToVideo
-    // -----------------------------------------------------------------------
     {
-      className: "Wan22ImageToVideo",
-      modelId: "wan/2-2-a14b-image-to-video-turbo",
-      title: "Wan 2.2 Image To Video",
-      description:
-        "Generate videos from images using Alibaba's Wan 2.2 A14B Turbo via Kie.ai.\n\n    kie, wan, alibaba, video generation, ai, image-to-video, 2.2\n\n    Wan 2.2 A14B Turbo transforms images into smooth video clips with\n    cinematic quality and stable motion.\n\n    Use cases:\n    - Animate static images with smooth motion\n    - Create videos from photos or artwork\n    - Produce consistent video content from images",
-      outputType: "video",
-      fields: [
+      "className": "KlingV21Pro",
+      "modelId": "kling/v2-1-pro",
+      "title": "Kling V2.1 Pro",
+      "description": "Kling V2.1 Pro via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt describing the video to generate (Max length: 5000 characters)",
+          "required": true
         },
         {
-          name: "image",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image",
-          description: "Source image for the video generation."
+          "name": "image",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Image",
+          "description": "URL of the image to be used for the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
+          "required": true
         },
         {
-          name: "duration",
-          type: "enum",
-          default: "3",
-          title: "Duration",
-          description: "The duration of the video in seconds.",
-          values: ["3", "5"]
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "The duration of the generated video in seconds",
+          "required": false,
+          "values": [
+            "5",
+            "10"
+          ]
         },
         {
-          name: "resolution",
-          type: "enum",
-          default: "720p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["720p"]
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Terms to avoid in the generated video (Max length: 500 characters)",
+          "required": false
+        },
+        {
+          "name": "cfg_scale",
+          "type": "float",
+          "default": 0.5,
+          "title": "Cfg Scale",
+          "description": "The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt (Min: 0, Max: 1, Step: 0.1) (step: 0.1)",
+          "required": false,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "name": "tail_image",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Tail Image",
+          "description": "URL of the image to be used for the end of the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
+          "required": false
         }
       ],
-      uploads: [{ field: "image", kind: "image", paramName: "image_url" }]
-    },
-
-    // -----------------------------------------------------------------------
-    // 45. Hailuo02TextToVideo
-    // -----------------------------------------------------------------------
-    {
-      className: "Hailuo02TextToVideo",
-      modelId: "hailuo/02-text-to-video-pro",
-      title: "Hailuo 02 Text To Video",
-      description:
-        "Generate videos from text using Minimax's Hailuo 02 model via Kie.ai.\n\n    kie, hailuo, minimax, video generation, ai, text-to-video\n\n    Hailuo 02 is Minimax's advanced AI video generation model that produces\n    short, cinematic clips with realistic motion and physics simulation.\n\n    Use cases:\n    - Generate cinematic video clips from text\n    - Create videos with realistic motion and physics\n    - Produce high-quality content up to 1080P",
-      outputType: "video",
-      fields: [
+      "uploads": [
         {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
+          "field": "image",
+          "kind": "video",
+          "paramName": "image_url"
         },
         {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description: "The duration of the video in seconds.",
-          values: ["5", "10"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "720p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["720p", "1080p"]
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "16:9",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated video.",
-          values: ["16:9", "9:16", "1:1"]
+          "field": "tail_image",
+          "kind": "video",
+          "paramName": "tail_image_url"
         }
       ],
-      validation: [
-        { field: "prompt", rule: "not_empty", message: "Prompt is required" }
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 46. Hailuo02ImageToVideo
-    // -----------------------------------------------------------------------
     {
-      className: "Hailuo02ImageToVideo",
-      modelId: "hailuo/02-image-to-video-pro",
-      title: "Hailuo 02 Image To Video",
-      description:
-        "Generate videos from images using Minimax's Hailuo 02 model via Kie.ai.\n\n    kie, hailuo, minimax, video generation, ai, image-to-video\n\n    Hailuo 02 transforms images into cinematic clips with realistic motion\n    and physics simulation.\n\n    Use cases:\n    - Animate images with realistic motion\n    - Create videos from photos with physics simulation\n    - Produce dynamic content from still images",
-      outputType: "video",
-      fields: [
+      "className": "KlingV21Standard",
+      "modelId": "kling/v2-1-standard",
+      "title": "Kling V2.1 Standard",
+      "description": "Kling V2.1 Standard via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default:
-            "A cinematic video with smooth motion, natural lighting, and high detail.",
-          title: "Prompt",
-          description: "The text prompt describing the video."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt describing the desired video content (Max length: 5000 characters)",
+          "required": true
         },
         {
-          name: "image",
-          type: "image",
-          default: IMAGE_REF,
-          title: "Image",
-          description: "Source image for the video generation."
+          "name": "image",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Image",
+          "description": "URL of the image to be used for the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
+          "required": true
         },
         {
-          name: "duration",
-          type: "enum",
-          default: "5",
-          title: "Duration",
-          description: "The duration of the video in seconds.",
-          values: ["5", "10"]
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "The duration of the generated video in seconds",
+          "required": false,
+          "values": [
+            "5",
+            "10"
+          ]
         },
         {
-          name: "resolution",
-          type: "enum",
-          default: "720p",
-          title: "Resolution",
-          description: "The resolution of the video.",
-          values: ["720p", "1080p"]
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Description of elements to avoid in the generated video (Max length: 500 characters)",
+          "required": false
+        },
+        {
+          "name": "cfg_scale",
+          "type": "float",
+          "default": 0.5,
+          "title": "Cfg Scale",
+          "description": "The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt (Min: 0, Max: 1, Step: 0.1) (step: 0.1)",
+          "required": false,
+          "min": 0,
+          "max": 1
         }
       ],
-      uploads: [{ field: "image", kind: "image", paramName: "image_url" }]
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "video",
+          "paramName": "image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
     },
-
-    // -----------------------------------------------------------------------
-    // 47. Sora2WatermarkRemover
-    // -----------------------------------------------------------------------
     {
-      className: "Sora2WatermarkRemover",
-      modelId: "sora-watermark-remover",
-      title: "Sora 2 Watermark Remover",
-      description:
-        "Remove watermarks from Sora 2 videos using Kie.ai.\n\n    kie, sora, openai, video editing, watermark removal\n\n    Sora 2 Watermark Remover uses AI detection and motion tracking to remove\n    dynamic watermarks from Sora 2 videos while keeping frames smooth and natural.\n\n    Use cases:\n    - Remove watermarks from generated videos\n    - Clean up video content for final output\n    - Prepare videos for professional use",
-      outputType: "video",
-      fields: [
+      "className": "Kling26MotionControl",
+      "modelId": "kling-2.6/motion-control",
+      "title": "Kling 2.6 motion-control",
+      "description": "Kling 2.6 motion-control via Kie.ai.\n\n    kie, video, ai\n\n    ## File Upload Requirements",
+      "outputType": "video",
+      "fields": [
         {
-          name: "video",
-          type: "video",
-          default: VIDEO_REF,
-          title: "Video",
-          description:
-            "Video to remove watermark from. Must be publicly accessible."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description of the desired output. Maximum length is 2500 characters. (Max length: 2500 characters)",
+          "required": false
+        },
+        {
+          "name": "inputs",
+          "type": "list[image]",
+          "default": [],
+          "title": "Inputs",
+          "description": "An array containing a single image URL. The photo must clearly show the subject's head, shoulders, and torso. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/jpg; Max size: 10.0MB,size needs to be greater than 300px, aspect ratio 2:5 to 5:2.)",
+          "required": true
+        },
+        {
+          "name": "videos",
+          "type": "list[video]",
+          "default": [],
+          "title": "Videos",
+          "description": "An array containing a single video URL. The duration must be between 3 to 30 seconds, and the video must clearly show the subject's head, shoulders, and torso. (File URL after upload, not file content; Accepted types: video/mp4, video/quicktime, video/x-matroska; Max size: 100.0MB)",
+          "required": true
+        },
+        {
+          "name": "character_orientation",
+          "type": "enum",
+          "default": "video",
+          "title": "Character Orientation",
+          "description": "Generate the orientation of the characters in the video. 'image': same orientation as the person in the picture (max 10s video). 'video': consistent with the orientation of the characters in the video (max 30s video).",
+          "required": true,
+          "values": [
+            "image",
+            "video"
+          ]
+        },
+        {
+          "name": "mode",
+          "type": "enum",
+          "default": "720p",
+          "title": "Mode",
+          "description": "Output resolution mode. Use 'std' for 720p or 'pro' for 1080p.",
+          "required": true,
+          "values": [
+            "720p",
+            "1080p"
+          ]
         }
       ],
-      uploads: [{ field: "video", kind: "video", paramName: "video_url" }]
+      "uploads": [
+        {
+          "field": "inputs",
+          "kind": "image",
+          "isList": true,
+          "paramName": "input_urls"
+        },
+        {
+          "field": "videos",
+          "kind": "video",
+          "isList": true,
+          "paramName": "video_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "character_orientation",
+          "rule": "not_empty",
+          "message": "Character Orientation is required"
+        },
+        {
+          "field": "mode",
+          "rule": "not_empty",
+          "message": "Mode is required"
+        }
+      ]
+    },
+    {
+      "className": "Kling30MotionControl",
+      "modelId": "kling-3.0/motion-control",
+      "title": "Kling-3.0 motion-control",
+      "description": "Kling-3.0 motion-control via Kie.ai.\n\n    kie, video, ai\n\n    ## File Upload Requirements",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "(Optional) Text prompt words, used to guide the generation of animation content. Can be empty or 0 - 2500 characters long.",
+          "required": false
+        },
+        {
+          "name": "inputs",
+          "type": "list[image]",
+          "default": [],
+          "title": "Inputs",
+          "description": "(Required) Include a URL of an image",
+          "required": true
+        },
+        {
+          "name": "videos",
+          "type": "list[video]",
+          "default": [],
+          "title": "Videos",
+          "description": "(Required) Include a video URL",
+          "required": true
+        },
+        {
+          "name": "mode",
+          "type": "str",
+          "default": "",
+          "title": "Mode",
+          "description": "(Optional) Video Quality Mode. std: Standard Mode (720p). pro: Professional Mode (1080p)",
+          "required": false
+        },
+        {
+          "name": "character_orientation",
+          "type": "str",
+          "default": "",
+          "title": "Character Orientation",
+          "description": "(Optional) Reference source for character orientation. video: Refer to video (recommended); image: Refer to image. Default value: video",
+          "required": false
+        },
+        {
+          "name": "background_source",
+          "type": "str",
+          "default": "",
+          "title": "Background Source",
+          "description": "(Optional) Background source. input_video: Use video background; input_image: Use image background. Default value: input_video",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "inputs",
+          "kind": "image",
+          "isList": true,
+          "paramName": "input_urls"
+        },
+        {
+          "field": "videos",
+          "kind": "video",
+          "isList": true,
+          "paramName": "video_urls"
+        }
+      ]
+    },
+    {
+      "className": "BytedanceSeedance2",
+      "modelId": "bytedance/seedance-2",
+      "title": "bytedance-seedance-2",
+      "description": "bytedance-seedance-2 via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt used to generate the video. Required field. (Min length: 3, Max length: 20000 characters)",
+          "required": false
+        },
+        {
+          "name": "first_frame",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "First Frame",
+          "description": "First frame image url or asset://{assetId} (for example: asset://asset-20260404242101-76djj)",
+          "required": false
+        },
+        {
+          "name": "last_frame",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Last Frame",
+          "description": "End frame image url or asset://{assetId} (for example: asset://asset-20260404242101-76djj)",
+          "required": false
+        },
+        {
+          "name": "reference_images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Reference Images",
+          "description": "Enter a list of image URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single image requirements: Format: jpeg, png, webp, bmp, tiff, gif. Aspect ratio (width/height): (0.4, 2.5) Width and height (px): (300, 6000) Size: Single image less than 30 MB. Maximum number of files: The sum of the number of frames at the beginning and end must not exceed 9..",
+          "required": false
+        },
+        {
+          "name": "reference_videos",
+          "type": "list[video]",
+          "default": [],
+          "title": "Reference Videos",
+          "description": "Enter a list of video URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj) . Single video requirements: Video format: mp4, mov. Resolution: 480p, 720p Duration: Single video duration [2, 15] s, maximum 3 reference videos, total duration of all videos not exceeding 15 seconds. Dimensions: Aspect ratio (width/height): [0.4, 2.5] Width/height (px): [300, 6000] Total pixels: [640×640=409600, 834×1112=927408], i.e., the product of width and height must meet the range requirement of [409600, 927408]. Size: Single video not exceeding 50 MB. Frame rate (FPS): [24, 60]",
+          "required": false
+        },
+        {
+          "name": "reference_audios",
+          "type": "list[audio]",
+          "default": [],
+          "title": "Reference Audios",
+          "description": "Enter a list of audio URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj) . Single audio requirements: Format: wav, mp3 Duration: Single audio duration [2, 15] s, maximum 3 reference audios, total duration of all audios not exceeding 15 s. Size: Single audio file size not exceeding 15 MB.",
+          "required": false
+        },
+        {
+          "name": "generate_audio",
+          "type": "bool",
+          "default": true,
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the video. - **true**: Generate with audio (higher cost) - **false**: Generate without audio Note: Enabling audio will increase the generation cost",
+          "required": false
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for High-quality video",
+          "required": false,
+          "values": [
+            "480p",
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "Video aspect ratio configuration. Required field.",
+          "required": false,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "21:9",
+            "adaptive"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Video duration in 4-15 seconds.",
+          "required": false
+        },
+        {
+          "name": "web_search",
+          "type": "bool",
+          "default": false,
+          "title": "Web Search",
+          "description": "Use online search",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "first_frame",
+          "kind": "image",
+          "paramName": "first_frame_url"
+        },
+        {
+          "field": "last_frame",
+          "kind": "image",
+          "paramName": "last_frame_url"
+        },
+        {
+          "field": "reference_images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "reference_image_urls"
+        },
+        {
+          "field": "reference_videos",
+          "kind": "video",
+          "isList": true,
+          "paramName": "reference_video_urls"
+        },
+        {
+          "field": "reference_audios",
+          "kind": "audio",
+          "isList": true,
+          "paramName": "reference_audio_urls"
+        }
+      ]
+    },
+    {
+      "className": "BytedanceSeedance2Fast",
+      "modelId": "bytedance/seedance-2-fast",
+      "title": "Bytedance Seedance 2.0 Fast",
+      "description": "Bytedance Seedance 2.0 Fast via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt used to generate the video. Required field. (Min length: 3, Max length: 20000 characters)",
+          "required": false
+        },
+        {
+          "name": "first_frame",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "First Frame",
+          "description": "First frame image url or asset://{assetId} (for example: asset://asset-20260404242101-76djj)",
+          "required": false
+        },
+        {
+          "name": "last_frame",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Last Frame",
+          "description": "End frame image url or asset://{assetId} (for example: asset://asset-20260404242101-76djj)",
+          "required": false
+        },
+        {
+          "name": "reference_images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Reference Images",
+          "description": "Enter a list of image URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single image requirements: Format: jpeg, png, webp, bmp, tiff, gif. Aspect ratio (width/height): (0.4, 2.5) Width and height (px): (300, 6000) Size: Single image less than 30 MB. Maximum number of files: The sum of the number of frames at the beginning and end must not exceed 9..",
+          "required": false
+        },
+        {
+          "name": "reference_videos",
+          "type": "list[video]",
+          "default": [],
+          "title": "Reference Videos",
+          "description": "Enter a list of video URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single video requirements: Video format: mp4, mov. Resolution: 480p, 720p Duration: Single video duration [2, 15] s, maximum 3 reference videos, total duration of all videos not exceeding 15 seconds. Dimensions: Aspect ratio (width/height): [0.4, 2.5] Width/height (px): [300, 6000] Total pixels: [640×640=409600, 834×1112=927408], i.e., the product of width and height must meet the range requirement of [409600, 927408]. Size: Single video not exceeding 50 MB. Frame rate (FPS): [24, 60]",
+          "required": false
+        },
+        {
+          "name": "reference_audios",
+          "type": "list[audio]",
+          "default": [],
+          "title": "Reference Audios",
+          "description": "Enter a list of audio URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single audio requirements: Format: wav, mp3 Duration: Single audio duration [2, 15] s, maximum 3 reference audios, total duration of all audios not exceeding 15 s. Size: Single audio file size not exceeding 15 MB.",
+          "required": false
+        },
+        {
+          "name": "generate_audio",
+          "type": "bool",
+          "default": true,
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the video. - **true**: Generate with audio - **false**: Generate without audio Note: Enabling audio will increase the generation cost",
+          "required": false
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Video resolution - 480p for faster generation, 720p for balance",
+          "required": false,
+          "values": [
+            "480p",
+            "720p"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "Video aspect ratio configuration. Required field.",
+          "required": false,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "21:9",
+            "adaptive"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Video duration in 4-15 seconds.",
+          "required": false
+        },
+        {
+          "name": "web_search",
+          "type": "bool",
+          "default": false,
+          "title": "Web Search",
+          "description": "Use online search",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "first_frame",
+          "kind": "image",
+          "paramName": "first_frame_url"
+        },
+        {
+          "field": "last_frame",
+          "kind": "image",
+          "paramName": "last_frame_url"
+        },
+        {
+          "field": "reference_images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "reference_image_urls"
+        },
+        {
+          "field": "reference_videos",
+          "kind": "video",
+          "isList": true,
+          "paramName": "reference_video_urls"
+        },
+        {
+          "field": "reference_audios",
+          "kind": "audio",
+          "isList": true,
+          "paramName": "reference_audio_urls"
+        }
+      ]
+    },
+    {
+      "className": "BytedanceSeedance15Pro",
+      "modelId": "bytedance/seedance-1.5-pro",
+      "title": "Bytedance Seedance 1.5 Pro",
+      "description": "Bytedance Seedance 1.5 Pro via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt used to generate the video. Required field. (Min length: 3, Max length: 2500 characters)",
+          "required": true
+        },
+        {
+          "name": "inputs",
+          "type": "list[video]",
+          "default": [],
+          "title": "Inputs",
+          "description": "URLs of input images for image-to-video generation. Optional field. - Accepts 0-2 images - If not provided, the model will perform text-to-video generation - File URLs after upload, not file content - Accepted types: image/jpeg, image/png, image/webp - Max size per image: 10.0MB",
+          "required": false
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "Video aspect ratio configuration. Required field.",
+          "required": true,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "21:9"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for higher quality",
+          "required": false,
+          "values": [
+            "480p",
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "",
+          "title": "Duration",
+          "description": "Duration of the video in seconds",
+          "required": true,
+          "values": [
+            "4",
+            "8",
+            "12"
+          ]
+        },
+        {
+          "name": "fixed_lens",
+          "type": "bool",
+          "default": false,
+          "title": "Fixed Lens",
+          "description": "Seedance adds dynamic camera movement. Enable this feature to lock the camera for stable, static shots. - **true**: Lock camera for static shots - **false**: Allow dynamic camera movement",
+          "required": false
+        },
+        {
+          "name": "generate_audio",
+          "type": "bool",
+          "default": false,
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the video. - **true**: Generate with audio (higher cost) - **false**: Generate without audio Note: Enabling audio will increase the generation cost",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "inputs",
+          "kind": "video",
+          "isList": true,
+          "paramName": "input_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        },
+        {
+          "field": "duration",
+          "rule": "not_empty",
+          "message": "Duration is required"
+        }
+      ]
+    },
+    {
+      "className": "BytedanceV1ProFastImageToVideo",
+      "modelId": "bytedance/v1-pro-fast-image-to-video",
+      "title": "Bytedance V1 Pro Fast Image to Video",
+      "description": "Bytedance V1 Pro Fast Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt used to generate the video (Max length: 10000 characters)",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Image",
+          "description": "The URL of the image used to generate video (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for higher quality",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "Duration of the video in seconds",
+          "required": false,
+          "values": [
+            "5",
+            "10"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "video",
+          "paramName": "image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "BytedanceV1ProImageToVideo",
+      "modelId": "bytedance/v1-pro-image-to-video",
+      "title": "Bytedance V1 Pro Image to Video",
+      "description": "Bytedance V1 Pro Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    Content generation using bytedance/v1-pro-image-to-video",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt used to generate the video (Max length: 10000 characters)",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Image",
+          "description": "The URL of the image used to generate video (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for higher quality",
+          "required": false,
+          "values": [
+            "480p",
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "Duration of the video in seconds",
+          "required": false,
+          "values": [
+            "5",
+            "10"
+          ]
+        },
+        {
+          "name": "camera_fixed",
+          "type": "bool",
+          "default": false,
+          "title": "Camera Fixed",
+          "description": "Whether to fix the camera position (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "float",
+          "default": -1,
+          "title": "Seed",
+          "description": "Random seed to control video generation. Use -1 for random. (Min: -1, Max: 2147483647, Step: 1) (step: 1)",
+          "required": false,
+          "min": -1,
+          "max": 2147483647
+        },
+        {
+          "name": "enable_safety_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Enable Safety Checker",
+          "description": "The safety checker is always enabled in Playground. It can only be disabled by setting false through the API. (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "video",
+          "paramName": "image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "BytedanceV1ProTextToVideo",
+      "modelId": "bytedance/v1-pro-text-to-video",
+      "title": "Bytedance - V1 Pro Text to Video",
+      "description": "Bytedance - V1 Pro Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    Content generation using bytedance/v1-pro-text-to-video",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt used to generate the video (Max length: 10000 characters)",
+          "required": true
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated video",
+          "required": false,
+          "values": [
+            "21:9",
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for higher quality",
+          "required": false,
+          "values": [
+            "480p",
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "Duration of the video in seconds",
+          "required": false,
+          "values": [
+            "5",
+            "10"
+          ]
+        },
+        {
+          "name": "camera_fixed",
+          "type": "bool",
+          "default": false,
+          "title": "Camera Fixed",
+          "description": "Whether to fix the camera position (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "float",
+          "default": -1,
+          "title": "Seed",
+          "description": "Random seed to control video generation. Use -1 for random. (Min: -1, Max: 2147483647, Step: 1) (step: 1)",
+          "required": false,
+          "min": -1,
+          "max": 2147483647
+        },
+        {
+          "name": "enable_safety_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Enable Safety Checker",
+          "description": "The safety checker is always enabled in Playground. It can only be disabled by setting false through the API. (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "BytedanceV1LiteImageToVideo",
+      "modelId": "bytedance/v1-lite-image-to-video",
+      "title": "Bytedance - V1 Lite Image to Video",
+      "description": "Bytedance - V1 Lite Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    Content generation using bytedance/v1-lite-image-to-video",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt used to generate the video (Max length: 10000 characters)",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Image",
+          "description": "The URL of the image used to generate video (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Video resolution - 480p for faster generation, 720p for higher quality",
+          "required": false,
+          "values": [
+            "480p",
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "Duration of the video in seconds",
+          "required": false,
+          "values": [
+            "5",
+            "10"
+          ]
+        },
+        {
+          "name": "camera_fixed",
+          "type": "bool",
+          "default": false,
+          "title": "Camera Fixed",
+          "description": "Whether to fix the camera position (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "float",
+          "default": -1,
+          "title": "Seed",
+          "description": "Random seed to control video generation. Use -1 for random. (Min: -1, Max: 2147483647, Step: 1) (step: 1)",
+          "required": false,
+          "min": -1,
+          "max": 2147483647
+        },
+        {
+          "name": "enable_safety_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Enable Safety Checker",
+          "description": "The safety checker is always enabled in Playground. It can only be disabled by setting false through the API. (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "end_image",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "End Image",
+          "description": "The URL of the image the video ends with. Defaults to None. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "video",
+          "paramName": "image_url"
+        },
+        {
+          "field": "end_image",
+          "kind": "video",
+          "paramName": "end_image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "BytedanceV1LiteTextToVideo",
+      "modelId": "bytedance/v1-lite-text-to-video",
+      "title": "Bytedance - V1 Lite Text to Video",
+      "description": "Bytedance - V1 Lite Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    Content generation using bytedance/v1-lite-text-to-video",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt used to generate the video (Max length: 10000 characters)",
+          "required": true
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated video",
+          "required": false,
+          "values": [
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16",
+            "9:21"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Video resolution - 480p for faster generation, 720p for higher quality",
+          "required": false,
+          "values": [
+            "480p",
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "Duration of the video in seconds",
+          "required": false,
+          "values": [
+            "5",
+            "10"
+          ]
+        },
+        {
+          "name": "camera_fixed",
+          "type": "bool",
+          "default": false,
+          "title": "Camera Fixed",
+          "description": "Whether to fix the camera position (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed to control video generation. Use -1 for random.",
+          "required": false
+        },
+        {
+          "name": "enable_safety_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Enable Safety Checker",
+          "description": "The safety checker is always enabled in Playground. It can only be disabled by setting false through the API. (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Hailuo23ImageToVideoPro",
+      "modelId": "hailuo/2-3-image-to-video-pro",
+      "title": "Hailuo 2.3 Pro Image to Video",
+      "description": "Hailuo 2.3 Pro Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    Content generation using hailuo/2-3-image-to-video-pro",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt describing the desired video animation (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "Input image to animate (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "6",
+          "title": "Duration",
+          "description": "The duration of the video in seconds. 10 seconds videos are not supported for 1080p resolution.",
+          "required": false,
+          "values": [
+            "6",
+            "10"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "768P",
+          "title": "Resolution",
+          "description": "The resolution of the generated video.",
+          "required": false,
+          "values": [
+            "768P",
+            "1080P"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Hailuo23ImageToVideoStandard",
+      "modelId": "hailuo/2-3-image-to-video-standard",
+      "title": "Hailuo 2.3 Standard Image to Video",
+      "description": "Hailuo 2.3 Standard Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    Content generation using hailuo/2-3-image-to-video-standard",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt describing the desired video animation (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "Input image to animate (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "6",
+          "title": "Duration",
+          "description": "The duration of the video in seconds. 10 seconds videos are not supported for 1080p resolution.",
+          "required": false,
+          "values": [
+            "6",
+            "10"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "768P",
+          "title": "Resolution",
+          "description": "The resolution of the generated video.",
+          "required": false,
+          "values": [
+            "768P",
+            "1080P"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Hailuo02TextToVideoPro",
+      "modelId": "hailuo/02-text-to-video-pro",
+      "title": "Hailuo Pro Text to Video",
+      "description": "Hailuo Pro Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    Content generation using hailuo/02-text-to-video-pro",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt for video generation (Max length: 1500 characters)",
+          "required": true
+        },
+        {
+          "name": "prompt_optimizer",
+          "type": "bool",
+          "default": false,
+          "title": "Prompt Optimizer",
+          "description": "Whether to use the model's prompt optimizer (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Hailuo02ImageToVideoPro",
+      "modelId": "hailuo/02-image-to-video-pro",
+      "title": "Hailuo Pro Image to Video",
+      "description": "Hailuo Pro Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    Content generation using hailuo/02-image-to-video-pro",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt describing the desired video animation (Max length: 1500 characters)",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "Input image to animate (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "end_image",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "End Image",
+          "description": "Optional URL of the image to use as the last frame of the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": false
+        },
+        {
+          "name": "prompt_optimizer",
+          "type": "bool",
+          "default": false,
+          "title": "Prompt Optimizer",
+          "description": "Whether to use the model's prompt optimizer (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        },
+        {
+          "field": "end_image",
+          "kind": "video",
+          "paramName": "end_image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Hailuo02TextToVideoStandard",
+      "modelId": "hailuo/02-text-to-video-standard",
+      "title": "Hailuo Standard Text to Video",
+      "description": "Hailuo Standard Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    Content generation using hailuo/02-text-to-video-standard",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text description for video generation (Max length: 1500 characters)",
+          "required": true
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "6",
+          "title": "Duration",
+          "description": "The duration of the video in seconds. 10 seconds videos are not supported for 1080p resolution.",
+          "required": false,
+          "values": [
+            "6",
+            "10"
+          ]
+        },
+        {
+          "name": "prompt_optimizer",
+          "type": "bool",
+          "default": false,
+          "title": "Prompt Optimizer",
+          "description": "Whether to use the model's prompt optimizer (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Hailuo02ImageToVideoStandard",
+      "modelId": "hailuo/02-image-to-video-standard",
+      "title": "Hailuo Standard Image to Video",
+      "description": "Hailuo Standard Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    Content generation using hailuo/02-image-to-video-standard",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt describing the video to generate (Max length: 1500 characters)",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Image",
+          "description": "The URL of the image to use as the first frame of the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "end_image",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "End Image",
+          "description": "Optional URL of the image to use as the last frame of the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": false
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "10",
+          "title": "Duration",
+          "description": "The duration of the video in seconds. 10 seconds videos are not supported for 1080p resolution.",
+          "required": false,
+          "values": [
+            "6",
+            "10"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "768P",
+          "title": "Resolution",
+          "description": "The resolution of the generated video.",
+          "required": false,
+          "values": [
+            "512P",
+            "768P"
+          ]
+        },
+        {
+          "name": "prompt_optimizer",
+          "type": "bool",
+          "default": false,
+          "title": "Prompt Optimizer",
+          "description": "Whether to use the model's prompt optimizer (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "video",
+          "paramName": "image_url"
+        },
+        {
+          "field": "end_image",
+          "kind": "video",
+          "paramName": "end_image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Sora2ImageToVideo",
+      "modelId": "sora-2-image-to-video",
+      "title": "Sora2 - Image to Video",
+      "description": "Sora2 - Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    Transform images into dynamic videos powered by Sora-2-image-to-video's advanced AI model",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt describing the desired video motion (Max length: 10000 characters)",
+          "required": true
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "URL of the image to use as the first frame. Must be publicly accessible (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "landscape",
+          "title": "Aspect Ratio",
+          "description": "This parameter defines the aspect ratio of the image.",
+          "required": false,
+          "values": [
+            "portrait",
+            "landscape"
+          ]
+        },
+        {
+          "name": "n_frames",
+          "type": "enum",
+          "default": "10",
+          "title": "N Frames",
+          "description": "The number of frames to be generated.",
+          "required": false,
+          "values": [
+            "10",
+            "15"
+          ]
+        },
+        {
+          "name": "remove_watermark",
+          "type": "bool",
+          "default": false,
+          "title": "Remove Watermark",
+          "description": "When enabled, removes watermarks from the generated video. (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "character_id_list",
+          "type": "list[image]",
+          "default": [],
+          "title": "Character Id List",
+          "description": "Optional array of character IDs from Sora-2-characters model to incorporate character animations into the video generation. Maximum 5 character IDs allowed. Leave empty if not using character animations.",
+          "required": false
+        },
+        {
+          "name": "upload_method",
+          "type": "enum",
+          "default": "s3",
+          "title": "Upload Method",
+          "description": "Upload destination. Defaults to s3; choose oss for Aliyun storage (better access within China).",
+          "required": true,
+          "values": [
+            "s3",
+            "oss"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "upload_method",
+          "rule": "not_empty",
+          "message": "Upload Method is required"
+        }
+      ]
+    },
+    {
+      "className": "Sora2TextToVideo",
+      "modelId": "sora-2-text-to-video",
+      "title": "Sora2 - Text to Video",
+      "description": "Sora2 - Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    High-quality video generation from text descriptions powered by Sora-2-text-to-video's advanced AI model",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt describing the desired video motion (Max length: 10000 characters)",
+          "required": true
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "landscape",
+          "title": "Aspect Ratio",
+          "description": "This parameter defines the aspect ratio of the image.",
+          "required": false,
+          "values": [
+            "portrait",
+            "landscape"
+          ]
+        },
+        {
+          "name": "n_frames",
+          "type": "enum",
+          "default": "10",
+          "title": "N Frames",
+          "description": "The number of frames to be generated.",
+          "required": false,
+          "values": [
+            "10",
+            "15"
+          ]
+        },
+        {
+          "name": "remove_watermark",
+          "type": "bool",
+          "default": false,
+          "title": "Remove Watermark",
+          "description": "When enabled, removes watermarks from the generated video. (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "character_id_list",
+          "type": "list[image]",
+          "default": [],
+          "title": "Character Id List",
+          "description": "Optional array of character IDs from Sora-2-characters model to incorporate character animations into the video generation. Maximum 5 character IDs allowed. Leave empty if not using character animations.",
+          "required": false
+        },
+        {
+          "name": "upload_method",
+          "type": "enum",
+          "default": "s3",
+          "title": "Upload Method",
+          "description": "Upload destination. Defaults to s3; choose oss for Aliyun storage (better access within China).",
+          "required": true,
+          "values": [
+            "s3",
+            "oss"
+          ]
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "upload_method",
+          "rule": "not_empty",
+          "message": "Upload Method is required"
+        }
+      ]
+    },
+    {
+      "className": "Sora2ProImageToVideo",
+      "modelId": "sora-2-pro-image-to-video",
+      "title": "Sora2 - Pro Image to Video",
+      "description": "Sora2 - Pro Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    Transform images into dynamic videos powered by Sora-2-pro-image-to-video's advanced AI model",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt describing the desired video motion (Max length: 10000 characters)",
+          "required": true
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "URL of the image to use as the first frame. Must be publicly accessible (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "landscape",
+          "title": "Aspect Ratio",
+          "description": "This parameter defines the aspect ratio of the image.",
+          "required": false,
+          "values": [
+            "portrait",
+            "landscape"
+          ]
+        },
+        {
+          "name": "n_frames",
+          "type": "enum",
+          "default": "10",
+          "title": "N Frames",
+          "description": "The number of frames to be generated.",
+          "required": false,
+          "values": [
+            "10",
+            "15"
+          ]
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "default": "standard",
+          "title": "Size",
+          "description": "The quality or size of the generated image.",
+          "required": false,
+          "values": [
+            "standard",
+            "high"
+          ]
+        },
+        {
+          "name": "remove_watermark",
+          "type": "bool",
+          "default": false,
+          "title": "Remove Watermark",
+          "description": "When enabled, removes watermarks from the generated video. (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "character_id_list",
+          "type": "list[image]",
+          "default": [],
+          "title": "Character Id List",
+          "description": "Optional array of character IDs from Sora-2-characters model to incorporate character animations into the video generation. Maximum 5 character IDs allowed. Leave empty if not using character animations.",
+          "required": false
+        },
+        {
+          "name": "upload_method",
+          "type": "enum",
+          "default": "s3",
+          "title": "Upload Method",
+          "description": "Upload destination. Defaults to s3; choose oss for Aliyun storage (better access within China).",
+          "required": true,
+          "values": [
+            "oss",
+            "s3"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "upload_method",
+          "rule": "not_empty",
+          "message": "Upload Method is required"
+        }
+      ]
+    },
+    {
+      "className": "Sora2ProTextToVideo",
+      "modelId": "sora-2-pro-text-to-video",
+      "title": "Sora2 - Pro Text to Video",
+      "description": "Sora2 - Pro Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    High-quality video generation from text descriptions powered by Sora-2-pro-text-to-video's advanced AI model",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt describing the desired video motion (Max length: 10000 characters)",
+          "required": true
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "landscape",
+          "title": "Aspect Ratio",
+          "description": "This parameter defines the aspect ratio of the image.",
+          "required": false,
+          "values": [
+            "portrait",
+            "landscape"
+          ]
+        },
+        {
+          "name": "n_frames",
+          "type": "enum",
+          "default": "10",
+          "title": "N Frames",
+          "description": "The number of frames to be generated.",
+          "required": false,
+          "values": [
+            "10",
+            "15"
+          ]
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "default": "high",
+          "title": "Size",
+          "description": "The quality or size of the generated image.",
+          "required": false,
+          "values": [
+            "standard",
+            "high"
+          ]
+        },
+        {
+          "name": "remove_watermark",
+          "type": "bool",
+          "default": false,
+          "title": "Remove Watermark",
+          "description": "When enabled, removes watermarks from the generated video. (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "character_id_list",
+          "type": "list[image]",
+          "default": [],
+          "title": "Character Id List",
+          "description": "Optional array of character IDs from Sora-2-characters model to incorporate character animations into the video generation. Maximum 5 character IDs allowed. Leave empty if not using character animations.",
+          "required": false
+        },
+        {
+          "name": "upload_method",
+          "type": "enum",
+          "default": "s3",
+          "title": "Upload Method",
+          "description": "Upload destination. Defaults to s3; choose oss for Aliyun storage (better access within China).",
+          "required": true,
+          "values": [
+            "s3",
+            "oss"
+          ]
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "upload_method",
+          "rule": "not_empty",
+          "message": "Upload Method is required"
+        }
+      ]
+    },
+    {
+      "className": "SoraWatermarkRemover",
+      "modelId": "sora-watermark-remover",
+      "title": "Sora2 - Watermark Remover",
+      "description": "Sora2 - Watermark Remover via Kie.ai.\n\n    kie, video, ai\n\n    Content generation using sora-watermark-remover",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "video",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Video",
+          "description": "Enter the Sora 2 video URL — it must be a publicly accessible link from OpenAI (starting with sora.chatgpt.com). (Max length: 500 characters)",
+          "required": true
+        },
+        {
+          "name": "upload_method",
+          "type": "enum",
+          "default": "s3",
+          "title": "Upload Method",
+          "description": "Upload destination. Defaults to s3; choose oss for Aliyun storage (better access within China).",
+          "required": true,
+          "values": [
+            "oss",
+            "s3"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "video",
+          "kind": "video",
+          "paramName": "video_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "upload_method",
+          "rule": "not_empty",
+          "message": "Upload Method is required"
+        }
+      ]
+    },
+    {
+      "className": "Sora2ProStoryboard",
+      "modelId": "sora-2-pro-storyboard",
+      "title": "Sora2 - Pro Storyboard",
+      "description": "Sora2 - Pro Storyboard via Kie.ai.\n\n    kie, video, ai\n\n    Video generation using sora-2-pro-storyboard",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "shots",
+          "type": "list[image]",
+          "default": [],
+          "title": "Shots",
+          "description": "Array of shot descriptions with durations. Total duration of all shots cannot exceed the selected n_frames value.",
+          "required": false
+        },
+        {
+          "name": "n_frames",
+          "type": "enum",
+          "default": "15",
+          "title": "N Frames",
+          "description": "Total length of the video",
+          "required": false,
+          "values": [
+            "10",
+            "15",
+            "25"
+          ]
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB). Limited to exactly 1 image.",
+          "required": false
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "landscape",
+          "title": "Aspect Ratio",
+          "description": "This parameter defines the aspect ratio of the image.",
+          "required": false,
+          "values": [
+            "portrait",
+            "landscape"
+          ]
+        },
+        {
+          "name": "upload_method",
+          "type": "enum",
+          "default": "",
+          "title": "Upload Method",
+          "description": "Upload destination. Defaults to s3; choose oss for Aliyun storage (better access within China).",
+          "required": true,
+          "values": [
+            "s3",
+            "oss"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "upload_method",
+          "rule": "not_empty",
+          "message": "Upload Method is required"
+        }
+      ]
+    },
+    {
+      "className": "Wan22A14bImageToVideoTurbo",
+      "modelId": "wan/2-2-a14b-image-to-video-turbo",
+      "title": "Wan - Image to Video",
+      "description": "Wan - Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    Transform images into dynamic videos powered by Wan's advanced AI model",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "URL of the input image. If the input image does not match the chosen aspect ratio, it is resized and center cropped. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt to guide video generation. (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Resolution of the generated video (480p or 720p). Default value: \"720p\"",
+          "required": false,
+          "values": [
+            "480p",
+            "720p"
+          ]
+        },
+        {
+          "name": "enable_prompt_expansion",
+          "type": "bool",
+          "default": false,
+          "title": "Enable Prompt Expansion",
+          "description": "Whether to enable prompt expansion. This will use a large language model to expand the prompt with additional details while maintaining the original meaning. (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "float",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed for reproducibility. If None, a random seed is chosen. (Min: 0, Max: 2147483647, Step: 1) (step: 1)",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        },
+        {
+          "name": "acceleration",
+          "type": "enum",
+          "default": "none",
+          "title": "Acceleration",
+          "description": "Acceleration level to use. The more acceleration, the faster the generation, but with lower quality. The recommended value is 'none'. Default value: \"none\"",
+          "required": false,
+          "values": [
+            "none",
+            "regular"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Wan22A14bSpeechToVideoTurbo",
+      "modelId": "wan/2-2-a14b-speech-to-video-turbo",
+      "title": "Wan - 2.2 A14B Speech to Video Turbo",
+      "description": "Wan - 2.2 A14B Speech to Video Turbo via Kie.ai.\n\n    kie, video, ai\n\n    Generate videos using Wan's advanced AI model",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt used for video generation (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "URL of the input image. If the input image does not match the chosen aspect ratio, it is resized and center cropped (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "audio",
+          "type": "audio",
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Audio",
+          "description": "The URL of the audio file (File URL after upload, not file content; Accepted types: audio/mp3, audio/wav, audio/ogg, audio/m4a, audio/flac, audio/aac, audio/x-ms-wma, audio/mpeg; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "num_frames",
+          "type": "float",
+          "default": 80,
+          "title": "Num Frames",
+          "description": "Number of frames to generate. Must be between 40 to 120, (must be multiple of 4) (Min: 40, Max: 120, Step: 4) (step: 4)",
+          "required": false,
+          "min": 40,
+          "max": 120
+        },
+        {
+          "name": "frames_per_second",
+          "type": "float",
+          "default": 16,
+          "title": "Frames Per Second",
+          "description": "Frames per second of the generated video. Must be between 4 to 60. When using interpolation and adjust_fps_for_interpolation is set to true (default true,) the final FPS will be multiplied by the number of interpolated frames plus one. For example, if the generated frames per second is 16 and the number of interpolated frames is 1, the final frames per second will be 32. If adjust_fps_for_interpolation is set to false, this value will be used as-is (Min: 4, Max: 60, Step: 1) (step: 1)",
+          "required": false,
+          "min": 4,
+          "max": 60
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "480p",
+          "title": "Resolution",
+          "description": "Resolution of the generated video (480p, 580p, or 720p)",
+          "required": false,
+          "values": [
+            "480p",
+            "580p",
+            "720p"
+          ]
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Negative prompt for video generation (Max length: 500 characters)",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed for reproducibility. If None, a random seed is chosen",
+          "required": false
+        },
+        {
+          "name": "num_inference_steps",
+          "type": "float",
+          "default": 27,
+          "title": "Num Inference Steps",
+          "description": "Number of inference steps for sampling. Higher values give better quality but take longer (Min: 2, Max: 40, Step: 1) (step: 1)",
+          "required": false,
+          "min": 2,
+          "max": 40
+        },
+        {
+          "name": "guidance_scale",
+          "type": "float",
+          "default": 3.5,
+          "title": "Guidance Scale",
+          "description": "Classifier-free guidance scale. Higher values give better adherence to the prompt but may decrease quality (Min: 1, Max: 10, Step: 0.1) (step: 0.1)",
+          "required": false,
+          "min": 1,
+          "max": 10
+        },
+        {
+          "name": "shift",
+          "type": "float",
+          "default": 5,
+          "title": "Shift",
+          "description": "Shift value for the video. Must be between 1.0 and 10.0 (Min: 1, Max: 10, Step: 0.1) (step: 0.1)",
+          "required": false,
+          "min": 1,
+          "max": 10
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        },
+        {
+          "field": "audio",
+          "kind": "audio",
+          "paramName": "audio_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Wan22A14bTextToVideoTurbo",
+      "modelId": "wan/2-2-a14b-text-to-video-turbo",
+      "title": "Wan - Text to Video",
+      "description": "Wan - Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    High-quality video generation from text descriptions powered by Wan's advanced AI model",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt to guide video generation. (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Resolution of the generated video (480p or 720p). Default value: \"720p\"",
+          "required": false,
+          "values": [
+            "480p",
+            "720p"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "Aspect ratio of the generated video (16:9 or 9:16). Default value: \"16:9\"",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16"
+          ]
+        },
+        {
+          "name": "enable_prompt_expansion",
+          "type": "bool",
+          "default": false,
+          "title": "Enable Prompt Expansion",
+          "description": "Whether to enable prompt expansion. This will use a large language model to expand the prompt with additional details while maintaining the original meaning. (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "float",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed for reproducibility. If None, a random seed is chosen. (Min: 0, Max: 2147483647, Step: 1) (step: 1)",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        },
+        {
+          "name": "acceleration",
+          "type": "enum",
+          "default": "none",
+          "title": "Acceleration",
+          "description": "Acceleration level to use. The more acceleration, the faster the generation, but with lower quality. The recommended value is 'none'. Default value: \"none\"",
+          "required": false,
+          "values": [
+            "none",
+            "regular"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Wan22AnimateMove",
+      "modelId": "wan/2-2-animate-move",
+      "title": "Wan - Animate Move",
+      "description": "Wan - Animate Move via Kie.ai.\n\n    kie, video, ai\n\n    Content generation using Wan's advanced AI model",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "video",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Video",
+          "description": "URL of the input video. (File URL after upload, not file content; Accepted types: video/mp4, video/quicktime, video/x-matroska; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "URL of the input image. If the input image does not match the chosen aspect ratio, it is resized and center cropped. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "480p",
+          "title": "Resolution",
+          "description": "Resolution of the generated video (480p, 580p, or 720p).",
+          "required": false,
+          "values": [
+            "480p",
+            "580p",
+            "720p"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "video",
+          "kind": "video",
+          "paramName": "video_url"
+        },
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ]
+    },
+    {
+      "className": "Wan22AnimateReplace",
+      "modelId": "wan/2-2-animate-replace",
+      "title": "Wan - Animate Replace",
+      "description": "Wan - Animate Replace via Kie.ai.\n\n    kie, video, ai\n\n    Content generation using Wan's advanced AI model",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "video",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Video",
+          "description": "URL of the input video. (File URL after upload, not file content; Accepted types: video/mp4, video/quicktime, video/x-matroska; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "URL of the input image. If the input image does not match the chosen aspect ratio, it is resized and center cropped. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "480p",
+          "title": "Resolution",
+          "description": "Resolution of the generated video (480p, 580p, or 720p).",
+          "required": false,
+          "values": [
+            "480p",
+            "580p",
+            "720p"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "video",
+          "kind": "video",
+          "paramName": "video_url"
+        },
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ]
+    },
+    {
+      "className": "Wan26ImageToVideo",
+      "modelId": "wan/2-6-image-to-video",
+      "title": "Wan 2.6 - Image to Video",
+      "description": "Wan 2.6 - Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    Transform static images into dynamic videos powered by Wan's advanced AI model",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompts for video generation. Supports both Chinese and English, with a minimum of 2 characters and a maximum of 5,000 characters. (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB),All images must be at least 256x256px.",
+          "required": true
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "The duration of the generated video in seconds",
+          "required": false,
+          "values": [
+            "5",
+            "10",
+            "15"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080p",
+          "title": "Resolution",
+          "description": "Video resolution tier",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Wan26TextToVideo",
+      "modelId": "wan/2-6-text-to-video",
+      "title": "Wan 2.6 - Text to Video",
+      "description": "Wan 2.6 - Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    High-quality video generation from text descriptions powered by Wan's advanced AI model",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompts for video generation. Supports both Chinese and English, with a minimum of 1 characters and a maximum of 5,000 characters. (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "The duration of the generated video in seconds",
+          "required": false,
+          "values": [
+            "5",
+            "10",
+            "15"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080p",
+          "title": "Resolution",
+          "description": "Video resolution tier",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Enabled by default in Playground. For API calls, you can turn it on or off based on your needs.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Wan26VideoToVideo",
+      "modelId": "wan/2-6-video-to-video",
+      "title": "Wan 2.6 - Video to Video",
+      "description": "Wan 2.6 - Video to Video via Kie.ai.\n\n    kie, video, ai\n\n    Transform existing videos with new prompts using Wan's advanced AI model",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompts for video generation. Supports both Chinese and English, with a minimum of 2 characters and a maximum of 5,000 characters. (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "videos",
+          "type": "list[video]",
+          "default": [],
+          "title": "Videos",
+          "description": "The URL of the image used to generate video (File URL after upload, not file content; Accepted types: video/mp4, video/quicktime, video/x-matroska; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "The duration of the generated video in seconds",
+          "required": false,
+          "values": [
+            "5",
+            "10"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080p",
+          "title": "Resolution",
+          "description": "Video resolution tier",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "videos",
+          "kind": "video",
+          "isList": true,
+          "paramName": "video_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Wan26FlashImageToVideo",
+      "modelId": "wan/2-6-flash-image-to-video",
+      "title": "Wan - 2.6-flash-image-to-video",
+      "description": "Wan - 2.6-flash-image-to-video via Kie.ai.\n\n    kie, video, ai\n\n    > Transform images into dynamic videos powered by Wan's advanced AI model",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompts for video generation. Supports both Chinese and English, with a minimum of 2 characters and a maximum of 5,000 characters. (Max length: 1500 characters)",
+          "required": true
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "A list of image URLs. All images must be at least 256x256px. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "The duration of the generated video in seconds",
+          "required": false,
+          "values": [
+            "5",
+            "10",
+            "15"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080p",
+          "title": "Resolution",
+          "description": "Video resolution tier",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "audio",
+          "type": "bool",
+          "default": false,
+          "title": "Audio",
+          "description": "Whether to generate video with audio. Audio directly affects the cost, as the pricing differs between videos with sound and silent videos. (Boolean value (true/false))",
+          "required": true
+        },
+        {
+          "name": "multi_shots",
+          "type": "bool",
+          "default": false,
+          "title": "Multi Shots",
+          "description": "The multi shots parameter controls the shot composition style during AI video generation, determining whether the generated video is a single continuous shot or multiple shots with transitions. (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Wan26FlashVideoToVideo",
+      "modelId": "wan/2-6-flash-video-to-video",
+      "title": "Wan - 2-6-flash-video-to-video",
+      "description": "Wan - 2-6-flash-video-to-video via Kie.ai.\n\n    kie, video, ai\n\n    > Content generation using wan/2-6-flash-video-to-video",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompts for video generation. Supports both Chinese and English, with a minimum of 2 characters and a maximum of 5,000 characters. (Max length: 1500 characters)",
+          "required": true
+        },
+        {
+          "name": "videos",
+          "type": "list[video]",
+          "default": [],
+          "title": "Videos",
+          "description": "The URL of the image used to generate video (File URL after upload, not file content; Accepted types: video/mp4, video/quicktime, video/x-matroska; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "5",
+          "title": "Duration",
+          "description": "The duration of the generated video in seconds",
+          "required": false,
+          "values": [
+            "5",
+            "10"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080p",
+          "title": "Resolution",
+          "description": "Video resolution tier",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "audio",
+          "type": "bool",
+          "default": false,
+          "title": "Audio",
+          "description": "Whether to generate video with audio. Audio directly affects the cost, as the pricing differs between videos with sound and silent videos. (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "multi_shots",
+          "type": "bool",
+          "default": false,
+          "title": "Multi Shots",
+          "description": "The multi shots parameter controls the shot composition style during AI video generation, determining whether the generated video is a single continuous shot or multiple shots with transitions. (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "videos",
+          "kind": "video",
+          "isList": true,
+          "paramName": "video_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Wan25ImageToVideo",
+      "modelId": "wan/2-5-image-to-video",
+      "title": "Wan 2.5 - Image to Video",
+      "description": "Wan 2.5 - Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    Video generation by wan/2-5-image-to-video",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt describing the desired video motion. Maximum length: 800 characters.",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "URL of the image to use as the first frame. Must be publicly accessible. - Please provide the URL of the uploaded file, not raw file content - Accepted types: `image/jpeg`, `image/png`, `image/webp` - Max size: 10.0MB",
+          "required": true
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "",
+          "title": "Duration",
+          "description": "The duration of the generated video in seconds. - `5`: 5 seconds - `10`: 10 seconds",
+          "required": true,
+          "values": [
+            "5",
+            "10"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "",
+          "title": "Resolution",
+          "description": "Video resolution. Valid values: `720p`, `1080p`.",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Negative prompt used to describe content to avoid. Maximum length: 500 characters.",
+          "required": false
+        },
+        {
+          "name": "enable_prompt_expansion",
+          "type": "bool",
+          "default": false,
+          "title": "Enable Prompt Expansion",
+          "description": "Whether to enable prompt rewriting using LLM. - Boolean value: `true` / `false`",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed for reproducibility. If omitted, a random seed is chosen.",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Enabled by default in Playground. For API calls, you can turn it on or off based on your needs.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "duration",
+          "rule": "not_empty",
+          "message": "Duration is required"
+        }
+      ]
+    },
+    {
+      "className": "Wan25TextToVideo",
+      "modelId": "wan/2-5-text-to-video",
+      "title": "Wan 2.5 - Text to Video",
+      "description": "Wan 2.5 - Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    Video generation by wan/2-5-text-to-video",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt for video generation. Supports Chinese and English. Maximum length: 800 characters.",
+          "required": true
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "",
+          "title": "Duration",
+          "description": "The duration of the generated video in seconds. - `5`: 5 seconds - `10`: 10 seconds",
+          "required": true,
+          "values": [
+            "5",
+            "10"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated video. - `16:9`: Landscape - `9:16`: Portrait - `1:1`: Square",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16",
+            "1:1"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "",
+          "title": "Resolution",
+          "description": "Video resolution tier. - `720p`: 720p - `1080p`: 1080p",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Negative prompt used to describe content to avoid. Maximum length: 500 characters.",
+          "required": false
+        },
+        {
+          "name": "enable_prompt_expansion",
+          "type": "bool",
+          "default": false,
+          "title": "Enable Prompt Expansion",
+          "description": "Whether to enable prompt rewriting using LLM. Improves results for short prompts but increases processing time. - Boolean value: `true` / `false`",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed for reproducibility. If omitted, a random seed is chosen.",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "duration",
+          "rule": "not_empty",
+          "message": "Duration is required"
+        }
+      ]
+    },
+    {
+      "className": "Wan27TextToVideo",
+      "modelId": "wan/2-7-text-to-video",
+      "title": "Wan 2.7 - Text to Video",
+      "description": "Wan 2.7 - Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Create Task",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Positive prompt. Minimum length: 1 character. Maximum length: 5000 characters.",
+          "required": true
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Negative prompt. Maximum length: 500 characters.",
+          "required": false
+        },
+        {
+          "name": "audio",
+          "type": "audio",
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Audio",
+          "description": "Optional custom audio URL.",
+          "required": false
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080p",
+          "title": "Resolution",
+          "description": "Video resolution. - `720p`: 720p - `1080p`: 1080p",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Ratio",
+          "description": "Video aspect ratio. - `16:9`: Landscape - `9:16`: Portrait - `1:1`: Square - `4:3`: Landscape 4:3 - `3:4`: Portrait 3:4",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:3",
+            "3:4"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Video duration in seconds. - Minimum: `2` - Maximum: `15` - Default: `5`",
+          "required": false,
+          "min": 2,
+          "max": 15
+        },
+        {
+          "name": "prompt_extend",
+          "type": "bool",
+          "default": true,
+          "title": "Prompt Extend",
+          "description": "Whether to enable intelligent prompt rewriting. Default value: `true`.",
+          "required": false
+        },
+        {
+          "name": "watermark",
+          "type": "bool",
+          "default": false,
+          "title": "Watermark",
+          "description": "Whether to add an AI-generated watermark. Default value: `false`.",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed. - Minimum: `0` - Maximum: `2147483647`",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "audio",
+          "kind": "audio",
+          "paramName": "audio_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Wan27ImageToVideo",
+      "modelId": "wan/2-7-image-to-video",
+      "title": "Wan 2.7 - Image to Video",
+      "description": "Wan 2.7 - Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Create Task",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Positive prompt. Maximum length: 5000 characters.",
+          "required": true
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Negative prompt. Maximum length: 500 characters.",
+          "required": false
+        },
+        {
+          "name": "first_frame",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "First Frame",
+          "description": "First frame image URL.",
+          "required": false
+        },
+        {
+          "name": "last_frame",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Last Frame",
+          "description": "Last frame image URL.",
+          "required": false
+        },
+        {
+          "name": "first_clip",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "First Clip",
+          "description": "First clip video URL, used for video continuation.",
+          "required": false
+        },
+        {
+          "name": "driving_audio",
+          "type": "audio",
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Driving Audio",
+          "description": "Driving audio URL.",
+          "required": false
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080p",
+          "title": "Resolution",
+          "description": "Video resolution. - `720p`: 720p - `1080p`: 1080p",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Total output video duration in seconds. - Minimum: `2` - Maximum: `15` - Default: `5`",
+          "required": false,
+          "min": 2,
+          "max": 15
+        },
+        {
+          "name": "prompt_extend",
+          "type": "bool",
+          "default": true,
+          "title": "Prompt Extend",
+          "description": "Whether to enable intelligent prompt rewriting. Default value: `true`.",
+          "required": false
+        },
+        {
+          "name": "watermark",
+          "type": "bool",
+          "default": false,
+          "title": "Watermark",
+          "description": "Whether to add an AI-generated watermark. Default value: `false`.",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed. - Minimum: `0` - Maximum: `2147483647`",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "first_frame",
+          "kind": "image",
+          "paramName": "first_frame_url"
+        },
+        {
+          "field": "last_frame",
+          "kind": "image",
+          "paramName": "last_frame_url"
+        },
+        {
+          "field": "first_clip",
+          "kind": "video",
+          "paramName": "first_clip_url"
+        },
+        {
+          "field": "driving_audio",
+          "kind": "audio",
+          "paramName": "driving_audio_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Wan27Videoedit",
+      "modelId": "wan/2-7-videoedit",
+      "title": "Wan 2.7 - Video Edit",
+      "description": "Wan 2.7 - Video Edit via Kie.ai.\n\n    kie, video, ai\n\n    ## Create Task",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Optional text prompt describing the expected elements and visual features in the generated video. Supports Chinese and English. Maximum length: 5000 characters.",
+          "required": false
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Optional negative prompt describing content that should not appear in the video. Supports Chinese and English. Maximum length: 500 characters.",
+          "required": false
+        },
+        {
+          "name": "video",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Video",
+          "description": "URL of the source video to edit. Required. Only one video is supported. - Formats: `mp4`, `mov` - Duration: `2` to `10` seconds - Resolution: width and height range `[240,4096]` pixels - Aspect ratio: `1:8` to `8:1` - File size: up to `100MB` - Supports public `http/https` URLs or temporary `oss` URLs",
+          "required": true
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080p",
+          "title": "Resolution",
+          "description": "Output video resolution tier. `1080p` costs more than `720p`. Default value: `1080p`. - `720p`: 720p - `1080p`: 1080p",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "Output video aspect ratio. - If omitted: the output uses an aspect ratio close to the input video - If provided: the output uses the specified aspect ratio - Available values: `16:9`, `9:16`, `1:1`, `4:3`, `3:4`",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:3",
+            "3:4"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 0,
+          "title": "Duration",
+          "description": "Output video duration in seconds. - Default `0` means using the full input video duration without truncation - If a value is provided, the output is clipped from second `0` to the specified length - Valid values are `0` or any integer in `[2,10]`",
+          "required": false,
+          "min": 0,
+          "max": 10
+        },
+        {
+          "name": "audio_setting",
+          "type": "enum",
+          "default": "auto",
+          "title": "Audio Setting",
+          "description": "Video audio setting. - `auto`: default, the model decides whether to regenerate audio based on the `prompt` - `origin`: force keeping the original input video audio",
+          "required": false,
+          "values": [
+            "auto",
+            "origin"
+          ]
+        },
+        {
+          "name": "prompt_extend",
+          "type": "bool",
+          "default": true,
+          "title": "Prompt Extend",
+          "description": "Whether to enable prompt rewriting. When enabled, the model expands the input prompt. This usually works better for short prompts but increases processing time.",
+          "required": false
+        },
+        {
+          "name": "watermark",
+          "type": "bool",
+          "default": false,
+          "title": "Watermark",
+          "description": "Whether to add a watermark. The watermark is placed in the lower-right corner of the video with the fixed text \"AI generated\".",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed. Range: `0-2147483647`. If omitted, the system generates one automatically.",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        },
+        {
+          "name": "reference_image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Reference Image",
+          "description": "Optional reference image URL for character, clothing, or style guidance. - Formats: `JPEG`, `JPG`, `PNG` (no alpha channel), `BMP`, `WEBP` - Resolution: width and height range `[240,8000]` pixels - Aspect ratio: `1:8` to `8:1` - Supports public `http/https` URLs or temporary `oss` URLs",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "video",
+          "kind": "video",
+          "paramName": "video_url"
+        },
+        {
+          "field": "reference_image",
+          "kind": "image",
+          "paramName": "reference_image"
+        }
+      ]
+    },
+    {
+      "className": "Wan27R2v",
+      "modelId": "wan/2-7-r2v",
+      "title": "Wan 2.7 - Reference to Video",
+      "description": "Wan 2.7 - Reference to Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Create Task",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt. Required. Describes the desired elements and visual features in the generated video. Supports Chinese and English. Maximum length: 5000 characters.",
+          "required": true
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Optional negative prompt describing what should not appear in the video. Supports Chinese and English. Maximum length: 500 characters.",
+          "required": false
+        },
+        {
+          "name": "reference_image",
+          "type": "list[image]",
+          "default": [],
+          "title": "Reference Image",
+          "description": "Array of reference image URLs. At least one of `reference_image` or `reference_video` must be provided. The total number of images and videos cannot exceed 5.",
+          "required": false
+        },
+        {
+          "name": "reference_video",
+          "type": "list[video]",
+          "default": [],
+          "title": "Reference Video",
+          "description": "Array of reference video URLs. At least one of `reference_image` or `reference_video` must be provided. The total number of images and videos cannot exceed 5.",
+          "required": false
+        },
+        {
+          "name": "first_frame",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "First Frame",
+          "description": "First frame image URL. At most one image can be provided. If supplied, `aspect_ratio` is ignored and the output uses a ratio close to the first frame image.",
+          "required": false
+        },
+        {
+          "name": "reference_voice",
+          "type": "audio",
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Reference Voice",
+          "description": "Audio URL used to specify the voice timbre of the subject in the reference material. Rules: - If `reference_video` contains audio and `reference_voice` is not provided, the original video audio is used by default - If both `reference_video` and `reference_voice` are provided, `reference_voice` takes priority Audio limits: - Formats: `wav`, `mp3` - Duration: `1` to `10` seconds - File size: up to `15MB`",
+          "required": false
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080p",
+          "title": "Resolution",
+          "description": "Output video resolution tier. Available values: `720p`, `1080p`. Default value: `1080p`.",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "Output video aspect ratio. Effective logic: - If `first_frame` is not provided: the video is generated using the specified `aspect_ratio` - If `first_frame` is provided: `aspect_ratio` is ignored and the output uses a ratio close to the first frame image",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:3",
+            "3:4"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Output video duration in seconds. Valid range is an integer from `2` to `10`. Default value: `5`.",
+          "required": false,
+          "min": 2,
+          "max": 10
+        },
+        {
+          "name": "prompt_extend",
+          "type": "bool",
+          "default": true,
+          "title": "Prompt Extend",
+          "description": "Whether to enable prompt rewriting. When enabled, the model expands the input prompt. This usually works better for short prompts but increases processing time.",
+          "required": false
+        },
+        {
+          "name": "watermark",
+          "type": "bool",
+          "default": false,
+          "title": "Watermark",
+          "description": "Whether to add a watermark. The watermark is placed in the lower-right corner of the video with the fixed text \"AI generated\".",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed. Range: `0-2147483647`. If omitted, the system generates one automatically.",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "reference_image",
+          "kind": "image",
+          "isList": true,
+          "paramName": "reference_image"
+        },
+        {
+          "field": "reference_video",
+          "kind": "video",
+          "isList": true,
+          "paramName": "reference_video"
+        },
+        {
+          "field": "first_frame",
+          "kind": "image",
+          "paramName": "first_frame"
+        },
+        {
+          "field": "reference_voice",
+          "kind": "audio",
+          "paramName": "reference_voice"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "TopazVideoUpscale",
+      "modelId": "topaz/video-upscale",
+      "title": "Topaz - Video Upscale",
+      "description": "Topaz - Video Upscale via Kie.ai.\n\n    kie, video, ai\n\n    Enhance video resolution and quality using advanced AI upscaling powered by Topaz",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "video",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Video",
+          "description": "URL of the video to upscale (File URL after upload, not file content; Accepted types: video/mp4, video/quicktime, video/x-matroska; Max size: 50.0MB)",
+          "required": true
+        },
+        {
+          "name": "upscale_factor",
+          "type": "enum",
+          "default": "2",
+          "title": "Upscale Factor",
+          "description": "Factor to upscale the video by (e.g. 2.0 doubles width and height)",
+          "required": false,
+          "values": [
+            "1",
+            "2",
+            "4"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "video",
+          "kind": "video",
+          "paramName": "video_url"
+        }
+      ]
+    },
+    {
+      "className": "InfinitalkFromAudio",
+      "modelId": "infinitalk/from-audio",
+      "title": "Infinitalk - From Audio",
+      "description": "Infinitalk - From Audio via Kie.ai.\n\n    kie, video, ai\n\n    Content generation using infinitalk/from-audio",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "URL of the input image. If the input image does not match the chosen aspect ratio, it is resized and center cropped. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "audio",
+          "type": "audio",
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Audio",
+          "description": "The URL of the audio file. (File URL after upload, not file content; Accepted types: audio/mpeg, audio/wav, audio/x-wav, audio/aac, audio/mp4, audio/ogg; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt to guide video generation. (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "480p",
+          "title": "Resolution",
+          "description": "Resolution of the video to generate. Must be either 480p or 720p.",
+          "required": false,
+          "values": [
+            "480p",
+            "720p"
+          ]
+        },
+        {
+          "name": "seed",
+          "type": "float",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed for reproducibility. Valid range is 10000 to 1000000.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        },
+        {
+          "field": "audio",
+          "kind": "audio",
+          "paramName": "audio_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "HappyhorseTextToVideo",
+      "modelId": "happyhorse/text-to-video",
+      "title": "happyhorse-text-to-video",
+      "description": "happyhorse-text-to-video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt describing the video to generate (any language). Max 5,000 non‑Chinese characters or 2,500 Chinese characters; extra content is truncated.",
+          "required": true
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080p",
+          "title": "Resolution",
+          "description": "Output video resolution. Valid values: 720P, 1080P (default).",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "Output aspect ratio. Valid values: 16:9 (default), 9:16, 1:1, 4:3, 3:4.",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:3",
+            "3:4"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Output duration in seconds (integer). Must be between 3 and 15. Defaults to 5.",
+          "required": false,
+          "min": 3,
+          "max": 15
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed for reproducibility (if supported).",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "HappyhorseImageToVideo",
+      "modelId": "happyhorse/image-to-video",
+      "title": "happyhorse-image-to-video",
+      "description": "happyhorse-image-to-video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt describing the video to generate (any language). Max 5,000 non‑Chinese characters or 2,500 Chinese characters; extra content is truncated.",
+          "required": false
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "First-frame image URL list. Exactly one image is required. Image constraints: Format: JPEG, JPG, PNG, WEBP. Resolution: Width and height must be at least 300 pixels. Aspect ratio: 1:2.5 to 2.5:1. File size: Up to 10 MB.",
+          "required": false
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080p",
+          "title": "Resolution",
+          "description": "Output video resolution. Valid values: 720P, 1080P (default).",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Output duration in seconds. Must be between 3 and 15. Defaults to 5.",
+          "required": false,
+          "min": 3,
+          "max": 15
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed for reproducibility (if supported).",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ]
+    },
+    {
+      "className": "HappyhorseReferenceToVideo",
+      "modelId": "happyhorse/reference-to-video",
+      "title": "happyhorse/reference-to-video",
+      "description": "happyhorse/reference-to-video via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt describing the video to generate (any language). Max 5,000 non‑Chinese characters or 2,500 Chinese characters; extra content is truncated.",
+          "required": true
+        },
+        {
+          "name": "reference_image",
+          "type": "list[image]",
+          "default": [],
+          "title": "Reference Image",
+          "description": "Reference image URL list. Provide 1–9 images. The order defines which image is character1, character2, etc. Image limits: Format: JPEG, JPG, PNG, and WEBP. Resolution: shortest side at least 400 px. 720P or higher recommended. Avoid small, blurry, or heavily compressed images, as they degrade output quality. File size: 10 MB maximum.",
+          "required": true
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080p",
+          "title": "Resolution",
+          "description": "Output video resolution. Valid values: 720P, 1080P (default).",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "Output aspect ratio. Valid values: 16:9 (default), 9:16, 1:1, 4:3, 3:4.",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:3",
+            "3:4"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Output duration in seconds (integer). Must be between 3 and 15. Defaults to 5.",
+          "required": false,
+          "min": 3,
+          "max": 15
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed for reproducibility (if supported).",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "HappyhorseVideoEdit",
+      "modelId": "happyhorse/video-edit",
+      "title": "happyhorse/video-edit",
+      "description": "happyhorse/video-edit via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Required edit instruction describing the intended change (e.g., style transfer / local replacement). Max 5,000 non‑Chinese characters or 2,500 Chinese characters; extra content is truncated.",
+          "required": true
+        },
+        {
+          "name": "video",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Video",
+          "description": "Input video URL list. Exactly one video is required. Video requirements: Format: MP4, MOV (H.264 encoding recommended). Duration: 3–60 seconds. Resolution: the longer side must not exceed 2,160 px; the shorter side must be at least 320 px. Aspect ratio: 1:2.5–2.5:1. File size: up to 100 MB. Frame rate: greater than 8 fps.",
+          "required": true
+        },
+        {
+          "name": "reference_image",
+          "type": "list[image]",
+          "default": [],
+          "title": "Reference Image",
+          "description": "Optional reference image URL list (0–5). Image requirements: Format: JPEG, JPG, PNG, WEBP. Resolution: both width and height must be at least 300 px. Aspect ratio: 1:2.5–2.5:1. File size: up to 10 MB.",
+          "required": false
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1080p",
+          "title": "Resolution",
+          "description": "Output video resolution. Valid values: 720P, 1080P (default).",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p"
+          ]
+        },
+        {
+          "name": "audio_setting",
+          "type": "enum",
+          "default": "auto",
+          "title": "Audio Setting",
+          "description": "Audio handling strategy for the output video.",
+          "required": false,
+          "values": [
+            "auto",
+            "origin"
+          ]
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed for reproducibility (if supported).",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        }
+      ],
+      "uploads": [
+        {
+          "field": "video",
+          "kind": "video",
+          "paramName": "video_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
     }
   ]
 };

@@ -3,7 +3,15 @@
  */
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
-import { getApiKey, kieExecuteTask, kieImageRef } from "@nodetool-ai/kie-nodes";
+import {
+  getApiKey,
+  isRefSet,
+  kieExecuteTask,
+  kieImageRef,
+  uploadAudioInput,
+  uploadImageInput,
+  uploadVideoInput
+} from "@nodetool-ai/kie-nodes";
 import type { TypeMetadata } from "@nodetool-ai/node-sdk";
 
 interface KieParamInfo {
@@ -175,7 +183,25 @@ function coerceDefault(raw: string, paramType: string): unknown {
   }
 }
 
+function detectMediaKind(
+  param: KieParamInfo
+): "image" | "audio" | "video" | null {
+  const joined = param.acceptedFileTypes.join(",").toLowerCase();
+  if (joined.includes("image/")) return "image";
+  if (joined.includes("audio/")) return "audio";
+  if (joined.includes("video/")) return "video";
+  return null;
+}
+
 function mapParamType(param: KieParamInfo): TypeMetadata {
+  if (param.isFileUrlArray) {
+    const kind = detectMediaKind(param) ?? "image";
+    return { type: "list", type_args: [{ type: kind, type_args: [] }] };
+  }
+  if (param.isFileUrl) {
+    const kind = detectMediaKind(param) ?? "image";
+    return { type: kind, type_args: [] };
+  }
   switch (param.type) {
     case "string":
       return {
@@ -199,7 +225,31 @@ function mapParamType(param: KieParamInfo): TypeMetadata {
   }
 }
 
+function defaultRefForKind(kind: "image" | "audio" | "video"): unknown {
+  if (kind === "audio") {
+    return { type: "audio", uri: "", asset_id: null, data: null, metadata: null };
+  }
+  if (kind === "video") {
+    return {
+      type: "video",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null,
+      duration: null,
+      format: null
+    };
+  }
+  return { type: "image", uri: "", asset_id: null, data: null, metadata: null };
+}
+
 function defaultDynamicValue(param: KieParamInfo): unknown {
+  if (param.isFileUrlArray) {
+    return [];
+  }
+  if (param.isFileUrl) {
+    return defaultRefForKind(detectMediaKind(param) ?? "image");
+  }
   if (param.default !== undefined) {
     return param.default;
   }
@@ -250,7 +300,9 @@ export function resolveKieDynamicSchema(
       ...(param.description ? { description: param.description } : {}),
       ...(param.minVal !== undefined ? { min: param.minVal } : {}),
       ...(param.maxVal !== undefined ? { max: param.maxVal } : {}),
-      ...(param.default !== undefined ? { default: param.default } : {})
+      ...(param.default !== undefined && !param.isFileUrl && !param.isFileUrlArray
+        ? { default: param.default }
+        : {})
     };
   }
 
@@ -289,14 +341,15 @@ export class KieAINode extends BaseNode {
   })
   declare model_info: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<Record<string, unknown>> {
     const modelInfo = String(this.model_info ?? "").trim();
     if (!modelInfo)
       throw new Error("model_info is empty. Paste kie.ai API documentation.");
     const apiKey = getApiKey(this._secrets);
     const bundle = parseKieDocs(modelInfo);
 
-    // Build input params from dynamic properties
     const apiInput: Record<string, unknown> = {};
     for (const p of bundle.params) {
       const val = this.getDynamic(p.name) ?? (this as any)[p.name];
@@ -304,9 +357,38 @@ export class KieAINode extends BaseNode {
         if (p.required) throw new Error(`Missing required input: ${p.name}`);
         continue;
       }
-      if (p.isFileUrl || p.isFileUrlArray) {
-        // Pass through URLs directly; upload would need context
-        apiInput[p.name] = val;
+
+      if (p.isFileUrlArray) {
+        const kind = detectMediaKind(p) ?? "image";
+        const uploadFn =
+          kind === "audio"
+            ? uploadAudioInput
+            : kind === "video"
+              ? uploadVideoInput
+              : uploadImageInput;
+        const items = Array.isArray(val) ? val : [];
+        const urls: string[] = [];
+        for (const item of items) {
+          if (isRefSet(item)) {
+            urls.push(await uploadFn(apiKey, item, context));
+          } else if (typeof item === "string" && item) {
+            urls.push(item);
+          }
+        }
+        if (urls.length) apiInput[p.name] = urls;
+      } else if (p.isFileUrl) {
+        const kind = detectMediaKind(p) ?? "image";
+        const uploadFn =
+          kind === "audio"
+            ? uploadAudioInput
+            : kind === "video"
+              ? uploadVideoInput
+              : uploadImageInput;
+        if (isRefSet(val)) {
+          apiInput[p.name] = await uploadFn(apiKey, val, context);
+        } else if (typeof val === "string" && val) {
+          apiInput[p.name] = val;
+        }
       } else {
         apiInput[p.name] = val;
       }
@@ -320,8 +402,10 @@ export class KieAINode extends BaseNode {
       300
     );
 
-    if (bundle.outputType === "video") return { video: { type: "video", uri: "", data: result.data } };
-    if (bundle.outputType === "audio") return { audio: { type: "audio", uri: "", data: result.data } };
+    if (bundle.outputType === "video")
+      return { video: { type: "video", uri: "", data: result.data } };
+    if (bundle.outputType === "audio")
+      return { audio: { type: "audio", uri: "", data: result.data } };
     return { image: await kieImageRef(result.data) };
   }
 }

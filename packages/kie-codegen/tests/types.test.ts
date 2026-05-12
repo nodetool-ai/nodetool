@@ -16,7 +16,9 @@ describe("FieldDef type", () => {
       "image",
       "audio",
       "video",
-      "list[image]"
+      "list[image]",
+      "list[video]",
+      "list[audio]"
     ];
     for (const type of types) {
       const field: FieldDef = { name: "test", type };
@@ -77,6 +79,8 @@ describe("NodeConfig type", () => {
       title: "T",
       description: "D",
       outputType: "image",
+      useSuno: true,
+      sunoEndpoint: "/api/v1/generate",
       fields: [],
       uploads: [
         { field: "img", kind: "image" },

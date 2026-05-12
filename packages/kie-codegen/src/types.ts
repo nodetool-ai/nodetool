@@ -13,7 +13,9 @@ export interface FieldDef {
     | "image"
     | "audio"
     | "video"
-    | "list[image]";
+    | "list[image]"
+    | "list[video]"
+    | "list[audio]";
   default?: unknown;
   title?: string;
   description?: string;
@@ -35,6 +37,8 @@ export interface NodeConfig {
   maxAttempts?: number;
   /** Use Suno execution path instead of standard. */
   useSuno?: boolean;
+  /** Optional Suno submit endpoint for direct Suno APIs. */
+  sunoEndpoint?: string;
   /** Fields beyond the standard timeout_seconds. */
   fields: FieldDef[];
   /** Fields that need uploadImageInput/uploadAudioInput/uploadVideoInput. */

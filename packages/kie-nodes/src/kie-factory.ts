@@ -34,7 +34,9 @@ export interface KieFieldDef {
     | "image"
     | "audio"
     | "video"
-    | "list[image]";
+    | "list[image]"
+    | "list[video]"
+    | "list[audio]";
   default?: unknown;
   title?: string;
   description?: string;
@@ -93,7 +95,7 @@ function toTitle(className: string): string {
 }
 
 function isAssetType(type: string): boolean {
-  return ["image", "audio", "video", "list[image]"].includes(type);
+  return ["image", "audio", "video", "list[image]", "list[video]", "list[audio]"].includes(type);
 }
 
 function castValue(value: unknown, type: string): unknown {
@@ -131,6 +133,8 @@ function defaultForType(type: string): unknown {
         format: null
       };
     case "list[image]":
+    case "list[video]":
+    case "list[audio]":
       return [];
     default:
       return "";
