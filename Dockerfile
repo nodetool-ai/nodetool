@@ -131,7 +131,9 @@ USER node
 EXPOSE 7777
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
-    CMD curl -f http://localhost:7777/health || exit 1
+    CMD curl -fsk https://localhost:7777/health \
+     || curl -fs   http://localhost:7777/health \
+     || exit 1
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "packages/websocket/dist/server.js"]
