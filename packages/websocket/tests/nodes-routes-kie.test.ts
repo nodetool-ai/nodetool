@@ -87,7 +87,7 @@ describe("Kie schema resolve route", () => {
         },
         reference_image_urls: {
           type: "list",
-          type_args: [{ type: "str", type_args: [] }],
+          type_args: [{ type: "image", type_args: [] }],
           optional: true,
           description:
             "Please provide the URL of the uploaded file,A list of input image URLs."
@@ -136,6 +136,71 @@ describe("Kie schema resolve route", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.json().model_id).toBe("bytedance/seedance-2");
+  });
+
+  it("maps Kie media URL arrays to media list handles", async () => {
+    const docs = `# Seedance 2 API Documentation
+
+### Model Parameter
+| Property | Value | Description |
+|----------|-------|-------------|
+| **Format** | \`bytedance/seedance-2\` | The exact model identifier for this API |
+
+### input Object Parameters
+
+#### reference_image_urls
+- **Type**: \`array\`
+- **Required**: No
+- **Description**: Please provide the URL of the uploaded file,A list of input image URLs.
+- **Accepted File Types**: image/jpeg, image/png, image/webp, image/jpg
+- **Default Value**: \`["https://example.com/image.png"]\`
+
+#### reference_video_urls
+- **Type**: \`array\`
+- **Required**: No
+- **Description**: Please provide the URL of the uploaded file,A list of input video URLs.
+- **Accepted File Types**: video/mp4, video/quicktime, video/x-matroska
+- **Default Value**: \`["https://example.com/video.mp4"]\`
+
+#### reference_audio_urls
+- **Type**: \`array\`
+- **Required**: No
+- **Description**: Please provide the URL of the uploaded file,A list of input audio URLs.
+- **Accepted File Types**: audio/mpeg, audio/wav, audio/x-wav, audio/aac, audio/mp4, audio/ogg
+- **Default Value**: \`["https://example.com/audio.mp3"]\`
+`;
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/kie/resolve-dynamic-schema",
+      payload: { model_info: docs }
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      dynamic_properties: {
+        reference_image_urls: [],
+        reference_video_urls: [],
+        reference_audio_urls: []
+      },
+      dynamic_inputs: {
+        reference_image_urls: {
+          type: "list",
+          type_args: [{ type: "image", type_args: [] }]
+        },
+        reference_video_urls: {
+          type: "list",
+          type_args: [{ type: "video", type_args: [] }]
+        },
+        reference_audio_urls: {
+          type: "list",
+          type_args: [{ type: "audio", type_args: [] }]
+        }
+      }
+    });
+    expect(res.json().dynamic_inputs.reference_image_urls.default).toBeUndefined();
+    expect(res.json().dynamic_inputs.reference_video_urls.default).toBeUndefined();
+    expect(res.json().dynamic_inputs.reference_audio_urls.default).toBeUndefined();
   });
 
   it("accepts JSON requests when the server parses bodies as raw buffers", async () => {

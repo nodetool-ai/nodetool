@@ -8,6 +8,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "generate:configs": "tsx src/generate-configs.ts",
     "generate": "tsx src/generate.ts",
     "test": "vitest run",
     "lint": "tsc --noEmit"
@@ -18,5 +19,8 @@
     "tsx": "^4.0.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
+  },
+  "dependencies": {
+    "yaml": "^2.9.0"
   }
 }

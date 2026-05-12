@@ -10,6 +10,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ModuleConfig, NodeConfig } from "./types.js";
+import { generateKieConfigs } from "./generate-configs.js";
 
 interface ManifestEntry {
   className: string;
@@ -21,6 +22,7 @@ interface ManifestEntry {
   pollInterval: number;
   maxAttempts: number;
   useSuno?: boolean;
+  sunoEndpoint?: string;
   fields: NodeConfig["fields"];
   uploads?: NodeConfig["uploads"];
   validation?: NodeConfig["validation"];
@@ -49,6 +51,7 @@ function configToManifest(config: ModuleConfig): ManifestEntry[] {
       fields: node.fields
     };
     if (node.useSuno) entry.useSuno = true;
+    if (node.sunoEndpoint) entry.sunoEndpoint = node.sunoEndpoint;
     if (node.uploads?.length) entry.uploads = node.uploads;
     if (node.validation?.length) entry.validation = node.validation;
     if (node.paramNames && Object.keys(node.paramNames).length > 0)
@@ -63,11 +66,16 @@ async function main() {
   const args = process.argv.slice(2);
   const moduleArg = args.indexOf("--module");
   const isAll = args.includes("--all");
+  const refreshConfigs = args.includes("--refresh-configs");
   const moduleName = moduleArg >= 0 ? args[moduleArg + 1] : null;
 
   if (!isAll && !moduleName) {
     console.error("Usage: --module <name> | --all");
     process.exit(1);
+  }
+
+  if (refreshConfigs) {
+    await generateKieConfigs();
   }
 
   const outputPath = join(process.cwd(), "..", "kie-nodes", "src", "kie-manifest.json");

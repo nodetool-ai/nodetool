@@ -45,7 +45,7 @@ function fieldToVarName(name: string): string {
 }
 
 function isAssetType(type: string): boolean {
-  return ["image", "audio", "video", "list[image]"].includes(type);
+  return ["image", "audio", "video", "list[image]", "list[video]", "list[audio]"].includes(type);
 }
 
 // ---------------------------------------------------------------------------
@@ -139,9 +139,7 @@ export class KieNodeGenerator {
 
   private _renderProp(field: FieldDef): string {
     const parts: string[] = [];
-    parts.push(
-      `type: ${JSON.stringify(field.type === "list[image]" ? "list[image]" : field.type)}`
-    );
+    parts.push(`type: ${JSON.stringify(field.type)}`);
     if (field.default !== undefined) {
       if (isAssetType(field.type) && typeof field.default === "object") {
         parts.push(`default: ${JSON.stringify(field.default)}`);
@@ -149,7 +147,8 @@ export class KieNodeGenerator {
         parts.push(`default: ${defaultLiteral(field.default, field.type)}`);
       }
     } else {
-      parts.push(`default: ${field.type === "bool" ? "false" : '""'}`);
+      const listType = field.type.startsWith("list[");
+      parts.push(`default: ${field.type === "bool" ? "false" : listType ? "[]" : '""'}`);
     }
     if (field.values?.length) {
       parts.push(`values: ${JSON.stringify(field.values)}`);
@@ -170,7 +169,9 @@ export class KieNodeGenerator {
     maxAttempts: number
   ): string[] {
     const lines: string[] = [];
-    lines.push(`  async process(): Promise<Record<string, unknown>> {`);
+    lines.push(
+      `  async process(context?: Parameters<BaseNode["process"]>[0]): Promise<Record<string, unknown>> {`
+    );
     lines.push(`    const apiKey = getApiKey(this._secrets);`);
 
     // Validation
@@ -215,7 +216,7 @@ export class KieNodeGenerator {
           `    for (const img of [${groupUploads.map((u) => `this.${u.field}`).join(", ")}]) {`
         );
         lines.push(
-          `      if (isRefSet(img)) ${arrayVar}.push(await ${uploadFn}(apiKey, img));`
+          `      if (isRefSet(img)) ${arrayVar}.push(await ${uploadFn}(apiKey, img, context));`
         );
         lines.push(`    }`);
         uploadVars[paramName] = arrayVar;
@@ -240,7 +241,7 @@ export class KieNodeGenerator {
             `    for (const item of ${fieldToVarName(upload.field)}List) {`
           );
           lines.push(
-            `      if (isRefSet(item)) ${listVar}.push(await ${uploadFn}(apiKey, item));`
+            `      if (isRefSet(item)) ${listVar}.push(await ${uploadFn}(apiKey, item, context));`
           );
           lines.push(`    }`);
           uploadVars[upload.paramName ?? `${upload.field}_urls`] = listVar;
@@ -248,7 +249,7 @@ export class KieNodeGenerator {
           const varName = `${fieldToVarName(upload.field)}Url`;
           lines.push(`    let ${varName} = "";`);
           lines.push(
-            `    if (isRefSet(this.${upload.field})) ${varName} = await ${uploadFn}(apiKey, this.${upload.field});`
+            `    if (isRefSet(this.${upload.field})) ${varName} = await ${uploadFn}(apiKey, this.${upload.field}, context);`
           );
           uploadVars[upload.paramName ?? `${upload.field}_url`] = varName;
         }

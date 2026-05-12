@@ -1,384 +1,932 @@
 import type { ModuleConfig } from "../types.js";
 
 export const imageConfig: ModuleConfig = {
-  moduleName: "image",
-  defaultPollInterval: 1500,
-  defaultMaxAttempts: 200,
-  nodes: [
-    // -----------------------------------------------------------------------
-    // 1. Flux2ProTextToImage
-    // -----------------------------------------------------------------------
+  "moduleName": "image",
+  "defaultPollInterval": 1500,
+  "defaultMaxAttempts": 200,
+  "nodes": [
     {
-      className: "Flux2ProTextToImage",
-      modelId: "flux-2/pro-text-to-image",
-      title: "Flux 2 Pro Text To Image",
-      description:
-        "Generate images using Black Forest Labs' Flux 2 Pro Text-to-Image model via Kie.ai.\n\n    kie, flux, flux-2, flux-pro, black-forest-labs, image generation, ai, text-to-image\n\n    Use cases:\n    - Generate high-quality artistic images from text\n    - Create professional visual content\n    - Generate images with fine detail and artistic style",
-      outputType: "image",
-      fields: [
+      "className": "BytedanceSeedream",
+      "modelId": "bytedance/seedream",
+      "title": "Seedream3.0 - Text to Image",
+      "description": "Seedream3.0 - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Seedream3.0",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the image to generate."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt used to generate the image (Max length: 5000 characters)",
+          "required": true
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description:
-            "The aspect ratio of the generated image. 'auto' matches the first input image ratio.",
-          values: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "auto"]
+          "name": "image_size",
+          "type": "enum",
+          "default": "square_hd",
+          "title": "Image Size",
+          "description": "Select description",
+          "required": false,
+          "values": [
+            "square",
+            "square_hd",
+            "portrait_4_3",
+            "portrait_16_9",
+            "landscape_4_3",
+            "landscape_16_9"
+          ]
         },
         {
-          name: "resolution",
-          type: "enum",
-          default: "1K",
-          title: "Resolution",
-          description: "Output image resolution.",
-          values: ["1K", "2K"]
+          "name": "guidance_scale",
+          "type": "float",
+          "default": 2.5,
+          "title": "Guidance Scale",
+          "description": "Controls how closely the output image aligns with the input prompt. Higher values mean stronger prompt correlation. (Min: 1, Max: 10, Step: 0.1) (step: 0.1)",
+          "required": false,
+          "min": 1,
+          "max": 10
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed to control the stochasticity of image generation.",
+          "required": false
         }
       ],
-      validation: [
+      "validation": [
         {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 2. Flux2ProImageToImage
-    // -----------------------------------------------------------------------
     {
-      className: "Flux2ProImageToImage",
-      modelId: "flux-2/pro-image-to-image",
-      title: "Flux 2 Pro Image To Image",
-      description:
-        "Generate images using Black Forest Labs' Flux 2 Pro Image-to-Image model via Kie.ai.\n\n    kie, flux, flux-2, flux-pro, black-forest-labs, image generation, ai, image-to-image\n\n    Use cases:\n    - Transform existing images with text prompts\n    - Apply artistic styles to photos\n    - Create variations of existing images\n    - Enhance and modify images",
-      outputType: "image",
-      fields: [
+      "className": "BytedanceSeedreamV4TextToImage",
+      "modelId": "bytedance/seedream-v4-text-to-image",
+      "title": "Seedream4.0 - Text to Image",
+      "description": "Seedream4.0 - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Seedream4.0's advanced AI model",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing how to transform the image."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt used to generate the image (Max length: 5000 characters)",
+          "required": true
         },
         {
-          name: "images",
-          type: "list[image]",
-          default: [],
-          title: "Images",
-          description: "Source images to transform (1-8 images supported)."
+          "name": "image_size",
+          "type": "enum",
+          "default": "square_hd",
+          "title": "Image Size",
+          "description": "The size of the generated image.",
+          "required": false,
+          "values": [
+            "square",
+            "square_hd",
+            "portrait_4_3",
+            "portrait_3_2",
+            "portrait_16_9",
+            "landscape_4_3",
+            "landscape_3_2",
+            "landscape_16_9",
+            "landscape_21_9"
+          ]
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description:
-            "The aspect ratio of the generated image. 'auto' matches the first input image ratio.",
-          values: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "auto"]
+          "name": "image_resolution",
+          "type": "enum",
+          "default": "1K",
+          "title": "Image Resolution",
+          "description": "Final image resolution is determined by combining image_size (aspect ratio) and image_resolution (pixel scale). For example, choosing 4:3 + 4K gives 4096 × 3072px",
+          "required": false,
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
         },
         {
-          name: "resolution",
-          type: "enum",
-          default: "1K",
-          title: "Resolution",
-          description: "Output image resolution.",
-          values: ["1K", "2K"]
+          "name": "max_images",
+          "type": "float",
+          "default": 1,
+          "title": "Max Images",
+          "description": "Set this value (1–6) to cap how many images a single generation run can produce in one set—because they’re created in one shot rather than separate requests, you must also state the exact number you want in the prompt so both settings align. (Min: 1, Max: 6, Step: 1) (step: 1)",
+          "required": false,
+          "min": 1,
+          "max": 6
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed to control the stochasticity of image generation",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
         }
       ],
-      uploads: [
+      "validation": [
         {
-          field: "images",
-          kind: "image",
-          isList: true,
-          paramName: "input_urls"
-        }
-      ],
-      validation: [
-        {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 3. Flux2FlexTextToImage
-    // -----------------------------------------------------------------------
     {
-      className: "Flux2FlexTextToImage",
-      modelId: "flux-2/flex-text-to-image",
-      title: "Flux 2 Flex Text To Image",
-      description:
-        "Generate images using Black Forest Labs' Flux 2 Flex Text-to-Image model via Kie.ai.\n\n    kie, flux, flux-2, flux-flex, black-forest-labs, image generation, ai, text-to-image\n\n    Use cases:\n    - Generate high-quality images from text with flexible parameters\n    - Create professional visual content\n    - Generate images with fine detail and artistic style",
-      outputType: "image",
-      fields: [
+      "className": "BytedanceSeedreamV4Edit",
+      "modelId": "bytedance/seedream-v4-edit",
+      "title": "Seedream4.0 - Edit",
+      "description": "Seedream4.0 - Edit via Kie.ai.\n\n    kie, image, ai\n\n    Image editing by Seedream4.0",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the image to generate."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt used to edit the image (Max length: 5000 characters)",
+          "required": true
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description:
-            "The aspect ratio of the generated image. 'auto' matches the first input image ratio.",
-          values: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "auto"]
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "List of URLs of input images for editing. Presently, up to 10 image inputs are allowed. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
         },
         {
-          name: "resolution",
-          type: "enum",
-          default: "1K",
-          title: "Resolution",
-          description: "Output image resolution.",
-          values: ["1K", "2K"]
+          "name": "image_size",
+          "type": "enum",
+          "default": "square_hd",
+          "title": "Image Size",
+          "description": "The size of the generated image.",
+          "required": false,
+          "values": [
+            "square",
+            "square_hd",
+            "portrait_4_3",
+            "portrait_3_2",
+            "portrait_16_9",
+            "landscape_4_3",
+            "landscape_3_2",
+            "landscape_16_9",
+            "landscape_21_9"
+          ]
+        },
+        {
+          "name": "image_resolution",
+          "type": "enum",
+          "default": "1K",
+          "title": "Image Resolution",
+          "description": "Final image resolution is determined by combining image_size (aspect ratio) and image_resolution (pixel scale). For example, choosing 4:3 + 4K gives 4096 × 3072px",
+          "required": false,
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        },
+        {
+          "name": "max_images",
+          "type": "float",
+          "default": 1,
+          "title": "Max Images",
+          "description": "Set this value (1–6) to cap how many images a single generation run can produce in one set—because they’re created in one shot rather than separate requests, you must also state the exact number you want in the prompt so both settings align. (Min: 1, Max: 6, Step: 1) (step: 1)",
+          "required": false,
+          "min": 1,
+          "max": 6
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed to control the stochasticity of image generation.",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
         }
       ],
-      validation: [
+      "uploads": [
         {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 4. Flux2FlexImageToImage
-    // -----------------------------------------------------------------------
     {
-      className: "Flux2FlexImageToImage",
-      modelId: "flux-2/flex-image-to-image",
-      title: "Flux 2 Flex Image To Image",
-      description:
-        "Generate images using Black Forest Labs' Flux 2 Flex Image-to-Image model via Kie.ai.\n\n    kie, flux, flux-2, flux-flex, black-forest-labs, image generation, ai, image-to-image\n\n    Use cases:\n    - Transform existing images with text prompts\n    - Apply artistic styles to photos\n    - Create variations of existing images\n    - Enhance and modify images",
-      outputType: "image",
-      fields: [
+      "className": "Seedream45TextToImage",
+      "modelId": "seedream/4.5-text-to-image",
+      "title": "Seedream4.5 - Text to Image",
+      "description": "Seedream4.5 - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Seedream's advanced AI model",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing how to transform the image."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description of the image you want to generate (Max length: 3000 characters)",
+          "required": true
         },
         {
-          name: "images",
-          type: "list[image]",
-          default: [],
-          title: "Images",
-          description: "Source images to transform (1-8 images supported)."
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "Width-height ratio of the image, determining its visual form.",
+          "required": true,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "2:3",
+            "3:2",
+            "21:9"
+          ]
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description:
-            "The aspect ratio of the generated image. 'auto' matches the first input image ratio.",
-          values: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "auto"]
+          "name": "quality",
+          "type": "enum",
+          "default": "basic",
+          "title": "Quality",
+          "description": "Basic outputs 2K images, while High outputs 4K images.",
+          "required": true,
+          "values": [
+            "basic",
+            "high"
+          ]
         },
         {
-          name: "resolution",
-          type: "enum",
-          default: "1K",
-          title: "Resolution",
-          description: "Output image resolution.",
-          values: ["1K", "2K"]
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
         }
       ],
-      uploads: [
+      "validation": [
         {
-          field: "images",
-          kind: "image",
-          isList: true,
-          paramName: "input_urls"
-        }
-      ],
-      validation: [
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
         {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        },
+        {
+          "field": "quality",
+          "rule": "not_empty",
+          "message": "Quality is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 5. Seedream45TextToImage
-    // -----------------------------------------------------------------------
     {
-      className: "Seedream45TextToImage",
-      modelId: "seedream/4.5-text-to-image",
-      title: "Seedream 4.5 Text To Image",
-      description:
-        "Generate images using ByteDance's Seedream 4.5 Text-to-Image model via Kie.ai.\n\n    kie, seedream, bytedance, image generation, ai, text-to-image, 4k\n\n    Seedream 4.5 generates high-quality visuals up to 4K resolution with\n    improved detail fidelity, multi-image blending, and sharp text/face rendering.\n\n    Use cases:\n    - Generate creative and artistic images from text\n    - Create diverse visual content up to 4K\n    - Generate illustrations with unique styles",
-      outputType: "image",
-      fields: [
+      "className": "Seedream45Edit",
+      "modelId": "seedream/4.5-edit",
+      "title": "Seedream4.5 - Edit",
+      "description": "Seedream4.5 - Edit via Kie.ai.\n\n    kie, image, ai\n\n    Image editing by Seedream4.5",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the image to generate."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description of the image you want to generate (Max length: 3000 characters)",
+          "required": true
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
         },
         {
-          name: "quality",
-          type: "enum",
-          default: "basic",
-          title: "Quality",
-          description: "Basic outputs 2K images, while High outputs 4K images.",
-          values: ["basic", "high"]
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "Width-height ratio of the image, determining its visual form.",
+          "required": true,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "2:3",
+            "3:2",
+            "21:9"
+          ]
+        },
+        {
+          "name": "quality",
+          "type": "enum",
+          "default": "basic",
+          "title": "Quality",
+          "description": "Basic outputs 2K images, while High outputs 4K images.",
+          "required": true,
+          "values": [
+            "basic",
+            "high"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
         }
       ],
-      validation: [
+      "uploads": [
         {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        },
+        {
+          "field": "quality",
+          "rule": "not_empty",
+          "message": "Quality is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 6. Seedream45Edit
-    // -----------------------------------------------------------------------
     {
-      className: "Seedream45Edit",
-      modelId: "seedream/4.5-edit",
-      title: "Seedream 4.5 Edit",
-      description:
-        "Edit images using ByteDance's Seedream 4.5 Edit model via Kie.ai.\n\n    kie, seedream, bytedance, image editing, ai, image-to-image, 4k\n\n    Seedream 4.5 Edit allows you to modify existing images while maintaining\n    high quality and detail fidelity up to 4K resolution.\n\n    Use cases:\n    - Edit and enhance existing images\n    - Apply style changes to photos\n    - Modify specific regions of images\n    - Improve image quality and resolution",
-      outputType: "image",
-      fields: [
+      "className": "Seedream5LiteTextToImage",
+      "modelId": "seedream/5-lite-text-to-image",
+      "title": "Seedream5.0 Lite - Text to Image",
+      "description": "Seedream5.0 Lite - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Seedream's advanced AI model",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing how to edit the image."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description of the image you want to generate (Max length: 3-3000 characters)",
+          "required": true
         },
         {
-          name: "image_input",
-          type: "list[image]",
-          default: [],
-          title: "Image Input",
-          description: "The source images to edit."
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "Width-height ratio of the image, determining its visual form.",
+          "required": true,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "2:3",
+            "3:2",
+            "21:9"
+          ]
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the output image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
+          "name": "quality",
+          "type": "enum",
+          "default": "basic",
+          "title": "Quality",
+          "description": "Basic outputs 2K images, while High outputs 4K images.",
+          "required": true,
+          "values": [
+            "basic",
+            "high"
+          ]
         },
         {
-          name: "quality",
-          type: "enum",
-          default: "basic",
-          title: "Quality",
-          description: "Basic outputs 2K images, while High outputs 4K images.",
-          values: ["basic", "high"]
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
         }
       ],
-      uploads: [
+      "validation": [
         {
-          field: "image_input",
-          kind: "image",
-          isList: false,
-          paramName: "image_url"
-        }
-      ],
-      validation: [
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
         {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        },
+        {
+          "field": "quality",
+          "rule": "not_empty",
+          "message": "Quality is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 7. ZImage
-    // -----------------------------------------------------------------------
     {
-      className: "ZImage",
-      modelId: "z-image",
-      title: "Z-Image Turbo",
-      description:
-        "Generate images using Alibaba's Z-Image Turbo model via Kie.ai.\n\n    kie, z-image, zimage, alibaba, image generation, ai, text-to-image, photorealistic\n\n    Z-Image Turbo produces realistic, detail-rich images with very low latency.\n    It supports bilingual text (English/Chinese) in images with sharp text rendering.\n\n    Use cases:\n    - Generate high-quality photorealistic images quickly\n    - Create images with embedded text (English/Chinese)\n    - Generate detailed illustrations with low latency\n    - Product visualizations",
-      outputType: "image",
-      fields: [
+      "className": "Seedream5LiteImageToImage",
+      "modelId": "seedream/5-lite-image-to-image",
+      "title": "Seedream5.0 Lite - Image to Image",
+      "description": "Seedream5.0 Lite - Image to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Seedream's advanced AI model",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the image to generate."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description of the image you want to generate (Max length: 3-3000 characters)",
+          "required": true
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "Width-height ratio of the image, determining its visual form.",
+          "required": true,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "2:3",
+            "3:2",
+            "21:9"
+          ]
+        },
+        {
+          "name": "quality",
+          "type": "enum",
+          "default": "basic",
+          "title": "Quality",
+          "description": "Basic outputs 2K images, while High outputs 4K images.",
+          "required": true,
+          "values": [
+            "basic",
+            "high"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
         }
       ],
-      validation: [
+      "uploads": [
         {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        },
+        {
+          "field": "quality",
+          "rule": "not_empty",
+          "message": "Quality is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 8. NanoBanana
-    // -----------------------------------------------------------------------
     {
-      className: "NanoBanana",
-      modelId: "google/nano-banana",
-      title: "Nano Banana",
-      description:
-        "Generate images using Google's Nano Banana model (Gemini 2.5) via Kie.ai.\n\n    kie, nano-banana, google, gemini, image generation, ai, text-to-image, fast",
-      outputType: "image",
-      fields: [
+      "className": "ZImage",
+      "modelId": "z-image",
+      "title": "Z-Image",
+      "description": "Z-Image via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by z-image",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the image to generate."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description of the image you want to generate (Max length: 1000 characters)",
+          "required": true
         },
         {
-          name: "image_size",
-          type: "enum",
-          default: "1:1",
-          title: "Image Size",
-          description: "The size of the output image.",
-          values: [
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "Aspect ratio for the generated image. Select 'auto' to match the first input image ratio (requires input image).",
+          "required": true,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        }
+      ]
+    },
+    {
+      "className": "GoogleNanoBanana2",
+      "modelId": "nano-banana-2",
+      "title": "Google - Nano Banana 2",
+      "description": "Google - Nano Banana 2 via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Nano Banana 2",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description of the image you want to generate (Max length: 20000 characters)",
+          "required": true
+        },
+        {
+          "name": "image_input",
+          "type": "list[image]",
+          "default": [],
+          "title": "Image Input",
+          "description": "Input images to transform or use as reference (supports up to 14 images) (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
+          "required": false
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "auto",
+          "title": "Aspect Ratio",
+          "description": "Aspect ratio of the generated image",
+          "required": false,
+          "values": [
+            "1:1",
+            "1:4",
+            "1:8",
+            "2:3",
+            "3:2",
+            "3:4",
+            "4:1",
+            "4:3",
+            "4:5",
+            "5:4",
+            "8:1",
+            "9:16",
+            "16:9",
+            "21:9",
+            "auto"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1K",
+          "title": "Resolution",
+          "description": "Resolution of the generated image",
+          "required": false,
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "jpg",
+          "title": "Output Format",
+          "description": "Format of the output image",
+          "required": false,
+          "values": [
+            "png",
+            "jpg"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image_input",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_input"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "GoogleImagen4Fast",
+      "modelId": "google/imagen4-fast",
+      "title": "Google - imagen4-fast",
+      "description": "Google - imagen4-fast via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Google imagen4-fast",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt describing what you want to see (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "A description of what to discourage in the generated images (Max length: 5000 characters)",
+          "required": false
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated image",
+          "required": false,
+          "values": [
+            "1:1",
+            "16:9",
+            "9:16",
+            "3:4",
+            "4:3"
+          ]
+        },
+        {
+          "name": "num_images",
+          "type": "enum",
+          "default": "1",
+          "title": "Num Images",
+          "description": "Select description",
+          "required": false,
+          "values": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed for reproducible generation",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "GoogleImagen4Ultra",
+      "modelId": "google/imagen4-ultra",
+      "title": "Google - imagen4-ultra",
+      "description": "Google - imagen4-ultra via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Google imagen4-ultra",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt describing what you want to see (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "A description of what to discourage in the generated images (Max length: 5000 characters)",
+          "required": false
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated image",
+          "required": false,
+          "values": [
+            "1:1",
+            "16:9",
+            "9:16",
+            "3:4",
+            "4:3"
+          ]
+        },
+        {
+          "name": "seed",
+          "type": "str",
+          "default": "",
+          "title": "Seed",
+          "description": "Random seed for reproducible generation (Max length: 500 characters)",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "GoogleImagen4",
+      "modelId": "google/imagen4",
+      "title": "Google - imagen4",
+      "description": "Google - imagen4 via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Google imagen4",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The text prompt describing what you want to see (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "A description of what to discourage in the generated images (Max length: 5000 characters)",
+          "required": false
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated image",
+          "required": false,
+          "values": [
+            "1:1",
+            "16:9",
+            "9:16",
+            "3:4",
+            "4:3"
+          ]
+        },
+        {
+          "name": "seed",
+          "type": "str",
+          "default": "",
+          "title": "Seed",
+          "description": "Random seed for reproducible generation (Max length: 500 characters)",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "GoogleNanoBananaEdit",
+      "modelId": "google/nano-banana-edit",
+      "title": "Google - Nano Banana Edit",
+      "description": "Google - Nano Banana Edit via Kie.ai.\n\n    kie, image, ai\n\n    Image editing using Google's Nano Banana Edit model",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The prompt for image editing (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "List of URLs of input images for editing,up to 10 images. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "Output format for the images",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg"
+          ]
+        },
+        {
+          "name": "image_size",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Image Size",
+          "description": "Radio description",
+          "required": false,
+          "values": [
             "1:1",
             "9:16",
             "16:9",
@@ -393,974 +941,57 @@ export const imageConfig: ModuleConfig = {
           ]
         }
       ],
-      validation: [
+      "uploads": [
         {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
         }
       ],
-      paramNames: {
-        image_size: "aspect_ratio"
-      }
-    },
-
-    // -----------------------------------------------------------------------
-    // 9. NanoBananaPro
-    // -----------------------------------------------------------------------
-    {
-      className: "NanoBananaPro",
-      modelId: "nano-banana-pro",
-      title: "Nano Banana Pro",
-      description:
-        "Generate images using Google's Nano Banana Pro model (Gemini 3.0) via Kie.ai.\n\n    kie, nano-banana-pro, google, gemini, image generation, ai, text-to-image, 4k, high-fidelity",
-      outputType: "image",
-      fields: [
+      "validation": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the image to generate."
-        },
-        {
-          name: "image_input",
-          type: "list[image]",
-          default: [],
-          title: "Image Input",
-          description: "Optional image inputs for multimodal generation."
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
-        },
-        {
-          name: "resolution",
-          type: "enum",
-          default: "2K",
-          title: "Resolution",
-          description: "Output image resolution.",
-          values: ["1K", "2K", "4K"]
-        }
-      ],
-      validation: [
-        {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 10. FluxKontext
-    // -----------------------------------------------------------------------
     {
-      className: "FluxKontext",
-      modelId: "flux-kontext/text-to-image",
-      title: "Flux Kontext",
-      description:
-        "Generate images using Black Forest Labs' Flux Kontext model via Kie.ai.\n\n    kie, flux, flux-kontext, black-forest-labs, image generation, ai, text-to-image, editing\n\n    Flux Kontext supports Pro (speed-optimized) and Max (quality-focused) variants\n    with features like multiple aspect ratios, safety controls, and async processing.\n\n    Use cases:\n    - Generate high-quality artistic images\n    - Advanced image editing and generation\n    - Create professional visual content\n    - Generate images with fine detail and artistic style",
-      outputType: "image",
-      fields: [
+      "className": "GoogleNanoBanana",
+      "modelId": "google/nano-banana",
+      "title": "Google - Nano Banana",
+      "description": "Google - Nano Banana via Kie.ai.\n\n    kie, image, ai\n\n    Content generation using google/nano-banana",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the image to generate."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The prompt for image generation (Max length: 5000 characters)",
+          "required": true
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
-        },
-        {
-          name: "mode",
-          type: "enum",
-          default: "pro",
-          title: "Mode",
-          description: "Generation mode: 'pro' for speed, 'max' for quality.",
-          values: ["pro", "max"]
-        }
-      ],
-      validation: [
-        {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
-        }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 11. GrokImagineTextToImage
-    // -----------------------------------------------------------------------
-    {
-      className: "GrokImagineTextToImage",
-      modelId: "grok-imagine/text-to-image",
-      title: "Grok Imagine Text To Image",
-      description:
-        "Generate images using xAI's Grok Imagine Text-to-Image model via Kie.ai.\n\n    kie, grok, xai, image generation, ai, text-to-image, multimodal\n\n    Grok Imagine is a multimodal generative model that can generate images\n    from text prompts.\n\n    Use cases:\n    - Generate images from text descriptions\n    - Create visual content with AI",
-      outputType: "image",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the image to generate."
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
-        }
-      ],
-      validation: [
-        {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
-        }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 12. GrokImagineUpscale
-    // -----------------------------------------------------------------------
-    {
-      className: "GrokImagineUpscale",
-      modelId: "grok-imagine/upscale",
-      title: "Grok Imagine Upscale",
-      description:
-        "Upscale images using xAI's Grok Imagine Upscale model via Kie.ai.\n\n    kie, grok, xai, upscale, enhance, image, ai, super-resolution\n\n    Grok Imagine Upscale enhances and upscales images to higher resolutions\n    while maintaining quality and detail.\n\n    Constraints:\n    - Only images generated by Kie AI models (via Grok Imagine) are supported for upscaling.",
-      outputType: "image",
-      fields: [
-        {
-          name: "image",
-          type: "image",
-          default: {
-            type: "image",
-            uri: "",
-            asset_id: null,
-            data: null,
-            metadata: null
-          },
-          title: "Image",
-          description:
-            "The image to upscale. Must be an image previously generated by a Kie.ai node."
-        }
-      ],
-      uploads: [
-        {
-          field: "image",
-          kind: "image",
-          paramName: "image_url"
-        }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 13. QwenTextToImage
-    // -----------------------------------------------------------------------
-    {
-      className: "QwenTextToImage",
-      modelId: "qwen/text-to-image",
-      title: "Qwen Text To Image",
-      description:
-        "Generate images using Qwen's Text-to-Image model via Kie.ai.\n\n    kie, qwen, alibaba, image generation, ai, text-to-image\n\n    Qwen's text-to-image model generates high-quality images from text descriptions.\n\n    Use cases:\n    - Generate images from text descriptions\n    - Create artistic and realistic images\n    - Generate illustrations and artwork",
-      outputType: "image",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the image to generate."
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
-        }
-      ],
-      validation: [
-        {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
-        }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 14. QwenImageToImage
-    // -----------------------------------------------------------------------
-    {
-      className: "QwenImageToImage",
-      modelId: "qwen/image-to-image",
-      title: "Qwen Image To Image",
-      description:
-        "Transform images using Qwen's Image-to-Image model via Kie.ai.\n\n    kie, qwen, alibaba, image transformation, ai, image-to-image\n\n    Qwen's image-to-image model transforms images based on text prompts\n    while preserving the overall structure and style.\n\n    Use cases:\n    - Transform images with text guidance\n    - Apply artistic styles to photos\n    - Create variations of existing images",
-      outputType: "image",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing how to transform the image."
-        },
-        {
-          name: "image",
-          type: "image",
-          default: {
-            type: "image",
-            uri: "",
-            asset_id: null,
-            data: null,
-            metadata: null
-          },
-          title: "Image",
-          description: "The source image to transform."
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the output image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
-        }
-      ],
-      uploads: [
-        {
-          field: "image",
-          kind: "image",
-          paramName: "image_url"
-        }
-      ],
-      validation: [
-        {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
-        }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 15. TopazImageUpscale
-    // -----------------------------------------------------------------------
-    {
-      className: "TopazImageUpscale",
-      modelId: "topaz/image-upscale",
-      title: "Topaz Image Upscale",
-      description:
-        "Upscale and enhance images using Topaz Labs AI via Kie.ai.\n\n    kie, topaz, upscale, enhance, image, ai, super-resolution\n\n    Topaz Image Upscale uses advanced AI models to enlarge images\n    while preserving and enhancing detail.\n\n    Use cases:\n    - Upscale low-resolution images\n    - Enhance image quality and detail\n    - Enlarge images for print or display",
-      outputType: "image",
-      fields: [
-        {
-          name: "image",
-          type: "image",
-          default: {
-            type: "image",
-            uri: "",
-            asset_id: null,
-            data: null,
-            metadata: null
-          },
-          title: "Image",
-          description: "The image to upscale."
-        },
-        {
-          name: "upscale_factor",
-          type: "enum",
-          default: "2",
-          title: "Upscale Factor",
-          description: "The upscaling factor (2x or 4x).",
-          values: ["2", "4"]
-        }
-      ],
-      uploads: [
-        {
-          field: "image",
-          kind: "image",
-          paramName: "image_url"
-        }
-      ],
-      paramNames: {
-        upscale_factor: "scale_factor"
-      }
-    },
-
-    // -----------------------------------------------------------------------
-    // 16. RecraftRemoveBackground
-    // -----------------------------------------------------------------------
-    {
-      className: "RecraftRemoveBackground",
-      modelId: "recraft/remove-background",
-      title: "Recraft Remove Background",
-      description:
-        "Remove background from images using Recraft's model via Kie.ai.\n\n    kie, recraft, remove-background, image processing, ai\n\n    Use cases:\n    - Automatically remove backgrounds from photos\n    - Create transparent PNGs for design work\n    - Isolate subjects in images",
-      outputType: "image",
-      fields: [
-        {
-          name: "image",
-          type: "image",
-          default: {
-            type: "image",
-            uri: "",
-            asset_id: null,
-            data: null,
-            metadata: null
-          },
-          title: "Image",
-          description: "The image to remove the background from."
-        }
-      ],
-      uploads: [
-        {
-          field: "image",
-          kind: "image",
-          paramName: "image_url"
-        }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 17. IdeogramCharacter
-    // -----------------------------------------------------------------------
-    {
-      className: "IdeogramCharacter",
-      modelId: "ideogram/character",
-      title: "Ideogram Character",
-      description:
-        "Generate character images using Ideogram via Kie.ai.\n\n    kie, ideogram, character, image generation, ai, character consistency\n\n    Ideogram Character generates images of characters in different settings while\n    maintaining character consistency using reference images and text prompts.\n\n    Use cases:\n    - Generate character images in various settings\n    - Maintain character consistency across images\n    - Create character portraits with specific backgrounds",
-      outputType: "image",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "Text description for the character image."
-        },
-        {
-          name: "reference_images",
-          type: "list[image]",
-          default: [],
-          title: "Reference Images",
-          description: "Reference images for character guidance."
-        },
-        {
-          name: "rendering_speed",
-          type: "enum",
-          default: "BALANCED",
-          title: "Rendering Speed",
-          description: "Rendering speed preference.",
-          values: ["TURBO", "BALANCED", "QUALITY"]
-        },
-        {
-          name: "style",
-          type: "enum",
-          default: "AUTO",
-          title: "Style",
-          description: "Generation style.",
-          values: ["AUTO", "REALISTIC", "FICTION"]
-        },
-        {
-          name: "expand_prompt",
-          type: "bool",
-          default: true,
-          title: "Expand Prompt",
-          description: "Whether to expand/augment the prompt."
-        },
-        {
-          name: "image_size",
-          type: "enum",
-          default: "square_hd",
-          title: "Image Size",
-          description: "The size of the output image.",
-          values: [
-            "square",
-            "square_hd",
-            "portrait_4_3",
-            "portrait_16_9",
-            "landscape_4_3",
-            "landscape_16_9"
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "Output format for the images",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg"
           ]
         },
         {
-          name: "negative_prompt",
-          type: "str",
-          default: "",
-          title: "Negative Prompt",
-          description: "Undesired elements to exclude from the image."
-        },
-        {
-          name: "seed",
-          type: "int",
-          default: 0,
-          title: "Seed",
-          description: "Random seed for generation.",
-          min: 0
-        }
-      ],
-      uploads: [
-        {
-          field: "reference_images",
-          kind: "image",
-          isList: true,
-          paramName: "input_urls"
-        }
-      ],
-      validation: [
-        {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
-        }
-      ],
-      paramNames: {
-        image_size: "aspect_ratio"
-      }
-    },
-
-    // -----------------------------------------------------------------------
-    // 18. IdeogramCharacterEdit
-    // -----------------------------------------------------------------------
-    {
-      className: "IdeogramCharacterEdit",
-      modelId: "ideogram/character-edit",
-      title: "Ideogram Character Edit",
-      description:
-        "Edit masked character images using Ideogram via Kie.ai.\n\n    kie, ideogram, character-edit, image editing, ai, inpainting\n\n    Ideogram Character Edit allows you to fill masked parts of character images\n    while maintaining character consistency using reference images and text prompts.\n\n    Use cases:\n    - Edit specific parts of character images\n    - Fill masked areas with new content\n    - Maintain character consistency during edits",
-      outputType: "image",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "Text description for the masked area."
-        },
-        {
-          name: "image",
-          type: "image",
-          default: {
-            type: "image",
-            uri: "",
-            asset_id: null,
-            data: null,
-            metadata: null
-          },
-          title: "Image",
-          description: "Base image with masked area to fill."
-        },
-        {
-          name: "mask",
-          type: "image",
-          default: {
-            type: "image",
-            uri: "",
-            asset_id: null,
-            data: null,
-            metadata: null
-          },
-          title: "Mask",
-          description: "Mask image indicating areas to edit."
-        },
-        {
-          name: "reference_images",
-          type: "list[image]",
-          default: [],
-          title: "Reference Images",
-          description: "Reference images for character guidance."
-        },
-        {
-          name: "rendering_speed",
-          type: "enum",
-          default: "BALANCED",
-          title: "Rendering Speed",
-          description: "Rendering speed preference.",
-          values: ["TURBO", "BALANCED", "QUALITY"]
-        },
-        {
-          name: "style",
-          type: "enum",
-          default: "AUTO",
-          title: "Style",
-          description: "Generation style.",
-          values: ["AUTO", "REALISTIC", "FICTION"]
-        },
-        {
-          name: "expand_prompt",
-          type: "bool",
-          default: true,
-          title: "Expand Prompt",
-          description: "Whether to expand/augment the prompt."
-        },
-        {
-          name: "seed",
-          type: "int",
-          default: 0,
-          title: "Seed",
-          description: "Random seed for generation.",
-          min: 0
-        }
-      ],
-      uploads: [
-        {
-          field: "image",
-          kind: "image",
-          paramName: "image_url"
-        },
-        {
-          field: "mask",
-          kind: "image",
-          paramName: "mask_url"
-        },
-        {
-          field: "reference_images",
-          kind: "image",
-          isList: true,
-          paramName: "reference_image_urls"
-        }
-      ],
-      validation: [
-        {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
-        }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 19. IdeogramCharacterRemix
-    // -----------------------------------------------------------------------
-    {
-      className: "IdeogramCharacterRemix",
-      modelId: "ideogram/character-remix",
-      title: "Ideogram Character Remix",
-      description:
-        "Remix characters in images using Ideogram via Kie.ai.\n\n    kie, ideogram, character-remix, image generation, ai, remix\n\n    Ideogram Character Remix allows you to remix images while maintaining character consistency\n    using reference images and text prompts.",
-      outputType: "image",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "Text description for remixing."
-        },
-        {
-          name: "image",
-          type: "image",
-          default: {
-            type: "image",
-            uri: "",
-            asset_id: null,
-            data: null,
-            metadata: null
-          },
-          title: "Image",
-          description: "Base image to remix."
-        },
-        {
-          name: "reference_images",
-          type: "list[image]",
-          default: [],
-          title: "Reference Images",
-          description: "Reference images for character guidance."
-        },
-        {
-          name: "rendering_speed",
-          type: "enum",
-          default: "BALANCED",
-          title: "Rendering Speed",
-          description: "Rendering speed preference.",
-          values: ["TURBO", "BALANCED", "QUALITY"]
-        },
-        {
-          name: "style",
-          type: "enum",
-          default: "AUTO",
-          title: "Style",
-          description: "Generation style.",
-          values: ["AUTO", "GENERAL", "REALISTIC", "DESIGN"]
-        },
-        {
-          name: "expand_prompt",
-          type: "bool",
-          default: true,
-          title: "Expand Prompt",
-          description: "Whether to expand/augment the prompt."
-        },
-        {
-          name: "image_size",
-          type: "enum",
-          default: "square_hd",
-          title: "Image Size",
-          description: "The size of the output image.",
-          values: [
-            "square",
-            "square_hd",
-            "portrait_4_3",
-            "portrait_16_9",
-            "landscape_4_3",
-            "landscape_16_9"
-          ]
-        },
-        {
-          name: "strength",
-          type: "float",
-          default: 0.8,
-          title: "Strength",
-          description: "How strongly to apply the remix (0.0 to 1.0).",
-          min: 0,
-          max: 1
-        },
-        {
-          name: "negative_prompt",
-          type: "str",
-          default: "",
-          title: "Negative Prompt",
-          description: "Undesired elements to exclude from the image."
-        },
-        {
-          name: "additional_images",
-          type: "list[image]",
-          default: [],
-          title: "Additional Images",
-          description: "Additional image this."
-        },
-        {
-          name: "reference_mask_urls",
-          type: "str",
-          default: "",
-          title: "Reference Mask Urls",
-          description: "URL(s) to masks for references (comma-separated)."
-        }
-      ],
-      uploads: [
-        {
-          field: "image",
-          kind: "image",
-          paramName: "image_url"
-        },
-        {
-          field: "reference_images",
-          kind: "image",
-          isList: true,
-          paramName: "reference_image_urls"
-        }
-      ],
-      validation: [
-        {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
-        }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 20. IdeogramV3Reframe
-    // -----------------------------------------------------------------------
-    {
-      className: "IdeogramV3Reframe",
-      modelId: "ideogram/v3-reframe",
-      title: "Ideogram V3 Reframe",
-      description:
-        "Reframe images using Ideogram v3 via Kie.ai.\n\n    kie, ideogram, v3-reframe, image processing, ai, reframe\n\n    Use cases:\n    - Reframe and rescale existing images\n    - Change aspect ratio of images while maintaining quality",
-      outputType: "image",
-      fields: [
-        {
-          name: "image",
-          type: "image",
-          default: {
-            type: "image",
-            uri: "",
-            asset_id: null,
-            data: null,
-            metadata: null
-          },
-          title: "Image",
-          description: "URL of the image to reframe."
-        },
-        {
-          name: "image_size",
-          type: "enum",
-          default: "square_hd",
-          title: "Image Size",
-          description: "Output resolution preset.",
-          values: [
-            "square",
-            "square_hd",
-            "portrait_4_3",
-            "portrait_16_9",
-            "landscape_4_3",
-            "landscape_16_9"
-          ]
-        },
-        {
-          name: "rendering_speed",
-          type: "enum",
-          default: "BALANCED",
-          title: "Rendering Speed",
-          description: "Rendering speed preference.",
-          values: ["TURBO", "BALANCED", "QUALITY"]
-        },
-        {
-          name: "style",
-          type: "enum",
-          default: "AUTO",
-          title: "Style",
-          description: "Generation style.",
-          values: ["AUTO", "GENERAL", "REALISTIC", "DESIGN"]
-        },
-        {
-          name: "seed",
-          type: "int",
-          default: 0,
-          title: "Seed",
-          description: "RNG seed."
-        }
-      ],
-      uploads: [
-        {
-          field: "image",
-          kind: "image",
-          paramName: "image_url"
-        }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 21. RecraftCrispUpscale
-    // -----------------------------------------------------------------------
-    {
-      className: "RecraftCrispUpscale",
-      modelId: "recraft/crisp-upscale",
-      title: "Recraft Crisp Upscale",
-      description:
-        "Upscale images using Recraft's Crisp Upscale model via Kie.ai.\n\n    kie, recraft, crisp-upscale, upscale, ai",
-      outputType: "image",
-      fields: [
-        {
-          name: "image",
-          type: "image",
-          default: {
-            type: "image",
-            uri: "",
-            asset_id: null,
-            data: null,
-            metadata: null
-          },
-          title: "Image",
-          description: "The image to upscale."
-        }
-      ],
-      uploads: [
-        {
-          field: "image",
-          kind: "image",
-          paramName: "image_url"
-        }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 22. Imagen4Fast
-    // -----------------------------------------------------------------------
-    {
-      className: "Imagen4Fast",
-      modelId: "google/imagen4-fast",
-      title: "Imagen 4 Fast",
-      description:
-        "Generate images using Google's Imagen 4 Fast model via Kie.ai.\n\n    kie, google, imagen, imagen4, fast, image generation, ai",
-      outputType: "image",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the image to generate."
-        },
-        {
-          name: "negative_prompt",
-          type: "str",
-          default: "",
-          title: "Negative Prompt",
-          description: "Undesired elements to exclude."
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
-        }
-      ],
-      validation: [
-        {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
-        }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 23. Imagen4Ultra
-    // -----------------------------------------------------------------------
-    {
-      className: "Imagen4Ultra",
-      modelId: "google/imagen4-ultra",
-      title: "Imagen 4 Ultra",
-      description:
-        "Generate images using Google's Imagen 4 Ultra model via Kie.ai.\n\n    kie, google, imagen, imagen4, ultra, image generation, ai",
-      outputType: "image",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the image to generate."
-        },
-        {
-          name: "negative_prompt",
-          type: "str",
-          default: "",
-          title: "Negative Prompt",
-          description: "Undesired elements to exclude."
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
-        },
-        {
-          name: "seed",
-          type: "int",
-          default: 0,
-          title: "Seed",
-          description: "RNG seed."
-        }
-      ],
-      validation: [
-        {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
-        }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 24. Imagen4
-    // -----------------------------------------------------------------------
-    {
-      className: "Imagen4",
-      modelId: "google/imagen4",
-      title: "Imagen 4",
-      description:
-        "Generate images using Google's Imagen 4 model via Kie.ai.\n\n    kie, google, imagen, imagen4, image generation, ai",
-      outputType: "image",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the image to generate."
-        },
-        {
-          name: "negative_prompt",
-          type: "str",
-          default: "",
-          title: "Negative Prompt",
-          description: "Undesired elements to exclude."
-        },
-        {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
-        },
-        {
-          name: "seed",
-          type: "int",
-          default: 0,
-          title: "Seed",
-          description: "RNG seed."
-        }
-      ],
-      validation: [
-        {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
-        }
-      ]
-    },
-
-    // -----------------------------------------------------------------------
-    // 25. NanoBananaEdit
-    // -----------------------------------------------------------------------
-    {
-      className: "NanoBananaEdit",
-      modelId: "google/nano-banana-edit",
-      title: "Nano Banana Edit",
-      description:
-        "Edit images using Google's Nano Banana model via Kie.ai.\n\n    kie, google, nano-banana, nano-banana-edit, image editing, ai",
-      outputType: "image",
-      fields: [
-        {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "Text description of the changes to make."
-        },
-        {
-          name: "image_input",
-          type: "list[image]",
-          default: [],
-          title: "Image Input",
-          description: "Images to edit."
-        },
-        {
-          name: "image_size",
-          type: "enum",
-          default: "1:1",
-          title: "Image Size",
-          description: "The size of the output image.",
-          values: [
+          "name": "image_size",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Image Size",
+          "description": "Radio description",
+          "required": false,
+          "values": [
             "1:1",
             "9:16",
             "16:9",
@@ -1375,288 +1006,1082 @@ export const imageConfig: ModuleConfig = {
           ]
         }
       ],
-      uploads: [
+      "validation": [
         {
-          field: "image_input",
-          kind: "image",
-          isList: false,
-          paramName: "image_url"
-        }
-      ],
-      validation: [
-        {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 26. GPTImage4oTextToImage
-    // -----------------------------------------------------------------------
     {
-      className: "GPTImage4oTextToImage",
-      modelId: "gpt-image-4o/text-to-image",
-      title: "GPT 4o Image Text To Image",
-      description:
-        "Generate images using OpenAI's GPT-4o Image model via Kie.ai.\n\n    kie, openai, gpt-4o, 4o-image, image generation, ai, text-to-image\n\n    The GPT-Image-1 model (ChatGPT 4o Image) understands both text and visual\n    context, allowing precise image creation with accurate text rendering\n    and consistent styles.\n\n    Use cases:\n    - Generate high-quality images from text descriptions\n    - Create images with precise text rendering\n    - Generate design and marketing materials\n    - Produce creative visuals with strong instruction following",
-      outputType: "image",
-      fields: [
+      "className": "NanoBananaPro",
+      "modelId": "nano-banana-pro",
+      "title": "Google - Nano Banana Pro",
+      "description": "Google - Nano Banana Pro via Kie.ai.\n\n    kie, image, ai\n\n    Image generation using Google's Pro Image to Image model",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the image to generate."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description of the image you want to generate (Max length: 10000 characters)",
+          "required": true
         },
         {
-          name: "size",
-          type: "enum",
-          default: "1:1",
-          title: "Size",
-          description: "The aspect ratio of the generated image.",
-          values: ["1:1", "3:2", "2:3"]
+          "name": "image_input",
+          "type": "list[image]",
+          "default": [],
+          "title": "Image Input",
+          "description": "Input images to transform or use as reference (supports up to 8 images) (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
+          "required": false
         },
         {
-          name: "n_variants",
-          type: "int",
-          default: 1,
-          title: "N Variants",
-          description: "Number of image variants to generate (1, 2, or 4).",
-          min: 1,
-          max: 4
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "Aspect ratio of the generated image",
+          "required": false,
+          "values": [
+            "1:1",
+            "2:3",
+            "3:2",
+            "3:4",
+            "4:3",
+            "4:5",
+            "5:4",
+            "9:16",
+            "16:9",
+            "21:9",
+            "auto"
+          ]
         },
         {
-          name: "is_enhance",
-          type: "bool",
-          default: false,
-          title: "Is Enhance",
-          description: "Enable prompt enhancement for more refined effects."
+          "name": "resolution",
+          "type": "enum",
+          "default": "1K",
+          "title": "Resolution",
+          "description": "Resolution of the generated image",
+          "required": false,
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "Format of the output image",
+          "required": false,
+          "values": [
+            "png",
+            "jpg"
+          ]
         }
       ],
-      validation: [
+      "uploads": [
         {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "image_input",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_input"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 27. GPTImage4oImageToImage
-    // -----------------------------------------------------------------------
     {
-      className: "GPTImage4oImageToImage",
-      modelId: "gpt-image-4o/image-to-image",
-      title: "GPT 4o Image Edit",
-      description:
-        "Edit images using OpenAI's GPT-4o Image model via Kie.ai.\n\n    kie, openai, gpt-4o, 4o-image, image editing, ai, image-to-image\n\n    The GPT-Image-1 model (ChatGPT 4o Image) enables precise image editing\n    with strong instruction following and accurate text rendering.\n\n    Use cases:\n    - Edit and transform existing images\n    - Apply specific modifications to images\n    - Add or modify text in images\n    - Create variations of existing visuals",
-      outputType: "image",
-      fields: [
+      "className": "Flux2ProImageToImage",
+      "modelId": "flux-2/pro-image-to-image",
+      "title": "Flux-2 - Pro Image to Image",
+      "description": "Flux-2 - Pro Image to Image via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by flux-2/pro-image-to-image",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing how to edit the image."
+          "name": "inputs",
+          "type": "list[image]",
+          "default": [],
+          "title": "Inputs",
+          "description": "Input reference images (1-8 images). (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
         },
         {
-          name: "images",
-          type: "list[image]",
-          default: [],
-          title: "Images",
-          description: "Input images to edit (supports up to 5 images)."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Must be between 3 and 5000 characters. (Max length: 5000 characters)",
+          "required": true
         },
         {
-          name: "size",
-          type: "enum",
-          default: "1:1",
-          title: "Size",
-          description: "The aspect ratio of the output image.",
-          values: ["1:1", "3:2", "2:3"]
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "Aspect ratio for the generated image. Select 'auto' to match the first input image ratio (requires input image).",
+          "required": true,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "3:2",
+            "2:3",
+            "auto"
+          ]
         },
         {
-          name: "n_variants",
-          type: "int",
-          default: 1,
-          title: "N Variants",
-          description: "Number of image variants to generate (1, 2, or 4).",
-          min: 1,
-          max: 4
+          "name": "resolution",
+          "type": "enum",
+          "default": "1K",
+          "title": "Resolution",
+          "description": "Output image resolution.",
+          "required": true,
+          "values": [
+            "1K",
+            "2K"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
         }
       ],
-      uploads: [
+      "uploads": [
         {
-          field: "images",
-          kind: "image",
-          isList: true,
-          paramName: "input_urls"
+          "field": "inputs",
+          "kind": "image",
+          "isList": true,
+          "paramName": "input_urls"
         }
       ],
-      validation: [
+      "validation": [
         {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        },
+        {
+          "field": "resolution",
+          "rule": "not_empty",
+          "message": "Resolution is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 28. GPTImage15TextToImage
-    // -----------------------------------------------------------------------
     {
-      className: "GPTImage15TextToImage",
-      modelId: "gpt-image/1.5-text-to-image",
-      title: "GPT Image 1.5 Text To Image",
-      description:
-        "Generate images using OpenAI's GPT Image 1.5 model via Kie.ai.\n\n    kie, openai, gpt-image-1.5, image generation, ai, text-to-image\n\n    GPT Image 1.5 is OpenAI's flagship image generation model for high-quality\n    image creation and precise image editing, with strong instruction following\n    and improved text rendering.\n\n    Use cases:\n    - Generate high-quality images from text descriptions\n    - Create images with excellent text rendering\n    - Generate professional marketing and design materials\n    - Produce creative visuals with precise control",
-      outputType: "image",
-      fields: [
+      "className": "Flux2ProTextToImage",
+      "modelId": "flux-2/pro-text-to-image",
+      "title": "Flux-2 - Pro Text to Image",
+      "description": "Flux-2 - Pro Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Flux-2's advanced AI model",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the image to generate."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Must be between 3 and 5000 characters. (Max length: 5000 characters)",
+          "required": true
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated image.",
-          values: ["1:1", "2:3", "3:2"]
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "Aspect ratio for the generated image. Select 'auto' to match the first input image ratio (requires input image).",
+          "required": true,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "3:2",
+            "2:3"
+          ]
         },
         {
-          name: "quality",
-          type: "enum",
-          default: "medium",
-          title: "Quality",
-          description:
-            "Image quality setting. Medium = balanced, High = slow/detailed.",
-          values: ["medium", "high"]
+          "name": "resolution",
+          "type": "enum",
+          "default": "1K",
+          "title": "Resolution",
+          "description": "Output image resolution.",
+          "required": true,
+          "values": [
+            "1K",
+            "2K"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
         }
       ],
-      validation: [
+      "validation": [
         {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        },
+        {
+          "field": "resolution",
+          "rule": "not_empty",
+          "message": "Resolution is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 29. GPTImage15ImageToImage
-    // -----------------------------------------------------------------------
     {
-      className: "GPTImage15ImageToImage",
-      modelId: "gpt-image/1.5-image-to-image",
-      title: "GPT Image 1.5 Edit",
-      description:
-        "Edit images using OpenAI's GPT Image 1.5 model via Kie.ai.\n\n    kie, openai, gpt-image-1.5, image editing, ai, image-to-image\n\n    GPT Image 1.5 enables precise image editing with strong instruction following\n    and improved text rendering capabilities.\n\n    Use cases:\n    - Edit and transform existing images\n    - Apply specific modifications with precise control\n    - Add or modify text in images accurately\n    - Create variations with high fidelity",
-      outputType: "image",
-      fields: [
+      "className": "Flux2FlexImageToImage",
+      "modelId": "flux-2/flex-image-to-image",
+      "title": "Flux-2 - Image to Image",
+      "description": "Flux-2 - Image to Image via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by flux-2/flex-image-to-image",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing how to edit the image."
+          "name": "inputs",
+          "type": "list[image]",
+          "default": [],
+          "title": "Inputs",
+          "description": "Input reference images (1-8 images). (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
         },
         {
-          name: "images",
-          type: "list[image]",
-          default: [],
-          title: "Images",
-          description: "Input images to edit (supports up to 16 images)."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Must be between 3 and 5000 characters. (Max length: 5000 characters)",
+          "required": true
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the output image.",
-          values: ["1:1", "2:3", "3:2"]
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "Aspect ratio for the generated image. Select 'auto' to match the first input image ratio (requires input image).",
+          "required": true,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "3:2",
+            "2:3",
+            "auto"
+          ]
         },
         {
-          name: "quality",
-          type: "enum",
-          default: "medium",
-          title: "Quality",
-          description:
-            "Image quality setting. Medium = balanced, High = slow/detailed.",
-          values: ["medium", "high"]
+          "name": "resolution",
+          "type": "enum",
+          "default": "1K",
+          "title": "Resolution",
+          "description": "Output image resolution.",
+          "required": true,
+          "values": [
+            "1K",
+            "2K"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
         }
       ],
-      uploads: [
+      "uploads": [
         {
-          field: "images",
-          kind: "image",
-          isList: true,
-          paramName: "input_urls"
+          "field": "inputs",
+          "kind": "image",
+          "isList": true,
+          "paramName": "input_urls"
         }
       ],
-      validation: [
+      "validation": [
         {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        },
+        {
+          "field": "resolution",
+          "rule": "not_empty",
+          "message": "Resolution is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 30. IdeogramV3TextToImage
-    // -----------------------------------------------------------------------
     {
-      className: "IdeogramV3TextToImage",
-      modelId: "ideogram/v3-text-to-image",
-      title: "Ideogram V3 Text To Image",
-      description:
-        "Generate images using Ideogram V3 model via Kie.ai.\n\n    kie, ideogram, v3, image generation, ai, text-to-image\n\n    Ideogram V3 is the latest generation of Ideogram's image generation model,\n    offering text-to-image with improved consistency and creative control.\n\n    Use cases:\n    - Generate creative images from text descriptions\n    - Create images with excellent text rendering\n    - Produce artistic and design content",
-      outputType: "image",
-      fields: [
+      "className": "Flux2FlexTextToImage",
+      "modelId": "flux-2/flex-text-to-image",
+      "title": "Flux-2 - Text to Image",
+      "description": "Flux-2 - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Flux-2's advanced AI model",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the image to generate."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Generation prompt, length must be between 3-5000 characters. (Maximum length: 5000 characters)",
+          "required": true
         },
         {
-          name: "negative_prompt",
-          type: "str",
-          default: "",
-          title: "Negative Prompt",
-          description: "Elements to avoid in the generated image."
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "Aspect ratio of the generated image. When `auto` is selected, it will match the ratio of the first input image (requires input image to be provided).",
+          "required": true,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "3:2",
+            "2:3"
+          ]
         },
         {
-          name: "rendering_speed",
-          type: "enum",
-          default: "BALANCED",
-          title: "Rendering Speed",
-          description: "Rendering speed preference.",
-          values: ["TURBO", "BALANCED", "QUALITY"]
+          "name": "resolution",
+          "type": "enum",
+          "default": "1K",
+          "title": "Resolution",
+          "description": "Output image resolution.",
+          "required": true,
+          "values": [
+            "1K",
+            "2K"
+          ]
         },
         {
-          name: "style",
-          type: "enum",
-          default: "AUTO",
-          title: "Style",
-          description: "Generation style.",
-          values: ["AUTO", "GENERAL", "REALISTIC", "DESIGN"]
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         },
         {
-          name: "image_size",
-          type: "enum",
-          default: "square",
-          title: "Image Size",
-          description: "The resolution of the generated image.",
-          values: [
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        },
+        {
+          "field": "resolution",
+          "rule": "not_empty",
+          "message": "Resolution is required"
+        }
+      ]
+    },
+    {
+      "className": "GrokImagineTextToImage",
+      "modelId": "grok-imagine/text-to-image",
+      "title": "Grok Imagine - Text to Image",
+      "description": "Grok Imagine - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Query Task Status",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt describing the desired image. Required field. - Should be detailed and specific about the desired visual elements - Describe composition, style, lighting, mood, and other visual details - Maximum length: 5000 characters - Supports English language prompts",
+          "required": true
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "Specifies the width-to-height ratio of the generated image. Controls the aspect ratio of the output. - **2:3**: Portrait orientation (vertical) - **3:2**: Landscape orientation (horizontal) - **1:1**: Square format - **16:9**: Wide screen format - **9:16**: Tall screen format Default: 1:1",
+          "required": false,
+          "values": [
+            "2:3",
+            "3:2",
+            "1:1",
+            "16:9",
+            "9:16"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        },
+        {
+          "name": "enable_pro",
+          "type": "bool",
+          "default": false,
+          "title": "Enable Pro",
+          "description": "Controls the request processing strategy. - `false`: Corresponds to **speed mode**. The system prioritizes response time and throughput, suitable for latency-sensitive scenarios. - `true`: Corresponds to **quality mode**. The system prioritizes processing quality and precision, suitable for scenarios requiring higher accuracy.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "GrokImagineImageToImage",
+      "modelId": "grok-imagine/image-to-image",
+      "title": "Grok Imagine - image to image",
+      "description": "Grok Imagine - image to image via Kie.ai.\n\n    kie, image, ai\n\n    Content generation using grok-imagine/image-to-image",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description specifying the desired content or style of the generated image. (Max length: 390000 characters)",
+          "required": false
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "An array containing up to 1 URL string pointing to reference images. (Use file URLs after upload, not raw file content. Accepted types: image/jpeg, image/png, image/webp. Max size: 10.0MB per image.) In your prompt, reference the uploaded image by typing @image(n) followed by a space (for example: @image1 a sunset over the ocean).",
+          "required": true
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ]
+    },
+    {
+      "className": "GptImage15TextToImage",
+      "modelId": "gpt-image/1.5-text-to-image",
+      "title": "GPT Image-1.5 - Text to Image",
+      "description": "GPT Image-1.5 - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Overview",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description of the image you want to generate",
+          "required": true
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "Width-height ratio of the image, determining its visual form.",
+          "required": true,
+          "values": [
+            "1:1",
+            "2:3",
+            "3:2"
+          ]
+        },
+        {
+          "name": "quality",
+          "type": "enum",
+          "default": "medium",
+          "title": "Quality",
+          "description": "Quality: medium=balanced, high=slow/detailed.",
+          "required": true,
+          "values": [
+            "medium",
+            "high"
+          ]
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        },
+        {
+          "field": "quality",
+          "rule": "not_empty",
+          "message": "Quality is required"
+        }
+      ]
+    },
+    {
+      "className": "GptImage15ImageToImage",
+      "modelId": "gpt-image/1.5-image-to-image",
+      "title": "GPT Image-1.5 - Image to Image",
+      "description": "GPT Image-1.5 - Image to Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Overview",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "inputs",
+          "type": "list[image]",
+          "default": [],
+          "title": "Inputs",
+          "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description of the image you want to generate",
+          "required": true
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "3:2",
+          "title": "Aspect Ratio",
+          "description": "Width-height ratio of the image, determining its visual form.",
+          "required": true,
+          "values": [
+            "1:1",
+            "2:3",
+            "3:2"
+          ]
+        },
+        {
+          "name": "quality",
+          "type": "enum",
+          "default": "medium",
+          "title": "Quality",
+          "description": "Quality: medium=balanced, high=slow/detailed.",
+          "required": true,
+          "values": [
+            "medium",
+            "high"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "inputs",
+          "kind": "image",
+          "isList": true,
+          "paramName": "input_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        },
+        {
+          "field": "quality",
+          "rule": "not_empty",
+          "message": "Quality is required"
+        }
+      ]
+    },
+    {
+      "className": "GptImage2TextToImage",
+      "modelId": "gpt-image-2-text-to-image",
+      "title": "GPT Image-2 - Text to Image",
+      "description": "GPT Image-2 - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Create Task",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt. Required, maximum 20,000 characters.",
+          "required": true
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated image is set to auto by default.",
+          "required": false,
+          "values": [
+            "auto",
+            "1:1",
+            "9:16",
+            "16:9",
+            "4:3",
+            "3:4"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "",
+          "title": "Resolution",
+          "description": "Image resolution: Note: Images with a 1:1 aspect ratio cannot be converted to 4K images. Images with the aspect ratio set to \"auto\" or without a specified aspect ratio parameter will only be converted to 1K images; otherwise, the task will fail to create.",
+          "required": false,
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "GptImage2ImageToImage",
+      "modelId": "gpt-image-2-image-to-image",
+      "title": "GPT Image 2 - Image To Image",
+      "description": "GPT Image 2 - Image To Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Create Task",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompts, up to 20,000 characters.",
+          "required": true
+        },
+        {
+          "name": "inputs",
+          "type": "list[image]",
+          "default": [],
+          "title": "Inputs",
+          "description": "Array of input image URLs.",
+          "required": true
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated image is set to auto by default.",
+          "required": false,
+          "values": [
+            "auto",
+            "1:1",
+            "9:16",
+            "16:9",
+            "4:3",
+            "3:4"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "",
+          "title": "Resolution",
+          "description": "Image resolution: Note: Images with a 1:1 aspect ratio cannot be converted to 4K images. Images with the aspect ratio set to \"auto\" or without a specified aspect ratio parameter will only be converted to 1K images; otherwise, the task will fail to create.",
+          "required": false,
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "inputs",
+          "kind": "image",
+          "isList": true,
+          "paramName": "input_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "TopazImageUpscale",
+      "modelId": "topaz/image-upscale",
+      "title": "Topaz - Image Upscale",
+      "description": "Topaz - Image Upscale via Kie.ai.\n\n    kie, image, ai\n\n    Enhance image resolution and quality using advanced AI upscaling powered by Topaz",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "Url of the image to be upscaled (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "upscale_factor",
+          "type": "enum",
+          "default": "2",
+          "title": "Upscale Factor",
+          "description": "Factor to upscale the video by (e.g. 2.0 doubles width and height)",
+          "required": true,
+          "values": [
+            "1",
+            "2",
+            "4",
+            "8"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "upscale_factor",
+          "rule": "not_empty",
+          "message": "Upscale Factor is required"
+        }
+      ]
+    },
+    {
+      "className": "RecraftRemoveBackground",
+      "modelId": "recraft/remove-background",
+      "title": "Recraft - Remove Background",
+      "description": "Recraft - Remove Background via Kie.ai.\n\n    kie, image, ai\n\n    remove background by recraft/remove-background",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "image",
+          "type": "str",
+          "default": "",
+          "title": "Image",
+          "description": "Image to remove background from. Supported formats: PNG, JPG, WEBP. Max 5MB, max 16MP, max dimension 4096px, min dimension 256px. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 5.0MB)",
+          "required": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "image",
+          "rule": "not_empty",
+          "message": "Image is required"
+        }
+      ]
+    },
+    {
+      "className": "RecraftCrispUpscale",
+      "modelId": "recraft/crisp-upscale",
+      "title": "Recraft - Crisp Upscale",
+      "description": "Recraft - Crisp Upscale via Kie.ai.\n\n    kie, image, ai\n\n    Enhance image resolution and quality using advanced AI upscaling powered by Recraft",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "image",
+          "type": "str",
+          "default": "",
+          "title": "Image",
+          "description": "Image to upscale (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "image",
+          "rule": "not_empty",
+          "message": "Image is required"
+        }
+      ]
+    },
+    {
+      "className": "IdeogramCharacterEdit",
+      "modelId": "ideogram/character-edit",
+      "title": "Ideogram - Character Edit",
+      "description": "Ideogram - Character Edit via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by ideogram/character-edit",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The prompt to fill the masked part of the image. (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "The image URL to generate an image from. Needs to match the dimensions of the mask. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "mask",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Mask",
+          "description": "The mask URL to inpaint the image. Needs to match the dimensions of the input image. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "reference_images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Reference Images",
+          "description": "A set of images to use as character references. Currently only 1 image is supported, rest will be ignored. (maximum total size 10MB across all character references). The images should be in JPEG, PNG or WebP format (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "rendering_speed",
+          "type": "enum",
+          "default": "BALANCED",
+          "title": "Rendering Speed",
+          "description": "The rendering speed to use. Default value: \"BALANCED\"",
+          "required": false,
+          "values": [
+            "TURBO",
+            "BALANCED",
+            "QUALITY"
+          ]
+        },
+        {
+          "name": "style",
+          "type": "enum",
+          "default": "AUTO",
+          "title": "Style",
+          "description": "The style type to generate with. Cannot be used with style_codes. Default value: \"AUTO\"",
+          "required": false,
+          "values": [
+            "AUTO",
+            "REALISTIC",
+            "FICTION"
+          ]
+        },
+        {
+          "name": "expand_prompt",
+          "type": "bool",
+          "default": false,
+          "title": "Expand Prompt",
+          "description": "Determine if MagicPrompt should be used in generating the request or not. Default value: true (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "num_images",
+          "type": "enum",
+          "default": "1",
+          "title": "Num Images",
+          "description": "Select description",
+          "required": false,
+          "values": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Seed for the random number generator",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        },
+        {
+          "field": "mask",
+          "kind": "image",
+          "paramName": "mask_url"
+        },
+        {
+          "field": "reference_images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "reference_image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "IdeogramCharacterRemix",
+      "modelId": "ideogram/character-remix",
+      "title": "Ideogram - Character Remix",
+      "description": "Ideogram - Character Remix via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by ideogram/character-remix",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The prompt to remix the image with (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "The image URL to remix (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "reference_images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Reference Images",
+          "description": "A set of images to use as character references. Currently only 1 image is supported, rest will be ignored. (maximum total size 10MB across all character references). The images should be in JPEG, PNG or WebP format (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "rendering_speed",
+          "type": "enum",
+          "default": "BALANCED",
+          "title": "Rendering Speed",
+          "description": "The rendering speed to use. Default value: \"BALANCED\"",
+          "required": false,
+          "values": [
+            "TURBO",
+            "BALANCED",
+            "QUALITY"
+          ]
+        },
+        {
+          "name": "style",
+          "type": "enum",
+          "default": "AUTO",
+          "title": "Style",
+          "description": "The style type to generate with. Cannot be used with style_codes. Default value: \"AUTO\"",
+          "required": false,
+          "values": [
+            "AUTO",
+            "REALISTIC",
+            "FICTION"
+          ]
+        },
+        {
+          "name": "expand_prompt",
+          "type": "bool",
+          "default": false,
+          "title": "Expand Prompt",
+          "description": "Determine if MagicPrompt should be used in generating the request or not. Default value: true (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "image_size",
+          "type": "enum",
+          "default": "square_hd",
+          "title": "Image Size",
+          "description": "Select description",
+          "required": false,
+          "values": [
             "square",
             "square_hd",
             "portrait_4_3",
@@ -1666,92 +2091,168 @@ export const imageConfig: ModuleConfig = {
           ]
         },
         {
-          name: "expand_prompt",
-          type: "bool",
-          default: true,
-          title: "Expand Prompt",
-          description: "Whether to expand/augment the prompt with MagicPrompt."
+          "name": "num_images",
+          "type": "enum",
+          "default": "1",
+          "title": "Num Images",
+          "description": "Select description",
+          "required": false,
+          "values": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ]
         },
         {
-          name: "seed",
-          type: "int",
-          default: -1,
-          title: "Seed",
-          description:
-            "Random seed for reproducible results. Use -1 for random."
-        }
-      ],
-      validation: [
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Seed for the random number generator",
+          "required": false
+        },
         {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "name": "strength",
+          "type": "float",
+          "default": 0.8,
+          "title": "Strength",
+          "description": "Strength of the input image in the remix Default value: 0.8 (Min: 0.1, Max: 1, Step: 0.1) (step: 0.1)",
+          "required": false,
+          "min": 0.1,
+          "max": 1
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Description of what to exclude from an image. Descriptions in the prompt take precedence to descriptions in the negative prompt. Default value: \"\" (Max length: 500 characters)",
+          "required": false
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "A set of images to use as style references (maximum total size 10MB across all style references). The images should be in JPEG, PNG or WebP format (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": false
+        },
+        {
+          "name": "reference_mask_urls",
+          "type": "str",
+          "default": "",
+          "title": "Reference Mask Urls",
+          "description": "A set of masks to apply to the character references. Currently only 1 mask is supported, rest will be ignored. (maximum total size 10MB across all character references). The masks should be in JPEG, PNG or WebP format (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": false
         }
       ],
-      conditionalFields: [{ field: "negative_prompt", condition: "truthy" }]
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        },
+        {
+          "field": "reference_images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "reference_image_urls"
+        },
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
     },
-
-    // -----------------------------------------------------------------------
-    // 31. IdeogramV3ImageToImage
-    // -----------------------------------------------------------------------
     {
-      className: "IdeogramV3ImageToImage",
-      modelId: "ideogram/v3-edit",
-      title: "Ideogram V3 Image To Image",
-      description:
-        "Edit images using Ideogram V3 model via Kie.ai.\n\n    kie, ideogram, v3, image editing, ai, image-to-image\n\n    Ideogram V3 offers image editing capabilities with improved consistency\n    and creative control.\n\n    Use cases:\n    - Edit and transform existing images\n    - Apply style changes while maintaining structure\n    - Create variations of existing images",
-      outputType: "image",
-      fields: [
+      "className": "IdeogramCharacter",
+      "modelId": "ideogram/character",
+      "title": "Ideogram - Character",
+      "description": "Ideogram - Character via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by ideogram/character",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing how to transform the image."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The prompt to fill the masked part of the image. (Max length: 5000 characters)",
+          "required": true
         },
         {
-          name: "image",
-          type: "image",
-          default: {
-            type: "image",
-            uri: "",
-            asset_id: null,
-            data: null,
-            metadata: null
-          },
-          title: "Image",
-          description: "The source image to transform."
+          "name": "reference_images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Reference Images",
+          "description": "A set of images to use as character references. Currently only 1 image is supported, rest will be ignored. (maximum total size 10MB across all character references). The images should be in JPEG, PNG or WebP format (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
         },
         {
-          name: "negative_prompt",
-          type: "str",
-          default: "",
-          title: "Negative Prompt",
-          description: "Elements to avoid in the output."
+          "name": "rendering_speed",
+          "type": "enum",
+          "default": "BALANCED",
+          "title": "Rendering Speed",
+          "description": "The rendering speed to use. Default value: \"BALANCED\"",
+          "required": false,
+          "values": [
+            "TURBO",
+            "BALANCED",
+            "QUALITY"
+          ]
         },
         {
-          name: "rendering_speed",
-          type: "enum",
-          default: "BALANCED",
-          title: "Rendering Speed",
-          description: "Rendering speed preference.",
-          values: ["TURBO", "BALANCED", "QUALITY"]
+          "name": "style",
+          "type": "enum",
+          "default": "AUTO",
+          "title": "Style",
+          "description": "The style type to generate with. Cannot be used with style_codes. Default value: \"AUTO\"",
+          "required": false,
+          "values": [
+            "AUTO",
+            "REALISTIC",
+            "FICTION"
+          ]
         },
         {
-          name: "style",
-          type: "enum",
-          default: "AUTO",
-          title: "Style",
-          description: "Generation style.",
-          values: ["AUTO", "GENERAL", "REALISTIC", "DESIGN"]
+          "name": "expand_prompt",
+          "type": "bool",
+          "default": false,
+          "title": "Expand Prompt",
+          "description": "Determine if MagicPrompt should be used in generating the request or not. Default value: true (Boolean value (true/false))",
+          "required": false
         },
         {
-          name: "image_size",
-          type: "enum",
-          default: "square",
-          title: "Image Size",
-          description: "The resolution of the output image.",
-          values: [
+          "name": "num_images",
+          "type": "enum",
+          "default": "1",
+          "title": "Num Images",
+          "description": "Select description",
+          "required": false,
+          "values": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        {
+          "name": "image_size",
+          "type": "enum",
+          "default": "square_hd",
+          "title": "Image Size",
+          "description": "The resolution of the generated image Default value: square_hd",
+          "required": false,
+          "values": [
             "square",
             "square_hd",
             "portrait_4_3",
@@ -1761,151 +2262,1196 @@ export const imageConfig: ModuleConfig = {
           ]
         },
         {
-          name: "strength",
-          type: "float",
-          default: 0.5,
-          title: "Strength",
-          description:
-            "Strength of the input image in the remix (0-1). Lower = more original preserved.",
-          min: 0,
-          max: 1
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Seed for the random number generator",
+          "required": false
         },
         {
-          name: "expand_prompt",
-          type: "bool",
-          default: true,
-          title: "Expand Prompt",
-          description: "Whether to expand/augment the prompt with MagicPrompt."
-        },
-        {
-          name: "seed",
-          type: "int",
-          default: -1,
-          title: "Seed",
-          description:
-            "Random seed for reproducible results. Use -1 for random."
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Description of what to exclude from an image. Descriptions in the prompt take precedence to descriptions in the negative prompt. Default value: \"\" (Max length: 5000 characters)",
+          "required": false
         }
       ],
-      uploads: [
+      "uploads": [
         {
-          field: "image",
-          kind: "image",
-          paramName: "image_url"
+          "field": "reference_images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "reference_image_urls"
         }
       ],
-      validation: [
+      "validation": [
         {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 32. Seedream40TextToImage
-    // -----------------------------------------------------------------------
     {
-      className: "Seedream40TextToImage",
-      modelId: "bytedance/seedream-v4-text-to-image",
-      title: "Seedream 4.0 Text To Image",
-      description:
-        "Generate images using ByteDance's Seedream 4.0 model via Kie.ai.\n\n    kie, seedream, bytedance, seedream-4, image generation, ai, text-to-image\n\n    Seedream 4.0 is ByteDance's image generation model that combines text-to-image\n    with batch consistency, high speed, and professional-quality outputs.\n\n    Use cases:\n    - Generate creative and artistic images from text\n    - Create professional visual content\n    - Produce consistent batch images",
-      outputType: "image",
-      fields: [
+      "className": "IdeogramV3TextToImage",
+      "modelId": "ideogram/v3-text-to-image",
+      "title": "Ideogram V3 Text to Image",
+      "description": "Ideogram V3 Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by ideogram/v3-text-to-image",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing the image to generate."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Description of the image to generate. Maximum length: 5000 characters.",
+          "required": true
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the generated image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
+          "name": "rendering_speed",
+          "type": "enum",
+          "default": "",
+          "title": "Rendering Speed",
+          "description": "The rendering speed to use. - `TURBO`: Turbo - `BALANCED`: Balanced - `QUALITY`: Quality",
+          "required": false,
+          "values": [
+            "TURBO",
+            "BALANCED",
+            "QUALITY"
+          ]
         },
         {
-          name: "quality",
-          type: "enum",
-          default: "basic",
-          title: "Quality",
-          description: "Basic outputs 2K images, while High outputs 4K images.",
-          values: ["basic", "high"]
+          "name": "style",
+          "type": "enum",
+          "default": "",
+          "title": "Style",
+          "description": "The style type to generate with. Cannot be used together with `style_codes`. - `AUTO`: Auto - `GENERAL`: General - `REALISTIC`: Realistic - `DESIGN`: Design",
+          "required": false,
+          "values": [
+            "AUTO",
+            "GENERAL",
+            "REALISTIC",
+            "DESIGN"
+          ]
+        },
+        {
+          "name": "expand_prompt",
+          "type": "bool",
+          "default": false,
+          "title": "Expand Prompt",
+          "description": "Determines whether MagicPrompt should be used to enhance the generation request. - Boolean value: `true` / `false`",
+          "required": false
+        },
+        {
+          "name": "image_size",
+          "type": "enum",
+          "default": "",
+          "title": "Image Size",
+          "description": "The resolution of the generated image. - `square`: Square - `square_hd`: Square HD - `portrait_4_3`: Portrait 3:4 - `portrait_16_9`: Portrait 9:16 - `landscape_4_3`: Landscape 4:3 - `landscape_16_9`: Landscape 16:9",
+          "required": false,
+          "values": [
+            "square",
+            "square_hd",
+            "portrait_4_3",
+            "portrait_16_9",
+            "landscape_4_3",
+            "landscape_16_9"
+          ]
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Seed for the random number generator.",
+          "required": false
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Description of what to exclude from the generated image. If the positive prompt conflicts with the negative prompt, the positive prompt takes precedence. Maximum length: 5000 characters.",
+          "required": false
         }
       ],
-      validation: [
+      "validation": [
         {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
       ]
     },
-
-    // -----------------------------------------------------------------------
-    // 33. Seedream40ImageToImage
-    // -----------------------------------------------------------------------
     {
-      className: "Seedream40ImageToImage",
-      modelId: "bytedance/seedream-v4-edit",
-      title: "Seedream 4.0 Edit",
-      description:
-        "Edit images using ByteDance's Seedream 4.0 model via Kie.ai.\n\n    kie, seedream, bytedance, seedream-4, image editing, ai, image-to-image\n\n    Seedream 4.0 offers image-to-image capabilities with batch consistency\n    and professional-quality outputs.\n\n    Use cases:\n    - Edit and transform existing images\n    - Apply style changes to photos\n    - Create variations of existing images",
-      outputType: "image",
-      fields: [
+      "className": "IdeogramV3Edit",
+      "modelId": "ideogram/v3-edit",
+      "title": "Ideogram V3 Edit",
+      "description": "Ideogram V3 Edit via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by ideogram/v3-edit",
+      "outputType": "image",
+      "fields": [
         {
-          name: "prompt",
-          type: "str",
-          default: "",
-          title: "Prompt",
-          description: "The text prompt describing how to transform the image."
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The prompt to fill the masked part of the image. Maximum length: 5000 characters.",
+          "required": true
         },
         {
-          name: "image",
-          type: "image",
-          default: {
-            type: "image",
-            uri: "",
-            asset_id: null,
-            data: null,
-            metadata: null
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
           },
-          title: "Image",
-          description: "The source image to transform."
+          "title": "Image",
+          "description": "The image URL to generate an image from. Needs to match the dimensions of the mask. - Please provide the URL of the uploaded file, not raw file content - Accepted types: `image/jpeg`, `image/png`, `image/webp` - Max size: 10.0MB",
+          "required": true
         },
         {
-          name: "aspect_ratio",
-          type: "enum",
-          default: "1:1",
-          title: "Aspect Ratio",
-          description: "The aspect ratio of the output image.",
-          values: ["1:1", "16:9", "9:16", "4:3", "3:4"]
+          "name": "mask",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Mask",
+          "description": "The mask URL to inpaint the image. Needs to match the dimensions of the input image. - Please provide the URL of the uploaded file, not raw file content - Accepted types: `image/jpeg`, `image/png`, `image/webp` - Max size: 10.0MB",
+          "required": true
         },
         {
-          name: "quality",
-          type: "enum",
-          default: "basic",
-          title: "Quality",
-          description: "Basic outputs 2K images, while High outputs 4K images.",
-          values: ["basic", "high"]
+          "name": "rendering_speed",
+          "type": "enum",
+          "default": "BALANCED",
+          "title": "Rendering Speed",
+          "description": "The rendering speed to use. Default value: `BALANCED`. - `TURBO`: Turbo - `BALANCED`: Balanced - `QUALITY`: Quality",
+          "required": false,
+          "values": [
+            "TURBO",
+            "BALANCED",
+            "QUALITY"
+          ]
+        },
+        {
+          "name": "expand_prompt",
+          "type": "bool",
+          "default": true,
+          "title": "Expand Prompt",
+          "description": "Determine if MagicPrompt should be used in generating the request or not. Default value: `true`. - Boolean value: `true` / `false`",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Seed for the random number generator.",
+          "required": false
         }
       ],
-      uploads: [
+      "uploads": [
         {
-          field: "image",
-          kind: "image",
-          paramName: "image_url"
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        },
+        {
+          "field": "mask",
+          "kind": "image",
+          "paramName": "mask_url"
         }
       ],
-      validation: [
+      "validation": [
         {
-          field: "prompt",
-          rule: "not_empty",
-          message: "Prompt cannot be empty"
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "IdeogramV3Remix",
+      "modelId": "ideogram/v3-remix",
+      "title": "Ideogram V3 Remix",
+      "description": "Ideogram V3 Remix via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by ideogram/v3-remix",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The prompt to remix the image with. Maximum length: 5000 characters.",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "The image URL to remix. - Please provide the URL of the uploaded file, not raw file content - Accepted types: `image/jpeg`, `image/png`, `image/webp` - Max size: 10.0MB",
+          "required": true
+        },
+        {
+          "name": "rendering_speed",
+          "type": "enum",
+          "default": "",
+          "title": "Rendering Speed",
+          "description": "The rendering speed to use. - `TURBO`: Turbo - `BALANCED`: Balanced - `QUALITY`: Quality",
+          "required": false,
+          "values": [
+            "TURBO",
+            "BALANCED",
+            "QUALITY"
+          ]
+        },
+        {
+          "name": "style",
+          "type": "enum",
+          "default": "",
+          "title": "Style",
+          "description": "The style type to generate with. Cannot be used together with `style_codes`. - `AUTO`: Auto - `GENERAL`: General - `REALISTIC`: Realistic - `DESIGN`: Design",
+          "required": false,
+          "values": [
+            "AUTO",
+            "GENERAL",
+            "REALISTIC",
+            "DESIGN"
+          ]
+        },
+        {
+          "name": "expand_prompt",
+          "type": "bool",
+          "default": false,
+          "title": "Expand Prompt",
+          "description": "Determine if MagicPrompt should be used in generating the request or not. - Boolean value: `true` / `false`",
+          "required": false
+        },
+        {
+          "name": "image_size",
+          "type": "enum",
+          "default": "",
+          "title": "Image Size",
+          "description": "The resolution of the generated image. - `square`: Square - `square_hd`: Square HD - `portrait_4_3`: Portrait 3:4 - `portrait_16_9`: Portrait 9:16 - `landscape_4_3`: Landscape 4:3 - `landscape_16_9`: Landscape 16:9",
+          "required": false,
+          "values": [
+            "square",
+            "square_hd",
+            "portrait_4_3",
+            "portrait_16_9",
+            "landscape_4_3",
+            "landscape_16_9"
+          ]
+        },
+        {
+          "name": "num_images",
+          "type": "enum",
+          "default": "",
+          "title": "Num Images",
+          "description": "Number of images to generate. - `1`: 1 image - `2`: 2 images - `3`: 3 images - `4`: 4 images",
+          "required": false,
+          "values": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Seed for the random number generator.",
+          "required": false
+        },
+        {
+          "name": "strength",
+          "type": "float",
+          "default": 0,
+          "title": "Strength",
+          "description": "Strength of the input image in the remix. - Minimum: `0.01` - Maximum: `1` - Step: `0.01`",
+          "required": false,
+          "min": 0.01,
+          "max": 1
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "Description of what to exclude from the generated image. If the positive prompt conflicts with the negative prompt, the positive prompt takes precedence. Maximum length: 5000 characters.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "QwenTextToImage",
+      "modelId": "qwen/text-to-image",
+      "title": "Qwen - Text to Image",
+      "description": "Qwen - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Qwen's advanced AI model",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The prompt to generate the image with (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "image_size",
+          "type": "enum",
+          "default": "square_hd",
+          "title": "Image Size",
+          "description": "The size of the generated image",
+          "required": false,
+          "values": [
+            "square",
+            "square_hd",
+            "portrait_4_3",
+            "portrait_16_9",
+            "landscape_4_3",
+            "landscape_16_9"
+          ]
+        },
+        {
+          "name": "num_inference_steps",
+          "type": "float",
+          "default": 30,
+          "title": "Num Inference Steps",
+          "description": "The number of inference steps to perform (Min: 2, Max: 250, Step: 1) (step: 1)",
+          "required": false,
+          "min": 2,
+          "max": 250
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "The same seed and the same prompt given to the same version of the model will output the same image every time",
+          "required": false
+        },
+        {
+          "name": "guidance_scale",
+          "type": "float",
+          "default": 2.5,
+          "title": "Guidance Scale",
+          "description": "The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt when looking for a related image to show you (Min: 0, Max: 20, Step: 0.1) (step: 0.1)",
+          "required": false,
+          "min": 0,
+          "max": 20
+        },
+        {
+          "name": "enable_safety_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Enable Safety Checker",
+          "description": "The safety checker is always enabled in Playground. It can only be disabled by setting false through the API. (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "The format of the generated image",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg"
+          ]
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "The negative prompt for the generation (Max length: 500 characters)",
+          "required": false
+        },
+        {
+          "name": "acceleration",
+          "type": "enum",
+          "default": "none",
+          "title": "Acceleration",
+          "description": "Acceleration level for image generation. Options: 'none', 'regular', 'high'. Higher acceleration increases speed. 'regular' balances speed and quality. 'high' is recommended for images without text",
+          "required": false,
+          "values": [
+            "none",
+            "regular",
+            "high"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "QwenImageToImage",
+      "modelId": "qwen/image-to-image",
+      "title": "Qwen - Image to Image",
+      "description": "Qwen - Image to Image via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Qwen's advanced AI model",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The prompt to generate the image with (Max length: 5000 characters)",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "The reference image to guide the generation (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "strength",
+          "type": "float",
+          "default": 0.8,
+          "title": "Strength",
+          "description": "Denoising strength. 1.0 = fully remake; 0.0 = preserve original (Min: 0, Max: 1, Step: 0.01) (step: 0.01)",
+          "required": false,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "The format of the generated image",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg"
+          ]
+        },
+        {
+          "name": "acceleration",
+          "type": "enum",
+          "default": "none",
+          "title": "Acceleration",
+          "description": "Acceleration level for image generation. Options: 'none', 'regular', 'high'. Higher acceleration increases speed. 'regular' balances speed and quality. 'high' is recommended for images without text",
+          "required": false,
+          "values": [
+            "none",
+            "regular",
+            "high"
+          ]
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "The negative prompt for the generation (Max length: 500 characters)",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "The same seed and the same prompt given to the same version of the model will output the same image every time",
+          "required": false
+        },
+        {
+          "name": "num_inference_steps",
+          "type": "float",
+          "default": 30,
+          "title": "Num Inference Steps",
+          "description": "The number of inference steps to perform (Min: 2, Max: 250, Step: 1) (step: 1)",
+          "required": false,
+          "min": 2,
+          "max": 250
+        },
+        {
+          "name": "guidance_scale",
+          "type": "float",
+          "default": 2.5,
+          "title": "Guidance Scale",
+          "description": "The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt when looking for a related image to show you (Min: 0, Max: 20, Step: 0.1) (step: 0.1)",
+          "required": false,
+          "min": 0,
+          "max": 20
+        },
+        {
+          "name": "enable_safety_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Enable Safety Checker",
+          "description": "The safety checker is always enabled in Playground. It can only be disabled by setting false through the API. (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "QwenImageEdit",
+      "modelId": "qwen/image-edit",
+      "title": "Qwen - Image Edit",
+      "description": "Qwen - Image Edit via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by qwen/image-edit",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The prompt to generate the image with (Max length: 2000 characters)",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "The URL of the image to edit. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "acceleration",
+          "type": "enum",
+          "default": "none",
+          "title": "Acceleration",
+          "description": "Acceleration level for image generation. Options: 'none', 'regular'. Higher acceleration increases speed. 'regular' balances speed and quality. Default value: \"none\"",
+          "required": false,
+          "values": [
+            "none",
+            "regular",
+            "high"
+          ]
+        },
+        {
+          "name": "image_size",
+          "type": "enum",
+          "default": "landscape_4_3",
+          "title": "Image Size",
+          "description": "The size of the generated image. Default value: landscape_4_3",
+          "required": false,
+          "values": [
+            "square",
+            "square_hd",
+            "portrait_4_3",
+            "portrait_16_9",
+            "landscape_4_3",
+            "landscape_16_9"
+          ]
+        },
+        {
+          "name": "num_inference_steps",
+          "type": "float",
+          "default": 25,
+          "title": "Num Inference Steps",
+          "description": "The number of inference steps to perform. Default value: 30 (Min: 2, Max: 49, Step: 1) (step: 1)",
+          "required": false,
+          "min": 2,
+          "max": 49
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "The same seed and the same prompt given to the same version of the model will output the same image every time.",
+          "required": false
+        },
+        {
+          "name": "guidance_scale",
+          "type": "float",
+          "default": 4,
+          "title": "Guidance Scale",
+          "description": "The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt when looking for a related image to show you. Default value: 4 (Min: 0, Max: 20, Step: 0.1) (step: 0.1)",
+          "required": false,
+          "min": 0,
+          "max": 20
+        },
+        {
+          "name": "sync_mode",
+          "type": "bool",
+          "default": false,
+          "title": "Sync Mode",
+          "description": "If set to true, the function will wait for the image to be generated and uploaded before returning the response. This will increase the latency of the function but it allows you to get the image directly in the response without going through the CDN. (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "num_images",
+          "type": "enum",
+          "default": "",
+          "title": "Num Images",
+          "description": "num_images",
+          "required": false,
+          "values": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        {
+          "name": "enable_safety_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Enable Safety Checker",
+          "description": "If set to true, the safety checker will be enabled. Default value: true (Boolean value (true/false))",
+          "required": false
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "The format of the generated image. Default value: \"png\"",
+          "required": false,
+          "values": [
+            "jpeg",
+            "png"
+          ]
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "The negative prompt for the generation Default value: \" \" (Max length: 500 characters)",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Qwen2ImageEdit",
+      "modelId": "qwen2/image-edit",
+      "title": "Qwen2 - Image Edit",
+      "description": "Qwen2 - Image Edit via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by qwen2/image-edit",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The prompt to generate the image with (Max length: 800 characters)",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "The URL of the image to edit. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
+          "required": true
+        },
+        {
+          "name": "image_size",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Image Size",
+          "description": "The size of the generated image. Default value: 16:9",
+          "required": false,
+          "values": [
+            "1:1",
+            "2:3",
+            "3:2",
+            "3:4",
+            "4:3",
+            "9:16",
+            "16:9",
+            "21:9"
+          ]
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "The same seed and the same prompt given to the same version of the model will output the same image every time.",
+          "required": false
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "The format of the generated image. Default value: \"png\"",
+          "required": false,
+          "values": [
+            "jpeg",
+            "png"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Qwen2TextToImage",
+      "modelId": "qwen2/image-edit",
+      "title": "Qwen2 - Text To Image",
+      "description": "Qwen2 - Text To Image via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by qwen2/text-to-image",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The prompt to generate the image with (Max length: 800 characters)",
+          "required": true
+        },
+        {
+          "name": "image_size",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Image Size",
+          "description": "The size of the generated image. Default value: 16:9",
+          "required": false,
+          "values": [
+            "1:1",
+            "3:4",
+            "4:3",
+            "9:16",
+            "16:9"
+          ]
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "The same seed and the same prompt given to the same version of the model will output the same image every time.",
+          "required": false
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "The format of the generated image. Default value: \"png\"",
+          "required": false,
+          "values": [
+            "jpeg",
+            "png"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Wan27Image",
+      "modelId": "wan/2-7-image",
+      "title": "Wan 2.7 Image",
+      "description": "Wan 2.7 Image via Kie.ai.\n\n    kie, image, ai\n\n    Based on wan/2-7-image, image generation and editing are achieved.",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Prompt for image generation or editing. This field supports both Chinese and English, with a maximum length of 5000 characters as per Alibaba Cloud documentation.",
+          "required": true
+        },
+        {
+          "name": "inputs",
+          "type": "list[image]",
+          "default": [],
+          "title": "Inputs",
+          "description": "(Optional) Array of input image URLs. The current project uses `input_urls` as a wrapper field.",
+          "required": false
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "(Optional) Output aspect ratio when no image input is provided.",
+          "required": false,
+          "values": [
+            "1:1",
+            "16:9",
+            "4:3",
+            "21:9",
+            "3:4",
+            "9:16",
+            "8:1",
+            "1:8"
+          ]
+        },
+        {
+          "name": "enable_sequential",
+          "type": "bool",
+          "default": false,
+          "title": "Enable Sequential",
+          "description": "Whether to enable sequential/group image mode. Default is false.",
+          "required": false
+        },
+        {
+          "name": "n",
+          "type": "int",
+          "default": 0,
+          "title": "N",
+          "description": "Number of images to generate. Range is 1-4 when `enable_sequential=false` (default: 4); range is 1-12 when `enable_sequential=true` (default: 12).",
+          "required": false
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "2K",
+          "title": "Resolution",
+          "description": "Output resolution. The current project uses `resolution` as a wrapper field corresponding to the underlying resolution parameter.",
+          "required": false,
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        },
+        {
+          "name": "thinking_mode",
+          "type": "bool",
+          "default": false,
+          "title": "Thinking Mode",
+          "description": "Whether to enable thinking mode. Only available when `enable_sequential=false` and `input_urls` is empty; the frontend will automatically disable it in other cases.",
+          "required": false
+        },
+        {
+          "name": "color_palette",
+          "type": "list[image]",
+          "default": [],
+          "title": "Color Palette",
+          "description": "(Optional) Custom color theme. Only available when `enable_sequential=false`. Requires 3-10 colors, 8 recommended.",
+          "required": false
+        },
+        {
+          "name": "bbox_list",
+          "type": "list[image]",
+          "default": [],
+          "title": "Bbox List",
+          "description": "(Optional) Interactive editing bounding box areas. The outer list length should match `input_urls`; maximum 2 boxes per image; single box format is `[x1, y1, x2, y2]`.",
+          "required": false
+        },
+        {
+          "name": "watermark",
+          "type": "bool",
+          "default": false,
+          "title": "Watermark",
+          "description": "Whether to add watermark.",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed, range 0-2147483647.",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "inputs",
+          "kind": "image",
+          "isList": true,
+          "paramName": "input_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Wan27ImagePro",
+      "modelId": "wan/2-7-image-pro",
+      "title": "Wan 2.7 Image Pro",
+      "description": "Wan 2.7 Image Pro via Kie.ai.\n\n    kie, image, ai\n\n    Based on wan/2-7-image-pro, image generation and editing are achieved.",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Prompt for image generation or editing. This field supports both Chinese and English, with a maximum length of 5000 characters as per Alibaba Cloud documentation.",
+          "required": true
+        },
+        {
+          "name": "inputs",
+          "type": "list[image]",
+          "default": [],
+          "title": "Inputs",
+          "description": "(Optional) Array of input image URLs. The current project uses `input_urls` as a wrapper field.",
+          "required": false
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "(Optional) Output aspect ratio when no image input is provided.",
+          "required": false,
+          "values": [
+            "1:1",
+            "16:9",
+            "4:3",
+            "21:9",
+            "3:4",
+            "9:16",
+            "8:1",
+            "1:8"
+          ]
+        },
+        {
+          "name": "enable_sequential",
+          "type": "bool",
+          "default": false,
+          "title": "Enable Sequential",
+          "description": "Whether to enable sequential/group image mode. Default is false.",
+          "required": false
+        },
+        {
+          "name": "n",
+          "type": "int",
+          "default": 0,
+          "title": "N",
+          "description": "Number of images to generate. Range is 1-4 when `enable_sequential=false` (default: 4); range is 1-12 when `enable_sequential=true` (default: 12).",
+          "required": false
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "2K",
+          "title": "Resolution",
+          "description": "Output resolution. The current project uses `resolution` as a wrapper field corresponding to the underlying resolution parameter.(4K generation is available only for text-to-image in Standard Mode)",
+          "required": false,
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        },
+        {
+          "name": "thinking_mode",
+          "type": "bool",
+          "default": false,
+          "title": "Thinking Mode",
+          "description": "Whether to enable thinking mode. Only available when `enable_sequential=false` and `input_urls` is empty; the frontend will automatically disable it in other cases.",
+          "required": false
+        },
+        {
+          "name": "color_palette",
+          "type": "list[image]",
+          "default": [],
+          "title": "Color Palette",
+          "description": "(Optional) Custom color theme. Only available when `enable_sequential=false`. Requires 3-10 colors, 8 recommended.",
+          "required": false
+        },
+        {
+          "name": "bbox_list",
+          "type": "list[image]",
+          "default": [],
+          "title": "Bbox List",
+          "description": "(Optional) Interactive editing bounding box areas. The outer list length should match `input_urls`; maximum 2 boxes per image; single box format is `[x1, y1, x2, y2]`.",
+          "required": false
+        },
+        {
+          "name": "watermark",
+          "type": "bool",
+          "default": false,
+          "title": "Watermark",
+          "description": "Whether to add watermark.",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed, range 0-2147483647.",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "inputs",
+          "kind": "image",
+          "isList": true,
+          "paramName": "input_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
       ]
     }
