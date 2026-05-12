@@ -137,6 +137,23 @@ export const textGenerateConfig: ModuleConfig = {
     "moonshotai/kimi-k2.5": {
       className: "Kimi_K2_5",
       returnType: "str"
+    },
+    "anthropic/claude-opus-4.7": {
+      className: "Claude_Opus_4_7",
+      returnType: "str"
+    },
+    "moonshotai/kimi-k2.6": {
+      className: "Kimi_K2_6",
+      returnType: "str"
+    },
+    "ibm-granite/granite-4.1-8b": {
+      className: "Granite_4_1_8B",
+      returnType: "str"
+    },
+    "ibm-granite/granite-speech-4.1-2b": {
+      className: "Granite_Speech_4_1_2B",
+      returnType: "str",
+      fieldOverrides: { audio: { propType: "audio" } }
     }
   }
 };

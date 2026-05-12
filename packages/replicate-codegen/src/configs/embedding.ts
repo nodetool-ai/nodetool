@@ -61,6 +61,10 @@ export const embeddingConfig: ModuleConfig = {
     "center-for-curriculum-redesign/bge_1-5_query_embeddings": {
       className: "BGE_1_5_Query",
       returnType: "str"
+    },
+    "ibm-granite/granite-embedding-small-english-r2": {
+      className: "Granite_Embedding_Small_English_R2",
+      returnType: "str"
     }
   }
 };

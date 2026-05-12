@@ -101,6 +101,18 @@ export const audioSpeechConfig: ModuleConfig = {
     },
     "zsxkib/flux-music": { className: "Flux_Music", returnType: "audio" },
     "zsxkib/dia": { className: "Dia", returnType: "audio" },
-    "zsxkib/thinksound": { className: "ThinkSound", returnType: "audio" }
+    "zsxkib/thinksound": { className: "ThinkSound", returnType: "audio" },
+    "inworld/realtime-tts-2": {
+      className: "Inworld_Realtime_TTS_2",
+      returnType: "audio"
+    },
+    "xai/grok-text-to-speech": {
+      className: "Grok_Text_To_Speech",
+      returnType: "audio"
+    },
+    "google/gemini-3.1-flash-tts": {
+      className: "Gemini_3_1_Flash_TTS",
+      returnType: "audio"
+    }
   }
 };
