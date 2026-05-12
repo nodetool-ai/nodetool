@@ -12,7 +12,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_HOST_KEY = '@nodetool_api_host';
-export const DEFAULT_API_HOST = 'http://localhost:7777';
+const DEFAULT_API_HOST = 'http://localhost:7777';
 
 // In-memory cache — updated whenever ApiService saves/loads the host.
 let cachedHost: string = DEFAULT_API_HOST;

@@ -64,7 +64,7 @@ export interface PlanningUpdate {
 /**
  * Task lifecycle update from the agent task executor.
  */
-export interface TaskUpdateMessage {
+interface TaskUpdateMessage {
   type: 'task_update';
   event?: string;
   task?: { id?: string; title?: string };

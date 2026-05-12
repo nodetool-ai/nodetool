@@ -169,7 +169,7 @@ function convertValue(
  * @param csvText - The CSV text content
  * @returns A DataframeRef object
  */
-export function parseCSV(csvText: string): DataframeRef {
+function parseCSV(csvText: string): DataframeRef {
   const lines = csvText.split(/\r?\n/).filter((line) => line.trim() !== "");
 
   if (lines.length === 0) {
@@ -323,7 +323,7 @@ export async function parseExcel(file: File): Promise<DataframeRef> {
 /**
  * Supported file extensions for dataframe import.
  */
-export const SUPPORTED_DATAFRAME_EXTENSIONS = [".csv", ".xlsx", ".xls"];
+const SUPPORTED_DATAFRAME_EXTENSIONS = [".csv", ".xlsx", ".xls"];
 
 /**
  * Check if a file is a supported dataframe file.

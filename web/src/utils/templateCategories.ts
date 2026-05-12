@@ -1,6 +1,6 @@
 import { Workflow } from "../stores/ApiTypes";
 
-export interface TemplateCategory {
+interface TemplateCategory {
   id: string;
   label: string;
   tags: string[];
@@ -43,14 +43,14 @@ const TOP_TAG_SET = new Set(TOP_CATEGORIES.flatMap((c) => c.tags));
 // Tags promoted to a category — never shown in the More overflow.
 const HIDDEN_TAGS = new Set(["start", "getting-started", "example"]);
 
-export const GETTING_STARTED_TAGS = ["getting-started", "start"];
+const GETTING_STARTED_TAGS = ["getting-started", "start"];
 
 export const isGettingStarted = (workflow: Workflow): boolean => {
   const tags = workflow.tags || [];
   return tags.some((t) => GETTING_STARTED_TAGS.includes(t));
 };
 
-export const matchesCategory = (
+const matchesCategory = (
   workflow: Workflow,
   category: TemplateCategory
 ): boolean => {

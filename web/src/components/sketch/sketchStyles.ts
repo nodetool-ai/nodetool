@@ -6,7 +6,6 @@
  */
 
 import type { SxProps, Theme } from "@mui/material/styles";
-import { parseColorToRgba, rgbaToCss } from "./types";
 
 // ─── Color Tokens ─────────────────────────────────────────────────────────────
 // Semantic names tied to MUI's grey palette (dark theme).
@@ -252,17 +251,3 @@ export const sketchHintTextSx: SxProps<Theme> = {
   fontStyle: "italic",
 };
 
-// ─── Color Utilities ──────────────────────────────────────────────────────────
-
-/**
- * Native color inputs return #rrggbb hex; this preserves the existing alpha
- * from the stored CSS color when merging a new RGB value from the picker.
- */
-export function mergeHexPickerRgbPreserveAlpha(
-  stored: string,
-  pickerHex: string
-): string {
-  const { a } = parseColorToRgba(stored);
-  const { r, g, b } = parseColorToRgba(pickerHex);
-  return rgbaToCss({ r, g, b, a });
-}

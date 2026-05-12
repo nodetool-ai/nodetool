@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Appearance } from 'react-native';
 import { paletteDark, paletteLight, ThemeColors } from '../utils/theme';
 
-export type ThemeMode = 'light' | 'dark' | 'system';
+type ThemeMode = 'light' | 'dark' | 'system';
 
 interface ThemeState {
   mode: ThemeMode;
