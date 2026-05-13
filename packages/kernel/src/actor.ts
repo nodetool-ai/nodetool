@@ -219,11 +219,16 @@ export class NodeActor {
       return;
     }
 
-    if (syncMode === "on_any") {
+    const hasListInputHandles = inputHandles.some((handle) =>
+      this._listInputHandles.has(handle)
+    );
+    if (syncMode === "on_any" && !hasListInputHandles) {
       return this._runOnAny(inputHandles);
     }
 
-    // zip_all: keep gathering input batches until inbox is drained
+    // zip_all, or collect handles: keep gathering input batches until drained.
+    // Collect/list handles need the full upstream set before process() runs,
+    // regardless of the node's sync_mode.
     while (true) {
       const inputs = await this._gatherZipAll();
       if (inputs === null) break;
