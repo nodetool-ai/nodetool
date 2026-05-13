@@ -340,6 +340,74 @@ describe("type mapping via parse()", () => {
     expect(f.propType).toBe("dict[str, any]");
     expect(f.tsType).toBe("object");
   });
+
+  it("maps schema length and item bounds to field min max metadata", () => {
+    const schema: ReplicateSchema = {
+      modelId: "test/model",
+      owner: "test",
+      name: "model",
+      version: "v1",
+      description: "",
+      inputSchema: {
+        type: "object",
+        properties: {
+          prompt: {
+            type: "string",
+            minLength: 3,
+            maxLength: 5000
+          },
+          images: {
+            type: "array",
+            items: { type: "string", format: "uri" },
+            minItems: 1,
+            maxItems: 4
+          }
+        },
+        required: []
+      },
+      outputSchema: {}
+    };
+
+    const spec = parser.parse(schema);
+    expect(spec.inputFields.find((f) => f.name === "prompt")).toMatchObject({
+      min: 3,
+      max: 5000
+    });
+    expect(spec.inputFields.find((f) => f.name === "images")).toMatchObject({
+      min: 1,
+      max: 4
+    });
+  });
+
+  it("maps documented bounds to numeric field min max metadata", () => {
+    const spec = parser.parse(
+      makeSchema("duration", {
+        type: "integer",
+        description: "Video duration. Minimum: 4, Maximum: 15"
+      })
+    );
+
+    expect(spec.inputFields.find((f) => f.name === "duration")).toMatchObject({
+      propType: "int",
+      min: 4,
+      max: 15
+    });
+  });
+
+  it("keeps duration enums as enums when the schema defines options", () => {
+    const spec = parser.parse(
+      makeSchema("duration", {
+        type: "string",
+        enum: ["5", "10"],
+        description: "Video duration."
+      })
+    );
+
+    expect(spec.inputFields.find((f) => f.name === "duration")).toMatchObject({
+      propType: "enum",
+      enumValues: ["5", "10"]
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

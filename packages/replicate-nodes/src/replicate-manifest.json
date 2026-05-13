@@ -39608,7 +39608,8 @@
         "default": "",
         "description": "Things you do not want to see in the video. Max 2500 characters.",
         "fieldType": "input",
-        "required": false
+        "required": false,
+        "max": 2500
       },
       {
         "name": "prompt",
@@ -39617,7 +39618,8 @@
         "default": "",
         "description": "Text prompt for video generation. Max 2500 characters.",
         "fieldType": "input",
-        "required": true
+        "required": true,
+        "max": 2500
       },
       {
         "name": "start_image",
@@ -39757,7 +39759,8 @@
         "default": "",
         "description": "Text prompt for video generation. Supports <<<image_1>>>, <<<video_1>>> template references. Max 2500 characters.",
         "fieldType": "input",
-        "required": true
+        "required": true,
+        "max": 2500
       },
       {
         "name": "reference_images",
@@ -43955,7 +43958,9 @@
         "default": -1,
         "description": "Random seed for reproducible generation. Range: 0-2147483647",
         "fieldType": "input",
-        "required": false
+        "required": false,
+        "min": 0,
+        "max": 2147483647
       }
     ],
     "outputFields": [],
@@ -51987,7 +51992,8 @@
         "default": "",
         "description": "Comma-separated list of words or phrases to bias transcription towards. Useful for product names, technical terms, or proper nouns. Up to 1000 terms, max 50 characters each.",
         "fieldType": "input",
-        "required": false
+        "required": false,
+        "max": 50
       },
       {
         "name": "language_code",
@@ -55192,7 +55198,8 @@
         "default": "",
         "description": "Text to synthesize into speech (maximum 300 characters)",
         "fieldType": "input",
-        "required": true
+        "required": true,
+        "max": 300
       }
     ],
     "outputFields": [],
@@ -55522,7 +55529,8 @@
         "default": "",
         "description": "Text to synthesize into speech (maximum 500 characters).\n\nSupported paralinguistic tags you can include in your text:\n[clear throat], [sigh], [sush], [cough], [groan], [sniff], [gasp], [chuckle], [laugh]\n\nExample: \"Oh, that's hilarious! [chuckle] Let me tell you more.\"",
         "fieldType": "input",
-        "required": true
+        "required": true,
+        "max": 500
       },
       {
         "name": "top_k",
@@ -60592,7 +60600,8 @@
         "default": "",
         "description": "Text to synthesize into speech. Maximum 15000 characters. Supports inline speech tags like '[pause]', '[laugh]', and wrapping tags like '<whisper>...</whisper>' for expressive delivery.",
         "fieldType": "input",
-        "required": true
+        "required": true,
+        "max": 15000
       },
       {
         "name": "text_normalization",

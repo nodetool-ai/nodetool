@@ -73,6 +73,7 @@ export class SchemaParser {
         propType,
         required.includes(name)
       );
+      const bounds = this._getBounds(propObj, propType);
 
       fields.push({
         name,
@@ -86,12 +87,135 @@ export class SchemaParser {
         enumValues: enumRef
           ? (propObj.enum as unknown[] | undefined)?.map(String)
           : undefined,
-        ...(propObj.minimum !== undefined && { min: propObj.minimum as number }),
-        ...(propObj.maximum !== undefined && { max: propObj.maximum as number })
+        ...(bounds.min !== undefined && { min: bounds.min }),
+        ...(bounds.max !== undefined && { max: bounds.max })
       });
     }
 
     return fields;
+  }
+
+  private _numericValue(value: unknown): number | undefined {
+    return typeof value === "number" && Number.isFinite(value)
+      ? value
+      : undefined;
+  }
+
+  private _schemaBound(prop: AnyRecord, keys: string[]): number | undefined {
+    for (const key of keys) {
+      const value = this._numericValue(prop[key]);
+      if (value !== undefined) {
+        return value;
+      }
+    }
+
+    const variants = (prop.anyOf ?? prop.oneOf ?? prop.allOf) as
+      | AnyRecord[]
+      | undefined;
+    if (variants) {
+      for (const variant of variants) {
+        const value = this._schemaBound(variant, keys);
+        if (value !== undefined) {
+          return value;
+        }
+      }
+    }
+    return undefined;
+  }
+
+  private _descriptionText(prop: AnyRecord): string {
+    const parts: string[] = [];
+    if (typeof prop.description === "string") {
+      parts.push(prop.description);
+    }
+    const variants = (prop.anyOf ?? prop.oneOf ?? prop.allOf) as
+      | AnyRecord[]
+      | undefined;
+    if (variants) {
+      for (const variant of variants) {
+        const text = this._descriptionText(variant);
+        if (text) {
+          parts.push(text);
+        }
+      }
+    }
+    return parts.join(" ");
+  }
+
+  private _descriptionBounds(
+    prop: AnyRecord,
+    propType: string
+  ): { min?: number; max?: number } {
+    const text = this._descriptionText(prop).replace(/\s+/g, " ");
+    if (!text) {
+      return {};
+    }
+
+    if (propType === "str") {
+      const maxChars = text.match(
+        /\bmax(?:imum)?\s+(\d+(?:\.\d+)?)\s+(?:characters|chars)\b/i
+      );
+      if (maxChars) {
+        return { max: Number(maxChars[1]) };
+      }
+      return {};
+    }
+
+    if (propType !== "int" && propType !== "float") {
+      return {};
+    }
+
+    const minMatch = text.match(/\bminimum\s*:?\s*(-?\d+(?:\.\d+)?)/i);
+    const maxMatch = text.match(/\bmaximum\s*:?\s*(-?\d+(?:\.\d+)?)/i);
+    if (minMatch || maxMatch) {
+      return {
+        ...(minMatch ? { min: Number(minMatch[1]) } : {}),
+        ...(maxMatch ? { max: Number(maxMatch[1]) } : {})
+      };
+    }
+
+    const rangeMatch = text.match(
+      /\brange\b[^.\n\r]{0,80}?(-?\d+(?:\.\d+)?)\s*(?:-|–|—|to|~|and)\s*(-?\d+(?:\.\d+)?)/i
+    );
+    if (rangeMatch) {
+      return { min: Number(rangeMatch[1]), max: Number(rangeMatch[2]) };
+    }
+
+    const betweenMatch = text.match(
+      /\bbetween\s+(-?\d+(?:\.\d+)?)\s*(?:-|–|—|to|~|and)\s*(-?\d+(?:\.\d+)?)/i
+    );
+    if (betweenMatch) {
+      return { min: Number(betweenMatch[1]), max: Number(betweenMatch[2]) };
+    }
+
+    const bracketMatch = text.match(
+      /\[\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\]/i
+    );
+    if (bracketMatch) {
+      return { min: Number(bracketMatch[1]), max: Number(bracketMatch[2]) };
+    }
+
+    return {};
+  }
+
+  private _getBounds(
+    prop: AnyRecord,
+    propType: string
+  ): { min?: number; max?: number } {
+    if (propType === "enum") {
+      return {};
+    }
+
+    const directMin = this._schemaBound(prop, ["minimum"]);
+    const directMax = this._schemaBound(prop, ["maximum"]);
+    const lengthMin = this._schemaBound(prop, ["minLength", "minItems"]);
+    const lengthMax = this._schemaBound(prop, ["maxLength", "maxItems"]);
+    const descriptionBounds = this._descriptionBounds(prop, propType);
+
+    return {
+      min: directMin ?? lengthMin ?? descriptionBounds.min,
+      max: directMax ?? lengthMax ?? descriptionBounds.max
+    };
   }
 
   /**
