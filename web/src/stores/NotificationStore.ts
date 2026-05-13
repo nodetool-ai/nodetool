@@ -41,7 +41,7 @@ export interface Notification {
 const DEDUPE_WINDOW_MS = 5000;
 
 /** Calculate auto-dismiss timeout based on message length. Longer messages get more reading time. */
-export function calculateReadingTimeout(content: string): number {
+function calculateReadingTimeout(content: string): number {
   const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
   const readingTimeMs = Math.ceil((wordCount / NOTIFICATION_READING_WPM) * 60 * 1000);
   return Math.max(

@@ -13,7 +13,7 @@ export const FX_PANEL_HEIGHT_PX = 280;
  * Effective rendered height of a track row, including the inline FX panel
  * when expanded.
  */
-export function trackEffectiveHeight(
+function trackEffectiveHeight(
   trackHeightPx: number | undefined,
   fxExpanded: boolean
 ): number {

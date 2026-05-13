@@ -367,7 +367,7 @@ async function fetchPackageNodes(repoId: string): Promise<PackageNode[]> {
   }
 }
 
-export async function fetchAllNodes(
+async function fetchAllNodes(
   forceRefresh: boolean = false
 ): Promise<PackageNode[]> {
   if (nodeCache && !forceRefresh) {
@@ -619,14 +619,6 @@ export async function checkForPackageUpdates(): Promise<PackageUpdateInfo[]> {
     logMessage(`Failed to check for package updates: ${errorMsg(error)}`, "warn");
     return [];
   }
-}
-
-export async function getPackageForNodeType(
-  nodeType: string
-): Promise<string | null> {
-  const nodes = await fetchAllNodes();
-  const match = nodes.find((n) => n.node_type === nodeType);
-  return match?.package ?? null;
 }
 
 /**
@@ -1039,51 +1031,6 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
 }
 
 export { PACKAGE_INDEX_URL };
-
-/**
- * Check a single package version against expected version
- * Returns { needsUpdate: true } if version doesn't match, { currentVersion: "x.y.z" } if ok
- */
-export async function checkPackageVersion(
-  packageName: string
-): Promise<{ needsUpdate: boolean; currentVersion?: string; expectedVersion?: string }> {
-  const expectedVersion = getAppVersion();
-
-  if (!expectedVersion) {
-    return { needsUpdate: false };
-  }
-
-  try {
-    const output = await runUvCommand(["pip", "show", packageName], { silent: true });
-    const versionMatch = output.match(/^Version: (.+)$/m);
-    const currentVersion = versionMatch ? versionMatch[1] : null;
-
-    if (!currentVersion) {
-      logMessage(`Package ${packageName} not installed, needs installation`);
-      return { needsUpdate: true, expectedVersion };
-    }
-
-    const versionsMatch = compareVersions(currentVersion, expectedVersion);
-    if (versionsMatch !== 0) {
-      logMessage(
-        `Package ${packageName} version mismatch: installed=${currentVersion}, expected=${expectedVersion}`
-      );
-      return { needsUpdate: true, currentVersion, expectedVersion };
-    }
-
-    return { needsUpdate: false, currentVersion };
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("package not found")) {
-      logMessage(`Package ${packageName} not installed, needs installation`);
-      return { needsUpdate: true, expectedVersion };
-    }
-    logMessage(
-      `Failed to check version for ${packageName}: ${errorMsg(error)}`,
-      "warn"
-    );
-    return { needsUpdate: false };
-  }
-}
 
 /**
  * Check all expected package versions
