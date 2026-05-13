@@ -134,6 +134,7 @@ declare module "@mui/material/styles" {
       node?: string;
       buttonSmall?: string;
       buttonLarge?: string;
+      container?: string;
     };
     editor?: {
       heightNode?: string;
@@ -238,6 +239,36 @@ declare module "@mui/material/styles" {
     0?: string;
     850?: string;
     1000?: string;
+  }
+
+  interface PaletteOptions {
+    c_gray0?: string;
+    c_gray1?: string;
+    c_gray2?: string;
+    c_gray3?: string;
+    c_gray4?: string;
+    c_gray5?: string;
+    c_gray6?: string;
+    c_hl1?: string;
+    c_hl2?: string;
+    rounded?: {
+      container?: string;
+    };
+  }
+
+  interface Palette {
+    c_gray0?: string;
+    c_gray1?: string;
+    c_gray2?: string;
+    c_gray3?: string;
+    c_gray4?: string;
+    c_gray5?: string;
+    c_gray6?: string;
+    c_hl1?: string;
+    c_hl2?: string;
+    rounded: {
+      container?: string;
+    };
   }
 
   // Extend ZIndex with app-specific levels used across the project

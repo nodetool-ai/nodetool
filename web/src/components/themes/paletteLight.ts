@@ -38,15 +38,6 @@ declare module "@mui/material/styles" {
     c_provider_hf?: string;
     c_app_header?: string;
     c_tabs_header?: string;
-    c_gray0?: string;
-    c_gray1?: string;
-    c_gray2?: string;
-    c_gray3?: string;
-    c_gray4?: string;
-    c_gray5?: string;
-    c_gray6?: string;
-    c_hl1?: string;
-    c_hl2?: string;
 
     // Provider badge colors
     providerApi?: string;
@@ -69,7 +60,6 @@ declare module "@mui/material/styles" {
       node?: string;
       buttonSmall?: string;
       buttonLarge?: string;
-      container?: string;
     };
   }
 
@@ -110,15 +100,6 @@ declare module "@mui/material/styles" {
     c_provider_hf?: string;
     c_app_header?: string;
     c_tabs_header?: string;
-    c_gray0?: string;
-    c_gray1?: string;
-    c_gray2?: string;
-    c_gray3?: string;
-    c_gray4?: string;
-    c_gray5?: string;
-    c_gray6?: string;
-    c_hl1?: string;
-    c_hl2?: string;
 
     // Provider badge colors
     providerApi?: string;
@@ -141,7 +122,6 @@ declare module "@mui/material/styles" {
       node: string;
       buttonSmall: string;
       buttonLarge: string;
-      container: string;
     };
   }
 }

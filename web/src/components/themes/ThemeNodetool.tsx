@@ -56,7 +56,8 @@ const ThemeNodetool = createTheme({
     dialog: "20px",
     node: "8px",
     buttonSmall: "4px",
-    buttonLarge: "6px"
+    buttonLarge: "6px",
+    container: "12px"
   },
   // Minimal editor-specific values. Keep this small; expand only when needed.
   // Applied only behind editor marker classes to avoid cross-screen leakage.
