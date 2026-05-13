@@ -12,7 +12,7 @@ import { useNodeResultHistoryStore } from "../../stores/NodeResultHistoryStore";
 import { HistoricalResult } from "../../stores/NodeResultHistoryStore";
 import { useNodeAssets } from "../../serverState/useNodeAssets";
 
-const resolveHistoryUri = (uri: string): string | null => {
+export const resolveHistoryUri = (uri: string): string | null => {
   if (uri.startsWith("asset://")) {
     const assetId = uri.slice("asset://".length);
     return `/api/storage/${assetId}`;
@@ -25,7 +25,7 @@ const resolveHistoryUri = (uri: string): string | null => {
   return uri;
 };
 
-const normalizeHistoryResultUris = (value: unknown): unknown => {
+export const normalizeHistoryResultUris = (value: unknown): unknown => {
   if (Array.isArray(value)) {
     return value.map((item) => normalizeHistoryResultUris(item));
   }
