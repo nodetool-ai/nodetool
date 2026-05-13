@@ -48,7 +48,8 @@ export const audioConfig: ModuleConfig = {
           "default": "",
           "title": "Text",
           "description": "The text describing the sound effect to generate (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "loop",
@@ -143,7 +144,8 @@ export const audioConfig: ModuleConfig = {
           "default": "",
           "title": "Language Code",
           "description": "Language code of the audio (Max length: 500 characters)",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "tag_audio_events",
@@ -292,7 +294,8 @@ export const audioConfig: ModuleConfig = {
           "default": "",
           "title": "Text",
           "description": "The text to convert to speech (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "voice",
@@ -425,7 +428,8 @@ export const audioConfig: ModuleConfig = {
           "default": "",
           "title": "Previous Text",
           "description": "The text that came before the text of the current request. Can be used to improve the speech's continuity when concatenating together multiple generations or to influence the speech's continuity in the current generation. (Max length: 5000 characters)",
-          "required": false
+          "required": false,
+          "max": 5000
         },
         {
           "name": "next_text",
@@ -433,7 +437,8 @@ export const audioConfig: ModuleConfig = {
           "default": "",
           "title": "Next Text",
           "description": "The text that comes after the text of the current request. Can be used to improve the speech's continuity when concatenating together multiple generations or to influence the speech's continuity in the current generation. (Max length: 5000 characters)",
-          "required": false
+          "required": false,
+          "max": 5000
         },
         {
           "name": "language_code",
@@ -441,7 +446,8 @@ export const audioConfig: ModuleConfig = {
           "default": "",
           "title": "Language Code",
           "description": "Language code (ISO 639-1) used to enforce a language for the model. Currently only Turbo v2.5 and Flash v2.5 support language enforcement. For other models, an error will be returned if language code is provided. (Max length: 500 characters)",
-          "required": false
+          "required": false,
+          "max": 500
         }
       ],
       "validation": [
@@ -470,7 +476,8 @@ export const audioConfig: ModuleConfig = {
           "default": "",
           "title": "Text",
           "description": "The text to convert to speech (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "voice",
@@ -603,7 +610,8 @@ export const audioConfig: ModuleConfig = {
           "default": "",
           "title": "Previous Text",
           "description": "The text that came before the text of the current request. Can be used to improve the speech's continuity when concatenating together multiple generations or to influence the speech's continuity in the current generation. (Max length: 5000 characters)",
-          "required": false
+          "required": false,
+          "max": 5000
         },
         {
           "name": "next_text",
@@ -611,7 +619,8 @@ export const audioConfig: ModuleConfig = {
           "default": "",
           "title": "Next Text",
           "description": "The text that comes after the text of the current request. Can be used to improve the speech's continuity when concatenating together multiple generations or to influence the speech's continuity in the current generation. (Max length: 5000 characters)",
-          "required": false
+          "required": false,
+          "max": 5000
         },
         {
           "name": "language_code",
@@ -619,7 +628,8 @@ export const audioConfig: ModuleConfig = {
           "default": "",
           "title": "Language Code",
           "description": "Language code (ISO 639-1) used to enforce a language for the model. Currently only Turbo v2.5 and Flash v2.5 support language enforcement. For other models, an error will be returned if language code is provided. (Max length: 500 characters)",
-          "required": false
+          "required": false,
+          "max": 500
         }
       ],
       "validation": [
@@ -1728,7 +1738,9 @@ export const audioConfig: ModuleConfig = {
           "default": [],
           "title": "Upload Url List",
           "description": "Array of audio file URLs to mashup. Must contain exactly 2 URLs. Each URL must be publicly accessible.",
-          "required": true
+          "required": true,
+          "min": 2,
+          "max": 2
         },
         {
           "name": "prompt",
@@ -2036,7 +2048,8 @@ export const audioConfig: ModuleConfig = {
           "default": "",
           "title": "Author",
           "description": "Artist or creator name to display as a signature on the video cover. Maximum 50 characters. This creates attribution for the music creator.",
-          "required": false
+          "required": false,
+          "max": 50
         },
         {
           "name": "domainName",
@@ -2044,7 +2057,8 @@ export const audioConfig: ModuleConfig = {
           "default": "",
           "title": "Domain Name",
           "description": "Website or brand to display as a watermark at the bottom of the video. Maximum 50 characters. Useful for promotional branding or attribution.",
-          "required": false
+          "required": false,
+          "max": 50
         }
       ],
       "validation": [

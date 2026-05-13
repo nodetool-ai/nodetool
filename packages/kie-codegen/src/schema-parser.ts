@@ -69,6 +69,9 @@ function sanitizeParamName(name: string): string {
 
 function fieldNameForUrl(paramName: string, kind: MediaKind, isList: boolean): string {
   if (isList) {
+    if (paramName === "input_urls") {
+      return `${kind}s`;
+    }
     if (paramName.endsWith(`_${kind}_urls`)) {
       return `${paramName.slice(0, -`${kind}_urls`.length)}${kind}s`;
     }
@@ -135,6 +138,55 @@ function cleanDescription(value: unknown): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function numericValue(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function numericBoundsFromText(text: string): { min?: number; max?: number } {
+  const minMatch = text.match(/\bMinimum:\s*(-?\d+(?:\.\d+)?)/i);
+  const maxMatch = text.match(/\bMaximum:\s*(-?\d+(?:\.\d+)?)/i);
+  if (minMatch || maxMatch) {
+    return {
+      ...(minMatch ? { min: Number(minMatch[1]) } : {}),
+      ...(maxMatch ? { max: Number(maxMatch[1]) } : {})
+    };
+  }
+
+  const rangeMatch = text.match(
+    /\b(?:Range|Duration|Length)\b[^.\n\r]*?(?:\[|\(|:)?\s*(-?\d+(?:\.\d+)?)\s*(?:,|to|-|~)\s*(-?\d+(?:\.\d+)?)/i
+  );
+  if (rangeMatch) {
+    return { min: Number(rangeMatch[1]), max: Number(rangeMatch[2]) };
+  }
+  return {};
+}
+
+function boundsForSchema(schema: JsonRecord): { min?: number; max?: number } {
+  const descriptionBounds = numericBoundsFromText(cleanDescription(schema.description));
+  return {
+    min:
+      numericValue(schema.minimum) ??
+      numericValue(schema.minLength) ??
+      numericValue(schema.minItems) ??
+      descriptionBounds.min,
+    max:
+      numericValue(schema.maximum) ??
+      numericValue(schema.maxLength) ??
+      numericValue(schema.maxItems) ??
+      descriptionBounds.max
+  };
+}
+
+function applyBounds(field: FieldDef, schema: JsonRecord): void {
+  const bounds = boundsForSchema(schema);
+  if (bounds.min !== undefined) {
+    field.min = bounds.min;
+  }
+  if (bounds.max !== undefined) {
+    field.max = bounds.max;
+  }
+}
+
 function coerceDefault(schema: JsonRecord, type: FieldDef["type"]): unknown {
   if (type === "image" || type === "audio" || type === "video") {
     return defaultForMedia(type);
@@ -177,15 +229,17 @@ function mapField(paramName: string, schema: JsonRecord, required: boolean): {
   if (mediaKind) {
     const fieldName = fieldNameForUrl(sourceName, mediaKind, isUrlArray);
     const fieldType = isUrlArray ? (`list[${mediaKind}]` as FieldDef["type"]) : mediaKind;
+    const field: FieldDef = {
+      name: fieldName,
+      type: fieldType,
+      default: coerceDefault(schema, fieldType),
+      title: toTitle(fieldName),
+      description: cleanDescription(schema.description),
+      required
+    };
+    applyBounds(field, schema);
     return {
-      field: {
-        name: fieldName,
-        type: fieldType,
-        default: coerceDefault(schema, fieldType),
-        title: toTitle(fieldName),
-        description: cleanDescription(schema.description),
-        required
-      },
+      field,
       upload: {
         field: fieldName,
         kind: mediaKind,
@@ -221,12 +275,7 @@ function mapField(paramName: string, schema: JsonRecord, required: boolean): {
   if (enumValues?.length) {
     field.values = enumValues;
   }
-  if (typeof schema.minimum === "number") {
-    field.min = schema.minimum;
-  }
-  if (typeof schema.maximum === "number") {
-    field.max = schema.maximum;
-  }
+  applyBounds(field, schema);
   return { field };
 }
 

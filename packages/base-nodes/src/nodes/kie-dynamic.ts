@@ -120,15 +120,9 @@ function parseInputParams(text: string): KieParamInfo[] {
       options = [...optMatch[1].matchAll(/`([^`]+)`/g)].map((m) => m[1]);
     }
 
-    let minVal: number | undefined;
-    let maxVal: number | undefined;
-    const rangeMatch = trimmed.match(
-      /\*\*Range\*\*:\s*(?:`?(\d+)`?\s*(?:to|-)\s*`?(\d+)`?)/
-    );
-    if (rangeMatch) {
-      minVal = Number(rangeMatch[1]);
-      maxVal = Number(rangeMatch[2]);
-    }
+    const bounds = parseBounds(trimmed);
+    const minVal = bounds.min;
+    const maxVal = bounds.max;
 
     let isFileUrl = false;
     let isFileUrlArray = false;
@@ -183,14 +177,56 @@ function coerceDefault(raw: string, paramType: string): unknown {
   }
 }
 
+function parseBounds(text: string): { min?: number; max?: number } {
+  const rangeMatch = text.match(
+    /\*\*Range\*\*:\s*`?(-?\d+(?:\.\d+)?)`?\s*(?:to|-|~)\s*`?(-?\d+(?:\.\d+)?)`?/i
+  );
+  if (rangeMatch) {
+    return { min: Number(rangeMatch[1]), max: Number(rangeMatch[2]) };
+  }
+
+  const minLengthMatch = text.match(/\*\*Min(?:imum)? Length\*\*:\s*`?(-?\d+(?:\.\d+)?)`?/i);
+  const maxLengthMatch = text.match(/\*\*Max(?:imum)? Length\*\*:\s*`?(-?\d+(?:\.\d+)?)`?/i);
+  const minMatch = text.match(/\bMinimum:\s*(-?\d+(?:\.\d+)?)/i);
+  const maxMatch = text.match(/\bMaximum:\s*(-?\d+(?:\.\d+)?)/i);
+
+  return {
+    ...(minLengthMatch || minMatch
+      ? { min: Number((minLengthMatch ?? minMatch)![1]) }
+      : {}),
+    ...(maxLengthMatch || maxMatch
+      ? { max: Number((maxLengthMatch ?? maxMatch)![1]) }
+      : {})
+  };
+}
+
 function detectMediaKind(
   param: KieParamInfo
 ): "image" | "audio" | "video" | null {
-  const joined = param.acceptedFileTypes.join(",").toLowerCase();
+  const joined = `${param.name} ${param.description} ${param.acceptedFileTypes.join(",")}`.toLowerCase();
   if (joined.includes("image/")) return "image";
   if (joined.includes("audio/")) return "audio";
   if (joined.includes("video/")) return "video";
+  if (/\bimage\b|jpeg|jpg|png|webp|gif|bmp/.test(joined)) return "image";
+  if (/\baudio\b|mp3|wav|aac|ogg|mpeg/.test(joined)) return "audio";
+  if (/\bvideo\b|mp4|mov|quicktime|matroska|mkv/.test(joined)) return "video";
   return null;
+}
+
+function fieldNameForParam(param: KieParamInfo): string {
+  const kind = detectMediaKind(param) ?? "image";
+  if (param.isFileUrlArray) {
+    if (param.name === "input_urls") return `${kind}s`;
+    if (param.name.endsWith(`_${kind}_urls`)) {
+      return `${param.name.slice(0, -`${kind}_urls`.length)}${kind}s`;
+    }
+    if (param.name === `${kind}_urls`) return `${kind}s`;
+    return param.name.replace(/_urls$/, "s");
+  }
+  if (param.isFileUrl) {
+    return param.name.replace(/_url$/, "");
+  }
+  return param.name;
 }
 
 function mapParamType(param: KieParamInfo): TypeMetadata {
@@ -293,8 +329,9 @@ export function resolveKieDynamicSchema(
   const dynamic_inputs: ResolvedKieDynamicSchema["dynamic_inputs"] = {};
 
   for (const param of bundle.params) {
-    dynamic_properties[param.name] = defaultDynamicValue(param);
-    dynamic_inputs[param.name] = {
+    const fieldName = fieldNameForParam(param);
+    dynamic_properties[fieldName] = defaultDynamicValue(param);
+    dynamic_inputs[fieldName] = {
       ...mapParamType(param),
       optional: !param.required,
       ...(param.description ? { description: param.description } : {}),
@@ -352,9 +389,14 @@ export class KieAINode extends BaseNode {
 
     const apiInput: Record<string, unknown> = {};
     for (const p of bundle.params) {
-      const val = this.getDynamic(p.name) ?? (this as any)[p.name];
+      const fieldName = fieldNameForParam(p);
+      const val =
+        this.getDynamic(fieldName) ??
+        (this as any)[fieldName] ??
+        this.getDynamic(p.name) ??
+        (this as any)[p.name];
       if (val === undefined || val === null) {
-        if (p.required) throw new Error(`Missing required input: ${p.name}`);
+        if (p.required) throw new Error(`Missing required input: ${fieldName}`);
         continue;
       }
 

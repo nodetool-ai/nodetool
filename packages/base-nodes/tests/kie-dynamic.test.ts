@@ -1,5 +1,9 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
-import { KieAINode, KIE_DYNAMIC_NODES } from "../src/nodes/kie-dynamic.js";
+import {
+  KieAINode,
+  KIE_DYNAMIC_NODES,
+  resolveKieDynamicSchema
+} from "../src/nodes/kie-dynamic.js";
 
 const originalFetch = globalThis.fetch;
 let mockFetch: ReturnType<typeof vi.fn>;
@@ -320,7 +324,7 @@ describe("KieAINode parseInputParams and full process", () => {
 #### height
 - **Type**: \`number\`
 - **Required**: No
-- **Description**: Height
+- **Description**: Height. (Minimum: 1, Maximum: 8)
 - **Default Value**: \`3.14\`
 
 #### enable_hd
@@ -348,6 +352,19 @@ describe("KieAINode parseInputParams and full process", () => {
 - **Required**: No
 - **Description**: Multiple images
 - **Accepted File Types**: png, jpg
+
+#### input_urls
+- **Type**: \`array\`
+- **Required**: No
+- **Description**: Please provide the URL of the uploaded file,Image for reference
+- **Max File Size**: 30MB
+- **Accepted File Types**: image/jpeg, image/png, image/webp, image/jpg
+- **Multiple Files**: Yes
+
+#### prompt_length
+- **Type**: \`integer\`
+- **Required**: No
+- **Description**: Prompt control. Minimum: 4, Maximum: 20
 
 #### upload_method
 - **Type**: \`string\`
@@ -382,6 +399,27 @@ describe("KieAINode parseInputParams and full process", () => {
     const body = JSON.parse(createCall![1].body);
     expect(body.model).toBe("test/model-123");
     expect(body.input.prompt).toBe("test prompt");
+  });
+
+  it("exposes min max bounds from range and documented minimum maximum values", () => {
+    const schema = resolveKieDynamicSchema(FULL_DOCS);
+
+    expect(schema.dynamic_inputs.width).toMatchObject({ min: 256, max: 1024 });
+    expect(schema.dynamic_inputs.height).toMatchObject({ min: 1, max: 8 });
+    expect(schema.dynamic_inputs.prompt_length).toMatchObject({
+      min: 4,
+      max: 20
+    });
+  });
+
+  it("maps input_urls with accepted image types to images list inputs", () => {
+    const schema = resolveKieDynamicSchema(FULL_DOCS);
+
+    expect(schema.dynamic_inputs.images).toMatchObject({
+      type: "list",
+      type_args: [{ type: "image", type_args: [] }]
+    });
+    expect(schema.dynamic_properties.images).toEqual([]);
   });
 
   it("reads required dynamic inputs from assigned dynamic properties", async () => {
