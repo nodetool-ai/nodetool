@@ -1,4 +1,4 @@
-# Studio Mode — Node Editor Redesign Spec
+# Node Editor Redesign Spec
 
 **Date:** 2026-05-13
 **Status:** Draft, pending review
@@ -7,6 +7,8 @@
 ## 1. Goal
 
 Modernize the NodeTool editor UI — content-forward node bodies, cleaner port/edge styling, a curated left panel, an evolved inspector, and bespoke editing-node bodies — while preserving NodeTool's existing graph engine, execution model, and Python bridge. The redesign reorganizes how nodes present content and how the user configures them — it does **not** change the workflow runtime, the WebSocket protocol, or the node-author API.
+
+**This is the new editor.** No opt-in mode, no preview flag. Each PR replaces a piece of the existing UI directly.
 
 ## 2. Non-goals
 
@@ -29,36 +31,22 @@ Modernize the NodeTool editor UI — content-forward node bodies, cleaner port/e
 
 ## 4. Architecture
 
-### 4.1 Feature flag
-
-A single boolean `studioMode` lives in `useSettingsStore` and the user-settings backend. Default `false` until A+B+C+D ship. Studio Mode controls:
-
-- Body resolution (see §4.2)
-- Inspector layout (see Track D)
-- Left panel default content (see Track C)
-- Port + edge rendering (see Track A)
-- Group node visuals (see Track F)
-
-Track E (bespoke editing-node bodies) ships gated by both `studioMode` *and* a per-node-type allowlist that grows over time. Each bespoke body ships independently.
-
-Once we're confident, a cleanup PR deletes the flag and the legacy paths.
-
-### 4.2 Node body routing
+### 4.1 Node body routing
 
 `NodeContent.tsx` already chooses a body component by node type. Extend the registry:
 
 ```
-resolveBody(nodeType, studioMode):
-  if studioMode and nodeType in BESPOKE_BODY_REGISTRY:        // Track E
+resolveBody(nodeType):
+  if nodeType in BESPOKE_BODY_REGISTRY:        // Track E
       return BESPOKE_BODY_REGISTRY[nodeType]
-  if studioMode and nodeType in CONTENT_CARD_ALLOWLIST:        // Track B
+  if nodeType in CONTENT_CARD_REGISTRY:        // Track B
       return ContentCardBody
-  return existing generic body (basic_fields + advanced toggle)
+  return GenericBody (basic_fields + advanced toggle)
 ```
 
-This keeps non-Studio users on today's UI and lets Studio users see content-card bodies only for node types we've explicitly opted in. Everything not in either registry falls through to the existing generic body — including the many `Constant…`, `If`, `Loop`, `Map`, control-flow, and utility nodes that don't need a card.
+The two registries are permanent — they're how nodes opt into a specific body type, not transitional gates. Utility nodes (`Constant…`, `If`, `Loop`, `Map`, control-flow) intentionally stay on the generic body forever.
 
-### 4.3 What stays unchanged
+### 4.2 What stays unchanged
 
 - ReactFlow integration and `BaseNode.tsx`'s outer shell
 - `NodeHeader.tsx` (subtle polish only — already close to target look)
@@ -72,10 +60,10 @@ This keeps non-Studio users on today's UI and lets Studio users see content-card
 
 ### A1. Hover-only port labels
 
-Today: each property field shows a permanent label next to its handle. Studio Mode: handles are subtle colored dots only; labels appear in a tooltip on hover.
+Today: each property field shows a permanent label next to its handle. After this track: handles are subtle colored dots only; labels appear in a tooltip on hover.
 
 - **File:** `web/src/components/node/PropertyField.tsx`, `web/src/components/HandleTooltip.tsx`
-- **Behavior:** When `studioMode`, the property label DOM element gets `visually-hidden` styling. Hover over the handle triggers an existing-style tooltip showing the property name + type.
+- **Behavior:** The property label DOM element gets `visually-hidden` styling. Hover over the handle triggers an existing-style tooltip showing the property name + type.
 - **Connected-state exception:** When a property is currently connected, keep the label visible (the user is editing a wired graph and needs to read it without hovering).
 
 ### A2. Edge endpoint labels
@@ -156,9 +144,9 @@ Renders a fixed-size card with three regions:
 
 These are applied at node *creation* time (via `nodeFactory` or equivalent on drop). User resize remains available. The defaults exist only to make freshly dropped grids feel uniform.
 
-### 6.4 CONTENT_CARD_ALLOWLIST initial members
+### 6.4 CONTENT_CARD_REGISTRY initial members
 
-The allowlist starts with explicit node types so we don't accidentally affect utility nodes. Initial set:
+The registry starts with explicit node types so we don't accidentally affect utility nodes. Initial set:
 
 - **Image generators** (~50): all model packages currently registered as `*.GenerateImage*`, `*.TextToImage*`, `*.ImageToImage*` in fal-nodes, replicate-nodes, base-nodes, openai/anthropic/google providers
 - **Video generators** (~20): all video model nodes from current packages
@@ -166,7 +154,7 @@ The allowlist starts with explicit node types so we don't accidentally affect ut
 - **Text-content nodes**: `Prompt`, `PromptConcatenator`, `ImageDescriber`, `AnyLLM`, `ChatNode`
 - **Thin image-edit nodes** without bespoke UI: background-removal, content-aware fill, inpaint, ChatGPT Images, similar single-action nodes
 
-Allowlist lives in `web/src/components/node_types/contentCardRegistry.ts`. Authors of new nodes opt in by adding their node type.
+Registry lives in `web/src/components/node_types/contentCardRegistry.ts`. Authors of new nodes opt in by adding their node type.
 
 ### 6.5 Dynamic input button
 
@@ -254,7 +242,7 @@ Categories defined in `web/src/config/quickAccessCategories.ts` as a static arra
 
 ### 8.1 Current state
 
-`Inspector.tsx` exists and renders the selected node's full property list with `Property*` field renderers. Studio Mode shifts the *split* between what renders on the node body vs. inspector.
+`Inspector.tsx` exists and renders the selected node's full property list with `Property*` field renderers. This track shifts the *split* between what renders on the node body vs. inspector.
 
 ### 8.2 Property visibility model
 
@@ -265,7 +253,7 @@ For each property on the selected node:
   - The user explicitly **promotes it to an input handle** (see §8.4), OR
   - The graph has an edge wired to it (existing auto-reveal in `NodeInputs.tsx`)
 
-Today's behavior of "show all advanced" toggle on the node is removed in Studio Mode — the inspector becomes the canonical place to find advanced props.
+Today's "show all advanced" toggle on the node is removed — the inspector becomes the canonical place to find advanced props.
 
 ### 8.3 Inspector layout
 
@@ -276,7 +264,7 @@ Inspector.tsx
 │   └── For each property:
 │       ├── Label · (i) info tooltip · [⇢ show as input] toggle
 │       └── PropertyField (existing renderers)
-└── (footer reserved; intentionally empty in studio mode — no cost/run section)
+└── (footer reserved; intentionally empty — no cost/run section)
 ```
 
 Info tooltip `(i)` reads from existing `property.description`.
@@ -394,7 +382,7 @@ Two confirmed backend additions (`Compositor`, `Painter`). Both small (image-in,
 
 `web/src/components/node/GroupNode.tsx` already exists with title input + ColorPicker + RunGroupButton + BypassGroupButton.
 
-**Studio-mode changes:**
+**Changes:**
 
 - **Header becomes a pill at top-left**, not a full-width bar. ~32 px tall, padded, colored fill matching the group's color, white text. Sits "outside" the group's bounding box (overlapping the top-left corner).
 - **Background fill** uses the group color with ~12% opacity instead of the current `c_bg_group` token; **border removed** (or reduced to a 1px subtle line at the same color, 30% opacity).
@@ -418,43 +406,43 @@ New primitives in `web/src/components/ui_primitives/`:
 
 All primitives follow `STRATEGY.md` rules: no raw MUI components outside `ui_primitives/` or `editor_ui/`, theme tokens only, default size constants live next to the primitive.
 
-## 12. Migration order
+## 12. PR sequence
 
-Recommended PR sequence. Each PR is independently mergeable behind `studioMode=false`.
+Each PR replaces a piece of the existing UI directly. No flag, no parallel paths — each one ships as the new default.
 
-1. **PR 1 — Studio Mode flag** — Add `useSettingsStore.studioMode`, no UI changes
-2. **PR 2 — Track A (ports + edges)** — A1, A2, A3, A4, A5 in one PR (all small, all related). Visible only when `studioMode=true`.
-3. **PR 3 — Track F (Group node)** — Pill header + tinted bg
-4. **PR 4 — Shared primitives** — VideoPlayer, CheckerDropzone, DynamicInputButton, RunModelButton, TypedPortChip
-5. **PR 5 — ContentCardBody scaffold** — Component + image variant only; allowlist starts with 3 nodes for testing
-6. **PR 6 — ContentCardBody variants** — Add video, text, 3D variants
-7. **PR 7 — CONTENT_CARD_ALLOWLIST expansion** — Add all generator nodes to allowlist
-8. **PR 8 — Track C (left panel)** — QuickAccessSidebar + categories; full registry remains via Search
-9. **PR 9 — Track D (inspector)** — Property visibility model + show-as-input toggle + `exposedInputs` data field
-10. **PR 10..18 — Track E (one node per PR)** — Resize, Rotate-and-Flip, Crop, Blur, Channels, Masks Extractor, Levels, Compositor, Painter (in that order; cheapest first, Painter last)
-11. **PR 19 — Studio Mode default-on** — Flip the flag, internal opt-out via setting
-12. **PR 20 — Cleanup** — Delete legacy paths, remove the flag, remove duplicated routing
+Sequence keeps risk low: small isolated tracks first; biggest visual changes once the primitives are in place; bespoke editor nodes last (one PR each).
+
+1. **PR 1 — Track A (ports + edges)** — A1, A2, A3, A4, A5 in one PR (all small, all related)
+2. **PR 2 — Track F (Group node)** — Pill header + tinted bg
+3. **PR 3 — Shared primitives** — VideoPlayer, CheckerDropzone, DynamicInputButton, RunModelButton, TypedPortChip (no behavior change yet; just the primitives)
+4. **PR 4 — ContentCardBody scaffold** — Component + image variant; registry starts with ~3 generator nodes to validate
+5. **PR 5 — ContentCardBody variants** — Add video, text, 3D variants
+6. **PR 6 — CONTENT_CARD_REGISTRY full rollout** — Add all generator + text-content nodes
+7. **PR 7 — Track C (left panel)** — QuickAccessSidebar + categories; full registry remains via Search
+8. **PR 8 — Track D (inspector)** — Property visibility model + show-as-input toggle + `exposedInputs` data field
+9. **PR 9..17 — Track E (one node per PR)** — Resize, Rotate-and-Flip, Crop, Blur, Channels, Masks Extractor, Levels, Compositor, Painter (cheapest first, Painter last)
 
 Backend additions (`Compositor` and `Painter` nodes) ship in their respective Track-E PRs as paired backend + frontend changes.
+
+If a PR introduces a visible regression, it gets reverted on its own — each PR is independently revertable because tracks are narrow.
 
 ## 13. Risks & open questions
 
 ### 13.1 Risks
 
-- **`ContentCardBody` allowlist scope drift.** If we add too many nodes too fast, we'll hit edge cases (nodes with multiple outputs, weird input shapes, side-effects). Mitigation: explicit allowlist, gated rollout, manual QA per generator family before adding.
+- **`CONTENT_CARD_REGISTRY` scope drift.** If we add too many nodes too fast, we'll hit edge cases (nodes with multiple outputs, weird input shapes, side-effects). Mitigation: PR 4 ships with ~3 nodes; PR 6 expands only after manual QA per generator family.
 - **Bespoke node bodies vs. backend changes.** Compositor's frontend depends on a new backend node with a specific input/output shape. If the backend shape needs revision after FE work, double cost. Mitigation: define the node API in the PR before building the body.
 - **Edge rendering audit (A4) may surface a bigger refactor** than expected if static edges aren't using `colorForType` for non-trivial reasons (e.g., theme-aware mixing). Mitigation: spike A4 first; if it's > 1 day, split into its own PR.
 - **`exposedInputs` migration on existing workflows.** Workflows saved before this change have no `exposedInputs` field. Migration: treat missing field as `[]`. No backfill needed; existing connected edges already auto-reveal via the `isConnected` predicate.
 - **Default card sizes vs. existing saved workflows.** Defaults apply only to *new* node placements. Existing workflows keep their saved sizes. No migration risk.
 - **Painter integration with `sketch/` infrastructure.** Recent fix (cfc7b6702) hardened sketch persistence, but Painter's data shape (alpha mask output) may not match what `sketch/` produces. Mitigation: read sketch code carefully before designing Painter's data flow.
+- **No flag means no rollback short of revert.** Each PR must be small enough to revert cleanly. The PR sequence is structured for this.
 
 ### 13.2 Open questions
 
-- **OQ-1:** Should `studioMode` be a per-workspace setting or a per-user setting? Per-user feels right (it's a UI preference), but per-workspace allows team-coordinated rollouts. **Suggestion:** Per-user.
-- **OQ-2:** The `Prompt` node with `{{variable}}` templating — does this template grammar already exist in NodeTool, or are we inventing it? **Action:** Search for template-string handling before Track B implementation.
-- **OQ-3:** "Show as input handle" toggle — does it persist when the user disables Studio Mode? If the user promotes a property in Studio Mode, then turns Studio Mode off, the promoted handle should still appear (it's part of the workflow). **Suggestion:** Yes — `exposedInputs` is workflow data, not UI state.
-- **OQ-4:** Edge endpoint labels (A2) — what happens for nodes with many handles in a tight column? Auto-suppress beyond a count threshold (e.g., > 6 inputs)? **Suggestion:** Yes, suppress and show only on hover/selection.
-- **OQ-5:** Generator nodes with multiple outputs — `ContentCardBody` displays *one* primary preview. Which output is "primary"? **Suggestion:** First output in `metadata.outputs` unless metadata marks one as `is_primary: true`. Add this metadata field if not present.
+- **OQ-1:** The `Prompt` node with `{{variable}}` templating — does this template grammar already exist in NodeTool, or are we inventing it? **Action:** Search for template-string handling before Track B implementation.
+- **OQ-2:** Edge endpoint labels (A2) — what happens for nodes with many handles in a tight column? Auto-suppress beyond a count threshold (e.g., > 6 inputs)? **Suggestion:** Yes, suppress and show only on hover/selection.
+- **OQ-3:** Generator nodes with multiple outputs — `ContentCardBody` displays *one* primary preview. Which output is "primary"? **Suggestion:** First output in `metadata.outputs` unless metadata marks one as `is_primary: true`. Add this metadata field if not present.
 
 ## 14. Files affected (summary)
 
@@ -483,7 +471,6 @@ Backend additions (`Compositor` and `Painter` nodes) ship in their respective Tr
 - `web/src/components/Inspector.tsx` (visibility toggle, info tooltips, layout)
 - `web/src/components/panels/PanelLeft.tsx` (new sidebar + main column)
 - `web/src/core/graph/` edge renderer (typed colors, endpoint labels)
-- `web/src/stores/SettingsStore.ts` (studioMode flag)
 - `web/src/stores/NodeData.ts` (`exposedInputs` field)
 
 ### Unchanged (explicitly)
@@ -492,5 +479,5 @@ Backend additions (`Compositor` and `Painter` nodes) ship in their respective Tr
 - Node SDK (`packages/node-sdk`)
 - Python bridge
 - WebSocket protocol
-- All existing nodes outside Track E and outside the allowlist
+- All existing nodes outside Track E and outside the registry
 - Theme palette, fonts, top-level layout
