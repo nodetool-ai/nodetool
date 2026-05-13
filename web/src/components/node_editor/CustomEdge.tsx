@@ -12,7 +12,7 @@ import {
   type EdgeProps
 } from "@xyflow/react";
 import { Tooltip } from "../ui_primitives";
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { titleizeString } from "../../utils/titleizeString";
 
 /**
@@ -188,6 +188,10 @@ export function CustomEdge({
     targetInputCount
   ]);
 
+  const [hovered, setHovered] = useState(false);
+  const onMouseEnter = useCallback(() => setHovered(true), []);
+  const onMouseLeave = useCallback(() => setHovered(false), []);
+
   const chipAccentBorder = sourceTypeColor
     ? `color-mix(in srgb, ${sourceTypeColor} 45%, transparent)`
     : endpointChipBaseStyle.borderColor;
@@ -215,13 +219,13 @@ export function CustomEdge({
   const targetChipHoverOnlyStyle = useMemo<React.CSSProperties>(
     () => ({
       ...targetChipBaseStyle,
-      opacity: selected ? 1 : 0
+      opacity: selected || hovered ? 1 : 0
     }),
-    [targetChipBaseStyle, selected]
+    [targetChipBaseStyle, selected, hovered]
   );
 
   return (
-    <>
+    <g onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       <BaseEdge
         id={id}
         path={edgePath}
@@ -234,6 +238,8 @@ export function CustomEdge({
             className="edge-endpoint-chip edge-endpoint-source nodrag nopan"
             style={sourceChipStyle}
             title={endpoints.sourceText}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
           >
             {endpoints.sourceText}
           </div>
@@ -243,6 +249,8 @@ export function CustomEdge({
             className="edge-endpoint-chip edge-endpoint-target nodrag nopan"
             style={targetChipBaseStyle}
             title={endpoints.targetText}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
           >
             {endpoints.targetText}
           </div>
@@ -252,7 +260,8 @@ export function CustomEdge({
             className="edge-endpoint-chip edge-endpoint-target edge-endpoint-target--hover nodrag nopan"
             style={targetChipHoverOnlyStyle}
             title={endpoints.targetText}
-            data-edge-id={id}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
           >
             {endpoints.targetText}
           </div>
@@ -265,7 +274,7 @@ export function CustomEdge({
           </Tooltip>
         )}
       </EdgeLabelRenderer>
-    </>
+    </g>
   );
 }
 
@@ -279,6 +288,8 @@ const MemoizedCustomEdge = memo(CustomEdge, (prevProps, nextProps) => {
     prevProps.sourceY === nextProps.sourceY &&
     prevProps.targetX === nextProps.targetX &&
     prevProps.targetY === nextProps.targetY &&
+    prevProps.sourcePosition === nextProps.sourcePosition &&
+    prevProps.targetPosition === nextProps.targetPosition &&
     prevProps.style === nextProps.style &&
     prevProps.data?.counter === nextProps.data?.counter &&
     prevProps.data?.dataTypeLabel === nextProps.data?.dataTypeLabel &&
@@ -286,7 +297,7 @@ const MemoizedCustomEdge = memo(CustomEdge, (prevProps, nextProps) => {
     prevProps.data?.sourceHandleName === nextProps.data?.sourceHandleName &&
     prevProps.data?.targetHandleName === nextProps.data?.targetHandleName &&
     prevProps.data?.targetInputCount === nextProps.data?.targetInputCount &&
-    prevProps.data?.status === nextProps.data?.status // Compare status for particle animation
+    prevProps.data?.status === nextProps.data?.status
   );
 });
 

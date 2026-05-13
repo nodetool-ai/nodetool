@@ -37,20 +37,16 @@
 .react-flow__node:hover .base-node .node-property .property-label {
   opacity: 1;
 }
-/* Output handles in DynamicOutputItem mirror the same affordance. */
-.base-node .multi-outputs li > label,
-.base-node .multi-outputs li > .output-label {
+/* Output handles in DynamicOutputItem mirror the same affordance.
+   Text renders as a <p> inside HandleTooltip, so use descendant selectors. */
+.base-node .multi-outputs li p {
   opacity: 0;
   transition: opacity 120ms ease-out;
 }
-.base-node:hover .multi-outputs li > label,
-.base-node:hover .multi-outputs li > .output-label,
-.base-node.selected .multi-outputs li > label,
-.base-node.selected .multi-outputs li > .output-label,
-.react-flow__node.selected .base-node .multi-outputs li > label,
-.react-flow__node.selected .base-node .multi-outputs li > .output-label,
-.react-flow__node:hover .base-node .multi-outputs li > label,
-.react-flow__node:hover .base-node .multi-outputs li > .output-label {
+.base-node:hover .multi-outputs li p,
+.base-node.selected .multi-outputs li p,
+.react-flow__node.selected .base-node .multi-outputs li p,
+.react-flow__node:hover .base-node .multi-outputs li p {
   opacity: 1;
 }
 

@@ -238,11 +238,12 @@ function useStructurallyProcessedEdges({
         } else if (targetNode.type) {
           const targetMetadata = getMetadata(targetNode.type);
           if (targetMetadata) {
+            const dynamicInputKeys = new Set([
+              ...Object.keys(targetNode.data?.dynamic_inputs ?? {}),
+              ...Object.keys(targetNode.data?.dynamic_properties ?? {})
+            ]);
             targetInputCount =
-              (targetMetadata.properties?.length ?? 0) +
-              (targetNode.data?.dynamic_inputs
-                ? Object.keys(targetNode.data.dynamic_inputs).length
-                : 0);
+              (targetMetadata.properties?.length ?? 0) + dynamicInputKeys.size;
             const inputHandle = findInputHandle(
               targetNode as Node<NodeData>,
               normalizedTargetHandle,
