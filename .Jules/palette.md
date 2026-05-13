@@ -52,3 +52,7 @@
 ## 2026-05-09 - Dynamic aria-labels in Dialogs/Drawers
 **Learning:** Found that generic UI containers like `DrawerPanel` used hardcoded `aria-label="Close drawer"` on their close buttons, limiting context for screen reader users when multiple drawers exist.
 **Action:** When creating or updating generic container components with close buttons, use dynamic `aria-label`s based on the container's title (e.g., `aria-label={title ? \`Close ${title} drawer\` : "Close drawer"}`) to provide specific context.
+
+## 2026-06-25 - ARIA Labels on Icon Buttons in SketchLayersPanel
+**Learning:** Found that numerous native Material-UI `<IconButton>` instances across the heavily-used `SketchLayersPanel` (e.g., duplicate, clear, merge, delete layer) lacked `aria-label`s, rendering them inaccessible to screen readers despite having visual `<Tooltip>` wrappers.
+**Action:** Always ensure that `IconButton` instances, especially within dense panels like `SketchLayersPanel`, have an explicit `aria-label` that matches their tooltip text to guarantee screen reader compatibility. Do not assume the tooltip alone provides an accessible name.
