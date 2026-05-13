@@ -42,6 +42,8 @@ import {
 export interface UseEditorSessionParams {
   initialDocument?: SketchDocument;
   initialEditorState?: SketchPersistenceSnapshot;
+  /** Optional stable document id — forwarded to `useEditorLifecycle`. */
+  documentId?: string;
   onDocumentChange?: (doc: SketchDocument) => void;
   onExportImage?: (dataUrl: string) => void;
   onExportMask?: (dataUrl: string | null) => void;
@@ -50,6 +52,7 @@ export interface UseEditorSessionParams {
 export function useEditorSession({
   initialDocument,
   initialEditorState,
+  documentId,
   onDocumentChange,
   onExportImage,
   onExportMask
@@ -182,6 +185,7 @@ export function useEditorSession({
   } = useEditorLifecycle({
     initialDocument,
     initialEditorState,
+    documentId,
     onDocumentChange,
     setDocument: sessionStore.setDocument,
     activeTool,

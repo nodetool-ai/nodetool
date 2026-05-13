@@ -5,8 +5,7 @@ import { useCallback, useRef, useState } from "react";
 import { LAYER_TEMPLATE_SEED_IDS } from "@nodetool-ai/image-editor";
 import { trpcClient } from "../../trpc/client";
 import { useSketchStore } from "../../components/sketch/state/useSketchStore";
-import { useSketchDocumentStore } from "../../stores/sketch/SketchDocumentStore";
-import { useSketchLayerBindingsStore } from "../../stores/sketch/SketchLayerBindingsStore";
+import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
 import { selectionToMaskDataUrl } from "../../lib/sketch/selectionMaskImage";
 
@@ -33,7 +32,7 @@ export function useInpaintHere(): UseInpaintHereResult {
     if (busyRef.current) {
       return { ok: false, reason: "error", message: "Already running" };
     }
-    const documentId = useSketchDocumentStore.getState().documentId;
+    const documentId = useSketchSessionStore.getState().documentId;
     if (!documentId) {
       return { ok: false, reason: "no-document" };
     }
@@ -91,7 +90,7 @@ export function useInpaintHere(): UseInpaintHereResult {
 
       // upsertBinding recomputes the dependency hash from the seeded
       // overrides, so a second setParamOverrides call would be pure churn.
-      useSketchLayerBindingsStore
+      useSketchSessionStore
         .getState()
         .upsertBinding({ ...binding, paramOverrides: seededOverrides });
 

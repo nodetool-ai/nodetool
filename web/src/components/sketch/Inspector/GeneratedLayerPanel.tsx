@@ -9,8 +9,7 @@ import type { Theme } from "@mui/material/styles";
 
 import type { Layer } from "../types";
 import type { Node } from "../../../stores/ApiTypes";
-import { useLayerBinding, useSketchLayerBindingsStore } from "../../../stores/sketch/SketchLayerBindingsStore";
-import { useSketchDocumentStore } from "../../../stores/sketch/SketchDocumentStore";
+import { useLayerBinding, useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useWorkflow } from "../../../serverState/useWorkflow";
 import { NodeContext } from "../../../contexts/NodeContext";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
@@ -89,8 +88,8 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
   ({ layer }) => {
     const theme = useTheme();
     const binding = useLayerBinding(layer.id);
-    const documentId = useSketchDocumentStore((s) => s.documentId);
-    const setParamOverride = useSketchLayerBindingsStore(
+    const documentId = useSketchSessionStore((s) => s.documentId);
+    const setParamOverride = useSketchSessionStore(
       (s) => s.setParamOverride
     );
 

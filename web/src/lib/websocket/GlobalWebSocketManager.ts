@@ -216,6 +216,17 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
       routingKeys.add(message.job_id);
     }
 
+    // RPC response frames carry a `request_id` and no thread/workflow/job id.
+    // Subscribers (e.g. sketch direct-gen) register against the request_id.
+    if (
+      message.type === "rpc_response" &&
+      typeof (message as { request_id?: unknown }).request_id === "string"
+    ) {
+      routingKeys.add(
+        (message as unknown as { request_id: string }).request_id
+      );
+    }
+
     if (routingKeys.size === 0) {
       console.debug(
         "GlobalWebSocketManager: Message without routing key (job_id/workflow_id/thread_id)",

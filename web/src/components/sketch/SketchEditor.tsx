@@ -63,7 +63,7 @@ import {
 } from "./editor-shell";
 import { ConnectedGeneratedLayerSection } from "./Inspector";
 import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
-import { useSketchDocumentStore } from "../../stores/sketch/SketchDocumentStore";
+import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import { useSketchWorkflowFreshnessCheck } from "../../hooks/sketch/useSketchWorkflowFreshnessCheck";
 import { SKETCH_SIZE } from "./sketchStyles";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
@@ -109,6 +109,13 @@ const ConnectedColorPanel = memo(function ConnectedColorPanel() {
 export interface SketchEditorProps {
   initialDocument?: SketchDocument;
   initialEditorState?: SketchPersistenceSnapshot;
+  /**
+   * Stable id of the document being edited (standalone editor only). When
+   * supplied, the lifecycle hook uses it to detect a revisit of the same
+   * document and skips re-hydrating the global sketch store from the trpc
+   * cache — see `useEditorLifecycle` for why.
+   */
+  documentId?: string;
   onDocumentChange?: (doc: SketchDocument) => void;
   onExportImage?: (dataUrl: string) => void;
   onExportMask?: (dataUrl: string | null) => void;
@@ -119,6 +126,7 @@ export interface SketchEditorProps {
 const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function SketchEditor({
   initialDocument,
   initialEditorState,
+  documentId,
   onDocumentChange,
   onExportImage,
   onExportMask,
@@ -130,6 +138,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   const session = useEditorSession({
     initialDocument,
     initialEditorState,
+    documentId,
     onDocumentChange,
     onExportImage,
     onExportMask
@@ -174,8 +183,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   // Reconcile bindings on document load: stale-mark layers whose source
   // workflow changed, merge paramOverrides against current Input* nodes,
   // and auto-resolve a missing selectedOutputNodeId.
-  const documentId = useSketchDocumentStore((s) => s.documentId);
-  useSketchWorkflowFreshnessCheck(documentId);
+  const sessionDocumentId = useSketchSessionStore((s) => s.documentId);
+  useSketchWorkflowFreshnessCheck(sessionDocumentId);
 
   return (
     <FlexRow className="sketch-editor" css={styles(theme)}>

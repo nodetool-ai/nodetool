@@ -10,8 +10,7 @@ import { createDefaultDocument, type HistoryEntry } from "../../../components/sk
 import { useSketchStore } from "../../../components/sketch/state";
 import { useAssetStore } from "../../AssetStore";
 import { useNotificationStore } from "../../NotificationStore";
-import { useStandaloneSketchDocument, useSketchDocumentStore } from "../SketchDocumentStore";
-import { useSketchLayerBindingsStore } from "../SketchLayerBindingsStore";
+import { useStandaloneSketchDocument, useSketchSessionStore } from "../SketchSessionStore";
 
 const updateMutate = trpcClient.sketch.update.mutate as unknown as jest.Mock;
 type StandaloneResponse = NonNullable<
@@ -86,8 +85,7 @@ describe("useStandaloneSketchDocument", () => {
       updatedAt: "2026-01-01T00:00:01Z"
     });
     useSketchStore.getState().resetDocument();
-    useSketchLayerBindingsStore.getState().reset();
-    useSketchDocumentStore.getState().reset();
+    useSketchSessionStore.getState().reset();
     useNotificationStore.getState().clearNotifications();
     useAssetStore.setState({
       createAsset: jest.fn(async () => ({

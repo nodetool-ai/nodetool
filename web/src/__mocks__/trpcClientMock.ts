@@ -36,9 +36,46 @@ export const mockWorkflowsCreate = jest.fn();
 export const mockTimelineClipsCreate = jest.fn();
 export const mockSketchVersionsAppend = jest.fn();
 
+// Minimal `useUtils` shim so hooks that touch the query cache after a
+// mutation (`utils.sketch.get.setData`, `utils.something.invalidate`) don't
+// blow up in tests. New procedures get a passthrough proxy on demand.
+const makeProcedureUtils = (): Record<string, unknown> => ({
+  setData: jest.fn(),
+  setInfiniteData: jest.fn(),
+  invalidate: jest.fn(async () => undefined),
+  refetch: jest.fn(async () => undefined),
+  reset: jest.fn(async () => undefined),
+  cancel: jest.fn(async () => undefined),
+  fetch: jest.fn(async () => undefined),
+  prefetch: jest.fn(async () => undefined),
+  getData: jest.fn(() => undefined)
+});
+
+const makeUtilsProxy = (): unknown =>
+  new Proxy(
+    {},
+    {
+      get(_target, _prop) {
+        // Each procedure (e.g. `sketch.get`) returns its own utils object;
+        // routers (e.g. `sketch`) return another proxy so chained access
+        // like `utils.sketch.get.setData(...)` resolves correctly.
+        return new Proxy(makeProcedureUtils(), {
+          get(procTarget, procProp) {
+            if (procProp in procTarget) {
+              return (procTarget as Record<string | symbol, unknown>)[procProp];
+            }
+            // Treat unknown chains as nested routers.
+            return makeUtilsProxy();
+          }
+        });
+      }
+    }
+  );
+
 export const trpc = {
   Provider: ({ children }: { children: unknown }) => children as never,
-  createClient: jest.fn()
+  createClient: jest.fn(),
+  useUtils: () => makeUtilsProxy() as never
 };
 
 export const trpcClient = {

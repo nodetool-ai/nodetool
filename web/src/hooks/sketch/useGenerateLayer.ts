@@ -22,7 +22,7 @@ import {
   workflowQueryKey
 } from "../../serverState/useWorkflow";
 import { useSketchGenerationStore } from "../../stores/sketch/SketchGenerationStore";
-import { useSketchLayerBindingsStore } from "../../stores/sketch/SketchLayerBindingsStore";
+import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
@@ -299,7 +299,7 @@ const handleJobMessage = async (
           status: "success"
         });
 
-        useSketchLayerBindingsStore.getState().recordGeneratedVersion(
+        useSketchSessionStore.getState().recordGeneratedVersion(
           context.layerId,
           {
             version,

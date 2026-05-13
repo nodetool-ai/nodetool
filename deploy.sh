@@ -17,6 +17,10 @@ set -euo pipefail
 #   ./deploy.sh                  # Pull + deploy (HTTPS, requires cert.pem + key.pem)
 #   ./deploy.sh --self-signed    # Auto-generate TLS cert for origin
 #   ./deploy.sh --no-tls         # Plain HTTP origin (Cloudflare Flexible)
+#   ./deploy.sh --bind <addr>    # Restrict the host port to a bind address
+#                                # (e.g. --bind 127.0.0.1 for loopback-only,
+#                                # the right choice behind a Cloudflare Tunnel).
+#                                # Also via env: NODETOOL_BIND=127.0.0.1
 #   ./deploy.sh --tag <tag>      # Pull a specific image tag (default: auto from git HEAD)
 #   ./deploy.sh --no-pull        # Deploy existing local image (skip pull)
 #   ./deploy.sh --no-wait        # Don't wait for CI to publish the image
@@ -34,6 +38,7 @@ IMAGE_TAG_PREV="rollback"
 PULL_TAG="${NODETOOL_IMAGE_TAG:-}"   # empty → derive from git HEAD
 CONTAINER_NAME="nodetool-server"
 PORT="${NODETOOL_PORT:-443}"
+BIND_ADDR="${NODETOOL_BIND:-}"   # empty = bind 0.0.0.0; set to 127.0.0.1 for loopback-only (e.g. behind a Cloudflare Tunnel)
 HEALTH_TIMEOUT=60
 HEALTH_INTERVAL=2
 # How long to wait for the CI-built image to appear in the registry
@@ -94,6 +99,10 @@ while (( $# )); do
     --self-signed) TLS_MODE="self-signed" ;;
     --certs)       TLS_MODE="certs" ;;
     --no-tls)      TLS_MODE="none" ;;
+    --bind)
+      shift
+      BIND_ADDR="${1:?--bind requires an address (e.g. 127.0.0.1 or 0.0.0.0)}"
+      ;;
     --help|-h)
       sed -n '3,22p' "$0" | sed 's/^# \?//'
       exit 0
@@ -201,7 +210,7 @@ build_run_args() {
 
   RUN_ARGS=(
     -d --name "$name" --restart unless-stopped
-    -p "${host_port}:7777"
+    -p "${BIND_ADDR:+${BIND_ADDR}:}${host_port}:7777"
     --env-file "$SCRIPT_DIR/.env"
     -e HOST=0.0.0.0 -e PORT=7777
     -e NODETOOL_ENV=production

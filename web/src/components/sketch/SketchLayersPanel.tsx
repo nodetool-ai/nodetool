@@ -35,6 +35,8 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import CheckIcon from "@mui/icons-material/Check";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -60,7 +62,8 @@ import {
 } from "./types";
 import LayerItem from "./LayerItem";
 import type { DropPosition } from "./LayerItem";
-import { useSketchLayerBindingsStore } from "../../stores/sketch/SketchLayerBindingsStore";
+import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
+import { useSketchStore } from "./state/useSketchStore";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
 import { useCollapsedSections } from "./useCollapsedSections";
 import { getMergeSelectedLayersPlan } from "./layerMergeSelection";
@@ -496,8 +499,50 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   // ─── Per-layer generation status (for status badges) ──────────────
   // Subscribe to the bindings dictionary so each row picks up status flips
   // (draft → stale → generated → failed) without manual prop drilling.
-  const layerBindings = useSketchLayerBindingsStore((s) => s.bindings);
+  const layerBindings = useSketchSessionStore((s) => s.bindings);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+
+  // ─── Direct-generation layers (text-to-image, image-to-image) ─────
+  const upsertBinding = useSketchSessionStore((s) => s.upsertBinding);
+  const addDirectGenLayer = useCallback(
+    (kind: "text-to-image" | "image-to-image") => {
+      const baseName =
+        kind === "text-to-image" ? "Text-to-Image" : "Image-to-Image";
+      const existingNames = new Set(layers.map((l) => l.name));
+      let name = baseName;
+      let n = 2;
+      while (existingNames.has(name)) {
+        name = `${baseName} ${n}`;
+        n++;
+      }
+      const layerId = useSketchStore.getState().addLayer(name);
+      // Seed provider/model from the most recent direct-gen binding in this
+      // document, so the user doesn't pick a model from scratch every time.
+      const existingBindings = Object.values(
+        useSketchSessionStore.getState().bindings
+      );
+      const lastDirectGen = existingBindings
+        .filter(
+          (b) => b.kind === "text-to-image" || b.kind === "image-to-image"
+        )
+        .pop();
+      const sourceLayerId =
+        kind === "image-to-image"
+          ? layers.find((l) => l.id !== layerId)?.id ?? null
+          : null;
+      upsertBinding({
+        layerId,
+        kind,
+        prompt: "",
+        provider: lastDirectGen?.provider ?? "",
+        model: lastDirectGen?.model ?? "",
+        sourceLayerId,
+        status: "draft",
+        versions: []
+      });
+    },
+    [layers, upsertBinding]
+  );
 
   // ─── Custom canvas size state ─────────────────────────────────────
   const [customWidth, setCustomWidth] = useState(String(canvasWidth));
@@ -1065,6 +1110,60 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             >
               <AddIcon
                 sx={{ fontSize: "14px", color: theme.vars.palette.grey[300] }}
+              />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title="Add Text-to-Image Layer"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
+            <IconButton
+              size="small"
+              onClick={() => addDirectGenLayer("text-to-image")}
+              data-testid="layers-panel-add-text-to-image"
+              sx={{
+                width: 26,
+                height: 26,
+                padding: 0,
+                borderRadius: "3px",
+                border: `1px solid ${theme.vars.palette.grey[500]}`,
+                backgroundColor: theme.vars.palette.grey[700],
+                "&:hover": {
+                  borderColor: theme.vars.palette.grey[300],
+                  backgroundColor: theme.vars.palette.grey[600]
+                }
+              }}
+            >
+              <AutoAwesomeIcon
+                sx={{ fontSize: "14px", color: theme.vars.palette.grey[400] }}
+              />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title="Add Image-to-Image Layer"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
+            <IconButton
+              size="small"
+              onClick={() => addDirectGenLayer("image-to-image")}
+              data-testid="layers-panel-add-image-to-image"
+              sx={{
+                width: 26,
+                height: 26,
+                padding: 0,
+                borderRadius: "3px",
+                border: `1px solid ${theme.vars.palette.grey[500]}`,
+                backgroundColor: theme.vars.palette.grey[700],
+                "&:hover": {
+                  borderColor: theme.vars.palette.grey[300],
+                  backgroundColor: theme.vars.palette.grey[600]
+                }
+              }}
+            >
+              <AutoFixHighIcon
+                sx={{ fontSize: "14px", color: theme.vars.palette.grey[400] }}
               />
             </IconButton>
           </Tooltip>

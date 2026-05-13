@@ -17,7 +17,7 @@ import {
 } from "../../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useSketchStore } from "../state/useSketchStore";
-import { useSketchLayerBindingsStore } from "../../../stores/sketch/SketchLayerBindingsStore";
+import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useInpaintHere } from "../../../hooks/sketch/useInpaintHere";
 import { useRegenerateStaleLayers } from "../../../hooks/sketch/useRegenerateStaleLayers";
 import { CreateGeneratedLayerDialog } from "./CreateGeneratedLayerDialog";
@@ -27,14 +27,14 @@ const SketchAIToolbarInner: React.FC = () => {
   const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
   // Derive the counts directly via Zustand selectors so we don't iterate
   // every binding on every render of the toolbar.
-  const staleCount = useSketchLayerBindingsStore(
+  const staleCount = useSketchSessionStore(
     (s) =>
       Object.values(s.bindings).reduce(
         (n, b) => n + (b.status === "stale" ? 1 : 0),
         0
       )
   );
-  const lockedCount = useSketchLayerBindingsStore(
+  const lockedCount = useSketchSessionStore(
     (s) =>
       Object.values(s.bindings).reduce(
         (n, b) => n + (b.status === "locked" ? 1 : 0),

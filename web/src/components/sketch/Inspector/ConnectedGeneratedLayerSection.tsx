@@ -12,7 +12,7 @@ import { useTheme } from "@mui/material/styles";
 
 import { CollapsibleSection } from "../../ui_primitives";
 import { useSketchStore } from "../state/useSketchStore";
-import { useLayerBinding } from "../../../stores/sketch/SketchLayerBindingsStore";
+import { useLayerBinding } from "../../../stores/sketch/SketchSessionStore";
 import { SketchAIToolbar } from "./SketchAIToolbar";
 import { SketchInspector } from "./SketchInspector";
 
@@ -25,9 +25,16 @@ const ConnectedGeneratedLayerSectionInner: React.FC = () => {
     return null;
   }
 
+  const isWorkflowBound = !binding.kind || binding.kind === "workflow";
+  const title = isWorkflowBound
+    ? "Generated Layer"
+    : binding.kind === "text-to-image"
+      ? "Text-to-Image Layer"
+      : "Image-to-Image Layer";
+
   return (
     <CollapsibleSection
-      title="Generated Layer"
+      title={title}
       defaultOpen
       compact
       sx={{
@@ -40,7 +47,8 @@ const ConnectedGeneratedLayerSectionInner: React.FC = () => {
         }
       }}
     >
-      <SketchAIToolbar />
+      {/* SketchAIToolbar (inpaint/regen) is workflow-binding only. */}
+      {isWorkflowBound && <SketchAIToolbar />}
       <SketchInspector />
     </CollapsibleSection>
   );

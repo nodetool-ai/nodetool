@@ -30,17 +30,57 @@ export interface LayerVersion {
   favorite?: boolean;
 }
 
+/**
+ * Discriminator for the kind of generation source backing a layer.
+ *
+ *   - "workflow": runs a NodeTool workflow via WorkflowRunner; the binding
+ *     carries workflowId / selectedOutputNodeId / paramOverrides and uses
+ *     dependency-hash bookkeeping to detect staleness.
+ *   - "text-to-image" / "image-to-image": calls the runner's `generate_media`
+ *     RPC directly with a model + prompt (and source layer for i2i). No
+ *     workflow, no param overrides, no dependency hash.
+ *
+ * `kind` is optional in the persisted shape so documents written before this
+ * field existed default to "workflow" on load.
+ */
+export type LayerBindingKind = "workflow" | "text-to-image" | "image-to-image";
+
+/**
+ * Per-layer binding describing how the layer's pixels are generated. Carries
+ * both kinds (workflow-bound and direct-gen) via the `kind` discriminator —
+ * workflow-only and direct-gen-only fields are optional.
+ *
+ * The historical name `LayerWorkflowBinding` is preserved to avoid a
+ * sprawling rename across persisted documents and tRPC routers. New code
+ * should reach for it through this type or the alias `LayerBinding` below.
+ */
 export interface LayerWorkflowBinding {
   layerId: string;
-  workflowId: string;
+  /** Defaults to "workflow" when absent on legacy persisted data. */
+  kind?: LayerBindingKind;
+  // Workflow-bound fields ────────────────────────────────────────────────
+  workflowId?: string;
   selectedOutputNodeId?: string;
   paramOverrides?: Record<string, unknown>;
+  // Direct-gen fields (text-to-image / image-to-image) ───────────────────
+  prompt?: string;
+  provider?: string;
+  model?: string;
+  sourceLayerId?: string | null;
+  width?: number;
+  height?: number;
+  strength?: number;
+  numInferenceSteps?: number;
+  // Common fields ─────────────────────────────────────────────────────────
   dependencyHash?: string;
   lastGeneratedHash?: string;
   currentAssetId?: string;
   status: LayerStatus;
   versions: LayerVersion[];
 }
+
+/** Alias for the unified binding — same shape, clearer name for new code. */
+export type LayerBinding = LayerWorkflowBinding;
 
 export interface SketchLayerLike {
   [key: string]: unknown;
