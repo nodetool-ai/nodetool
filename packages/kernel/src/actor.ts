@@ -219,16 +219,11 @@ export class NodeActor {
       return;
     }
 
-    const hasListInputHandles = inputHandles.some((handle) =>
-      this._listInputHandles.has(handle)
-    );
-    if (syncMode === "on_any" && !hasListInputHandles) {
+    if (syncMode === "on_any") {
       return this._runOnAny(inputHandles);
     }
 
-    // zip_all, or collect handles: keep gathering input batches until drained.
-    // Collect/list handles need the full upstream set before process() runs,
-    // regardless of the node's sync_mode.
+    // zip_all: keep gathering input batches until inbox is drained.
     while (true) {
       const inputs = await this._gatherZipAll();
       if (inputs === null) break;
@@ -251,7 +246,15 @@ export class NodeActor {
     for await (const [handle, item] of this.inbox.iterAny()) {
       if (handle === "__control__") continue;
 
-      current[handle] = item;
+      if (this._listInputHandles.has(handle)) {
+        if (Array.isArray(item)) {
+          current[handle] = item;
+        } else {
+          current[handle] = await this._collectScalarListInput(handle, item);
+        }
+      } else {
+        current[handle] = item;
+      }
 
       if (!initialFired) {
         pendingHandles.delete(handle);
@@ -504,6 +507,35 @@ export class NodeActor {
 
     if (!gotNew) return null; // every handle yielded only sticky reuse
     return result;
+  }
+
+  private async _collectScalarListInput(
+    handle: string,
+    firstValue: unknown
+  ): Promise<unknown[]> {
+    const values: unknown[] = [];
+    this._appendListInputValue(values, firstValue);
+
+    while (true) {
+      while (this.inbox.hasBuffered(handle)) {
+        const popped = this._popHandle(handle);
+        if (popped !== undefined) {
+          this._appendListInputValue(values, popped);
+        }
+      }
+
+      if (!this.inbox.isOpen(handle)) {
+        return values;
+      }
+
+      const gen = this.inbox.iterInput(handle);
+      const next = await gen.next();
+      if (next.done) {
+        return values;
+      }
+      this._appendListInputValue(values, next.value);
+      await gen.return(undefined);
+    }
   }
 
   private _appendListInputValue(values: unknown[], value: unknown): void {

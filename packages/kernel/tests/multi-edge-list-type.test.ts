@@ -98,7 +98,7 @@ describe("Multi-edge list type validation (T-K-10)", () => {
     expect(consumerCalls).toEqual([{ images: [imageA, imageB] }]);
   });
 
-  it("aggregates list inputs before executing on_any consumers", async () => {
+  it("aggregates scalar values before executing on_any list consumers", async () => {
     const imageA = { type: "image", uri: "https://example.com/a.png" };
     const imageB = { type: "image", uri: "https://example.com/b.png" };
     const consumerCalls: Array<Record<string, unknown>> = [];
@@ -144,6 +144,59 @@ describe("Multi-edge list type validation (T-K-10)", () => {
 
     expect(result.status).toBe("completed");
     expect(consumerCalls).toEqual([{ images: [imageA, imageB] }]);
+  });
+
+  it("executes once per upstream list batch for on_any list consumers", async () => {
+    const imageA = { type: "image", uri: "https://example.com/a.png" };
+    const imageB = { type: "image", uri: "https://example.com/b.png" };
+    const imageC = { type: "image", uri: "https://example.com/c.png" };
+    const imageD = { type: "image", uri: "https://example.com/d.png" };
+    const consumerCalls: Array<Record<string, unknown>> = [];
+
+    const nodes: NodeDescriptor[] = [
+      { id: "a", type: "test.Source", name: "a" },
+      { id: "b", type: "test.Source", name: "b" },
+      {
+        id: "c",
+        type: "test.ListConsumer",
+        name: "consumer",
+        sync_mode: "on_any",
+        propertyTypes: { images: "list[image]" }
+      }
+    ];
+    const edges: Edge[] = [
+      { source: "a", sourceHandle: "out", target: "c", targetHandle: "images" },
+      { source: "b", sourceHandle: "out", target: "c", targetHandle: "images" }
+    ];
+
+    const runner = new WorkflowRunner("test-job", {
+      resolveExecutor: (node) => {
+        if (node.id === "a") {
+          return simpleExecutor(() => ({ out: [imageA, imageB] }));
+        }
+        if (node.id === "b") {
+          return simpleExecutor(() => ({ out: [imageC, imageD] }));
+        }
+        if (node.id === "c") {
+          return simpleExecutor((inputs) => {
+            consumerCalls.push(inputs);
+            return { result: inputs.images };
+          });
+        }
+        return simpleExecutor(() => ({}));
+      }
+    });
+
+    const result = await runner.run(
+      { job_id: "j-collect-on-any-list-batches", params: {} },
+      { nodes, edges }
+    );
+
+    expect(result.status).toBe("completed");
+    expect(consumerCalls).toEqual([
+      { images: [imageA, imageB] },
+      { images: [imageC, imageD] }
+    ]);
   });
 
   it("marks list-typed handle with multiple edges for aggregation", async () => {
