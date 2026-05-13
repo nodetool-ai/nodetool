@@ -60,7 +60,7 @@ The two registries are permanent — they're how nodes opt into a specific body 
 
 ### A1. Hover-only port labels
 
-Today: each property field shows a permanent label next to its handle. After this track: handles are subtle colored dots only; labels appear in a tooltip on hover.
+Today: each property field shows a permanent label next to its handle. After this track: labels are hidden by default and appear in a tooltip on hover. Handle shape and styling stay as they are today — only the label visibility changes.
 
 - **File:** `web/src/components/node/PropertyField.tsx`, `web/src/components/HandleTooltip.tsx`
 - **Behavior:** The property label DOM element gets `visually-hidden` styling. Hover over the handle triggers an existing-style tooltip showing the property name + type.
@@ -79,7 +79,7 @@ The static label tags at edge endpoints ("Input*", "Result", "Prompt", etc.) —
 Each handle gets a small inline pill containing its type icon (a "T" pill for text, image icon for image, etc.).
 
 - **File:** new `web/src/components/node/TypedPortChip.tsx`, integrated into `PropertyField.tsx`
-- **Behavior:** A small (~14×14 px) chip rendered immediately inboard of the handle dot, using `IconForType(propertyType)`. Color from `colorForType(propertyType)`.
+- **Behavior:** A small (~14×14 px) chip rendered immediately inboard of the handle, using `IconForType(propertyType)`. Color from `colorForType(propertyType)`. Handle itself is unchanged.
 - **Interaction:** Pure visual. Tooltip on hover already covers semantics.
 
 ### A4. Typed edge coloring
