@@ -58,13 +58,14 @@ The two registries are permanent — they're how nodes opt into a specific body 
 
 ## 5. Track A — Port + edge polish
 
-### A1. Hover-only port labels
+### A1. Node-hover port labels
 
-Today: each property field shows a permanent label next to its handle. After this track: labels are hidden by default and appear in a tooltip on hover. Handle shape and styling stay as they are today — only the label visibility changes.
+Today: each property field shows a permanent label next to its handle. After this track: labels are hidden by default and become visible while the cursor is over the node card (anywhere on the node, not just the handle). Handle shape and styling stay as they are today — only the label visibility changes.
 
-- **File:** `web/src/components/node/PropertyField.tsx`, `web/src/components/HandleTooltip.tsx`
-- **Behavior:** The property label DOM element gets `visually-hidden` styling. Hover over the handle triggers an existing-style tooltip showing the property name + type.
-- **Connected-state exception:** When a property is currently connected, keep the label visible (the user is editing a wired graph and needs to read it without hovering).
+- **File:** `web/src/components/node/BaseNode.tsx`, `web/src/components/node/PropertyField.tsx`
+- **Behavior:** Add `data-show-labels` (or equivalent CSS class) that toggles via the node's existing hover state (`:hover` on the node root, or a state flag if hover via CSS doesn't survive ReactFlow's pointer model). Property labels are rendered with `opacity: 0` / `visibility: hidden` by default; when the node is hovered, fade them in. Use a short transition (~120 ms) so labels don't pop.
+- **Connected-state exception:** When a property is currently connected, keep the label visible regardless of hover (the user needs to read wired graph state without hovering each node).
+- **Selected-state exception:** When the node is selected, treat it as if hovered — labels visible.
 
 ### A2. Edge endpoint labels
 
