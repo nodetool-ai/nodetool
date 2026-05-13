@@ -51,6 +51,53 @@ async function runAndGetDetection(
 }
 
 describe("Multi-edge list type validation (T-K-10)", () => {
+  it("aggregates multiple upstream values into one list input execution", async () => {
+    const imageA = { type: "image", uri: "https://example.com/a.png" };
+    const imageB = { type: "image", uri: "https://example.com/b.png" };
+    const consumerCalls: Array<Record<string, unknown>> = [];
+
+    const nodes: NodeDescriptor[] = [
+      { id: "a", type: "test.Source", name: "a" },
+      { id: "b", type: "test.Source", name: "b" },
+      {
+        id: "c",
+        type: "test.ListConsumer",
+        name: "consumer",
+        propertyTypes: { images: "list[image]" }
+      }
+    ];
+    const edges: Edge[] = [
+      { source: "a", sourceHandle: "out", target: "c", targetHandle: "images" },
+      { source: "b", sourceHandle: "out", target: "c", targetHandle: "images" }
+    ];
+
+    const runner = new WorkflowRunner("test-job", {
+      resolveExecutor: (node) => {
+        if (node.id === "a") {
+          return simpleExecutor(() => ({ out: imageA }));
+        }
+        if (node.id === "b") {
+          return simpleExecutor(() => ({ out: imageB }));
+        }
+        if (node.id === "c") {
+          return simpleExecutor((inputs) => {
+            consumerCalls.push(inputs);
+            return { result: inputs.images };
+          });
+        }
+        return simpleExecutor(() => ({}));
+      }
+    });
+
+    const result = await runner.run(
+      { job_id: "j-collect", params: {} },
+      { nodes, edges }
+    );
+
+    expect(result.status).toBe("completed");
+    expect(consumerCalls).toEqual([{ images: [imageA, imageB] }]);
+  });
+
   it("marks list-typed handle with multiple edges for aggregation", async () => {
     // Node C has a "values" handle typed as list[int]
     const nodes: NodeDescriptor[] = [

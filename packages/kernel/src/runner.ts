@@ -727,6 +727,7 @@ export class WorkflowRunner {
         },
         executionContext: this._options.executionContext,
         stickyHandles,
+        listInputHandles: this._multiEdgeListInputs.get(node.id),
         controlContext
       });
 

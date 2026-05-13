@@ -58,6 +58,9 @@ export class NodeActor {
   /** Handles that are sticky from the start (non-streaming edges). */
   private _initialStickyHandles: Set<string>;
 
+  /** Handles where multiple upstream values should be collected into a list. */
+  private _listInputHandles: Set<string>;
+
   /** Callback to route outputs downstream. */
   private _sendOutputs: (
     nodeId: string,
@@ -82,6 +85,7 @@ export class NodeActor {
     emitMessage: (msg: unknown) => void;
     executionContext?: ProcessingContext;
     stickyHandles?: Set<string>;
+    listInputHandles?: Set<string>;
     controlContext?: Record<string, unknown> | null;
   }) {
     this.node = opts.node;
@@ -91,6 +95,7 @@ export class NodeActor {
     this._emitMessage = opts.emitMessage;
     this._executionContext = opts.executionContext;
     this._initialStickyHandles = opts.stickyHandles ?? new Set();
+    this._listInputHandles = opts.listInputHandles ?? new Set();
     this._controlContext = opts.controlContext ?? null;
   }
 
@@ -439,6 +444,14 @@ export class NodeActor {
     let gotNew = false;
 
     for (const handle of handles) {
+      if (this._listInputHandles.has(handle)) {
+        const collected = await this._collectListInput(handle);
+        if (collected === null) return null;
+        result[handle] = collected.values;
+        gotNew = gotNew || collected.gotNew;
+        continue;
+      }
+
       if (this.inbox.hasBuffered(handle)) {
         const popped = this._popHandle(handle);
         if (popped !== undefined) {
@@ -486,6 +499,47 @@ export class NodeActor {
 
     if (!gotNew) return null; // every handle yielded only sticky reuse
     return result;
+  }
+
+  private _appendListInputValue(values: unknown[], value: unknown): void {
+    if (Array.isArray(value)) {
+      values.push(...value);
+    } else {
+      values.push(value);
+    }
+  }
+
+  private async _collectListInput(
+    handle: string
+  ): Promise<{ values: unknown[]; gotNew: boolean } | null> {
+    const values: unknown[] = [];
+    let gotNew = false;
+
+    while (true) {
+      while (this.inbox.hasBuffered(handle)) {
+        const popped = this._popHandle(handle);
+        if (popped !== undefined) {
+          this._appendListInputValue(values, popped);
+          gotNew = true;
+        }
+      }
+
+      if (!this.inbox.isOpen(handle)) {
+        break;
+      }
+
+      const gen = this.inbox.iterInput(handle);
+      const next = await gen.next();
+      if (next.done) {
+        break;
+      }
+      this._appendListInputValue(values, next.value);
+      gotNew = true;
+      await gen.return(undefined);
+    }
+
+    if (!gotNew) return null;
+    return { values, gotNew };
   }
 
   /**
