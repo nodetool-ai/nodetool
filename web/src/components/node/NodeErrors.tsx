@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -144,6 +144,7 @@ export const NodeErrors: React.FC<{
   nodeType?: string;
 }> = ({ id, workflow_id, nodeType = "unknown" }) => {
   const theme = useTheme();
+  const memoizedErrorStyles = useMemo(() => errorStyles(theme), [theme]);
   const error = useErrorStore((state) =>
     workflow_id !== undefined ? state.getError(workflow_id, id) : undefined
   );
@@ -173,7 +174,7 @@ export const NodeErrors: React.FC<{
   const errorDisplay = nodeErrorToDisplayString(error);
 
   return (
-    <div css={errorStyles(theme)} className="node-error nodrag nowheel">
+    <div css={memoizedErrorStyles} className="node-error nodrag nowheel">
       <div className="error-actions">
         <Tooltip title="Report this issue on GitHub">
           <button
