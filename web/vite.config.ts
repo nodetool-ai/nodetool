@@ -95,23 +95,18 @@ export default defineConfig(async ({ mode }) => {
             rollupOptions: {
               external: ["web-worker"],
               output: {
-                manualChunks: {
-                  "vendor-react": ["react", "react-dom", "react-router-dom"],
-                  "vendor-mui": [
-                    "@mui/material",
-                    "@mui/icons-material",
-                    "@emotion/react",
-                    "@emotion/styled"
-                  ],
-                  "vendor-plotly": ["react-plotly.js"],
-                  "vendor-three": [
-                    "three",
-                    "@react-three/fiber",
-                    "@react-three/drei"
-                  ],
-                  "vendor-editor": ["@monaco-editor/react", "lexical"],
-                  "vendor-pdf": ["react-pdf"],
-                  "vendor-waveform": ["wavesurfer.js"]
+                manualChunks: (id: string) => {
+                  if (id.includes("react-plotly.js") || id.includes("plotly")) return "vendor-plotly";
+                  if (id.includes("wavesurfer")) return "vendor-waveform";
+                  if (id.includes("react-pdf") || id.includes("pdfjs")) return "vendor-pdf";
+                  if (id.includes("@monaco-editor") || id.includes("lexical")) return "vendor-editor";
+                  if (id.includes("three") || id.includes("@react-three")) return "vendor-three";
+                  if (id.includes("@mui") || id.includes("@emotion")) return "vendor-mui";
+                  if (
+                    id.includes("/node_modules/react/") ||
+                    id.includes("/node_modules/react-dom/") ||
+                    id.includes("/node_modules/react-router")
+                  ) return "vendor-react";
                 }
               }
             }
