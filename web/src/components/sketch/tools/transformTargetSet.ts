@@ -40,7 +40,7 @@ export interface TransformTargetEntry {
 }
 
 /** True when the layer can participate in a multi-layer union transform. */
-export function isMultiTransformEligibleLayer(layer: Layer): boolean {
+function isMultiTransformEligibleLayer(layer: Layer): boolean {
   if (layer.type !== "raster" && layer.type !== "mask") {
     return false;
   }

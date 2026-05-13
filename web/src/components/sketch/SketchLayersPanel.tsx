@@ -1030,6 +1030,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         >
           <Tooltip title="Add Transparent Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
+              aria-label="Add Transparent Layer"
               size="small"
               onClick={() => onAddLayer(null)}
               sx={{
@@ -1049,6 +1050,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           </Tooltip>
           <Tooltip title="Add Black Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
+              aria-label="Add Black Layer"
               size="small"
               onClick={() => onAddLayer("#000000")}
               sx={{
@@ -1071,6 +1073,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           </Tooltip>
           <Tooltip title="Add White Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
+              aria-label="Add White Layer"
               size="small"
               onClick={() => onAddLayer("#ffffff")}
               sx={{
@@ -1093,6 +1096,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           </Tooltip>
           <Tooltip title="Add Gray Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
+              aria-label="Add Gray Layer"
               size="small"
               onClick={() => onAddLayer("#808080")}
               sx={{
@@ -1169,6 +1173,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           </Tooltip>
           <Tooltip title="New empty layer group (folder)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
+              aria-label="New empty layer group (folder)"
               size="small"
               onClick={() => onAddGroup()}
               sx={{
@@ -1195,6 +1200,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <IconButton
+              aria-label="Generate Layer (Text-to-Image)"
               size="small"
               onClick={() => setGenerateDialogOpen(true)}
               data-testid="layers-panel-generate-layer"
@@ -1233,6 +1239,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         >
           <Tooltip title="Duplicate Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
+              aria-label="Duplicate Layer"
               size="small"
               onClick={() => onDuplicateLayer(activeLayerId)}
             >
@@ -1248,6 +1255,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           >
             <span>
               <IconButton
+                aria-label="Delete active layer"
                 size="small"
                 onClick={() =>
                   hasMultiLayerSelection
@@ -1261,7 +1269,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             </span>
           </Tooltip>
           <Tooltip title="Flatten Visible" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <IconButton size="small" onClick={onFlattenVisible}>
+            <IconButton aria-label="Flatten Visible" size="small" onClick={onFlattenVisible}>
               <LayersIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
           </Tooltip>
@@ -1275,6 +1283,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <IconButton
+              aria-label={maskLayerId === activeLayerId ? "Remove Mask Designation" : "Set as Mask Layer"}
               size="small"
               onClick={() =>
                 onSetMaskLayer(
@@ -1296,6 +1305,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <IconButton
+              aria-label={layers.find((l) => l.id === activeLayerId)?.alphaLock ? "Unlock Transparency" : "Lock Transparency"}
               size="small"
               onClick={() => onToggleAlphaLock(activeLayerId)}
               color={
@@ -1309,6 +1319,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           </Tooltip>
           <Tooltip title="Trim Active Layer To Bounds" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
+              aria-label="Trim Active Layer To Bounds"
               size="small"
               onClick={onTrimLayerToBounds}
               disabled={
@@ -1409,7 +1420,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           {selectedLayerIds.length >= 2 ? (
             <>
               <Tooltip title="Group selected layers (adjacent siblings, same parent)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                <IconButton size="small" onClick={onGroupSelectedLayers}>
+                <IconButton aria-label="Group selected layers" size="small" onClick={onGroupSelectedLayers}>
                   <CreateNewFolderIcon sx={{ fontSize: "1.125rem" }} />
                 </IconButton>
               </Tooltip>
@@ -1427,6 +1438,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               </Tooltip>
               <Tooltip title="Delete selected layers" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
                 <IconButton
+                  aria-label="Delete selected layers"
                   size="small"
                   color="error"
                   onClick={onDeleteSelectedLayers}
@@ -1448,6 +1460,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           {activeLayer?.type === "group" ? (
             <Tooltip title="Ungroup" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
               <IconButton
+                aria-label="Ungroup"
                 size="small"
                 onClick={() => onUngroupLayer(activeLayerId)}
               >
@@ -1472,6 +1485,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         <Tooltip title="Clear Layer (Delete)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
           <span>
             <IconButton
+              aria-label="Clear Layer (Delete)"
               size="small"
               onClick={onClearLayer}
               disabled={pixelLayerCanvasActionsDisabled}
@@ -1483,6 +1497,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         <Tooltip title="Flip Layer Horizontal" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
           <span>
             <IconButton
+              aria-label="Flip Layer Horizontal"
               size="small"
               onClick={onFlipHorizontal}
               disabled={pixelLayerCanvasActionsDisabled}
@@ -1494,6 +1509,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         <Tooltip title="Flip Layer Vertical" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
           <span>
             <IconButton
+              aria-label="Flip Layer Vertical"
               size="small"
               onClick={onFlipVertical}
               disabled={pixelLayerCanvasActionsDisabled}
@@ -1507,6 +1523,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         <Tooltip title="Merge Down" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
           <span>
             <IconButton
+              aria-label="Merge Down"
               size="small"
               onClick={onMergeDown}
               disabled={!canMergeDown}

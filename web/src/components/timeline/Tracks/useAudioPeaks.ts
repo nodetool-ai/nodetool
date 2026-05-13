@@ -112,8 +112,4 @@ export function useAudioPeaks(url: string | undefined): UseAudioPeaksResult {
   return state;
 }
 
-/** Test helper — clears the module-level cache between specs. */
-export function __resetAudioPeaksCacheForTests(): void {
-  peaksCache.clear();
-  inFlight.clear();
-}
+

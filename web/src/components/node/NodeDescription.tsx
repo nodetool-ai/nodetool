@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Chip } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
@@ -40,6 +40,7 @@ interface NodeDescriptionProps {
 const NodeDescription = React.memo(
   ({ description, className, onTagClick }: NodeDescriptionProps) => {
     const theme = useTheme();
+    const memoizedStyles = useMemo(() => styles(theme), [theme]);
 
     const handleTagClick = useCallback(
       (tag: string) => {
@@ -78,7 +79,7 @@ const NodeDescription = React.memo(
       : [];
 
     return (
-      <div css={styles(theme)} className={className}>
+      <div css={memoizedStyles} className={className}>
         {firstLine && <span className="first-line">{firstLine}</span>}
         {tags.length > 0 && (
           <div className="tags-container">

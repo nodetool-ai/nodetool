@@ -112,7 +112,7 @@ export function areTypesCompatible(
 }
 
 /** Returns properties on `metadata` that are compatible with `outputType`. */
-export function getCompatibleInputs(
+function getCompatibleInputs(
   metadata: NodeMetadata,
   outputType: PropertyTypeMetadata
 ): Property[] {

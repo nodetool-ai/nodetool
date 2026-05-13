@@ -14,7 +14,7 @@ interface FilePreviewProps {
   onRemove: () => void;
 }
 
-export const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove }) => (
+export const FilePreview: React.FC<FilePreviewProps> = React.memo(({ file, onRemove }) => (
   <div className="file-preview">
     {file.type.startsWith("image/") && isDisplayableImage(file.dataUri) ? (
       <ResponsiveImage
@@ -53,4 +53,6 @@ export const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove }) => (
       }}
     />
   </div>
-);
+));
+
+FilePreview.displayName = "FilePreview";

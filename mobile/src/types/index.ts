@@ -26,7 +26,6 @@ export type {
   GenerationStoppedUpdate,
   ErrorUpdate,
   ChatMessageRequest,
-  StopGenerationRequest,
   ChatState,
   WebSocketConfig,
 } from "./chat";

@@ -58,7 +58,7 @@ export function readExpandedBodyHeightPx(node: Node<NodeData>): number {
   return MIN_EXPANDED_BODY_PX;
 }
 
-export function readNodeWidthPx(node: Node<NodeData>): number | undefined {
+function readNodeWidthPx(node: Node<NodeData>): number | undefined {
   const mw = node.measured?.width;
   if (typeof mw === "number" && mw > 0) {
     return mw;
