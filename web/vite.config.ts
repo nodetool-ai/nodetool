@@ -1,6 +1,5 @@
 import { defineConfig, loadEnv, type ProxyOptions, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import viteTsconfigPaths from "vite-tsconfig-paths";
 import svgr from "vite-plugin-svgr";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -75,6 +74,7 @@ export default defineConfig(async ({ mode }) => {
       alias: {
         "monaco-editor": resolve(rootNodeModules, "monaco-editor"),
       },
+      tsconfigPaths: true,
     },
     plugins: [
       react({
@@ -82,12 +82,6 @@ export default defineConfig(async ({ mode }) => {
         babel: {
           plugins: ["@emotion/babel-plugin"]
         }
-      }),
-      viteTsconfigPaths({
-        // Skip Electron build output directories — they contain bundled npm
-        // packages with tsconfig.json files whose "extends" targets (e.g.
-        // @ljharb/tsconfig) are not installed in the stripped bundle.
-        ignoreConfigErrors: true,
       }),
       svgr()
     ],
