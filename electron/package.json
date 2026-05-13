@@ -53,9 +53,6 @@
     "vite": "^8.0.12",
     "vite-plugin-electron": "^0.29.1"
   },
-  "optionalDependencies": {
-    "dmg-license": "^1.0.11"
-  },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.138",
     "@msgpack/msgpack": "^3.1.3",
