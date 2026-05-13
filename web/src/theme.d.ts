@@ -1,5 +1,5 @@
 import "@mui/material/styles";
-import type { PaletteOptions } from "@mui/material/styles";
+import type { PaletteOptions, ThemeVars } from "@mui/material/styles";
 
 declare module "@mui/material/styles" {
   interface ThemeOptions {
@@ -49,6 +49,7 @@ declare module "@mui/material/styles" {
       node?: string;
       buttonSmall?: string;
       buttonLarge?: string;
+      container?: string;
     };
     /**
      * Minimal editor-specific values (kept small; expand only when needed).
@@ -78,10 +79,7 @@ declare module "@mui/material/styles" {
     fontSizeTinyer: string;
     fontFamily1: string;
     fontFamily2: string;
-    // Ensure theme.vars is treated as always present in our codebase
-    // MUI's internal theme.vars structure is complex and cannot be easily typed
-     
-    vars: any;
+    vars: ThemeVars;
     rounded: {
       xs: string;
       sm: string;
@@ -95,6 +93,7 @@ declare module "@mui/material/styles" {
       node: string;
       buttonSmall: string;
       buttonLarge: string;
+      container: string;
     };
     editor: {
       heightNode: string;
@@ -172,6 +171,7 @@ declare module "@mui/material/styles" {
       node: string;
       buttonSmall: string;
       buttonLarge: string;
+      container: string;
     };
     editor: {
       heightNode: string;
@@ -186,8 +186,57 @@ declare module "@mui/material/styles" {
     };
   }
 
+  interface ThemeVars {
+    fontSizeGiant: string;
+    fontSizeBigger: string;
+    fontSizeBig: string;
+    fontSizeNormal: string;
+    fontSizeSmall: string;
+    fontSizeSmaller: string;
+    fontSizeTiny: string;
+    fontSizeTinyer: string;
+    fontFamily1: string;
+    fontFamily2: string;
+    rounded: {
+      xs: string;
+      sm: string;
+      md: string;
+      lg: string;
+      xl: string;
+      xxl: string;
+      pill: string;
+      circle: string;
+      dialog: string;
+      node: string;
+      buttonSmall: string;
+      buttonLarge: string;
+      container: string;
+    };
+    editor: {
+      heightNode: string;
+      heightInspector: string;
+      padXNode: string;
+      padYNode: string;
+      padXInspector: string;
+      padYInspector: string;
+      controlRadius: string;
+      menuRadius: string;
+      menuShadow: string;
+    };
+  }
+
+  interface PaletteCommonChannel {
+    whiteChannel: string;
+    blackChannel: string;
+  }
+
+  interface PaletteActionChannel {
+    hoverChannel: string;
+  }
+
   interface Color {
     0?: string;
+    850?: string;
     1000?: string;
   }
 

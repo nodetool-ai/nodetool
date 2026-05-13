@@ -247,8 +247,10 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     (props.data.properties.headline as string | undefined) || "Group"
   );
 
-  const [color, setColor] = useState(
-    props.data.properties.group_color || theme.vars.palette.c_bg_group
+  const [color, setColor] = useState<string | null>(
+    (props.data.properties.group_color as string | undefined) ||
+      theme.vars.palette.c_bg_group ||
+      null
   );
   const handleResize = useCallback(
     (event: ResizeDragEvent) => {
@@ -329,7 +331,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           controlKeyPressed || metaKeyPressed ? 0.5 : nodeHovered ? 0.8 : 1,
         pointerEvents: controlKeyPressed || metaKeyPressed ? "all" : "none",
         backgroundColor: hexToRgba(
-          color || theme.vars.palette.c_bg_group,
+          color || theme.vars.palette.c_bg_group || "#444444",
           GROUP_COLOR_OPACITY
         )
       }}
