@@ -95,23 +95,38 @@ export default defineConfig(async ({ mode }) => {
             rollupOptions: {
               external: ["web-worker"],
               output: {
-                manualChunks: {
-                  "vendor-react": ["react", "react-dom", "react-router-dom"],
-                  "vendor-mui": [
-                    "@mui/material",
-                    "@mui/icons-material",
-                    "@emotion/react",
-                    "@emotion/styled"
-                  ],
-                  "vendor-plotly": ["react-plotly.js"],
-                  "vendor-three": [
-                    "three",
-                    "@react-three/fiber",
-                    "@react-three/drei"
-                  ],
-                  "vendor-editor": ["@monaco-editor/react", "lexical"],
-                  "vendor-pdf": ["react-pdf"],
-                  "vendor-waveform": ["wavesurfer.js"]
+                manualChunks(id) {
+                  if (!id.includes("node_modules")) return;
+                  if (
+                    /[\\/]node_modules[\\/](react|react-dom|react-router-dom|react-router|scheduler)[\\/]/.test(
+                      id
+                    )
+                  )
+                    return "vendor-react";
+                  if (
+                    /[\\/]node_modules[\\/](@mui[\\/]material|@mui[\\/]icons-material|@mui[\\/]system|@mui[\\/]base|@emotion[\\/]react|@emotion[\\/]styled|@emotion[\\/]cache|@emotion[\\/]serialize|@emotion[\\/]utils|@emotion[\\/]hash)[\\/]/.test(
+                      id
+                    )
+                  )
+                    return "vendor-mui";
+                  if (/[\\/]node_modules[\\/]react-plotly\.js[\\/]/.test(id))
+                    return "vendor-plotly";
+                  if (
+                    /[\\/]node_modules[\\/](three|@react-three[\\/]fiber|@react-three[\\/]drei)[\\/]/.test(
+                      id
+                    )
+                  )
+                    return "vendor-three";
+                  if (
+                    /[\\/]node_modules[\\/](@monaco-editor[\\/]react|lexical)[\\/]/.test(
+                      id
+                    )
+                  )
+                    return "vendor-editor";
+                  if (/[\\/]node_modules[\\/]react-pdf[\\/]/.test(id))
+                    return "vendor-pdf";
+                  if (/[\\/]node_modules[\\/]wavesurfer\.js[\\/]/.test(id))
+                    return "vendor-waveform";
                 }
               }
             }
