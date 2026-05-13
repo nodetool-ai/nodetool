@@ -32,6 +32,7 @@ paths:
                       type: string
                       description: The text prompt used to generate the video.
                       minLength: 3
+                      maxLength: 5000
                     first_frame_url:
                       type: string
                       description: First frame image url or asset://{assetId}
@@ -75,6 +76,7 @@ paths:
                     duration:
                       type: integer
                       default: 5
+                      description: Video duration in 4-15 seconds.
                     nsfw_checker:
                       type: boolean
                       default: false
@@ -162,6 +164,11 @@ describe("KieSchemaParser", () => {
         expect.objectContaining({ name: "reference_images", type: "list[image]" }),
         expect.objectContaining({ name: "reference_videos", type: "list[video]" }),
         expect.objectContaining({ name: "reference_audios", type: "list[audio]" }),
+        expect.objectContaining({ name: "prompt", type: "str", min: 3, max: 5000 }),
+        expect.objectContaining({ name: "reference_images", type: "list[image]", max: 9 }),
+        expect.objectContaining({ name: "reference_videos", type: "list[video]", max: 3 }),
+        expect.objectContaining({ name: "reference_audios", type: "list[audio]", max: 3 }),
+        expect.objectContaining({ name: "duration", type: "int", min: 4, max: 15 }),
         expect.objectContaining({
           name: "resolution",
           type: "enum",

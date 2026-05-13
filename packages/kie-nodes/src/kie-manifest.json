@@ -15,7 +15,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt used to generate the image (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "image_size",
@@ -76,7 +77,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt used to generate the image (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "image_size",
@@ -161,7 +163,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt used to edit the image (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "images",
@@ -169,7 +172,8 @@
         "default": [],
         "title": "Images",
         "description": "List of URLs of input images for editing. Presently, up to 10 image inputs are allowed. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-        "required": true
+        "required": true,
+        "max": 10
       },
       {
         "name": "image_size",
@@ -262,7 +266,8 @@
         "default": "",
         "title": "Prompt",
         "description": "A text description of the image you want to generate (Max length: 3000 characters)",
-        "required": true
+        "required": true,
+        "max": 3000
       },
       {
         "name": "aspect_ratio",
@@ -337,7 +342,8 @@
         "default": "",
         "title": "Prompt",
         "description": "A text description of the image you want to generate (Max length: 3000 characters)",
-        "required": true
+        "required": true,
+        "max": 3000
       },
       {
         "name": "images",
@@ -345,7 +351,8 @@
         "default": [],
         "title": "Images",
         "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-        "required": true
+        "required": true,
+        "max": 14
       },
       {
         "name": "aspect_ratio",
@@ -428,7 +435,9 @@
         "default": "",
         "title": "Prompt",
         "description": "A text description of the image you want to generate (Max length: 3-3000 characters)",
-        "required": true
+        "required": true,
+        "min": 3,
+        "max": 3000
       },
       {
         "name": "aspect_ratio",
@@ -503,7 +512,9 @@
         "default": "",
         "title": "Prompt",
         "description": "A text description of the image you want to generate (Max length: 3-3000 characters)",
-        "required": true
+        "required": true,
+        "min": 3,
+        "max": 3000
       },
       {
         "name": "images",
@@ -511,7 +522,8 @@
         "default": [],
         "title": "Images",
         "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-        "required": true
+        "required": true,
+        "max": 14
       },
       {
         "name": "aspect_ratio",
@@ -594,7 +606,8 @@
         "default": "",
         "title": "Prompt",
         "description": "A text description of the image you want to generate (Max length: 1000 characters)",
-        "required": true
+        "required": true,
+        "max": 1000
       },
       {
         "name": "aspect_ratio",
@@ -649,7 +662,8 @@
         "default": "",
         "title": "Prompt",
         "description": "A text description of the image you want to generate (Max length: 20000 characters)",
-        "required": true
+        "required": true,
+        "max": 20000
       },
       {
         "name": "image_input",
@@ -657,7 +671,8 @@
         "default": [],
         "title": "Image Input",
         "description": "Input images to transform or use as reference (supports up to 14 images) (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
-        "required": false
+        "required": false,
+        "max": 14
       },
       {
         "name": "aspect_ratio",
@@ -742,7 +757,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt describing what you want to see (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "negative_prompt",
@@ -750,7 +766,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "A description of what to discourage in the generated images (Max length: 5000 characters)",
-        "required": false
+        "required": false,
+        "max": 5000
       },
       {
         "name": "aspect_ratio",
@@ -814,7 +831,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt describing what you want to see (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "negative_prompt",
@@ -822,7 +840,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "A description of what to discourage in the generated images (Max length: 5000 characters)",
-        "required": false
+        "required": false,
+        "max": 5000
       },
       {
         "name": "aspect_ratio",
@@ -845,7 +864,8 @@
         "default": "",
         "title": "Seed",
         "description": "Random seed for reproducible generation (Max length: 500 characters)",
-        "required": false
+        "required": false,
+        "max": 500
       }
     ],
     "validation": [
@@ -872,7 +892,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt describing what you want to see (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "negative_prompt",
@@ -880,7 +901,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "A description of what to discourage in the generated images (Max length: 5000 characters)",
-        "required": false
+        "required": false,
+        "max": 5000
       },
       {
         "name": "aspect_ratio",
@@ -903,7 +925,8 @@
         "default": "",
         "title": "Seed",
         "description": "Random seed for reproducible generation (Max length: 500 characters)",
-        "required": false
+        "required": false,
+        "max": 500
       }
     ],
     "validation": [
@@ -930,7 +953,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The prompt for image editing (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "images",
@@ -938,7 +962,8 @@
         "default": [],
         "title": "Images",
         "description": "List of URLs of input images for editing,up to 10 images. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-        "required": true
+        "required": true,
+        "max": 10
       },
       {
         "name": "output_format",
@@ -1006,7 +1031,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The prompt for image generation (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "output_format",
@@ -1066,7 +1092,8 @@
         "default": "",
         "title": "Prompt",
         "description": "A text description of the image you want to generate (Max length: 10000 characters)",
-        "required": true
+        "required": true,
+        "max": 10000
       },
       {
         "name": "image_input",
@@ -1074,7 +1101,8 @@
         "default": [],
         "title": "Image Input",
         "description": "Input images to transform or use as reference (supports up to 8 images) (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
-        "required": false
+        "required": false,
+        "max": 8
       },
       {
         "name": "aspect_ratio",
@@ -1150,12 +1178,13 @@
     "maxAttempts": 200,
     "fields": [
       {
-        "name": "inputs",
+        "name": "images",
         "type": "list[image]",
         "default": [],
-        "title": "Inputs",
+        "title": "Images",
         "description": "Input reference images (1-8 images). (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-        "required": true
+        "required": true,
+        "max": 8
       },
       {
         "name": "prompt",
@@ -1163,7 +1192,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Must be between 3 and 5000 characters. (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "aspect_ratio",
@@ -1206,7 +1236,7 @@
     ],
     "uploads": [
       {
-        "field": "inputs",
+        "field": "images",
         "kind": "image",
         "isList": true,
         "paramName": "input_urls"
@@ -1246,7 +1276,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Must be between 3 and 5000 characters. (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "aspect_ratio",
@@ -1315,12 +1346,13 @@
     "maxAttempts": 200,
     "fields": [
       {
-        "name": "inputs",
+        "name": "images",
         "type": "list[image]",
         "default": [],
-        "title": "Inputs",
+        "title": "Images",
         "description": "Input reference images (1-8 images). (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-        "required": true
+        "required": true,
+        "max": 8
       },
       {
         "name": "prompt",
@@ -1328,7 +1360,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Must be between 3 and 5000 characters. (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "aspect_ratio",
@@ -1371,7 +1404,7 @@
     ],
     "uploads": [
       {
-        "field": "inputs",
+        "field": "images",
         "kind": "image",
         "isList": true,
         "paramName": "input_urls"
@@ -1411,7 +1444,9 @@
         "default": "",
         "title": "Prompt",
         "description": "Generation prompt, length must be between 3-5000 characters. (Maximum length: 5000 characters)",
-        "required": true
+        "required": true,
+        "min": 3,
+        "max": 5000
       },
       {
         "name": "aspect_ratio",
@@ -1543,7 +1578,8 @@
         "default": "",
         "title": "Prompt",
         "description": "A text description specifying the desired content or style of the generated image. (Max length: 390000 characters)",
-        "required": false
+        "required": false,
+        "max": 390000
       },
       {
         "name": "images",
@@ -1551,7 +1587,8 @@
         "default": [],
         "title": "Images",
         "description": "An array containing up to 1 URL string pointing to reference images. (Use file URLs after upload, not raw file content. Accepted types: image/jpeg, image/png, image/webp. Max size: 10.0MB per image.) In your prompt, reference the uploaded image by typing @image(n) followed by a space (for example: @image1 a sunset over the ocean).",
-        "required": true
+        "required": true,
+        "max": 5
       },
       {
         "name": "nsfw_checker",
@@ -1644,12 +1681,13 @@
     "maxAttempts": 200,
     "fields": [
       {
-        "name": "inputs",
+        "name": "images",
         "type": "list[image]",
         "default": [],
-        "title": "Inputs",
+        "title": "Images",
         "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-        "required": true
+        "required": true,
+        "max": 16
       },
       {
         "name": "prompt",
@@ -1687,7 +1725,7 @@
     ],
     "uploads": [
       {
-        "field": "inputs",
+        "field": "images",
         "kind": "image",
         "isList": true,
         "paramName": "input_urls"
@@ -1727,7 +1765,9 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompt. Required, maximum 20,000 characters.",
-        "required": true
+        "required": true,
+        "min": 1,
+        "max": 20000
       },
       {
         "name": "aspect_ratio",
@@ -1786,12 +1826,13 @@
         "required": true
       },
       {
-        "name": "inputs",
+        "name": "images",
         "type": "list[image]",
         "default": [],
-        "title": "Inputs",
+        "title": "Images",
         "description": "Array of input image URLs.",
-        "required": true
+        "required": true,
+        "max": 16
       },
       {
         "name": "aspect_ratio",
@@ -1825,7 +1866,7 @@
     ],
     "uploads": [
       {
-        "field": "inputs",
+        "field": "images",
         "kind": "image",
         "isList": true,
         "paramName": "input_urls"
@@ -1963,7 +2004,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The prompt to fill the masked part of the image. (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "image",
@@ -2100,7 +2142,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The prompt to remix the image with (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "image",
@@ -2212,7 +2255,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Description of what to exclude from an image. Descriptions in the prompt take precedence to descriptions in the negative prompt. Default value: \"\" (Max length: 500 characters)",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "images",
@@ -2274,7 +2318,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The prompt to fill the masked part of the image. (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "reference_images",
@@ -2362,7 +2407,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Description of what to exclude from an image. Descriptions in the prompt take precedence to descriptions in the negative prompt. Default value: \"\" (Max length: 5000 characters)",
-        "required": false
+        "required": false,
+        "max": 5000
       }
     ],
     "uploads": [
@@ -2397,7 +2443,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Description of the image to generate. Maximum length: 5000 characters.",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "rendering_speed",
@@ -2464,7 +2511,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Description of what to exclude from the generated image. If the positive prompt conflicts with the negative prompt, the positive prompt takes precedence. Maximum length: 5000 characters.",
-        "required": false
+        "required": false,
+        "max": 5000
       }
     ],
     "validation": [
@@ -2491,7 +2539,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The prompt to fill the masked part of the image. Maximum length: 5000 characters.",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "image",
@@ -2587,7 +2636,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The prompt to remix the image with. Maximum length: 5000 characters.",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "image",
@@ -2692,7 +2742,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Description of what to exclude from the generated image. If the positive prompt conflicts with the negative prompt, the positive prompt takes precedence. Maximum length: 5000 characters.",
-        "required": false
+        "required": false,
+        "max": 5000
       }
     ],
     "uploads": [
@@ -2726,7 +2777,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The prompt to generate the image with (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "image_size",
@@ -2798,7 +2850,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "The negative prompt for the generation (Max length: 500 characters)",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "acceleration",
@@ -2846,7 +2899,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The prompt to generate the image with (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "image",
@@ -2903,7 +2957,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "The negative prompt for the generation (Max length: 500 characters)",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "seed",
@@ -2981,7 +3036,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The prompt to generate the image with (Max length: 2000 characters)",
-        "required": true
+        "required": true,
+        "max": 2000
       },
       {
         "name": "image",
@@ -3102,7 +3158,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "The negative prompt for the generation Default value: \" \" (Max length: 500 characters)",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "nsfw_checker",
@@ -3144,7 +3201,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The prompt to generate the image with (Max length: 800 characters)",
-        "required": true
+        "required": true,
+        "max": 800
       },
       {
         "name": "image",
@@ -3238,7 +3296,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The prompt to generate the image with (Max length: 800 characters)",
-        "required": true
+        "required": true,
+        "max": 800
       },
       {
         "name": "image_size",
@@ -3308,15 +3367,17 @@
         "default": "",
         "title": "Prompt",
         "description": "Prompt for image generation or editing. This field supports both Chinese and English, with a maximum length of 5000 characters as per Alibaba Cloud documentation.",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
-        "name": "inputs",
+        "name": "images",
         "type": "list[image]",
         "default": [],
-        "title": "Inputs",
+        "title": "Images",
         "description": "(Optional) Array of input image URLs. The current project uses `input_urls` as a wrapper field.",
-        "required": false
+        "required": false,
+        "max": 9
       },
       {
         "name": "aspect_ratio",
@@ -3350,7 +3411,9 @@
         "default": 0,
         "title": "N",
         "description": "Number of images to generate. Range is 1-4 when `enable_sequential=false` (default: 4); range is 1-12 when `enable_sequential=true` (default: 12).",
-        "required": false
+        "required": false,
+        "min": 1,
+        "max": 4
       },
       {
         "name": "resolution",
@@ -3379,7 +3442,9 @@
         "default": [],
         "title": "Color Palette",
         "description": "(Optional) Custom color theme. Only available when `enable_sequential=false`. Requires 3-10 colors, 8 recommended.",
-        "required": false
+        "required": false,
+        "min": 3,
+        "max": 10
       },
       {
         "name": "bbox_list",
@@ -3418,7 +3483,7 @@
     ],
     "uploads": [
       {
-        "field": "inputs",
+        "field": "images",
         "kind": "image",
         "isList": true,
         "paramName": "input_urls"
@@ -3448,15 +3513,17 @@
         "default": "",
         "title": "Prompt",
         "description": "Prompt for image generation or editing. This field supports both Chinese and English, with a maximum length of 5000 characters as per Alibaba Cloud documentation.",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
-        "name": "inputs",
+        "name": "images",
         "type": "list[image]",
         "default": [],
-        "title": "Inputs",
+        "title": "Images",
         "description": "(Optional) Array of input image URLs. The current project uses `input_urls` as a wrapper field.",
-        "required": false
+        "required": false,
+        "max": 9
       },
       {
         "name": "aspect_ratio",
@@ -3490,7 +3557,9 @@
         "default": 0,
         "title": "N",
         "description": "Number of images to generate. Range is 1-4 when `enable_sequential=false` (default: 4); range is 1-12 when `enable_sequential=true` (default: 12).",
-        "required": false
+        "required": false,
+        "min": 1,
+        "max": 4
       },
       {
         "name": "resolution",
@@ -3519,7 +3588,9 @@
         "default": [],
         "title": "Color Palette",
         "description": "(Optional) Custom color theme. Only available when `enable_sequential=false`. Requires 3-10 colors, 8 recommended.",
-        "required": false
+        "required": false,
+        "min": 3,
+        "max": 10
       },
       {
         "name": "bbox_list",
@@ -3558,7 +3629,7 @@
     ],
     "uploads": [
       {
-        "field": "inputs",
+        "field": "images",
         "kind": "image",
         "isList": true,
         "paramName": "input_urls"
@@ -3621,7 +3692,8 @@
         "default": "",
         "title": "Text",
         "description": "The text describing the sound effect to generate (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "loop",
@@ -3719,7 +3791,8 @@
         "default": "",
         "title": "Language Code",
         "description": "Language code of the audio (Max length: 500 characters)",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "tag_audio_events",
@@ -3874,7 +3947,8 @@
         "default": "",
         "title": "Text",
         "description": "The text to convert to speech (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "voice",
@@ -4007,7 +4081,8 @@
         "default": "",
         "title": "Previous Text",
         "description": "The text that came before the text of the current request. Can be used to improve the speech's continuity when concatenating together multiple generations or to influence the speech's continuity in the current generation. (Max length: 5000 characters)",
-        "required": false
+        "required": false,
+        "max": 5000
       },
       {
         "name": "next_text",
@@ -4015,7 +4090,8 @@
         "default": "",
         "title": "Next Text",
         "description": "The text that comes after the text of the current request. Can be used to improve the speech's continuity when concatenating together multiple generations or to influence the speech's continuity in the current generation. (Max length: 5000 characters)",
-        "required": false
+        "required": false,
+        "max": 5000
       },
       {
         "name": "language_code",
@@ -4023,7 +4099,8 @@
         "default": "",
         "title": "Language Code",
         "description": "Language code (ISO 639-1) used to enforce a language for the model. Currently only Turbo v2.5 and Flash v2.5 support language enforcement. For other models, an error will be returned if language code is provided. (Max length: 500 characters)",
-        "required": false
+        "required": false,
+        "max": 500
       }
     ],
     "validation": [
@@ -4055,7 +4132,8 @@
         "default": "",
         "title": "Text",
         "description": "The text to convert to speech (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "voice",
@@ -4188,7 +4266,8 @@
         "default": "",
         "title": "Previous Text",
         "description": "The text that came before the text of the current request. Can be used to improve the speech's continuity when concatenating together multiple generations or to influence the speech's continuity in the current generation. (Max length: 5000 characters)",
-        "required": false
+        "required": false,
+        "max": 5000
       },
       {
         "name": "next_text",
@@ -4196,7 +4275,8 @@
         "default": "",
         "title": "Next Text",
         "description": "The text that comes after the text of the current request. Can be used to improve the speech's continuity when concatenating together multiple generations or to influence the speech's continuity in the current generation. (Max length: 5000 characters)",
-        "required": false
+        "required": false,
+        "max": 5000
       },
       {
         "name": "language_code",
@@ -4204,7 +4284,8 @@
         "default": "",
         "title": "Language Code",
         "description": "Language code (ISO 639-1) used to enforce a language for the model. Currently only Turbo v2.5 and Flash v2.5 support language enforcement. For other models, an error will be returned if language code is provided. (Max length: 500 characters)",
-        "required": false
+        "required": false,
+        "max": 500
       }
     ],
     "validation": [
@@ -5344,7 +5425,9 @@
         "default": [],
         "title": "Upload Url List",
         "description": "Array of audio file URLs to mashup. Must contain exactly 2 URLs. Each URL must be publicly accessible.",
-        "required": true
+        "required": true,
+        "min": 2,
+        "max": 2
       },
       {
         "name": "prompt",
@@ -5667,7 +5750,8 @@
         "default": "",
         "title": "Author",
         "description": "Artist or creator name to display as a signature on the video cover. Maximum 50 characters. This creates attribution for the music creator.",
-        "required": false
+        "required": false,
+        "max": 50
       },
       {
         "name": "domainName",
@@ -5675,7 +5759,8 @@
         "default": "",
         "title": "Domain Name",
         "description": "Website or brand to display as a watermark at the bottom of the video. Maximum 50 characters. Useful for promotional branding or attribution.",
-        "required": false
+        "required": false,
+        "max": 50
       }
     ],
     "useSuno": true,
@@ -5851,7 +5936,9 @@
         "default": 0,
         "title": "Duration",
         "description": "The duration of the generated video (in seconds) (6-30). (Minimum: 6, Maximum: 30, Step: 1)",
-        "required": false
+        "required": false,
+        "min": 6,
+        "max": 30
       },
       {
         "name": "resolution",
@@ -5898,7 +5985,8 @@
         "default": [],
         "title": "Images",
         "description": "Provide an external image URL as a reference for video generation. Up to 7 images are supported. Do not use it simultaneously with task_id. In your prompt, reference an uploaded image by typing @image(n) followed by a space (for example: @image1 a sunset over the ocean). - Supports JPEG, PNG, and WEBP formats - Maximum file size for each image: 10MB - The Spicy mode is not available when using external images - The array can contain a maximum of seven URLs",
-        "required": false
+        "required": false,
+        "max": 7
       },
       {
         "name": "task_id",
@@ -5906,7 +5994,8 @@
         "default": "",
         "title": "Task Id",
         "description": "Task ID from a previously generated Grok image. Use with index to select a specific image. Do not use with image_urls. - Use task ID from grok-imagine/text-to-image generations - Supports all modes including Spicy - Maximum length: 100 characters",
-        "required": false
+        "required": false,
+        "max": 100
       },
       {
         "name": "index",
@@ -5945,7 +6034,9 @@
         "default": "",
         "title": "Duration",
         "description": "The duration of the generated video (in seconds) (6-30). (Minimum: 6, Maximum: 30, Step: 1)",
-        "required": false
+        "required": false,
+        "min": 6,
+        "max": 30
       },
       {
         "name": "resolution",
@@ -6008,7 +6099,8 @@
         "default": "",
         "title": "Task Id",
         "description": "Task ID from a previously successful video generation task. Required field. - Must be from a Kie AI video generation model (e.g., grok-imagine/text-to-video) - The original video generation must have completed successfully - Only Kie AI–generated task IDs are supported",
-        "required": true
+        "required": true,
+        "max": 100
       }
     ],
     "validation": [
@@ -6035,7 +6127,8 @@
         "default": "",
         "title": "Task Id",
         "description": "Task ID from a previously successful video generation task. Required field. - Must be from a Kie AI video generation model (e.g., grok-imagine/text-to-video) - The original video generation must have completed successfully - Only Kie AI–generated task IDs are supported",
-        "required": true
+        "required": true,
+        "max": 100
       },
       {
         "name": "prompt",
@@ -6105,7 +6198,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompt for video generation (maximum length: 1000 characters)",
-        "required": true
+        "required": true,
+        "max": 1000
       },
       {
         "name": "sound",
@@ -6175,7 +6269,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompt for video generation (maximum length: 1000 characters)",
-        "required": true
+        "required": true,
+        "max": 1000
       },
       {
         "name": "images",
@@ -6183,7 +6278,8 @@
         "default": [],
         "title": "Images",
         "description": "Image URLs for video generation. (Uploaded file URLs, not file content; supported types: image/jpeg, image/png; maximum file size: 10.0MB)",
-        "required": true
+        "required": true,
+        "max": 1
       },
       {
         "name": "sound",
@@ -6243,7 +6339,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt describing the video to generate (Max length: 2500 characters)",
-        "required": true
+        "required": true,
+        "max": 2500
       },
       {
         "name": "image",
@@ -6279,7 +6376,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Negative prompt to exclude certain elements from the video (Max length: 500 characters)",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "cfg_scale",
@@ -6323,7 +6421,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text description of the video you want to generate (Max length: 2500 characters)",
-        "required": true
+        "required": true,
+        "max": 2500
       },
       {
         "name": "duration",
@@ -6356,7 +6455,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Things to avoid in the generated video (Max length: 2500 characters)",
-        "required": false
+        "required": false,
+        "max": 2500
       },
       {
         "name": "cfg_scale",
@@ -6421,7 +6521,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The prompt to use for the video generation (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       }
     ],
     "uploads": [
@@ -6488,7 +6589,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The prompt to use for the video generation (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       }
     ],
     "uploads": [
@@ -6527,7 +6629,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt describing the video to generate (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "image",
@@ -6563,7 +6666,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Negative prompt to exclude certain elements from the video (Max length: 500 characters)",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "cfg_scale",
@@ -6607,7 +6711,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt describing the video you want to generate (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "duration",
@@ -6640,7 +6745,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Elements to avoid in the generated video (Max length: 500 characters)",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "cfg_scale",
@@ -6677,7 +6783,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompt describing the video to generate (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "image",
@@ -6713,7 +6820,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Terms to avoid in the generated video (Max length: 500 characters)",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "cfg_scale",
@@ -6778,7 +6886,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompt describing the desired video content (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "image",
@@ -6814,7 +6923,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Description of elements to avoid in the generated video (Max length: 500 characters)",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "cfg_scale",
@@ -6858,15 +6968,17 @@
         "default": "",
         "title": "Prompt",
         "description": "A text description of the desired output. Maximum length is 2500 characters. (Max length: 2500 characters)",
-        "required": false
+        "required": false,
+        "max": 2500
       },
       {
-        "name": "inputs",
+        "name": "images",
         "type": "list[image]",
         "default": [],
-        "title": "Inputs",
+        "title": "Images",
         "description": "An array containing a single image URL. The photo must clearly show the subject's head, shoulders, and torso. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/jpg; Max size: 10.0MB,size needs to be greater than 300px, aspect ratio 2:5 to 5:2.)",
-        "required": true
+        "required": true,
+        "max": 1
       },
       {
         "name": "videos",
@@ -6874,7 +6986,9 @@
         "default": [],
         "title": "Videos",
         "description": "An array containing a single video URL. The duration must be between 3 to 30 seconds, and the video must clearly show the subject's head, shoulders, and torso. (File URL after upload, not file content; Accepted types: video/mp4, video/quicktime, video/x-matroska; Max size: 100.0MB)",
-        "required": true
+        "required": true,
+        "min": 3,
+        "max": 1
       },
       {
         "name": "character_orientation",
@@ -6903,7 +7017,7 @@
     ],
     "uploads": [
       {
-        "field": "inputs",
+        "field": "images",
         "kind": "image",
         "isList": true,
         "paramName": "input_urls"
@@ -6947,10 +7061,10 @@
         "required": false
       },
       {
-        "name": "inputs",
+        "name": "images",
         "type": "list[image]",
         "default": [],
-        "title": "Inputs",
+        "title": "Images",
         "description": "(Required) Include a URL of an image",
         "required": true
       },
@@ -6989,7 +7103,7 @@
     ],
     "uploads": [
       {
-        "field": "inputs",
+        "field": "images",
         "kind": "image",
         "isList": true,
         "paramName": "input_urls"
@@ -7018,7 +7132,9 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt used to generate the video. Required field. (Min length: 3, Max length: 20000 characters)",
-        "required": false
+        "required": false,
+        "min": 3,
+        "max": 20000
       },
       {
         "name": "first_frame",
@@ -7054,7 +7170,8 @@
         "default": [],
         "title": "Reference Images",
         "description": "Enter a list of image URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single image requirements: Format: jpeg, png, webp, bmp, tiff, gif. Aspect ratio (width/height): (0.4, 2.5) Width and height (px): (300, 6000) Size: Single image less than 30 MB. Maximum number of files: The sum of the number of frames at the beginning and end must not exceed 9..",
-        "required": false
+        "required": false,
+        "max": 9
       },
       {
         "name": "reference_videos",
@@ -7062,7 +7179,9 @@
         "default": [],
         "title": "Reference Videos",
         "description": "Enter a list of video URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj) . Single video requirements: Video format: mp4, mov. Resolution: 480p, 720p Duration: Single video duration [2, 15] s, maximum 3 reference videos, total duration of all videos not exceeding 15 seconds. Dimensions: Aspect ratio (width/height): [0.4, 2.5] Width/height (px): [300, 6000] Total pixels: [640×640=409600, 834×1112=927408], i.e., the product of width and height must meet the range requirement of [409600, 927408]. Size: Single video not exceeding 50 MB. Frame rate (FPS): [24, 60]",
-        "required": false
+        "required": false,
+        "min": 2,
+        "max": 3
       },
       {
         "name": "reference_audios",
@@ -7070,7 +7189,9 @@
         "default": [],
         "title": "Reference Audios",
         "description": "Enter a list of audio URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj) . Single audio requirements: Format: wav, mp3 Duration: Single audio duration [2, 15] s, maximum 3 reference audios, total duration of all audios not exceeding 15 s. Size: Single audio file size not exceeding 15 MB.",
-        "required": false
+        "required": false,
+        "min": 2,
+        "max": 3
       },
       {
         "name": "generate_audio",
@@ -7116,7 +7237,9 @@
         "default": 5,
         "title": "Duration",
         "description": "Video duration in 4-15 seconds.",
-        "required": false
+        "required": false,
+        "min": 4,
+        "max": 15
       },
       {
         "name": "web_search",
@@ -7182,7 +7305,9 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt used to generate the video. Required field. (Min length: 3, Max length: 20000 characters)",
-        "required": false
+        "required": false,
+        "min": 3,
+        "max": 20000
       },
       {
         "name": "first_frame",
@@ -7218,7 +7343,8 @@
         "default": [],
         "title": "Reference Images",
         "description": "Enter a list of image URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single image requirements: Format: jpeg, png, webp, bmp, tiff, gif. Aspect ratio (width/height): (0.4, 2.5) Width and height (px): (300, 6000) Size: Single image less than 30 MB. Maximum number of files: The sum of the number of frames at the beginning and end must not exceed 9..",
-        "required": false
+        "required": false,
+        "max": 9
       },
       {
         "name": "reference_videos",
@@ -7226,7 +7352,9 @@
         "default": [],
         "title": "Reference Videos",
         "description": "Enter a list of video URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single video requirements: Video format: mp4, mov. Resolution: 480p, 720p Duration: Single video duration [2, 15] s, maximum 3 reference videos, total duration of all videos not exceeding 15 seconds. Dimensions: Aspect ratio (width/height): [0.4, 2.5] Width/height (px): [300, 6000] Total pixels: [640×640=409600, 834×1112=927408], i.e., the product of width and height must meet the range requirement of [409600, 927408]. Size: Single video not exceeding 50 MB. Frame rate (FPS): [24, 60]",
-        "required": false
+        "required": false,
+        "min": 2,
+        "max": 3
       },
       {
         "name": "reference_audios",
@@ -7234,7 +7362,9 @@
         "default": [],
         "title": "Reference Audios",
         "description": "Enter a list of audio URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single audio requirements: Format: wav, mp3 Duration: Single audio duration [2, 15] s, maximum 3 reference audios, total duration of all audios not exceeding 15 s. Size: Single audio file size not exceeding 15 MB.",
-        "required": false
+        "required": false,
+        "min": 2,
+        "max": 3
       },
       {
         "name": "generate_audio",
@@ -7279,7 +7409,9 @@
         "default": 5,
         "title": "Duration",
         "description": "Video duration in 4-15 seconds.",
-        "required": false
+        "required": false,
+        "min": 4,
+        "max": 15
       },
       {
         "name": "web_search",
@@ -7345,15 +7477,18 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt used to generate the video. Required field. (Min length: 3, Max length: 2500 characters)",
-        "required": true
+        "required": true,
+        "min": 3,
+        "max": 2500
       },
       {
-        "name": "inputs",
+        "name": "videos",
         "type": "list[video]",
         "default": [],
-        "title": "Inputs",
+        "title": "Videos",
         "description": "URLs of input images for image-to-video generation. Optional field. - Accepts 0-2 images - If not provided, the model will perform text-to-video generation - File URLs after upload, not file content - Accepted types: image/jpeg, image/png, image/webp - Max size per image: 10.0MB",
-        "required": false
+        "required": false,
+        "max": 2
       },
       {
         "name": "aspect_ratio",
@@ -7424,7 +7559,7 @@
     ],
     "uploads": [
       {
-        "field": "inputs",
+        "field": "videos",
         "kind": "video",
         "isList": true,
         "paramName": "input_urls"
@@ -7464,7 +7599,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt used to generate the video (Max length: 10000 characters)",
-        "required": true
+        "required": true,
+        "max": 10000
       },
       {
         "name": "image",
@@ -7546,7 +7682,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt used to generate the video (Max length: 10000 characters)",
-        "required": true
+        "required": true,
+        "max": 10000
       },
       {
         "name": "image",
@@ -7655,7 +7792,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt used to generate the video (Max length: 10000 characters)",
-        "required": true
+        "required": true,
+        "max": 10000
       },
       {
         "name": "aspect_ratio",
@@ -7757,7 +7895,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt used to generate the video (Max length: 10000 characters)",
-        "required": true
+        "required": true,
+        "max": 10000
       },
       {
         "name": "image",
@@ -7887,7 +8026,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt used to generate the video (Max length: 10000 characters)",
-        "required": true
+        "required": true,
+        "max": 10000
       },
       {
         "name": "aspect_ratio",
@@ -7987,7 +8127,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompt describing the desired video animation (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "image",
@@ -8067,7 +8208,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompt describing the desired video animation (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "image",
@@ -8147,7 +8289,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt for video generation (Max length: 1500 characters)",
-        "required": true
+        "required": true,
+        "max": 1500
       },
       {
         "name": "prompt_optimizer",
@@ -8190,7 +8333,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompt describing the desired video animation (Max length: 1500 characters)",
-        "required": true
+        "required": true,
+        "max": 1500
       },
       {
         "name": "image",
@@ -8275,7 +8419,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text description for video generation (Max length: 1500 characters)",
-        "required": true
+        "required": true,
+        "max": 1500
       },
       {
         "name": "duration",
@@ -8330,7 +8475,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt describing the video to generate (Max length: 1500 characters)",
-        "required": true
+        "required": true,
+        "max": 1500
       },
       {
         "name": "image",
@@ -8441,7 +8587,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt describing the desired video motion (Max length: 10000 characters)",
-        "required": true
+        "required": true,
+        "max": 10000
       },
       {
         "name": "images",
@@ -8449,7 +8596,8 @@
         "default": [],
         "title": "Images",
         "description": "URL of the image to use as the first frame. Must be publicly accessible (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-        "required": true
+        "required": true,
+        "max": 1
       },
       {
         "name": "aspect_ratio",
@@ -8489,7 +8637,8 @@
         "default": [],
         "title": "Character Id List",
         "description": "Optional array of character IDs from Sora-2-characters model to incorporate character animations into the video generation. Maximum 5 character IDs allowed. Leave empty if not using character animations.",
-        "required": false
+        "required": false,
+        "max": 5
       },
       {
         "name": "upload_method",
@@ -8541,7 +8690,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt describing the desired video motion (Max length: 10000 characters)",
-        "required": true
+        "required": true,
+        "max": 10000
       },
       {
         "name": "aspect_ratio",
@@ -8581,7 +8731,8 @@
         "default": [],
         "title": "Character Id List",
         "description": "Optional array of character IDs from Sora-2-characters model to incorporate character animations into the video generation. Maximum 5 character IDs allowed. Leave empty if not using character animations.",
-        "required": false
+        "required": false,
+        "max": 5
       },
       {
         "name": "upload_method",
@@ -8625,7 +8776,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt describing the desired video motion (Max length: 10000 characters)",
-        "required": true
+        "required": true,
+        "max": 10000
       },
       {
         "name": "images",
@@ -8633,7 +8785,8 @@
         "default": [],
         "title": "Images",
         "description": "URL of the image to use as the first frame. Must be publicly accessible (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-        "required": true
+        "required": true,
+        "max": 1
       },
       {
         "name": "aspect_ratio",
@@ -8685,7 +8838,8 @@
         "default": [],
         "title": "Character Id List",
         "description": "Optional array of character IDs from Sora-2-characters model to incorporate character animations into the video generation. Maximum 5 character IDs allowed. Leave empty if not using character animations.",
-        "required": false
+        "required": false,
+        "max": 5
       },
       {
         "name": "upload_method",
@@ -8737,7 +8891,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt describing the desired video motion (Max length: 10000 characters)",
-        "required": true
+        "required": true,
+        "max": 10000
       },
       {
         "name": "aspect_ratio",
@@ -8789,7 +8944,8 @@
         "default": [],
         "title": "Character Id List",
         "description": "Optional array of character IDs from Sora-2-characters model to incorporate character animations into the video generation. Maximum 5 character IDs allowed. Leave empty if not using character animations.",
-        "required": false
+        "required": false,
+        "max": 5
       },
       {
         "name": "upload_method",
@@ -8841,7 +8997,8 @@
         },
         "title": "Video",
         "description": "Enter the Sora 2 video URL — it must be a publicly accessible link from OpenAI (starting with sora.chatgpt.com). (Max length: 500 characters)",
-        "required": true
+        "required": true,
+        "max": 500
       },
       {
         "name": "upload_method",
@@ -8887,7 +9044,9 @@
         "default": [],
         "title": "Shots",
         "description": "Array of shot descriptions with durations. Total duration of all shots cannot exceed the selected n_frames value.",
-        "required": false
+        "required": false,
+        "min": 1,
+        "max": 10
       },
       {
         "name": "n_frames",
@@ -8908,7 +9067,9 @@
         "default": [],
         "title": "Images",
         "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB). Limited to exactly 1 image.",
-        "required": false
+        "required": false,
+        "min": 1,
+        "max": 1
       },
       {
         "name": "aspect_ratio",
@@ -8981,7 +9142,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt to guide video generation. (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "resolution",
@@ -9065,7 +9227,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt used for video generation (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "image",
@@ -9134,7 +9297,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Negative prompt for video generation (Max length: 500 characters)",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "seed",
@@ -9219,7 +9383,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt to guide video generation. (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "resolution",
@@ -9458,7 +9623,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompts for video generation. Supports both Chinese and English, with a minimum of 2 characters and a maximum of 5,000 characters. (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "images",
@@ -9466,7 +9632,8 @@
         "default": [],
         "title": "Images",
         "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB),All images must be at least 256x256px.",
-        "required": true
+        "required": true,
+        "max": 1
       },
       {
         "name": "duration",
@@ -9534,7 +9701,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompts for video generation. Supports both Chinese and English, with a minimum of 1 characters and a maximum of 5,000 characters. (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "duration",
@@ -9594,7 +9762,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompts for video generation. Supports both Chinese and English, with a minimum of 2 characters and a maximum of 5,000 characters. (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "videos",
@@ -9602,7 +9771,8 @@
         "default": [],
         "title": "Videos",
         "description": "The URL of the image used to generate video (File URL after upload, not file content; Accepted types: video/mp4, video/quicktime, video/x-matroska; Max size: 10.0MB)",
-        "required": true
+        "required": true,
+        "max": 3
       },
       {
         "name": "duration",
@@ -9669,7 +9839,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompts for video generation. Supports both Chinese and English, with a minimum of 2 characters and a maximum of 5,000 characters. (Max length: 1500 characters)",
-        "required": true
+        "required": true,
+        "max": 1500
       },
       {
         "name": "images",
@@ -9677,7 +9848,8 @@
         "default": [],
         "title": "Images",
         "description": "A list of image URLs. All images must be at least 256x256px. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-        "required": true
+        "required": true,
+        "max": 1
       },
       {
         "name": "duration",
@@ -9761,7 +9933,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompts for video generation. Supports both Chinese and English, with a minimum of 2 characters and a maximum of 5,000 characters. (Max length: 1500 characters)",
-        "required": true
+        "required": true,
+        "max": 1500
       },
       {
         "name": "videos",
@@ -9769,7 +9942,8 @@
         "default": [],
         "title": "Videos",
         "description": "The URL of the image used to generate video (File URL after upload, not file content; Accepted types: video/mp4, video/quicktime, video/x-matroska; Max size: 10.0MB)",
-        "required": true
+        "required": true,
+        "max": 3
       },
       {
         "name": "duration",
@@ -9852,7 +10026,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt describing the desired video motion. Maximum length: 800 characters.",
-        "required": true
+        "required": true,
+        "max": 800
       },
       {
         "name": "image",
@@ -9898,7 +10073,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Negative prompt used to describe content to avoid. Maximum length: 500 characters.",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "enable_prompt_expansion",
@@ -9961,7 +10137,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt for video generation. Supports Chinese and English. Maximum length: 800 characters.",
-        "required": true
+        "required": true,
+        "max": 800
       },
       {
         "name": "duration",
@@ -10006,7 +10183,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Negative prompt used to describe content to avoid. Maximum length: 500 characters.",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "enable_prompt_expansion",
@@ -10062,7 +10240,9 @@
         "default": "",
         "title": "Prompt",
         "description": "Positive prompt. Minimum length: 1 character. Maximum length: 5000 characters.",
-        "required": true
+        "required": true,
+        "min": 1,
+        "max": 5000
       },
       {
         "name": "negative_prompt",
@@ -10070,7 +10250,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Negative prompt. Maximum length: 500 characters.",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "audio",
@@ -10189,7 +10370,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Positive prompt. Maximum length: 5000 characters.",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "negative_prompt",
@@ -10197,7 +10379,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Negative prompt. Maximum length: 500 characters.",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "first_frame",
@@ -10360,7 +10543,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Optional text prompt describing the expected elements and visual features in the generated video. Supports Chinese and English. Maximum length: 5000 characters.",
-        "required": false
+        "required": false,
+        "max": 5000
       },
       {
         "name": "negative_prompt",
@@ -10368,7 +10552,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Optional negative prompt describing content that should not appear in the video. Supports Chinese and English. Maximum length: 500 characters.",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "video",
@@ -10384,7 +10569,9 @@
         },
         "title": "Video",
         "description": "URL of the source video to edit. Required. Only one video is supported. - Formats: `mp4`, `mov` - Duration: `2` to `10` seconds - Resolution: width and height range `[240,4096]` pixels - Aspect ratio: `1:8` to `8:1` - File size: up to `100MB` - Supports public `http/https` URLs or temporary `oss` URLs",
-        "required": true
+        "required": true,
+        "min": 240,
+        "max": 4096
       },
       {
         "name": "resolution",
@@ -10481,7 +10668,9 @@
         },
         "title": "Reference Image",
         "description": "Optional reference image URL for character, clothing, or style guidance. - Formats: `JPEG`, `JPG`, `PNG` (no alpha channel), `BMP`, `WEBP` - Resolution: width and height range `[240,8000]` pixels - Aspect ratio: `1:8` to `8:1` - Supports public `http/https` URLs or temporary `oss` URLs",
-        "required": false
+        "required": false,
+        "min": 240,
+        "max": 8000
       }
     ],
     "uploads": [
@@ -10513,7 +10702,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompt. Required. Describes the desired elements and visual features in the generated video. Supports Chinese and English. Maximum length: 5000 characters.",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "negative_prompt",
@@ -10521,7 +10711,8 @@
         "default": "",
         "title": "Negative Prompt",
         "description": "Optional negative prompt describing what should not appear in the video. Supports Chinese and English. Maximum length: 500 characters.",
-        "required": false
+        "required": false,
+        "max": 500
       },
       {
         "name": "reference_image",
@@ -10529,7 +10720,8 @@
         "default": [],
         "title": "Reference Image",
         "description": "Array of reference image URLs. At least one of `reference_image` or `reference_video` must be provided. The total number of images and videos cannot exceed 5.",
-        "required": false
+        "required": false,
+        "max": 5
       },
       {
         "name": "reference_video",
@@ -10537,7 +10729,8 @@
         "default": [],
         "title": "Reference Video",
         "description": "Array of reference video URLs. At least one of `reference_image` or `reference_video` must be provided. The total number of images and videos cannot exceed 5.",
-        "required": false
+        "required": false,
+        "max": 5
       },
       {
         "name": "first_frame",
@@ -10763,7 +10956,8 @@
         "default": "",
         "title": "Prompt",
         "description": "The text prompt to guide video generation. (Max length: 5000 characters)",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "resolution",
@@ -10783,7 +10977,9 @@
         "default": 0,
         "title": "Seed",
         "description": "Random seed for reproducibility. Valid range is 10000 to 1000000.",
-        "required": false
+        "required": false,
+        "min": 10000,
+        "max": 1000000
       }
     ],
     "uploads": [
@@ -10822,7 +11018,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompt describing the video to generate (any language). Max 5,000 non‑Chinese characters or 2,500 Chinese characters; extra content is truncated.",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "resolution",
@@ -10896,7 +11093,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompt describing the video to generate (any language). Max 5,000 non‑Chinese characters or 2,500 Chinese characters; extra content is truncated.",
-        "required": false
+        "required": false,
+        "max": 5000
       },
       {
         "name": "images",
@@ -10904,7 +11102,8 @@
         "default": [],
         "title": "Images",
         "description": "First-frame image URL list. Exactly one image is required. Image constraints: Format: JPEG, JPG, PNG, WEBP. Resolution: Width and height must be at least 300 pixels. Aspect ratio: 1:2.5 to 2.5:1. File size: Up to 10 MB.",
-        "required": false
+        "required": false,
+        "max": 1
       },
       {
         "name": "resolution",
@@ -10964,7 +11163,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Text prompt describing the video to generate (any language). Max 5,000 non‑Chinese characters or 2,500 Chinese characters; extra content is truncated.",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "reference_image",
@@ -10972,7 +11172,9 @@
         "default": [],
         "title": "Reference Image",
         "description": "Reference image URL list. Provide 1–9 images. The order defines which image is character1, character2, etc. Image limits: Format: JPEG, JPG, PNG, and WEBP. Resolution: shortest side at least 400 px. 720P or higher recommended. Avoid small, blurry, or heavily compressed images, as they degrade output quality. File size: 10 MB maximum.",
-        "required": true
+        "required": true,
+        "min": 1,
+        "max": 9
       },
       {
         "name": "resolution",
@@ -11046,7 +11248,8 @@
         "default": "",
         "title": "Prompt",
         "description": "Required edit instruction describing the intended change (e.g., style transfer / local replacement). Max 5,000 non‑Chinese characters or 2,500 Chinese characters; extra content is truncated.",
-        "required": true
+        "required": true,
+        "max": 5000
       },
       {
         "name": "video",
@@ -11070,7 +11273,9 @@
         "default": [],
         "title": "Reference Image",
         "description": "Optional reference image URL list (0–5). Image requirements: Format: JPEG, JPG, PNG, WEBP. Resolution: both width and height must be at least 300 px. Aspect ratio: 1:2.5–2.5:1. File size: up to 10 MB.",
-        "required": false
+        "required": false,
+        "min": 0,
+        "max": 5
       },
       {
         "name": "resolution",

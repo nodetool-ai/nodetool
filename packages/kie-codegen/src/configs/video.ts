@@ -54,7 +54,9 @@ export const videoConfig: ModuleConfig = {
           "default": 0,
           "title": "Duration",
           "description": "The duration of the generated video (in seconds) (6-30). (Minimum: 6, Maximum: 30, Step: 1)",
-          "required": false
+          "required": false,
+          "min": 6,
+          "max": 30
         },
         {
           "name": "resolution",
@@ -98,7 +100,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Images",
           "description": "Provide an external image URL as a reference for video generation. Up to 7 images are supported. Do not use it simultaneously with task_id. In your prompt, reference an uploaded image by typing @image(n) followed by a space (for example: @image1 a sunset over the ocean). - Supports JPEG, PNG, and WEBP formats - Maximum file size for each image: 10MB - The Spicy mode is not available when using external images - The array can contain a maximum of seven URLs",
-          "required": false
+          "required": false,
+          "max": 7
         },
         {
           "name": "task_id",
@@ -106,7 +109,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Task Id",
           "description": "Task ID from a previously generated Grok image. Use with index to select a specific image. Do not use with image_urls. - Use task ID from grok-imagine/text-to-image generations - Supports all modes including Spicy - Maximum length: 100 characters",
-          "required": false
+          "required": false,
+          "max": 100
         },
         {
           "name": "index",
@@ -145,7 +149,9 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Duration",
           "description": "The duration of the generated video (in seconds) (6-30). (Minimum: 6, Maximum: 30, Step: 1)",
-          "required": false
+          "required": false,
+          "min": 6,
+          "max": 30
         },
         {
           "name": "resolution",
@@ -205,7 +211,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Task Id",
           "description": "Task ID from a previously successful video generation task. Required field. - Must be from a Kie AI video generation model (e.g., grok-imagine/text-to-video) - The original video generation must have completed successfully - Only Kie AI–generated task IDs are supported",
-          "required": true
+          "required": true,
+          "max": 100
         }
       ],
       "validation": [
@@ -229,7 +236,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Task Id",
           "description": "Task ID from a previously successful video generation task. Required field. - Must be from a Kie AI video generation model (e.g., grok-imagine/text-to-video) - The original video generation must have completed successfully - Only Kie AI–generated task IDs are supported",
-          "required": true
+          "required": true,
+          "max": 100
         },
         {
           "name": "prompt",
@@ -296,7 +304,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompt for video generation (maximum length: 1000 characters)",
-          "required": true
+          "required": true,
+          "max": 1000
         },
         {
           "name": "sound",
@@ -363,7 +372,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompt for video generation (maximum length: 1000 characters)",
-          "required": true
+          "required": true,
+          "max": 1000
         },
         {
           "name": "images",
@@ -371,7 +381,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Images",
           "description": "Image URLs for video generation. (Uploaded file URLs, not file content; supported types: image/jpeg, image/png; maximum file size: 10.0MB)",
-          "required": true
+          "required": true,
+          "max": 1
         },
         {
           "name": "sound",
@@ -428,7 +439,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt describing the video to generate (Max length: 2500 characters)",
-          "required": true
+          "required": true,
+          "max": 2500
         },
         {
           "name": "image",
@@ -464,7 +476,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Negative prompt to exclude certain elements from the video (Max length: 500 characters)",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "cfg_scale",
@@ -505,7 +518,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text description of the video you want to generate (Max length: 2500 characters)",
-          "required": true
+          "required": true,
+          "max": 2500
         },
         {
           "name": "duration",
@@ -538,7 +552,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Things to avoid in the generated video (Max length: 2500 characters)",
-          "required": false
+          "required": false,
+          "max": 2500
         },
         {
           "name": "cfg_scale",
@@ -600,7 +615,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The prompt to use for the video generation (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         }
       ],
       "uploads": [
@@ -664,7 +680,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The prompt to use for the video generation (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         }
       ],
       "uploads": [
@@ -700,7 +717,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt describing the video to generate (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "image",
@@ -736,7 +754,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Negative prompt to exclude certain elements from the video (Max length: 500 characters)",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "cfg_scale",
@@ -777,7 +796,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt describing the video you want to generate (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "duration",
@@ -810,7 +830,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Elements to avoid in the generated video (Max length: 500 characters)",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "cfg_scale",
@@ -844,7 +865,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompt describing the video to generate (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "image",
@@ -880,7 +902,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Terms to avoid in the generated video (Max length: 500 characters)",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "cfg_scale",
@@ -942,7 +965,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompt describing the desired video content (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "image",
@@ -978,7 +1002,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Description of elements to avoid in the generated video (Max length: 500 characters)",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "cfg_scale",
@@ -1019,15 +1044,17 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "A text description of the desired output. Maximum length is 2500 characters. (Max length: 2500 characters)",
-          "required": false
+          "required": false,
+          "max": 2500
         },
         {
-          "name": "inputs",
+          "name": "images",
           "type": "list[image]",
           "default": [],
-          "title": "Inputs",
+          "title": "Images",
           "description": "An array containing a single image URL. The photo must clearly show the subject's head, shoulders, and torso. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/jpg; Max size: 10.0MB,size needs to be greater than 300px, aspect ratio 2:5 to 5:2.)",
-          "required": true
+          "required": true,
+          "max": 1
         },
         {
           "name": "videos",
@@ -1035,7 +1062,9 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Videos",
           "description": "An array containing a single video URL. The duration must be between 3 to 30 seconds, and the video must clearly show the subject's head, shoulders, and torso. (File URL after upload, not file content; Accepted types: video/mp4, video/quicktime, video/x-matroska; Max size: 100.0MB)",
-          "required": true
+          "required": true,
+          "min": 3,
+          "max": 1
         },
         {
           "name": "character_orientation",
@@ -1064,7 +1093,7 @@ export const videoConfig: ModuleConfig = {
       ],
       "uploads": [
         {
-          "field": "inputs",
+          "field": "images",
           "kind": "image",
           "isList": true,
           "paramName": "input_urls"
@@ -1105,10 +1134,10 @@ export const videoConfig: ModuleConfig = {
           "required": false
         },
         {
-          "name": "inputs",
+          "name": "images",
           "type": "list[image]",
           "default": [],
-          "title": "Inputs",
+          "title": "Images",
           "description": "(Required) Include a URL of an image",
           "required": true
         },
@@ -1147,7 +1176,7 @@ export const videoConfig: ModuleConfig = {
       ],
       "uploads": [
         {
-          "field": "inputs",
+          "field": "images",
           "kind": "image",
           "isList": true,
           "paramName": "input_urls"
@@ -1173,7 +1202,9 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt used to generate the video. Required field. (Min length: 3, Max length: 20000 characters)",
-          "required": false
+          "required": false,
+          "min": 3,
+          "max": 20000
         },
         {
           "name": "first_frame",
@@ -1209,7 +1240,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Reference Images",
           "description": "Enter a list of image URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single image requirements: Format: jpeg, png, webp, bmp, tiff, gif. Aspect ratio (width/height): (0.4, 2.5) Width and height (px): (300, 6000) Size: Single image less than 30 MB. Maximum number of files: The sum of the number of frames at the beginning and end must not exceed 9..",
-          "required": false
+          "required": false,
+          "max": 9
         },
         {
           "name": "reference_videos",
@@ -1217,7 +1249,9 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Reference Videos",
           "description": "Enter a list of video URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj) . Single video requirements: Video format: mp4, mov. Resolution: 480p, 720p Duration: Single video duration [2, 15] s, maximum 3 reference videos, total duration of all videos not exceeding 15 seconds. Dimensions: Aspect ratio (width/height): [0.4, 2.5] Width/height (px): [300, 6000] Total pixels: [640×640=409600, 834×1112=927408], i.e., the product of width and height must meet the range requirement of [409600, 927408]. Size: Single video not exceeding 50 MB. Frame rate (FPS): [24, 60]",
-          "required": false
+          "required": false,
+          "min": 2,
+          "max": 3
         },
         {
           "name": "reference_audios",
@@ -1225,7 +1259,9 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Reference Audios",
           "description": "Enter a list of audio URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj) . Single audio requirements: Format: wav, mp3 Duration: Single audio duration [2, 15] s, maximum 3 reference audios, total duration of all audios not exceeding 15 s. Size: Single audio file size not exceeding 15 MB.",
-          "required": false
+          "required": false,
+          "min": 2,
+          "max": 3
         },
         {
           "name": "generate_audio",
@@ -1271,7 +1307,9 @@ export const videoConfig: ModuleConfig = {
           "default": 5,
           "title": "Duration",
           "description": "Video duration in 4-15 seconds.",
-          "required": false
+          "required": false,
+          "min": 4,
+          "max": 15
         },
         {
           "name": "web_search",
@@ -1334,7 +1372,9 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt used to generate the video. Required field. (Min length: 3, Max length: 20000 characters)",
-          "required": false
+          "required": false,
+          "min": 3,
+          "max": 20000
         },
         {
           "name": "first_frame",
@@ -1370,7 +1410,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Reference Images",
           "description": "Enter a list of image URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single image requirements: Format: jpeg, png, webp, bmp, tiff, gif. Aspect ratio (width/height): (0.4, 2.5) Width and height (px): (300, 6000) Size: Single image less than 30 MB. Maximum number of files: The sum of the number of frames at the beginning and end must not exceed 9..",
-          "required": false
+          "required": false,
+          "max": 9
         },
         {
           "name": "reference_videos",
@@ -1378,7 +1419,9 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Reference Videos",
           "description": "Enter a list of video URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single video requirements: Video format: mp4, mov. Resolution: 480p, 720p Duration: Single video duration [2, 15] s, maximum 3 reference videos, total duration of all videos not exceeding 15 seconds. Dimensions: Aspect ratio (width/height): [0.4, 2.5] Width/height (px): [300, 6000] Total pixels: [640×640=409600, 834×1112=927408], i.e., the product of width and height must meet the range requirement of [409600, 927408]. Size: Single video not exceeding 50 MB. Frame rate (FPS): [24, 60]",
-          "required": false
+          "required": false,
+          "min": 2,
+          "max": 3
         },
         {
           "name": "reference_audios",
@@ -1386,7 +1429,9 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Reference Audios",
           "description": "Enter a list of audio URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single audio requirements: Format: wav, mp3 Duration: Single audio duration [2, 15] s, maximum 3 reference audios, total duration of all audios not exceeding 15 s. Size: Single audio file size not exceeding 15 MB.",
-          "required": false
+          "required": false,
+          "min": 2,
+          "max": 3
         },
         {
           "name": "generate_audio",
@@ -1431,7 +1476,9 @@ export const videoConfig: ModuleConfig = {
           "default": 5,
           "title": "Duration",
           "description": "Video duration in 4-15 seconds.",
-          "required": false
+          "required": false,
+          "min": 4,
+          "max": 15
         },
         {
           "name": "web_search",
@@ -1494,15 +1541,18 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt used to generate the video. Required field. (Min length: 3, Max length: 2500 characters)",
-          "required": true
+          "required": true,
+          "min": 3,
+          "max": 2500
         },
         {
-          "name": "inputs",
+          "name": "videos",
           "type": "list[video]",
           "default": [],
-          "title": "Inputs",
+          "title": "Videos",
           "description": "URLs of input images for image-to-video generation. Optional field. - Accepts 0-2 images - If not provided, the model will perform text-to-video generation - File URLs after upload, not file content - Accepted types: image/jpeg, image/png, image/webp - Max size per image: 10.0MB",
-          "required": false
+          "required": false,
+          "max": 2
         },
         {
           "name": "aspect_ratio",
@@ -1573,7 +1623,7 @@ export const videoConfig: ModuleConfig = {
       ],
       "uploads": [
         {
-          "field": "inputs",
+          "field": "videos",
           "kind": "video",
           "isList": true,
           "paramName": "input_urls"
@@ -1610,7 +1660,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt used to generate the video (Max length: 10000 characters)",
-          "required": true
+          "required": true,
+          "max": 10000
         },
         {
           "name": "image",
@@ -1689,7 +1740,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt used to generate the video (Max length: 10000 characters)",
-          "required": true
+          "required": true,
+          "max": 10000
         },
         {
           "name": "image",
@@ -1795,7 +1847,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt used to generate the video (Max length: 10000 characters)",
-          "required": true
+          "required": true,
+          "max": 10000
         },
         {
           "name": "aspect_ratio",
@@ -1894,7 +1947,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt used to generate the video (Max length: 10000 characters)",
-          "required": true
+          "required": true,
+          "max": 10000
         },
         {
           "name": "image",
@@ -2021,7 +2075,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt used to generate the video (Max length: 10000 characters)",
-          "required": true
+          "required": true,
+          "max": 10000
         },
         {
           "name": "aspect_ratio",
@@ -2118,7 +2173,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompt describing the desired video animation (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "image",
@@ -2195,7 +2251,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompt describing the desired video animation (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "image",
@@ -2272,7 +2329,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt for video generation (Max length: 1500 characters)",
-          "required": true
+          "required": true,
+          "max": 1500
         },
         {
           "name": "prompt_optimizer",
@@ -2312,7 +2370,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompt describing the desired video animation (Max length: 1500 characters)",
-          "required": true
+          "required": true,
+          "max": 1500
         },
         {
           "name": "image",
@@ -2394,7 +2453,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text description for video generation (Max length: 1500 characters)",
-          "required": true
+          "required": true,
+          "max": 1500
         },
         {
           "name": "duration",
@@ -2446,7 +2506,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt describing the video to generate (Max length: 1500 characters)",
-          "required": true
+          "required": true,
+          "max": 1500
         },
         {
           "name": "image",
@@ -2554,7 +2615,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt describing the desired video motion (Max length: 10000 characters)",
-          "required": true
+          "required": true,
+          "max": 10000
         },
         {
           "name": "images",
@@ -2562,7 +2624,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Images",
           "description": "URL of the image to use as the first frame. Must be publicly accessible (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-          "required": true
+          "required": true,
+          "max": 1
         },
         {
           "name": "aspect_ratio",
@@ -2602,7 +2665,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Character Id List",
           "description": "Optional array of character IDs from Sora-2-characters model to incorporate character animations into the video generation. Maximum 5 character IDs allowed. Leave empty if not using character animations.",
-          "required": false
+          "required": false,
+          "max": 5
         },
         {
           "name": "upload_method",
@@ -2651,7 +2715,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt describing the desired video motion (Max length: 10000 characters)",
-          "required": true
+          "required": true,
+          "max": 10000
         },
         {
           "name": "aspect_ratio",
@@ -2691,7 +2756,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Character Id List",
           "description": "Optional array of character IDs from Sora-2-characters model to incorporate character animations into the video generation. Maximum 5 character IDs allowed. Leave empty if not using character animations.",
-          "required": false
+          "required": false,
+          "max": 5
         },
         {
           "name": "upload_method",
@@ -2732,7 +2798,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt describing the desired video motion (Max length: 10000 characters)",
-          "required": true
+          "required": true,
+          "max": 10000
         },
         {
           "name": "images",
@@ -2740,7 +2807,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Images",
           "description": "URL of the image to use as the first frame. Must be publicly accessible (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-          "required": true
+          "required": true,
+          "max": 1
         },
         {
           "name": "aspect_ratio",
@@ -2792,7 +2860,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Character Id List",
           "description": "Optional array of character IDs from Sora-2-characters model to incorporate character animations into the video generation. Maximum 5 character IDs allowed. Leave empty if not using character animations.",
-          "required": false
+          "required": false,
+          "max": 5
         },
         {
           "name": "upload_method",
@@ -2841,7 +2910,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt describing the desired video motion (Max length: 10000 characters)",
-          "required": true
+          "required": true,
+          "max": 10000
         },
         {
           "name": "aspect_ratio",
@@ -2893,7 +2963,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Character Id List",
           "description": "Optional array of character IDs from Sora-2-characters model to incorporate character animations into the video generation. Maximum 5 character IDs allowed. Leave empty if not using character animations.",
-          "required": false
+          "required": false,
+          "max": 5
         },
         {
           "name": "upload_method",
@@ -2942,7 +3013,8 @@ export const videoConfig: ModuleConfig = {
           },
           "title": "Video",
           "description": "Enter the Sora 2 video URL — it must be a publicly accessible link from OpenAI (starting with sora.chatgpt.com). (Max length: 500 characters)",
-          "required": true
+          "required": true,
+          "max": 500
         },
         {
           "name": "upload_method",
@@ -2985,7 +3057,9 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Shots",
           "description": "Array of shot descriptions with durations. Total duration of all shots cannot exceed the selected n_frames value.",
-          "required": false
+          "required": false,
+          "min": 1,
+          "max": 10
         },
         {
           "name": "n_frames",
@@ -3006,7 +3080,9 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Images",
           "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB). Limited to exactly 1 image.",
-          "required": false
+          "required": false,
+          "min": 1,
+          "max": 1
         },
         {
           "name": "aspect_ratio",
@@ -3076,7 +3152,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt to guide video generation. (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "resolution",
@@ -3157,7 +3234,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt used for video generation (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "image",
@@ -3226,7 +3304,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Negative prompt for video generation (Max length: 500 characters)",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "seed",
@@ -3308,7 +3387,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt to guide video generation. (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "resolution",
@@ -3538,7 +3618,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompts for video generation. Supports both Chinese and English, with a minimum of 2 characters and a maximum of 5,000 characters. (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "images",
@@ -3546,7 +3627,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Images",
           "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB),All images must be at least 256x256px.",
-          "required": true
+          "required": true,
+          "max": 1
         },
         {
           "name": "duration",
@@ -3611,7 +3693,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompts for video generation. Supports both Chinese and English, with a minimum of 1 characters and a maximum of 5,000 characters. (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "duration",
@@ -3668,7 +3751,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompts for video generation. Supports both Chinese and English, with a minimum of 2 characters and a maximum of 5,000 characters. (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "videos",
@@ -3676,7 +3760,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Videos",
           "description": "The URL of the image used to generate video (File URL after upload, not file content; Accepted types: video/mp4, video/quicktime, video/x-matroska; Max size: 10.0MB)",
-          "required": true
+          "required": true,
+          "max": 3
         },
         {
           "name": "duration",
@@ -3740,7 +3825,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompts for video generation. Supports both Chinese and English, with a minimum of 2 characters and a maximum of 5,000 characters. (Max length: 1500 characters)",
-          "required": true
+          "required": true,
+          "max": 1500
         },
         {
           "name": "images",
@@ -3748,7 +3834,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Images",
           "description": "A list of image URLs. All images must be at least 256x256px. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-          "required": true
+          "required": true,
+          "max": 1
         },
         {
           "name": "duration",
@@ -3829,7 +3916,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompts for video generation. Supports both Chinese and English, with a minimum of 2 characters and a maximum of 5,000 characters. (Max length: 1500 characters)",
-          "required": true
+          "required": true,
+          "max": 1500
         },
         {
           "name": "videos",
@@ -3837,7 +3925,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Videos",
           "description": "The URL of the image used to generate video (File URL after upload, not file content; Accepted types: video/mp4, video/quicktime, video/x-matroska; Max size: 10.0MB)",
-          "required": true
+          "required": true,
+          "max": 3
         },
         {
           "name": "duration",
@@ -3917,7 +4006,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt describing the desired video motion. Maximum length: 800 characters.",
-          "required": true
+          "required": true,
+          "max": 800
         },
         {
           "name": "image",
@@ -3963,7 +4053,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Negative prompt used to describe content to avoid. Maximum length: 500 characters.",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "enable_prompt_expansion",
@@ -4023,7 +4114,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt for video generation. Supports Chinese and English. Maximum length: 800 characters.",
-          "required": true
+          "required": true,
+          "max": 800
         },
         {
           "name": "duration",
@@ -4068,7 +4160,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Negative prompt used to describe content to avoid. Maximum length: 500 characters.",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "enable_prompt_expansion",
@@ -4121,7 +4214,9 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Positive prompt. Minimum length: 1 character. Maximum length: 5000 characters.",
-          "required": true
+          "required": true,
+          "min": 1,
+          "max": 5000
         },
         {
           "name": "negative_prompt",
@@ -4129,7 +4224,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Negative prompt. Maximum length: 500 characters.",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "audio",
@@ -4245,7 +4341,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Positive prompt. Maximum length: 5000 characters.",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "negative_prompt",
@@ -4253,7 +4350,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Negative prompt. Maximum length: 500 characters.",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "first_frame",
@@ -4413,7 +4511,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Optional text prompt describing the expected elements and visual features in the generated video. Supports Chinese and English. Maximum length: 5000 characters.",
-          "required": false
+          "required": false,
+          "max": 5000
         },
         {
           "name": "negative_prompt",
@@ -4421,7 +4520,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Optional negative prompt describing content that should not appear in the video. Supports Chinese and English. Maximum length: 500 characters.",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "video",
@@ -4437,7 +4537,9 @@ export const videoConfig: ModuleConfig = {
           },
           "title": "Video",
           "description": "URL of the source video to edit. Required. Only one video is supported. - Formats: `mp4`, `mov` - Duration: `2` to `10` seconds - Resolution: width and height range `[240,4096]` pixels - Aspect ratio: `1:8` to `8:1` - File size: up to `100MB` - Supports public `http/https` URLs or temporary `oss` URLs",
-          "required": true
+          "required": true,
+          "min": 240,
+          "max": 4096
         },
         {
           "name": "resolution",
@@ -4534,7 +4636,9 @@ export const videoConfig: ModuleConfig = {
           },
           "title": "Reference Image",
           "description": "Optional reference image URL for character, clothing, or style guidance. - Formats: `JPEG`, `JPG`, `PNG` (no alpha channel), `BMP`, `WEBP` - Resolution: width and height range `[240,8000]` pixels - Aspect ratio: `1:8` to `8:1` - Supports public `http/https` URLs or temporary `oss` URLs",
-          "required": false
+          "required": false,
+          "min": 240,
+          "max": 8000
         }
       ],
       "uploads": [
@@ -4563,7 +4667,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompt. Required. Describes the desired elements and visual features in the generated video. Supports Chinese and English. Maximum length: 5000 characters.",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "negative_prompt",
@@ -4571,7 +4676,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Optional negative prompt describing what should not appear in the video. Supports Chinese and English. Maximum length: 500 characters.",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "reference_image",
@@ -4579,7 +4685,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Reference Image",
           "description": "Array of reference image URLs. At least one of `reference_image` or `reference_video` must be provided. The total number of images and videos cannot exceed 5.",
-          "required": false
+          "required": false,
+          "max": 5
         },
         {
           "name": "reference_video",
@@ -4587,7 +4694,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Reference Video",
           "description": "Array of reference video URLs. At least one of `reference_image` or `reference_video` must be provided. The total number of images and videos cannot exceed 5.",
-          "required": false
+          "required": false,
+          "max": 5
         },
         {
           "name": "first_frame",
@@ -4807,7 +4915,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt to guide video generation. (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "resolution",
@@ -4827,7 +4936,9 @@ export const videoConfig: ModuleConfig = {
           "default": 0,
           "title": "Seed",
           "description": "Random seed for reproducibility. Valid range is 10000 to 1000000.",
-          "required": false
+          "required": false,
+          "min": 10000,
+          "max": 1000000
         }
       ],
       "uploads": [
@@ -4863,7 +4974,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompt describing the video to generate (any language). Max 5,000 non‑Chinese characters or 2,500 Chinese characters; extra content is truncated.",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "resolution",
@@ -4934,7 +5046,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompt describing the video to generate (any language). Max 5,000 non‑Chinese characters or 2,500 Chinese characters; extra content is truncated.",
-          "required": false
+          "required": false,
+          "max": 5000
         },
         {
           "name": "images",
@@ -4942,7 +5055,8 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Images",
           "description": "First-frame image URL list. Exactly one image is required. Image constraints: Format: JPEG, JPG, PNG, WEBP. Resolution: Width and height must be at least 300 pixels. Aspect ratio: 1:2.5 to 2.5:1. File size: Up to 10 MB.",
-          "required": false
+          "required": false,
+          "max": 1
         },
         {
           "name": "resolution",
@@ -4999,7 +5113,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompt describing the video to generate (any language). Max 5,000 non‑Chinese characters or 2,500 Chinese characters; extra content is truncated.",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "reference_image",
@@ -5007,7 +5122,9 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Reference Image",
           "description": "Reference image URL list. Provide 1–9 images. The order defines which image is character1, character2, etc. Image limits: Format: JPEG, JPG, PNG, and WEBP. Resolution: shortest side at least 400 px. 720P or higher recommended. Avoid small, blurry, or heavily compressed images, as they degrade output quality. File size: 10 MB maximum.",
-          "required": true
+          "required": true,
+          "min": 1,
+          "max": 9
         },
         {
           "name": "resolution",
@@ -5078,7 +5195,8 @@ export const videoConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Required edit instruction describing the intended change (e.g., style transfer / local replacement). Max 5,000 non‑Chinese characters or 2,500 Chinese characters; extra content is truncated.",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "video",
@@ -5102,7 +5220,9 @@ export const videoConfig: ModuleConfig = {
           "default": [],
           "title": "Reference Image",
           "description": "Optional reference image URL list (0–5). Image requirements: Format: JPEG, JPG, PNG, WEBP. Resolution: both width and height must be at least 300 px. Aspect ratio: 1:2.5–2.5:1. File size: up to 10 MB.",
-          "required": false
+          "required": false,
+          "min": 0,
+          "max": 5
         },
         {
           "name": "resolution",

@@ -18,7 +18,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt used to generate the image (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "image_size",
@@ -76,7 +77,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt used to generate the image (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "image_size",
@@ -158,7 +160,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt used to edit the image (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "images",
@@ -166,7 +169,8 @@ export const imageConfig: ModuleConfig = {
           "default": [],
           "title": "Images",
           "description": "List of URLs of input images for editing. Presently, up to 10 image inputs are allowed. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-          "required": true
+          "required": true,
+          "max": 10
         },
         {
           "name": "image_size",
@@ -256,7 +260,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "A text description of the image you want to generate (Max length: 3000 characters)",
-          "required": true
+          "required": true,
+          "max": 3000
         },
         {
           "name": "aspect_ratio",
@@ -328,7 +333,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "A text description of the image you want to generate (Max length: 3000 characters)",
-          "required": true
+          "required": true,
+          "max": 3000
         },
         {
           "name": "images",
@@ -336,7 +342,8 @@ export const imageConfig: ModuleConfig = {
           "default": [],
           "title": "Images",
           "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-          "required": true
+          "required": true,
+          "max": 14
         },
         {
           "name": "aspect_ratio",
@@ -416,7 +423,9 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "A text description of the image you want to generate (Max length: 3-3000 characters)",
-          "required": true
+          "required": true,
+          "min": 3,
+          "max": 3000
         },
         {
           "name": "aspect_ratio",
@@ -488,7 +497,9 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "A text description of the image you want to generate (Max length: 3-3000 characters)",
-          "required": true
+          "required": true,
+          "min": 3,
+          "max": 3000
         },
         {
           "name": "images",
@@ -496,7 +507,8 @@ export const imageConfig: ModuleConfig = {
           "default": [],
           "title": "Images",
           "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-          "required": true
+          "required": true,
+          "max": 14
         },
         {
           "name": "aspect_ratio",
@@ -576,7 +588,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "A text description of the image you want to generate (Max length: 1000 characters)",
-          "required": true
+          "required": true,
+          "max": 1000
         },
         {
           "name": "aspect_ratio",
@@ -628,7 +641,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "A text description of the image you want to generate (Max length: 20000 characters)",
-          "required": true
+          "required": true,
+          "max": 20000
         },
         {
           "name": "image_input",
@@ -636,7 +650,8 @@ export const imageConfig: ModuleConfig = {
           "default": [],
           "title": "Image Input",
           "description": "Input images to transform or use as reference (supports up to 14 images) (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
-          "required": false
+          "required": false,
+          "max": 14
         },
         {
           "name": "aspect_ratio",
@@ -718,7 +733,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt describing what you want to see (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "negative_prompt",
@@ -726,7 +742,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "A description of what to discourage in the generated images (Max length: 5000 characters)",
-          "required": false
+          "required": false,
+          "max": 5000
         },
         {
           "name": "aspect_ratio",
@@ -787,7 +804,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt describing what you want to see (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "negative_prompt",
@@ -795,7 +813,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "A description of what to discourage in the generated images (Max length: 5000 characters)",
-          "required": false
+          "required": false,
+          "max": 5000
         },
         {
           "name": "aspect_ratio",
@@ -818,7 +837,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Seed",
           "description": "Random seed for reproducible generation (Max length: 500 characters)",
-          "required": false
+          "required": false,
+          "max": 500
         }
       ],
       "validation": [
@@ -842,7 +862,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The text prompt describing what you want to see (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "negative_prompt",
@@ -850,7 +871,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "A description of what to discourage in the generated images (Max length: 5000 characters)",
-          "required": false
+          "required": false,
+          "max": 5000
         },
         {
           "name": "aspect_ratio",
@@ -873,7 +895,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Seed",
           "description": "Random seed for reproducible generation (Max length: 500 characters)",
-          "required": false
+          "required": false,
+          "max": 500
         }
       ],
       "validation": [
@@ -897,7 +920,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The prompt for image editing (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "images",
@@ -905,7 +929,8 @@ export const imageConfig: ModuleConfig = {
           "default": [],
           "title": "Images",
           "description": "List of URLs of input images for editing,up to 10 images. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-          "required": true
+          "required": true,
+          "max": 10
         },
         {
           "name": "output_format",
@@ -970,7 +995,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The prompt for image generation (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "output_format",
@@ -1027,7 +1053,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "A text description of the image you want to generate (Max length: 10000 characters)",
-          "required": true
+          "required": true,
+          "max": 10000
         },
         {
           "name": "image_input",
@@ -1035,7 +1062,8 @@ export const imageConfig: ModuleConfig = {
           "default": [],
           "title": "Image Input",
           "description": "Input images to transform or use as reference (supports up to 8 images) (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
-          "required": false
+          "required": false,
+          "max": 8
         },
         {
           "name": "aspect_ratio",
@@ -1108,12 +1136,13 @@ export const imageConfig: ModuleConfig = {
       "outputType": "image",
       "fields": [
         {
-          "name": "inputs",
+          "name": "images",
           "type": "list[image]",
           "default": [],
-          "title": "Inputs",
+          "title": "Images",
           "description": "Input reference images (1-8 images). (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-          "required": true
+          "required": true,
+          "max": 8
         },
         {
           "name": "prompt",
@@ -1121,7 +1150,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Must be between 3 and 5000 characters. (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "aspect_ratio",
@@ -1164,7 +1194,7 @@ export const imageConfig: ModuleConfig = {
       ],
       "uploads": [
         {
-          "field": "inputs",
+          "field": "images",
           "kind": "image",
           "isList": true,
           "paramName": "input_urls"
@@ -1201,7 +1231,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Must be between 3 and 5000 characters. (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "aspect_ratio",
@@ -1267,12 +1298,13 @@ export const imageConfig: ModuleConfig = {
       "outputType": "image",
       "fields": [
         {
-          "name": "inputs",
+          "name": "images",
           "type": "list[image]",
           "default": [],
-          "title": "Inputs",
+          "title": "Images",
           "description": "Input reference images (1-8 images). (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-          "required": true
+          "required": true,
+          "max": 8
         },
         {
           "name": "prompt",
@@ -1280,7 +1312,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Must be between 3 and 5000 characters. (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "aspect_ratio",
@@ -1323,7 +1356,7 @@ export const imageConfig: ModuleConfig = {
       ],
       "uploads": [
         {
-          "field": "inputs",
+          "field": "images",
           "kind": "image",
           "isList": true,
           "paramName": "input_urls"
@@ -1360,7 +1393,9 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Generation prompt, length must be between 3-5000 characters. (Maximum length: 5000 characters)",
-          "required": true
+          "required": true,
+          "min": 3,
+          "max": 5000
         },
         {
           "name": "aspect_ratio",
@@ -1486,7 +1521,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "A text description specifying the desired content or style of the generated image. (Max length: 390000 characters)",
-          "required": false
+          "required": false,
+          "max": 390000
         },
         {
           "name": "images",
@@ -1494,7 +1530,8 @@ export const imageConfig: ModuleConfig = {
           "default": [],
           "title": "Images",
           "description": "An array containing up to 1 URL string pointing to reference images. (Use file URLs after upload, not raw file content. Accepted types: image/jpeg, image/png, image/webp. Max size: 10.0MB per image.) In your prompt, reference the uploaded image by typing @image(n) followed by a space (for example: @image1 a sunset over the ocean).",
-          "required": true
+          "required": true,
+          "max": 5
         },
         {
           "name": "nsfw_checker",
@@ -1581,12 +1618,13 @@ export const imageConfig: ModuleConfig = {
       "outputType": "image",
       "fields": [
         {
-          "name": "inputs",
+          "name": "images",
           "type": "list[image]",
           "default": [],
-          "title": "Inputs",
+          "title": "Images",
           "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-          "required": true
+          "required": true,
+          "max": 16
         },
         {
           "name": "prompt",
@@ -1624,7 +1662,7 @@ export const imageConfig: ModuleConfig = {
       ],
       "uploads": [
         {
-          "field": "inputs",
+          "field": "images",
           "kind": "image",
           "isList": true,
           "paramName": "input_urls"
@@ -1661,7 +1699,9 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Text prompt. Required, maximum 20,000 characters.",
-          "required": true
+          "required": true,
+          "min": 1,
+          "max": 20000
         },
         {
           "name": "aspect_ratio",
@@ -1717,12 +1757,13 @@ export const imageConfig: ModuleConfig = {
           "required": true
         },
         {
-          "name": "inputs",
+          "name": "images",
           "type": "list[image]",
           "default": [],
-          "title": "Inputs",
+          "title": "Images",
           "description": "Array of input image URLs.",
-          "required": true
+          "required": true,
+          "max": 16
         },
         {
           "name": "aspect_ratio",
@@ -1756,7 +1797,7 @@ export const imageConfig: ModuleConfig = {
       ],
       "uploads": [
         {
-          "field": "inputs",
+          "field": "images",
           "kind": "image",
           "isList": true,
           "paramName": "input_urls"
@@ -1882,7 +1923,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The prompt to fill the masked part of the image. (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "image",
@@ -2016,7 +2058,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The prompt to remix the image with (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "image",
@@ -2128,7 +2171,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Description of what to exclude from an image. Descriptions in the prompt take precedence to descriptions in the negative prompt. Default value: \"\" (Max length: 500 characters)",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "images",
@@ -2187,7 +2231,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The prompt to fill the masked part of the image. (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "reference_images",
@@ -2275,7 +2320,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Description of what to exclude from an image. Descriptions in the prompt take precedence to descriptions in the negative prompt. Default value: \"\" (Max length: 5000 characters)",
-          "required": false
+          "required": false,
+          "max": 5000
         }
       ],
       "uploads": [
@@ -2307,7 +2353,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Description of the image to generate. Maximum length: 5000 characters.",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "rendering_speed",
@@ -2374,7 +2421,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Description of what to exclude from the generated image. If the positive prompt conflicts with the negative prompt, the positive prompt takes precedence. Maximum length: 5000 characters.",
-          "required": false
+          "required": false,
+          "max": 5000
         }
       ],
       "validation": [
@@ -2398,7 +2446,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The prompt to fill the masked part of the image. Maximum length: 5000 characters.",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "image",
@@ -2491,7 +2540,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The prompt to remix the image with. Maximum length: 5000 characters.",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "image",
@@ -2596,7 +2646,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "Description of what to exclude from the generated image. If the positive prompt conflicts with the negative prompt, the positive prompt takes precedence. Maximum length: 5000 characters.",
-          "required": false
+          "required": false,
+          "max": 5000
         }
       ],
       "uploads": [
@@ -2627,7 +2678,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The prompt to generate the image with (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "image_size",
@@ -2699,7 +2751,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "The negative prompt for the generation (Max length: 500 characters)",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "acceleration",
@@ -2744,7 +2797,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The prompt to generate the image with (Max length: 5000 characters)",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
           "name": "image",
@@ -2801,7 +2855,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "The negative prompt for the generation (Max length: 500 characters)",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "seed",
@@ -2876,7 +2931,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The prompt to generate the image with (Max length: 2000 characters)",
-          "required": true
+          "required": true,
+          "max": 2000
         },
         {
           "name": "image",
@@ -2997,7 +3053,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Negative Prompt",
           "description": "The negative prompt for the generation Default value: \" \" (Max length: 500 characters)",
-          "required": false
+          "required": false,
+          "max": 500
         },
         {
           "name": "nsfw_checker",
@@ -3036,7 +3093,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The prompt to generate the image with (Max length: 800 characters)",
-          "required": true
+          "required": true,
+          "max": 800
         },
         {
           "name": "image",
@@ -3127,7 +3185,8 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "The prompt to generate the image with (Max length: 800 characters)",
-          "required": true
+          "required": true,
+          "max": 800
         },
         {
           "name": "image_size",
@@ -3194,15 +3253,17 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Prompt for image generation or editing. This field supports both Chinese and English, with a maximum length of 5000 characters as per Alibaba Cloud documentation.",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
-          "name": "inputs",
+          "name": "images",
           "type": "list[image]",
           "default": [],
-          "title": "Inputs",
+          "title": "Images",
           "description": "(Optional) Array of input image URLs. The current project uses `input_urls` as a wrapper field.",
-          "required": false
+          "required": false,
+          "max": 9
         },
         {
           "name": "aspect_ratio",
@@ -3236,7 +3297,9 @@ export const imageConfig: ModuleConfig = {
           "default": 0,
           "title": "N",
           "description": "Number of images to generate. Range is 1-4 when `enable_sequential=false` (default: 4); range is 1-12 when `enable_sequential=true` (default: 12).",
-          "required": false
+          "required": false,
+          "min": 1,
+          "max": 4
         },
         {
           "name": "resolution",
@@ -3265,7 +3328,9 @@ export const imageConfig: ModuleConfig = {
           "default": [],
           "title": "Color Palette",
           "description": "(Optional) Custom color theme. Only available when `enable_sequential=false`. Requires 3-10 colors, 8 recommended.",
-          "required": false
+          "required": false,
+          "min": 3,
+          "max": 10
         },
         {
           "name": "bbox_list",
@@ -3304,7 +3369,7 @@ export const imageConfig: ModuleConfig = {
       ],
       "uploads": [
         {
-          "field": "inputs",
+          "field": "images",
           "kind": "image",
           "isList": true,
           "paramName": "input_urls"
@@ -3331,15 +3396,17 @@ export const imageConfig: ModuleConfig = {
           "default": "",
           "title": "Prompt",
           "description": "Prompt for image generation or editing. This field supports both Chinese and English, with a maximum length of 5000 characters as per Alibaba Cloud documentation.",
-          "required": true
+          "required": true,
+          "max": 5000
         },
         {
-          "name": "inputs",
+          "name": "images",
           "type": "list[image]",
           "default": [],
-          "title": "Inputs",
+          "title": "Images",
           "description": "(Optional) Array of input image URLs. The current project uses `input_urls` as a wrapper field.",
-          "required": false
+          "required": false,
+          "max": 9
         },
         {
           "name": "aspect_ratio",
@@ -3373,7 +3440,9 @@ export const imageConfig: ModuleConfig = {
           "default": 0,
           "title": "N",
           "description": "Number of images to generate. Range is 1-4 when `enable_sequential=false` (default: 4); range is 1-12 when `enable_sequential=true` (default: 12).",
-          "required": false
+          "required": false,
+          "min": 1,
+          "max": 4
         },
         {
           "name": "resolution",
@@ -3402,7 +3471,9 @@ export const imageConfig: ModuleConfig = {
           "default": [],
           "title": "Color Palette",
           "description": "(Optional) Custom color theme. Only available when `enable_sequential=false`. Requires 3-10 colors, 8 recommended.",
-          "required": false
+          "required": false,
+          "min": 3,
+          "max": 10
         },
         {
           "name": "bbox_list",
@@ -3441,7 +3512,7 @@ export const imageConfig: ModuleConfig = {
       ],
       "uploads": [
         {
-          "field": "inputs",
+          "field": "images",
           "kind": "image",
           "isList": true,
           "paramName": "input_urls"
