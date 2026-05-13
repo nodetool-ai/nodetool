@@ -3,7 +3,13 @@ import type { NodeData } from "./NodeData";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 
 /** Keep in sync with `--node-collapsed-height` in `styles/vars.css` */
-export const NODE_COLLAPSED_STRIP_HEIGHT_PX = 45;
+export const NODE_COLLAPSED_STRIP_HEIGHT_PX = 40;
+
+/**
+ * A5: minimum width of a collapsed node strip. Keeps enough room for the
+ * icon + title + collapse toggle without forcing the full expanded width.
+ */
+export const NODE_COLLAPSED_MIN_WIDTH_PX = 140;
 
 const MIN_EXPANDED_BODY_PX = 100;
 
@@ -97,49 +103,76 @@ export function getCollapseTogglePatches(
 
   if (nextCollapsed) {
     const expandedH = readExpandedBodyHeightPx(node);
-    const widthPx =
-      w ?? (typeof node.measured?.width === "number" ? node.measured.width : undefined) ??
+    const expandedWidthPx =
+      w ??
+      (typeof node.measured?.width === "number" ? node.measured.width : undefined) ??
       (typeof node.width === "number" ? node.width : undefined) ??
       DEFAULT_NODE_WIDTH;
+    // A5: when collapsing, drop the width constraint so the strip shrinks
+    // to match its header content. React Flow needs *some* width to position
+    // handles, so we publish the min-width here and let the DOM measurement
+    // pass overwrite it once the rendered header is sized.
     return {
-      data: { collapsed: true, expandedHeightPx: expandedH },
+      data: {
+        collapsed: true,
+        expandedHeightPx: expandedH,
+        expandedWidthPx
+      },
       node: {
         height: strip,
-        measured: { width: widthPx, height: strip },
+        // Clearing `measured` forces React Flow to remeasure and pick up the
+        // narrower header-content width on the next layout pass.
+        measured: undefined,
         style: {
           ...node.style,
           height: strip,
-          width: widthPx
+          width: undefined
         }
       }
     };
   }
 
+  // A5: when expanding, restore the width the node had before collapse if we
+  // saved it. Otherwise fall back to the current (possibly auto-measured) w.
+  const savedWidth =
+    typeof node.data.expandedWidthPx === "number" && node.data.expandedWidthPx > 0
+      ? node.data.expandedWidthPx
+      : w;
+  const widthPatch = savedWidth != null ? { width: savedWidth } : {};
+
   const saved = node.data.expandedHeightPx;
   if (typeof saved === "number" && saved > strip) {
     return {
-      data: { collapsed: false, expandedHeightPx: undefined },
+      data: {
+        collapsed: false,
+        expandedHeightPx: undefined,
+        expandedWidthPx: undefined
+      },
       node: {
         height: saved,
         measured: undefined,
         style: {
           ...node.style,
           height: saved,
-          ...(w != null ? { width: w } : {})
+          ...widthPatch
         }
       }
     };
   }
 
   return {
-    data: { collapsed: false, expandedHeightPx: undefined },
+    data: {
+      collapsed: false,
+      expandedHeightPx: undefined,
+      expandedWidthPx: undefined
+    },
     node: {
       height: undefined,
       measured: undefined,
       style: {
         ...node.style,
         height: undefined,
-        ...(w != null ? { width: w } : {})
+        ...widthPatch
       }
     }
   };
