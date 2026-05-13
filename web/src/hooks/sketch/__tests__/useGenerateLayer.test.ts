@@ -108,7 +108,8 @@ describe("useGenerateLayer", () => {
       })
     };
     getWorkflowRunnerStoreMock.mockReturnValue({
-      getState: () => runnerState
+      getState: () => runnerState,
+      setState: jest.fn()
     });
 
     const onComplete = jest.fn();
@@ -164,7 +165,8 @@ describe("useGenerateLayer", () => {
       })
     };
     getWorkflowRunnerStoreMock.mockReturnValue({
-      getState: () => runnerState
+      getState: () => runnerState,
+      setState: jest.fn()
     });
 
     const onComplete = jest.fn();
@@ -239,7 +241,8 @@ describe("useGenerateLayer", () => {
       })
     };
     getWorkflowRunnerStoreMock.mockReturnValue({
-      getState: () => runnerState
+      getState: () => runnerState,
+      setState: jest.fn()
     });
 
     const onFailed = jest.fn();

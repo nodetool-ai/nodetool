@@ -20,6 +20,7 @@ jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => {
   const getState = () => ({
     currentTimeMs: mockCurrentTimeMs,
     isPlaying: mockIsPlaying,
+    seekNonce: 0,
     play: mockPlay,
     pause: mockPause,
     stop: mockStop,

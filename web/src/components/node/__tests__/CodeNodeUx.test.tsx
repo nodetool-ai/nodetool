@@ -26,16 +26,19 @@ jest.mock("zustand/traditional", () => ({
 
 const mockUpdateNode = jest.fn();
 const mockUpdateNodeData = jest.fn();
+const mockFindNode = jest.fn();
 
 jest.mock("../../../contexts/NodeContext", () => ({
   useNodes: jest.fn((selector: (state: {
     updateNode: typeof mockUpdateNode;
     updateNodeData: typeof mockUpdateNodeData;
+    findNode: typeof mockFindNode;
     workflow: { id: string };
   }) => unknown) =>
     selector({
       updateNode: mockUpdateNode,
       updateNodeData: mockUpdateNodeData,
+      findNode: mockFindNode,
       workflow: { id: "wf-1" }
     })
   )

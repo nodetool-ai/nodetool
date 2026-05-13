@@ -16,6 +16,7 @@ jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
     ensureConnection: jest.fn().mockResolvedValue(undefined),
     send: jest.fn().mockResolvedValue(undefined),
     subscribe: jest.fn().mockReturnValue(jest.fn()),
+    isConnectionOpen: jest.fn().mockReturnValue(true),
   },
 }));
 
@@ -255,7 +256,7 @@ describe("WorkflowRunner", () => {
     it.each(["connecting", "running", "paused", "suspended"] as const)(
       "ignores run requests while state is %s",
       async (state) => {
-        store.setState({ state });
+        store.setState({ state, job_id: "active-job-123" });
 
         await store.getState().run({}, testWorkflow, [], []);
 

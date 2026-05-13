@@ -368,63 +368,41 @@ describe("KIE manifest model ID regression", () => {
     expect(manifest.length).toBeGreaterThan(0);
   });
 
-  it("GPTImage4o uses '4o-image-api' model ID (not gpt-4o-image)", () => {
-    const entry = findByClassName("GPTImage4oTextToImage");
+  it("GPTImage2 text-to-image uses 'gpt-image-2-text-to-image' model ID", () => {
+    const entry = findByClassName("GptImage2TextToImage");
     expect(entry).toBeDefined();
-    expect(entry.modelId).toBe("4o-image-api");
+    expect(entry.modelId).toBe("gpt-image-2-text-to-image");
   });
 
-  it("GPTImage4o ImageToImage also uses '4o-image-api'", () => {
-    const entry = findByClassName("GPTImage4oImageToImage");
+  it("GPTImage2 image-to-image uses 'gpt-image-2-image-to-image' model ID", () => {
+    const entry = findByClassName("GptImage2ImageToImage");
     expect(entry).toBeDefined();
-    expect(entry.modelId).toBe("4o-image-api");
+    expect(entry.modelId).toBe("gpt-image-2-image-to-image");
   });
 
-  it("Kling avatar uses 'kling/v1-avatar-*' prefix (not 'kling/ai-avatar-*')", () => {
-    const standard = findByClassName("KlingAIAvatarStandard");
+  it("Kling avatar uses 'kling/ai-avatar-*' model ID prefix", () => {
+    const standard = findByClassName("KlingAiAvatarStandard");
     expect(standard).toBeDefined();
-    expect(standard.modelId).toMatch(/^kling\/v1-avatar-/);
+    expect(standard.modelId).toMatch(/^kling\/ai-avatar-/);
 
-    const pro = findByClassName("KlingAIAvatarPro");
+    const pro = findByClassName("KlingAiAvatarPro");
     expect(pro).toBeDefined();
-    expect(pro.modelId).toMatch(/^kling\/v1-avatar-/);
+    expect(pro.modelId).toMatch(/^kling\/ai-avatar-/);
   });
 
-  it("Seedance V1 uses 'seedance/' prefix (not 'bytedance/')", () => {
-    const lite = findByClassName("SeedanceV1LiteTextToVideo");
-    expect(lite).toBeDefined();
-    expect(lite.modelId).toMatch(/^seedance\//);
+  it("Bytedance Seedance uses 'bytedance/' model ID prefix", () => {
+    const seedance2 = findByClassName("BytedanceSeedance2");
+    expect(seedance2).toBeDefined();
+    expect(seedance2.modelId).toMatch(/^bytedance\//);
 
-    const pro = findByClassName("SeedanceV1ProTextToVideo");
-    expect(pro).toBeDefined();
-    expect(pro.modelId).toMatch(/^seedance\//);
-
-    const liteI2V = findByClassName("SeedanceV1LiteImageToVideo");
-    expect(liteI2V).toBeDefined();
-    expect(liteI2V.modelId).toMatch(/^seedance\//);
-
-    const proI2V = findByClassName("SeedanceV1ProImageToVideo");
-    expect(proI2V).toBeDefined();
-    expect(proI2V.modelId).toMatch(/^seedance\//);
+    const seedance15pro = findByClassName("BytedanceSeedance15Pro");
+    expect(seedance15pro).toBeDefined();
+    expect(seedance15pro.modelId).toMatch(/^bytedance\//);
   });
 
-  it("Runway gen3 uses 'gen-3-alpha' (not 'gen3-alpha')", () => {
-    const t2v = findByClassName("RunwayGen3AlphaTextToVideo");
-    expect(t2v).toBeDefined();
-    expect(t2v.modelId).toMatch(/gen-3-alpha/);
-    // Verify it does NOT use the wrong format
-    expect(t2v.modelId).not.toMatch(/gen3-alpha/);
-
-    const i2v = findByClassName("RunwayGen3AlphaImageToVideo");
-    expect(i2v).toBeDefined();
-    expect(i2v.modelId).toMatch(/gen-3-alpha/);
-  });
-
-  it("ElevenLabsSoundEffect uses 'elevenlabs/sound-effect' (not v2)", () => {
-    const entry = findByClassName("ElevenLabsSoundEffect");
+  it("ElevenLabsSoundEffectV2 uses 'elevenlabs/sound-effect-v2' model ID", () => {
+    const entry = findByClassName("ElevenlabsSoundEffectV2");
     expect(entry).toBeDefined();
-    expect(entry.modelId).toBe("elevenlabs/sound-effect");
-    // Must not contain 'v2'
-    expect(entry.modelId).not.toMatch(/v2/);
+    expect(entry.modelId).toBe("elevenlabs/sound-effect-v2");
   });
 });

@@ -292,12 +292,12 @@ export const createWorkflowRunnerStore = (
 
       console.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
 
+      const jobId = uuidv4();
+      set({ job_id: jobId });
+
       await get().ensureConnection();
 
       set({ workflow, nodes, edges });
-
-      const jobId = uuidv4();
-      set({ job_id: jobId });
 
       const clearStatuses = useStatusStore.getState().clearStatuses;
       const clearErrors = useErrorStore.getState().clearErrors;

@@ -73,7 +73,7 @@ describe("Kie schema resolve route", () => {
       model_id: "bytedance/seedance-2",
       dynamic_properties: {
         prompt: "",
-        reference_image_urls: [],
+        reference_images: [],
         generate_audio: true,
         resolution: "720p",
         duration: 15
@@ -85,7 +85,7 @@ describe("Kie schema resolve route", () => {
           optional: true,
           description: "The text prompt or description for the video."
         },
-        reference_image_urls: {
+        reference_images: {
           type: "list",
           type_args: [{ type: "image", type_args: [] }],
           optional: true,
@@ -179,28 +179,28 @@ describe("Kie schema resolve route", () => {
     expect(res.statusCode).toBe(200);
     expect(res.json()).toMatchObject({
       dynamic_properties: {
-        reference_image_urls: [],
-        reference_video_urls: [],
-        reference_audio_urls: []
+        reference_images: [],
+        reference_videos: [],
+        reference_audios: []
       },
       dynamic_inputs: {
-        reference_image_urls: {
+        reference_images: {
           type: "list",
           type_args: [{ type: "image", type_args: [] }]
         },
-        reference_video_urls: {
+        reference_videos: {
           type: "list",
           type_args: [{ type: "video", type_args: [] }]
         },
-        reference_audio_urls: {
+        reference_audios: {
           type: "list",
           type_args: [{ type: "audio", type_args: [] }]
         }
       }
     });
-    expect(res.json().dynamic_inputs.reference_image_urls.default).toBeUndefined();
-    expect(res.json().dynamic_inputs.reference_video_urls.default).toBeUndefined();
-    expect(res.json().dynamic_inputs.reference_audio_urls.default).toBeUndefined();
+    expect(res.json().dynamic_inputs.reference_images.default).toBeUndefined();
+    expect(res.json().dynamic_inputs.reference_videos.default).toBeUndefined();
+    expect(res.json().dynamic_inputs.reference_audios.default).toBeUndefined();
   });
 
   it("accepts JSON requests when the server parses bodies as raw buffers", async () => {
