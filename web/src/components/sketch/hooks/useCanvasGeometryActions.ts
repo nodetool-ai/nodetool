@@ -29,7 +29,7 @@ import { resolveAssetUri } from "../../node/output/hooks";
 
 // ── Module-level helpers ────────────────────────────────────────────
 
-export function getNonTransparentCanvasBounds(
+function getNonTransparentCanvasBounds(
   canvas: HTMLCanvasElement
 ): LayerContentBounds | null {
   if (canvas.width === 0 || canvas.height === 0) {
@@ -79,7 +79,7 @@ export function getNonTransparentCanvasBounds(
   };
 }
 
-export function drawLayerSnapshotWithTransform(
+function drawLayerSnapshotWithTransform(
   ctx: CanvasRenderingContext2D,
   source: HTMLCanvasElement,
   compositeOffset: Point,
@@ -102,7 +102,7 @@ export function drawLayerSnapshotWithTransform(
   ctx.drawImage(source, compositeOffset.x, compositeOffset.y);
 }
 
-export function getTransformedLayerExtents(
+function getTransformedLayerExtents(
   source: HTMLCanvasElement,
   compositeOffset: Point,
   transform: LayerTransform

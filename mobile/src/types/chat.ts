@@ -107,14 +107,6 @@ export interface ChatMessageRequest {
 }
 
 /**
- * Stop generation request
- */
-export interface StopGenerationRequest {
-  type: 'stop';
-  thread_id: string;
-}
-
-/**
  * State for the chat store
  */
 export interface ChatState {

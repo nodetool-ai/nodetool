@@ -45,8 +45,8 @@ export const DEFAULT_PRESSURE_MIN_SCALE = 0.06;
 export const DEFAULT_PRESSURE_CURVE = 1;
 
 /** Stored `pressureMinScale` range surfaced by the Light end control (see eased slider mapping). */
-export const PRESSURE_MIN_SCALE_UI_MIN = 0.02;
-export const PRESSURE_MIN_SCALE_UI_MAX = 0.55;
+const PRESSURE_MIN_SCALE_UI_MIN = 0.02;
+const PRESSURE_MIN_SCALE_UI_MAX = 0.55;
 
 /**
  * Map linear slider position `u` in [0, 1] to {@link PenPressureSettings.pressureMinScale}.
@@ -109,7 +109,7 @@ export interface StrokeAssistSettings {
   angleIncrement: number;
 }
 
-export const DEFAULT_STROKE_ASSIST_SETTINGS: StrokeAssistSettings = {
+const DEFAULT_STROKE_ASSIST_SETTINGS: StrokeAssistSettings = {
   preset: "custom",
   mode: "stabilizer",
   strength: 0,

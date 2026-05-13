@@ -82,7 +82,7 @@ export interface ResolvedSamPromptCapabilityInputs {
   boxPromptsInputName: string | null;
 }
 
-export function getMetadataInputNames(metadata: NodeMetadataLike | undefined): Set<string> {
+function getMetadataInputNames(metadata: NodeMetadataLike | undefined): Set<string> {
   if (!metadata?.properties) {
     return new Set();
   }
@@ -93,7 +93,7 @@ export function getMetadataInputNames(metadata: NodeMetadataLike | undefined): S
   );
 }
 
-export function getFirstAvailableInputName(
+function getFirstAvailableInputName(
   availableInputs: Set<string>,
   inputNames: readonly string[]
 ): string | null {
