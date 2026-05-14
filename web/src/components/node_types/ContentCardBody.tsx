@@ -82,12 +82,17 @@ const styles = (theme: Theme) =>
     },
     // Basic-fields column renders handle + label only (no inline editor —
     // editors live in the Inspector). Tight margins so it doesn't compete
-    // with the preview for visual weight.
+    // with the preview for visual weight. Type chips are hidden inside
+    // content-card bodies — the label already communicates the property,
+    // and the chip clutters the compact handle column.
     ".basic-fields": {
       flex: "0 0 auto",
       "& > div": {
         marginTop: 0,
         marginBottom: 0
+      },
+      ".typed-port-chip": {
+        display: "none"
       }
     },
     ".outputs-row": {
