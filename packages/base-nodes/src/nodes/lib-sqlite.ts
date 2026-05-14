@@ -60,6 +60,8 @@ function tryParseJsonValues(
 export class CreateTableLibNode extends BaseNode {
   static readonly nodeType = "lib.sqlite.CreateTable";
   static readonly title = "Create Table";
+  static readonly inlineFields = ["database_name", "table_name"];
+  static readonly inputFields = [];
   static readonly description =
     "Create a new SQLite table with specified columns.\n    sqlite, database, table, create, schema\n\n    Use cases:\n    - Initialize database schema for flashcards\n    - Set up tables for persistent storage\n    - Create memory structures for agents";
   static readonly metadataOutputTypes = {
@@ -173,6 +175,8 @@ export class CreateTableLibNode extends BaseNode {
 export class InsertLibNode extends BaseNode {
   static readonly nodeType = "lib.sqlite.Insert";
   static readonly title = "Insert";
+  static readonly inlineFields = ["database_name", "table_name"];
+  static readonly inputFields = ["data"];
   static readonly description =
     "Insert a record into a SQLite table.\n    sqlite, database, insert, add, record\n\n    Use cases:\n    - Add new flashcards to database\n    - Store agent observations\n    - Persist workflow results";
   static readonly metadataOutputTypes = {
@@ -238,6 +242,8 @@ export class InsertLibNode extends BaseNode {
 export class QueryLibNode extends BaseNode {
   static readonly nodeType = "lib.sqlite.Query";
   static readonly title = "Query";
+  static readonly inlineFields = ["database_name", "table_name", "where"];
+  static readonly inputFields = [];
   static readonly description =
     "Query records from a SQLite table.\n    sqlite, database, query, select, search, retrieve\n\n    Use cases:\n    - Retrieve flashcards for review\n    - Search agent memory\n    - Fetch stored data";
   static readonly metadataOutputTypes = {
@@ -347,6 +353,8 @@ export class QueryLibNode extends BaseNode {
 export class UpdateLibNode extends BaseNode {
   static readonly nodeType = "lib.sqlite.Update";
   static readonly title = "Update";
+  static readonly inlineFields = ["database_name", "table_name", "where"];
+  static readonly inputFields = ["data"];
   static readonly description =
     "Update records in a SQLite table.\n    sqlite, database, update, modify, change\n\n    Use cases:\n    - Update flashcard content\n    - Modify stored records\n    - Change agent memory";
   static readonly metadataOutputTypes = {
@@ -425,6 +433,8 @@ export class UpdateLibNode extends BaseNode {
 export class DeleteLibNode extends BaseNode {
   static readonly nodeType = "lib.sqlite.Delete";
   static readonly title = "Delete";
+  static readonly inlineFields = ["database_name", "table_name", "where"];
+  static readonly inputFields = [];
   static readonly description =
     "Delete records from a SQLite table.\n    sqlite, database, delete, remove, drop\n\n    Use cases:\n    - Remove flashcards\n    - Delete agent memory\n    - Clean up old data";
   static readonly metadataOutputTypes = {
@@ -490,6 +500,8 @@ export class DeleteLibNode extends BaseNode {
 export class ExecuteSQLLibNode extends BaseNode {
   static readonly nodeType = "lib.sqlite.ExecuteSQL";
   static readonly title = "Execute SQL";
+  static readonly inlineFields = ["database_name", "sql"];
+  static readonly inputFields = ["parameters"];
   static readonly description =
     "Execute arbitrary SQL statements for advanced operations.\n    sqlite, database, sql, execute, custom\n\n    Use cases:\n    - Complex queries with joins\n    - Aggregate functions (COUNT, SUM, AVG)\n    - Custom SQL operations";
   static readonly metadataOutputTypes = {
@@ -563,6 +575,8 @@ export class ExecuteSQLLibNode extends BaseNode {
 export class GetDatabasePathLibNode extends BaseNode {
   static readonly nodeType = "lib.sqlite.GetDatabasePath";
   static readonly title = "Get Database Path";
+  static readonly inlineFields = ["database_name"];
+  static readonly inputFields = [];
   static readonly description =
     "Get the full path to a SQLite database file.\n    sqlite, database, path, location\n\n    Use cases:\n    - Reference database location\n    - Verify database exists\n    - Pass path to external tools";
   static readonly metadataOutputTypes = {
