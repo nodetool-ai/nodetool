@@ -15,6 +15,7 @@ __pycache__
 *.safetensors
 .claude/*
 !.claude/skills/
+.pi/*
 build/
 coverage/
 dist/
