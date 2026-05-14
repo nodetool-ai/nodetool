@@ -248,18 +248,6 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     status === "running" || runnerState === "running";
   const isDynamic = !!nodeMetadata.is_dynamic;
 
-  // Content cards hide advanced fields entirely — even if connected.
-  // Advanced editing lives in the Inspector (Track D / PR 8). Filtering
-  // here is stronger than NodeInputs' `showAdvancedFields={false}` flag,
-  // which still reveals advanced fields when an edge is wired to them.
-  const basicOnlyProperties = useMemo(
-    () =>
-      (nodeMetadata.properties ?? []).filter((p) =>
-        basicFields.includes(p.name)
-      ),
-    [nodeMetadata.properties, basicFields]
-  );
-
   // Adding a dynamic property is the responsibility of dynamic-input wiring
   // landed in earlier work (NodeInputs / NodePropertyForm). For PR 4 we
   // expose a placeholder onAdd that delegates to the same store flow used
@@ -292,13 +280,18 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
           in the Inspector (Track D / PR 8). `showFields={false}` keeps the
           handle + compact label and drops the editor; the row stays short
           so the preview keeps dominating the card. */}
-      {basicOnlyProperties.length > 0 && (
+      {nodeMetadata.properties && nodeMetadata.properties.length > 0 && (
         <div className="basic-fields">
+          {/* NodeInputs renders basic fields always, and advanced fields
+              only when an edge is wired to them (its existing predicate:
+              isAdvanced && !isConnected && !showAdvancedFields → null).
+              Content cards never expose the advanced toggle — editing
+              advanced props lives in the Inspector (PR 8 / Track D). */}
           <NodeInputs
             id={id}
             nodeMetadata={nodeMetadata}
             layout={nodeMetadata.layout}
-            properties={basicOnlyProperties}
+            properties={nodeMetadata.properties}
             nodeType={nodeType}
             data={data}
             hasAdvancedFields={false}
