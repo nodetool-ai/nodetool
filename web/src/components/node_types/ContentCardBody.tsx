@@ -108,12 +108,20 @@ const styles = (theme: Theme) =>
         minHeight: 0,
         pointerEvents: "auto"
       },
+      // Type chips fade in only when the body is hovered (Track A's
+      // labels-on-hover pattern, adapted for content cards).
       ".typed-port-chip": {
-        display: "none"
+        opacity: 0,
+        transition: "opacity 0.12s ease",
+        pointerEvents: "none"
       },
       ".property-label": {
         display: "none"
       }
+    },
+    "&.content-card-body:hover .basic-fields .typed-port-chip": {
+      opacity: 1,
+      pointerEvents: "auto"
     },
     ".outputs-row": {
       flex: "0 0 auto"
