@@ -100,6 +100,8 @@ export class TakeNode extends BaseNode {
     output: "any",
     index: "int"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
@@ -156,6 +158,8 @@ export class CollectNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[any]"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   static readonly syncMode = "on_any" as const;
   static readonly isStreamingInput = true;

@@ -751,6 +751,8 @@ export class QueryImageNode extends BaseNode {
   static readonly title = "Query Image";
   static readonly description =
     "Query the index for similar images.\n    vector, RAG, query, image, search, similarity";
+  static readonly inlineFields = ["n_results"];
+  static readonly inputFields = ["collection", "image"];
   static readonly metadataOutputTypes = {
     ids: "list[str]",
     documents: "list[str]",
@@ -824,6 +826,8 @@ export class QueryTextNode extends BaseNode {
   static readonly title = "Query Text";
   static readonly description =
     "Query the index for similar text.\n    vector, RAG, query, text, search, similarity";
+  static readonly inlineFields = ["text", "n_results"];
+  static readonly inputFields = ["collection"];
   static readonly metadataOutputTypes = {
     ids: "list[str]",
     documents: "list[str]",
@@ -888,6 +892,8 @@ export class RemoveOverlapNode extends BaseNode {
   static readonly title = "Remove Overlap";
   static readonly description =
     "Removes overlapping words between consecutive strings in a list. Splits text into words and matches word sequences for more accurate overlap detection.\n    vector, RAG, query, text, processing, overlap, deduplication";
+  static readonly inlineFields = ["min_overlap_words"];
+  static readonly inputFields = ["documents"];
   static readonly metadataOutputTypes = {
     documents: "list[str]"
   };
@@ -971,6 +977,8 @@ export class HybridSearchNode extends BaseNode {
   static readonly title = "Hybrid Search";
   static readonly description =
     "Hybrid search combining semantic and keyword-based search for better retrieval. Uses reciprocal rank fusion to combine results from both methods.\n    vector, RAG, query, semantic, text, similarity";
+  static readonly inlineFields = ["text", "n_results", "k_constant", "min_keyword_length"];
+  static readonly inputFields = ["collection"];
   static readonly metadataOutputTypes = {
     ids: "list[str]",
     documents: "list[str]",

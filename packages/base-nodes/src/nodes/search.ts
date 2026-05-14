@@ -445,6 +445,8 @@ export class GoogleMapsNode extends BaseNode {
   };
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["query"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -519,6 +521,8 @@ export class GoogleShoppingNode extends BaseNode {
   };
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["query"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
