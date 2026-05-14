@@ -91,7 +91,15 @@ const styles = (theme: Theme) =>
         marginTop: 0,
         marginBottom: 0
       },
+      // Hide both the type chip and the property label inside content
+      // cards. We keep the handle dots (so connections still work) but
+      // drop everything else from the handle column — labels-on-hover
+      // (Track A) will surface them on demand without permanent visual
+      // weight in the card.
       ".typed-port-chip": {
+        display: "none"
+      },
+      ".property-label": {
         display: "none"
       }
     },
