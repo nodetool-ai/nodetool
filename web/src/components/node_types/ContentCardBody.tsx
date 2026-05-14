@@ -81,12 +81,17 @@ const styles = (theme: Theme) =>
         objectFit: "contain"
       }
     },
+    // Inline fields render in normal flow with visible labels and editors
+    ".inline-fields": {
+      flex: "0 0 auto",
+      paddingTop: theme.spacing(0.5)
+    },
     // Input handles overlay the card's left edge as an absolutely-positioned
     // column, evenly distributed top-to-bottom regardless of where the
     // preview / footer sit in the flex stack. Type chips + labels are
     // hidden so the column is just a clean line of dots; hover labels
     // (Track A) surface property names on demand.
-    ".basic-fields": {
+    ".input-handles": {
       position: "absolute",
       top: theme.spacing(1),
       bottom: theme.spacing(1),
@@ -108,8 +113,36 @@ const styles = (theme: Theme) =>
         minHeight: 0,
         pointerEvents: "auto"
       },
-      ".typed-port-chip": {
-        display: "none"
+      // Hide property labels unconditionally — Track A1's global CSS
+      // (.base-node:hover .property-label { opacity: 1 }) reveals them on
+      // node hover, so we need !important to keep them gone for content
+      // cards even when the body is hovered or a port is connected.
+      ".property-label, .property-spacer": {
+        display: "none !important"
+      }
+    },
+    // Fallback style for old layout (both inlineFields and inputFields empty)
+    ".basic-fields": {
+      position: "absolute",
+      top: theme.spacing(1),
+      bottom: theme.spacing(1),
+      left: 0,
+      width: 0, // zero-width so the column doesn't steal horizontal space
+      pointerEvents: "none", // handle dots themselves re-enable below
+      zIndex: 3,
+      "& > div, & .node-inputs": {
+        marginTop: 0,
+        marginBottom: 0,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-around",
+        height: "100%",
+        gap: theme.spacing(0.25)
+      },
+      ".node-property": {
+        position: "relative",
+        minHeight: 0,
+        pointerEvents: "auto"
       },
       // Hide property labels unconditionally — Track A1's global CSS
       // (.base-node:hover .property-label { opacity: 1 }) reveals them on
@@ -253,6 +286,22 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
 
   const isDynamic = !!nodeMetadata.is_dynamic;
 
+  // Two-pass field classification per field-classification.md:
+  // 1. inlineFields: rendered as full editors in normal flow
+  // 2. inputFields: rendered as handle-only on left edge
+  // Fallback when neither is set: all properties render as handles (old behavior)
+  const inlineFields = nodeMetadata.inline_fields ?? [];
+  const inputFields = nodeMetadata.input_fields ?? [];
+  const useNewLayout = inlineFields.length > 0 || inputFields.length > 0;
+
+  const properties = nodeMetadata.properties ?? [];
+  const inlineProps = useNewLayout
+    ? properties.filter((p) => inlineFields.includes(p.name))
+    : [];
+  const handleProps = useNewLayout
+    ? properties.filter((p) => inputFields.includes(p.name))
+    : properties; // fallback: all properties render as handles
+
   // Adding a dynamic property is the responsibility of dynamic-input wiring
   // landed in earlier work (NodeInputs / NodePropertyForm). For PR 4 we
   // expose a placeholder onAdd that delegates to the same store flow used
@@ -280,13 +329,31 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
         <PreviewArea variant={variant} value={previewValue} />
       </div>
 
-      {/* Property handles render on the card's left edge as labeled handles
-          only — no inline editors (plan §6.1, target design). Editors live
-          in the Inspector (Track D / PR 8). `showFields={false}` keeps the
-          handle + compact label and drops the editor; the row stays short
-          so the preview keeps dominating the card. */}
-      {nodeMetadata.properties && nodeMetadata.properties.length > 0 && (
-        <div className="basic-fields">
+      {/* Inline fields: rendered as full editors in normal flow under preview.
+          Labels are visible here (no display: none). */}
+      {useNewLayout && inlineProps.length > 0 && (
+        <div className="inline-fields">
+          <NodeInputs
+            id={id}
+            nodeMetadata={nodeMetadata}
+            layout={nodeMetadata.layout}
+            properties={inlineProps}
+            nodeType={nodeType}
+            data={data}
+            hasAdvancedFields={false}
+            showAdvancedFields={false}
+            basicFields={[]}
+            onToggleAdvancedFields={() => {}}
+            editableDynamicInputs={false}
+            showFields={true}
+          />
+        </div>
+      )}
+
+      {/* Input fields / fallback: render on the card's left edge as handle-only
+          (no inline editors). Labels are hidden via CSS. */}
+      {handleProps.length > 0 && (
+        <div className={useNewLayout ? "input-handles" : "basic-fields"}>
           {/* NodeInputs renders basic fields always, and advanced fields
               only when an edge is wired to them (its existing predicate:
               isAdvanced && !isConnected && !showAdvancedFields → null).
@@ -296,12 +363,12 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
             id={id}
             nodeMetadata={nodeMetadata}
             layout={nodeMetadata.layout}
-            properties={nodeMetadata.properties}
+            properties={handleProps}
             nodeType={nodeType}
             data={data}
             hasAdvancedFields={false}
             showAdvancedFields={false}
-            basicFields={basicFields}
+            basicFields={useNewLayout ? [] : basicFields}
             onToggleAdvancedFields={() => {}}
             editableDynamicInputs={false}
             showFields={false}
