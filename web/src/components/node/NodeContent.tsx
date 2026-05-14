@@ -7,6 +7,8 @@ import { NodeData } from "../../stores/NodeData";
 import NodeProgress from "./NodeProgress";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
+import { isContentCardNode } from "../node_types/contentCardRegistry";
+import ContentCardBody from "../node_types/ContentCardBody";
 
 interface NodeContentProps {
   id: string;
@@ -154,6 +156,27 @@ const NodeContent: React.FC<NodeContentProps> = ({
     id,
     data.dynamic_properties
   );
+
+  // Body routing (plan §4.1):
+  //   bespoke registry (Track E — future)
+  //     → content-card registry  (PR 4+)
+  //       → generic body (this component's default layout)
+  // Utility nodes (control flow, constants, etc.) intentionally never appear
+  // in CONTENT_CARD_REGISTRY and stay on the generic body forever.
+  if (isContentCardNode(nodeType)) {
+    return (
+      <ContentCardBody
+        id={id}
+        nodeType={nodeType}
+        nodeMetadata={nodeMetadata}
+        data={data}
+        workflowId={workflowId}
+        status={status}
+        basicFields={basicFields}
+        isOutputNode={isOutputNode}
+      />
+    );
+  }
 
   return (
     <FlexColumn
