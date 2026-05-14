@@ -41,6 +41,8 @@ export class HttpGetTextNode extends BaseNode {
     status: "int"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["url"];
+  static readonly inputFields = [];
 
   @prop({ type: "str", default: "", title: "URL", description: "URL to fetch" })
   declare url: string;
@@ -70,6 +72,8 @@ export class HttpGetJsonNode extends BaseNode {
     status: "int"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["url"];
+  static readonly inputFields = [];
 
   @prop({ type: "str", default: "", title: "URL", description: "URL to fetch" })
   declare url: string;
@@ -101,6 +105,8 @@ export class HttpGetBytesNode extends BaseNode {
     status: "int"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["url"];
+  static readonly inputFields = [];
 
   @prop({ type: "str", default: "", title: "URL", description: "URL to fetch" })
   declare url: string;
@@ -135,6 +141,8 @@ export class HttpPostNode extends BaseNode {
     status: "int"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["url"];
+  static readonly inputFields = ["body"];
 
   @prop({ type: "str", default: "", title: "URL", description: "URL to send to" })
   declare url: string;
@@ -167,6 +175,8 @@ export class HttpPutNode extends BaseNode {
     status: "int"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["url"];
+  static readonly inputFields = ["body"];
 
   @prop({ type: "str", default: "", title: "URL", description: "URL to update" })
   declare url: string;
@@ -199,6 +209,8 @@ export class HttpPatchNode extends BaseNode {
     status: "int"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["url"];
+  static readonly inputFields = ["body"];
 
   @prop({ type: "str", default: "", title: "URL", description: "URL to patch" })
   declare url: string;
@@ -231,6 +243,8 @@ export class HttpDeleteNode extends BaseNode {
     status: "int"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["url"];
+  static readonly inputFields = [];
 
   @prop({ type: "str", default: "", title: "URL", description: "URL to delete" })
   declare url: string;

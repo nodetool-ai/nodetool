@@ -219,6 +219,8 @@ export class ConvertToMarkdownLibNode extends BaseNode {
   static readonly description =
     "Converts PDF, DOCX, or HTML to markdown text.\n    markdown, convert, document, pdf, docx, html, bytes\n\n    Connect one input — document ref, raw bytes, or HTML string.";
   static readonly requiredRuntimes = ["pandoc"];
+  static readonly inlineFields = ["html"];
+  static readonly inputFields = ["document", "bytes"];
   static readonly metadataOutputTypes = {
     output: "str"
   };

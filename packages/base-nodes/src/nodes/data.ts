@@ -117,6 +117,8 @@ export class SchemaNode extends BaseNode {
   static readonly title = "Schema";
   static readonly description =
     "Define a schema for a dataframe.\n    schema, dataframe, create";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "record_type"
   };
@@ -142,6 +144,8 @@ export class FilterDataframeNode extends BaseNode {
   static readonly title = "Filter";
   static readonly description =
     "Filter dataframe based on condition.\n    filter, query, condition\n\n    Example conditions:\n    age > 30\n    age > 30 and salary < 50000\n    name == 'John Doe'\n    100 <= price <= 200\n    status in ['Active', 'Pending']\n    not (age < 18)\n\n    Use cases:\n    - Extract subset of data meeting specific criteria\n    - Remove outliers or invalid data points\n    - Focus analysis on relevant data segments";
+  static readonly inlineFields = ["condition"];
+  static readonly inputFields = ["df"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -183,6 +187,8 @@ export class SliceDataframeNode extends BaseNode {
   static readonly title = "Slice";
   static readonly description =
     "Slice a dataframe by rows using start and end indices.\n    slice, subset, rows\n\n    Use cases:\n    - Extract a specific range of rows from a large dataset\n    - Create training and testing subsets for machine learning\n    - Analyze data in smaller chunks";
+  static readonly inlineFields = ["start_index", "end_index"];
+  static readonly inputFields = ["dataframe"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -234,6 +240,8 @@ export class SaveDataframeNode extends BaseNode {
   static readonly title = "Save Dataframe";
   static readonly description =
     "Save dataframe in specified folder.\n    csv, folder, save\n\n    Use cases:\n    - Export processed data for external use\n    - Create backups of dataframes";
+  static readonly inlineFields = ["name"];
+  static readonly inputFields = ["df", "folder"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -292,6 +300,8 @@ export class ImportCSVNode extends BaseNode {
   static readonly title = "Import CSV";
   static readonly description =
     "Convert CSV string to dataframe.\n    csv, dataframe, import\n\n    Use cases:\n    - Import CSV data from string input\n    - Convert CSV responses from APIs to dataframe";
+  static readonly inlineFields = ["csv_data"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -316,6 +326,8 @@ export class LoadCSVURLNode extends BaseNode {
   static readonly title = "Load CSVURL";
   static readonly description =
     "Load CSV file from URL.\n    csv, dataframe, import";
+  static readonly inlineFields = ["url"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -345,6 +357,8 @@ export class LoadCSVFileDataNode extends BaseNode {
   static readonly title = "Load CSVFile";
   static readonly description =
     "Load CSV file from file path.\n    csv, dataframe, import";
+  static readonly inlineFields = ["file_path"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -371,6 +385,8 @@ export class FromListNode extends BaseNode {
   static readonly title = "From List";
   static readonly description =
     "Convert list of dicts to dataframe.\n    list, dataframe, convert\n\n    Use cases:\n    - Transform list data into structured dataframe\n    - Prepare list data for analysis or visualization\n    - Convert API responses to dataframe format";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["values"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -424,6 +440,8 @@ export class JSONToDataframeNode extends BaseNode {
   static readonly title = "Convert JSON to DataFrame";
   static readonly description =
     "Transforms a JSON string into a pandas DataFrame.\n    json, dataframe, conversion\n\n    Use cases:\n    - Converting API responses to tabular format\n    - Preparing JSON data for analysis or visualization\n    - Structuring unstructured JSON data for further processing";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -444,6 +462,8 @@ export class ToListNode extends BaseNode {
   static readonly title = "To List";
   static readonly description =
     "Convert dataframe to list of dictionaries.\n    dataframe, list, convert\n\n    Use cases:\n    - Convert dataframe data for API consumption\n    - Transform data for JSON serialization\n    - Prepare data for document-based storage";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["dataframe"];
   static readonly metadataOutputTypes = {
     output: "list[dict]"
   };
@@ -474,6 +494,8 @@ export class SelectColumnNode extends BaseNode {
   static readonly title = "Select Column";
   static readonly description =
     "Select specific columns from dataframe.\n    dataframe, columns, filter\n\n    Use cases:\n    - Extract relevant features for analysis\n    - Reduce dataframe size by removing unnecessary columns\n    - Prepare data for specific visualizations or models";
+  static readonly inlineFields = ["columns"];
+  static readonly inputFields = ["dataframe"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -522,6 +544,8 @@ export class ExtractColumnNode extends BaseNode {
   static readonly title = "Extract Column";
   static readonly description =
     "Convert dataframe column to list.\n    dataframe, column, list\n\n    Use cases:\n    - Extract data for use in other processing steps\n    - Prepare column data for plotting or analysis\n    - Convert categorical data to list for encoding";
+  static readonly inlineFields = ["column_name"];
+  static readonly inputFields = ["dataframe"];
   static readonly metadataOutputTypes = {
     output: "list[any]"
   };
@@ -562,6 +586,8 @@ export class AddColumnNode extends BaseNode {
   static readonly title = "Add Column";
   static readonly description =
     "Add list of values as new column to dataframe.\n    dataframe, column, list\n\n    Use cases:\n    - Incorporate external data into existing dataframe\n    - Add calculated results as new column\n    - Augment dataframe with additional features";
+  static readonly inlineFields = ["column_name"];
+  static readonly inputFields = ["dataframe", "values"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -621,6 +647,8 @@ export class MergeDataframeNode extends BaseNode {
   static readonly title = "Merge";
   static readonly description =
     "Merge two dataframes along columns.\n    merge, concat, columns\n\n    Use cases:\n    - Combine data from multiple sources\n    - Add new features to existing dataframe\n    - Merge time series data from different periods";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["dataframe_a", "dataframe_b"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -673,6 +701,8 @@ export class AppendDataframeNode extends BaseNode {
   static readonly title = "Append";
   static readonly description =
     "Append two dataframes along rows.\n    append, concat, rows\n\n    Use cases:\n    - Combine data from multiple time periods\n    - Merge datasets with same structure\n    - Aggregate data from different sources";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["dataframe_a", "dataframe_b"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -729,6 +759,8 @@ export class JoinDataframeNode extends BaseNode {
   static readonly title = "Join";
   static readonly description =
     "Join two dataframes on specified column.\n    join, merge, column\n\n    Use cases:\n    - Combine data from related tables\n    - Enrich dataset with additional information\n    - Link data based on common identifiers";
+  static readonly inlineFields = ["join_on"];
+  static readonly inputFields = ["dataframe_a", "dataframe_b"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -833,6 +865,8 @@ export class RowIteratorNode extends BaseNode {
   static readonly nodeType = "nodetool.data.RowIterator";
   static readonly title = "Row Iterator";
   static readonly description = "Iterate over rows of a dataframe.";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["dataframe"];
   static readonly metadataOutputTypes = {
     dict: "dict",
     index: "any"
@@ -871,6 +905,8 @@ export class FindRowNode extends BaseNode {
   static readonly title = "Find Row";
   static readonly description =
     "Find the first row in a dataframe that matches a given condition.\n    filter, query, condition, single row\n\n    Example conditions:\n    age > 30\n    age > 30 and salary < 50000\n    name == 'John Doe'\n    100 <= price <= 200\n    status in ['Active', 'Pending']\n    not (age < 18)\n\n    Use cases:\n    - Retrieve specific record based on criteria\n    - Find first occurrence of a particular condition\n    - Extract single data point for further analysis";
+  static readonly inlineFields = ["condition"];
+  static readonly inputFields = ["df"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -913,6 +949,8 @@ export class SortByColumnNode extends BaseNode {
   static readonly title = "Sort By Column";
   static readonly description =
     "Sort dataframe by specified column.\n    sort, order, column\n\n    Use cases:\n    - Arrange data in ascending or descending order\n    - Identify top or bottom values in dataset\n    - Prepare data for rank-based analysis";
+  static readonly inlineFields = ["column"];
+  static readonly inputFields = ["df"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -961,6 +999,8 @@ export class DropDuplicatesNode extends BaseNode {
   static readonly title = "Drop Duplicates";
   static readonly description =
     "Remove duplicate rows from dataframe.\n    duplicates, unique, clean\n\n    Use cases:\n    - Clean dataset by removing redundant entries\n    - Ensure data integrity in analysis\n    - Prepare data for unique value operations";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["df"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -992,6 +1032,8 @@ export class DropNANode extends BaseNode {
   static readonly title = "Drop NA";
   static readonly description =
     "Remove rows with NA values from dataframe.\n    na, missing, clean\n\n    Use cases:\n    - Clean dataset by removing incomplete entries\n    - Prepare data for analysis requiring complete cases\n    - Improve data quality for modeling";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["df"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -1028,6 +1070,8 @@ export class ForEachRowNode extends BaseNode {
   static readonly title = "For Each Row";
   static readonly description =
     "Iterate over rows of a dataframe.\n    iterator, loop, dataframe, sequence, rows\n\n    Use cases:\n    - Process each row of a dataframe individually\n    - Trigger actions for every record in a dataset";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["dataframe"];
   static readonly metadataOutputTypes = {
     row: "dict",
     index: "any"
@@ -1067,6 +1111,8 @@ export class LoadCSVAssetsNode extends BaseNode {
   static readonly title = "Load CSV Assets";
   static readonly description =
     "Load dataframes from an asset folder.\n    load, dataframe, file, import\n\n    Use cases:\n    - Load multiple dataframes from a folder\n    - Process multiple datasets in sequence\n    - Batch import of data files";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["folder"];
   static readonly metadataOutputTypes = {
     dataframe: "dataframe",
     name: "str",
@@ -1138,6 +1184,8 @@ export class AggregateNode extends BaseNode {
   static readonly title = "Aggregate";
   static readonly description =
     "Aggregate dataframe by one or more columns.\n    aggregate, groupby, group, sum, mean, count, min, max, std, var, median, first, last\n\n    Use cases:\n    - Prepare data for aggregation operations\n    - Analyze data by categories\n    - Create summary statistics by groups";
+  static readonly inlineFields = ["columns", "aggregation"];
+  static readonly inputFields = ["dataframe"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -1238,6 +1286,8 @@ export class PivotNode extends BaseNode {
   static readonly title = "Pivot";
   static readonly description =
     "Pivot dataframe to reshape data.\n    pivot, reshape, transform\n\n    Use cases:\n    - Transform long data to wide format\n    - Create cross-tabulation tables\n    - Reorganize data for visualization";
+  static readonly inlineFields = ["index", "columns", "values", "aggfunc"];
+  static readonly inputFields = ["dataframe"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -1333,6 +1383,8 @@ export class RenameNode extends BaseNode {
   static readonly title = "Rename";
   static readonly description =
     "Rename columns in dataframe.\n    rename, columns, names\n\n    Use cases:\n    - Standardize column names\n    - Make column names more descriptive\n    - Prepare data for specific requirements";
+  static readonly inlineFields = ["rename_map"];
+  static readonly inputFields = ["dataframe"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -1384,6 +1436,8 @@ export class FillNANode extends BaseNode {
   static readonly title = "Fill NA";
   static readonly description =
     "Fill missing values in dataframe.\n    fillna, missing, impute\n\n    Use cases:\n    - Handle missing data\n    - Prepare data for analysis\n    - Improve data quality";
+  static readonly inlineFields = ["value", "method", "columns"];
+  static readonly inputFields = ["dataframe"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };

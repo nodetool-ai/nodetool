@@ -52,6 +52,8 @@ export class PptxExtractTextLibNode extends BaseNode {
   static readonly title = "PPTX Extract Text";
   static readonly description =
     "Extract plain text from a PowerPoint (.pptx) file.\n    pptx, powerpoint, slides, text, extract";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["pptx"];
   static readonly metadataOutputTypes = { output: "str" };
   static readonly exposeAsTool = true;
 
@@ -78,6 +80,8 @@ export class PptxExtractSlidesLibNode extends BaseNode {
   static readonly title = "PPTX Extract Slides";
   static readonly description =
     "Extract text from each slide of a PowerPoint (.pptx) file as a list, preserving slide order.\n    pptx, powerpoint, slides, list, text";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["pptx"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
   static readonly exposeAsTool = true;
 

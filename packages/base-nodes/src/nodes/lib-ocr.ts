@@ -78,6 +78,8 @@ export class OcrExtractTextLibNode extends BaseNode {
   static readonly title = "OCR Extract Text";
   static readonly description =
     "Extract plain text from an image using Tesseract OCR.\n    ocr, image, text, recognition, tesseract";
+  static readonly inlineFields = ["language"];
+  static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "str" };
   static readonly exposeAsTool = true;
 
@@ -108,6 +110,8 @@ export class OcrExtractDataLibNode extends BaseNode {
   static readonly title = "OCR Extract Data";
   static readonly description =
     "Run OCR on an image and return structured data: full text, mean confidence, and per-word boxes.\n    ocr, image, text, words, confidence, bounding boxes";
+  static readonly inlineFields = ["language"];
+  static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "dict" };
   static readonly exposeAsTool = true;
 

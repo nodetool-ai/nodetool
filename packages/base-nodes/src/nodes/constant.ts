@@ -20,6 +20,8 @@ export class ConstantBoolNode extends BaseNode {
     output: "bool"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
 
   @prop({ type: "bool", default: false, title: "Value" })
   declare value: any;
@@ -37,6 +39,8 @@ export class ConstantIntegerNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "int"
   };
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
 
   @prop({ type: "int", default: 0, title: "Value" })
   declare value: any;
@@ -54,6 +58,8 @@ export class ConstantFloatNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "float"
   };
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
 
   @prop({ type: "float", default: 0, title: "Value" })
   declare value: any;
@@ -71,6 +77,8 @@ export class ConstantStringNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
 
   @prop({ type: "str", default: "", title: "Value" })
   declare value: any;
@@ -88,6 +96,8 @@ export class ConstantListNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[any]"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({ type: "list[any]", default: [], title: "Value" })
   declare value: any;
@@ -106,6 +116,8 @@ export class ConstantTextListNode extends BaseNode {
     output: "list[str]"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({
     type: "list[str]",
@@ -130,6 +142,8 @@ export class ConstantDictNode extends BaseNode {
     output: "dict[str, any]"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({ type: "dict[str, any]", default: {}, title: "Value" })
   declare value: any;
@@ -148,6 +162,8 @@ export class ConstantAudioNode extends BaseNode {
     output: "audio"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({
     type: "audio",
@@ -176,6 +192,8 @@ export class ConstantImageNode extends BaseNode {
     output: "image"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({
     type: "image",

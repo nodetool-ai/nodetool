@@ -15,7 +15,6 @@ import HandleTooltip from "../HandleTooltip";
 import { NodeData } from "../../stores/NodeData";
 import usePropertyValidationStore from "../../stores/PropertyValidationStore";
 import { Tooltip } from "../ui_primitives/Tooltip";
-import TypedPortChip from "./TypedPortChip";
 
 export type PropertyFieldProps = {
   id: string;
@@ -145,20 +144,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     validationError ? " has-validation-error" : ""
   }${isConnected ? " is-connected" : ""}`;
 
-  // Position the typed-port chip just inside the handle so it visually
-  // labels the port type without intercepting pointer events.
-  const typedChipStyle = useMemo<React.CSSProperties>(
-    () => ({
-      position: "absolute",
-      left: 6,
-      top: "50%",
-      transform: "translateY(-50%)",
-      zIndex: 2,
-      pointerEvents: "none"
-    }),
-    []
-  );
-
   const inner = (
     <div className={fieldClass}>
       {showHandle && (
@@ -180,11 +165,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
               onContextMenu={handleContextMenu}
             />
           </HandleTooltip>
-          <TypedPortChip
-            type={property.type}
-            side="left"
-            style={typedChipStyle}
-          />
         </div>
       )}
 

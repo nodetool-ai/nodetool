@@ -111,6 +111,72 @@ function castValue(value: unknown, propType: string): unknown {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Field Classification
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute inlineFields and inputFields based on property metadata.
+ *
+ * inputFields: properties that are typically wired from upstream (assets, data types)
+ * inlineFields: properties that are short text frequently typed by the user
+ */
+function computeFieldClassification(
+  fields: Array<{
+    name: string;
+    propType: string;
+    parentField?: string;
+  }>
+): { inlineFields: string[]; inputFields: string[] } {
+  const inlineFields: string[] = [];
+  const inputFields: string[] = [];
+
+  for (const field of fields) {
+    if (field.parentField) continue;
+
+    // Asset types -> inputFields
+    if (
+      [
+        "image",
+        "video",
+        "audio",
+        "image_mask",
+        "model_3d",
+        "document",
+        "dataframe",
+        "tensor",
+        "list[image]",
+        "list[video]",
+        "list[audio]"
+      ].includes(field.propType.toLowerCase())
+    ) {
+      inputFields.push(field.name);
+    }
+    // Short text properties with key names -> inlineFields
+    else if (
+      field.propType.toLowerCase() === "str" ||
+      field.propType.toLowerCase() === "text"
+    ) {
+      const textNames = new Set([
+        "prompt",
+        "system_prompt",
+        "query",
+        "text",
+        "template",
+        "code",
+        "expression",
+        "url"
+      ]);
+      if (textNames.has(field.name)) {
+        inlineFields.push(field.name);
+      }
+    }
+    // Everything else defaults to inspector (not listed)
+  }
+
+  return { inlineFields, inputFields };
+}
+
 async function buildArgs(
   instance: BaseNode,
   spec: FalManifestEntry,
@@ -391,6 +457,17 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
       configurable: true
     });
   }
+
+  // Compute and set field classification
+  const { inlineFields, inputFields } = computeFieldClassification(spec.inputFields);
+  Object.defineProperty(FalNodeClass, "inlineFields", {
+    value: inlineFields,
+    configurable: true
+  });
+  Object.defineProperty(FalNodeClass, "inputFields", {
+    value: inputFields,
+    configurable: true
+  });
 
   // Register declared properties (equivalent to @prop decorator)
   for (const field of spec.inputFields) {

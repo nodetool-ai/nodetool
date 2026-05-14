@@ -56,6 +56,8 @@ export class CreateWorkbookLibNode extends BaseNode {
   static readonly title = "Create Workbook";
   static readonly description =
     "Creates a new Excel workbook.\n    excel, workbook, create\n\n    Use cases:\n    - Initialize new Excel files\n    - Start spreadsheet creation workflows";
+  static readonly inlineFields = ["sheet_name"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "excel"
   };
@@ -81,6 +83,8 @@ export class ExcelToDataFrameLibNode extends BaseNode {
   static readonly title = "Excel To Data Frame";
   static readonly description =
     "Reads an Excel worksheet into a pandas DataFrame.\n    excel, dataframe, import\n\n    Use cases:\n    - Import Excel data for analysis\n    - Process spreadsheet contents";
+  static readonly inlineFields = ["sheet_name"];
+  static readonly inputFields = ["workbook"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -158,6 +162,8 @@ export class DataFrameToExcelLibNode extends BaseNode {
   static readonly title = "Data Frame To Excel";
   static readonly description =
     "Writes a DataFrame to an Excel worksheet.\n    excel, dataframe, export\n\n    Use cases:\n    - Export data analysis results\n    - Create reports from data";
+  static readonly inlineFields = ["sheet_name", "start_cell"];
+  static readonly inputFields = ["workbook", "dataframe"];
   static readonly metadataOutputTypes = {
     output: "any"
   };
@@ -255,6 +261,8 @@ export class FormatCellsLibNode extends BaseNode {
   static readonly title = "Format Cells";
   static readonly description =
     "Applies formatting to a range of cells.\n    excel, format, style\n\n    Use cases:\n    - Highlight important data\n    - Create professional looking reports";
+  static readonly inlineFields = ["sheet_name", "cell_range", "background_color", "text_color"];
+  static readonly inputFields = ["workbook"];
   static readonly metadataOutputTypes = {
     output: "any"
   };
@@ -364,6 +372,8 @@ export class AutoFitColumnsLibNode extends BaseNode {
   static readonly title = "Auto Fit Columns";
   static readonly description =
     "Automatically adjusts column widths to fit content.\n    excel, format, columns\n\n    Use cases:\n    - Improve spreadsheet readability\n    - Professional presentation";
+  static readonly inlineFields = ["sheet_name"];
+  static readonly inputFields = ["workbook"];
   static readonly metadataOutputTypes = {
     output: "any"
   };
@@ -415,6 +425,8 @@ export class SaveWorkbookLibNode extends BaseNode {
   static readonly title = "Save Workbook";
   static readonly description =
     "Saves an Excel workbook to disk.\n    excel, save, export\n\n    Use cases:\n    - Export final spreadsheet\n    - Save work in progress";
+  static readonly inlineFields = ["filename"];
+  static readonly inputFields = ["workbook"];
 
   @prop({
     type: "excel",
