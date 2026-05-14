@@ -6,11 +6,13 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { shallow } from "zustand/shallow";
 import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 
 // store
 import { NodeData } from "../../stores/NodeData";
 import { debounce } from "../../utils/lodashAlternatives";
 import isEqual from "fast-deep-equal";
+import chroma from "chroma-js";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
@@ -21,15 +23,37 @@ import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
 import BypassGroupButton from "./BypassGroupButton";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, Popover } from "../ui_primitives";
+
 // constants
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 200;
-const GROUP_COLOR_OPACITY = 0.4;
+const GROUP_BG_OPACITY = 0.22;
+const GROUP_BORDER_OPACITY = 0.45;
+const PILL_HEIGHT = 40;
+// Hex fallback used when group_color is unset or stored as a CSS var token
+// (hexToRgba can't compute alpha on `var(--…)`, which produces invalid CSS).
+const DEFAULT_GROUP_HEX = "#4a5563";
+
+// Returns an opaque 6-digit hex. Catches three failure modes from saved data:
+//   - missing / empty                  → default
+//   - CSS-var string (e.g. "var(--…)") → default (chroma can't parse, hexToRgba
+//                                        emits invalid rgb() with a hex inside)
+//   - hex with built-in alpha (#RRGGBBAA) → strip alpha so solid backgrounds
+//                                          (the pill) don't render translucent
+const resolveGroupHex = (raw: string | null | undefined): string => {
+  if (!raw || raw.trim().startsWith("var(")) {return DEFAULT_GROUP_HEX;}
+  try {
+    return chroma(raw).alpha(1).hex();
+  } catch {
+    return DEFAULT_GROUP_HEX;
+  }
+};
 
 const styles = (theme: Theme, minWidth: number, minHeight: number) =>
   css({
     "&": {
+      position: "relative",
       boxShadow: "none",
       minWidth: minWidth + "px",
       minHeight: minHeight + "px"
@@ -40,73 +64,112 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
     height: "100%",
     display: "flex",
     borderRadius: "5px",
-    border: `1px solid ${theme.vars.palette.grey[600]}`,
-    backgroundColor: theme.vars.palette.c_bg_group,
-    h6: {
-      display: "block",
+    // pill — top-left, overlapping the bounding box
+    ".group-pill": {
       position: "absolute",
-      marginTop: "10px",
-      left: "10px",
-      top: "0px",
-      color: theme.vars.palette.grey[1000]
-    },
-    ".info": {
-      position: "absolute",
-      top: ".5em",
-      right: "0",
-      left: "0",
-      width: "100%",
-      textAlign: "center",
-      padding: ".5em",
-      backgroundColor: "transparent",
-      color: theme.vars.palette.grey[1000],
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal
-    },
-    // header
-    ".node-header": {
-      backgroundColor: theme.vars.palette.action.hover,
-      width: "100%",
-      margin: 0,
-      padding: 0,
-      border: 0,
-      position: "absolute",
+      top: `-${PILL_HEIGHT / 2}px`,
+      left: "12px",
+      height: `${PILL_HEIGHT}px`,
       display: "flex",
       alignItems: "center",
-      justifyContent: "flex-start",
+      gap: "4px",
+      padding: "0 6px 0 18px",
+      borderRadius: `${PILL_HEIGHT / 2}px`,
+      color: theme.vars.palette.common.white,
+      boxShadow: [
+        // inner top highlight (subtle "lift")
+        "inset 0 1px 0 rgba(255, 255, 255, 0.12)",
+        // inner bottom shadow for depth
+        "inset 0 -1px 0 rgba(0, 0, 0, 0.25)",
+        // outer drop shadow
+        `0 3px 10px ${theme.vars.palette.grey[900]}80`
+      ].join(", "),
+      zIndex: 10,
+      cursor: "move",
+      userSelect: "none",
+      transition: "transform 0.15s ease, box-shadow 0.15s ease",
+      "&:hover": {
+        boxShadow: [
+          "inset 0 1px 0 rgba(255, 255, 255, 0.16)",
+          "inset 0 -1px 0 rgba(0, 0, 0, 0.25)",
+          `0 4px 14px ${theme.vars.palette.grey[900]}99`
+        ].join(", ")
+      },
+      // Group body is pointer-events:none by default (click-through overlay);
+      // the pill needs to opt back in so its buttons / title edit are clickable.
+      pointerEvents: "auto",
       ".title-input": {
-        flexGrow: 1,
-        padding: 0,
-        margin: 0,
-        overflow: "hidden"
+        display: "flex",
+        alignItems: "center",
+        minWidth: "40px",
+        paddingRight: "8px"
       },
       input: {
         width: "fit-content",
-        maxWidth: "100%",
-        overflow: "hidden",
+        minWidth: "40px",
+        maxWidth: "320px",
         backgroundColor: "transparent",
         outline: "none",
-        wordSpacing: "-.3em",
-        fontFamily: theme.fontFamily2,
-        pointerEvents: "none",
-        color: theme.vars.palette.grey[0],
-        padding: ".5em 0.5em",
         border: 0,
-        fontSize: "1.5em",
-        fontWeight: 300
-      }
-    },
-    // action buttons container
-    ".action-buttons": {
-      marginRight: "0.5em",
-      display: "flex",
-      justifyContent: "flex-end",
-      alignItems: "center",
-      width: "auto",
-      height: "32px",
-      gap: "6px",
-      ".color-picker": {
-        marginRight: "2px"
+        padding: 0,
+        margin: 0,
+        color: "#ffffff",
+        textShadow: "0 1px 2px rgba(0, 0, 0, 0.4)",
+        fontFamily: theme.fontFamily1,
+        fontSize: "1.15em",
+        fontWeight: 600,
+        letterSpacing: "0.02em",
+        pointerEvents: "none",
+        "&:focus": {
+          pointerEvents: "all"
+        }
+      },
+      ".pill-actions": {
+        display: "flex",
+        alignItems: "center",
+        gap: "2px",
+        paddingLeft: "6px",
+        marginLeft: "2px",
+        borderLeft: "1px solid rgba(255, 255, 255, 0.12)"
+      },
+      // Soften the BypassGroupButton inside the pill — its heavy
+      // outlined-circle look fights with the pill aesthetic.
+      ".pill-actions .bypass-button": {
+        border: "none !important",
+        backgroundColor: "transparent !important",
+        color: "rgba(255, 255, 255, 0.85) !important",
+        width: "32px !important",
+        height: "32px !important",
+        "&:hover": {
+          backgroundColor: "rgba(255, 255, 255, 0.14) !important",
+          color: "#ffffff !important"
+        }
+      },
+      // Tone down the run button slightly so it sits within the pill,
+      // not over it. Keep primary color for affordance.
+      ".pill-actions .run-button": {
+        width: "32px !important",
+        height: "32px !important",
+        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.3)",
+        "& svg": {
+          fontSize: "18px !important"
+        }
+      },
+      ".overflow-button": {
+        width: 32,
+        height: 32,
+        padding: 0,
+        borderRadius: "var(--rounded-circle)",
+        color: "rgba(255, 255, 255, 0.85)",
+        backgroundColor: "transparent",
+        transition: "background-color 0.15s ease, color 0.15s ease",
+        "&:hover": {
+          backgroundColor: "rgba(255, 255, 255, 0.14)",
+          color: "#ffffff"
+        },
+        "& svg": {
+          fontSize: 18
+        }
       }
     },
     // help text
@@ -153,6 +216,8 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const nodeRef = useRef<HTMLDivElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
+  const overflowAnchorRef = useRef<HTMLButtonElement>(null);
+  const [overflowOpen, setOverflowOpen] = useState(false);
   const store = useNodeStoreRef();
 
   const { updateNodeData, updateNode, setBypass } = useNodes(
@@ -262,7 +327,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.id, props.data, updateNodeData]
   );
 
-  const handleHeaderDoubleClick = (_e: React.MouseEvent) => {
+  const handlePillDoubleClick = (_e: React.MouseEvent) => {
     headerInputRef.current?.focus();
     headerInputRef.current?.select();
   };
@@ -297,9 +362,13 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.id, updateNodeData]
   );
 
-  const handleHeaderClick = () => {
-    // Header click handler - placeholder for future functionality
-  };
+  const handleOverflowToggle = useCallback(() => {
+    setOverflowOpen((v) => !v);
+  }, []);
+
+  const handleOverflowClose = useCallback(() => {
+    setOverflowOpen(false);
+  }, []);
 
   useEffect(() => {
     // Selectable group nodes when control key is pressed
@@ -310,6 +379,11 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       updateNode(props.id, { selectable: false });
     }
   }, [updateNode, props.id, controlKeyPressed, metaKeyPressed]);
+
+  const effectiveColor = resolveGroupHex(color);
+  const pillBg = effectiveColor;
+  const bodyBg = hexToRgba(effectiveColor, GROUP_BG_OPACITY);
+  const subtleBorder = `1px solid ${hexToRgba(effectiveColor, GROUP_BORDER_OPACITY)}`;
 
   return (
     <div
@@ -324,14 +398,11 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             }
           : nodeHovered
             ? { border: `2px solid ${theme.vars.palette.primary.main}` }
-            : {}),
+            : { border: subtleBorder }),
         opacity:
           controlKeyPressed || metaKeyPressed ? 0.5 : nodeHovered ? 0.8 : 1,
         pointerEvents: controlKeyPressed || metaKeyPressed ? "all" : "none",
-        backgroundColor: hexToRgba(
-          color || theme.vars.palette.c_bg_group,
-          GROUP_COLOR_OPACITY
-        )
+        backgroundColor: bodyBg
       }}
     >
       <Tooltip
@@ -344,14 +415,14 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             Hold CTRL or ⌘ key + click <br />
             <br />
             <b>EDIT GROUP TITLE:</b> <br />
-            Double click on header area
+            Double click the pill
           </span>
         }
       >
         <div
-          className="node-header node-drag-handle"
-          onClick={handleHeaderClick}
-          onDoubleClick={handleHeaderDoubleClick}
+          className="group-pill node-drag-handle"
+          onDoubleClick={handlePillDoubleClick}
+          style={{ backgroundColor: pillBg }}
         >
           <div className="title-input">
             <input
@@ -361,15 +432,11 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
               type="text"
               value={headline}
               onChange={handleHeadlineChange}
-              placeholder=""
+              placeholder="Group"
+              size={Math.max(headline.length, 1)}
             />
           </div>
-          <div className="action-buttons">
-            <ColorPicker
-              buttonSize={24}
-              color={color || null}
-              onColorChange={handleColorChange}
-            />
+          <div className="pill-actions">
             {hasChildren && (
               <BypassGroupButton
                 isBypassed={someChildrenBypassed}
@@ -381,9 +448,61 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
               state={state}
               onClick={runWorkflow}
             />
+            <Tooltip title="More options" delay={TOOLTIP_ENTER_DELAY}>
+              <ToolbarIconButton
+                ref={overflowAnchorRef}
+                title=""
+                size="small"
+                tabIndex={-1}
+                className="overflow-button nodrag"
+                onClick={handleOverflowToggle}
+              >
+                <MoreHorizIcon />
+              </ToolbarIconButton>
+            </Tooltip>
           </div>
         </div>
       </Tooltip>
+
+      <Popover
+        open={overflowOpen}
+        anchorEl={overflowAnchorRef.current}
+        onClose={handleOverflowClose}
+        placement="bottom-right"
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            padding: "10px 12px"
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "12px"
+            }}
+          >
+            <span
+              style={{
+                fontFamily: theme.fontFamily1,
+                fontSize: theme.fontSizeSmall,
+                color: theme.vars.palette.grey[200]
+              }}
+            >
+              Group color
+            </span>
+            <ColorPicker
+              buttonSize={24}
+              color={color || null}
+              onColorChange={handleColorChange}
+            />
+          </div>
+        </div>
+      </Popover>
 
       {/* Help text that appears when dragging nodes */}
       <div className={`help-text ${isDragging ? "visible" : "none"}`}>
