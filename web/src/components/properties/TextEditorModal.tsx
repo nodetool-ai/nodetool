@@ -946,7 +946,11 @@ const TextEditorModal = ({
               {isCodeEditor && (
                 <div className="toolbar-group code-tools">
                   <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Find">
-                    <button className="button-ghost" onClick={handleMonacoFind}>
+                    <button
+                      className="button-ghost"
+                      onClick={handleMonacoFind}
+                      aria-label="Find"
+                    >
                       <FindInPageIcon />
                     </button>
                   </Tooltip>
@@ -955,6 +959,7 @@ const TextEditorModal = ({
                       <button
                         className="button-ghost"
                         onClick={handleMonacoFormat}
+                        aria-label="Format"
                       >
                         <FormatAlignLeftIcon />
                       </button>
@@ -968,6 +973,7 @@ const TextEditorModal = ({
                       <button
                         className={`button-ghost snippet-toggle ${snippetSidebarVisible ? "active" : ""}`}
                         onClick={() => setSnippetSidebarVisible((v) => !v)}
+                        aria-label={snippetSidebarVisible ? "Hide Snippets" : "Show Snippets"}
                       >
                         <DataObjectIcon />
                       </button>
@@ -980,6 +986,7 @@ const TextEditorModal = ({
                     <button
                       className="button-ghost"
                       onClick={handleToggleWordWrap}
+                      aria-label={wordWrapEnabled ? "Disable wrap" : "Enable wrap"}
                     >
                       <WrapTextIcon />
                     </button>
@@ -1021,7 +1028,11 @@ const TextEditorModal = ({
                         : "Switch to Code Editor"
                     }
                   >
-                    <button className="button" onClick={handleToggleEditorMode}>
+                    <button
+                      className="button"
+                      onClick={handleToggleEditorMode}
+                      aria-label={isCodeEditor ? "Switch to Rich Text" : "Switch to Code Editor"}
+                    >
                       {isCodeEditor ? <TextFieldsIcon /> : <CodeIcon />}
                     </button>
                   </Tooltip>
@@ -1032,7 +1043,11 @@ const TextEditorModal = ({
                   delay={TOOLTIP_ENTER_DELAY}
                   title={assistantVisible ? "Hide Assistant" : "Show Assistant"}
                 >
-                  <button className="button" onClick={toggleAssistantVisible}>
+                  <button
+                    className="button"
+                    onClick={toggleAssistantVisible}
+                    aria-label={assistantVisible ? "Hide Assistant" : "Show Assistant"}
+                  >
                     {assistantVisible ? (
                       <ChatBubbleIcon />
                     ) : (
@@ -1041,7 +1056,11 @@ const TextEditorModal = ({
                   </button>
                 </Tooltip>
                 <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Download">
-                  <button className="button" onClick={handleDownload}>
+                  <button
+                    className="button"
+                    onClick={handleDownload}
+                    aria-label="Download"
+                  >
                     <DownloadIcon />
                   </button>
                 </Tooltip>
@@ -1049,7 +1068,11 @@ const TextEditorModal = ({
                   delay={TOOLTIP_ENTER_DELAY}
                   title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 >
-                  <button className="button" onClick={toggleFullscreen}>
+                  <button
+                    className="button"
+                    onClick={toggleFullscreen}
+                    aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                  >
                     {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
                   </button>
                 </Tooltip>
@@ -1057,7 +1080,11 @@ const TextEditorModal = ({
                   delay={TOOLTIP_ENTER_DELAY}
                   title="Close Editor | Esc"
                 >
-                  <button className="button button-close" onClick={onClose}>
+                  <button
+                    className="button button-close"
+                    onClick={onClose}
+                    aria-label="Close Editor"
+                  >
                     <CloseIcon />
                   </button>
                 </Tooltip>
