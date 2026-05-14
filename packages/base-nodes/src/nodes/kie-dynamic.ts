@@ -365,7 +365,8 @@ export class KieAINode extends BaseNode {
   static readonly title = "Kie AI";
   static readonly description =
     "Dynamic Kie.ai node for running any kie.ai model.\n    kie, dynamic, schema, api, inference, runtime, model\n\n    Use cases:\n    - Call any kie.ai model without a dedicated Python node\n    - Prototype workflows with new models as they appear\n    - Run models by pasting their API documentation\n    - Access the full kie.ai catalog dynamically";
-  static readonly basicFields = ["model_info"];
+  static readonly inlineFields = ["model_info"];
+  static readonly inputFields = [];
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;

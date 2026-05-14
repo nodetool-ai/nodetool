@@ -8,7 +8,8 @@ export class FloatInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "float"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -48,7 +49,8 @@ export class BooleanInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "bool"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -82,7 +84,8 @@ export class IntegerInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "int"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -122,7 +125,8 @@ export class SelectInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly basicFields = ["name", "value", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -181,7 +185,8 @@ export class StringListInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -220,7 +225,8 @@ export class FolderPathInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -262,7 +268,8 @@ export class HuggingFaceModelInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "hf.model"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -308,7 +315,8 @@ export class ColorInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "color"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -350,7 +358,8 @@ export class ImageSizeInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image_size"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -390,7 +399,8 @@ export class LanguageModelInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "language_model"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -436,7 +446,8 @@ export class ImageModelInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image_model"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -482,7 +493,8 @@ export class VideoModelInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video_model"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -528,7 +540,8 @@ export class TTSModelInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "tts_model"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -575,7 +588,8 @@ export class ASRModelInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "asr_model"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -620,7 +634,8 @@ export class EmbeddingModelInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "embedding_model"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -665,7 +680,8 @@ export class DataframeInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -711,7 +727,8 @@ export class DocumentInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "document"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -756,7 +773,8 @@ export class ImageInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -801,7 +819,8 @@ export class ImageListInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[image]"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -840,7 +859,8 @@ export class VideoListInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[video]"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -879,7 +899,8 @@ export class AudioListInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[audio]"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -918,7 +939,8 @@ export class TextListInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -957,7 +979,8 @@ export class VideoInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -1004,7 +1027,8 @@ export class AudioInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -1049,7 +1073,8 @@ export class Model3DInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -1097,7 +1122,8 @@ export class AssetFolderInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "folder"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -1142,7 +1168,8 @@ export class MessageInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "message"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -1205,7 +1232,8 @@ export class MessageListInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[message]"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -1244,7 +1272,8 @@ export class StringInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -1306,7 +1335,8 @@ export class RealtimeAudioInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     chunk: "chunk"
   };
-  static readonly basicFields = ["name", "value", "value"];
+  static readonly inlineFields = ["name"];
+  static readonly inputFields = ["value"];
   static readonly isStreamingOutput = true;
 
   @prop({
@@ -1353,7 +1383,8 @@ export class DocumentFileInputNode extends BaseNode {
     document: "document",
     path: "str"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -1396,7 +1427,8 @@ export class FilePathInputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly basicFields = ["name", "value"];
+  static readonly inlineFields = ["name", "value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",

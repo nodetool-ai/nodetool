@@ -381,7 +381,8 @@ export class StructuredOutputGeneratorNode extends BaseNode {
   static readonly title = "Structured Output Generator";
   static readonly description =
     "Generate structured JSON objects from instructions using LLM providers.\n    data-generation, structured-data, json, synthesis\n\n    Specialized for creating structured information:\n    - Generating JSON that follows dynamic schemas\n    - Fabricating records from requirements and guidance\n    - Simulating sample data for downstream workflows\n    - Producing consistent structured outputs for testing";
-  static readonly basicFields = ["instructions", "context", "model"];
+  static readonly inlineFields = ["instructions", "context"];
+  static readonly inputFields = [];
   static readonly supportsDynamicOutputs = true;
 
   @prop({
@@ -547,7 +548,8 @@ export class DataGeneratorNode extends BaseNode {
     dataframe: "dataframe",
     index: "int"
   };
-  static readonly basicFields = ["prompt", "model", "columns"];
+  static readonly inlineFields = ["prompt", "columns"];
+  static readonly inputFields = [];
 
   static readonly isStreamingOutput = true;
   @prop({
@@ -648,7 +650,8 @@ export class ListGeneratorNode extends BaseNode {
     item: "str",
     index: "int"
   };
-  static readonly basicFields = ["prompt", "model"];
+  static readonly inlineFields = ["prompt"];
+  static readonly inputFields = [];
 
   static readonly isStreamingOutput = true;
   @prop({
@@ -750,7 +753,8 @@ export class ChartGeneratorNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "chart_config"
   };
-  static readonly basicFields = ["prompt", "data", "model"];
+  static readonly inlineFields = ["prompt"];
+  static readonly inputFields = ["data"];
 
   @prop({
     type: "language_model",
@@ -981,7 +985,8 @@ export class SVGGeneratorNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[svg_element]"
   };
-  static readonly basicFields = ["prompt", "image", "audio", "model"];
+  static readonly inlineFields = ["prompt"];
+  static readonly inputFields = ["image", "audio"];
 
   @prop({
     type: "language_model",

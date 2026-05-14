@@ -825,6 +825,8 @@ export class TapNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
