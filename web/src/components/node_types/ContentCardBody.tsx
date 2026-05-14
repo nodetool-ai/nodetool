@@ -8,7 +8,9 @@
  *
  *   1. Header           — already rendered by `NodeHeader` in `BaseNode`
  *   2. Preview area     — variant dispatch by primary-output type
- *   3. Footer strip     — optional `DynamicInputButton` + `RunModelButton`
+ *   3. Footer strip     — optional `DynamicInputButton` (RunModelButton
+ *                         removed — single-node run lives in the existing
+ *                         node toolbar)
  *
  * Basic fields are rendered inline below the preview via the existing
  * `NodeInputs` infrastructure (which already understands `basic_fields`),
@@ -29,8 +31,7 @@ import { shallow } from "zustand/shallow";
 import {
   CheckerDropzone,
   DynamicInputButton,
-  FlexRow,
-  RunModelButton
+  FlexRow
 } from "../ui_primitives";
 import { NodeInputs } from "../node/NodeInputs";
 import ImageView from "../node/ImageView";
@@ -41,8 +42,7 @@ import NodeProgress from "../node/NodeProgress";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
 import useResultsStore from "../../stores/ResultsStore";
-import { useWebsocketRunner } from "../../stores/WorkflowRunner";
-import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
+import { useNodes } from "../../contexts/NodeContext";
 
 import {
   getContentCardVariant,
@@ -247,25 +247,6 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     [result, primaryOutput?.name]
   );
 
-  // Single-node run wiring — mirrors GroupNode's pattern, but scoped to one
-  // node. Upstream-edge handling is intentionally minimal in PR 4: properties
-  // run from their currently stored values (literal or last-cached). Wiring
-  // upstream propagation lands with the rest of Track B/E.
-  const store = useNodeStoreRef();
-  const run = useWebsocketRunner((state) => state.run);
-  const runnerState = useWebsocketRunner((state) => state.state);
-
-  const handleRun = useCallback(() => {
-    const s = store.getState();
-    const node = s.nodes.find((n) => n.id === id);
-    if (!node) {
-      return;
-    }
-    void run({}, s.workflow, [node], []);
-  }, [id, run, store]);
-
-  const isRunning =
-    status === "running" || runnerState === "running";
   const isDynamic = !!nodeMetadata.is_dynamic;
 
   // Adding a dynamic property is the responsibility of dynamic-input wiring
@@ -334,14 +315,11 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
         </div>
       )}
 
-      <FlexRow className="footer-strip" align="center" justify="space-between">
-        {isDynamic ? (
+      {isDynamic && (
+        <FlexRow className="footer-strip" align="center" justify="flex-start">
           <DynamicInputButton itemLabel="input" onAdd={handleAddDynamicInput} />
-        ) : (
-          <span />
-        )}
-        <RunModelButton isRunning={isRunning} onClick={handleRun} />
-      </FlexRow>
+        </FlexRow>
+      )}
 
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </div>
