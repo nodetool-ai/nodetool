@@ -29,7 +29,6 @@ import { shallow } from "zustand/shallow";
 import {
   CheckerDropzone,
   DynamicInputButton,
-  FlexColumn,
   FlexRow,
   RunModelButton
 } from "../ui_primitives";
@@ -58,14 +57,16 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.75),
-      padding: theme.spacing(0.75),
+      gap: theme.spacing(0.5),
+      padding: theme.spacing(0.5),
       minHeight: 0
     },
+    // Preview dominates the card — fixed-min height so a freshly dropped
+    // card still feels content-forward even before its first run.
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
-      minHeight: 120,
+      minHeight: 160,
       borderRadius: "var(--rounded-sm)",
       overflow: "hidden",
       backgroundColor: theme.vars.palette.grey[900],
@@ -79,7 +80,17 @@ const styles = (theme: Theme) =>
         objectFit: "contain"
       }
     },
+    // Basic-fields column renders handle + label only (no inline editor —
+    // editors live in the Inspector). Tight margins so it doesn't compete
+    // with the preview for visual weight.
     ".basic-fields": {
+      flex: "0 0 auto",
+      "& > div": {
+        marginTop: 0,
+        marginBottom: 0
+      }
+    },
+    ".outputs-row": {
       flex: "0 0 auto"
     },
     ".footer-strip": {
@@ -259,8 +270,13 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
         <PreviewArea variant={variant} value={previewValue} />
       </div>
 
-      {basicFields.length > 0 && (
-        <FlexColumn className="basic-fields" gap={0.5}>
+      {/* Property handles render on the card's left edge as labeled handles
+          only — no inline editors (plan §6.1, target design). Editors live
+          in the Inspector (Track D / PR 8). `showFields={false}` keeps the
+          handle + compact label and drops the editor; the row stays short
+          so the preview keeps dominating the card. */}
+      {nodeMetadata.properties && nodeMetadata.properties.length > 0 && (
+        <div className="basic-fields">
           <NodeInputs
             id={id}
             nodeMetadata={nodeMetadata}
@@ -273,16 +289,19 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
             basicFields={basicFields}
             onToggleAdvancedFields={() => {}}
             editableDynamicInputs={false}
+            showFields={false}
           />
-        </FlexColumn>
+        </div>
       )}
 
       {!isOutputNode && (
-        <NodeOutputs
-          id={id}
-          outputs={nodeMetadata.outputs}
-          isStreamingOutput={nodeMetadata.is_streaming_output}
-        />
+        <div className="outputs-row">
+          <NodeOutputs
+            id={id}
+            outputs={nodeMetadata.outputs}
+            isStreamingOutput={nodeMetadata.is_streaming_output}
+          />
+        </div>
       )}
 
       <FlexRow className="footer-strip" align="center" justify="space-between">
