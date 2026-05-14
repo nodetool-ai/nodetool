@@ -83,9 +83,11 @@ export function CustomEdge({
   const targetIsContentCard = Boolean(data?.targetIsContentCard);
   // Edges into content-card targets hide their endpoint chips by default
   // (the card's own preview communicates the destination). When the user
-  // hovers the target node, surface the chips again on demand.
+  // mouse-hovers the target node, surface the chips again on demand.
+  // `mouseHoveredNodeId` is set by BaseNode's mouseenter/leave handlers;
+  // distinct from `hoveredNodes` which only tracks drag-intersection.
   const targetNodeHovered = useNodes((state) =>
-    targetIsContentCard ? state.hoveredNodes.includes(target) : false
+    targetIsContentCard ? state.mouseHoveredNodeId === target : false
   );
   const showLabel = counter && counter > 1;
 

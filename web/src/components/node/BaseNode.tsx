@@ -374,6 +374,19 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     (state: NodeStoreState) => state.updateNodeData
   );
   const updateNode = useNodes((state: NodeStoreState) => state.updateNode);
+  const setMouseHoveredNodeId = useNodes(
+    (state: NodeStoreState) => state.setMouseHoveredNodeId
+  );
+  const handleMouseEnter = useCallback(() => {
+    setMouseHoveredNodeId(id);
+  }, [id, setMouseHoveredNodeId]);
+  const handleMouseLeave = useCallback(() => {
+    setMouseHoveredNodeId(null);
+  }, [setMouseHoveredNodeId]);
+  useEffect(() => {
+    // Clear hover on unmount in case the node leaves while pointer is over it.
+    return () => setMouseHoveredNodeId(null);
+  }, [setMouseHoveredNodeId]);
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
@@ -720,6 +733,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
       className={styleProps.className}
       sx={containerSx}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Result panel — floats above the node */}
       {isOverlayVisible && (

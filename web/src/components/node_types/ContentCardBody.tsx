@@ -108,20 +108,16 @@ const styles = (theme: Theme) =>
         minHeight: 0,
         pointerEvents: "auto"
       },
-      // Type chips fade in only when the body is hovered (Track A's
-      // labels-on-hover pattern, adapted for content cards).
       ".typed-port-chip": {
-        opacity: 0,
-        transition: "opacity 0.12s ease",
-        pointerEvents: "none"
-      },
-      ".property-label": {
         display: "none"
+      },
+      // Hide property labels unconditionally — Track A1's global CSS
+      // (.base-node:hover .property-label { opacity: 1 }) reveals them on
+      // node hover, so we need !important to keep them gone for content
+      // cards even when the body is hovered or a port is connected.
+      ".property-label, .property-spacer": {
+        display: "none !important"
       }
-    },
-    "&.content-card-body:hover .basic-fields .typed-port-chip": {
-      opacity: 1,
-      pointerEvents: "auto"
     },
     ".outputs-row": {
       flex: "0 0 auto"

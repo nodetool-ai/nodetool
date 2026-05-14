@@ -132,6 +132,10 @@ export interface NodeStoreState {
   setViewport: (viewport: Viewport) => void;
   hoveredNodes: string[];
   setHoveredNodes: (ids: string[]) => void;
+  // Mouse-hovered node (single id, set by BaseNode's mouseenter/leave).
+  // Distinct from `hoveredNodes` which is drag-intersection state only.
+  mouseHoveredNodeId: string | null;
+  setMouseHoveredNodeId: (id: string | null) => void;
   edges: Edge[];
   edgeUpdateSuccessful: boolean;
   missingModelFiles: RepoPath[];
@@ -369,12 +373,15 @@ export const createNodeStore = (
           edges: sanitizedEdges,
           edgeUpdateSuccessful: false,
           hoveredNodes: [],
+          mouseHoveredNodeId: null,
           shouldFitToScreen: state?.shouldFitToScreen ?? true,
           fitViewTargetNodeIds: state?.fitViewTargetNodeIds ?? null,
           connectionAttempted: false,
           setConnectionAttempted: (value: boolean): void =>
             set({ connectionAttempted: value }),
           setHoveredNodes: (ids: string[]): void => set({ hoveredNodes: ids }),
+          setMouseHoveredNodeId: (id: string | null): void =>
+            set({ mouseHoveredNodeId: id }),
           generateNodeId: (): string => {
             return generateUUID();
           },
