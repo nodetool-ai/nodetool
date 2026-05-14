@@ -49,6 +49,8 @@ export interface NodeMetadata {
 
   recommended_models?: unknown[];
   basic_fields?: string[];
+  inline_fields?: string[];
+  input_fields?: string[];
   required_settings?: string[];
   /**
    * Runtime packages this node depends on (e.g. "ffmpeg", "python", "ollama").

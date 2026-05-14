@@ -289,6 +289,8 @@ export function getNodeMetadata(
     basic_fields:
       nodeClass.basicFields ??
       deriveBasicFields(properties),
+    inline_fields: nodeClass.inlineFields,
+    input_fields: nodeClass.inputFields,
     required_settings: nodeClass.requiredSettings ?? [],
     required_runtimes: nodeClass.requiredRuntimes ?? [],
     is_streaming_input: nodeClass.isStreamingInput || false,

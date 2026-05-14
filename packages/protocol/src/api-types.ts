@@ -548,6 +548,8 @@ export interface NodeMetadata {
 
   recommended_models: UnifiedModel[];
   basic_fields: string[];
+  inline_fields?: string[];
+  input_fields?: string[];
   required_settings: string[];
   is_dynamic: boolean;
   is_streaming_output: boolean;
