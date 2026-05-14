@@ -18,16 +18,6 @@ function isImageValue(item: AssetRef): item is AssetRef & { data?: Uint8Array; u
     ("uri" in item || "data" in item);
 }
 
-/** Count of images that {@link AssetGrid} will actually render (same filter as the grid). */
-export function countPreviewGridImages(values: AssetRef[]): number {
-  return values.filter(isImageValue).filter((item) => {
-    if (item.uri) {
-      return true;
-    }
-    return item.data !== undefined && item.data !== null;
-  }).length;
-}
-
 function extractStorageKey(uri: string | undefined): string | null {
   if (!uri) return null;
   if (uri.startsWith("asset://")) return uri.slice("asset://".length);

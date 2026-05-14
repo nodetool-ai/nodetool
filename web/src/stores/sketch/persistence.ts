@@ -10,7 +10,6 @@ import {
 
 export const DEFAULT_SKETCH_DOCUMENT_WIDTH = 1024;
 export const DEFAULT_SKETCH_DOCUMENT_HEIGHT = 1024;
-export const DEFAULT_SKETCH_BACKGROUND = "#ffffff";
 export const DEFAULT_SKETCH_ACTIVE_TOOL: SketchTool = "brush";
 export const DEFAULT_SKETCH_ZOOM = 1;
 export const DEFAULT_SKETCH_PAN: Point = { x: 0, y: 0 };
@@ -137,7 +136,7 @@ export function computeImageDocumentHash(
   return hashString(JSON.stringify({ sketch, layerBindings }));
 }
 
-export function serializeImageDocument(
+function serializeImageDocument(
   sketch: PersistedSketchEditorState,
   layerBindings: LayerWorkflowBinding[]
 ): string {
