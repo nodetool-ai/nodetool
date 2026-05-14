@@ -53,6 +53,7 @@ import {
 const styles = (theme: Theme) =>
   css({
     "&.content-card-body": {
+      position: "relative",
       width: "100%",
       height: "100%",
       display: "flex",
@@ -80,22 +81,33 @@ const styles = (theme: Theme) =>
         objectFit: "contain"
       }
     },
-    // Basic-fields column renders handle + label only (no inline editor —
-    // editors live in the Inspector). Tight margins so it doesn't compete
-    // with the preview for visual weight. Type chips are hidden inside
-    // content-card bodies — the label already communicates the property,
-    // and the chip clutters the compact handle column.
+    // Input handles overlay the card's left edge as an absolutely-positioned
+    // column, evenly distributed top-to-bottom regardless of where the
+    // preview / footer sit in the flex stack. Type chips + labels are
+    // hidden so the column is just a clean line of dots; hover labels
+    // (Track A) surface property names on demand.
     ".basic-fields": {
-      flex: "0 0 auto",
-      "& > div": {
+      position: "absolute",
+      top: theme.spacing(1),
+      bottom: theme.spacing(1),
+      left: 0,
+      width: 0, // zero-width so the column doesn't steal horizontal space
+      pointerEvents: "none", // handle dots themselves re-enable below
+      zIndex: 3,
+      "& > div, & .node-inputs": {
         marginTop: 0,
-        marginBottom: 0
+        marginBottom: 0,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-around",
+        height: "100%",
+        gap: theme.spacing(0.25)
       },
-      // Hide both the type chip and the property label inside content
-      // cards. We keep the handle dots (so connections still work) but
-      // drop everything else from the handle column — labels-on-hover
-      // (Track A) will surface them on demand without permanent visual
-      // weight in the card.
+      ".node-property": {
+        position: "relative",
+        minHeight: 0,
+        pointerEvents: "auto"
+      },
       ".typed-port-chip": {
         display: "none"
       },
