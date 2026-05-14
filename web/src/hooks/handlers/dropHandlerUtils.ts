@@ -30,7 +30,7 @@ export type FileHandlerResult = {
   error?: string;
 };
 
-export const extractWorkflowFromPng = async (
+const extractWorkflowFromPng = async (
   file: File
 ): Promise<ComfyUIWorkflow | null> => {
   return new Promise((resolve, reject) => {
