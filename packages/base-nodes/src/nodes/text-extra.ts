@@ -51,6 +51,8 @@ export class SplitTextNode extends BaseNode {
   static readonly title = "Split Text";
   static readonly description =
     "Separates text into a list of strings based on a specified delimiter.\n    text, split, tokenize";
+  static readonly inlineFields = ["text", "delimiter"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };
@@ -73,6 +75,8 @@ export class ExtractTextNode extends BaseNode {
   static readonly title = "Extract Text";
   static readonly description =
     "Extracts a substring from input text.\n    text, extract, substring";
+  static readonly inlineFields = ["text", "start", "end"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -99,6 +103,8 @@ export class ChunkTextNode extends BaseNode {
   static readonly title = "Split Text into Chunks";
   static readonly description =
     "Splits text into chunks of specified word length.\n    text, chunk, split";
+  static readonly inlineFields = ["text", "length", "overlap", "separator"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };
@@ -140,6 +146,8 @@ export class ExtractRegexNode extends BaseNode {
   static readonly title = "Extract Regex Groups";
   static readonly description =
     "Extracts substrings matching regex groups from text.\n    text, regex, extract\n\n    Use cases:\n    - Extracting structured data (e.g., dates, emails) from unstructured text\n    - Parsing specific patterns in log files or documents\n    - Isolating relevant information from complex text formats";
+  static readonly inlineFields = ["text", "regex", "dotall", "ignorecase", "multiline"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };

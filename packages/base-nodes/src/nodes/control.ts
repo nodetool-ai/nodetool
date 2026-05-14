@@ -196,6 +196,8 @@ export class RerouteNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   static readonly isStreamingOutput = true;
   static readonly syncMode = "on_any" as const;
@@ -222,6 +224,8 @@ export class SwitchNode extends BaseNode {
     default: "any",
     index: "int"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   @prop({
     type: "any",
@@ -271,6 +275,8 @@ export class TryCatchNode extends BaseNode {
     error: "str",
     has_error: "bool"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   @prop({
     type: "any",
@@ -311,6 +317,8 @@ export class DropNode extends BaseNode {
     output: "any",
     index: "int"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
@@ -374,6 +382,8 @@ export class FilterEqualNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
@@ -445,6 +455,8 @@ export class FilterCodeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
@@ -492,6 +504,8 @@ export class ChunkNode extends BaseNode {
     output: "list[any]",
     index: "int"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
@@ -550,6 +564,8 @@ export class LastNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   static readonly isStreamingInput = true;
 
@@ -589,6 +605,8 @@ export class CountStreamNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "int"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   static readonly isStreamingInput = true;
 
