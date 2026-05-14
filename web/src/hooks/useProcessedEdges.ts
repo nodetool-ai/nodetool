@@ -4,6 +4,7 @@ import { DataType } from "../config/data_types";
 import { NodeMetadata } from "../stores/ApiTypes";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 import { NodeData } from "../stores/NodeData";
+import { isContentCardNode } from "../components/node_types/contentCardRegistry";
 
 /**
  * Options for processing edges in the workflow graph.
@@ -311,7 +312,10 @@ function useStructurallyProcessedEdges({
           sourceTypeColor: sourceColor,
           sourceHandleName: normalizedSourceHandle ?? undefined,
           targetHandleName: normalizedTargetHandle ?? undefined,
-          targetInputCount
+          targetInputCount,
+          // Suppress endpoint chips on content-card target nodes — the
+          // card itself is content-forward and these labels add noise.
+          targetIsContentCard: isContentCardNode(targetNode?.type)
         }
       };
     });

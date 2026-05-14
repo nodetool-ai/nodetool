@@ -77,6 +77,7 @@ export function CustomEdge({
   const sourceHandleName = data?.sourceHandleName as string | undefined;
   const targetHandleName = data?.targetHandleName as string | undefined;
   const targetInputCount = data?.targetInputCount as number | undefined;
+  const targetIsContentCard = Boolean(data?.targetIsContentCard);
   const showLabel = counter && counter > 1;
 
   // EXPERIMENTAL: Check if edge has active data flow
@@ -152,8 +153,12 @@ export function CustomEdge({
     const sourceVisible = Boolean(sourceText);
     const dense = (targetInputCount ?? 0) > TARGET_CHIP_INPUT_THRESHOLD;
     const overlapping = dist < ENDPOINT_CHIP_MIN_DISTANCE_PX;
-    const targetVisibleAlways = Boolean(targetText) && !dense && !overlapping;
-    const targetVisibleOnHover = Boolean(targetText) && (dense || overlapping);
+    // Content-card targets suppress endpoint chips entirely — the card's
+    // own preview communicates the destination; the chips just clutter.
+    const targetVisibleAlways =
+      !targetIsContentCard && Boolean(targetText) && !dense && !overlapping;
+    const targetVisibleOnHover =
+      !targetIsContentCard && Boolean(targetText) && (dense || overlapping);
 
     // translate(-100%, -100%) anchors the chip's bottom-right corner at the
     // handle when the port is on the left side (and vice versa) so the chip
@@ -185,7 +190,8 @@ export function CustomEdge({
     targetY,
     sourcePosition,
     targetPosition,
-    targetInputCount
+    targetInputCount,
+    targetIsContentCard
   ]);
 
   const [hovered, setHovered] = useState(false);
