@@ -670,6 +670,8 @@ export class DistinctNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
@@ -719,6 +721,8 @@ export class TakeWhileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
@@ -770,6 +774,8 @@ export class DropWhileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;

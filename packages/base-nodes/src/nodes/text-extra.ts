@@ -189,6 +189,8 @@ export class FindAllRegexNode extends BaseNode {
   static readonly title = "Find All Regex Matches";
   static readonly description =
     "Finds all regex matches in text as separate substrings.\n    text, regex, find";
+  static readonly inlineFields = ["text", "regex", "dotall", "ignorecase", "multiline"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };
@@ -229,6 +231,8 @@ export class TextParseJSONNode extends BaseNode {
   static readonly title = "Parse JSON String";
   static readonly description =
     "Parses a JSON string into a Python object.\n    json, parse, convert";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "any"
   };
@@ -288,6 +292,8 @@ export class ExtractJSONNode extends BaseNode {
   static readonly title = "Extract JSON";
   static readonly description =
     "Extracts data from JSON using JSONPath expressions.\n    json, extract, jsonpath";
+  static readonly inlineFields = ["text", "json_path", "find_all"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "any"
   };
@@ -323,6 +329,8 @@ export class RegexMatchNode extends BaseNode {
   static readonly title = "Find Regex Matches";
   static readonly description =
     "Find all matches of a regex pattern in text.\n    regex, search, pattern, match\n\n    Use cases:\n    - Extract specific patterns from text\n    - Validate text against patterns\n    - Find all occurrences of a pattern";
+  static readonly inlineFields = ["text", "pattern", "group"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };
