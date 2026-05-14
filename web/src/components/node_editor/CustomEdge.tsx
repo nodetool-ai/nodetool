@@ -14,6 +14,7 @@ import {
 import { Tooltip } from "../ui_primitives";
 import { memo, useCallback, useMemo, useState } from "react";
 import { titleizeString } from "../../utils/titleizeString";
+import { useNodes } from "../../contexts/NodeContext";
 
 /**
  * A2: minimum pixel distance between source and target endpoint chips before
@@ -51,6 +52,8 @@ const endpointChipBaseStyle: React.CSSProperties = {
 
 export function CustomEdge({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -78,6 +81,12 @@ export function CustomEdge({
   const targetHandleName = data?.targetHandleName as string | undefined;
   const targetInputCount = data?.targetInputCount as number | undefined;
   const targetIsContentCard = Boolean(data?.targetIsContentCard);
+  // Edges into content-card targets hide their endpoint chips by default
+  // (the card's own preview communicates the destination). When the user
+  // hovers the target node, surface the chips again on demand.
+  const targetNodeHovered = useNodes((state) =>
+    targetIsContentCard ? state.hoveredNodes.includes(target) : false
+  );
   const showLabel = counter && counter > 1;
 
   // EXPERIMENTAL: Check if edge has active data flow
@@ -153,12 +162,13 @@ export function CustomEdge({
     const sourceVisible = Boolean(sourceText);
     const dense = (targetInputCount ?? 0) > TARGET_CHIP_INPUT_THRESHOLD;
     const overlapping = dist < ENDPOINT_CHIP_MIN_DISTANCE_PX;
-    // Content-card targets suppress endpoint chips entirely — the card's
-    // own preview communicates the destination; the chips just clutter.
+    // Content-card targets: hide chips unless the target node is hovered.
+    // Non-content-card targets keep the standard visibility logic.
+    const targetChipsAllowed = !targetIsContentCard || targetNodeHovered;
     const targetVisibleAlways =
-      !targetIsContentCard && Boolean(targetText) && !dense && !overlapping;
+      targetChipsAllowed && Boolean(targetText) && !dense && !overlapping;
     const targetVisibleOnHover =
-      !targetIsContentCard && Boolean(targetText) && (dense || overlapping);
+      targetChipsAllowed && Boolean(targetText) && (dense || overlapping);
 
     // translate(-100%, -100%) anchors the chip's bottom-right corner at the
     // handle when the port is on the left side (and vice versa) so the chip
@@ -191,7 +201,8 @@ export function CustomEdge({
     sourcePosition,
     targetPosition,
     targetInputCount,
-    targetIsContentCard
+    targetIsContentCard,
+    targetNodeHovered
   ]);
 
   const [hovered, setHovered] = useState(false);
@@ -303,6 +314,9 @@ const MemoizedCustomEdge = memo(CustomEdge, (prevProps, nextProps) => {
     prevProps.data?.sourceHandleName === nextProps.data?.sourceHandleName &&
     prevProps.data?.targetHandleName === nextProps.data?.targetHandleName &&
     prevProps.data?.targetInputCount === nextProps.data?.targetInputCount &&
+    prevProps.data?.targetIsContentCard ===
+      nextProps.data?.targetIsContentCard &&
+    prevProps.target === nextProps.target &&
     prevProps.data?.status === nextProps.data?.status
   );
 });
