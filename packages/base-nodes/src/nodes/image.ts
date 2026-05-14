@@ -1233,12 +1233,8 @@ export class TextToImageNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
-  static readonly basicFields = [
-    "model",
-    "prompt",
-    "aspect_ratio",
-    "resolution"
-  ];
+  static readonly inlineFields = ["prompt"];
+  static readonly inputFields = [];
   static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
@@ -1344,14 +1340,8 @@ export class ImageToImageNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
-  static readonly basicFields = [
-    "model",
-    "image",
-    "prompt",
-    "strength",
-    "aspect_ratio",
-    "resolution"
-  ];
+  static readonly inlineFields = ["prompt"];
+  static readonly inputFields = ["image"];
   static readonly autoSaveAsset = true;
   static readonly exposeAsTool = true;
 
@@ -1498,6 +1488,8 @@ export class RotateNode extends TransformImageNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -1550,6 +1542,8 @@ export class FlipNode extends TransformImageNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",

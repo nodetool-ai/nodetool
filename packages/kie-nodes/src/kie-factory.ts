@@ -111,6 +111,63 @@ function castValue(value: unknown, type: string): unknown {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Field Classification
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute inlineFields and inputFields based on property metadata.
+ *
+ * inputFields: properties that are typically wired from upstream (assets, data types)
+ * inlineFields: properties that are short text frequently typed by the user
+ */
+function computeFieldClassification(
+  fields: KieFieldDef[]
+): { inlineFields: string[]; inputFields: string[] } {
+  const inlineFields: string[] = [];
+  const inputFields: string[] = [];
+
+  for (const field of fields) {
+    // Asset types -> inputFields
+    if (
+      [
+        "image",
+        "video",
+        "audio",
+        "image_mask",
+        "model_3d",
+        "document",
+        "dataframe",
+        "tensor",
+        "list[image]",
+        "list[video]",
+        "list[audio]"
+      ].includes(field.type)
+    ) {
+      inputFields.push(field.name);
+    }
+    // Short text properties with key names -> inlineFields
+    else if (field.type === "str") {
+      const textNames = new Set([
+        "prompt",
+        "system_prompt",
+        "query",
+        "text",
+        "template",
+        "code",
+        "expression",
+        "url"
+      ]);
+      if (textNames.has(field.name)) {
+        inlineFields.push(field.name);
+      }
+    }
+    // Everything else defaults to inspector (not listed)
+  }
+
+  return { inlineFields, inputFields };
+}
+
 function defaultForType(type: string): unknown {
   switch (type) {
     case "bool":
@@ -334,6 +391,17 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
   }
   Object.defineProperty(KieNodeClass, "metadataOutputTypes", {
     value: { output: spec.outputType },
+    configurable: true
+  });
+
+  // Compute and set field classification
+  const { inlineFields, inputFields } = computeFieldClassification(spec.fields);
+  Object.defineProperty(KieNodeClass, "inlineFields", {
+    value: inlineFields,
+    configurable: true
+  });
+  Object.defineProperty(KieNodeClass, "inputFields", {
+    value: inputFields,
     configurable: true
   });
 

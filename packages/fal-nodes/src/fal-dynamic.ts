@@ -478,7 +478,8 @@ export class FalRawNode extends BaseNode {
     "Call any fal.ai endpoint by ID with a JSON arguments string. " +
     "Returns the raw result object. " +
     "fal, dynamic, raw, endpoint, custom, any model";
-  static readonly basicFields = ["endpoint_id", "arguments"];
+  static readonly inlineFields = ["endpoint_id", "arguments"];
+  static readonly inputFields = [];
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly isDynamic = false;
   static readonly outputTypes = { result: "dict" };
@@ -546,7 +547,8 @@ export class FalDynamicNode extends BaseNode {
     "Dynamic FAL node — fetches the OpenAPI schema for any fal.ai endpoint and " +
     "calls it with inputs resolved from the schema. " +
     "fal, schema, dynamic, openapi, inference, runtime, model, any";
-  static readonly basicFields = ["model_info"];
+  static readonly inlineFields = ["model_info"];
+  static readonly inputFields = [];
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;

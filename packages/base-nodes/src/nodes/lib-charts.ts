@@ -6,6 +6,8 @@ export class ChartRendererLibNode extends BaseNode {
   static readonly title = "Chart Renderer";
   static readonly description =
     "Node responsible for rendering chart configurations into image format using seaborn.\n    chart, seaborn, plot, visualization, data";
+  static readonly inlineFields = ["chart_config"];
+  static readonly inputFields = ["data"];
   static readonly metadataOutputTypes = {
     output: "image"
   };

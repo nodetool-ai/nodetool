@@ -222,6 +222,8 @@ export class ConstantVideoNode extends BaseNode {
     output: "video"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({
     type: "video",
@@ -252,6 +254,8 @@ export class ConstantDocumentNode extends BaseNode {
     output: "document"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({
     type: "document",
@@ -280,6 +284,8 @@ export class ConstantJSONNode extends BaseNode {
     output: "json"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({
     type: "json",
@@ -308,6 +314,8 @@ export class ConstantModel3DNode extends BaseNode {
     output: "model_3d"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({
     type: "model_3d",
@@ -339,6 +347,8 @@ export class ConstantDataFrameNode extends BaseNode {
     output: "dataframe"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({
     type: "dataframe",
@@ -368,6 +378,8 @@ export class ConstantAudioListNode extends BaseNode {
     output: "list[audio]"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({
     type: "list[audio]",
@@ -392,6 +404,8 @@ export class ConstantImageListNode extends BaseNode {
     output: "list[image]"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({
     type: "list[image]",
@@ -416,6 +430,8 @@ export class ConstantVideoListNode extends BaseNode {
     output: "list[video]"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({
     type: "list[video]",
@@ -439,7 +455,8 @@ export class ConstantSelectNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly basicFields = ["value"];
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -484,6 +501,8 @@ export class ConstantImageSizeNode extends BaseNode {
     height: "int"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({ type: "image_size", default: null, title: "Value", required: true })
   declare value: any;
@@ -508,6 +527,8 @@ export class ConstantDateNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "date"
   };
+  static readonly inlineFields = ["year", "month", "day"];
+  static readonly inputFields = [];
 
   @prop({
     type: "int",
@@ -556,6 +577,8 @@ export class ConstantDateTimeNode extends BaseNode {
     output: "datetime"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["year", "month", "day", "hour", "minute", "second", "millisecond", "tzinfo", "utc_offset"];
+  static readonly inputFields = [];
 
   @prop({
     type: "int",
@@ -673,6 +696,8 @@ export class ConstantASRModelNode extends BaseNode {
     output: "asr_model"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({ type: "asr_model", default: null, title: "Value", required: true })
   declare value: any;
@@ -691,6 +716,8 @@ export class ConstantEmbeddingModelNode extends BaseNode {
     output: "embedding_model"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({
     type: "embedding_model",
@@ -714,6 +741,8 @@ export class ConstantImageModelNode extends BaseNode {
     output: "image_model"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({ type: "image_model", default: null, title: "Value", required: true })
   declare value: any;
@@ -732,6 +761,8 @@ export class ConstantLanguageModelNode extends BaseNode {
     output: "language_model"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({
     type: "language_model",
@@ -755,6 +786,8 @@ export class ConstantTTSModelNode extends BaseNode {
     output: "tts_model"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({ type: "tts_model", default: null, title: "Value", required: true })
   declare value: any;
@@ -773,6 +806,8 @@ export class ConstantVideoModelNode extends BaseNode {
     output: "video_model"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
 
   @prop({ type: "video_model", default: null, title: "Value", required: true })
   declare value: any;

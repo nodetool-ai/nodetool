@@ -49,6 +49,63 @@ function isAssetType(type: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Field Classification
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute inlineFields and inputFields based on field metadata.
+ *
+ * inputFields: properties that are typically wired from upstream (assets, data types)
+ * inlineFields: properties that are short text frequently typed by the user
+ */
+function computeFieldClassification(
+  fields: FieldDef[]
+): { inlineFields: string[]; inputFields: string[] } {
+  const inlineFields: string[] = [];
+  const inputFields: string[] = [];
+
+  for (const field of fields) {
+    // Asset types -> inputFields
+    if (
+      [
+        "image",
+        "video",
+        "audio",
+        "image_mask",
+        "model_3d",
+        "document",
+        "dataframe",
+        "tensor",
+        "list[image]",
+        "list[video]",
+        "list[audio]"
+      ].includes(field.type)
+    ) {
+      inputFields.push(field.name);
+    }
+    // Short text properties with key names -> inlineFields
+    else if (field.type === "str") {
+      const textNames = new Set([
+        "prompt",
+        "system_prompt",
+        "query",
+        "text",
+        "template",
+        "code",
+        "expression",
+        "url"
+      ]);
+      if (textNames.has(field.name)) {
+        inlineFields.push(field.name);
+      }
+    }
+    // Everything else defaults to inspector (not listed)
+  }
+
+  return { inlineFields, inputFields };
+}
+
+// ---------------------------------------------------------------------------
 // Generator
 // ---------------------------------------------------------------------------
 
@@ -121,6 +178,11 @@ export class KieNodeGenerator {
     );
     lines.push(`  static readonly requiredSettings = ["KIE_API_KEY"];`);
     lines.push(`  static readonly exposeAsTool = true;`);
+
+    // Compute and emit field classification
+    const { inlineFields, inputFields } = computeFieldClassification(node.fields);
+    lines.push(`  static readonly inlineFields = ${JSON.stringify(inlineFields)};`);
+    lines.push(`  static readonly inputFields = ${JSON.stringify(inputFields)};`);
     lines.push(``);
 
     // Custom fields

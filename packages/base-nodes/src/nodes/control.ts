@@ -10,6 +10,8 @@ export class IfNode extends BaseNode {
     if_true: "any",
     if_false: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   static readonly isStreamingOutput = true;
   static readonly syncMode = "zip_all" as const;
@@ -49,6 +51,8 @@ export class ForEachNode extends BaseNode {
     output: "any",
     index: "int"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   static readonly isStreamingOutput = true;
   @prop({

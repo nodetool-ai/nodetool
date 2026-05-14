@@ -49,6 +49,8 @@ export class RectLibNode extends BaseNode {
   static readonly title = "Rectangle";
   static readonly description =
     "Generate SVG rectangle element with customizable position, size, and styling.\n    svg, shape, vector, rectangle\n\n    Use cases:\n    - Create rectangular shapes in SVG documents\n    - Design borders, frames, and backgrounds\n    - Build user interface components\n    - Create geometric patterns and layouts";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "svg_element"
   };
@@ -118,6 +120,8 @@ export class CircleLibNode extends BaseNode {
   static readonly title = "Circle";
   static readonly description =
     "Generate SVG circle element with customizable position, radius, and styling.\n    svg, shape, vector, circle\n\n    Use cases:\n    - Create circular shapes and icons\n    - Design buttons, badges, and indicators\n    - Build data visualizations like pie charts\n    - Create decorative elements and patterns";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "svg_element"
   };
@@ -193,6 +197,8 @@ export class EllipseLibNode extends BaseNode {
   static readonly title = "Ellipse";
   static readonly description =
     "Generate SVG ellipse element with customizable position, radii, and styling.\n    svg, shape, vector, ellipse\n\n    Use cases:\n    - Create oval shapes and organic forms\n    - Design speech bubbles and callouts\n    - Build data visualization elements\n    - Create decorative patterns and borders";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "svg_element"
   };
@@ -272,6 +278,8 @@ export class LineLibNode extends BaseNode {
   static readonly title = "Line";
   static readonly description =
     "Generate SVG line element with customizable endpoints and styling.\n    svg, shape, vector, line\n\n    Use cases:\n    - Draw straight lines and connectors\n    - Create dividers and separators\n    - Build diagrams and flowcharts\n    - Design grid patterns and borders";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "svg_element"
   };
@@ -349,6 +357,8 @@ export class PolygonLibNode extends BaseNode {
   static readonly title = "Polygon";
   static readonly description =
     "Generate SVG polygon element with multiple vertices.\n    svg, shape, vector, polygon\n\n    Use cases:\n    - Create multi-sided shapes like triangles, pentagons, stars\n    - Build custom icons and symbols\n    - Design complex geometric patterns\n    - Create irregular shapes and forms";
+  static readonly inlineFields = ["points"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "svg_element"
   };
@@ -411,6 +421,8 @@ export class PathLibNode extends BaseNode {
   static readonly title = "Path";
   static readonly description =
     "Generate SVG path element using path data commands.\n    svg, shape, vector, path\n\n    Use cases:\n    - Create complex curved and custom shapes\n    - Build logos and custom icons\n    - Design intricate patterns and illustrations\n    - Import path data from design tools";
+  static readonly inlineFields = ["path_data"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "svg_element"
   };
@@ -473,6 +485,8 @@ export class TextLibNode extends BaseNode {
   static readonly title = "Text";
   static readonly description =
     "Add text elements to SVG.\n    svg, text, typography\n\n    Use cases:\n    - Add labels to vector graphics\n    - Create text-based logos\n    - Generate dynamic text content in SVGs";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "svg_element"
   };
@@ -550,6 +564,8 @@ export class GaussianBlurLibNode extends BaseNode {
   static readonly title = "Gaussian Blur";
   static readonly description =
     "Apply Gaussian blur filter effect to SVG elements.\n    svg, filter, blur, effects\n\n    Use cases:\n    - Create soft focus and depth effects\n    - Add subtle shadows and glows\n    - Simulate motion blur\n    - Soften edges in graphics";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "svg_element"
   };
@@ -583,6 +599,8 @@ export class DropShadowLibNode extends BaseNode {
   static readonly title = "Drop Shadow";
   static readonly description =
     "Apply drop shadow filter effect to SVG elements for depth.\n    svg, filter, shadow, effects\n\n    Use cases:\n    - Add depth and elevation to elements\n    - Create realistic shadow effects\n    - Enhance visual hierarchy\n    - Improve element separation and readability";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "svg_element"
   };
@@ -665,6 +683,8 @@ export class DocumentLibNode extends BaseNode {
   static readonly title = "SVG Document";
   static readonly description =
     "Combine SVG elements into a complete SVG document.\n    svg, document, combine\n\n    Use cases:\n    - Combine multiple SVG elements into a single document\n    - Set document-level properties like viewBox and dimensions\n    - Export complete SVG documents";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["elements"];
   static readonly metadataOutputTypes = {
     output: "svg"
   };
@@ -720,6 +740,8 @@ export class SVGToImageLibNode extends BaseNode {
   static readonly title = "SVG to Image";
   static readonly description =
     "Create an SVG document and convert it to a raster image in one step.\n    svg, document, raster, convert\n\n    Use cases:\n    - Create and rasterize SVG documents in a single operation\n    - Generate image files from SVG elements\n    - Convert vector graphics to bitmap format with custom dimensions";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["elements"];
   static readonly metadataOutputTypes = {
     output: "image"
   };
@@ -800,6 +822,8 @@ export class GradientLibNode extends BaseNode {
   static readonly title = "Gradient";
   static readonly description =
     "Create linear or radial gradients for SVG elements.\n    svg, gradient, color\n\n    Use cases:\n    - Add smooth color transitions\n    - Create complex color effects\n    - Define reusable gradient definitions";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "svg_element"
   };
@@ -910,6 +934,8 @@ export class TransformLibNode extends BaseNode {
   static readonly title = "Transform";
   static readonly description =
     "Apply transformations to SVG elements.\n    svg, transform, animation\n\n    Use cases:\n    - Rotate, scale, or translate elements\n    - Create complex transformations\n    - Prepare elements for animation";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["content"];
   static readonly metadataOutputTypes = {
     output: "svg_element"
   };
@@ -998,6 +1024,8 @@ export class ClipPathLibNode extends BaseNode {
   static readonly title = "Clip Path";
   static readonly description =
     "Create clipping paths for SVG elements.\n    svg, clip, mask\n\n    Use cases:\n    - Mask parts of elements\n    - Create complex shapes through clipping\n    - Apply visual effects using masks";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["clip_content", "content"];
   static readonly metadataOutputTypes = {
     output: "svg_element"
   };

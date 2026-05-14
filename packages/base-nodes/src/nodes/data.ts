@@ -1550,6 +1550,8 @@ export class SaveCSVDataframeFileNode extends BaseNode {
   static readonly title = "Save CSVDataframe File";
   static readonly description =
     "Write a pandas DataFrame to a CSV file.\n    files, csv, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second";
+  static readonly inlineFields = ["folder", "filename"];
+  static readonly inputFields = ["dataframe"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -1604,6 +1606,8 @@ export class FilterNoneNode extends BaseNode {
   static readonly title = "Filter None";
   static readonly description =
     "Filters out None values from a stream.\n    filter, none, null, stream\n\n    Use cases:\n    - Clean data by removing null values\n    - Get only valid entries\n    - Remove placeholder values";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
   static readonly metadataOutputTypes = {
     output: "any"
   };
@@ -1632,6 +1636,8 @@ export class DescribeNode extends BaseNode {
   static readonly title = "Describe";
   static readonly description =
     "Compute summary statistics for each numeric column: count, mean, std, min, 25%, 50%, 75%, max.\n    dataframe, statistics, describe, summary, stats, mean, std, min, max, quartile";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["dataframe"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };

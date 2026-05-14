@@ -59,6 +59,8 @@ export class GraphQLQueryLibNode extends BaseNode {
     status: "int"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["url", "query"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -141,6 +143,8 @@ export class GraphQLQueryWithAuthLibNode extends BaseNode {
     status: "int"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["url", "query"];
+  static readonly inputFields = [];
   static readonly requiredSettings = ["GRAPHQL_AUTH_TOKEN"];
 
   @prop({
@@ -262,6 +266,8 @@ export class GraphQLIntrospectionLibNode extends BaseNode {
     output: "dict"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["url"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -308,6 +314,8 @@ export class GraphQLBatchQueryLibNode extends BaseNode {
     status: "int"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["url"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
