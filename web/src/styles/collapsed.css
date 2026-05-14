@@ -16,6 +16,11 @@
   height: var(--node-collapsed-height) !important;
   /* Side handles protrude past the compact strip — do not clip on the RF shell */
   overflow: visible !important;
+  /* A5: collapsed strips shrink to header content. React Flow writes its own
+     inline width before our remeasure pass picks up the narrower size; the
+     min-width keeps room for the icon + title + collapse toggle at all times. */
+  min-width: var(--node-collapsed-min-width) !important;
+  width: max-content !important;
 }
 
 /* BaseNode (`base-node`): hide chrome but keep sockets (handles live under NodeContent). */

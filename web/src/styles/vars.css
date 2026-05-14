@@ -38,8 +38,9 @@
 
   /* Collapsed workflow node (header strip) — shared: vars.css, collapsed.css, collapsedNodeTokens.ts
      Use a real height: `auto` + flex `node-content-container` kept BaseNodes visually expanded. */
-  --node-collapsed-height: 45px;
-  --node-collapsed-min-height: 45px;
+  --node-collapsed-height: 40px;
+  --node-collapsed-min-height: 40px;
+  --node-collapsed-min-width: 140px;
   --node-collapsed-max-height: none;
   --node-collapsed-overflow: visible;
   /* Pixels along node — % is relative to ancestor height (often 0 in collapsed overlays) */

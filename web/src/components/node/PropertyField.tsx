@@ -15,6 +15,7 @@ import HandleTooltip from "../HandleTooltip";
 import { NodeData } from "../../stores/NodeData";
 import usePropertyValidationStore from "../../stores/PropertyValidationStore";
 import { Tooltip } from "../ui_primitives/Tooltip";
+import TypedPortChip from "./TypedPortChip";
 
 export type PropertyFieldProps = {
   id: string;
@@ -32,6 +33,8 @@ export type PropertyFieldProps = {
   isDynamicProperty?: boolean;
   hideActionIcons?: boolean;
   data: NodeData;
+  /** True when an edge is connected to this property's target handle. */
+  isConnected?: boolean;
   onValueChange?: (value: any) => void;
 };
 
@@ -52,6 +55,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   isDynamicProperty,
   hideActionIcons,
   data,
+  isConnected = false,
   onValueChange
 }) => {
   const controlKeyPressed = useKeyPressedStore((state) =>
@@ -139,7 +143,21 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
 
   const fieldClass = `node-property ${Slugify(property.type.type)}${
     validationError ? " has-validation-error" : ""
-  }`;
+  }${isConnected ? " is-connected" : ""}`;
+
+  // Position the typed-port chip just inside the handle so it visually
+  // labels the port type without intercepting pointer events.
+  const typedChipStyle = useMemo<React.CSSProperties>(
+    () => ({
+      position: "absolute",
+      left: 6,
+      top: "50%",
+      transform: "translateY(-50%)",
+      zIndex: 2,
+      pointerEvents: "none"
+    }),
+    []
+  );
 
   const inner = (
     <div className={fieldClass}>
@@ -162,6 +180,11 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
               onContextMenu={handleContextMenu}
             />
           </HandleTooltip>
+          <TypedPortChip
+            type={property.type}
+            side="left"
+            style={typedChipStyle}
+          />
         </div>
       )}
 
