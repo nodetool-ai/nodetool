@@ -1123,6 +1123,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <IconButton
+              aria-label="Add Text-to-Image Layer"
               size="small"
               onClick={() => addDirectGenLayer("text-to-image")}
               data-testid="layers-panel-add-text-to-image"
@@ -1150,6 +1151,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <IconButton
+              aria-label="Add Image-to-Image Layer"
               size="small"
               onClick={() => addDirectGenLayer("image-to-image")}
               data-testid="layers-panel-add-image-to-image"

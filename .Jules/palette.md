@@ -56,3 +56,6 @@
 ## 2026-06-25 - ARIA Labels on Icon Buttons in SketchLayersPanel
 **Learning:** Found that numerous native Material-UI `<IconButton>` instances across the heavily-used `SketchLayersPanel` (e.g., duplicate, clear, merge, delete layer) lacked `aria-label`s, rendering them inaccessible to screen readers despite having visual `<Tooltip>` wrappers.
 **Action:** Always ensure that `IconButton` instances, especially within dense panels like `SketchLayersPanel`, have an explicit `aria-label` that matches their tooltip text to guarantee screen reader compatibility. Do not assume the tooltip alone provides an accessible name.
+## 2025-02-28 - Missing ARIA Labels on Text/Image Layer Generation Icons
+**Learning:** Found that some newer `IconButton` tools inside `SketchLayersPanel.tsx` (Add Text-to-Image Layer, Add Image-to-Image Layer) were missing explicit `aria-label` attributes despite having Material-UI `Tooltip` components. Because tooltips alone do not reliably announce inner action intents to screen readers on interactable buttons, explicit ARIA labels are necessary.
+**Action:** Always add an explicit `aria-label` property mirroring the tooltip `title` onto standard Material-UI `IconButton` elements, particularly those responsible for core functionalities like generating specialized layer types.
