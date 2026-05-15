@@ -27,6 +27,7 @@ import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import { autoLayout } from "../core/graph";
 import { isConnectable, isCollectType } from "../utils/TypeHandler";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
+import { addExposedInput, isBasicProperty } from "../utils/exposedInputs";
 import { WorkflowAttributes } from "./ApiTypes";
 import { wouldCreateCycle } from "../utils/graphCycle";
 import useMetadataStore from "./MetadataStore";
@@ -734,6 +735,29 @@ export const createNodeStore = (
             set({
               edges: addEdge(newEdge, normalizedEdges)
             });
+
+            // Auto-promote (plan §8.4): when an edge lands on an advanced
+            // property handle, persist it in `exposedInputs` so the handle
+            // stays visible after disconnection. Skipped for dynamic props
+            // and control edges (those already have their own surfaces).
+            if (!isDynamicProperty && !isControlEdge) {
+              const targetMetadata = useMetadataStore
+                .getState()
+                .getMetadata(targetNode.type || "");
+              if (
+                targetMetadata &&
+                !isBasicProperty(targetMetadata, connection.targetHandle)
+              ) {
+                const next = addExposedInput(
+                  targetNode.data.exposedInputs,
+                  connection.targetHandle
+                );
+                if (next !== targetNode.data.exposedInputs) {
+                  get().updateNodeData(targetNode.id, { exposedInputs: next });
+                }
+              }
+            }
+
             get().setWorkflowDirty(true);
           },
           findNode: (id: string): Node<NodeData> | undefined =>

@@ -11,6 +11,7 @@ import { isContentCardNode } from "../node_types/contentCardRegistry";
 import ContentCardBody from "../node_types/ContentCardBody";
 import HandleColumn from "./HandleColumn";
 import { isSnippetCodeNode } from "./codeNodeUi";
+import { resolveExposedInputNames } from "../../utils/exposedInputs";
 
 interface NodeContentProps {
   id: string;
@@ -96,6 +97,18 @@ const arePropsEqual = (
   }
   for (const key of prevDataKeys) {
     if (prevDataProps[key] !== nextDataProps[key]) {
+      return false;
+    }
+  }
+
+  // Compare exposedInputs (affects which props render as handles)
+  const prevExposed = prevProps.data.exposedInputs || [];
+  const nextExposed = nextProps.data.exposedInputs || [];
+  if (prevExposed.length !== nextExposed.length) {
+    return false;
+  }
+  for (let i = 0; i < prevExposed.length; i++) {
+    if (prevExposed[i] !== nextExposed[i]) {
       return false;
     }
   }
@@ -186,10 +199,11 @@ const NodeContent: React.FC<NodeContentProps> = ({
   // Code nodes in snippet mode hide their `code` property from the inline
   // list — the snippet editor itself replaces that editor surface.
   let inlineFieldNames = nodeMetadata.inline_fields ?? [];
-  const inputFieldNames = nodeMetadata.input_fields ?? [];
   if (isSnippetCodeNode(nodeType, data)) {
     inlineFieldNames = inlineFieldNames.filter((n) => n !== "code");
   }
+  // Input fields = metadata input_fields ∪ user-promoted exposedInputs.
+  const inputFieldNames = resolveExposedInputNames(nodeMetadata, data);
   const allProperties = nodeMetadata.properties ?? [];
   const inlineProperties = allProperties.filter((p) =>
     inlineFieldNames.includes(p.name)
