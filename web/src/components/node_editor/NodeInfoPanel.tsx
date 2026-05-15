@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useCallback, useEffect, useState } from "react";
+import { shallow } from "zustand/shallow";
 import {
   Box
 } from "@mui/material";
@@ -203,6 +204,7 @@ const NodeInfoPanel: React.FC = memo(() => {
   const { x: viewportX, y: viewportY, zoom } = useViewport();
   const inspectedNodeId = useInspectedNodeStore((state) => state.inspectedNodeId);
   const setInspectedNodeId = useInspectedNodeStore((state) => state.setInspectedNodeId);
+  const panelStyles = useMemo(() => styles(theme), [theme]);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   const inspectedNodeBounds = useNodes((state) => {
@@ -219,7 +221,7 @@ const NodeInfoPanel: React.FC = memo(() => {
       width: node.measured?.width ?? node.width ?? 200,
       height: node.measured?.height ?? node.height ?? 100
     };
-  });
+  }, shallow);
 
   const [windowSize, setWindowSize] = useState(() => ({
     width: typeof window === "undefined" ? 1920 : window.innerWidth,
@@ -345,7 +347,7 @@ const NodeInfoPanel: React.FC = memo(() => {
   }
 
   return (
-    <Box className="node-info-panel" css={styles(theme)} style={panelStyle}>
+    <Box className="node-info-panel" css={panelStyles} style={panelStyle}>
       <Box className="panel-content">
         <FlexRow align="center" justify="space-between" sx={{ mb: 1 }}>
           <Text className="node-name">{nodeInfo.label}</Text>
