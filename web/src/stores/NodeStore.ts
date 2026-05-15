@@ -441,12 +441,19 @@ export const createNodeStore = (
             return count;
           },
           setSelectedNodes: (nodes: Node<NodeData>[]): void => {
-            set({
-              nodes: get().nodes.map((node) => ({
-                ...node,
-                selected: nodes.includes(node)
-              }))
+            const nodesToSelectIds = new Set(nodes.map(n => n.id));
+            let changed = false;
+            const nextNodes = get().nodes.map((node) => {
+              const shouldBeSelected = nodesToSelectIds.has(node.id);
+              if (node.selected !== shouldBeSelected) {
+                changed = true;
+                return { ...node, selected: shouldBeSelected };
+              }
+              return node;
             });
+            if (changed) {
+              set({ nodes: nextNodes });
+            }
           },
           selectNodesByType: (nodeType: string): void => {
             const nodes = get().nodes;
@@ -467,19 +474,22 @@ export const createNodeStore = (
             if (matchingCount === 0) {
               return;
             }
-            set({
-              nodes: nodes.map((node) => {
-                const currentType = node.type;
-                const originalType = node.data?.originalType;
-                const isMatch =
-                  currentType === nodeType ||
-                  (!!originalType && originalType === nodeType);
-                return {
-                  ...node,
-                  selected: isMatch
-                };
-              })
+            let changed = false;
+            const nextNodes = nodes.map((node) => {
+              const currentType = node.type;
+              const originalType = node.data?.originalType;
+              const isMatch =
+                currentType === nodeType ||
+                (!!originalType && originalType === nodeType);
+              if (node.selected !== isMatch) {
+                changed = true;
+                return { ...node, selected: isMatch };
+              }
+              return node;
             });
+            if (changed) {
+              set({ nodes: nextNodes });
+            }
           },
           getSelectedNodeIds: (): string[] => {
             const nodes = get().nodes;
@@ -1361,12 +1371,17 @@ export const createNodeStore = (
             };
           },
           selectAllNodes: (): void => {
-            set({
-              nodes: get().nodes.map((node) => ({
-                ...node,
-                selected: true
-              }))
+            let changed = false;
+            const nextNodes = get().nodes.map((node) => {
+              if (!node.selected) {
+                changed = true;
+                return { ...node, selected: true };
+              }
+              return node;
             });
+            if (changed) {
+              set({ nodes: nextNodes });
+            }
           },
           toggleBypass: (nodeId: string): void => {
             set((state) => {
