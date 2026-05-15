@@ -34,7 +34,7 @@ import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
 import PlaceholderNode from "../components/node_types/PlaceholderNode";
 import {
-  CONTENT_CARD_DEFAULT_SIZE,
+  getContentCardDefaultSize,
   isContentCardNode
 } from "../components/node_types/contentCardRegistry";
 import {
@@ -1351,10 +1351,7 @@ export const createNodeStore = (
             } else if (isModel3DConstantNode) {
               defaultStyle = { width: 320, height: 320 };
             } else if (isContentCard) {
-              defaultStyle = {
-                width: CONTENT_CARD_DEFAULT_SIZE.width,
-                height: CONTENT_CARD_DEFAULT_SIZE.height
-              };
+              defaultStyle = getContentCardDefaultSize(metadata);
             } else {
               defaultStyle = { width: DEFAULT_NODE_WIDTH };
             }

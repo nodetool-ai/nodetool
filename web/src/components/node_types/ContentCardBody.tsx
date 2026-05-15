@@ -20,17 +20,23 @@
  * `OutputRenderer` for now and get bespoke previews in PR 5.
  */
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
+import MovieIcon from "@mui/icons-material/Movie";
+import AudiotrackIcon from "@mui/icons-material/Audiotrack";
+import TextFieldsIcon from "@mui/icons-material/TextFields";
+import ViewInArIcon from "@mui/icons-material/ViewInAr";
+import LayersIcon from "@mui/icons-material/Layers";
 import { shallow } from "zustand/shallow";
 
 import {
   CheckerDropzone,
   DynamicInputButton,
-  FlexRow
+  FlexRow,
+  VideoPlayer
 } from "../ui_primitives";
 import { NodeInputs } from "../node/NodeInputs";
 import HandleColumn from "../node/HandleColumn";
@@ -38,6 +44,8 @@ import ImageView from "../node/ImageView";
 import OutputRenderer from "../node/OutputRenderer";
 import { NodeOutputs } from "../node/NodeOutputs";
 import NodeProgress from "../node/NodeProgress";
+import { useSignedUrl, getMimeTypeFromUri } from "../node/output";
+import AudioPlayer from "../audio/AudioPlayer";
 
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
@@ -79,6 +87,68 @@ const styles = (theme: Theme) =>
         width: "100%",
         height: "100%",
         objectFit: "contain"
+      },
+      ".text-preview": {
+        width: "100%",
+        height: "100%",
+        resize: "none",
+        border: "none",
+        outline: "none",
+        background: theme.vars.palette.grey[900],
+        color: theme.vars.palette.text.primary,
+        fontFamily: theme.fontFamily2,
+        fontSize: theme.fontSizeSmall,
+        padding: theme.spacing(1),
+        overflow: "auto",
+        whiteSpace: "pre-wrap"
+      },
+      ".mask-empty": {
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: theme.spacing(0.5),
+        background: theme.vars.palette.common.black,
+        color: theme.vars.palette.common.white,
+        opacity: 0.85,
+        fontFamily: theme.fontFamily1,
+        fontSize: theme.fontSizeSmall,
+        ".mask-icon": { fontSize: 36, opacity: 0.85 }
+      },
+      ".mask-on-checker": {
+        width: "100%",
+        height: "100%",
+        backgroundColor: theme.vars.palette.grey[900],
+        backgroundImage: `
+          linear-gradient(45deg, ${theme.vars.palette.grey[800]} 25%, transparent 25%),
+          linear-gradient(-45deg, ${theme.vars.palette.grey[800]} 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, ${theme.vars.palette.grey[800]} 75%),
+          linear-gradient(-45deg, transparent 75%, ${theme.vars.palette.grey[800]} 75%)
+        `,
+        backgroundSize: "24px 24px",
+        backgroundPosition: "0 0, 0 12px, 12px -12px, -12px 0px"
+      },
+      ".model-3d-thumb": {
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: theme.spacing(0.5),
+        color: theme.vars.palette.grey[300],
+        fontFamily: theme.fontFamily1,
+        fontSize: theme.fontSizeSmall,
+        padding: theme.spacing(1),
+        ".model-3d-icon": { fontSize: 48, opacity: 0.7 },
+        ".model-3d-name": {
+          maxWidth: "100%",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap"
+        }
       }
     },
     // Inline fields render in normal flow with visible labels and editors
@@ -134,58 +204,195 @@ const extractPrimaryValue = (
   return result;
 };
 
+/**
+ * Resolve a stable URL for a media value carrying either a stored asset URI
+ * or in-memory bytes. Returns a signed URL when the value has a non-memory
+ * URI, or an object-URL when bytes are present, or "" while nothing is loaded.
+ */
+const useMediaSrc = (value: unknown): string => {
+  const v =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : null;
+  const rawUri =
+    v && typeof v.uri === "string" && !v.uri.startsWith("memory://")
+      ? (v.uri as string)
+      : undefined;
+  const signedUrl = useSignedUrl(rawUri);
+
+  const data = v?.data;
+  const [blobUrl, setBlobUrl] = useState<string>("");
+  useEffect(() => {
+    let bytes: Uint8Array | null = null;
+    if (data instanceof Uint8Array) {
+      bytes = data;
+    } else if (Array.isArray(data)) {
+      bytes = new Uint8Array(data as number[]);
+    }
+    if (bytes && bytes.byteLength > 0) {
+      // Force a non-shared ArrayBuffer backing per BlobPart typing.
+      const safe: Uint8Array<ArrayBuffer> = new Uint8Array(bytes);
+      const url = URL.createObjectURL(new Blob([safe]));
+      setBlobUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setBlobUrl("");
+    return undefined;
+  }, [data]);
+
+  return blobUrl || signedUrl || "";
+};
+
+const extractTextValue = (value: unknown): string => {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (value && typeof value === "object") {
+    const v = value as Record<string, unknown>;
+    if (typeof v.value === "string") {return v.value;}
+    if (typeof v.text === "string") {return v.text;}
+    if (typeof v.data === "string") {return v.data;}
+  }
+  return "";
+};
+
+const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
+  if (typeof value === "string") {
+    return <ImageView source={value} />;
+  }
+  if (value && typeof value === "object") {
+    const v = value as { uri?: string; data?: unknown };
+    if (typeof v.uri === "string" && v.uri) {
+      return <ImageView source={v.uri} />;
+    }
+    if (v.data) {
+      const source =
+        v.data instanceof Uint8Array
+          ? v.data
+          : Array.isArray(v.data)
+            ? new Uint8Array(v.data as number[])
+            : undefined;
+      if (source) {
+        return <ImageView source={source} />;
+      }
+    }
+  }
+  return <OutputRenderer value={value} showTextActions={false} />;
+};
+
+const VideoPreview: React.FC<{ value: unknown }> = ({ value }) => {
+  const src = useMediaSrc(value);
+  if (!src) {
+    return <OutputRenderer value={value} showTextActions={false} />;
+  }
+  return <VideoPlayer src={src} />;
+};
+
+const AudioPreview: React.FC<{ value: unknown }> = ({ value }) => {
+  const src = useMediaSrc(value);
+  const v =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : null;
+  const inlineFormat = (v?.metadata as { format?: string } | undefined)?.format;
+  const mimeType =
+    getMimeTypeFromUri(typeof v?.uri === "string" ? (v.uri as string) : "") ||
+    (inlineFormat === "wav" ? "audio/wav" : "audio/mp3");
+  if (!src) {
+    return <OutputRenderer value={value} showTextActions={false} />;
+  }
+  return (
+    <AudioPlayer
+      source={src}
+      mimeType={mimeType}
+      height={80}
+      waveformHeight={80}
+    />
+  );
+};
+
+const TextPreview: React.FC<{ value: unknown }> = ({ value }) => {
+  const text = extractTextValue(value);
+  return (
+    <textarea
+      className="text-preview nodrag"
+      readOnly
+      value={text}
+      spellCheck={false}
+    />
+  );
+};
+
+const Model3DPreview: React.FC<{ value: unknown }> = ({ value }) => {
+  // Per plan §6.2: static thumbnail only — no interactive viewer.
+  const v =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : null;
+  const name =
+    (typeof v?.name === "string" && (v.name as string)) ||
+    (typeof v?.uri === "string" && (v.uri as string).split("/").pop()) ||
+    "3D model";
+  return (
+    <div className="model-3d-thumb">
+      <ViewInArIcon className="model-3d-icon" />
+      <span className="model-3d-name" title={String(name)}>
+        {String(name)}
+      </span>
+    </div>
+  );
+};
+
 const PreviewArea: React.FC<{
   variant: ContentCardVariant;
   value: unknown;
 }> = ({ variant, value }) => {
-  // Empty state — present a checker preview with a contextual hint.
+  // Empty state — variant-specific empty surface.
   if (value === undefined || value === null) {
-    const message =
-      variant === "image" || variant === "image_mask"
-        ? "Run to generate"
-        : variant === "video"
-          ? "Run to generate video"
-          : variant === "text"
-            ? "Run to generate text"
-            : variant === "audio"
-              ? "Run to generate audio"
-              : variant === "model_3d"
-                ? "Run to generate 3D"
-                : "Run Model";
-    return (
-      <CheckerDropzone
-        message={message}
-        icon={variant === "image" ? <ImageIcon /> : undefined}
-      />
-    );
+    if (variant === "image_mask") {
+      return (
+        <div className="mask-empty">
+          <LayersIcon className="mask-icon" />
+          <span>No mask yet</span>
+        </div>
+      );
+    }
+    const empty: Record<
+      Exclude<ContentCardVariant, "image_mask">,
+      { message: string; icon: React.ReactNode }
+    > = {
+      image: { message: "Run to generate", icon: <ImageIcon /> },
+      video: { message: "Run to generate video", icon: <MovieIcon /> },
+      text: { message: "Run to generate text", icon: <TextFieldsIcon /> },
+      audio: { message: "Run to generate audio", icon: <AudiotrackIcon /> },
+      model_3d: { message: "Run to generate 3D", icon: <ViewInArIcon /> },
+      generic: { message: "Run Model", icon: undefined }
+    };
+    const { message, icon } = empty[variant];
+    return <CheckerDropzone message={message} icon={icon} />;
   }
 
-  // PR 4: image variant only. Other variants fall through to OutputRenderer.
-  if (variant === "image") {
-    const imageValue = value as { uri?: string; data?: unknown } | string;
-    if (typeof imageValue === "string") {
-      return <ImageView source={imageValue} />;
-    }
-    if (typeof imageValue === "object" && imageValue) {
-      if (typeof imageValue.uri === "string" && imageValue.uri) {
-        return <ImageView source={imageValue.uri} />;
-      }
-      if (imageValue.data) {
-        const d = imageValue.data;
-        const source =
-          d instanceof Uint8Array
-            ? d
-            : Array.isArray(d)
-              ? new Uint8Array(d as number[])
-              : undefined;
-        if (source) {
-          return <ImageView source={source} />;
-        }
-      }
-    }
+  switch (variant) {
+    case "image":
+      return <ImagePreview value={value} />;
+    case "image_mask":
+      // Render the alpha image against a checker so transparency reads clearly.
+      return (
+        <div className="mask-on-checker">
+          <ImagePreview value={value} />
+        </div>
+      );
+    case "video":
+      return <VideoPreview value={value} />;
+    case "audio":
+      return <AudioPreview value={value} />;
+    case "text":
+      return <TextPreview value={value} />;
+    case "model_3d":
+      return <Model3DPreview value={value} />;
+    default:
+      return <OutputRenderer value={value} showTextActions={false} />;
   }
-
-  return <OutputRenderer value={value} showTextActions={false} />;
 };
 
 const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({

@@ -37,6 +37,20 @@ export const isContentCardNode = (nodeType: string | undefined): boolean =>
   !!nodeType && CONTENT_CARD_REGISTRY.has(nodeType);
 
 /**
+ * Per-variant default sizes applied at node creation time (plan §6.3).
+ * Resolved from the node's primary output via `getContentCardDefaultSize`.
+ */
+export const CONTENT_CARD_SIZES = {
+  image: { width: 280, height: 280 },
+  image_mask: { width: 280, height: 280 },
+  video: { width: 320, height: 220 },
+  text: { width: 320, height: 200 },
+  audio: { width: 320, height: 120 },
+  model_3d: { width: 280, height: 280 },
+  generic: { width: 280, height: 280 }
+} as const;
+
+/**
  * Pick the "primary" output for a ContentCardBody preview.
  *
  * Resolution order (plan §13.2 OQ-3):
@@ -107,4 +121,16 @@ export const getContentCardVariant = (
     default:
       return "generic";
   }
+};
+
+/**
+ * Default `{width, height}` for a content-card node, picked by the node's
+ * primary-output variant. Used by `NodeStore` when a content-card node is
+ * created on the canvas (plan §6.3).
+ */
+export const getContentCardDefaultSize = (
+  metadata: NodeMetadata
+): { width: number; height: number } => {
+  const variant = getContentCardVariant(getPrimaryOutput(metadata));
+  return CONTENT_CARD_SIZES[variant];
 };
