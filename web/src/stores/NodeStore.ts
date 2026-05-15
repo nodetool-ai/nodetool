@@ -27,6 +27,7 @@ import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import { autoLayout } from "../core/graph";
 import { isConnectable, isCollectType } from "../utils/TypeHandler";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
+import { addExposedInput } from "../utils/exposedInputs";
 import { WorkflowAttributes } from "./ApiTypes";
 import { wouldCreateCycle } from "../utils/graphCycle";
 import useMetadataStore from "./MetadataStore";
@@ -734,6 +735,32 @@ export const createNodeStore = (
             set({
               edges: addEdge(newEdge, normalizedEdges)
             });
+
+            // Persist the target as an exposed input so its handle survives
+            // disconnection. Skipped for dynamic props and control edges
+            // (those have their own surfaces) and for properties already
+            // declared as a handle by metadata (`input_fields` / inline rows
+            // render their own handle).
+            if (!isDynamicProperty && !isControlEdge) {
+              const targetMetadata = useMetadataStore
+                .getState()
+                .getMetadata(targetNode.type || "");
+              const inlineFields = targetMetadata?.inline_fields ?? [];
+              const inputFields = targetMetadata?.input_fields ?? [];
+              const isMetadataHandle =
+                inlineFields.includes(connection.targetHandle) ||
+                inputFields.includes(connection.targetHandle);
+              if (targetMetadata && !isMetadataHandle) {
+                const next = addExposedInput(
+                  targetNode.data.exposedInputs,
+                  connection.targetHandle
+                );
+                if (next !== targetNode.data.exposedInputs) {
+                  get().updateNodeData(targetNode.id, { exposedInputs: next });
+                }
+              }
+            }
+
             get().setWorkflowDirty(true);
           },
           findNode: (id: string): Node<NodeData> | undefined =>

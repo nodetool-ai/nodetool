@@ -32,6 +32,7 @@ import InputNodeNameWarning from "./InputNodeNameWarning";
 import RequiredSettingsWarning from "./RequiredSettingsWarning";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
+import { NodeSelectionContext } from "./NodeSelectionContext";
 import { getBaseNodeSelectionStyles } from "./selectionStyles";
 import NodeToolButtons from "./NodeToolButtons";
 import NodeExecutionTime from "./NodeExecutionTime";
@@ -676,6 +677,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [hasError, isOverlayVisible, id, updateNode]);
 
   return (
+    <NodeSelectionContext.Provider value={selected}>
     <Container
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
       className={styleProps.className}
@@ -797,6 +799,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         </Tooltip>
       )}
     </Container>
+    </NodeSelectionContext.Provider>
   );
 };
 

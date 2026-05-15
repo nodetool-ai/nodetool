@@ -27,6 +27,11 @@ export type NodeData = {
   expandedWidthPx?: number;
   bypassed?: boolean; // When true, node is bypassed and passes inputs through to outputs
   showResultPreference?: boolean; // User preference: true = show results after run, false/undefined = show inputs
+  /**
+   * Advanced properties the user has promoted to render as input handles on
+   * the node body (plan §8.4). Missing → empty list (no migration needed).
+   */
+  exposedInputs?: string[];
   // Original node type from the workflow graph (useful when React Flow falls back to "default" type)
   originalType?: string;
   size?: {

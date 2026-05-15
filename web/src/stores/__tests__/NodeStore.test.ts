@@ -1,6 +1,6 @@
 jest.mock("../../components/node_types/PlaceholderNode", () => () => null);
 
-import { Position, Node, Edge } from "@xyflow/react";
+import { Position, Node, Edge, addEdge as xyflowAddEdge } from "@xyflow/react";
 import { createNodeStore } from "../NodeStore";
 import { NodeData } from "../NodeData";
 import useErrorStore from "../ErrorStore";
@@ -365,6 +365,84 @@ describe("Edge Validation", () => {
     store.getState().addEdge(invalidEdge);
 
     expect(store.getState().edges).toHaveLength(0);
+  });
+
+  // The xyflow mock returns undefined from `addEdge` by default; restore
+  // realistic behavior for the onConnect tests below so the edge actually
+  // lands in state.
+  const restoreAddEdge = () => {
+    (xyflowAddEdge as jest.Mock).mockImplementation(
+      (edge: Edge, edges: Edge[]) => [...edges, edge]
+    );
+  };
+
+  test("onConnect auto-promotes advanced target handles to exposedInputs", () => {
+    restoreAddEdge();
+    // input1 is a property but is NOT in input_fields/inline_fields → advanced.
+    const nodeA = makeNode("a", store.getState().workflow.id, "test");
+    const nodeB = makeNode("b", store.getState().workflow.id, "test");
+    store.getState().addNode(nodeA);
+    store.getState().addNode(nodeB);
+
+    store.getState().onConnect({
+      source: "a",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "input1"
+    });
+
+    expect(store.getState().edges).toHaveLength(1);
+    const target = store.getState().findNode("b");
+    expect(target?.data.exposedInputs).toEqual(["input1"]);
+  });
+
+  test("onConnect does not promote when target is already a metadata-defined input handle", () => {
+    restoreAddEdge();
+    // Declare input1 in input_fields so its handle is already metadata-driven.
+    useMetadataStore.setState(
+      {
+        ...useMetadataStore.getState(),
+        metadata: {
+          ...mockMetadata,
+          test: { ...mockMetadata.test, input_fields: ["input1"] } as NodeMetadata
+        }
+      },
+      true
+    );
+
+    const nodeA = makeNode("a", store.getState().workflow.id, "test");
+    const nodeB = makeNode("b", store.getState().workflow.id, "test");
+    store.getState().addNode(nodeA);
+    store.getState().addNode(nodeB);
+
+    store.getState().onConnect({
+      source: "a",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "input1"
+    });
+
+    const target = store.getState().findNode("b");
+    expect(target?.data.exposedInputs ?? []).toEqual([]);
+  });
+
+  test("onConnect does not duplicate exposedInputs entries", () => {
+    restoreAddEdge();
+    const nodeA = makeNode("a", store.getState().workflow.id, "test");
+    const nodeB = makeNode("b", store.getState().workflow.id, "test");
+    nodeB.data.exposedInputs = ["input1"];
+    store.getState().addNode(nodeA);
+    store.getState().addNode(nodeB);
+
+    store.getState().onConnect({
+      source: "a",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "input1"
+    });
+
+    const target = store.getState().findNode("b");
+    expect(target?.data.exposedInputs).toEqual(["input1"]);
   });
 });
 

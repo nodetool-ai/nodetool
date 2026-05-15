@@ -16,6 +16,11 @@ import { areNodesEqualIgnoringPosition } from "../utils/nodeEquality";
 import { EditorUiProvider } from "./editor_ui";
 import { Caption, CloseButton, CollapsibleSection, ScrollArea, Text, Tooltip } from "./ui_primitives";
 import { DYNAMIC_KIE_NODE_TYPE } from "./node/DynamicKieSchemaNode";
+import PropertyVisibilityToggle from "./properties/PropertyVisibilityToggle";
+import {
+  addExposedInput,
+  removeExposedInput
+} from "../utils/exposedInputs";
 
 const styles = (theme: Theme) =>
   css({
@@ -116,6 +121,22 @@ const styles = (theme: Theme) =>
       position: "absolute",
       right: "0.5em",
       top: "0.5em"
+    },
+    ".property-row": {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: theme.spacing(0.5),
+      width: "100%",
+      minWidth: 0
+    },
+    ".property-row .node-property": {
+      flex: "1 1 auto",
+      minWidth: 0,
+      width: "100%"
+    },
+    ".property-row .property-visibility-toggle": {
+      flex: "0 0 auto",
+      marginTop: "0.15em"
     }
   });
 
@@ -129,6 +150,8 @@ const Inspector: React.FC = () => {
   );
   const findNode = useNodes((state) => state.findNode);
   const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
+  const updateNodeData = useNodes((state) => state.updateNodeData);
+  const deleteEdges = useNodes((state) => state.deleteEdges);
   const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
 
   // Optimize: Only subscribe to edges that are connected to selected nodes to avoid re-renders
@@ -238,6 +261,77 @@ const Inspector: React.FC = () => {
   const metadata = selectedNode
     ? getMetadata(selectedNode.type as string)
     : null;
+
+  // Connected target-handle names for the focused node, used to (a) gate the
+  // demotion confirmation prompt and (b) flag the toggle as "connected".
+  const connectedTargetHandles = useMemo(() => {
+    if (!selectedNode) {
+      return new Set<string>();
+    }
+    return new Set(
+      edges
+        .filter(
+          (edge) =>
+            edge.target === selectedNode.id && typeof edge.targetHandle === "string"
+        )
+        .map((edge) => edge.targetHandle as string)
+    );
+  }, [edges, selectedNode]);
+
+  // Properties whose handle is already determined by metadata don't get
+  // the user-facing visibility toggle — there's nothing to opt into.
+  const metadataHandleNames = useMemo(() => {
+    if (!metadata) {
+      return new Set<string>();
+    }
+    return new Set([
+      ...(metadata.inline_fields ?? []),
+      ...(metadata.input_fields ?? [])
+    ]);
+  }, [metadata]);
+
+  const handleToggleExposed = useCallback(
+    (propertyName: string) => {
+      if (!selectedNode) {
+        return;
+      }
+      const current = selectedNode.data.exposedInputs ?? [];
+      const isExposed = current.includes(propertyName);
+      if (isExposed) {
+        const isConnected = connectedTargetHandles.has(propertyName);
+        if (
+          isConnected &&
+          !window.confirm(
+            `Hide input handle for "${propertyName}"? The connected edge will be removed.`
+          )
+        ) {
+          return;
+        }
+        if (isConnected) {
+          const edgeIds = edges
+            .filter(
+              (edge) =>
+                edge.target === selectedNode.id &&
+                edge.targetHandle === propertyName
+            )
+            .map((edge) => edge.id);
+          if (edgeIds.length > 0) {
+            deleteEdges(edgeIds);
+          }
+        }
+        const next = removeExposedInput(current, propertyName);
+        if (next !== current) {
+          updateNodeData(selectedNode.id, { exposedInputs: next });
+        }
+      } else {
+        const next = addExposedInput(current, propertyName);
+        if (next !== current) {
+          updateNodeData(selectedNode.id, { exposedInputs: next });
+        }
+      }
+    },
+    [selectedNode, connectedTargetHandles, edges, deleteEdges, updateNodeData]
+  );
 
   if (selectedNodes.length === 0) {
     return (
@@ -384,21 +478,41 @@ const Inspector: React.FC = () => {
                 </CollapsibleSection>
               )}
             </div>
-            {/* Base properties */}
-            {metadata.properties.map((property, index) => (
-              <PropertyField
-                key={`inspector-${property.name}-${selectedNode.id}`}
-                id={selectedNode.id}
-                value={selectedNode.data.properties[property.name]}
-                property={property}
-                propertyIndex={index.toString()}
-                showHandle={false}
-                isInspector={true}
-                nodeType="inspector"
-                data={selectedNode.data}
-                layout=""
-              />
-            ))}
+            {/* Property list — every property gets the show-as-input
+                toggle except those whose handle is already determined by
+                metadata (inline rows or declared input_fields). */}
+            {metadata.properties.map((property, index) => {
+              const hasToggle = !metadataHandleNames.has(property.name);
+              const exposed = (selectedNode.data.exposedInputs ?? []).includes(
+                property.name
+              );
+              const connected = connectedTargetHandles.has(property.name);
+              return (
+                <div
+                  className="property-row"
+                  key={`inspector-${property.name}-${selectedNode.id}`}
+                >
+                  <PropertyField
+                    id={selectedNode.id}
+                    value={selectedNode.data.properties[property.name]}
+                    property={property}
+                    propertyIndex={index.toString()}
+                    showHandle={false}
+                    isInspector={true}
+                    nodeType="inspector"
+                    data={selectedNode.data}
+                    layout=""
+                  />
+                  {hasToggle && (
+                    <PropertyVisibilityToggle
+                      exposed={exposed}
+                      connected={connected}
+                      onToggle={() => handleToggleExposed(property.name)}
+                    />
+                  )}
+                </div>
+              );
+            })}
 
             {/* Dynamic properties, if any */}
             {Object.entries(selectedNode.data.dynamic_properties || {}).map(
