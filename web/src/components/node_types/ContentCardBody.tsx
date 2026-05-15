@@ -34,6 +34,7 @@ import {
   FlexRow
 } from "../ui_primitives";
 import { NodeInputs } from "../node/NodeInputs";
+import HandleColumn from "../node/HandleColumn";
 import ImageView from "../node/ImageView";
 import OutputRenderer from "../node/OutputRenderer";
 import { NodeOutputs } from "../node/NodeOutputs";
@@ -86,72 +87,8 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto",
       paddingTop: theme.spacing(0.5)
     },
-    // Input handles overlay the card's left edge as an absolutely-positioned
-    // column, evenly distributed top-to-bottom regardless of where the
-    // preview / footer sit in the flex stack. Type chips + labels are
-    // hidden so the column is just a clean line of dots; hover labels
-    // (Track A) surface property names on demand.
-    ".input-handles": {
-      position: "absolute",
-      top: theme.spacing(1),
-      bottom: theme.spacing(1),
-      left: 0,
-      width: 0, // zero-width so the column doesn't steal horizontal space
-      pointerEvents: "none", // handle dots themselves re-enable below
-      zIndex: 3,
-      "& > div, & .node-inputs": {
-        marginTop: 0,
-        marginBottom: 0,
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-around",
-        height: "100%",
-        gap: theme.spacing(0.25)
-      },
-      ".node-property": {
-        position: "relative",
-        minHeight: 0,
-        pointerEvents: "auto"
-      },
-      // Hide property labels unconditionally — Track A1's global CSS
-      // (.base-node:hover .property-label { opacity: 1 }) reveals them on
-      // node hover, so we need !important to keep them gone for content
-      // cards even when the body is hovered or a port is connected.
-      ".property-label, .property-spacer": {
-        display: "none !important"
-      }
-    },
-    // Fallback style for old layout (both inlineFields and inputFields empty)
-    ".basic-fields": {
-      position: "absolute",
-      top: theme.spacing(1),
-      bottom: theme.spacing(1),
-      left: 0,
-      width: 0, // zero-width so the column doesn't steal horizontal space
-      pointerEvents: "none", // handle dots themselves re-enable below
-      zIndex: 3,
-      "& > div, & .node-inputs": {
-        marginTop: 0,
-        marginBottom: 0,
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-around",
-        height: "100%",
-        gap: theme.spacing(0.25)
-      },
-      ".node-property": {
-        position: "relative",
-        minHeight: 0,
-        pointerEvents: "auto"
-      },
-      // Hide property labels unconditionally — Track A1's global CSS
-      // (.base-node:hover .property-label { opacity: 1 }) reveals them on
-      // node hover, so we need !important to keep them gone for content
-      // cards even when the body is hovered or a port is connected.
-      ".property-label, .property-spacer": {
-        display: "none !important"
-      }
-    },
+    // Input handles are rendered by <HandleColumn /> — see HandleColumn.tsx
+    // for the left-edge absolute positioning.
     ".outputs-row": {
       flex: "0 0 auto"
     },
@@ -350,31 +287,9 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
         </div>
       )}
 
-      {/* Input fields / fallback: render on the card's left edge as handle-only
-          (no inline editors). Labels are hidden via CSS. */}
-      {handleProps.length > 0 && (
-        <div className={useNewLayout ? "input-handles" : "basic-fields"}>
-          {/* NodeInputs renders basic fields always, and advanced fields
-              only when an edge is wired to them (its existing predicate:
-              isAdvanced && !isConnected && !showAdvancedFields → null).
-              Content cards never expose the advanced toggle — editing
-              advanced props lives in the Inspector (PR 8 / Track D). */}
-          <NodeInputs
-            id={id}
-            nodeMetadata={nodeMetadata}
-            layout={nodeMetadata.layout}
-            properties={handleProps}
-            nodeType={nodeType}
-            data={data}
-            hasAdvancedFields={false}
-            showAdvancedFields={false}
-            basicFields={useNewLayout ? [] : basicFields}
-            onToggleAdvancedFields={() => {}}
-            editableDynamicInputs={false}
-            showFields={false}
-          />
-        </div>
-      )}
+      {/* Input fields: render as handle-only column on the left edge.
+          Dedicated component — no shared NodeInputs / no CSS hiding. */}
+      <HandleColumn id={id} properties={handleProps} />
 
       {!isOutputNode && (
         <div className="outputs-row">

@@ -9,6 +9,7 @@ import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
 import { isContentCardNode } from "../node_types/contentCardRegistry";
 import ContentCardBody from "../node_types/ContentCardBody";
+import HandleColumn from "./HandleColumn";
 
 interface NodeContentProps {
   id: string;
@@ -178,6 +179,24 @@ const NodeContent: React.FC<NodeContentProps> = ({
     );
   }
 
+  // Split properties by classification (plan §field-classification):
+  //   inline_fields → full PropertyField rows (handle + label + editor)
+  //   input_fields  → handle-only (rendered in HandleColumn on the left edge)
+  //   default       → Inspector only (hidden in node body)
+  // Fallback: when neither classification is set, use legacy basic_fields
+  // behavior and render every property through NodeInputs.
+  const inlineFieldNames = nodeMetadata.inline_fields ?? [];
+  const inputFieldNames = nodeMetadata.input_fields ?? [];
+  const useClassification =
+    inlineFieldNames.length > 0 || inputFieldNames.length > 0;
+  const allProperties = nodeMetadata.properties ?? [];
+  const inlineProperties = useClassification
+    ? allProperties.filter((p) => inlineFieldNames.includes(p.name))
+    : allProperties;
+  const inputProperties = useClassification
+    ? allProperties.filter((p) => inputFieldNames.includes(p.name))
+    : [];
+
   return (
     <FlexColumn
       fullWidth
@@ -187,11 +206,14 @@ const NodeContent: React.FC<NodeContentProps> = ({
         minHeight: 0
       }}
     >
+      {useClassification && (
+        <HandleColumn id={id} properties={inputProperties} />
+      )}
       <NodeInputs
         id={id}
         nodeMetadata={nodeMetadata}
         layout={nodeMetadata.layout}
-        properties={nodeMetadata.properties}
+        properties={inlineProperties}
         nodeType={nodeType}
         data={data}
         hasAdvancedFields={hasAdvancedFields}
