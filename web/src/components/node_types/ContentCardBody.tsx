@@ -44,7 +44,7 @@ import ImageView from "../node/ImageView";
 import OutputRenderer from "../node/OutputRenderer";
 import { NodeOutputs } from "../node/NodeOutputs";
 import NodeProgress from "../node/NodeProgress";
-import { useSignedUrl, getMimeTypeFromUri } from "../node/output";
+import { useSignedUrl, getMimeTypeFromUri, toUint8Array } from "../node/output";
 import AudioPlayer from "../audio/AudioPlayer";
 import { editorClassNames } from "../editor_ui";
 
@@ -244,18 +244,14 @@ const useMediaSrc = (
 
   const [blobUrl, setBlobUrl] = useState<string>("");
   useEffect(() => {
-    let bytes: Uint8Array | null = null;
-    if (data instanceof Uint8Array) {
-      bytes = data;
-    } else if (Array.isArray(data)) {
-      bytes = new Uint8Array(data as number[]);
-    }
+    // Shared helper handles Uint8Array, ArrayBuffer, ArrayBufferView, and
+    // plain number[] — and returns a copy backed by a non-shared ArrayBuffer
+    // suitable for Blob construction.
+    const bytes = toUint8Array(data);
     if (bytes && bytes.byteLength > 0) {
-      // Force a non-shared ArrayBuffer backing per BlobPart typing.
-      const safe: Uint8Array<ArrayBuffer> = new Uint8Array(bytes);
       const blob = blobMime
-        ? new Blob([safe], { type: blobMime })
-        : new Blob([safe]);
+        ? new Blob([bytes], { type: blobMime })
+        : new Blob([bytes]);
       const url = URL.createObjectURL(blob);
       setBlobUrl(url);
       return () => URL.revokeObjectURL(url);
