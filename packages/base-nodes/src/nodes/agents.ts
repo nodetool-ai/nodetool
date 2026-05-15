@@ -1247,7 +1247,8 @@ export class SummarizerNode extends BaseNode {
     text: "str",
     chunk: "chunk"
   };
-  static readonly basicFields = ["text", "model", "image", "audio"];
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = ["image", "audio"];
   static readonly recommendedModels = [
     {
       id: "phi3.5:latest",
@@ -1399,6 +1400,8 @@ export class SummarizerNode extends BaseNode {
 export class CreateThreadNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.CreateThread";
   static readonly title = "Create Thread";
+  static readonly inlineFields = ["title"];
+  static readonly inputFields: string[] = [];
   static readonly description =
     "Create a new conversation thread and return its ID.\n    threads, chat, conversation, context\n\n    Use this to seed a thread_id that downstream Agent nodes can reuse for\n    persistent history across the graph or multiple runs.";
   static readonly metadataOutputTypes = {
@@ -1450,7 +1453,8 @@ export class ExtractorNode extends BaseNode {
   static readonly title = "Extractor";
   static readonly description =
     "Extract structured data from text content using LLM providers.\n    data-extraction, structured-data, nlp, parsing\n\n    Specialized for extracting structured information:\n    - Converting unstructured text into structured data\n    - Identifying and extracting specific fields from documents\n    - Parsing text according to predefined schemas\n    - Creating structured records from natural language content";
-  static readonly basicFields = ["text", "model", "image", "audio"];
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = ["image", "audio"];
   static readonly supportsDynamicOutputs = true;
   static readonly recommendedModels = [
     {
@@ -1608,13 +1612,8 @@ export class ClassifierNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly basicFields = [
-    "text",
-    "categories",
-    "model",
-    "image",
-    "audio"
-  ];
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = ["image", "audio"];
   static readonly recommendedModels = [
     {
       id: "phi3.5:latest",
@@ -1808,7 +1807,8 @@ export class AgentNode extends BaseNode {
     thinking: "chunk",
     audio: "audio"
   };
-  static readonly basicFields = ["prompt", "model", "tools", "image", "audio"];
+  static readonly inlineFields = ["prompt"];
+  static readonly inputFields = ["image", "audio"];
   static readonly supportsDynamicOutputs = true;
   // Dynamic properties become {{variable}} placeholders the user can wire
   // into the prompt and system prompt — e.g. add `subject` and `body`
@@ -3200,7 +3200,8 @@ export class AgentStepNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly basicFields = ["instructions", "tools"];
+  static readonly inlineFields = ["instructions"];
+  static readonly inputFields = ["input"];
 
   @prop({
     type: "str",
