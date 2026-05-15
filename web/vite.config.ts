@@ -1,7 +1,6 @@
 import { defineConfig, loadEnv, type ProxyOptions, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
-import tsconfigPaths from "vite-tsconfig-paths";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -83,8 +82,7 @@ export default defineConfig(async ({ mode }) => {
           plugins: ["@emotion/babel-plugin"]
         }
       }),
-      svgr(),
-      tsconfigPaths()
+      svgr()
     ],
     build: {
       target: browserslistToEsbuild([">0.2%", "not dead", "not op_mini all"]),
