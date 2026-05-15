@@ -279,10 +279,15 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Combined into a single loop to halve O(N) operations during drag frames
   // Memoized to prevent returning a new object reference on every frame (which causes infinite re-renders)
   const childrenStatusSelector = useMemo(() => {
-    let lastResult = { hasChildren: false, someChildrenBypassed: false };
+    let lastResult = {
+      hasChildren: false,
+      someChildrenBypassed: false,
+      hasSelectedChild: false
+    };
     return (state: ReturnType<typeof store.getState>) => {
       let hasChildren = false;
       let someChildrenBypassed = false;
+      let hasSelectedChild = false;
       for (let i = 0; i < state.nodes.length; i++) {
         const node = state.nodes[i];
         if (node.parentId === props.id) {
@@ -290,22 +295,28 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           if (node.data.bypassed) {
             someChildrenBypassed = true;
           }
+          if (node.selected) {
+            hasSelectedChild = true;
+          }
         }
-        if (hasChildren && someChildrenBypassed) {
+        if (hasChildren && someChildrenBypassed && hasSelectedChild) {
           break;
         }
       }
 
       if (
         lastResult.hasChildren !== hasChildren ||
-        lastResult.someChildrenBypassed !== someChildrenBypassed
+        lastResult.someChildrenBypassed !== someChildrenBypassed ||
+        lastResult.hasSelectedChild !== hasSelectedChild
       ) {
-        lastResult = { hasChildren, someChildrenBypassed };
+        lastResult = { hasChildren, someChildrenBypassed, hasSelectedChild };
       }
       return lastResult;
     };
   }, [props.id]); // store is a stable ref that doesn't change
-  const { hasChildren, someChildrenBypassed } = useNodes(childrenStatusSelector);
+  const { hasChildren, someChildrenBypassed, hasSelectedChild } = useNodes(
+    childrenStatusSelector
+  );
 
   // RUN WORKFLOW
   const state = useWebsocketRunner((state) => state.state);
@@ -351,8 +362,6 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const nodeHovered = useNodes((state) =>
     state.hoveredNodes.includes(props.id)
   );
-
-  const isDragging = useNodes((state) => state.hoveredNodes.length > 0);
 
   const [headline, setHeadline] = useState(
     (props.data.properties.headline as string | undefined) || "Group"
@@ -426,15 +435,18 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     }
   }, [headline]);
 
+  // Only react to ctrl/meta when this group actually contains a selected
+  // node — otherwise every group on the canvas would flip into the
+  // "drag-out" mode (dimmed + pointer-receptive) whenever the modifier is
+  // held for any reason.
+  const modifierActive =
+    (controlKeyPressed || metaKeyPressed) && hasSelectedChild;
+
   useEffect(() => {
-    // Selectable group nodes when control key is pressed
-    // (enables the use of the selection rectangle inside group nodes)
-    if (controlKeyPressed || metaKeyPressed) {
-      updateNode(props.id, { selectable: true });
-    } else {
-      updateNode(props.id, { selectable: false });
-    }
-  }, [updateNode, props.id, controlKeyPressed, metaKeyPressed]);
+    // Selectable group when ctrl/meta is held AND this group owns a
+    // selected child — enables drag-out and selection rectangle inside.
+    updateNode(props.id, { selectable: modifierActive });
+  }, [updateNode, props.id, modifierActive]);
 
   // Bound the label to the group body width. Only reserve room for the
   // action cluster when it's actually visible — otherwise the label can use
@@ -483,8 +495,8 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             ? { border: `2px solid ${theme.vars.palette.primary.main}` }
             : { border: subtleBorder }),
         opacity:
-          controlKeyPressed || metaKeyPressed ? 0.5 : nodeHovered ? 0.8 : 1,
-        pointerEvents: controlKeyPressed || metaKeyPressed ? "all" : "none",
+          modifierActive ? 0.5 : nodeHovered ? 0.8 : 1,
+        pointerEvents: modifierActive ? "all" : "none",
         backgroundColor: bodyBg
       }}
     >
@@ -643,8 +655,9 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       </Popover>
       </div>
 
-      {/* Help text that appears when dragging nodes */}
-      <div className={`help-text ${isDragging ? "visible" : "none"}`}>
+      {/* Help text — only shown on the group that currently has dragged
+          nodes hovering over it, not every group on the canvas. */}
+      <div className={`help-text ${nodeHovered ? "visible" : "none"}`}>
         <div>
           <b>REMOVE NODES FROM GROUP</b>
         </div>
