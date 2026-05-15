@@ -1,10 +1,11 @@
-import { memo, useState, useCallback, useRef, useEffect } from "react";
+import { memo, useState, useCallback, useContext, useRef, useEffect } from "react";
 import { colorForType, textColorForType } from "../config/data_types";
 import { typeToString } from "../utils/TypeHandler";
 import { createPortal } from "react-dom";
 import { getMousePosition } from "../utils/MousePosition";
 import { TypeMetadata } from "../stores/ApiTypes";
 import useConnectionStore from "../stores/ConnectionStore";
+import { NodeSelectionContext } from "./node/NodeSelectionContext";
 
 const LEFT_OFFSET_X = -32;
 const RIGHT_OFFSET_X = 32;
@@ -28,13 +29,13 @@ const formatTypeString = (typeMetadata: TypeMetadata): string => {
   ) {
     const typeArgs = typeMetadata.type_args;
     const types = [typeArgs[0].type, typeArgs[1].type].sort();
-    
+
     // Check if it's a union of float and int (in any order)
     if (types[0] === "float" && types[1] === "int") {
       return "number";
     }
   }
-  
+
   return typeToString(typeMetadata);
 };
 
@@ -70,6 +71,11 @@ const HandleTooltip = memo(function HandleTooltip({
   const isConnecting = useConnectionStore(
     (state) => state.connecting || state.isReconnecting
   );
+  // While the owning node is selected, surface a subtle inline label next
+  // to every handle so users can read all port names at a glance without
+  // hovering each one. Inline (not portal) so it follows pan / zoom / drag.
+  const nodeSelected = useContext(NodeSelectionContext);
+  const showPinnedTooltip = nodeSelected && enableHover && !isConnecting;
 
   // Ref to keep track of the timer used for delaying tooltip appearance
   const showTimerRef = useRef<number | null>(null);
@@ -98,9 +104,9 @@ const HandleTooltip = memo(function HandleTooltip({
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
-  
+
   const displayType = formatTypeString(typeMetadata);
-  // Use "float" for color when displaying "number" (float|int union), 
+  // Use "float" for color when displaying "number" (float|int union),
   // since both float and int use the same color
   const typeString = displayType === "number" ? "float" : typeMetadata.type;
 
@@ -189,11 +195,42 @@ const HandleTooltip = memo(function HandleTooltip({
     </div>
   );
 
+  // Subtle inline label rendered next to the handle while the owning node
+  // is selected. Plain text, no chrome — meant to read as an annotation
+  // not a tooltip popover.
+  const pinnedLabel = (
+    <span
+      className="handle-pinned-label"
+      style={{
+        position: "absolute",
+        top: "50%",
+        ...(handlePosition === "left"
+          ? { right: "calc(100% + 6px)" }
+          : { left: "calc(100% + 6px)" }),
+        transform: "translateY(-50%)",
+        pointerEvents: "none",
+        whiteSpace: "nowrap",
+        fontFamily: "var(--fontFamily1, inherit)",
+        fontSize: "10px",
+        lineHeight: 1.2,
+        color: "var(--palette-text-secondary, rgba(255,255,255,0.6))",
+        opacity: 0.7,
+        zIndex: 4
+      }}
+    >
+      {prettyName}
+    </span>
+  );
+
   return (
     <>
       <div
         ref={wrapperRef}
         className={`handle-tooltip-wrapper ${className}`}
+        // Pinned label is positioned absolute relative to the wrapper; the
+        // wrapper only becomes a positioning context while pinned so the
+        // ReactFlow Handle layout stays untouched the rest of the time.
+        style={showPinnedTooltip ? { position: "relative" } : undefined}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onFocus={handleFocus}
@@ -204,6 +241,7 @@ const HandleTooltip = memo(function HandleTooltip({
         aria-describedby={showTooltip ? tooltipIdRef.current : undefined}
       >
         {children}
+        {showPinnedTooltip && pinnedLabel}
       </div>
       {showTooltip && createPortal(
         <div
