@@ -35,8 +35,8 @@ export const getAuthRedirectUrl = (): string => {
           if (env) {
               configured = env.VITE_AUTH_REDIRECT_URL;
           }
-      } catch (e) {
-          // Ignore
+      } catch (_) {
+          // Ignore — import.meta may not be available in all environments
       }
   }
 

@@ -48,6 +48,15 @@ import { COMFY_WORKFLOW_FLAG } from "../utils/comfyWorkflowConverter";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
 
+function isUnifiedModel(value: unknown): value is UnifiedModel {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    "repo_id" in value
+  );
+}
+
 const syncReactFlowNodeChromeClass = (node: Node<NodeData>): Node<NodeData> => ({
   ...node,
   className: reactFlowNodeChromeClassName(node.data)
@@ -682,7 +691,7 @@ export const createNodeStore = (
 
             if (
               wouldCreateCycle(
-                filteredEdges as Edge[],
+                filteredEdges,
                 connection.source,
                 connection.target
               )
@@ -959,13 +968,8 @@ export const createNodeStore = (
                   )
                 ) {
                   const property = node.data.properties[key];
-                  if (
-                    property &&
-                    typeof property === "object" &&
-                    "type" in property &&
-                    "repo_id" in property
-                  ) {
-                    models.push(property as UnifiedModel);
+                  if (isUnifiedModel(property)) {
+                    models.push(property);
                   }
                 }
               }

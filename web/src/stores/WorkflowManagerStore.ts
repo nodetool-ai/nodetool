@@ -766,7 +766,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           get().setCurrentWorkflowId(data.id);
           await hydrateWorkflowResultsFromAssets(data.id);
           return data;
-        } catch (e) {
+        } catch (e: unknown) {
           if (!isWorkflowNotFoundError(e)) {
             console.error(
               `[WorkflowManager] fetchWorkflow error for ${workflowId}`,
