@@ -105,6 +105,8 @@ export const BINDING_CATALOG: readonly BindingEntry[] = [
   { key: "y", modifiers: { ctrl: true }, actionId: "transform-redo", scope: "mode:transform" },
   { key: "Enter", modifiers: {}, actionId: "transform-commit", scope: "mode:transform" },
   { key: "Escape", modifiers: {}, actionId: "transform-cancel", scope: "mode:transform" },
+  // Affinity-style: "." resets the transform box to identity (without committing).
+  { key: ".", modifiers: {}, actionId: "transform-reset", scope: "mode:transform" },
 
   // ── Mode: crop ────────────────────────────────────────────────────────────
   { key: "Enter", modifiers: {}, actionId: "crop-commit", scope: "mode:crop" },

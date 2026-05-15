@@ -79,12 +79,29 @@ export interface LayerTransform {
    * Advanced transform mode currently active on the
    * layer. Standard free-transform layers omit this field.
    */
-  mode?: "distort" | "skew" | "perspective" | "warp";
+  mode?:
+    | "distort"
+    | "skew"
+    | "perspective"
+    | "warp"
+    | "perspective-dual"
+    | "perspective-distort"
+    | "mesh-warp";
   /**
    * Document-space quad for quad-transform preview/bake paths. Order:
    * top-left, top-right, bottom-right, bottom-left.
+   *
+   * For `perspective-dual`, this is the LEFT (or first) plane.
    */
   quad?: PerspectiveQuad;
+  /**
+   * Optional second quad for the `perspective-dual` mode. Represents the
+   * right (or second) plane that shares the right edge of `quad` as its
+   * left "fold" edge. Order matches `quad`: top-left, top-right,
+   * bottom-right, bottom-left — where its top-left equals `quad`'s
+   * top-right and its bottom-left equals `quad`'s bottom-right.
+   */
+  secondaryQuad?: PerspectiveQuad;
 }
 
 // ─── Affine Matrix Helpers ────────────────────────────────────────────────────
@@ -136,8 +153,30 @@ export function decomposeAffineMatrix(m: AffineMatrix): {
 
 export function isQuadTransformMode(
   mode: LayerTransform["mode"] | undefined
-): mode is "perspective" | "warp" {
-  return mode === "perspective" || mode === "warp";
+): mode is
+  | "perspective"
+  | "warp"
+  | "perspective-dual"
+  | "perspective-distort"
+  | "mesh-warp" {
+  return (
+    mode === "perspective" ||
+    mode === "warp" ||
+    mode === "perspective-dual" ||
+    mode === "perspective-distort" ||
+    mode === "mesh-warp"
+  );
+}
+
+/**
+ * True when the mode requires a second (paired) quad — the dual-plane
+ * perspective. Distinguished from regular quad modes for renderers that
+ * need to walk both halves separately.
+ */
+export function isDualQuadTransformMode(
+  mode: LayerTransform["mode"] | undefined
+): mode is "perspective-dual" {
+  return mode === "perspective-dual";
 }
 
 /**

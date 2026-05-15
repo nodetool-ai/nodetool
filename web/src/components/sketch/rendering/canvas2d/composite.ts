@@ -17,7 +17,7 @@ import {
 import { blendModeToComposite, drawCheckerboard } from "../../drawingUtils";
 import { getLayerCompositeOffset } from "../../painting/layerBounds";
 import type { ActiveStrokeInfo, DirtyRect, ResolvedLayerBitmap } from "../types";
-import { drawImageToQuad } from "./quadTransform";
+import { drawImageToQuad, drawImageToDualQuad } from "./quadTransform";
 
 // ─── Type alias for the FX evaluator callback ───────────────────────────────
 
@@ -46,13 +46,50 @@ export function drawWithTransform(
       scaleY?: number;
       rotation?: number;
       matrix?: [number, number, number, number, number, number];
-      mode?: "distort" | "skew" | "perspective" | "warp";
+      mode?:
+        | "distort"
+        | "skew"
+        | "perspective"
+        | "warp"
+        | "perspective-dual"
+        | "perspective-distort"
+        | "mesh-warp";
       quad?: Array<{ x: number; y: number }>;
+      secondaryQuad?: Array<{ x: number; y: number }>;
     };
   }
 ): void {
   if (
-    (layer.transform.mode === "perspective" || layer.transform.mode === "warp") &&
+    layer.transform.mode === "perspective-dual" &&
+    layer.transform.quad &&
+    layer.transform.secondaryQuad
+  ) {
+    drawImageToDualQuad(
+      ctx,
+      source,
+      layer.transform.quad.map((point) => ({ x: point.x, y: point.y })) as [
+        { x: number; y: number },
+        { x: number; y: number },
+        { x: number; y: number },
+        { x: number; y: number }
+      ],
+      layer.transform.secondaryQuad.map((point) => ({
+        x: point.x,
+        y: point.y
+      })) as [
+        { x: number; y: number },
+        { x: number; y: number },
+        { x: number; y: number },
+        { x: number; y: number }
+      ]
+    );
+    return;
+  }
+  if (
+    (layer.transform.mode === "perspective" ||
+      layer.transform.mode === "warp" ||
+      layer.transform.mode === "perspective-distort" ||
+      layer.transform.mode === "mesh-warp") &&
     layer.transform.quad
   ) {
     drawImageToQuad(

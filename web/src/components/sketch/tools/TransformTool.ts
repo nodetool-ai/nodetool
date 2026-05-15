@@ -103,6 +103,34 @@ import { cursorForHandle } from "./transform/cursorMapping";
 
 export { type TransformHandle } from "./transform/handleGeometry";
 
+/**
+ * Build a sensible initial second quad for the dual-perspective mode.
+ * The new quad shares the primary's right edge as its left "fold" edge and
+ * extends `width` document-space units to the right with the same height.
+ */
+function buildSeedSecondaryQuad(
+  primary: NonNullable<LayerTransform["quad"]>,
+  width: number
+): NonNullable<LayerTransform["quad"]> {
+  const tr = primary[1];
+  const br = primary[2];
+  // Edge vector along the fold (top-right → bottom-right of the primary).
+  const foldDx = br.x - tr.x;
+  const foldDy = br.y - tr.y;
+  // Perpendicular pointing "outward" to the right of the fold.
+  const perpX = foldDy;
+  const perpY = -foldDx;
+  const length = Math.hypot(perpX, perpY) || 1;
+  const ux = (perpX / length) * width;
+  const uy = (perpY / length) * width;
+  return [
+    { x: tr.x, y: tr.y },
+    { x: tr.x + ux, y: tr.y + uy },
+    { x: br.x + ux, y: br.y + uy },
+    { x: br.x, y: br.y }
+  ];
+}
+
 export class TransformTool implements ToolHandler {
   readonly toolId = "transform" as const;
 
@@ -125,7 +153,7 @@ export class TransformTool implements ToolHandler {
   /** Currently hovered handle (for cursor feedback). */
   private hoveredHandle: TransformHandle | null = null;
   /** Active transform gesture mode for the current drag. */
-  private activeTransformMode: TransformMode = "auto";
+  private activeTransformMode: TransformMode = "scale";
   /** Corner snapshot used for skew/distort gestures. */
   private dragStartCorners: [Point, Point, Point, Point] | null = null;
   /** Batched gizmo redraw scheduler. */
@@ -177,7 +205,7 @@ export class TransformTool implements ToolHandler {
     this.gestureActive = false;
     this.pivotPoint = null;
     this.pivotPointAtMoveStart = null;
-    this.activeTransformMode = "auto";
+    this.activeTransformMode = "scale";
     this.dragStartCorners = null;
     this.adjustmentUndoStack = [];
     this.adjustmentRedoStack = [];
@@ -192,7 +220,7 @@ export class TransformTool implements ToolHandler {
     this.hoveredHandle = null;
     this.pivotPoint = null;
     this.pivotPointAtMoveStart = null;
-    this.activeTransformMode = "auto";
+    this.activeTransformMode = "scale";
     this.dragStartCorners = null;
     this.adjustmentUndoStack = [];
     this.adjustmentRedoStack = [];
@@ -206,7 +234,7 @@ export class TransformTool implements ToolHandler {
     this.gestureActive = false;
     this.pivotPoint = null;
     this.pivotPointAtMoveStart = null;
-    this.activeTransformMode = "auto";
+    this.activeTransformMode = "scale";
     this.dragStartCorners = null;
     this.session.clear(ctx);
     for (const id of this.multiTargetLayerIds) {
@@ -403,45 +431,80 @@ export class TransformTool implements ToolHandler {
 
     const shift = ctx.shiftHeldRef.current;
     const alt = ctx.altHeldRef.current;
+    const ctrlOrMeta = Boolean(
+      event.nativeEvent.ctrlKey || event.nativeEvent.metaKey
+    );
     const gestureMode = resolveTransformGestureMode(
       this.getConfiguredTransformMode(),
       this.activeHandle,
-      {
-        ctrlOrMeta: Boolean(
-          event.nativeEvent.ctrlKey || event.nativeEvent.metaKey
-        ),
-        shift,
-        alt
-      }
+      { ctrlOrMeta, shift, alt }
     );
     let newTransform: LayerTransform;
 
     if (
-      (gestureMode === "perspective" || gestureMode === "warp") &&
+      (gestureMode === "perspective" ||
+        gestureMode === "perspective-dual" ||
+        gestureMode === "perspective-distort" ||
+        gestureMode === "mesh-warp" ||
+        gestureMode === "warp") &&
       this.dragStartCorners &&
       (this.activeHandle === "top-left" ||
         this.activeHandle === "top-right" ||
         this.activeHandle === "bottom-left" ||
         this.activeHandle === "bottom-right")
     ) {
-      newTransform =
-        gestureMode === "warp"
-          ? computeWarpTransform(
-              this.dragStartCorners,
-              this.activeHandle,
-              this.dragStart,
-              pt,
-              this.rasterBounds,
-              this.dragStartTransform
-            )
-          : computePerspectiveTransform(
-              this.dragStartCorners,
-              this.activeHandle,
-              this.dragStart,
-              pt,
-              this.rasterBounds,
-              this.dragStartTransform
-            );
+      if (gestureMode === "warp" || gestureMode === "mesh-warp") {
+        // Mesh-warp currently shares the warp gesture math for the 4 corner
+        // handles; the full mesh-grid editing gizmo is a planned follow-up
+        // and will replace this branch when it lands.
+        const warped = computeWarpTransform(
+          this.dragStartCorners,
+          this.activeHandle,
+          this.dragStart,
+          pt,
+          this.rasterBounds,
+          this.dragStartTransform
+        );
+        newTransform =
+          gestureMode === "mesh-warp"
+            ? { ...warped, mode: "mesh-warp" }
+            : warped;
+      } else {
+        const single = computePerspectiveTransform(
+          this.dragStartCorners,
+          this.activeHandle,
+          this.dragStart,
+          pt,
+          this.rasterBounds,
+          this.dragStartTransform
+        );
+        if (gestureMode === "perspective-dual") {
+          // Seed the secondary quad on first drag so the dual-plane mode
+          // has something to render. The fold edge is the right edge of
+          // the primary quad; the secondary quad mirrors the primary's
+          // right half outward by the raster's half-width.
+          const primaryQuad = single.quad;
+          const seedSecondary =
+            this.dragStartTransform.secondaryQuad ??
+            (primaryQuad
+              ? buildSeedSecondaryQuad(primaryQuad, this.rasterBounds.width / 2)
+              : undefined);
+          newTransform = {
+            ...single,
+            mode: "perspective-dual",
+            secondaryQuad: seedSecondary
+          };
+        } else if (gestureMode === "perspective-distort") {
+          // Perspective Distort uses the same live perspective math while
+          // the user defines the four-point quad. The differentiator is the
+          // commit step (inverse-perspective bake to straighten the layer)
+          // — that lands in a follow-up; today the bake reuses the standard
+          // perspective bake which already maps the layer onto the quad.
+          newTransform = { ...single, mode: "perspective-distort" };
+        } else {
+          newTransform = single;
+        }
+      }
     } else if (
       gestureMode === "distort" &&
       this.dragStartCorners &&
@@ -484,6 +547,9 @@ export class TransformTool implements ToolHandler {
         this.activeHandle === "rotate" && this.pivotPoint
           ? this.center
           : undefined;
+      // Affinity-style: Ctrl/Cmd on a scale handle scales from center
+      // (in addition to Alt, kept for backwards compatibility).
+      const fromCenter = alt || (ctrlOrMeta && this.activeHandle !== "rotate");
       newTransform = computeTransformForHandle(
         this.activeHandle,
         this.dragStartTransform,
@@ -492,7 +558,7 @@ export class TransformTool implements ToolHandler {
         rotationCenter,
         this.rasterBounds,
         shift,
-        alt,
+        fromCenter,
         layerCenter
       );
       if (gestureMode === "scale") {
@@ -536,7 +602,7 @@ export class TransformTool implements ToolHandler {
       this.dragStart = null;
       this.dragStartCorners = null;
       this.pivotPointAtMoveStart = null;
-      this.activeTransformMode = "auto";
+      this.activeTransformMode = "scale";
       this.drawGizmo(ctx);
       return;
     }
@@ -560,7 +626,7 @@ export class TransformTool implements ToolHandler {
     this.dragStart = null;
     this.dragStartCorners = null;
     this.pivotPointAtMoveStart = null;
-    this.activeTransformMode = "auto";
+    this.activeTransformMode = "scale";
     // Without this, idle draw/sync skip retargeting until tool reactivation.
     this.gestureActive = false;
 
@@ -801,7 +867,7 @@ export class TransformTool implements ToolHandler {
   }
 
   private getConfiguredTransformMode(): TransformMode {
-    return useSketchStore.getState().toolSettings?.transform?.mode ?? "auto";
+    return useSketchStore.getState().toolSettings?.transform?.mode ?? "scale";
   }
 
   private getCurrentCorners(
@@ -1010,9 +1076,18 @@ export class TransformTool implements ToolHandler {
     ) {
       this.syncTransformTargets(ctx);
     }
+    // Clear any stale gizmo when there is nothing to transform — without
+    // this an old gizmo can linger after the active layer is deleted or the
+    // selection emptied (because syncTransformTargets bails early without
+    // erasing the previous paint).
+    if (this.multiTargetLayerIds.length === 0) {
+      ctx.clearGizmo();
+      return;
+    }
     const transform =
       overrideTransform ?? this.resolveDisplayedUnionTransform(ctx);
     if (!transform) {
+      ctx.clearGizmo();
       return;
     }
     const hoveredHandle = this.activeHandle ?? this.hoveredHandle;

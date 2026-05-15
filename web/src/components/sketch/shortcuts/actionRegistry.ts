@@ -28,6 +28,7 @@ export const SKETCH_ACTION_IDS = [
   "tool-shape-line", "tool-shape-rect", "tool-shape-ellipse", "tool-shape-arrow",
   // Mode: Transform
   "transform-undo", "transform-redo", "transform-commit", "transform-cancel",
+  "transform-reset",
   // Mode: Crop
   "crop-commit", "crop-cancel",
 ] as const;
@@ -116,6 +117,7 @@ export const ACTION_REGISTRY: readonly ActionMeta[] = [
   { id: "transform-redo", label: "Redo Transform", displayGroup: "Mode: Transform" },
   { id: "transform-commit", label: "Commit Transform", displayGroup: "Mode: Transform" },
   { id: "transform-cancel", label: "Cancel Transform", displayGroup: "Mode: Transform" },
+  { id: "transform-reset", label: "Reset Transform Box", displayGroup: "Mode: Transform" },
   { id: "crop-commit", label: "Commit Crop", displayGroup: "Mode: Crop" },
   { id: "crop-cancel", label: "Cancel Crop", displayGroup: "Mode: Crop" },
 ];

@@ -6,14 +6,19 @@
  */
 
 import type { LayerContentBounds, SketchDocument } from "../../types";
-import { isQuadTransformMode } from "../../types";
+import { isDualQuadTransformMode, isQuadTransformMode } from "../../types";
 import {
   getCanvasRasterBounds,
   getLayerCompositeOffset,
   setCanvasRasterBounds
 } from "../../painting/layerBounds";
 import { serializeLayerData } from "./layerIO";
-import { drawImageToQuad, getQuadExtents, translateQuad } from "./quadTransform";
+import {
+  drawImageToDualQuad,
+  drawImageToQuad,
+  getQuadExtents,
+  translateQuad
+} from "./quadTransform";
 
 // ─── Reconcile transform to document space ───────────────────────────────────
 
@@ -88,7 +93,18 @@ export function reconcileLayerToDocumentSpace(
   sourceCtx.drawImage(canvas, 0, 0);
 
   if (usesPerspective && quad) {
-    const { minX, minY, maxX, maxY } = getQuadExtents(quad);
+    const secondaryQuad = layer.transform?.secondaryQuad;
+    const isDual =
+      isDualQuadTransformMode(layer.transform?.mode) && secondaryQuad;
+    // Union of both quad extents when dual, otherwise just the primary quad.
+    const primaryExtents = getQuadExtents(quad);
+    const secondaryExtents = isDual
+      ? getQuadExtents(secondaryQuad!)
+      : primaryExtents;
+    const minX = Math.min(primaryExtents.minX, secondaryExtents.minX);
+    const minY = Math.min(primaryExtents.minY, secondaryExtents.minY);
+    const maxX = Math.max(primaryExtents.maxX, secondaryExtents.maxX);
+    const maxY = Math.max(primaryExtents.maxY, secondaryExtents.maxY);
     const outX = Math.min(0, Math.floor(minX));
     const outY = Math.min(0, Math.floor(minY));
     const outW = Math.max(doc.canvas.width, Math.ceil(maxX)) - outX;
@@ -102,7 +118,16 @@ export function reconcileLayerToDocumentSpace(
       return fallbackSerialize();
     }
 
-    drawImageToQuad(tempCtx, source, translateQuad(quad, -outX, -outY));
+    if (isDual) {
+      drawImageToDualQuad(
+        tempCtx,
+        source,
+        translateQuad(quad, -outX, -outY),
+        translateQuad(secondaryQuad!, -outX, -outY)
+      );
+    } else {
+      drawImageToQuad(tempCtx, source, translateQuad(quad, -outX, -outY));
+    }
 
     canvas.width = outW;
     canvas.height = outH;

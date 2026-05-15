@@ -171,6 +171,7 @@ export function useEditorCommands({
     handleTransformCommit: canvasActions.handleTransformCommit,
     handleCropCommit: canvasActions.handleCropCommit,
     handleTransformCancel: canvasActions.handleTransformCancel,
+    handleTransformReset: canvasActions.handleTransformReset,
     handleTransformUndo: canvasActions.handleTransformUndo,
     handleTransformRedo: canvasActions.handleTransformRedo,
     handleLayerViaCopy,

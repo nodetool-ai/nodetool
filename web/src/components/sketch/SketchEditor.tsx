@@ -377,14 +377,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         open={session.canvasActions.transformContextMenu !== null}
         position={session.canvasActions.transformContextMenu}
         onClose={session.canvasActions.handleTransformContextMenuClose}
-        onTransformCommit={() => {
-          session.canvasActions.handleTransformCommit();
-          session.sessionStore.setActiveTool("move");
-        }}
-        onTransformCancel={() => {
-          session.canvasActions.handleTransformCancel();
-          session.sessionStore.setActiveTool("move");
-        }}
+        onTransformCommit={session.canvasActions.handleTransformCommit}
+        onTransformCancel={session.canvasActions.handleTransformCancel}
         onTransformReset={session.canvasActions.handleTransformReset}
         onRotate90CW={() => session.canvasActions.handleTransformRotate(Math.PI / 2)}
         onRotate90CCW={() => session.canvasActions.handleTransformRotate(-Math.PI / 2)}

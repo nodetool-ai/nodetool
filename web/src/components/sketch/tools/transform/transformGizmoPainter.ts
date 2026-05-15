@@ -48,7 +48,10 @@ function getVisibleHandles(
       "rotate"
     ];
   }
-  if (transform.mode === "perspective") {
+  if (
+    transform.mode === "perspective" ||
+    transform.mode === "perspective-dual"
+  ) {
     return [
       "top-left",
       "top-right",
@@ -147,6 +150,38 @@ export function paintTransformGizmo(
         screenCorners,
         visibleHandles
       );
+
+      // Dual-perspective: outline the secondary quad so the user can see
+      // both planes. Per-handle editing of the second quad is intentionally
+      // not wired here yet — this commit ships the renderer + visual
+      // feedback; gesture editing of the second quad lands as a follow-up.
+      if (transform.mode === "perspective-dual" && transform.secondaryQuad) {
+        const secondaryScreen = transform.secondaryQuad.map((corner) =>
+          docToScreen(
+            corner.x,
+            corner.y,
+            ctx.doc.canvas.width,
+            ctx.doc.canvas.height,
+            ctx.zoom,
+            ctx.pan,
+            containerW,
+            containerH,
+            dpr
+          )
+        ) as [Point, Point, Point, Point];
+        gc.save();
+        gc.strokeStyle = "rgba(0, 153, 255, 0.85)";
+        gc.lineWidth = Math.max(1, dpr);
+        gc.setLineDash([6 * dpr, 4 * dpr]);
+        gc.beginPath();
+        gc.moveTo(secondaryScreen[0].x, secondaryScreen[0].y);
+        gc.lineTo(secondaryScreen[1].x, secondaryScreen[1].y);
+        gc.lineTo(secondaryScreen[2].x, secondaryScreen[2].y);
+        gc.lineTo(secondaryScreen[3].x, secondaryScreen[3].y);
+        gc.closePath();
+        gc.stroke();
+        gc.restore();
+      }
       return;
     }
 

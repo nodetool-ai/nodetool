@@ -53,6 +53,7 @@ export interface UseEditorKeyboardShortcutsParams {
   handleTransformCommit?: () => void;
   handleCropCommit?: () => void;
   handleTransformCancel?: () => void;
+  handleTransformReset?: () => void;
   handleTransformUndo?: () => void;
   handleTransformRedo?: () => void;
   handleLayerViaCopy?: () => void;

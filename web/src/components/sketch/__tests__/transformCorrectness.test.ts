@@ -761,23 +761,25 @@ describe("Package B: transform computation correctness", () => {
 describe("Package B: advanced transform modes", () => {
   const bounds = makeBounds({ x: 0, y: 0, width: 100, height: 100 });
 
-  it("resolves corner ctrl-drag to distort and edge ctrl-drag to skew", () => {
+  it("Ctrl/Cmd on edge promotes to skew; corners stay scale (Ctrl is from-center)", () => {
+    // Affinity convention: Ctrl/Cmd on a CORNER means scale-from-center,
+    // not distort. Distort is only available via the explicit Mode toggle.
     expect(
-      resolveTransformGestureMode("auto", "top-left", {
+      resolveTransformGestureMode("scale", "top-left", {
         ctrlOrMeta: true,
         shift: false,
         alt: false
       })
-    ).toBe("distort");
+    ).toBe("scale");
     expect(
-      resolveTransformGestureMode("auto", "left", {
+      resolveTransformGestureMode("scale", "left", {
         ctrlOrMeta: true,
         shift: false,
         alt: false
       })
     ).toBe("skew");
     expect(
-      resolveTransformGestureMode("auto", "top-left", {
+      resolveTransformGestureMode("scale", "top-left", {
         ctrlOrMeta: true,
         shift: true,
         alt: true

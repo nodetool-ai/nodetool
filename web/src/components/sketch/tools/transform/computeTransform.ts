@@ -11,8 +11,19 @@
  * @module tools/transform/computeTransform
  */
 
-import type { Point, LayerTransform, LayerContentBounds, TransformMode } from "../../types";
-import { ensureTransformMatrix, isQuadTransformMode } from "../../types";
+import type {
+  Point,
+  LayerTransform,
+  LayerContentBounds,
+  TransformMode,
+  AffineMatrix
+} from "../../types";
+import {
+  decomposeAffineMatrix,
+  ensureTransformMatrix,
+  isQuadTransformMode
+} from "../../types";
+import { affineMultiply } from "./multiLayerTransformMath";
 import {
   rotatePoint,
   snapAngle,
@@ -22,7 +33,7 @@ import {
 } from "./handleGeometry";
 import { getTransformedCenter } from "../../painting/resolvedLayerGeometry";
 
-type GestureTransformMode = Exclude<TransformMode, "auto">;
+type GestureTransformMode = TransformMode;
 type PerspectiveQuad = NonNullable<LayerTransform["quad"]>;
 
 const CORNER_INDEX_BY_HANDLE: Record<
@@ -145,20 +156,6 @@ function buildQuadTransform(
   };
 }
 
-function isCornerHandle(
-  handle: TransformHandle
-): handle is Extract<
-  TransformHandle,
-  "top-left" | "top-right" | "bottom-right" | "bottom-left"
-> {
-  return (
-    handle === "top-left" ||
-    handle === "top-right" ||
-    handle === "bottom-right" ||
-    handle === "bottom-left"
-  );
-}
-
 function isEdgeHandle(
   handle: TransformHandle
 ): handle is Extract<TransformHandle, "top" | "bottom" | "left" | "right"> {
@@ -170,6 +167,25 @@ function isEdgeHandle(
   );
 }
 
+/**
+ * Resolves the gesture mode for the current drag.
+ *
+ * The configured base mode (set via the top bar) is the default. While in
+ * `scale`, Affinity-style modifiers can temporarily promote a drag into an
+ * advanced gesture:
+ *
+ *   - Ctrl/Cmd on a side handle  → `skew` (shear)
+ *   - Ctrl + Alt + Shift          → `perspective`
+ *
+ * Note: Ctrl/Cmd on a *corner* is NOT a distort here — it means "scale from
+ * center" (handled inside `computeScaleTransform`). Distort and warp must be
+ * selected explicitly via the top bar so they don't compete with scale's
+ * from-center modifier.
+ *
+ * Explicit modes (skew, distort, perspective, warp) are honored as
+ * configured so the user can stay in a sticky advanced mode without holding
+ * a modifier.
+ */
 export function resolveTransformGestureMode(
   baseMode: TransformMode,
   handle: TransformHandle,
@@ -179,18 +195,12 @@ export function resolveTransformGestureMode(
     alt: boolean;
   }
 ): GestureTransformMode {
-  if (baseMode !== "auto") {
-    if (baseMode === "perspective" || baseMode === "warp") {
-      return baseMode;
-    }
+  if (baseMode !== "scale") {
     return baseMode;
   }
 
   if (modifiers.ctrlOrMeta && modifiers.alt && modifiers.shift) {
     return "perspective";
-  }
-  if (modifiers.ctrlOrMeta && isCornerHandle(handle)) {
-    return "distort";
   }
   if (modifiers.ctrlOrMeta && isEdgeHandle(handle)) {
     return "skew";
@@ -585,7 +595,34 @@ export function computeRotateTransform(
     deltaAngle = newRot - rot;
   }
 
+  // When the prior transform carries a non-TRS matrix (skew or distort),
+  // compose the rotation around the pivot ON TOP of the prior matrix
+  // instead of just bumping the decomposed `rotation` field — otherwise
+  // `ensureTransformMatrix` short-circuits on the existing matrix and the
+  // rotation never reaches the renderer (gizmo and pixels drift apart).
+  const priorMatrix = dragStartTransform.matrix;
+  const isAdvanced =
+    dragStartTransform.mode === "skew" || dragStartTransform.mode === "distort";
+  if (priorMatrix && isAdvanced) {
+    const rotationAroundPivot = rotateAroundPointMatrix(pivot, deltaAngle);
+    const newMatrix = affineMultiply(rotationAroundPivot, priorMatrix);
+    const decomposed = decomposeAffineMatrix(newMatrix);
+    return {
+      ...dragStartTransform,
+      x: Math.round(decomposed.x),
+      y: Math.round(decomposed.y),
+      scaleX: decomposed.scaleX,
+      scaleY: decomposed.scaleY,
+      rotation: decomposed.rotation,
+      matrix: newMatrix
+    };
+  }
+
   const result: LayerTransform = { ...dragStartTransform, rotation: newRot };
+  // Drop the stale matrix so `ensureTransformMatrix` recomputes from the
+  // updated rotation. Without this, a previously-baked matrix from another
+  // gesture would override the new rotation downstream.
+  delete result.matrix;
 
   // If the pivot differs from the layer center, adjust translation so the
   // layer orbits the pivot (center follows a circular arc around the pivot).
@@ -602,6 +639,26 @@ export function computeRotateTransform(
   }
 
   return ensureTransformMatrix(result);
+}
+
+/**
+ * Build the affine matrix that rotates the plane by `angle` radians around
+ * `pivot`: T(pivot) · R(angle) · T(-pivot).
+ */
+function rotateAroundPointMatrix(pivot: Point, angle: number): AffineMatrix {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  // Column-vector convention matching `composeAffineMatrix` /
+  // `affineMultiply`: [a, b, c, d, e, f] where the linear part is
+  // [[a, c], [b, d]] and translation is [e, f].
+  return [
+    cos,
+    sin,
+    -sin,
+    cos,
+    pivot.x - cos * pivot.x + sin * pivot.y,
+    pivot.y - sin * pivot.x - cos * pivot.y
+  ];
 }
 
 // ─── Scale computation ───────────────────────────────────────────────────────

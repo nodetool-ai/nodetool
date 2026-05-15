@@ -148,13 +148,17 @@ export const ACTION_HANDLERS: ActionHandlerMap = {
   // Mode: transform (fired by dispatcher when activeTool === "transform")
   "transform-undo": (_e, p) => p.handleTransformUndo?.(),
   "transform-redo": (_e, p) => p.handleTransformRedo?.(),
+  // Stay on the Transform tool after commit/cancel so a follow-up gesture (or
+  // another ENTER/ESC) is harmless. Affinity-style: tool only changes via the
+  // toolbar or an explicit shortcut.
   "transform-commit": (_e, p) => {
     p.handleTransformCommit?.();
-    p.setActiveTool("move");
   },
   "transform-cancel": (_e, p) => {
     p.handleTransformCancel?.();
-    p.setActiveTool("move");
+  },
+  "transform-reset": (_e, p) => {
+    p.handleTransformReset?.();
   },
 
   // Mode: crop

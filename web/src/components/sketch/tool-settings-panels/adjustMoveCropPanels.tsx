@@ -198,9 +198,6 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
             }
           }}
         >
-          <ToggleButton value="auto" sx={toggleButtonSmallSx}>
-            Auto
-          </ToggleButton>
           <ToggleButton value="scale" sx={toggleButtonSmallSx}>
             Scale
           </ToggleButton>
@@ -210,14 +207,29 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
           <ToggleButton value="skew" sx={toggleButtonSmallSx}>
             Skew
           </ToggleButton>
-          <Tooltip title="Perspective ties opposite edges together for linked corner drags.">
+          <Tooltip title="Single-plane perspective. Drag a corner to skew one quad while the opposite edge follows.">
             <ToggleButton value="perspective" sx={toggleButtonSmallSx}>
-              Persp
+              Persp 1
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title="Dual-plane perspective. Two quads share a fold edge — useful for box-like surfaces.">
+            <ToggleButton value="perspective-dual" sx={toggleButtonSmallSx}>
+              Persp 2
             </ToggleButton>
           </Tooltip>
           <Tooltip title="Warp keeps each corner independently movable while using the shared quad rendering path.">
             <ToggleButton value="warp" sx={toggleButtonSmallSx}>
               Warp
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title="Mesh Warp (preview): pin-and-pull distortion via a control mesh. Bezier handles and full grid editing are coming soon.">
+            <ToggleButton value="mesh-warp" sx={toggleButtonSmallSx}>
+              Mesh
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title="Perspective Distort (preview): drag the four corners to a quad that should be rectangular; on commit the layer is straightened.">
+            <ToggleButton value="perspective-distort" sx={toggleButtonSmallSx}>
+              Distort 4-pt
             </ToggleButton>
           </Tooltip>
         </ToggleButtonGroup>

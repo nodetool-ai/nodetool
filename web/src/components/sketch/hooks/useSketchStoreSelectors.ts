@@ -75,7 +75,19 @@ export function useResolvedToolSettings() {
       select: { ...DEFAULT_SELECT_SETTINGS, ...liveToolSettings.select },
       segment: { ...DEFAULT_SEGMENT_SETTINGS, ...liveToolSettings.segment },
       move: { ...DEFAULT_MOVE_SETTINGS, ...liveToolSettings.move },
-      transform: { ...DEFAULT_TRANSFORM_SETTINGS, ...liveToolSettings.transform }
+      transform: (() => {
+        const merged = {
+          ...DEFAULT_TRANSFORM_SETTINGS,
+          ...liveToolSettings.transform
+        };
+        // Persisted settings from older versions may still hold the removed
+        // "auto" mode; coerce it to the new default so the panel renders a
+        // valid selection and gesture resolution stays sane.
+        if ((merged.mode as string) === "auto") {
+          merged.mode = DEFAULT_TRANSFORM_SETTINGS.mode;
+        }
+        return merged;
+      })()
     };
   }, [liveToolSettings]);
 }

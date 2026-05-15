@@ -384,8 +384,14 @@ export interface SegmentationSourceMetadata {
     scaleY?: number;
     rotation?: number;
     matrix?: [number, number, number, number, number, number];
-    mode?: "distort" | "skew" | "perspective" | "warp";
+    mode?: "distort" | "skew" | "perspective" | "warp" | "perspective-dual";
     quad?: [
+      { x: number; y: number },
+      { x: number; y: number },
+      { x: number; y: number },
+      { x: number; y: number }
+    ];
+    secondaryQuad?: [
       { x: number; y: number },
       { x: number; y: number },
       { x: number; y: number },
@@ -528,7 +534,9 @@ export const DEFAULT_MOVE_SETTINGS: MoveSettings = {
  *
  * - `auto`: keep the normal free-transform handles and let modifier keys
  *   temporarily switch to advanced behavior.
- * - `scale`: force standard scale/rotate behavior.
+ * - `scale`: standard scale/rotate behavior. Modifiers can still temporarily
+ *   switch to advanced behavior (Ctrl/Cmd on a side handle = skew, Ctrl/Cmd
+ *   on a corner = distort, Ctrl+Alt+Shift = perspective).
  * - `distort`: treat corner drags as affine corner distortions.
  * - `skew`: treat edge drags as affine skew/shear adjustments.
  * - `perspective`: tied-corner perspective drags that bake through the shared
@@ -537,11 +545,13 @@ export const DEFAULT_MOVE_SETTINGS: MoveSettings = {
  *   path on commit.
  */
 export type TransformMode =
-  | "auto"
   | "scale"
   | "distort"
   | "skew"
   | "perspective"
+  | "perspective-dual"
+  | "perspective-distort"
+  | "mesh-warp"
   | "warp";
 
 export interface TransformSettings {
@@ -552,15 +562,15 @@ export interface TransformSettings {
    */
   autoSelect: boolean;
   /**
-   * Advanced transform mode selection. `auto` keeps the default free
-   * transform behavior and lets modifier keys pick temporary advanced modes.
+   * Active transform mode. Defaults to `scale`; modifier keys can still
+   * temporarily switch to skew/distort/perspective during a single drag.
    */
   mode: TransformMode;
 }
 
 export const DEFAULT_TRANSFORM_SETTINGS: TransformSettings = {
   autoSelect: true,
-  mode: "auto"
+  mode: "scale"
 };
 
 // ─── Composite Tool Settings ──────────────────────────────────────────────────
