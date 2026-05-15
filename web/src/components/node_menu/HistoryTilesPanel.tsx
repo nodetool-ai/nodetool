@@ -4,8 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo } from "react";
 
-import { Text, ScrollArea } from "../ui_primitives";
-import QuickAccessTile from "./QuickAccessTile";
+import { Text } from "../ui_primitives";
+import SearchResultsPanel from "./SearchResultsPanel";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 
@@ -16,13 +16,14 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       height: "100%",
       padding: theme.spacing(1),
-      boxSizing: "border-box"
+      boxSizing: "border-box",
+      minHeight: 0
     },
-    ".history-grid": {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: theme.spacing(1),
-      paddingBottom: theme.spacing(1)
+    ".history-list": {
+      flex: 1,
+      minHeight: 0,
+      display: "flex",
+      flexDirection: "column"
     },
     ".history-empty": {
       padding: theme.spacing(2),
@@ -32,10 +33,8 @@ const styles = (theme: Theme) =>
   });
 
 /**
- * Left-panel-safe history view: pulls recent node_types from
- * `RecentNodesStore` and resolves them against `MetadataStore`, then renders
- * `QuickAccessTile`s. Routes click-to-add via `PendingNodeCreateStore` so it
- * works from outside the `ReactFlowProvider`.
+ * Left-panel History view: virtualized list of recently-used nodes,
+ * resolved against MetadataStore. Same compact row style as Search.
  */
 const HistoryTilesPanel = memo(() => {
   const theme = useTheme();
@@ -52,17 +51,13 @@ const HistoryTilesPanel = memo(() => {
 
   return (
     <div css={styles(theme)} className="history-tiles">
-      <ScrollArea fullHeight>
+      <div className="history-list">
         {nodes.length === 0 ? (
           <Text className="history-empty">No recent nodes yet</Text>
         ) : (
-          <div className="history-grid">
-            {nodes.map((n) => (
-              <QuickAccessTile key={n.node_type} node={n} />
-            ))}
-          </div>
+          <SearchResultsPanel searchNodes={nodes} compact />
         )}
-      </ScrollArea>
+      </div>
     </div>
   );
 });

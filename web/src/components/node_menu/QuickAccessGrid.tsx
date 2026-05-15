@@ -4,9 +4,9 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useState } from "react";
 
-import { Text, ScrollArea } from "../ui_primitives";
+import { Text } from "../ui_primitives";
 import CategorySearchBar from "./CategorySearchBar";
-import QuickAccessTile from "./QuickAccessTile";
+import SearchResultsPanel from "./SearchResultsPanel";
 import useMetadataStore from "../../stores/MetadataStore";
 import {
   filterNodesForCategory,
@@ -21,13 +21,14 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(1),
       height: "100%",
       padding: theme.spacing(1),
-      boxSizing: "border-box"
+      boxSizing: "border-box",
+      minHeight: 0
     },
-    ".qa-grid": {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: theme.spacing(1),
-      paddingBottom: theme.spacing(1)
+    ".qa-list": {
+      flex: 1,
+      minHeight: 0,
+      display: "flex",
+      flexDirection: "column"
     },
     ".qa-empty": {
       padding: theme.spacing(2),
@@ -41,8 +42,9 @@ interface QuickAccessGridProps {
 }
 
 /**
- * 2-column tile grid of nodes that pass the category's filter (plan §7.4).
- * Owns the per-category search bar state — switching categories resets it.
+ * Virtualized list of nodes that pass the category's filter. Uses the same
+ * compact rows as the sidebar Search view. Owns the per-category search
+ * bar state — switching categories resets it.
  */
 const QuickAccessGrid = memo<QuickAccessGridProps>(({ category }) => {
   const theme = useTheme();
@@ -64,17 +66,13 @@ const QuickAccessGrid = memo<QuickAccessGridProps>(({ category }) => {
         onChange={setQuery}
         placeholder={`Filter ${category.label.toLowerCase()}...`}
       />
-      <ScrollArea fullHeight>
+      <div className="qa-list">
         {nodes.length === 0 ? (
           <Text className="qa-empty">No matching nodes</Text>
         ) : (
-          <div className="qa-grid">
-            {nodes.map((n) => (
-              <QuickAccessTile key={n.node_type} node={n} />
-            ))}
-          </div>
+          <SearchResultsPanel searchNodes={nodes} compact />
         )}
-      </ScrollArea>
+      </div>
     </div>
   );
 });
