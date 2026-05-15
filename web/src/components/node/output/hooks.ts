@@ -30,7 +30,7 @@ interface ImageValue extends TypedValue {
   name?: string;
 }
 
-function toUint8Array(
+export function toUint8Array(
   value: unknown
 ): Uint8Array<ArrayBuffer> | undefined {
   if (!value) {

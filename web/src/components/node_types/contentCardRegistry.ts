@@ -16,25 +16,40 @@
 import type { NodeMetadata, OutputSlot } from "../../stores/ApiTypes";
 
 export const CONTENT_CARD_REGISTRY: ReadonlySet<string> = new Set([
+  // Image generators
   "openai.image.CreateImage",
   "openai.image.EditImage",
-  "nodetool.image.TextToImage"
+  "nodetool.image.TextToImage",
+  "nodetool.image.ImageToImage",
+  // Video generators
+  "nodetool.video.TextToVideo",
+  "nodetool.video.ImageToVideo",
+  // Audio generators
+  "nodetool.audio.TextToSpeech",
+  // Text generators
+  "nodetool.text.AutomaticSpeechRecognition"
 ]);
-
-/** Default card dimensions applied at node creation time (plan §6.3). */
-export const CONTENT_CARD_DEFAULT_SIZE = {
-  width: 280,
-  height: 280
-} as const;
-
-/** Slightly taller variant for outputs whose natural aspect varies. */
-export const CONTENT_CARD_VARIABLE_ASPECT_SIZE = {
-  width: 280,
-  height: 320
-} as const;
 
 export const isContentCardNode = (nodeType: string | undefined): boolean =>
   !!nodeType && CONTENT_CARD_REGISTRY.has(nodeType);
+
+/**
+ * Per-variant default card dimensions applied at node creation time
+ * (plan §6.3). Resolved from the node's primary output via
+ * `getContentCardDefaultSize`. Single source of truth for content-card sizes.
+ */
+// Heights include ~120 px of vertical space below the preview for the inline
+// prompt/parameter field(s) that most generator nodes expose. Users can resize
+// further; these are just the comfortable defaults.
+export const CONTENT_CARD_SIZES = {
+  image: { width: 280, height: 400 },
+  image_mask: { width: 280, height: 400 },
+  video: { width: 320, height: 340 },
+  text: { width: 320, height: 320 },
+  audio: { width: 320, height: 240 },
+  model_3d: { width: 280, height: 400 },
+  generic: { width: 280, height: 400 }
+} as const;
 
 /**
  * Pick the "primary" output for a ContentCardBody preview.
@@ -107,4 +122,16 @@ export const getContentCardVariant = (
     default:
       return "generic";
   }
+};
+
+/**
+ * Default `{width, height}` for a content-card node, picked by the node's
+ * primary-output variant. Used by `NodeStore` when a content-card node is
+ * created on the canvas (plan §6.3).
+ */
+export const getContentCardDefaultSize = (
+  metadata: NodeMetadata
+): { width: number; height: number } => {
+  const variant = getContentCardVariant(getPrimaryOutput(metadata));
+  return CONTENT_CARD_SIZES[variant];
 };
