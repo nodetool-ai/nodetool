@@ -86,6 +86,8 @@ export class PdfPageCountNode extends BaseNode {
   static readonly title = "PDF Page Count";
   static readonly description =
     "Get the total number of pages in a PDF document.\n    pdf, pages, count, length";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "int" };
 
   @prop(PDF_INPUT)
@@ -109,6 +111,8 @@ export class PdfExtractTextNode extends BaseNode {
   static readonly title = "PDF Extract Text";
   static readonly description =
     "Extract plain text from a PDF, preserving line breaks based on layout position.\n    pdf, text, extract, read, content";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "str" };
   static readonly exposeAsTool = true;
 
@@ -160,6 +164,8 @@ export class PdfExtractMarkdownNode extends BaseNode {
   static readonly title = "PDF to Markdown";
   static readonly description =
     "Convert PDF to Markdown, inferring headings from font size.\n    pdf, markdown, convert, headings, structure";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "str" };
   static readonly exposeAsTool = true;
 
@@ -362,6 +368,8 @@ export class PdfExtractTablesNode extends BaseNode {
   static readonly title = "PDF Extract Tables";
   static readonly description =
     "Detect and extract tables from a PDF by analysing text layout.\n    pdf, tables, extract, data, rows, columns";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
   static readonly exposeAsTool = true;
 
@@ -526,6 +534,8 @@ export class PdfExtractTextBlocksNode extends BaseNode {
   static readonly title = "PDF Extract Text Blocks";
   static readonly description =
     "Extract text blocks with bounding boxes, useful for layout analysis.\n    pdf, text, blocks, layout, bbox, position";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
   static readonly exposeAsTool = true;
 
@@ -627,6 +637,8 @@ export class PdfExtractStyledTextNode extends BaseNode {
   static readonly title = "PDF Extract Styled Text";
   static readonly description =
     "Extract text spans with font name, size, bounding box, and color (always null; liteparse does not expose per-span color).\n    pdf, text, style, font, size, formatting, color";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
   static readonly exposeAsTool = true;
 
@@ -696,6 +708,8 @@ export class PdfPageMetadataNode extends BaseNode {
   static readonly title = "PDF Page Metadata";
   static readonly description =
     "Get dimensions and bounding box for each page.\n    pdf, metadata, pages, size, dimensions";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
 
   @prop(PDF_INPUT)
@@ -767,6 +781,8 @@ export class PdfScreenshotNode extends BaseNode {
   static readonly title = "PDF Page Screenshot";
   static readonly description =
     "Render PDF pages as PNG images.\n    pdf, screenshot, render, image, pages, png";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[image]" };
 
   @prop(PDF_INPUT)
@@ -864,6 +880,8 @@ export class PdfToppmNode extends BaseNode {
   static readonly title = "PDF Rasterize (pdftoppm)";
   static readonly description =
     "Rasterize PDF pages with poppler's pdftoppm. Higher fidelity than the PDFium-based Screenshot node for some PDFs and supports anti-aliasing controls.\n    pdf, pdftoppm, poppler, rasterize, render, image, pages";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[image]" };
   static readonly requiredRuntimes = ["pdftotext"];
 
@@ -1005,6 +1023,8 @@ export class PdfSearchTextNode extends BaseNode {
   static readonly title = "PDF Search Text";
   static readonly description =
     "Search a PDF for a phrase and return each match with its page number and bounding box.\n    pdf, search, find, phrase, text, location, bbox";
+  static readonly inlineFields = ["phrase"];
+  static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
   static readonly exposeAsTool = true;
 
@@ -1102,6 +1122,8 @@ export class PdfExtractOcrNode extends BaseNode {
   static readonly title = "PDF Extract Text (OCR)";
   static readonly description =
     "Extract text from a PDF using OCR, suitable for scanned documents and image-based PDFs.\n    pdf, ocr, scan, text, extract, image-based";
+  static readonly inlineFields = ["ocr_language"];
+  static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "str" };
   static readonly exposeAsTool = true;
 

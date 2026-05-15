@@ -55,7 +55,8 @@ export type NodeClass = {
   layout?: string;
 
   recommendedModels?: unknown[];
-  basicFields?: string[];
+  inlineFields?: string[];
+  inputFields?: string[];
   requiredSettings?: string[];
   requiredRuntimes?: string[];
   isStreamingInput: boolean;
@@ -114,7 +115,8 @@ export abstract class BaseNode {
   static readonly layout: string | undefined = undefined;
 
   static readonly recommendedModels: unknown[] | undefined = undefined;
-  static readonly basicFields: string[] | undefined = undefined;
+  static readonly inlineFields: string[] | undefined = undefined;
+  static readonly inputFields: string[] | undefined = undefined;
   static readonly requiredSettings: string[] | undefined = undefined;
   static readonly requiredRuntimes: string[] | undefined = undefined;
   static readonly isStreamingInput: boolean = false;

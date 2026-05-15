@@ -82,6 +82,8 @@ export class FetchRSSFeedLibNode extends BaseNode {
   };
   static readonly exposeAsTool = true;
 
+  static readonly inlineFields = ["url"];
+  static readonly inputFields = [];
   static readonly isStreamingOutput = true;
   @prop({
     type: "str",
@@ -128,6 +130,8 @@ export class ExtractFeedMetadataLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict"
   };
+  static readonly inlineFields = ["url"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",

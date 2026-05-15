@@ -7,6 +7,10 @@ import { NodeData } from "../../stores/NodeData";
 import NodeProgress from "./NodeProgress";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
+import { isContentCardNode } from "../node_types/contentCardRegistry";
+import ContentCardBody from "../node_types/ContentCardBody";
+import HandleColumn from "./HandleColumn";
+import { isSnippetCodeNode } from "./codeNodeUi";
 
 interface NodeContentProps {
   id: string;
@@ -14,10 +18,6 @@ interface NodeContentProps {
   nodeMetadata: NodeMetadata;
   isOutputNode: boolean;
   data: NodeData;
-  basicFields: string[];
-  showAdvancedFields: boolean;
-  hasAdvancedFields: boolean;
-  onToggleAdvancedFields: () => void;
   status?: string;
   workflowId: string;
   showResultOverlay: boolean;
@@ -39,13 +39,9 @@ const arePropsEqual = (
     prevProps.id !== nextProps.id ||
     prevProps.nodeType !== nextProps.nodeType ||
     prevProps.isOutputNode !== nextProps.isOutputNode ||
-    prevProps.showAdvancedFields !== nextProps.showAdvancedFields ||
-    prevProps.hasAdvancedFields !== nextProps.hasAdvancedFields ||
     prevProps.status !== nextProps.status ||
     prevProps.workflowId !== nextProps.workflowId ||
-    prevProps.showResultOverlay !== nextProps.showResultOverlay ||
-    prevProps.basicFields.length !== nextProps.basicFields.length ||
-    !prevProps.basicFields.every((field, i) => field === nextProps.basicFields[i])
+    prevProps.showResultOverlay !== nextProps.showResultOverlay
   ) {
     return false;
   }
@@ -124,7 +120,6 @@ const arePropsEqual = (
 
   // Functions should be stable references, but check them anyway
   if (
-    prevProps.onToggleAdvancedFields !== nextProps.onToggleAdvancedFields ||
     prevProps.onShowInputs !== nextProps.onShowInputs ||
     prevProps.onShowResults !== nextProps.onShowResults
   ) {
@@ -140,10 +135,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
   nodeMetadata,
   isOutputNode,
   data,
-  basicFields,
-  showAdvancedFields,
-  hasAdvancedFields,
-  onToggleAdvancedFields,
   status,
   workflowId,
   showResultOverlay,
@@ -155,6 +146,45 @@ const NodeContent: React.FC<NodeContentProps> = ({
     data.dynamic_properties
   );
 
+  // Body routing (plan §4.1):
+  //   bespoke registry (Track E — future)
+  //     → content-card registry  (PR 4+)
+  //       → generic body (this component's default layout)
+  // Utility nodes (control flow, constants, etc.) intentionally never appear
+  // in CONTENT_CARD_REGISTRY and stay on the generic body forever.
+  if (isContentCardNode(nodeType)) {
+    return (
+      <ContentCardBody
+        id={id}
+        nodeType={nodeType}
+        nodeMetadata={nodeMetadata}
+        data={data}
+        workflowId={workflowId}
+        status={status}
+        isOutputNode={isOutputNode}
+      />
+    );
+  }
+
+  // Split properties by classification:
+  //   inline_fields → full PropertyField rows (handle + label + editor)
+  //   input_fields  → handle-only (rendered in HandleColumn on the left edge)
+  //   default       → Inspector only (hidden in node body)
+  // Code nodes in snippet mode hide their `code` property from the inline
+  // list — the snippet editor itself replaces that editor surface.
+  let inlineFieldNames = nodeMetadata.inline_fields ?? [];
+  const inputFieldNames = nodeMetadata.input_fields ?? [];
+  if (isSnippetCodeNode(nodeType, data)) {
+    inlineFieldNames = inlineFieldNames.filter((n) => n !== "code");
+  }
+  const allProperties = nodeMetadata.properties ?? [];
+  const inlineProperties = allProperties.filter((p) =>
+    inlineFieldNames.includes(p.name)
+  );
+  const inputProperties = allProperties.filter((p) =>
+    inputFieldNames.includes(p.name)
+  );
+
   return (
     <FlexColumn
       fullWidth
@@ -164,17 +194,14 @@ const NodeContent: React.FC<NodeContentProps> = ({
         minHeight: 0
       }}
     >
+      <HandleColumn id={id} properties={inputProperties} />
       <NodeInputs
         id={id}
         nodeMetadata={nodeMetadata}
         layout={nodeMetadata.layout}
-        properties={nodeMetadata.properties}
+        properties={inlineProperties}
         nodeType={nodeType}
         data={data}
-        hasAdvancedFields={hasAdvancedFields}
-        showAdvancedFields={showAdvancedFields}
-        basicFields={basicFields}
-        onToggleAdvancedFields={onToggleAdvancedFields}
       />
       {(nodeMetadata?.is_dynamic || nodeMetadata?.supports_dynamic_outputs) && (
         <NodePropertyForm

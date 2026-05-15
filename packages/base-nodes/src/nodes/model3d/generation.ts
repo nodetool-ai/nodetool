@@ -85,7 +85,8 @@ export class TextTo3DNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
-  static readonly basicFields = ["model", "prompt", "enable_textures", "output_format", "seed"];
+  static readonly inlineFields = ["prompt"];
+  static readonly inputFields = [];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -153,7 +154,8 @@ export class ImageTo3DNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
-  static readonly basicFields = ["model", "image", "output_format", "seed"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
   static readonly exposeAsTool = true;
 
   @prop({

@@ -20,6 +20,7 @@ import { getOutputNodeSelectionSx } from "../selectionStyles";
 import { NodeHeader } from "../NodeHeader";
 import NodeResizeHandle from "../NodeResizeHandle";
 import { NodeInputs } from "../NodeInputs";
+import HandleColumn from "../HandleColumn";
 import PreviewActions from "../PreviewNode/PreviewActions";
 import { downloadPreviewAssets } from "../../../utils/downloadPreviewAssets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
@@ -440,23 +441,31 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
             hideLogs={true}
           />
 
-          {/* Render properties with handles using NodeInputs - just like BaseNode does */}
-          {nodeMetadata && (
-            <NodeInputs
-              id={props.id}
-              nodeMetadata={nodeMetadata}
-              layout={nodeMetadata.layout}
-              properties={nodeMetadata.properties}
-              nodeType={props.type}
-              data={props.data}
-              showHandle={true}
-              showFields={true}
-              hasAdvancedFields={false}
-              showAdvancedFields={false}
-              basicFields={nodeMetadata.basic_fields || nodeMetadata.properties.map(p => p.name)}
-              onToggleAdvancedFields={() => { }}
-            />
-          )}
+          {nodeMetadata && (() => {
+            const inlineNames = nodeMetadata.inline_fields ?? [];
+            const inputNames = nodeMetadata.input_fields ?? [];
+            const inlineProps = nodeMetadata.properties.filter((p) =>
+              inlineNames.includes(p.name)
+            );
+            const inputProps = nodeMetadata.properties.filter((p) =>
+              inputNames.includes(p.name)
+            );
+            return (
+              <>
+                <HandleColumn id={props.id} properties={inputProps} />
+                <NodeInputs
+                  id={props.id}
+                  nodeMetadata={nodeMetadata}
+                  layout={nodeMetadata.layout}
+                  properties={inlineProps}
+                  nodeType={props.type}
+                  data={props.data}
+                  showHandle={false}
+                  showFields={true}
+                />
+              </>
+            );
+          })()}
 
           {result === null || result === undefined && (
             <Text className="hint">

@@ -45,6 +45,8 @@ export class BitcrushNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",
@@ -119,6 +121,8 @@ export class CompressNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",
@@ -229,6 +233,8 @@ export class DistortionNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",
@@ -289,6 +295,8 @@ export class LimiterNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",
@@ -372,6 +380,8 @@ export class ReverbNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",
@@ -531,6 +541,8 @@ export class PitchShiftNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",
@@ -663,6 +675,8 @@ export class TimeStretchNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",
@@ -796,6 +810,8 @@ export class NoiseGateNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",
@@ -893,6 +909,8 @@ export class PhaserNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",

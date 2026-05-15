@@ -3,7 +3,6 @@ import {
   isCodeNode,
   isSnippetCodeNode,
   resolveCodeNodeTitle,
-  resolveVisibleBasicFields,
   isCodeNodeTitleEditable
 } from "../codeNodeUi";
 
@@ -65,34 +64,6 @@ describe("codeNodeUi", () => {
       expect(resolveCodeNodeTitle(CODE_NODE_TYPE, undefined, "Code")).toBe(
         "Code"
       );
-    });
-  });
-
-  describe("resolveVisibleBasicFields", () => {
-    const fields = ["code", "language", "timeout"];
-
-    it("returns all fields for non-snippet code nodes", () => {
-      expect(
-        resolveVisibleBasicFields(CODE_NODE_TYPE, fields, {
-          codeNodeMode: undefined
-        })
-      ).toEqual(fields);
-    });
-
-    it("filters out code field for snippet code nodes", () => {
-      expect(
-        resolveVisibleBasicFields(CODE_NODE_TYPE, fields, {
-          codeNodeMode: "snippet"
-        })
-      ).toEqual(["language", "timeout"]);
-    });
-
-    it("returns all fields for non-code node types", () => {
-      expect(
-        resolveVisibleBasicFields("nodetool.text.Concat", fields, {
-          codeNodeMode: "snippet"
-        })
-      ).toEqual(fields);
     });
   });
 

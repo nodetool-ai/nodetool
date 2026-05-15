@@ -10,6 +10,8 @@ export class SendEmailLibNode extends BaseNode {
     output: "bool"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["to_address", "subject"];
+  static readonly inputFields = ["body"];
 
   @prop({
     type: "str",
@@ -156,13 +158,8 @@ export class GmailSearchLibNode extends BaseNode {
     emails: "list",
     message_ids: "list"
   };
-  static readonly basicFields = [
-    "from_address",
-    "subject",
-    "body",
-    "date_filter",
-    "max_results"
-  ];
+  static readonly inlineFields = ["from_address", "subject"];
+  static readonly inputFields = [];
   static readonly requiredSettings = [
     "GOOGLE_MAIL_USER",
     "GOOGLE_APP_PASSWORD"
@@ -380,6 +377,8 @@ export class AddLabelLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "bool"
   };
+  static readonly inlineFields = ["message_id", "label"];
+  static readonly inputFields = [];
   static readonly requiredSettings = [
     "GOOGLE_MAIL_USER",
     "GOOGLE_APP_PASSWORD"
@@ -447,6 +446,8 @@ export class MoveToArchiveLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "bool"
   };
+  static readonly inlineFields = ["message_id"];
+  static readonly inputFields = [];
   static readonly requiredSettings = [
     "GOOGLE_MAIL_USER",
     "GOOGLE_APP_PASSWORD"

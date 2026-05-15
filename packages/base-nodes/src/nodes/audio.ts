@@ -76,6 +76,8 @@ export class LoadAudioAssetsNode extends BaseNode {
     name: "str",
     audios: "list"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
 
   static readonly isStreamingOutput = true;
   @prop({
@@ -153,6 +155,8 @@ export class LoadAudioFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
 
   @prop({
     type: "str",
@@ -179,6 +183,8 @@ export class LoadAudioFolderNode extends BaseNode {
     path: "str",
     audios: "list"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
 
   static readonly isStreamingOutput = true;
   @prop({
@@ -229,6 +235,8 @@ export class SaveAudioNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -286,6 +294,8 @@ export class SaveAudioFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",
@@ -351,6 +361,8 @@ export class NormalizeAudioNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -399,6 +411,8 @@ export class OverlayAudioNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["a", "b"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -449,6 +463,8 @@ export class RemoveSilenceNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -534,6 +550,8 @@ export class SliceAudioNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -585,6 +603,8 @@ export class MonoToStereoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -620,6 +640,8 @@ export class StereoToMonoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -662,6 +684,8 @@ export class ReverseAudioNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -692,6 +716,8 @@ export class FadeInAudioNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -735,6 +761,8 @@ export class FadeOutAudioNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -780,6 +808,8 @@ export class RepeatAudioNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -826,6 +856,8 @@ export class AudioMixerNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["track1", "track2", "track3", "track4", "track5"];
 
   @prop({
     type: "audio",
@@ -1019,6 +1051,8 @@ export class TrimAudioNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -1073,6 +1107,8 @@ export class CreateSilenceNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
 
   @prop({
     type: "float",
@@ -1097,6 +1133,8 @@ export class ConcatAudioNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["a", "b"];
   static readonly exposeAsTool = true;
   static readonly isDynamic = true;
 
@@ -1144,6 +1182,8 @@ export class ConcatAudioListNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio_files"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -1172,7 +1212,8 @@ export class TextToSpeechNode extends BaseNode {
     audio: "audio",
     chunk: "chunk"
   };
-  static readonly basicFields = ["model", "text", "voice", "speed"];
+  static readonly inlineFields: string[] = ["text"];
+  static readonly inputFields: string[] = [];
   static readonly autoSaveAsset = true;
   static readonly exposeAsTool = true;
 
@@ -1267,6 +1308,8 @@ export class ChunkToAudioNode extends BaseNode {
   static readonly metadataOutputTypes = {
     audio: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["chunk"];
 
   @prop({
     type: "chunk",
@@ -1318,6 +1361,8 @@ export class GetAudioInfoNode extends BaseNode {
     format: "str",
     size_bytes: "int"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",

@@ -96,6 +96,8 @@ export class CreateDocumentLibNode extends BaseNode {
   static readonly title = "Create Document";
   static readonly description =
     "Creates a new Word document\n    document, docx, file, create";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "document"
   };
@@ -110,6 +112,8 @@ export class LoadWordDocumentLibNode extends BaseNode {
   static readonly title = "Load Word Document";
   static readonly description =
     "Loads a Word document from disk\n    document, docx, file, load, input";
+  static readonly inlineFields = ["path"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "document"
   };
@@ -136,6 +140,8 @@ export class AddHeadingLibNode extends BaseNode {
   static readonly title = "Add Heading";
   static readonly description =
     "Adds a heading to the document\n    document, docx, heading, format";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = ["document"];
   static readonly metadataOutputTypes = {
     output: "document"
   };
@@ -189,6 +195,8 @@ export class AddParagraphLibNode extends BaseNode {
   static readonly title = "Add Paragraph";
   static readonly description =
     "Adds a paragraph of text to the document\n    document, docx, text, format";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = ["document"];
   static readonly metadataOutputTypes = {
     output: "document"
   };
@@ -278,6 +286,8 @@ export class AddTableLibNode extends BaseNode {
   static readonly title = "Add Table";
   static readonly description =
     "Adds a table to the document\n    document, docx, table, format";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["document", "data"];
   static readonly metadataOutputTypes = {
     output: "document"
   };
@@ -343,6 +353,8 @@ export class AddImageLibNode extends BaseNode {
   static readonly title = "Add Image";
   static readonly description =
     "Adds an image to the document\n    document, docx, image, format";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["document", "image"];
   static readonly metadataOutputTypes = {
     output: "document"
   };
@@ -436,6 +448,8 @@ export class AddPageBreakLibNode extends BaseNode {
   static readonly title = "Add Page Break";
   static readonly description =
     "Adds a page break to the document\n    document, docx, format, layout";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["document"];
   static readonly metadataOutputTypes = {
     output: "document"
   };
@@ -469,6 +483,8 @@ export class SetDocumentPropertiesLibNode extends BaseNode {
   static readonly title = "Set Document Properties";
   static readonly description =
     "Sets document metadata properties\n    document, docx, metadata, properties";
+  static readonly inlineFields = ["title", "author"];
+  static readonly inputFields = ["document"];
   static readonly metadataOutputTypes = {
     output: "document"
   };
@@ -545,6 +561,8 @@ export class SaveDocumentLibNode extends BaseNode {
   static readonly title = "Save Document";
   static readonly description =
     "Writes the document to a file\n    document, docx, file, save, output";
+  static readonly inlineFields = ["filename"];
+  static readonly inputFields = ["document"];
 
   @prop({
     type: "document",

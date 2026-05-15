@@ -78,7 +78,6 @@ const FOO_NODE = {
   outputs: [],
   layout: "default",
   recommended_models: [],
-  basic_fields: [],
   required_settings: [],
   is_dynamic: false,
   is_streaming_output: false,

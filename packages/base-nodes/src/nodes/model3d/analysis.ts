@@ -15,6 +15,8 @@ export class GetModel3DMetadataNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["model"];
 
   @prop({
     type: "model_3d",

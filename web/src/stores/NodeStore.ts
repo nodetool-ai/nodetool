@@ -34,6 +34,10 @@ import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
 import PlaceholderNode from "../components/node_types/PlaceholderNode";
 import {
+  CONTENT_CARD_DEFAULT_SIZE,
+  isContentCardNode
+} from "../components/node_types/contentCardRegistry";
+import {
   graphEdgeToReactFlowEdge,
   CONTROL_HANDLE_ID,
   isAgentNodeType
@@ -1338,6 +1342,7 @@ export const createNodeStore = (
               metadata.node_type === "nodetool.compare.CompareImages";
             const isModel3DConstantNode =
               metadata.node_type === "nodetool.constant.Model3D";
+            const isContentCard = isContentCardNode(metadata.node_type);
             let defaultStyle: { width: number; height?: number };
             if (isPreviewNode) {
               defaultStyle = { width: 400, height: 300 };
@@ -1345,6 +1350,11 @@ export const createNodeStore = (
               defaultStyle = { width: 450, height: 350 };
             } else if (isModel3DConstantNode) {
               defaultStyle = { width: 320, height: 320 };
+            } else if (isContentCard) {
+              defaultStyle = {
+                width: CONTENT_CARD_DEFAULT_SIZE.width,
+                height: CONTENT_CARD_DEFAULT_SIZE.height
+              };
             } else {
               defaultStyle = { width: DEFAULT_NODE_WIDTH };
             }

@@ -72,6 +72,8 @@ export class ApifyWebScraperNode extends BaseNode {
   };
   static readonly requiredSettings = ["APIFY_API_TOKEN"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["link_selector"];
+  static readonly inputFields = ["start_urls"];
 
   @prop({
     type: "list[str]",
@@ -152,6 +154,8 @@ export class ApifyGoogleSearchScraperNode extends BaseNode {
   };
   static readonly requiredSettings = ["APIFY_API_TOKEN"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["queries"];
 
   @prop({
     type: "list[str]",
@@ -243,6 +247,8 @@ export class ApifyInstagramScraperNode extends BaseNode {
   };
   static readonly requiredSettings = ["APIFY_API_TOKEN"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["usernames", "hashtags"];
 
   @prop({
     type: "list[str]",
@@ -334,6 +340,8 @@ export class ApifyAmazonScraperNode extends BaseNode {
   };
   static readonly requiredSettings = ["APIFY_API_TOKEN"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["search_queries", "product_urls"];
 
   @prop({
     type: "list[str]",
@@ -425,6 +433,8 @@ export class ApifyYouTubeScraperNode extends BaseNode {
   };
   static readonly requiredSettings = ["APIFY_API_TOKEN"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["search_queries", "video_urls", "channel_urls"];
 
   @prop({
     type: "list[str]",
@@ -534,6 +544,8 @@ export class ApifyTwitterScraperNode extends BaseNode {
   };
   static readonly requiredSettings = ["APIFY_API_TOKEN"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["search_terms", "usernames", "tweet_urls"];
 
   @prop({
     type: "list[str]",
@@ -632,6 +644,8 @@ export class ApifyLinkedInScraperNode extends BaseNode {
   };
   static readonly requiredSettings = ["APIFY_API_TOKEN"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = ["profile_urls", "company_urls", "job_search_urls"];
 
   @prop({
     type: "list[str]",

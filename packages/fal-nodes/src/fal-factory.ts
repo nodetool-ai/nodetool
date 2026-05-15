@@ -6,7 +6,11 @@
  * declared properties, backed by a generic process() that calls falSubmit.
  */
 
-import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
+import {
+  BaseNode,
+  classifyFields,
+  registerDeclaredProperty
+} from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
@@ -109,6 +113,29 @@ function castValue(value: unknown, propType: string): unknown {
     default:
       return String(value);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Field Classification
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute inlineFields and inputFields from a FAL field list.
+ * Delegates to the shared `classifyFields` rule in node-sdk after stripping
+ * sub-fields and lowercasing FAL's mixed-case propType values.
+ */
+function computeFieldClassification(
+  fields: Array<{
+    name: string;
+    propType: string;
+    parentField?: string;
+  }>
+) {
+  return classifyFields(
+    fields
+      .filter((f) => !f.parentField)
+      .map((f) => ({ name: f.name, propType: f.propType.toLowerCase() }))
+  );
 }
 
 async function buildArgs(
@@ -391,6 +418,17 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
       configurable: true
     });
   }
+
+  // Compute and set field classification
+  const { inlineFields, inputFields } = computeFieldClassification(spec.inputFields);
+  Object.defineProperty(FalNodeClass, "inlineFields", {
+    value: inlineFields,
+    configurable: true
+  });
+  Object.defineProperty(FalNodeClass, "inputFields", {
+    value: inputFields,
+    configurable: true
+  });
 
   // Register declared properties (equivalent to @prop decorator)
   for (const field of spec.inputFields) {

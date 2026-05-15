@@ -5,6 +5,7 @@
  * Each class extends BaseNode and calls Kie.ai API via shared helpers.
  */
 
+import { classifyFields } from "@nodetool-ai/node-sdk";
 import type { NodeConfig, ModuleConfig, FieldDef } from "./types.js";
 
 // ---------------------------------------------------------------------------
@@ -46,6 +47,21 @@ function fieldToVarName(name: string): string {
 
 function isAssetType(type: string): boolean {
   return ["image", "audio", "video", "list[image]", "list[video]", "list[audio]"].includes(type);
+}
+
+// ---------------------------------------------------------------------------
+// Field Classification
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute inlineFields and inputFields from a Kie field list.
+ * Delegates to the shared `classifyFields` rule in node-sdk after mapping
+ * each Kie `FieldDef.type` onto the `{ name, propType }` shape it expects.
+ */
+function computeFieldClassification(fields: FieldDef[]) {
+  return classifyFields(
+    fields.map((f) => ({ name: f.name, propType: f.type }))
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -121,6 +137,11 @@ export class KieNodeGenerator {
     );
     lines.push(`  static readonly requiredSettings = ["KIE_API_KEY"];`);
     lines.push(`  static readonly exposeAsTool = true;`);
+
+    // Compute and emit field classification
+    const { inlineFields, inputFields } = computeFieldClassification(node.fields);
+    lines.push(`  static readonly inlineFields = ${JSON.stringify(inlineFields)};`);
+    lines.push(`  static readonly inputFields = ${JSON.stringify(inputFields)};`);
     lines.push(``);
 
     // Custom fields

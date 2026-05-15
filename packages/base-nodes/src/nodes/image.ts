@@ -227,6 +227,8 @@ export class LoadImageFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = ["path"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -261,6 +263,8 @@ export class LoadImageFolderNode extends BaseNode {
     path: "str",
     images: "list"
   };
+  static readonly inlineFields = ["folder"];
+  static readonly inputFields = [];
 
   static readonly isStreamingOutput = true;
   @prop({
@@ -389,6 +393,8 @@ export class SaveImageFileImageNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = ["filename"];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -466,6 +472,8 @@ export class LoadImageAssetsNode extends BaseNode {
     name: "str",
     images: "list"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   static readonly isStreamingOutput = true;
   @prop({
@@ -506,6 +514,8 @@ export class SaveImageNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = ["name"];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -604,6 +614,8 @@ export class GetMetadataNode extends BaseNode {
     height: "int",
     channels: "int"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -668,6 +680,8 @@ export class BatchToListNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[image]"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["batch"];
 
   @prop({
     type: "image",
@@ -716,6 +730,8 @@ export class ImagesToListNode extends BaseNode {
     output: "list[image]"
   };
   static readonly isDynamic = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   async process(): Promise<Record<string, unknown>> {
     const out: unknown[] = [];
@@ -749,7 +765,8 @@ export class ImageEditorNode extends BaseNode {
   };
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
-  static readonly basicFields = ["sketch_data"];
+  static readonly inlineFields = ["sketch_data"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -828,6 +845,8 @@ export class PasteNode extends TransformImageNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image", "paste"];
 
   @prop({
     type: "image",
@@ -926,6 +945,8 @@ export class ScaleNode extends TransformImageNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -1002,6 +1023,8 @@ export class ResizeNode extends TransformImageNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -1062,6 +1085,8 @@ export class CropNode extends TransformImageNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -1146,6 +1171,8 @@ export class FitNode extends TransformImageNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -1206,12 +1233,8 @@ export class TextToImageNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
-  static readonly basicFields = [
-    "model",
-    "prompt",
-    "aspect_ratio",
-    "resolution"
-  ];
+  static readonly inlineFields = ["prompt"];
+  static readonly inputFields = [];
   static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
@@ -1317,14 +1340,8 @@ export class ImageToImageNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
-  static readonly basicFields = [
-    "model",
-    "image",
-    "prompt",
-    "strength",
-    "aspect_ratio",
-    "resolution"
-  ];
+  static readonly inlineFields = ["prompt"];
+  static readonly inputFields = ["image"];
   static readonly autoSaveAsset = true;
   static readonly exposeAsTool = true;
 
@@ -1471,6 +1488,8 @@ export class RotateNode extends TransformImageNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -1523,6 +1542,8 @@ export class FlipNode extends TransformImageNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",

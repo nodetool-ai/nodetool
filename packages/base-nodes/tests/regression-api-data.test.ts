@@ -267,7 +267,10 @@ describe("ChartGenerator regression", () => {
     const node = new ChartGeneratorNode();
     expect(typeof node.process).toBe("function");
     // Verify the node has a model property for LLM configuration
-    expect((ChartGeneratorNode as any).basicFields).toContain("model");
+    const propNames = ChartGeneratorNode.getDeclaredProperties().map(
+      (p) => p.name
+    );
+    expect(propNames).toContain("model");
   });
 
   it("fallback output reflects the prompt, not a static value", async () => {
@@ -334,7 +337,10 @@ describe("SVGGenerator regression", () => {
   });
 
   it("has model property for LLM configuration", () => {
-    expect((SVGGeneratorNode as any).basicFields).toContain("model");
+    const propNames = SVGGeneratorNode.getDeclaredProperties().map(
+      (p) => p.name
+    );
+    expect(propNames).toContain("model");
   });
 });
 

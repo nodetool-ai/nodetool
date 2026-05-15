@@ -11,6 +11,8 @@ export function makePlaceholderNode(nodeType: string): NodeClass {
     static readonly nodeType = nodeType;
     static readonly title = titleFromNodeType(nodeType);
     static readonly description = `Placeholder node for ${nodeType}`;
+    static readonly inlineFields = [];
+    static readonly inputFields = [];
 
     async process(): Promise<Record<string, unknown>> {
       return { output: (this as any).value ?? this.serialize() };

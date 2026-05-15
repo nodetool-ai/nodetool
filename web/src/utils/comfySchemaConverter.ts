@@ -178,7 +178,6 @@ export function comfySchemaToNodeMetadata(
     layout: "default",
 
     recommended_models: [],
-    basic_fields: properties.map((property) => property.name),
     is_dynamic: false,
     is_streaming_output: false,
     expose_as_tool: false,

@@ -9,10 +9,6 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useConnectedEdgesSelector } from "../../hooks/nodes/useConnectedEdges";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findOutputHandle } from "../../utils/handleUtils";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { Tooltip, EditorButton } from "../ui_primitives";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Collapse } from "@mui/material";
 
 
 export interface NodeInputsProps {
@@ -24,10 +20,6 @@ export interface NodeInputsProps {
   nodeMetadata: NodeMetadata;
   showFields?: boolean;
   showHandle?: boolean;
-  showAdvancedFields?: boolean;
-  basicFields?: string[];
-  hasAdvancedFields?: boolean;
-  onToggleAdvancedFields?: () => void;
   onUpdatePropertyName?: (
     oldPropertyName: string,
     newPropertyName: string
@@ -46,8 +38,6 @@ interface NodeInputProps {
   showFields: boolean;
   showHandle: boolean;
   tabIndex: number;
-  showAdvancedFields?: boolean;
-  basicFields?: string[];
   isDynamicProperty?: boolean;
   onDeleteProperty?: (propertyName: string) => void;
   onUpdatePropertyName?: (
@@ -67,19 +57,9 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
   showFields,
   showHandle,
   tabIndex,
-  showAdvancedFields,
-  basicFields,
   isDynamicProperty,
   isConnected
 }) {
-  const isBasicField = useMemo(() => {
-    return basicFields?.includes(property.name);
-  }, [basicFields, property.name]);
-  const isAdvancedField = !isBasicField && !isDynamicProperty;
-
-  if (isAdvancedField && !isConnected && !showAdvancedFields) {
-    return null;
-  }
   // Resolve the current value for this input. Use dynamic_properties for
   // dynamic inputs; otherwise use properties. Fallback to the property's
   // default when undefined to avoid runtime errors.
@@ -115,10 +95,6 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   showHandle = true,
   showFields = true,
   layout,
-  showAdvancedFields,
-  basicFields,
-  hasAdvancedFields,
-  onToggleAdvancedFields,
   editableDynamicInputs = true
 }) => {
   const rootStyles = useMemo(
@@ -126,16 +102,6 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
       css({
         marginTop: "1em",
         marginBottom: "0.5em"
-      }),
-    []
-  );
-
-  const expandButtonContainerStyles = useMemo(
-    () =>
-      css({
-        display: "flex",
-        justifyContent: "center",
-        margin: "4px 0"
       }),
     []
   );
@@ -154,9 +120,6 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     [data?.dynamic_properties]
   );
 
-  const basicInputs: React.JSX.Element[] = [];
-  const advancedInputs: React.JSX.Element[] = [];
-
   const findNode = useNodes((state) => state.findNode);
 
   // Use optimized stable selector for connected edges to prevent re-renders on unrelated edge changes
@@ -173,16 +136,14 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     [connectedEdges]
   );
 
-  properties.forEach((property, index) => {
+  const allInputs = properties.map((property, index) => {
     const tabIndex = tabableProperties.findIndex(
       (p) => p.name === property.name
     );
     const finalTabIndex = tabIndex !== -1 ? tabIndex + 1 : -1;
-    const isBasicField = basicFields?.includes(property.name);
-
     const connected = isConnected(property.name);
 
-    const inputElement = (
+    return (
       <NodeInput
         key={property.name + id}
         id={id}
@@ -194,17 +155,9 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
         showFields={showFields}
         showHandle={showHandle}
         tabIndex={finalTabIndex}
-        showAdvancedFields={showAdvancedFields}
-        basicFields={basicFields}
         isConnected={connected}
       />
     );
-
-    if (isBasicField || connected) {
-      basicInputs.push(inputElement);
-    } else {
-      advancedInputs.push(inputElement);
-    }
   });
 
   const dynamicInputs = useMemo(
@@ -298,68 +251,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
 
   return (
     <div className={`node-inputs node-drag-handle node-${id}`} css={rootStyles}>
-      {basicInputs}
-
-      {hasAdvancedFields && (
-        <div
-          className="expand-button-container"
-          css={expandButtonContainerStyles}
-        >
-          <Tooltip
-            title={`${showAdvancedFields ? "Hide" : "Show"} Advanced Fields`}
-            placement="bottom"
-            delay={TOOLTIP_ENTER_DELAY}
-          >
-            <EditorButton
-              tabIndex={-1}
-              onClick={onToggleAdvancedFields}
-              size="small"
-              variant="text"
-              sx={(theme) => ({
-                margin: "0 2px",
-                padding: "0.1em 1em 0.1em 0.5em",
-                minWidth: 0,
-                fontSize: "0.7rem",
-                color: theme.vars.palette.grey[500],
-                backgroundColor: "transparent",
-                border: "none",
-                cursor: "pointer",
-                textAlign: "left",
-                "&:hover": {
-                  backgroundColor: "transparent",
-                  color: theme.vars.palette.grey[0]
-                },
-                "& .MuiSvgIcon-root": {
-                  transition: "transform 0.3s ease, color 0.2s ease",
-                  fontSize: "1rem",
-                  verticalAlign: "middle",
-                  marginRight: "2px",
-                  transform: showAdvancedFields
-                    ? "rotate(180deg) scale(0.7)"
-                    : "scale(0.7)",
-                  color: showAdvancedFields
-                    ? theme.vars.palette.primary.main
-                    : "inherit"
-                }
-              })}
-            >
-              <ExpandMoreIcon /> {showAdvancedFields ? "Less" : "More"}
-            </EditorButton>
-          </Tooltip>
-        </div>
-      )}
-
-      {advancedInputs.length > 0 && (
-        <Collapse
-          in={showAdvancedFields}
-          timeout={300}
-          mountOnEnter
-          unmountOnExit
-        >
-          <div className="advanced-fields-container">{advancedInputs}</div>
-        </Collapse>
-      )}
-
+      {allInputs}
       {dynamicInputElements}
     </div>
   );

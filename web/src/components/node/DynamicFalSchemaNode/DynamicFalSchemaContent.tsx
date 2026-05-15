@@ -14,10 +14,6 @@ export interface DynamicFalSchemaContentProps {
   isConstantNode: boolean;
   isOutputNode: boolean;
   data: NodeData;
-  basicFields: string[];
-  showAdvancedFields: boolean;
-  hasAdvancedFields: boolean;
-  onToggleAdvancedFields: () => void;
   status?: string;
   workflowId: string;
   showResultOverlay?: boolean;
@@ -40,10 +36,6 @@ export const DynamicFalSchemaContent: React.FC<DynamicFalSchemaContentProps> =
       isConstantNode,
       isOutputNode,
       data,
-      basicFields,
-      showAdvancedFields,
-      hasAdvancedFields,
-      onToggleAdvancedFields,
       status,
       workflowId
     }) => {
@@ -124,10 +116,6 @@ export const DynamicFalSchemaContent: React.FC<DynamicFalSchemaContentProps> =
               nodeType={nodeType}
               data={data}
               showHandle={!isConstantNode}
-              hasAdvancedFields={hasAdvancedFields}
-              showAdvancedFields={showAdvancedFields}
-              basicFields={basicFields}
-              onToggleAdvancedFields={onToggleAdvancedFields}
             />
           </Box>
           {!isOutputNode && (

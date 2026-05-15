@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useMemo } from "react";
 import { Node, NodeProps, NodeToolbar, Position } from "@xyflow/react";
 import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -52,10 +52,7 @@ const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { id, type, data, selected, parentId, dragging } = props;
   const { workflow_id } = data;
   const isFocused = useNodeFocusStore((state) => state.focusedNodeId === id);
-  const updateNode = useNodes((state) => state.updateNode);
   const hasParent = Boolean(parentId);
-
-  const [showAdvancedFields, setShowAdvancedFields] = useState(false);
 
   const metadata = useMetadataStore((state) => state.getMetadata(type));
   const status = useStatusStore((state) => state.getStatus(workflow_id, id));
@@ -67,23 +64,6 @@ const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     (state) =>
       state.getOutputResult(workflow_id, id) ?? state.getResult(workflow_id, id)
   );
-
-  const meta = useMemo(() => {
-    if (!metadata) {
-      return { nodeBasicFields: [], hasAdvancedFields: false };
-    }
-    return {
-      nodeBasicFields: metadata.basic_fields || [],
-      hasAdvancedFields:
-        (metadata.properties?.length ?? 0) >
-        (metadata.basic_fields?.length ?? 0)
-    };
-  }, [metadata]);
-
-  const onToggleAdvancedFields = useCallback(() => {
-    setShowAdvancedFields((prev) => !prev);
-    updateNode(id, { height: undefined, measured: undefined });
-  }, [id, updateNode]);
 
   const nodeType = useMemo(
     () => ({
@@ -178,10 +158,6 @@ const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           isConstantNode={nodeType.isConstantNode}
           isOutputNode={nodeType.isOutputNode}
           data={data}
-          basicFields={meta.nodeBasicFields}
-          showAdvancedFields={showAdvancedFields}
-          hasAdvancedFields={meta.hasAdvancedFields}
-          onToggleAdvancedFields={onToggleAdvancedFields}
           status={statusValue}
           workflowId={workflow_id}
           showResultOverlay={false}

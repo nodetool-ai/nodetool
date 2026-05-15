@@ -70,8 +70,7 @@ export const config: ModuleConfig = {
       },
       enumOverrides: {
         ImageSize: "ImageSizePreset"
-      },
-      basicFields: ["image", "image_size", "num_inference_steps"]
+      }
     },
 
     "fal-ai/flux/dev/redux": {
@@ -127,8 +126,7 @@ export const config: ModuleConfig = {
       },
       enumOverrides: {
         ImageSize: "ImageSizePreset"
-      },
-      basicFields: ["image", "image_size", "guidance_scale"]
+      }
     },
 
     "fal-ai/flux-pro/v1/redux": {
@@ -184,8 +182,7 @@ export const config: ModuleConfig = {
       },
       enumOverrides: {
         ImageSize: "ImageSizePreset"
-      },
-      basicFields: ["image", "image_size", "guidance_scale"]
+      }
     },
 
     // Ideogram Family - Editing
@@ -232,8 +229,7 @@ export const config: ModuleConfig = {
           default: -1,
           description: "Seed for reproducible results. Use -1 for random"
         }
-      },
-      basicFields: ["prompt", "image", "mask"]
+      }
     },
 
     "fal-ai/ideogram/v2/remix": {
@@ -282,8 +278,7 @@ export const config: ModuleConfig = {
           default: -1,
           description: "Seed for reproducible results. Use -1 for random"
         }
-      },
-      basicFields: ["prompt", "image", "strength"]
+      }
     },
 
     "fal-ai/ideogram/v3/edit": {
@@ -317,8 +312,7 @@ export const config: ModuleConfig = {
           default: -1,
           description: "Seed for reproducible results. Use -1 for random"
         }
-      },
-      basicFields: ["prompt", "image", "mask"]
+      }
     },
 
     // FLUX Pro Family - Advanced Controls
@@ -376,8 +370,7 @@ export const config: ModuleConfig = {
       },
       enumOverrides: {
         ImageSize: "ImageSizePreset"
-      },
-      basicFields: ["prompt", "image", "mask"]
+      }
     },
 
     "fal-ai/flux-pro/v1/canny": {
@@ -423,8 +416,7 @@ export const config: ModuleConfig = {
       },
       enumOverrides: {
         ImageSize: "ImageSizePreset"
-      },
-      basicFields: ["prompt", "image", "control_strength"]
+      }
     },
 
     "fal-ai/flux-pro/v1/depth": {
@@ -470,8 +462,7 @@ export const config: ModuleConfig = {
       },
       enumOverrides: {
         ImageSize: "ImageSizePreset"
-      },
-      basicFields: ["prompt", "image", "control_strength"]
+      }
     },
 
     // Bria Family - Professional Editing Tools
@@ -495,8 +486,7 @@ export const config: ModuleConfig = {
           description:
             "The mask defining areas to erase (white = erase, black = keep)"
         }
-      },
-      basicFields: ["image", "mask"]
+      }
     },
 
     "bria/replace-background": {
@@ -518,8 +508,7 @@ export const config: ModuleConfig = {
         prompt: {
           description: "Description of the new background to generate"
         }
-      },
-      basicFields: ["image", "prompt"]
+      }
     },
 
     // Enhancement/Upscaling
@@ -549,8 +538,7 @@ export const config: ModuleConfig = {
           default: 2,
           description: "Upscaling factor (1-4x)"
         }
-      },
-      basicFields: ["image", "scale"]
+      }
     },
 
     // Alternative Model Families
@@ -584,8 +572,7 @@ export const config: ModuleConfig = {
           default: -1,
           description: "Seed for reproducible results. Use -1 for random"
         }
-      },
-      basicFields: ["prompt", "image", "style"]
+      }
     },
 
     "fal-ai/kolors/image-to-image": {
@@ -616,8 +603,7 @@ export const config: ModuleConfig = {
           default: -1,
           description: "Seed for reproducible results. Use -1 for random"
         }
-      },
-      basicFields: ["prompt", "image", "strength"]
+      }
     },
 
     // Specialized Tools
@@ -637,8 +623,7 @@ export const config: ModuleConfig = {
         image: {
           description: "The image to remove background from"
         }
-      },
-      basicFields: ["image"]
+      }
     },
 
     "fal-ai/codeformer": {
@@ -666,8 +651,7 @@ export const config: ModuleConfig = {
         fidelity: {
           description: "Fidelity level (0-1, higher = more faithful to input)"
         }
-      },
-      basicFields: ["image", "fidelity"]
+      }
     },
 
     // Hunyuan Image Family
@@ -682,8 +666,7 @@ export const config: ModuleConfig = {
         "Apply precise adjustments through conversational editing",
         "Transform images with instruction-based control",
         "Create variations with detailed text guidance"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // Qwen Image Family - Max Edit
@@ -698,8 +681,7 @@ export const config: ModuleConfig = {
         "Transform images with high-quality results",
         "Create professional edits with natural prompts",
         "Modify images with precise control"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // Qwen Image Family - 2511 Series
@@ -714,8 +696,7 @@ export const config: ModuleConfig = {
         "Create high-quality edits with AI assistance",
         "Transform images with cutting-edge models",
         "Produce professional image modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/qwen-image-edit-2511/lora": {
@@ -729,8 +710,7 @@ export const config: ModuleConfig = {
         "Create domain-specific edits",
         "Transform images with fine-tuned models",
         "Produce customized image modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/qwen-image-edit-2511-multiple-angles": {
@@ -744,8 +724,7 @@ export const config: ModuleConfig = {
         "Visualize objects from various perspectives",
         "Produce multi-angle image sets",
         "Transform images to show different sides"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // Qwen Image Family - 2509 Series
@@ -760,8 +739,7 @@ export const config: ModuleConfig = {
         "Create quality edits with AI assistance",
         "Transform images with advanced models",
         "Produce professional image changes"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/qwen-image-edit-2509-lora": {
@@ -775,8 +753,7 @@ export const config: ModuleConfig = {
         "Create specialized edits for specific domains",
         "Transform images with trained models",
         "Produce tailored image modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // Qwen Image Layered
@@ -791,8 +768,7 @@ export const config: ModuleConfig = {
         "Apply modifications to specific layers",
         "Build multi-layer image edits",
         "Produce sophisticated image compositions"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/qwen-image-layered/lora": {
@@ -806,8 +782,7 @@ export const config: ModuleConfig = {
         "Apply fine-tuned modifications",
         "Build complex edits with trained models",
         "Produce custom layer-based results"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // FLUX-2 Klein Family - Base Edit
@@ -822,8 +797,7 @@ export const config: ModuleConfig = {
         "Create quick edits with AI assistance",
         "Transform images efficiently",
         "Produce rapid image modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/flux-2/klein/4b/base/edit/lora": {
@@ -837,8 +811,7 @@ export const config: ModuleConfig = {
         "Create domain-specific edits",
         "Transform images with fine-tuned 4B model",
         "Produce customized modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/flux-2/klein/9b/base/edit": {
@@ -852,8 +825,7 @@ export const config: ModuleConfig = {
         "Create advanced edits with powerful AI",
         "Transform images with superior quality",
         "Produce professional image modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/flux-2/klein/9b/base/edit/lora": {
@@ -867,8 +839,7 @@ export const config: ModuleConfig = {
         "Create professional custom edits",
         "Transform images with fine-tuned powerful model",
         "Produce advanced customized results"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // FLUX-2 Klein Family - Standard Edit
@@ -883,8 +854,7 @@ export const config: ModuleConfig = {
         "Create fast edits for rapid workflows",
         "Transform images with streamlined model",
         "Produce quick image modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/flux-2/klein/9b/edit": {
@@ -898,8 +868,7 @@ export const config: ModuleConfig = {
         "Create high-quality edits",
         "Transform images with powerful AI",
         "Produce superior image modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // FLUX-2 Other Variants
@@ -914,8 +883,7 @@ export const config: ModuleConfig = {
         "Create rapid edits for quick turnaround",
         "Transform images at maximum speed",
         "Produce instant image modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/flux-2/turbo/edit": {
@@ -929,8 +897,7 @@ export const config: ModuleConfig = {
         "Create quick edits efficiently",
         "Transform images rapidly",
         "Produce fast quality modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/flux-2-max/edit": {
@@ -944,8 +911,7 @@ export const config: ModuleConfig = {
         "Create professional-grade edits",
         "Transform images with best quality",
         "Produce highest quality modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/flux-2-flex/edit": {
@@ -959,8 +925,7 @@ export const config: ModuleConfig = {
         "Create versatile edits",
         "Transform images with adaptable settings",
         "Produce flexible image modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // FLUX-2 LoRA Gallery
@@ -975,8 +940,7 @@ export const config: ModuleConfig = {
         "Create fashion previews",
         "Test product appearances",
         "Generate try-on images"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/flux-2-lora-gallery/multiple-angles": {
@@ -990,8 +954,7 @@ export const config: ModuleConfig = {
         "Visualize objects from different sides",
         "Produce multi-angle image sets",
         "Generate comprehensive views"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/flux-2-lora-gallery/face-to-full-portrait": {
@@ -1005,8 +968,7 @@ export const config: ModuleConfig = {
         "Create full-body images from headshots",
         "Extend facial images to portraits",
         "Produce complete portrait compositions"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/flux-2-lora-gallery/add-background": {
@@ -1020,8 +982,7 @@ export const config: ModuleConfig = {
         "Create realistic background compositions",
         "Generate contextual settings",
         "Produce integrated background images"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // Bria FIBO Edit Suite
@@ -1036,8 +997,7 @@ export const config: ModuleConfig = {
         "Create edited versions of images",
         "Transform images with flexible edits",
         "Produce AI-powered modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "bria/fibo-edit/add_object_by_text": {
@@ -1051,8 +1011,7 @@ export const config: ModuleConfig = {
         "Place new items in scenes",
         "Augment images with additional objects",
         "Generate object additions"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "bria/fibo-edit/erase_by_text": {
@@ -1066,8 +1025,7 @@ export const config: ModuleConfig = {
         "Clean up images by describing what to remove",
         "Delete specific items from scenes",
         "Remove objects with natural language"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "bria/fibo-edit/replace_object_by_text": {
@@ -1081,8 +1039,7 @@ export const config: ModuleConfig = {
         "Change specific items in scenes",
         "Transform objects with text guidance",
         "Substitute objects with new ones"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "bria/fibo-edit/blend": {
@@ -1096,8 +1053,7 @@ export const config: ModuleConfig = {
         "Merge elements naturally",
         "Combine images with smooth transitions",
         "Generate blended composites"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "bria/fibo-edit/colorize": {
@@ -1111,8 +1067,7 @@ export const config: ModuleConfig = {
         "Restore color in old photographs",
         "Transform monochrome to color",
         "Generate colored versions of grayscale images"
-      ],
-      basicFields: ["image"]
+      ]
     },
 
     "bria/fibo-edit/restore": {
@@ -1126,8 +1081,7 @@ export const config: ModuleConfig = {
         "Enhance old photo quality",
         "Fix scratches and artifacts",
         "Reconstruct missing image parts"
-      ],
-      basicFields: ["image"]
+      ]
     },
 
     "bria/fibo-edit/restyle": {
@@ -1141,8 +1095,7 @@ export const config: ModuleConfig = {
         "Create stylized versions of images",
         "Generate artistic variations",
         "Produce style-transferred images"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "bria/fibo-edit/relight": {
@@ -1156,8 +1109,7 @@ export const config: ModuleConfig = {
         "Create dramatic lighting effects",
         "Relight scenes for better ambiance",
         "Transform lighting in images"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "bria/fibo-edit/reseason": {
@@ -1171,8 +1123,7 @@ export const config: ModuleConfig = {
         "Modify seasonal appearance",
         "Create seasonal variations",
         "Generate different season versions"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "bria/fibo-edit/rewrite_text": {
@@ -1186,8 +1137,7 @@ export const config: ModuleConfig = {
         "Modify signs and labels",
         "Update text naturally in scenes",
         "Edit textual elements in images"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "bria/fibo-edit/sketch_to_colored_image": {
@@ -1201,8 +1151,7 @@ export const config: ModuleConfig = {
         "Generate colored versions of drawings",
         "Create realistic images from sketches",
         "Produce colored artwork from outlines"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // GLM Image
@@ -1217,8 +1166,7 @@ export const config: ModuleConfig = {
         "Create variations with GLM model",
         "Generate modified versions",
         "Produce AI-powered transformations"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // GPT Image
@@ -1233,8 +1181,7 @@ export const config: ModuleConfig = {
         "Create intelligent edits",
         "Transform images with language understanding",
         "Produce GPT-powered modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // Z-Image Turbo Family
@@ -1249,8 +1196,7 @@ export const config: ModuleConfig = {
         "Create rapid image variations",
         "Generate speedy transformations",
         "Produce quick image modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/z-image/turbo/image-to-image/lora": {
@@ -1264,8 +1210,7 @@ export const config: ModuleConfig = {
         "Create rapid custom edits",
         "Generate quick customized transformations",
         "Produce fast fine-tuned modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/z-image/turbo/inpaint": {
@@ -1279,8 +1224,7 @@ export const config: ModuleConfig = {
         "Repair image areas with turbo speed",
         "Generate quick inpainting results",
         "Produce rapid contextual fills"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/z-image/turbo/inpaint/lora": {
@@ -1294,8 +1238,7 @@ export const config: ModuleConfig = {
         "Repair images with custom inpainting",
         "Generate quick custom fills",
         "Produce rapid specialized inpainting"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/z-image/turbo/controlnet": {
@@ -1309,8 +1252,7 @@ export const config: ModuleConfig = {
         "Create rapid guided generations",
         "Transform images with fast ControlNet",
         "Produce speedy controlled outputs"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/z-image/turbo/controlnet/lora": {
@@ -1324,8 +1266,7 @@ export const config: ModuleConfig = {
         "Create rapid custom guided outputs",
         "Transform images with fast custom control",
         "Produce speedy fine-tuned controlled results"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // Face Swap
@@ -1348,8 +1289,7 @@ export const config: ModuleConfig = {
         "Create high-quality variations",
         "Generate advanced transformations",
         "Produce quality image modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // StepX Edit
@@ -1364,8 +1304,7 @@ export const config: ModuleConfig = {
         "Create refined edits gradually",
         "Transform images with step control",
         "Produce progressively refined results"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // Longcat Image
@@ -1380,8 +1319,7 @@ export const config: ModuleConfig = {
         "Create unique image variations",
         "Transform images creatively",
         "Produce artistic modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // ByteDance SeeDream
@@ -1396,8 +1334,7 @@ export const config: ModuleConfig = {
         "Create high-quality edits",
         "Transform images with latest tech",
         "Produce cutting-edge modifications"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // Vidu
@@ -1412,8 +1349,7 @@ export const config: ModuleConfig = {
         "Create reference-based variations",
         "Transform using reference images",
         "Produce style-transferred results"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     // Kling Image
@@ -1431,8 +1367,7 @@ export const config: ModuleConfig = {
       ],
       enumOverrides: {
         AspectRatio: "KlingImageO1AspectRatio"
-      },
-      basicFields: ["image", "prompt"]
+      }
     },
 
     "fal-ai/kling-image/o3/image-to-image": {
@@ -1456,8 +1391,7 @@ export const config: ModuleConfig = {
       ],
       enumOverrides: {
         AspectRatio: "KlingImageO3AspectRatio"
-      },
-      basicFields: ["images", "prompt", "resolution"]
+      }
     },
 
     "fal-ai/qwen-image-edit-2509-lora-gallery/shirt-design": {

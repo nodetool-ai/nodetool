@@ -26,18 +26,6 @@ export function resolveCodeNodeTitle(
   return trimmedTitle ? trimmedTitle : metadataTitle;
 }
 
-export function resolveVisibleBasicFields(
-  nodeType: string,
-  basicFields: string[],
-  data: Pick<NodeData, "codeNodeMode">
-): string[] {
-  if (!isSnippetCodeNode(nodeType, data)) {
-    return basicFields;
-  }
-
-  return basicFields.filter((field) => field !== "code");
-}
-
 export function isCodeNodeTitleEditable(
   nodeType: string,
   data: Pick<NodeData, "codeNodeMode">

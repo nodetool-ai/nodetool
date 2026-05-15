@@ -61,8 +61,7 @@ import {
   CODE_NODE_TYPE,
   isCodeNode,
   isCodeNodeTitleEditable,
-  resolveCodeNodeTitle,
-  resolveVisibleBasicFields
+  resolveCodeNodeTitle
 } from "./codeNodeUi";
 
 // CONSTANTS
@@ -375,7 +374,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
   const updateNode = useNodes((state: NodeStoreState) => state.updateNode);
   const hasParent = Boolean(parentId);
-  const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
   const initialRenderRef = useRef(true);
   const suppressResultOverlay = type === "nodetool.constant.Model3D";
@@ -422,27 +420,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const meta = useMemo(() => {
-    const nodeBasicFields = resolveVisibleBasicFields(
-      type,
-      metadata.basic_fields || [],
-      data
-    );
     return {
       nodeNamespace: metadata.namespace || "",
-      nodeBasicFields,
-      hasAdvancedFields:
-        (metadata.properties?.length ?? 0) >
-        nodeBasicFields.length,
       showFooter: !specialNamespaces.includes(metadata.namespace || "")
     };
-  }, [
-    data,
-    type,
-    metadata.basic_fields,
-    metadata.namespace,
-    metadata.properties?.length,
-    specialNamespaces
-  ]);
+  }, [metadata.namespace, specialNamespaces]);
 
   const displayTitle = useMemo(
     () => resolveCodeNodeTitle(type, data.title, metadata.title),
@@ -669,12 +651,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [data.collapsed]
   );
 
-  const onToggleAdvancedFields = useCallback(() => {
-    setShowAdvancedFields(!showAdvancedFields);
-    // Reset node height to auto-size when toggling advanced fields
-    updateNode(id, { height: undefined, measured: undefined });
-  }, [showAdvancedFields, updateNode, id]);
-
   const handleNamespaceClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -790,10 +766,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           nodeMetadata={metadata}
           isOutputNode={nodeType.isOutputNode}
           data={data}
-          hasAdvancedFields={meta.hasAdvancedFields}
-          showAdvancedFields={showAdvancedFields}
-          onToggleAdvancedFields={onToggleAdvancedFields}
-          basicFields={meta.nodeBasicFields}
           status={status}
           workflowId={workflow_id}
           showResultOverlay={

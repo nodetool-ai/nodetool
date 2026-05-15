@@ -17,6 +17,8 @@ export class DecimateNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["model"];
 
   @prop({
     type: "model_3d",
@@ -71,6 +73,8 @@ export class Boolean3DNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["model_a", "model_b"];
 
   @prop({
     type: "model_3d",
@@ -116,6 +120,8 @@ export class MergeMeshesNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["models"];
 
   @prop({
     type: "list[model_3d]",

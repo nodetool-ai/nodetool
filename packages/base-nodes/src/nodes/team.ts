@@ -44,7 +44,8 @@ export class TeamAgentNode extends BaseNode {
   static readonly metadataOutputTypes = {
     result: "str"
   };
-  static readonly basicFields = ["name", "role", "provider", "model"];
+  static readonly inlineFields = ["name", "role"];
+  static readonly inputFields: string[] = [];
 
   @prop({
     type: "str",
@@ -158,7 +159,8 @@ export class TeamLeadNode extends BaseNode {
     messages: "list",
     events: "list"
   };
-  static readonly basicFields = ["objective", "strategy"];
+  static readonly inlineFields = ["objective"];
+  static readonly inputFields: string[] = [];
 
   @prop({
     type: "str",

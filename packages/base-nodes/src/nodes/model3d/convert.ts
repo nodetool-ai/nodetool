@@ -13,6 +13,8 @@ export class FormatConverterNode extends GlbTransformNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["model"];
 
   @prop({
     type: "model_3d",

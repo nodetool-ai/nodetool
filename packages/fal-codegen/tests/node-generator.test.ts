@@ -513,64 +513,6 @@ describe("NodeGenerator.applyConfig()", () => {
 });
 
 // ---------------------------------------------------------------------------
-// selectBasicFields() heuristic
-// ---------------------------------------------------------------------------
-
-describe("NodeGenerator.selectBasicFields()", () => {
-  const gen = new NodeGenerator();
-
-  it("prioritises P0 assets named image/video/audio", () => {
-    const spec = makeSpec({
-      inputFields: [
-        makeField({ name: "seed", propType: "int", default: 0 }),
-        makeField({
-          name: "image",
-          propType: "image",
-          tsType: "image",
-          default: null
-        }),
-        makeField({ name: "prompt", propType: "str", default: "" })
-      ]
-    });
-    const fields = gen.selectBasicFields(spec);
-    expect(fields[0]).toBe("image");
-  });
-
-  it("puts prompt fields before scalar fields", () => {
-    const spec = makeSpec({
-      inputFields: [
-        makeField({ name: "width", propType: "int", default: 512 }),
-        makeField({ name: "prompt", propType: "str", default: "" }),
-        makeField({ name: "height", propType: "int", default: 512 })
-      ]
-    });
-    const fields = gen.selectBasicFields(spec);
-    expect(fields.indexOf("prompt")).toBeLessThan(fields.indexOf("width"));
-  });
-
-  it("returns at most 5 fields", () => {
-    const spec = makeSpec({
-      inputFields: Array.from({ length: 10 }, (_, i) =>
-        makeField({ name: `field_${i}`, propType: "int", default: i })
-      )
-    });
-    const fields = gen.selectBasicFields(spec);
-    expect(fields.length).toBeLessThanOrEqual(5);
-  });
-
-  it("excludes seed from P4 candidates", () => {
-    const spec = makeSpec({
-      inputFields: [
-        makeField({ name: "seed", propType: "int", default: -1 }),
-        makeField({ name: "prompt", propType: "str", default: "" })
-      ]
-    });
-    const fields = gen.selectBasicFields(spec);
-    expect(fields).not.toContain("seed");
-  });
-});
-
-// ---------------------------------------------------------------------------
 // process() — bool field extraction
 // ---------------------------------------------------------------------------
 

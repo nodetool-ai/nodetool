@@ -57,6 +57,8 @@ export class CollectionNode extends BaseNode {
   static readonly title = "Collection";
   static readonly description =
     "Get or create a named vector database collection for storing embeddings.\n    vector, embedding, collection, RAG, get, create";
+  static readonly inlineFields = ["name"];
+  static readonly inputFields = ["embedding_model"];
   static readonly metadataOutputTypes = {
     output: "collection"
   };
@@ -115,6 +117,8 @@ export class CountNode extends BaseNode {
   static readonly title = "Count";
   static readonly description =
     "Count the number of documents in a collection.\n    vector, embedding, collection, RAG";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["collection"];
   static readonly metadataOutputTypes = {
     output: "int"
   };
@@ -150,6 +154,8 @@ export class GetDocumentsNode extends BaseNode {
   static readonly title = "Get Documents";
   static readonly description =
     "Get documents from a collection.\n    vector, embedding, collection, RAG, retrieve";
+  static readonly inlineFields = ["limit", "offset"];
+  static readonly inputFields = ["collection", "ids"];
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };
@@ -216,6 +222,8 @@ export class PeekNode extends BaseNode {
   static readonly title = "Peek";
   static readonly description =
     "Peek at the documents in a collection.\n    vector, embedding, collection, RAG, preview";
+  static readonly inlineFields = ["limit"];
+  static readonly inputFields = ["collection"];
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };
@@ -258,6 +266,8 @@ export class IndexImageNode extends BaseNode {
   static readonly title = "Index Image";
   static readonly description =
     "Index a list of image assets or files.\n    vector, embedding, collection, RAG, index, image, batch";
+  static readonly inlineFields = ["index_id", "upsert"];
+  static readonly inputFields = ["collection", "image", "metadata"];
 
   @prop({
     type: "collection",
@@ -346,6 +356,8 @@ export class IndexEmbeddingNode extends BaseNode {
   static readonly title = "Index Embedding";
   static readonly description =
     "Index a single embedding vector into a collection with optional metadata. Creates a searchable entry that can be queried for similarity matching.\n    vector, index, embedding, storage, RAG";
+  static readonly inlineFields = ["index_id"];
+  static readonly inputFields = ["collection", "embedding", "metadata"];
 
   @prop({
     type: "collection",
@@ -472,6 +484,8 @@ export class IndexTextChunkNode extends BaseNode {
   static readonly title = "Index Text Chunk";
   static readonly description =
     "Index a single text chunk.\n    vector, embedding, collection, RAG, index, text, chunk";
+  static readonly inlineFields = ["document_id", "text"];
+  static readonly inputFields = ["collection", "metadata"];
 
   @prop({
     type: "collection",
@@ -536,6 +550,8 @@ export class IndexAggregatedTextNode extends BaseNode {
   static readonly title = "Index Aggregated Text";
   static readonly description =
     "Index multiple text chunks at once with aggregated embeddings from Ollama.\n    vector, embedding, collection, RAG, index, text, chunk, batch, ollama";
+  static readonly inlineFields = ["document", "document_id"];
+  static readonly inputFields = ["collection", "metadata", "text_chunks"];
 
   @prop({
     type: "collection",
@@ -674,6 +690,8 @@ export class IndexStringNode extends BaseNode {
   static readonly title = "Index String";
   static readonly description =
     "Index a string with a Document ID to a collection.\n    vector, embedding, collection, RAG, index, text, string";
+  static readonly inlineFields = ["text", "document_id"];
+  static readonly inputFields = ["collection", "metadata"];
 
   @prop({
     type: "collection",
@@ -733,6 +751,8 @@ export class QueryImageNode extends BaseNode {
   static readonly title = "Query Image";
   static readonly description =
     "Query the index for similar images.\n    vector, RAG, query, image, search, similarity";
+  static readonly inlineFields = ["n_results"];
+  static readonly inputFields = ["collection", "image"];
   static readonly metadataOutputTypes = {
     ids: "list[str]",
     documents: "list[str]",
@@ -806,6 +826,8 @@ export class QueryTextNode extends BaseNode {
   static readonly title = "Query Text";
   static readonly description =
     "Query the index for similar text.\n    vector, RAG, query, text, search, similarity";
+  static readonly inlineFields = ["text", "n_results"];
+  static readonly inputFields = ["collection"];
   static readonly metadataOutputTypes = {
     ids: "list[str]",
     documents: "list[str]",
@@ -870,6 +892,8 @@ export class RemoveOverlapNode extends BaseNode {
   static readonly title = "Remove Overlap";
   static readonly description =
     "Removes overlapping words between consecutive strings in a list. Splits text into words and matches word sequences for more accurate overlap detection.\n    vector, RAG, query, text, processing, overlap, deduplication";
+  static readonly inlineFields = ["min_overlap_words"];
+  static readonly inputFields = ["documents"];
   static readonly metadataOutputTypes = {
     documents: "list[str]"
   };
@@ -953,6 +977,8 @@ export class HybridSearchNode extends BaseNode {
   static readonly title = "Hybrid Search";
   static readonly description =
     "Hybrid search combining semantic and keyword-based search for better retrieval. Uses reciprocal rank fusion to combine results from both methods.\n    vector, RAG, query, semantic, text, similarity";
+  static readonly inlineFields = ["text", "n_results"];
+  static readonly inputFields = ["collection"];
   static readonly metadataOutputTypes = {
     ids: "list[str]",
     documents: "list[str]",

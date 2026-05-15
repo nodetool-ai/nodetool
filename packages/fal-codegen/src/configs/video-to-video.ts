@@ -19,8 +19,7 @@ export const config: ModuleConfig = {
         "Smooth out choppy video",
         "Generate intermediate frames",
         "Enhance video playback quality"
-      ],
-      basicFields: ["video"]
+      ]
     },
     "fal-ai/fast-animatediff/video-to-video": {
       className: "AnimateDiffVideoToVideo",
@@ -39,8 +38,7 @@ export const config: ModuleConfig = {
         "Transform video aesthetics",
         "Create stylized video versions",
         "Generate video variations"
-      ],
-      basicFields: ["video", "prompt"]
+      ]
     },
     "fal-ai/fast-animatediff/turbo/video-to-video": {
       className: "AnimateDiffTurboVideoToVideo",
@@ -60,8 +58,7 @@ export const config: ModuleConfig = {
         "Fast video effect application",
         "Efficient video processing",
         "Real-time video styling"
-      ],
-      basicFields: ["video", "prompt"]
+      ]
     },
     "fal-ai/auto-caption": {
       className: "AutoCaption",
@@ -80,8 +77,7 @@ export const config: ModuleConfig = {
         "Create multilingual subtitles",
         "Transcribe video speech",
         "Add text overlays to videos"
-      ],
-      basicFields: ["video"]
+      ]
     },
     "fal-ai/ben/v2/video": {
       className: "BenV2Video",
@@ -94,8 +90,7 @@ export const config: ModuleConfig = {
         "Improve video clarity",
         "Apply video enhancements",
         "Optimize video output"
-      ],
-      basicFields: ["video"]
+      ]
     },
     "fal-ai/birefnet/v2/video": {
       className: "BiRefNetV2Video",
@@ -114,8 +109,7 @@ export const config: ModuleConfig = {
         "Isolate video subjects",
         "Generate video mattes",
         "Prepare videos for compositing"
-      ],
-      basicFields: ["video"]
+      ]
     },
     "bria/bria_video_eraser/erase/mask": {
       className: "BriaVideoEraserMask",
@@ -135,8 +129,7 @@ export const config: ModuleConfig = {
         "Clean up video backgrounds",
         "Remove watermarks from videos",
         "Edit video content seamlessly"
-      ],
-      basicFields: ["video", "mask"]
+      ]
     },
     "bria/bria_video_eraser/erase/keypoints": {
       className: "BriaVideoEraserKeypoints",
@@ -156,8 +149,7 @@ export const config: ModuleConfig = {
         "Targeted video content removal",
         "Precision video editing",
         "Remove elements with point markers"
-      ],
-      basicFields: ["video", "keypoints"]
+      ]
     },
     "bria/bria_video_eraser/erase/prompt": {
       className: "BriaVideoEraserPrompt",
@@ -177,8 +169,7 @@ export const config: ModuleConfig = {
         "Natural language video cleanup",
         "Prompt-driven object removal",
         "Semantic video editing"
-      ],
-      basicFields: ["video", "prompt"]
+      ]
     },
     "fal-ai/cogvideox-5b/video-to-video": {
       className: "CogVideoX5BVideoToVideo",
@@ -197,8 +188,7 @@ export const config: ModuleConfig = {
         "Restyle video content",
         "Generate video variations",
         "Create artistic video versions"
-      ],
-      basicFields: ["video", "prompt"]
+      ]
     },
     "fal-ai/hunyuan-video/video-to-video": {
       className: "HunyuanVideoToVideo",
@@ -211,8 +201,7 @@ export const config: ModuleConfig = {
         "Restyle existing footage",
         "Generate video variations",
         "Create enhanced video versions"
-      ],
-      basicFields: ["video", "prompt"]
+      ]
     },
     "fal-ai/video-upscaler": {
       className: "VideoUpscaler",
@@ -231,8 +220,7 @@ export const config: ModuleConfig = {
         "Increase video resolution",
         "Improve video clarity",
         "Restore old video footage"
-      ],
-      basicFields: ["video"]
+      ]
     },
     "fal-ai/ccsr": {
       className: "CCSR",
@@ -251,8 +239,7 @@ export const config: ModuleConfig = {
         "Fix color issues in videos",
         "Improve video color grading",
         "Restore faded video footage"
-      ],
-      basicFields: ["video"]
+      ]
     },
     "fal-ai/ltx-2-19b/distilled/video-to-video/lora": {
       className: "Ltx219BDistilledVideoToVideoLora",
@@ -540,8 +527,7 @@ export const config: ModuleConfig = {
         "Automated video editing",
         "Special effects generation",
         "Content repurposing"
-      ],
-      basicFields: ["video", "prompt", "duration"]
+      ]
     },
     "fal-ai/kling-video/o3/standard/video-to-video/edit": {
       className: "KlingVideoO3StandardVideoToVideoEdit",
@@ -553,8 +539,7 @@ export const config: ModuleConfig = {
         "Automated video editing",
         "Special effects generation",
         "Content repurposing"
-      ],
-      basicFields: ["video", "prompt"]
+      ]
     },
     "fal-ai/kling-video/o3/pro/video-to-video/reference": {
       className: "KlingVideoO3ProVideoToVideoReference",
@@ -566,8 +551,7 @@ export const config: ModuleConfig = {
         "Automated video editing",
         "Special effects generation",
         "Content repurposing"
-      ],
-      basicFields: ["video", "prompt", "duration"]
+      ]
     },
     "fal-ai/kling-video/o3/pro/video-to-video/edit": {
       className: "KlingVideoO3ProVideoToVideoEdit",
@@ -579,8 +563,7 @@ export const config: ModuleConfig = {
         "Automated video editing",
         "Special effects generation",
         "Content repurposing"
-      ],
-      basicFields: ["video", "prompt"]
+      ]
     },
     "fal-ai/steady-dancer": {
       className: "SteadyDancer",

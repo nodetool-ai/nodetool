@@ -95,7 +95,6 @@ const mockNodeMetadata: NodeMetadata = {
   supports_dynamic_outputs: false,
   expose_as_tool: false,
   recommended_models: [],
-  basic_fields: [],
   is_streaming_output: false,
             required_settings: []
 };
@@ -134,7 +133,6 @@ const previewNodeMetadata: NodeMetadata = {
   supports_dynamic_outputs: false,
   expose_as_tool: false,
   recommended_models: [],
-  basic_fields: [],
   is_streaming_output: false,
             required_settings: []
 };
@@ -178,7 +176,6 @@ const rerouteNodeMetadata: NodeMetadata = {
   supports_dynamic_outputs: false,
   expose_as_tool: false,
   recommended_models: [],
-  basic_fields: [],
   is_streaming_output: false,
             required_settings: []
 };

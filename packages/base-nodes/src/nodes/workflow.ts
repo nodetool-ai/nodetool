@@ -20,6 +20,8 @@ export class WorkflowNode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly isStreamingOutput = true;
+  static readonly inlineFields = ["workflow_id"];
+  static readonly inputFields = [];
 
   @prop({ type: "str", default: "" })
   declare workflow_id: string;

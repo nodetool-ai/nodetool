@@ -498,48 +498,4 @@ export class NodeGenerator {
     return lines;
   }
 
-  /**
-   * Select up to 5 basic fields by priority heuristic.
-   */
-  selectBasicFields(spec: NodeSpec): string[] {
-    type Candidate = { priority: number; index: number; name: string };
-    const candidates: Candidate[] = [];
-
-    for (let i = 0; i < spec.inputFields.length; i++) {
-      const field = spec.inputFields[i];
-      if (field.parentField) continue;
-      const nameLower = field.name.toLowerCase();
-      const kind = assetKind(field);
-
-      if (kind !== "none" && !isListAsset(field)) {
-        // P0: primary named assets
-        if (["image", "video", "audio", "mask"].includes(nameLower)) {
-          candidates.push({ priority: 0, index: i, name: field.name });
-        } else {
-          candidates.push({ priority: 1, index: i, name: field.name });
-        }
-      } else if (
-        field.propType === "str" &&
-        (nameLower.includes("prompt") || nameLower.includes("text"))
-      ) {
-        candidates.push({ priority: 2, index: i, name: field.name });
-      } else if (
-        field.propType === "enum" &&
-        field.name.match(/resolution|aspect_ratio|duration/i)
-      ) {
-        candidates.push({ priority: 3, index: i, name: field.name });
-      } else if (
-        ["int", "float", "bool"].includes(field.propType) &&
-        !nameLower.match(/seed$|_id$|_key$|_steps$|_batch$/)
-      ) {
-        candidates.push({ priority: 4, index: i, name: field.name });
-      }
-    }
-
-    candidates.sort((a, b) =>
-      a.priority !== b.priority ? a.priority - b.priority : a.index - b.index
-    );
-
-    return candidates.slice(0, 5).map((c) => c.name);
-  }
 }

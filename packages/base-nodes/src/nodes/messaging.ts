@@ -6,6 +6,8 @@ import type { NodeClass } from "@nodetool-ai/node-sdk";
 export class DiscordBotTrigger extends BaseNode {
   static readonly nodeType = "messaging.discord.DiscordBotTrigger";
   static readonly title = "Discord Bot Trigger";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly description =
     "Trigger node that listens for Discord messages from a bot account.\n\n    This trigger connects to Discord using a bot token and emits events\n    for incoming messages.";
   static readonly metadataOutputTypes = {
@@ -103,6 +105,8 @@ export class DiscordBotTrigger extends BaseNode {
 export class DiscordSendMessage extends BaseNode {
   static readonly nodeType = "messaging.discord.DiscordSendMessage";
   static readonly title = "Discord Send Message";
+  static readonly inlineFields = ["channel_id"];
+  static readonly inputFields = ["content"];
   static readonly description =
     "Node that sends a message to a Discord channel using a bot token.";
   static readonly metadataOutputTypes = {
@@ -203,6 +207,8 @@ export class DiscordSendMessage extends BaseNode {
 export class TelegramBotTrigger extends BaseNode {
   static readonly nodeType = "messaging.telegram.TelegramBotTrigger";
   static readonly title = "Telegram Bot Trigger";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly description =
     "Trigger node that listens for Telegram messages using long polling.\n\n    This trigger connects to Telegram using a bot token and emits events\n    for incoming messages.";
   static readonly metadataOutputTypes = {
@@ -334,6 +340,8 @@ export class TelegramBotTrigger extends BaseNode {
 export class TelegramSendMessage extends BaseNode {
   static readonly nodeType = "messaging.telegram.TelegramSendMessage";
   static readonly title = "Telegram Send Message";
+  static readonly inlineFields = ["chat_id"];
+  static readonly inputFields = ["text"];
   static readonly description =
     "Node that sends a message to a Telegram chat using a bot token.";
   static readonly metadataOutputTypes = {

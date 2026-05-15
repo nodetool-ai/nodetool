@@ -99,10 +99,11 @@ export class CodeNode extends BaseNode {
     "APIs: fetch(), workspace.read/write/list(), getSecret(), uuid(), sleep(). " +
     "Dynamic inputs become global variables; return an object to define outputs. " +
     "For date/HTML/CSV/validation work use the dedicated workflow nodes.\n    code, javascript, function, script, dynamic";
+  static readonly inlineFields = ["code"];
+  static readonly inputFields = [];
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly isStreamingOutput = true;
-  static readonly basicFields = ["code"];
 
   /** Persistent state across streaming invocations; reset each workflow run. */
   private _state: Record<string, unknown> = {};

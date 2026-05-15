@@ -14,10 +14,6 @@ export interface DynamicKieSchemaContentProps {
   isConstantNode: boolean;
   isOutputNode: boolean;
   data: NodeData;
-  basicFields: string[];
-  showAdvancedFields: boolean;
-  hasAdvancedFields: boolean;
-  onToggleAdvancedFields: () => void;
   status?: string;
   workflowId: string;
   showResultOverlay?: boolean;
@@ -35,10 +31,6 @@ export const DynamicKieSchemaContent: React.FC<DynamicKieSchemaContentProps> =
       isConstantNode,
       isOutputNode,
       data,
-      basicFields,
-      showAdvancedFields,
-      hasAdvancedFields,
-      onToggleAdvancedFields,
       status,
       workflowId
     }) => {
@@ -117,10 +109,6 @@ export const DynamicKieSchemaContent: React.FC<DynamicKieSchemaContentProps> =
               nodeType={nodeType}
               data={data}
               showHandle={!isConstantNode}
-              hasAdvancedFields={hasAdvancedFields}
-              showAdvancedFields={showAdvancedFields}
-              basicFields={basicFields}
-              onToggleAdvancedFields={onToggleAdvancedFields}
             />
           </Box>
           {!isOutputNode && (

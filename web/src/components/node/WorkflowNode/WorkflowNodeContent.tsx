@@ -15,10 +15,6 @@ export interface WorkflowNodeContentProps {
   nodeType: string;
   nodeMetadata: NodeMetadata;
   data: NodeData;
-  basicFields: string[];
-  showAdvancedFields: boolean;
-  hasAdvancedFields: boolean;
-  onToggleAdvancedFields: () => void;
   status?: string;
   workflowId: string;
 }
@@ -34,10 +30,6 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
     nodeType,
     nodeMetadata,
     data,
-    basicFields,
-    showAdvancedFields,
-    hasAdvancedFields,
-    onToggleAdvancedFields,
     status,
     workflowId
   }) => {
@@ -107,10 +99,6 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
             data={data}
             showHandle={true}
             editableDynamicInputs={false}
-            hasAdvancedFields={hasAdvancedFields}
-            showAdvancedFields={showAdvancedFields}
-            basicFields={basicFields}
-            onToggleAdvancedFields={onToggleAdvancedFields}
           />
         </Box>
         {(nodeMetadata.is_dynamic ||
