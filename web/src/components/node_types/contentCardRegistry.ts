@@ -16,9 +16,18 @@
 import type { NodeMetadata, OutputSlot } from "../../stores/ApiTypes";
 
 export const CONTENT_CARD_REGISTRY: ReadonlySet<string> = new Set([
+  // Image generators
   "openai.image.CreateImage",
   "openai.image.EditImage",
-  "nodetool.image.TextToImage"
+  "nodetool.image.TextToImage",
+  "nodetool.image.ImageToImage",
+  // Video generators
+  "nodetool.video.TextToVideo",
+  "nodetool.video.ImageToVideo",
+  // Audio generators
+  "nodetool.audio.TextToSpeech",
+  // Text generators
+  "nodetool.text.AutomaticSpeechRecognition"
 ]);
 
 export const isContentCardNode = (nodeType: string | undefined): boolean =>
