@@ -32,7 +32,21 @@ const styles = (theme: Theme) =>
       flex: 1,
       minHeight: 0,
       display: "flex",
-      flexDirection: "column"
+      flexDirection: "column",
+      // Compact override for the shared SearchResultItem (used by the
+      // floating NodeMenu at wider widths). Hide description, tags, and
+      // namespace in this narrow column — the title + provider/output icon
+      // are enough at a glance.
+      ".search-result-item": {
+        padding: theme.spacing(1, 1.25),
+        margin: theme.spacing(0.25, 0)
+      },
+      ".search-result-item .result-description": { display: "none" },
+      ".search-result-item .matched-tags-inline": { display: "none" },
+      ".search-result-item .result-header-right .result-namespace": {
+        display: "none"
+      },
+      ".search-result-item .result-title": { fontSize: "0.85rem" }
     },
     ".sidebar-search-hint": {
       padding: theme.spacing(2),
