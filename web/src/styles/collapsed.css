@@ -120,10 +120,6 @@
   line-height: 0 !important;
 }
 
-.node-body.collapsed .expand-button-container {
-  display: none !important;
-}
-
 .node-body.collapsed .node-header {
   flex-shrink: 0;
 }
