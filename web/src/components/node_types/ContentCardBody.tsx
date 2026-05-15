@@ -80,11 +80,21 @@ const styles = (theme: Theme) =>
       flex: "1 1 auto",
       minHeight: 160,
       borderRadius: "var(--rounded-sm)",
-      overflow: "hidden",
+      // Allow the handle column to extend past the preview's left edge so
+      // the handle dots align with the card's outer edge (compensates for
+      // the body's padding).
+      overflow: "visible",
       backgroundColor: theme.vars.palette.grey[900],
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      // Scope the handle column to the preview area's vertical bounds so
+      // handles for `exposedInputs` never overlap inline-field rows below.
+      "& > .handle-column": {
+        top: 0,
+        bottom: 0,
+        left: `calc(${theme.spacing(-0.5)})`
+      },
       "& img": {
         display: "block",
         width: "100%",
@@ -512,6 +522,10 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     >
       <div className="preview-area">
         <PreviewArea variant={variant} value={previewValue} />
+        {/* Handle column lives inside the preview so its vertical extent
+            is bounded by the preview — keeps `exposedInputs` handles from
+            colliding with inline-field rows below. */}
+        <HandleColumn id={id} properties={handleProps} />
       </div>
 
       {/* Inline fields: rendered as full editors in normal flow under preview.
@@ -530,10 +544,6 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
           />
         </div>
       )}
-
-      {/* Input fields: render as handle-only column on the left edge.
-          Dedicated component — no shared NodeInputs / no CSS hiding. */}
-      <HandleColumn id={id} properties={handleProps} />
 
       {!isOutputNode && (
         <div className="outputs-row">
