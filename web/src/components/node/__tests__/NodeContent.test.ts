@@ -33,9 +33,6 @@ function makeProps(overrides: Record<string, unknown> = {}) {
       workflow_id: "wf-1"
     } as NodeData,
     basicFields: ["value"],
-    showAdvancedFields: false,
-    hasAdvancedFields: false,
-    onToggleAdvancedFields: () => {},
     status: undefined,
     workflowId: "wf-1",
     showResultOverlay: false,
@@ -98,7 +95,6 @@ describe("NodeContent arePropsEqual", () => {
   });
 
   it("returns true when property values are the same", () => {
-    const stableToggle = () => {};
     const stableShowInputs = () => {};
     const stableShowResults = () => {};
     const prev = makeProps({
@@ -108,7 +104,6 @@ describe("NodeContent arePropsEqual", () => {
         dynamic_properties: {},
         workflow_id: "wf-1"
       },
-      onToggleAdvancedFields: stableToggle,
       onShowInputs: stableShowInputs,
       onShowResults: stableShowResults
     });
@@ -119,7 +114,6 @@ describe("NodeContent arePropsEqual", () => {
         dynamic_properties: {},
         workflow_id: "wf-1"
       },
-      onToggleAdvancedFields: stableToggle,
       onShowInputs: stableShowInputs,
       onShowResults: stableShowResults
     });

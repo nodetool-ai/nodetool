@@ -277,10 +277,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
             properties={inlineProps}
             nodeType={nodeType}
             data={data}
-            hasAdvancedFields={false}
-            showAdvancedFields={false}
             basicFields={[]}
-            onToggleAdvancedFields={() => {}}
             editableDynamicInputs={false}
             showFields={true}
           />

@@ -20,36 +20,6 @@
   margin-bottom: 0;
 }
 
-/* A1 — Hover/select reveal for property labels.
-   Labels are hidden by default and fade in (~120ms) when the parent node is
-   hovered or selected. Connected properties keep their label visible so the
-   user can read the wire endpoint at all times. The selectors target the
-   `.base-node` container (BaseNode root) and the React Flow `.selected`
-   wrapper so the effect works for both pointer hover and keyboard selection. */
-.base-node .node-property .property-label {
-  opacity: 0;
-  transition: opacity 120ms ease-out;
-}
-.base-node .node-property.is-connected .property-label,
-.base-node:hover .node-property .property-label,
-.base-node.selected .node-property .property-label,
-.react-flow__node.selected .base-node .node-property .property-label,
-.react-flow__node:hover .base-node .node-property .property-label {
-  opacity: 1;
-}
-/* Output handles in DynamicOutputItem mirror the same affordance.
-   Text renders as a <p> inside HandleTooltip, so use descendant selectors. */
-.base-node .multi-outputs li p {
-  opacity: 0;
-  transition: opacity 120ms ease-out;
-}
-.base-node:hover .multi-outputs li p,
-.base-node.selected .multi-outputs li p,
-.react-flow__node.selected .base-node .multi-outputs li p,
-.react-flow__node:hover .base-node .multi-outputs li p {
-  opacity: 1;
-}
-
 /* Pre-flight validation: a property value is missing or invalid for the
    declared type. Goal is to draw the eye without overwhelming the node:
    a thin left accent bar, red label, and a focus-style ring on the input.

@@ -374,21 +374,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     (state: NodeStoreState) => state.updateNodeData
   );
   const updateNode = useNodes((state: NodeStoreState) => state.updateNode);
-  const setMouseHoveredNodeId = useNodes(
-    (state: NodeStoreState) => state.setMouseHoveredNodeId
-  );
-  const handleMouseEnter = useCallback(() => {
-    setMouseHoveredNodeId(id);
-  }, [id, setMouseHoveredNodeId]);
-  const handleMouseLeave = useCallback(() => {
-    setMouseHoveredNodeId(null);
-  }, [setMouseHoveredNodeId]);
-  useEffect(() => {
-    // Clear hover on unmount in case the node leaves while pointer is over it.
-    return () => setMouseHoveredNodeId(null);
-  }, [setMouseHoveredNodeId]);
   const hasParent = Boolean(parentId);
-  const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
   const initialRenderRef = useRef(true);
   const suppressResultOverlay = type === "nodetool.constant.Model3D";
@@ -435,10 +421,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const meta = useMemo(() => {
-    // Prefer the new classification (inline_fields ∪ input_fields). The
-    // generic body treats both as "visible by default"; everything else
-    // sits behind the advanced toggle / Inspector. Falls back to the
-    // legacy basic_fields list when the node hasn't been migrated yet.
+    // Prefer the new classification (inline_fields ∪ input_fields). Falls
+    // back to the legacy basic_fields list when the node hasn't been
+    // migrated yet.
     const inlineFields = metadata.inline_fields ?? [];
     const inputFields = metadata.input_fields ?? [];
     const useNewClassification =
@@ -450,9 +435,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     return {
       nodeNamespace: metadata.namespace || "",
       nodeBasicFields,
-      hasAdvancedFields:
-        (metadata.properties?.length ?? 0) >
-        nodeBasicFields.length,
       showFooter: !specialNamespaces.includes(metadata.namespace || "")
     };
   }, [
@@ -462,7 +444,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     metadata.inline_fields,
     metadata.input_fields,
     metadata.namespace,
-    metadata.properties?.length,
     specialNamespaces
   ]);
 
@@ -691,12 +672,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [data.collapsed]
   );
 
-  const onToggleAdvancedFields = useCallback(() => {
-    setShowAdvancedFields(!showAdvancedFields);
-    // Reset node height to auto-size when toggling advanced fields
-    updateNode(id, { height: undefined, measured: undefined });
-  }, [showAdvancedFields, updateNode, id]);
-
   const handleNamespaceClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -742,8 +717,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
       className={styleProps.className}
       sx={containerSx}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
     >
       {/* Result panel — floats above the node */}
       {isOverlayVisible && (
@@ -814,9 +787,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           nodeMetadata={metadata}
           isOutputNode={nodeType.isOutputNode}
           data={data}
-          hasAdvancedFields={meta.hasAdvancedFields}
-          showAdvancedFields={showAdvancedFields}
-          onToggleAdvancedFields={onToggleAdvancedFields}
           basicFields={meta.nodeBasicFields}
           status={status}
           workflowId={workflow_id}

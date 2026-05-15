@@ -12,43 +12,7 @@ import {
   type EdgeProps
 } from "@xyflow/react";
 import { Tooltip } from "../ui_primitives";
-import { memo, useCallback, useMemo, useState } from "react";
-import { titleizeString } from "../../utils/titleizeString";
-import { useNodes } from "../../contexts/NodeContext";
-
-/**
- * A2: minimum pixel distance between source and target endpoint chips before
- * the target chip is suppressed to avoid visual overlap on very short edges.
- */
-const ENDPOINT_CHIP_MIN_DISTANCE_PX = 56;
-
-/**
- * A2/OQ-2: when the target node has more than this many input ports the
- * target endpoint chip is hidden by default to keep dense nodes readable;
- * it still appears on hover / when the edge is selected.
- */
-const TARGET_CHIP_INPUT_THRESHOLD = 6;
-
-const endpointChipBaseStyle: React.CSSProperties = {
-  position: "absolute",
-  pointerEvents: "all",
-  background: "var(--palette-background-default)",
-  color: "var(--palette-text-secondary)",
-  padding: "1px 6px",
-  borderRadius: 8,
-  fontSize: 9,
-  fontWeight: 500,
-  lineHeight: "12px",
-  letterSpacing: "0.01em",
-  border:
-    "1px solid color-mix(in srgb, var(--palette-text-secondary) 25%, transparent)",
-  whiteSpace: "nowrap",
-  maxWidth: 120,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  userSelect: "none",
-  transition: "opacity 120ms ease-out"
-};
+import { memo, useMemo } from "react";
 
 export function CustomEdge({
   id,
@@ -77,18 +41,6 @@ export function CustomEdge({
   const counter = data?.counter as number | undefined;
   const dataTypeLabel = data?.dataTypeLabel as string | undefined;
   const sourceTypeColor = data?.sourceTypeColor as string | undefined;
-  const sourceHandleName = data?.sourceHandleName as string | undefined;
-  const targetHandleName = data?.targetHandleName as string | undefined;
-  const targetInputCount = data?.targetInputCount as number | undefined;
-  const targetIsContentCard = Boolean(data?.targetIsContentCard);
-  // Edges into content-card targets hide their endpoint chips by default
-  // (the card's own preview communicates the destination). When the user
-  // mouse-hovers the target node, surface the chips again on demand.
-  // `mouseHoveredNodeId` is set by BaseNode's mouseenter/leave handlers;
-  // distinct from `hoveredNodes` which only tracks drag-intersection.
-  const targetNodeHovered = useNodes((state) =>
-    targetIsContentCard ? state.mouseHoveredNodeId === target : false
-  );
   const showLabel = counter && counter > 1;
 
   // EXPERIMENTAL: Check if edge has active data flow
@@ -148,152 +100,24 @@ export function CustomEdge({
     } as React.CSSProperties;
   }, [style, isActive, selected, sourceTypeColor]);
 
-  // A2: pre-compute endpoint chip placements + visibility.
-  const endpoints = useMemo(() => {
-    const sourceText = sourceHandleName ? titleizeString(sourceHandleName) : "";
-    const targetText = targetHandleName ? titleizeString(targetHandleName) : "";
-    const dx = targetX - sourceX;
-    const dy = targetY - sourceY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    // Nudge chips along the handle's outward axis so they sit just past the
-    // socket and above the wire — keeps them from covering the port itself.
-    const sourceShiftX = sourcePosition === "left" ? -10 : 10;
-    const targetShiftX = targetPosition === "left" ? -10 : 10;
-    const verticalShift = -10;
-
-    const sourceVisible = Boolean(sourceText);
-    const dense = (targetInputCount ?? 0) > TARGET_CHIP_INPUT_THRESHOLD;
-    const overlapping = dist < ENDPOINT_CHIP_MIN_DISTANCE_PX;
-    // Content-card targets: hide chips unless the target node is hovered.
-    // Non-content-card targets keep the standard visibility logic.
-    const targetChipsAllowed = !targetIsContentCard || targetNodeHovered;
-    const targetVisibleAlways =
-      targetChipsAllowed && Boolean(targetText) && !dense && !overlapping;
-    const targetVisibleOnHover =
-      targetChipsAllowed && Boolean(targetText) && (dense || overlapping);
-
-    // translate(-100%, -100%) anchors the chip's bottom-right corner at the
-    // handle when the port is on the left side (and vice versa) so the chip
-    // never covers the port pin.
-    const sourceAnchor =
-      sourcePosition === "left" ? "translate(-100%, -100%)" : "translate(0, -100%)";
-    const targetAnchor =
-      targetPosition === "left" ? "translate(-100%, -100%)" : "translate(0, -100%)";
-
-    return {
-      sourceText,
-      targetText,
-      sourceVisible,
-      targetVisibleAlways,
-      targetVisibleOnHover,
-      sourceTransform: `translate(${sourceX + sourceShiftX}px, ${
-        sourceY + verticalShift
-      }px) ${sourceAnchor}`,
-      targetTransform: `translate(${targetX + targetShiftX}px, ${
-        targetY + verticalShift
-      }px) ${targetAnchor}`
-    };
-  }, [
-    sourceHandleName,
-    targetHandleName,
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-    sourcePosition,
-    targetPosition,
-    targetInputCount,
-    targetIsContentCard,
-    targetNodeHovered
-  ]);
-
-  const [hovered, setHovered] = useState(false);
-  const onMouseEnter = useCallback(() => setHovered(true), []);
-  const onMouseLeave = useCallback(() => setHovered(false), []);
-
-  const chipAccentBorder = sourceTypeColor
-    ? `color-mix(in srgb, ${sourceTypeColor} 45%, transparent)`
-    : endpointChipBaseStyle.borderColor;
-
-  const sourceChipStyle = useMemo<React.CSSProperties>(
-    () => ({
-      ...endpointChipBaseStyle,
-      transform: endpoints.sourceTransform,
-      opacity: selected ? 1 : 0.85,
-      borderColor: chipAccentBorder
-    }),
-    [endpoints.sourceTransform, selected, chipAccentBorder]
-  );
-
-  const targetChipBaseStyle = useMemo<React.CSSProperties>(
-    () => ({
-      ...endpointChipBaseStyle,
-      transform: endpoints.targetTransform,
-      opacity: selected ? 1 : 0.85,
-      borderColor: chipAccentBorder
-    }),
-    [endpoints.targetTransform, selected, chipAccentBorder]
-  );
-
-  const targetChipHoverOnlyStyle = useMemo<React.CSSProperties>(
-    () => ({
-      ...targetChipBaseStyle,
-      opacity: selected || hovered ? 1 : 0
-    }),
-    [targetChipBaseStyle, selected, hovered]
-  );
-
   return (
-    <g onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+    <>
       <BaseEdge
         id={id}
         path={edgePath}
         style={enhancedStyle}
         markerEnd={markerEnd}
       />
-      <EdgeLabelRenderer>
-        {endpoints.sourceVisible && (
-          <div
-            className="edge-endpoint-chip edge-endpoint-source nodrag nopan"
-            style={sourceChipStyle}
-            title={endpoints.sourceText}
-            onMouseEnter={onMouseEnter}
-            onMouseLeave={onMouseLeave}
-          >
-            {endpoints.sourceText}
-          </div>
-        )}
-        {endpoints.targetVisibleAlways && (
-          <div
-            className="edge-endpoint-chip edge-endpoint-target nodrag nopan"
-            style={targetChipBaseStyle}
-            title={endpoints.targetText}
-            onMouseEnter={onMouseEnter}
-            onMouseLeave={onMouseLeave}
-          >
-            {endpoints.targetText}
-          </div>
-        )}
-        {endpoints.targetVisibleOnHover && (
-          <div
-            className="edge-endpoint-chip edge-endpoint-target edge-endpoint-target--hover nodrag nopan"
-            style={targetChipHoverOnlyStyle}
-            title={endpoints.targetText}
-            onMouseEnter={onMouseEnter}
-            onMouseLeave={onMouseLeave}
-          >
-            {endpoints.targetText}
-          </div>
-        )}
-        {showLabel && (
+      {showLabel && (
+        <EdgeLabelRenderer>
           <Tooltip title={tooltipText} placement="top" arrow delay={300}>
             <div style={labelStyle} className="nodrag nopan">
               {counter}
             </div>
           </Tooltip>
-        )}
-      </EdgeLabelRenderer>
-    </g>
+        </EdgeLabelRenderer>
+      )}
+    </>
   );
 }
 
@@ -313,12 +137,6 @@ const MemoizedCustomEdge = memo(CustomEdge, (prevProps, nextProps) => {
     prevProps.data?.counter === nextProps.data?.counter &&
     prevProps.data?.dataTypeLabel === nextProps.data?.dataTypeLabel &&
     prevProps.data?.sourceTypeColor === nextProps.data?.sourceTypeColor &&
-    prevProps.data?.sourceHandleName === nextProps.data?.sourceHandleName &&
-    prevProps.data?.targetHandleName === nextProps.data?.targetHandleName &&
-    prevProps.data?.targetInputCount === nextProps.data?.targetInputCount &&
-    prevProps.data?.targetIsContentCard ===
-      nextProps.data?.targetIsContentCard &&
-    prevProps.target === nextProps.target &&
     prevProps.data?.status === nextProps.data?.status
   );
 });

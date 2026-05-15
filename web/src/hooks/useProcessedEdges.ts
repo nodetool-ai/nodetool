@@ -4,7 +4,6 @@ import { DataType } from "../config/data_types";
 import { NodeMetadata } from "../stores/ApiTypes";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 import { NodeData } from "../stores/NodeData";
-import { isContentCardNode } from "../components/node_types/contentCardRegistry";
 
 /**
  * Options for processing edges in the workflow graph.
@@ -218,7 +217,6 @@ function useStructurallyProcessedEdges({
       let sourceColor = defaultColor;
       let sourceTypeLabel = "Any";
       let targetTypeSlug = "any";
-      let targetInputCount: number | undefined;
 
       if (sourceNode && normalizedSourceHandle) {
         const effective = getEffectiveSourceType(
@@ -239,12 +237,6 @@ function useStructurallyProcessedEdges({
         } else if (targetNode.type) {
           const targetMetadata = getMetadata(targetNode.type);
           if (targetMetadata) {
-            const dynamicInputKeys = new Set([
-              ...Object.keys(targetNode.data?.dynamic_inputs ?? {}),
-              ...Object.keys(targetNode.data?.dynamic_properties ?? {})
-            ]);
-            targetInputCount =
-              (targetMetadata.properties?.length ?? 0) + dynamicInputKeys.size;
             const inputHandle = findInputHandle(
               targetNode as Node<NodeData>,
               normalizedTargetHandle,
@@ -309,13 +301,7 @@ function useStructurallyProcessedEdges({
         data: {
           ...edge.data,
           dataTypeLabel: sourceTypeLabel,
-          sourceTypeColor: sourceColor,
-          sourceHandleName: normalizedSourceHandle ?? undefined,
-          targetHandleName: normalizedTargetHandle ?? undefined,
-          targetInputCount,
-          // Suppress endpoint chips on content-card target nodes — the
-          // card itself is content-forward and these labels add noise.
-          targetIsContentCard: isContentCardNode(targetNode?.type)
+          sourceTypeColor: sourceColor
         }
       };
     });

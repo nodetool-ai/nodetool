@@ -18,9 +18,6 @@ interface NodeContentProps {
   isOutputNode: boolean;
   data: NodeData;
   basicFields: string[];
-  showAdvancedFields: boolean;
-  hasAdvancedFields: boolean;
-  onToggleAdvancedFields: () => void;
   status?: string;
   workflowId: string;
   showResultOverlay: boolean;
@@ -42,8 +39,6 @@ const arePropsEqual = (
     prevProps.id !== nextProps.id ||
     prevProps.nodeType !== nextProps.nodeType ||
     prevProps.isOutputNode !== nextProps.isOutputNode ||
-    prevProps.showAdvancedFields !== nextProps.showAdvancedFields ||
-    prevProps.hasAdvancedFields !== nextProps.hasAdvancedFields ||
     prevProps.status !== nextProps.status ||
     prevProps.workflowId !== nextProps.workflowId ||
     prevProps.showResultOverlay !== nextProps.showResultOverlay ||
@@ -127,7 +122,6 @@ const arePropsEqual = (
 
   // Functions should be stable references, but check them anyway
   if (
-    prevProps.onToggleAdvancedFields !== nextProps.onToggleAdvancedFields ||
     prevProps.onShowInputs !== nextProps.onShowInputs ||
     prevProps.onShowResults !== nextProps.onShowResults
   ) {
@@ -144,9 +138,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
   isOutputNode,
   data,
   basicFields,
-  showAdvancedFields,
-  hasAdvancedFields,
-  onToggleAdvancedFields,
   status,
   workflowId,
   showResultOverlay,
@@ -216,10 +207,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
         properties={inlineProperties}
         nodeType={nodeType}
         data={data}
-        hasAdvancedFields={hasAdvancedFields}
-        showAdvancedFields={showAdvancedFields}
         basicFields={basicFields}
-        onToggleAdvancedFields={onToggleAdvancedFields}
       />
       {(nodeMetadata?.is_dynamic || nodeMetadata?.supports_dynamic_outputs) && (
         <NodePropertyForm

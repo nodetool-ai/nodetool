@@ -15,9 +15,6 @@ export interface DynamicReplicateContentProps {
   isOutputNode: boolean;
   data: NodeData;
   basicFields: string[];
-  showAdvancedFields: boolean;
-  hasAdvancedFields: boolean;
-  onToggleAdvancedFields: () => void;
   status?: string;
   workflowId: string;
   showResultOverlay?: boolean;
@@ -36,9 +33,6 @@ export const DynamicReplicateContent: React.FC<DynamicReplicateContentProps> =
       isOutputNode,
       data,
       basicFields,
-      showAdvancedFields,
-      hasAdvancedFields,
-      onToggleAdvancedFields,
       status,
       workflowId
     }) => {
@@ -117,10 +111,7 @@ export const DynamicReplicateContent: React.FC<DynamicReplicateContentProps> =
               nodeType={nodeType}
               data={data}
               showHandle={!isConstantNode}
-              hasAdvancedFields={hasAdvancedFields}
-              showAdvancedFields={showAdvancedFields}
               basicFields={basicFields}
-              onToggleAdvancedFields={onToggleAdvancedFields}
             />
           </Box>
           {!isOutputNode && (

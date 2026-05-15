@@ -112,7 +112,7 @@ export class OutputNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
-  static readonly inlineFields = ["name"];
+  static readonly inlineFields = [];
   static readonly inputFields = ["value"];
 
   static readonly isStreamingOutput = true;
@@ -168,7 +168,7 @@ export class PreviewNode extends BaseNode {
   static readonly nodeType = "nodetool.workflows.base_node.Preview";
   static readonly title = "Preview";
   static readonly description = "Preview values inside the workflow graph";
-  static readonly inlineFields = ["name"];
+  static readonly inlineFields = [];
   static readonly inputFields = ["value"];
 
   @prop({ type: "any", default: null })

@@ -362,6 +362,3 @@ export type { DynamicInputButtonProps } from "./DynamicInputButton";
 
 export { RunModelButton } from "./RunModelButton";
 export type { RunModelButtonProps } from "./RunModelButton";
-
-export { EdgeEndpointLabel } from "./EdgeEndpointLabel";
-export type { EdgeEndpointLabelProps } from "./EdgeEndpointLabel";
