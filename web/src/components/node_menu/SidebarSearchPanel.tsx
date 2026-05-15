@@ -69,14 +69,14 @@ const SidebarSearchPanel = memo(() => {
   return (
     <Box css={styles(theme)} className="sidebar-search">
       <div className="sidebar-search-toolbar">
-        <Box sx={{ flex: 1 }}>
+        <Box sx={{ flex: 1, minWidth: 0, maxWidth: 220 }}>
           <SearchInput
             focusSearchInput={false}
             focusOnTyping={false}
             placeholder="Search for nodes..."
             debounceTime={30}
             maxWidth="100%"
-            width={0}
+            width="100%"
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
             searchResults={searchResults}
