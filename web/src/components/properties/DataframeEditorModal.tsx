@@ -550,7 +550,11 @@ const DataframeEditorModal = ({
                   delay={TOOLTIP_ENTER_DELAY}
                   title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 >
-                  <button className="button" onClick={toggleFullscreen}>
+                  <button
+                    className="button"
+                    onClick={toggleFullscreen}
+                    aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                  >
                     {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
                   </button>
                 </Tooltip>
@@ -558,7 +562,11 @@ const DataframeEditorModal = ({
                   delay={TOOLTIP_ENTER_DELAY}
                   title="Close Editor | Esc"
                 >
-                  <button className="button button-close" onClick={onClose}>
+                  <button
+                    className="button button-close"
+                    onClick={onClose}
+                    aria-label="Close Editor"
+                  >
                     <CloseIcon />
                   </button>
                 </Tooltip>
