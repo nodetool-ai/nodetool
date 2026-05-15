@@ -242,7 +242,7 @@ export class InsertLibNode extends BaseNode {
 export class QueryLibNode extends BaseNode {
   static readonly nodeType = "lib.sqlite.Query";
   static readonly title = "Query";
-  static readonly inlineFields = ["database_name", "table_name", "where"];
+  static readonly inlineFields = ["database_name", "table_name"];
   static readonly inputFields = [];
   static readonly description =
     "Query records from a SQLite table.\n    sqlite, database, query, select, search, retrieve\n\n    Use cases:\n    - Retrieve flashcards for review\n    - Search agent memory\n    - Fetch stored data";
@@ -353,7 +353,7 @@ export class QueryLibNode extends BaseNode {
 export class UpdateLibNode extends BaseNode {
   static readonly nodeType = "lib.sqlite.Update";
   static readonly title = "Update";
-  static readonly inlineFields = ["database_name", "table_name", "where"];
+  static readonly inlineFields = ["database_name", "table_name"];
   static readonly inputFields = ["data"];
   static readonly description =
     "Update records in a SQLite table.\n    sqlite, database, update, modify, change\n\n    Use cases:\n    - Update flashcard content\n    - Modify stored records\n    - Change agent memory";
@@ -433,7 +433,7 @@ export class UpdateLibNode extends BaseNode {
 export class DeleteLibNode extends BaseNode {
   static readonly nodeType = "lib.sqlite.Delete";
   static readonly title = "Delete";
-  static readonly inlineFields = ["database_name", "table_name", "where"];
+  static readonly inlineFields = ["database_name", "table_name"];
   static readonly inputFields = [];
   static readonly description =
     "Delete records from a SQLite table.\n    sqlite, database, delete, remove, drop\n\n    Use cases:\n    - Remove flashcards\n    - Delete agent memory\n    - Clean up old data";

@@ -188,7 +188,7 @@ export class ListDocumentsNode extends BaseNode {
   static readonly title = "List Documents";
   static readonly description =
     "List documents in a directory.\n    files, list, directory";
-  static readonly inlineFields = ["folder", "pattern", "recursive"];
+  static readonly inlineFields = ["folder", "pattern"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     document: "document",
@@ -695,7 +695,7 @@ export class SplitRecursivelyNode extends BaseNode {
   static readonly title = "Split Recursively";
   static readonly description =
     "Splits text recursively using LangChain's RecursiveCharacterTextSplitter.\n    text, split, chunks\n\n    Use cases:\n    - Splitting documents while preserving semantic relationships\n    - Creating chunks for language model processing\n    - Handling text in languages with/without word boundaries";
-  static readonly inlineFields = ["chunk_size", "chunk_overlap", "separators"];
+  static readonly inlineFields = ["chunk_size", "chunk_overlap"];
   static readonly inputFields = ["document"];
   static readonly metadataOutputTypes = {
     text: "str",
@@ -860,7 +860,7 @@ export class SplitMarkdownNode extends BaseNode {
   static readonly title = "Split Markdown";
   static readonly description =
     "Splits markdown text by headers while preserving header hierarchy in metadata.\n    markdown, split, headers\n\n    Use cases:\n    - Splitting markdown documentation while preserving structure\n    - Processing markdown files for semantic search\n    - Creating context-aware chunks from markdown content";
-  static readonly inlineFields = ["headers_to_split_on", "strip_headers", "return_each_line", "chunk_size", "chunk_overlap"];
+  static readonly inlineFields = ["headers_to_split_on", "chunk_size"];
   static readonly inputFields = ["document"];
   static readonly metadataOutputTypes = {
     text: "str",

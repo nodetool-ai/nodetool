@@ -261,7 +261,7 @@ export class FormatCellsLibNode extends BaseNode {
   static readonly title = "Format Cells";
   static readonly description =
     "Applies formatting to a range of cells.\n    excel, format, style\n\n    Use cases:\n    - Highlight important data\n    - Create professional looking reports";
-  static readonly inlineFields = ["sheet_name", "cell_range", "background_color", "text_color"];
+  static readonly inlineFields = ["sheet_name", "cell_range"];
   static readonly inputFields = ["workbook"];
   static readonly metadataOutputTypes = {
     output: "any"

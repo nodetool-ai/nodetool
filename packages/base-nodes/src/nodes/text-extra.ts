@@ -75,7 +75,7 @@ export class ExtractTextNode extends BaseNode {
   static readonly title = "Extract Text";
   static readonly description =
     "Extracts a substring from input text.\n    text, extract, substring";
-  static readonly inlineFields = ["text", "start", "end"];
+  static readonly inlineFields = ["text", "start"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
@@ -103,7 +103,7 @@ export class ChunkTextNode extends BaseNode {
   static readonly title = "Split Text into Chunks";
   static readonly description =
     "Splits text into chunks of specified word length.\n    text, chunk, split";
-  static readonly inlineFields = ["text", "length", "overlap", "separator"];
+  static readonly inlineFields = ["text", "length"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list[str]"
@@ -146,7 +146,7 @@ export class ExtractRegexNode extends BaseNode {
   static readonly title = "Extract Regex Groups";
   static readonly description =
     "Extracts substrings matching regex groups from text.\n    text, regex, extract\n\n    Use cases:\n    - Extracting structured data (e.g., dates, emails) from unstructured text\n    - Parsing specific patterns in log files or documents\n    - Isolating relevant information from complex text formats";
-  static readonly inlineFields = ["text", "regex", "dotall", "ignorecase", "multiline"];
+  static readonly inlineFields = ["text", "regex"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list[str]"
@@ -189,7 +189,7 @@ export class FindAllRegexNode extends BaseNode {
   static readonly title = "Find All Regex Matches";
   static readonly description =
     "Finds all regex matches in text as separate substrings.\n    text, regex, find";
-  static readonly inlineFields = ["text", "regex", "dotall", "ignorecase", "multiline"];
+  static readonly inlineFields = ["text", "regex"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list[str]"
@@ -292,7 +292,7 @@ export class ExtractJSONNode extends BaseNode {
   static readonly title = "Extract JSON";
   static readonly description =
     "Extracts data from JSON using JSONPath expressions.\n    json, extract, jsonpath";
-  static readonly inlineFields = ["text", "json_path", "find_all"];
+  static readonly inlineFields = ["text", "json_path"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "any"
@@ -329,7 +329,7 @@ export class RegexMatchNode extends BaseNode {
   static readonly title = "Find Regex Matches";
   static readonly description =
     "Find all matches of a regex pattern in text.\n    regex, search, pattern, match\n\n    Use cases:\n    - Extract specific patterns from text\n    - Validate text against patterns\n    - Find all occurrences of a pattern";
-  static readonly inlineFields = ["text", "pattern", "group"];
+  static readonly inlineFields = ["text", "pattern"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list[str]"
@@ -383,7 +383,7 @@ export class RegexReplaceNode extends BaseNode {
   static readonly title = "Replace with Regex";
   static readonly description =
     "Replace text matching a regex pattern.\n    regex, replace, substitute\n\n    Use cases:\n    - Clean or standardize text\n    - Remove unwanted patterns\n    - Transform text formats";
-  static readonly inlineFields = ["text", "pattern", "replacement", "count"];
+  static readonly inlineFields = ["text", "pattern"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
@@ -449,7 +449,7 @@ export class RegexSplitNode extends BaseNode {
   static readonly title = "Split with Regex";
   static readonly description =
     "Split text using a regex pattern as delimiter.\n    regex, split, tokenize\n\n    Use cases:\n    - Parse structured text\n    - Extract fields from formatted strings\n    - Tokenize text";
-  static readonly inlineFields = ["text", "pattern", "maxsplit"];
+  static readonly inlineFields = ["text", "pattern"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list[str]"
@@ -545,7 +545,7 @@ export class CompareTextNode extends BaseNode {
   static readonly title = "Compare Text";
   static readonly description =
     "Compares two text values and reports ordering.\n    text, compare, equality, sort, equals, =\n\n    Use cases:\n    - Checking if two strings are identical before branching\n    - Determining lexical order for sorting or deduplication\n    - Normalizing casing/spacing before compares";
-  static readonly inlineFields = ["text_a", "text_b", "case_sensitive", "trim_whitespace"];
+  static readonly inlineFields = ["text_a", "text_b"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
@@ -606,7 +606,7 @@ export class EqualsTextNode extends BaseNode {
   static readonly title = "Equals";
   static readonly description =
     "Checks if two text inputs are equal.\n    text, compare, equals, match, =";
-  static readonly inlineFields = ["text_a", "text_b", "case_sensitive", "trim_whitespace"];
+  static readonly inlineFields = ["text_a", "text_b"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "bool"
@@ -729,7 +729,7 @@ export class SliceTextNode extends BaseNode {
   static readonly title = "Slice Text";
   static readonly description =
     "Slices text using Python's slice notation (start:stop:step).\n    text, slice, substring\n\n    Use cases:\n    - Extracting specific portions of text with flexible indexing\n    - Reversing text using negative step\n    - Taking every nth character with step parameter\n\n    Examples:\n    - start=0, stop=5: first 5 characters\n    - start=-5: last 5 characters\n    - step=2: every second character\n    - step=-1: reverse the text";
-  static readonly inlineFields = ["text", "start", "stop", "step"];
+  static readonly inlineFields = ["text", "start"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
@@ -846,7 +846,7 @@ export class ContainsTextNode extends BaseNode {
   static readonly title = "Contains Text";
   static readonly description =
     "Checks if text contains a specified substring.\n    text, compare, validate, substring, string";
-  static readonly inlineFields = ["text", "substring", "search_values", "case_sensitive", "match_mode"];
+  static readonly inlineFields = ["text", "substring"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "bool"
@@ -918,7 +918,7 @@ export class TrimWhitespaceNode extends BaseNode {
   static readonly title = "Trim Whitespace";
   static readonly description =
     "Trims whitespace from the start and/or end of text.\n    text, whitespace, clean, remove";
-  static readonly inlineFields = ["text", "trim_start", "trim_end"];
+  static readonly inlineFields = ["text", "trim_start"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
@@ -956,7 +956,7 @@ export class CollapseWhitespaceNode extends BaseNode {
   static readonly title = "Collapse Whitespace";
   static readonly description =
     "Collapses consecutive whitespace into single separators.\n    text, whitespace, normalize, clean, remove";
-  static readonly inlineFields = ["text", "preserve_newlines", "replacement", "trim_edges"];
+  static readonly inlineFields = ["text", "preserve_newlines"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"

@@ -356,7 +356,7 @@ export class NotionGetPageContentLibNode extends BaseNode {
 export class NotionCreatePageLibNode extends BaseNode {
   static readonly nodeType = "lib.notion.CreatePage";
   static readonly title = "Notion Create Page";
-  static readonly inlineFields = ["parent_id", "parent_type", "title"];
+  static readonly inlineFields = ["parent_id", "title"];
   static readonly inputFields = [];
   static readonly description =
     "Create a new page in a Notion database or as a child of another page.\n    notion, page, create, add, api";

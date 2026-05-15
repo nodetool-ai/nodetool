@@ -1286,7 +1286,7 @@ export class PivotNode extends BaseNode {
   static readonly title = "Pivot";
   static readonly description =
     "Pivot dataframe to reshape data.\n    pivot, reshape, transform\n\n    Use cases:\n    - Transform long data to wide format\n    - Create cross-tabulation tables\n    - Reorganize data for visualization";
-  static readonly inlineFields = ["index", "columns", "values", "aggfunc"];
+  static readonly inlineFields = ["index", "columns"];
   static readonly inputFields = ["dataframe"];
   static readonly metadataOutputTypes = {
     output: "dataframe"
@@ -1436,7 +1436,7 @@ export class FillNANode extends BaseNode {
   static readonly title = "Fill NA";
   static readonly description =
     "Fill missing values in dataframe.\n    fillna, missing, impute\n\n    Use cases:\n    - Handle missing data\n    - Prepare data for analysis\n    - Improve data quality";
-  static readonly inlineFields = ["value", "method", "columns"];
+  static readonly inlineFields = ["value", "method"];
   static readonly inputFields = ["dataframe"];
   static readonly metadataOutputTypes = {
     output: "dataframe"

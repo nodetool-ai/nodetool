@@ -435,11 +435,18 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const meta = useMemo(() => {
-    const nodeBasicFields = resolveVisibleBasicFields(
-      type,
-      metadata.basic_fields || [],
-      data
-    );
+    // Prefer the new classification (inline_fields ∪ input_fields). The
+    // generic body treats both as "visible by default"; everything else
+    // sits behind the advanced toggle / Inspector. Falls back to the
+    // legacy basic_fields list when the node hasn't been migrated yet.
+    const inlineFields = metadata.inline_fields ?? [];
+    const inputFields = metadata.input_fields ?? [];
+    const useNewClassification =
+      inlineFields.length > 0 || inputFields.length > 0;
+    const visibleSeed = useNewClassification
+      ? [...inlineFields, ...inputFields]
+      : metadata.basic_fields || [];
+    const nodeBasicFields = resolveVisibleBasicFields(type, visibleSeed, data);
     return {
       nodeNamespace: metadata.namespace || "",
       nodeBasicFields,
@@ -452,6 +459,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     data,
     type,
     metadata.basic_fields,
+    metadata.inline_fields,
+    metadata.input_fields,
     metadata.namespace,
     metadata.properties?.length,
     specialNamespaces

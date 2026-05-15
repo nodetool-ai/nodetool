@@ -527,7 +527,7 @@ export class ConstantDateNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "date"
   };
-  static readonly inlineFields = ["year", "month", "day"];
+  static readonly inlineFields = ["year", "month"];
   static readonly inputFields = [];
 
   @prop({
@@ -577,7 +577,7 @@ export class ConstantDateTimeNode extends BaseNode {
     output: "datetime"
   };
   static readonly exposeAsTool = true;
-  static readonly inlineFields = ["year", "month", "day", "hour", "minute", "second", "millisecond", "tzinfo", "utc_offset"];
+  static readonly inlineFields = ["year", "month"];
   static readonly inputFields = [];
 
   @prop({

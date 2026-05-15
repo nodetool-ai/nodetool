@@ -550,7 +550,7 @@ export class IndexAggregatedTextNode extends BaseNode {
   static readonly title = "Index Aggregated Text";
   static readonly description =
     "Index multiple text chunks at once with aggregated embeddings from Ollama.\n    vector, embedding, collection, RAG, index, text, chunk, batch, ollama";
-  static readonly inlineFields = ["document", "document_id", "aggregation"];
+  static readonly inlineFields = ["document", "document_id"];
   static readonly inputFields = ["collection", "metadata", "text_chunks"];
 
   @prop({
@@ -977,7 +977,7 @@ export class HybridSearchNode extends BaseNode {
   static readonly title = "Hybrid Search";
   static readonly description =
     "Hybrid search combining semantic and keyword-based search for better retrieval. Uses reciprocal rank fusion to combine results from both methods.\n    vector, RAG, query, semantic, text, similarity";
-  static readonly inlineFields = ["text", "n_results", "k_constant", "min_keyword_length"];
+  static readonly inlineFields = ["text", "n_results"];
   static readonly inputFields = ["collection"];
   static readonly metadataOutputTypes = {
     ids: "list[str]",

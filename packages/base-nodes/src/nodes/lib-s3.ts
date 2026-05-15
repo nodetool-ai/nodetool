@@ -408,7 +408,7 @@ export class S3DeleteObjectLibNode extends BaseNode {
 export class S3CopyObjectLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.CopyObject";
   static readonly title = "S3 Copy Object";
-  static readonly inlineFields = ["source_bucket", "source_key", "dest_bucket", "dest_key"];
+  static readonly inlineFields = ["source_bucket", "dest_bucket"];
   static readonly inputFields = [];
   static readonly description =
     "Copies an object within or between S3 buckets.\n    aws, s3, copy, duplicate, cloud, storage";

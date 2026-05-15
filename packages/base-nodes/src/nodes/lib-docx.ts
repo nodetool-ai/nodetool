@@ -483,7 +483,7 @@ export class SetDocumentPropertiesLibNode extends BaseNode {
   static readonly title = "Set Document Properties";
   static readonly description =
     "Sets document metadata properties\n    document, docx, metadata, properties";
-  static readonly inlineFields = ["title", "author", "subject", "keywords"];
+  static readonly inlineFields = ["title", "author"];
   static readonly inputFields = ["document"];
   static readonly metadataOutputTypes = {
     output: "document"
