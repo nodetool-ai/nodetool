@@ -425,115 +425,11 @@ describe("Task 2: Spring-loaded move lifecycle", () => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 3. GIZMO BOUNDS: resolveGizmoBounds CONTRACT
-// ═══════════════════════════════════════════════════════════════════════════════
-
-describe("Task 3: resolveGizmoBounds contract", () => {
-  it("uses contentBounds when smaller than raster in both dimensions", () => {
-    const layer = makeLayer({
-      contentBounds: makeBounds({ x: 10, y: 10, width: 50, height: 50 })
-    });
-    // Canvas is larger than contentBounds
-    const canvas = makeMockCanvas(100, 100);
-
-    const bounds = resolveGizmoBounds(layer, canvas, { width: 200, height: 200 });
-    expect(bounds.width).toBe(50);
-    expect(bounds.height).toBe(50);
-    expect(bounds.x).toBe(10);
-    expect(bounds.y).toBe(10);
-  });
-
-  it("uses raster bounds when contentBounds are equal to canvas size", () => {
-    const layer = makeLayer({
-      contentBounds: makeBounds({ x: 0, y: 0, width: 100, height: 100 })
-    });
-    const canvas = makeMockCanvas(100, 100);
-
-    const bounds = resolveGizmoBounds(layer, canvas, { width: 200, height: 200 });
-    // contentBounds are NOT strictly smaller → uses raster bounds
-    expect(bounds.width).toBe(100);
-    expect(bounds.height).toBe(100);
-  });
-
-  it("uses raster bounds when contentBounds are larger", () => {
-    const layer = makeLayer({
-      contentBounds: makeBounds({ x: 0, y: 0, width: 200, height: 200 })
-    });
-    const canvas = makeMockCanvas(100, 100);
-
-    const bounds = resolveGizmoBounds(layer, canvas, { width: 100, height: 100 });
-    // contentBounds are larger → uses raster bounds from canvas
-    expect(bounds.width).toBe(100);
-  });
-
-  it("uses stored raster bounds from canvas when available", () => {
-    const layer = makeLayer({
-      contentBounds: makeBounds({ x: 0, y: 0, width: 50, height: 50 })
-    });
-    const canvas = makeMockCanvas(200, 200, { x: -50, y: -50, width: 200, height: 200 });
-
-    const bounds = resolveGizmoBounds(layer, canvas, { width: 100, height: 100 });
-    // Stored raster bounds (200x200) are larger than contentBounds (50x50)
-    // but contentBounds are strictly smaller in both dims → uses contentBounds
-    expect(bounds.width).toBe(50);
-  });
-
-  it("handles zero-size contentBounds gracefully (uses raster bounds)", () => {
-    const layer = makeLayer({
-      contentBounds: makeBounds({ x: 0, y: 0, width: 0, height: 0 })
-    });
-    const canvas = makeMockCanvas(100, 100);
-
-    const bounds = resolveGizmoBounds(layer, canvas, { width: 100, height: 100 });
-    // Zero contentBounds → raster bounds from canvas
-    expect(bounds.width).toBe(100);
-    expect(bounds.height).toBe(100);
-  });
-
-  it("falls back correctly when no canvas is provided", () => {
-    const layer = makeLayer({
-      contentBounds: makeBounds({ x: 5, y: 5, width: 30, height: 30 })
-    });
-
-    const bounds = resolveGizmoBounds(layer, null, { width: 100, height: 100 });
-    // No canvas: raster bounds come from contentBounds (30x30) or fallback (100x100)
-    // contentBounds width (30) < raster width (100 from fallback)
-    // contentBounds height (30) < raster height (100 from fallback)
-    // So: uses contentBounds (30x30)
-    expect(bounds.width).toBe(30);
-    expect(bounds.height).toBe(30);
-  });
-
-  it("returns correct bounds for layers with non-zero raster origin", () => {
-    const layer = makeLayer({
-      contentBounds: makeBounds({ x: -50, y: -50, width: 200, height: 200 })
-    });
-    const canvas = makeMockCanvas(200, 200, { x: -50, y: -50, width: 200, height: 200 });
-
-    const bounds = resolveGizmoBounds(layer, canvas, { width: 100, height: 100 });
-    // contentBounds.width (200) == raster.width (200) → not strictly smaller → uses raster
-    expect(bounds.x).toBe(-50);
-    expect(bounds.y).toBe(-50);
-    expect(bounds.width).toBe(200);
-    expect(bounds.height).toBe(200);
-  });
-
-  it("handles imageReference startup case (no canvas, only contentBounds)", () => {
-    const layer = makeLayer({
-      contentBounds: makeBounds({ x: 0, y: 0, width: 256, height: 256 })
-    });
-
-    // imageReference layers may not have a canvas hydrated yet
-    const bounds = resolveGizmoBounds(layer, null, { width: 512, height: 512 });
-    // contentBounds (256x256) are strictly smaller than fallback (512x512)
-    expect(bounds.width).toBe(256);
-    expect(bounds.height).toBe(256);
-  });
-});
+// resolveGizmoBounds + opaque-pixel-bounds coverage lives in
+// transformTargetSet.test.ts (resolveGizmoBounds + computeOpaquePixelBounds describes).
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 4. RECONCILE vs PREVIEW PARITY
+// 3. RECONCILE vs PREVIEW PARITY
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe("Task 4: Reconcile vs preview parity", () => {

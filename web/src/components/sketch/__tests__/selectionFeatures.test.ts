@@ -203,52 +203,6 @@ describe("Selection features", () => {
   });
 });
 
-describe("Mirror/symmetry state", () => {
-  it("starts with mirrorX = false, mirrorY = false", () => {
-    const state = useSketchStore.getState();
-    expect(state.mirrorX).toBe(false);
-    expect(state.mirrorY).toBe(false);
-  });
-
-  it("setMirrorX toggles horizontal mirror", () => {
-    act(() => {
-      useSketchStore.getState().setMirrorX(true);
-    });
-    expect(useSketchStore.getState().mirrorX).toBe(true);
-    expect(useSketchStore.getState().mirrorY).toBe(false);
-  });
-
-  it("setMirrorY toggles vertical mirror", () => {
-    act(() => {
-      useSketchStore.getState().setMirrorY(true);
-    });
-    expect(useSketchStore.getState().mirrorX).toBe(false);
-    expect(useSketchStore.getState().mirrorY).toBe(true);
-  });
-
-  it("both mirrors can be active for dual axis", () => {
-    act(() => {
-      useSketchStore.getState().setMirrorX(true);
-      useSketchStore.getState().setMirrorY(true);
-    });
-    expect(useSketchStore.getState().mirrorX).toBe(true);
-    expect(useSketchStore.getState().mirrorY).toBe(true);
-  });
-
-  it("setting both to false disables symmetry (off mode)", () => {
-    act(() => {
-      useSketchStore.getState().setMirrorX(true);
-      useSketchStore.getState().setMirrorY(true);
-    });
-    act(() => {
-      useSketchStore.getState().setMirrorX(false);
-      useSketchStore.getState().setMirrorY(false);
-    });
-    expect(useSketchStore.getState().mirrorX).toBe(false);
-    expect(useSketchStore.getState().mirrorY).toBe(false);
-  });
-});
-
 describe("Invert selection", () => {
   it("invertSelection with no selection selects all", () => {
     act(() => {

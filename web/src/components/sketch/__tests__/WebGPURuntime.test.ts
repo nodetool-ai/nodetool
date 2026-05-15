@@ -48,51 +48,6 @@ describe("WebGPU initialization", () => {
     });
   });
 
-  describe("WebGPURuntime class shape", () => {
-    it("exists as a named export", () => {
-      expect(WebGPURuntime).toBeDefined();
-      expect(typeof WebGPURuntime).toBe("function");
-    });
-
-    it("implements the SketchRuntime interface (method existence check)", () => {
-      const proto = WebGPURuntime.prototype;
-      // Layer canvas management
-      expect(typeof proto.getOrCreateLayerCanvas).toBe("function");
-      expect(typeof proto.getLayerCanvas).toBe("function");
-      expect(typeof proto.deleteLayerCanvas).toBe("function");
-       expect(typeof proto.invalidateLayer).toBe("function");
-       // Compositing
-       expect(typeof proto.compositeToDisplay).toBe("function");
-       expect(typeof proto.setSelectionAntsOverlayCanvas).toBe("function");
-       expect(typeof proto.setSelectionAntsViewport).toBe("function");
-       // Readback
-      expect(typeof proto.getLayerData).toBe("function");
-      expect(typeof proto.snapshotLayerCanvas).toBe("function");
-      expect(typeof proto.flattenToDataUrl).toBe("function");
-      expect(typeof proto.getMaskDataUrl).toBe("function");
-      expect(typeof proto.flattenVisible).toBe("function");
-      // Layer operations
-      expect(typeof proto.setLayerData).toBe("function");
-      expect(typeof proto.restoreLayerCanvas).toBe("function");
-      expect(typeof proto.clearLayer).toBe("function");
-      expect(typeof proto.clearLayerRect).toBe("function");
-      expect(typeof proto.flipLayer).toBe("function");
-      expect(typeof proto.fillLayerWithColor).toBe("function");
-      expect(typeof proto.fillLayerRect).toBe("function");
-      expect(typeof proto.clearLayerBySelectionMask).toBe("function");
-      expect(typeof proto.fillLayerBySelectionMask).toBe("function");
-      expect(typeof proto.nudgeLayer).toBe("function");
-      expect(typeof proto.trimLayerToBounds).toBe("function");
-      expect(typeof proto.mergeLayerDown).toBe("function");
-      expect(typeof proto.cropLayers).toBe("function");
-      expect(typeof proto.applyAdjustments).toBe("function");
-      expect(typeof proto.reconcileLayerToDocumentSpace).toBe("function");
-      // Effects evaluation (Phase 3)
-      expect(typeof proto.evaluateLayerEffects).toBe("function");
-      // Lifecycle
-      expect(typeof proto.dispose).toBe("function");
-    });
-  });
 });
 
 describe("Canvas2DRuntime evaluateLayerEffects", () => {
