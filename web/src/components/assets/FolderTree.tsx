@@ -64,7 +64,8 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   sortBy = "name"
 }) => {
   const theme = useTheme();
-  
+  const treeStyles = useMemo(() => styles(theme), [theme]);
+
   // Fetch folder tree using useQuery
   const { data: folderTree = {} } = useFolderTree(sortBy);
 
@@ -110,7 +111,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   );
 
   return (
-    <Box className="folder-tree" css={styles(theme)}>
+    <Box className="folder-tree" css={treeStyles}>
       <SimpleTreeView
         className="tree-view"
         expandedItems={expandedItems}

@@ -66,6 +66,7 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
 }) => {
   const location = useLocation();
   const theme = useTheme();
+  const analyticsStyles = useMemo(() => styles(theme), [theme]);
 
   const { totalSize, fileCount, folderCount } = useMemo(() => {
     let total = 0;
@@ -92,7 +93,7 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
   }
 
   return (
-    <Box css={styles(theme)} className="storage-analytics">
+    <Box css={analyticsStyles} className="storage-analytics">
       <Text className="folder-info">
         {currentFolder?.name || "ASSETS"}
       </Text>

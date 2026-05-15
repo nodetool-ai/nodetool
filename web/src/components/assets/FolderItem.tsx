@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import FolderIcon from "@mui/icons-material/Folder";
 import NorthWest from "@mui/icons-material/NorthWest";
 import { Asset } from "../../stores/ApiTypes";
@@ -123,6 +123,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
   children
 }) => {
   const theme = useTheme();
+  const folderStyles = useMemo(() => styles(theme), [theme]);
   const {
     isDragHovered,
     handleDrag,
@@ -137,7 +138,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
 
   return (
     <div
-      css={styles(theme)}
+      css={folderStyles}
       className={`folder-item ${isSelected ? "selected" : ""} ${
         isParent ? "parent" : ""
       } ${isDragHovered ? "drag-hover" : ""}`}
