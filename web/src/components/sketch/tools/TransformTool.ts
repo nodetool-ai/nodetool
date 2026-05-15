@@ -59,7 +59,6 @@ import type {
 import { layerAllowsTransformWhilePixelLocked, composeAffineMatrix } from "../types";
 import AspectRatioIcon from "@mui/icons-material/AspectRatio";
 import {
-  getEffectiveRasterBounds,
   getTransformedCenter,
   getTransformedCorners,
   getTransformedExtents,
@@ -71,6 +70,7 @@ import {
   type EdgeHandle,
   isCornerHandle,
   isEdgeHandle,
+  isQuadOnlyTransform,
   hitTestHandles,
   isInRotateZone,
   hitTestPivot,
@@ -266,6 +266,25 @@ export class TransformTool implements ToolHandler {
     this.drawGizmo(ctx);
   }
 
+  /**
+   * Cancel the in-flight gesture (Esc / generic tool-cancel path). Drops any
+   * preview without committing and resets transient state, but keeps the
+   * current target so the gizmo stays put.
+   */
+  onCancel(ctx: ToolContext): void {
+    this.gizmoScheduler.cancelPending();
+    if (this.session.isActive()) {
+      this.session.cancel(ctx);
+    }
+    for (const id of this.multiTargetLayerIds) {
+      ctx.clearLayerTransformPreview?.(id);
+    }
+    this.resetGestureState();
+    this.resetMultiGestureState();
+    this.pivotPointAtMoveStart = null;
+    this.drawGizmo(ctx);
+  }
+
   // ── Pointer events ─────────────────────────────────────────────────────────
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
@@ -305,8 +324,12 @@ export class TransformTool implements ToolHandler {
 
     // 2. Allow the pivot to be re-grabbed anywhere it is visible. When the
     //    pivot is outside the box, `hitTestHandles()` returns null, so the
-    //    pivot must win before auto-pick / rotate-zone fallback.
-    if (handle === "move" || handle === null) {
+    //    pivot must win before auto-pick / rotate-zone fallback. Quad-only
+    //    transforms have no pivot — skip.
+    if (
+      (handle === "move" || handle === null) &&
+      !isQuadOnlyTransform(currentTransform)
+    ) {
       const pivotDoc = this.getEffectivePivot(currentTransform);
       if (hitTestPivot(pivotDoc, pt, ctx.zoom)) {
         this.pivotPointAtMoveStart = null;
@@ -660,7 +683,8 @@ export class TransformTool implements ToolHandler {
         continue;
       }
       const canvas = ctx.layerCanvasesRef.current.get(id);
-      const rb = getEffectiveRasterBounds(layer, canvas, ctx.doc.canvas);
+      // Tight bounds for parity with the single-layer path — see Fix #2.
+      const rb = resolveGizmoBounds(layer, canvas, ctx.doc.canvas);
       entries.push({ layerId: id, bounds: rb });
       extentRects.push(getTransformedExtents(layer.transform, rb));
     }
@@ -713,7 +737,7 @@ export class TransformTool implements ToolHandler {
       if (!layer) {
         continue;
       }
-      const rb = getEffectiveRasterBounds(
+      const rb = resolveGizmoBounds(
         layer,
         ctx.layerCanvasesRef.current.get(id),
         ctx.doc.canvas
@@ -892,8 +916,10 @@ export class TransformTool implements ToolHandler {
       ctx.zoom
     );
     // hitTestHandles returns "move" when inside the bounding box, or a named
-    // handle when on a handle — both count as "inside".
-    return handle !== null;
+    // handle when on a handle. The rotate handle lives *outside* the box, so
+    // a hit on it is not "inside" — without this exclusion right-clicking the
+    // outside-box rotate ring would open the transform context menu.
+    return handle !== null && handle !== "rotate";
   }
 
   /** Get the current live transform (for external undo/redo consumers). */
@@ -928,8 +954,12 @@ export class TransformTool implements ToolHandler {
     }
     const handle = hitTestHandles(transform, this.rasterBounds, docPoint, ctx.zoom);
     // Let the visible pivot win over move-zone and rotate-zone hover, while
-    // still preserving direct hits on concrete gizmo handles.
-    if (handle === "move" || handle === null) {
+    // still preserving direct hits on concrete gizmo handles. Quad-only
+    // transforms have no pivot.
+    if (
+      (handle === "move" || handle === null) &&
+      !isQuadOnlyTransform(transform)
+    ) {
       const pivotDoc = this.getEffectivePivot(transform);
       if (hitTestPivot(pivotDoc, docPoint, ctx.zoom)) {
         this.hoveredHandle = "pivot";

@@ -11,6 +11,7 @@ export {
   type EdgeHandle,
   isCornerHandle,
   isEdgeHandle,
+  isQuadOnlyTransform,
   HANDLE_RADIUS,
   ROTATION_HANDLE_OFFSET,
   HANDLE_SIZE,

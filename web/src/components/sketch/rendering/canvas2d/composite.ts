@@ -89,7 +89,8 @@ export function drawWithTransform(
     (layer.transform.mode === "perspective" ||
       layer.transform.mode === "warp" ||
       layer.transform.mode === "perspective-distort" ||
-      layer.transform.mode === "mesh-warp") &&
+      layer.transform.mode === "mesh-warp" ||
+      layer.transform.mode === "distort") &&
     layer.transform.quad
   ) {
     drawImageToQuad(

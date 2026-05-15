@@ -21,44 +21,24 @@ import {
   getTransformedCenter,
   getTransformedCorners
 } from "../../painting/resolvedLayerGeometry";
-import { docToScreen, scaledHalfExtents } from "./handleGeometry";
+import {
+  docToScreen,
+  scaledHalfExtents,
+  isQuadOnlyTransform
+} from "./handleGeometry";
 import { drawTransformGizmo } from "../gizmo";
 
 function getVisibleHandles(
   transform: LayerTransform
 ): readonly TransformHandle[] {
-  if (transform.mode === "distort") {
-    return [
-      "top-left",
-      "top-right",
-      "bottom-left",
-      "bottom-right",
-      "rotate"
-    ];
+  // Free-form quads: 4 corners only — no rotate handle (rotation is
+  // meaningless on a non-affine quad). Skew shows edge midpoints + rotate
+  // because skew is still affine.
+  if (isQuadOnlyTransform(transform)) {
+    return ["top-left", "top-right", "bottom-left", "bottom-right"];
   }
   if (transform.mode === "skew") {
     return ["top", "bottom", "left", "right", "rotate"];
-  }
-  if (transform.mode === "warp") {
-    return [
-      "top-left",
-      "top-right",
-      "bottom-left",
-      "bottom-right",
-      "rotate"
-    ];
-  }
-  if (
-    transform.mode === "perspective" ||
-    transform.mode === "perspective-dual"
-  ) {
-    return [
-      "top-left",
-      "top-right",
-      "bottom-left",
-      "bottom-right",
-      "rotate"
-    ];
   }
   return [
     "top-left",
@@ -124,19 +104,28 @@ export function paintTransformGizmo(
         containerH,
         dpr
       );
-      const pivotScreenPos = pivotDoc
-        ? docToScreen(
-            pivotDoc.x,
-            pivotDoc.y,
-            ctx.doc.canvas.width,
-            ctx.doc.canvas.height,
-            ctx.zoom,
-            ctx.pan,
-            containerW,
-            containerH,
-            dpr
-          )
-        : null;
+      // Pivot semantics for the renderer:
+      //   `null`      → suppress the pivot crosshair entirely (quad-only
+      //                  transforms have no meaningful pivot).
+      //   `undefined` → render the default pivot at the box center.
+      //   Point       → render at the explicit (custom) pivot.
+      const pivotScreenPos: Point | null | undefined = isQuadOnlyTransform(
+        transform
+      )
+        ? null
+        : pivotDoc
+          ? docToScreen(
+              pivotDoc.x,
+              pivotDoc.y,
+              ctx.doc.canvas.width,
+              ctx.doc.canvas.height,
+              ctx.zoom,
+              ctx.pan,
+              containerW,
+              containerH,
+              dpr
+            )
+          : undefined;
 
       drawTransformGizmo(
         gc,
@@ -203,7 +192,10 @@ export function paintTransformGizmo(
     const screenH = hh * 2 * ctx.zoom * dpr;
 
     // Compute pivot screen position (default: center)
-    const pivotScreenPos = pivotDoc
+    // `undefined` here renders the default pivot at the box center; an
+    // explicit point renders at the user-set pivot. (Quad-only transforms
+    // never reach this branch.)
+    const pivotScreenPos: Point | undefined = pivotDoc
       ? docToScreen(
           pivotDoc.x,
           pivotDoc.y,
@@ -215,7 +207,7 @@ export function paintTransformGizmo(
           containerH,
           dpr
         )
-      : null;
+      : undefined;
 
     drawTransformGizmo(
       gc,

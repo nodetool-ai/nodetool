@@ -295,7 +295,19 @@ export function drawTransformGizmo(
       gc.stroke();
     }
     gc.restore();
-    drawPivotHandle(gc, pivotScreenPos ?? center, activeOrHoveredHandle === "pivot", dpr);
+    // `pivotScreenPos === null` means "suppress the pivot crosshair" (e.g.
+    // free-form quad transforms have no meaningful pivot). `undefined` falls
+    // back to the box center as the default pivot.
+    const pivotForDraw =
+      pivotScreenPos === null ? null : (pivotScreenPos ?? center);
+    if (pivotForDraw) {
+      drawPivotHandle(
+        gc,
+        pivotForDraw,
+        activeOrHoveredHandle === "pivot",
+        dpr
+      );
+    }
     return;
   }
 
@@ -344,9 +356,14 @@ export function drawTransformGizmo(
   gc.restore();
 
   // Pivot crosshair — drawn in un-rotated screen space (after gc.restore)
-  // so the crosshair orientation stays axis-aligned regardless of layer rotation.
-  const pivotPos: Point = pivotScreenPos ?? screenCenter;
-  drawPivotHandle(gc, pivotPos, activeOrHoveredHandle === "pivot", dpr);
+  // so the crosshair orientation stays axis-aligned regardless of layer
+  // rotation. `null` suppresses the crosshair entirely; `undefined` falls
+  // back to the box center.
+  const pivotForDraw =
+    pivotScreenPos === null ? null : (pivotScreenPos ?? screenCenter);
+  if (pivotForDraw) {
+    drawPivotHandle(gc, pivotForDraw, activeOrHoveredHandle === "pivot", dpr);
+  }
 }
 
 // ─── Off-canvas indicator ────────────────────────────────────────────────────

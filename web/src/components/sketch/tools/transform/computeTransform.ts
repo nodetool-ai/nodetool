@@ -116,31 +116,33 @@ function scaledVector(axis: Point, amount: number): Point {
 
 function buildQuadTransform(
   quad: PerspectiveQuad,
-  rasterBounds: LayerContentBounds,
+  _rasterBounds: LayerContentBounds,
   baseTransform: LayerTransform,
   mode: "perspective" | "warp" | "distort"
 ): LayerTransform {
-  const { matrix: _matrix, quad: _quad, mode: _mode, ...rest } = baseTransform;
-  const center = quadCenter(quad);
-  const topVector = {
-    x: ((quad[1].x - quad[0].x) + (quad[2].x - quad[3].x)) / 2,
-    y: ((quad[1].y - quad[0].y) + (quad[2].y - quad[3].y)) / 2
-  };
-  const leftVector = {
-    x: ((quad[3].x - quad[0].x) + (quad[2].x - quad[1].x)) / 2,
-    y: ((quad[3].y - quad[0].y) + (quad[2].y - quad[1].y)) / 2
-  };
+  // For a free-form quad the affine fields (x/y/scaleX/scaleY/rotation) are
+  // ill-defined — earlier this function returned a parallelogram-fit
+  // pseudo-decomposition that anything reading `transform.scaleX` or
+  // `transform.rotation` would silently treat as truth. The renderer and
+  // hit-testers ignore them when `quad` is set, so we drop them here:
+  // identity affine + the quad is the single source of truth.
+  //
+  // Anything (panel readouts, history diff, exports) that needs a numeric
+  // summary of a quad must compute it from the quad itself — not from these
+  // synthetic fields.
+  //
+  // We deliberately preserve `secondaryQuad` from the base transform so the
+  // dual-perspective mode keeps its second plane between drags.
+  const { secondaryQuad } = baseTransform;
   return {
-    ...rest,
-    x: Math.round(center.x - rasterBounds.x - rasterBounds.width / 2),
-    y: Math.round(center.y - rasterBounds.y - rasterBounds.height / 2),
-    scaleX:
-      Math.hypot(topVector.x, topVector.y) / Math.max(1, rasterBounds.width),
-    scaleY:
-      Math.hypot(leftVector.x, leftVector.y) / Math.max(1, rasterBounds.height),
-    rotation: Math.atan2(topVector.y, topVector.x),
+    x: 0,
+    y: 0,
+    scaleX: 1,
+    scaleY: 1,
+    rotation: 0,
     mode,
-    quad
+    quad,
+    ...(secondaryQuad ? { secondaryQuad } : {})
   };
 }
 

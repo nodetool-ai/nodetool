@@ -88,6 +88,16 @@ function usesAdvancedAffineTransform(transform: LayerTransform): boolean {
   );
 }
 
+/**
+ * True when the transform is a free-form quad (warp / perspective / distort /
+ * mesh-warp). For these modes, rotation/pivot are meaningless — callers
+ * should disable the rotate handle, the outside-box rotate band, and the
+ * custom pivot.
+ */
+export function isQuadOnlyTransform(transform: LayerTransform): boolean {
+  return Boolean(isQuadTransformMode(transform.mode) && transform.quad);
+}
+
 function midpoint(a: Point, b: Point): Point {
   return {
     x: (a.x + b.x) / 2,
@@ -219,15 +229,7 @@ export function buildHandlePositions(
     const bottomMid = midpoint(corners[2], corners[3]);
     const leftMid = midpoint(corners[0], corners[3]);
     const rightMid = midpoint(corners[1], corners[2]);
-    const rotateNormal = normalizeVector(topMid.x - center.x, topMid.y - center.y);
-    return [
-      {
-        pos: {
-          x: topMid.x + rotateNormal.x * (ROTATION_HANDLE_OFFSET / zoom),
-          y: topMid.y + rotateNormal.y * (ROTATION_HANDLE_OFFSET / zoom)
-        },
-        handle: "rotate"
-      },
+    const handles: Array<{ pos: Point; handle: TransformHandle }> = [
       { pos: corners[0], handle: "top-left" },
       { pos: corners[1], handle: "top-right" },
       { pos: corners[3], handle: "bottom-left" },
@@ -237,6 +239,21 @@ export function buildHandlePositions(
       { pos: leftMid, handle: "left" },
       { pos: rightMid, handle: "right" }
     ];
+    // Rotate handle is meaningless on a free-form quad — see isQuadOnlyTransform.
+    if (!isQuadOnlyTransform(transform)) {
+      const rotateNormal = normalizeVector(
+        topMid.x - center.x,
+        topMid.y - center.y
+      );
+      handles.unshift({
+        pos: {
+          x: topMid.x + rotateNormal.x * (ROTATION_HANDLE_OFFSET / zoom),
+          y: topMid.y + rotateNormal.y * (ROTATION_HANDLE_OFFSET / zoom)
+        },
+        handle: "rotate"
+      });
+    }
+    return handles;
   }
   const center = getTransformedCenter(transform, rasterBounds);
   const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
@@ -351,6 +368,11 @@ export function isInRotateZone(
   canvasPt: Point,
   zoom: number
 ): boolean {
+  // Free-form quads have no rotation, so the outside-box rotate band is
+  // disabled — clicks there fall through to auto-select / deselect.
+  if (isQuadOnlyTransform(transform)) {
+    return false;
+  }
   if (usesAdvancedAffineTransform(transform)) {
     const margin = OUTSIDE_ROTATE_MARGIN / zoom;
     const corners = getTransformedCorners(transform, rasterBounds);

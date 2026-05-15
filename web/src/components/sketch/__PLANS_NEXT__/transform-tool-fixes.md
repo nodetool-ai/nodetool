@@ -22,15 +22,33 @@ Tracker for the multi-commit work to fix the Transform tool and add Perspective 
         follow-up; the first drag seeds a sensible secondary quad to the
         right of the primary's fold edge so the mode is usable today
 
-## Phase 3 — Mesh Warp tool
+## Phase 3 — Mesh Warp (preview)
 
-- [ ] 3.1 Tool scaffolding (`MeshWarpTool`, mesh grid module, renderer, gizmo)
-- [ ] 3.2 Settings panel + dispatcher wiring
-- [ ] 3.3 Commit / bake action
-- [ ] 3.4 Tests for grid math and warp render
+- [x] 3.1 Mode entry + panel toggle (`mesh-warp`)
+- [x] 3.2 Wire to existing 4-corner warp gesture so the mode is usable today
+- [ ] Promote to a standalone `MeshWarpTool` with grid + bezier handles, Coons
+      patch resampling, dedicated settings panel, and tests. Spec is in the
+      original plan; the current mode-based entry preserves the same data
+      shape so the upgrade is non-breaking.
 
-## Phase 4 — Perspective Distort tool
+## Phase 4 — Perspective Distort (preview)
 
-- [ ] 4.1 Tool implementation (`PerspectiveDistortTool`, inverse perspective bake)
-- [ ] 4.2 Settings panel + tool registration
-- [ ] 4.3 Tests for inverse-perspective bake
+- [x] 4.1 Mode entry + panel toggle (`perspective-distort`)
+- [x] 4.2 Live perspective drag math reused via `computePerspectiveTransform`
+- [ ] Promote to a standalone `PerspectiveDistortTool` with the inverse
+      perspective bake (quad → unit square) so the chosen quad becomes the
+      layer's bounding rectangle. Add tests for the inverse bake. The
+      current preview ships the live-drag UX without the straightening
+      bake.
+
+## Notes for the standalone-tool follow-up
+
+- Both Phase 3 and Phase 4 are intentionally scoped as `TransformMode`
+  entries in this commit so the modes are visible and discoverable from
+  the existing TransformSettingsPanel without churning every exhaustive
+  switch on `SketchTool`. Promotion to standalone tools (`MeshWarpTool`,
+  `PerspectiveDistortTool`) follows the original plan and only requires:
+    1. Adding the tool ids to `SketchTool` and `getToolHandler`.
+    2. Implementing the dedicated `ToolHandler` classes and gizmos.
+    3. Replacing the mode-based `if` branches in `TransformTool.onMove`
+       with the new tools' own `onMove` handlers.

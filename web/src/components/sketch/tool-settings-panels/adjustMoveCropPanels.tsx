@@ -222,11 +222,12 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
               Warp
             </ToggleButton>
           </Tooltip>
-          <Tooltip title="Mesh Warp (preview): pin-and-pull distortion via a control mesh. Bezier handles and full grid editing are coming soon.">
-            <ToggleButton value="mesh-warp" sx={toggleButtonSmallSx}>
-              Mesh
-            </ToggleButton>
-          </Tooltip>
+          {/*
+           * Mesh Warp toggle is hidden until the real mesh-grid editor lands —
+           * today the gesture just aliases Warp with a different mode label.
+           * Perspective Distort is similarly placeholder (commit reuses the
+           * standard perspective bake instead of straightening the quad).
+           */}
           <Tooltip title="Perspective Distort (preview): drag the four corners to a quad that should be rectangular; on commit the layer is straightened.">
             <ToggleButton value="perspective-distort" sx={toggleButtonSmallSx}>
               Distort 4-pt
