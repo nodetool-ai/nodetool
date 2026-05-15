@@ -3,10 +3,23 @@ import { css } from "@emotion/react";
 
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { shallow } from "zustand/shallow";
-import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import {
+  Node,
+  NodeProps,
+  ResizeDragEvent,
+  useStore,
+  useReactFlow
+} from "@xyflow/react";
 
 // store
 import { NodeData } from "../../stores/NodeData";
@@ -23,17 +36,18 @@ import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
 import BypassGroupButton from "./BypassGroupButton";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { Tooltip, ToolbarIconButton, Popover } from "../ui_primitives";
 
 // constants
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 200;
-const GROUP_BG_OPACITY = 0.22;
-const GROUP_BORDER_OPACITY = 0.45;
-const PILL_HEIGHT = 40;
+const GROUP_BG_OPACITY = 0.35;
+const GROUP_BORDER_OPACITY = 0.5;
+const HEADER_HEIGHT = 32;
 // Hex fallback used when group_color is unset or stored as a CSS var token
 // (hexToRgba can't compute alpha on `var(--…)`, which produces invalid CSS).
-const DEFAULT_GROUP_HEX = "#4a5563";
+const DEFAULT_GROUP_HEX = "#9ca3af";
 
 // Returns an opaque 6-digit hex. Catches three failure modes from saved data:
 //   - missing / empty                  → default
@@ -56,58 +70,56 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       position: "relative",
       boxShadow: "none",
       minWidth: minWidth + "px",
-      minHeight: minHeight + "px"
+      minHeight: minHeight + "px",
+      width: "100%",
+      height: "100%"
     },
     "&.hovered.control-pressed": {
       border: "2px dashed black !important"
     },
     height: "100%",
     display: "flex",
-    borderRadius: "5px",
-    // pill — top-left, overlapping the bounding box
-    ".group-pill": {
+    borderRadius: "3px",
+    // Header strip — transparent wrapper that holds the label and actions
+    // and acts as a single hover hit region. Positioned just above the
+    // group body so it never interferes with click-through to child nodes.
+    ".group-header": {
       position: "absolute",
-      top: `-${PILL_HEIGHT / 2}px`,
-      left: "12px",
-      height: `${PILL_HEIGHT}px`,
+      left: 0,
+      right: 0,
+      pointerEvents: "auto",
+      zIndex: 10
+    },
+    // Header label — flush at the top-left edge, not rounded, uses darkened group color.
+    // Scales inversely with zoom so it appears the same size on screen.
+    ".group-label": {
+      position: "absolute",
+      left: 0,
+      height: `${HEADER_HEIGHT}px`,
       display: "flex",
       alignItems: "center",
-      gap: "4px",
-      padding: "0 6px 0 18px",
-      borderRadius: `${PILL_HEIGHT / 2}px`,
+      padding: "0 8px",
+      borderRadius: "3px",
       color: theme.vars.palette.common.white,
-      boxShadow: [
-        // inner top highlight (subtle "lift")
-        "inset 0 1px 0 rgba(255, 255, 255, 0.12)",
-        // inner bottom shadow for depth
-        "inset 0 -1px 0 rgba(0, 0, 0, 0.25)",
-        // outer drop shadow
-        `0 3px 10px ${theme.vars.palette.grey[900]}80`
-      ].join(", "),
+      ".title-sizer": {
+        position: "absolute",
+        visibility: "hidden",
+        whiteSpace: "pre",
+        pointerEvents: "none",
+        fontFamily: theme.fontFamily1,
+        fontSize: "15px",
+        fontWeight: 400,
+        letterSpacing: "0.02em"
+      },
+      transformOrigin: "bottom left",
       zIndex: 10,
       cursor: "move",
       userSelect: "none",
-      transition: "transform 0.15s ease, box-shadow 0.15s ease",
-      "&:hover": {
-        boxShadow: [
-          "inset 0 1px 0 rgba(255, 255, 255, 0.16)",
-          "inset 0 -1px 0 rgba(0, 0, 0, 0.25)",
-          `0 4px 14px ${theme.vars.palette.grey[900]}99`
-        ].join(", ")
-      },
-      // Group body is pointer-events:none by default (click-through overlay);
-      // the pill needs to opt back in so its buttons / title edit are clickable.
       pointerEvents: "auto",
-      ".title-input": {
-        display: "flex",
-        alignItems: "center",
-        minWidth: "40px",
-        paddingRight: "8px"
-      },
       input: {
-        width: "fit-content",
-        minWidth: "40px",
-        maxWidth: "320px",
+        boxSizing: "content-box",
+        minWidth: "1ch",
+        maxWidth: "unset",
         backgroundColor: "transparent",
         outline: "none",
         border: 0,
@@ -116,59 +128,49 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
         color: "#ffffff",
         textShadow: "0 1px 2px rgba(0, 0, 0, 0.4)",
         fontFamily: theme.fontFamily1,
-        fontSize: "1.15em",
-        fontWeight: 600,
+        fontSize: "15px",
+        fontWeight: 400,
         letterSpacing: "0.02em",
         pointerEvents: "none",
         "&:focus": {
           pointerEvents: "all"
         }
-      },
-      ".pill-actions": {
-        display: "flex",
-        alignItems: "center",
-        gap: "2px",
-        paddingLeft: "6px",
-        marginLeft: "2px",
-        borderLeft: "1px solid rgba(255, 255, 255, 0.12)"
-      },
-      // Soften the BypassGroupButton inside the pill — its heavy
-      // outlined-circle look fights with the pill aesthetic.
-      ".pill-actions .bypass-button": {
+      }
+    },
+    // Action buttons — flush at the top-right edge. Scaled inversely with zoom.
+    ".group-actions": {
+      position: "absolute",
+      right: 0,
+      height: `${HEADER_HEIGHT}px`,
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+      padding: "0 6px",
+      transformOrigin: "bottom right",
+      zIndex: 10,
+      pointerEvents: "auto",
+      ".bypass-button, .menu-button": {
         border: "none !important",
-        backgroundColor: "transparent !important",
-        color: "rgba(255, 255, 255, 0.85) !important",
-        width: "32px !important",
-        height: "32px !important",
+        backgroundColor: "rgba(255, 255, 255, 0.10) !important",
+        borderRadius: "var(--rounded-circle) !important",
+        color: "rgba(255, 255, 255, 0.9) !important",
+        width: "28px !important",
+        height: "28px !important",
+        padding: "0 !important",
         "&:hover": {
-          backgroundColor: "rgba(255, 255, 255, 0.14) !important",
+          backgroundColor: "rgba(255, 255, 255, 0.18) !important",
           color: "#ffffff !important"
+        },
+        "& svg": {
+          fontSize: 20
         }
       },
-      // Tone down the run button slightly so it sits within the pill,
-      // not over it. Keep primary color for affordance.
-      ".pill-actions .run-button": {
-        width: "32px !important",
-        height: "32px !important",
+      ".run-button": {
+        width: "28px !important",
+        height: "28px !important",
         boxShadow: "0 1px 3px rgba(0, 0, 0, 0.3)",
         "& svg": {
           fontSize: "18px !important"
-        }
-      },
-      ".overflow-button": {
-        width: 32,
-        height: 32,
-        padding: 0,
-        borderRadius: "var(--rounded-circle)",
-        color: "rgba(255, 255, 255, 0.85)",
-        backgroundColor: "transparent",
-        transition: "background-color 0.15s ease, color 0.15s ease",
-        "&:hover": {
-          backgroundColor: "rgba(255, 255, 255, 0.14)",
-          color: "#ffffff"
-        },
-        "& svg": {
-          fontSize: 18
         }
       }
     },
@@ -216,9 +218,53 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const nodeRef = useRef<HTMLDivElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
-  const overflowAnchorRef = useRef<HTMLButtonElement>(null);
-  const [overflowOpen, setOverflowOpen] = useState(false);
+  const headerSizerRef = useRef<HTMLSpanElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const [headlineTextWidth, setHeadlineTextWidth] = useState(0);
+  const reactFlow = useReactFlow();
+  const [groupBodyWidth, setGroupBodyWidth] = useState(() => {
+    const n = reactFlow.getNode(props.id);
+    return (n?.measured?.width ?? n?.width ?? MIN_WIDTH) as number;
+  });
+  useEffect(() => {
+    const el = nodeRef.current;
+    if (!el) {return;}
+    const update = (w: number) => {
+      if (w > 0) {
+        setGroupBodyWidth((prev) => (Math.abs(prev - w) < 0.5 ? prev : w));
+      }
+    };
+    update(el.offsetWidth);
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        update(entry.contentRect.width);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const [menuOpen, setMenuOpen] = useState(false);
+  // Local hover state for the header strip. A single transparent wrapper
+  // div spans label + actions and serves as the hit region — cheap, no
+  // global listeners, and unaffected by the body's pointer-events: none.
+  const [headerHovered, setHeaderHovered] = useState(false);
+  const onHeaderEnter = useCallback(() => setHeaderHovered(true), []);
+  const onHeaderLeave = useCallback(() => setHeaderHovered(false), []);
   const store = useNodeStoreRef();
+
+  // Soft inverse-zoom scaling so the header chrome stays a comfortable size
+  // on screen at every zoom level. Strict 1/zoom (k=1) makes the label tiny
+  // when zoomed in and absurd when zoomed out; using a sub-linear exponent
+  // lets the label gently grow at high zoom and stay compact at low zoom.
+  const zoom = useStore((s) => s.transform[2]);
+  const clampedZoom = Math.min(Math.max(zoom, 0.08), 8);
+  // Label needs to stay readable → grow a bit when zoomed in.
+  const labelScale = Math.pow(1 / clampedZoom, 0.8);
+  // Right-side action buttons don't need to read as text; scale them less so
+  // they don't dominate the header (or overlap the label) when zoomed out.
+  const actionsScale = Math.pow(1 / clampedZoom, 0.55);
+  // World-space gap that renders as a constant ~5px on screen at any zoom.
+  const screenGapPx = 5 / clampedZoom;
 
   const { updateNodeData, updateNode, setBypass } = useNodes(
     (state) => ({
@@ -350,6 +396,13 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.data, props.id, updateNodeData]
   );
 
+  const handleMenuToggle = useCallback(() => {
+    setMenuOpen((v) => !v);
+  }, []);
+  const handleMenuClose = useCallback(() => {
+    setMenuOpen(false);
+  }, []);
+
   const handleColorChange = useCallback(
     (newColor: string | null) => {
       setColor(newColor);
@@ -362,13 +415,16 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.id, updateNodeData]
   );
 
-  const handleOverflowToggle = useCallback(() => {
-    setOverflowOpen((v) => !v);
-  }, []);
-
-  const handleOverflowClose = useCallback(() => {
-    setOverflowOpen(false);
-  }, []);
+  // Measure the rendered text width using a hidden sizer span so the input
+  // is sized exactly to its content (the `ch` unit overshoots for
+  // proportional fonts, leaving visible trailing padding). useLayoutEffect
+  // updates the width synchronously after DOM mutation but before paint,
+  // so the input never flashes at the previous frame's width while typing.
+  useLayoutEffect(() => {
+    if (headerSizerRef.current) {
+      setHeadlineTextWidth(headerSizerRef.current.offsetWidth);
+    }
+  }, [headline]);
 
   useEffect(() => {
     // Selectable group nodes when control key is pressed
@@ -380,10 +436,37 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     }
   }, [updateNode, props.id, controlKeyPressed, metaKeyPressed]);
 
+  // Bound the label to the group body width. Only reserve room for the
+  // action cluster when it's actually visible — otherwise the label can use
+  // the full group width.
+  const actionsVisible = headerHovered || props.selected || menuOpen;
+  const groupWorldWidth = groupBodyWidth;
+  const actionsButtonCount = 2;
+  const actionsBaseWidth =
+    12 + actionsButtonCount * 28 + (actionsButtonCount - 1) * 6;
+  const actionsWorldWidth = actionsBaseWidth * actionsScale;
+  const reservedRightWorld = actionsVisible ? actionsWorldWidth + 8 : 0;
+  const availableLabelWorldWidth = Math.max(
+    0,
+    groupWorldWidth - reservedRightWorld
+  );
+  const labelMaxCssWidth = Math.max(24, availableLabelWorldWidth / labelScale);
+
   const effectiveColor = resolveGroupHex(color);
-  const pillBg = effectiveColor;
-  const bodyBg = hexToRgba(effectiveColor, GROUP_BG_OPACITY);
-  const subtleBorder = `1px solid ${hexToRgba(effectiveColor, GROUP_BORDER_OPACITY)}`;
+  // Body tint: only a light touch of darkening before applying the overlay
+  // alpha — heavy desaturation made pastels collapse to indistinguishable
+  // grays once mixed with the dark canvas. Preserve the original hue/chroma
+  // so picker colors still read as themselves on the group.
+  const bodyTintHex = chroma(effectiveColor).desaturate(1.4).darken(0.3).hex();
+  const bodyBg = hexToRgba(bodyTintHex, GROUP_BG_OPACITY);
+  const subtleBorder = `1px solid ${hexToRgba(bodyTintHex, GROUP_BORDER_OPACITY)}`;
+  // Label: same hue family as the body tint, with a small saturation +
+  // brightness lift so the header reads as a subtle, related variant rather
+  // than a contrasting pill.
+  const labelBg = chroma(bodyTintHex).desaturate(0.4).brighten(0.25).hex();
+  // Pick black or white text based on label background luminance so the title
+  // stays legible whether the group color is dark or near-white.
+  const labelTextColor = chroma(labelBg).luminance() > 0.55 ? "#000000" : "#ffffff";
 
   return (
     <div
@@ -405,6 +488,15 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         backgroundColor: bodyBg
       }}
     >
+      <div
+        className="group-header"
+        onPointerEnter={onHeaderEnter}
+        onPointerLeave={onHeaderLeave}
+        style={{
+          bottom: `calc(100% + ${screenGapPx}px)`,
+          height: `${HEADER_HEIGHT * Math.max(labelScale, actionsScale)}px`
+        }}
+      >
       <Tooltip
         placement="top"
         delay={TOOLTIP_ENTER_DELAY * 5}
@@ -415,69 +507,115 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             Hold CTRL or ⌘ key + click <br />
             <br />
             <b>EDIT GROUP TITLE:</b> <br />
-            Double click the pill
+            Double click the label
           </span>
         }
       >
         <div
-          className="group-pill node-drag-handle"
+          className="group-label node-drag-handle"
           onDoubleClick={handlePillDoubleClick}
-          style={{ backgroundColor: pillBg }}
+          style={{
+            backgroundColor: labelBg,
+            color: labelTextColor,
+            bottom: 0,
+            transform: `scale(${labelScale})`,
+            maxWidth: `${labelMaxCssWidth}px`,
+            overflow: "hidden",
+            transition: "max-width 0.15s ease"
+          }}
         >
-          <div className="title-input">
-            <input
-              ref={headerInputRef}
-              spellCheck={false}
-              className="nodrag"
-              type="text"
-              value={headline}
-              onChange={handleHeadlineChange}
-              placeholder="Group"
-              size={Math.max(headline.length, 1)}
-            />
-          </div>
-          <div className="pill-actions">
-            {hasChildren && (
-              <BypassGroupButton
-                isBypassed={someChildrenBypassed}
-                onClick={toggleBypassChildren}
-              />
-            )}
-            <RunGroupButton
-              isWorkflowRunning={isWorkflowRunning}
-              state={state}
-              onClick={runWorkflow}
-            />
-            <Tooltip title="More options" delay={TOOLTIP_ENTER_DELAY}>
-              <ToolbarIconButton
-                ref={overflowAnchorRef}
-                title=""
-                size="small"
-                tabIndex={-1}
-                className="overflow-button nodrag"
-                onClick={handleOverflowToggle}
-              >
-                <MoreHorizIcon />
-              </ToolbarIconButton>
-            </Tooltip>
-          </div>
+          <input
+            ref={headerInputRef}
+            spellCheck={false}
+            className="nodrag"
+            type="text"
+            value={headline}
+            onChange={handleHeadlineChange}
+            placeholder="Group"
+            style={{
+              width: `${Math.max(headlineTextWidth + 2, 12)}px`,
+              color: labelTextColor,
+              maxWidth: "unset",
+              textShadow: labelTextColor === "#000000" ? "none" : undefined
+            }}
+          />
+          <span
+            ref={headerSizerRef}
+            aria-hidden
+            className="title-sizer"
+          >
+            {headline || "Group"}
+          </span>
         </div>
       </Tooltip>
 
+      <div
+        className="group-actions nodrag"
+        style={{
+          bottom: 0,
+          transform: `scale(${actionsScale})`,
+          opacity: headerHovered || props.selected || menuOpen ? 1 : 0,
+          pointerEvents: headerHovered || props.selected || menuOpen ? "auto" : "none",
+          transition: "opacity 0.15s ease"
+        }}
+      >
+        <Tooltip title="Group options" delay={TOOLTIP_ENTER_DELAY}>
+          <ToolbarIconButton
+            ref={menuButtonRef}
+            title=""
+            size="small"
+            tabIndex={-1}
+            className="menu-button nodrag"
+            onClick={handleMenuToggle}
+          >
+            <MoreVertIcon />
+          </ToolbarIconButton>
+        </Tooltip>
+        <RunGroupButton
+          isWorkflowRunning={isWorkflowRunning}
+          state={state}
+          onClick={runWorkflow}
+        />
+      </div>
+
       <Popover
-        open={overflowOpen}
-        anchorEl={overflowAnchorRef.current}
-        onClose={handleOverflowClose}
+        open={menuOpen}
+        anchorEl={menuButtonRef.current}
+        onClose={handleMenuClose}
         placement="bottom-right"
       >
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "8px",
-            padding: "10px 12px"
+            gap: "10px",
+            padding: "12px"
           }}
         >
+          {hasChildren && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "12px"
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: theme.fontFamily1,
+                  fontSize: theme.fontSizeSmall,
+                  color: theme.vars.palette.grey[200]
+                }}
+              >
+                {someChildrenBypassed ? "Enable all nodes" : "Bypass all nodes"}
+              </span>
+              <BypassGroupButton
+                isBypassed={someChildrenBypassed}
+                onClick={toggleBypassChildren}
+              />
+            </div>
+          )}
           <div
             style={{
               display: "flex",
@@ -503,6 +641,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           </div>
         </div>
       </Popover>
+      </div>
 
       {/* Help text that appears when dragging nodes */}
       <div className={`help-text ${isDragging ? "visible" : "none"}`}>
