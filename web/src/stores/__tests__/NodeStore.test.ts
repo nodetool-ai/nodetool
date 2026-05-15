@@ -396,9 +396,9 @@ describe("Edge Validation", () => {
     expect(target?.data.exposedInputs).toEqual(["input1"]);
   });
 
-  test("onConnect does not promote when target is already a basic input field", () => {
+  test("onConnect does not promote when target is already a metadata-defined input handle", () => {
     restoreAddEdge();
-    // Promote input1 into input_fields so it is "basic" and shouldn't be added.
+    // Declare input1 in input_fields so its handle is already metadata-driven.
     useMetadataStore.setState(
       {
         ...useMetadataStore.getState(),

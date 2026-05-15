@@ -2,7 +2,6 @@ import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
 import {
   addExposedInput,
-  isBasicProperty,
   removeExposedInput,
   resolveExposedInputNames
 } from "../exposedInputs";
@@ -41,31 +40,6 @@ const baseData = (overrides: Partial<NodeData> = {}): NodeData =>
   }) as NodeData;
 
 describe("exposedInputs utility", () => {
-  describe("isBasicProperty", () => {
-    it("treats inline_fields as basic", () => {
-      const md = baseMetadata({ inline_fields: ["prompt"] });
-      expect(isBasicProperty(md, "prompt")).toBe(true);
-    });
-
-    it("treats input_fields as basic", () => {
-      const md = baseMetadata({ input_fields: ["image"] });
-      expect(isBasicProperty(md, "image")).toBe(true);
-    });
-
-    it("treats everything else as advanced", () => {
-      const md = baseMetadata({
-        inline_fields: ["prompt"],
-        input_fields: ["image"]
-      });
-      expect(isBasicProperty(md, "seed")).toBe(false);
-    });
-
-    it("handles missing field lists gracefully", () => {
-      const md = baseMetadata({});
-      expect(isBasicProperty(md, "anything")).toBe(false);
-    });
-  });
-
   describe("resolveExposedInputNames", () => {
     it("returns metadata input_fields when exposedInputs is missing", () => {
       const md = baseMetadata({ input_fields: ["a", "b"] });

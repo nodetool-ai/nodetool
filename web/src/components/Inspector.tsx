@@ -19,7 +19,6 @@ import { DYNAMIC_KIE_NODE_TYPE } from "./node/DynamicKieSchemaNode";
 import PropertyVisibilityToggle from "./properties/PropertyVisibilityToggle";
 import {
   addExposedInput,
-  isBasicProperty,
   removeExposedInput
 } from "../utils/exposedInputs";
 
@@ -123,26 +122,19 @@ const styles = (theme: Theme) =>
       right: "0.5em",
       top: "0.5em"
     },
-    ".property-section-heading": {
-      marginTop: theme.spacing(1),
-      paddingBottom: theme.spacing(0.25),
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      textTransform: "uppercase",
-      letterSpacing: "0.06em"
-    },
-    ".advanced-row": {
+    ".property-row": {
       display: "flex",
       alignItems: "flex-start",
       gap: theme.spacing(0.5),
       width: "100%",
       minWidth: 0
     },
-    ".advanced-row .node-property": {
+    ".property-row .node-property": {
       flex: "1 1 auto",
       minWidth: 0,
       width: "100%"
     },
-    ".advanced-row .property-visibility-toggle": {
+    ".property-row .property-visibility-toggle": {
       flex: "0 0 auto",
       marginTop: "0.15em"
     }
@@ -286,24 +278,17 @@ const Inspector: React.FC = () => {
     );
   }, [edges, selectedNode]);
 
-  // Split single-node metadata into basic/advanced groups (plan §8.3).
-  // Basic = inline_fields ∪ input_fields; advanced = remainder. Order
-  // within each group preserves metadata.properties order.
-  const groupedProperties = useMemo(() => {
-    if (!metadata || isMultiSelect) {
-      return { basic: [], advanced: [] };
+  // Properties whose handle is already determined by metadata don't get
+  // the user-facing visibility toggle — there's nothing to opt into.
+  const metadataHandleNames = useMemo(() => {
+    if (!metadata) {
+      return new Set<string>();
     }
-    const basic: Property[] = [];
-    const advanced: Property[] = [];
-    for (const property of metadata.properties ?? []) {
-      if (isBasicProperty(metadata, property.name)) {
-        basic.push(property);
-      } else {
-        advanced.push(property);
-      }
-    }
-    return { basic, advanced };
-  }, [metadata, isMultiSelect]);
+    return new Set([
+      ...(metadata.inline_fields ?? []),
+      ...(metadata.input_fields ?? [])
+    ]);
+  }, [metadata]);
 
   const handleToggleExposed = useCallback(
     (propertyName: string) => {
@@ -493,58 +478,38 @@ const Inspector: React.FC = () => {
                 </CollapsibleSection>
               )}
             </div>
-            {/* Basic properties (inline + handle inputs) */}
-            {groupedProperties.basic.map((property, index) => (
-              <PropertyField
-                key={`inspector-${property.name}-${selectedNode.id}`}
-                id={selectedNode.id}
-                value={selectedNode.data.properties[property.name]}
-                property={property}
-                propertyIndex={index.toString()}
-                showHandle={false}
-                isInspector={true}
-                nodeType="inspector"
-                data={selectedNode.data}
-                layout=""
-              />
-            ))}
-
-            {/* Advanced properties — promote to node body via the toggle */}
-            {groupedProperties.advanced.length > 0 && (
-              <Caption
-                size="tiny"
-                color="muted"
-                className="property-section-heading"
-              >
-                Advanced
-              </Caption>
-            )}
-            {groupedProperties.advanced.map((property, index) => {
+            {/* Property list — every property gets the show-as-input
+                toggle except those whose handle is already determined by
+                metadata (inline rows or declared input_fields). */}
+            {metadata.properties.map((property, index) => {
+              const hasToggle = !metadataHandleNames.has(property.name);
               const exposed = (selectedNode.data.exposedInputs ?? []).includes(
                 property.name
               );
               const connected = connectedTargetHandles.has(property.name);
               return (
                 <div
-                  className="advanced-row"
-                  key={`inspector-adv-${property.name}-${selectedNode.id}`}
+                  className="property-row"
+                  key={`inspector-${property.name}-${selectedNode.id}`}
                 >
                   <PropertyField
                     id={selectedNode.id}
                     value={selectedNode.data.properties[property.name]}
                     property={property}
-                    propertyIndex={`adv-${index}`}
+                    propertyIndex={index.toString()}
                     showHandle={false}
                     isInspector={true}
                     nodeType="inspector"
                     data={selectedNode.data}
                     layout=""
                   />
-                  <PropertyVisibilityToggle
-                    exposed={exposed}
-                    connected={connected}
-                    onToggle={() => handleToggleExposed(property.name)}
-                  />
+                  {hasToggle && (
+                    <PropertyVisibilityToggle
+                      exposed={exposed}
+                      connected={connected}
+                      onToggle={() => handleToggleExposed(property.name)}
+                    />
+                  )}
                 </div>
               );
             })}

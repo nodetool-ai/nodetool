@@ -27,7 +27,7 @@ import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import { autoLayout } from "../core/graph";
 import { isConnectable, isCollectType } from "../utils/TypeHandler";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
-import { addExposedInput, isBasicProperty } from "../utils/exposedInputs";
+import { addExposedInput } from "../utils/exposedInputs";
 import { WorkflowAttributes } from "./ApiTypes";
 import { wouldCreateCycle } from "../utils/graphCycle";
 import useMetadataStore from "./MetadataStore";
@@ -736,18 +736,21 @@ export const createNodeStore = (
               edges: addEdge(newEdge, normalizedEdges)
             });
 
-            // Auto-promote (plan §8.4): when an edge lands on an advanced
-            // property handle, persist it in `exposedInputs` so the handle
-            // stays visible after disconnection. Skipped for dynamic props
-            // and control edges (those already have their own surfaces).
+            // Persist the target as an exposed input so its handle survives
+            // disconnection. Skipped for dynamic props and control edges
+            // (those have their own surfaces) and for properties already
+            // declared as a handle by metadata (`input_fields` / inline rows
+            // render their own handle).
             if (!isDynamicProperty && !isControlEdge) {
               const targetMetadata = useMetadataStore
                 .getState()
                 .getMetadata(targetNode.type || "");
-              if (
-                targetMetadata &&
-                !isBasicProperty(targetMetadata, connection.targetHandle)
-              ) {
+              const inlineFields = targetMetadata?.inline_fields ?? [];
+              const inputFields = targetMetadata?.input_fields ?? [];
+              const isMetadataHandle =
+                inlineFields.includes(connection.targetHandle) ||
+                inputFields.includes(connection.targetHandle);
+              if (targetMetadata && !isMetadataHandle) {
                 const next = addExposedInput(
                   targetNode.data.exposedInputs,
                   connection.targetHandle
