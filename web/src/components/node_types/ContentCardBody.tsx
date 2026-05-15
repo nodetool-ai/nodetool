@@ -46,6 +46,7 @@ import { NodeOutputs } from "../node/NodeOutputs";
 import NodeProgress from "../node/NodeProgress";
 import { useSignedUrl, getMimeTypeFromUri } from "../node/output";
 import AudioPlayer from "../audio/AudioPlayer";
+import { editorClassNames } from "../editor_ui";
 
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
@@ -209,7 +210,13 @@ const extractPrimaryValue = (
  * or in-memory bytes. Returns a signed URL when the value has a non-memory
  * URI, or an object-URL when bytes are present, or "" while nothing is loaded.
  */
-const useMediaSrc = (value: unknown, fallbackMime?: string): string => {
+type MediaKind = "audio" | "video";
+
+const useMediaSrc = (
+  value: unknown,
+  kind: MediaKind,
+  fallbackMime?: string
+): string => {
   const v =
     value && typeof value === "object"
       ? (value as Record<string, unknown>)
@@ -225,12 +232,14 @@ const useMediaSrc = (value: unknown, fallbackMime?: string): string => {
 
   const data = v?.data;
   // Pick a content-type for the Blob so WaveSurfer / <video> can decode.
-  // Order: explicit fallback → `metadata.format` (e.g. "wav") → MIME from URI.
+  // Order: explicit caller mime → MIME from URI → `<kind>/<metadata.format>`.
+  // `format` is an extension ("mp4", "wav") so it must be combined with the
+  // caller-supplied kind — never assume audio.
   const format = (v?.metadata as { format?: string } | undefined)?.format;
   const blobMime =
     fallbackMime ||
-    (format ? `audio/${format}` : undefined) ||
     (rawUri ? getMimeTypeFromUri(rawUri) : "") ||
+    (format ? `${kind}/${format}` : "") ||
     "";
 
   const [blobUrl, setBlobUrl] = useState<string>("");
@@ -296,11 +305,12 @@ const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
 };
 
 const VideoPreview: React.FC<{ value: unknown }> = ({ value }) => {
-  const src = useMediaSrc(value);
+  const src = useMediaSrc(value, "video");
   if (!src) {
     return <OutputRenderer value={value} showTextActions={false} />;
   }
-  return <VideoPlayer src={src} />;
+  // nodrag/nopan keep ReactFlow from hijacking click-to-play and seek drag.
+  return <VideoPlayer src={src} className="nodrag nopan" />;
 };
 
 const AudioPreview: React.FC<{ value: unknown }> = ({ value }) => {
@@ -313,28 +323,37 @@ const AudioPreview: React.FC<{ value: unknown }> = ({ value }) => {
     getMimeTypeFromUri(typeof v?.uri === "string" ? (v.uri as string) : "") ||
     (inlineFormat === "wav" ? "audio/wav" : "audio/mp3");
   // Pass mimeType so the in-memory blob is tagged for WaveSurfer to decode.
-  const src = useMediaSrc(value, mimeType);
+  const src = useMediaSrc(value, "audio", mimeType);
   if (!src) {
     return <OutputRenderer value={value} showTextActions={false} />;
   }
+  // Wrap so ReactFlow doesn't pan the canvas when interacting with controls.
   return (
-    <AudioPlayer
-      source={src}
-      mimeType={mimeType}
-      height={80}
-      waveformHeight={80}
-    />
+    <div className="audio-preview nodrag nopan">
+      <AudioPlayer
+        source={src}
+        mimeType={mimeType}
+        height={80}
+        waveformHeight={80}
+      />
+    </div>
   );
 };
 
 const TextPreview: React.FC<{ value: unknown }> = ({ value }) => {
   const text = extractTextValue(value);
+  const [isFocused, setIsFocused] = useState(false);
   return (
     <textarea
-      className="text-preview nodrag"
+      className={`text-preview nodrag nopan${
+        isFocused ? ` ${editorClassNames.nowheel}` : ""
+      }`}
       readOnly
       value={text}
       spellCheck={false}
+      aria-label="Generated text"
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
     />
   );
 };
