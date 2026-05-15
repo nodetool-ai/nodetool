@@ -227,9 +227,13 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   // 1. inlineFields: rendered as full editors in normal flow
   // 2. inputFields: rendered as handle-only on left edge
   // Fallback when neither is set: all properties render as handles (old behavior)
+  // `!== undefined` so a node with explicitly empty arrays ("send everything
+  // to the Inspector") is honored — not treated as legacy.
+  const useNewLayout =
+    nodeMetadata.inline_fields !== undefined ||
+    nodeMetadata.input_fields !== undefined;
   const inlineFields = nodeMetadata.inline_fields ?? [];
   const inputFields = nodeMetadata.input_fields ?? [];
-  const useNewLayout = inlineFields.length > 0 || inputFields.length > 0;
 
   const properties = nodeMetadata.properties ?? [];
   const inlineProps = useNewLayout

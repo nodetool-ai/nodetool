@@ -5,6 +5,7 @@
  * Each class extends BaseNode and calls Kie.ai API via shared helpers.
  */
 
+import { classifyFields } from "@nodetool-ai/node-sdk";
 import type { NodeConfig, ModuleConfig, FieldDef } from "./types.js";
 
 // ---------------------------------------------------------------------------
@@ -53,56 +54,14 @@ function isAssetType(type: string): boolean {
 // ---------------------------------------------------------------------------
 
 /**
- * Compute inlineFields and inputFields based on field metadata.
- *
- * inputFields: properties that are typically wired from upstream (assets, data types)
- * inlineFields: properties that are short text frequently typed by the user
+ * Compute inlineFields and inputFields from a Kie field list.
+ * Delegates to the shared `classifyFields` rule in node-sdk after mapping
+ * each Kie `FieldDef.type` onto the `{ name, propType }` shape it expects.
  */
-function computeFieldClassification(
-  fields: FieldDef[]
-): { inlineFields: string[]; inputFields: string[] } {
-  const inlineFields: string[] = [];
-  const inputFields: string[] = [];
-
-  for (const field of fields) {
-    // Asset types -> inputFields
-    if (
-      [
-        "image",
-        "video",
-        "audio",
-        "image_mask",
-        "model_3d",
-        "document",
-        "dataframe",
-        "tensor",
-        "list[image]",
-        "list[video]",
-        "list[audio]"
-      ].includes(field.type)
-    ) {
-      inputFields.push(field.name);
-    }
-    // Short text properties with key names -> inlineFields
-    else if (field.type === "str") {
-      const textNames = new Set([
-        "prompt",
-        "system_prompt",
-        "query",
-        "text",
-        "template",
-        "code",
-        "expression",
-        "url"
-      ]);
-      if (textNames.has(field.name)) {
-        inlineFields.push(field.name);
-      }
-    }
-    // Everything else defaults to inspector (not listed)
-  }
-
-  return { inlineFields, inputFields };
+function computeFieldClassification(fields: FieldDef[]) {
+  return classifyFields(
+    fields.map((f) => ({ name: f.name, propType: f.type }))
+  );
 }
 
 // ---------------------------------------------------------------------------

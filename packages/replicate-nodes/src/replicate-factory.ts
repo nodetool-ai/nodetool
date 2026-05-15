@@ -6,7 +6,11 @@
  * declared properties, backed by a generic process() that calls Replicate.
  */
 
-import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
+import {
+  BaseNode,
+  classifyFields,
+  registerDeclaredProperty
+} from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import {
   getReplicateApiKey,
@@ -128,59 +132,16 @@ const EXCLUDED_FIELDS = new Set(["prompt_template"]);
 // ---------------------------------------------------------------------------
 
 /**
- * Compute inlineFields and inputFields based on property metadata.
- *
- * inputFields: properties that are typically wired from upstream (assets, data types)
- * inlineFields: properties that are short text frequently typed by the user
+ * Compute inlineFields and inputFields from a Replicate field list.
+ * Delegates to the shared `classifyFields` rule in node-sdk after stripping
+ * sub-fields and Replicate-specific `EXCLUDED_FIELDS`.
  */
-function computeFieldClassification(
-  fields: ReplicateFieldDef[]
-): { inlineFields: string[]; inputFields: string[] } {
-  const inlineFields: string[] = [];
-  const inputFields: string[] = [];
-
-  for (const field of fields) {
-    if (field.parentField) continue;
-    if (EXCLUDED_FIELDS.has(field.name)) continue;
-
-    // Asset types -> inputFields
-    if (
-      [
-        "image",
-        "video",
-        "audio",
-        "image_mask",
-        "model_3d",
-        "document",
-        "dataframe",
-        "tensor",
-        "list[image]",
-        "list[video]",
-        "list[audio]"
-      ].includes(field.propType)
-    ) {
-      inputFields.push(field.name);
-    }
-    // Short text properties with key names -> inlineFields
-    else if (field.propType === "str" || field.propType === "text") {
-      const textNames = new Set([
-        "prompt",
-        "system_prompt",
-        "query",
-        "text",
-        "template",
-        "code",
-        "expression",
-        "url"
-      ]);
-      if (textNames.has(field.name)) {
-        inlineFields.push(field.name);
-      }
-    }
-    // Everything else defaults to inspector (not listed)
-  }
-
-  return { inlineFields, inputFields };
+function computeFieldClassification(fields: ReplicateFieldDef[]) {
+  return classifyFields(
+    fields
+      .filter((f) => !f.parentField && !EXCLUDED_FIELDS.has(f.name))
+      .map((f) => ({ name: f.name, propType: f.propType }))
+  );
 }
 
 async function buildArgs(

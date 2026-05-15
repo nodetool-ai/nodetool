@@ -6,7 +6,11 @@
  * declared properties, backed by a generic process() that calls the KIE API.
  */
 
-import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
+import {
+  BaseNode,
+  classifyFields,
+  registerDeclaredProperty
+} from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import {
   getApiKey,
@@ -116,56 +120,14 @@ function castValue(value: unknown, type: string): unknown {
 // ---------------------------------------------------------------------------
 
 /**
- * Compute inlineFields and inputFields based on property metadata.
- *
- * inputFields: properties that are typically wired from upstream (assets, data types)
- * inlineFields: properties that are short text frequently typed by the user
+ * Compute inlineFields and inputFields from a Kie field list.
+ * Delegates to the shared `classifyFields` rule in node-sdk after mapping
+ * each Kie `KieFieldDef.type` onto the `{ name, propType }` shape it expects.
  */
-function computeFieldClassification(
-  fields: KieFieldDef[]
-): { inlineFields: string[]; inputFields: string[] } {
-  const inlineFields: string[] = [];
-  const inputFields: string[] = [];
-
-  for (const field of fields) {
-    // Asset types -> inputFields
-    if (
-      [
-        "image",
-        "video",
-        "audio",
-        "image_mask",
-        "model_3d",
-        "document",
-        "dataframe",
-        "tensor",
-        "list[image]",
-        "list[video]",
-        "list[audio]"
-      ].includes(field.type)
-    ) {
-      inputFields.push(field.name);
-    }
-    // Short text properties with key names -> inlineFields
-    else if (field.type === "str") {
-      const textNames = new Set([
-        "prompt",
-        "system_prompt",
-        "query",
-        "text",
-        "template",
-        "code",
-        "expression",
-        "url"
-      ]);
-      if (textNames.has(field.name)) {
-        inlineFields.push(field.name);
-      }
-    }
-    // Everything else defaults to inspector (not listed)
-  }
-
-  return { inlineFields, inputFields };
+function computeFieldClassification(fields: KieFieldDef[]) {
+  return classifyFields(
+    fields.map((f) => ({ name: f.name, propType: f.type }))
+  );
 }
 
 function defaultForType(type: string): unknown {

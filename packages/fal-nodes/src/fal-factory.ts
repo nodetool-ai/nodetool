@@ -6,7 +6,11 @@
  * declared properties, backed by a generic process() that calls falSubmit.
  */
 
-import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
+import {
+  BaseNode,
+  classifyFields,
+  registerDeclaredProperty
+} from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
@@ -116,10 +120,9 @@ function castValue(value: unknown, propType: string): unknown {
 // ---------------------------------------------------------------------------
 
 /**
- * Compute inlineFields and inputFields based on property metadata.
- *
- * inputFields: properties that are typically wired from upstream (assets, data types)
- * inlineFields: properties that are short text frequently typed by the user
+ * Compute inlineFields and inputFields from a FAL field list.
+ * Delegates to the shared `classifyFields` rule in node-sdk after stripping
+ * sub-fields and lowercasing FAL's mixed-case propType values.
  */
 function computeFieldClassification(
   fields: Array<{
@@ -127,54 +130,12 @@ function computeFieldClassification(
     propType: string;
     parentField?: string;
   }>
-): { inlineFields: string[]; inputFields: string[] } {
-  const inlineFields: string[] = [];
-  const inputFields: string[] = [];
-
-  for (const field of fields) {
-    if (field.parentField) continue;
-
-    // Asset types -> inputFields
-    if (
-      [
-        "image",
-        "video",
-        "audio",
-        "image_mask",
-        "model_3d",
-        "document",
-        "dataframe",
-        "tensor",
-        "list[image]",
-        "list[video]",
-        "list[audio]"
-      ].includes(field.propType.toLowerCase())
-    ) {
-      inputFields.push(field.name);
-    }
-    // Short text properties with key names -> inlineFields
-    else if (
-      field.propType.toLowerCase() === "str" ||
-      field.propType.toLowerCase() === "text"
-    ) {
-      const textNames = new Set([
-        "prompt",
-        "system_prompt",
-        "query",
-        "text",
-        "template",
-        "code",
-        "expression",
-        "url"
-      ]);
-      if (textNames.has(field.name)) {
-        inlineFields.push(field.name);
-      }
-    }
-    // Everything else defaults to inspector (not listed)
-  }
-
-  return { inlineFields, inputFields };
+) {
+  return classifyFields(
+    fields
+      .filter((f) => !f.parentField)
+      .map((f) => ({ name: f.name, propType: f.propType.toLowerCase() }))
+  );
 }
 
 async function buildArgs(

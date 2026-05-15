@@ -176,10 +176,14 @@ const NodeContent: React.FC<NodeContentProps> = ({
   //   default       → Inspector only (hidden in node body)
   // Fallback: when neither classification is set, use legacy basic_fields
   // behavior and render every property through NodeInputs.
+  // Classification opt-in is detected via `!== undefined` so a node that
+  // explicitly declares `inlineFields = []` / `inputFields = []` ("everything
+  // goes to Inspector") is honored — not silently treated as legacy.
+  const useClassification =
+    nodeMetadata.inline_fields !== undefined ||
+    nodeMetadata.input_fields !== undefined;
   const inlineFieldNames = nodeMetadata.inline_fields ?? [];
   const inputFieldNames = nodeMetadata.input_fields ?? [];
-  const useClassification =
-    inlineFieldNames.length > 0 || inputFieldNames.length > 0;
   const allProperties = nodeMetadata.properties ?? [];
   const inlineProperties = useClassification
     ? allProperties.filter((p) => inlineFieldNames.includes(p.name))

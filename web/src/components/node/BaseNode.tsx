@@ -424,12 +424,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     // Prefer the new classification (inline_fields ∪ input_fields). Falls
     // back to the legacy basic_fields list when the node hasn't been
     // migrated yet.
-    const inlineFields = metadata.inline_fields ?? [];
-    const inputFields = metadata.input_fields ?? [];
+    // `!== undefined` so a node with explicitly empty inline/input arrays is
+    // treated as classified (everything → Inspector), not legacy.
     const useNewClassification =
-      inlineFields.length > 0 || inputFields.length > 0;
+      metadata.inline_fields !== undefined ||
+      metadata.input_fields !== undefined;
     const visibleSeed = useNewClassification
-      ? [...inlineFields, ...inputFields]
+      ? [...(metadata.inline_fields ?? []), ...(metadata.input_fields ?? [])]
       : metadata.basic_fields || [];
     const nodeBasicFields = resolveVisibleBasicFields(type, visibleSeed, data);
     return {
