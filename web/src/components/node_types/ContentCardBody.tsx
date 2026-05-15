@@ -209,7 +209,7 @@ const extractPrimaryValue = (
  * or in-memory bytes. Returns a signed URL when the value has a non-memory
  * URI, or an object-URL when bytes are present, or "" while nothing is loaded.
  */
-const useMediaSrc = (value: unknown): string => {
+const useMediaSrc = (value: unknown, fallbackMime?: string): string => {
   const v =
     value && typeof value === "object"
       ? (value as Record<string, unknown>)
@@ -224,6 +224,15 @@ const useMediaSrc = (value: unknown): string => {
   const signedUrl = useSignedUrl(rawUri);
 
   const data = v?.data;
+  // Pick a content-type for the Blob so WaveSurfer / <video> can decode.
+  // Order: explicit fallback → `metadata.format` (e.g. "wav") → MIME from URI.
+  const format = (v?.metadata as { format?: string } | undefined)?.format;
+  const blobMime =
+    fallbackMime ||
+    (format ? `audio/${format}` : undefined) ||
+    (rawUri ? getMimeTypeFromUri(rawUri) : "") ||
+    "";
+
   const [blobUrl, setBlobUrl] = useState<string>("");
   useEffect(() => {
     let bytes: Uint8Array | null = null;
@@ -235,13 +244,16 @@ const useMediaSrc = (value: unknown): string => {
     if (bytes && bytes.byteLength > 0) {
       // Force a non-shared ArrayBuffer backing per BlobPart typing.
       const safe: Uint8Array<ArrayBuffer> = new Uint8Array(bytes);
-      const url = URL.createObjectURL(new Blob([safe]));
+      const blob = blobMime
+        ? new Blob([safe], { type: blobMime })
+        : new Blob([safe]);
+      const url = URL.createObjectURL(blob);
       setBlobUrl(url);
       return () => URL.revokeObjectURL(url);
     }
     setBlobUrl("");
     return undefined;
-  }, [data]);
+  }, [data, blobMime]);
 
   return blobUrl || signedUrl || "";
 };
@@ -292,7 +304,6 @@ const VideoPreview: React.FC<{ value: unknown }> = ({ value }) => {
 };
 
 const AudioPreview: React.FC<{ value: unknown }> = ({ value }) => {
-  const src = useMediaSrc(value);
   const v =
     value && typeof value === "object"
       ? (value as Record<string, unknown>)
@@ -301,6 +312,8 @@ const AudioPreview: React.FC<{ value: unknown }> = ({ value }) => {
   const mimeType =
     getMimeTypeFromUri(typeof v?.uri === "string" ? (v.uri as string) : "") ||
     (inlineFormat === "wav" ? "audio/wav" : "audio/mp3");
+  // Pass mimeType so the in-memory blob is tagged for WaveSurfer to decode.
+  const src = useMediaSrc(value, mimeType);
   if (!src) {
     return <OutputRenderer value={value} showTextActions={false} />;
   }
