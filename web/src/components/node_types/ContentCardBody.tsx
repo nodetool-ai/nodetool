@@ -55,6 +55,7 @@ import { useNodes } from "../../contexts/NodeContext";
 
 import {
   getContentCardVariant,
+  getDynamicInputLabel,
   getPrimaryOutput,
   type ContentCardVariant
 } from "./contentCardRegistry";
@@ -538,7 +539,10 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
 
       {isDynamic && (
         <FlexRow className="footer-strip" align="center" justify="flex-start">
-          <DynamicInputButton itemLabel="input" onAdd={handleAddDynamicInput} />
+          <DynamicInputButton
+            itemLabel={getDynamicInputLabel(nodeMetadata)}
+            onAdd={handleAddDynamicInput}
+          />
         </FlexRow>
       )}
 

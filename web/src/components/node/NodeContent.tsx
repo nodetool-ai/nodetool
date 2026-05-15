@@ -73,6 +73,19 @@ const arePropsEqual = (
     return false;
   }
 
+  // The primary-output type drives body routing (isContentCardNode) and
+  // ContentCardBody variant. Two metadata objects with the same output count
+  // but different primary-output types must re-render.
+  const prevPrimary = prevProps.nodeMetadata.outputs?.[0];
+  const nextPrimary = nextProps.nodeMetadata.outputs?.[0];
+  const prevPrimaryType =
+    (prevPrimary?.type as { type?: string } | undefined)?.type ?? "";
+  const nextPrimaryType =
+    (nextPrimary?.type as { type?: string } | undefined)?.type ?? "";
+  if (prevPrimaryType !== nextPrimaryType) {
+    return false;
+  }
+
   // Check data.properties - compare both keys and values
   const prevDataProps = prevProps.data.properties || {};
   const nextDataProps = nextProps.data.properties || {};
@@ -152,7 +165,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
   //       → generic body (this component's default layout)
   // Utility nodes (control flow, constants, etc.) intentionally never appear
   // in CONTENT_CARD_REGISTRY and stay on the generic body forever.
-  if (isContentCardNode(nodeType)) {
+  if (isContentCardNode(nodeMetadata)) {
     return (
       <ContentCardBody
         id={id}
