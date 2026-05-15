@@ -14,7 +14,7 @@ import isEqual from "fast-deep-equal";
 import { memo, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
-import StaticNodeMenu from "../node_menu/StaticNodeMenu";
+import SidebarSearchPanel from "../node_menu/SidebarSearchPanel";
 import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
 import QuickAccessGrid from "../node_menu/QuickAccessGrid";
@@ -285,9 +285,9 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && <PanelHeadline title="Search nodes" />}
-          {/* Plan §7.5: the deep search entry-point — reuses the existing
-              static (non-floating) node menu. */}
-          <StaticNodeMenu />
+          {/* Plan §7.5: compact sidebar search; "Open full menu" jumps to
+              the floating NodeMenu for namespace-tree browsing. */}
+          <SidebarSearchPanel />
         </Box>
       )}
       {activeView === "history" && (
