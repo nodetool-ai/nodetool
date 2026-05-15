@@ -22,7 +22,9 @@ import { useNodes } from "../../contexts/NodeContext";
  * );
  * ```
  */
-export function useConnectionEvents() {
+export function useConnectionEvents(): {
+  isConnectionValid: IsValidConnection<Edge>;
+} {
   const edges = useNodes((state) => state.edges);
 
   const isConnectionValid = useCallback<IsValidConnection<Edge>>(
