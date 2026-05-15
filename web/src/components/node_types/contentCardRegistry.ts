@@ -21,24 +21,13 @@ export const CONTENT_CARD_REGISTRY: ReadonlySet<string> = new Set([
   "nodetool.image.TextToImage"
 ]);
 
-/** Default card dimensions applied at node creation time (plan §6.3). */
-export const CONTENT_CARD_DEFAULT_SIZE = {
-  width: 280,
-  height: 280
-} as const;
-
-/** Slightly taller variant for outputs whose natural aspect varies. */
-export const CONTENT_CARD_VARIABLE_ASPECT_SIZE = {
-  width: 280,
-  height: 320
-} as const;
-
 export const isContentCardNode = (nodeType: string | undefined): boolean =>
   !!nodeType && CONTENT_CARD_REGISTRY.has(nodeType);
 
 /**
- * Per-variant default sizes applied at node creation time (plan §6.3).
- * Resolved from the node's primary output via `getContentCardDefaultSize`.
+ * Per-variant default card dimensions applied at node creation time
+ * (plan §6.3). Resolved from the node's primary output via
+ * `getContentCardDefaultSize`. Single source of truth for content-card sizes.
  */
 export const CONTENT_CARD_SIZES = {
   image: { width: 280, height: 280 },

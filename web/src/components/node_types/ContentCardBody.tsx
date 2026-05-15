@@ -214,10 +214,13 @@ const useMediaSrc = (value: unknown): string => {
     value && typeof value === "object"
       ? (value as Record<string, unknown>)
       : null;
+  // Accept either a direct URI string or an object with a `uri` field.
   const rawUri =
-    v && typeof v.uri === "string" && !v.uri.startsWith("memory://")
-      ? (v.uri as string)
-      : undefined;
+    typeof value === "string" && value && !value.startsWith("memory://")
+      ? value
+      : v && typeof v.uri === "string" && !v.uri.startsWith("memory://")
+        ? (v.uri as string)
+        : undefined;
   const signedUrl = useSignedUrl(rawUri);
 
   const data = v?.data;
