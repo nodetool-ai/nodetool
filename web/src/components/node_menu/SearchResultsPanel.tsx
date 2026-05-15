@@ -83,6 +83,35 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
     );
   }
 
+  // Compact mode skips virtualization: rows are short and the visible list
+  // is already filtered by the sidebar's search input. Avoids estimate/cache
+  // pitfalls in @tanstack/react-virtual when the row height differs from
+  // the default.
+  if (compact) {
+    return (
+      <div
+        style={{
+          height: "100%",
+          width: "100%",
+          overflowY: "auto",
+          overflowX: "hidden",
+        }}
+      >
+        {searchNodes.map((node, index) => (
+          <SearchResultItem
+            key={node.node_type}
+            node={node}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onClick={handleNodeClick}
+            isKeyboardSelected={index === selectedIndex}
+            compact
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div
       ref={scrollRef}
