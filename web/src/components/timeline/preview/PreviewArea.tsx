@@ -201,12 +201,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           (c.status === "generated" ||
             c.status === "stale" ||
             c.status === "locked") &&
-<<<<<<< Updated upstream
-=======
-          // Schedule any clip that hasn't finished by the playhead.
-          // AudioGraph.scheduleClips uses AudioContext-time scheduling for
-          // future starts, so it's safe to include upcoming clips here.
->>>>>>> Stashed changes
           c.startMs + c.durationMs > startMs
       );
 

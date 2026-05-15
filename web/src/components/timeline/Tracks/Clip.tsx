@@ -139,12 +139,7 @@ interface WaveformCanvasProps {
   widthPx: number;
 }
 
-/**
- * Draws audio peaks on a canvas at the clip's true time-scale (1 px of canvas
- * = 1 px of timeline). If the clip extends past the source's natural end
- * (e.g. trimmed past the audio's duration), only the audible portion is
- * drawn — peaks are NOT stretched to cover the silent tail.
- */
+/** Draws audio peaks on a canvas, sized to the clip's pixel width. */
 const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
   url,
   inPointMs,
@@ -152,7 +147,7 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
   widthPx
 }) => {
   const theme = useTheme();
-  const { peaks, durationMs: sourceDurationMs } = useAudioPeaks(url);
+  const { peaks, durationMs } = useAudioPeaks(url);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -168,9 +163,8 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, cssWidth, cssHeight);
 
-    if (!peaks || !sourceDurationMs) return;
+    if (!peaks || !durationMs) return;
 
-<<<<<<< Updated upstream
     // Visible audio window is the intersection of [inPointMs, outPointMs]
     // with the source [0, durationMs]. Anything beyond the source renders
     // as empty space rather than stretching the waveform.
@@ -186,23 +180,6 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
       durationMs,
       visibleInMs,
       visibleOutMs,
-=======
-    const requestedMs = Math.max(0, outPointMs - inPointMs);
-    const audibleMs = Math.max(
-      0,
-      Math.min(requestedMs, sourceDurationMs - inPointMs)
-    );
-    if (audibleMs <= 0 || requestedMs <= 0) return;
-    const audibleWidthPx = (audibleMs / requestedMs) * cssWidth;
-    if (audibleWidthPx <= 0) return;
-
-    const barCount = Math.max(1, Math.floor(audibleWidthPx / 2));
-    const slice = samplePeaksWindow(
-      peaks,
-      sourceDurationMs,
-      inPointMs,
-      inPointMs + audibleMs,
->>>>>>> Stashed changes
       barCount
     );
     const mid = cssHeight / 2;
@@ -210,16 +187,11 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
     for (let i = 0; i < slice.length; i += 1) {
       const amp = slice[i];
       const h = Math.max(1, amp * (cssHeight - 2));
-<<<<<<< Updated upstream
       const x = (i / slice.length) * visibleWidthPx;
       const w = Math.max(1, visibleWidthPx / slice.length - 0.5);
-=======
-      const x = (i / slice.length) * audibleWidthPx;
-      const w = Math.max(1, audibleWidthPx / slice.length - 0.5);
->>>>>>> Stashed changes
       ctx.fillRect(x, mid - h / 2, w, h);
     }
-  }, [peaks, sourceDurationMs, inPointMs, outPointMs, widthPx, theme]);
+  }, [peaks, durationMs, inPointMs, outPointMs, widthPx, theme]);
 
   return <canvas ref={canvasRef} css={waveformStyles} aria-hidden />;
 };

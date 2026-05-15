@@ -337,8 +337,6 @@ export class AudioGraph {
 
     this.updateTracks(tracks);
 
-    const ctxNow = ctx.currentTime;
-
     for (const { clip, assetUrl } of clips) {
       if (this.clipSources.has(clip.id)) {
         continue;
@@ -352,39 +350,16 @@ export class AudioGraph {
         continue;
       }
 
-      // Map the clip's wall-clock start/end into AudioContext time. The
-      // playhead at `currentTimeMs` corresponds to `ctxNow`; everything
-      // else is offset accordingly.
-      const playbackRate = clip.speedMultiplier ?? 1;
-      const inPoint = clip.inPointMs ?? 0;
-      const clipStartCtx =
-        ctxNow + (clip.startMs - currentTimeMs) / 1000;
-      const clipEndCtx =
-        ctxNow + (clip.startMs + clip.durationMs - currentTimeMs) / 1000;
-      if (clipEndCtx <= ctxNow) continue; // already past — nothing to play
-
-      // Schedule start in the future for upcoming clips, or now (clamped to
-      // ctxNow) for clips already under the playhead.
-      const startWhen = Math.max(ctxNow, clipStartCtx);
-      const intoClipSec = startWhen - clipStartCtx;
-      const offsetSec = intoClipSec + inPoint / 1000;
-      // The third arg to BufferSource.start() is in BUFFER time (ignoring
-      // playbackRate), so we scale wall-clock seconds by playbackRate when
-      // speedMultiplier ≠ 1. The buffer source still stops naturally at the
-      // end of the buffer if `duration` exceeds what's available.
-      const realRemainingSec = clipEndCtx - startWhen;
-      const bufferDurSec = realRemainingSec * playbackRate;
-
       const src = ctx.createBufferSource();
       src.buffer = buffer;
-      src.playbackRate.value = playbackRate;
+      src.playbackRate.value = clip.speedMultiplier ?? 1;
 
       const volumeLinear = clip.volumeDb
         ? Math.pow(10, clip.volumeDb / 20)
         : 1;
       const clipGain = ctx.createGain();
+      clipGain.gain.value = volumeLinear;
 
-<<<<<<< Updated upstream
       const now = ctx.currentTime;
       // Schedule the clip's start on the audio clock. If the clip begins in
       // the future (relative to the playhead), defer src.start; otherwise
@@ -419,43 +394,14 @@ export class AudioGraph {
         if (fadeOutStartAt < clipEndAt) {
           clipGain.gain.setValueAtTime(volumeLinear, fadeOutStartAt);
           clipGain.gain.linearRampToValueAtTime(0, clipEndAt);
-=======
-      // Build the gain envelope on the AudioContext timeline so a future
-      // clip's fade is anchored to its real start, not to "now".
-      const fadeInMs = clip.fadeInMs ?? 0;
-      const fadeOutMs = clip.fadeOutMs ?? 0;
-      const fadeInEndCtx = clipStartCtx + fadeInMs / 1000;
-      const fadeOutStartCtx = clipEndCtx - fadeOutMs / 1000;
-
-      if (fadeInMs > 0 && startWhen <= clipStartCtx) {
-        clipGain.gain.setValueAtTime(0, clipStartCtx);
-        clipGain.gain.linearRampToValueAtTime(volumeLinear, fadeInEndCtx);
-      } else if (fadeInMs > 0 && startWhen < fadeInEndCtx) {
-        const fadeProgress =
-          (startWhen - clipStartCtx) / (fadeInMs / 1000);
-        clipGain.gain.setValueAtTime(volumeLinear * fadeProgress, startWhen);
-        clipGain.gain.linearRampToValueAtTime(volumeLinear, fadeInEndCtx);
-      } else {
-        clipGain.gain.setValueAtTime(volumeLinear, startWhen);
-      }
-
-      if (fadeOutMs > 0) {
-        if (fadeOutStartCtx > startWhen) {
-          clipGain.gain.setValueAtTime(volumeLinear, fadeOutStartCtx);
->>>>>>> Stashed changes
         }
-        clipGain.gain.linearRampToValueAtTime(0, clipEndCtx);
       }
 
       src.connect(clipGain);
       const trackGain = this.getTrackGain(clip.trackId);
       clipGain.connect(trackGain);
 
-<<<<<<< Updated upstream
       src.start(startAt, bufferOffsetSec, durationSec);
-=======
-      src.start(startWhen, offsetSec, bufferDurSec);
->>>>>>> Stashed changes
 
       this.clipSources.set(clip.id, src);
       this.clipGains.set(clip.id, clipGain);
