@@ -42,7 +42,11 @@ import type {
   TrackEffect
 } from "@nodetool-ai/timeline";
 import type { Asset } from "../ApiTypes";
-import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
+import {
+  assetToClip,
+  probeMediaDuration
+} from "../../components/timeline/dnd/assetToClipAdapter";
+import { getAssetUrl } from "../../utils/assetHelpers";
 import { trpcClient } from "../../trpc/client";
 
 // ── Snap threshold ─────────────────────────────────────────────────────────
@@ -181,8 +185,16 @@ export interface TimelineStoreState {
    * Create an imported clip from an Asset and insert it into the store.
    * The clip geometry is derived from the asset's content type and duration.
    * Use this action to add clips created by asset drag-and-drop.
+   *
+   * For audio/video assets without a `duration` field, the actual duration is
+   * probed from the media file before the clip is created so the clip is
+   * exactly as long as its content.
    */
-  addImportedClip: (asset: Asset, trackId: string, startMs: number) => void;
+  addImportedClip: (
+    asset: Asset,
+    trackId: string,
+    startMs: number
+  ) => Promise<void>;
 
   /** Update an arbitrary subset of fields on a clip. */
   patchClip: (clipId: string, patch: Partial<TimelineClip>) => void;
@@ -649,8 +661,31 @@ export const createTimelineStore = (
             clips: [...state.clips, clip]
           })),
 
-        addImportedClip: (asset, trackId, startMs) => {
-          const clip = assetToClip(asset, trackId, startMs);
+        addImportedClip: async (asset, trackId, startMs) => {
+          // Probe the natural duration of audio/video assets when the
+          // metadata is missing — otherwise `assetToClip` falls back to the
+          // 4 s default and the clip ends up wider than its content.
+          let resolvedAsset = asset;
+          const ct = asset.content_type ?? "";
+          const isAudio = ct.startsWith("audio/");
+          const isVideo = ct.startsWith("video/");
+          if (
+            (isAudio || isVideo) &&
+            (asset.duration === null || asset.duration === undefined)
+          ) {
+            const url = getAssetUrl(asset);
+            if (url) {
+              const probedSec = await probeMediaDuration(
+                url,
+                isAudio ? "audio" : "video"
+              );
+              if (probedSec !== null) {
+                resolvedAsset = { ...asset, duration: probedSec };
+              }
+            }
+          }
+
+          const clip = assetToClip(resolvedAsset, trackId, startMs);
           set((state) => ({ clips: [...state.clips, clip] }));
         },
 

@@ -5,6 +5,56 @@ import type { TimelineClip } from "@nodetool-ai/timeline";
 const DEFAULT_DURATION_MS = 4000;
 
 /**
+ * Probe the natural duration of an audio (or video) file via the browser's
+ * HTMLMediaElement metadata loader. Returns seconds, or `null` on error /
+ * timeout. Faster than `decodeAudioData` because the browser only downloads
+ * enough of the file to read the container header. Some streamed encodings
+ * only expose the duration after `durationchange`, so we listen to both.
+ */
+export function probeMediaDuration(
+  url: string,
+  kind: "audio" | "video" = "audio",
+  timeoutMs = 5000
+): Promise<number | null> {
+  return new Promise((resolve) => {
+    if (typeof document === "undefined") {
+      resolve(null);
+      return;
+    }
+    const el = document.createElement(kind);
+    el.preload = "metadata";
+    el.crossOrigin = "anonymous";
+
+    let settled = false;
+    const cleanup = () => {
+      el.onloadedmetadata = null;
+      el.ondurationchange = null;
+      el.onerror = null;
+      el.removeAttribute("src");
+      el.load();
+    };
+    const finish = (value: number | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      cleanup();
+      resolve(value);
+    };
+    const tryResolve = () => {
+      const d = el.duration;
+      if (Number.isFinite(d) && d > 0) {
+        finish(d);
+      }
+    };
+    const timer = setTimeout(() => finish(null), timeoutMs);
+    el.onloadedmetadata = tryResolve;
+    el.ondurationchange = tryResolve;
+    el.onerror = () => finish(null);
+    el.src = url;
+  });
+}
+
+/**
  * Derive the timeline mediaType from an asset's content_type.
  * Returns null if the content type is not image, video, or audio.
  */
