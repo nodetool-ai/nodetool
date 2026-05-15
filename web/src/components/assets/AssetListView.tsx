@@ -217,13 +217,14 @@ const styles = (theme: Theme) =>
     }
   });
 
-const AssetListView: React.FC<AssetListViewProps> = memo(({
+const AssetListView: React.FC<AssetListViewProps> = ({
   assets,
   onDoubleClick,
   containerWidth = 1200,
   isHorizontal = false
 }) => {
   const theme = useTheme();
+  const listStyles = useMemo(() => styles(theme), [theme]);
   const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
   const { selectedAssetIds, handleSelectAsset, handleDeselectAssets } =
     useAssetSelection(assets);
@@ -497,7 +498,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
 
   if (assets.length === 0) {
     return (
-      <Box css={styles(theme)} className="asset-list-view">
+      <Box css={listStyles} className="asset-list-view">
         <EmptyState
           variant="no-data"
           title="No assets to display"
@@ -508,7 +509,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
   }
 
   return (
-    <Box css={styles(theme)} className="asset-list-view">
+    <Box css={listStyles} className="asset-list-view">
       <div className="asset-list-container">
         <div className="asset-list-header">
           <div className="asset-header-icon-space"></div>
@@ -551,7 +552,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
       </div>
     </Box>
   );
-});
+};
 
 AssetListView.displayName = 'AssetListView';
 

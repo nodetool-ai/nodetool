@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useState, useCallback, useMemo, useEffect, useRef, memo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -172,17 +173,13 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   contrastBackgroundColor = "#ffffff"
 }) => {
   const theme = useTheme();
-  // Combine multiple store subscriptions into a single selector to reduce re-renders
   const { addRecentColor, preferredColorMode, setPreferredColorMode } =
     useColorPickerStore(
-      useCallback(
-        (state) => ({
-          addRecentColor: state.addRecentColor,
-          preferredColorMode: state.preferredColorMode,
-          setPreferredColorMode: state.setPreferredColorMode
-        }),
-        []
-      )
+      useShallow((state) => ({
+        addRecentColor: state.addRecentColor,
+        preferredColorMode: state.preferredColorMode,
+        setPreferredColorMode: state.setPreferredColorMode
+      }))
     );
 
   // Internal state
