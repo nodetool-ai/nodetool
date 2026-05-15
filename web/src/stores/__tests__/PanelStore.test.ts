@@ -33,11 +33,11 @@ describe('PanelStore', () => {
         ...usePanelStore.getState().panel,
         panelSize: minWidth,
         isVisible: false,
-        activeView: 'workflowGrid'
+        activeView: 'workflows'
       }
     }, true);
 
-    usePanelStore.getState().handleViewChange('workflowGrid');
+    usePanelStore.getState().handleViewChange('workflows');
     const panel = usePanelStore.getState().panel;
     expect(panel.panelSize).toBeGreaterThanOrEqual(minPanelSize);
     expect(panel.isVisible).toBe(true);

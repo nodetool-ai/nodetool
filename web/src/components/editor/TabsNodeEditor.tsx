@@ -22,6 +22,7 @@ import KeyboardProvider from "../KeyboardProvider";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
 import FloatingToolBar from "../panels/FloatingToolBar";
+import NodeCreateBridge from "./NodeCreateBridge";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -581,6 +582,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                                 />
                               </div>
                               {isActive && <FloatingToolBar />}
+                              {isActive && <NodeCreateBridge />}
                             </KeyboardProvider>
                           </ConnectableNodesProvider>
                         </ContextMenuProvider>

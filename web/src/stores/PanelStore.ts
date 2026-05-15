@@ -1,7 +1,23 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type LeftPanelView = "assets" | "workflowGrid";
+/**
+ * Aligned with `QuickAccessCategoryId` in
+ * `web/src/config/quickAccessCategories.tsx`. The left-panel sidebar selects
+ * one of these views; the panel body renders accordingly.
+ *
+ * Migration note: prior versions used "workflowGrid" — see merge() below.
+ */
+export type LeftPanelView =
+  | "search"
+  | "history"
+  | "workflows"
+  | "assets"
+  | "image-models"
+  | "video-models"
+  | "3d-models"
+  | "quick-access"
+  | "tools";
 export type PanelView = LeftPanelView;
 
 interface PanelState {
@@ -42,7 +58,7 @@ const createInitialState = (): PanelState => {
     minWidth: MIN_DRAG_SIZE,
     maxWidth: MAX_PANEL_SIZE,
     defaultWidth: DEFAULT_PANEL_SIZE,
-    activeView: "workflowGrid"
+    activeView: "workflows"
   };
 };
 
@@ -163,11 +179,22 @@ export const usePanelStore = create<ResizePanelState>()(
       merge: (persistedState, currentState) => {
         const persisted = (persistedState ?? {}) as Partial<ResizePanelState>;
         const persistedPanel = (persisted.panel ?? {}) as Partial<PanelState>;
-        const validViews: PanelView[] = ["assets", "workflowGrid"];
-        const activeView = validViews.includes(
-          persistedPanel.activeView as PanelView
-        )
-          ? (persistedPanel.activeView as PanelView)
+        const validViews: PanelView[] = [
+          "search",
+          "history",
+          "workflows",
+          "assets",
+          "image-models",
+          "video-models",
+          "3d-models",
+          "quick-access",
+          "tools"
+        ];
+        // Legacy persisted value remap: "workflowGrid" → "workflows".
+        const raw = persistedPanel.activeView as string | undefined;
+        const migrated = raw === "workflowGrid" ? "workflows" : raw;
+        const activeView = validViews.includes(migrated as PanelView)
+          ? (migrated as PanelView)
           : currentState.panel.activeView;
         return {
           ...currentState,

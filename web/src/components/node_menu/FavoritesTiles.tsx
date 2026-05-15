@@ -14,7 +14,7 @@ import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM, NOTIFICATION_TIMEOUT_
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useCreateNode } from "../../hooks/useCreateNode";
+import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
@@ -172,7 +172,9 @@ const FavoritesTiles = memo(function FavoritesTiles() {
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
 
-  const handleCreateNode = useCreateNode();
+  // Route click-to-add via PendingNodeCreateStore so this component is safe
+  // to render outside the editor's ReactFlowProvider.
+  const requestCreate = usePendingNodeCreateStore((s) => s.requestCreate);
 
   // Use data attributes to avoid creating new function references on each render
   // This is more efficient than curried handlers which create new closures
@@ -224,9 +226,9 @@ const FavoritesTiles = memo(function FavoritesTiles() {
         return;
       }
 
-      handleCreateNode(metadata);
+      requestCreate(metadata);
     },
-    [getMetadata, addNotification, handleCreateNode]
+    [getMetadata, addNotification, requestCreate]
   );
 
   const handleTileMouseEnter = useCallback(
