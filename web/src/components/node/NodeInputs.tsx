@@ -20,7 +20,6 @@ export interface NodeInputsProps {
   nodeMetadata: NodeMetadata;
   showFields?: boolean;
   showHandle?: boolean;
-  basicFields?: string[];
   onUpdatePropertyName?: (
     oldPropertyName: string,
     newPropertyName: string

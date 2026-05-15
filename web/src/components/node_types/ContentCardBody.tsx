@@ -12,10 +12,9 @@
  *                         removed — single-node run lives in the existing
  *                         node toolbar)
  *
- * Basic fields are rendered inline below the preview via the existing
- * `NodeInputs` infrastructure (which already understands `basic_fields`),
- * preserving the node-author API. Advanced fields stay in the Inspector
- * (Track D — landing in PR 8).
+ * Inline fields are rendered below the preview via the existing
+ * `NodeInputs` infrastructure. Input fields render as handle-only ports on
+ * the left edge via `HandleColumn`. Everything else stays in the Inspector.
  *
  * PR 4 ships only the **image** variant. Other variants fall through to
  * `OutputRenderer` for now and get bespoke previews in PR 5.
@@ -109,7 +108,6 @@ export interface ContentCardBodyProps {
   data: NodeData;
   workflowId: string;
   status?: string;
-  basicFields: string[];
   isOutputNode: boolean;
 }
 
@@ -197,7 +195,6 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   data,
   workflowId,
   status,
-  basicFields,
   isOutputNode
 }) => {
   const theme = useTheme();
@@ -281,7 +278,6 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
             properties={inlineProps}
             nodeType={nodeType}
             data={data}
-            basicFields={[]}
             editableDynamicInputs={false}
             showFields={true}
           />

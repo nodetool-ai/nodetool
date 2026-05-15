@@ -65,15 +65,6 @@ const DynamicReplicateNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       state.getOutputResult(workflow_id, id) ?? state.getResult(workflow_id, id)
   );
 
-  const meta = useMemo(() => {
-    if (!metadata) {
-      return { nodeBasicFields: [] };
-    }
-    return {
-      nodeBasicFields: metadata.basic_fields || []
-    };
-  }, [metadata]);
-
   const nodeType = useMemo(
     () => ({
       isConstantNode: type.startsWith("nodetool.constant"),
@@ -167,7 +158,6 @@ const DynamicReplicateNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           isConstantNode={nodeType.isConstantNode}
           isOutputNode={nodeType.isOutputNode}
           data={data}
-          basicFields={meta.nodeBasicFields}
           status={statusValue}
           workflowId={workflow_id}
           showResultOverlay={false}

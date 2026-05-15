@@ -32,7 +32,6 @@ function makeProps(overrides: Record<string, unknown> = {}) {
       dynamic_properties: {},
       workflow_id: "wf-1"
     } as NodeData,
-    basicFields: ["value"],
     status: undefined,
     workflowId: "wf-1",
     showResultOverlay: false,

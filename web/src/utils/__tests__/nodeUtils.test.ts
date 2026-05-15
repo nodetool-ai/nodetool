@@ -29,7 +29,6 @@ describe("nodeUtils", () => {
 
       expect(GROUP_NODE_METADATA).toHaveProperty("layout");
       expect(GROUP_NODE_METADATA).toHaveProperty("recommended_models");
-      expect(GROUP_NODE_METADATA).toHaveProperty("basic_fields");
       expect(GROUP_NODE_METADATA).toHaveProperty("is_dynamic");
       expect(GROUP_NODE_METADATA).toHaveProperty("expose_as_tool");
       expect(GROUP_NODE_METADATA).toHaveProperty("supports_dynamic_outputs");
@@ -43,11 +42,10 @@ describe("nodeUtils", () => {
       expect(GROUP_NODE_METADATA.layout).toBe("default");
     });
 
-    it("should have empty arrays for properties, outputs, recommended_models, and basic_fields", () => {
+    it("should have empty arrays for properties, outputs, and recommended_models", () => {
       expect(GROUP_NODE_METADATA.properties).toEqual([]);
       expect(GROUP_NODE_METADATA.outputs).toEqual([]);
       expect(GROUP_NODE_METADATA.recommended_models).toEqual([]);
-      expect(GROUP_NODE_METADATA.basic_fields).toEqual([]);
     });
 
 
@@ -79,7 +77,6 @@ describe("nodeUtils", () => {
 
       expect(COMMENT_NODE_METADATA).toHaveProperty("layout");
       expect(COMMENT_NODE_METADATA).toHaveProperty("recommended_models");
-      expect(COMMENT_NODE_METADATA).toHaveProperty("basic_fields");
       expect(COMMENT_NODE_METADATA).toHaveProperty("is_dynamic");
       expect(COMMENT_NODE_METADATA).toHaveProperty("expose_as_tool");
       expect(COMMENT_NODE_METADATA).toHaveProperty("supports_dynamic_outputs");
@@ -100,11 +97,10 @@ describe("nodeUtils", () => {
       expect(COMMENT_NODE_METADATA.layout).toBe("comment");
     });
 
-    it("should have empty arrays for properties, outputs, recommended_models, and basic_fields", () => {
+    it("should have empty arrays for properties, outputs, and recommended_models", () => {
       expect(COMMENT_NODE_METADATA.properties).toEqual([]);
       expect(COMMENT_NODE_METADATA.outputs).toEqual([]);
       expect(COMMENT_NODE_METADATA.recommended_models).toEqual([]);
-      expect(COMMENT_NODE_METADATA.basic_fields).toEqual([]);
     });
 
     it("should have all boolean flags set to false", () => {

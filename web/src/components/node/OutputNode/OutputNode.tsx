@@ -462,7 +462,6 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
                   data={props.data}
                   showHandle={false}
                   showFields={true}
-                  basicFields={inlineNames}
                 />
               </>
             );

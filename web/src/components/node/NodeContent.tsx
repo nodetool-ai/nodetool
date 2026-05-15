@@ -10,6 +10,7 @@ import NodePropertyForm from "./NodePropertyForm";
 import { isContentCardNode } from "../node_types/contentCardRegistry";
 import ContentCardBody from "../node_types/ContentCardBody";
 import HandleColumn from "./HandleColumn";
+import { isSnippetCodeNode } from "./codeNodeUi";
 
 interface NodeContentProps {
   id: string;
@@ -17,7 +18,6 @@ interface NodeContentProps {
   nodeMetadata: NodeMetadata;
   isOutputNode: boolean;
   data: NodeData;
-  basicFields: string[];
   status?: string;
   workflowId: string;
   showResultOverlay: boolean;
@@ -41,9 +41,7 @@ const arePropsEqual = (
     prevProps.isOutputNode !== nextProps.isOutputNode ||
     prevProps.status !== nextProps.status ||
     prevProps.workflowId !== nextProps.workflowId ||
-    prevProps.showResultOverlay !== nextProps.showResultOverlay ||
-    prevProps.basicFields.length !== nextProps.basicFields.length ||
-    !prevProps.basicFields.every((field, i) => field === nextProps.basicFields[i])
+    prevProps.showResultOverlay !== nextProps.showResultOverlay
   ) {
     return false;
   }
@@ -137,7 +135,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
   nodeMetadata,
   isOutputNode,
   data,
-  basicFields,
   status,
   workflowId,
   showResultOverlay,
@@ -164,33 +161,29 @@ const NodeContent: React.FC<NodeContentProps> = ({
         data={data}
         workflowId={workflowId}
         status={status}
-        basicFields={basicFields}
         isOutputNode={isOutputNode}
       />
     );
   }
 
-  // Split properties by classification (plan §field-classification):
+  // Split properties by classification:
   //   inline_fields → full PropertyField rows (handle + label + editor)
   //   input_fields  → handle-only (rendered in HandleColumn on the left edge)
   //   default       → Inspector only (hidden in node body)
-  // Fallback: when neither classification is set, use legacy basic_fields
-  // behavior and render every property through NodeInputs.
-  // Classification opt-in is detected via `!== undefined` so a node that
-  // explicitly declares `inlineFields = []` / `inputFields = []` ("everything
-  // goes to Inspector") is honored — not silently treated as legacy.
-  const useClassification =
-    nodeMetadata.inline_fields !== undefined ||
-    nodeMetadata.input_fields !== undefined;
-  const inlineFieldNames = nodeMetadata.inline_fields ?? [];
+  // Code nodes in snippet mode hide their `code` property from the inline
+  // list — the snippet editor itself replaces that editor surface.
+  let inlineFieldNames = nodeMetadata.inline_fields ?? [];
   const inputFieldNames = nodeMetadata.input_fields ?? [];
+  if (isSnippetCodeNode(nodeType, data)) {
+    inlineFieldNames = inlineFieldNames.filter((n) => n !== "code");
+  }
   const allProperties = nodeMetadata.properties ?? [];
-  const inlineProperties = useClassification
-    ? allProperties.filter((p) => inlineFieldNames.includes(p.name))
-    : allProperties;
-  const inputProperties = useClassification
-    ? allProperties.filter((p) => inputFieldNames.includes(p.name))
-    : [];
+  const inlineProperties = allProperties.filter((p) =>
+    inlineFieldNames.includes(p.name)
+  );
+  const inputProperties = allProperties.filter((p) =>
+    inputFieldNames.includes(p.name)
+  );
 
   return (
     <FlexColumn
@@ -201,9 +194,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
         minHeight: 0
       }}
     >
-      {useClassification && (
-        <HandleColumn id={id} properties={inputProperties} />
-      )}
+      <HandleColumn id={id} properties={inputProperties} />
       <NodeInputs
         id={id}
         nodeMetadata={nodeMetadata}
@@ -211,7 +202,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
         properties={inlineProperties}
         nodeType={nodeType}
         data={data}
-        basicFields={basicFields}
       />
       {(nodeMetadata?.is_dynamic || nodeMetadata?.supports_dynamic_outputs) && (
         <NodePropertyForm

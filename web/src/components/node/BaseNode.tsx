@@ -61,8 +61,7 @@ import {
   CODE_NODE_TYPE,
   isCodeNode,
   isCodeNodeTitleEditable,
-  resolveCodeNodeTitle,
-  resolveVisibleBasicFields
+  resolveCodeNodeTitle
 } from "./codeNodeUi";
 
 // CONSTANTS
@@ -421,32 +420,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const meta = useMemo(() => {
-    // Prefer the new classification (inline_fields ∪ input_fields). Falls
-    // back to the legacy basic_fields list when the node hasn't been
-    // migrated yet.
-    // `!== undefined` so a node with explicitly empty inline/input arrays is
-    // treated as classified (everything → Inspector), not legacy.
-    const useNewClassification =
-      metadata.inline_fields !== undefined ||
-      metadata.input_fields !== undefined;
-    const visibleSeed = useNewClassification
-      ? [...(metadata.inline_fields ?? []), ...(metadata.input_fields ?? [])]
-      : metadata.basic_fields || [];
-    const nodeBasicFields = resolveVisibleBasicFields(type, visibleSeed, data);
     return {
       nodeNamespace: metadata.namespace || "",
-      nodeBasicFields,
       showFooter: !specialNamespaces.includes(metadata.namespace || "")
     };
-  }, [
-    data,
-    type,
-    metadata.basic_fields,
-    metadata.inline_fields,
-    metadata.input_fields,
-    metadata.namespace,
-    specialNamespaces
-  ]);
+  }, [metadata.namespace, specialNamespaces]);
 
   const displayTitle = useMemo(
     () => resolveCodeNodeTitle(type, data.title, metadata.title),
@@ -788,7 +766,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           nodeMetadata={metadata}
           isOutputNode={nodeType.isOutputNode}
           data={data}
-          basicFields={meta.nodeBasicFields}
           status={status}
           workflowId={workflow_id}
           showResultOverlay={

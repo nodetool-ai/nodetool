@@ -138,10 +138,12 @@ const getPreferredConnectableInput = (
     return null;
   }
 
-  const basicFields = metadata.basic_fields || [];
+  // Prefer a property classified as an input port (the node's "primary"
+  // wired-from-upstream slot); fall back to the first compatible property.
+  const inputFields = metadata.input_fields ?? [];
   return (
     compatibleProperties.find((property) =>
-      basicFields.includes(property.name)
+      inputFields.includes(property.name)
     ) || compatibleProperties[0]
   );
 };

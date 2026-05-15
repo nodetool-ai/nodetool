@@ -14,7 +14,6 @@ export interface DynamicKieSchemaContentProps {
   isConstantNode: boolean;
   isOutputNode: boolean;
   data: NodeData;
-  basicFields: string[];
   status?: string;
   workflowId: string;
   showResultOverlay?: boolean;
@@ -32,7 +31,6 @@ export const DynamicKieSchemaContent: React.FC<DynamicKieSchemaContentProps> =
       isConstantNode,
       isOutputNode,
       data,
-      basicFields,
       status,
       workflowId
     }) => {
@@ -111,7 +109,6 @@ export const DynamicKieSchemaContent: React.FC<DynamicKieSchemaContentProps> =
               nodeType={nodeType}
               data={data}
               showHandle={!isConstantNode}
-              basicFields={basicFields}
             />
           </Box>
           {!isOutputNode && (

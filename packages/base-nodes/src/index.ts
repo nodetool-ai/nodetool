@@ -836,7 +836,7 @@ export function registerBaseNodes(registry: NodeRegistry): void {
             { name: "name", type: { type: "str", type_args: [] }, default: "" }
           ],
           outputs: [{ name: "output", type: { type: "any", type_args: [] } }],
-          basic_fields: ["value"]
+          inline_fields: ["value", "name"]
         }
       });
       continue;
@@ -864,7 +864,7 @@ export function registerBaseNodes(registry: NodeRegistry): void {
             }
           ],
           outputs: [],
-          basic_fields: []
+          inline_fields: []
         }
       });
       continue;

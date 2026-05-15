@@ -363,18 +363,23 @@ describe("TextToImageNode — provider params", () => {
     expect(node.resolution).toBe("2K");
   });
 
-  it("does not expose low-level sampler params", () => {
-    expect(TextToImageNode.basicFields).not.toContain("guidance_scale");
-    expect(TextToImageNode.basicFields).not.toContain("num_inference_steps");
-    expect(TextToImageNode.basicFields).not.toContain("seed");
-    expect(TextToImageNode.basicFields).not.toContain("safety_check");
-    expect(TextToImageNode.basicFields).not.toContain("width");
-    expect(TextToImageNode.basicFields).not.toContain("height");
-  });
-
-  it("basicFields surfaces aspect_ratio and resolution", () => {
-    expect(TextToImageNode.basicFields).toContain("aspect_ratio");
-    expect(TextToImageNode.basicFields).toContain("resolution");
+  it("keeps the node body compact: only `prompt` is inline", () => {
+    expect(TextToImageNode.inlineFields).toEqual(["prompt"]);
+    // All sampler/composition controls (guidance_scale, num_inference_steps,
+    // seed, safety_check, width, height, aspect_ratio, resolution, ...)
+    // live in the Inspector and are intentionally not inline.
+    for (const field of [
+      "guidance_scale",
+      "num_inference_steps",
+      "seed",
+      "safety_check",
+      "width",
+      "height",
+      "aspect_ratio",
+      "resolution"
+    ]) {
+      expect(TextToImageNode.inlineFields).not.toContain(field);
+    }
   });
 });
 

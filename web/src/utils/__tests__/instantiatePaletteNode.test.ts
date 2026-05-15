@@ -54,7 +54,6 @@ function makeMetadata(nodeType: string): NodeMetadata {
     layout: "default",
     properties: [],
     outputs: [],
-    basic_fields: [],
     is_dynamic: false,
     recommended_models: [],
     expose_as_tool: false,

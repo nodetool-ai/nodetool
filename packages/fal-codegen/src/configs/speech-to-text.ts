@@ -13,8 +13,7 @@ export const config: ModuleConfig = {
         "Generate transcripts from audio",
         "Extract text from recordings",
         "Create captions from audio"
-      ],
-      basicFields: ["audio"]
+      ]
     },
     "fal-ai/elevenlabs/speech-to-text/scribe-v2": {
       className: "ElevenLabsScribeV2",
@@ -34,8 +33,7 @@ export const config: ModuleConfig = {
         "Quick transcript generation",
         "High-speed audio processing",
         "Rapid speech-to-text conversion"
-      ],
-      basicFields: ["audio"]
+      ]
     },
     "fal-ai/smart-turn": {
       className: "SmartTurn",
@@ -54,8 +52,7 @@ export const config: ModuleConfig = {
         "Analyze dialogue timing",
         "Detect speech boundaries",
         "Process conversational audio"
-      ],
-      basicFields: ["audio"]
+      ]
     },
     "fal-ai/speech-to-text": {
       className: "SpeechToText",
@@ -68,8 +65,7 @@ export const config: ModuleConfig = {
         "Generate audio transcripts",
         "Process voice recordings",
         "Extract text from speech"
-      ],
-      basicFields: ["audio"]
+      ]
     },
     "fal-ai/speech-to-text/stream": {
       className: "SpeechToTextStream",
@@ -88,8 +84,7 @@ export const config: ModuleConfig = {
         "Stream audio processing",
         "Continuous speech recognition",
         "Live speech-to-text conversion"
-      ],
-      basicFields: ["audio_stream"]
+      ]
     },
     "fal-ai/speech-to-text/turbo": {
       className: "SpeechToTextTurbo",
@@ -109,8 +104,7 @@ export const config: ModuleConfig = {
         "Rapid transcript generation",
         "High-speed processing",
         "Efficient speech-to-text"
-      ],
-      basicFields: ["audio"]
+      ]
     },
     "fal-ai/speech-to-text/turbo/stream": {
       className: "SpeechToTextTurboStream",
@@ -131,8 +125,7 @@ export const config: ModuleConfig = {
         "High-speed streaming STT",
         "Rapid live transcription",
         "Efficient real-time processing"
-      ],
-      basicFields: ["audio_stream"]
+      ]
     },
     "fal-ai/whisper": {
       className: "Whisper",
@@ -152,8 +145,7 @@ export const config: ModuleConfig = {
         "Transcribe multiple languages",
         "Handle noisy audio",
         "International audio processing"
-      ],
-      basicFields: ["audio"]
+      ]
     },
     "fal-ai/wizper": {
       className: "Wizper",
@@ -173,8 +165,7 @@ export const config: ModuleConfig = {
         "Efficient audio processing",
         "Rapid text extraction",
         "Speedy speech-to-text"
-      ],
-      basicFields: ["audio"]
+      ]
     },
     "fal-ai/cohere-transcribe": {
       className: "CohereTranscribe",

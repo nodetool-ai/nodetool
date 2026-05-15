@@ -14,7 +14,6 @@ export interface DynamicFalSchemaContentProps {
   isConstantNode: boolean;
   isOutputNode: boolean;
   data: NodeData;
-  basicFields: string[];
   status?: string;
   workflowId: string;
   showResultOverlay?: boolean;
@@ -37,7 +36,6 @@ export const DynamicFalSchemaContent: React.FC<DynamicFalSchemaContentProps> =
       isConstantNode,
       isOutputNode,
       data,
-      basicFields,
       status,
       workflowId
     }) => {
@@ -118,7 +116,6 @@ export const DynamicFalSchemaContent: React.FC<DynamicFalSchemaContentProps> =
               nodeType={nodeType}
               data={data}
               showHandle={!isConstantNode}
-              basicFields={basicFields}
             />
           </Box>
           {!isOutputNode && (

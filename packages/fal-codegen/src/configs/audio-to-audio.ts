@@ -19,8 +19,7 @@ export const config: ModuleConfig = {
         "Create voice variations",
         "Modify speaker identity",
         "Generate voice-changed audio"
-      ],
-      basicFields: ["audio"]
+      ]
     },
     "fal-ai/nova-sr": {
       className: "NovaSr",
@@ -39,8 +38,7 @@ export const config: ModuleConfig = {
         "Upscale audio resolution",
         "Restore degraded audio",
         "Generate high-quality audio"
-      ],
-      basicFields: ["audio"]
+      ]
     },
     "fal-ai/deepfilternet3": {
       className: "Deepfilternet3",
@@ -59,8 +57,7 @@ export const config: ModuleConfig = {
         "Filter unwanted sounds",
         "Improve audio clarity",
         "Generate clean audio"
-      ],
-      basicFields: ["audio"]
+      ]
     },
     "fal-ai/sam-audio/separate": {
       className: "SamAudioSeparate",
@@ -79,8 +76,7 @@ export const config: ModuleConfig = {
         "Isolate instruments",
         "Remove background sounds",
         "Generate separated audio tracks"
-      ],
-      basicFields: ["audio"]
+      ]
     },
     "fal-ai/sam-audio/span-separate": {
       className: "SamAudioSpanSeparate",
@@ -93,8 +89,7 @@ export const config: ModuleConfig = {
         "Isolate temporal audio segments",
         "Remove sounds in time ranges",
         "Generate time-based separations"
-      ],
-      basicFields: ["audio"]
+      ]
     },
     "fal-ai/demucs": {
       className: "Demucs",
@@ -107,8 +102,7 @@ export const config: ModuleConfig = {
         "Isolate instruments in music",
         "Create karaoke tracks",
         "Generate individual audio stems"
-      ],
-      basicFields: ["audio"]
+      ]
     },
     "fal-ai/stable-audio-25/audio-to-audio": {
       className: "StableAudio25AudioToAudio",
@@ -127,8 +121,7 @@ export const config: ModuleConfig = {
         "Modify audio properties",
         "Generate audio variations",
         "Create processed audio"
-      ],
-      basicFields: ["audio", "prompt"]
+      ]
     },
     "fal-ai/ffmpeg-api/merge-audios": {
       className: "FfmpegApiMergeAudios",
@@ -141,8 +134,7 @@ export const config: ModuleConfig = {
         "Create audio compilations",
         "Join split audio files",
         "Generate combined audio output"
-      ],
-      basicFields: ["audio"]
+      ]
     },
     "fal-ai/kling-video/create-voice": {
       className: "KlingVideoCreateVoice",

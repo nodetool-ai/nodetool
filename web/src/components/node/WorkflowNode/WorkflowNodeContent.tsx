@@ -15,7 +15,6 @@ export interface WorkflowNodeContentProps {
   nodeType: string;
   nodeMetadata: NodeMetadata;
   data: NodeData;
-  basicFields: string[];
   status?: string;
   workflowId: string;
 }
@@ -31,7 +30,6 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
     nodeType,
     nodeMetadata,
     data,
-    basicFields,
     status,
     workflowId
   }) => {
@@ -101,7 +99,6 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
             data={data}
             showHandle={true}
             editableDynamicInputs={false}
-            basicFields={basicFields}
           />
         </Box>
         {(nodeMetadata.is_dynamic ||

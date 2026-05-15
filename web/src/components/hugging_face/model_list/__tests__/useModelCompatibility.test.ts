@@ -47,7 +47,6 @@ const createMockNode = (
     pipeline_tag: m.pipeline_tag || null,
     path: m.path || null,
   })) as UnifiedModel[],
-  basic_fields: [],
   is_dynamic: false,
   is_streaming_output: false,
   expose_as_tool: false,

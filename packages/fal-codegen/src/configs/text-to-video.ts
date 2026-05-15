@@ -13,8 +13,7 @@ export const config: ModuleConfig = {
         "Produce educational video content",
         "Generate creative video concepts",
         "Create animated scenes from stories"
-      ],
-      basicFields: ["prompt", "aspect_ratio", "resolution"]
+      ]
     },
 
     "fal-ai/cogvideox-5b": {
@@ -28,8 +27,7 @@ export const config: ModuleConfig = {
         "Produce concept videos for pitches",
         "Generate video storyboards",
         "Create educational demonstrations"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/fast-animatediff/text-to-video": {
@@ -50,8 +48,7 @@ export const config: ModuleConfig = {
         "Generate motion graphics from prompts",
         "Produce animated concept art",
         "Create video loops and sequences"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/fast-animatediff/turbo/text-to-video": {
@@ -73,8 +70,7 @@ export const config: ModuleConfig = {
         "Generate animations with minimal latency",
         "Iterate on video concepts quickly",
         "Produce real-time animation effects"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/animatediff-sparsectrl-lcm": {
@@ -96,8 +92,7 @@ export const config: ModuleConfig = {
         "Create animated illustrations",
         "Generate animations from concept art",
         "Produce animation from sparse frames"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "veed/avatars/text-to-video": {
@@ -118,8 +113,7 @@ export const config: ModuleConfig = {
         "Produce educational talking head videos",
         "Create personalized video messages",
         "Generate multilingual avatar content"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "argil/avatars/text-to-video": {
@@ -140,8 +134,7 @@ export const config: ModuleConfig = {
         "Produce automated video announcements",
         "Generate character-based narratives",
         "Create social media avatar videos"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/bytedance/seedance/v1.5/pro/text-to-video": {
@@ -162,8 +155,7 @@ export const config: ModuleConfig = {
         "Produce music video concepts",
         "Generate dance training content",
         "Create dance animation prototypes"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/bytedance/seedance/v1/pro/fast/text-to-video": {
@@ -185,8 +177,7 @@ export const config: ModuleConfig = {
         "Generate dance concepts efficiently",
         "Iterate on choreography ideas",
         "Produce dance storyboards"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "veed/fabric-1.0/text": {
@@ -207,8 +198,7 @@ export const config: ModuleConfig = {
         "Produce video ads from copy",
         "Generate social media videos",
         "Create branded video content"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/ltx-video": {
@@ -222,8 +212,7 @@ export const config: ModuleConfig = {
         "Produce high-quality video content",
         "Generate professional video clips",
         "Create cinematic video scenes"
-      ],
-      basicFields: ["prompt", "aspect_ratio", "resolution"]
+      ]
     },
 
     "fal-ai/kling-video/v1/standard/text-to-video": {
@@ -237,8 +226,7 @@ export const config: ModuleConfig = {
         "Produce videos for web use",
         "Generate video previews",
         "Create video concepts"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
 
@@ -260,8 +248,7 @@ export const config: ModuleConfig = {
         "Produce creative video art",
         "Generate experimental videos",
         "Create unique visual content"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
 
@@ -276,8 +263,7 @@ export const config: ModuleConfig = {
         "Produce reliable video outputs",
         "Generate predictable video scenes",
         "Create controlled video generation"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/t2v-turbo": {
@@ -298,8 +284,7 @@ export const config: ModuleConfig = {
         "Produce quick video previews",
         "Generate real-time video content",
         "Create efficient video workflows"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
 
@@ -324,8 +309,7 @@ export const config: ModuleConfig = {
         "Produce artistic video interpretations",
         "Generate creative video concepts",
         "Create imaginative video art"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/luma-photon": {
@@ -346,8 +330,7 @@ export const config: ModuleConfig = {
         "Produce lifelike video scenes",
         "Generate high-fidelity video outputs",
         "Create realistic visual content"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
 
@@ -1479,8 +1462,7 @@ export const config: ModuleConfig = {
         "Produce educational video content from scripts",
         "Generate social media video content",
         "Create animated scenes from text prompts"
-      ],
-      basicFields: ["prompt", "duration", "aspect_ratio"]
+      ]
     },
 
     "fal-ai/kling-video/v3/pro/text-to-video": {
@@ -1502,8 +1484,7 @@ export const config: ModuleConfig = {
         "Produce high-fidelity advertising videos",
         "Create premium animated content from scripts",
         "Generate top-tier video for film and media"
-      ],
-      basicFields: ["prompt", "duration", "aspect_ratio"]
+      ]
     },
 
     "fal-ai/kling-video/o3/standard/text-to-video": {
@@ -1525,8 +1506,7 @@ export const config: ModuleConfig = {
         "Produce educational video content from scripts",
         "Generate social media video content",
         "Create animated scenes from text prompts"
-      ],
-      basicFields: ["prompt", "duration", "aspect_ratio"]
+      ]
     },
 
     "fal-ai/kling-video/o3/pro/text-to-video": {
@@ -1548,8 +1528,7 @@ export const config: ModuleConfig = {
         "Produce high-fidelity advertising videos",
         "Create premium animated content from scripts",
         "Generate top-tier video for film and media"
-      ],
-      basicFields: ["prompt", "duration", "aspect_ratio"]
+      ]
     },
     "bytedance/seedance-2.0/text-to-video": {
       className: "BytedanceSeedance20TextToVideo",

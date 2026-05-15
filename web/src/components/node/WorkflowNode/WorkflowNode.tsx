@@ -65,15 +65,6 @@ const WorkflowNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       ? status
       : undefined;
 
-  const meta = useMemo(() => {
-    if (!metadata) {
-      return { nodeBasicFields: [] };
-    }
-    return {
-      nodeBasicFields: metadata.basic_fields || []
-    };
-  }, [metadata]);
-
   const headerTitle = useMemo(() => {
     if (!metadata) {
       return "Workflow";
@@ -154,7 +145,6 @@ const WorkflowNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           nodeType={type}
           nodeMetadata={metadata}
           data={data}
-          basicFields={meta.nodeBasicFields}
           status={statusValue}
           workflowId={workflow_id}
         />
