@@ -8,7 +8,8 @@ type Desc = {
   nodeType: string;
   title: string;
   description: string;
-  basicFields: string[];
+  inlineFields: string[];
+  inputFields:  string[];
   outputs: Record<string, string>;
   properties: Array<{ name: string; options: PropOptions }>;
 };
@@ -18,7 +19,8 @@ function createDrawNode(desc: Desc): NodeClass {
     static readonly nodeType = desc.nodeType;
     static readonly title = desc.title;
     static readonly description = desc.description;
-    static readonly basicFields = desc.basicFields;
+    static readonly inlineFields = desc.inlineFields;
+    static readonly inputFields  = desc.inputFields;
     static readonly metadataOutputTypes = desc.outputs;
 
     async process(
@@ -217,7 +219,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Background",
     description:
       "The Background Node creates a blank background.\n    image, background, blank, base, layer\n    This node is mainly used for generating a base layer for image processing tasks. It produces a uniform image, having a user-specified width, height and color. The color is given in a hexadecimal format, defaulting to white if not specified.\n\n    #### Applications\n    - As a base layer for creating composite images.\n    - As a starting point for generating patterns or graphics.\n    - When blank backgrounds of specific colors are required for visualization tasks.",
-    basicFields: ["width", "height", "color"],
+    inlineFields: [],
+    inputFields:  [],
     outputs: {
       output: "image"
     },
@@ -260,7 +263,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Gaussian Noise",
     description:
       "This node creates and adds Gaussian noise to an image.\n    image, noise, gaussian, distortion, artifact\n\n    The Gaussian Noise Node is designed to simulate realistic distortions that can occur in a photographic image. It generates a noise-filled image using the Gaussian (normal) distribution. The noise level can be adjusted using the mean and standard deviation parameters.\n\n    #### Applications\n    - Simulating sensor noise in synthetic data.\n    - Testing image-processing algorithms' resilience to noise.\n    - Creating artistic effects in images.",
-    basicFields: ["mean", "stddev", "width", "height"],
+    inlineFields: [],
+    inputFields:  [],
     outputs: {
       output: "image"
     },
@@ -308,7 +312,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Render Text",
     description:
       'This node allows you to add text to images using system fonts or web fonts.\n    text, font, label, title, watermark, caption, image, overlay, google fonts\n\n    This node takes text, font updates, coordinates (where to place the text), and an image to work with.\n    A user can use the Render Text Node to add a label or title to an image, watermark an image,\n    or place a caption directly on an image.\n\n    The Render Text Node offers customizable options, including the ability to choose the text\'s font,\n    size, color, and alignment (left, center, or right). Text placement can also be defined,\n    providing flexibility to place the text wherever you see fit.\n\n    ### Font Sources\n\n    The node supports three font sources:\n\n    1. **System Fonts** (default): Use fonts installed on the system\n       - `FontRef(name="Arial")` - Uses local Arial font\n\n    2. **Google Fonts**: Automatically download and cache fonts from Google Fonts\n       - `FontRef(name="Roboto", source=FontSource.GOOGLE_FONTS)`\n       - `FontRef(name="Open Sans", source=FontSource.GOOGLE_FONTS, weight="bold")`\n       - Supports 50+ popular fonts including Roboto, Open Sans, Lato, Montserrat, Poppins, etc.\n\n    3. **Custom URL**: Download fonts from any URL\n       - `FontRef(name="CustomFont", source=FontSource.URL, url="https://example.com/font.ttf")`\n\n    #### Applications\n    - Labeling images in an image gallery or database.\n    - Watermarking images for copyright protection.\n    - Adding custom captions to photographs.\n    - Creating instructional images to guide the reader\'s view.\n    - Using premium Google Fonts for professional typography.',
-    basicFields: ["text", "font", "x", "y", "size", "color", "align", "image"],
+    inlineFields: ["text"],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -410,7 +415,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Blend",
     description:
       "Blend two images with adjustable alpha mixing.\n    blend, mix, fade, transition\n\n    Use cases:\n    - Create smooth transitions between images\n    - Adjust opacity of overlays\n    - Combine multiple exposures or effects",
-    basicFields: ["image1", "image2", "alpha"],
+    inlineFields: [],
+    inputFields:  ["image1", "image2"],
     outputs: {
       output: "image"
     },
@@ -463,7 +469,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Composite",
     description:
       "Combine two images using a mask for advanced compositing.\n    composite, mask, blend, layering\n\n    Use cases:\n    - Create complex image compositions\n    - Apply selective blending or effects\n    - Implement advanced photo editing techniques",
-    basicFields: ["image1", "image2", "mask"],
+    inlineFields: [],
+    inputFields:  ["image1", "image2", "mask"],
     outputs: {
       output: "image"
     },

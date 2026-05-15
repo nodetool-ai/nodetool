@@ -8,7 +8,8 @@ type Desc = {
   nodeType: string;
   title: string;
   description: string;
-  basicFields: string[];
+  inlineFields: string[];
+  inputFields:  string[];
   outputs: Record<string, string>;
   properties: Array<{ name: string; options: PropOptions }>;
 };
@@ -18,7 +19,8 @@ function createEnhanceNode(desc: Desc): NodeClass {
     static readonly nodeType = desc.nodeType;
     static readonly title = desc.title;
     static readonly description = desc.description;
-    static readonly basicFields = desc.basicFields;
+    static readonly inlineFields = desc.inlineFields;
+    static readonly inputFields  = desc.inputFields;
     static readonly metadataOutputTypes = desc.outputs;
 
     async process(
@@ -319,7 +321,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Adaptive Contrast",
     description:
       "Applies localized contrast enhancement using adaptive techniques.\n    image, contrast, enhance\n\n    Use cases:\n    - Improve visibility in images with varying lighting conditions\n    - Prepare images for improved feature detection in computer vision",
-    basicFields: ["image", "clip_limit", "grid_size"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -368,7 +371,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Auto Contrast",
     description:
       "Automatically adjusts image contrast for enhanced visual quality.\n    image, contrast, balance\n\n    Use cases:\n    - Enhance image clarity for better visual perception\n    - Pre-process images for computer vision tasks\n    - Improve photo aesthetics in editing workflows",
-    basicFields: ["image", "cutoff"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -407,7 +411,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Brightness",
     description:
       "Adjusts overall image brightness to lighten or darken.\n    image, brightness, enhance\n\n    Use cases:\n    - Correct underexposed or overexposed photographs\n    - Enhance visibility of dark image regions\n    - Prepare images for consistent display across devices",
-    basicFields: ["image", "factor"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -443,7 +448,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Color",
     description:
       "Adjusts color intensity of an image.\n    image, color, enhance\n\n    Use cases:\n    - Enhance color vibrancy in photographs\n    - Correct color imbalances in digital images\n    - Prepare images for consistent brand color representation",
-    basicFields: ["image", "factor"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -479,7 +485,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Contrast",
     description:
       "Adjusts image contrast to modify light-dark differences.\n    image, contrast, enhance\n\n    Use cases:\n    - Enhance visibility of details in low-contrast images\n    - Prepare images for visual analysis or recognition tasks\n    - Create dramatic effects in artistic photography",
-    basicFields: ["image", "factor"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -515,7 +522,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Detail",
     description:
       "Enhances fine details in images.\n    image, detail, enhance\n\n    Use cases:\n    - Improve clarity of textural elements in photographs\n    - Enhance visibility of small features for analysis\n    - Prepare images for high-resolution display or printing",
-    basicFields: ["image"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -542,7 +550,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Edge Enhance",
     description:
       "Enhances edge visibility by increasing contrast along boundaries.\n    image, edge, enhance\n\n    Use cases:\n    - Improve object boundary detection for computer vision\n    - Highlight structural elements in technical drawings\n    - Prepare images for feature extraction in image analysis",
-    basicFields: ["image"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -569,7 +578,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Equalize",
     description:
       "Enhances image contrast by equalizing intensity distribution.\n    image, contrast, histogram\n\n    Use cases:\n    - Improve visibility in poorly lit images\n    - Enhance details for image analysis tasks\n    - Normalize image data for machine learning",
-    basicFields: ["image"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -596,7 +606,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Rank Filter",
     description:
       "Applies rank-based filtering to enhance or smooth image features.\n    image, filter, enhance\n\n    Use cases:\n    - Reduce noise while preserving edges in images\n    - Enhance specific image features based on local intensity\n    - Pre-process images for improved segmentation results",
-    basicFields: ["image", "size", "rank"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -645,7 +656,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Sharpen",
     description:
       "Enhances image detail by intensifying local pixel contrast.\n    image, sharpen, clarity\n\n    Use cases:\n    - Improve clarity of photographs for print or display\n    - Refine texture details in product photography\n    - Enhance readability of text in document images",
-    basicFields: ["image"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -672,7 +684,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Sharpness",
     description:
       "Adjusts image sharpness to enhance or reduce detail clarity.\n    image, clarity, sharpness\n\n    Use cases:\n    - Enhance photo details for improved visual appeal\n    - Refine images for object detection tasks\n    - Correct slightly blurred images",
-    basicFields: ["image", "factor"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -708,7 +721,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Unsharp Mask",
     description:
       "Sharpens images using the unsharp mask technique.\n    image, sharpen, enhance\n\n    Use cases:\n    - Enhance edge definition in photographs\n    - Improve perceived sharpness of digital artwork\n    - Prepare images for high-quality printing or display",
-    basicFields: ["image", "radius", "percent", "threshold"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },

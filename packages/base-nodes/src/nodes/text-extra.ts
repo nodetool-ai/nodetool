@@ -1756,7 +1756,8 @@ export class EmbeddingTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list"
   };
-  static readonly basicFields = ["model", "input"];
+  static readonly inlineFields = [];
+  static readonly inputFields  = ["input"];
   static readonly exposeAsTool = true;
 
   @prop({
