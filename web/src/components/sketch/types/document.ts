@@ -158,13 +158,15 @@ export function isQuadTransformMode(
   | "warp"
   | "perspective-dual"
   | "perspective-distort"
-  | "mesh-warp" {
+  | "mesh-warp"
+  | "distort" {
   return (
     mode === "perspective" ||
     mode === "warp" ||
     mode === "perspective-dual" ||
     mode === "perspective-distort" ||
-    mode === "mesh-warp"
+    mode === "mesh-warp" ||
+    mode === "distort"
   );
 }
 

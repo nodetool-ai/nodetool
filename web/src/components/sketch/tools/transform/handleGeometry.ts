@@ -35,6 +35,34 @@ export type TransformHandle =
   | "move"
   | "pivot";
 
+export type CornerHandle = Extract<
+  TransformHandle,
+  "top-left" | "top-right" | "bottom-right" | "bottom-left"
+>;
+
+export type EdgeHandle = Extract<
+  TransformHandle,
+  "top" | "bottom" | "left" | "right"
+>;
+
+export function isCornerHandle(handle: TransformHandle): handle is CornerHandle {
+  return (
+    handle === "top-left" ||
+    handle === "top-right" ||
+    handle === "bottom-left" ||
+    handle === "bottom-right"
+  );
+}
+
+export function isEdgeHandle(handle: TransformHandle): handle is EdgeHandle {
+  return (
+    handle === "top" ||
+    handle === "bottom" ||
+    handle === "left" ||
+    handle === "right"
+  );
+}
+
 // Import sizing constants from the shared gizmo module (single source of truth).
 import {
   HANDLE_HIT_RADIUS,

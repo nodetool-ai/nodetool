@@ -105,10 +105,14 @@ export function reconcileLayerToDocumentSpace(
     const minY = Math.min(primaryExtents.minY, secondaryExtents.minY);
     const maxX = Math.max(primaryExtents.maxX, secondaryExtents.maxX);
     const maxY = Math.max(primaryExtents.maxY, secondaryExtents.maxY);
+    // Tight to the transformed AABB. Padding the canvas out to the document
+    // size used to bloat the gizmo bounds (it reads from this canvas's stored
+    // raster bounds), making subsequent transforms snap to handles at the
+    // doc edges rather than the visible content.
     const outX = Math.min(0, Math.floor(minX));
     const outY = Math.min(0, Math.floor(minY));
-    const outW = Math.max(doc.canvas.width, Math.ceil(maxX)) - outX;
-    const outH = Math.max(doc.canvas.height, Math.ceil(maxY)) - outY;
+    const outW = Math.max(1, Math.ceil(maxX) - outX);
+    const outH = Math.max(1, Math.ceil(maxY) - outY);
 
     const temp = window.document.createElement("canvas");
     temp.width = outW;
@@ -169,8 +173,8 @@ export function reconcileLayerToDocumentSpace(
     const maxY = Math.ceil(Math.max(...corners.map((corner) => corner.y)));
     const outX = Math.min(0, minX);
     const outY = Math.min(0, minY);
-    const outW = Math.max(doc.canvas.width, maxX) - outX;
-    const outH = Math.max(doc.canvas.height, maxY) - outY;
+    const outW = Math.max(1, maxX - outX);
+    const outH = Math.max(1, maxY - outY);
 
     const temp = window.document.createElement("canvas");
     temp.width = outW;
@@ -241,12 +245,14 @@ export function reconcileLayerToDocumentSpace(
   const maxX = Math.ceil(bMaxX);
   const maxY = Math.ceil(bMaxY);
 
-  // Use the union of the document bounds and the transformed AABB
-  // to ensure no content is lost while keeping the document area covered.
+  // Tight to the transformed AABB. The earlier doc-canvas union bloated the
+  // baked canvas (and its stored raster bounds), so the next gizmo session
+  // would draw handles at the doc edges and scale/rotate around the doc
+  // center rather than the actual content.
   const outX = Math.min(0, minX);
   const outY = Math.min(0, minY);
-  const outW = Math.max(doc.canvas.width, maxX) - outX;
-  const outH = Math.max(doc.canvas.height, maxY) - outY;
+  const outW = Math.max(1, maxX - outX);
+  const outH = Math.max(1, maxY - outY);
 
   const temp = window.document.createElement("canvas");
   temp.width = outW;

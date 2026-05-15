@@ -384,7 +384,14 @@ export interface SegmentationSourceMetadata {
     scaleY?: number;
     rotation?: number;
     matrix?: [number, number, number, number, number, number];
-    mode?: "distort" | "skew" | "perspective" | "warp" | "perspective-dual";
+    mode?:
+      | "distort"
+      | "skew"
+      | "perspective"
+      | "warp"
+      | "perspective-dual"
+      | "perspective-distort"
+      | "mesh-warp";
     quad?: [
       { x: number; y: number },
       { x: number; y: number },

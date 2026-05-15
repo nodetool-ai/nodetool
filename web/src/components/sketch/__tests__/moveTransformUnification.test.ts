@@ -573,12 +573,10 @@ describe("Task 4: Reconcile vs preview parity", () => {
     expect(finalBounds!.x).toBe(Math.min(0, Math.floor(previewExtents.x)));
     expect(finalBounds!.y).toBe(Math.min(0, Math.floor(previewExtents.y)));
     expect(finalBounds!.width).toBe(
-      Math.max(doc.canvas.width, Math.ceil(previewExtents.x + previewExtents.width)) -
-        finalBounds!.x
+      Math.ceil(previewExtents.x + previewExtents.width) - finalBounds!.x
     );
     expect(finalBounds!.height).toBe(
-      Math.max(doc.canvas.height, Math.ceil(previewExtents.y + previewExtents.height)) -
-        finalBounds!.y
+      Math.ceil(previewExtents.y + previewExtents.height) - finalBounds!.y
     );
     const bakedPixel = canvas
       .getContext("2d")!
@@ -626,12 +624,10 @@ describe("Task 4: Reconcile vs preview parity", () => {
     expect(finalBounds!.x).toBe(Math.min(0, Math.floor(previewExtents.x)));
     expect(finalBounds!.y).toBe(Math.min(0, Math.floor(previewExtents.y)));
     expect(finalBounds!.width).toBe(
-      Math.max(doc.canvas.width, Math.ceil(previewExtents.x + previewExtents.width)) -
-        finalBounds!.x
+      Math.ceil(previewExtents.x + previewExtents.width) - finalBounds!.x
     );
     expect(finalBounds!.height).toBe(
-      Math.max(doc.canvas.height, Math.ceil(previewExtents.y + previewExtents.height)) -
-        finalBounds!.y
+      Math.ceil(previewExtents.y + previewExtents.height) - finalBounds!.y
     );
     const bakedPixel = canvas
       .getContext("2d")!

@@ -59,13 +59,18 @@ import type {
 import { layerAllowsTransformWhilePixelLocked, composeAffineMatrix } from "../types";
 import AspectRatioIcon from "@mui/icons-material/AspectRatio";
 import {
-  resolveGizmoBounds,
+  getEffectiveRasterBounds,
   getTransformedCenter,
   getTransformedCorners,
-  getTransformedExtents
+  getTransformedExtents,
+  resolveGizmoBounds
 } from "../painting/resolvedLayerGeometry";
 import {
   type TransformHandle,
+  type CornerHandle,
+  type EdgeHandle,
+  isCornerHandle,
+  isEdgeHandle,
   hitTestHandles,
   isInRotateZone,
   hitTestPivot,
@@ -152,8 +157,6 @@ export class TransformTool implements ToolHandler {
   private gestureActive = false;
   /** Currently hovered handle (for cursor feedback). */
   private hoveredHandle: TransformHandle | null = null;
-  /** Active transform gesture mode for the current drag. */
-  private activeTransformMode: TransformMode = "scale";
   /** Corner snapshot used for skew/distort gestures. */
   private dragStartCorners: [Point, Point, Point, Point] | null = null;
   /** Batched gizmo redraw scheduler. */
@@ -188,6 +191,32 @@ export class TransformTool implements ToolHandler {
   /** Stack of transforms recorded when undoing an adjustment (for in-transform redo). */
   private adjustmentRedoStack: LayerTransform[] = [];
 
+  // ── State reset helpers ───────────────────────────────────────────────────
+
+  /** Reset transient gesture state (handles, drag corners, hover). */
+  private resetGestureState(): void {
+    this.activeHandle = null;
+    this.hoveredHandle = null;
+    this.dragStart = null;
+    this.dragStartCorners = null;
+    this.gestureActive = false;
+  }
+
+  private resetPivotState(): void {
+    this.pivotPoint = null;
+    this.pivotPointAtMoveStart = null;
+  }
+
+  private resetMultiGestureState(): void {
+    this.multiGestureBaselineDocMatrices = null;
+    this.multiGestureUnionDocMatrixStart = null;
+  }
+
+  private resetAdjustmentStacks(): void {
+    this.adjustmentUndoStack = [];
+    this.adjustmentRedoStack = [];
+  }
+
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   onActivate(ctx: ToolContext): void {
@@ -195,20 +224,13 @@ export class TransformTool implements ToolHandler {
     // without explicit deactivation, or singleton reuse across tests).
     this.session.clear(ctx);
     this.targetSet.clear();
-    this.multiGestureBaselineDocMatrices = null;
-    this.multiGestureUnionDocMatrixStart = null;
-
+    this.resetGestureState();
+    this.resetPivotState();
+    this.resetMultiGestureState();
+    this.resetAdjustmentStacks();
     this.syncTransformTargets(ctx);
-
-    this.activeHandle = null;
-    this.hoveredHandle = null;
-    this.gestureActive = false;
-    this.pivotPoint = null;
-    this.pivotPointAtMoveStart = null;
-    this.activeTransformMode = "scale";
-    this.dragStartCorners = null;
-    this.adjustmentUndoStack = [];
-    this.adjustmentRedoStack = [];
+    // useOverlayRenderer no longer wipes the gizmo for the transform tool, so
+    // the synchronous paint here is enough — no need to defer to rAF.
     this.drawGizmo(ctx);
   }
 
@@ -216,36 +238,24 @@ export class TransformTool implements ToolHandler {
     if (this.gestureActive || this.session.isActive()) {
       return;
     }
-    this.activeHandle = null;
-    this.hoveredHandle = null;
-    this.pivotPoint = null;
-    this.pivotPointAtMoveStart = null;
-    this.activeTransformMode = "scale";
-    this.dragStartCorners = null;
-    this.adjustmentUndoStack = [];
-    this.adjustmentRedoStack = [];
+    this.resetGestureState();
+    this.resetPivotState();
+    this.resetAdjustmentStacks();
     this.syncTransformTargets(ctx);
     this.drawGizmo(ctx);
   }
 
   onDeactivate(ctx: ToolContext): void {
-    this.activeHandle = null;
-    this.hoveredHandle = null;
-    this.gestureActive = false;
-    this.pivotPoint = null;
-    this.pivotPointAtMoveStart = null;
-    this.activeTransformMode = "scale";
-    this.dragStartCorners = null;
+    this.resetGestureState();
+    this.resetPivotState();
+    this.resetMultiGestureState();
+    this.resetAdjustmentStacks();
     this.session.clear(ctx);
     for (const id of this.multiTargetLayerIds) {
       ctx.clearLayerTransformPreview?.(id);
     }
     this.multiTargetLayerIds = [];
-    this.multiGestureBaselineDocMatrices = null;
-    this.multiGestureUnionDocMatrixStart = null;
     this.targetSet.clear();
-    this.adjustmentUndoStack = [];
-    this.adjustmentRedoStack = [];
     ctx.clearGizmo();
     ctx.clearOverlay();
     ctx.drawSelectionOverlay();
@@ -308,76 +318,33 @@ export class TransformTool implements ToolHandler {
     }
 
     // 3. Outside-box rotate beats auto-select (same rotate cursor/handle UX).
-    //    Auto-select only runs on misses outside both handles and rotate margin —
-    //    never from interior move clicks (avoids accidental layer switches while translating).
+    //    Misses both handles and the rotate margin → auto-select / deselect.
     if (!handle) {
       if (isInRotateZone(currentTransform, this.rasterBounds, pt, ctx.zoom)) {
         handle = "rotate";
       } else {
-        const storeSettings = useSketchStore.getState().toolSettings;
-        const autoSelect = storeSettings?.transform?.autoSelect ?? true;
-        if (autoSelect && !ctx.selection) {
-          if (!this.isMultiTarget()) {
-            const switched = this.tryAutoSelectPick(ctx, event);
-            if (switched) {
-              return false;
-            }
-          } else {
-            const picked = this.peekAutoSelectPick(ctx, pt);
-            if (picked && this.tryAutoSelectPick(ctx, event, picked)) {
-              return false;
-            }
-          }
-        }
-        if (ctx.selection) {
-          ctx.onSelectionChange?.(null);
-        }
-        return false;
+        return this.handleEmptyClick(ctx, event);
       }
     }
 
-    // 4. Multi-target union: clicks usually land in handle==="move" because the
-    //    union bounds cover all targets. When exactly one selected layer paints
-    //    at the pointer (non-overlap), collapse auto-select to that layer.
-    if (handle === "move") {
-      const storeSettings = useSketchStore.getState().toolSettings;
-      const autoSelect = storeSettings?.transform?.autoSelect ?? true;
-      if (this.isMultiTarget() && autoSelect && !ctx.selection) {
-        const contributorHits = countTransformTargetsHitAtDocPoint(
-          ctx.doc.layers,
-          ctx.layerCanvasesRef.current,
-          this.multiTargetLayerIds,
-          pt,
-          ctx.getOrCreateLayerCanvas
-        );
-        if (contributorHits === 1) {
-          const picked = this.peekAutoSelectPick(ctx, pt);
-          if (
-            picked &&
-            this.multiTargetLayerIds.includes(picked.id) &&
-            this.tryAutoSelectPick(ctx, event, picked)
-          ) {
-            return false;
-          }
-        }
-      }
+    // 4. Click landed inside the current bounding box (handle === "move").
+    //    Auto-retarget to a different layer that paints opaque pixels on top.
+    if (handle === "move" && this.tryAutoRetargetOnMove(ctx, event)) {
+      return false;
     }
 
     this.activeHandle = handle;
-    if (handle === "move" && this.pivotPoint !== null) {
-      this.pivotPointAtMoveStart = { ...this.pivotPoint };
-    } else {
-      this.pivotPointAtMoveStart = null;
-    }
+    this.pivotPointAtMoveStart =
+      handle === "move" && this.pivotPoint !== null
+        ? { ...this.pivotPoint }
+        : null;
     this.dragStart = pt;
     this.dragStartTransform = { ...currentTransform };
-    this.dragStartCorners =
-      handle === "move" || handle === "rotate"
-        ? null
-        : this.isMultiTarget()
-          ? null
-          : this.getCurrentCorners(currentTransform);
-    this.activeTransformMode = this.getConfiguredTransformMode();
+    const needsCornerSnapshot =
+      handle !== "move" && handle !== "rotate" && !this.isMultiTarget();
+    this.dragStartCorners = needsCornerSnapshot
+      ? this.getCurrentCorners(currentTransform)
+      : null;
     this.center = getTransformedCenter(currentTransform, this.rasterBounds);
     this.gestureActive = true;
     // Record the pre-drag transform for in-transform undo; clear redo stack.
@@ -439,132 +406,11 @@ export class TransformTool implements ToolHandler {
       this.activeHandle,
       { ctrlOrMeta, shift, alt }
     );
-    let newTransform: LayerTransform;
-
-    if (
-      (gestureMode === "perspective" ||
-        gestureMode === "perspective-dual" ||
-        gestureMode === "perspective-distort" ||
-        gestureMode === "mesh-warp" ||
-        gestureMode === "warp") &&
-      this.dragStartCorners &&
-      (this.activeHandle === "top-left" ||
-        this.activeHandle === "top-right" ||
-        this.activeHandle === "bottom-left" ||
-        this.activeHandle === "bottom-right")
-    ) {
-      if (gestureMode === "warp" || gestureMode === "mesh-warp") {
-        // Mesh-warp currently shares the warp gesture math for the 4 corner
-        // handles; the full mesh-grid editing gizmo is a planned follow-up
-        // and will replace this branch when it lands.
-        const warped = computeWarpTransform(
-          this.dragStartCorners,
-          this.activeHandle,
-          this.dragStart,
-          pt,
-          this.rasterBounds,
-          this.dragStartTransform
-        );
-        newTransform =
-          gestureMode === "mesh-warp"
-            ? { ...warped, mode: "mesh-warp" }
-            : warped;
-      } else {
-        const single = computePerspectiveTransform(
-          this.dragStartCorners,
-          this.activeHandle,
-          this.dragStart,
-          pt,
-          this.rasterBounds,
-          this.dragStartTransform
-        );
-        if (gestureMode === "perspective-dual") {
-          // Seed the secondary quad on first drag so the dual-plane mode
-          // has something to render. The fold edge is the right edge of
-          // the primary quad; the secondary quad mirrors the primary's
-          // right half outward by the raster's half-width.
-          const primaryQuad = single.quad;
-          const seedSecondary =
-            this.dragStartTransform.secondaryQuad ??
-            (primaryQuad
-              ? buildSeedSecondaryQuad(primaryQuad, this.rasterBounds.width / 2)
-              : undefined);
-          newTransform = {
-            ...single,
-            mode: "perspective-dual",
-            secondaryQuad: seedSecondary
-          };
-        } else if (gestureMode === "perspective-distort") {
-          // Perspective Distort uses the same live perspective math while
-          // the user defines the four-point quad. The differentiator is the
-          // commit step (inverse-perspective bake to straighten the layer)
-          // — that lands in a follow-up; today the bake reuses the standard
-          // perspective bake which already maps the layer onto the quad.
-          newTransform = { ...single, mode: "perspective-distort" };
-        } else {
-          newTransform = single;
-        }
-      }
-    } else if (
-      gestureMode === "distort" &&
-      this.dragStartCorners &&
-      (this.activeHandle === "top-left" ||
-        this.activeHandle === "top-right" ||
-        this.activeHandle === "bottom-left" ||
-        this.activeHandle === "bottom-right")
-    ) {
-      newTransform = computeDistortTransform(
-        this.dragStartCorners,
-        this.activeHandle,
-        this.dragStart,
-        pt,
-        this.rasterBounds,
-        shift
-      );
-    } else if (
-      gestureMode === "skew" &&
-      this.dragStartCorners &&
-      (this.activeHandle === "top" ||
-        this.activeHandle === "bottom" ||
-        this.activeHandle === "left" ||
-        this.activeHandle === "right")
-    ) {
-      newTransform = computeSkewTransform(
-        this.dragStartCorners,
-        this.activeHandle,
-        this.dragStart,
-        pt,
-        this.rasterBounds
-      );
-    } else {
-      // Use the pivot as the rotation center when set; fall back to layer center.
-      const rotationCenter = this.activeHandle === "rotate"
-        ? this.getEffectivePivot(this.dragStartTransform)
-        : this.center;
-      // When the pivot is not the layer center, pass the layer center so
-      // computeRotateTransform can compute the orbital translation.
-      const layerCenter =
-        this.activeHandle === "rotate" && this.pivotPoint
-          ? this.center
-          : undefined;
-      // Affinity-style: Ctrl/Cmd on a scale handle scales from center
-      // (in addition to Alt, kept for backwards compatibility).
-      const fromCenter = alt || (ctrlOrMeta && this.activeHandle !== "rotate");
-      newTransform = computeTransformForHandle(
-        this.activeHandle,
-        this.dragStartTransform,
-        this.dragStart,
-        pt,
-        rotationCenter,
-        this.rasterBounds,
-        shift,
-        fromCenter,
-        layerCenter
-      );
-      if (gestureMode === "scale") {
-        delete newTransform.mode;
-      }
-    }
+    const newTransform = this.computeGestureTransform(pt, gestureMode, {
+      shift,
+      alt,
+      ctrlOrMeta
+    });
     if (this.isMultiTarget()) {
       this.session.update(ctx, newTransform, { skipCanvasPreview: true });
       this.applyMultiLayerPreviews(ctx, newTransform);
@@ -598,11 +444,8 @@ export class TransformTool implements ToolHandler {
     // Pivot drag ends without committing a transform — just redraw the gizmo
     // at the new pivot position.
     if (this.activeHandle === "pivot") {
-      this.activeHandle = null;
-      this.dragStart = null;
-      this.dragStartCorners = null;
+      this.resetGestureState();
       this.pivotPointAtMoveStart = null;
-      this.activeTransformMode = "scale";
       this.drawGizmo(ctx);
       return;
     }
@@ -619,16 +462,9 @@ export class TransformTool implements ToolHandler {
       this.session.commit(ctx);
     }
 
-    this.multiGestureBaselineDocMatrices = null;
-    this.multiGestureUnionDocMatrixStart = null;
-
-    this.activeHandle = null;
-    this.dragStart = null;
-    this.dragStartCorners = null;
+    this.resetMultiGestureState();
+    this.resetGestureState();
     this.pivotPointAtMoveStart = null;
-    this.activeTransformMode = "scale";
-    // Without this, idle draw/sync skip retargeting until tool reactivation.
-    this.gestureActive = false;
 
     for (const id of this.multiTargetLayerIds) {
       ctx.onStrokeEnd(id, null, undefined, {
@@ -642,6 +478,78 @@ export class TransformTool implements ToolHandler {
   }
 
   // ── Auto-select targeting ─────────────────────────────────────────────────
+
+  /** Read the current `autoSelect` toggle from the tool settings store. */
+  private isAutoSelectEnabled(): boolean {
+    return (
+      useSketchStore.getState().toolSettings?.transform?.autoSelect ?? true
+    );
+  }
+
+  /**
+   * Click missed every handle and the rotate band. If auto-select is on, try
+   * to pick the topmost opaque layer; otherwise drop the current target so the
+   * gizmo disappears (Affinity-style click-outside-to-deselect).
+   */
+  private handleEmptyClick(
+    ctx: ToolContext,
+    event: ToolPointerEvent
+  ): boolean {
+    if (this.isAutoSelectEnabled() && !ctx.selection) {
+      const picked = this.peekAutoSelectPick(ctx, event.point);
+      if (picked && this.tryAutoSelectPick(ctx, event, picked)) {
+        return false;
+      }
+      if (!picked) {
+        this.clearTransformTarget(ctx);
+      }
+    }
+    if (ctx.selection) {
+      ctx.onSelectionChange?.(null);
+    }
+    return false;
+  }
+
+  /**
+   * Click landed inside the current bounding box. If a different layer's
+   * opaque pixels are on top, retarget to that layer instead of dragging the
+   * current one. Returns `true` when the click was consumed by a retarget.
+   */
+  private tryAutoRetargetOnMove(
+    ctx: ToolContext,
+    event: ToolPointerEvent
+  ): boolean {
+    if (!this.isAutoSelectEnabled() || ctx.selection) {
+      return false;
+    }
+    const picked = this.peekAutoSelectPick(ctx, event.point);
+    if (!picked) {
+      return false;
+    }
+    const isCurrentTarget = this.multiTargetLayerIds.includes(picked.id);
+
+    if (this.isMultiTarget() && isCurrentTarget) {
+      // Multi-target: collapse to the clicked layer when exactly one selected
+      // layer paints at the pointer.
+      const contributorHits = countTransformTargetsHitAtDocPoint(
+        ctx.doc.layers,
+        ctx.layerCanvasesRef.current,
+        this.multiTargetLayerIds,
+        event.point,
+        ctx.getOrCreateLayerCanvas
+      );
+      if (contributorHits === 1) {
+        return this.tryAutoSelectPick(ctx, event, picked);
+      }
+      return false;
+    }
+
+    if (!isCurrentTarget) {
+      return this.tryAutoSelectPick(ctx, event, picked);
+    }
+    return false;
+  }
+
 
   /**
    * Try to pick and target the topmost visible transformable layer at the
@@ -686,6 +594,25 @@ export class TransformTool implements ToolHandler {
 
   isMultiTarget(): boolean {
     return this.multiTargetLayerIds.length > 1;
+  }
+
+  /**
+   * Clear the current transform target locally and erase the gizmo.
+   * Used by click-outside-to-deselect — keeps the layer panel selection
+   * unchanged but removes the visible transform handles.
+   */
+  private clearTransformTarget(ctx: ToolContext): void {
+    if (this.session.isActive()) {
+      // Don't drop targets mid-gesture; previewSession owns the lifecycle.
+      return;
+    }
+    this.multiTargetLayerIds = [];
+    this.targetSet.clear();
+    this.pivotPoint = null;
+    this.pivotPointAtMoveStart = null;
+    this.hoveredHandle = null;
+    this.activeHandle = null;
+    ctx.clearGizmo();
   }
 
   /** Layer IDs participating in the current union transform (stack order). */
@@ -733,7 +660,7 @@ export class TransformTool implements ToolHandler {
         continue;
       }
       const canvas = ctx.layerCanvasesRef.current.get(id);
-      const rb = resolveGizmoBounds(layer, canvas, ctx.doc.canvas);
+      const rb = getEffectiveRasterBounds(layer, canvas, ctx.doc.canvas);
       entries.push({ layerId: id, bounds: rb });
       extentRects.push(getTransformedExtents(layer.transform, rb));
     }
@@ -772,6 +699,9 @@ export class TransformTool implements ToolHandler {
     this.multiTargetLayerIds = [layer.id];
     this.originalTransform = { ...layer.transform };
     const layerCanvas = ctx.layerCanvasesRef.current.get(layer.id);
+    // resolveGizmoBounds prefers contentBounds / opaque-pixel scan when the
+    // layer canvas is full-doc-sized, so the gizmo wraps the actual content
+    // for fresh / untrimmed layers.
     this.rasterBounds = resolveGizmoBounds(layer, layerCanvas, ctx.doc.canvas);
     this.targetSet.setSingle(layer.id, this.rasterBounds);
   }
@@ -783,7 +713,7 @@ export class TransformTool implements ToolHandler {
       if (!layer) {
         continue;
       }
-      const rb = resolveGizmoBounds(
+      const rb = getEffectiveRasterBounds(
         layer,
         ctx.layerCanvasesRef.current.get(id),
         ctx.doc.canvas
@@ -1026,6 +956,162 @@ export class TransformTool implements ToolHandler {
   onHoverMove(ctx: ToolContext, event: ToolPointerEvent): void {
     const cursor = this.getHoverCursor(ctx, event.point);
     ctx.setTransformHoverCursor?.(cursor);
+  }
+
+  // ── Gesture dispatch ──────────────────────────────────────────────────────
+
+  /**
+   * Compute the next layer transform for the active handle + mode.
+   *
+   * Each branch handles exactly one (mode, handle-class) pair and returns a
+   * fully-formed transform. The `else` branch is the standard scale / move /
+   * rotate dispatcher and is the only branch that hits `computeRotateTransform`.
+   *
+   * Invariants:
+   *   - `this.activeHandle` and `this.dragStart` are non-null (caller checks).
+   *   - `this.dragStartCorners` is set for non-move/non-rotate handles
+   *     when single-target.
+   *   - The returned transform is in document space, ready for the preview
+   *     session.
+   */
+  private computeGestureTransform(
+    pt: Point,
+    gestureMode: TransformMode,
+    modifiers: { shift: boolean; alt: boolean; ctrlOrMeta: boolean }
+  ): LayerTransform {
+    const handle = this.activeHandle!;
+    const corners = this.dragStartCorners;
+
+    if (corners && isCornerHandle(handle)) {
+      if (gestureMode === "warp" || gestureMode === "mesh-warp") {
+        return this.computeWarpDrag(pt, corners, handle, gestureMode);
+      }
+      if (
+        gestureMode === "perspective" ||
+        gestureMode === "perspective-dual" ||
+        gestureMode === "perspective-distort"
+      ) {
+        return this.computePerspectiveDrag(pt, corners, handle, gestureMode);
+      }
+      if (gestureMode === "distort") {
+        return computeDistortTransform(
+          corners,
+          handle,
+          this.dragStart!,
+          pt,
+          this.rasterBounds,
+          modifiers.shift,
+          this.dragStartTransform
+        );
+      }
+    }
+    if (corners && isEdgeHandle(handle) && gestureMode === "skew") {
+      return computeSkewTransform(
+        corners,
+        handle,
+        this.dragStart!,
+        pt,
+        this.rasterBounds
+      );
+    }
+
+    return this.computeStandardDrag(pt, gestureMode, modifiers);
+  }
+
+  /** Warp / mesh-warp corner drag — quad-based. */
+  private computeWarpDrag(
+    pt: Point,
+    corners: [Point, Point, Point, Point],
+    handle: CornerHandle,
+    gestureMode: TransformMode
+  ): LayerTransform {
+    // Mesh-warp currently shares the warp gesture math for the 4 corner
+    // handles; the full mesh-grid editing gizmo is a planned follow-up
+    // and will replace this branch when it lands.
+    const warped = computeWarpTransform(
+      corners,
+      handle,
+      this.dragStart!,
+      pt,
+      this.rasterBounds,
+      this.dragStartTransform
+    );
+    return gestureMode === "mesh-warp" ? { ...warped, mode: "mesh-warp" } : warped;
+  }
+
+  /** Single / dual / distort perspective corner drag. */
+  private computePerspectiveDrag(
+    pt: Point,
+    corners: [Point, Point, Point, Point],
+    handle: CornerHandle,
+    gestureMode: TransformMode
+  ): LayerTransform {
+    const single = computePerspectiveTransform(
+      corners,
+      handle,
+      this.dragStart!,
+      pt,
+      this.rasterBounds,
+      this.dragStartTransform
+    );
+    if (gestureMode === "perspective-dual") {
+      const primaryQuad = single.quad;
+      const seedSecondary =
+        this.dragStartTransform.secondaryQuad ??
+        (primaryQuad
+          ? buildSeedSecondaryQuad(primaryQuad, this.rasterBounds.width / 2)
+          : undefined);
+      return {
+        ...single,
+        mode: "perspective-dual",
+        secondaryQuad: seedSecondary
+      };
+    }
+    if (gestureMode === "perspective-distort") {
+      // Perspective Distort uses the same live perspective math while
+      // the user defines the four-point quad. The differentiator is the
+      // commit step (inverse-perspective bake to straighten the layer)
+      // — that lands in a follow-up; today the bake reuses the standard
+      // perspective bake which already maps the layer onto the quad.
+      return { ...single, mode: "perspective-distort" };
+    }
+    return single;
+  }
+
+  /** Standard scale / rotate / move via the unified dispatcher. */
+  private computeStandardDrag(
+    pt: Point,
+    gestureMode: TransformMode,
+    modifiers: { shift: boolean; alt: boolean; ctrlOrMeta: boolean }
+  ): LayerTransform {
+    const handle = this.activeHandle!;
+    const isRotate = handle === "rotate";
+    // For rotate: pivot defaults to layer center; pass `layerCenter` only when
+    // a custom pivot is set so computeRotateTransform applies the orbital
+    // translation. For non-rotate gestures the rotation is fixed and we use
+    // the layer center as the scale anchor reference.
+    const rotationCenter = isRotate
+      ? this.getEffectivePivot(this.dragStartTransform)
+      : this.center;
+    const layerCenter = isRotate && this.pivotPoint ? this.center : undefined;
+    // Affinity-style: Ctrl/Cmd on a scale handle scales from center
+    // (in addition to Alt, kept for backwards compatibility).
+    const fromCenter = modifiers.alt || (modifiers.ctrlOrMeta && !isRotate);
+    const next = computeTransformForHandle(
+      handle,
+      this.dragStartTransform,
+      this.dragStart!,
+      pt,
+      rotationCenter,
+      this.rasterBounds,
+      modifiers.shift,
+      fromCenter,
+      layerCenter
+    );
+    if (gestureMode === "scale") {
+      delete next.mode;
+    }
+    return next;
   }
 
   // ── Pivot helpers ──────────────────────────────────────────────────────────

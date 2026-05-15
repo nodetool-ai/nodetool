@@ -809,7 +809,8 @@ describe("Package B: advanced transform modes", () => {
       dragStart,
       cursor,
       bounds,
-      false
+      false,
+      transform
     );
     const nextCorners = getTransformedCorners(result, bounds);
 
@@ -832,7 +833,8 @@ describe("Package B: advanced transform modes", () => {
       dragStart,
       cursor,
       bounds,
-      true
+      true,
+      transform
     );
     const nextCorners = getTransformedCorners(result, bounds);
 

@@ -531,11 +531,14 @@ describe("TransformTool", () => {
     expect(ctx.drawSelectionOverlay).toHaveBeenCalled();
   });
 
-  it("uses ctx.drawGizmo on activation", () => {
+  it("uses ctx.drawGizmo on activation (deferred via rAF)", async () => {
     const tool = new TransformTool();
     const doc = createDefaultDocument(64, 64);
     const ctx = makeToolContext({ doc });
     tool.onActivate!(ctx);
+    // onActivate defers the initial draw via rAF so the sibling
+    // useOverlayRenderer effect's clearGizmo doesn't wipe the freshly painted gizmo.
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
     expect(ctx.drawGizmo).toHaveBeenCalled();
   });
 
@@ -694,7 +697,7 @@ describe("TransformTool", () => {
     }));
   });
 
-  it("does not auto-retarget on interior move clicks when layers overlap", () => {
+  it("auto-retargets on interior move clicks when a different layer's content is on top", () => {
     useSketchStore.setState((state) => ({
       ...state,
       toolSettings: {
@@ -742,9 +745,13 @@ describe("TransformTool", () => {
 
     tool.onActivate!(ctx);
 
-    expect(tool.onDown(ctx, makePointerEvent({ point: { x: 16, y: 16 } }))).toBe(true);
-    expect(onAutoPickLayer).not.toHaveBeenCalled();
-    expect(doc.activeLayerId).toBe(activeLayer.id);
+    // Click lands in both layers' bboxes and topLayer paints opaque pixel
+    // on top — Affinity-style retarget kicks in (returns false to release the
+    // pointer; user clicks again to start the actual transform on the new
+    // target).
+    expect(tool.onDown(ctx, makePointerEvent({ point: { x: 16, y: 16 } }))).toBe(false);
+    expect(onAutoPickLayer).toHaveBeenCalledWith(topLayer.id);
+    expect(doc.activeLayerId).toBe(topLayer.id);
   });
 
   it("keeps handle hits on the current target ahead of auto-retargeting", () => {

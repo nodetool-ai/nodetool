@@ -438,13 +438,17 @@ describe("Canvas2DRuntime", () => {
 
       const reconciledCanvas = runtime.getLayerCanvas(layerId);
       expect(reconciledCanvas).toBeDefined();
-      expect(reconciledCanvas!.width).toBe(doc.canvas.width);
-      expect(reconciledCanvas!.height).toBe(doc.canvas.height);
+      // Tight to translated AABB (16x16 + (10,12) → 26x28), no longer
+      // bloated to doc canvas size.
+      expect(reconciledCanvas!.width).toBe(26);
+      expect(reconciledCanvas!.height).toBe(28);
 
       const reconciledCtx = reconciledCanvas!.getContext("2d");
       if (!reconciledCtx) {
         return;
       }
+      // The 4x4 red block originated at (0,0) and was translated to (10,12).
+      // Pixel (11,13) lands inside that block in baked coordinates.
       const movedPixel = reconciledCtx!.getImageData(11, 13, 1, 1).data;
       expect(movedPixel[0]).toBeGreaterThan(0);
       expect(movedPixel[3]).toBeGreaterThan(0);
@@ -471,13 +475,14 @@ describe("Canvas2DRuntime", () => {
 
         const canvas = runtime.getLayerCanvas("reconciled_copy");
         expect(canvas).toBeDefined();
-        expect(canvas!.width).toBe(doc.canvas.width);
-        expect(canvas!.height).toBe(doc.canvas.height);
+        // Tight to translated AABB: 24x20 layer + (8,9) → 32x29.
+        expect(canvas!.width).toBe(32);
+        expect(canvas!.height).toBe(29);
         expect(getCanvasRasterBounds(canvas)).toEqual({
           x: 0,
           y: 0,
-          width: doc.canvas.width,
-          height: doc.canvas.height
+          width: 32,
+          height: 29
         });
       } finally {
         mockedCanvas.restore();

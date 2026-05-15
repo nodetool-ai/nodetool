@@ -368,15 +368,19 @@ export function useOverlayRenderer({
     [gizmoCanvasRef, containerRef]
   );
 
-  // Clear overlay preview when switching tools (skip for tools that draw their own overlay on activate)
+  // Clear overlay/gizmo when switching tools. Tools that own their overlay
+  // (gradient) or gizmo (transform) opt out so their onActivate paint isn't
+  // racy-clobbered by this effect — effect ordering guarantees this hook runs
+  // before useToolLifecycle.onActivate, so unconditional clearing erased the
+  // gizmo until the next zoom/pan/click.
   useEffect(() => {
     if (activeTool !== "gradient" && activeTool !== "transform") {
       clearOverlay();
       drawSelectionOverlay();
     }
-    // Clear the gizmo canvas when switching tools — tools that need the gizmo
-    // will redraw it in their onActivate handler.
-    clearGizmo();
+    if (activeTool !== "transform") {
+      clearGizmo();
+    }
   }, [activeTool, clearOverlay, drawSelectionOverlay, clearGizmo]);
 
   const drawOverlayShape = useCallback(

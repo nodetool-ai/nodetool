@@ -1082,10 +1082,13 @@ describe("Phase 1.7 – reconcileLayerToDocumentSpace transparency", () => {
     const result = runtime.reconcileLayerToDocumentSpace("layer-1", doc);
     expect(result).not.toBeNull();
 
-    // After reconciliation, the canvas should be document-sized
+    // After reconciliation, the canvas is sized tight to the translated AABB
+    // (32x32 layer translated to (20,20) → 52x52 baked canvas). Earlier code
+    // bloated this to the full document size, which made the gizmo bounds
+    // span the entire canvas after every commit.
     const reconciledCanvas = layerCanvases.get("layer-1")!;
-    expect(reconciledCanvas.width).toBe(128);
-    expect(reconciledCanvas.height).toBe(128);
+    expect(reconciledCanvas.width).toBe(52);
+    expect(reconciledCanvas.height).toBe(52);
 
     // The red block should be at (25, 25) in document space (original 5+20, 5+20)
     const redPixel = readPixel(reconciledCanvas, 27, 27);
@@ -1096,9 +1099,9 @@ describe("Phase 1.7 – reconcileLayerToDocumentSpace transparency", () => {
     const transparentPixel = readPixel(reconciledCanvas, 0, 0);
     expect(transparentPixel[3]).toBe(0);
 
-    // Area beyond the translated block should be transparent
-    const farPixel = readPixel(reconciledCanvas, 100, 100);
-    expect(farPixel[3]).toBe(0);
+    // Edge pixel just past the translated block (35,35) should be transparent
+    const edgePixel = readPixel(reconciledCanvas, 40, 40);
+    expect(edgePixel[3]).toBe(0);
   });
 
   it("preserves transparency after scale reconciliation", () => {
@@ -1120,10 +1123,10 @@ describe("Phase 1.7 – reconcileLayerToDocumentSpace transparency", () => {
     runtime.reconcileLayerToDocumentSpace("layer-1", doc);
 
     const reconciledCanvas = layerCanvases.get("layer-1")!;
-    // Canvas may expand to fit the full AABB of the scaled content
-    // (preserves content beyond document bounds instead of clipping).
-    expect(reconciledCanvas.width).toBeGreaterThanOrEqual(128);
-    expect(reconciledCanvas.height).toBeGreaterThanOrEqual(128);
+    // 32x32 layer scaled 2x is 64x64 (centered at canvas center, no rotation,
+    // no translation → AABB starts at 0). Tight bounds → 64x64.
+    expect(reconciledCanvas.width).toBe(64);
+    expect(reconciledCanvas.height).toBe(64);
 
     // Corners far from the scaled content should be transparent
     const cornerPixel = readPixel(reconciledCanvas, 0, 0);
@@ -1183,10 +1186,14 @@ describe("Phase 1.7 – reconcileLayerToDocumentSpace transparency", () => {
     runtime.reconcileLayerToDocumentSpace("layer-1", doc);
 
     const reconciledCanvas = layerCanvases.get("layer-1")!;
-    expect(reconciledCanvas.width).toBe(128);
-    expect(reconciledCanvas.height).toBe(128);
+    // 32x32 layer at (40,40) rotated 45° → tight AABB ~79x79.
+    // Tight bounds (no doc-canvas padding) is the new contract.
+    expect(reconciledCanvas.width).toBeGreaterThan(60);
+    expect(reconciledCanvas.width).toBeLessThan(128);
+    expect(reconciledCanvas.height).toBe(reconciledCanvas.width);
 
-    // The far corners should remain transparent
+    // The (0,0) corner of the tight AABB should remain transparent — the
+    // rotated content lands closer to the center.
     const farCorner = readPixel(reconciledCanvas, 0, 0);
     expect(farCorner[3]).toBe(0);
 
@@ -1200,7 +1207,7 @@ describe("Phase 1.7 – reconcileLayerToDocumentSpace transparency", () => {
     expect(runtime.reconcileLayerToDocumentSpace("nonexistent", doc)).toBeNull();
   });
 
-  it("sets raster bounds to full document after reconciliation", () => {
+  it("sets raster bounds tight to the transformed AABB after reconciliation", () => {
     const runtime = new Canvas2DRuntime();
     const layer = makeLayer({
       id: "layer-1",
@@ -1217,7 +1224,8 @@ describe("Phase 1.7 – reconcileLayerToDocumentSpace transparency", () => {
 
     const reconciledCanvas = runtime.getLayerCanvas("layer-1");
     const bounds = getCanvasRasterBounds(reconciledCanvas!);
-    expect(bounds).toEqual({ x: 0, y: 0, width: 128, height: 128 });
+    // Tight to AABB: 32x32 layer translated by (20,20) → (0,0,52,52).
+    expect(bounds).toEqual({ x: 0, y: 0, width: 52, height: 52 });
   });
 });
 
@@ -1244,8 +1252,9 @@ describe("Phase 1.7 – transform undo restores canvas data AND transform", () =
     const reconciledData = runtime.reconcileLayerToDocumentSpace("layer-1", doc);
     expect(reconciledData).not.toBeNull();
 
-    // Step 3: Verify canvas is now document-sized
-    expect(layerCanvases.get("layer-1")!.width).toBe(128);
+    // Step 3: Verify canvas is now sized tight to the translated AABB
+    // (32x32 layer translated by (20,20) → 52x52, no longer doc-sized).
+    expect(layerCanvases.get("layer-1")!.width).toBe(52);
 
     // Step 4: Simulate undo by restoring original data
     expect(originalData).not.toBeNull();
@@ -1301,8 +1310,8 @@ describe("Phase 1.7 – transform undo restores canvas data AND transform", () =
     });
     runtime.reconcileLayerToDocumentSpace("layer-1", doc);
 
-    // Canvas is now 128x128
-    expect(layerCanvases.get("layer-1")!.width).toBe(128);
+    // Canvas is sized tight to translated AABB: 32x32 + (30,30) → 62x62.
+    expect(layerCanvases.get("layer-1")!.width).toBe(62);
 
     // But snapshot should still be 32x32 with original blue pixels
     expect(snapshot!.width).toBe(32);
@@ -1331,7 +1340,8 @@ describe("Phase 1.7 – transform undo restores canvas data AND transform", () =
       canvas: { width: 128, height: 128, backgroundColor: "#ffffff" }
     });
     runtime.reconcileLayerToDocumentSpace("layer-1", doc);
-    expect(layerCanvases.get("layer-1")!.width).toBe(128);
+    // Tight AABB: 32x32 + (50,50) → 82x82.
+    expect(layerCanvases.get("layer-1")!.width).toBe(82);
 
     // Restore from snapshot (simulating undo)
     runtime.restoreLayerCanvas("layer-1", snapshot!);
@@ -1430,7 +1440,8 @@ describe("Phase 1.7 – transform undo restores canvas data AND transform", () =
     });
     runtime.reconcileLayerToDocumentSpace("layer-1", doc);
 
-    expect(runtime.getLayerCanvas("layer-1")!.width).toBe(128);
+    // Tight AABB: 64x64 + (20,20) → 84x84.
+    expect(runtime.getLayerCanvas("layer-1")!.width).toBe(84);
     expect(snapshot!.width).toBe(64);
   });
 });

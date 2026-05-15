@@ -2,7 +2,12 @@ import { useEffect, useRef } from "react";
 import { isMac } from "../../../utils/platform";
 import { useSketchStore } from "../state";
 
-const SPRING_BLOCKED_TOOLS = new Set(["crop", "segment"]);
+// Tools that own Ctrl/Cmd as a tool-specific modifier and must not flip to
+// the move tool while the user is interacting with them.
+//   - crop, segment: locked-state interactions.
+//   - transform: Ctrl on edge = skew, Ctrl on corner = scale-from-center,
+//     Ctrl+Alt+Shift = perspective.
+const SPRING_BLOCKED_TOOLS = new Set(["crop", "segment", "transform"]);
 
 export interface UseSpringLoadedModifiersOptions {
   /** When true, Ctrl/Cmd spring-load is not applied (e.g. shortcuts overlay open). */

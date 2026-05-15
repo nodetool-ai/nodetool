@@ -7,6 +7,10 @@
 export { cursorForHandle } from "./cursorMapping";
 export {
   type TransformHandle,
+  type CornerHandle,
+  type EdgeHandle,
+  isCornerHandle,
+  isEdgeHandle,
   HANDLE_RADIUS,
   ROTATION_HANDLE_OFFSET,
   HANDLE_SIZE,

@@ -29,6 +29,7 @@ import {
   snapAngle,
   scaledHalfExtents,
   HANDLE_ANCHOR,
+  isEdgeHandle,
   type TransformHandle
 } from "./handleGeometry";
 import { getTransformedCenter } from "../../painting/resolvedLayerGeometry";
@@ -47,19 +48,6 @@ const CORNER_INDEX_BY_HANDLE: Record<
   "top-right": 1,
   "bottom-right": 2,
   "bottom-left": 3
-};
-
-const DISTORT_NEIGHBORS: Record<
-  Extract<
-    TransformHandle,
-    "top-left" | "top-right" | "bottom-right" | "bottom-left"
-  >,
-  { adjacentA: 0 | 1 | 2 | 3; adjacentB: 0 | 1 | 2 | 3 }
-> = {
-  "top-left": { adjacentA: 1, adjacentB: 3 },
-  "top-right": { adjacentA: 0, adjacentB: 2 },
-  "bottom-right": { adjacentA: 1, adjacentB: 3 },
-  "bottom-left": { adjacentA: 0, adjacentB: 2 }
 };
 
 function projectVector(delta: Point, axis: Point): Point {
@@ -130,7 +118,7 @@ function buildQuadTransform(
   quad: PerspectiveQuad,
   rasterBounds: LayerContentBounds,
   baseTransform: LayerTransform,
-  mode: "perspective" | "warp"
+  mode: "perspective" | "warp" | "distort"
 ): LayerTransform {
   const { matrix: _matrix, quad: _quad, mode: _mode, ...rest } = baseTransform;
   const center = quadCenter(quad);
@@ -156,16 +144,6 @@ function buildQuadTransform(
   };
 }
 
-function isEdgeHandle(
-  handle: TransformHandle
-): handle is Extract<TransformHandle, "top" | "bottom" | "left" | "right"> {
-  return (
-    handle === "top" ||
-    handle === "bottom" ||
-    handle === "left" ||
-    handle === "right"
-  );
-}
 
 /**
  * Resolves the gesture mode for the current drag.
@@ -229,7 +207,7 @@ function fitAffineFromCorners(
 function buildAdvancedTransform(
   corners: [Point, Point, Point, Point],
   rasterBounds: LayerContentBounds,
-  mode: "distort" | "skew"
+  mode: "skew"
 ): LayerTransform {
   const matrix = fitAffineFromCorners(corners, rasterBounds);
   const topVector = {
@@ -252,6 +230,18 @@ function buildAdvancedTransform(
   };
 }
 
+/**
+ * Free 4-point distort: only the dragged corner moves. The three other
+ * corners stay put, producing a true quadrilateral (Photoshop "Distort").
+ *
+ * Shift constrains the delta to the dominant axis (horizontal/vertical),
+ * matching Affinity / Photoshop behavior.
+ *
+ * The earlier implementation also moved the two adjacent corners along
+ * their respective edges and baked the result through TL/TR/BL — that
+ * collapses back to a parallelogram, making distort visually identical
+ * to scale+shear. The 4-point quad below is what the user expects.
+ */
 export function computeDistortTransform(
   dragStartCorners: [Point, Point, Point, Point],
   handle: Extract<
@@ -261,56 +251,25 @@ export function computeDistortTransform(
   dragStart: Point,
   cursor: Point,
   rasterBounds: LayerContentBounds,
-  constrain: boolean
+  constrain: boolean,
+  baseTransform: LayerTransform
 ): LayerTransform {
   const draggedIndex = CORNER_INDEX_BY_HANDLE[handle];
-  const { adjacentA, adjacentB } = DISTORT_NEIGHBORS[handle];
-  const draggedCorner = dragStartCorners[draggedIndex];
-  const adjacentCornerA = dragStartCorners[adjacentA];
-  const adjacentCornerB = dragStartCorners[adjacentB];
-  const delta = {
-    x: cursor.x - dragStart.x,
-    y: cursor.y - dragStart.y
-  };
-
-  let alongA = projectVector(delta, {
-    x: adjacentCornerA.x - draggedCorner.x,
-    y: adjacentCornerA.y - draggedCorner.y
-  });
-  let alongB = projectVector(delta, {
-    x: adjacentCornerB.x - draggedCorner.x,
-    y: adjacentCornerB.y - draggedCorner.y
-  });
-
+  let dx = cursor.x - dragStart.x;
+  let dy = cursor.y - dragStart.y;
   if (constrain) {
-    if (Math.hypot(alongA.x, alongA.y) >= Math.hypot(alongB.x, alongB.y)) {
-      alongB = { x: 0, y: 0 };
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      dy = 0;
     } else {
-      alongA = { x: 0, y: 0 };
+      dx = 0;
     }
   }
-
-  const nextCorners = dragStartCorners.map((corner) => ({ ...corner })) as [
-    Point,
-    Point,
-    Point,
-    Point
-  ];
-
-  nextCorners[draggedIndex] = {
-    x: draggedCorner.x + alongA.x + alongB.x,
-    y: draggedCorner.y + alongA.y + alongB.y
+  const nextQuad = dragStartCorners.map((corner) => ({ ...corner })) as PerspectiveQuad;
+  nextQuad[draggedIndex] = {
+    x: nextQuad[draggedIndex].x + dx,
+    y: nextQuad[draggedIndex].y + dy
   };
-  nextCorners[adjacentA] = {
-    x: adjacentCornerA.x + alongB.x,
-    y: adjacentCornerA.y + alongB.y
-  };
-  nextCorners[adjacentB] = {
-    x: adjacentCornerB.x + alongA.x,
-    y: adjacentCornerB.y + alongA.y
-  };
-
-  return buildAdvancedTransform(nextCorners, rasterBounds, "distort");
+  return buildQuadTransform(nextQuad, rasterBounds, baseTransform, "distort");
 }
 
 export function computeSkewTransform(
