@@ -27,6 +27,12 @@ import type {
 
 export type { AgentProvider, AgentModelDescriptor } from "../lib/agent/agentTypes";
 
+const AGENT_PROVIDERS: readonly AgentProvider[] = ["claude", "codex", "opencode", "pi", "llm"];
+
+function isAgentProvider(value: string): value is AgentProvider {
+  return (AGENT_PROVIDERS as readonly string[]).includes(value);
+}
+
 type AgentStatus =
   | "disconnected"
   | "connecting"
@@ -672,7 +678,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
 
       const entries: AgentSessionHistoryEntry[] = sdkSessions.map((s) => ({
         id: s.sessionId,
-        provider: (s.provider ?? "claude") as AgentProvider,
+        provider: s.provider && isAgentProvider(s.provider) ? s.provider : "claude",
         model: "",
         workspacePath: s.cwd ?? "",
         createdAt: s.createdAt

@@ -82,7 +82,7 @@ const uploadAsset = async (
       body: formData
     });
 
-    const data = (await response.json().catch(() => null)) as Asset | unknown;
+    const data: unknown = await response.json().catch(() => null);
 
     if (!response.ok) {
       throw data;
@@ -309,7 +309,8 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     if (requestedFolderId) {
       const asset = await get().get(requestedFolderId);
       if (!isStillActive()) {
-        return { next: "", assets: [] } as AssetList;
+        const empty: AssetList = { next: "", assets: [] };
+        return empty;
       }
       setCurrentFolder(asset);
       if (asset?.parent_id) {
@@ -494,21 +495,19 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         ? disposition.split("filename=")[1]
         : "assets.zip";
 
-      // Check for Electron's API (could be window.electron or window.api)
       type ElectronSaveFile = (
         data: ArrayBuffer,
         filename: string,
         filters?: { name: string; extensions: string[] }[]
       ) => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
 
-      const electronApi =
-        (
-          window as unknown as {
-            electron?: { saveFile?: ElectronSaveFile };
-            api?: { saveFile?: ElectronSaveFile };
-          }
-        ).electron ||
-        (window as unknown as { api?: { saveFile?: ElectronSaveFile } }).api;
+      interface ElectronWindow {
+        electron?: { saveFile?: ElectronSaveFile };
+        api?: { saveFile?: ElectronSaveFile };
+      }
+
+      const win = window as unknown as ElectronWindow;
+      const electronApi = win.electron || win.api;
 
       if (electronApi?.saveFile) {
         const result = await electronApi.saveFile(data, filename, [
