@@ -302,17 +302,18 @@
   border-top: 1px solid var(--palette-grey-700);
   border-bottom: 1px solid var(--palette-grey-700);
   right: -6px;
+  top: 5px;
   border-radius: 0 2px 2px 0;
 }
 
 /* handle hover */
 .react-flow__node .react-flow__handle-left:hover {
-  transform: translate(0, -50%) scale(1.75, 1.5);
+  transform: translate(0, -50%) scale(1.75, 1.2);
   cursor: cell;
   opacity: 0.9;
 }
 .react-flow__node .react-flow__handle-right:hover {
-  transform: translate(0, -50%) scale(1.75, 1.5);
+  transform: translate(0, -50%) scale(1.75, 1.2);
   cursor: cell;
   opacity: 0.9;
 }
@@ -323,14 +324,12 @@
   position: absolute;
   top: -5px;
   left: -10px;
-  background-color: transparent;
   width: 24px; /* width of the invisible snap area of a handle */
   height: 200%; /* height of the invisible snap area of a handle */
 }
 .react-flow__node .react-flow__handle-right::after {
   left: unset;
   right: -10px;
-  border-radius: 0px;
 }
 .react-flow.is-connecting .react-flow__node .react-flow__handle-right::after,
 .react-flow.is-connecting .react-flow__node .react-flow__handle-left::after {
@@ -384,11 +383,10 @@
 .react-flow__node .react-flow__handle-right.streaming-handle {
   /* Wider handle to signify streaming */
   height: calc(var(--handle_height) * 1.25);
-
   border-radius: 0 4px 4px 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Stripe overlay that shows on top of the type color */
@@ -406,10 +404,10 @@
   pointer-events: none;
 }
 
-.react-flow__node .react-flow__handle-right.streaming-handle:hover {
+/* .react-flow__node .react-flow__handle-right.streaming-handle:hover {
   height: calc(var(--handle_height) * 1.6);
   transform: translate(0, -50%) scale(1.3, 1);
-}
+} */
 
 /* Enhance visibility during connection */
 .react-flow.is-connecting

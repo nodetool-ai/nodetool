@@ -36,28 +36,6 @@
   ) !important;
 }
 
-.react-flow__node:hover:not(.selected) {
-  outline-width: 2px;
-  outline-color: color-mix(
-    in srgb,
-    var(--c_node_header_bg) 58%,
-    var(--palette-primary-main) 42%
-  ) !important;
-  outline-offset: 1px;
-  transform: translateY(-1px);
-  filter: drop-shadow(0 4px 8px rgb(0 0 0 / 0.08));
-}
-
-/* Hover for grouped nodes keeps group header color */
-.react-flow__node:has(.node-header.has-parent):hover:not(.selected) {
-  outline: 1px solid var(--c_node_header_bg_group) !important;
-  outline-color: color-mix(
-    in srgb,
-    var(--c_node_header_bg_group) 82%,
-    var(--palette-primary-main) 18%
-  ) !important;
-}
-
 /* --------------------------------------------- */
 /* Bypassed state                                  */
 /* --------------------------------------------- */
@@ -123,9 +101,6 @@
     transition: none !important;
   }
   .react-flow__node.selected {
-    filter: none;
-  }
-  .react-flow__node:hover:not(.selected) {
     filter: none;
   }
 }
