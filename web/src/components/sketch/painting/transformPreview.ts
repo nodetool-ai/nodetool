@@ -24,7 +24,7 @@
  */
 
 import type { LayerTransform, SketchDocument, Layer } from "../types";
-import { ensureTransformMatrix } from "../types";
+import { IDENTITY_AFFINE, cloneTransform, makeAffineTransform } from "../types";
 
 // ─── Preview merge ───────────────────────────────────────────────────────────
 
@@ -47,22 +47,12 @@ export function mergeTransformPreview(
   base: LayerTransform,
   update: LayerTransform
 ): LayerTransform {
-  const merged: LayerTransform = {
-    x: update.x,
-    y: update.y,
-    scaleX: update.scaleX ?? base.scaleX ?? 1,
-    scaleY: update.scaleY ?? base.scaleY ?? 1,
-    rotation: update.rotation ?? base.rotation ?? 0,
-    mode: update.mode ?? base.mode,
-    quad: update.quad ?? base.quad
-  };
-  // If the update already carries a matrix, trust it.
-  if (update.matrix) {
-    merged.matrix = update.matrix;
-    return merged;
-  }
-  // Otherwise compute a consistent matrix from the merged decomposed values.
-  return ensureTransformMatrix(merged);
+  // Each kind owns its own field set. The update is canonical; just clone it.
+  // The previous implementation flattened fields together and silently dropped
+  // `secondaryQuad` whenever a non-dual update came in; the discriminated
+  // union makes that bug impossible.
+  void base;
+  return cloneTransform(update);
 }
 
 // ─── Preview application for compositing ─────────────────────────────────────
@@ -96,7 +86,7 @@ export function applyTransformPreviews(
       // Guard: layer.transform may be undefined for layers loaded from external
       // sources without default values applied (e.g. imageReference layers from
       // the NodeTool backend). Fall back to identity so the merge doesn't throw.
-      const baseTransform: LayerTransform = layer.transform ?? { x: 0, y: 0 };
+      const baseTransform: LayerTransform = layer.transform ?? { ...IDENTITY_AFFINE };
       return { ...layer, transform: mergeTransformPreview(baseTransform, preview) };
     })
   };
@@ -118,20 +108,17 @@ export function createMovePreview(
   newX: number,
   newY: number
 ): LayerTransform {
-  return mergeTransformPreview(layer.transform, { x: newX, y: newY });
+  const base = layer.transform;
+  if (base.kind === "affine") {
+    return makeAffineTransform({ ...base, x: newX, y: newY });
+  }
+  // Quad / dual-quad: translation is expressed by translating the quad(s).
+  // For these layers callers should use computeMoveTransform directly; we
+  // fall back to identity-shifted affine to satisfy the API contract.
+  return makeAffineTransform({ x: newX, y: newY });
 }
 
-/**
- * Validate that a preview transform is "complete" — it has all the fields
- * that compositing and commit rely on. This is a development-time guard
- * to catch tools that accidentally produce partial transforms.
- */
+/** True iff `t` is a valid canonical LayerTransform. */
 export function isCompleteTransform(t: LayerTransform): boolean {
-  return (
-    typeof t.x === "number" &&
-    typeof t.y === "number" &&
-    typeof t.scaleX === "number" &&
-    typeof t.scaleY === "number" &&
-    typeof t.rotation === "number"
-  );
+  return t.kind === "affine" || t.kind === "quad" || t.kind === "dual-quad";
 }

@@ -48,11 +48,16 @@ function makeDocAndCanvas(
     layer.contentBounds.y = opts.contentBoundsY;
   }
   // Apply transform offset if requested
-  if (opts?.transformX !== undefined) {
-    layer.transform.x = opts.transformX;
-  }
-  if (opts?.transformY !== undefined) {
-    layer.transform.y = opts.transformY;
+  if (opts?.transformX !== undefined || opts?.transformY !== undefined) {
+    const base = layer.transform.kind === "affine" ? layer.transform : { x: 0, y: 0 };
+    layer.transform = {
+      kind: "affine",
+      x: opts?.transformX ?? base.x,
+      y: opts?.transformY ?? base.y,
+      scaleX: 1,
+      scaleY: 1,
+      rotation: 0
+    };
   }
 
   const layerCanvas = document.createElement("canvas");

@@ -12,7 +12,35 @@ import type {
   PenPressureSettings,
   SegmentationLayerMeta
 } from "./tools";
-import type { Point } from "./geometry";
+import {
+  IDENTITY_AFFINE,
+  type AffineTransform,
+  type DualQuadTransform,
+  type LayerTransform,
+  type LayerTransformModeTag,
+  type Quad,
+  type QuadTransform,
+  type SingleQuadMode,
+  type SingleQuadTransform,
+  cloneQuad,
+  cloneTransform,
+  isAffineTransform,
+  isDualQuadTransform,
+  isIdentityTransform,
+  isQuadTransform,
+  isSingleQuadTransform,
+  makeAffineTransform,
+  makeDualQuadTransform,
+  makeSingleQuadTransform,
+  transformModeTag
+} from "../transform/types";
+import {
+  IDENTITY_MATRIX,
+  affineToMatrix,
+  matrixToAffine,
+  type AffineMatrix
+} from "../transform/geometry/affineMatrix";
+import { normalizeLayerTransform } from "../transform/normalize";
 import {
   cloneDefaultToolSettings,
   resolveStrokeAssistSettings,
@@ -41,184 +69,36 @@ export const SKETCH_NODE_INPUT_IMAGE_LAYER_NAME = "Input Image";
 
 // ─── Layer Transform & Bounds ─────────────────────────────────────────────────
 
-/**
- * 2D affine matrix stored as [a, b, c, d, e, f] matching the DOMMatrix
- * convention:
- *
- *   | a  c  e |
- *   | b  d  f |
- *   | 0  0  1 |
- *
- * a=scaleX, b=skewY, c=skewX, d=scaleY, e=translateX, f=translateY.
- */
-export type AffineMatrix = [number, number, number, number, number, number];
-export type PerspectiveQuad = [Point, Point, Point, Point];
+export {
+  IDENTITY_AFFINE,
+  IDENTITY_MATRIX,
+  affineToMatrix,
+  matrixToAffine,
+  cloneQuad,
+  cloneTransform,
+  isAffineTransform,
+  isDualQuadTransform,
+  isIdentityTransform,
+  isQuadTransform,
+  isSingleQuadTransform,
+  makeAffineTransform,
+  makeDualQuadTransform,
+  makeSingleQuadTransform,
+  normalizeLayerTransform,
+  transformModeTag
+};
 
-/** Identity matrix: no transformation applied. */
-export const IDENTITY_MATRIX: Readonly<AffineMatrix> = [1, 0, 0, 1, 0, 0];
-
-export interface LayerTransform {
-  x: number;
-  y: number;
-  /** Horizontal scale factor. 1 = no scale. Default 1. */
-  scaleX?: number;
-  /** Vertical scale factor. 1 = no scale. Default 1. */
-  scaleY?: number;
-  /** Rotation in radians. 0 = no rotation. Default 0. */
-  rotation?: number;
-  /**
-   * Composed 2D affine matrix. When present, authoritative for rendering
-   * and hit testing. Decomposed fields (x, y, scaleX, scaleY, rotation)
-   * remain as UI helpers and are kept in sync by the transform factories.
-   *
-   * DOMMatrix-compatible [a, b, c, d, e, f].
-   * Absent on legacy documents — computed from decomposed values on load.
-   */
-  matrix?: AffineMatrix;
-  /**
-   * Advanced transform mode currently active on the
-   * layer. Standard free-transform layers omit this field.
-   */
-  mode?:
-    | "distort"
-    | "skew"
-    | "perspective"
-    | "warp"
-    | "perspective-dual"
-    | "perspective-distort"
-    | "mesh-warp";
-  /**
-   * Document-space quad for quad-transform preview/bake paths. Order:
-   * top-left, top-right, bottom-right, bottom-left.
-   *
-   * For `perspective-dual`, this is the LEFT (or first) plane.
-   */
-  quad?: PerspectiveQuad;
-  /**
-   * Optional second quad for the `perspective-dual` mode. Represents the
-   * right (or second) plane that shares the right edge of `quad` as its
-   * left "fold" edge. Order matches `quad`: top-left, top-right,
-   * bottom-right, bottom-left — where its top-left equals `quad`'s
-   * top-right and its bottom-left equals `quad`'s bottom-right.
-   */
-  secondaryQuad?: PerspectiveQuad;
-}
-
-// ─── Affine Matrix Helpers ────────────────────────────────────────────────────
-
-/**
- * Build an affine matrix from decomposed translate/scale/rotate values.
- * Operation order: translate → rotate → scale (standard TRS).
- */
-export function composeAffineMatrix(
-  x: number,
-  y: number,
-  scaleX: number,
-  scaleY: number,
-  rotation: number
-): AffineMatrix {
-  const cos = Math.cos(rotation);
-  const sin = Math.sin(rotation);
-  return [
-    cos * scaleX,   // a
-    sin * scaleX,   // b
-    -sin * scaleY,  // c
-    cos * scaleY,   // d
-    x,              // e
-    y               // f
-  ];
-}
-
-/**
- * Decompose an affine matrix into translate, scale, and rotation.
- * Handles non-uniform scale but assumes no skew.
- */
-export function decomposeAffineMatrix(m: AffineMatrix): {
-  x: number;
-  y: number;
-  scaleX: number;
-  scaleY: number;
-  rotation: number;
-} {
-  const [a, b, c, d, e, f] = m;
-  const x = e;
-  const y = f;
-  const scaleX = Math.sqrt(a * a + b * b);
-  const scaleY = Math.sqrt(c * c + d * d);
-  const det = a * d - b * c;
-  const correctedScaleY = det < 0 ? -scaleY : scaleY;
-  const rotation = Math.atan2(b, a);
-  return { x, y, scaleX, scaleY: correctedScaleY, rotation };
-}
-
-export function isQuadTransformMode(
-  mode: LayerTransform["mode"] | undefined
-): mode is
-  | "perspective"
-  | "warp"
-  | "perspective-dual"
-  | "perspective-distort"
-  | "mesh-warp"
-  | "distort" {
-  return (
-    mode === "perspective" ||
-    mode === "warp" ||
-    mode === "perspective-dual" ||
-    mode === "perspective-distort" ||
-    mode === "mesh-warp" ||
-    mode === "distort"
-  );
-}
-
-/**
- * True when the mode requires a second (paired) quad — the dual-plane
- * perspective. Distinguished from regular quad modes for renderers that
- * need to walk both halves separately.
- */
-export function isDualQuadTransformMode(
-  mode: LayerTransform["mode"] | undefined
-): mode is "perspective-dual" {
-  return mode === "perspective-dual";
-}
-
-/**
- * Returns true when a LayerTransform is the identity (no visual change).
- */
-export function isIdentityTransform(t: LayerTransform): boolean {
-  if (isQuadTransformMode(t.mode) && Array.isArray(t.quad) && t.quad.length === 4) {
-    return false;
-  }
-  return (
-    t.x === 0 &&
-    t.y === 0 &&
-    (t.scaleX === undefined || t.scaleX === 1) &&
-    (t.scaleY === undefined || t.scaleY === 1) &&
-    (t.rotation === undefined || t.rotation === 0)
-  );
-}
-
-/**
- * Ensure a LayerTransform has a `matrix` field computed from its
- * decomposed values. Returns the input unchanged if matrix is already set.
- */
-export function ensureTransformMatrix(t: LayerTransform): LayerTransform {
-  if (isQuadTransformMode(t.mode) && t.quad) {
-    return t;
-  }
-  if (t.matrix) {
-    return t;
-  }
-  return {
-    ...t,
-    matrix: composeAffineMatrix(
-      t.x,
-      t.y,
-      t.scaleX ?? 1,
-      t.scaleY ?? 1,
-      t.rotation ?? 0
-    )
-  };
-}
+export type {
+  AffineMatrix,
+  AffineTransform,
+  DualQuadTransform,
+  LayerTransform,
+  LayerTransformModeTag,
+  Quad,
+  QuadTransform,
+  SingleQuadMode,
+  SingleQuadTransform
+};
 
 export interface LayerContentBounds {
   /** Top-left of the backing raster in layer-local space. */
@@ -584,7 +464,7 @@ export function createDefaultLayer(
     alphaLock: false,
     blendMode: "normal",
     data: null,
-    transform: { x: 0, y: 0, matrix: [...IDENTITY_MATRIX] as AffineMatrix },
+    transform: { ...IDENTITY_AFFINE },
     contentBounds: {
       x: 0,
       y: 0,
@@ -634,7 +514,7 @@ export function createDefaultGroupLayer(name: string): Layer {
     alphaLock: false,
     blendMode: "normal",
     data: null,
-    transform: { x: 0, y: 0, matrix: [...IDENTITY_MATRIX] as AffineMatrix },
+    transform: { ...IDENTITY_AFFINE },
     contentBounds: { x: 0, y: 0, width: 0, height: 0 },
     collapsed: false,
     effects: []
@@ -824,40 +704,7 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         collapsed: layer.collapsed ?? false,
         segmentationMeta: layer.segmentationMeta ?? undefined,
         effects: normalizeLayerEffects(layer.effects),
-        transform: ensureTransformMatrix({
-          x: layer.transform?.x ?? 0,
-          y: layer.transform?.y ?? 0,
-          scaleX: layer.transform?.scaleX,
-          scaleY: layer.transform?.scaleY,
-          rotation: layer.transform?.rotation,
-          matrix: Array.isArray(layer.transform?.matrix) && layer.transform!.matrix!.length === 6
-            ? layer.transform!.matrix as AffineMatrix
-            : undefined,
-          mode:
-            layer.transform?.mode === "distort" ||
-            layer.transform?.mode === "skew" ||
-            layer.transform?.mode === "perspective" ||
-            layer.transform?.mode === "warp"
-              ? layer.transform.mode
-              : undefined,
-          quad:
-            Array.isArray(layer.transform?.quad) &&
-            layer.transform.quad.length === 4 &&
-            layer.transform.quad.every(
-              (point) =>
-                point &&
-                typeof point === "object" &&
-                typeof point.x === "number" &&
-                Number.isFinite(point.x) &&
-                typeof point.y === "number" &&
-                Number.isFinite(point.y)
-            )
-              ? (layer.transform.quad.map((point) => ({
-                  x: point.x,
-                  y: point.y
-                })) as PerspectiveQuad)
-              : undefined
-        }),
+        transform: normalizeLayerTransform(layer.transform),
         contentBounds: {
           x: layer.contentBounds?.x ?? 0,
           y: layer.contentBounds?.y ?? 0,

@@ -8,7 +8,8 @@ import {
   unionLayerBounds,
   ensureLayerRasterBounds
 } from "../painting/layerBounds";
-import type { Layer, LayerContentBounds, SketchDocument } from "../types";
+import type { Layer, LayerContentBounds, LayerTransform, SketchDocument } from "../types";
+import { makeAffineTransform } from "../types";
 import type { ToolContext } from "../tools/types";
 
 // ---------------------------------------------------------------------------
@@ -17,7 +18,7 @@ import type { ToolContext } from "../tools/types";
 
 type LayerLike = {
   contentBounds?: Partial<LayerContentBounds>;
-  transform?: { x?: number; y?: number };
+  transform?: LayerTransform;
 };
 
 function makeLayer(overrides: Partial<Layer> = {}): Layer {
@@ -31,7 +32,7 @@ function makeLayer(overrides: Partial<Layer> = {}): Layer {
     alphaLock: false,
     blendMode: "normal",
     data: null,
-    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    transform: makeAffineTransform({}),
     contentBounds: { x: 0, y: 0, width: 64, height: 64 },
     effects: [],
     ...overrides
@@ -267,7 +268,7 @@ describe("layerBounds", () => {
   describe("getDocumentViewportLayerBounds", () => {
     it("returns inverted transform with document dimensions", () => {
       const layer = makeLayer({
-        transform: { x: 100, y: 50, scaleX: 1, scaleY: 1, rotation: 0 }
+        transform: makeAffineTransform({ x: 100, y: 50 })
       });
       const doc = makeDoc();
       const result = getDocumentViewportLayerBounds(layer, doc);
@@ -276,7 +277,7 @@ describe("layerBounds", () => {
 
     it("returns zero offset when layer has no transform offset", () => {
       const layer = makeLayer({
-        transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 }
+        transform: makeAffineTransform({})
       });
       const doc = makeDoc();
       const result = getDocumentViewportLayerBounds(layer, doc);
@@ -288,7 +289,7 @@ describe("layerBounds", () => {
 
     it("uses different document dimensions", () => {
       const layer = makeLayer({
-        transform: { x: 10, y: 20, scaleX: 1, scaleY: 1, rotation: 0 }
+        transform: makeAffineTransform({ x: 10, y: 20 })
       });
       const doc = makeDoc({
         canvas: { width: 1024, height: 768, backgroundColor: "#000000" }
@@ -304,7 +305,7 @@ describe("layerBounds", () => {
   describe("getLayerCompositeOffset", () => {
     it("combines transform and contentBounds origin", () => {
       const layer: LayerLike = {
-        transform: { x: 100, y: 200 },
+        transform: makeAffineTransform({ x: 100, y: 200 }),
         contentBounds: { x: 10, y: 20, width: 50, height: 50 }
       };
       const offset = getLayerCompositeOffset(layer);
@@ -320,7 +321,7 @@ describe("layerBounds", () => {
     });
 
     it("returns transform only when contentBounds is absent", () => {
-      const layer: LayerLike = { transform: { x: 30, y: 40 } };
+      const layer: LayerLike = { transform: makeAffineTransform({ x: 30, y: 40 }) };
       const offset = getLayerCompositeOffset(layer);
       expect(offset).toEqual({ x: 30, y: 40 });
     });
@@ -334,7 +335,7 @@ describe("layerBounds", () => {
       const c = makeCanvas(100, 100);
       setCanvasRasterBounds(c, { x: 5, y: 10, width: 100, height: 100 });
       const layer: LayerLike = {
-        transform: { x: 50, y: 60 },
+        transform: makeAffineTransform({ x: 50, y: 60 }),
         contentBounds: { x: 0, y: 0, width: 64, height: 64 }
       };
       const offset = getLayerCompositeOffset(layer, undefined, c);

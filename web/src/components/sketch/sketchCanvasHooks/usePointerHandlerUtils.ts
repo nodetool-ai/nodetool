@@ -19,6 +19,7 @@
 import { useCallback, useRef } from "react";
 import {
   getAncestorGroupOpacityProduct,
+  isAffineTransform,
   isLayerCompositeVisible,
   type SketchDocument,
   type Point,
@@ -313,7 +314,7 @@ export function usePointerHandlerUtils({
           (layer) =>
             `${layer.id}:${layer.visible ? 1 : 0}:${layer.opacity}:${
               layer.blendMode ?? "normal"
-            }:${layer.transform?.x ?? 0}:${layer.transform?.y ?? 0}:${
+            }:${isAffineTransform(layer.transform) ? layer.transform.x : 0}:${isAffineTransform(layer.transform) ? layer.transform.y : 0}:${
               layer.contentBounds?.x ?? 0
             }:${layer.contentBounds?.y ?? 0}:${
               layer.contentBounds?.width ?? doc.canvas.width

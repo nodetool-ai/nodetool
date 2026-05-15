@@ -12,7 +12,7 @@
  */
 
 import type { Point, LayerTransform, LayerContentBounds } from "../../types";
-import { isQuadTransformMode } from "../../types";
+import { isQuadTransform, isDualQuadTransform } from "../../types";
 import {
   getTransformedExtents,
   getTransformedCorners,
@@ -81,21 +81,14 @@ export const OUTSIDE_ROTATE_MARGIN = GIZMO_OUTSIDE_ROTATE_MARGIN;
 export const PIVOT_HIT_RADIUS = GIZMO_PIVOT_HIT_RADIUS;
 export const PIVOT_SNAP_DISTANCE = GIZMO_PIVOT_SNAP_DISTANCE;
 
-function usesAdvancedAffineTransform(transform: LayerTransform): boolean {
-  return Boolean(
-    (transform.matrix && transform.mode && !isQuadTransformMode(transform.mode)) ||
-      (isQuadTransformMode(transform.mode) && transform.quad)
-  );
-}
-
 /**
  * True when the transform is a free-form quad (warp / perspective / distort /
- * mesh-warp). For these modes, rotation/pivot are meaningless — callers
- * should disable the rotate handle, the outside-box rotate band, and the
- * custom pivot.
+ * mesh-warp / dual-quad). For these modes, rotation/pivot are meaningless —
+ * callers should disable the rotate handle, the outside-box rotate band, and
+ * the custom pivot.
  */
-export function isQuadOnlyTransform(transform: LayerTransform): boolean {
-  return Boolean(isQuadTransformMode(transform.mode) && transform.quad);
+function usesQuadHandles(transform: LayerTransform): boolean {
+  return isQuadTransform(transform) || isDualQuadTransform(transform);
 }
 
 function midpoint(a: Point, b: Point): Point {
@@ -202,8 +195,8 @@ export function scaledHalfExtents(
   rasterBounds: LayerContentBounds,
   transform: LayerTransform
 ): { hw: number; hh: number } {
-  const sx = transform.scaleX ?? 1;
-  const sy = transform.scaleY ?? 1;
+  const sx = transform.kind === "affine" ? transform.scaleX : 1;
+  const sy = transform.kind === "affine" ? transform.scaleY : 1;
   return {
     hw: (rasterBounds.width * sx) / 2,
     hh: (rasterBounds.height * sy) / 2
@@ -222,42 +215,18 @@ export function buildHandlePositions(
   rasterBounds: LayerContentBounds,
   zoom: number
 ): Array<{ pos: Point; handle: TransformHandle }> {
-  if (usesAdvancedAffineTransform(transform)) {
+  if (usesQuadHandles(transform)) {
     const corners = getTransformedCorners(transform, rasterBounds);
-    const center = getTransformedCenter(transform, rasterBounds);
-    const topMid = midpoint(corners[0], corners[1]);
-    const bottomMid = midpoint(corners[2], corners[3]);
-    const leftMid = midpoint(corners[0], corners[3]);
-    const rightMid = midpoint(corners[1], corners[2]);
-    const handles: Array<{ pos: Point; handle: TransformHandle }> = [
+    return [
       { pos: corners[0], handle: "top-left" },
       { pos: corners[1], handle: "top-right" },
       { pos: corners[3], handle: "bottom-left" },
-      { pos: corners[2], handle: "bottom-right" },
-      { pos: topMid, handle: "top" },
-      { pos: bottomMid, handle: "bottom" },
-      { pos: leftMid, handle: "left" },
-      { pos: rightMid, handle: "right" }
+      { pos: corners[2], handle: "bottom-right" }
     ];
-    // Rotate handle is meaningless on a free-form quad — see isQuadOnlyTransform.
-    if (!isQuadOnlyTransform(transform)) {
-      const rotateNormal = normalizeVector(
-        topMid.x - center.x,
-        topMid.y - center.y
-      );
-      handles.unshift({
-        pos: {
-          x: topMid.x + rotateNormal.x * (ROTATION_HANDLE_OFFSET / zoom),
-          y: topMid.y + rotateNormal.y * (ROTATION_HANDLE_OFFSET / zoom)
-        },
-        handle: "rotate"
-      });
-    }
-    return handles;
   }
   const center = getTransformedCenter(transform, rasterBounds);
   const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
-  const rot = transform.rotation ?? 0;
+  const rot = transform.kind === "affine" ? transform.rotation : 0;
 
   const cx = center.x;
   const cy = center.y;
@@ -317,15 +286,14 @@ export function hitTestHandles(
     }
   }
 
-  if (usesAdvancedAffineTransform(transform)) {
+  if (usesQuadHandles(transform)) {
     const corners = getTransformedCorners(transform, rasterBounds);
     return pointInPolygon(canvasPt, corners) ? "move" : null;
   }
 
-  // Check if inside the bounding box (for "move")
   const center = getTransformedCenter(transform, rasterBounds);
   const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
-  const rot = transform.rotation ?? 0;
+  const rot = transform.kind === "affine" ? transform.rotation : 0;
 
   const left = center.x - hw;
   const right = center.x + hw;
@@ -368,30 +336,13 @@ export function isInRotateZone(
   canvasPt: Point,
   zoom: number
 ): boolean {
-  // Free-form quads have no rotation, so the outside-box rotate band is
-  // disabled — clicks there fall through to auto-select / deselect.
-  if (isQuadOnlyTransform(transform)) {
-    return false;
-  }
-  if (usesAdvancedAffineTransform(transform)) {
-    const margin = OUTSIDE_ROTATE_MARGIN / zoom;
-    const corners = getTransformedCorners(transform, rasterBounds);
-    if (pointInPolygon(canvasPt, corners)) {
-      return false;
-    }
-    for (let index = 0; index < corners.length; index += 1) {
-      const start = corners[index];
-      const end = corners[(index + 1) % corners.length];
-      if (distanceToSegment(canvasPt, start, end) <= margin) {
-        return true;
-      }
-    }
+  if (usesQuadHandles(transform)) {
     return false;
   }
   const margin = OUTSIDE_ROTATE_MARGIN / zoom;
   const center = getTransformedCenter(transform, rasterBounds);
   const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
-  const rot = transform.rotation ?? 0;
+  const rot = transform.kind === "affine" ? transform.rotation : 0;
 
   const left = center.x - hw;
   const right = center.x + hw;
@@ -725,7 +676,7 @@ export function getPivotSnapAnchors(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): Point[] {
-  if (usesAdvancedAffineTransform(transform)) {
+  if (usesQuadHandles(transform)) {
     const corners = getTransformedCorners(transform, rasterBounds);
     return [
       getTransformedCenter(transform, rasterBounds),
@@ -741,7 +692,7 @@ export function getPivotSnapAnchors(
   }
   const center = getTransformedCenter(transform, rasterBounds);
   const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
-  const rot = transform.rotation ?? 0;
+  const rot = transform.kind === "affine" ? transform.rotation : 0;
   const cx = center.x;
   const cy = center.y;
 

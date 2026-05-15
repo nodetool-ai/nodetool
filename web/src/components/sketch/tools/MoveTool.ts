@@ -20,9 +20,12 @@ import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from 
 import type { Point, LayerTransform } from "../types";
 import OpenWithIcon from "@mui/icons-material/OpenWith";
 import {
+  IDENTITY_AFFINE,
+  cloneTransform,
   isLayerCompositeVisible,
   layerAllowsTransformWhilePixelLocked
 } from "../types";
+import { computeMoveTransform } from "./transform";
 import { hitTestLayerAtDocPoint } from "../painting/sampleDocument";
 import { mergeTransformPreview } from "../painting/transformPreview";
 import {
@@ -86,7 +89,7 @@ export class MoveTool implements ToolHandler {
   /** Shared preview session — single source of truth for preview state. */
   private readonly session: PreviewSession = createPreviewSession();
   private moveStart: Point | null = null;
-  private moveLayerStartTransform: LayerTransform = { x: 0, y: 0 };
+  private moveLayerStartTransform: LayerTransform = { ...IDENTITY_AFFINE };
 
   onActivate(ctx: ToolContext): void {
     this.refreshGizmo(ctx);
@@ -115,7 +118,7 @@ export class MoveTool implements ToolHandler {
     }
     this.session.clear(ctx);
     this.moveStart = null;
-    this.moveLayerStartTransform = { x: 0, y: 0 };
+    this.moveLayerStartTransform = { ...IDENTITY_AFFINE };
     ctx.clearGizmo();
   }
 
@@ -221,17 +224,9 @@ export class MoveTool implements ToolHandler {
 
     this.moveStart = pt;
     // Capture the *full* layer transform as the drag baseline so that
-    // preview and commit preserve existing scale/rotation/matrix state.
-    this.moveLayerStartTransform = {
-      x: moveTargetLayer.transform?.x ?? 0,
-      y: moveTargetLayer.transform?.y ?? 0,
-      scaleX: moveTargetLayer.transform?.scaleX ?? 1,
-      scaleY: moveTargetLayer.transform?.scaleY ?? 1,
-      rotation: moveTargetLayer.transform?.rotation ?? 0,
-      matrix: moveTargetLayer.transform?.matrix
-    };
-    // Start the shared preview session with the full baseline transform.
-    this.session.start(ctx, moveTargetLayer.id, { ...this.moveLayerStartTransform });
+    // preview and commit preserve existing scale/rotation state.
+    this.moveLayerStartTransform = cloneTransform(moveTargetLayer.transform);
+    this.session.start(ctx, moveTargetLayer.id, cloneTransform(this.moveLayerStartTransform));
     return true;
   }
 
@@ -253,18 +248,14 @@ export class MoveTool implements ToolHandler {
            ctx.doc.layers.find((l) => l.id === previewId))
         : null;
     if (layer) {
-      // Use the shared merge contract so preview preserves the full
-      // transform (scale/rotation/matrix) from the drag baseline.
-      const previewTransform = mergeTransformPreview(
+      const cursor = { x: this.moveStart.x + dx, y: this.moveStart.y + dy };
+      const previewTransform = computeMoveTransform(
         this.moveLayerStartTransform,
-        {
-          x: Math.round(this.moveLayerStartTransform.x + dx),
-          y: Math.round(this.moveLayerStartTransform.y + dy)
-        }
+        this.moveStart,
+        cursor
       );
-      // Update through the shared preview session — this writes to both
-      // the compositing pipeline and the UI singleton in one call.
-      this.session.update(ctx, previewTransform);
+      const merged = mergeTransformPreview(this.moveLayerStartTransform, previewTransform);
+      this.session.update(ctx, merged);
       this.refreshGizmo(ctx);
     }
   }
@@ -274,13 +265,12 @@ export class MoveTool implements ToolHandler {
     // Capture the final transform before commit clears the session so the
     // gizmo can draw at the correct position even though ctx.doc is stale.
     const committedTransform = this.session.isActive()
-      ? { ...this.session.state.currentTransform }
+      ? cloneTransform(this.session.state.currentTransform)
       : null;
-    // Commit through the shared session — persists to store, clears preview.
     this.session.commit(ctx);
 
     this.moveStart = null;
-    this.moveLayerStartTransform = { x: 0, y: 0 };
+    this.moveLayerStartTransform = { ...IDENTITY_AFFINE };
 
     if (layerId) {
       ctx.onStrokeEnd(layerId, null, undefined, {

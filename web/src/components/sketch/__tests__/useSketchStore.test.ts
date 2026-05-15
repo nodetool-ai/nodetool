@@ -4,7 +4,7 @@
 
 import { act } from "@testing-library/react";
 import { useSketchStore, SKETCH_ZOOM_MAX } from "../state/useSketchStore";
-import { createDefaultDocument } from "../types";
+import { createDefaultDocument, makeAffineTransform } from "../types";
 import type { SketchTool } from "../types";
 
 // Reset store before each test
@@ -352,7 +352,7 @@ describe("useSketchStore", () => {
     it("updates layer transform", () => {
       const layerId = useSketchStore.getState().document.layers[0].id;
       act(() => {
-        useSketchStore.getState().setLayerTransform(layerId, { x: 12, y: -8 });
+        useSketchStore.getState().setLayerTransform(layerId, makeAffineTransform({ x: 12, y: -8 }));
       });
       expect(useSketchStore.getState().document.layers[0].transform).toMatchObject({
         x: 12,
@@ -363,7 +363,7 @@ describe("useSketchStore", () => {
     it("translates a layer relative to its current transform", () => {
       const layerId = useSketchStore.getState().document.layers[0].id;
       act(() => {
-        useSketchStore.getState().setLayerTransform(layerId, { x: 3, y: 4 });
+        useSketchStore.getState().setLayerTransform(layerId, makeAffineTransform({ x: 3, y: 4 }));
         useSketchStore.getState().translateLayer(layerId, 5, -2);
       });
       expect(useSketchStore.getState().document.layers[0].transform).toMatchObject({
@@ -382,7 +382,7 @@ describe("useSketchStore", () => {
           width: 96,
           height: 48
         });
-        useSketchStore.getState().commitLayerTransform(layerId, { x: 10, y: 6 });
+        useSketchStore.getState().commitLayerTransform(layerId, makeAffineTransform({ x: 10, y: 6 }));
         useSketchStore.getState().offsetLayerTransform(layerId, -4, 3);
       });
       const layer = useSketchStore.getState().document.layers[0];
@@ -405,14 +405,14 @@ describe("useSketchStore", () => {
 
       act(() => {
         upperId = useSketchStore.getState().addLayer("Upper");
-        useSketchStore.getState().setLayerTransform(lowerId, { x: 5, y: 6 });
+        useSketchStore.getState().setLayerTransform(lowerId, makeAffineTransform({ x: 5, y: 6 }));
         useSketchStore.getState().setLayerContentBounds(lowerId, {
           x: 2,
           y: 3,
           width: 40,
           height: 30
         });
-        useSketchStore.getState().setLayerTransform(upperId, { x: -8, y: 4 });
+        useSketchStore.getState().setLayerTransform(upperId, makeAffineTransform({ x: -8, y: 4 }));
         useSketchStore.getState().setLayerContentBounds(upperId, {
           x: -10,
           y: 12,
@@ -442,7 +442,7 @@ describe("useSketchStore", () => {
 
       act(() => {
         upperId = useSketchStore.getState().addLayer("Upper");
-        useSketchStore.getState().setLayerTransform(upperId, { x: 9, y: -7 });
+        useSketchStore.getState().setLayerTransform(upperId, makeAffineTransform({ x: 9, y: -7 }));
         useSketchStore.getState().setLayerContentBounds(upperId, {
           x: -4,
           y: 11,
@@ -509,7 +509,7 @@ describe("useSketchStore", () => {
     it("stores transform-aware layer metadata in history snapshots", () => {
       const layerId = useSketchStore.getState().document.layers[0].id;
       act(() => {
-        useSketchStore.getState().setLayerTransform(layerId, { x: 7, y: 9 });
+        useSketchStore.getState().setLayerTransform(layerId, makeAffineTransform({ x: 7, y: 9 }));
         useSketchStore.getState().pushHistory("move");
       });
       expect(useSketchStore.getState().history[0].layerStructure[0]?.transform).toMatchObject({

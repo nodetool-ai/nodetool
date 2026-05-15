@@ -11,7 +11,7 @@ import {
   exportSelectedRasterLayer,
   getLayerDataImageUrl
 } from "../serialization";
-import { createDefaultDocument, createDefaultLayer } from "../types";
+import { createDefaultDocument, createDefaultLayer, makeAffineTransform } from "../types";
 import type { SketchDocument } from "../types";
 
 const SERIALIZED_LAYER_DATA_PREFIX = "ntlayer:";
@@ -161,7 +161,7 @@ describe("Sketch Serialization", () => {
 
     it("round-trips transform-aware layer fields", () => {
       const doc = createDefaultDocument(512, 512);
-      doc.layers[0].transform = { x: 24, y: -12 };
+      doc.layers[0].transform = makeAffineTransform({ x: 24, y: -12 });
       doc.layers[0].contentBounds = { x: 10, y: 20, width: 200, height: 180 };
 
       const restored = deserializeDocument(serializeDocument(doc));
@@ -185,7 +185,7 @@ describe("Sketch Serialization", () => {
         width: 44,
         height: 28
       });
-      doc.layers[0].transform = { x: 13, y: -6 };
+      doc.layers[0].transform = makeAffineTransform({ x: 13, y: -6 });
       doc.layers[0].contentBounds = { x: -11, y: 9, width: 44, height: 28 };
 
       const restored = deserializeDocument(serializeDocument(doc));
@@ -223,7 +223,7 @@ describe("Sketch Serialization", () => {
         width: 20,
         height: 10
       });
-      doc.layers[0].transform = { x: 7, y: 8 };
+      doc.layers[0].transform = makeAffineTransform({ x: 7, y: 8 });
 
       const drawImage = jest.fn();
       const fillRect = jest.fn();
@@ -281,7 +281,7 @@ describe("Sketch Serialization", () => {
         width: 12,
         height: 10
       });
-      doc.layers[0].transform = { x: 4, y: 5 };
+      doc.layers[0].transform = makeAffineTransform({ x: 4, y: 5 });
 
       const drawImage = jest.fn();
       const getContextSpy = jest
@@ -338,7 +338,7 @@ describe("Sketch Serialization", () => {
         width: 18,
         height: 11
       });
-      doc.layers[0].transform = { x: 5, y: -3 };
+      doc.layers[0].transform = makeAffineTransform({ x: 5, y: -3 });
       doc.layers[0].contentBounds = { x: -12, y: 7, width: 18, height: 11 };
 
       const exported = exportSelectedRasterLayer(doc, doc.layers[0].id);
@@ -348,7 +348,7 @@ describe("Sketch Serialization", () => {
         byteLength: 3,
         sourceMetadata: {
           layerId: doc.layers[0].id,
-          layerTransform: { x: 5, y: -3 },
+          layerTransform: expect.objectContaining({ kind: "affine", x: 5, y: -3 }),
           contentBounds: { x: -12, y: 7, width: 18, height: 11 },
           canvasSize: { width: 64, height: 64 },
           documentOrigin: { x: -7, y: 4 }
@@ -372,7 +372,7 @@ describe("Sketch Serialization", () => {
         width: 16,
         height: 12
       });
-      maskLayer.transform = { x: 9, y: 3 };
+      maskLayer.transform = makeAffineTransform({ x: 9, y: 3 });
       doc.layers.push(maskLayer);
       doc.maskLayerId = maskLayer.id;
 

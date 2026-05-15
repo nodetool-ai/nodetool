@@ -377,34 +377,7 @@ export interface SegmentBoxPrompt {
 /** Source-layer metadata preserved across segmentation runs. */
 export interface SegmentationSourceMetadata {
   layerId: string;
-  layerTransform: {
-    x: number;
-    y: number;
-    scaleX?: number;
-    scaleY?: number;
-    rotation?: number;
-    matrix?: [number, number, number, number, number, number];
-    mode?:
-      | "distort"
-      | "skew"
-      | "perspective"
-      | "warp"
-      | "perspective-dual"
-      | "perspective-distort"
-      | "mesh-warp";
-    quad?: [
-      { x: number; y: number },
-      { x: number; y: number },
-      { x: number; y: number },
-      { x: number; y: number }
-    ];
-    secondaryQuad?: [
-      { x: number; y: number },
-      { x: number; y: number },
-      { x: number; y: number },
-      { x: number; y: number }
-    ];
-  };
+  layerTransform: import("../transform/types").LayerTransform;
   contentBounds: {
     x: number;
     y: number;

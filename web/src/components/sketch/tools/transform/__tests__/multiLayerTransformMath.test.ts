@@ -10,6 +10,7 @@ import {
   layerTransformFromDocAffine
 } from "../multiLayerTransformMath";
 import type { AffineMatrix } from "../../../types";
+import { aff } from "../../../__tests__/_transformFixtures";
 import type { DocumentExtents } from "../../../painting/resolvedLayerGeometry";
 
 describe("affineMultiply", () => {
@@ -190,7 +191,7 @@ describe("unionOfDocumentExtents", () => {
 describe("layerTransformFromDocAffine", () => {
   it("decomposes an identity matrix", () => {
     const identity: AffineMatrix = [1, 0, 0, 1, 0, 0];
-    const t = layerTransformFromDocAffine(identity);
+    const t = aff(layerTransformFromDocAffine(identity));
     expect(t.x).toBeCloseTo(0);
     expect(t.y).toBeCloseTo(0);
     expect(t.scaleX).toBeCloseTo(1);
@@ -200,7 +201,7 @@ describe("layerTransformFromDocAffine", () => {
 
   it("decomposes a translation matrix", () => {
     const translate: AffineMatrix = [1, 0, 0, 1, 42, 99];
-    const t = layerTransformFromDocAffine(translate);
+    const t = aff(layerTransformFromDocAffine(translate));
     expect(t.x).toBeCloseTo(42);
     expect(t.y).toBeCloseTo(99);
     expect(t.scaleX).toBeCloseTo(1);
@@ -209,14 +210,12 @@ describe("layerTransformFromDocAffine", () => {
 
   it("decomposes a uniform scale matrix", () => {
     const scale: AffineMatrix = [3, 0, 0, 3, 0, 0];
-    const t = layerTransformFromDocAffine(scale);
+    const t = aff(layerTransformFromDocAffine(scale));
     expect(t.scaleX).toBeCloseTo(3);
     expect(t.scaleY).toBeCloseTo(3);
   });
 
-  it("preserves the raw matrix", () => {
-    const m: AffineMatrix = [2, 0.5, -0.5, 2, 10, 20];
-    const t = layerTransformFromDocAffine(m);
-    expect(t.matrix).toEqual([...m]);
-  });
+  // The raw matrix is no longer stored on the transform — it's derived on
+  // demand by the renderer via affineToMatrix(). The test that asserted
+  // round-trip preservation of t.matrix was tied to the removed field.
 });

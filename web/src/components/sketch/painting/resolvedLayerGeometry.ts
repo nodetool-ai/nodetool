@@ -26,32 +26,33 @@
 import type {
   LayerTransform,
   LayerContentBounds,
-  Layer,
-  AffineMatrix
+  AffineMatrix,
+  Quad
 } from "../types";
-import { composeAffineMatrix, isQuadTransformMode } from "../types";
+import { affineToMatrix } from "../transform/geometry/affineMatrix";
 import type { Point } from "../types/geometry";
 import { computeLayerOpaquePixelBounds } from "./opaquePixelBounds";
 import { getCanvasRasterBounds } from "./layerBounds";
 
-function usesAdvancedAffineTransform(transform: LayerTransform): boolean {
-  return Boolean(transform.matrix && transform.mode);
+function aabbOfQuad(quad: Quad): { x: number; y: number; width: number; height: number } {
+  const xs = [quad[0].x, quad[1].x, quad[2].x, quad[3].x];
+  const ys = [quad[0].y, quad[1].y, quad[2].y, quad[3].y];
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const maxX = Math.max(...xs);
+  const maxY = Math.max(...ys);
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 }
 
-function usesQuadTransform(transform: LayerTransform): boolean {
-  return Boolean(isQuadTransformMode(transform.mode) && transform.quad);
-}
-
-function applyAffineMatrix(
-  matrix: AffineMatrix,
-  x: number,
-  y: number
-): Point {
-  const [a, b, c, d, e, f] = matrix;
-  return {
-    x: a * x + c * y + e,
-    y: b * x + d * y + f
-  };
+function unionAabb(
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number }
+): { x: number; y: number; width: number; height: number } {
+  const minX = Math.min(a.x, b.x);
+  const minY = Math.min(a.y, b.y);
+  const maxX = Math.max(a.x + a.width, b.x + b.width);
+  const maxY = Math.max(a.y + a.height, b.y + b.height);
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 }
 
 // ─── Effective raster bounds ─────────────────────────────────────────────────
@@ -162,10 +163,24 @@ export function getCompositeOffset(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): Point {
-  return {
-    x: transform.x + rasterBounds.x,
-    y: transform.y + rasterBounds.y
-  };
+  switch (transform.kind) {
+    case "affine":
+      return {
+        x: transform.x + rasterBounds.x,
+        y: transform.y + rasterBounds.y
+      };
+    case "quad": {
+      const aabb = aabbOfQuad(transform.quad);
+      return { x: aabb.x, y: aabb.y };
+    }
+    case "dual-quad": {
+      const aabb = unionAabb(
+        aabbOfQuad(transform.quad),
+        aabbOfQuad(transform.secondaryQuad)
+      );
+      return { x: aabb.x, y: aabb.y };
+    }
+  }
 }
 
 // ─── Transformed document-space extents ──────────────────────────────────────
@@ -196,38 +211,18 @@ export function getTransformedExtents(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): DocumentExtents {
-  if (usesQuadTransform(transform) && transform.quad) {
-    const xs = transform.quad.map((corner) => corner.x);
-    const ys = transform.quad.map((corner) => corner.y);
-    const minX = Math.min(...xs);
-    const minY = Math.min(...ys);
-    const maxX = Math.max(...xs);
-    const maxY = Math.max(...ys);
-    return {
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY
-    };
+  if (transform.kind === "quad") {
+    return aabbOfQuad(transform.quad);
   }
-  if (usesAdvancedAffineTransform(transform) && transform.matrix) {
-    const corners = getTransformedCorners(transform, rasterBounds);
-    const xs = corners.map((corner) => corner.x);
-    const ys = corners.map((corner) => corner.y);
-    const minX = Math.min(...xs);
-    const minY = Math.min(...ys);
-    const maxX = Math.max(...xs);
-    const maxY = Math.max(...ys);
-    return {
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY
-    };
+  if (transform.kind === "dual-quad") {
+    return unionAabb(
+      aabbOfQuad(transform.quad),
+      aabbOfQuad(transform.secondaryQuad)
+    );
   }
-  const sx = transform.scaleX ?? 1;
-  const sy = transform.scaleY ?? 1;
-  const rot = transform.rotation ?? 0;
+  const sx = transform.scaleX;
+  const sy = transform.scaleY;
+  const rot = transform.rotation;
 
   // Raster center in document space
   const cx = transform.x + rasterBounds.x + rasterBounds.width / 2;
@@ -290,32 +285,25 @@ export function getTransformedCorners(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): [Point, Point, Point, Point] {
-  if (usesQuadTransform(transform) && transform.quad) {
-    return transform.quad.map((corner) => ({ ...corner })) as [Point, Point, Point, Point];
-  }
-  if (usesAdvancedAffineTransform(transform) && transform.matrix) {
+  if (transform.kind === "quad") {
     return [
-      applyAffineMatrix(transform.matrix, rasterBounds.x, rasterBounds.y),
-      applyAffineMatrix(
-        transform.matrix,
-        rasterBounds.x + rasterBounds.width,
-        rasterBounds.y
-      ),
-      applyAffineMatrix(
-        transform.matrix,
-        rasterBounds.x + rasterBounds.width,
-        rasterBounds.y + rasterBounds.height
-      ),
-      applyAffineMatrix(
-        transform.matrix,
-        rasterBounds.x,
-        rasterBounds.y + rasterBounds.height
-      )
+      { ...transform.quad[0] },
+      { ...transform.quad[1] },
+      { ...transform.quad[2] },
+      { ...transform.quad[3] }
     ];
   }
-  const sx = transform.scaleX ?? 1;
-  const sy = transform.scaleY ?? 1;
-  const rot = transform.rotation ?? 0;
+  if (transform.kind === "dual-quad") {
+    return [
+      { ...transform.quad[0] },
+      { ...transform.secondaryQuad[1] },
+      { ...transform.secondaryQuad[2] },
+      { ...transform.quad[3] }
+    ];
+  }
+  const sx = transform.scaleX;
+  const sy = transform.scaleY;
+  const rot = transform.rotation;
 
   const cx = transform.x + rasterBounds.x + rasterBounds.width / 2;
   const cy = transform.y + rasterBounds.y + rasterBounds.height / 2;
@@ -346,28 +334,24 @@ export function getTransformedCenter(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): Point {
-  if (usesQuadTransform(transform) && transform.quad) {
+  if (transform.kind === "quad") {
+    const q = transform.quad;
     return {
-      x:
-        (transform.quad[0].x +
-          transform.quad[1].x +
-          transform.quad[2].x +
-          transform.quad[3].x) /
-        4,
-      y:
-        (transform.quad[0].y +
-          transform.quad[1].y +
-          transform.quad[2].y +
-          transform.quad[3].y) /
-        4
+      x: (q[0].x + q[1].x + q[2].x + q[3].x) / 4,
+      y: (q[0].y + q[1].y + q[2].y + q[3].y) / 4
     };
   }
-  if (usesAdvancedAffineTransform(transform) && transform.matrix) {
-    return applyAffineMatrix(
-      transform.matrix,
-      rasterBounds.x + rasterBounds.width / 2,
-      rasterBounds.y + rasterBounds.height / 2
-    );
+  if (transform.kind === "dual-quad") {
+    const a = transform.quad;
+    const b = transform.secondaryQuad;
+    return {
+      x:
+        (a[0].x + a[1].x + a[2].x + a[3].x + b[0].x + b[1].x + b[2].x + b[3].x) /
+        8,
+      y:
+        (a[0].y + a[1].y + a[2].y + a[3].y + b[0].y + b[1].y + b[2].y + b[3].y) /
+        8
+    };
   }
   return {
     x: transform.x + rasterBounds.x + rasterBounds.width / 2,
@@ -415,18 +399,13 @@ export function resolveLayerGeometry(
 }
 
 /**
- * Build the affine matrix for a layer transform. Convenience wrapper around
- * `composeAffineMatrix` that handles defaulting optional fields.
+ * Build the affine matrix for a layer transform.
+ * Quad transforms are not representable as a single affine matrix; the caller
+ * gets the identity matrix back. Use the quad rendering path instead.
  */
 export function buildLayerMatrix(transform: LayerTransform): AffineMatrix {
-  if (transform.matrix) {
-    return transform.matrix;
+  if (transform.kind === "affine") {
+    return affineToMatrix(transform);
   }
-  return composeAffineMatrix(
-    transform.x,
-    transform.y,
-    transform.scaleX ?? 1,
-    transform.scaleY ?? 1,
-    transform.rotation ?? 0
-  );
+  return [1, 0, 0, 1, 0, 0];
 }

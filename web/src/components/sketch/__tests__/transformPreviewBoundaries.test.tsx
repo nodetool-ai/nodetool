@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @jest-environment jsdom
  *
  * Regression tests for:
@@ -17,7 +17,8 @@ import {
   setActiveLayerTransformPreview,
   useDisplayedActiveLayerTransform
 } from "../activeLayerTransform";
-import { createDefaultDocument, createDefaultLayer, type LayerTransform, type SketchDocument } from "../types";
+import { createDefaultDocument, createDefaultLayer, makeAffineTransform, type LayerTransform, type SketchDocument } from "../types";
+import { aff } from "./_transformFixtures";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -72,10 +73,10 @@ describe("Move/Transform preview rerender boundaries", () => {
     act(() => {
       setActiveLayerTransformPreview({
         layerId,
-        transform: { x: 10, y: 20, scaleX: 1, scaleY: 1, rotation: 0 }
+        transform: makeAffineTransform({ x: 10, y: 20, scaleX: 1, scaleY: 1, rotation: 0 })
       });
     });
-    // Toolbar should not rerender — it doesn't subscribe to transform preview
+    // Toolbar should not rerender â€” it doesn't subscribe to transform preview
     expect(toolbarRenders).toBe(1);
   });
 
@@ -91,7 +92,7 @@ describe("Move/Transform preview rerender boundaries", () => {
     act(() => {
       setActiveLayerTransformPreview({
         layerId,
-        transform: { x: 50, y: -30, scaleX: 1.2, scaleY: 0.8, rotation: 0.5 }
+        transform: makeAffineTransform({ x: 50, y: -30, scaleX: 1.2, scaleY: 0.8, rotation: 0.5 })
       });
     });
     // Layers panel should not rerender
@@ -107,13 +108,13 @@ describe("Move/Transform preview rerender boundaries", () => {
     expect(transformRenders).toBe(1);
 
     const layerId = useSketchStore.getState().document.activeLayerId;
-    const previewTransform: LayerTransform = {
+    const previewTransform: LayerTransform = makeAffineTransform({
       x: 15,
       y: -10,
       scaleX: 1.3,
       scaleY: 0.9,
       rotation: Math.PI / 6
-    };
+    });
 
     act(() => {
       setActiveLayerTransformPreview({ layerId, transform: previewTransform });
@@ -144,7 +145,7 @@ describe("Move/Transform preview rerender boundaries", () => {
       act(() => {
         setActiveLayerTransformPreview({
           layerId,
-          transform: { x: i * 10, y: i * 5, scaleX: 1, scaleY: 1, rotation: 0 }
+          transform: makeAffineTransform({ x: i * 10, y: i * 5 })
         });
       });
     }
@@ -173,7 +174,7 @@ describe("Move/Transform preview rerender boundaries", () => {
     act(() => {
       setActiveLayerTransformPreview({
         layerId,
-        transform: { x: 30, y: 40, scaleX: 2, scaleY: 2, rotation: 0 }
+        transform: makeAffineTransform({ x: 30, y: 40, scaleX: 2, scaleY: 2, rotation: 0 })
       });
     });
 
@@ -219,8 +220,9 @@ describe("Exposed-input layer hydration with transform preview", () => {
     expect(layer?.imageReference?.uri).toBe("asset://test-image.png");
     expect(layer?.data).toBeNull();
 
-    // Apply a transform preview — should work even without any brush stroke
+    // Apply a transform preview â€” should work even without any brush stroke
     const previewTransform: LayerTransform = {
+      kind: "affine",
       x: 25,
       y: -15,
       scaleX: 1.5,
@@ -253,6 +255,7 @@ describe("Exposed-input layer hydration with transform preview", () => {
     const layerId = useSketchStore.getState().document.activeLayerId;
 
     const previewTransform: LayerTransform = {
+      kind: "affine",
       x: 10,
       y: 10,
       scaleX: 0.8,
@@ -302,11 +305,12 @@ describe("Tool-switch lifecycle rules", () => {
       useSketchStore.getState().setActiveTool("transform");
       setActiveLayerTransformPreview({
         layerId,
-        transform: { x: 50, y: 50, scaleX: 2, scaleY: 2, rotation: 0 }
+        transform: makeAffineTransform({ x: 50, y: 50, scaleX: 2, scaleY: 2, rotation: 0 })
       });
     });
 
     expect(result.current).toEqual({
+      kind: "affine",
       x: 50,
       y: 50,
       scaleX: 2,
@@ -335,11 +339,11 @@ describe("Tool-switch lifecycle rules", () => {
       useSketchStore.getState().setActiveTool("move");
       setActiveLayerTransformPreview({
         layerId,
-        transform: { x: 100, y: -50, scaleX: 1, scaleY: 1, rotation: 0 }
+        transform: makeAffineTransform({ x: 100, y: -50, scaleX: 1, scaleY: 1, rotation: 0 })
       });
     });
 
-    expect(result.current.x).toBe(100);
+    expect(aff(result.current).x).toBe(100);
 
     act(() => {
       useSketchStore.getState().setActiveTool("pencil");
@@ -410,12 +414,12 @@ describe("Tool-switch lifecycle rules", () => {
     const { result } = renderHook(() => useDisplayedActiveLayerTransform());
     const layerId = useSketchStore.getState().document.activeLayerId;
 
-    // Rapid: transform → move → brush → transform
+    // Rapid: transform â†’ move â†’ brush â†’ transform
     act(() => {
       useSketchStore.getState().setActiveTool("transform");
       setActiveLayerTransformPreview({
         layerId,
-        transform: { x: 10, y: 10, scaleX: 1, scaleY: 1, rotation: 0 }
+        transform: makeAffineTransform({ x: 10, y: 10, scaleX: 1, scaleY: 1, rotation: 0 })
       });
     });
     act(() => {
@@ -423,7 +427,7 @@ describe("Tool-switch lifecycle rules", () => {
       clearActiveLayerTransformPreview();
       setActiveLayerTransformPreview({
         layerId,
-        transform: { x: 20, y: 20, scaleX: 1, scaleY: 1, rotation: 0 }
+        transform: makeAffineTransform({ x: 20, y: 20, scaleX: 1, scaleY: 1, rotation: 0 })
       });
     });
     act(() => {
@@ -442,3 +446,4 @@ describe("Tool-switch lifecycle rules", () => {
     expect(result.current).toEqual(storedTransform);
   });
 });
+

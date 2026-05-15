@@ -233,7 +233,7 @@ describe("MoveTool gizmo", () => {
     const doc = createDefaultDocument(100, 100);
     // Simulate a layer that extends beyond canvas
     doc.layers[0].contentBounds = { x: -10, y: 0, width: 120, height: 100 };
-    doc.layers[0].transform = { x: 0, y: 0 };
+    doc.layers[0].transform = { kind: "affine", x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
 
     const drawGizmo = jest.fn();
     const clearGizmo = jest.fn();
@@ -249,7 +249,7 @@ describe("MoveTool gizmo", () => {
     const move = new MoveTool();
     const doc = createDefaultDocument(100, 100);
     doc.layers[0].contentBounds = { x: 10, y: 10, width: 50, height: 50 };
-    doc.layers[0].transform = { x: 0, y: 0 };
+    doc.layers[0].transform = { kind: "affine", x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
 
     const clearGizmo = jest.fn();
     const ctx = makeMinimalCtx({ doc, clearGizmo });
@@ -263,7 +263,7 @@ describe("MoveTool gizmo", () => {
     const move = new MoveTool();
     const doc = createDefaultDocument(100, 100);
     doc.layers[0].contentBounds = { x: 0, y: 0, width: 50, height: 50 };
-    doc.layers[0].transform = { x: -20, y: -20 };
+    doc.layers[0].transform = { kind: "affine", x: -20, y: -20, scaleX: 1, scaleY: 1, rotation: 0 };
 
     // Create a layer canvas that's larger than contentBounds
     const layerCanvas = document.createElement("canvas");

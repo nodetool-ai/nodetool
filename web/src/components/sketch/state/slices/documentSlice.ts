@@ -18,8 +18,12 @@ import {
   generateLayerId,
   getDescendantIds,
   isLayerCompositeVisible,
-  ensureTransformMatrix,
-  isQuadTransformMode
+  cloneQuad,
+  cloneTransform,
+  IDENTITY_AFFINE,
+  makeAffineTransform,
+  makeSingleQuadTransform,
+  makeDualQuadTransform
 } from "../../types";
 
 // ─── Private helpers ────────────────────────────────────────────────────────
@@ -44,7 +48,7 @@ function setLayerTransformInDocument(
   return withUpdatedDocumentTimestamp({
     ...document,
     layers: document.layers.map((layer) =>
-      layer.id === layerId ? { ...layer, transform: ensureTransformMatrix(transform) } : layer
+      layer.id === layerId ? { ...layer, transform: cloneTransform(transform) } : layer
     )
   });
 }
@@ -107,6 +111,35 @@ function computeNewLayerInsertion(
   };
 }
 
+function offsetTransform(t: LayerTransform, dx: number, dy: number): LayerTransform {
+  switch (t.kind) {
+    case "affine":
+      return makeAffineTransform({ ...t, x: t.x + dx, y: t.y + dy });
+    case "quad":
+      return makeSingleQuadTransform(t.mode, [
+        { x: t.quad[0].x + dx, y: t.quad[0].y + dy },
+        { x: t.quad[1].x + dx, y: t.quad[1].y + dy },
+        { x: t.quad[2].x + dx, y: t.quad[2].y + dy },
+        { x: t.quad[3].x + dx, y: t.quad[3].y + dy }
+      ]);
+    case "dual-quad":
+      return makeDualQuadTransform(
+        [
+          { x: t.quad[0].x + dx, y: t.quad[0].y + dy },
+          { x: t.quad[1].x + dx, y: t.quad[1].y + dy },
+          { x: t.quad[2].x + dx, y: t.quad[2].y + dy },
+          { x: t.quad[3].x + dx, y: t.quad[3].y + dy }
+        ],
+        [
+          { x: t.secondaryQuad[0].x + dx, y: t.secondaryQuad[0].y + dy },
+          { x: t.secondaryQuad[1].x + dx, y: t.secondaryQuad[1].y + dy },
+          { x: t.secondaryQuad[2].x + dx, y: t.secondaryQuad[2].y + dy },
+          { x: t.secondaryQuad[3].x + dx, y: t.secondaryQuad[3].y + dy }
+        ]
+      );
+  }
+}
+
 function offsetLayerTransformInDocument(
   document: SketchDocument,
   layerId: string,
@@ -119,23 +152,7 @@ function offsetLayerTransformInDocument(
       if (layer.id !== layerId) {
         return layer;
       }
-      const newTransform: LayerTransform = {
-        ...layer.transform,
-        x: layer.transform.x + dx,
-        y: layer.transform.y + dy
-      };
-      if (layer.transform.quad) {
-        newTransform.quad = layer.transform.quad.map((point) => ({
-          x: point.x + dx,
-          y: point.y + dy
-        })) as NonNullable<LayerTransform["quad"]>;
-      }
-      // Recompute matrix with updated translation
-      if (layer.transform.matrix && !isQuadTransformMode(layer.transform.mode)) {
-        const m = layer.transform.matrix;
-        newTransform.matrix = [m[0], m[1], m[2], m[3], newTransform.x, newTransform.y];
-      }
-      return { ...layer, transform: ensureTransformMatrix(newTransform) };
+      return { ...layer, transform: offsetTransform(layer.transform, dx, dy) };
     })
   });
 }
@@ -552,7 +569,7 @@ export const createDocumentSlice: StateCreator<
           l.id === lower.id
             ? {
                 ...l,
-                transform: { x: 0, y: 0 },
+                transform: { ...IDENTITY_AFFINE },
                 contentBounds: {
                   x: 0,
                   y: 0,
@@ -810,14 +827,7 @@ export const createDocumentSlice: StateCreator<
         ...state.document,
         layers: state.document.layers.map((layer) =>
           layer.type === "raster" || layer.type === "mask"
-            ? {
-                ...layer,
-                transform: {
-                  ...layer.transform,
-                  x: layer.transform.x + dx,
-                  y: layer.transform.y + dy
-                }
-              }
+            ? { ...layer, transform: offsetTransform(layer.transform, dx, dy) }
             : layer
         )
       })

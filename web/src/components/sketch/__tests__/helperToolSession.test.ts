@@ -17,7 +17,7 @@ import type { HelperSetupInfo, HelperDrawInfo } from "../painting/HelperToolSess
 import { BlurTool } from "../tools/BlurTool";
 import { CloneStampTool } from "../tools/CloneStampTool";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
-import { composeAffineMatrix, createDefaultDocument, createDefaultLayer } from "../types";
+import { createDefaultDocument, createDefaultLayer, makeAffineTransform } from "../types";
 import { captureAlphaSnapshot, restoreAlphaFromSnapshot } from "../painting/alphaLock";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
@@ -118,11 +118,7 @@ describe("1.1.3 – affine dirty-region redraw", () => {
   it("dirtyToDoc with rotation expands the bounding box correctly", () => {
     // 90° rotation around origin
     const mapper = new CoordinateMapper({
-      layerTransform: {
-        x: 0,
-        y: 0,
-        matrix: composeAffineMatrix(0, 0, 1, 1, Math.PI / 2)
-      }
+      layerTransform: makeAffineTransform({ rotation: Math.PI / 2 })
     });
 
     // A 10×10 dirty rect at the origin in layer-space
@@ -137,11 +133,7 @@ describe("1.1.3 – affine dirty-region redraw", () => {
 
   it("dirtyToDoc with scale scales the dirty rect", () => {
     const mapper = new CoordinateMapper({
-      layerTransform: {
-        x: 0,
-        y: 0,
-        matrix: composeAffineMatrix(0, 0, 2, 3, 0)
-      }
+      layerTransform: makeAffineTransform({ scaleX: 2, scaleY: 3 })
     });
 
     const dirty = { minX: 5, minY: 5, maxX: 15, maxY: 15 };
@@ -156,11 +148,7 @@ describe("1.1.3 – affine dirty-region redraw", () => {
 
   it("dirtyToDoc with 45° rotation produces larger bounding box than axis-aligned", () => {
     const mapper45 = new CoordinateMapper({
-      layerTransform: {
-        x: 0,
-        y: 0,
-        matrix: composeAffineMatrix(0, 0, 1, 1, Math.PI / 4)
-      }
+      layerTransform: makeAffineTransform({ rotation: Math.PI / 4 })
     });
 
     const dirty = { minX: 0, minY: 0, maxX: 100, maxY: 100 };
@@ -174,7 +162,7 @@ describe("1.1.3 – affine dirty-region redraw", () => {
 
   it("dirtyToDoc translation-only path remains unchanged", () => {
     const mapper = new CoordinateMapper({
-      layerTransform: { x: 10, y: 20 },
+      layerTransform: makeAffineTransform({ x: 10, y: 20 }),
       rasterBounds: { x: -5, y: -3 }
     });
 
@@ -205,11 +193,13 @@ describe("1.1.4 – clone/blur on transformed or bounds-expanded layers", () => 
 
     const ctx = makeToolContext();
     // Add a transform to the active layer
-    ctx.doc.layers[0].transform = {
+    ctx.doc.layers[0].transform = makeAffineTransform({
       x: 10,
       y: 20,
-      matrix: composeAffineMatrix(10, 20, 2, 2, Math.PI / 6)
-    };
+      scaleX: 2,
+      scaleY: 2,
+      rotation: Math.PI / 6
+    });
 
     session.begin(ctx, makePointerEvent(30, 40));
 
@@ -236,11 +226,13 @@ describe("1.1.4 – clone/blur on transformed or bounds-expanded layers", () => 
 
     const ctx = makeToolContext();
     ctx.doc.layers[0].alphaLock = true;
-    ctx.doc.layers[0].transform = {
+    ctx.doc.layers[0].transform = makeAffineTransform({
       x: 5,
       y: 10,
-      matrix: composeAffineMatrix(5, 10, 1.5, 1.5, 0.3)
-    };
+      scaleX: 1.5,
+      scaleY: 1.5,
+      rotation: 0.3
+    });
 
     session.begin(ctx, makePointerEvent(20, 20));
 
@@ -251,11 +243,13 @@ describe("1.1.4 – clone/blur on transformed or bounds-expanded layers", () => 
   it("BlurTool can be instantiated and does not crash on transformed layer", () => {
     const tool = new BlurTool();
     const ctx = makeToolContext();
-    ctx.doc.layers[0].transform = {
+    ctx.doc.layers[0].transform = makeAffineTransform({
       x: 10,
       y: 20,
-      matrix: composeAffineMatrix(10, 20, 2, 2, Math.PI / 4)
-    };
+      scaleX: 2,
+      scaleY: 2,
+      rotation: Math.PI / 4
+    });
 
     // BlurTool.onDown triggers drawBlurStroke which may throw in jsdom due
     // to missing ImageData constructor. We verify the setup path doesn't
@@ -278,11 +272,13 @@ describe("1.1.4 – clone/blur on transformed or bounds-expanded layers", () => 
   it("CloneStampTool can be instantiated and requires source before stroke", () => {
     const tool = new CloneStampTool();
     const ctx = makeToolContext();
-    ctx.doc.layers[0].transform = {
+    ctx.doc.layers[0].transform = makeAffineTransform({
       x: 10,
       y: 20,
-      matrix: composeAffineMatrix(10, 20, 2, 2, Math.PI / 4)
-    };
+      scaleX: 2,
+      scaleY: 2,
+      rotation: Math.PI / 4
+    });
 
     // Without setting clone source, onDown returns false
     expect(tool.onDown(ctx, makePointerEvent(30, 40))).toBe(false);

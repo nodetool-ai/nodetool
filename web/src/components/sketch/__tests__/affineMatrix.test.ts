@@ -3,14 +3,15 @@
  */
 
 import {
-  composeAffineMatrix,
-  decomposeAffineMatrix,
-  ensureTransformMatrix,
   isIdentityTransform,
   IDENTITY_MATRIX,
-  type AffineMatrix,
-  type LayerTransform
+  makeAffineTransform,
+  type AffineMatrix
 } from "../types";
+import {
+  fxComposeMatrix as composeAffineMatrix,
+  fxDecomposeMatrix as decomposeAffineMatrix
+} from "./_transformFixtures";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
 
 // ─── composeAffineMatrix ────────────────────────────────────────────────────
@@ -105,101 +106,62 @@ describe("decomposeAffineMatrix", () => {
 // ─── isIdentityTransform ────────────────────────────────────────────────────
 
 describe("isIdentityTransform", () => {
-  it("returns true for { x: 0, y: 0 }", () => {
-    expect(isIdentityTransform({ x: 0, y: 0 })).toBe(true);
+  it("returns true for default affine transform", () => {
+    expect(isIdentityTransform(makeAffineTransform({}))).toBe(true);
   });
 
-  it("returns true when optional fields are default", () => {
+  it("returns true when optional fields are explicitly default", () => {
     expect(
-      isIdentityTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 })
+      isIdentityTransform(
+        makeAffineTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 })
+      )
     ).toBe(true);
   });
 
   it("returns false for non-zero translate", () => {
-    expect(isIdentityTransform({ x: 5, y: 0 })).toBe(false);
+    expect(isIdentityTransform(makeAffineTransform({ x: 5 }))).toBe(false);
   });
 
   it("returns false for non-unit scale", () => {
-    expect(isIdentityTransform({ x: 0, y: 0, scaleX: 2 })).toBe(false);
+    expect(isIdentityTransform(makeAffineTransform({ scaleX: 2 }))).toBe(false);
   });
 
   it("returns false for non-zero rotation", () => {
-    expect(isIdentityTransform({ x: 0, y: 0, rotation: 0.1 })).toBe(false);
+    expect(isIdentityTransform(makeAffineTransform({ rotation: 0.1 }))).toBe(
+      false
+    );
   });
 });
 
-// ─── ensureTransformMatrix ──────────────────────────────────────────────────
+// ─── CoordinateMapper with affine transform ─────────────────────────────────
+//
+// Pre-refactor LayerTransform stored a 6-element matrix on the transform
+// itself. Post-refactor the matrix is derived from the affine fields by
+// CoordinateMapper itself (via affineToMatrix). The behavioural
+// expectations — docToLayer/layerToDoc round-trips through translate, scale
+// and rotation — are still meaningful, so the cases survive but no longer
+// pass a `matrix` field on the transform.
 
-describe("ensureTransformMatrix", () => {
-  it("adds matrix to transform without one", () => {
-    const t: LayerTransform = { x: 5, y: 10 };
-    const result = ensureTransformMatrix(t);
-    expect(result.matrix).toBeDefined();
-    expect(result.matrix![4]).toBe(5);
-    expect(result.matrix![5]).toBe(10);
+describe("CoordinateMapper with affine transform", () => {
+  it("docToLayer with translation matches identity-shifted fallback", () => {
+    const transform = makeAffineTransform({ x: 10, y: 20 });
+
+    const mapper = new CoordinateMapper({ layerTransform: transform });
+    const result = mapper.docToLayer({ x: 50, y: 60 });
+    expect(result.x).toBeCloseTo(40);
+    expect(result.y).toBeCloseTo(40);
   });
 
-  it("preserves existing matrix", () => {
-    const m: AffineMatrix = [2, 0, 0, 3, 5, 10];
-    const t: LayerTransform = { x: 5, y: 10, matrix: m };
-    const result = ensureTransformMatrix(t);
-    expect(result.matrix).toBe(m); // same reference
-  });
-
-  it("generates correct matrix for translate + scale + rotation", () => {
-    const t: LayerTransform = { x: 5, y: 10, scaleX: 2, scaleY: 1.5, rotation: 0.5 };
-    const result = ensureTransformMatrix(t);
-    const expected = composeAffineMatrix(5, 10, 2, 1.5, 0.5);
-    expect(result.matrix).toEqual(expected);
-  });
-});
-
-// ─── CoordinateMapper with matrix ───────────────────────────────────────────
-
-describe("CoordinateMapper with matrix", () => {
-  it("docToLayer with translation-only matrix matches translation-only fallback", () => {
-    const transform: LayerTransform = {
-      x: 10,
-      y: 20,
-      matrix: composeAffineMatrix(10, 20, 1, 1, 0)
-    };
-
-    const withMatrix = new CoordinateMapper({
-      layerTransform: transform
-    });
-    const withoutMatrix = new CoordinateMapper({
-      layerTransform: { x: 10, y: 20 }
-    });
-
-    const doc = { x: 50, y: 60 };
-    const a = withMatrix.docToLayer(doc);
-    const b = withoutMatrix.docToLayer(doc);
-    expect(a.x).toBeCloseTo(b.x);
-    expect(a.y).toBeCloseTo(b.y);
-  });
-
-  it("layerToDoc with translation-only matrix matches translation-only fallback", () => {
-    const transform: LayerTransform = {
-      x: 10,
-      y: 20,
-      matrix: composeAffineMatrix(10, 20, 1, 1, 0)
-    };
-
+  it("layerToDoc with translation applies translation forward", () => {
+    const transform = makeAffineTransform({ x: 10, y: 20 });
     const mapper = new CoordinateMapper({ layerTransform: transform });
     const result = mapper.layerToDoc({ x: 5, y: 8 });
     expect(result.x).toBeCloseTo(15);
     expect(result.y).toBeCloseTo(28);
   });
 
-  it("docToLayer → layerToDoc round-trips with scaled matrix", () => {
-    const transform: LayerTransform = {
-      x: 5,
-      y: 10,
-      scaleX: 2,
-      scaleY: 3,
-      matrix: composeAffineMatrix(5, 10, 2, 3, 0)
-    };
-
+  it("docToLayer → layerToDoc round-trips with scale", () => {
+    const transform = makeAffineTransform({ x: 5, y: 10, scaleX: 2, scaleY: 3 });
     const mapper = new CoordinateMapper({ layerTransform: transform });
     const original = { x: 30, y: 40 };
     const layerPt = mapper.docToLayer(original);
@@ -208,14 +170,8 @@ describe("CoordinateMapper with matrix", () => {
     expect(roundTrip.y).toBeCloseTo(original.y);
   });
 
-  it("docToLayer → layerToDoc round-trips with rotated matrix", () => {
-    const transform: LayerTransform = {
-      x: 0,
-      y: 0,
-      rotation: Math.PI / 4,
-      matrix: composeAffineMatrix(0, 0, 1, 1, Math.PI / 4)
-    };
-
+  it("docToLayer → layerToDoc round-trips with rotation", () => {
+    const transform = makeAffineTransform({ rotation: Math.PI / 4 });
     const mapper = new CoordinateMapper({ layerTransform: transform });
     const original = { x: 10, y: 0 };
     const layerPt = mapper.docToLayer(original);
@@ -224,16 +180,14 @@ describe("CoordinateMapper with matrix", () => {
     expect(roundTrip.y).toBeCloseTo(original.y);
   });
 
-  it("docToLayer → layerToDoc round-trips with full TRS matrix", () => {
-    const transform: LayerTransform = {
+  it("docToLayer → layerToDoc round-trips with full TRS", () => {
+    const transform = makeAffineTransform({
       x: 5,
       y: 10,
       scaleX: 2,
       scaleY: 1.5,
-      rotation: 0.5,
-      matrix: composeAffineMatrix(5, 10, 2, 1.5, 0.5)
-    };
-
+      rotation: 0.5
+    });
     const mapper = new CoordinateMapper({ layerTransform: transform });
     const original = { x: 30, y: 40 };
     const layerPt = mapper.docToLayer(original);
@@ -242,21 +196,14 @@ describe("CoordinateMapper with matrix", () => {
     expect(roundTrip.y).toBeCloseTo(original.y, 5);
   });
 
-  it("handles rasterBounds with matrix", () => {
-    const transform: LayerTransform = {
-      x: 10,
-      y: 20,
-      matrix: composeAffineMatrix(10, 20, 1, 1, 0)
-    };
-
+  it("subtracts rasterBounds origin when provided", () => {
+    const transform = makeAffineTransform({ x: 10, y: 20 });
     const mapper = new CoordinateMapper({
       layerTransform: transform,
       rasterBounds: { x: -5, y: -8 }
     });
 
-    // docToLayer should apply inverse matrix then subtract rasterBounds
     const result = mapper.docToLayer({ x: 10, y: 20 });
-    // Inverse of translate(10,20) applied to (10,20) = (0,0), minus rasterBounds(-5,-8) = (5, 8)
     expect(result.x).toBeCloseTo(5);
     expect(result.y).toBeCloseTo(8);
   });

@@ -47,21 +47,22 @@ import {
   GIZMO_PRIMARY_COLOR,
   HANDLE_FILL_DEFAULT
 } from "../tools/gizmo/gizmoConstants";
-import type { LayerTransform, LayerContentBounds, Point } from "../types";
+import type { AffineTransform, LayerTransform, LayerContentBounds, Point } from "../types";
+import { makeAffineTransform } from "../types";
+import { aff } from "./_transformFixtures";
 import { getTransformedCorners } from "../painting/resolvedLayerGeometry";
 
 // ─── Test helpers ────────────────────────────────────────────────────────────
 
 const makeTransform = (
-  overrides: Partial<LayerTransform> = {}
-): LayerTransform => ({
-  x: 0,
-  y: 0,
-  scaleX: 1,
-  scaleY: 1,
-  rotation: 0,
-  ...overrides
-});
+  overrides: Partial<{
+    x: number;
+    y: number;
+    scaleX: number;
+    scaleY: number;
+    rotation: number;
+  }> = {}
+): AffineTransform => makeAffineTransform({ ...overrides });
 
 const makeBounds = (
   overrides: Partial<LayerContentBounds> = {}
@@ -212,13 +213,14 @@ describe("gizmo hit testing", () => {
     expect(resultZoom2).toBeNull();
   });
 
-  it("matrix-backed skew transform keeps move hit testing inside the skewed quad", () => {
+  it("quad-backed skew transform keeps move hit testing inside the skewed quad", () => {
     const skewed = computeSkewTransform(
       getTransformedCorners(transform, bounds),
       "top",
       { x: 50, y: 0 },
       { x: 75, y: 20 },
-      bounds
+      bounds,
+      transform
     );
     const center = getTransformedCorners(skewed, bounds).reduce(
       (acc, corner) => ({
@@ -231,13 +233,14 @@ describe("gizmo hit testing", () => {
     expect(hitTestHandles(skewed, bounds, center, zoom)).toBe("move");
   });
 
-  it("buildHandlePositions uses transformed corners for matrix-backed quads", () => {
+  it("buildHandlePositions uses transformed corners for quad-backed skew", () => {
     const skewed = computeSkewTransform(
       getTransformedCorners(transform, bounds),
       "top",
       { x: 50, y: 0 },
       { x: 75, y: 20 },
-      bounds
+      bounds,
+      transform
     );
     const corners = getTransformedCorners(skewed, bounds);
     const handles = buildHandlePositions(skewed, bounds, zoom);
@@ -742,9 +745,10 @@ describe("rotation with custom pivot", () => {
       // no layerCenter arg → no orbit
     );
     // Rotation should change but translation should stay at (0, 0)
-    expect(result.rotation).toBeDefined();
-    expect(result.x).toBe(0);
-    expect(result.y).toBe(0);
+    const a = aff(result);
+    expect(a.rotation).toBeDefined();
+    expect(a.x).toBe(0);
+    expect(a.y).toBe(0);
   });
 
   it("orbits layer center around off-center pivot", () => {
@@ -762,10 +766,9 @@ describe("rotation with custom pivot", () => {
       false,
       layerCenter // enables orbit
     );
-    // The layer should rotate AND translate so the center orbits the pivot
-    expect(result.rotation).toBeDefined();
-    // At least one coordinate should change from the orbital translation
-    const translationChanged = result.x !== 0 || result.y !== 0;
+    const a = aff(result);
+    expect(a.rotation).toBeDefined();
+    const translationChanged = a.x !== 0 || a.y !== 0;
     expect(translationChanged).toBe(true);
   });
 
@@ -785,9 +788,10 @@ describe("rotation with custom pivot", () => {
     );
     // The new layer center (derived from new translation) should be at the
     // same distance from the pivot as the original center was.
+    const a = aff(result);
     const origDist = Math.hypot(layerCenter.x, layerCenter.y);
-    const newCenterX = result.x + bounds.x + bounds.width / 2;
-    const newCenterY = result.y + bounds.y + bounds.height / 2;
+    const newCenterX = a.x + bounds.x + bounds.width / 2;
+    const newCenterY = a.y + bounds.y + bounds.height / 2;
     const newDist = Math.hypot(newCenterX, newCenterY);
     expect(newDist).toBeCloseTo(origDist, 0);
   });

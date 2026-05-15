@@ -63,7 +63,7 @@ export interface UseCanvasActionsParams {
   ) => void;
   updateLayerData: (layerId: string, data: string | null) => void;
   offsetLayerTransform: (layerId: string, dx: number, dy: number) => void;
-  commitLayerTransform: (layerId: string, transform: Point) => void;
+  commitLayerTransform: (layerId: string, transform: LayerTransform) => void;
   setLayerTransform: (layerId: string, transform: LayerTransform) => void;
   setLayerContentBounds: (
     layerId: string,

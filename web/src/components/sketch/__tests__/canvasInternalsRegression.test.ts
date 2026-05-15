@@ -13,6 +13,7 @@
  */
 
 import type { Layer, SketchDocument, LayerTransform } from "../types";
+import { makeAffineTransform } from "../types";
 
 import {
   ensureLayerRasterBounds,
@@ -39,7 +40,7 @@ function makeLayer(overrides: Partial<Layer> = {}): Layer {
     alphaLock: false,
     blendMode: "normal",
     data: null,
-    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    transform: makeAffineTransform({}),
     contentBounds: { x: 0, y: 0, width: 64, height: 64 },
     effects: [],
     ...overrides
@@ -287,7 +288,7 @@ describe("Phase 1.3 – ensureLayerRasterBounds caller audit", () => {
     // Verify the returned bounds differ from the original contentBounds when expansion occurs.
     const layer = makeLayer({
       contentBounds: { x: 10, y: 10, width: 30, height: 30 },
-      transform: { x: 20, y: 20 }
+      transform: makeAffineTransform({ x: 20, y: 20 })
     });
     const layerCanvas = makeCanvas(30, 30);
     setCanvasRasterBounds(layerCanvas, { x: 10, y: 10, width: 30, height: 30 });
@@ -322,7 +323,7 @@ describe("Phase 1.3 – ensureLayerRasterBounds caller audit", () => {
     // Verify that using stale contentBounds would give a different mapping.
     const layer = makeLayer({
       contentBounds: { x: 20, y: 20, width: 20, height: 20 },
-      transform: { x: 0, y: 0 }
+      transform: makeAffineTransform({})
     });
     const layerCanvas = makeCanvas(20, 20);
     setCanvasRasterBounds(layerCanvas, { x: 20, y: 20, width: 20, height: 20 });
@@ -364,7 +365,7 @@ describe("Phase 1.3 – ensureLayerRasterBounds caller audit", () => {
     // This test documents the expected behavior.
     const layer = makeLayer({
       contentBounds: { x: -20, y: -20, width: 200, height: 200 },
-      transform: { x: 0, y: 0 }
+      transform: makeAffineTransform({})
     });
     const largeCanvas = makeCanvas(200, 200);
     setCanvasRasterBounds(largeCanvas, { x: -20, y: -20, width: 200, height: 200 });
@@ -439,7 +440,7 @@ describe("Phase 1.3 – ensureLayerRasterBounds caller audit", () => {
     const layer = makeLayer({
       id: "layer-1",
       contentBounds: { x: 0, y: 0, width: 50, height: 50 },
-      transform: { x: 10, y: 10, scaleX: 1, scaleY: 1, rotation: 0 }
+      transform: makeAffineTransform({ x: 10, y: 10 })
     });
     const doc = makeDoc({
       layers: [layer],
@@ -479,7 +480,7 @@ describe("Phase 1.3 – ensureLayerRasterBounds caller audit", () => {
     const layer = makeLayer({
       id: "layer-1",
       contentBounds: { x: 10, y: 10, width: 30, height: 30 },
-      transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 }
+      transform: makeAffineTransform({})
     });
     const doc = makeDoc({
       layers: [layer],
@@ -518,7 +519,7 @@ describe("Phase 1.4 – overlay preview coordinate parity", () => {
     // For identity transform + origin-at-zero bounds, document and layer space should agree.
     const layer = makeLayer({
       contentBounds: { x: 0, y: 0, width: 128, height: 128 },
-      transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 }
+      transform: makeAffineTransform({})
     });
     const layerCanvas = makeCanvas(128, 128);
     setCanvasRasterBounds(layerCanvas, { x: 0, y: 0, width: 128, height: 128 });
@@ -540,7 +541,7 @@ describe("Phase 1.4 – overlay preview coordinate parity", () => {
     // while the commit maps through CoordinateMapper. Verify they agree.
     const layer = makeLayer({
       contentBounds: { x: 0, y: 0, width: 64, height: 64 },
-      transform: { x: 30, y: 20, scaleX: 1, scaleY: 1, rotation: 0 }
+      transform: makeAffineTransform({ x: 30, y: 20 })
     });
     const layerCanvas = makeCanvas(64, 64);
     setCanvasRasterBounds(layerCanvas, { x: 0, y: 0, width: 64, height: 64 });
@@ -562,7 +563,7 @@ describe("Phase 1.4 – overlay preview coordinate parity", () => {
     // The mapper should produce correct layer-local coordinates.
     const layer = makeLayer({
       contentBounds: { x: 20, y: 20, width: 30, height: 30 },
-      transform: { x: 0, y: 0 }
+      transform: makeAffineTransform({})
     });
     const layerCanvas = makeCanvas(30, 30);
     setCanvasRasterBounds(layerCanvas, { x: 20, y: 20, width: 30, height: 30 });
@@ -594,7 +595,7 @@ describe("Phase 1.4 – overlay preview coordinate parity", () => {
     // with zero-origin bounds, these should be equivalent.
     const layer = makeLayer({
       contentBounds: { x: 0, y: 0, width: 128, height: 128 },
-      transform: { x: 0, y: 0 }
+      transform: makeAffineTransform({})
     });
     const layerCanvas = makeCanvas(128, 128);
     setCanvasRasterBounds(layerCanvas, { x: 0, y: 0, width: 128, height: 128 });
@@ -623,7 +624,7 @@ describe("Phase 1.4 – overlay preview coordinate parity", () => {
     const layer = makeLayer({
       id: "layer-1",
       contentBounds: { x: 0, y: 0, width: 128, height: 128 },
-      transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 }
+      transform: makeAffineTransform({})
     });
     const layerCanvas = makeCanvas(128, 128);
     setCanvasRasterBounds(layerCanvas, { x: 0, y: 0, width: 128, height: 128 });
@@ -648,7 +649,7 @@ describe("Phase 1.4 – overlay preview coordinate parity", () => {
     const layer = makeLayer({
       id: "layer-1",
       contentBounds: { x: 0, y: 0, width: 128, height: 128 },
-      transform: { x: 10, y: 10, scaleX: 1, scaleY: 1, rotation: 0 }
+      transform: makeAffineTransform({ x: 10, y: 10 })
     });
 
     const layerCanvas = makeCanvas(128, 128);
@@ -679,7 +680,7 @@ describe("Phase 1.4 – overlay preview coordinate parity", () => {
     const layer = makeLayer({
       id: "layer-1",
       contentBounds: { x: 20, y: 20, width: 80, height: 80 },
-      transform: { x: 5, y: 5, scaleX: 1, scaleY: 1, rotation: 0 }
+      transform: makeAffineTransform({ x: 5, y: 5 })
     });
 
     const layerCanvas = makeCanvas(80, 80);
@@ -996,7 +997,7 @@ describe("Phase 1.6 – getMaskDataUrl", () => {
       name: "Mask",
       type: "mask",
       contentBounds: { x: 0, y: 0, width: 64, height: 64 },
-      transform: { x: 20, y: 20, scaleX: 1, scaleY: 1, rotation: 0 }
+      transform: makeAffineTransform({ x: 20, y: 20 })
     });
     const doc = makeDoc({
       layers: [makeLayer(), maskLayer],
@@ -1072,7 +1073,7 @@ describe("Phase 1.7 – reconcileLayerToDocumentSpace transparency", () => {
 
     const layer = makeLayer({
       contentBounds: { x: 0, y: 0, width: 32, height: 32 },
-      transform: { x: 20, y: 20, scaleX: 1, scaleY: 1, rotation: 0 }
+      transform: makeAffineTransform({ x: 20, y: 20 })
     });
     const doc = makeDoc({
       layers: [layer],
@@ -1113,7 +1114,7 @@ describe("Phase 1.7 – reconcileLayerToDocumentSpace transparency", () => {
 
     const layer = makeLayer({
       contentBounds: { x: 0, y: 0, width: 32, height: 32 },
-      transform: { x: 0, y: 0, scaleX: 2, scaleY: 2, rotation: 0 }
+      transform: makeAffineTransform({ scaleX: 2, scaleY: 2 })
     });
     const doc = makeDoc({
       layers: [layer],
@@ -1145,7 +1146,7 @@ describe("Phase 1.7 – reconcileLayerToDocumentSpace transparency", () => {
 
     const layer = makeLayer({
       contentBounds: { x: 0, y: 0, width: 64, height: 64 },
-      transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 }
+      transform: makeAffineTransform({})
     });
     const doc = makeDoc({
       layers: [layer],
@@ -1170,13 +1171,11 @@ describe("Phase 1.7 – reconcileLayerToDocumentSpace transparency", () => {
 
     const layer = makeLayer({
       contentBounds: { x: 0, y: 0, width: 32, height: 32 },
-      transform: {
+      transform: makeAffineTransform({
         x: 40,
         y: 40,
-        scaleX: 1,
-        scaleY: 1,
         rotation: Math.PI / 4  // 45 degrees
-      }
+      })
     });
     const doc = makeDoc({
       layers: [layer],
@@ -1212,7 +1211,7 @@ describe("Phase 1.7 – reconcileLayerToDocumentSpace transparency", () => {
     const layer = makeLayer({
       id: "layer-1",
       contentBounds: { x: 0, y: 0, width: 32, height: 32 },
-      transform: { x: 20, y: 20, scaleX: 1, scaleY: 1, rotation: 0 }
+      transform: makeAffineTransform({ x: 20, y: 20 })
     });
     const doc = makeDoc({
       layers: [layer],
@@ -1238,7 +1237,7 @@ describe("Phase 1.7 – transform undo restores canvas data AND transform", () =
     const layerCanvas = runtime.getOrCreateLayerCanvas("layer-1", 32, 32);
     paintBlock(layerCanvas, 5, 5, 10, 10, "rgba(255,0,0,1)");
     const originalData = runtime.getLayerData("layer-1");
-    const originalTransform: LayerTransform = { x: 20, y: 20, scaleX: 1, scaleY: 1, rotation: 0 };
+    const originalTransform: LayerTransform = makeAffineTransform({ x: 20, y: 20 });
 
     // Step 2: Apply transform and reconcile (simulates transform tool commit)
     const layer = makeLayer({
@@ -1273,7 +1272,7 @@ describe("Phase 1.7 – transform undo restores canvas data AND transform", () =
 
     const layer = makeLayer({
       contentBounds: { x: 0, y: 0, width: 32, height: 32 },
-      transform: { x: 50, y: 50 }
+      transform: makeAffineTransform({ x: 50, y: 50 })
     });
     const doc = makeDoc({
       layers: [layer],
@@ -1302,7 +1301,7 @@ describe("Phase 1.7 – transform undo restores canvas data AND transform", () =
     // Reconcile
     const layer = makeLayer({
       contentBounds: { x: 0, y: 0, width: 32, height: 32 },
-      transform: { x: 30, y: 30 }
+      transform: makeAffineTransform({ x: 30, y: 30 })
     });
     const doc = makeDoc({
       layers: [layer],
@@ -1333,7 +1332,7 @@ describe("Phase 1.7 – transform undo restores canvas data AND transform", () =
     // Reconcile changes the canvas size
     const layer = makeLayer({
       contentBounds: { x: 0, y: 0, width: 32, height: 32 },
-      transform: { x: 50, y: 50 }
+      transform: makeAffineTransform({ x: 50, y: 50 })
     });
     const doc = makeDoc({
       layers: [layer],
@@ -1358,29 +1357,23 @@ describe("Phase 1.7 – transform undo restores canvas data AND transform", () =
   });
 
   it("original transform snapshot stays independent of live transform edits", () => {
-    const originalTransform: LayerTransform = {
-      x: 5,
-      y: 10,
-      scaleX: 1,
-      scaleY: 1,
-      rotation: 0
-    };
+    const originalTransform = makeAffineTransform({ x: 5, y: 10 });
 
-    const savedTransform: LayerTransform = {
+    const savedTransform = makeAffineTransform({
       x: originalTransform.x,
       y: originalTransform.y,
       scaleX: originalTransform.scaleX,
       scaleY: originalTransform.scaleY,
       rotation: originalTransform.rotation
-    };
+    });
 
-    const liveTransform: LayerTransform = {
+    const liveTransform = makeAffineTransform({
       x: 30,
       y: 40,
       scaleX: 1.5,
       scaleY: 1.5,
       rotation: Math.PI / 6
-    };
+    });
 
     expect(savedTransform.x).toBe(5);
     expect(savedTransform.y).toBe(10);
@@ -1398,7 +1391,7 @@ describe("Phase 1.7 – transform undo restores canvas data AND transform", () =
     const layer = makeLayer({
       id: "layer-1",
       contentBounds: { x: 0, y: 0, width: 32, height: 32 },
-      transform: { x: 10, y: 10, scaleX: 1, scaleY: 1, rotation: 0 }
+      transform: makeAffineTransform({ x: 10, y: 10 })
     });
     const doc = makeDoc({
       layers: [layer],
@@ -1431,7 +1424,7 @@ describe("Phase 1.7 – transform undo restores canvas data AND transform", () =
 
     const layer = makeLayer({
       id: "layer-1",
-      transform: { x: 20, y: 20, scaleX: 1, scaleY: 1, rotation: 0 },
+      transform: makeAffineTransform({ x: 20, y: 20 }),
       contentBounds: { x: 0, y: 0, width: 64, height: 64 }
     });
     const doc = makeDoc({

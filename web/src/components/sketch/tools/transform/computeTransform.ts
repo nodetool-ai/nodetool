@@ -16,14 +16,21 @@ import type {
   LayerTransform,
   LayerContentBounds,
   TransformMode,
-  AffineMatrix
+  Quad,
+  SingleQuadMode,
+  SingleQuadTransform,
+  DualQuadTransform,
+  AffineTransform
 } from "../../types";
 import {
-  decomposeAffineMatrix,
-  ensureTransformMatrix,
-  isQuadTransformMode
+  IDENTITY_AFFINE,
+  cloneTransform,
+  isAffineTransform,
+  isQuadTransform,
+  makeAffineTransform,
+  makeSingleQuadTransform,
+  makeDualQuadTransform
 } from "../../types";
-import { affineMultiply } from "./multiLayerTransformMath";
 import {
   rotatePoint,
   snapAngle,
@@ -32,10 +39,13 @@ import {
   isEdgeHandle,
   type TransformHandle
 } from "./handleGeometry";
-import { getTransformedCenter } from "../../painting/resolvedLayerGeometry";
 
 type GestureTransformMode = TransformMode;
-type PerspectiveQuad = NonNullable<LayerTransform["quad"]>;
+type PerspectiveQuad = [Point, Point, Point, Point];
+
+function asQuad(q: PerspectiveQuad): Quad {
+  return q;
+}
 
 const CORNER_INDEX_BY_HANDLE: Record<
   Extract<
@@ -65,31 +75,16 @@ function projectVector(delta: Point, axis: Point): Point {
 }
 
 function translateQuad(
-  quad: PerspectiveQuad,
+  quad: Quad,
   dx: number,
   dy: number
-): PerspectiveQuad {
-  return quad.map((corner) => ({
-    x: corner.x + dx,
-    y: corner.y + dy
-  })) as PerspectiveQuad;
-}
-
-function rotateQuad(
-  quad: PerspectiveQuad,
-  pivot: Point,
-  angle: number
-): PerspectiveQuad {
-  return quad.map((corner) =>
-    rotatePoint(corner.x, corner.y, pivot.x, pivot.y, angle)
-  ) as PerspectiveQuad;
-}
-
-function quadCenter(quad: PerspectiveQuad): Point {
-  return {
-    x: (quad[0].x + quad[1].x + quad[2].x + quad[3].x) / 4,
-    y: (quad[0].y + quad[1].y + quad[2].y + quad[3].y) / 4
-  };
+): Quad {
+  return [
+    { x: quad[0].x + dx, y: quad[0].y + dy },
+    { x: quad[1].x + dx, y: quad[1].y + dy },
+    { x: quad[2].x + dx, y: quad[2].y + dy },
+    { x: quad[3].x + dx, y: quad[3].y + dy }
+  ];
 }
 
 function normalizeVector(vector: Point): Point {
@@ -115,35 +110,16 @@ function scaledVector(axis: Point, amount: number): Point {
 }
 
 function buildQuadTransform(
+  mode: SingleQuadMode,
   quad: PerspectiveQuad,
-  _rasterBounds: LayerContentBounds,
-  baseTransform: LayerTransform,
-  mode: "perspective" | "warp" | "distort"
-): LayerTransform {
-  // For a free-form quad the affine fields (x/y/scaleX/scaleY/rotation) are
-  // ill-defined — earlier this function returned a parallelogram-fit
-  // pseudo-decomposition that anything reading `transform.scaleX` or
-  // `transform.rotation` would silently treat as truth. The renderer and
-  // hit-testers ignore them when `quad` is set, so we drop them here:
-  // identity affine + the quad is the single source of truth.
-  //
-  // Anything (panel readouts, history diff, exports) that needs a numeric
-  // summary of a quad must compute it from the quad itself — not from these
-  // synthetic fields.
-  //
-  // We deliberately preserve `secondaryQuad` from the base transform so the
-  // dual-perspective mode keeps its second plane between drags.
-  const { secondaryQuad } = baseTransform;
-  return {
-    x: 0,
-    y: 0,
-    scaleX: 1,
-    scaleY: 1,
-    rotation: 0,
-    mode,
-    quad,
-    ...(secondaryQuad ? { secondaryQuad } : {})
-  };
+  baseTransform: LayerTransform
+): SingleQuadTransform | DualQuadTransform {
+  // If the prior transform was a dual-quad, keep the second plane so the
+  // dual-perspective mode survives a drag on the primary quad.
+  if (baseTransform.kind === "dual-quad") {
+    return makeDualQuadTransform(quad, baseTransform.secondaryQuad);
+  }
+  return makeSingleQuadTransform(mode, quad);
 }
 
 
@@ -188,49 +164,6 @@ export function resolveTransformGestureMode(
   return "scale";
 }
 
-function fitAffineFromCorners(
-  corners: [Point, Point, Point, Point],
-  rasterBounds: LayerContentBounds
-): NonNullable<LayerTransform["matrix"]> {
-  const tl = corners[0];
-  const tr = corners[1];
-  const bl = corners[3];
-  const width = Math.max(1, rasterBounds.width);
-  const height = Math.max(1, rasterBounds.height);
-  const a = (tr.x - tl.x) / width;
-  const b = (tr.y - tl.y) / width;
-  const c = (bl.x - tl.x) / height;
-  const d = (bl.y - tl.y) / height;
-  const e = tl.x - a * rasterBounds.x - c * rasterBounds.y;
-  const f = tl.y - b * rasterBounds.x - d * rasterBounds.y;
-  return [a, b, c, d, e, f];
-}
-
-function buildAdvancedTransform(
-  corners: [Point, Point, Point, Point],
-  rasterBounds: LayerContentBounds,
-  mode: "skew"
-): LayerTransform {
-  const matrix = fitAffineFromCorners(corners, rasterBounds);
-  const topVector = {
-    x: corners[1].x - corners[0].x,
-    y: corners[1].y - corners[0].y
-  };
-  const leftVector = {
-    x: corners[3].x - corners[0].x,
-    y: corners[3].y - corners[0].y
-  };
-  return {
-    x: matrix[4],
-    y: matrix[5],
-    scaleX: Math.hypot(topVector.x, topVector.y) / Math.max(1, rasterBounds.width),
-    scaleY:
-      Math.hypot(leftVector.x, leftVector.y) / Math.max(1, rasterBounds.height),
-    rotation: Math.atan2(topVector.y, topVector.x),
-    matrix,
-    mode
-  };
-}
 
 /**
  * Free 4-point distort: only the dragged corner moves. The three other
@@ -266,12 +199,18 @@ export function computeDistortTransform(
       dx = 0;
     }
   }
-  const nextQuad = dragStartCorners.map((corner) => ({ ...corner })) as PerspectiveQuad;
-  nextQuad[draggedIndex] = {
-    x: nextQuad[draggedIndex].x + dx,
-    y: nextQuad[draggedIndex].y + dy
+  const next: [Point, Point, Point, Point] = [
+    { ...dragStartCorners[0] },
+    { ...dragStartCorners[1] },
+    { ...dragStartCorners[2] },
+    { ...dragStartCorners[3] }
+  ];
+  next[draggedIndex] = {
+    x: next[draggedIndex].x + dx,
+    y: next[draggedIndex].y + dy
   };
-  return buildQuadTransform(nextQuad, rasterBounds, baseTransform, "distort");
+  void rasterBounds;
+  return buildQuadTransform("distort", next, baseTransform);
 }
 
 export function computeSkewTransform(
@@ -279,17 +218,18 @@ export function computeSkewTransform(
   handle: Extract<TransformHandle, "top" | "bottom" | "left" | "right">,
   dragStart: Point,
   cursor: Point,
-  rasterBounds: LayerContentBounds
+  rasterBounds: LayerContentBounds,
+  baseTransform: LayerTransform
 ): LayerTransform {
   const delta = {
     x: cursor.x - dragStart.x,
     y: cursor.y - dragStart.y
   };
-  const nextCorners = dragStartCorners.map((corner) => ({ ...corner })) as [
-    Point,
-    Point,
-    Point,
-    Point
+  const nextCorners: [Point, Point, Point, Point] = [
+    { ...dragStartCorners[0] },
+    { ...dragStartCorners[1] },
+    { ...dragStartCorners[2] },
+    { ...dragStartCorners[3] }
   ];
 
   if (handle === "top" || handle === "bottom") {
@@ -326,7 +266,8 @@ export function computeSkewTransform(
     }
   }
 
-  return buildAdvancedTransform(nextCorners, rasterBounds, "skew");
+  void rasterBounds;
+  return buildQuadTransform("skew", nextCorners, baseTransform);
 }
 
 export function computePerspectiveTransform(
@@ -366,9 +307,12 @@ export function computePerspectiveTransform(
   });
   const horizontal = scaledVector(xAxis, dot(delta, xAxis));
   const vertical = scaledVector(yAxis, dot(delta, yAxis));
-  const nextQuad = dragStartCorners.map((corner) => ({
-    ...corner
-  })) as PerspectiveQuad;
+  const nextQuad: PerspectiveQuad = [
+    { ...dragStartCorners[0] },
+    { ...dragStartCorners[1] },
+    { ...dragStartCorners[2] },
+    { ...dragStartCorners[3] }
+  ];
 
   if (handle === "top-left") {
     nextQuad[0] = {
@@ -424,7 +368,8 @@ export function computePerspectiveTransform(
     };
   }
 
-  return buildQuadTransform(nextQuad, rasterBounds, baseTransform, "perspective");
+  void rasterBounds;
+  return buildQuadTransform("perspective", nextQuad, baseTransform);
 }
 
 export function computeWarpTransform(
@@ -443,14 +388,18 @@ export function computeWarpTransform(
     y: cursor.y - dragStart.y
   };
   const draggedIndex = CORNER_INDEX_BY_HANDLE[handle];
-  const nextQuad = dragStartCorners.map((corner) => ({
-    ...corner
-  })) as PerspectiveQuad;
+  const nextQuad: PerspectiveQuad = [
+    { ...dragStartCorners[0] },
+    { ...dragStartCorners[1] },
+    { ...dragStartCorners[2] },
+    { ...dragStartCorners[3] }
+  ];
   nextQuad[draggedIndex] = {
     x: nextQuad[draggedIndex].x + delta.x,
     y: nextQuad[draggedIndex].y + delta.y
   };
-  return buildQuadTransform(nextQuad, rasterBounds, baseTransform, "warp");
+  void rasterBounds;
+  return buildQuadTransform("warp", nextQuad, baseTransform);
 }
 
 // ─── Move computation ────────────────────────────────────────────────────────
@@ -466,34 +415,24 @@ export function computeMoveTransform(
 ): LayerTransform {
   const dx = cursor.x - dragStart.x;
   const dy = cursor.y - dragStart.y;
-  if (isQuadTransformMode(dragStartTransform.mode) && dragStartTransform.quad) {
-    return {
-      ...dragStartTransform,
-      x: Math.round(dragStartTransform.x + dx),
-      y: Math.round(dragStartTransform.y + dy),
-      quad: translateQuad(dragStartTransform.quad, dx, dy)
-    };
+  switch (dragStartTransform.kind) {
+    case "affine":
+      return makeAffineTransform({
+        ...dragStartTransform,
+        x: Math.round(dragStartTransform.x + dx),
+        y: Math.round(dragStartTransform.y + dy)
+      });
+    case "quad":
+      return makeSingleQuadTransform(
+        dragStartTransform.mode,
+        translateQuad(dragStartTransform.quad, dx, dy)
+      );
+    case "dual-quad":
+      return makeDualQuadTransform(
+        translateQuad(dragStartTransform.quad, dx, dy),
+        translateQuad(dragStartTransform.secondaryQuad, dx, dy)
+      );
   }
-  if (dragStartTransform.matrix && dragStartTransform.mode) {
-    return {
-      ...dragStartTransform,
-      x: Math.round(dragStartTransform.x + dx),
-      y: Math.round(dragStartTransform.y + dy),
-      matrix: [
-        dragStartTransform.matrix[0],
-        dragStartTransform.matrix[1],
-        dragStartTransform.matrix[2],
-        dragStartTransform.matrix[3],
-        dragStartTransform.matrix[4] + dx,
-        dragStartTransform.matrix[5] + dy
-      ]
-    };
-  }
-  return ensureTransformMatrix({
-    ...dragStartTransform,
-    x: Math.round(dragStartTransform.x + dx),
-    y: Math.round(dragStartTransform.y + dy)
-  });
 }
 
 // ─── Rotation computation ────────────────────────────────────────────────────
@@ -519,30 +458,13 @@ export function computeRotateTransform(
   shift: boolean,
   layerCenter?: Point
 ): LayerTransform {
-  if (isQuadTransformMode(dragStartTransform.mode) && dragStartTransform.quad) {
-    const angleStart = Math.atan2(
-      dragStart.y - pivot.y,
-      dragStart.x - pivot.x
+  if (!isAffineTransform(dragStartTransform)) {
+    console.warn(
+      "computeRotateTransform: rotate is only supported on affine transforms"
     );
-    const angleCursor = Math.atan2(cursor.y - pivot.y, cursor.x - pivot.x);
-    let deltaAngle = angleCursor - angleStart;
-    let newRot = (dragStartTransform.rotation ?? 0) + deltaAngle;
-    if (shift) {
-      newRot = snapAngle(newRot);
-      deltaAngle = newRot - (dragStartTransform.rotation ?? 0);
-    }
-    const nextQuad = rotateQuad(dragStartTransform.quad, pivot, deltaAngle);
-    const startCenter = quadCenter(dragStartTransform.quad);
-    const nextCenter = quadCenter(nextQuad);
-    return {
-      ...dragStartTransform,
-      x: Math.round(dragStartTransform.x + (nextCenter.x - startCenter.x)),
-      y: Math.round(dragStartTransform.y + (nextCenter.y - startCenter.y)),
-      rotation: newRot,
-      quad: nextQuad
-    };
+    return cloneTransform(dragStartTransform);
   }
-  const rot = dragStartTransform.rotation ?? 0;
+  const rot = dragStartTransform.rotation;
   const angleStart = Math.atan2(
     dragStart.y - pivot.y,
     dragStart.x - pivot.x
@@ -552,41 +474,11 @@ export function computeRotateTransform(
   let newRot = rot + deltaAngle;
   if (shift) {
     newRot = snapAngle(newRot);
-    // Recalculate delta after snapping so the orbit stays consistent
     deltaAngle = newRot - rot;
   }
 
-  // When the prior transform carries a non-TRS matrix (skew or distort),
-  // compose the rotation around the pivot ON TOP of the prior matrix
-  // instead of just bumping the decomposed `rotation` field — otherwise
-  // `ensureTransformMatrix` short-circuits on the existing matrix and the
-  // rotation never reaches the renderer (gizmo and pixels drift apart).
-  const priorMatrix = dragStartTransform.matrix;
-  const isAdvanced =
-    dragStartTransform.mode === "skew" || dragStartTransform.mode === "distort";
-  if (priorMatrix && isAdvanced) {
-    const rotationAroundPivot = rotateAroundPointMatrix(pivot, deltaAngle);
-    const newMatrix = affineMultiply(rotationAroundPivot, priorMatrix);
-    const decomposed = decomposeAffineMatrix(newMatrix);
-    return {
-      ...dragStartTransform,
-      x: Math.round(decomposed.x),
-      y: Math.round(decomposed.y),
-      scaleX: decomposed.scaleX,
-      scaleY: decomposed.scaleY,
-      rotation: decomposed.rotation,
-      matrix: newMatrix
-    };
-  }
-
-  const result: LayerTransform = { ...dragStartTransform, rotation: newRot };
-  // Drop the stale matrix so `ensureTransformMatrix` recomputes from the
-  // updated rotation. Without this, a previously-baked matrix from another
-  // gesture would override the new rotation downstream.
-  delete result.matrix;
-
-  // If the pivot differs from the layer center, adjust translation so the
-  // layer orbits the pivot (center follows a circular arc around the pivot).
+  let nextX = dragStartTransform.x;
+  let nextY = dragStartTransform.y;
   if (layerCenter) {
     const orbited = rotatePoint(
       layerCenter.x,
@@ -595,31 +487,16 @@ export function computeRotateTransform(
       pivot.y,
       deltaAngle
     );
-    result.x = Math.round(dragStartTransform.x + (orbited.x - layerCenter.x));
-    result.y = Math.round(dragStartTransform.y + (orbited.y - layerCenter.y));
+    nextX = Math.round(dragStartTransform.x + (orbited.x - layerCenter.x));
+    nextY = Math.round(dragStartTransform.y + (orbited.y - layerCenter.y));
   }
 
-  return ensureTransformMatrix(result);
-}
-
-/**
- * Build the affine matrix that rotates the plane by `angle` radians around
- * `pivot`: T(pivot) · R(angle) · T(-pivot).
- */
-function rotateAroundPointMatrix(pivot: Point, angle: number): AffineMatrix {
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  // Column-vector convention matching `composeAffineMatrix` /
-  // `affineMultiply`: [a, b, c, d, e, f] where the linear part is
-  // [[a, c], [b, d]] and translation is [e, f].
-  return [
-    cos,
-    sin,
-    -sin,
-    cos,
-    pivot.x - cos * pivot.x + sin * pivot.y,
-    pivot.y - sin * pivot.x - cos * pivot.y
-  ];
+  return makeAffineTransform({
+    ...dragStartTransform,
+    x: nextX,
+    y: nextY,
+    rotation: newRot
+  });
 }
 
 // ─── Scale computation ───────────────────────────────────────────────────────
@@ -654,9 +531,15 @@ export function computeScaleTransform(
   shift: boolean,
   alt: boolean
 ): LayerTransform {
-  const sx = dragStartTransform.scaleX ?? 1;
-  const sy = dragStartTransform.scaleY ?? 1;
-  const rot = dragStartTransform.rotation ?? 0;
+  if (!isAffineTransform(dragStartTransform)) {
+    console.warn(
+      "computeScaleTransform: scale is only supported on affine transforms"
+    );
+    return cloneTransform(dragStartTransform);
+  }
+  const sx = dragStartTransform.scaleX;
+  const sy = dragStartTransform.scaleY;
+  const rot = dragStartTransform.rotation;
 
   // Un-rotate both start and cursor around the center
   const uStart = rotatePoint(dragStart.x, dragStart.y, center.x, center.y, -rot);
@@ -759,27 +642,24 @@ export function computeScaleTransform(
   // Without ALT, anchor the opposite edge so it stays fixed.
   const anchor = HANDLE_ANCHOR[handle];
   if (!alt && anchor) {
-    const result = { ...dragStartTransform, scaleX: newSx, scaleY: newSy };
     const dScaleX = newSx - sx;
     const dScaleY = newSy - sy;
 
-    // Offset = half the size change in the anchor direction.
-    // The anchor direction points TOWARD the edge that should stay fixed,
-    // so the translation must move in the OPPOSITE direction (negate the offset)
-    // to keep that edge stationary.
     const offsetX = (anchor.dx * dScaleX * rasterBounds.width) / 2;
     const offsetY = (anchor.dy * dScaleY * rasterBounds.height) / 2;
 
-    // Rotate the negated offset by the current rotation
     const cos = Math.cos(rot);
     const sin = Math.sin(rot);
-    result.x = Math.round(dragStartTransform.x - offsetX * cos + offsetY * sin);
-    result.y = Math.round(dragStartTransform.y - offsetX * sin - offsetY * cos);
-
-    return ensureTransformMatrix(result);
+    return makeAffineTransform({
+      ...dragStartTransform,
+      scaleX: newSx,
+      scaleY: newSy,
+      x: Math.round(dragStartTransform.x - offsetX * cos + offsetY * sin),
+      y: Math.round(dragStartTransform.y - offsetX * sin - offsetY * cos)
+    });
   }
 
-  return ensureTransformMatrix({
+  return makeAffineTransform({
     ...dragStartTransform,
     scaleX: newSx,
     scaleY: newSy

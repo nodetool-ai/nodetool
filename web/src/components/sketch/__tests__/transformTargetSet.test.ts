@@ -33,7 +33,7 @@ function makeBounds(
 }
 
 function makeTransform(x = 0, y = 0): LayerTransform {
-  return { x, y, scaleX: 1, scaleY: 1, rotation: 0 };
+  return { kind: "affine", x, y, scaleX: 1, scaleY: 1, rotation: 0 };
 }
 
 function makeLayer(overrides?: Partial<Layer>): Layer {

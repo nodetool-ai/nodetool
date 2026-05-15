@@ -13,7 +13,7 @@
 
 import { Canvas2DRuntime } from "../rendering/Canvas2DRuntime";
 import type { SketchDocument } from "../types";
-import { createDefaultDocument, createDefaultLayer } from "../types";
+import { createDefaultDocument, createDefaultLayer, makeAffineTransform, makeSingleQuadTransform, makeDualQuadTransform } from "../types";
 import {
   getCanvasRasterBounds,
   getLayerCompositeOffset,
@@ -381,7 +381,7 @@ describe("Canvas2DRuntime", () => {
     it("mergeLayerDown returns serialized document-space layer data", () => {
       const doc = makeDoc();
       const lower = doc.layers[0];
-      const upper = { ...lower, id: "upper", name: "Upper", transform: { x: 6, y: 4 } };
+      const upper = { ...lower, id: "upper", name: "Upper", transform: makeAffineTransform({ x: 6, y: 4 }) };
       doc.layers = [lower, upper];
 
       const mockedCanvas = mockCanvas2DContext();
@@ -424,7 +424,7 @@ describe("Canvas2DRuntime", () => {
     it("reconcileLayerToDocumentSpace preserves moved layer pixels", () => {
       const doc = makeDoc();
       const layerId = doc.layers[0].id;
-      doc.layers[0].transform = { x: 10, y: 12 };
+      doc.layers[0].transform = makeAffineTransform({ x: 10, y: 12 });
 
       const layerCanvas = runtime.getOrCreateLayerCanvas(layerId, 16, 16);
       const sourceCtx = layerCanvas.getContext("2d");
@@ -457,7 +457,7 @@ describe("Canvas2DRuntime", () => {
     it("reconcileLayerToDocumentSpace returns serialized document-space data", () => {
       const doc = makeDoc();
       const layerId = doc.layers[0].id;
-      doc.layers[0].transform = { x: 8, y: 9 };
+      doc.layers[0].transform = makeAffineTransform({ x: 8, y: 9 });
 
       const mockedCanvas = mockCanvas2DContext();
       try {
@@ -584,7 +584,7 @@ describe("Canvas2DRuntime", () => {
     it("draws a transformed layer at raster-bounds plus transform offset", () => {
       const doc = makeDoc();
       const layer = doc.layers[0];
-      layer.transform = { x: 12, y: -5 };
+      layer.transform = makeAffineTransform({ x: 12, y: -5 });
 
       const layerCanvas = runtime.getOrCreateLayerCanvas(layer.id, 32, 24);
       setCanvasRasterBounds(layerCanvas, { x: -7, y: 9, width: 32, height: 24 });
@@ -829,7 +829,7 @@ describe("Phase 1.6 – compositing and rendering hardening", () => {
   describe("getLayerCompositeOffset", () => {
     it("sums transform and contentBounds offsets", () => {
       const layer = createDefaultLayer("offset-test", "raster", 100, 100);
-      layer.transform = { x: -10, y: -10, matrix: [1, 0, 0, 1, 0, 0] };
+      layer.transform = makeAffineTransform({ x: -10, y: -10 });
       layer.contentBounds = { x: 50, y: 50, width: 100, height: 100 };
 
       const offset = getLayerCompositeOffset(layer);
@@ -838,7 +838,7 @@ describe("Phase 1.6 – compositing and rendering hardening", () => {
 
     it("falls back to contentBounds when no canvas metadata exists", () => {
       const layer = createDefaultLayer("no-canvas", "raster", 64, 64);
-      layer.transform = { x: 0, y: 0, matrix: [1, 0, 0, 1, 0, 0] };
+      layer.transform = makeAffineTransform({ x: 0, y: 0 });
       layer.contentBounds = { x: 10, y: 20, width: 64, height: 64 };
 
       const offset = getLayerCompositeOffset(layer);
@@ -848,7 +848,7 @@ describe("Phase 1.6 – compositing and rendering hardening", () => {
 
     it("uses canvas raster bounds when they exist", () => {
       const layer = createDefaultLayer("canvas-bounds", "raster", 64, 64);
-      layer.transform = { x: 5, y: 5, matrix: [1, 0, 0, 1, 0, 0] };
+      layer.transform = makeAffineTransform({ x: 5, y: 5 });
       layer.contentBounds = { x: 10, y: 10, width: 64, height: 64 };
 
       const canvas = document.createElement("canvas");
@@ -976,7 +976,7 @@ describe("Phase 1.6 – compositing and rendering hardening", () => {
   it("reconcileLayerToDocumentSpace returns serialized data for a translated layer", () => {
     const doc = makeDoc();
     const layerId = doc.layers[0].id;
-    doc.layers[0].transform = { x: 10, y: 10, matrix: [1, 0, 0, 1, 0, 0] };
+    doc.layers[0].transform = makeAffineTransform({ x: 10, y: 10 });
     runtime.getOrCreateLayerCanvas(layerId, 64, 64);
 
     const mocks = mockCanvas2DContext();
@@ -995,7 +995,7 @@ describe("Phase 1.6 – compositing and rendering hardening", () => {
   it("reconcileLayerToDocumentSpace still returns data for identity transform", () => {
     const doc = makeDoc();
     const layerId = doc.layers[0].id;
-    doc.layers[0].transform = { x: 0, y: 0, matrix: [1, 0, 0, 1, 0, 0] };
+    doc.layers[0].transform = makeAffineTransform({});
     runtime.getOrCreateLayerCanvas(layerId, 64, 64);
 
     const mocks = mockCanvas2DContext();

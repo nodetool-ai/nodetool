@@ -56,7 +56,16 @@ import type {
   TransformMode,
   AffineMatrix
 } from "../types";
-import { layerAllowsTransformWhilePixelLocked, composeAffineMatrix } from "../types";
+import {
+  IDENTITY_AFFINE,
+  cloneTransform,
+  isAffineTransform,
+  isQuadTransform,
+  layerAllowsTransformWhilePixelLocked,
+  makeAffineTransform,
+  makeDualQuadTransform,
+  makeSingleQuadTransform
+} from "../types";
 import AspectRatioIcon from "@mui/icons-material/AspectRatio";
 import {
   getTransformedCenter,
@@ -70,7 +79,6 @@ import {
   type EdgeHandle,
   isCornerHandle,
   isEdgeHandle,
-  isQuadOnlyTransform,
   hitTestHandles,
   isInRotateZone,
   hitTestPivot,
@@ -114,9 +122,9 @@ export { type TransformHandle } from "./transform/handleGeometry";
  * extends `width` document-space units to the right with the same height.
  */
 function buildSeedSecondaryQuad(
-  primary: NonNullable<LayerTransform["quad"]>,
+  primary: import("../types").Quad,
   width: number
-): NonNullable<LayerTransform["quad"]> {
+): import("../types").Quad {
   const tr = primary[1];
   const br = primary[2];
   // Edge vector along the fold (top-right → bottom-right of the primary).
@@ -142,11 +150,11 @@ export class TransformTool implements ToolHandler {
   /** Shared preview session — single source of truth for preview state. */
   private readonly session: PreviewSession = createPreviewSession();
   /** Transform when the tool was activated (used by cancel). */
-  private originalTransform: LayerTransform = { x: 0, y: 0 };
+  private originalTransform: LayerTransform = { ...IDENTITY_AFFINE };
   /** Raster bounds when the tool was activated (for scale computation). */
   private rasterBounds: LayerContentBounds = { x: 0, y: 0, width: 0, height: 0 };
   /** Transform at the start of the current drag. */
-  private dragStartTransform: LayerTransform = { x: 0, y: 0 };
+  private dragStartTransform: LayerTransform = { ...IDENTITY_AFFINE };
   /** Which handle is being dragged. */
   private activeHandle: TransformHandle | null = null;
   /** Pointer position at drag start (canvas space). */
@@ -328,7 +336,7 @@ export class TransformTool implements ToolHandler {
     //    transforms have no pivot — skip.
     if (
       (handle === "move" || handle === null) &&
-      !isQuadOnlyTransform(currentTransform)
+      !isQuadTransform(currentTransform)
     ) {
       const pivotDoc = this.getEffectivePivot(currentTransform);
       if (hitTestPivot(pivotDoc, pt, ctx.zoom)) {
@@ -708,20 +716,19 @@ export class TransformTool implements ToolHandler {
       width: union.width,
       height: union.height
     };
-    this.originalTransform = {
+    this.originalTransform = makeAffineTransform({
       x: union.x,
       y: union.y,
       scaleX: 1,
       scaleY: 1,
-      rotation: 0,
-      matrix: composeAffineMatrix(union.x, union.y, 1, 1, 0)
-    };
+      rotation: 0
+    });
     this.targetSet.setTargets(entries);
   }
 
   private syncSingleLayer(ctx: ToolContext, layer: Layer): void {
     this.multiTargetLayerIds = [layer.id];
-    this.originalTransform = { ...layer.transform };
+    this.originalTransform = cloneTransform(layer.transform);
     const layerCanvas = ctx.layerCanvasesRef.current.get(layer.id);
     // resolveGizmoBounds prefers contentBounds / opaque-pixel scan when the
     // layer canvas is full-doc-sized, so the gizmo wraps the actual content
@@ -958,7 +965,7 @@ export class TransformTool implements ToolHandler {
     // transforms have no pivot.
     if (
       (handle === "move" || handle === null) &&
-      !isQuadOnlyTransform(transform)
+      !isQuadTransform(transform)
     ) {
       const pivotDoc = this.getEffectivePivot(transform);
       if (hitTestPivot(pivotDoc, docPoint, ctx.zoom)) {
@@ -966,13 +973,14 @@ export class TransformTool implements ToolHandler {
         return "crosshair";
       }
     }
+    const rot = isAffineTransform(transform) ? transform.rotation : 0;
     if (handle) {
       this.hoveredHandle = handle;
-      return cursorForHandle(handle, transform.rotation ?? 0);
+      return cursorForHandle(handle, rot);
     }
     if (isInRotateZone(transform, this.rasterBounds, docPoint, ctx.zoom)) {
       this.hoveredHandle = "rotate";
-      return cursorForHandle("rotate", transform.rotation ?? 0);
+      return cursorForHandle("rotate", rot);
     }
     this.hoveredHandle = null;
     return null;
@@ -1041,7 +1049,8 @@ export class TransformTool implements ToolHandler {
         handle,
         this.dragStart!,
         pt,
-        this.rasterBounds
+        this.rasterBounds,
+        this.dragStartTransform
       );
     }
 
@@ -1066,7 +1075,10 @@ export class TransformTool implements ToolHandler {
       this.rasterBounds,
       this.dragStartTransform
     );
-    return gestureMode === "mesh-warp" ? { ...warped, mode: "mesh-warp" } : warped;
+    if (gestureMode === "mesh-warp" && warped.kind === "quad") {
+      return makeSingleQuadTransform("mesh-warp", warped.quad);
+    }
+    return warped;
   }
 
   /** Single / dual / distort perspective corner drag. */
@@ -1084,26 +1096,16 @@ export class TransformTool implements ToolHandler {
       this.rasterBounds,
       this.dragStartTransform
     );
-    if (gestureMode === "perspective-dual") {
+    if (gestureMode === "perspective-dual" && single.kind === "quad") {
       const primaryQuad = single.quad;
       const seedSecondary =
-        this.dragStartTransform.secondaryQuad ??
-        (primaryQuad
-          ? buildSeedSecondaryQuad(primaryQuad, this.rasterBounds.width / 2)
-          : undefined);
-      return {
-        ...single,
-        mode: "perspective-dual",
-        secondaryQuad: seedSecondary
-      };
+        this.dragStartTransform.kind === "dual-quad"
+          ? this.dragStartTransform.secondaryQuad
+          : buildSeedSecondaryQuad(primaryQuad, this.rasterBounds.width / 2);
+      return makeDualQuadTransform(primaryQuad, seedSecondary);
     }
-    if (gestureMode === "perspective-distort") {
-      // Perspective Distort uses the same live perspective math while
-      // the user defines the four-point quad. The differentiator is the
-      // commit step (inverse-perspective bake to straighten the layer)
-      // — that lands in a follow-up; today the bake reuses the standard
-      // perspective bake which already maps the layer onto the quad.
-      return { ...single, mode: "perspective-distort" };
+    if (gestureMode === "perspective-distort" && single.kind === "quad") {
+      return makeSingleQuadTransform("perspective-distort", single.quad);
     }
     return single;
   }
@@ -1138,9 +1140,6 @@ export class TransformTool implements ToolHandler {
       fromCenter,
       layerCenter
     );
-    if (gestureMode === "scale") {
-      delete next.mode;
-    }
     return next;
   }
 

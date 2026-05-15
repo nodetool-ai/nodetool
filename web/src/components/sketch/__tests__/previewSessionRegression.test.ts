@@ -10,8 +10,12 @@
  */
 
 import { createPreviewSession, type PreviewSession } from "../tools/previewSession";
-import type { LayerTransform } from "../types";
+import { IDENTITY_AFFINE, makeAffineTransform } from "../types";
 import type { ToolContext } from "../tools/types";
+
+const I = () => ({ ...IDENTITY_AFFINE });
+const T = (x: number, y: number, scaleX = 1, scaleY = 1) =>
+  makeAffineTransform({ x, y, scaleX, scaleY });
 
 function makeMockCtx(): ToolContext {
   return {
@@ -76,8 +80,8 @@ describe("previewSession — cancel/supersede/stale-session regression", () => {
 
   it("cancel does not leave stale preview state", () => {
     const ctx = makeMockCtx();
-    session.start(ctx, "layer-1", { x: 0, y: 0 });
-    session.update(ctx, { x: 100, y: 100 });
+    session.start(ctx, "layer-1", I());
+    session.update(ctx, T(100, 100));
     session.cancel(ctx);
 
     // After cancel: session is inactive, no further updates should apply
@@ -87,34 +91,34 @@ describe("previewSession — cancel/supersede/stale-session regression", () => {
 
     // Further updates should be no-ops
     (ctx.setLayerTransformPreview as jest.Mock).mockClear();
-    session.update(ctx, { x: 200, y: 200 });
+    session.update(ctx, T(200, 200));
     expect(ctx.setLayerTransformPreview).not.toHaveBeenCalled();
   });
 
   it("supersede: new session on same layer clears previous properly", () => {
     const ctx = makeMockCtx();
     // First session
-    session.start(ctx, "layer-1", { x: 0, y: 0 });
-    session.update(ctx, { x: 50, y: 50 });
+    session.start(ctx, "layer-1", I());
+    session.update(ctx, T(50, 50));
 
     // Start new session on same layer — should not trigger clearLayerTransformPreview
     // since it's the same layer
     (ctx.clearLayerTransformPreview as jest.Mock).mockClear();
-    session.start(ctx, "layer-1", { x: 0, y: 0 });
+    session.start(ctx, "layer-1", I());
 
     // No clear needed for same layer
     expect(ctx.clearLayerTransformPreview).not.toHaveBeenCalled();
-    expect(session.state.baselineTransform).toEqual({ x: 0, y: 0 });
+    expect(session.state.baselineTransform).toEqual(I());
     expect(session.isActive()).toBe(true);
   });
 
   it("supersede: new session on different layer clears old layer preview", () => {
     const ctx = makeMockCtx();
-    session.start(ctx, "layer-1", { x: 0, y: 0 });
-    session.update(ctx, { x: 50, y: 50 });
+    session.start(ctx, "layer-1", I());
+    session.update(ctx, T(50, 50));
 
     (ctx.clearLayerTransformPreview as jest.Mock).mockClear();
-    session.start(ctx, "layer-2", { x: 10, y: 10 });
+    session.start(ctx, "layer-2", T(10, 10));
 
     // Old preview for layer-1 should be cleared
     expect(ctx.clearLayerTransformPreview).toHaveBeenCalledWith("layer-1");
@@ -125,8 +129,8 @@ describe("previewSession — cancel/supersede/stale-session regression", () => {
     const ctx = makeMockCtx();
 
     for (let i = 0; i < 10; i++) {
-      session.start(ctx, `layer-${i}`, { x: i, y: i });
-      session.update(ctx, { x: i * 10, y: i * 10 });
+      session.start(ctx, `layer-${i}`, T(i, i));
+      session.update(ctx, T(i * 10, i * 10));
       session.cancel(ctx);
     }
 
@@ -137,22 +141,22 @@ describe("previewSession — cancel/supersede/stale-session regression", () => {
 
   it("deactivate (clear) properly cleans up all state", () => {
     const ctx = makeMockCtx();
-    session.start(ctx, "layer-1", { x: 5, y: 10, scaleX: 2, scaleY: 2 });
-    session.update(ctx, { x: 50, y: 100, scaleX: 2, scaleY: 2 });
+    session.start(ctx, "layer-1", T(5, 10, 2, 2));
+    session.update(ctx, T(50, 100, 2, 2));
 
     session.clear(ctx);
 
     expect(session.isActive()).toBe(false);
     expect(session.state.layerId).toBeNull();
-    expect(session.state.baselineTransform).toEqual({ x: 0, y: 0 });
-    expect(session.state.currentTransform).toEqual({ x: 0, y: 0 });
+    expect(session.state.baselineTransform).toEqual(I());
+    expect(session.state.currentTransform).toEqual(I());
     expect(ctx.clearLayerTransformPreview).toHaveBeenCalledWith("layer-1");
   });
 
   it("commit after cancel is a no-op", () => {
     const ctx = makeMockCtx();
-    session.start(ctx, "layer-1", { x: 0, y: 0 });
-    session.update(ctx, { x: 100, y: 100 });
+    session.start(ctx, "layer-1", I());
+    session.update(ctx, T(100, 100));
     session.cancel(ctx);
 
     (ctx.onLayerTransformChange as jest.Mock).mockClear();
@@ -163,8 +167,8 @@ describe("previewSession — cancel/supersede/stale-session regression", () => {
 
   it("cancel after commit is a no-op", () => {
     const ctx = makeMockCtx();
-    session.start(ctx, "layer-1", { x: 0, y: 0 });
-    session.update(ctx, { x: 100, y: 100 });
+    session.start(ctx, "layer-1", I());
+    session.update(ctx, T(100, 100));
     session.commit(ctx);
 
     (ctx.clearLayerTransformPreview as jest.Mock).mockClear();
@@ -176,8 +180,8 @@ describe("previewSession — cancel/supersede/stale-session regression", () => {
 
   it("double-commit is a no-op", () => {
     const ctx = makeMockCtx();
-    session.start(ctx, "layer-1", { x: 0, y: 0 });
-    session.update(ctx, { x: 100, y: 100 });
+    session.start(ctx, "layer-1", I());
+    session.update(ctx, T(100, 100));
     session.commit(ctx);
 
     (ctx.onLayerTransformChange as jest.Mock).mockClear();
@@ -188,7 +192,7 @@ describe("previewSession — cancel/supersede/stale-session regression", () => {
 
   it("clear after cancel cleans up remaining state", () => {
     const ctx = makeMockCtx();
-    session.start(ctx, "layer-1", { x: 0, y: 0 });
+    session.start(ctx, "layer-1", I());
     session.cancel(ctx);
 
     // layerId is still set after cancel (for reference), clear removes it
@@ -198,12 +202,12 @@ describe("previewSession — cancel/supersede/stale-session regression", () => {
 
   it("start clears old layer preview even when session is inactive", () => {
     const ctx = makeMockCtx();
-    session.start(ctx, "layer-1", { x: 0, y: 0 });
+    session.start(ctx, "layer-1", I());
     session.cancel(ctx);
     // Session is now inactive but layerId is still "layer-1"
 
     (ctx.clearLayerTransformPreview as jest.Mock).mockClear();
-    session.start(ctx, "layer-2", { x: 10, y: 10 });
+    session.start(ctx, "layer-2", T(10, 10));
 
     // Old preview for layer-1 should be cleared even though session was inactive
     expect(ctx.clearLayerTransformPreview).toHaveBeenCalledWith("layer-1");

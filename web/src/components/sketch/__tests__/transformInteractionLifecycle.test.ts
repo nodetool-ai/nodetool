@@ -10,7 +10,8 @@ import { getToolHandler } from "../tools";
 import type { ToolContext, ToolPointerEvent } from "../tools";
 import { TransformTool } from "../tools/TransformTool";
 import type { LayerTransform } from "../types";
-import { createDefaultDocument } from "../types";
+import { aff } from "./_transformFixtures";
+import { createDefaultDocument, makeAffineTransform } from "../types";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
 
@@ -137,7 +138,7 @@ describe("TransformTool in-transform undo/redo", () => {
       ...firstLayer,
       id: "layer-2",
       name: "Layer 2",
-      transform: { x: 40, y: 40, scaleX: 1, scaleY: 1, rotation: 0 }
+      transform: makeAffineTransform({ x: 40, y: 40 })
     };
     ctx.doc.layers = [firstLayer, secondLayer];
     // Simulate React's onAutoPickLayer flow: when the parent receives the
@@ -196,7 +197,7 @@ describe("TransformTool in-transform undo/redo", () => {
     const ctx = makeToolContext();
     tool.onActivate!(ctx);
 
-    const current: LayerTransform = { x: 10, y: 20, scaleX: 1, scaleY: 1, rotation: 0 };
+    const current: LayerTransform = makeAffineTransform({ x: 10, y: 20 });
     const result = tool.undoLastAdjustment(current);
     expect(result).toBeNull();
   });
@@ -220,19 +221,11 @@ describe("TransformTool in-transform undo/redo", () => {
     tool.onUp!(ctx);
 
     // Now undo the adjustment
-    const currentTransform: LayerTransform = {
-      x: 8,
-      y: 0,
-      scaleX: 1,
-      scaleY: 1,
-      rotation: 0
-    };
-    const restored = tool.undoLastAdjustment(currentTransform);
-
-    expect(restored).not.toBeNull();
+    const currentTransform: LayerTransform = makeAffineTransform({ x: 8, y: 0 });
+    const restored = aff(tool.undoLastAdjustment(currentTransform)!);
     // Restored should be the original transform (before the drag)
-    expect(restored!.x).toBe(layer.transform.x);
-    expect(restored!.y).toBe(layer.transform.y);
+    expect(restored.x).toBe(aff(layer.transform).x);
+    expect(restored.y).toBe(aff(layer.transform).y);
     // After undo, the redo stack should have one entry
     expect(tool.hasRedoableAdjustments()).toBe(true);
   });
@@ -251,23 +244,16 @@ describe("TransformTool in-transform undo/redo", () => {
     }
     tool.onUp!(ctx);
 
-    const movedTransform: LayerTransform = {
-      x: 8,
-      y: 0,
-      scaleX: 1,
-      scaleY: 1,
-      rotation: 0
-    };
+    const movedTransform = makeAffineTransform({ x: 8, y: 0 });
 
     // Undo
     const restored = tool.undoLastAdjustment(movedTransform);
     expect(restored).not.toBeNull();
 
     // Redo — should give back the moved transform
-    const redone = tool.redoLastAdjustment(restored!);
-    expect(redone).not.toBeNull();
-    expect(redone!.x).toBe(movedTransform.x);
-    expect(redone!.y).toBe(movedTransform.y);
+    const redone = aff(tool.redoLastAdjustment(restored!)!);
+    expect(redone.x).toBe(movedTransform.x);
+    expect(redone.y).toBe(movedTransform.y);
   });
 
   it("clears redo stack when a new drag starts", () => {
@@ -286,7 +272,7 @@ describe("TransformTool in-transform undo/redo", () => {
     tool.onUp!(ctx);
 
     // Undo the first drag
-    const current: LayerTransform = { x: 8, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
+    const current: LayerTransform = makeAffineTransform({ x: 8, y: 0 });
     tool.undoLastAdjustment(current);
     expect(tool.hasRedoableAdjustments()).toBe(true);
 

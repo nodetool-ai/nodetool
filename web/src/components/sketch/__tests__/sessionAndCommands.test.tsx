@@ -254,7 +254,7 @@ describe("useTransformAdapter", () => {
     act(() => {
       setActiveLayerTransformPreview({
         layerId,
-        transform: { x: 0, y: 0, scaleX: 2, scaleY: 0.5, rotation: Math.PI / 4 }
+        transform: { kind: "affine", x: 0, y: 0, scaleX: 2, scaleY: 0.5, rotation: Math.PI / 4 }
       });
     });
 
@@ -280,7 +280,7 @@ describe("useTransformAdapter", () => {
     act(() => {
       setActiveLayerTransformPreview({
         layerId,
-        transform: { x: 0, y: 0, scaleX: 3, scaleY: 3, rotation: 1 }
+        transform: { kind: "affine", x: 0, y: 0, scaleX: 3, scaleY: 3, rotation: 1 }
       });
     });
 

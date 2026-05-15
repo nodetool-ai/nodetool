@@ -8,7 +8,8 @@
 
 import type {
   SketchDocument,
-  LayerEffect
+  LayerEffect,
+  Layer
 } from "../../types";
 import {
   getAncestorGroupOpacityProduct,
@@ -38,94 +39,32 @@ export function drawWithTransform(
   ctx: CanvasRenderingContext2D,
   source: HTMLCanvasElement,
   compositeOffset: { x: number; y: number },
-  layer: {
-    transform: {
-      x?: number;
-      y?: number;
-      scaleX?: number;
-      scaleY?: number;
-      rotation?: number;
-      matrix?: [number, number, number, number, number, number];
-      mode?:
-        | "distort"
-        | "skew"
-        | "perspective"
-        | "warp"
-        | "perspective-dual"
-        | "perspective-distort"
-        | "mesh-warp";
-      quad?: Array<{ x: number; y: number }>;
-      secondaryQuad?: Array<{ x: number; y: number }>;
-    };
-  }
+  layer: Pick<Layer, "transform">
 ): void {
-  if (
-    layer.transform.mode === "perspective-dual" &&
-    layer.transform.quad &&
-    layer.transform.secondaryQuad
-  ) {
-    drawImageToDualQuad(
-      ctx,
-      source,
-      layer.transform.quad.map((point) => ({ x: point.x, y: point.y })) as [
-        { x: number; y: number },
-        { x: number; y: number },
-        { x: number; y: number },
-        { x: number; y: number }
-      ],
-      layer.transform.secondaryQuad.map((point) => ({
-        x: point.x,
-        y: point.y
-      })) as [
-        { x: number; y: number },
-        { x: number; y: number },
-        { x: number; y: number },
-        { x: number; y: number }
-      ]
-    );
-    return;
-  }
-  if (
-    (layer.transform.mode === "perspective" ||
-      layer.transform.mode === "warp" ||
-      layer.transform.mode === "perspective-distort" ||
-      layer.transform.mode === "mesh-warp" ||
-      layer.transform.mode === "distort") &&
-    layer.transform.quad
-  ) {
-    drawImageToQuad(
-      ctx,
-      source,
-      layer.transform.quad.map((point) => ({ x: point.x, y: point.y })) as [
-        { x: number; y: number },
-        { x: number; y: number },
-        { x: number; y: number },
-        { x: number; y: number }
-      ]
-    );
-    return;
-  }
-  if (layer.transform.matrix && layer.transform.mode) {
-    const [a, b, c, d, e, f] = layer.transform.matrix;
-    const originX = compositeOffset.x - (layer.transform.x ?? 0);
-    const originY = compositeOffset.y - (layer.transform.y ?? 0);
-    ctx.setTransform(a, b, c, d, e, f);
-    ctx.drawImage(source, originX, originY);
-    return;
-  }
-  const sx = layer.transform.scaleX ?? 1;
-  const sy = layer.transform.scaleY ?? 1;
-  const rot = layer.transform.rotation ?? 0;
-
-  if (sx !== 1 || sy !== 1 || rot !== 0) {
-    const cx = compositeOffset.x + source.width / 2;
-    const cy = compositeOffset.y + source.height / 2;
-    ctx.translate(cx, cy);
-    ctx.rotate(rot);
-    ctx.scale(sx, sy);
-    ctx.drawImage(source, -source.width / 2, -source.height / 2);
-  } else {
-    ctx.drawImage(source, compositeOffset.x, compositeOffset.y);
+  const t = layer.transform;
+  switch (t.kind) {
+    case "dual-quad":
+      drawImageToDualQuad(ctx, source, t.quad, t.secondaryQuad);
+      return;
+    case "quad":
+      drawImageToQuad(ctx, source, t.quad);
+      return;
+    case "affine": {
+      const sx = t.scaleX;
+      const sy = t.scaleY;
+      const rot = t.rotation;
+      if (sx !== 1 || sy !== 1 || rot !== 0) {
+        const cx = compositeOffset.x + source.width / 2;
+        const cy = compositeOffset.y + source.height / 2;
+        ctx.translate(cx, cy);
+        ctx.rotate(rot);
+        ctx.scale(sx, sy);
+        ctx.drawImage(source, -source.width / 2, -source.height / 2);
+      } else {
+        ctx.drawImage(source, compositeOffset.x, compositeOffset.y);
+      }
+      return;
+    }
   }
 }
 

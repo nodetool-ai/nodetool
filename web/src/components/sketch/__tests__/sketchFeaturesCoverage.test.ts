@@ -49,7 +49,7 @@ function makeLayer(overrides: Partial<Layer> = {}): Layer {
     alphaLock: false,
     blendMode: "normal",
     data: null,
-    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    transform: { kind: "affine", x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
     contentBounds: { x: 0, y: 0, width: 64, height: 64 },
     effects: [],
     ...overrides
@@ -405,7 +405,7 @@ describe("readbackComposite matches display", () => {
         makeLayer({
           id: "layer-1",
           contentBounds: { x: 10, y: 10, width: 32, height: 32 },
-          transform: { x: 0, y: 0 }
+          transform: { kind: "affine", x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 }
         })
       ]
     });

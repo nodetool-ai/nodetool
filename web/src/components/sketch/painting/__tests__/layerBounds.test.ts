@@ -7,6 +7,7 @@ import {
   getLayerCompositeOffset,
   getDocumentViewportLayerBounds
 } from "../layerBounds";
+import { makeAffineTransform } from "../../types";
 
 describe("getLayerRasterBounds", () => {
   it("returns content bounds when fully specified", () => {
@@ -129,7 +130,7 @@ describe("getLayerCompositeOffset", () => {
   it("adds transform offset to content bounds position", () => {
     const layer = {
       contentBounds: { x: 10, y: 20, width: 100, height: 100 },
-      transform: { x: 30, y: 40 }
+      transform: makeAffineTransform({ x: 30, y: 40 })
     };
     expect(getLayerCompositeOffset(layer)).toEqual({ x: 40, y: 60 });
   });
@@ -142,7 +143,7 @@ describe("getLayerCompositeOffset", () => {
   });
 
   it("defaults content bounds to zero", () => {
-    const layer = { transform: { x: 5, y: 10 } };
+    const layer = { transform: makeAffineTransform({ x: 5, y: 10 }) };
     expect(getLayerCompositeOffset(layer)).toEqual({ x: 5, y: 10 });
   });
 
@@ -163,7 +164,7 @@ describe("getDocumentViewportLayerBounds", () => {
       alphaLock: false,
       blendMode: "normal" as const,
       data: null,
-      transform: { x: 30, y: 50 }
+      transform: { kind: "affine", x: 30, y: 50, scaleX: 1, scaleY: 1, rotation: 0 }
     };
     const doc = {
       canvas: { width: 800, height: 600 }

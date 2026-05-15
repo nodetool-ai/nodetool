@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { useSketchStore } from "./state";
 import type { LayerTransform, SketchDocument } from "./types";
+import { IDENTITY_AFFINE } from "./types";
 
 export interface LayerTransformPreview {
   layerId: string;
@@ -49,7 +50,7 @@ export function resolveDisplayedActiveLayerTransform(
   }
 
   const activeLayer = document.layers.find((layer) => layer.id === document.activeLayerId);
-  return activeLayer?.transform ?? { x: 0, y: 0 };
+  return activeLayer?.transform ?? { ...IDENTITY_AFFINE };
 }
 
 export function useDisplayedActiveLayerTransform(): LayerTransform {

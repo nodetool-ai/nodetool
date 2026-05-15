@@ -1,6 +1,7 @@
 import { getLayerCompositeOffset, getCanvasRasterBounds, setCanvasRasterBounds, unionLayerBounds } from "../painting";
 import { buildSketchInternalClipboardCanvas } from "../sketchClipboard";
 import type { Layer, LayerContentBounds, LayerTransform, Selection } from "../types";
+import { isAffineTransform } from "../types";
 import { cloneSelectionMask, getSelectionBounds, sampleMask, selectionHasAnyPixels } from "./selectionMask";
 
 export interface PreparedSelectionFreeTransform {
@@ -149,11 +150,12 @@ function getTransformedSelectionAabb(
   bounds: LayerContentBounds,
   transform: LayerTransform
 ): LayerContentBounds {
-  const scaleX = transform.scaleX ?? 1;
-  const scaleY = transform.scaleY ?? 1;
-  const rotation = transform.rotation ?? 0;
-  const translateX = transform.x ?? 0;
-  const translateY = transform.y ?? 0;
+  const aff = isAffineTransform(transform) ? transform : null;
+  const scaleX = aff?.scaleX ?? 1;
+  const scaleY = aff?.scaleY ?? 1;
+  const rotation = aff?.rotation ?? 0;
+  const translateX = aff?.x ?? 0;
+  const translateY = aff?.y ?? 0;
   const centerX = bounds.x + translateX + bounds.width / 2;
   const centerY = bounds.y + translateY + bounds.height / 2;
   const halfWidth = (bounds.width * scaleX) / 2;
@@ -206,11 +208,12 @@ export function transformSelectionMask(
     return cloneSelectionMask(selection);
   }
 
-  const centerX = sourceBounds.x + (transform.x ?? 0) + sourceBounds.width / 2;
-  const centerY = sourceBounds.y + (transform.y ?? 0) + sourceBounds.height / 2;
+  const aff = isAffineTransform(transform) ? transform : null;
+  const centerX = sourceBounds.x + (aff?.x ?? 0) + sourceBounds.width / 2;
+  const centerY = sourceBounds.y + (aff?.y ?? 0) + sourceBounds.height / 2;
   ctx.translate(centerX - outputBounds.x, centerY - outputBounds.y);
-  ctx.rotate(transform.rotation ?? 0);
-  ctx.scale(transform.scaleX ?? 1, transform.scaleY ?? 1);
+  ctx.rotate(aff?.rotation ?? 0);
+  ctx.scale(aff?.scaleX ?? 1, aff?.scaleY ?? 1);
   ctx.translate(-sourceBounds.width / 2, -sourceBounds.height / 2);
   ctx.drawImage(sourceCanvas, 0, 0);
 

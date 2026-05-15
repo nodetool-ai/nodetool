@@ -12,12 +12,24 @@
  */
 
 import type {
+  AffineTransform,
   LayerTransform,
   LayerContentBounds,
   Layer,
   SketchDocument
 } from "../types";
-import { composeAffineMatrix, ensureTransformMatrix } from "../types";
+import {
+  IDENTITY_AFFINE,
+  isAffineTransform,
+  makeAffineTransform,
+  makeSingleQuadTransform
+} from "../types";
+import {
+  aff,
+  quadOf,
+  fxComposeMatrix as composeAffineMatrix,
+  fxEnsureTransform as ensureTransformMatrix
+} from "./_transformFixtures";
 import {
   mergeTransformPreview,
   createMovePreview,
@@ -59,7 +71,13 @@ import { cursorForHandle, ROTATE_CURSOR_CSS } from "../tools/transform/cursorMap
 
 // ─── Test helpers ────────────────────────────────────────────────────────────
 
-function makeTransform(overrides?: Partial<LayerTransform>): LayerTransform {
+function makeTransform(overrides?: Partial<{
+  x: number;
+  y: number;
+  scaleX: number;
+  scaleY: number;
+  rotation: number;
+}>): AffineTransform {
   return ensureTransformMatrix({
     x: 0,
     y: 0,
@@ -100,7 +118,7 @@ describe("Package B: move preview preserves full transform", () => {
     const layer = makeLayer({
       transform: makeTransform({ x: 50, y: 50 })
     });
-    const preview = createMovePreview(layer, 100, 100);
+    const preview = aff(createMovePreview(layer, 100, 100));
 
     expect(preview.x).toBe(100);
     expect(preview.y).toBe(100);
@@ -114,7 +132,7 @@ describe("Package B: move preview preserves full transform", () => {
     const layer = makeLayer({
       transform: makeTransform({ x: 10, y: 10, scaleX: 2, scaleY: 0.5 })
     });
-    const preview = createMovePreview(layer, 50, 50);
+    const preview = aff(createMovePreview(layer, 50, 50));
 
     expect(preview.x).toBe(50);
     expect(preview.y).toBe(50);
@@ -126,7 +144,7 @@ describe("Package B: move preview preserves full transform", () => {
     const layer = makeLayer({
       transform: makeTransform({ rotation: Math.PI / 4 })
     });
-    const preview = createMovePreview(layer, 30, 40);
+    const preview = aff(createMovePreview(layer, 30, 40));
 
     expect(preview.rotation).toBe(Math.PI / 4);
   });
@@ -141,14 +159,14 @@ describe("Package B: move preview preserves full transform", () => {
         rotation: Math.PI / 6
       })
     });
-    const preview = createMovePreview(layer, 120, 130);
+    const preview = aff(createMovePreview(layer, 120, 130));
 
     expect(preview.scaleX).toBe(1.5);
     expect(preview.scaleY).toBe(0.8);
     expect(preview.rotation).toBe(Math.PI / 6);
     expect(preview.x).toBe(120);
     expect(preview.y).toBe(130);
-    expect(preview.matrix).toBeDefined();
+    // Renderer derives the matrix on demand via affineToMatrix(preview).
     expect(isCompleteTransform(preview)).toBe(true);
   });
 
@@ -163,7 +181,10 @@ describe("Package B: move preview preserves full transform", () => {
     const layer = makeLayer({ transform: base });
 
     const viaHelper = createMovePreview(layer, 40, 50);
-    const viaMerge = mergeTransformPreview(base, { x: 40, y: 50 });
+    const viaMerge = mergeTransformPreview(
+      base,
+      makeAffineTransform({ ...base, x: 40, y: 50 })
+    );
 
     expect(viaHelper).toEqual(viaMerge);
   });
@@ -176,11 +197,11 @@ describe("Package B: move preview preserves full transform", () => {
       scaleY: 0.5,
       rotation: 1.2
     });
-    const result = computeMoveTransform(
+    const result = aff(computeMoveTransform(
       dragStart,
       { x: 100, y: 100 },
       { x: 120, y: 130 }
-    );
+    ));
 
     expect(result.x).toBe(30); // 10 + (120-100)
     expect(result.y).toBe(50); // 20 + (130-100)
@@ -403,7 +424,7 @@ describe("Package B: left/top handle correctness", () => {
     const dragStart = { x: center.x - 50, y: center.y };
     const cursor = { x: center.x - 30, y: center.y }; // moved 20px inward
 
-    const result = computeScaleTransform(
+    const result = aff(computeScaleTransform(
       transform,
       dragStart,
       cursor,
@@ -412,7 +433,7 @@ describe("Package B: left/top handle correctness", () => {
       "left",
       false,
       true // alt=true: scale from center
-    );
+    ));
 
     // Scale should be less than 1 (inward means smaller)
     expect(result.scaleX).toBeLessThan(1);
@@ -424,7 +445,7 @@ describe("Package B: left/top handle correctness", () => {
     const dragStart = { x: center.x - 50, y: center.y };
     const cursor = { x: center.x - 70, y: center.y }; // moved 20px outward
 
-    const result = computeScaleTransform(
+    const result = aff(computeScaleTransform(
       transform,
       dragStart,
       cursor,
@@ -433,7 +454,7 @@ describe("Package B: left/top handle correctness", () => {
       "left",
       false,
       true
-    );
+    ));
 
     expect(result.scaleX).toBeGreaterThan(1);
   });
@@ -444,7 +465,7 @@ describe("Package B: left/top handle correctness", () => {
     const dragStart = { x: center.x, y: center.y - 50 };
     const cursor = { x: center.x, y: center.y - 30 }; // moved 20px inward
 
-    const result = computeScaleTransform(
+    const result = aff(computeScaleTransform(
       transform,
       dragStart,
       cursor,
@@ -453,7 +474,7 @@ describe("Package B: left/top handle correctness", () => {
       "top",
       false,
       true
-    );
+    ));
 
     expect(result.scaleY).toBeLessThan(1);
   });
@@ -464,7 +485,7 @@ describe("Package B: left/top handle correctness", () => {
     const dragStart = { x: center.x, y: center.y - 50 };
     const cursor = { x: center.x, y: center.y - 70 }; // moved 20px outward
 
-    const result = computeScaleTransform(
+    const result = aff(computeScaleTransform(
       transform,
       dragStart,
       cursor,
@@ -473,7 +494,7 @@ describe("Package B: left/top handle correctness", () => {
       "top",
       false,
       true
-    );
+    ));
 
     expect(result.scaleY).toBeGreaterThan(1);
   });
@@ -485,7 +506,7 @@ describe("Package B: left/top handle correctness", () => {
 
     // Drag outward (both axes)
     const cursorOut = { x: center.x - 70, y: center.y - 70 };
-    const resultOut = computeScaleTransform(
+    const resultOut = aff(computeScaleTransform(
       transform,
       dragStart,
       cursorOut,
@@ -494,13 +515,13 @@ describe("Package B: left/top handle correctness", () => {
       "top-left",
       false,
       true
-    );
+    ));
     expect(resultOut.scaleX).toBeGreaterThan(1);
     expect(resultOut.scaleY).toBeGreaterThan(1);
 
     // Drag inward (both axes)
     const cursorIn = { x: center.x - 30, y: center.y - 30 };
-    const resultIn = computeScaleTransform(
+    const resultIn = aff(computeScaleTransform(
       transform,
       dragStart,
       cursorIn,
@@ -509,7 +530,7 @@ describe("Package B: left/top handle correctness", () => {
       "top-left",
       false,
       true
-    );
+    ));
     expect(resultIn.scaleX).toBeLessThan(1);
     expect(resultIn.scaleY).toBeLessThan(1);
   });
@@ -521,7 +542,7 @@ describe("Package B: left/top handle correctness", () => {
     // Drag right handle outward
     const rightStart = { x: center.x + 50, y: center.y };
     const rightOut = { x: center.x + 70, y: center.y };
-    const resultRight = computeScaleTransform(
+    const resultRight = aff(computeScaleTransform(
       transform,
       rightStart,
       rightOut,
@@ -530,12 +551,12 @@ describe("Package B: left/top handle correctness", () => {
       "right",
       false,
       true
-    );
+    ));
 
     // Drag left handle outward (same magnitude)
     const leftStart = { x: center.x - 50, y: center.y };
     const leftOut = { x: center.x - 70, y: center.y };
-    const resultLeft = computeScaleTransform(
+    const resultLeft = aff(computeScaleTransform(
       transform,
       leftStart,
       leftOut,
@@ -544,10 +565,10 @@ describe("Package B: left/top handle correctness", () => {
       "left",
       false,
       true
-    );
+    ));
 
     // Both should produce the same scale increase
-    expect(resultRight.scaleX ?? 1).toBeCloseTo(resultLeft.scaleX ?? 1, 5);
+    expect(resultRight.scaleX).toBeCloseTo(resultLeft.scaleX, 5);
   });
 
   it("bottom handle direction is consistent with top handle", () => {
@@ -556,7 +577,7 @@ describe("Package B: left/top handle correctness", () => {
 
     const bottomStart = { x: center.x, y: center.y + 50 };
     const bottomOut = { x: center.x, y: center.y + 70 };
-    const resultBottom = computeScaleTransform(
+    const resultBottom = aff(computeScaleTransform(
       transform,
       bottomStart,
       bottomOut,
@@ -565,11 +586,11 @@ describe("Package B: left/top handle correctness", () => {
       "bottom",
       false,
       true
-    );
+    ));
 
     const topStart = { x: center.x, y: center.y - 50 };
     const topOut = { x: center.x, y: center.y - 70 };
-    const resultTop = computeScaleTransform(
+    const resultTop = aff(computeScaleTransform(
       transform,
       topStart,
       topOut,
@@ -578,9 +599,9 @@ describe("Package B: left/top handle correctness", () => {
       "top",
       false,
       true
-    );
+    ));
 
-    expect(resultBottom.scaleY ?? 1).toBeCloseTo(resultTop.scaleY ?? 1, 5);
+    expect(resultBottom.scaleY).toBeCloseTo(resultTop.scaleY, 5);
   });
 
   it("left handle anchor offset keeps the right edge fixed", () => {
@@ -590,7 +611,7 @@ describe("Package B: left/top handle correctness", () => {
     // Drag left handle outward (to the left) to grow
     const leftStart = { x: center.x - 50, y: center.y };
     const leftOut = { x: center.x - 70, y: center.y };
-    const result = computeScaleTransform(
+    const result = aff(computeScaleTransform(
       transform,
       leftStart,
       leftOut,
@@ -599,17 +620,17 @@ describe("Package B: left/top handle correctness", () => {
       "left",
       false,
       false // alt=false, so opposite edge should be anchored
-    );
+    ));
 
     // The right edge position in document space should stay fixed.
     // Scale is applied around the center of the raster bounds, so:
     // right_edge = (tx + bx + bw/2) + bw * scaleX / 2
     const originalRightEdge =
       transform.x + bounds.x + bounds.width / 2 +
-      (bounds.width * (transform.scaleX ?? 1)) / 2;
+      (bounds.width * transform.scaleX) / 2;
     const newRightEdge =
       result.x + bounds.x + bounds.width / 2 +
-      (bounds.width * (result.scaleX ?? 1)) / 2;
+      (bounds.width * result.scaleX) / 2;
     expect(newRightEdge).toBeCloseTo(originalRightEdge, 0);
   });
 
@@ -620,7 +641,7 @@ describe("Package B: left/top handle correctness", () => {
     // Drag top handle outward (upward) to grow
     const topStart = { x: center.x, y: center.y - 50 };
     const topOut = { x: center.x, y: center.y - 70 };
-    const result = computeScaleTransform(
+    const result = aff(computeScaleTransform(
       transform,
       topStart,
       topOut,
@@ -629,16 +650,16 @@ describe("Package B: left/top handle correctness", () => {
       "top",
       false,
       false // alt=false, so opposite edge should be anchored
-    );
+    ));
 
     // The bottom edge position in document space should stay fixed.
     // bottom_edge = (ty + by + bh/2) + bh * scaleY / 2
     const originalBottomEdge =
       transform.y + bounds.y + bounds.height / 2 +
-      (bounds.height * (transform.scaleY ?? 1)) / 2;
+      (bounds.height * transform.scaleY) / 2;
     const newBottomEdge =
       result.y + bounds.y + bounds.height / 2 +
-      (bounds.height * (result.scaleY ?? 1)) / 2;
+      (bounds.height * result.scaleY) / 2;
     expect(newBottomEdge).toBeCloseTo(originalBottomEdge, 0);
   });
 });
@@ -652,7 +673,7 @@ describe("Package B: transform computation correctness", () => {
     const transform = makeTransform({ x: 10, y: 20, scaleX: 2, scaleY: 2 });
     const center = getTransformedCenter(transform, bounds);
 
-    const result = computeTransformForHandle(
+    const result = aff(computeTransformForHandle(
       "move",
       transform,
       { x: 50, y: 50 },
@@ -661,7 +682,7 @@ describe("Package B: transform computation correctness", () => {
       bounds,
       false,
       false
-    );
+    ));
 
     expect(result.x).toBe(20); // 10 + (60-50)
     expect(result.y).toBe(40); // 20 + (70-50)
@@ -674,7 +695,7 @@ describe("Package B: transform computation correctness", () => {
     const center = getTransformedCenter(transform, bounds);
 
     // Drag from directly above center to directly right of center
-    const result = computeTransformForHandle(
+    const result = aff(computeTransformForHandle(
       "rotate",
       transform,
       { x: center.x, y: center.y - 50 },
@@ -683,7 +704,7 @@ describe("Package B: transform computation correctness", () => {
       bounds,
       false,
       false
-    );
+    ));
 
     // Should rotate approximately 90° (π/2)
     expect(result.rotation).toBeCloseTo(Math.PI / 2, 1);
@@ -693,7 +714,7 @@ describe("Package B: transform computation correctness", () => {
     const transform = makeTransform({ x: 0, y: 0 });
     const center = getTransformedCenter(transform, bounds);
 
-    const result = computeTransformForHandle(
+    const result = aff(computeTransformForHandle(
       "rotate",
       transform,
       { x: center.x, y: center.y - 50 },
@@ -702,11 +723,11 @@ describe("Package B: transform computation correctness", () => {
       bounds,
       true, // shift
       false
-    );
+    ));
 
     // Result should be a multiple of 15° (π/12)
     const step = Math.PI / 12;
-    const remainder = Math.abs(result.rotation! % step);
+    const remainder = Math.abs(result.rotation % step);
     expect(Math.min(remainder, step - remainder)).toBeCloseTo(0, 5);
   });
 
@@ -714,7 +735,7 @@ describe("Package B: transform computation correctness", () => {
     const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
     const center = getTransformedCenter(transform, bounds);
 
-    const result = computeTransformForHandle(
+    const result = aff(computeTransformForHandle(
       "bottom-right",
       transform,
       { x: center.x + 50, y: center.y + 50 },
@@ -723,9 +744,9 @@ describe("Package B: transform computation correctness", () => {
       bounds,
       true, // shift = proportional
       true // alt = scale from center
-    );
+    ));
 
-    expect(result.scaleX).toBeCloseTo(result.scaleY!, 5);
+    expect(result.scaleX).toBeCloseTo(result.scaleY, 5);
     expect(result.scaleX).toBeGreaterThan(1);
   });
 
@@ -733,7 +754,7 @@ describe("Package B: transform computation correctness", () => {
     const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
     const center = getTransformedCenter(transform, bounds);
 
-    const result = computeTransformForHandle(
+    const result = aff(computeTransformForHandle(
       "right",
       transform,
       { x: center.x + 50, y: center.y },
@@ -742,7 +763,7 @@ describe("Package B: transform computation correctness", () => {
       bounds,
       false,
       false // alt = false → anchor opposite edge
-    );
+    ));
 
     // Scale should increase (dragged right handle outward)
     expect(result.scaleX).toBeGreaterThan(1);
@@ -751,9 +772,9 @@ describe("Package B: transform computation correctness", () => {
     // The left edge should remain at its original position (within ±1px
     // rounding from Math.round in the anchor offset).
     const originalLeftEdge =
-      transform.x + bounds.x + bounds.width / 2 - (bounds.width * (transform.scaleX ?? 1)) / 2;
+      transform.x + bounds.x + bounds.width / 2 - (bounds.width * transform.scaleX) / 2;
     const newLeftEdge =
-      result.x + bounds.x + bounds.width / 2 - (bounds.width * (result.scaleX ?? 1)) / 2;
+      result.x + bounds.x + bounds.width / 2 - (bounds.width * result.scaleX) / 2;
     expect(Math.abs(newLeftEdge - originalLeftEdge)).toBeLessThanOrEqual(1);
   });
 });
@@ -803,7 +824,7 @@ describe("Package B: advanced transform modes", () => {
     const dragStart = corners[0];
     const cursor = { x: dragStart.x + 20, y: dragStart.y + 10 };
 
-    const result = computeDistortTransform(
+    const result = quadOf(computeDistortTransform(
       corners,
       "top-left",
       dragStart,
@@ -811,7 +832,7 @@ describe("Package B: advanced transform modes", () => {
       bounds,
       false,
       transform
-    );
+    ));
     const nextCorners = getTransformedCorners(result, bounds);
 
     expect(nextCorners[0].x).toBeCloseTo(cursor.x, 5);
@@ -851,7 +872,9 @@ describe("Package B: advanced transform modes", () => {
     };
     const cursor = { x: topMid.x + 25, y: topMid.y + 15 };
 
-    const result = computeSkewTransform(corners, "top", topMid, cursor, bounds);
+    const result = quadOf(
+      computeSkewTransform(corners, "top", topMid, cursor, bounds, transform)
+    );
     const nextCorners = getTransformedCorners(result, bounds);
 
     expect(nextCorners[0].x).toBeGreaterThan(corners[0].x);
@@ -867,14 +890,14 @@ describe("Package B: advanced transform modes", () => {
     const dragStart = corners[0];
     const cursor = { x: dragStart.x - 20, y: dragStart.y + 12 };
 
-    const result = computePerspectiveTransform(
+    const result = quadOf(computePerspectiveTransform(
       corners,
       "top-left",
       dragStart,
       cursor,
       bounds,
       transform
-    );
+    ));
     const nextCorners = getTransformedCorners(result, bounds);
 
     expect(result.mode).toBe("perspective");
@@ -891,14 +914,14 @@ describe("Package B: advanced transform modes", () => {
     const dragStart = corners[0];
     const cursor = { x: dragStart.x - 18, y: dragStart.y + 14 };
 
-    const result = computeWarpTransform(
+    const result = quadOf(computeWarpTransform(
       corners,
       "top-left",
       dragStart,
       cursor,
       bounds,
       transform
-    );
+    ));
     const nextCorners = getTransformedCorners(result, bounds);
 
     expect(result.mode).toBe("warp");
@@ -1023,10 +1046,10 @@ describe("Package B: move-after-transform round-trip", () => {
     const bounds = makeBounds({ width: 100, height: 100 });
 
     // Move to (50, 50)
-    const movedTransform = mergeTransformPreview(scaledTransform, {
-      x: 50,
-      y: 50
-    });
+    const movedTransform = mergeTransformPreview(
+      scaledTransform,
+      makeAffineTransform({ ...scaledTransform, x: 50, y: 50 })
+    );
 
     // Geometry should show 200x200 layer at (50, 50) offset
     const geo = resolveLayerGeometry({
@@ -1048,10 +1071,10 @@ describe("Package B: move-after-transform round-trip", () => {
     });
     const bounds = makeBounds({ width: 100, height: 100 });
 
-    const movedTransform = mergeTransformPreview(rotatedTransform, {
-      x: 50,
-      y: 50
-    });
+    const movedTransform = mergeTransformPreview(
+      rotatedTransform,
+      makeAffineTransform({ ...rotatedTransform, x: 50, y: 50 })
+    );
 
     const geo = resolveLayerGeometry({
       transform: movedTransform,
@@ -1070,13 +1093,19 @@ describe("Package B: move-after-transform round-trip", () => {
     const initial = makeTransform({ x: 0, y: 0, scaleX: 1.5, scaleY: 1.5 });
 
     // First move: to (10, 20)
-    const after1 = mergeTransformPreview(initial, { x: 10, y: 20 });
+    const after1 = aff(mergeTransformPreview(
+      initial,
+      makeAffineTransform({ ...initial, x: 10, y: 20 })
+    ));
     expect(after1.x).toBe(10);
     expect(after1.y).toBe(20);
     expect(after1.scaleX).toBe(1.5);
 
     // Second move: to (30, 50) (from the first move result)
-    const after2 = mergeTransformPreview(after1, { x: 30, y: 50 });
+    const after2 = aff(mergeTransformPreview(
+      after1,
+      makeAffineTransform({ ...after1, x: 30, y: 50 })
+    ));
     expect(after2.x).toBe(30);
     expect(after2.y).toBe(50);
     expect(after2.scaleX).toBe(1.5);

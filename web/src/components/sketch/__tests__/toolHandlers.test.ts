@@ -27,7 +27,8 @@ import { BlurTool } from "../tools/BlurTool";
 import { CloneStampTool } from "../tools/CloneStampTool";
 import { SegmentTool } from "../tools/SegmentTool";
 import type { SketchTool } from "../types";
-import { createDefaultDocument, createDefaultLayer } from "../types";
+import { createDefaultDocument, createDefaultLayer, makeAffineTransform } from "../types";
+import { aff } from "./_transformFixtures";
 import { rectSelectionMask } from "../selection";
 import { useSketchStore } from "../state/useSketchStore";
 import * as magicWandAsync from "../selection/magicWandAsync";
@@ -410,10 +411,10 @@ describe("TransformTool", () => {
     const tool = new TransformTool();
     const doc = createDefaultDocument(64, 64);
     const layer = doc.layers[0];
-    layer.transform = { x: 5, y: 10, scaleX: 2, scaleY: 1.5, rotation: 0.5 };
+    layer.transform = makeAffineTransform({ x: 5, y: 10, scaleX: 2, scaleY: 1.5, rotation: 0.5 });
     const ctx = makeToolContext({ doc });
     tool.onActivate!(ctx);
-    const orig = tool.getOriginalTransform();
+    const orig = aff(tool.getOriginalTransform());
     expect(orig.x).toBe(5);
     expect(orig.y).toBe(10);
     expect(orig.scaleX).toBe(2);
@@ -489,7 +490,7 @@ describe("TransformTool", () => {
       ...doc.layers[0],
       id: "layer-2",
       name: "Layer 2",
-      transform: { x: 100, y: 50, scaleX: 1, scaleY: 1, rotation: 0 }
+      transform: makeAffineTransform({ x: 100, y: 50 })
     };
     doc.layers = [doc.layers[0], layer2];
 
@@ -502,8 +503,8 @@ describe("TransformTool", () => {
       ...ctx,
       doc: { ...doc, activeLayerId: layer2.id }
     });
-    expect(tool.getOriginalTransform().x).toBe(100);
-    expect(tool.getOriginalTransform().y).toBe(50);
+    expect(aff(tool.getOriginalTransform()).x).toBe(100);
+    expect(aff(tool.getOriginalTransform()).y).toBe(50);
   });
 
   it("calls onStrokeEnd on pointer up", () => {
@@ -587,7 +588,7 @@ describe("TransformTool", () => {
     activeLayer.contentBounds = { x: 0, y: 0, width: 32, height: 32 };
 
     const pickedLayer = createDefaultLayer("Picked", "raster", 32, 32);
-    pickedLayer.transform = { x: 150, y: 0 };
+    pickedLayer.transform = makeAffineTransform({ x: 150, y: 0 });
     pickedLayer.contentBounds = { x: 0, y: 0, width: 32, height: 32 };
     doc.layers = [activeLayer, pickedLayer];
     doc.activeLayerId = activeLayer.id;
@@ -645,7 +646,7 @@ describe("TransformTool", () => {
     bottom.contentBounds = { x: 0, y: 0, width: 32, height: 32 };
 
     const top = createDefaultLayer("Top", "raster", 32, 32);
-    top.transform = { x: 140, y: 0 };
+    top.transform = makeAffineTransform({ x: 140, y: 0 });
     top.contentBounds = { x: 0, y: 0, width: 32, height: 32 };
     doc.layers = [bottom, top];
     doc.activeLayerId = top.id;
@@ -1088,7 +1089,7 @@ describe("ShapeTool", () => {
           {
             ...baseDoc.layers[0],
             id: layerId,
-            transform: { x: 16, y: 8 },
+            transform: makeAffineTransform({ x: 16, y: 8 }),
             contentBounds: { x: 0, y: 0, width: 64, height: 64 }
           }
         ]

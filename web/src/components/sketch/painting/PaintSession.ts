@@ -20,6 +20,7 @@
  */
 
 import type { Point, Layer, Selection } from "../types";
+import { IDENTITY_AFFINE } from "../types";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
 import type { PaintEngine } from "./PaintEngine";
 import type { ActiveStrokeInfo } from "../rendering";
@@ -103,7 +104,7 @@ export class PaintSession {
   private engine: PaintEngine;
   private layer: Layer | null = null;
   private mapper: CoordinateMapper = new CoordinateMapper({
-    layerTransform: { x: 0, y: 0 }
+    layerTransform: { ...IDENTITY_AFFINE }
   });
 
   // ── Stroke state ──────────────────────────────────────────────────

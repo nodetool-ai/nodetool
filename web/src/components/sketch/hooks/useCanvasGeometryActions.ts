@@ -10,6 +10,8 @@ import type { Asset } from "../../../stores/ApiTypes";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import {
   createDefaultLayer,
+  IDENTITY_AFFINE,
+  isAffineTransform,
   type LayerContentBounds,
   type LayerTransform,
   type Point,
@@ -85,9 +87,9 @@ function drawLayerSnapshotWithTransform(
   compositeOffset: Point,
   transform: LayerTransform
 ): void {
-  const scaleX = transform.scaleX ?? 1;
-  const scaleY = transform.scaleY ?? 1;
-  const rotation = transform.rotation ?? 0;
+  const scaleX = isAffineTransform(transform) ? transform.scaleX : 1;
+  const scaleY = isAffineTransform(transform) ? transform.scaleY : 1;
+  const rotation = isAffineTransform(transform) ? transform.rotation : 0;
 
   if (scaleX !== 1 || scaleY !== 1 || rotation !== 0) {
     const centerX = compositeOffset.x + source.width / 2;
@@ -107,9 +109,9 @@ function getTransformedLayerExtents(
   compositeOffset: Point,
   transform: LayerTransform
 ): LayerContentBounds {
-  const scaleX = transform.scaleX ?? 1;
-  const scaleY = transform.scaleY ?? 1;
-  const rotation = transform.rotation ?? 0;
+  const scaleX = isAffineTransform(transform) ? transform.scaleX : 1;
+  const scaleY = isAffineTransform(transform) ? transform.scaleY : 1;
+  const rotation = isAffineTransform(transform) ? transform.rotation : 0;
   const centerX = compositeOffset.x + source.width / 2;
   const centerY = compositeOffset.y + source.height / 2;
 
@@ -213,7 +215,7 @@ export function useCanvasGeometryActions({
         },
         layers: state.document.layers.map((layer) => ({
           ...layer,
-          transform: { x: 0, y: 0 },
+          transform: { ...IDENTITY_AFFINE },
           contentBounds: {
             x: 0,
             y: 0,

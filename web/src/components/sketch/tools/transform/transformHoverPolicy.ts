@@ -14,6 +14,7 @@
 
 import type { ToolContext } from "../types";
 import type { Point, LayerTransform, LayerContentBounds } from "../../types";
+import { isAffineTransform } from "../../types";
 import { cursorStyleForTool } from "../../sketchCursorStyle";
 import type { TransformHandle } from "./handleGeometry";
 import { hitTestHandles, isInRotateZone } from "./handleGeometry";
@@ -34,7 +35,7 @@ export function getTransformHoverInfo(
   zoom: number
 ): { handle: TransformHandle | null; cursor: string | null } {
   const handle = hitTestHandles(transform, rasterBounds, docPoint, zoom);
-  const rot = transform.rotation ?? 0;
+  const rot = isAffineTransform(transform) ? transform.rotation : 0;
   if (handle) {
     return { handle, cursor: cursorForHandle(handle, rot) };
   }

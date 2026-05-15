@@ -4,7 +4,7 @@
 import React from "react";
 import { act, renderHook } from "@testing-library/react";
 import { useSketchStore } from "../state/useSketchStore";
-import { createDefaultDocument, type LayerTransform } from "../types";
+import { createDefaultDocument, makeAffineTransform, type LayerTransform } from "../types";
 import {
   clearActiveLayerTransformPreview,
   resolveDisplayedActiveLayerTransform,
@@ -23,13 +23,13 @@ beforeEach(() => {
 describe("resolveDisplayedActiveLayerTransform", () => {
   it("uses the document transform when there is no preview", () => {
     const doc = createDefaultDocument(64, 64);
-    const storedTransform: LayerTransform = {
+    const storedTransform: LayerTransform = makeAffineTransform({
       x: 12,
       y: 8,
       scaleX: 1.25,
       scaleY: 0.75,
       rotation: Math.PI / 6
-    };
+    });
     doc.layers[0].transform = storedTransform;
 
     expect(resolveDisplayedActiveLayerTransform(doc, null)).toEqual(storedTransform);
@@ -37,22 +37,16 @@ describe("resolveDisplayedActiveLayerTransform", () => {
 
   it("uses the active layer preview transform when available", () => {
     const doc = createDefaultDocument(64, 64);
-    doc.layers[0].transform = {
-      x: 0,
-      y: 0,
-      scaleX: 1,
-      scaleY: 1,
-      rotation: 0
-    };
+    doc.layers[0].transform = makeAffineTransform({});
     const preview: LayerTransformPreview = {
       layerId: doc.activeLayerId,
-      transform: {
+      transform: makeAffineTransform({
         x: 20,
         y: -4,
         scaleX: 1.4,
         scaleY: 0.9,
         rotation: Math.PI / 4
-      }
+      })
     };
 
     expect(resolveDisplayedActiveLayerTransform(doc, preview)).toEqual(preview.transform);
@@ -60,22 +54,22 @@ describe("resolveDisplayedActiveLayerTransform", () => {
 
   it("ignores previews for non-active layers", () => {
     const doc = createDefaultDocument(64, 64);
-    doc.layers[0].transform = {
+    doc.layers[0].transform = makeAffineTransform({
       x: 3,
       y: 7,
       scaleX: 0.8,
       scaleY: 1.1,
       rotation: Math.PI / 8
-    };
+    });
     const preview: LayerTransformPreview = {
       layerId: "other-layer",
-      transform: {
+      transform: makeAffineTransform({
         x: 50,
         y: 60,
         scaleX: 2,
         scaleY: 2,
         rotation: Math.PI / 2
-      }
+      })
     };
 
     expect(resolveDisplayedActiveLayerTransform(doc, preview)).toEqual(
@@ -95,13 +89,13 @@ describe("useDisplayedActiveLayerTransform", () => {
       useSketchStore.getState().document.layers[0].transform
     );
 
-    const previewTransform: LayerTransform = {
+    const previewTransform: LayerTransform = makeAffineTransform({
       x: 24,
       y: -6,
       scaleX: 1.5,
       scaleY: 0.8,
       rotation: Math.PI / 3
-    };
+    });
 
     act(() => {
       setActiveLayerTransformPreview({
@@ -126,13 +120,13 @@ describe("useDisplayedActiveLayerTransform", () => {
     act(() => {
       setActiveLayerTransformPreview({
         layerId: "different-layer",
-        transform: {
+        transform: makeAffineTransform({
           x: 100,
           y: 100,
           scaleX: 2,
           scaleY: 2,
           rotation: Math.PI / 2
-        }
+        })
       });
     });
 

@@ -19,6 +19,7 @@
  */
 
 import type { LayerTransform } from "../types";
+import { IDENTITY_AFFINE } from "../types";
 import type { ToolContext } from "./types";
 
 // ── Session state ─────────────────────────────────────────────────────────────
@@ -65,7 +66,7 @@ export interface PreviewSession {
 
 // ── Default identity transform ────────────────────────────────────────────────
 
-const IDENTITY_TRANSFORM: LayerTransform = { x: 0, y: 0 };
+const IDENTITY_TRANSFORM: LayerTransform = { ...IDENTITY_AFFINE };
 
 // ── Factory ───────────────────────────────────────────────────────────────────
 

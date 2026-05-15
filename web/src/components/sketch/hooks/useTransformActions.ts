@@ -11,7 +11,11 @@ import type { SketchCanvasRef } from "../SketchCanvas";
 import { getToolHandler } from "../tools";
 import { TransformTool } from "../tools/TransformTool";
 import {
+  IDENTITY_AFFINE,
+  cloneTransform,
+  isAffineTransform,
   layerAllowsTransformWhilePixelLocked,
+  makeAffineTransform,
   type LayerContentBounds,
   type LayerTransform,
   type Point,
@@ -40,7 +44,7 @@ export interface UseTransformActionsParams {
   ) => void;
   updateLayerData: (layerId: string, data: string | null) => void;
   offsetLayerTransform: (layerId: string, dx: number, dy: number) => void;
-  commitLayerTransform: (layerId: string, transform: Point) => void;
+  commitLayerTransform: (layerId: string, transform: LayerTransform) => void;
   setLayerTransform: (layerId: string, transform: LayerTransform) => void;
   setLayerContentBounds: (
     layerId: string,
@@ -63,25 +67,6 @@ interface RepeatableTransformRecord {
   selectionScoped: boolean;
 }
 
-function cloneTransform(transform: LayerTransform): LayerTransform {
-  if (typeof structuredClone === "function") {
-    return structuredClone(transform);
-  }
-  return JSON.parse(JSON.stringify(transform)) as LayerTransform;
-}
-
-/**
- * Drop advanced affine metadata before applying standard rotate/flip actions.
- *
- * Those operations recompute a fresh decomposed transform; carrying an older
- * matrix-backed skew/distort state forward would leave the matrix stale.
- */
-function stripAdvancedTransformFields(
-  transform: LayerTransform
-): LayerTransform {
-  const { matrix: _matrix, mode: _mode, quad: _quad, ...rest } = transform;
-  return rest;
-}
 
 /** Runtime canvas snapshots for history restore (multi-layer bake, etc.). */
 function snapshotLayersForHistory(
@@ -166,7 +151,7 @@ export function useTransformActions({
       for (const id of targetIds) {
         const layer = document.layers.find((l) => l.id === id);
         if (layer) {
-          map[id] = { ...layer.transform };
+          map[id] = cloneTransform(layer.transform);
         }
       }
       multiTransformOriginalRef.current = map;
@@ -181,7 +166,7 @@ export function useTransformActions({
       ? document.layers.find((l) => l.id === soleId)
       : undefined;
     if (layer) {
-      transformOriginalRef.current = { ...layer.transform };
+      transformOriginalRef.current = cloneTransform(layer.transform);
     }
   }, [document]);
 
@@ -342,7 +327,7 @@ export function useTransformActions({
         canvas.restoreLayerCanvas(layerId, finalCanvas);
         updateLayerData(layerId, finalData);
         setLayerContentBounds(layerId, bounds);
-        setLayerTransform(layerId, { x: 0, y: 0 });
+        setLayerTransform(layerId, { ...IDENTITY_AFFINE });
         setSelection(transformedSelection);
         syncSketchOutputsNow();
         return true;
@@ -379,7 +364,7 @@ export function useTransformActions({
       canvas.restoreLayerCanvas(layerId, reconciledCanvas);
       updateLayerData(layerId, reconciledData);
       setLayerContentBounds(layerId, bounds);
-      setLayerTransform(layerId, { x: 0, y: 0 });
+      setLayerTransform(layerId, { ...IDENTITY_AFFINE });
       syncSketchOutputsNow();
       return true;
     },
@@ -430,7 +415,7 @@ export function useTransformActions({
           const { bounds } = deserializeLayerData(newData, fallbackBounds);
           setLayerContentBounds(layerId, bounds);
         }
-        setLayerTransform(layerId, { x: 0, y: 0 });
+        setLayerTransform(layerId, { ...IDENTITY_AFFINE });
       }
       transformOriginalRef.current = null;
       multiTransformOriginalRef.current = null;
@@ -471,7 +456,7 @@ export function useTransformActions({
         selectionSession.selectionBounds,
         activeLayer.transform
       );
-      setLayerTransform(activeLayerId, { x: 0, y: 0 });
+      setLayerTransform(activeLayerId, { ...IDENTITY_AFFINE });
       canvas.restoreLayerCanvas(activeLayerId, finalCanvas);
       updateLayerData(activeLayerId, finalData);
       setLayerContentBounds(activeLayerId, bounds);
@@ -502,7 +487,7 @@ export function useTransformActions({
       setLayerContentBounds(activeLayerId, bounds);
     }
     // After reconcile, the transform is baked into pixel data, so reset to identity.
-    setLayerTransform(activeLayerId, { x: 0, y: 0 });
+    setLayerTransform(activeLayerId, { ...IDENTITY_AFFINE });
 
     transformOriginalRef.current = null;
     multiTransformOriginalRef.current = null;
@@ -545,7 +530,7 @@ export function useTransformActions({
     const handler = getToolHandler("transform");
     if (handler instanceof TransformTool && handler.isMultiTarget()) {
       for (const id of handler.getMultiTargetLayerIds()) {
-        setLayerTransform(id, { x: 0, y: 0 });
+        setLayerTransform(id, { ...IDENTITY_AFFINE });
       }
       return;
     }
@@ -559,14 +544,14 @@ export function useTransformActions({
     );
     if (targetIds.length > 1) {
       for (const id of targetIds) {
-        setLayerTransform(id, { x: 0, y: 0 });
+        setLayerTransform(id, { ...IDENTITY_AFFINE });
       }
       return;
     }
     const soleId =
       targetIds.length === 1 ? targetIds[0]! : document.activeLayerId;
     if (soleId) {
-      setLayerTransform(soleId, { x: 0, y: 0 });
+      setLayerTransform(soleId, { ...IDENTITY_AFFINE });
     }
   }, [document, setLayerTransform]);
 
@@ -584,10 +569,12 @@ export function useTransformActions({
         return;
       }
 
-      const tx = layer.transform?.x ?? 0;
-      const ty = layer.transform?.y ?? 0;
-      if (tx === 0 && ty === 0) {
-        return;
+      if (layer.transform.kind === "affine") {
+        const tx = layer.transform.x;
+        const ty = layer.transform.y;
+        if (tx === 0 && ty === 0) {
+          return;
+        }
       }
 
       pushHistory(
@@ -595,7 +582,7 @@ export function useTransformActions({
         snapshotLayersForHistory(canvasRef, [layerId])
       );
       const data = canvasRef.current.reconcileLayerToDocumentSpace(layerId);
-      commitLayerTransform(layerId, { x: 0, y: 0 });
+      commitLayerTransform(layerId, { ...IDENTITY_AFFINE });
       setLayerContentBounds(layerId, {
         x: 0,
         y: 0,
@@ -718,11 +705,11 @@ export function useTransformActions({
       }
       pushTransformHistory("transform rotate");
       const current = layer.transform;
-      const newRotation = (current.rotation ?? 0) + angleRad;
-      setLayerTransform(activeLayerId, {
-        ...stripAdvancedTransformFields(current),
-        rotation: newRotation
-      });
+      const base = isAffineTransform(current) ? current : IDENTITY_AFFINE;
+      setLayerTransform(activeLayerId, makeAffineTransform({
+        ...base,
+        rotation: base.rotation + angleRad
+      }));
     },
     [
       document.activeLayerId,
@@ -741,10 +728,11 @@ export function useTransformActions({
     }
     pushTransformHistory("transform flip horizontal");
     const current = layer.transform;
-    setLayerTransform(activeLayerId, {
-      ...stripAdvancedTransformFields(current),
-      scaleX: -(current.scaleX ?? 1)
-    });
+    const base = isAffineTransform(current) ? current : IDENTITY_AFFINE;
+    setLayerTransform(activeLayerId, makeAffineTransform({
+      ...base,
+      scaleX: -base.scaleX
+    }));
   }, [
     document.activeLayerId,
     document.layers,
@@ -761,10 +749,11 @@ export function useTransformActions({
     }
     pushTransformHistory("transform flip vertical");
     const current = layer.transform;
-    setLayerTransform(activeLayerId, {
-      ...stripAdvancedTransformFields(current),
-      scaleY: -(current.scaleY ?? 1)
-    });
+    const base = isAffineTransform(current) ? current : IDENTITY_AFFINE;
+    setLayerTransform(activeLayerId, makeAffineTransform({
+      ...base,
+      scaleY: -base.scaleY
+    }));
   }, [
     document.activeLayerId,
     document.layers,

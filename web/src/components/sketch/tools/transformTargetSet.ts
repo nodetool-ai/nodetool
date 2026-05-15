@@ -22,7 +22,7 @@ import type {
 import {
   getDescendantIds,
   isLayerCompositeVisible,
-  isQuadTransformMode,
+  isQuadTransform,
   layerAllowsTransformWhilePixelLocked
 } from "../types";
 import { hitTestLayerAtDocPoint } from "../painting/sampleDocument";
@@ -47,19 +47,9 @@ function isMultiTransformEligibleLayer(layer: Layer): boolean {
   if (layer.locked && !layerAllowsTransformWhilePixelLocked(layer)) {
     return false;
   }
-  const mode = layer.transform.mode;
-  if (
-    mode === "distort" ||
-    mode === "skew" ||
-    mode === "perspective" ||
-    mode === "warp"
-  ) {
-    return false;
-  }
-  if (layer.transform.quad && isQuadTransformMode(mode)) {
-    return false;
-  }
-  if (layer.transform.matrix && mode && !isQuadTransformMode(mode)) {
+  // Advanced per-layer modes (any quad/dual-quad transform) are excluded
+  // from multi-target unions. Only simple affine transforms participate.
+  if (isQuadTransform(layer.transform)) {
     return false;
   }
   return true;

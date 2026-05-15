@@ -6,7 +6,7 @@
  */
 
 import type { LayerContentBounds, SketchDocument } from "../../types";
-import { isDualQuadTransformMode, isQuadTransformMode } from "../../types";
+import { isIdentityTransform } from "../../types";
 import {
   getCanvasRasterBounds,
   getLayerCompositeOffset,
@@ -38,27 +38,13 @@ export function reconcileLayerToDocumentSpace(
     return null;
   }
 
-  const tx = layer.transform?.x ?? 0;
-  const ty = layer.transform?.y ?? 0;
-  const sx = layer.transform?.scaleX ?? 1;
-  const sy = layer.transform?.scaleY ?? 1;
-  const rot = layer.transform?.rotation ?? 0;
-  const matrix = layer.transform?.matrix;
-  const quad = layer.transform?.quad;
-  const usesAdvancedAffine = Boolean(matrix && layer.transform?.mode);
-  const usesPerspective = Boolean(isQuadTransformMode(layer.transform?.mode) && quad);
-  const hasTranslation = tx !== 0 || ty !== 0;
-  const hasScaleOrRotation = sx !== 1 || sy !== 1 || rot !== 0;
+  const transform = layer.transform;
 
-  // Resolve the raster origin from the canvas raster bounds (set by
-  // ensureLayerRasterBounds) or fall back to contentBounds. This matches
-  // the preview compositing path in resolvedLayerGeometry which uses
-  // getEffectiveRasterBounds → rasterBounds.x/y for the composite offset.
   const storedBounds = getCanvasRasterBounds(canvas);
   const rasterOriginX = storedBounds?.x ?? layer.contentBounds?.x ?? 0;
   const rasterOriginY = storedBounds?.y ?? layer.contentBounds?.y ?? 0;
 
-  if (!usesPerspective && !usesAdvancedAffine && !hasTranslation && !hasScaleOrRotation) {
+  if (isIdentityTransform(transform)) {
     setCanvasRasterBounds(canvas, {
       x: rasterOriginX,
       y: rasterOriginY,
@@ -92,14 +78,13 @@ export function reconcileLayerToDocumentSpace(
   }
   sourceCtx.drawImage(canvas, 0, 0);
 
-  if (usesPerspective && quad) {
-    const secondaryQuad = layer.transform?.secondaryQuad;
-    const isDual =
-      isDualQuadTransformMode(layer.transform?.mode) && secondaryQuad;
-    // Union of both quad extents when dual, otherwise just the primary quad.
+  if (transform.kind === "quad" || transform.kind === "dual-quad") {
+    const quad = transform.quad;
+    const isDual = transform.kind === "dual-quad";
+    const secondaryQuad = isDual ? transform.secondaryQuad : null;
     const primaryExtents = getQuadExtents(quad);
-    const secondaryExtents = isDual
-      ? getQuadExtents(secondaryQuad!)
+    const secondaryExtents = secondaryQuad
+      ? getQuadExtents(secondaryQuad)
       : primaryExtents;
     const minX = Math.min(primaryExtents.minX, secondaryExtents.minX);
     const minY = Math.min(primaryExtents.minY, secondaryExtents.minY);
@@ -122,12 +107,12 @@ export function reconcileLayerToDocumentSpace(
       return fallbackSerialize();
     }
 
-    if (isDual) {
+    if (secondaryQuad) {
       drawImageToDualQuad(
         tempCtx,
         source,
         translateQuad(quad, -outX, -outY),
-        translateQuad(secondaryQuad!, -outX, -outY)
+        translateQuad(secondaryQuad, -outX, -outY)
       );
     } else {
       drawImageToQuad(tempCtx, source, translateQuad(quad, -outX, -outY));
@@ -155,61 +140,13 @@ export function reconcileLayerToDocumentSpace(
     });
   }
 
-  if (usesAdvancedAffine && matrix) {
-    const [a, b, c, d, e, f] = matrix;
-    const corners = [
-      { x: rasterOriginX, y: rasterOriginY },
-      { x: rasterOriginX + source.width, y: rasterOriginY },
-      { x: rasterOriginX + source.width, y: rasterOriginY + source.height },
-      { x: rasterOriginX, y: rasterOriginY + source.height }
-    ].map((corner) => ({
-      x: a * corner.x + c * corner.y + e,
-      y: b * corner.x + d * corner.y + f
-    }));
-
-    const minX = Math.floor(Math.min(...corners.map((corner) => corner.x)));
-    const minY = Math.floor(Math.min(...corners.map((corner) => corner.y)));
-    const maxX = Math.ceil(Math.max(...corners.map((corner) => corner.x)));
-    const maxY = Math.ceil(Math.max(...corners.map((corner) => corner.y)));
-    const outX = Math.min(0, minX);
-    const outY = Math.min(0, minY);
-    const outW = Math.max(1, maxX - outX);
-    const outH = Math.max(1, maxY - outY);
-
-    const temp = window.document.createElement("canvas");
-    temp.width = outW;
-    temp.height = outH;
-    const tempCtx = temp.getContext("2d");
-
-    if (!tempCtx) {
-      return fallbackSerialize();
-    }
-
-    tempCtx.setTransform(a, b, c, d, e - outX, f - outY);
-    tempCtx.drawImage(source, rasterOriginX, rasterOriginY);
-
-    canvas.width = outW;
-    canvas.height = outH;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      return fallbackSerialize();
-    }
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(temp, 0, 0);
-    setCanvasRasterBounds(canvas, {
-      x: outX,
-      y: outY,
-      width: outW,
-      height: outH
-    });
-    return serializeLayerData(canvas.toDataURL("image/png"), {
-      x: outX,
-      y: outY,
-      width: outW,
-      height: outH
-    });
-  }
+  // Affine path: use TRS values from the canonical AffineTransform.
+  const tx = transform.x;
+  const ty = transform.y;
+  const sx = transform.scaleX;
+  const sy = transform.scaleY;
+  const rot = transform.rotation;
+  const hasScaleOrRotation = sx !== 1 || sy !== 1 || rot !== 0;
 
   // Compute the axis-aligned bounding box of the transformed content
   // so that scaling/rotating beyond document bounds doesn't clip pixels.

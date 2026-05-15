@@ -151,7 +151,7 @@ describe("repeat transform actions", () => {
       renderTransformActions();
 
     act(() => {
-      useSketchStore.getState().setLayerTransform(activeLayer.id, { x: 6, y: 4 });
+      useSketchStore.getState().setLayerTransform(activeLayer.id, { kind: "affine", x: 6, y: 4, scaleX: 1, scaleY: 1, rotation: 0 });
     });
 
     act(() => {
@@ -175,7 +175,7 @@ describe("repeat transform actions", () => {
     const { hook, canvasRef, activeLayer } = renderTransformActions();
 
     act(() => {
-      useSketchStore.getState().setLayerTransform(activeLayer.id, { x: 4, y: 3 });
+      useSketchStore.getState().setLayerTransform(activeLayer.id, { kind: "affine", x: 4, y: 3, scaleX: 1, scaleY: 1, rotation: 0 });
     });
 
     act(() => {

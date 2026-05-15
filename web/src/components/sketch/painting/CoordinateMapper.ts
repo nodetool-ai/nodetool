@@ -13,6 +13,7 @@
  */
 
 import type { Point, LayerTransform, AffineMatrix } from "../types";
+import { isAffineTransform, affineToMatrix } from "../types";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -36,11 +37,20 @@ export class CoordinateMapper {
   private inverseMatrix: AffineMatrix | undefined;
 
   constructor(config: CoordinateMapperConfig) {
-    this.tx = config.layerTransform.x;
-    this.ty = config.layerTransform.y;
+    const t = config.layerTransform;
+    if (isAffineTransform(t)) {
+      this.tx = t.x;
+      this.ty = t.y;
+      // Only store a non-identity matrix; pure translation uses fast path.
+      if (t.scaleX !== 1 || t.scaleY !== 1 || t.rotation !== 0) {
+        this.matrix = affineToMatrix(t);
+      }
+    } else {
+      this.tx = 0;
+      this.ty = 0;
+    }
     this.rx = config.rasterBounds?.x ?? 0;
     this.ry = config.rasterBounds?.y ?? 0;
-    this.matrix = config.layerTransform.matrix;
   }
 
   /**

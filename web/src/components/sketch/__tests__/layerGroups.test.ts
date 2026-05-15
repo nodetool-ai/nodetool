@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tests for Layer Groups Feature
  *
  * Tests groupable layers tree structure: add group, collapse/expand,
@@ -17,6 +17,7 @@ import {
   buildLayersPanelRows,
   isLayerCompositeVisible,
   getAncestorGroupOpacityProduct,
+  IDENTITY_AFFINE,
   Layer
 } from "../types";
 
@@ -47,7 +48,7 @@ describe("Layer Group Types", () => {
       alphaLock: false,
       blendMode: "normal",
       data: null,
-      transform: { x: 0, y: 0 },
+      transform: { ...IDENTITY_AFFINE },
       contentBounds: { x: 0, y: 0, width: 0, height: 0 },
       effects: []
     };
@@ -60,31 +61,31 @@ describe("Layer Tree Helpers", () => {
     {
       id: "root1", name: "Root 1", type: "raster", visible: true, opacity: 1,
       locked: false, alphaLock: false, blendMode: "normal", data: null,
-      transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+      transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
       effects: []
     },
     {
       id: "group1", name: "Group 1", type: "group", visible: true, opacity: 1,
       locked: false, alphaLock: false, blendMode: "normal", data: null,
-      transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+      transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
       collapsed: false, effects: []
     },
     {
       id: "child1", name: "Child 1", type: "raster", visible: true, opacity: 1,
       locked: false, alphaLock: false, blendMode: "normal", data: null,
-      transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+      transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
       parentId: "group1", effects: []
     },
     {
       id: "child2", name: "Child 2", type: "raster", visible: true, opacity: 1,
       locked: false, alphaLock: false, blendMode: "normal", data: null,
-      transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+      transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
       parentId: "group1", effects: []
     },
     {
       id: "root2", name: "Root 2", type: "raster", visible: true, opacity: 1,
       locked: false, alphaLock: false, blendMode: "normal", data: null,
-      transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+      transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
       effects: []
     }
   ];
@@ -125,13 +126,13 @@ describe("Layer Tree Helpers", () => {
       {
         id: "subgroup", name: "Sub Group", type: "group", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
         parentId: "group1", collapsed: false, effects: []
       },
       {
         id: "grandchild", name: "Grandchild", type: "raster", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
         parentId: "subgroup", effects: []
       }
     ];
@@ -214,25 +215,25 @@ describe("Layer Tree Helpers", () => {
       {
         id: "root", name: "Root", type: "raster", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
         effects: []
       },
       {
         id: "g1", name: "Group 1", type: "group", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
         collapsed: false, effects: []
       },
       {
         id: "g2", name: "Sub Group", type: "group", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
         parentId: "g1", collapsed: false, effects: []
       },
       {
         id: "deep", name: "Deep", type: "raster", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
         parentId: "g2", effects: []
       }
     ];
@@ -545,25 +546,25 @@ describe("Tree-aware drag-and-drop", () => {
       {
         id: "root", name: "Root", type: "raster", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
         effects: []
       },
       {
         id: "g1", name: "Group 1", type: "group", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
         collapsed: false, effects: []
       },
       {
         id: "g2", name: "Sub Group", type: "group", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
         parentId: "g1", collapsed: false, effects: []
       },
       {
         id: "deep", name: "Deep", type: "raster", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
         parentId: "g2", effects: []
       }
     ];
@@ -580,19 +581,19 @@ describe("Tree-aware drag-and-drop", () => {
       {
         id: "g1", name: "Group 1", type: "group", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
         collapsed: true, effects: []
       },
       {
         id: "g2", name: "Sub Group", type: "group", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
         parentId: "g1", collapsed: false, effects: []
       },
       {
         id: "deep", name: "Deep", type: "raster", visible: true, opacity: 1,
         locked: false, alphaLock: false, blendMode: "normal", data: null,
-        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+        transform: { ...IDENTITY_AFFINE }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
         parentId: "g2", effects: []
       }
     ];

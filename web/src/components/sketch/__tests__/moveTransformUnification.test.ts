@@ -15,7 +15,8 @@
  */
 
 import type { LayerTransform, LayerContentBounds, Layer } from "../types";
-import { ensureTransformMatrix, createDefaultDocument } from "../types";
+import { createDefaultDocument, makeAffineTransform, makeSingleQuadTransform } from "../types";
+import { fxEnsureTransform as ensureTransformMatrix, aff, quadOf } from "./_transformFixtures";
 import { MoveTool } from "../tools/MoveTool";
 import { TransformTool } from "../tools/TransformTool";
 import { createPreviewSession, type PreviewSession } from "../tools/previewSession";
@@ -32,7 +33,13 @@ import { getToolHandler } from "../tools";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function makeTransform(overrides?: Partial<LayerTransform>): LayerTransform {
+function makeTransform(overrides?: Partial<{
+  x: number;
+  y: number;
+  scaleX: number;
+  scaleY: number;
+  rotation: number;
+}>) {
   return ensureTransformMatrix({
     x: 0,
     y: 0,
@@ -218,7 +225,7 @@ describe("Task 1: Unified preview ownership", () => {
     tool.onMove!(ctx, makePointerEvent({ point: { x: 30, y: 30 } }), []);
 
     const session = tool.getPreviewSession();
-    const current = session.state.currentTransform;
+    const current = aff(session.state.currentTransform);
     expect(current.scaleX).toBe(2);
     expect(current.scaleY).toBe(0.5);
     expect(current.rotation).toBe(Math.PI / 4);
@@ -376,7 +383,7 @@ describe("Task 2: Spring-loaded move lifecycle", () => {
 
     // 1. Activate transform tool
     transformTool.onActivate!(ctx);
-    const originalTransform = transformTool.getOriginalTransform();
+    const originalTransform = aff(transformTool.getOriginalTransform());
     expect(originalTransform.x).toBe(10);
     expect(originalTransform.y).toBe(20);
 
@@ -404,7 +411,7 @@ describe("Task 2: Spring-loaded move lifecycle", () => {
     transformTool.onActivate!(ctx);
 
     // The new original should reflect the moved position
-    const newOriginal = transformTool.getOriginalTransform();
+    const newOriginal = aff(transformTool.getOriginalTransform());
     expect(newOriginal.x).toBe(30);
     expect(newOriginal.y).toBe(40);
   });
@@ -539,18 +546,10 @@ describe("Task 4: Reconcile vs preview parity", () => {
       { x: 80, y: 20 },
       { x: 90, y: 85 },
       { x: 10, y: 75 }
-    ] as NonNullable<LayerTransform["quad"]>;
+    ] as const;
     const layer = makeLayer({
       id: "perspective-layer",
-      transform: {
-        x: 0,
-        y: 0,
-        scaleX: 1,
-        scaleY: 1,
-        rotation: 0,
-        mode: "perspective",
-        quad
-      },
+      transform: makeSingleQuadTransform("perspective", quad),
       contentBounds: makeBounds({ x: 0, y: 0, width: 40, height: 40 })
     });
     const doc = createDefaultDocument(100, 100);
@@ -590,18 +589,10 @@ describe("Task 4: Reconcile vs preview parity", () => {
       { x: 82, y: 8 },
       { x: 92, y: 88 },
       { x: 12, y: 74 }
-    ] as NonNullable<LayerTransform["quad"]>;
+    ] as const;
     const layer = makeLayer({
       id: "warp-layer",
-      transform: {
-        x: 0,
-        y: 0,
-        scaleX: 1,
-        scaleY: 1,
-        rotation: 0,
-        mode: "warp",
-        quad
-      },
+      transform: makeSingleQuadTransform("warp", quad),
       contentBounds: makeBounds({ x: 0, y: 0, width: 40, height: 40 })
     });
     const doc = createDefaultDocument(100, 100);

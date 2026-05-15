@@ -7,7 +7,7 @@
  */
 
 import { CoordinateMapper } from "../painting/CoordinateMapper";
-import { composeAffineMatrix } from "../types";
+import { makeAffineTransform } from "../types";
 import { getLayerCompositeOffset } from "../painting/layerBounds";
 
 // ─── 1. Round-trip identity: translation-only ───────────────────────────────
@@ -15,7 +15,7 @@ import { getLayerCompositeOffset } from "../painting/layerBounds";
 describe("round-trip identity – translation only", () => {
   it("docToLayer → layerToDoc returns the original point", () => {
     const mapper = new CoordinateMapper({
-      layerTransform: { x: 42, y: -17 }
+      layerTransform: makeAffineTransform({ x: 42, y: -17 })
     });
 
     const original = { x: 100, y: 200 };
@@ -27,7 +27,7 @@ describe("round-trip identity – translation only", () => {
 
   it("layerToDoc → docToLayer returns the original point", () => {
     const mapper = new CoordinateMapper({
-      layerTransform: { x: -10, y: 55 }
+      layerTransform: makeAffineTransform({ x: -10, y: 55 })
     });
 
     const original = { x: 7, y: -3 };
@@ -49,11 +49,11 @@ describe("round-trip identity – scale + rotation", () => {
 
   it.each(cases)("$label", ({ sx, sy, rot }) => {
     const mapper = new CoordinateMapper({
-      layerTransform: {
-        x: 0,
-        y: 0,
-        matrix: composeAffineMatrix(0, 0, sx, sy, rot)
-      }
+      layerTransform: makeAffineTransform({
+        scaleX: sx,
+        scaleY: sy,
+        rotation: rot
+      })
     });
 
     const original = { x: 37, y: -19 };
@@ -77,11 +77,13 @@ describe("round-trip identity – full affine", () => {
     "translate($x,$y) scale($sx,$sy) rotate($rot)",
     ({ x, y, sx, sy, rot }) => {
       const mapper = new CoordinateMapper({
-        layerTransform: {
+        layerTransform: makeAffineTransform({
           x,
           y,
-          matrix: composeAffineMatrix(x, y, sx, sy, rot)
-        }
+          scaleX: sx,
+          scaleY: sy,
+          rotation: rot
+        })
       });
 
       const original = { x: 55, y: -42 };
@@ -94,11 +96,13 @@ describe("round-trip identity – full affine", () => {
 
   it("round-trips with rasterBounds", () => {
     const mapper = new CoordinateMapper({
-      layerTransform: {
+      layerTransform: makeAffineTransform({
         x: 10,
         y: 20,
-        matrix: composeAffineMatrix(10, 20, 2, 1.5, 0.5)
-      },
+        scaleX: 2,
+        scaleY: 1.5,
+        rotation: 0.5
+      }),
       rasterBounds: { x: -5, y: -8 }
     });
 
@@ -115,7 +119,7 @@ describe("round-trip identity – full affine", () => {
 describe("offset getter matches -docToLayer(origin)", () => {
   it("translation-only mapper", () => {
     const mapper = new CoordinateMapper({
-      layerTransform: { x: 15, y: -30 }
+      layerTransform: makeAffineTransform({ x: 15, y: -30 })
     });
 
     const origin = mapper.docToLayer({ x: 0, y: 0 });
@@ -127,7 +131,7 @@ describe("offset getter matches -docToLayer(origin)", () => {
 
   it("translation-only with rasterBounds", () => {
     const mapper = new CoordinateMapper({
-      layerTransform: { x: 10, y: 20 },
+      layerTransform: makeAffineTransform({ x: 10, y: 20 }),
       rasterBounds: { x: -3, y: -7 }
     });
 
@@ -143,13 +147,15 @@ describe("offset getter matches -docToLayer(origin)", () => {
 
 describe("singular matrix fallback", () => {
   it("zero-determinant matrix does not produce NaN or Infinity", () => {
-    // scaleX=0, scaleY=0 → determinant = 0
+    // scaleX=0, scaleY=0 → determinant = 0 (CoordinateMapper derives matrix
+    // from the affine fields and falls back to identity-inverse on singular).
     const mapper = new CoordinateMapper({
-      layerTransform: {
+      layerTransform: makeAffineTransform({
         x: 10,
         y: 20,
-        matrix: composeAffineMatrix(10, 20, 0, 0, 0)
-      }
+        scaleX: 0,
+        scaleY: 0
+      })
     });
 
     const result = mapper.docToLayer({ x: 50, y: 60 });
@@ -158,33 +164,13 @@ describe("singular matrix fallback", () => {
     expect(Number.isFinite(result.y)).toBe(true);
   });
 
-  it("singular matrix falls back to identity inverse", () => {
-    // [0,0,0,0, e,f] → determinant = 0, invertMatrix returns [1,0,0,1,0,0]
-    const mapper = new CoordinateMapper({
-      layerTransform: {
-        x: 5,
-        y: 10,
-        matrix: [0, 0, 0, 0, 5, 10]
-      }
-    });
-
-    const pt = { x: 30, y: 40 };
-    const result = mapper.docToLayer(pt);
-
-    // identity inverse applied: x' = 1*30 + 0*40 + 0 = 30 (no rasterBounds offset)
-    expect(result.x).toBeCloseTo(30);
-    expect(result.y).toBeCloseTo(40);
-  });
-
   it("near-zero determinant also triggers fallback", () => {
-    // Extremely small but non-zero determinant (< 1e-12)
     const eps = 1e-14;
     const mapper = new CoordinateMapper({
-      layerTransform: {
-        x: 0,
-        y: 0,
-        matrix: [eps, 0, 0, eps, 0, 0]
-      }
+      layerTransform: makeAffineTransform({
+        scaleX: eps,
+        scaleY: eps
+      })
     });
 
     const result = mapper.docToLayer({ x: 100, y: 200 });
@@ -204,14 +190,14 @@ describe("dirtyToDoc consistency with getLayerCompositeOffset", () => {
     const cby = -8;
 
     const layer = {
-      transform: { x: tx, y: ty },
+      transform: makeAffineTransform({ x: tx, y: ty }),
       contentBounds: { x: cbx, y: cby, width: 100, height: 100 }
     };
 
     const compositeOffset = getLayerCompositeOffset(layer);
 
     const mapper = new CoordinateMapper({
-      layerTransform: { x: tx, y: ty },
+      layerTransform: makeAffineTransform({ x: tx, y: ty }),
       rasterBounds: { x: cbx, y: cby }
     });
 
@@ -230,7 +216,7 @@ describe("dirtyToDoc consistency with getLayerCompositeOffset", () => {
     const ry = -7;
 
     const mapper = new CoordinateMapper({
-      layerTransform: { x: tx, y: ty },
+      layerTransform: makeAffineTransform({ x: tx, y: ty }),
       rasterBounds: { x: rx, y: ry }
     });
 
@@ -249,15 +235,17 @@ describe("dirtyToDoc consistency with getLayerCompositeOffset", () => {
 describe("cross-tool consistency", () => {
   it("translation-only and equivalent matrix produce same docToLayer result", () => {
     const translationOnly = new CoordinateMapper({
-      layerTransform: { x: 10, y: 20 }
+      layerTransform: makeAffineTransform({ x: 10, y: 20 })
     });
 
     const withMatrix = new CoordinateMapper({
-      layerTransform: {
+      layerTransform: makeAffineTransform({
         x: 10,
         y: 20,
-        matrix: composeAffineMatrix(10, 20, 1, 1, 0)
-      }
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0
+      })
     });
 
     const testPoints = [
@@ -277,15 +265,17 @@ describe("cross-tool consistency", () => {
 
   it("translation-only and equivalent matrix produce same layerToDoc result", () => {
     const translationOnly = new CoordinateMapper({
-      layerTransform: { x: 10, y: 20 }
+      layerTransform: makeAffineTransform({ x: 10, y: 20 })
     });
 
     const withMatrix = new CoordinateMapper({
-      layerTransform: {
+      layerTransform: makeAffineTransform({
         x: 10,
         y: 20,
-        matrix: composeAffineMatrix(10, 20, 1, 1, 0)
-      }
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0
+      })
     });
 
     const testPoints = [

@@ -21,6 +21,7 @@ import {
   type PreviewSession
 } from "../tools/previewSession";
 import type { Selection, LayerTransform } from "../types";
+import { makeAffineTransform } from "../types";
 import type { ToolContext } from "../tools/types";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -313,7 +314,7 @@ describe("previewSession", () => {
 
   it("becomes active after start", () => {
     const ctx = makeMockCtx();
-    const baseline: LayerTransform = { x: 10, y: 20 };
+    const baseline: LayerTransform = makeAffineTransform({ x: 10, y: 20 });
     session.start(ctx, "layer-1", baseline);
 
     expect(session.isActive()).toBe(true);
@@ -324,9 +325,9 @@ describe("previewSession", () => {
 
   it("update sets preview transform", () => {
     const ctx = makeMockCtx();
-    session.start(ctx, "layer-1", { x: 0, y: 0 });
+    session.start(ctx, "layer-1", makeAffineTransform({ x: 0, y: 0 }));
 
-    const newTransform: LayerTransform = { x: 50, y: 30 };
+    const newTransform: LayerTransform = makeAffineTransform({ x: 50, y: 30 });
     session.update(ctx, newTransform);
 
     expect(session.state.currentTransform).toEqual(newTransform);
@@ -335,25 +336,26 @@ describe("previewSession", () => {
 
   it("update is a no-op when not active", () => {
     const ctx = makeMockCtx();
-    session.update(ctx, { x: 50, y: 30 });
+    session.update(ctx, makeAffineTransform({ x: 50, y: 30 }));
     expect(ctx.setLayerTransformPreview).not.toHaveBeenCalled();
   });
 
   it("commit persists transform and clears preview", () => {
     const ctx = makeMockCtx();
-    session.start(ctx, "layer-1", { x: 0, y: 0 });
-    session.update(ctx, { x: 50, y: 30 });
+    const t50 = makeAffineTransform({ x: 50, y: 30 });
+    session.start(ctx, "layer-1", makeAffineTransform({ x: 0, y: 0 }));
+    session.update(ctx, t50);
     session.commit(ctx);
 
-    expect(ctx.onLayerTransformChange).toHaveBeenCalledWith("layer-1", { x: 50, y: 30 });
+    expect(ctx.onLayerTransformChange).toHaveBeenCalledWith("layer-1", t50);
     expect(ctx.clearLayerTransformPreview).toHaveBeenCalledWith("layer-1");
     expect(session.isActive()).toBe(false);
   });
 
   it("cancel clears preview without committing", () => {
     const ctx = makeMockCtx();
-    session.start(ctx, "layer-1", { x: 0, y: 0 });
-    session.update(ctx, { x: 50, y: 30 });
+    session.start(ctx, "layer-1", makeAffineTransform({ x: 0, y: 0 }));
+    session.update(ctx, makeAffineTransform({ x: 50, y: 30 }));
     session.cancel(ctx);
 
     expect(ctx.onLayerTransformChange).not.toHaveBeenCalled();
@@ -363,7 +365,7 @@ describe("previewSession", () => {
 
   it("clear resets all state", () => {
     const ctx = makeMockCtx();
-    session.start(ctx, "layer-1", { x: 10, y: 20 });
+    session.start(ctx, "layer-1", makeAffineTransform({ x: 10, y: 20 }));
     session.clear(ctx);
 
     expect(session.isActive()).toBe(false);
@@ -373,8 +375,8 @@ describe("previewSession", () => {
 
   it("starting a new session for a different layer clears the old preview", () => {
     const ctx = makeMockCtx();
-    session.start(ctx, "layer-1", { x: 0, y: 0 });
-    session.start(ctx, "layer-2", { x: 10, y: 10 });
+    session.start(ctx, "layer-1", makeAffineTransform({ x: 0, y: 0 }));
+    session.start(ctx, "layer-2", makeAffineTransform({ x: 10, y: 10 }));
 
     // Should have cleared preview for layer-1
     expect(ctx.clearLayerTransformPreview).toHaveBeenCalledWith("layer-1");

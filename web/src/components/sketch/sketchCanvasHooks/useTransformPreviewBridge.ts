@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useRef } from "react";
-import type { LayerTransform } from "../types";
+import type { LayerTransform, Quad } from "../types";
 import {
   setActiveLayerTransformPreview,
   clearActiveLayerTransformPreview
@@ -27,31 +27,44 @@ import type { DisplayFrameCoordinator } from "./DisplayFrameCoordinator";
 
 const TRANSFORM_EPSILON = 1e-9;
 
-function matricesEqual(
-  left?: LayerTransform["matrix"],
-  right?: LayerTransform["matrix"]
-): boolean {
-  if (left === undefined || right === undefined) {
-    return left === undefined && right === undefined;
+function quadsEqual(left: Quad, right: Quad): boolean {
+  for (let i = 0; i < 4; i++) {
+    if (
+      Math.abs(left[i].x - right[i].x) > TRANSFORM_EPSILON ||
+      Math.abs(left[i].y - right[i].y) > TRANSFORM_EPSILON
+    ) {
+      return false;
+    }
   }
-  if (left.length !== right.length) {
-    return false;
-  }
-  return left.every((value, index) => Math.abs(value - right[index]) < TRANSFORM_EPSILON);
+  return true;
 }
 
 function transformsEqual(
   left: LayerTransform,
   right: LayerTransform
 ): boolean {
-  return (
-    left.x === right.x &&
-    left.y === right.y &&
-    (left.scaleX ?? 1) === (right.scaleX ?? 1) &&
-    (left.scaleY ?? 1) === (right.scaleY ?? 1) &&
-    Math.abs((left.rotation ?? 0) - (right.rotation ?? 0)) < TRANSFORM_EPSILON &&
-    matricesEqual(left.matrix, right.matrix)
-  );
+  if (left.kind !== right.kind) {
+    return false;
+  }
+  if (left.kind === "affine" && right.kind === "affine") {
+    return (
+      left.x === right.x &&
+      left.y === right.y &&
+      left.scaleX === right.scaleX &&
+      left.scaleY === right.scaleY &&
+      Math.abs(left.rotation - right.rotation) < TRANSFORM_EPSILON
+    );
+  }
+  if (left.kind === "quad" && right.kind === "quad") {
+    return left.mode === right.mode && quadsEqual(left.quad, right.quad);
+  }
+  if (left.kind === "dual-quad" && right.kind === "dual-quad") {
+    return (
+      quadsEqual(left.quad, right.quad) &&
+      quadsEqual(left.secondaryQuad, right.secondaryQuad)
+    );
+  }
+  return false;
 }
 
 export interface UseTransformPreviewBridgeResult {

@@ -22,6 +22,7 @@
 
 import { useMemo } from "react";
 import { useDisplayedActiveLayerTransform } from "../activeLayerTransform";
+import { isAffineTransform } from "../types";
 
 export interface TransformDisplayState {
   scaleX: number;
@@ -53,14 +54,16 @@ export function useTransformAdapter({
 }: UseTransformAdapterParams): TransformAdapterResult {
   const activeLayerTransform = useDisplayedActiveLayerTransform();
 
-  const display = useMemo<TransformDisplayState>(
-    () => ({
-      scaleX: activeLayerTransform.scaleX ?? 1,
-      scaleY: activeLayerTransform.scaleY ?? 1,
-      rotation: activeLayerTransform.rotation ?? 0
-    }),
-    [activeLayerTransform.scaleX, activeLayerTransform.scaleY, activeLayerTransform.rotation]
-  );
+  const display = useMemo<TransformDisplayState>(() => {
+    if (isAffineTransform(activeLayerTransform)) {
+      return {
+        scaleX: activeLayerTransform.scaleX,
+        scaleY: activeLayerTransform.scaleY,
+        rotation: activeLayerTransform.rotation
+      };
+    }
+    return { scaleX: 1, scaleY: 1, rotation: 0 };
+  }, [activeLayerTransform]);
 
   const actions = useMemo<TransformAdapterActions>(
     () => ({

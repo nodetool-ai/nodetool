@@ -11,7 +11,9 @@ import {
   LayerContentBounds,
   LayerTransform,
   SegmentationSourceMetadata,
+  cloneTransform,
   getAncestorGroupOpacityProduct,
+  isAffineTransform,
   isLayerCompositeVisible,
   normalizeSketchDocument,
   SKETCH_NODE_INPUT_IMAGE_LAYER_NAME
@@ -232,11 +234,9 @@ async function drawLayerToContext(
     : 1;
   ctx.globalAlpha = layer.opacity * ancestorOpacity;
   ctx.globalCompositeOperation = blendModeToComposite(layer.blendMode ?? "normal");
-  ctx.drawImage(
-    layerCanvas,
-    (layer.transform?.x ?? 0) + bounds.x,
-    (layer.transform?.y ?? 0) + bounds.y
-  );
+  const tx = isAffineTransform(layer.transform) ? layer.transform.x : 0;
+  const ty = isAffineTransform(layer.transform) ? layer.transform.y : 0;
+  ctx.drawImage(layerCanvas, tx + bounds.x, ty + bounds.y);
   ctx.restore();
 }
 
@@ -352,15 +352,15 @@ export function exportSelectedRasterLayer(
     byteLength: getDataUrlByteLength(decoded.image),
     sourceMetadata: {
       layerId: layer.id,
-      layerTransform: { ...layer.transform },
+      layerTransform: cloneTransform(layer.transform),
       contentBounds,
       canvasSize: {
         width: doc.canvas.width,
         height: doc.canvas.height
       },
       documentOrigin: {
-        x: (layer.transform.x ?? 0) + contentBounds.x,
-        y: (layer.transform.y ?? 0) + contentBounds.y
+        x: (isAffineTransform(layer.transform) ? layer.transform.x : 0) + contentBounds.x,
+        y: (isAffineTransform(layer.transform) ? layer.transform.y : 0) + contentBounds.y
       }
     }
   };

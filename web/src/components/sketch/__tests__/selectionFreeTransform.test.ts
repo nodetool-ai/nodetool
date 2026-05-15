@@ -88,7 +88,7 @@ describe("selection free transform helpers", () => {
     const transformed = transformSelectionMask(
       selection,
       { x: 1, y: 1, width: 2, height: 2 },
-      { x: 3, y: 2 }
+      { kind: "affine", x: 3, y: 2, scaleX: 1, scaleY: 1, rotation: 0 }
     );
 
     expect(getSelectionBounds(transformed)).toEqual({

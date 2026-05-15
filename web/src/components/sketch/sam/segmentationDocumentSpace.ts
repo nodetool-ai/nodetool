@@ -1,5 +1,5 @@
 import type { LayerContentBounds, SegmentationMask, SegmentationSourceMetadata } from "../types";
-import { createDefaultDocument, createDefaultLayer } from "../types";
+import { createDefaultDocument, createDefaultLayer, cloneTransform } from "../types";
 import { setCanvasRasterBounds } from "../painting/layerBounds";
 import { dataUrlToCanvas, deserializeLayerData } from "../serialization";
 import { reconcileLayerToDocumentSpace } from "../rendering/canvas2d/reconcile";
@@ -29,7 +29,7 @@ export async function rasterizeSegmentationToDocumentSpace(
     sourceCanvas.height
   );
   layer.id = "segmentation-raster";
-  layer.transform = { ...sourceMetadata.layerTransform };
+  layer.transform = cloneTransform(sourceMetadata.layerTransform);
   layer.contentBounds = { ...sourceMetadata.contentBounds };
 
   const doc = createDefaultDocument(

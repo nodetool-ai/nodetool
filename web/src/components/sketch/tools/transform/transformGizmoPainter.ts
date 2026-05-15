@@ -15,30 +15,22 @@
 
 import type { ToolContext } from "../types";
 import type { LayerTransform, LayerContentBounds, Point } from "../../types";
-import { isQuadTransformMode } from "../../types";
+import { isAffineTransform, isQuadTransform } from "../../types";
 import type { TransformHandle } from "./handleGeometry";
 import {
   getTransformedCenter,
   getTransformedCorners
 } from "../../painting/resolvedLayerGeometry";
-import {
-  docToScreen,
-  scaledHalfExtents,
-  isQuadOnlyTransform
-} from "./handleGeometry";
+import { docToScreen, scaledHalfExtents } from "./handleGeometry";
 import { drawTransformGizmo } from "../gizmo";
 
 function getVisibleHandles(
   transform: LayerTransform
 ): readonly TransformHandle[] {
   // Free-form quads: 4 corners only — no rotate handle (rotation is
-  // meaningless on a non-affine quad). Skew shows edge midpoints + rotate
-  // because skew is still affine.
-  if (isQuadOnlyTransform(transform)) {
+  // meaningless on a non-affine quad).
+  if (isQuadTransform(transform)) {
     return ["top-left", "top-right", "bottom-left", "bottom-right"];
-  }
-  if (transform.mode === "skew") {
-    return ["top", "bottom", "left", "right", "rotate"];
   }
   return [
     "top-left",
@@ -72,13 +64,10 @@ export function paintTransformGizmo(
 ): void {
   ctx.drawGizmo((gc, dpr, containerW, containerH) => {
     const visibleHandles = getVisibleHandles(transform);
-    const rot = transform.rotation ?? 0;
+    const rot = isAffineTransform(transform) ? transform.rotation : 0;
     const center = getTransformedCenter(transform, rasterBounds);
 
-    if (
-      (transform.matrix && transform.mode && !isQuadTransformMode(transform.mode)) ||
-      (isQuadTransformMode(transform.mode) && transform.quad)
-    ) {
+    if (isQuadTransform(transform)) {
       const corners = getTransformedCorners(transform, rasterBounds);
       const screenCorners = corners.map((corner) =>
         docToScreen(
@@ -109,9 +98,7 @@ export function paintTransformGizmo(
       //                  transforms have no meaningful pivot).
       //   `undefined` → render the default pivot at the box center.
       //   Point       → render at the explicit (custom) pivot.
-      const pivotScreenPos: Point | null | undefined = isQuadOnlyTransform(
-        transform
-      )
+      const pivotScreenPos: Point | null | undefined = isQuadTransform(transform)
         ? null
         : pivotDoc
           ? docToScreen(
@@ -144,7 +131,7 @@ export function paintTransformGizmo(
       // both planes. Per-handle editing of the second quad is intentionally
       // not wired here yet — this commit ships the renderer + visual
       // feedback; gesture editing of the second quad lands as a follow-up.
-      if (transform.mode === "perspective-dual" && transform.secondaryQuad) {
+      if (transform.kind === "dual-quad") {
         const secondaryScreen = transform.secondaryQuad.map((corner) =>
           docToScreen(
             corner.x,

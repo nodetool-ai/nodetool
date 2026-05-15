@@ -13,6 +13,7 @@ import {
 } from "../activeLayerTransform";
 import { DisplayFrameCoordinator } from "../sketchCanvasHooks/DisplayFrameCoordinator";
 import type { LayerTransform } from "../types";
+import { makeAffineTransform } from "../types";
 
 // Spy on the active-layer module so we can verify bridging calls.
 jest.mock("../activeLayerTransform", () => {
@@ -50,7 +51,7 @@ describe("useTransformPreviewBridge", () => {
 
   it("setLayerTransformPreview populates the preview map and bridges to active-layer module", () => {
     const { result } = renderHook(() => useTransformPreviewBridge());
-    const transform: LayerTransform = { x: 10, y: 20, scaleX: 1, scaleY: 1, rotation: 0 };
+    const transform: LayerTransform = makeAffineTransform({ x: 10, y: 20 });
 
     act(() => {
       result.current.setLayerTransformPreview("layer-1", transform);
@@ -70,7 +71,7 @@ describe("useTransformPreviewBridge", () => {
     const redrawSpy = jest.fn();
     result.current.requestPreviewRedrawRef.current = redrawSpy;
 
-    const transform: LayerTransform = { x: 5, y: 5, scaleX: 1, scaleY: 1, rotation: 0 };
+    const transform: LayerTransform = makeAffineTransform({ x: 5, y: 5 });
 
     act(() => {
       result.current.setLayerTransformPreview("layer-1", transform);
@@ -92,7 +93,7 @@ describe("useTransformPreviewBridge", () => {
     result.current.invalidateLayerRef.current = invalidateSpy;
     result.current.requestPreviewRedrawRef.current = redrawSpy;
 
-    const transform: LayerTransform = { x: 1, y: 2 };
+    const transform: LayerTransform = makeAffineTransform({ x: 1, y: 2 });
 
     act(() => {
       result.current.setLayerTransformPreview("layer-A", transform);
@@ -103,7 +104,7 @@ describe("useTransformPreviewBridge", () => {
     invalidateSpy.mockClear();
     // Update same layer → no invalidation, just redraw.
     act(() => {
-      result.current.setLayerTransformPreview("layer-A", { x: 3, y: 4 });
+      result.current.setLayerTransformPreview("layer-A", makeAffineTransform({ x: 3, y: 4 }));
     });
     expect(invalidateSpy).not.toHaveBeenCalled();
     expect(redrawSpy).toHaveBeenCalled();
@@ -114,9 +115,10 @@ describe("useTransformPreviewBridge", () => {
     const redrawSpy = jest.fn();
     result.current.requestPreviewRedrawRef.current = redrawSpy;
 
+    const t2 = makeAffineTransform({ x: 2, y: 2 });
     act(() => {
-      result.current.setLayerTransformPreview("layer-1", { x: 1, y: 1 });
-      result.current.setLayerTransformPreview("layer-2", { x: 2, y: 2 });
+      result.current.setLayerTransformPreview("layer-1", makeAffineTransform({ x: 1, y: 1 }));
+      result.current.setLayerTransformPreview("layer-2", t2);
     });
     redrawSpy.mockClear();
 
@@ -125,7 +127,7 @@ describe("useTransformPreviewBridge", () => {
     });
 
     expect(result.current.transformPreviewByLayerIdRef.current).toEqual({
-      "layer-2": { x: 2, y: 2 }
+      "layer-2": t2
     });
     expect(redrawSpy).toHaveBeenCalledTimes(1);
     expect(mockClearPreview).toHaveBeenCalled();
@@ -137,7 +139,7 @@ describe("useTransformPreviewBridge", () => {
     result.current.requestPreviewRedrawRef.current = redrawSpy;
 
     act(() => {
-      result.current.setLayerTransformPreview("layer-1", { x: 1, y: 1 });
+      result.current.setLayerTransformPreview("layer-1", makeAffineTransform({ x: 1, y: 1 }));
     });
     redrawSpy.mockClear();
 
@@ -182,8 +184,8 @@ describe("useTransformPreviewBridge", () => {
     const redrawSpy = jest.fn();
     result.current.requestPreviewRedrawRef.current = redrawSpy;
 
-    const t1: LayerTransform = { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0.000000001 };
-    const t2: LayerTransform = { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0.0000000015 };
+    const t1: LayerTransform = makeAffineTransform({ rotation: 0.000000001 });
+    const t2: LayerTransform = makeAffineTransform({ rotation: 0.0000000015 });
 
     act(() => {
       result.current.setLayerTransformPreview("layer-1", t1);
@@ -208,41 +210,16 @@ describe("useTransformPreviewBridge", () => {
     result.current.requestPreviewRedrawRef.current = redrawSpy;
 
     act(() => {
-      result.current.setLayerTransformPreview("layer-1", { x: 4, y: 5 });
+      result.current.setLayerTransformPreview("layer-1", makeAffineTransform({ x: 4, y: 5 }));
     });
 
     expect(requestFrameSpy).toHaveBeenCalledWith("transform-preview", "raf");
     expect(redrawSpy).not.toHaveBeenCalled();
   });
 
-  it("treats matrix changes as preview changes even when decomposed fields match", () => {
-    const { result } = renderHook(() => useTransformPreviewBridge());
-    const redrawSpy = jest.fn();
-    result.current.requestPreviewRedrawRef.current = redrawSpy;
-
-    act(() => {
-      result.current.setLayerTransformPreview("layer-1", {
-        x: 10,
-        y: 20,
-        scaleX: 1,
-        scaleY: 1,
-        rotation: 0,
-        matrix: [1, 0, 0, 1, 10, 20]
-      });
-    });
-    redrawSpy.mockClear();
-
-    act(() => {
-      result.current.setLayerTransformPreview("layer-1", {
-        x: 10,
-        y: 20,
-        scaleX: 1,
-        scaleY: 1,
-        rotation: 0,
-        matrix: [1, 0, 0.25, 1, 10, 20]
-      });
-    });
-
-    expect(redrawSpy).toHaveBeenCalledTimes(1);
-  });
+  // The "treats matrix changes as preview changes" test was tied to the
+  // legacy matrix-stored transform field, which has been removed.
+  // Affine transforms now live as decomposed (x/y/scaleX/scaleY/rotation),
+  // and quad transforms are compared via their quad arrays. There is no
+  // longer a separate matrix field to drift from the decomposed values.
 });

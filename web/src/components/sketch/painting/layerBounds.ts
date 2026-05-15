@@ -1,4 +1,11 @@
-import type { SketchDocument, Layer, LayerContentBounds, Point } from "../types";
+import type {
+  SketchDocument,
+  Layer,
+  LayerContentBounds,
+  LayerTransform,
+  Point
+} from "../types";
+import { isAffineTransform } from "../types";
 import type { ToolContext } from "../tools/types";
 
 type LayerLike = {
@@ -8,8 +15,15 @@ type LayerLike = {
     width?: number;
     height?: number;
   };
-  transform?: { x?: number; y?: number };
+  transform?: LayerTransform;
 };
+
+function transformXY(t: LayerTransform | undefined): { x: number; y: number } {
+  if (t && isAffineTransform(t)) {
+    return { x: t.x, y: t.y };
+  }
+  return { x: 0, y: 0 };
+}
 
 type LayerRasterCanvas = HTMLCanvasElement & {
   __nodetoolRasterBounds?: LayerContentBounds;
@@ -67,9 +81,10 @@ export function getLayerCompositeOffset(
   canvas?: HTMLCanvasElement | null
 ): Point {
   const bounds = getEffectiveLayerRasterBounds(layer, canvas, fallbackSize);
+  const t = transformXY(layer.transform);
   return {
-    x: (layer.transform?.x ?? 0) + bounds.x,
-    y: (layer.transform?.y ?? 0) + bounds.y
+    x: t.x + bounds.x,
+    y: t.y + bounds.y
   };
 }
 
@@ -77,9 +92,10 @@ export function getDocumentViewportLayerBounds(
   layer: Layer,
   doc: SketchDocument
 ): LayerContentBounds {
+  const t = transformXY(layer.transform);
   return {
-    x: -(layer.transform?.x ?? 0),
-    y: -(layer.transform?.y ?? 0),
+    x: -t.x,
+    y: -t.y,
     width: doc.canvas.width,
     height: doc.canvas.height
   };

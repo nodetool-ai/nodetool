@@ -30,7 +30,8 @@ import {
   createDefaultDocument,
   DEFAULT_BRUSH_SETTINGS,
   DEFAULT_PENCIL_SETTINGS,
-  DEFAULT_ERASER_SETTINGS
+  DEFAULT_ERASER_SETTINGS,
+  makeAffineTransform
 } from "../types";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
@@ -119,7 +120,7 @@ function makePointerEvent(
 describe("CoordinateMapper", () => {
   it("converts document-space point to layer-local with zero transform", () => {
     const mapper = new CoordinateMapper({
-      layerTransform: { x: 0, y: 0 }
+      layerTransform: makeAffineTransform({ x: 0, y: 0 })
     });
     const local = mapper.docToLayer({ x: 50, y: 30 });
     expect(local).toEqual({ x: 50, y: 30 });
@@ -127,7 +128,7 @@ describe("CoordinateMapper", () => {
 
   it("converts document-space point to layer-local with non-zero transform", () => {
     const mapper = new CoordinateMapper({
-      layerTransform: { x: 10, y: 20 }
+      layerTransform: makeAffineTransform({ x: 10, y: 20 })
     });
     const local = mapper.docToLayer({ x: 50, y: 30 });
     expect(local).toEqual({ x: 40, y: 10 });
@@ -135,7 +136,7 @@ describe("CoordinateMapper", () => {
 
   it("converts layer-local point back to document-space", () => {
     const mapper = new CoordinateMapper({
-      layerTransform: { x: 10, y: 20 }
+      layerTransform: makeAffineTransform({ x: 10, y: 20 })
     });
     const doc = mapper.layerToDoc({ x: 40, y: 10 });
     expect(doc).toEqual({ x: 50, y: 30 });
@@ -143,7 +144,7 @@ describe("CoordinateMapper", () => {
 
   it("round-trips correctly", () => {
     const mapper = new CoordinateMapper({
-      layerTransform: { x: -5, y: 15 }
+      layerTransform: makeAffineTransform({ x: -5, y: 15 })
     });
     const original = { x: 100, y: 200 };
     const local = mapper.docToLayer(original);
@@ -153,19 +154,19 @@ describe("CoordinateMapper", () => {
 
   it("reports hasOffset correctly", () => {
     expect(
-      new CoordinateMapper({ layerTransform: { x: 0, y: 0 } }).hasOffset
+      new CoordinateMapper({ layerTransform: makeAffineTransform({ x: 0, y: 0 }) }).hasOffset
     ).toBe(false);
     expect(
-      new CoordinateMapper({ layerTransform: { x: 1, y: 0 } }).hasOffset
+      new CoordinateMapper({ layerTransform: makeAffineTransform({ x: 1, y: 0 }) }).hasOffset
     ).toBe(true);
     expect(
-      new CoordinateMapper({ layerTransform: { x: 0, y: -1 } }).hasOffset
+      new CoordinateMapper({ layerTransform: makeAffineTransform({ x: 0, y: -1 }) }).hasOffset
     ).toBe(true);
   });
 
   it("converts dirty rect from layer-space to document-space", () => {
     const mapper = new CoordinateMapper({
-      layerTransform: { x: 10, y: 20 }
+      layerTransform: makeAffineTransform({ x: 10, y: 20 })
     });
     const dirty = { minX: 5, minY: 5, maxX: 15, maxY: 25 };
     const docDirty = mapper.dirtyToDoc(dirty);
@@ -174,7 +175,7 @@ describe("CoordinateMapper", () => {
 
   it("accounts for raster bounds offset in both directions", () => {
     const mapper = new CoordinateMapper({
-      layerTransform: { x: 30, y: 15 },
+      layerTransform: makeAffineTransform({ x: 30, y: 15 }),
       rasterBounds: { x: -20, y: -10 }
     });
     expect(mapper.docToLayer({ x: 30, y: 15 })).toEqual({ x: 20, y: 10 });
@@ -184,7 +185,7 @@ describe("CoordinateMapper", () => {
 
   it("exposes offset as a Point", () => {
     const mapper = new CoordinateMapper({
-      layerTransform: { x: 7, y: -3 }
+      layerTransform: makeAffineTransform({ x: 7, y: -3 })
     });
     expect(mapper.offset).toEqual({ x: 7, y: -3 });
   });
@@ -661,7 +662,7 @@ describe("PaintSession", () => {
           {
             ...createDefaultDocument(64, 64).layers[0],
             id: layerId,
-            transform: { x: 20, y: 10 },
+            transform: makeAffineTransform({ x: 20, y: 10 }),
             contentBounds: { x: 0, y: 0, width: 64, height: 64 }
           }
         ]

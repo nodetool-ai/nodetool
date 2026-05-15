@@ -1246,41 +1246,23 @@ export class WebGPURuntime implements SketchRuntime {
       this.layerCanvases.get((layer as Layer).id)
     );
 
-    const sx = layer.transform?.scaleX ?? 1;
-    const sy = layer.transform?.scaleY ?? 1;
-    const rot = layer.transform?.rotation ?? 0;
-    const matrix = layer.transform?.matrix;
-    const usesAdvancedAffine = Boolean(matrix && layer.transform?.mode);
-    const rasterOriginX = compositeOffset.x - (layer.transform?.x ?? 0);
-    const rasterOriginY = compositeOffset.y - (layer.transform?.y ?? 0);
-
-    if (usesAdvancedAffine && matrix) {
-      const [a, b, c, d, e, f] = matrix;
-      const det = a * d - b * c;
-      if (Math.abs(det) < 1e-12) {
-        return {
-          a: 1, b: 0, tx: -compositeOffset.x,
-          c: 0, d: 1, ty: -compositeOffset.y
-        };
-      }
-      const invDet = 1 / det;
-      const ia = d * invDet;
-      const ib = -b * invDet;
-      const ic = -c * invDet;
-      const id = a * invDet;
-      const ie = (c * f - d * e) * invDet;
-      const iff = (b * e - a * f) * invDet;
+    const t = layer.transform;
+    // TODO: add WebGPU quad sampler. For quad/dual-quad transforms we currently
+    // fall back to identity (no rotation/scale), which silently mis-renders.
+    // Canvas2D path handles them correctly via drawImageToQuad.
+    if (t.kind !== "affine") {
+      console.warn(
+        "WebGPURuntime: quad/dual-quad transforms not yet supported; falling back to identity affine"
+      );
       return {
-        a: ia,
-        b: ic,
-        tx: ie - rasterOriginX,
-        c: ib,
-        d: id,
-        ty: iff - rasterOriginY
+        a: 1, b: 0, tx: -compositeOffset.x,
+        c: 0, d: 1, ty: -compositeOffset.y
       };
     }
+    const sx = t.scaleX;
+    const sy = t.scaleY;
+    const rot = t.rotation;
 
-    // For no transform, return simple translation
     if (sx === 1 && sy === 1 && rot === 0) {
       return {
         a: 1, b: 0, tx: -compositeOffset.x,

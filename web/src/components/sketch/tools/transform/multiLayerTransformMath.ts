@@ -6,7 +6,7 @@
  */
 
 import type { AffineMatrix, LayerContentBounds, LayerTransform, Point } from "../../types";
-import { decomposeAffineMatrix, isQuadTransformMode } from "../../types";
+import { matrixToAffine, makeAffineTransform, isQuadTransform } from "../../types";
 import {
   getTransformedCorners,
   type DocumentExtents
@@ -117,7 +117,7 @@ export function rasterSpaceToDocAffine(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): AffineMatrix | null {
-  if (transform.quad && isQuadTransformMode(transform.mode)) {
+  if (isQuadTransform(transform)) {
     return null;
   }
   const cornersDoc = getTransformedCorners(transform, rasterBounds);
@@ -149,15 +149,7 @@ export function unionOfDocumentExtents(
   };
 }
 
-/** Build LayerTransform from a document-space affine (TRS decomposition + matrix). */
+/** Build LayerTransform from a document-space affine (TRS decomposition). */
 export function layerTransformFromDocAffine(m: AffineMatrix): LayerTransform {
-  const d = decomposeAffineMatrix(m);
-  return {
-    x: d.x,
-    y: d.y,
-    scaleX: d.scaleX,
-    scaleY: d.scaleY,
-    rotation: d.rotation,
-    matrix: [...m] as AffineMatrix
-  };
+  return makeAffineTransform(matrixToAffine(m));
 }

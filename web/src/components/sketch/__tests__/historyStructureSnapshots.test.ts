@@ -52,12 +52,12 @@ describe("History — layer structure snapshots", () => {
               ? {
                   ...layer,
                   transform: {
+                    kind: "affine" as const,
                     x: 7,
                     y: -4,
                     scaleX: 1.25,
                     scaleY: 0.8,
-                    rotation: Math.PI / 6,
-                    matrix: [1.25, 0, 0, 0.8, 7, -4]
+                    rotation: Math.PI / 6
                   },
                   contentBounds: {
                     x: -8,
@@ -699,7 +699,7 @@ describe("History — layer structure snapshots", () => {
       useSketchStore.getState().pushHistory("before move", undefined, {
         restoreMode: "structure-only"
       });
-      useSketchStore.getState().commitLayerTransform(layerId, { x: 18, y: -9 });
+      useSketchStore.getState().commitLayerTransform(layerId, { kind: "affine", x: 18, y: -9, scaleX: 1, scaleY: 1, rotation: 0 });
       useSketchStore.getState().pushHistory("after move", undefined, {
         restoreMode: "structure-only"
       });
@@ -787,7 +787,7 @@ describe("History — layer structure snapshots", () => {
     const layerId = useSketchStore.getState().document.activeLayerId;
 
     act(() => {
-      useSketchStore.getState().commitLayerTransform(layerId, { x: 14, y: -3 });
+      useSketchStore.getState().commitLayerTransform(layerId, { kind: "affine", x: 14, y: -3, scaleX: 1, scaleY: 1, rotation: 0 });
       useSketchStore.getState().setLayerContentBounds(layerId, {
         x: -9,
         y: 11,

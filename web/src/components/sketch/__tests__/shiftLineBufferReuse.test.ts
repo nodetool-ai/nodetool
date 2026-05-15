@@ -43,7 +43,7 @@ function makeLayer(id: string): Layer {
     alphaLock: false,
     data: null,
     type: "raster",
-    transform: { x: 0, y: 0 },
+    transform: { kind: "affine", x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
     contentBounds: { x: 0, y: 0, width: 64, height: 64 },
     effects: []
   };
