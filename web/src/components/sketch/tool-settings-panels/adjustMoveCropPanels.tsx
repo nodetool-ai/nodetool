@@ -244,6 +244,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
             size="small"
             color="success"
             onClick={onCommit}
+            aria-label="Commit"
             sx={{ padding: "3px" }}
           >
             <CheckIcon sx={{ fontSize: 18 }} />
@@ -254,6 +255,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
             size="small"
             color="error"
             onClick={onCancel}
+            aria-label="Cancel"
             sx={{ padding: "3px" }}
           >
             <CloseIcon sx={{ fontSize: 18 }} />
@@ -263,6 +265,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
           <IconButton
             size="small"
             onClick={onReset}
+            aria-label="Reset"
             sx={{
               color: SKETCH_COLORS.textSecondary,
               padding: "3px"
@@ -306,6 +309,7 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
             color="success"
             disabled={!hasPendingCrop}
             onClick={onApply}
+            aria-label="Apply crop"
             sx={{ padding: "3px" }}
           >
             <CheckIcon sx={{ fontSize: 18 }} />
@@ -317,6 +321,7 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
             color="error"
             disabled={!hasPendingCrop}
             onClick={onCancel}
+            aria-label="Cancel crop preview"
             sx={{ padding: "3px" }}
           >
             <CloseIcon sx={{ fontSize: 18 }} />

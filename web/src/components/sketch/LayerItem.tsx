@@ -181,6 +181,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
         {isGroup ? (
           <IconButton
             size="small"
+            aria-label={layer.collapsed ? "Expand group" : "Collapse group"}
             onClick={(e) => {
               e.stopPropagation();
               onToggleGroupCollapsed?.(layer.id);
@@ -295,6 +296,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
           >
             <IconButton
               size="small"
+              aria-label={isIsolated ? "Show all layers" : "Solo this layer"}
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleIsolateLayer(layer.id);
