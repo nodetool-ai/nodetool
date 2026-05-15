@@ -237,12 +237,13 @@ export const getContentCardDefaultSize = (
 export const getDynamicInputLabel = (metadata: NodeMetadata): string => {
   const t = metadata.node_type ?? "";
   // Template-style nodes use {{variable}} substitution — say "variable".
+  // (Only nodes also matched by `isContentCardNode` show this button — keep
+  // this list in sync with the explicit allow-set above.)
   if (
     t === "nodetool.agents.Agent" ||
     t === "anthropic.agents.ClaudeAgent" ||
     t === "openai.agents.RealtimeAgent" ||
-    t === "nodetool.text.Concat" ||
-    t === "nodetool.text.FormatText"
+    t === "nodetool.text.Concat"
   ) {
     return "variable";
   }
