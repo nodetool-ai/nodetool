@@ -11,7 +11,7 @@ import SearchResultsPanel from "./SearchResultsPanel";
 import { Text } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import ApiKeyValidation from "../node/ApiKeyValidation";
-import { useCreateNode } from "../../hooks/useCreateNode";
+import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 
@@ -79,7 +79,9 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     );
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
 
-  const handleCreateNode = useCreateNode();
+  // Route click-to-add via PendingNodeCreateStore (safe outside the editor's
+  // ReactFlowProvider, e.g. inside the left-panel Search view).
+  const requestCreate = usePendingNodeCreateStore((s) => s.requestCreate);
   const handleDragStart = useCallback(
     (node: NodeMetadata, event: React.DragEvent<HTMLDivElement>) => {
       setDragToCreate(true);
@@ -112,9 +114,9 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
 
   const handleNodeClick = useCallback(
     (node: NodeMetadata) => {
-      handleCreateNode(node);
+      requestCreate(node);
     },
-    [handleCreateNode]
+    [requestCreate]
   );
 
   const selectedNodeTypesSet = useMemo(() => {

@@ -4,7 +4,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import SearchResultItem from "./SearchResultItem";
-import { useCreateNode } from "../../hooks/useCreateNode";
+import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { EmptyState } from "../ui_primitives/EmptyState";
@@ -18,7 +18,9 @@ const ROW_HEIGHT = 72;
 const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
   searchNodes
 }) => {
-  const handleCreateNode = useCreateNode();
+  // Route click-to-add via PendingNodeCreateStore (safe outside the editor's
+  // ReactFlowProvider, e.g. inside the left-panel Search view).
+  const requestCreate = usePendingNodeCreateStore((s) => s.requestCreate);
   const setDragToCreate = useNodeMenuStore((state) => state.setDragToCreate);
   const selectedIndex = useNodeMenuStore((state) => state.selectedIndex);
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
@@ -58,9 +60,9 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
 
   const handleNodeClick = useCallback(
     (node: NodeMetadata) => {
-      handleCreateNode(node);
+      requestCreate(node);
     },
-    [handleCreateNode]
+    [requestCreate]
   );
 
   if (searchNodes.length === 0) {

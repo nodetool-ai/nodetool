@@ -15,7 +15,7 @@ import { memo, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
 import StaticNodeMenu from "../node_menu/StaticNodeMenu";
-import RecentNodesTiles from "../node_menu/RecentNodesTiles";
+import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
 import QuickAccessGrid from "../node_menu/QuickAccessGrid";
 
@@ -302,9 +302,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && <PanelHeadline title="History" />}
-          <ScrollArea fullHeight>
-            <RecentNodesTiles />
-          </ScrollArea>
+          <HistoryTilesPanel />
         </Box>
       )}
       {activeView === "assets" && (

@@ -4,15 +4,14 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback } from "react";
 import type { DragEvent as ReactDragEvent } from "react";
-import { useReactFlow } from "@xyflow/react";
 
 import { Text } from "../ui_primitives";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import { IconForType } from "../../config/data_types";
-import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { getPrimaryOutput } from "../node_types/contentCardRegistry";
 
 const styles = (theme: Theme) =>
@@ -80,24 +79,17 @@ interface QuickAccessTileProps {
 const QuickAccessTile = memo<QuickAccessTileProps>(({ node }) => {
   const theme = useTheme();
 
-  const reactFlowInstance = useReactFlow();
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const setDragToCreate = useNodeMenuStore((s) => s.setDragToCreate);
+  const requestCreate = usePendingNodeCreateStore((s) => s.requestCreate);
 
-  // Click-to-add: drop at viewport center (plan §7.2 "click to drop at
-  // viewport center"). We compute screen-coords for the center each call so
-  // pans/zooms don't stale the position.
-  const viewportCenter = (): { x: number; y: number } => {
-    if (!reactFlowInstance) {
-      return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-    }
-    return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-  };
-  const handleCreateAtCenter = useCreateNode(viewportCenter());
-
+  // Click-to-add: send the request through `PendingNodeCreateStore`. The
+  // `<NodeCreateBridge />` mounted inside the editor's `ReactFlowProvider`
+  // consumes it and creates the node at viewport center. This indirection
+  // lets the tile live in the left panel (outside the provider).
   const handleClick = useCallback(() => {
-    handleCreateAtCenter(node);
-  }, [handleCreateAtCenter, node]);
+    requestCreate(node);
+  }, [requestCreate, node]);
 
   const handleDragStart = useCallback(
     (event: ReactDragEvent<HTMLDivElement>) => {

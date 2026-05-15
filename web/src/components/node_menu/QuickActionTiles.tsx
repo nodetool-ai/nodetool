@@ -23,7 +23,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { shallow } from "zustand/shallow";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useCreateNode } from "../../hooks/useCreateNode";
+import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { IconForType, colorForType } from "../../config/data_types";
@@ -378,7 +378,9 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
 
-  const handleCreateNode = useCreateNode();
+  // Route click-to-add via PendingNodeCreateStore so this component is safe
+  // to render outside the editor's ReactFlowProvider.
+  const requestCreate = usePendingNodeCreateStore((s) => s.requestCreate);
 
   const handleDragStart = useCallback(
     (event: ReactDragEvent<HTMLDivElement>) => {
@@ -428,9 +430,9 @@ const QuickActionTiles = memo(function QuickActionTiles() {
         return;
       }
 
-      handleCreateNode(metadata);
+      requestCreate(metadata);
     },
-    [getMetadata, addNotification, handleCreateNode]
+    [getMetadata, addNotification, requestCreate]
   );
 
   const onTileMouseEnter = useCallback(
