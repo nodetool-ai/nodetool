@@ -1,4 +1,4 @@
-import { memo, useEffect } from "react";
+import { memo, useEffect, useMemo } from "react";
 
 import { useCreateNode } from "../../hooks/useCreateNode";
 import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
@@ -11,8 +11,14 @@ import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
  * Renders nothing.
  */
 const NodeCreateBridge = memo(() => {
-  // Center of the viewport — recomputed each pending request via effect.
-  const center = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  // Stable center reference. Computed once per mount so `handleCreate`
+  // keeps its callback identity (otherwise the effect re-fires every commit
+  // and useCreateNode loses its memoization). Window-resize staleness is
+  // accepted — sidebar-tile clicks happen quickly after the bridge mounts.
+  const center = useMemo(
+    () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 }),
+    []
+  );
   const handleCreate = useCreateNode(center);
   const pending = usePendingNodeCreateStore((s) => s.pending);
   const consume = usePendingNodeCreateStore((s) => s.consume);

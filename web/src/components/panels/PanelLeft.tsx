@@ -10,6 +10,7 @@ import { EditorButton } from "../editor_ui";
 import { ToolbarIconButton } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
+import { useAuditCuratedCategories } from "../../hooks/useAuditCuratedCategories";
 import isEqual from "fast-deep-equal";
 import { memo, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
@@ -530,6 +531,7 @@ const PanelLeft: React.FC = () => {
 
   useCombo(["1"], () => handlePanelToggle("workflows"), false);
   useCombo(["2"], () => handlePanelToggle("assets"), false);
+  useAuditCuratedCategories();
 
 
   const activeView =

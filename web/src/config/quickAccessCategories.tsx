@@ -168,6 +168,26 @@ export const getCategory = (
   QUICK_ACCESS_CATEGORIES.find((c) => c.id === id);
 
 /**
+ * Combined view of all curated `node_type` strings referenced by the
+ * tile-grid categories — used by `useAuditCuratedCategories` to flag drift
+ * between this config and the live node registry.
+ */
+export const CURATED_NODE_TYPES: ReadonlyMap<string, QuickAccessCategoryId[]> =
+  (() => {
+    const m = new Map<string, QuickAccessCategoryId[]>();
+    const add = (set: ReadonlySet<string>, id: QuickAccessCategoryId) => {
+      for (const t of set) {
+        const arr = m.get(t) ?? [];
+        arr.push(id);
+        m.set(t, arr);
+      }
+    };
+    add(QUICK_ACCESS_NODE_TYPES, "quick-access");
+    add(TOOLS_NODE_TYPES, "tools");
+    return m;
+  })();
+
+/**
  * Filter all metadata to the entries that should appear under this category.
  * Returns the list sorted by title. Panel-kind categories return [].
  */

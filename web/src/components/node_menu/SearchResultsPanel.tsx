@@ -102,20 +102,36 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
       >
         {virtualizer.getVirtualItems().map((vi) => {
           const node = searchNodes[vi.index];
+          // Compact rows use dynamic measurement so the actual 36 px row
+          // height isn't approximated to the default 72 px estimate. Default
+          // (floating-menu) rows keep their fixed `vi.size` height to
+          // preserve hover-expand and scrollIntoView behavior unchanged.
+          const itemProps = compact
+            ? {
+                "data-index": vi.index,
+                ref: virtualizer.measureElement,
+                style: {
+                  position: "absolute" as const,
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${vi.start}px)`,
+                  overflow: "visible" as const,
+                },
+              }
+            : {
+                style: {
+                  position: "absolute" as const,
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: vi.size,
+                  transform: `translateY(${vi.start}px)`,
+                  overflow: "visible" as const,
+                },
+              };
           return (
-            <div
-              key={vi.key}
-              data-index={vi.index}
-              ref={virtualizer.measureElement}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                transform: `translateY(${vi.start}px)`,
-                overflow: "visible",
-              }}
-            >
+            <div key={vi.key} {...itemProps}>
               <SearchResultItem
                 node={node}
                 onDragStart={handleDragStart}
