@@ -1,5 +1,5 @@
 import { memo, useState, useCallback, useContext, useRef, useEffect } from "react";
-import { colorForType, textColorForType } from "../config/data_types";
+import { colorForType } from "../config/data_types";
 import { typeToString } from "../utils/TypeHandler";
 import { createPortal } from "react-dom";
 import { getMousePosition } from "../utils/MousePosition";
@@ -71,11 +71,10 @@ const HandleTooltip = memo(function HandleTooltip({
   const isConnecting = useConnectionStore(
     (state) => state.connecting || state.isReconnecting
   );
-  // While the owning node is selected, surface a subtle inline label next
-  // to every handle so users can read all port names at a glance without
-  // hovering each one. Inline (not portal) so it follows pan / zoom / drag.
+  // When the owning node is selected, force every handle's tooltip visible
+  // so the user can see every port's name + type at a glance without
+  // hovering each one. Selection toggles cleanly via the context provider.
   const nodeSelected = useContext(NodeSelectionContext);
-  const showPinnedTooltip = nodeSelected && enableHover && !isConnecting;
 
   // Ref to keep track of the timer used for delaying tooltip appearance
   const showTimerRef = useRef<number | null>(null);
@@ -100,6 +99,30 @@ const HandleTooltip = memo(function HandleTooltip({
     setShowTooltip(false);
   }, [isConnecting]);
 
+  // Force-show the tooltip while the owning node is selected. Position is
+  // captured once from the wrapper's bounding rect when selection turns on
+  // (and re-captured when handlePosition changes).
+  useEffect(() => {
+    if (!nodeSelected || isConnecting || !enableHover) {
+      setShowTooltip(false);
+      return;
+    }
+    if (showTimerRef.current !== null) {
+      clearTimeout(showTimerRef.current);
+      showTimerRef.current = null;
+    }
+    const el = wrapperRef.current;
+    if (!el) {
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    setTooltipPosition({
+      x: handlePosition === "left" ? rect.left : rect.right,
+      y: rect.top + rect.height / 2
+    });
+    setShowTooltip(true);
+  }, [nodeSelected, isConnecting, enableHover, handlePosition]);
+
   const prettyName = displayName ?? paramName
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -123,13 +146,17 @@ const HandleTooltip = memo(function HandleTooltip({
   }, [enableHover, isConnecting]);
 
   const handleMouseLeave = useCallback(() => {
+    // Don't hide the forced tooltip on mouse-leave while the node is selected.
+    if (nodeSelected) {
+      return;
+    }
     // Cancel pending timer if it exists
     if (showTimerRef.current !== null) {
       clearTimeout(showTimerRef.current);
       showTimerRef.current = null;
     }
     setShowTooltip(false);
-  }, []);
+  }, [nodeSelected]);
 
   const handleFocus = useCallback(() => {
     if (!enableHover) {
@@ -147,8 +174,11 @@ const HandleTooltip = memo(function HandleTooltip({
   }, [enableHover]);
 
   const handleBlur = useCallback(() => {
+    if (nodeSelected) {
+      return;
+    }
     setShowTooltip(false);
-  }, []);
+  }, [nodeSelected]);
 
   const isPropertyVariant = variant === "property";
 
@@ -167,12 +197,15 @@ const HandleTooltip = memo(function HandleTooltip({
       <div
         className="handle-tooltip-content"
         style={{
-          backgroundColor: isPropertyVariant
-            ? "var(--palette-grey-800)"
-            : colorForType(typeString),
+          backgroundColor: "transparent",
           color: isPropertyVariant
             ? "var(--palette-grey-100)"
-            : textColorForType(typeString)
+            : colorForType(typeString),
+          border: `1px solid ${
+            isPropertyVariant
+              ? "var(--palette-grey-700)"
+              : colorForType(typeString)
+          }`
         }}
       >
         <div className="handle-tooltip-name">
@@ -195,42 +228,11 @@ const HandleTooltip = memo(function HandleTooltip({
     </div>
   );
 
-  // Subtle inline label rendered next to the handle while the owning node
-  // is selected. Plain text, no chrome — meant to read as an annotation
-  // not a tooltip popover.
-  const pinnedLabel = (
-    <span
-      className="handle-pinned-label"
-      style={{
-        position: "absolute",
-        top: "50%",
-        ...(handlePosition === "left"
-          ? { right: "calc(100% + 6px)" }
-          : { left: "calc(100% + 6px)" }),
-        transform: "translateY(-50%)",
-        pointerEvents: "none",
-        whiteSpace: "nowrap",
-        fontFamily: "var(--fontFamily1, inherit)",
-        fontSize: "10px",
-        lineHeight: 1.2,
-        color: "var(--palette-text-secondary, rgba(255,255,255,0.6))",
-        opacity: 0.7,
-        zIndex: 4
-      }}
-    >
-      {prettyName}
-    </span>
-  );
-
   return (
     <>
       <div
         ref={wrapperRef}
         className={`handle-tooltip-wrapper ${className}`}
-        // Pinned label is positioned absolute relative to the wrapper; the
-        // wrapper only becomes a positioning context while pinned so the
-        // ReactFlow Handle layout stays untouched the rest of the time.
-        style={showPinnedTooltip ? { position: "relative" } : undefined}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onFocus={handleFocus}
@@ -241,7 +243,6 @@ const HandleTooltip = memo(function HandleTooltip({
         aria-describedby={showTooltip ? tooltipIdRef.current : undefined}
       >
         {children}
-        {showPinnedTooltip && pinnedLabel}
       </div>
       {showTooltip && createPortal(
         <div
