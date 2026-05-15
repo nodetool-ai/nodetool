@@ -59,6 +59,7 @@ import {
   getPrimaryOutput,
   type ContentCardVariant
 } from "./contentCardRegistry";
+import { resolveExposedInputNames } from "../../utils/exposedInputs";
 
 const styles = (theme: Theme) =>
   css({
@@ -461,7 +462,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
 
   // Two-pass field classification per field-classification.md:
   // 1. inlineFields: rendered as full editors in normal flow
-  // 2. inputFields: rendered as handle-only on left edge
+  // 2. inputFields ∪ exposedInputs: rendered as handle-only on left edge
   // Fallback when neither is set: all properties render as handles (old behavior)
   // `!== undefined` so a node with explicitly empty arrays ("send everything
   // to the Inspector") is honored — not treated as legacy.
@@ -469,14 +470,21 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     nodeMetadata.inline_fields !== undefined ||
     nodeMetadata.input_fields !== undefined;
   const inlineFields = nodeMetadata.inline_fields ?? [];
-  const inputFields = nodeMetadata.input_fields ?? [];
 
   const properties = nodeMetadata.properties ?? [];
   const inlineProps = useNewLayout
     ? properties.filter((p) => inlineFields.includes(p.name))
     : [];
+  // Handle column = metadata input_fields ∪ user-promoted exposedInputs.
+  const handleNames = useMemo(
+    () =>
+      useNewLayout
+        ? new Set(resolveExposedInputNames(nodeMetadata, data))
+        : null,
+    [useNewLayout, nodeMetadata, data]
+  );
   const handleProps = useNewLayout
-    ? properties.filter((p) => inputFields.includes(p.name))
+    ? properties.filter((p) => handleNames!.has(p.name))
     : properties; // fallback: all properties render as handles
 
   // Adding a dynamic property is the responsibility of dynamic-input wiring
