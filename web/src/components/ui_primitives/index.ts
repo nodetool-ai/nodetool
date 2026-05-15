@@ -347,3 +347,21 @@ export type { DropZoneOverlayProps } from "./DropZoneOverlay";
 
 export { MetadataListRow } from "./MetadataListRow";
 export type { MetadataListRowProps, MetadataItem } from "./MetadataListRow";
+
+// Node-editor redesign (PR 3) — primitives for ContentCardBody,
+// editing-node bodies, and the edge renderer. Consumed by later PRs.
+
+export { CheckerDropzone } from "./CheckerDropzone";
+export type { CheckerDropzoneProps } from "./CheckerDropzone";
+
+export { VideoPlayer } from "./VideoPlayer";
+export type { VideoPlayerProps } from "./VideoPlayer";
+
+export { DynamicInputButton } from "./DynamicInputButton";
+export type { DynamicInputButtonProps } from "./DynamicInputButton";
+
+export { RunModelButton } from "./RunModelButton";
+export type { RunModelButtonProps } from "./RunModelButton";
+
+export { EdgeEndpointLabel } from "./EdgeEndpointLabel";
+export type { EdgeEndpointLabelProps } from "./EdgeEndpointLabel";

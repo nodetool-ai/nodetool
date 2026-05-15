@@ -217,6 +217,7 @@ function useStructurallyProcessedEdges({
       let sourceColor = defaultColor;
       let sourceTypeLabel = "Any";
       let targetTypeSlug = "any";
+      let targetInputCount: number | undefined;
 
       if (sourceNode && normalizedSourceHandle) {
         const effective = getEffectiveSourceType(
@@ -237,6 +238,12 @@ function useStructurallyProcessedEdges({
         } else if (targetNode.type) {
           const targetMetadata = getMetadata(targetNode.type);
           if (targetMetadata) {
+            const dynamicInputKeys = new Set([
+              ...Object.keys(targetNode.data?.dynamic_inputs ?? {}),
+              ...Object.keys(targetNode.data?.dynamic_properties ?? {})
+            ]);
+            targetInputCount =
+              (targetMetadata.properties?.length ?? 0) + dynamicInputKeys.size;
             const inputHandle = findInputHandle(
               targetNode as Node<NodeData>,
               normalizedTargetHandle,
@@ -244,8 +251,8 @@ function useStructurallyProcessedEdges({
             );
             if (inputHandle?.type?.type) {
               const typeString = inputHandle.type.type;
-              const t = dataTypeByValue.get(typeString) || 
-                        dataTypeByName.get(typeString) || 
+              const t = dataTypeByValue.get(typeString) ||
+                        dataTypeByName.get(typeString) ||
                         dataTypeBySlug.get(typeString);
               if (t) {
                 targetTypeSlug = t.slug;
@@ -293,11 +300,18 @@ function useStructurallyProcessedEdges({
         style: {
           ...edge.style,
           stroke: strokeStyle,
-          strokeWidth: 2
+          // A4: unselected edges use 1.5px stroke. Selected edges are
+          // promoted to 2px + glow in CustomEdge (CSS controls hover/selected).
+          strokeWidth: 1.5,
+          transition: "stroke 180ms ease-out, stroke-width 120ms ease-out, filter 180ms ease-out"
         },
         data: {
           ...edge.data,
-          dataTypeLabel: sourceTypeLabel
+          dataTypeLabel: sourceTypeLabel,
+          sourceTypeColor: sourceColor,
+          sourceHandleName: normalizedSourceHandle ?? undefined,
+          targetHandleName: normalizedTargetHandle ?? undefined,
+          targetInputCount
         }
       };
     });

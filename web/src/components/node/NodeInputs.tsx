@@ -101,6 +101,7 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
       tabIndex={tabIndex}
       isDynamicProperty={isDynamicProperty}
       data={data}
+      isConnected={isConnected}
     />
   );
 },
