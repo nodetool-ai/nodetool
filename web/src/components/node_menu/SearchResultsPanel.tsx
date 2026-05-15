@@ -11,12 +11,19 @@ import { EmptyState } from "../ui_primitives/EmptyState";
 
 interface SearchResultsPanelProps {
   searchNodes: NodeMetadata[];
+  /**
+   * Compact mode: tighter rows, title-only — used by the left-panel sidebar
+   * where the full row layout doesn't fit. Default false (floating menu).
+   */
+  compact?: boolean;
 }
 
 const ROW_HEIGHT = 72;
+const ROW_HEIGHT_COMPACT = 36;
 
 const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
-  searchNodes
+  searchNodes,
+  compact = false
 }) => {
   // Route click-to-add via PendingNodeCreateStore (safe outside the editor's
   // ReactFlowProvider, e.g. inside the left-panel Search view).
@@ -30,7 +37,7 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
   const virtualizer = useVirtualizer({
     count: searchNodes.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => ROW_HEIGHT,
+    estimateSize: () => (compact ? ROW_HEIGHT_COMPACT : ROW_HEIGHT),
     overscan: 8,
   });
 
@@ -114,6 +121,7 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
                 onDragEnd={handleDragEnd}
                 onClick={handleNodeClick}
                 isKeyboardSelected={vi.index === selectedIndex}
+                compact={compact}
               />
             </div>
           );

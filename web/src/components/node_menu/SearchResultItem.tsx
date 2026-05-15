@@ -22,17 +22,25 @@ interface SearchResultItemProps {
   onDragEnd?: () => void;
   onClick: (node: NodeMetadata) => void;
   isKeyboardSelected?: boolean;
+  /**
+   * Compact mode: single-line title-only row, no description / tags /
+   * expandable I/O details. Used by the left-panel sidebar where horizontal
+   * space is narrow (~280 px). Default false.
+   */
+  compact?: boolean;
 }
 
 const MAX_DESCRIPTION_LENGTH = 120;
 
-const searchResultStyles = (theme: Theme) =>
+const searchResultStyles = (theme: Theme, compact: boolean) =>
   css({
     "&.search-result-item": {
       display: "flex",
-      flexDirection: "column",
-      padding: theme.spacing(2.5, 3),
-      margin: theme.spacing(0.5, 0),
+      flexDirection: compact ? "row" : "column",
+      alignItems: compact ? "center" : "stretch",
+      gap: compact ? theme.spacing(1) : 0,
+      padding: compact ? theme.spacing(0.75, 1.25) : theme.spacing(2.5, 3),
+      margin: compact ? theme.spacing(0.25, 0) : theme.spacing(0.5, 0),
       borderRadius: "var(--rounded-md)",
       cursor: "pointer",
       transition: "all 0.15s ease",
@@ -193,7 +201,14 @@ const searchResultStyles = (theme: Theme) =>
 const SearchResultItem = memo(
   forwardRef<HTMLDivElement, SearchResultItemProps>(
     (
-      { node, onDragStart, onDragEnd, onClick, isKeyboardSelected = false },
+      {
+        node,
+        onDragStart,
+        onDragEnd,
+        onClick,
+        isKeyboardSelected = false,
+        compact = false
+      },
       ref
     ) => {
       const theme = useTheme();
@@ -257,11 +272,66 @@ const SearchResultItem = memo(
         [onDragStart, node]
       );
 
+      if (compact) {
+        return (
+          <div
+            ref={ref}
+            className={`search-result-item ${isKeyboardSelected ? "keyboard-selected" : ""}`}
+            css={searchResultStyles(theme, true)}
+            draggable
+            onClick={handleClick}
+            onDragStart={handleDragStart}
+            onDragEnd={onDragEnd}
+          >
+            <IconForType
+              iconName={outputType}
+              bgStyle={{
+                backgroundColor: theme.vars.palette.grey[900],
+                width: "18px",
+                height: "18px",
+                margin: 0,
+                padding: "1px",
+                borderRadius: "var(--rounded-sm)"
+              }}
+              svgProps={{ width: "14px", height: "14px" }}
+            />
+            <Text
+              className="result-title"
+              component="div"
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis"
+              }}
+            >
+              <HighlightText
+                text={node.title}
+                query={searchTerm}
+                matchStyle="primary"
+              />
+            </Text>
+            <span
+              className="provider-tag"
+              style={{
+                color:
+                  providerKind === "api"
+                    ? theme.vars.palette.c_provider_api
+                    : theme.vars.palette.c_provider_local
+              }}
+            >
+              {providerKind === "api" ? "API" : "Local"}
+            </span>
+          </div>
+        );
+      }
+
       return (
         <div
           ref={ref}
           className={`search-result-item ${isExpanded ? "expanded" : ""} ${isKeyboardSelected ? "keyboard-selected" : ""}`}
-          css={searchResultStyles(theme)}
+          css={searchResultStyles(theme, compact)}
           draggable
           onClick={handleClick}
           onMouseEnter={handleMouseEnter}
