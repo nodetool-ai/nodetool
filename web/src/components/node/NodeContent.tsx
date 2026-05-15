@@ -152,7 +152,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
   //       → generic body (this component's default layout)
   // Utility nodes (control flow, constants, etc.) intentionally never appear
   // in CONTENT_CARD_REGISTRY and stay on the generic body forever.
-  if (isContentCardNode(nodeType)) {
+  if (isContentCardNode(nodeMetadata)) {
     return (
       <ContentCardBody
         id={id}

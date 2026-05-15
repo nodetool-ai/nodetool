@@ -1342,7 +1342,7 @@ export const createNodeStore = (
               metadata.node_type === "nodetool.compare.CompareImages";
             const isModel3DConstantNode =
               metadata.node_type === "nodetool.constant.Model3D";
-            const isContentCard = isContentCardNode(metadata.node_type);
+            const isContentCard = isContentCardNode(metadata);
             let defaultStyle: { width: number; height?: number };
             if (isPreviewNode) {
               defaultStyle = { width: 400, height: 300 };
