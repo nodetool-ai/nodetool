@@ -2,11 +2,18 @@ name: Docker
 
 on:
   push:
+    # Build images for every branch push so any branch can be deployed as a
+    # preview instance via `deploy.sh --slug`. The metadata-action step below
+    # tags non-tag refs as `{branch}-{shortsha}` (and `latest` only on main).
+    # `pull_request` is intentionally not used to avoid duplicate builds for
+    # in-repo PRs (which would fire both events). Fork PRs cannot push to GHCR
+    # anyway, so the loss of fork preview images is not a regression.
     branches:
-      - main
+      - '**'
     tags:
       - 'v*.*.*'
       - 'v*.*.*-*'
+  workflow_dispatch:
 
 jobs:
   docker-publish:
