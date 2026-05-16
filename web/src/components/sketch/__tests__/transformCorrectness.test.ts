@@ -734,7 +734,8 @@ describe("Package B: transform computation correctness", () => {
     expect(Math.min(remainder, step - remainder)).toBeCloseTo(0, 5);
   });
 
-  it("scale with shift is proportional", () => {
+  it("corner scale is proportional by default (Affinity/Figma convention)", () => {
+    // Asymmetric cursor delta — only proportional locking would force equal axes.
     const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
     const center = computeTransformedCenter(transform, bounds);
 
@@ -742,15 +743,34 @@ describe("Package B: transform computation correctness", () => {
       "bottom-right",
       transform,
       { x: center.x + 50, y: center.y + 50 },
-      { x: center.x + 75, y: center.y + 75 },
+      { x: center.x + 80, y: center.y + 60 }, // dx=30, dy=10 — asymmetric
       center,
       bounds,
-      true, // shift = proportional
-      true // alt = scale from center
+      false, // shift = false → DEFAULT: proportional
+      true   // alt = scale from center
     ));
 
     expect(result.scaleX).toBeCloseTo(result.scaleY, 5);
     expect(result.scaleX).toBeGreaterThan(1);
+  });
+
+  it("corner scale with shift unlocks independent X/Y", () => {
+    const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
+    const center = computeTransformedCenter(transform, bounds);
+
+    const result = aff(computeTransformForHandle(
+      "bottom-right",
+      transform,
+      { x: center.x + 50, y: center.y + 50 },
+      { x: center.x + 80, y: center.y + 60 }, // dx=30, dy=10
+      center,
+      bounds,
+      true, // shift = true → INDEPENDENT
+      true  // alt
+    ));
+
+    // Asymmetric delta should produce different axes when independent.
+    expect(result.scaleX).not.toBeCloseTo(result.scaleY, 3);
   });
 
   it("scale without alt anchors opposite edge", () => {

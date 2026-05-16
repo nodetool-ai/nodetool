@@ -507,7 +507,10 @@ export function computeRotateTransform(
  * @param center              Layer center in document space at drag start.
  * @param rasterBounds        Layer raster bounds (contentBounds).
  * @param handle              Which scale handle is being dragged.
- * @param shift               Whether Shift is held (proportional lock).
+ * @param shift               Whether Shift is held. On a CORNER, Shift inverts
+ *   the default proportional behaviour: held = independent X/Y, released =
+ *   proportional (Affinity / Figma / Photoshop CC 2019+ convention). On an
+ *   EDGE handle, Shift mirrors the scale to the other axis.
  * @param alt                 Whether Alt is held (scale from center).
  */
 export function computeScaleTransform(
@@ -572,21 +575,21 @@ export function computeScaleTransform(
     const deltaY = (cursorDy - startDy) * edgeFactor;
 
     if (shift) {
-      // Proportional: use radial distance ratio from handle reference
+      // Shift held: independent X/Y — apply delta to handle reference position
+      if (handleRefX > 1) {
+        newSx = sx * ((handleRefX + deltaX) / handleRefX);
+      }
+      if (handleRefY > 1) {
+        newSy = sy * ((handleRefY + deltaY) / handleRefY);
+      }
+    } else {
+      // Default: proportional. Use radial distance ratio from handle reference.
       const origDist = Math.hypot(handleRefX, handleRefY);
       if (origDist > 1) {
         const virtualDist = Math.hypot(handleRefX + deltaX, handleRefY + deltaY);
         const ratio = virtualDist / origDist;
         newSx = sx * ratio;
         newSy = sy * ratio;
-      }
-    } else {
-      // Independent X/Y — apply delta to handle reference position
-      if (handleRefX > 1) {
-        newSx = sx * ((handleRefX + deltaX) / handleRefX);
-      }
-      if (handleRefY > 1) {
-        newSy = sy * ((handleRefY + deltaY) / handleRefY);
       }
     }
   }

@@ -12,7 +12,9 @@
  * the top bar.
  *
  * Modifiers:
- *   - Shift: constrain proportions (scale) or snap angle (rotate)
+ *   - Shift: corner scale is proportional by default — Shift unlocks
+ *     independent X/Y (Affinity 2 / Figma / Photoshop CC 2019+ convention).
+ *     Edge scale mirrors to the other axis. Rotate snaps to 15° increments.
  *   - Auto-select retargets the layer only on clicks outside the gizmo that are
  *     not in the outside-box rotate band — never while scaling, rotating, moving,
  *     or dragging the pivot.
