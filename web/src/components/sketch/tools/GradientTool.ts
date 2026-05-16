@@ -16,6 +16,7 @@ import {
   getDocumentViewportInLayerSpace
 } from "../transform/geometry/layerGeometry";
 import { selectionHasAnyPixels, selectionHitTest } from "../selection";
+import { captureAlphaSnapshot, restoreAlphaFromSnapshot } from "../painting/alphaLock";
 import GradientIcon from "@mui/icons-material/Gradient";
 
 // ─── Gradient Drawing (moved from drawingUtils.ts) ───────────────────────────
@@ -154,6 +155,11 @@ export class GradientTool implements ToolHandler {
     const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
     const layerCtx = layerCanvas.getContext("2d");
     if (layerCtx) {
+      // Snapshot alpha before drawing so locked-transparency layers can have
+      // their original alpha restored after the gradient fill.
+      const alphaSnapshot = activeLayer.alphaLock
+        ? captureAlphaSnapshot(layerCanvas)
+        : null;
       if (
         hasSelection &&
         selection &&
@@ -177,6 +183,9 @@ export class GradientTool implements ToolHandler {
         }
       } else {
         drawGradient(layerCtx, localStart, localEnd, doc.toolSettings.gradient);
+      }
+      if (alphaSnapshot) {
+        restoreAlphaFromSnapshot(layerCanvas, alphaSnapshot);
       }
       const committedBounds = getCanvasRasterBounds(layerCanvas) ?? undefined;
       ctx.onStrokeEnd(activeLayer.id, null, committedBounds);

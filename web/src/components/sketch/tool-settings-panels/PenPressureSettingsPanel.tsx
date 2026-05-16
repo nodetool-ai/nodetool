@@ -1,13 +1,7 @@
 import React, { memo } from "react";
-import {
-  Box,
-  Slider,
-  Switch,
-  ToggleButton,
-  ToggleButtonGroup,
-  Typography
-} from "@mui/material";
-import { sketchSliderSx, toggleButtonSmallSx } from "../sketchStyles";
+import { Box, Slider, Switch, Typography } from "@mui/material";
+import { sketchSliderSx } from "../sketchStyles";
+import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import {
   DEFAULT_PRESSURE_CURVE,
   DEFAULT_PRESSURE_MIN_SCALE,
@@ -38,9 +32,8 @@ export const PenPressureSettingsPanel = memo(function PenPressureSettingsPanel({
   inlineRow = false
 }: PenPressureSettingsPanelProps) {
   const affectsGroup = (
-    <ToggleButtonGroup
+    <SketchModeToggle
       value={settings.pressureAffects || "both"}
-      exclusive
       onChange={(_, v) => {
         if (v) {
           onChange({
@@ -48,18 +41,11 @@ export const PenPressureSettingsPanel = memo(function PenPressureSettingsPanel({
           });
         }
       }}
-      size="small"
     >
-      <ToggleButton value="size" sx={toggleButtonSmallSx}>
-        Size
-      </ToggleButton>
-      <ToggleButton value="opacity" sx={toggleButtonSmallSx}>
-        Opacity
-      </ToggleButton>
-      <ToggleButton value="both" sx={toggleButtonSmallSx}>
-        Both
-      </ToggleButton>
-    </ToggleButtonGroup>
+      <SketchModeOption value="size">Size</SketchModeOption>
+      <SketchModeOption value="opacity">Opacity</SketchModeOption>
+      <SketchModeOption value="both">Both</SketchModeOption>
+    </SketchModeToggle>
   );
 
   const minScale = settings.pressureMinScale ?? DEFAULT_PRESSURE_MIN_SCALE;

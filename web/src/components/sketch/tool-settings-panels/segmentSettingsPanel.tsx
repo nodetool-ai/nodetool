@@ -5,10 +5,9 @@ import {
   FormControlLabel,
   Slider,
   Switch,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography
 } from "@mui/material";
+import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import {
   SegmentationStatus,
   SegmentPromptMode,
@@ -27,8 +26,7 @@ import {
   sketchButtonSmallSx,
   sketchSliderSx,
   SKETCH_COLORS,
-  SKETCH_FONT,
-  toggleButtonSmallSx
+  SKETCH_FONT
 } from "../sketchStyles";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { useSketchStore } from "../state";
@@ -203,9 +201,8 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
     <>
       <Box className="setting-row" sx={{ gap: "4px" }}>
         <Typography className="setting-label">Backend</Typography>
-        <ToggleButtonGroup
+        <SketchModeToggle
           value={settings.backend}
-          exclusive
           onChange={(_, v) => {
             if (v) {
               onChange({
@@ -217,15 +214,10 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               onCheckModel();
             }
           }}
-          size="small"
         >
-          <ToggleButton value="fal" sx={toggleButtonSmallSx}>
-            fal.ai
-          </ToggleButton>
-          <ToggleButton value="local-sam3" sx={toggleButtonSmallSx}>
-            Local SAM3
-          </ToggleButton>
-        </ToggleButtonGroup>
+          <SketchModeOption value="fal">fal.ai</SketchModeOption>
+          <SketchModeOption value="local-sam3">Local SAM3</SketchModeOption>
+        </SketchModeToggle>
       </Box>
 
       {modelInfo && (
@@ -256,31 +248,23 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         </Box>
       )}
 
-      <ToggleButtonGroup
+      <SketchModeToggle
         value={settings.promptMode}
-        exclusive
         onChange={(_, v) => {
           if (v) {
             onChange({ promptMode: v as SegmentPromptMode });
           }
         }}
-        size="small"
         sx={{ mb: "4px" }}
       >
         {visiblePromptModes.includes("point") && (
-          <ToggleButton value="point" sx={toggleButtonSmallSx}>
-            Point
-          </ToggleButton>
+          <SketchModeOption value="point">Point</SketchModeOption>
         )}
         {visiblePromptModes.includes("box") && (
-          <ToggleButton value="box" sx={toggleButtonSmallSx}>
-            Box
-          </ToggleButton>
+          <SketchModeOption value="box">Box</SketchModeOption>
         )}
-        <ToggleButton value="auto" sx={toggleButtonSmallSx}>
-          Auto
-        </ToggleButton>
-      </ToggleButtonGroup>
+        <SketchModeOption value="auto">Auto</SketchModeOption>
+      </SketchModeToggle>
 
       <Box className="setting-row">
         <Typography className="setting-label">Max Objects</Typography>
@@ -345,26 +329,18 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
 
       <Box className="setting-row" sx={{ gap: "4px" }}>
         <Typography className="setting-label">Source Layer</Typography>
-        <ToggleButtonGroup
+        <SketchModeToggle
           value={settings.sourceLayerAction}
-          exclusive
           onChange={(_, v) => {
             if (v) {
               onChange({ sourceLayerAction: v as SegmentSourceLayerAction });
             }
           }}
-          size="small"
         >
-          <ToggleButton value="keep" sx={toggleButtonSmallSx}>
-            Keep
-          </ToggleButton>
-          <ToggleButton value="hide" sx={toggleButtonSmallSx}>
-            Hide
-          </ToggleButton>
-          <ToggleButton value="lock" sx={toggleButtonSmallSx}>
-            Lock
-          </ToggleButton>
-        </ToggleButtonGroup>
+          <SketchModeOption value="keep">Keep</SketchModeOption>
+          <SketchModeOption value="hide">Hide</SketchModeOption>
+          <SketchModeOption value="lock">Lock</SketchModeOption>
+        </SketchModeToggle>
       </Box>
 
       <FormControlLabel

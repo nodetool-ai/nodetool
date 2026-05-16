@@ -6,8 +6,6 @@ import {
   FormControlLabel,
   Slider,
   IconButton,
-  ToggleButton,
-  ToggleButtonGroup,
   Tooltip,
   Typography
 } from "@mui/material";
@@ -19,9 +17,9 @@ import {
   sketchButtonSmallSx,
   sketchHintTextSx,
   SKETCH_FONT,
-  toggleButtonSmallSx,
   SKETCH_COLORS
 } from "../sketchStyles";
+import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import { TransformMode } from "../types";
 import { getToolbarTransformModes } from "../transform/modes";
 
@@ -189,9 +187,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
       />
       <Box className="setting-row">
         <Typography className="setting-label">Mode</Typography>
-        <ToggleButtonGroup
-          size="small"
-          exclusive
+        <SketchModeToggle
           value={mode}
           onChange={(_, nextMode: TransformMode | null) => {
             if (nextMode) {
@@ -201,13 +197,9 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
         >
           {getToolbarTransformModes().map((modeHandler) => {
             const button = (
-              <ToggleButton
-                key={modeHandler.id}
-                value={modeHandler.id}
-                sx={toggleButtonSmallSx}
-              >
+              <SketchModeOption key={modeHandler.id} value={modeHandler.id}>
                 {modeHandler.label}
-              </ToggleButton>
+              </SketchModeOption>
             );
             return modeHandler.tooltip ? (
               <Tooltip key={modeHandler.id} title={modeHandler.tooltip}>
@@ -217,7 +209,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
               button
             );
           })}
-        </ToggleButtonGroup>
+        </SketchModeToggle>
       </Box>
       <Box className="setting-row">
         <Typography className="setting-label">Scale X</Typography>

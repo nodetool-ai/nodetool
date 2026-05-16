@@ -1,12 +1,5 @@
 import React, { memo } from "react";
-import {
-  Box,
-  Typography,
-  Slider,
-  ToggleButton,
-  ToggleButtonGroup,
-  Button
-} from "@mui/material";
+import { Box, Typography, Slider, Button } from "@mui/material";
 import {
   BrushSettings,
   BrushType,
@@ -18,8 +11,9 @@ import {
   StrokeAssistPreset,
   StrokeAssistSettings
 } from "../types";
-import { sketchSliderSx, toggleButtonSmallSx } from "../sketchStyles";
+import { sketchSliderSx } from "../sketchStyles";
 import { effectiveEraserMode } from "./shared";
+import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 
 interface BrushSettingsPanelProps {
   settings: BrushSettings;
@@ -110,24 +104,18 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
           </Button>
         ))}
       </Box>
-      <ToggleButtonGroup
+      <SketchModeToggle
         value={assist.mode}
-        exclusive
         onChange={(_, v) => {
           if (v) {
             updateAssist({ mode: v as StrokeAssistSettings["mode"] });
           }
         }}
-        size="small"
         sx={{ mb: "4px" }}
       >
-        <ToggleButton value="stabilizer" sx={toggleButtonSmallSx}>
-          Smooth
-        </ToggleButton>
-        <ToggleButton value="lazy" sx={toggleButtonSmallSx}>
-          Lazy
-        </ToggleButton>
-      </ToggleButtonGroup>
+        <SketchModeOption value="stabilizer">Smooth</SketchModeOption>
+        <SketchModeOption value="lazy">Lazy</SketchModeOption>
+      </SketchModeToggle>
       <Box className="setting-row">
         <Typography className="setting-label">Assist</Typography>
         <Slider
@@ -143,43 +131,35 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
           {Math.round(assist.strength * 100)}%
         </Typography>
       </Box>
-      <ToggleButtonGroup
+      <SketchModeToggle
         value={assist.snapMode}
-        exclusive
         onChange={(_, v) => {
           if (v) {
             updateAssist({ snapMode: v as StrokeAssistSettings["snapMode"] });
           }
         }}
-        size="small"
         sx={{ mb: "4px" }}
       >
-        <ToggleButton value="off" sx={toggleButtonSmallSx}>
-          Free
-        </ToggleButton>
-        <ToggleButton value="angle" sx={toggleButtonSmallSx}>
-          Angle
-        </ToggleButton>
-      </ToggleButtonGroup>
+        <SketchModeOption value="off">Free</SketchModeOption>
+        <SketchModeOption value="angle">Angle</SketchModeOption>
+      </SketchModeToggle>
       {assist.snapMode === "angle" ? (
         <>
-          <ToggleButtonGroup
+          <SketchModeToggle
             value={assist.angleIncrement}
-            exclusive
             onChange={(_, v) => {
               if (v) {
                 updateAssist({ angleIncrement: v as number });
               }
             }}
-            size="small"
             sx={{ mb: "4px" }}
           >
             {STROKE_ASSIST_ANGLE_OPTIONS.map((angle) => (
-              <ToggleButton key={angle} value={angle} sx={toggleButtonSmallSx}>
+              <SketchModeOption key={angle} value={angle}>
                 {angle}°
-              </ToggleButton>
+              </SketchModeOption>
             ))}
-          </ToggleButtonGroup>
+          </SketchModeToggle>
           <Box className="setting-row">
             <Typography className="setting-label">Snap</Typography>
             <Slider
@@ -209,30 +189,20 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
 }: BrushSettingsPanelProps) {
   return (
     <>
-      <ToggleButtonGroup
+      <SketchModeToggle
         value={settings.brushType || "round"}
-        exclusive
         onChange={(_, v) => {
           if (v) {
             onChange({ brushType: v as BrushType });
           }
         }}
-        size="small"
         sx={{ mb: "4px" }}
       >
-        <ToggleButton value="round" sx={toggleButtonSmallSx}>
-          Round
-        </ToggleButton>
-        <ToggleButton value="soft" sx={toggleButtonSmallSx}>
-          Soft
-        </ToggleButton>
-        <ToggleButton value="airbrush" sx={toggleButtonSmallSx}>
-          Air
-        </ToggleButton>
-        <ToggleButton value="spray" sx={toggleButtonSmallSx}>
-          Spray
-        </ToggleButton>
-      </ToggleButtonGroup>
+        <SketchModeOption value="round">Round</SketchModeOption>
+        <SketchModeOption value="soft">Soft</SketchModeOption>
+        <SketchModeOption value="airbrush">Air</SketchModeOption>
+        <SketchModeOption value="spray">Spray</SketchModeOption>
+      </SketchModeToggle>
       {!omitPaintSliders && (
         <>
           <Box className="setting-row">
@@ -373,24 +343,18 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
   const mode = effectiveEraserMode(settings);
   return (
     <>
-      <ToggleButtonGroup
+      <SketchModeToggle
         value={mode}
-        exclusive
         onChange={(_, v) => {
           if (v) {
             onChange({ mode: v as EraserMode });
           }
         }}
-        size="small"
         sx={{ mb: "4px" }}
       >
-        <ToggleButton value="brush" sx={toggleButtonSmallSx}>
-          Brush
-        </ToggleButton>
-        <ToggleButton value="pencil" sx={toggleButtonSmallSx}>
-          Pencil
-        </ToggleButton>
-      </ToggleButtonGroup>
+        <SketchModeOption value="brush">Brush</SketchModeOption>
+        <SketchModeOption value="pencil">Pencil</SketchModeOption>
+      </SketchModeToggle>
       <Box className="setting-row">
         <Typography className="setting-label">Size</Typography>
         <Slider

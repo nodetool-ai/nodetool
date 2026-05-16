@@ -5,11 +5,10 @@ import {
   Divider,
   IconButton,
   Slider,
-  ToggleButton,
-  ToggleButtonGroup,
   Tooltip,
   Typography
 } from "@mui/material";
+import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import CropIcon from "@mui/icons-material/Crop";
 import GestureOutlinedIcon from "@mui/icons-material/GestureOutlined";
@@ -25,7 +24,6 @@ import {
 import { MAX_SELECTION_FEATHER_RADIUS } from "../selection";
 import { SelectSettings, SelectToolMode } from "../types";
 import { useSketchStore } from "../state";
-import { selectModeToggleButtonSx } from "./shared";
 
 interface SelectSettingsPanelProps {
   settings: SelectSettings;
@@ -55,9 +53,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
   );
   return (
     <>
-      <ToggleButtonGroup
-        size="small"
-        exclusive
+      <SketchModeToggle
         value={settings.mode}
         onChange={(_e, v: SelectToolMode | null) => {
           if (v != null) {
@@ -65,47 +61,47 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           }
         }}
       >
-        <ToggleButton
+        <SketchModeOption
           value="rectangle"
-          sx={selectModeToggleButtonSx}
+          variant="icon"
           aria-label="Rectangular marquee"
           title="Rectangular marquee"
         >
           <RectangleOutlinedIcon fontSize="inherit" />
-        </ToggleButton>
-        <ToggleButton
+        </SketchModeOption>
+        <SketchModeOption
           value="ellipse"
-          sx={selectModeToggleButtonSx}
+          variant="icon"
           aria-label="Elliptical marquee"
           title="Elliptical marquee"
         >
           <RadioButtonUncheckedIcon fontSize="inherit" />
-        </ToggleButton>
-        <ToggleButton
+        </SketchModeOption>
+        <SketchModeOption
           value="lasso"
-          sx={selectModeToggleButtonSx}
+          variant="icon"
           aria-label="Freehand lasso"
           title="Freehand (lasso)"
         >
           <GestureOutlinedIcon fontSize="inherit" />
-        </ToggleButton>
-        <ToggleButton
+        </SketchModeOption>
+        <SketchModeOption
           value="lasso_polygon"
-          sx={selectModeToggleButtonSx}
+          variant="icon"
           aria-label="Polygon selection"
           title="Polygon"
         >
           <PentagonOutlinedIcon fontSize="inherit" />
-        </ToggleButton>
-        <ToggleButton
+        </SketchModeOption>
+        <SketchModeOption
           value="magic_wand"
-          sx={selectModeToggleButtonSx}
+          variant="icon"
           aria-label="Magic wand"
           title="Magic wand (click to sample)"
         >
           <AutoAwesomeOutlinedIcon fontSize="inherit" />
-        </ToggleButton>
-      </ToggleButtonGroup>
+        </SketchModeOption>
+      </SketchModeToggle>
       {settings.mode === "magic_wand" ? (
         <>
           <Box className="setting-row">

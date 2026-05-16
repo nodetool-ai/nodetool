@@ -4,8 +4,6 @@ import {
   Checkbox,
   FormControlLabel,
   Slider,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography
 } from "@mui/material";
 import {
@@ -23,10 +21,10 @@ import {
   colorSwatchSx,
   sketchHintTextSx,
   sketchSliderSx,
-  SKETCH_FONT,
-  toggleButtonSmallSx
+  SKETCH_FONT
 } from "../sketchStyles";
 import ColorPickerPopover from "../ColorPickerPopover";
+import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 
 interface ShapeSettingsPanelProps {
   settings: ShapeSettings;
@@ -68,23 +66,21 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
     settings.shapeType === "rectangle" || settings.shapeType === "ellipse";
   return (
     <>
-      <ToggleButtonGroup
+      <SketchModeToggle
         value={settings.shapeType ?? "rectangle"}
-        exclusive
         onChange={(_, v) => {
           if (v) {
             onChange({ shapeType: v as ShapeToolType });
           }
         }}
-        size="small"
         sx={{ mb: "4px" }}
       >
         {SHAPE_TYPES.map(({ value, label }) => (
-          <ToggleButton key={value} value={value} sx={toggleButtonSmallSx}>
+          <SketchModeOption key={value} value={value}>
             {label}
-          </ToggleButton>
+          </SketchModeOption>
         ))}
-      </ToggleButtonGroup>
+      </SketchModeToggle>
       <Box className="setting-row">
         <Typography className="setting-label">Stroke</Typography>
         <input
@@ -254,23 +250,17 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
           />
         </Box>
       </Box>
-      <ToggleButtonGroup
+      <SketchModeToggle
         value={settings.type}
-        exclusive
         onChange={(_, v) => {
           if (v) {
             onChange({ type: v });
           }
         }}
-        size="small"
       >
-        <ToggleButton value="linear" sx={toggleButtonSmallSx}>
-          Linear
-        </ToggleButton>
-        <ToggleButton value="radial" sx={toggleButtonSmallSx}>
-          Radial
-        </ToggleButton>
-      </ToggleButtonGroup>
+        <SketchModeOption value="linear">Linear</SketchModeOption>
+        <SketchModeOption value="radial">Radial</SketchModeOption>
+      </SketchModeToggle>
 
       <ColorPickerPopover
         anchorEl={startAnchor}
@@ -338,23 +328,17 @@ export const CloneStampSettingsPanel = memo(function CloneStampSettingsPanel({
           {Math.round(settings.hardness * 100)}%
         </Typography>
       </Box>
-      <ToggleButtonGroup
+      <SketchModeToggle
         value={settings.sampling}
-        exclusive
         onChange={(_, v) => {
           if (v) {
             onChange({ sampling: v as CloneStampSampling });
           }
         }}
-        size="small"
       >
-        <ToggleButton value="active_layer" sx={toggleButtonSmallSx}>
-          Active Layer
-        </ToggleButton>
-        <ToggleButton value="composited" sx={toggleButtonSmallSx}>
-          All Layers
-        </ToggleButton>
-      </ToggleButtonGroup>
+        <SketchModeOption value="active_layer">Active Layer</SketchModeOption>
+        <SketchModeOption value="composited">All Layers</SketchModeOption>
+      </SketchModeToggle>
       <Typography sx={{ ...sketchHintTextSx, mt: 1 }}>
         Alt+click to set source point
       </Typography>
