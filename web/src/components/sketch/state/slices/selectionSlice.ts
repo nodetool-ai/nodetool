@@ -126,12 +126,24 @@ function finalizeMutatedSelection(sel: Selection): Selection {
   return trimSelectionMask(sel) ?? sel;
 }
 
+/**
+ * How the active selection is rendered on the canvas.
+ * - `ants`: classic marching-ants outline (default).
+ * - `mask`: red @ 50% rubylith overlay over unselected pixels (Photoshop "Quick Mask" style).
+ *
+ * Useful while refining feather / smooth / grow / shrink — the rubylith makes
+ * partial selections visible in a way ants cannot.
+ */
+export type SelectionPreviewMode = "ants" | "mask";
+
 export interface SelectionSlice {
   selection: Selection | null;
   lastSelection: Selection | null;
   /** Cached boolean — `true` when `selection` contains at least one pixel ≥ threshold. */
   hasActiveSelection: boolean;
+  selectionPreviewMode: SelectionPreviewMode;
   setSelection: (sel: Selection | null) => void;
+  setSelectionPreviewMode: (mode: SelectionPreviewMode) => void;
   selectAll: () => void;
   invertSelection: () => void;
   reselectLastSelection: () => void;
@@ -152,6 +164,11 @@ export const createSelectionSlice: StateCreator<
   selection: null,
   lastSelection: null,
   hasActiveSelection: false,
+  selectionPreviewMode: "ants",
+
+  setSelectionPreviewMode: (mode: SelectionPreviewMode) => {
+    set({ selectionPreviewMode: mode });
+  },
 
   setSelection: (sel: Selection | null) => {
     const current = get().selection;
@@ -261,7 +278,10 @@ export const createSelectionSlice: StateCreator<
     if (!selectionHasAnyPixels(sel)) {
       return;
     }
-    const copy = cloneSelectionRegion(sel!, 0);
+    // Padding must be ≥ px so the cloned region has zero-valued pixels
+    // around the selection bounds; otherwise `contractSelectionMask`'s
+    // sliding-min clamps to the buffer edge and edge pixels never shrink.
+    const copy = cloneSelectionRegion(sel!, Math.max(0, Math.round(px)));
     contractSelectionMask(copy, px);
     get().setSelection(finalizeMutatedSelection(copy));
   }

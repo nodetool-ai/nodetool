@@ -2,8 +2,8 @@
  * Refine Selection Popover
  *
  * Groups all selection-modifying operations (Modify, Feather, Smooth, Border)
- * behind a single entry point. Each section owns its own parameter so the user
- * only sees the value they're about to apply.
+ * behind a single entry point. Each row is one operation: name → slider →
+ * value → apply button on the right.
  *
  * Apply / Cancel staging: on open, snapshots the current selection mask. Each
  * operation mutates the live mask (visible immediately on canvas). Cancel /
@@ -18,7 +18,6 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
-  Label,
   Popover,
   Text
 } from "../../../ui_primitives";
@@ -29,6 +28,10 @@ import { useSketchStore } from "../../state";
 
 const MAX_BORDER_WIDTH = 64;
 const MAX_MODIFY_PX = 64;
+
+const LABEL_WIDTH = 56;
+const VALUE_WIDTH = 28;
+const APPLY_WIDTH = 60;
 
 export interface RefineSelectionPopoverProps {
   open: boolean;
@@ -41,74 +44,82 @@ export interface RefineSelectionPopoverProps {
   onConvertSelectionToBorder: () => void;
 }
 
-interface SectionProps {
-  title: string;
-  children: React.ReactNode;
-}
-
-const Section = memo(function Section({ title, children }: SectionProps) {
-  return (
-    <FlexColumn gap={0.5} sx={{ width: "100%" }}>
-      <Label
-        sx={(theme) => ({
-          fontSize: theme.fontSizeTinyer,
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          color: theme.vars.palette.grey[400]
-        })}
-      >
-        {title}
-      </Label>
-      {children}
-    </FlexColumn>
-  );
-});
-
-interface ParamRowProps {
+interface RefineRowProps {
   label: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (value: number) => void;
+  /** Slider value, or `null` to render a button-only row (no slider, no value). */
+  value: number | null;
+  min?: number;
+  max?: number;
+  onChange?: (value: number) => void;
+  /** Right-aligned action button. Use `null` for a row with custom right side. */
+  action: React.ReactNode;
 }
 
-const ParamRow = memo(function ParamRow({
+const RefineRow = memo(function RefineRow({
   label,
   value,
   min,
   max,
-  onChange
-}: ParamRowProps) {
+  onChange,
+  action
+}: RefineRowProps) {
   return (
     <FlexRow gap={2} align="center" sx={{ width: "100%", px: 0.5 }}>
       <Text
         sx={(theme) => ({
           fontSize: theme.fontSizeSmaller,
           color: theme.vars.palette.grey[200],
-          minWidth: 52
+          minWidth: LABEL_WIDTH
         })}
       >
         {label}
       </Text>
-      <Slider
-        sx={sketchSliderSx}
-        size="small"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(_, v) => onChange(v as number)}
-      />
-      <Text
-        sx={(theme) => ({
-          fontSize: theme.fontSizeSmaller,
-          color: theme.vars.palette.grey[100],
-          minWidth: 28,
-          textAlign: "right"
-        })}
-      >
-        {value}
-      </Text>
+      {value !== null && min !== undefined && max !== undefined && onChange ? (
+        <>
+          <Slider
+            sx={sketchSliderSx}
+            size="small"
+            min={min}
+            max={max}
+            value={value}
+            onChange={(_, v) => onChange(v as number)}
+          />
+          <Text
+            sx={(theme) => ({
+              fontSize: theme.fontSizeSmaller,
+              color: theme.vars.palette.grey[100],
+              minWidth: VALUE_WIDTH,
+              textAlign: "right"
+            })}
+          >
+            {value}
+          </Text>
+        </>
+      ) : (
+        <FlexRow sx={{ flex: 1 }} />
+      )}
+      {action}
     </FlexRow>
+  );
+});
+
+interface ApplyButtonProps {
+  onClick: () => void;
+  children: React.ReactNode;
+}
+
+const ApplyButton = memo(function ApplyButton({
+  onClick,
+  children
+}: ApplyButtonProps) {
+  return (
+    <EditorButton
+      variant="outlined"
+      onClick={onClick}
+      sx={{ minWidth: APPLY_WIDTH, flexShrink: 0 }}
+    >
+      {children}
+    </EditorButton>
   );
 });
 
@@ -189,7 +200,7 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
       anchorEl={anchorEl}
       onClose={handlePopoverClose}
       placement="bottom-left"
-      maxWidth={320}
+      maxWidth={380}
       // Non-modal behavior: keep canvas interactive (pan / zoom / shortcuts)
       // while the popover is open. Focus stays on the canvas, backdrop is
       // removed, and scroll-lock is disabled.
@@ -208,91 +219,85 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
         root: { style: { pointerEvents: "none" } }
       }}
     >
-      <FlexColumn gap={2} sx={{ width: 300 }}>
-        <Section title="Modify">
-          <ParamRow
-            label="Pixels"
-            value={modifyPx}
-            min={1}
-            max={MAX_MODIFY_PX}
-            onChange={setModifyPx}
-          />
-          <FlexRow gap={0.5}>
-            <EditorButton
-              variant="outlined"
+      <FlexColumn gap={1.5} sx={{ width: 340 }}>
+        <RefineRow
+          label="Modify"
+          value={modifyPx}
+          min={1}
+          max={MAX_MODIFY_PX}
+          onChange={setModifyPx}
+          action={
+            <FlexRow gap={0.5} sx={{ flexShrink: 0 }}>
+              <ApplyButton
+                onClick={() => {
+                  expandCurrentSelection(modifyPx);
+                  markDirty();
+                }}
+              >
+                Grow
+              </ApplyButton>
+              <ApplyButton
+                onClick={() => {
+                  contractCurrentSelection(modifyPx);
+                  markDirty();
+                }}
+              >
+                Shrink
+              </ApplyButton>
+            </FlexRow>
+          }
+        />
+
+        <RefineRow
+          label="Feather"
+          value={settings.featherRadius}
+          min={0}
+          max={MAX_SELECTION_FEATHER_RADIUS}
+          onChange={(v) => onChange({ featherRadius: v })}
+          action={
+            <ApplyButton
               onClick={() => {
-                expandCurrentSelection(modifyPx);
+                onFeatherSelection();
                 markDirty();
               }}
-              sx={{ flex: 1 }}
             >
-              Grow
-            </EditorButton>
-            <EditorButton
-              variant="outlined"
+              Apply
+            </ApplyButton>
+          }
+        />
+
+        <RefineRow
+          label="Smooth"
+          value={null}
+          action={
+            <ApplyButton
               onClick={() => {
-                contractCurrentSelection(modifyPx);
+                onSmoothSelectionBorders();
                 markDirty();
               }}
-              sx={{ flex: 1 }}
             >
-              Shrink
-            </EditorButton>
-          </FlexRow>
-        </Section>
+              Apply
+            </ApplyButton>
+          }
+        />
 
-        <Section title="Feather">
-          <ParamRow
-            label="Radius"
-            value={settings.featherRadius}
-            min={0}
-            max={MAX_SELECTION_FEATHER_RADIUS}
-            onChange={(v) => onChange({ featherRadius: v })}
-          />
-          <EditorButton
-            variant="outlined"
-            onClick={() => {
-              onFeatherSelection();
-              markDirty();
-            }}
-            sx={{ alignSelf: "stretch" }}
-          >
-            Apply Feather
-          </EditorButton>
-        </Section>
-
-        <Section title="Smooth">
-          <EditorButton
-            variant="outlined"
-            onClick={() => {
-              onSmoothSelectionBorders();
-              markDirty();
-            }}
-            sx={{ alignSelf: "stretch" }}
-          >
-            Smooth Borders
-          </EditorButton>
-        </Section>
-
-        <Section title="Border">
-          <ParamRow
-            label="Width"
-            value={settings.borderWidth}
-            min={1}
-            max={MAX_BORDER_WIDTH}
-            onChange={(v) => onChange({ borderWidth: v })}
-          />
-          <EditorButton
-            variant="outlined"
-            onClick={() => {
-              onConvertSelectionToBorder();
-              markDirty();
-            }}
-            sx={{ alignSelf: "stretch" }}
-          >
-            Apply Border
-          </EditorButton>
-        </Section>
+        <RefineRow
+          label="Border"
+          value={settings.borderWidth}
+          min={1}
+          max={MAX_BORDER_WIDTH}
+          onChange={(v) => onChange({ borderWidth: v })}
+          action={
+            <ApplyButton
+              onClick={() => {
+                onConvertSelectionToBorder();
+                markDirty();
+              }}
+            >
+              Apply
+            </ApplyButton>
+          }
+        />
 
         <FlexRow gap={1} justify="flex-end" sx={{ mt: 1 }}>
           <EditorButton variant="outlined" onClick={handleCancel}>

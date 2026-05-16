@@ -155,6 +155,8 @@ export interface SketchCanvasProps {
   // ── Committed document state ───────────────────────────────────────
   document: SketchDocument;
   selection?: Selection | null;
+  /** "ants" (default marching ants) or "mask" (red rubylith overlay). */
+  selectionPreviewMode?: "ants" | "mask";
   isolatedLayerId?: string | null;
   foregroundColor?: string;
 
@@ -244,6 +246,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onCropComplete,
       onEyedropperPick,
       selection,
+      selectionPreviewMode,
       onSelectionChange,
       onAutoPickLayer,
       foregroundColor,
@@ -304,6 +307,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       symmetryMode,
       symmetryRays,
       selection,
+      selectionPreviewMode,
       isolatedLayerId,
       foregroundColor,
       transformPreviewByLayerIdRef,

@@ -83,6 +83,7 @@ export const SketchCanvasPane = memo(function SketchCanvasPane({
   const symmetryRays = useSketchStore((s) => s.symmetryRays);
   const isolatedLayerId = useSketchStore((s) => s.isolatedLayerId);
   const selection = useSketchStore((s) => s.selection);
+  const selectionPreviewMode = useSketchStore((s) => s.selectionPreviewMode);
   const foregroundColor =
     useSketchStore((s) => s.foregroundColor) || "#ffffff";
   const setSelection = useSketchStore((s) => s.setSelection);
@@ -139,6 +140,7 @@ export const SketchCanvasPane = memo(function SketchCanvasPane({
       onCropComplete={onCropComplete}
       onEyedropperPick={onEyedropperPick}
       selection={selection}
+      selectionPreviewMode={selectionPreviewMode}
       onSelectionChange={handleSelectionChange}
       onAutoPickLayer={onAutoPickLayer}
       foregroundColor={foregroundColor}

@@ -403,4 +403,47 @@ fn fs_ants(@location(0) uv: vec2f) -> @location(0) vec4f {
   }
   return out;
 }
+
+// ─── Selection mask overlay (rubylith) ───────────────────────────────────
+// Renders red @ 50% over UNSELECTED pixels (where mask < 0.5).
+// Feathered edges produce partial coverage so soft selections are visible.
+// Premultiplied output to match the swap-chain's premultiplied alpha mode.
+@fragment
+fn fs_mask_overlay(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let overlaySizePx = u.viewportSizePx + 2.0 * u.viewportOffsetPx;
+  let overlayPosPx = uv * overlaySizePx;
+  let zoom = max(u.params.y, 1e-4);
+  let dpr = max(u.params.z, 1.0);
+  let docCenterPx = u.viewportOffsetPx + 0.5 * u.viewportSizePx + u.panPx;
+  let docPos = (overlayPosPx - docCenterPx) / (zoom * dpr) + 0.5 * u.canvasSize;
+  let local  = docPos - u.maskOrigin;
+  let dims   = vec2i(textureDimensions(maskTex));
+  let dimsF  = vec2f(f32(dims.x), f32(dims.y));
+
+  // Outside the document → no overlay (let canvas chrome show through).
+  if (
+    local.x < 0.0 || local.y < 0.0 ||
+    local.x >= u.canvasSize.x || local.y >= u.canvasSize.y
+  ) {
+    return vec4f(0.0);
+  }
+
+  // Outside the mask buffer (but inside document) = unselected = full overlay.
+  // Sample-and-clamp behavior covers the typical case where the mask covers
+  // the document; this branch handles partial-doc mask sizes safely.
+  var selAlpha = 0.0;
+  if (
+    local.x >= 0.0 && local.y >= 0.0 &&
+    local.x < dimsF.x && local.y < dimsF.y
+  ) {
+    let cx = i32(floor(local.x));
+    let cy = i32(floor(local.y));
+    selAlpha = sampleMask(vec2i(cx, cy), dims);
+  }
+
+  let RED = vec3f(1.0, 0.0, 0.0);
+  let MAX_ALPHA = 0.5;
+  let alpha = (1.0 - selAlpha) * MAX_ALPHA;
+  return vec4f(RED * alpha, alpha);
+}
 `;

@@ -8,6 +8,8 @@ import PentagonOutlinedIcon from "@mui/icons-material/PentagonOutlined";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import RectangleOutlinedIcon from "@mui/icons-material/RectangleOutlined";
 import TuneIcon from "@mui/icons-material/Tune";
+import OpacityIcon from "@mui/icons-material/Opacity";
+import BorderStyleIcon from "@mui/icons-material/BorderStyle";
 import {
   iconButtonCompactSx,
   sketchButtonSmallSx,
@@ -23,6 +25,7 @@ import {
   Tooltip
 } from "../../ui_primitives";
 import { RefineSelectionPopover } from "./refine-selection";
+import { useSketchStore } from "../state";
 
 interface SelectSettingsPanelProps {
   settings: SelectSettings;
@@ -47,6 +50,11 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
 }: SelectSettingsPanelProps) {
   const refineAnchorRef = useRef<HTMLButtonElement | null>(null);
   const [refineOpen, setRefineOpen] = useState(false);
+  const selectionPreviewMode = useSketchStore((s) => s.selectionPreviewMode);
+  const setSelectionPreviewMode = useSketchStore(
+    (s) => s.setSelectionPreviewMode
+  );
+  const showAsMask = selectionPreviewMode === "mask";
 
   return (
     <>
@@ -184,6 +192,42 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
               >
                 Refine…
               </EditorButton>
+            </span>
+          </Tooltip>
+          <Tooltip
+            title={
+              showAsMask
+                ? "Showing selection as red overlay — click to switch to marching ants"
+                : "Showing selection as marching ants — click to switch to red overlay"
+            }
+          >
+            <span>
+              <ToolbarIconButton
+                onClick={() =>
+                  setSelectionPreviewMode(showAsMask ? "ants" : "mask")
+                }
+                aria-label={
+                  showAsMask
+                    ? "Switch to marching ants"
+                    : "Switch to mask overlay"
+                }
+                sx={{
+                  ...iconButtonCompactSx,
+                  border: `1px solid ${SKETCH_COLORS.border}`,
+                  borderRadius: 1,
+                  height: 24,
+                  width: 24,
+                  color: showAsMask
+                    ? "error.light"
+                    : SKETCH_COLORS.textSecondary
+                }}
+              >
+                {showAsMask ? (
+                  <OpacityIcon sx={{ fontSize: 16 }} />
+                ) : (
+                  <BorderStyleIcon sx={{ fontSize: 16 }} />
+                )}
+              </ToolbarIconButton>
             </span>
           </Tooltip>
         </Box>

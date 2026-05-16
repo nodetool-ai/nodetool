@@ -56,6 +56,7 @@ interface SelectionAntsRuntime {
     dpr: number;
   }) => void;
   setSelectionOriginOverride?: (pos: { x: number; y: number } | null) => void;
+  setSelectionPreviewMode?: (mode: "ants" | "mask") => void;
   onNeedsRedraw?: () => void;
 }
 
@@ -68,6 +69,8 @@ export interface UseCanvasOrchestrationParams {
   /** Document merged with live toolSettings — consumed by overlay + pointer. */
   docWithTools: SketchDocument;
   selection?: Selection | null;
+  /** "ants" (default) or "mask" — red rubylith overlay over unselected pixels. */
+  selectionPreviewMode?: "ants" | "mask";
   isolatedLayerId?: string | null;
   foregroundColor?: string;
 
@@ -158,6 +161,7 @@ export function useCanvasOrchestration(
     symmetryMode,
     symmetryRays,
     selection,
+    selectionPreviewMode = "ants",
     isolatedLayerId,
     foregroundColor,
     transformPreviewByLayerIdRef,
@@ -233,6 +237,16 @@ export function useCanvasOrchestration(
     runtime.setSelection(selection ?? null);
     requestRedraw();
   }, [requestRedraw, runtime, selection]);
+
+  // Push the selection preview mode (ants / mask) to the runtime so pass 4
+  // picks the right pipeline. Static after each switch, so just trigger a
+  // single redraw — the runtime stops the redraw loop on its own when in
+  // mask mode (no animation).
+  useEffect(() => {
+    const rt = runtime as SelectionAntsRuntime;
+    rt.setSelectionPreviewMode?.(selectionPreviewMode);
+    requestRedraw();
+  }, [requestRedraw, runtime, selectionPreviewMode]);
 
   // Schedule the next WebGPU frame while selection ants are drawn (pass 5 loads the blit).
   useEffect(() => {

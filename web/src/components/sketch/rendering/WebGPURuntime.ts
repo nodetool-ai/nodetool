@@ -115,7 +115,10 @@ export class WebGPURuntime implements SketchRuntime {
   private blitPipeline: GPURenderPipeline | null = null;
   private blitBindGroupLayout: GPUBindGroupLayout | null = null;
   private selectionAntsPipeline: GPURenderPipeline | null = null;
+  private selectionMaskOverlayPipeline: GPURenderPipeline | null = null;
   private selectionAntsBindGroupLayout: GPUBindGroupLayout | null = null;
+  /** Which selection visualization to render in pass 4. Driven by store state. */
+  private selectionPreviewMode: "ants" | "mask" = "ants";
 
   // ── Intermediate compositing textures (ping-pong pair) ─────────────
   /**
@@ -180,6 +183,10 @@ export class WebGPURuntime implements SketchRuntime {
 
   setSelectionOriginOverride(pos: { x: number; y: number } | null): void {
     this.selectionOriginOverride = pos;
+  }
+
+  setSelectionPreviewMode(mode: "ants" | "mask"): void {
+    this.selectionPreviewMode = mode;
   }
 
   setSelectionAntsOverlayCanvas(canvas: HTMLCanvasElement | null): void {
@@ -429,11 +436,13 @@ export class WebGPURuntime implements SketchRuntime {
       ]
     });
 
+    const antsPipelineLayout = device.createPipelineLayout({
+      bindGroupLayouts: [this.selectionAntsBindGroupLayout]
+    });
+
     this.selectionAntsPipeline = device.createRenderPipeline({
       label: "ants-pipeline",
-      layout: device.createPipelineLayout({
-        bindGroupLayouts: [this.selectionAntsBindGroupLayout]
-      }),
+      layout: antsPipelineLayout,
       vertex: {
         module: antsModule,
         entryPoint: "vs_main"
@@ -441,6 +450,28 @@ export class WebGPURuntime implements SketchRuntime {
       fragment: {
         module: antsModule,
         entryPoint: "fs_ants",
+        targets: [
+          {
+            format: this.presentationFormat,
+            blend: SOURCE_OVER_BLEND
+          }
+        ]
+      },
+      primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
+    });
+
+    // Parallel pipeline rendering the mask as a red rubylith overlay. Shares
+    // the ants module + bind group layout; only the fragment entry differs.
+    this.selectionMaskOverlayPipeline = device.createRenderPipeline({
+      label: "mask-overlay-pipeline",
+      layout: antsPipelineLayout,
+      vertex: {
+        module: antsModule,
+        entryPoint: "vs_main"
+      },
+      fragment: {
+        module: antsModule,
+        entryPoint: "fs_mask_overlay",
         targets: [
           {
             format: this.presentationFormat,
@@ -730,8 +761,12 @@ export class WebGPURuntime implements SketchRuntime {
     docCanvasW: number,
     docCanvasH: number
   ): void {
+    const pipeline =
+      this.selectionPreviewMode === "mask"
+        ? this.selectionMaskOverlayPipeline
+        : this.selectionAntsPipeline;
     if (
-      !this.selectionAntsPipeline ||
+      !pipeline ||
       !this.selectionAntsBindGroupLayout ||
       !this.maskTexture ||
       !this.currentSelection
@@ -778,7 +813,7 @@ export class WebGPURuntime implements SketchRuntime {
         }
       ]
     });
-    pass.setPipeline(this.selectionAntsPipeline);
+    pass.setPipeline(pipeline);
     pass.setBindGroup(0, bindGroup);
     pass.draw(4);
     pass.end();
@@ -1129,7 +1164,9 @@ export class WebGPURuntime implements SketchRuntime {
     }
 
     device.queue.submit([encoder.finish()]);
-    if (selectionAntsActive) {
+    // Ants animate; the mask overlay is static — only request continuous
+    // redraws while drawing animated ants.
+    if (selectionAntsActive && this.selectionPreviewMode === "ants") {
       this.onNeedsRedraw?.();
     }
   }
