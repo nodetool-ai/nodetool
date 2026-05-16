@@ -1898,6 +1898,7 @@ export class LevelsNode extends TransformImageNode {
 
     try {
       const { data: raw, info } = await sharp(bytes, { failOn: "none" })
+        .toColorspace("srgb")
         .ensureAlpha()
         .raw()
         .toBuffer({ resolveWithObject: true });
@@ -1931,7 +1932,8 @@ export class LevelsNode extends TransformImageNode {
           height: meta.height
         })
       };
-    } catch {
+    } catch (err) {
+      console.error("LevelsNode processing failed:", err);
       return {
         output: imageRef(bytes, {
           uri: image.uri ?? "",

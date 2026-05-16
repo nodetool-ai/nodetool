@@ -24,8 +24,7 @@ import React, {
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import { ToggleGroup, ToggleOption } from "../../ui_primitives";
 import ImageIcon from "@mui/icons-material/Image";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { shallow } from "zustand/shallow";
@@ -214,7 +213,7 @@ async function loadRgba(
   source: string | undefined,
   signal: AbortSignal
 ): Promise<{ rgba: Uint8ClampedArray; width: number; height: number } | null> {
-  if (!source) return null;
+  if (!source || signal.aborted) return null;
   const img = new Image();
   img.crossOrigin = "anonymous";
   await new Promise<void>((resolve, reject) => {
@@ -342,6 +341,21 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
     return undefined;
   }, [previewValue]);
 
+  // Revoke blob URLs on unmount / change to prevent leaks.
+  const blobUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    const current = previewSource;
+    if (current && current.startsWith("blob:")) {
+      blobUrlRef.current = current;
+    }
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+    };
+  }, [previewSource]);
+
   const [histogram, setHistogram] = useState<ImageHistogram | null>(null);
   const [histView, setHistView] = useState<HistogramView>("luminance");
 
@@ -406,7 +420,7 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
         black: r_black,
         gamma: r_gamma,
         white: r_white,
-        keys: ["r_black", "r_gamma", "r_white"] as const
+        keys: ["r_black", "r_gamma", "r_white"]
       };
     }
     if (channel === "g") {
@@ -414,14 +428,14 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
         black: g_black,
         gamma: g_gamma,
         white: g_white,
-        keys: ["g_black", "g_gamma", "g_white"] as const
+        keys: ["g_black", "g_gamma", "g_white"]
       };
     }
     return {
       black: b_black,
       gamma: b_gamma,
       white: b_white,
-      keys: ["b_black", "b_gamma", "b_white"] as const
+      keys: ["b_black", "b_gamma", "b_white"]
     };
   }, [
     channel,
@@ -488,7 +502,7 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
 
       <div className="histogram-area">
         <canvas ref={canvasRef} className="histogram-canvas" />
-        <ToggleButtonGroup
+        <ToggleGroup
           className="hist-toggle"
           size="small"
           value={histView}
@@ -497,16 +511,16 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
           aria-label="Histogram channel"
         >
           {HIST_VIEW_OPTIONS.map((o) => (
-            <ToggleButton key={o.value} value={o.value} aria-label={o.label}>
+            <ToggleOption key={o.value} value={o.value} aria-label={o.label}>
               {o.label}
-            </ToggleButton>
+            </ToggleOption>
           ))}
-        </ToggleButtonGroup>
+        </ToggleGroup>
       </div>
 
       <FlexColumn className="controls" gap={0.5}>
         <FlexRow align="center" gap={0.25}>
-          <ToggleButtonGroup
+          <ToggleGroup
             className="channel-toggle"
             size="small"
             value={channel}
@@ -515,11 +529,11 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
             aria-label="Channel"
           >
             {CHANNEL_OPTIONS.map((o) => (
-              <ToggleButton key={o.value} value={o.value} aria-label={o.label}>
+              <ToggleOption key={o.value} value={o.value} aria-label={o.label}>
                 {o.label}
-              </ToggleButton>
+              </ToggleOption>
             ))}
-          </ToggleButtonGroup>
+          </ToggleGroup>
         </FlexRow>
 
         <FlexRow className="slider-row" align="center" gap={0.5}>
@@ -539,7 +553,7 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
           <span className="slider-label">Gamma</span>
           <NodeSlider
             min={0.1}
-            max={5}
+            max={10}
             step={0.01}
             value={channelProps.gamma}
             onChange={handleGammaChange}

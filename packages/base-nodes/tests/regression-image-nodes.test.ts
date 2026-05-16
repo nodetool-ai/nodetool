@@ -26,6 +26,7 @@ import {
   BatchToListNode,
   ChannelsNode
 } from "../src/index.js";
+import { LevelsNode } from "../src/nodes/image.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -556,5 +557,121 @@ describe("ChannelsNode — channel extraction", () => {
     expect(output).toBeDefined();
     const { info } = await decodeChannel(output);
     expect(info.channels).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 10. LevelsNode — LUT math, identity short-circuit, and channel handling
+// ---------------------------------------------------------------------------
+
+describe("LevelsNode — processing", () => {
+  it("returns original image when all params are at identity", async () => {
+    const png = await makePngBuffer(4, 4, 128, 64, 32);
+    const imgRef = imageRefFromBuffer(png);
+
+    const node = new LevelsNode();
+    node.assign({ image: imgRef });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+
+    expect(typeof output.data).toBe("string");
+    expect((output.data as string).length).toBeGreaterThan(0);
+
+    // Decode and verify pixels are unchanged
+    const inBuf = Buffer.from(imgRef.data as string, "base64");
+    const outBuf = Buffer.from(output.data as string, "base64");
+    const { data: inRaw } = await sharp(inBuf).raw().toBuffer({ resolveWithObject: true });
+    const { data: outRaw } = await sharp(outBuf).raw().toBuffer({ resolveWithObject: true });
+    expect(inRaw.length).toBe(outRaw.length);
+    for (let i = 0; i < inRaw.length; i++) {
+      expect(outRaw[i]).toBe(inRaw[i]);
+    }
+  });
+
+  it("adjusts black/white points and changes pixels", async () => {
+    const png = await makePngBuffer(4, 4, 128, 64, 32);
+    const imgRef = imageRefFromBuffer(png);
+
+    const node = new LevelsNode();
+    node.assign({
+      image: imgRef,
+      r_black: 64,
+      r_white: 192,
+      r_gamma: 1,
+      g_black: 0,
+      g_white: 255,
+      g_gamma: 1,
+      b_black: 0,
+      b_white: 255,
+      b_gamma: 1
+    });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+
+    expect(typeof output.data).toBe("string");
+    expect((output.data as string).length).toBeGreaterThan(0);
+
+    // Output should differ from input
+    const inBuf = Buffer.from(imgRef.data as string, "base64");
+    const outBuf = Buffer.from(output.data as string, "base64");
+    const { data: inRaw } = await sharp(inBuf).raw().toBuffer({ resolveWithObject: true });
+    const { data: outRaw } = await sharp(outBuf).raw().toBuffer({ resolveWithObject: true });
+    let differs = false;
+    for (let i = 0; i < inRaw.length; i++) {
+      if (inRaw[i] !== outRaw[i]) {
+        differs = true;
+        break;
+      }
+    }
+    expect(differs).toBe(true);
+  });
+
+  it("applies gamma correctly", async () => {
+    const png = await makePngBuffer(4, 4, 128, 128, 128);
+    const imgRef = imageRefFromBuffer(png);
+
+    const node = new LevelsNode();
+    node.assign({
+      image: imgRef,
+      r_black: 0,
+      r_white: 255,
+      r_gamma: 2,
+      g_black: 0,
+      g_white: 255,
+      g_gamma: 1,
+      b_black: 0,
+      b_white: 255,
+      b_gamma: 1
+    });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+
+    const outBuf = Buffer.from(output.data as string, "base64");
+    const { data: outRaw } = await sharp(outBuf).raw().toBuffer({ resolveWithObject: true });
+    // Gamma 2 on 128 should darken it: (128/255)^2 * 255 ≈ 64
+    expect(outRaw[0]).toBeLessThan(100);
+  });
+
+  it("handles grayscale input without crashing", async () => {
+    // Create a grayscale PNG (1 channel)
+    const grayBuf = await sharp({
+      create: { width: 4, height: 4, channels: 1, background: { r: 128, g: 128, b: 128 } }
+    })
+      .png()
+      .toBuffer();
+    const imgRef = imageRefFromBuffer(grayBuf);
+
+    const node = new LevelsNode();
+    node.assign({
+      image: imgRef,
+      r_black: 0,
+      r_white: 255,
+      r_gamma: 1.5
+    });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+
+    expect(typeof output.data).toBe("string");
+    expect((output.data as string).length).toBeGreaterThan(0);
   });
 });

@@ -35,4 +35,42 @@ describe("computeHistogramFromRgba", () => {
     expect(sum).toBe(1);
     expect(hist.luminance[54]).toBe(1);
   });
+
+  it("throws when buffer length is not a multiple of 4", () => {
+    const rgba = new Uint8ClampedArray([255, 0, 0]);
+    expect(() => computeHistogramFromRgba(rgba)).toThrow(/multiple of 4/);
+  });
+
+  it("handles empty array", () => {
+    const rgba = new Uint8ClampedArray(0);
+    const hist = computeHistogramFromRgba(rgba);
+    expect(hist.pixelCount).toBe(0);
+    expect(hist.r.reduce((a, b) => a + b, 0)).toBe(0);
+  });
+
+  it("handles all-black image", () => {
+    const rgba = new Uint8ClampedArray([
+      0, 0, 0, 255,
+      0, 0, 0, 255
+    ]);
+    const hist = computeHistogramFromRgba(rgba);
+    expect(hist.pixelCount).toBe(2);
+    expect(hist.r[0]).toBe(2);
+    expect(hist.g[0]).toBe(2);
+    expect(hist.b[0]).toBe(2);
+    expect(hist.luminance[0]).toBe(2);
+  });
+
+  it("handles all-white image", () => {
+    const rgba = new Uint8ClampedArray([
+      255, 255, 255, 255,
+      255, 255, 255, 255
+    ]);
+    const hist = computeHistogramFromRgba(rgba);
+    expect(hist.pixelCount).toBe(2);
+    expect(hist.r[255]).toBe(2);
+    expect(hist.g[255]).toBe(2);
+    expect(hist.b[255]).toBe(2);
+    expect(hist.luminance[255]).toBe(2);
+  });
 });

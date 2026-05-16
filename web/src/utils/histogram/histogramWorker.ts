@@ -1,7 +1,7 @@
 /**
- * Web worker for histogram computation. Receives RGBA byte buffer +
- * dimensions, returns four 256-entry Uint32Arrays packed back as
- * transferable ArrayBuffers.
+ * Web worker for histogram computation. Receives an RGBA byte buffer,
+ * returns four 256-entry Uint32Arrays packed back as transferable
+ * ArrayBuffers.
  */
 
 import { computeHistogramFromRgba } from "./computeHistogram";

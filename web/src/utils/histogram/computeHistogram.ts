@@ -21,6 +21,9 @@ export function computeHistogramFromRgba(
   const b = new Uint32Array(256);
   const luminance = new Uint32Array(256);
   const len = rgba.length;
+  if (len % 4 !== 0) {
+    throw new Error(`RGBA buffer length must be a multiple of 4, got ${len}`);
+  }
   let pixels = 0;
 
   for (let i = 0; i < len; i += 4) {
