@@ -18,6 +18,8 @@ import { EditorButton } from "../editor_ui";
 import { AgentModelSelect } from "./AgentModelSelect";
 import MediaControlChip from "../chat/composer/MediaControlChip";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import { useStoreWithEqualityFn } from "zustand/traditional";
+import { shallow } from "zustand/shallow";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
@@ -298,7 +300,8 @@ const AgentPanel: React.FC = () => {
     availableModels,
     modelsLoading,
     loadModels,
-  } = useAgentStore(
+  } = useStoreWithEqualityFn(
+    useAgentStore,
     useMemo(
       () => (state) => ({
         status: state.status,
@@ -326,7 +329,8 @@ const AgentPanel: React.FC = () => {
         loadModels: state.loadModels,
       }),
       []
-    )
+    ),
+    shallow
   );
   const { data: workspaces } = useQuery({
     queryKey: ["workspaces"],
