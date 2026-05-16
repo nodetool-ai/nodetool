@@ -324,12 +324,22 @@ export function useLayerActions({
       return;
     }
     const layerIds = new Set(document.layers.map((l) => l.id));
-    const toRemove = ids.filter((id) => layerIds.has(id));
+    let toRemove = ids.filter((id) => layerIds.has(id));
     if (toRemove.length === 0) {
       return;
     }
     if (document.layers.length - toRemove.length < 1) {
-      return;
+      const removeSet = new Set(toRemove);
+      const keepId = [...document.layers]
+        .reverse()
+        .find((l) => removeSet.has(l.id))?.id;
+      if (!keepId) {
+        return;
+      }
+      toRemove = toRemove.filter((id) => id !== keepId);
+      if (toRemove.length === 0) {
+        return;
+      }
     }
     const sorted = [...toRemove].sort(
       (a, b) =>

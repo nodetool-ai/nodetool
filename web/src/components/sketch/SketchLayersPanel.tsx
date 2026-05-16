@@ -918,7 +918,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     layerIdsInDoc.has(id)
   ).length;
   const canDeleteToolbarLayer = hasMultiLayerSelection
-    ? layers.length - selectedLayersPresentCount >= 1
+    ? selectedLayersPresentCount > 0
     : layers.length > 1;
 
   const cycleBlendMode = useCallback((direction: -1 | 1) => {
@@ -1250,14 +1250,14 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           </Tooltip>
           <Tooltip
             title={
-              hasMultiLayerSelection ? "Delete selected layers" : "Delete Layer"
+              hasMultiLayerSelection ? "Remove selected layers" : "Remove Layer"
             }
             enterDelay={SKETCH_TOOLTIP_DELAY_MS}
             enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <span>
               <IconButton
-                aria-label="Delete active layer"
+                aria-label="Remove active layer"
                 size="small"
                 onClick={() =>
                   hasMultiLayerSelection
@@ -1438,16 +1438,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                   </IconButton>
                 </span>
               </Tooltip>
-              <Tooltip title="Delete selected layers" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                <IconButton
-                  aria-label="Delete selected layers"
-                  size="small"
-                  color="error"
-                  onClick={onDeleteSelectedLayers}
-                >
-                  <DeleteIcon sx={{ fontSize: "1.125rem" }} />
-                </IconButton>
-              </Tooltip>
+              {/* Note: the top toolbar's Delete button already routes to
+                  onDeleteSelectedLayers when 2+ layers are selected, so no
+                  separate "Remove selected layers" button is needed here. */}
             </>
           ) : null}
         </Box>
@@ -1484,10 +1477,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           "& .MuiIconButton-root": { width: 30, height: 30 }
         }}
       >
-        <Tooltip title="Clear Layer (Delete)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+        <Tooltip title="Clear Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
           <span>
             <IconButton
-              aria-label="Clear Layer (Delete)"
+              aria-label="Clear Layer"
               size="small"
               onClick={onClearLayer}
               disabled={pixelLayerCanvasActionsDisabled}
