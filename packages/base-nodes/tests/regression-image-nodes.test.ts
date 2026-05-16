@@ -648,15 +648,16 @@ describe("LevelsNode — processing", () => {
 
     const outBuf = Buffer.from(output.data as string, "base64");
     const { data: outRaw } = await sharp(outBuf).raw().toBuffer({ resolveWithObject: true });
-    // Gamma 2 on 128 should darken it: (128/255)^2 * 255 ≈ 64
-    expect(outRaw[0]).toBeLessThan(100);
+    // Gamma 2 with invGamma = 1/2 brightens midtones: (128/255)^0.5 * 255 ≈ 181
+    expect(outRaw[0]).toBeGreaterThan(150);
   });
 
   it("handles grayscale input without crashing", async () => {
-    // Create a grayscale PNG (1 channel)
+    // Create a grayscale PNG by converting an RGB image to greyscale.
     const grayBuf = await sharp({
-      create: { width: 4, height: 4, channels: 1, background: { r: 128, g: 128, b: 128 } }
+      create: { width: 4, height: 4, channels: 3, background: { r: 128, g: 128, b: 128 } }
     })
+      .greyscale()
       .png()
       .toBuffer();
     const imgRef = imageRefFromBuffer(grayBuf);
