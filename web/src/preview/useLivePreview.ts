@@ -15,11 +15,41 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useLivePreviewStore } from "./livePreviewStore";
 import type { LivePreviewValue } from "./livePreviewStore";
 
-import { browserImageRuntime } from "./browserImageRuntime";
-import type {
-  ImageBytes,
-  ResizeOptions
-} from "./imageRuntimeContract";
+// TODO: swap to a real import once Agent B lands the browser runtime export:
+//   import { browserImageRuntime } from "@nodetool-ai/base-nodes/image-runtime/browser";
+// The package currently exports only its root entry. Web doesn't depend on
+// @nodetool-ai/base-nodes either — the integrator will need to either expose
+// a browser-safe subpath export OR vendor the implementation under web/src/preview/.
+// Until then, this local stub keeps the type contract honest and lets the UI
+// wiring be exercised against the WebSocket result path.
+interface ImageBytes {
+  data: Uint8Array;
+  width?: number;
+  height?: number;
+  mimeType?: string;
+}
+interface ResizeOptions {
+  width?: number;
+  height?: number;
+  filter?: "nearest" | "bilinear" | "lanczos";
+  fit?: boolean;
+}
+interface ImageRuntimeStub {
+  resize(image: ImageBytes, opts: ResizeOptions): Promise<ImageBytes>;
+}
+const browserImageRuntime: ImageRuntimeStub = {
+  // Placeholder: returns the input unchanged with the requested dims tagged so
+  // the UI shows the W×H badge updating live. Real pixel-resize lands when
+  // Agent B's OffscreenCanvas implementation is wired in.
+  async resize(image, opts) {
+    return {
+      data: image.data,
+      width: opts.width ?? image.width,
+      height: opts.height ?? image.height,
+      mimeType: image.mimeType ?? "image/png"
+    };
+  }
+};
 
 export type LivePreviewOp = "resize";
 

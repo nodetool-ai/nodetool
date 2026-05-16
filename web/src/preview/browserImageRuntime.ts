@@ -3,14 +3,9 @@
  * to `HTMLCanvasElement` in environments where OffscreenCanvas is unavailable.
  *
  * This module is BROWSER-ONLY. It must never import node-only modules (sharp,
- * fs, @napi-rs/canvas, etc.). Server-side execution lives in
- * `packages/base-nodes/src/image-runtime/node.ts`; the contract is shared.
- *
- * VENDORED for the live-preview spike. Mirror of
- * `packages/base-nodes/src/image-runtime/browser.ts`. We avoid taking a
- * web → base-nodes workspace dependency because base-nodes pulls in sharp
- * and other node-only modules. Long-term fix: hoist `image-runtime/` into
- * its own tiny workspace package both consume.
+ * fs, @napi-rs/canvas, etc.). It's intended for live previews driven from the
+ * web UI as the user drags sliders: `image-runtime/node.ts` covers server-side
+ * execution with sharp, and the two share `index.ts` as their contract.
  *
  * Encoding: every op returns PNG bytes via `convertToBlob({ type: 'image/png' })`
  * (OffscreenCanvas) or `toBlob` (HTMLCanvasElement). Empty input short-circuits
@@ -21,7 +16,7 @@ import {
   type ImageBytes,
   type ImageRuntime,
   isEmpty
-} from "./imageRuntimeContract";
+} from "./index.js";
 
 // ---------- pure geometry helpers (tested in isolation) ---------------------
 

@@ -1,12 +1,6 @@
 /**
  * ImageRuntime — runtime-polymorphic seam for cheap image operations.
  *
- * VENDORED for the live-preview spike. Mirror of
- * `packages/base-nodes/src/image-runtime/index.ts`. We avoid taking a
- * web → base-nodes workspace dependency because base-nodes pulls in sharp
- * and other node-only modules. Long-term fix: hoist `image-runtime/` into
- * its own tiny workspace package both consume.
- *
  * The same node `process()` calls run server-side (sharp via Node implementation)
  * and browser-side (OffscreenCanvas via browser implementation). This is the
  * single source of truth for what cheap image ops exist; per-environment
