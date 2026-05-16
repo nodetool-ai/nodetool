@@ -114,6 +114,62 @@ export interface SketchRuntime {
   setSelection(sel: Selection | null): void;
 
   /**
+   * GPU-accelerated selection refine: feather the current mask in-place on
+   * the GPU (separable box blur ×3 ≈ Gaussian) and return the resulting
+   * Selection. Asynchronous because the result is read back through a
+   * mappable buffer (`GPUBuffer.mapAsync`). Returns `null` if the runtime
+   * has no active selection or cannot service the request (e.g. device lost).
+   *
+   * Implementations (WebGPU only at present) must keep the GPU-resident
+   * mask texture in lock-step with the returned `Selection` so callers can
+   * commit it via `setSelectionAfterGpuOp` without triggering an immediate
+   * CPU→GPU re-upload on the next composite.
+   *
+   * Optional on the interface so Canvas2D can omit the implementation;
+   * callers must feature-detect before invoking.
+   */
+  featherSelectionGpu?(radius: number): Promise<Selection | null>;
+
+  /**
+   * GPU expand: dilate the current selection mask by `radius` pixels (a
+   * separable (2r+1)-tap max filter on each axis). Async because the
+   * post-pass mask is read back through a mappable buffer. Returns `null`
+   * when there is no active selection or the runtime cannot service the
+   * request. See `featherSelectionGpu` for the full semantics.
+   */
+  expandSelectionGpu?(radius: number): Promise<Selection | null>;
+
+  /**
+   * GPU contract: erode the current selection mask by `radius` pixels (a
+   * separable (2r+1)-tap min filter on each axis). Async because the
+   * post-pass mask is read back through a mappable buffer. Returns `null`
+   * when there is no active selection or the runtime cannot service the
+   * request. See `featherSelectionGpu` for the full semantics.
+   */
+  contractSelectionGpu?(radius: number): Promise<Selection | null>;
+
+  /**
+   * GPU smooth: feather (3× separable box blur) followed by a hard
+   * threshold @ 128 to snap edges back to 0/255. Async because it
+   * composes `featherSelectionGpu` under the hood. Returns `null`
+   * when there is no active selection or the runtime cannot service
+   * the request.
+   */
+  smoothSelectionGpu?(strength: number): Promise<Selection | null>;
+
+  /**
+   * Adopt a Selection produced by a GPU refine op. Equivalent to
+   * `setSelection` except it suppresses the next CPU→GPU upload because
+   * the runtime's mask texture already holds the post-op pixels.
+   *
+   * Callers must always pair this with a store update so React state stays
+   * in sync. The follow-up `setSelection` triggered by that update will be
+   * a no-op because the `Selection.data` reference matches what was just
+   * adopted here.
+   */
+  setSelectionAfterGpuOp?(sel: Selection | null): void;
+
+  /**
    * Composite all visible layers onto the target canvas.
    *
    * @param dirtyRect - Optional region for partial recompositing.

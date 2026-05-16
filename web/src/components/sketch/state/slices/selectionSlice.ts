@@ -8,15 +8,10 @@ import type { Selection } from "../../types";
 import {
   buildSelectionBorderStrokeMask,
   cloneSelectionMask,
-  contractSelectionMask,
   createEmptyMask,
-  expandSelectionMask,
-  featherMaskAlpha,
   invertMaskInPlace,
-  MAX_SELECTION_FEATHER_RADIUS,
   selectionHasAnyPixels,
   selectionToDocumentAligned,
-  smoothSelectionBorders,
   trimSelectionMask
 } from "../../selection";
 
@@ -147,12 +142,36 @@ export interface SelectionSlice {
   selectAll: () => void;
   invertSelection: () => void;
   reselectLastSelection: () => void;
-  featherCurrentSelection: () => void;
-  smoothCurrentSelectionBorders: () => void;
+  /**
+   * GPU-accelerated feather. Resolves once the post-blur mask has been read
+   * back to CPU and committed to the store. Callers that want to chain (e.g.
+   * to disable a UI control while the kernel runs) can `await` the result.
+   *
+   * Resolves immediately (no-op) when there is no active selection, no
+   * registered runtime, or the runtime lacks `featherSelectionGpu`. There is
+   * no CPU fallback by design — the kernel must run on the GPU.
+   */
+  featherCurrentSelection: () => Promise<void>;
+  /**
+   * GPU-accelerated smooth (feather + threshold @ 128). Resolves once
+   * the post-pass mask has been committed. No-op without a runtime
+   * exposing `smoothSelectionGpu`.
+   */
+  smoothCurrentSelectionBorders: () => Promise<void>;
   /** Replace the filled selection with a border ring of width from tool settings. */
   convertSelectionToBorderOutline: () => void;
-  expandCurrentSelection: (px: number) => void;
-  contractCurrentSelection: (px: number) => void;
+  /**
+   * GPU-accelerated expand (mask dilation). Resolves once the post-pass
+   * mask has been read back to CPU and committed. No-op when there is no
+   * active selection, no registered runtime, or the runtime lacks
+   * `expandSelectionGpu`. There is no CPU fallback by design.
+   */
+  expandCurrentSelection: (px: number) => Promise<void>;
+  /**
+   * GPU-accelerated contract (mask erosion). Same shape as
+   * `expandCurrentSelection`.
+   */
+  contractCurrentSelection: (px: number) => Promise<void>;
 }
 
 export const createSelectionSlice: StateCreator<
@@ -220,28 +239,69 @@ export const createSelectionSlice: StateCreator<
     }
   },
 
-  featherCurrentSelection: () => {
+  featherCurrentSelection: async () => {
     const state = get();
     const sel = state.selection;
     if (!selectionHasAnyPixels(sel)) {
       return;
     }
-    const copy = cloneSelectionRegion(
-      sel!,
-      featherMutationPaddingPx(state.toolSettings.select.featherRadius)
-    );
-    featherMaskAlpha(copy, state.toolSettings.select.featherRadius);
-    get().setSelection(finalizeMutatedSelection(copy));
+    const radius = state.toolSettings.select.featherRadius;
+    const runtime = state.runtime;
+
+    // GPU is the only blur path — no CPU fallback by design. If the runtime
+    // is not (yet) registered or doesn't expose the GPU API, we no-op
+    // rather than fall back to the slow synchronous CPU path.
+    if (!runtime?.featherSelectionGpu) {
+      return;
+    }
+
+    // Pad the buffer so the blur kernel has zero-valued pixels around the
+    // existing selection to bleed into. Without this, the texture's
+    // clamp-to-edge sampling holds the selection's edge value steady and
+    // the feather visibly clips at the tight selection bounds.
+    const padded = cloneSelectionRegion(sel!, featherMutationPaddingPx(radius));
+
+    // Push the padded buffer to the runtime BEFORE awaiting the GPU op so
+    // the upload happens against the right dimensions. The React effect in
+    // `useCanvasOrchestration` will also call `setSelection(padded)` on the
+    // next render — that becomes a no-op because the data reference matches.
+    runtime.setSelection(padded);
+    get().setSelection(padded);
+
+    const result = await runtime.featherSelectionGpu(radius);
+    if (!result) {
+      return;
+    }
+    get().setSelection(finalizeMutatedSelection(result));
   },
 
-  smoothCurrentSelectionBorders: () => {
+  smoothCurrentSelectionBorders: async () => {
     const sel = get().selection;
     if (!selectionHasAnyPixels(sel)) {
       return;
     }
-    const copy = cloneSelectionRegion(sel!, 3);
-    smoothSelectionBorders(copy, 3);
-    get().setSelection(finalizeMutatedSelection(copy));
+    const runtime = get().runtime;
+    if (!runtime?.smoothSelectionGpu) {
+      return;
+    }
+    // Smooth = feather(3) + threshold. Pad by the feather kernel's bleed
+    // radius so the soft edge has room to fall off before the threshold
+    // snaps it back to 0/255. Without padding, the feather sees the
+    // texture clamp-to-edge value and the threshold pulls the edge
+    // outline inward.
+    const STRENGTH = 3;
+    const padded = cloneSelectionRegion(
+      sel!,
+      featherMutationPaddingPx(STRENGTH)
+    );
+    runtime.setSelection(padded);
+    get().setSelection(padded);
+
+    const result = await runtime.smoothSelectionGpu(STRENGTH);
+    if (!result) {
+      return;
+    }
+    get().setSelection(finalizeMutatedSelection(result));
   },
 
   convertSelectionToBorderOutline: () => {
@@ -263,26 +323,53 @@ export const createSelectionSlice: StateCreator<
     get().setSelection(finalizeMutatedSelection(ring));
   },
 
-  expandCurrentSelection: (px: number) => {
+  expandCurrentSelection: async (px: number) => {
     const sel = get().selection;
     if (!selectionHasAnyPixels(sel)) {
       return;
     }
-    const copy = cloneSelectionRegion(sel!, Math.max(0, Math.round(px)));
-    expandSelectionMask(copy, px);
-    get().setSelection(finalizeMutatedSelection(copy));
+    const runtime = get().runtime;
+    if (!runtime?.expandSelectionGpu) {
+      return;
+    }
+    const r = Math.max(0, Math.round(px));
+    // Pad so the dilate kernel has room to grow into beyond the current
+    // tight selection bounds. Without padding, max-filter values would
+    // clamp at the texture edge and the expand never extends past the
+    // selection's original outer bbox.
+    const padded = cloneSelectionRegion(sel!, r);
+    runtime.setSelection(padded);
+    get().setSelection(padded);
+
+    const result = await runtime.expandSelectionGpu(r);
+    if (!result) {
+      return;
+    }
+    get().setSelection(finalizeMutatedSelection(result));
   },
 
-  contractCurrentSelection: (px: number) => {
+  contractCurrentSelection: async (px: number) => {
     const sel = get().selection;
     if (!selectionHasAnyPixels(sel)) {
       return;
     }
+    const runtime = get().runtime;
+    if (!runtime?.contractSelectionGpu) {
+      return;
+    }
+    const r = Math.max(0, Math.round(px));
     // Padding must be ≥ px so the cloned region has zero-valued pixels
-    // around the selection bounds; otherwise `contractSelectionMask`'s
-    // sliding-min clamps to the buffer edge and edge pixels never shrink.
-    const copy = cloneSelectionRegion(sel!, Math.max(0, Math.round(px)));
-    contractSelectionMask(copy, px);
-    get().setSelection(finalizeMutatedSelection(copy));
+    // around the selection bounds; otherwise the min-filter's clamp-to-
+    // edge reads see the original selection's edge value and never erode
+    // the outermost pixels.
+    const padded = cloneSelectionRegion(sel!, r);
+    runtime.setSelection(padded);
+    get().setSelection(padded);
+
+    const result = await runtime.contractSelectionGpu(r);
+    if (!result) {
+      return;
+    }
+    get().setSelection(finalizeMutatedSelection(result));
   }
 });

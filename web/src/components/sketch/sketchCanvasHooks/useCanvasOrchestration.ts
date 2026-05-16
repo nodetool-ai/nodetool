@@ -44,6 +44,7 @@ import type {
   UsePointerHandlersResult
 } from "../sketchCanvasHooks";
 import { selectionAntCanvasMarginCssPx } from "./useOverlayRenderer";
+import { useSketchStore } from "../state/useSketchStore";
 
 interface SelectionAntsRuntime {
   setSelectionAntsOverlayCanvas?: (canvas: HTMLCanvasElement | null) => void;
@@ -229,6 +230,17 @@ export function useCanvasOrchestration(
   // Wire the preview bridge refs to compositing output.
   requestPreviewRedrawRef.current = requestRedraw;
   invalidateLayerRef.current = invalidateLayer;
+
+  // Publish the runtime to the store so non-React code (selection-refine
+  // GPU ops in selectionSlice) can dispatch onto it. Unregister on unmount
+  // so a stale runtime reference can't outlive the editor mount.
+  const setRuntimeInstance = useSketchStore((s) => s.setRuntimeInstance);
+  useEffect(() => {
+    setRuntimeInstance(runtime);
+    return () => {
+      setRuntimeInstance(null);
+    };
+  }, [runtime, setRuntimeInstance]);
 
   // Sync external selection state to the runtime. During interactive commits
   // the runtime is authoritative; the store only keeps the CPU snapshot that

@@ -21,6 +21,7 @@ import {
   createHistorySlice,
   createSelectionSlice,
   createUiSlice,
+  createRuntimeSlice,
   SKETCH_ZOOM_MIN,
   SKETCH_ZOOM_MAX
 } from "./slices";
@@ -30,7 +31,8 @@ import type {
   ToolSlice,
   HistorySlice,
   SelectionSlice,
-  UiSlice
+  UiSlice,
+  RuntimeSlice
 } from "./slices";
 import { normalizeSketchDocument, type HistoryEntry, type Point, type SketchDocument, type SketchTool } from "../types";
 
@@ -41,7 +43,8 @@ export type SketchStore = DocumentSlice &
   ToolSlice &
   HistorySlice &
   SelectionSlice &
-  UiSlice;
+  UiSlice &
+  RuntimeSlice;
 
 export const useSketchStore = create<SketchStore>((...a) => ({
   ...createDocumentSlice(...a),
@@ -49,7 +52,8 @@ export const useSketchStore = create<SketchStore>((...a) => ({
   ...createToolSlice(...a),
   ...createHistorySlice(...a),
   ...createSelectionSlice(...a),
-  ...createUiSlice(...a)
+  ...createUiSlice(...a),
+  ...createRuntimeSlice(...a)
 }));
 
 export interface PersistedSketchStoreState {

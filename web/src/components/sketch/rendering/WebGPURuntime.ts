@@ -39,7 +39,8 @@ import {
   LAYER_COMPOSITE_FRAGMENT,
   BLEND_COMPOSITE_FRAGMENT,
   BLIT_FRAGMENT,
-  SELECTION_ANTS_FRAGMENT
+  SELECTION_ANTS_FRAGMENT,
+  MASK_BLUR_FRAGMENT
 } from "./shaders";
 
 // ─── Blend mode ID mapping (must match shader switch cases) ──────────────
@@ -146,6 +147,32 @@ export class WebGPURuntime implements SketchRuntime {
   private maskDirty = false;
   /** Last selection passed to setSelection — canonical CPU source for the mask. */
   private currentSelection: Selection | null = null;
+
+  // ── Selection mask refine (GPU feather / expand / contract / smooth) ──
+  /** Pipelines for separable mask blur (used as building block by feather). */
+  private maskBlurPipelineH: GPURenderPipeline | null = null;
+  private maskBlurPipelineV: GPURenderPipeline | null = null;
+  /** Pipelines for separable morphological dilate (expand) and erode (contract). */
+  private maskDilatePipelineH: GPURenderPipeline | null = null;
+  private maskDilatePipelineV: GPURenderPipeline | null = null;
+  private maskErodePipelineH: GPURenderPipeline | null = null;
+  private maskErodePipelineV: GPURenderPipeline | null = null;
+  private maskBlurBindGroupLayout: GPUBindGroupLayout | null = null;
+  /** Sampler used by the blur pipelines (linear, clamp-to-edge). */
+  private maskBlurSampler: GPUSampler | null = null;
+  /**
+   * Scratch r8unorm texture used as the intermediate target between H and V
+   * passes (and as ping-pong half-step for multi-pass smoothing). Resized to
+   * match the current mask texture dimensions on demand.
+   */
+  private maskScratchTexture: GPUTexture | null = null;
+  private maskScratchWidth = 0;
+  private maskScratchHeight = 0;
+  /** Mappable buffer reused across refine ops to read the mask back to CPU. */
+  private maskReadbackBuffer: GPUBuffer | null = null;
+  private maskReadbackBufferSize = 0;
+  /** Per-op uniform buffer (16 bytes — single vec4f). */
+  private maskBlurUniformBuffer: GPUBuffer | null = null;
 
   // ── FX evaluation ────────────────────────────────────────────────────
   /** Temp canvas for FX-evaluated layer content (reused across layers within a frame). */
@@ -482,6 +509,98 @@ export class WebGPURuntime implements SketchRuntime {
       primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
     });
 
+    // ── Mask refine: separable box blur (feather / smooth building block) ─
+    const maskBlurModule = device.createShaderModule({
+      label: "mask-blur-frag",
+      code: FULLSCREEN_QUAD_VERTEX + MASK_BLUR_FRAGMENT
+    });
+
+    this.maskBlurBindGroupLayout = device.createBindGroupLayout({
+      label: "mask-blur-bgl",
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.FRAGMENT,
+          buffer: { type: "uniform" }
+        },
+        {
+          binding: 1,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" }
+        },
+        {
+          binding: 2,
+          visibility: GPUShaderStage.FRAGMENT,
+          sampler: { type: "filtering" }
+        }
+      ]
+    });
+
+    const maskBlurPipelineLayout = device.createPipelineLayout({
+      bindGroupLayouts: [this.maskBlurBindGroupLayout]
+    });
+
+    // Both passes target r8unorm with no blend (overwrite output).
+    const maskBlurTargets: GPUColorTargetState[] = [{ format: "r8unorm" }];
+
+    this.maskBlurPipelineH = device.createRenderPipeline({
+      label: "mask-blur-h-pipeline",
+      layout: maskBlurPipelineLayout,
+      vertex: { module: maskBlurModule, entryPoint: "vs_main" },
+      fragment: {
+        module: maskBlurModule,
+        entryPoint: "fs_mask_blur_h",
+        targets: maskBlurTargets
+      },
+      primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
+    });
+
+    this.maskBlurPipelineV = device.createRenderPipeline({
+      label: "mask-blur-v-pipeline",
+      layout: maskBlurPipelineLayout,
+      vertex: { module: maskBlurModule, entryPoint: "vs_main" },
+      fragment: {
+        module: maskBlurModule,
+        entryPoint: "fs_mask_blur_v",
+        targets: maskBlurTargets
+      },
+      primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
+    });
+
+    // Dilate/erode share the same module + bind group layout as blur (they
+    // ignore the sampler binding and use textureLoad for exact integer
+    // coordinate reads — linear filtering is not meaningful for non-linear
+    // reductions like max/min).
+    const mkRefinePipeline = (
+      label: string,
+      entryPoint: string
+    ): GPURenderPipeline =>
+      device.createRenderPipeline({
+        label,
+        layout: maskBlurPipelineLayout,
+        vertex: { module: maskBlurModule, entryPoint: "vs_main" },
+        fragment: { module: maskBlurModule, entryPoint, targets: maskBlurTargets },
+        primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
+      });
+
+    this.maskDilatePipelineH = mkRefinePipeline("mask-dilate-h-pipeline", "fs_mask_dilate_h");
+    this.maskDilatePipelineV = mkRefinePipeline("mask-dilate-v-pipeline", "fs_mask_dilate_v");
+    this.maskErodePipelineH = mkRefinePipeline("mask-erode-h-pipeline", "fs_mask_erode_h");
+    this.maskErodePipelineV = mkRefinePipeline("mask-erode-v-pipeline", "fs_mask_erode_v");
+
+    this.maskBlurSampler = device.createSampler({
+      label: "mask-blur-sampler",
+      magFilter: "linear",
+      minFilter: "linear",
+      addressModeU: "clamp-to-edge",
+      addressModeV: "clamp-to-edge"
+    });
+
+    this.maskBlurUniformBuffer = device.createBuffer({
+      label: "mask-blur-uniforms",
+      size: 16, // single vec4f
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    });
   }
 
   // ─── Canvas context management ───────────────────────────────────────
@@ -722,7 +841,15 @@ export class WebGPURuntime implements SketchRuntime {
         label: "selection-mask",
         size: { width: Math.max(1, width), height: Math.max(1, height) },
         format: "r8unorm",
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+        // RENDER_ATTACHMENT: used as the V-pass output target during GPU
+        // refine ops (feather/expand/contract/smooth).
+        // COPY_SRC: needed for the post-op readback to a mappable buffer
+        // that updates the CPU-side Selection.data.
+        usage:
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.RENDER_ATTACHMENT |
+          GPUTextureUsage.COPY_SRC
       });
     }
 
@@ -752,6 +879,358 @@ export class WebGPURuntime implements SketchRuntime {
       );
     }
 
+    this.maskDirty = false;
+  }
+
+  // ─── Selection mask refine (GPU) ─────────────────────────────────────
+
+  /**
+   * (Re)create the scratch mask texture at the given dimensions. Used as the
+   * intermediate target between H and V blur passes. Lazy + size-cached so
+   * repeated refine ops on the same selection reuse the same allocation.
+   */
+  private ensureMaskScratchTexture(width: number, height: number): GPUTexture {
+    const w = Math.max(1, width);
+    const h = Math.max(1, height);
+    if (
+      this.maskScratchTexture &&
+      this.maskScratchWidth === w &&
+      this.maskScratchHeight === h
+    ) {
+      return this.maskScratchTexture;
+    }
+    this.maskScratchTexture?.destroy();
+    this.maskScratchTexture = this.device.createTexture({
+      label: "mask-scratch",
+      size: { width: w, height: h },
+      format: "r8unorm",
+      usage:
+        GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT
+    });
+    this.maskScratchWidth = w;
+    this.maskScratchHeight = h;
+    return this.maskScratchTexture;
+  }
+
+  /**
+   * (Re)create the mappable readback buffer. Grows only — refine ops on
+   * smaller selections reuse a larger buffer rather than reallocating.
+   */
+  private ensureMaskReadbackBuffer(byteSize: number): GPUBuffer {
+    const size = Math.max(16, byteSize);
+    if (this.maskReadbackBuffer && this.maskReadbackBufferSize >= size) {
+      return this.maskReadbackBuffer;
+    }
+    this.maskReadbackBuffer?.destroy();
+    this.maskReadbackBuffer = this.device.createBuffer({
+      label: "mask-readback",
+      size,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+    });
+    this.maskReadbackBufferSize = size;
+    return this.maskReadbackBuffer;
+  }
+
+  /**
+   * Encode a single mask-refine pass (blur / dilate / erode, H or V) reading
+   * `source` and writing `target`. Caller selects the pipeline + ping-pong
+   * direction; both textures must be r8unorm with matching dimensions.
+   */
+  private encodeMaskRefinePass(
+    encoder: GPUCommandEncoder,
+    pipeline: GPURenderPipeline,
+    label: string,
+    source: GPUTexture,
+    target: GPUTexture,
+    radiusPx: number,
+    width: number,
+    height: number
+  ): void {
+    if (
+      !this.maskBlurBindGroupLayout ||
+      !this.maskBlurSampler ||
+      !this.maskBlurUniformBuffer
+    ) {
+      return;
+    }
+    // Upload per-pass uniforms (radius + 1/dim texel step in UV units).
+    const uniformData = new Float32Array([
+      Math.max(0, Math.floor(radiusPx)),
+      1 / Math.max(1, width),
+      1 / Math.max(1, height),
+      0
+    ]);
+    this.device.queue.writeBuffer(
+      this.maskBlurUniformBuffer,
+      0,
+      uniformData.buffer,
+      uniformData.byteOffset,
+      uniformData.byteLength
+    );
+
+    const bindGroup = this.device.createBindGroup({
+      label: `${label}-bg`,
+      layout: this.maskBlurBindGroupLayout,
+      entries: [
+        { binding: 0, resource: { buffer: this.maskBlurUniformBuffer } },
+        { binding: 1, resource: source.createView() },
+        { binding: 2, resource: this.maskBlurSampler }
+      ]
+    });
+
+    const pass = encoder.beginRenderPass({
+      label: `${label}-pass`,
+      colorAttachments: [
+        {
+          view: target.createView(),
+          clearValue: { r: 0, g: 0, b: 0, a: 0 },
+          loadOp: "clear",
+          storeOp: "store"
+        }
+      ]
+    });
+    pass.setPipeline(pipeline);
+    pass.setBindGroup(0, bindGroup);
+    pass.draw(4);
+    pass.end();
+  }
+
+  /**
+   * Copy the mask texture into the readback buffer, await mapAsync, and
+   * unpack the (possibly row-padded) bytes into a fresh `Uint8ClampedArray`
+   * of size `width * height`.
+   */
+  private async readMaskTextureToCpu(
+    source: GPUTexture,
+    width: number,
+    height: number
+  ): Promise<Uint8ClampedArray> {
+    // copyTextureToBuffer requires bytesPerRow to be a multiple of 256.
+    const alignedBytesPerRow = Math.ceil(width / 256) * 256;
+    const totalBytes = alignedBytesPerRow * height;
+    const buffer = this.ensureMaskReadbackBuffer(totalBytes);
+
+    const encoder = this.device.createCommandEncoder({ label: "mask-readback" });
+    encoder.copyTextureToBuffer(
+      { texture: source },
+      {
+        buffer,
+        bytesPerRow: alignedBytesPerRow,
+        rowsPerImage: height
+      },
+      { width, height }
+    );
+    this.device.queue.submit([encoder.finish()]);
+
+    await buffer.mapAsync(GPUMapMode.READ, 0, totalBytes);
+    const padded = new Uint8Array(buffer.getMappedRange(0, totalBytes));
+    const out = new Uint8ClampedArray(width * height);
+    if (alignedBytesPerRow === width) {
+      out.set(padded.subarray(0, width * height));
+    } else {
+      for (let y = 0; y < height; y++) {
+        const srcStart = y * alignedBytesPerRow;
+        out.set(padded.subarray(srcStart, srcStart + width), y * width);
+      }
+    }
+    buffer.unmap();
+    return out;
+  }
+
+  /**
+   * GPU feather: apply 3 separable box-blur passes (≈ Gaussian) to the
+   * current selection mask in-place on the GPU, then read back to CPU.
+   * Returns a fresh Selection with updated `.data` (same dims and origin),
+   * or `null` if no selection / device unavailable / radius ≤ 0.
+   *
+   * The caller is expected to feed the result back through
+   * `setSelectionAfterGpuOp` + the store so the next composite reuses the
+   * GPU-resident mask without re-uploading from CPU.
+   */
+  async featherSelectionGpu(radius: number): Promise<Selection | null> {
+    if (this._deviceLost) {
+      return null;
+    }
+    const sel = this.currentSelection;
+    if (!sel || sel.width <= 0 || sel.height <= 0) {
+      return null;
+    }
+    if (
+      !this.maskBlurPipelineH ||
+      !this.maskBlurPipelineV ||
+      !this.maskBlurBindGroupLayout
+    ) {
+      return null;
+    }
+    const r = Math.max(0, Math.floor(radius));
+    if (r <= 0) {
+      // Caller asked for no-op; return a clone so identity is preserved.
+      return {
+        width: sel.width,
+        height: sel.height,
+        data: new Uint8ClampedArray(sel.data),
+        originX: sel.originX,
+        originY: sel.originY
+      };
+    }
+    // Match CPU `featherMaskAlpha`: 3 box-blur passes with radius ≈ r/2.
+    const perPassRadius = Math.max(1, Math.round(r / 2));
+
+    // Ensure mask is on the GPU and current.
+    if (this.maskDirty || !this.maskTexture) {
+      this.uploadMaskTexture();
+    }
+    const maskTex = this.maskTexture;
+    if (!maskTex) {
+      return null;
+    }
+    const { width, height } = sel;
+    const scratch = this.ensureMaskScratchTexture(width, height);
+
+    // Encode 3 ×{H,V} passes into a single submission.
+    const encoder = this.device.createCommandEncoder({ label: "mask-feather" });
+    for (let pass = 0; pass < 3; pass++) {
+      this.encodeMaskRefinePass(
+        encoder, this.maskBlurPipelineH, "mask-blur-h",
+        maskTex, scratch, perPassRadius, width, height
+      );
+      this.encodeMaskRefinePass(
+        encoder, this.maskBlurPipelineV, "mask-blur-v",
+        scratch, maskTex, perPassRadius, width, height
+      );
+    }
+    this.device.queue.submit([encoder.finish()]);
+
+    const data = await this.readMaskTextureToCpu(maskTex, width, height);
+    return {
+      width,
+      height,
+      data,
+      originX: sel.originX,
+      originY: sel.originY
+    };
+  }
+
+  /**
+   * Shared driver for the single-radius separable refine ops (dilate / erode).
+   * Encodes one H+V pass into the scratch ↔ mask ping-pong, then reads back.
+   * `pipelineH` / `pipelineV` are required (returns `null` if either is
+   * unavailable).
+   */
+  private async runMaskRefineSinglePass(
+    pipelineH: GPURenderPipeline | null,
+    pipelineV: GPURenderPipeline | null,
+    label: string,
+    radius: number
+  ): Promise<Selection | null> {
+    if (this._deviceLost) {
+      return null;
+    }
+    const sel = this.currentSelection;
+    if (!sel || sel.width <= 0 || sel.height <= 0) {
+      return null;
+    }
+    if (!pipelineH || !pipelineV) {
+      return null;
+    }
+    const r = Math.max(0, Math.floor(radius));
+    if (r <= 0) {
+      return {
+        width: sel.width,
+        height: sel.height,
+        data: new Uint8ClampedArray(sel.data),
+        originX: sel.originX,
+        originY: sel.originY
+      };
+    }
+    if (this.maskDirty || !this.maskTexture) {
+      this.uploadMaskTexture();
+    }
+    const maskTex = this.maskTexture;
+    if (!maskTex) {
+      return null;
+    }
+    const { width, height } = sel;
+    const scratch = this.ensureMaskScratchTexture(width, height);
+
+    const encoder = this.device.createCommandEncoder({ label: `mask-${label}` });
+    this.encodeMaskRefinePass(
+      encoder, pipelineH, `${label}-h`, maskTex, scratch, r, width, height
+    );
+    this.encodeMaskRefinePass(
+      encoder, pipelineV, `${label}-v`, scratch, maskTex, r, width, height
+    );
+    this.device.queue.submit([encoder.finish()]);
+
+    const data = await this.readMaskTextureToCpu(maskTex, width, height);
+    return {
+      width,
+      height,
+      data,
+      originX: sel.originX,
+      originY: sel.originY
+    };
+  }
+
+  /**
+   * GPU expand: dilate the current selection mask by `radius` pixels using
+   * a separable (2r+1)-tap max filter on each axis. Returns a fresh
+   * Selection or `null` if the runtime cannot service the request.
+   */
+  async expandSelectionGpu(radius: number): Promise<Selection | null> {
+    return this.runMaskRefineSinglePass(
+      this.maskDilatePipelineH,
+      this.maskDilatePipelineV,
+      "dilate",
+      radius
+    );
+  }
+
+  /**
+   * GPU contract: erode the current selection mask by `radius` pixels using
+   * a separable (2r+1)-tap min filter on each axis. Returns a fresh
+   * Selection or `null` if the runtime cannot service the request.
+   */
+  async contractSelectionGpu(radius: number): Promise<Selection | null> {
+    return this.runMaskRefineSinglePass(
+      this.maskErodePipelineH,
+      this.maskErodePipelineV,
+      "erode",
+      radius
+    );
+  }
+
+  /**
+   * GPU smooth: feather the mask, then threshold every byte at 128 to
+   * snap soft edges back to a hard 0/255 mask. Matches the CPU
+   * `smoothSelectionBorders` semantics (feather radius is clamped to
+   * [1, 8]). The threshold runs on CPU after readback — a tiny tight
+   * loop on the same buffer the readback already owns — rather than
+   * spending another shader pass + readback round-trip.
+   */
+  async smoothSelectionGpu(strength: number): Promise<Selection | null> {
+    const s = Math.max(1, Math.min(8, Math.round(strength)));
+    const feathered = await this.featherSelectionGpu(s);
+    if (!feathered) {
+      return null;
+    }
+    const out = feathered.data;
+    for (let i = 0; i < out.length; i++) {
+      out[i] = out[i] >= 128 ? 255 : 0;
+    }
+    return feathered;
+  }
+
+  /**
+   * Adopt a CPU Selection returned by a GPU refine op without invalidating
+   * the GPU-resident mask. The next compositing pass should NOT re-upload
+   * (since the mask texture already holds the post-op pixels). Callers must
+   * still update the store with the same Selection reference so React state
+   * sees the change; the subsequent `setSelection` becomes a no-op because
+   * `prev.data === sel.data` will hold.
+   */
+  setSelectionAfterGpuOp(sel: Selection | null): void {
+    this.currentSelection = sel;
     this.maskDirty = false;
   }
 

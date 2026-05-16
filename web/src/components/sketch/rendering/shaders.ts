@@ -416,17 +416,22 @@ fn fs_mask_overlay(@location(0) uv: vec2f) -> @location(0) vec4f {
   let dpr = max(u.params.z, 1.0);
   let docCenterPx = u.viewportOffsetPx + 0.5 * u.viewportSizePx + u.panPx;
   let docPos = (overlayPosPx - docCenterPx) / (zoom * dpr) + 0.5 * u.canvasSize;
-  let local  = docPos - u.maskOrigin;
-  let dims   = vec2i(textureDimensions(maskTex));
-  let dimsF  = vec2f(f32(dims.x), f32(dims.y));
-
   // Outside the document → no overlay (let canvas chrome show through).
+  // NOTE: bounds check uses docPos (document-space), NOT local
+  // (selection-mask-relative). When the mask origin is non-zero (e.g. a
+  // trimmed selection at (100, 50)), local is offset from the document
+  // origin and would incorrectly carve a hole in the overlay at the
+  // selection position instead of clipping at the canvas edges.
   if (
-    local.x < 0.0 || local.y < 0.0 ||
-    local.x >= u.canvasSize.x || local.y >= u.canvasSize.y
+    docPos.x < 0.0 || docPos.y < 0.0 ||
+    docPos.x >= u.canvasSize.x || docPos.y >= u.canvasSize.y
   ) {
     return vec4f(0.0);
   }
+
+  let local  = docPos - u.maskOrigin;
+  let dims   = vec2i(textureDimensions(maskTex));
+  let dimsF  = vec2f(f32(dims.x), f32(dims.y));
 
   // Outside the mask buffer (but inside document) = unselected = full overlay.
   // Sample-and-clamp behavior covers the typical case where the mask covers
@@ -445,5 +450,135 @@ fn fs_mask_overlay(@location(0) uv: vec2f) -> @location(0) vec4f {
   let MAX_ALPHA = 0.5;
   let alpha = (1.0 - selAlpha) * MAX_ALPHA;
   return vec4f(RED * alpha, alpha);
+}
+`;
+
+// ─── Selection mask refine — separable box blur ─────────────────────────
+//
+// Two fragment entry points for separable filtering on the r8unorm mask
+// texture. Box-blur ×N passes ≈ Gaussian (matches CPU `featherMaskAlpha`,
+// which runs 3 passes with radius ≈ feather/2). Each pass reads the input
+// through a linear sampler with clamp-to-edge addressing, writes a single
+// r-channel value. The vertex stage is the shared fullscreen quad.
+//
+// Bindings (must match the pipeline layout in WebGPURuntime.initPipelines):
+//   @binding(0) uniform: params = (radius, texelStepX, texelStepY, _)
+//     radius is integer pixels; texelStep* is 1/dim in UV units.
+//   @binding(1) input r8unorm texture (sampled)
+//   @binding(2) linear sampler with clamp-to-edge
+export const MASK_BLUR_FRAGMENT = /* wgsl */ `
+struct MaskBlurUniforms {
+  // x: radius (px, integer), y: texelStepX (uv), z: texelStepY (uv), w: unused
+  params: vec4f,
+};
+
+@group(0) @binding(0) var<uniform> u: MaskBlurUniforms;
+@group(0) @binding(1) var inputTex: texture_2d<f32>;
+@group(0) @binding(2) var inputSampler: sampler;
+
+@fragment
+fn fs_mask_blur_h(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let r = i32(u.params.x);
+  let step = u.params.y;
+  var sum = 0.0;
+  var count = 0.0;
+  for (var i = -r; i <= r; i = i + 1) {
+    let s = vec2f(uv.x + f32(i) * step, uv.y);
+    sum = sum + textureSampleLevel(inputTex, inputSampler, s, 0.0).r;
+    count = count + 1.0;
+  }
+  return vec4f(sum / count, 0.0, 0.0, 0.0);
+}
+
+@fragment
+fn fs_mask_blur_v(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let r = i32(u.params.x);
+  let step = u.params.z;
+  var sum = 0.0;
+  var count = 0.0;
+  for (var i = -r; i <= r; i = i + 1) {
+    let s = vec2f(uv.x, uv.y + f32(i) * step);
+    sum = sum + textureSampleLevel(inputTex, inputSampler, s, 0.0).r;
+    count = count + 1.0;
+  }
+  return vec4f(sum / count, 0.0, 0.0, 0.0);
+}
+
+// ─── Separable morphological dilate (expand) and erode (contract) ────────
+//
+// Per-pixel max (dilate) or min (erode) over a (2r+1)-tap line along the
+// pass axis. Done as two passes (H then V) for an O(r) kernel rather than
+// O(r²) full-rectangle structuring element. Uses textureLoad with explicit
+// integer coords (clamped to texture bounds) because linear filtering is
+// not meaningful for non-linear reductions like max/min — the box-blur
+// sampler trick used by feather does not apply here.
+//
+// The inputSampler binding is declared by the shared module above but
+// is unused in these entry points; the pipeline layout requires it so we
+// still provide a sampler at bind time.
+
+fn loadPixel(coord: vec2i, dims: vec2i) -> f32 {
+  let c = clamp(coord, vec2i(0, 0), dims - vec2i(1, 1));
+  return textureLoad(inputTex, c, 0).r;
+}
+
+@fragment
+fn fs_mask_dilate_h(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let r = i32(u.params.x);
+  let dims = vec2i(textureDimensions(inputTex));
+  let center = vec2i(
+    i32(floor(uv.x * f32(dims.x))),
+    i32(floor(uv.y * f32(dims.y)))
+  );
+  var m = 0.0;
+  for (var i = -r; i <= r; i = i + 1) {
+    m = max(m, loadPixel(center + vec2i(i, 0), dims));
+  }
+  return vec4f(m, 0.0, 0.0, 0.0);
+}
+
+@fragment
+fn fs_mask_dilate_v(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let r = i32(u.params.x);
+  let dims = vec2i(textureDimensions(inputTex));
+  let center = vec2i(
+    i32(floor(uv.x * f32(dims.x))),
+    i32(floor(uv.y * f32(dims.y)))
+  );
+  var m = 0.0;
+  for (var i = -r; i <= r; i = i + 1) {
+    m = max(m, loadPixel(center + vec2i(0, i), dims));
+  }
+  return vec4f(m, 0.0, 0.0, 0.0);
+}
+
+@fragment
+fn fs_mask_erode_h(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let r = i32(u.params.x);
+  let dims = vec2i(textureDimensions(inputTex));
+  let center = vec2i(
+    i32(floor(uv.x * f32(dims.x))),
+    i32(floor(uv.y * f32(dims.y)))
+  );
+  var m = 1.0;
+  for (var i = -r; i <= r; i = i + 1) {
+    m = min(m, loadPixel(center + vec2i(i, 0), dims));
+  }
+  return vec4f(m, 0.0, 0.0, 0.0);
+}
+
+@fragment
+fn fs_mask_erode_v(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let r = i32(u.params.x);
+  let dims = vec2i(textureDimensions(inputTex));
+  let center = vec2i(
+    i32(floor(uv.x * f32(dims.x))),
+    i32(floor(uv.y * f32(dims.y)))
+  );
+  var m = 1.0;
+  for (var i = -r; i <= r; i = i + 1) {
+    m = min(m, loadPixel(center + vec2i(0, i), dims));
+  }
+  return vec4f(m, 0.0, 0.0, 0.0);
 }
 `;
