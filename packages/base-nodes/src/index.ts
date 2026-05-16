@@ -296,6 +296,7 @@ export {
   FitNode,
   RotateNode,
   FlipNode,
+  ChannelsNode,
   TextToImageNode,
   ImageToImageNode,
   ImageEditorNode,

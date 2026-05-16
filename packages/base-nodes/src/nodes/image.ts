@@ -1667,6 +1667,68 @@ export class RotateAndFlipNode extends TransformImageNode {
   }
 }
 
+export class ChannelsNode extends TransformImageNode {
+  static readonly nodeType = "nodetool.image.Channels";
+  static readonly title = "Channels";
+  static readonly description =
+    "Extract a single channel from an image as a grayscale preview.\n    image, channel, red, green, blue, alpha, luminance";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to extract a channel from."
+  })
+  declare image: any;
+
+  @prop({
+    type: "str",
+    default: "luminance",
+    title: "Channel",
+    description: "Which channel to extract.",
+    values: ["red", "green", "blue", "alpha", "luminance"]
+  })
+  declare channel: any;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const channel = String(this.channel ?? "luminance");
+
+    const output = (await transformImage(
+      image,
+      (instance) => {
+        if (channel === "luminance") {
+          return instance.grayscale();
+        }
+        if (
+          channel === "red" ||
+          channel === "green" ||
+          channel === "blue" ||
+          channel === "alpha"
+        ) {
+          return instance.ensureAlpha().extractChannel(channel);
+        }
+        throw new Error(`Unsupported channel: ${channel}`);
+      },
+      context
+    )) as Record<string, unknown>;
+    return { output };
+  }
+}
+
 export class BlurNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.Blur";
   static readonly title = "Blur";
@@ -1729,14 +1791,12 @@ export class BlurNode extends TransformImageNode {
       };
     }
 
-    // Sharp convolve kernels must be odd-sized.
     const odd = (n: number): number => (n % 2 === 0 ? n + 1 : n);
 
     const output = (await transformImage(
       image,
       (instance) => {
         if (blurType === "gaussian") {
-          // sigma maps size 1..100 → 0.3..50.
           const sigma = Math.max(0.3, size * 0.5);
           return instance.blur(sigma);
         }
@@ -1745,7 +1805,6 @@ export class BlurNode extends TransformImageNode {
           const kernel = new Array(k).fill(1 / k);
           return instance.convolve({ width: k, height: 1, kernel });
         }
-        // box
         const k = odd(Math.max(1, Math.min(31, size)));
         const kernel = new Array(k * k).fill(1 / (k * k));
         return instance.convolve({ width: k, height: k, kernel });
@@ -1773,6 +1832,7 @@ export const IMAGE_NODES = [
   RotateNode,
   FlipNode,
   RotateAndFlipNode,
+  ChannelsNode,
   BlurNode,
   TextToImageNode,
   ImageToImageNode,
