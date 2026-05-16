@@ -298,6 +298,7 @@ export {
   TextToImageNode,
   ImageToImageNode,
   ImageEditorNode,
+  CompositorNode,
   IMAGE_NODES
 } from "./nodes/image.js";
 export {

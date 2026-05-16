@@ -5,6 +5,7 @@ import {
 } from "./bespokeRegistry";
 import BlurBody from "./BlurBody";
 import ChannelsBody from "./ChannelsBody";
+import CompositorBody from "./CompositorBody";
 import CropBody from "./CropBody";
 import LevelsBody from "./LevelsBody";
 import MasksExtractorBody from "./MasksExtractorBody";
@@ -22,8 +23,8 @@ describe("bespokeRegistry", () => {
   });
 
   it("does not match utility / generic nodes", () => {
-    expect(isBespokeNode(meta("nodetool.image.Compositor"))).toBe(false);
-    expect(getBespokeBody(meta("nodetool.image.Compositor"))).toBeUndefined();
+    expect(isBespokeNode(meta("nodetool.image.Painter"))).toBe(false);
+    expect(getBespokeBody(meta("nodetool.image.Painter"))).toBeUndefined();
   });
 
   it("maps nodetool.image.Blur → BlurBody", () => {
@@ -60,6 +61,15 @@ describe("bespokeRegistry", () => {
     expect(isBespokeNode(m)).toBe(true);
     expect(getBespokeBody(m)).toBe(LevelsBody);
     expect(BESPOKE_BODY_REGISTRY["nodetool.image.Levels"]).toBe(LevelsBody);
+  });
+
+  it("maps nodetool.image.Compositor → CompositorBody", () => {
+    const m = meta("nodetool.image.Compositor");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(CompositorBody);
+    expect(BESPOKE_BODY_REGISTRY["nodetool.image.Compositor"]).toBe(
+      CompositorBody
+    );
   });
 
   it("maps nodetool.image.Crop → CropBody", () => {

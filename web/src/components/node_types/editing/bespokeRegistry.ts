@@ -15,6 +15,7 @@ import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import BlurBody, { BLUR_NODE_TYPE } from "./BlurBody";
 import ChannelsBody, { CHANNELS_NODE_TYPE } from "./ChannelsBody";
+import CompositorBody, { COMPOSITOR_NODE_TYPE } from "./CompositorBody";
 import CropBody, { CROP_NODE_TYPE } from "./CropBody";
 import LevelsBody, { LEVELS_NODE_TYPE } from "./LevelsBody";
 import MasksExtractorBody, {
@@ -42,6 +43,7 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
 > = {
   [BLUR_NODE_TYPE]: BlurBody,
   [CHANNELS_NODE_TYPE]: ChannelsBody,
+  [COMPOSITOR_NODE_TYPE]: CompositorBody,
   [CROP_NODE_TYPE]: CropBody,
   [LEVELS_NODE_TYPE]: LevelsBody,
   [RESIZE_NODE_TYPE]: ResizeBody,

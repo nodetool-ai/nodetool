@@ -1944,6 +1944,162 @@ export class LevelsNode extends TransformImageNode {
   }
 }
 
+const COMPOSITOR_BLEND_MODES = new Set<string>([
+  "over",
+  "multiply",
+  "screen",
+  "overlay",
+  "darken",
+  "lighten",
+  "color-dodge",
+  "color-burn",
+  "hard-light",
+  "soft-light",
+  "difference",
+  "exclusion",
+  "add"
+]);
+
+type CompositorLayerState = {
+  opacity: number;
+  blend_mode: string;
+  visible: boolean;
+};
+
+function compositorLayerState(raw: unknown): CompositorLayerState {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const opacity =
+    typeof r.opacity === "number"
+      ? Math.max(0, Math.min(1, r.opacity))
+      : 1;
+  const blend =
+    typeof r.blend_mode === "string" &&
+    COMPOSITOR_BLEND_MODES.has(r.blend_mode)
+      ? r.blend_mode
+      : "over";
+  const visible = r.visible === undefined ? true : !!r.visible;
+  return { opacity, blend_mode: blend, visible };
+}
+
+/**
+ * Compositor — stacks multiple image layers with per-layer opacity and
+ * blend mode. Dynamic image inputs are named `image_0`, `image_1`, ...;
+ * the lowest-index input is the base (canvas), subsequent layers are
+ * composited on top in index order at (0, 0). Per-layer state lives in
+ * the `layers` list, indexed positionally against the sorted image
+ * inputs. Hidden / zero-opacity layers are skipped.
+ */
+export class CompositorNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.Compositor";
+  static readonly title = "Compositor";
+  static readonly description =
+    "Composite multiple image layers with per-layer opacity and blend mode.\n    image, compositor, blend, layers, mask";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly isDynamic = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
+
+  @prop({
+    type: "list",
+    default: [],
+    title: "Layers",
+    description:
+      "Per-layer state (positional): { opacity, blend_mode, visible }."
+  })
+  declare layers: unknown;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    type LayerInput = {
+      index: number;
+      image: ImageRefLike;
+      state: CompositorLayerState;
+    };
+    const layerStates = Array.isArray(this.layers) ? this.layers : [];
+
+    // Collect dynamic image_N inputs, sorted ascending by N. Position in
+    // that sorted list is the index into `layers` for per-layer state.
+    const collected: { index: number; image: ImageRefLike }[] = [];
+    for (const [key, value] of this.dynamicProps) {
+      const m = /^image_(\d+)$/.exec(key);
+      if (!m || !value || typeof value !== "object") continue;
+      collected.push({ index: Number(m[1]), image: value as ImageRefLike });
+    }
+    collected.sort((a, b) => a.index - b.index);
+
+    const inputs: LayerInput[] = collected.map((c, i) => ({
+      ...c,
+      state: compositorLayerState(layerStates[i])
+    }));
+
+    const visible = inputs.filter(
+      (l) => l.state.visible && l.state.opacity > 0
+    );
+
+    if (visible.length === 0) {
+      return {
+        output: imageRef(new Uint8Array(), {
+          uri: "",
+          width: undefined,
+          height: undefined
+        })
+      };
+    }
+
+    // Build the canvas from the lowest-index visible layer. Apply its
+    // opacity by scaling the alpha channel via `linear`.
+    const buildScaledLayer = async (
+      img: ImageRefLike,
+      opacity: number
+    ): Promise<Buffer> => {
+      const bytes = await imageBytesAsync(img, context);
+      let pipeline = sharp(bytes, { failOn: "none" }).ensureAlpha();
+      if (opacity < 1) {
+        pipeline = pipeline.linear([1, 1, 1, opacity], [0, 0, 0, 0]);
+      }
+      return pipeline.png().toBuffer();
+    };
+
+    let canvas = await buildScaledLayer(
+      visible[0].image,
+      visible[0].state.opacity
+    );
+
+    for (let i = 1; i < visible.length; i++) {
+      const layer = visible[i];
+      const layerBuf = await buildScaledLayer(layer.image, layer.state.opacity);
+      try {
+        canvas = await sharp(canvas, { failOn: "none" })
+          .composite([
+            {
+              input: layerBuf,
+              blend: layer.state.blend_mode as never,
+              top: 0,
+              left: 0
+            }
+          ])
+          .png()
+          .toBuffer();
+      } catch {
+        // Bad input or unsupported blend → fall through, keep prior canvas.
+      }
+    }
+
+    const meta = await metadataFor(new Uint8Array(canvas));
+    return {
+      output: imageRef(new Uint8Array(canvas), {
+        uri: "",
+        mimeType: "image/png",
+        width: meta.width,
+        height: meta.height
+      })
+    };
+  }
+}
+
 export const IMAGE_NODES = [
   LoadImageFileNode,
   LoadImageFolderNode,
@@ -1964,5 +2120,6 @@ export const IMAGE_NODES = [
   LevelsNode,
   TextToImageNode,
   ImageToImageNode,
-  ImageEditorNode
+  ImageEditorNode,
+  CompositorNode
 ] as const;
