@@ -5,7 +5,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
 import { ThemeProvider } from "@emotion/react";
-import mockTheme from "../../../__mocks__/themeMock";
+import mockTheme from "../../../../__mocks__/themeMock";
 
 import {
   sortImageKeys,
