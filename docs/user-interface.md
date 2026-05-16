@@ -8,7 +8,101 @@ Tour of the interface — Dashboard, Canvas, Global Chat, Mini-Apps, Assets. Sam
 
 > New here? Start with [Getting Started](getting-started.md), then come back.
 
-> Main views indexed in the [App Views Gallery](app-views.md).
+---
+
+## Main Views
+
+The primary destinations across the web app and desktop. Each entry links to its detailed docs page.
+
+### Dashboard — `/dashboard`
+
+The home screen. Search, recent workflows, templates, and quick chat.
+
+![Dashboard Overview](assets/screenshots/dashboard-overview.png)
+
+Docs: [Getting Started](getting-started.md)
+
+### Workflow Editor — `/editor/:workflow`
+
+The main visual editor. Build workflows by connecting nodes on an infinite canvas, with panels on every edge: left drawer, right inspector, bottom diagnostics, floating toolbar, node menu, and tabs.
+
+![Workflow Editor](assets/screenshots/editor-empty-state.png)
+
+Docs: [Workflow Editor](workflow-editor.md) · [Editor Panels](editor-panels.md)
+
+### Chain Editor — `/chain/:workflowId?`
+
+A linear, card-based alternative to the node graph. Better for simple pipelines and guided authoring.
+
+![Chain Editor](assets/screenshots/web-chain-editor-chain.png)
+
+Docs: [Chain Editor](chain-editor.md)
+
+### Global Chat — `/chat/:thread_id?`
+
+Conversational AI with multi-thread history, agent mode, tools, and workflow integration.
+
+![Global Chat](assets/screenshots/global-chat-interface.png)
+
+Docs: [Global Chat](global-chat.md)
+
+### Mini-Apps — `/apps/:workflowId?`
+
+Run saved workflows through simplified form UIs. Mini-apps can also be launched as standalone frameless windows from the desktop tray.
+
+![Mini-App Page](assets/screenshots/mini-app-page.png)
+
+Docs: [Mini-Apps](mobile-app.md#mini-apps) · [Electron Mini-App Window](electron-views.md#mini-app-window)
+
+### Asset Explorer — `/assets`
+
+Browse, search, organize, and tag every file used in your workflows. Opens the full-featured Image Editor for image assets.
+
+![Asset Explorer](assets/screenshots/asset-explorer.png)
+
+Docs: [Asset Management](asset-management.md) · [Image Editor](image-editor.md)
+
+### Collections — `/collections`
+
+Group related documents into indexable collections for RAG workflows.
+
+![Collections Explorer](assets/screenshots/collections-explorer.png)
+
+Docs: [Collections](collections.md) · [Indexing](indexing.md)
+
+### Templates Gallery — `/templates`
+
+Ready-to-use example workflows organized by tag and use case.
+
+![Templates Grid](assets/screenshots/templates-grid.png)
+
+Docs: [Templates Gallery](templates-gallery.md)
+
+### Models Manager — `/models`
+
+Find, install, filter, and manage local and cloud AI models.
+
+![Models Manager](assets/screenshots/models-list.png)
+
+Docs: [Models Manager](models-manager.md)
+
+### Settings — Dialog
+
+Central configuration surface: general preferences, provider API keys, folders, secrets, remote, and about.
+
+![Settings Dialog](assets/screenshots/settings-dialog.png)
+
+Docs: [Configuration](configuration.md) · [Models & Providers](models-and-providers.md)
+
+### Mobile
+
+Touch-optimized Dashboard, Chat, and Graph Editor. See [Mobile App](mobile-app.md) for the full set.
+
+![Mobile Dashboard](assets/screenshots/dashboard-mobile.png)
+
+### Desktop (Electron)
+
+The desktop app shares all the views above, plus an Install Wizard, System Tray, and frameless mini-app windows. See [Desktop App Views](electron-views.md).
 
 ---
 
@@ -177,24 +271,6 @@ Launch mini-apps in dedicated windows from the system tray:
 
 ---
 
-## Mini-Apps
-
-Turn a workflow into a simple form-based app for sharing.
-
-![Mini-App Interface](assets/screenshots/screenshot-placeholder.svg)
-
-### Running a Mini-App
-
-- **Inside the app** — open the Mini-App from the Templates panel or from `/apps/:workflowId`.
-- **Standalone window (desktop)** — launch a mini-app from the tray; it opens in its own window.
-- **Mobile** — see [Mobile App → Mini Apps](mobile-app.md#mini-apps).
-
-See the full [Electron Views](electron-views.md#mini-app-window) docs for the desktop runner.
-
-![Mini-App Results](assets/screenshots/screenshot-placeholder.svg)
-
----
-
 ## Assets
 
 The Asset Explorer manages all your files.
@@ -334,7 +410,6 @@ Just start typing what you want!
 
 ## Next Steps
 
-- **[App Views Gallery](app-views.md)** – Visual index of the main screens
 - **[Workflow Editor deep dive](workflow-editor.md)** – Master the canvas
 - **[Editor Panels](editor-panels.md)** – Left, right, bottom, and floating panels
 - **[Tips & Tricks](tips-and-tricks.md)** – Power user secrets
