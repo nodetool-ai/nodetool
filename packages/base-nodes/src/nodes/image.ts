@@ -5,6 +5,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
+import { nodeImageRuntime } from "../image-runtime/node.js";
 
 type ImageRefLike = {
   uri?: string;
@@ -1064,16 +1065,47 @@ export class ResizeNode extends TransformImageNode {
     const image = (this.image ?? {}) as ImageRefLike;
     const width = Number(this.width ?? image.width ?? 0) || null;
     const height = Number(this.height ?? image.height ?? 0) || null;
-    const output = (await transformImage(image, (instance) =>
-      instance.resize(width ?? undefined, height ?? undefined)
-    , context)) as Record<string, unknown>;
-    return {
-      output: {
-        ...output,
-        width: output.width ?? width,
-        height: output.height ?? height
-      }
-    };
+    const bytes = await imageBytesAsync(image, context);
+    if (bytes.length === 0) {
+      return {
+        output: imageRef(bytes, {
+          uri: image.uri ?? "",
+          width: image.width ?? undefined,
+          height: image.height ?? undefined
+        })
+      };
+    }
+    try {
+      const result = await nodeImageRuntime.resize(
+        {
+          data: bytes,
+          width: image.width,
+          height: image.height,
+          mimeType: image.mimeType
+        },
+        {
+          width: width ?? undefined,
+          height: height ?? undefined
+        }
+      );
+      return {
+        output: imageRef(result.data, {
+          uri: image.uri ?? "",
+          mimeType: result.mimeType ?? inferImageMime(image.uri, result.data),
+          width: result.width ?? width ?? undefined,
+          height: result.height ?? height ?? undefined
+        })
+      };
+    } catch {
+      // Match transformImage's failure mode: return input bytes rewrapped.
+      return {
+        output: imageRef(bytes, {
+          uri: image.uri ?? "",
+          width: image.width ?? width ?? undefined,
+          height: image.height ?? height ?? undefined
+        })
+      };
+    }
   }
 }
 

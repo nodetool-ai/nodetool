@@ -12,7 +12,7 @@ export default defineConfig({
     }
   },
   test: {
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.ts", "src/**/__tests__/**/*.test.ts"],
     exclude: ["tests/e2e/**/*.test.ts"]
   }
 });

@@ -4,7 +4,7 @@ export default {
   ...baseConfig,
   test: {
     ...baseConfig.test,
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.ts", "src/**/__tests__/**/*.test.ts"],
     exclude: []
   }
 };
