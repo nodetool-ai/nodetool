@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useEffect } from "react";
 import { sketchToolSettingsContainerSx, SKETCH_FONT } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
@@ -12,14 +12,11 @@ import {
   Typography
 } from "@mui/material";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-import InvertColorsIcon from "@mui/icons-material/InvertColors";
 import DeselectIcon from "@mui/icons-material/Deselect";
 import RestoreIcon from "@mui/icons-material/Restore";
 import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ContentCutIcon from "@mui/icons-material/ContentCut";
-import NoteAddIcon from "@mui/icons-material/NoteAdd";
-import TransformIcon from "@mui/icons-material/Transform";
 import HighlightAltIcon from "@mui/icons-material/HighlightAlt";
 import CropIcon from "@mui/icons-material/Crop";
 import {
@@ -29,7 +26,6 @@ import {
   EraserSettings,
   FillSettings,
   GradientSettings,
-  type LayerType,
   PencilSettings,
   SelectSettings,
   SegmentSettings,
@@ -260,11 +256,14 @@ export interface SketchCanvasContextMenuProps {
   onDeselectSelection: () => void;
   onReselectSelection: () => void;
   onFillSelectionWithForeground: () => void;
-  onNewLayer: (type?: Extract<LayerType, "raster" | "mask">) => void;
+  /**
+   * Paint a colored ring of pixels OUTSIDE the selection with the
+   * foreground color. Width comes from `selectSettings.borderWidth`.
+   * Pairs with Fill for a filled shape with an outer outline.
+   */
+  onStrokeSelectionWithForeground: () => void;
   onLayerViaCopy: () => void;
   onLayerViaCut: () => void;
-  onFreeTransform: () => void;
-  onTransformSelection?: () => void;
   onAdjustBrightnessChange?: (value: number) => void;
   onAdjustContrastChange?: (value: number) => void;
   onAdjustSaturationChange?: (value: number) => void;
@@ -330,11 +329,9 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   onDeselectSelection,
   onReselectSelection,
   onFillSelectionWithForeground,
-  onNewLayer,
+  onStrokeSelectionWithForeground,
   onLayerViaCopy,
   onLayerViaCut,
-  onFreeTransform,
-  onTransformSelection,
   onAdjustBrightnessChange,
   onAdjustContrastChange,
   onAdjustSaturationChange,
@@ -373,12 +370,8 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
     const actionId = getToolShortcutActionId(tool, selectSettings.mode);
     return actionId ? displayCombo(actionId) : "";
   };
-  const [newLayerMenuAnchor, setNewLayerMenuAnchor] =
-    useState<HTMLButtonElement | null>(null);
-
   useEffect(() => {
     if (!open) {
-      setNewLayerMenuAnchor(null);
       return undefined;
     }
 
@@ -648,12 +641,6 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 <SectionLabel>Selection</SectionLabel>
                 <Stack spacing={0.3}>
                   <SelectionMenuItem
-                    icon={<InvertColorsIcon sx={{ fontSize: 16 }} />}
-                    label="Select Inverse"
-                    shortcut={displayCombo("invert-selection")}
-                    onClick={() => { onInvertSelection(); onClose(); }}
-                  />
-                  <SelectionMenuItem
                     icon={<DeselectIcon sx={{ fontSize: 16 }} />}
                     label="Deselect"
                     shortcut={displayCombo("deselect")}
@@ -687,38 +674,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     disabled={!hasActiveSelection}
                     onClick={() => { onLayerViaCut(); onClose(); }}
                   />
-                  <SelectionMenuItem
-                    icon={<NoteAddIcon sx={{ fontSize: 16 }} />}
-                    label="New Layer..."
-                    endAdornment={
-                      <Typography
-                        aria-hidden="true"
-                        sx={{
-                          fontSize: SKETCH_FONT.md,
-                          fontWeight: 700,
-                          color: "text.secondary"
-                        }}
-                      >
-                        ›
-                      </Typography>
-                    }
-                    onClick={(event) => {
-                      setNewLayerMenuAnchor(event.currentTarget);
-                    }}
-                  />
                   <Divider sx={{ my: 0.5, borderColor: surfaceSoft }} />
-                  <SelectionMenuItem
-                    icon={<TransformIcon sx={{ fontSize: 16 }} />}
-                    label="Free Transform"
-                    shortcut={displayCombo("free-transform")}
-                    onClick={() => { onFreeTransform(); onClose(); }}
-                  />
-                  <SelectionMenuItem
-                    icon={<HighlightAltIcon sx={{ fontSize: 16 }} />}
-                    label="Transform Selection"
-                    disabled={!hasActiveSelection || !onTransformSelection}
-                    onClick={() => { onTransformSelection?.(); onClose(); }}
-                  />
                   <SelectionMenuItem
                     icon={<FormatColorFillIcon sx={{ fontSize: 16 }} />}
                     label="Fill"
@@ -726,10 +682,10 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     onClick={() => { onFillSelectionWithForeground(); onClose(); }}
                   />
                   <SelectionMenuItem
-                    icon={<InvertColorsIcon sx={{ fontSize: 16, transform: "scaleX(-1)" }} />}
+                    icon={<HighlightAltIcon sx={{ fontSize: 16 }} />}
                     label="Stroke"
                     disabled={!hasActiveSelection}
-                    onClick={() => { onConvertSelectionToBorder(); onClose(); }}
+                    onClick={() => { onStrokeSelectionWithForeground(); onClose(); }}
                   />
                 </Stack>
               </Box>
@@ -791,37 +747,6 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           </Box>
         </Box>
       </Box>
-      </Popover>
-      <Popover
-        open={Boolean(newLayerMenuAnchor)}
-        anchorEl={newLayerMenuAnchor}
-        onClose={() => setNewLayerMenuAnchor(null)}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "left" }}
-        disableRestoreFocus
-      >
-        <Box sx={{ minWidth: 180, p: 0.8 }}>
-          <Stack spacing={0.3}>
-            <SelectionMenuItem
-              icon={<NoteAddIcon sx={{ fontSize: 16 }} />}
-              label="Raster Layer"
-              onClick={() => {
-                setNewLayerMenuAnchor(null);
-                onNewLayer("raster");
-                onClose();
-              }}
-            />
-            <SelectionMenuItem
-              icon={<HighlightAltIcon sx={{ fontSize: 16 }} />}
-              label="Mask Layer"
-              onClick={() => {
-                setNewLayerMenuAnchor(null);
-                onNewLayer("mask");
-                onClose();
-              }}
-            />
-          </Stack>
-        </Box>
       </Popover>
     </>
   );

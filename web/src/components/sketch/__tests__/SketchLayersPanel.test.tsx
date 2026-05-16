@@ -61,6 +61,7 @@ function buildPanelProps({
     onClearLayer: jest.fn(),
     onFlipHorizontal: jest.fn(),
     onFlipVertical: jest.fn(),
+    onRotate180: jest.fn(),
     onMergeDown: jest.fn(),
     onFlattenVisible: jest.fn(),
     onTrimLayerToBounds: jest.fn(),
@@ -154,10 +155,10 @@ describe("SketchLayersPanel merge selected affordances", () => {
       </ThemeProvider>
     );
 
+    // Merge actions live in the Merge submenu in the bottom toolbar.
+    await user.click(screen.getByRole("button", { name: "Merge menu" }));
     await user.click(
-      screen.getByRole("button", {
-        name: "Merge Selected Layers"
-      })
+      screen.getByRole("menuitem", { name: "Merge Selected Layers" })
     );
 
     expect(props.onMergeSelectedLayers).toHaveBeenCalledTimes(1);

@@ -33,6 +33,7 @@ export {
   reconcileLayerToDocumentSpace,
   cropLayers,
   flipLayer,
+  rotateLayer180,
   nudgeLayer,
   applyAdjustments,
   invertLayerColors

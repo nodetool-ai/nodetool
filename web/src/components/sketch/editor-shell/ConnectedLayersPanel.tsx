@@ -14,6 +14,7 @@ export interface ConnectedLayersPanelProps {
   onClearLayer: () => void;
   onFlipHorizontal: () => void;
   onFlipVertical: () => void;
+  onRotate180: () => void;
   onMergeDown: () => void;
   onFlattenVisible: () => void;
   onTrimLayerToBounds: () => void;
@@ -38,7 +39,10 @@ export interface ConnectedLayersPanelProps {
   onGroupSelectedLayers: () => void;
   onMergeSelectedLayers: () => void;
   onDeleteSelectedLayers: () => void;
-  onLoadLayerAsSelection: (layerId: string) => void;
+  onLoadLayerAsSelection: (
+    layerId: string,
+    mode?: "replace" | "add"
+  ) => void;
 }
 
 export const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
@@ -95,6 +99,7 @@ export const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
       onClearLayer={props.onClearLayer}
       onFlipHorizontal={props.onFlipHorizontal}
       onFlipVertical={props.onFlipVertical}
+      onRotate180={props.onRotate180}
       onMergeDown={props.onMergeDown}
       onFlattenVisible={props.onFlattenVisible}
       onTrimLayerToBounds={props.onTrimLayerToBounds}

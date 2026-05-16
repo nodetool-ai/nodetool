@@ -71,6 +71,7 @@ export interface SketchCanvasRef {
     height: number
   ) => void;
   flipLayer: (layerId: string, direction: "horizontal" | "vertical") => void;
+  rotateLayer180: (layerId: string) => void;
   mergeLayerDown: (
     upperLayerId: string,
     lowerLayerId: string

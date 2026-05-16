@@ -114,6 +114,10 @@ export function useCanvasImperativeHandle({
         runtime.flipLayer(layerId, direction);
         redraw();
       },
+      rotateLayer180: (layerId: string) => {
+        runtime.rotateLayer180(layerId);
+        redraw();
+      },
       mergeLayerDown: (upperLayerId: string, lowerLayerId: string) => {
         const result = runtime.mergeLayerDown(upperLayerId, lowerLayerId, doc);
         redraw();

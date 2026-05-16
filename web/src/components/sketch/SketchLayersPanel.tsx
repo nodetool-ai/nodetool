@@ -39,20 +39,20 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import GradientIcon from "@mui/icons-material/Gradient";
 import CallMergeIcon from "@mui/icons-material/CallMerge";
-import LayersIcon from "@mui/icons-material/Layers";
 import LockIcon from "@mui/icons-material/Lock";
-import FitScreenIcon from "@mui/icons-material/FitScreen";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import LayersClearIcon from "@mui/icons-material/LayersClear";
-import FlipCameraAndroidIcon from "@mui/icons-material/FlipCameraAndroid";
+import TransformIcon from "@mui/icons-material/Transform";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import {
   Layer,
   BlendMode,
   coerceBlendMode,
   summarizeLayerImageReference,
   buildLayersPanelRows,
-  getDescendantIds
+  getDescendantIds,
+  findMergeDownTargetIndex
 } from "./types";
 import LayerItem from "./LayerItem";
 import type { DropPosition } from "./LayerItem";
@@ -163,10 +163,13 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(0.75),
-      /* Right only; no vertical padding — thumbnails dictate row height. */
+      /* No vertical padding — thumbnails dictate row height. Left/right are 0
+         so the thumbnail and visibility cell sit flush with the row edges
+         (the row's background should not extend past them). */
       paddingTop: 0,
       paddingBottom: 0,
-      paddingRight: theme.spacing(0.5),
+      paddingLeft: 0,
+      paddingRight: 0,
       borderRadius: SKETCH_SIZE.borderRadius,
       cursor: "pointer",
       fontSize: SKETCH_FONT.md,
@@ -351,6 +354,7 @@ export interface SketchLayersPanelProps {
   onClearLayer: () => void;
   onFlipHorizontal: () => void;
   onFlipVertical: () => void;
+  onRotate180: () => void;
   onMergeDown: () => void;
   onFlattenVisible: () => void;
   onTrimLayerToBounds: () => void;
@@ -363,7 +367,10 @@ export interface SketchLayersPanelProps {
   onGroupSelectedLayers: () => void;
   onMergeSelectedLayers: () => void;
   onDeleteSelectedLayers: () => void;
-  onLoadLayerAsSelection?: (layerId: string) => void;
+  onLoadLayerAsSelection?: (
+    layerId: string,
+    mode?: "replace" | "add"
+  ) => void;
 }
 
 const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
@@ -394,6 +401,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onClearLayer,
   onFlipHorizontal,
   onFlipVertical,
+  onRotate180,
   onMergeDown,
   onFlattenVisible,
   onTrimLayerToBounds,
@@ -431,6 +439,13 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   // (draft → stale → generated → failed) without manual prop drilling.
   const layerBindings = useSketchSessionStore((s) => s.bindings);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+
+  // Anchor refs for the Transform / Merge submenu buttons in the bottom toolbar.
+  const [transformMenuAnchor, setTransformMenuAnchor] =
+    useState<HTMLElement | null>(null);
+  const [mergeMenuAnchor, setMergeMenuAnchor] = useState<HTMLElement | null>(
+    null
+  );
 
   // ─── Direct-generation layers (text-to-image, image-to-image) ─────
   const upsertBinding = useSketchSessionStore((s) => s.upsertBinding);
@@ -805,7 +820,14 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
   const activeLayer = layers.find((l) => l.id === activeLayerId);
   const activeLayerFlatIndex = activeLayer ? layers.indexOf(activeLayer) : -1;
-  const canMergeDown = activeLayerFlatIndex > 0;
+  // Merge Down only counts when the preceding entry is a same-parent raster
+  // sibling — never the parent group, never a layer in a different group, never
+  // a locked layer. Without this, merging "down" from the only raster left
+  // would silently bake into the parent group's transform and the raster would
+  // disappear from the UI.
+  const canMergeDown =
+    activeLayer != null &&
+    findMergeDownTargetIndex(layers, activeLayer.id) !== -1;
   const pixelLayerCanvasActionsDisabled =
     !activeLayer || activeLayer.locked || activeLayer.type === "group";
 
@@ -1086,117 +1108,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             </IconButton>
           </Tooltip>
         </Box>
-        <Box
-          className="sketch-layers-panel__layer-ops-row"
-          sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            gap: 0.25,
-            rowGap: 0.25,
-            "& .MuiIconButton-root": {
-              width: 30,
-              height: 30,
-              padding: theme.spacing(0.25)
-            }
-          }}
-        >
-          <Tooltip title="Duplicate Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <IconButton
-              aria-label="Duplicate Layer"
-              size="small"
-              onClick={() => onDuplicateLayer(activeLayerId)}
-            >
-              <ContentCopyIcon sx={{ fontSize: "1.125rem" }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title={
-              hasMultiLayerSelection ? "Remove selected layers" : "Remove Layer"
-            }
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
-          >
-            <span>
-              <IconButton
-                aria-label="Remove active layer"
-                size="small"
-                onClick={() =>
-                  hasMultiLayerSelection
-                    ? onDeleteSelectedLayers()
-                    : onRemoveLayer(activeLayerId)
-                }
-                disabled={!canDeleteToolbarLayer}
-              >
-                <DeleteIcon sx={{ fontSize: "1.125rem" }} />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title="Flatten Visible" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <IconButton aria-label="Flatten Visible" size="small" onClick={onFlattenVisible}>
-              <LayersIcon sx={{ fontSize: "1.125rem" }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title={
-              maskLayerId === activeLayerId
-                ? "Remove Mask Designation"
-                : "Set as Mask Layer"
-            }
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
-          >
-            <IconButton
-              aria-label={maskLayerId === activeLayerId ? "Remove Mask Designation" : "Set as Mask Layer"}
-              size="small"
-              onClick={() =>
-                onSetMaskLayer(
-                  maskLayerId === activeLayerId ? null : activeLayerId
-                )
-              }
-              color={maskLayerId === activeLayerId ? "warning" : "default"}
-            >
-              <GradientIcon sx={{ fontSize: "1.125rem" }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title={
-              layers.find((l) => l.id === activeLayerId)?.alphaLock
-                ? "Unlock Transparency"
-                : "Lock Transparency"
-            }
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
-          >
-            <IconButton
-              aria-label={layers.find((l) => l.id === activeLayerId)?.alphaLock ? "Unlock Transparency" : "Lock Transparency"}
-              size="small"
-              onClick={() => onToggleAlphaLock(activeLayerId)}
-              color={
-                layers.find((l) => l.id === activeLayerId)?.alphaLock
-                  ? "info"
-                  : "default"
-              }
-            >
-              <LockIcon sx={{ fontSize: "1.125rem" }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Trim Active Layer To Bounds" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <IconButton
-              aria-label="Trim Active Layer To Bounds"
-              size="small"
-              onClick={onTrimLayerToBounds}
-              disabled={
-                !activeLayer ||
-                activeLayer.locked ||
-                activeLayer.type === "group" ||
-                activeLayer.type === "mask"
-              }
-            >
-              <FitScreenIcon sx={{ fontSize: "1.125rem" }} />
-            </IconButton>
-          </Tooltip>
-        </Box>
       </Box>
 
       <Divider />
@@ -1262,60 +1173,141 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
       <Divider />
 
+      {/* Unified ops toolbar (below the layer list, close to the rows it acts on).
+          Grouped left → right: Lifecycle | Combine | Transform | Roles.
+          Sub-groups are separated by short vertical dividers for scannability. */}
       <Box
-        className="sketch-layers-panel__selection-actions"
+        className="sketch-layers-panel__layer-ops"
         sx={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
           flexWrap: "wrap",
-          gap: 0.5,
+          alignItems: "center",
+          gap: 0.25,
+          rowGap: 0.5,
           minHeight: 30,
-          py: 0.25
+          py: 0.25,
+          "& .MuiIconButton-root": {
+            width: 30,
+            height: 30,
+            padding: theme.spacing(0.25)
+          },
+          "& .sketch-layers-panel__ops-group": {
+            display: "flex",
+            alignItems: "center",
+            gap: 0.25
+          },
+          "& .sketch-layers-panel__ops-divider": {
+            height: 20,
+            mx: 0.25,
+            borderColor: theme.vars.palette.grey[600]
+          }
         }}
       >
-        <Box
-          className="sketch-layers-panel__selection-actions-start"
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 0.25,
-            minHeight: 30
-          }}
-        >
-          {selectedLayerIds.length >= 2 ? (
-            <>
-              <Tooltip title="Group selected layers (adjacent siblings, same parent)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                <IconButton aria-label="Group selected layers" size="small" onClick={onGroupSelectedLayers}>
-                  <CreateNewFolderIcon sx={{ fontSize: "1.125rem" }} />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Merge selected layers (contiguous siblings)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                <span>
-                  <IconButton
-                    size="small"
-                    aria-label="Merge Selected Layers"
-                    onClick={onMergeSelectedLayers}
-                    disabled={!canMergeSelectedLayers}
-                  >
-                    <CallMergeIcon sx={{ fontSize: "1.125rem" }} />
-                  </IconButton>
-                </span>
-              </Tooltip>
-            </>
-          ) : null}
+        {/* ── Lifecycle: Duplicate · Clear · Delete ── */}
+        <Box className="sketch-layers-panel__ops-group">
+          <Tooltip
+            title="Duplicate Layer"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
+            <IconButton
+              aria-label="Duplicate Layer"
+              size="small"
+              onClick={() => onDuplicateLayer(activeLayerId)}
+            >
+              <ContentCopyIcon sx={{ fontSize: "1.125rem" }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title="Clear Layer"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
+            <span>
+              <IconButton
+                aria-label="Clear Layer"
+                size="small"
+                onClick={onClearLayer}
+                disabled={pixelLayerCanvasActionsDisabled}
+              >
+                <LayersClearIcon sx={{ fontSize: "1.125rem" }} />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip
+            title={
+              hasMultiLayerSelection
+                ? "Remove selected layers"
+                : "Remove Layer"
+            }
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
+            <span>
+              <IconButton
+                aria-label="Remove active layer"
+                size="small"
+                onClick={() =>
+                  hasMultiLayerSelection
+                    ? onDeleteSelectedLayers()
+                    : onRemoveLayer(activeLayerId)
+                }
+                disabled={!canDeleteToolbarLayer}
+              >
+                <DeleteIcon sx={{ fontSize: "1.125rem" }} />
+              </IconButton>
+            </span>
+          </Tooltip>
         </Box>
-        <Box
-          className="sketch-layers-panel__selection-actions-end"
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 0.25,
-            minHeight: 30
-          }}
-        >
+
+        <Divider
+          orientation="vertical"
+          flexItem
+          className="sketch-layers-panel__ops-divider"
+        />
+
+        {/* ── Combine: Merge (menu) · Group selected · Ungroup ── */}
+        <Box className="sketch-layers-panel__ops-group">
+          <Tooltip
+            title="Merge…"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
+            <IconButton
+              aria-label="Merge menu"
+              aria-haspopup="menu"
+              size="small"
+              onClick={(e) => setMergeMenuAnchor(e.currentTarget)}
+              sx={{ pr: "2px !important" }}
+            >
+              <CallMergeIcon sx={{ fontSize: "1.125rem" }} />
+              <ArrowDropDownIcon
+                sx={{ fontSize: "0.875rem", ml: "-2px", opacity: 0.7 }}
+              />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title="Group selected layers"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
+            <span>
+              <IconButton
+                aria-label="Group selected layers"
+                size="small"
+                onClick={onGroupSelectedLayers}
+                disabled={!hasMultiLayerSelection}
+              >
+                <CreateNewFolderIcon sx={{ fontSize: "1.125rem" }} />
+              </IconButton>
+            </span>
+          </Tooltip>
           {activeLayer?.type === "group" ? (
-            <Tooltip title="Ungroup" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+            <Tooltip
+              title="Ungroup"
+              enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+              enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+            >
               <IconButton
                 aria-label="Ungroup"
                 size="small"
@@ -1326,71 +1318,203 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             </Tooltip>
           ) : null}
         </Box>
+
+        <Divider
+          orientation="vertical"
+          flexItem
+          className="sketch-layers-panel__ops-divider"
+        />
+
+        {/* ── Transform: single button opens flip/rotate menu ── */}
+        <Box className="sketch-layers-panel__ops-group">
+          <Tooltip
+            title="Transform…"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
+            <span>
+              <IconButton
+                aria-label="Transform menu"
+                aria-haspopup="menu"
+                size="small"
+                onClick={(e) => setTransformMenuAnchor(e.currentTarget)}
+                disabled={pixelLayerCanvasActionsDisabled}
+                sx={{ pr: "2px !important" }}
+              >
+                <TransformIcon sx={{ fontSize: "1.125rem" }} />
+                <ArrowDropDownIcon
+                  sx={{ fontSize: "0.875rem", ml: "-2px", opacity: 0.7 }}
+                />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Box>
+
+        <Divider
+          orientation="vertical"
+          flexItem
+          className="sketch-layers-panel__ops-divider"
+        />
+
+        {/* ── Roles: Mask · Alpha Lock ── */}
+        <Box className="sketch-layers-panel__ops-group">
+          <Tooltip
+            title={
+              maskLayerId === activeLayerId
+                ? "Remove Mask Designation"
+                : "Set as Mask Layer"
+            }
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
+            <IconButton
+              aria-label={
+                maskLayerId === activeLayerId
+                  ? "Remove Mask Designation"
+                  : "Set as Mask Layer"
+              }
+              size="small"
+              onClick={() =>
+                onSetMaskLayer(
+                  maskLayerId === activeLayerId ? null : activeLayerId
+                )
+              }
+              color={maskLayerId === activeLayerId ? "warning" : "default"}
+            >
+              <GradientIcon sx={{ fontSize: "1.125rem" }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title={
+              activeLayer?.alphaLock
+                ? "Unlock Transparency"
+                : "Lock Transparency"
+            }
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
+            <IconButton
+              aria-label={
+                activeLayer?.alphaLock
+                  ? "Unlock Transparency"
+                  : "Lock Transparency"
+              }
+              size="small"
+              onClick={() => onToggleAlphaLock(activeLayerId)}
+              color={activeLayer?.alphaLock ? "info" : "default"}
+            >
+              <LockIcon sx={{ fontSize: "1.125rem" }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
-      <Box
-        className="sketch-layers-panel__pixel-ops"
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          gap: 0.25,
-          minHeight: 30,
-          py: 0.25,
-          "& .MuiIconButton-root": { width: 30, height: 30 }
-        }}
+      {/* ── Merge submenu ── */}
+      <Menu
+        anchorEl={mergeMenuAnchor}
+        open={mergeMenuAnchor !== null}
+        onClose={() => setMergeMenuAnchor(null)}
+        slotProps={{ paper: { sx: { minWidth: 200 } } }}
       >
-        <Tooltip title="Clear Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+        <MenuItem
+          sx={{ fontSize: "0.8rem", py: "4px", minHeight: 0 }}
+          disabled={!canMergeDown}
+          onClick={() => {
+            onMergeDown();
+            setMergeMenuAnchor(null);
+          }}
+        >
+          Merge Down
+        </MenuItem>
+        <MenuItem
+          sx={{ fontSize: "0.8rem", py: "4px", minHeight: 0 }}
+          onClick={() => {
+            onFlattenVisible();
+            setMergeMenuAnchor(null);
+          }}
+        >
+          Flatten Visible
+        </MenuItem>
+        <MenuItem
+          sx={{ fontSize: "0.8rem", py: "4px", minHeight: 0 }}
+          disabled={!hasMultiLayerSelection || !canMergeSelectedLayers}
+          onClick={() => {
+            onMergeSelectedLayers();
+            setMergeMenuAnchor(null);
+          }}
+        >
+          Merge Selected Layers
+        </MenuItem>
+      </Menu>
+
+      {/* ── Transform submenu ── */}
+      <Menu
+        anchorEl={transformMenuAnchor}
+        open={transformMenuAnchor !== null}
+        onClose={() => setTransformMenuAnchor(null)}
+        slotProps={{ paper: { sx: { minWidth: 200 } } }}
+      >
+        <MenuItem
+          sx={{ fontSize: "0.8rem", py: "4px", minHeight: 0 }}
+          onClick={() => {
+            onFlipHorizontal();
+            setTransformMenuAnchor(null);
+          }}
+        >
+          Flip Horizontal
+        </MenuItem>
+        <MenuItem
+          sx={{ fontSize: "0.8rem", py: "4px", minHeight: 0 }}
+          onClick={() => {
+            onFlipVertical();
+            setTransformMenuAnchor(null);
+          }}
+        >
+          Flip Vertical
+        </MenuItem>
+        {/* Rotate 90 CW/CCW need a runtime op that swaps the layer canvas's
+            width/height and reflows compositeOffset — not implemented yet.
+            Disabled placeholders keep the menu shape final. */}
+        <Tooltip
+          title="Coming soon — needs a 90° rotation pass in the canvas runtime."
+          placement="left"
+          enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+          enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+        >
           <span>
-            <IconButton
-              aria-label="Clear Layer"
-              size="small"
-              onClick={onClearLayer}
-              disabled={pixelLayerCanvasActionsDisabled}
+            <MenuItem
+              sx={{ fontSize: "0.8rem", py: "4px", minHeight: 0 }}
+              disabled
             >
-              <LayersClearIcon sx={{ fontSize: "1.125rem" }} />
-            </IconButton>
+              Rotate 90° CW
+            </MenuItem>
           </span>
         </Tooltip>
-        <Tooltip title="Flip Layer Horizontal" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+        <Tooltip
+          title="Coming soon — needs a 90° rotation pass in the canvas runtime."
+          placement="left"
+          enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+          enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+        >
           <span>
-            <IconButton
-              aria-label="Flip Layer Horizontal"
-              size="small"
-              onClick={onFlipHorizontal}
-              disabled={pixelLayerCanvasActionsDisabled}
+            <MenuItem
+              sx={{ fontSize: "0.8rem", py: "4px", minHeight: 0 }}
+              disabled
             >
-              <FlipCameraAndroidIcon sx={{ fontSize: "1.125rem" }} />
-            </IconButton>
+              Rotate 90° CCW
+            </MenuItem>
           </span>
         </Tooltip>
-        <Tooltip title="Flip Layer Vertical" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-          <span>
-            <IconButton
-              aria-label="Flip Layer Vertical"
-              size="small"
-              onClick={onFlipVertical}
-              disabled={pixelLayerCanvasActionsDisabled}
-            >
-              <FlipCameraAndroidIcon
-                sx={{ fontSize: "1.125rem", transform: "rotate(90deg)" }}
-              />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title="Merge Down" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-          <span>
-            <IconButton
-              aria-label="Merge Down"
-              size="small"
-              onClick={onMergeDown}
-              disabled={!canMergeDown}
-            >
-              <CallMergeIcon sx={{ fontSize: "1.125rem" }} />
-            </IconButton>
-          </span>
-        </Tooltip>
-      </Box>
+        <MenuItem
+          sx={{ fontSize: "0.8rem", py: "4px", minHeight: 0 }}
+          onClick={() => {
+            onRotate180();
+            setTransformMenuAnchor(null);
+          }}
+        >
+          Rotate 180°
+        </MenuItem>
+      </Menu>
 
       <Divider />
 
@@ -1489,7 +1613,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
         const ctxIsGroup = ctxLayer?.type === "group";
         const ctxCanMergeDown =
-          ctxLayer && !isMulti && layers.indexOf(ctxLayer) > 0;
+          ctxLayer != null &&
+          !isMulti &&
+          findMergeDownTargetIndex(layers, ctxLayer.id) !== -1;
         const ctxPixelActionsDisabled =
           !ctxLayer || ctxLayer.locked || ctxLayer.type === "group";
 

@@ -49,8 +49,9 @@ export const SKETCH_SPACING = {
 } as const;
 
 export const SKETCH_SIZE = {
-  /** Row min-height aligned to thumbnail (+ border); avoids extra vertical padding. */
-  layerItemHeight: "41px",
+  /** Row min-height matches the thumbnail so the row background never shows
+   *  above or below the thumbnail (flush top/bottom). */
+  layerItemHeight: "39.2px",
   layerThumbnail: "39.2px",
   panelWidth: "260px",
   iconButtonPad: "3px",

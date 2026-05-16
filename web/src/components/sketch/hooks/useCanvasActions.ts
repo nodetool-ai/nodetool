@@ -49,6 +49,7 @@ import { useTransformActions } from "./useTransformActions";
 import { useCanvasGeometryActions } from "./useCanvasGeometryActions";
 import { getLayerGeometry } from "../transform/geometry/layerGeometry";
 import { useSketchStore } from "../state";
+import { combineMasks, type SelectionCombineOp } from "../selection";
 
 export interface UseCanvasActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
@@ -157,35 +158,49 @@ export function useCanvasActions({
   }, [canvasRef]);
 
   // ─── Load layer alpha as selection mask ────────────────────────
-  const handleLoadLayerAsSelection = useCallback((layerId: string) => {
-    const layer = document.layers.find((l) => l.id === layerId);
-    if (!layer || layer.type === "group") return;
-    const snapshot = canvasRef.current?.snapshotLayerCanvas(layerId);
-    if (!snapshot) return;
+  // `op` defaults to "replace" (Ctrl/Cmd + click). Pass "add" to union with
+  // the current selection (Ctrl/Cmd + Shift + click).
+  const handleLoadLayerAsSelection = useCallback(
+    (layerId: string, op: SelectionCombineOp = "replace") => {
+      const layer = document.layers.find((l) => l.id === layerId);
+      if (!layer || layer.type === "group") return;
+      const snapshot = canvasRef.current?.snapshotLayerCanvas(layerId);
+      if (!snapshot) return;
 
-    const tmpCtx = snapshot.getContext("2d", { willReadFrequently: true });
-    if (!tmpCtx) return;
+      const tmpCtx = snapshot.getContext("2d", { willReadFrequently: true });
+      if (!tmpCtx) return;
 
-    const { width: docW, height: docH } = document.canvas;
-    const offset = getLayerGeometry(layer, snapshot, { width: snapshot.width, height: snapshot.height }).compositeOffset;
-    const imgData = tmpCtx.getImageData(0, 0, snapshot.width, snapshot.height);
-    const selData = new Uint8ClampedArray(docW * docH);
+      const { width: docW, height: docH } = document.canvas;
+      const offset = getLayerGeometry(layer, snapshot, {
+        width: snapshot.width,
+        height: snapshot.height
+      }).compositeOffset;
+      const imgData = tmpCtx.getImageData(0, 0, snapshot.width, snapshot.height);
+      const selData = new Uint8ClampedArray(docW * docH);
 
-    for (let py = 0; py < snapshot.height; py++) {
-      for (let px = 0; px < snapshot.width; px++) {
-        const alpha = imgData.data[(py * snapshot.width + px) * 4 + 3];
-        if (alpha > 0) {
-          const docX = Math.round(px + offset.x);
-          const docY = Math.round(py + offset.y);
-          if (docX >= 0 && docX < docW && docY >= 0 && docY < docH) {
-            selData[docY * docW + docX] = alpha;
+      for (let py = 0; py < snapshot.height; py++) {
+        for (let px = 0; px < snapshot.width; px++) {
+          const alpha = imgData.data[(py * snapshot.width + px) * 4 + 3];
+          if (alpha > 0) {
+            const docX = Math.round(px + offset.x);
+            const docY = Math.round(py + offset.y);
+            if (docX >= 0 && docX < docW && docY >= 0 && docY < docH) {
+              selData[docY * docW + docX] = alpha;
+            }
           }
         }
       }
-    }
 
-    useSketchStore.getState().setSelection({ width: docW, height: docH, data: selData });
-  }, [document, canvasRef]);
+      const overlay = { width: docW, height: docH, data: selData };
+      const store = useSketchStore.getState();
+      const next =
+        op === "replace"
+          ? overlay
+          : combineMasks(store.selection, overlay, op);
+      store.setSelection(next);
+    },
+    [document, canvasRef]
+  );
 
   // ─── Combined flush (stroke finalization + export sync) ─────────
   const flushPendingCanvasSync = useCallback(() => {

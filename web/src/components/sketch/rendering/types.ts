@@ -229,6 +229,9 @@ export interface SketchRuntime {
   /** Flip a layer canvas horizontally or vertically. */
   flipLayer(layerId: string, direction: "horizontal" | "vertical"): void;
 
+  /** Rotate a layer canvas 180° in-place (dimensions preserved). */
+  rotateLayer180(layerId: string): void;
+
   /** Fill an entire layer canvas with a solid color. */
   fillLayerWithColor(layerId: string, color: string): void;
 

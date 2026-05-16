@@ -1939,6 +1939,11 @@ export class WebGPURuntime implements SketchRuntime {
     this.markLayerDirty(layerId);
   }
 
+  rotateLayer180(layerId: string): void {
+    this.cpuRuntime.rotateLayer180(layerId);
+    this.markLayerDirty(layerId);
+  }
+
   fillLayerWithColor(layerId: string, color: string): void {
     this.cpuRuntime.fillLayerWithColor(layerId, color);
     this.markLayerDirty(layerId);

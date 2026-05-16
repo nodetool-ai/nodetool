@@ -574,6 +574,11 @@ export function useCanvasGeometryActions({
 
     reconcileAllLayerTransforms();
     finalizeCanvasCrop(bounds.x, bounds.y, bounds.width, bounds.height);
+    // Drop the selection: after the canvas is cropped to the bbox, the
+    // selection's document-space origin no longer points anywhere
+    // meaningful (it referred to the pre-crop document) and showing it
+    // at the wrong place is more confusing than just clearing it.
+    useSketchStore.getState().setSelection(null);
     pushHistory("crop to selection");
   }, [reconcileAllLayerTransforms, finalizeCanvasCrop, pushHistory]);
 
@@ -667,7 +672,13 @@ export function useCanvasGeometryActions({
       if (!canvasRef.current) {
         return;
       }
-      const layerId = options?.targetLayerId ?? document.activeLayerId;
+      // Read the live store rather than the closure document so that
+      // callers like `handleLayerViaCopy` — which add a new layer and
+      // immediately paste into it inside the same tick — can target the
+      // freshly-added layer. The React closure still holds the
+      // pre-add document and would otherwise miss the new layer.
+      const liveDoc = useSketchStore.getState().document;
+      const layerId = options?.targetLayerId ?? liveDoc.activeLayerId;
       if (!layerId) {
         return;
       }
@@ -691,7 +702,7 @@ export function useCanvasGeometryActions({
         return;
       }
 
-      const layer = document.layers.find((l) => l.id === layerId);
+      const layer = liveDoc.layers.find((l) => l.id === layerId);
       if (!layer) {
         return;
       }
@@ -699,8 +710,8 @@ export function useCanvasGeometryActions({
         layer,
         pasteSnapshot,
         {
-          width: document.canvas.width,
-          height: document.canvas.height
+          width: liveDoc.canvas.width,
+          height: liveDoc.canvas.height
         }
       ).compositeOffset;
 

@@ -1346,6 +1346,48 @@ function morphBinary8(
 }
 
 /**
+ * Outside-only ring mask along the selection boundary (`strokeWidthPx`-wide
+ * band that lies entirely OUTSIDE the original selection). Built as
+ * `dilate(sel, w) - sel`. Use for painting a stroke around (but not into) a
+ * filled selection so a paired Fill + Stroke gives a clean filled shape
+ * with an outer border.
+ *
+ * Returns null when the dilated mask leaves no outside-pixels (e.g. the
+ * selection already covers the entire mask buffer).
+ */
+export function buildSelectionOutsideStrokeMask(
+  sel: Selection,
+  strokeWidthPx: number
+): Selection | null {
+  if (!validateSelectionMask(sel) || !selectionHasAnyPixels(sel)) {
+    return null;
+  }
+  const wPx = Math.max(1, Math.min(64, Math.round(strokeWidthPx)));
+  const { width: w, height: h, data } = sel;
+  const n = w * h;
+  const orig = new Uint8ClampedArray(n);
+  for (let i = 0; i < n; i++) {
+    orig[i] = data[i] >= THRESH ? 255 : 0;
+  }
+  const outer = morphBinary8(w, h, orig, wPx, "dilate");
+  const strokeData = new Uint8ClampedArray(n);
+  for (let i = 0; i < n; i++) {
+    strokeData[i] = outer[i] >= THRESH && orig[i] < THRESH ? 255 : 0;
+  }
+  if (!selectionHasAnyPixels({ width: w, height: h, data: strokeData })) {
+    return null;
+  }
+  const ring: Selection = { width: w, height: h, data: strokeData };
+  if (sel.originX != null) {
+    ring.originX = sel.originX;
+  }
+  if (sel.originY != null) {
+    ring.originY = sel.originY;
+  }
+  return ring;
+}
+
+/**
  * Ring mask along the selection boundary (~`strokeWidthPx` wide, morphological
  * dilate/erode band). Document space; same dimensions as `sel`. Use as the new
  * selection so only the outline is selected, or for other mask ops. Returns null if empty.

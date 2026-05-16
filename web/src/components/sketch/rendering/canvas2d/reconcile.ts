@@ -283,6 +283,40 @@ export function flipLayer(
   ctx.restore();
 }
 
+// ─── Rotate layer 180° ──────────────────────────────────────────────────────
+// Rotate 180 is the only rotation we can perform in-place: it preserves the
+// layer canvas's width/height, so document-space alignment stays correct
+// without touching transforms or compositeOffset. Rotate 90/270 would swap
+// width and height and need separate runtime support (TODO).
+
+export function rotateLayer180(
+  layerCanvases: Map<string, HTMLCanvasElement>,
+  layerId: string
+): void {
+  const canvas = layerCanvases.get(layerId);
+  if (!canvas) {
+    return;
+  }
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return;
+  }
+  const temp = window.document.createElement("canvas");
+  temp.width = canvas.width;
+  temp.height = canvas.height;
+  const tempCtx = temp.getContext("2d");
+  if (!tempCtx) {
+    return;
+  }
+  tempCtx.drawImage(canvas, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(canvas.width, canvas.height);
+  ctx.scale(-1, -1);
+  ctx.drawImage(temp, 0, 0);
+  ctx.restore();
+}
+
 // ─── Nudge layer ─────────────────────────────────────────────────────────────
 
 export function nudgeLayer(

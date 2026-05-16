@@ -8,6 +8,7 @@
 import { useCallback, type RefObject } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import type { BlendMode, PushHistoryOptions, SketchDocument } from "../types";
+import { findMergeDownTargetIndex } from "../types";
 import { useSketchStore } from "../state";
 import { getMergeSelectedLayersPlan } from "../layerMergeSelection";
 
@@ -232,17 +233,41 @@ export function useLayerActions({
     [handleFlipLayer]
   );
 
+  const handleRotate180 = useCallback(() => {
+    const layerId = document.activeLayerId;
+    if (!layerId || !canvasRef.current) {
+      return;
+    }
+    const layer = document.layers.find((l) => l.id === layerId);
+    if (!layer || layer.locked) {
+      return;
+    }
+    pushHistory("rotate 180");
+    canvasRef.current.rotateLayer180(layerId);
+    syncLayerDataFromCanvas(layerId);
+  }, [
+    document.activeLayerId,
+    document.layers,
+    pushHistory,
+    syncLayerDataFromCanvas,
+    canvasRef
+  ]);
+
   const handleMergeDown = useCallback(() => {
     const layers = document.layers;
-    const idx = layers.findIndex((l) => l.id === document.activeLayerId);
-    if (idx <= 0 || !canvasRef.current) {
+    const activeId = document.activeLayerId;
+    if (!activeId || !canvasRef.current) {
       return;
     }
-    const upper = layers[idx];
-    const lower = layers[idx - 1];
-    if (lower.locked) {
+    // Sibling-aware target: never merges into a parent group or across parents,
+    // never targets a locked layer. Mirrors the panel's `canMergeDown` so the
+    // disabled state and the action stay in sync.
+    const lowerIdx = findMergeDownTargetIndex(layers, activeId);
+    if (lowerIdx === -1) {
       return;
     }
+    const upper = layers[lowerIdx + 1];
+    const lower = layers[lowerIdx];
     // Merge is an explicit destructive bake flow: runtime rebases both layers
     // into document-space pixels, then the store drops the upper layer and keeps
     // the lower layer at identity transform/full document bounds.
@@ -392,6 +417,7 @@ export function useLayerActions({
     handleToggleExposedOutput,
     handleFlipHorizontal,
     handleFlipVertical,
+    handleRotate180,
     handleMergeDown,
     handleFlattenVisible,
     handleAddGroup,

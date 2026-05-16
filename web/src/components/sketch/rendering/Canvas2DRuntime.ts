@@ -43,6 +43,7 @@ import {
   reconcileLayerToDocumentSpace as reconcileLayerFn,
   cropLayers as cropLayersFn,
   flipLayer as flipLayerFn,
+  rotateLayer180 as rotateLayer180Fn,
   nudgeLayer as nudgeLayerFn,
   applyAdjustments as applyAdjustmentsFn,
   invertLayerColors as invertLayerColorsFn
@@ -464,6 +465,10 @@ export class Canvas2DRuntime implements SketchRuntime {
 
   flipLayer(layerId: string, direction: "horizontal" | "vertical"): void {
     flipLayerFn(this.layerCanvases, layerId, direction);
+  }
+
+  rotateLayer180(layerId: string): void {
+    rotateLayer180Fn(this.layerCanvases, layerId);
   }
 
   fillLayerWithColor(layerId: string, color: string): void {

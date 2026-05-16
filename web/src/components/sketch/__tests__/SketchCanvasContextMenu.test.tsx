@@ -34,10 +34,11 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import SketchCanvasContextMenu from "../SketchCanvasContextMenu";
 import { useSketchStore } from "../state/useSketchStore";
 
-function renderContextMenu() {
+function renderContextMenu(overrides: Record<string, unknown> = {}) {
   const theme = createTheme({ cssVariables: true });
   const onClose = jest.fn();
-  const onNewLayer = jest.fn();
+  const onStrokeSelectionWithForeground = jest.fn();
+  const onFillSelectionWithForeground = jest.fn();
   const toolSettings = useSketchStore.getState().toolSettings;
 
   render(
@@ -76,33 +77,49 @@ function renderContextMenu() {
         onConvertSelectionToBorder={jest.fn()}
         onDeselectSelection={jest.fn()}
         onReselectSelection={jest.fn()}
-        onFillSelectionWithForeground={jest.fn()}
-        onNewLayer={onNewLayer}
+        onFillSelectionWithForeground={onFillSelectionWithForeground}
+        onStrokeSelectionWithForeground={onStrokeSelectionWithForeground}
         onLayerViaCopy={jest.fn()}
         onLayerViaCut={jest.fn()}
-        onFreeTransform={jest.fn()}
         onSwapColors={jest.fn()}
+        {...overrides}
       />
     </ThemeProvider>
   );
 
-  return { onClose, onNewLayer };
+  return {
+    onClose,
+    onStrokeSelectionWithForeground,
+    onFillSelectionWithForeground
+  };
 }
 
 describe("SketchCanvasContextMenu", () => {
-  it("opens a new-layer submenu and forwards the selected layer type", async () => {
+  it("forwards Stroke clicks to the stroke-with-foreground handler", async () => {
     const user = userEvent.setup();
-    const { onClose, onNewLayer } = renderContextMenu();
+    const { onClose, onStrokeSelectionWithForeground } = renderContextMenu();
 
-    await user.click(screen.getByRole("button", { name: "New Layer..." }));
-    expect(await screen.findByRole("button", { name: "Raster Layer" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Mask Layer" })).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Mask Layer" }));
+    await user.click(screen.getByRole("button", { name: "Stroke" }));
 
     await waitFor(() => {
-      expect(onNewLayer).toHaveBeenCalledWith("mask");
+      expect(onStrokeSelectionWithForeground).toHaveBeenCalledTimes(1);
       expect(onClose).toHaveBeenCalled();
     });
+  });
+
+  it("does not render Select Inverse, Transform Selection, or New Layer entries", () => {
+    renderContextMenu();
+    expect(
+      screen.queryByRole("button", { name: "Select Inverse" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Transform Selection" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "New Layer..." })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Free Transform" })
+    ).not.toBeInTheDocument();
   });
 });

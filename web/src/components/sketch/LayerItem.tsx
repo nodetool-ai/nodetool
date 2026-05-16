@@ -26,8 +26,9 @@ import { StatusIndicator, Text, Tooltip } from "../ui_primitives";
 import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { LAYER_STATUS_MAP } from "./Inspector/layerStatusMapping";
 
-/** Base left padding for the layer row (px). */
-const BASE_PADDING = 8;
+/** Base left padding for the layer row (px). 0 so the thumbnail sits flush
+ *  with the row's left edge — the row background should not stick out past it. */
+const BASE_PADDING = 0;
 /** Additional left padding per nesting depth level (px). */
 const DEPTH_INDENT = 20;
 
@@ -73,7 +74,11 @@ export interface LayerItemProps {
   onToggleExposedInput: (layerId: string) => void;
   onToggleExposedOutput: (layerId: string) => void;
   onContextMenu: (e: React.MouseEvent, layerId: string) => void;
-  onThumbnailCtrlClick?: (layerId: string) => void;
+  /**
+   * Ctrl/Cmd + click on the thumbnail loads the layer alpha as a selection.
+   * Adding Shift unions it with the current selection instead of replacing.
+   */
+  onThumbnailCtrlClick?: (layerId: string, mode: "replace" | "add") => void;
   onStartRename: (layerId: string, currentName: string) => void;
   onFinishRename: (layerId: string) => void;
   onEditNameChange: (value: string) => void;
@@ -228,7 +233,10 @@ const LayerItem: React.FC<LayerItemProps> = ({
             onClick={(e) => {
               if (e.ctrlKey || e.metaKey) {
                 e.stopPropagation();
-                onThumbnailCtrlClick?.(layer.id);
+                onThumbnailCtrlClick?.(
+                  layer.id,
+                  e.shiftKey ? "add" : "replace"
+                );
               }
             }}
           />

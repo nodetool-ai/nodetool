@@ -922,6 +922,42 @@ export function getLayerDepth(layers: Layer[], layerId: string): number {
   return depth;
 }
 
+/**
+ * Returns the index of the layer that "Merge Down" should merge `activeId` into,
+ * or `-1` when no valid target exists.
+ *
+ * Merge Down is only valid when the immediately-preceding entry in the flat
+ * layer array is a **sibling** (same `parentId`), a **raster** (not a group),
+ * and **not locked**. This prevents two classes of bugs:
+ *
+ * 1. Merging into the parent group — the previous entry of the first child of
+ *    a group is the group itself, which has no canvas; the active raster would
+ *    silently vanish.
+ * 2. Merging across parent boundaries — the previous entry of a root-level
+ *    layer can be the last child of an unrelated group above it.
+ *
+ * Callers who want "merge with group as a whole" should flatten the group first.
+ */
+export function findMergeDownTargetIndex(
+  layers: Layer[],
+  activeId: string
+): number {
+  const idx = layers.findIndex((l) => l.id === activeId);
+  if (idx <= 0) {
+    return -1;
+  }
+  const active = layers[idx];
+  if (active.type === "group") {
+    return -1;
+  }
+  const prev = layers[idx - 1];
+  const sameParent = (prev.parentId ?? null) === (active.parentId ?? null);
+  if (!sameParent || prev.type === "group" || prev.locked) {
+    return -1;
+  }
+  return idx - 1;
+}
+
 /** Recursively collect all descendant IDs of a group (children, grandchildren, etc.) */
 export function getDescendantIds(layers: Layer[], groupId: string): string[] {
   const ids: string[] = [];

@@ -338,6 +338,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onClearLayer={session.canvasActions.handleClearLayer}
             onFlipHorizontal={session.layerActions.handleFlipHorizontal}
             onFlipVertical={session.layerActions.handleFlipVertical}
+            onRotate180={session.layerActions.handleRotate180}
             onMergeDown={session.layerActions.handleMergeDown}
             onFlattenVisible={session.layerActions.handleFlattenVisible}
             onTrimLayerToBounds={session.canvasActions.handleTrimLayerToBounds}
@@ -420,11 +421,10 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         onClearSegmentPrompts={commands.handleClearSegmentPrompts}
         onSwapColors={session.colorStore.swapColors}
         onFillSelectionWithForeground={commands.handleFillSelectionWithForeground}
+        onStrokeSelectionWithForeground={commands.handleStrokeSelectionWithForeground}
         onCropCanvasToSelection={session.canvasActions.handleCropCanvasToSelection}
-        onNewLayer={commands.handleNewLayerFromContextMenu}
         onLayerViaCopy={commands.handleLayerViaCopy}
         onLayerViaCut={commands.handleLayerViaCut}
-        onFreeTransform={commands.handleFreeTransform}
       />
 
       <TransformContextMenu
