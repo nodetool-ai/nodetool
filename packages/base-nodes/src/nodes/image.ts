@@ -2070,8 +2070,8 @@ export class CompositorNode extends BaseNode {
 
     for (let i = 1; i < visible.length; i++) {
       const layer = visible[i];
-      const layerBuf = await buildScaledLayer(layer.image, layer.state.opacity);
       try {
+        const layerBuf = await buildScaledLayer(layer.image, layer.state.opacity);
         canvas = await sharp(canvas, { failOn: "none" })
           .composite([
             {
