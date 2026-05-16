@@ -5,7 +5,7 @@ import {
     useSpring,
     useTransform,
 } from "framer-motion";
-import { Brain, Search, Terminal, MessageSquare, Database, Command, Globe, Download } from "lucide-react";
+import { Brain, Palette, Film, MessageSquare, Music, Command, Sparkles, Download } from "lucide-react";
 import { SmartDownloadButton } from "../../app/SmartDownloadButton";
 
 // --- Types & Config ---
@@ -24,56 +24,56 @@ interface NodeData {
 }
 
 // Coordinate system for the graph
-// Adjusted for an Agentic flow: User Input -> Planner -> Tools -> Response
+// Creative flow: Brief -> Art Director Agent -> Image + Music models -> Finished spot
 const NODES: NodeData[] = [
     {
-        id: "user_input",
+        id: "brief",
         x: 10, // Far left
         y: 50,
-        title: "User Input",
+        title: "Creative Brief",
         icon: MessageSquare,
         hue: "sky",
-        meta: [{ label: "Type", value: "Chat" }, { label: "Query", value: "Research AI" }]
+        meta: [{ label: "Type", value: "Prompt" }, { label: "Spot", value: "Launch Ad" }]
     },
     {
-        id: "planner",
+        id: "art_director",
         x: 35,
         y: 50,
-        title: "Supervisor Agent",
+        title: "Art Director Agent",
         icon: Brain,
         hue: "teal",
-        inputs: ["user_input"],
-        meta: [{ label: "Model", value: "GPT-5.4" }, { label: "Role", value: "Orchestrator" }]
+        inputs: ["brief"],
+        meta: [{ label: "Mode", value: "Plan" }, { label: "Role", value: "Director" }]
     },
     {
-        id: "web_search",
+        id: "image",
         x: 65,
         y: 25,
-        title: "Web Search",
-        icon: Search,
+        title: "Image Generation",
+        icon: Palette,
         hue: "emerald",
-        inputs: ["planner"],
-        meta: [{ label: "Tool", value: "Google" }]
+        inputs: ["art_director"],
+        meta: [{ label: "Model", value: "Flux Pro" }]
     },
     {
-        id: "database",
+        id: "music",
         x: 65,
         y: 75,
-        title: "Knowledge Base",
-        icon: Database,
+        title: "Soundtrack",
+        icon: Music,
         hue: "amber",
-        inputs: ["planner"],
-        meta: [{ label: "Source", value: "Vector DB" }]
+        inputs: ["art_director"],
+        meta: [{ label: "Model", value: "Suno" }]
     },
     {
-        id: "response",
+        id: "render",
         x: 90,
         y: 50,
-        title: "Final Answer",
-        icon: Terminal,
+        title: "Final Spot",
+        icon: Film,
         hue: "rose",
-        inputs: ["web_search", "database"],
-        meta: [{ label: "Format", value: "Markdown" }]
+        inputs: ["image", "music"],
+        meta: [{ label: "Output", value: "MP4 1080p" }]
     }
 ];
 
@@ -97,40 +97,42 @@ export default function AgentsGraphHero() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
                     >
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-500/10 border border-teal-500/20 mb-6">
-                            <Brain className="w-4 h-4 text-amber-400" />
-                            <span className="text-sm font-medium text-amber-300">
-                                Agents on the canvas
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-500/10 border border-rose-500/20 mb-6">
+                            <Sparkles className="w-4 h-4 text-rose-300" />
+                            <span className="text-sm font-medium text-rose-200">
+                                Agents for creative work
                             </span>
                         </div>
 
                         <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-8">
-                            Agents are <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-fuchsia-400 to-rose-400">
-                                nodes on your canvas.
+                            An art director <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 to-cyan-400">
+                                that never sleeps.
                             </span>
                         </h1>
 
                         <p className="text-lg md:text-xl text-slate-400 mb-10 leading-relaxed max-w-2xl mx-auto">
-                            Drop a planning agent into the canvas. It calls the right models and tools to
-                            finish a multi-step task — research, browse, write, generate — and hands the
-                            result to the next node. Watch the reasoning live.
+                            Drop an agent on the canvas, hand it a brief, and watch it plan the shot,
+                            pick the right model, generate variants, and stitch the cut — across Flux,
+                            Seedance, Veo, Kling, Suno, and ElevenLabs. You direct, it executes.
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                            <a href="https://docs.nodetool.ai" className="px-8 py-4 rounded-xl font-semibold text-white bg-gradient-to-r from-teal-600 to-indigo-600 hover:from-teal-500 hover:to-indigo-500 transition-all shadow-lg shadow-teal-900/40 flex items-center gap-2">
-                                Get Started
-                            </a>
                             <SmartDownloadButton
                                 icon={<Download className="w-5 h-5" />}
-                                classNameOverride="px-8 py-4 rounded-xl font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 transition-all shadow-lg shadow-emerald-900/40 flex items-center gap-2"
+                                classNameOverride="px-8 py-4 rounded-xl font-semibold text-white bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 transition-all shadow-lg shadow-rose-900/40 flex items-center gap-2"
                             />
+                            <a href="/creatives" className="px-8 py-4 rounded-xl font-semibold text-white bg-white/5 border border-white/15 hover:bg-white/10 transition-all flex items-center gap-2">
+                                See the full studio
+                            </a>
                         </div>
 
                         <div className="mt-8 flex items-center justify-center gap-6 text-sm text-slate-500 font-medium">
                             <span className="flex items-center gap-2"><Command className="w-4 h-4" /> Open Source</span>
                             <span className="w-1 h-1 rounded-full bg-slate-700" />
-                            <span>Full Observability</span>
+                            <span>BYOK — pay providers direct</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-700" />
+                            <span>Watch every step</span>
                         </div>
                     </motion.div>
                 </div>
@@ -235,7 +237,7 @@ function GraphVisualization() {
                 </div>
 
                 <div className="absolute bottom-6 right-8 text-xs font-mono text-slate-500 uppercase tracking-widest">
-                    Agent Reasoning • Step 3/5
+                    Directing the shot • Step 3/5
                 </div>
 
             </motion.div>
