@@ -30,7 +30,7 @@ export default function ComparisonSection({
             transition={{ duration: 0.5 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            What NodeTool is
+            Where NodeTool fits in your stack
           </motion.h2>
           <motion.p
             initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
@@ -39,7 +39,8 @@ export default function ComparisonSection({
             transition={{ duration: 0.5, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
           >
-            Where we sit next to the tools you&apos;re already using.
+            You&apos;re probably using two or three of these already. Here&apos;s
+            what changes when they live on one canvas.
           </motion.p>
         </header>
 
