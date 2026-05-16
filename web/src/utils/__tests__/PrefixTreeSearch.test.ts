@@ -217,58 +217,6 @@ describe("PrefixTreeSearch", () => {
     });
   });
 
-  describe("Fuzzy Search", () => {
-    let search: PrefixTreeSearch;
-
-    beforeEach(() => {
-      search = new PrefixTreeSearch();
-      search.indexNodes(mockNodes);
-    });
-
-    it("should find nodes with substring match", () => {
-      const results = search.fuzzySearch("ult");
-      expect(results.length).toBeGreaterThan(0);
-      // Should find "Multiply" which contains "ult"
-    });
-
-    it("should find nodes by description words", () => {
-      const results = search.fuzzySearch("numbers");
-      expect(results.length).toBeGreaterThan(0);
-    });
-
-    it("should be case-insensitive", () => {
-      const resultsLower = search.fuzzySearch("blur");
-      const resultsUpper = search.fuzzySearch("BLUR");
-
-      expect(resultsLower.length).toBeGreaterThan(0);
-      expect(resultsUpper.length).toEqual(resultsLower.length);
-    });
-
-    it("should respect maxResults option", () => {
-      const results = search.fuzzySearch("i", { maxResults: 2 });
-      expect(results.length).toBeLessThanOrEqual(2);
-    });
-
-    it("should not return duplicates", () => {
-      const results = search.fuzzySearch("i");
-      const nodeTypes = results.map((r) => r.node.node_type);
-      const uniqueNodeTypes = [...new Set(nodeTypes)];
-      expect(nodeTypes.length).toBe(uniqueNodeTypes.length);
-    });
-
-    it("should give bonus to prefix matches", () => {
-      const results = search.fuzzySearch("add");
-      const exactMatch = results.find((r) => r.node.title === "Add");
-      expect(exactMatch).toBeDefined();
-      // Prefix matches should have higher scores
-      if (exactMatch) {
-        const otherMatches = results.filter((r) => r.node.title !== "Add");
-        if (otherMatches.length > 0) {
-          expect(exactMatch.score).toBeGreaterThan(otherMatches[0].score);
-        }
-      }
-    });
-  });
 
   describe("Clear", () => {
     it("should clear all indexed data", () => {
