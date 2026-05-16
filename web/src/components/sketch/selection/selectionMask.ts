@@ -1213,12 +1213,38 @@ export function applySelectionBlendRestore(
         m[pi + 2] = o[pi + 2];
         m[pi + 3] = o[pi + 3];
       } else {
+        // Premultiplied-alpha lerp. A straight-RGBA lerp produces dark
+        // fringes wherever one side is transparent: at a feather edge with
+        // `o` = transparent (0,0,0,0) and `m` = fully-opaque stroke
+        // (R,G,B,255) the straight lerp at t=0.5 yields (R/2, G/2, B/2, 128),
+        // i.e. half-bright color at half opacity → composited result is
+        // visibly darker than the intended "stroke at 50% opacity". Lerping
+        // in premultiplied space (then un-premultiplying) keeps the color
+        // intensity correct and only blends opacity through the feather.
         const t = maskVal / 255;
         const t1 = 1 - t;
-        m[pi]     = (m[pi]     * t + o[pi]     * t1 + 0.5) | 0;
-        m[pi + 1] = (m[pi + 1] * t + o[pi + 1] * t1 + 0.5) | 0;
-        m[pi + 2] = (m[pi + 2] * t + o[pi + 2] * t1 + 0.5) | 0;
-        m[pi + 3] = (m[pi + 3] * t + o[pi + 3] * t1 + 0.5) | 0;
+        const ma = m[pi + 3];
+        const oa = o[pi + 3];
+        const mpr = m[pi]     * ma;
+        const mpg = m[pi + 1] * ma;
+        const mpb = m[pi + 2] * ma;
+        const opr = o[pi]     * oa;
+        const opg = o[pi + 1] * oa;
+        const opb = o[pi + 2] * oa;
+        const ra = ma * t + oa * t1;
+        const rpr = mpr * t + opr * t1;
+        const rpg = mpg * t + opg * t1;
+        const rpb = mpb * t + opb * t1;
+        if (ra > 0) {
+          m[pi]     = (rpr / ra + 0.5) | 0;
+          m[pi + 1] = (rpg / ra + 0.5) | 0;
+          m[pi + 2] = (rpb / ra + 0.5) | 0;
+        } else {
+          m[pi]     = 0;
+          m[pi + 1] = 0;
+          m[pi + 2] = 0;
+        }
+        m[pi + 3] = (ra + 0.5) | 0;
       }
     }
   }
