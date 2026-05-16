@@ -1868,20 +1868,13 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             </MenuItem>
             <MenuItem
               sx={menuItemSx}
-              onClick={handleCtxRename}
-              disabled={isMulti || !ctxLayer}
-            >
-              Rename
-            </MenuItem>
-            <MenuItem
-              sx={menuItemSx}
               onClick={handleCtxDuplicate}
               disabled={!ctxLayer || isMulti}
             >
               Duplicate
             </MenuItem>
             <MenuItem sx={menuItemSx} onClick={handleCtxDelete}>
-              Delete
+              Remove
             </MenuItem>
 
             <Divider sx={{ my: "4px" }} />
@@ -1937,20 +1930,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               {ctxLayer && maskLayerId === ctxLayer.id
                 ? "Remove Mask"
                 : "Set as Mask"}
-            </MenuItem>
-            <MenuItem
-              sx={menuItemSx}
-              onClick={handleCtxTrim}
-              disabled={ctxPixelActionsDisabled || isMulti}
-            >
-              Trim to Bounds
-            </MenuItem>
-            <MenuItem
-              sx={menuItemSx}
-              onClick={handleCtxCropToVisible}
-              disabled={ctxIsGroup || isMulti || ctxLayer?.type === "mask"}
-            >
-              Crop Canvas to Visible Pixels
             </MenuItem>
             <MenuItem
               sx={menuItemSx}
