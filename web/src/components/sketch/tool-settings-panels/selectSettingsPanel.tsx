@@ -147,12 +147,25 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
         <Box
           sx={{
             display: "flex",
-            gap: 0.5,
+            gap: 1,
             flexWrap: "wrap",
+            alignItems: "center",
             flex: 1,
             minWidth: 0
           }}
         >
+          <EditorButton
+            variant="outlined"
+            onClick={onInvertSelection}
+            sx={{
+              ...sketchButtonSmallSx,
+              minWidth: "60px",
+              height: 24,
+              lineHeight: 1
+            }}
+          >
+            Invert
+          </EditorButton>
           <Tooltip title="Refine selection (grow, shrink, feather, smooth, border)">
             <span>
               <EditorButton
@@ -161,19 +174,18 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
                 disabled={!hasActiveSelection}
                 onClick={() => setRefineOpen(true)}
                 startIcon={<TuneIcon sx={{ fontSize: 14 }} />}
-                sx={{ ...sketchButtonSmallSx, minWidth: "76px" }}
+                sx={{
+                  ...sketchButtonSmallSx,
+                  minWidth: "76px",
+                  height: 24,
+                  lineHeight: 1,
+                  "& .MuiButton-startIcon": { mr: 0.5 }
+                }}
               >
                 Refine…
               </EditorButton>
             </span>
           </Tooltip>
-          <EditorButton
-            variant="outlined"
-            onClick={onInvertSelection}
-            sx={{ ...sketchButtonSmallSx, minWidth: "60px" }}
-          >
-            Invert
-          </EditorButton>
         </Box>
         {onCropCanvasToSelection ? (
           <Box

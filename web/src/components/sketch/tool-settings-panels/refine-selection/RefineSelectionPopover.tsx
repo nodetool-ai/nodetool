@@ -5,12 +5,13 @@
  * behind a single entry point. Each section owns its own parameter so the user
  * only sees the value they're about to apply.
  *
- * Phase 1: actions commit immediately (matches existing behavior). A future
- * phase will add staged Apply/Cancel with a preview mask.
+ * Apply / Cancel staging: on open, snapshots the current selection mask. Each
+ * operation mutates the live mask (visible immediately on canvas). Cancel /
+ * Escape restores the snapshot. Apply / click-outside keeps the changes.
  */
 
-import React, { memo, useState } from "react";
-import { Box, Slider } from "@mui/material";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import { Slider } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
 import {
@@ -22,8 +23,8 @@ import {
   Text
 } from "../../../ui_primitives";
 import { sketchSliderSx } from "../../sketchStyles";
-import { MAX_SELECTION_FEATHER_RADIUS } from "../../selection";
-import type { SelectSettings } from "../../types";
+import { cloneSelectionMask, MAX_SELECTION_FEATHER_RADIUS } from "../../selection";
+import type { SelectSettings, Selection } from "../../types";
 import { useSketchStore } from "../../state";
 
 const MAX_BORDER_WIDTH = 64;
@@ -79,12 +80,12 @@ const ParamRow = memo(function ParamRow({
   onChange
 }: ParamRowProps) {
   return (
-    <FlexRow gap={1} align="center" sx={{ width: "100%" }}>
+    <FlexRow gap={2} align="center" sx={{ width: "100%", px: 0.5 }}>
       <Text
         sx={(theme) => ({
           fontSize: theme.fontSizeSmaller,
           color: theme.vars.palette.grey[200],
-          minWidth: 44
+          minWidth: 52
         })}
       >
         {label}
@@ -129,21 +130,85 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
   const contractCurrentSelection = useSketchStore(
     (s) => s.contractCurrentSelection
   );
+  const setSelection = useSketchStore((s) => s.setSelection);
+
+  // Snapshot of the selection at popover-open time. Restored on Cancel / Escape.
+  // `dirty` tracks whether any op has run since the snapshot — keeps Cancel a
+  // no-op when nothing changed (avoids needless re-renders / GPU uploads).
+  const snapshotRef = useRef<Selection | null>(null);
+  const dirtyRef = useRef(false);
+
+  useEffect(() => {
+    if (!open) {
+      snapshotRef.current = null;
+      dirtyRef.current = false;
+      return;
+    }
+    const current = useSketchStore.getState().selection;
+    snapshotRef.current = current ? cloneSelectionMask(current) : null;
+    dirtyRef.current = false;
+  }, [open]);
+
+  const markDirty = useCallback(() => {
+    dirtyRef.current = true;
+  }, []);
+
+  const handleApply = useCallback(() => {
+    snapshotRef.current = null;
+    dirtyRef.current = false;
+    onClose();
+  }, [onClose]);
+
+  const handleCancel = useCallback(() => {
+    if (dirtyRef.current) {
+      const snap = snapshotRef.current;
+      setSelection(snap ? cloneSelectionMask(snap) : null);
+    }
+    snapshotRef.current = null;
+    dirtyRef.current = false;
+    onClose();
+  }, [onClose, setSelection]);
+
+  // MUI Popover's onClose fires for both backdrop click and escape — split them
+  // so escape = Cancel (discard) and backdrop click = Apply (keep, less
+  // destructive default for an accidental click outside).
+  const handlePopoverClose = useCallback(
+    (_event: object, reason: "backdropClick" | "escapeKeyDown") => {
+      if (reason === "escapeKeyDown") {
+        handleCancel();
+      } else {
+        handleApply();
+      }
+    },
+    [handleApply, handleCancel]
+  );
 
   return (
     <Popover
       open={open}
       anchorEl={anchorEl}
-      onClose={onClose}
+      onClose={handlePopoverClose}
       placement="bottom-left"
       maxWidth={320}
+      // Non-modal behavior: keep canvas interactive (pan / zoom / shortcuts)
+      // while the popover is open. Focus stays on the canvas, backdrop is
+      // removed, and scroll-lock is disabled.
+      disableAutoFocus
+      disableEnforceFocus
+      disableRestoreFocus
+      disableScrollLock
+      hideBackdrop
       paperSx={{
         backgroundColor: theme.vars.palette.grey[900],
         border: `1px solid ${theme.vars.palette.grey[700]}`,
-        padding: 1.5
+        padding: 2.5,
+        pointerEvents: "auto"
+      }}
+      slotProps={{
+        root: { style: { pointerEvents: "none" } }
       }}
     >
-      <FlexColumn gap={1.5} sx={{ width: 280 }}>
+      <FlexColumn gap={2} sx={{ width: 300 }}>
         <Section title="Modify">
           <ParamRow
             label="Pixels"
@@ -155,27 +220,26 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
           <FlexRow gap={0.5}>
             <EditorButton
               variant="outlined"
-              onClick={() => expandCurrentSelection(modifyPx)}
+              onClick={() => {
+                expandCurrentSelection(modifyPx);
+                markDirty();
+              }}
               sx={{ flex: 1 }}
             >
               Grow
             </EditorButton>
             <EditorButton
               variant="outlined"
-              onClick={() => contractCurrentSelection(modifyPx)}
+              onClick={() => {
+                contractCurrentSelection(modifyPx);
+                markDirty();
+              }}
               sx={{ flex: 1 }}
             >
               Shrink
             </EditorButton>
           </FlexRow>
         </Section>
-
-        <Box
-          sx={{
-            height: 1,
-            backgroundColor: theme.vars.palette.grey[800]
-          }}
-        />
 
         <Section title="Feather">
           <ParamRow
@@ -187,36 +251,28 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
           />
           <EditorButton
             variant="outlined"
-            onClick={onFeatherSelection}
+            onClick={() => {
+              onFeatherSelection();
+              markDirty();
+            }}
             sx={{ alignSelf: "stretch" }}
           >
             Apply Feather
           </EditorButton>
         </Section>
 
-        <Box
-          sx={{
-            height: 1,
-            backgroundColor: theme.vars.palette.grey[800]
-          }}
-        />
-
         <Section title="Smooth">
           <EditorButton
             variant="outlined"
-            onClick={onSmoothSelectionBorders}
+            onClick={() => {
+              onSmoothSelectionBorders();
+              markDirty();
+            }}
             sx={{ alignSelf: "stretch" }}
           >
             Smooth Borders
           </EditorButton>
         </Section>
-
-        <Box
-          sx={{
-            height: 1,
-            backgroundColor: theme.vars.palette.grey[800]
-          }}
-        />
 
         <Section title="Border">
           <ParamRow
@@ -228,12 +284,24 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
           />
           <EditorButton
             variant="outlined"
-            onClick={onConvertSelectionToBorder}
+            onClick={() => {
+              onConvertSelectionToBorder();
+              markDirty();
+            }}
             sx={{ alignSelf: "stretch" }}
           >
             Apply Border
           </EditorButton>
         </Section>
+
+        <FlexRow gap={1} justify="flex-end" sx={{ mt: 1 }}>
+          <EditorButton variant="outlined" onClick={handleCancel}>
+            Cancel
+          </EditorButton>
+          <EditorButton variant="contained" onClick={handleApply}>
+            Apply
+          </EditorButton>
+        </FlexRow>
       </FlexColumn>
     </Popover>
   );
