@@ -131,6 +131,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
     `${isIsolated ? " isolated" : ""}` +
     `${isGroup ? " group-layer" : ""}` +
     `${layer.alphaLock ? " alpha-lock" : ""}` +
+    `${layer.visible === false ? " layer-hidden" : ""}` +
     `${isRowSelected && !isPaintTarget ? " selected-secondary" : ""}`;
 
   const dropIndicatorSx = (() => {

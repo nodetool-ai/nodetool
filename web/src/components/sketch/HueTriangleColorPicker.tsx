@@ -29,8 +29,18 @@ import {
 /** Overall wheel + triangle diameter (canvas px). */
 const WIDGET_SIZE = 144;
 /** Floating preview while dragging hue ring or triangle: fixed to viewport, left of the wheel (does not affect panel width). */
-const PREVIEW_SWATCH_SIZE = 42;
-const PREVIEW_GAP = 5;
+const PREVIEW_FRAME_REF = 50;
+/** Live + comparison swatches ~60% of reference frame width. */
+const PREVIEW_SWATCH_WIDTH = Math.round(PREVIEW_FRAME_REF * 0.65);
+/** Square live-color preview (matches width). */
+const PREVIEW_SWATCH_HEIGHT = PREVIEW_SWATCH_WIDTH;
+/** Comparison strip height (scaled with narrow preview). */
+const PREVIEW_OLD_SWATCH_HEIGHT = Math.round(17 * 0.6);
+const PREVIEW_GAP = 12;
+const PREVIEW_TOTAL_HEIGHT =
+  PREVIEW_SWATCH_HEIGHT + PREVIEW_OLD_SWATCH_HEIGHT;
+/** Subtle corners on the floating preview (theme spacing units). */
+const PREVIEW_BORDER_RADIUS = 0.4;
 const RING_WIDTH = 16;
 const OUTER_R = WIDGET_SIZE / 2;
 const INNER_R = OUTER_R - RING_WIDTH;
@@ -264,9 +274,12 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
   const dragTarget = useRef<DragTarget>(null);
   /** Latest SV while dragging the triangle; committed to store on pointer up only. */
   const triangleDragSvRef = useRef<{ s: number; v: number }>({ s: 0, v: 0 });
+  /** Pre-drag color (rgba CSS) for the comparison strip while dragging. */
+  const previewBaselineCssRef = useRef("");
   /** Only set while pointer is down on hue ring or triangle; `null` = preview hidden. */
   const [trianglePreviewScreen, setTrianglePreviewScreen] = useState<{
-    css: string;
+    newCss: string;
+    previousCss: string;
     left: number;
     top: number;
   } | null>(null);
@@ -402,60 +415,108 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
     [a]
   );
 
-  const placeTrianglePreviewFloating = useCallback((css: string) => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return;
-    }
-    const rect = canvas.getBoundingClientRect();
-    const size = PREVIEW_SWATCH_SIZE;
-    setTrianglePreviewScreen({
-      css,
-      left: rect.left - PREVIEW_GAP - size,
-      top: rect.top + rect.height / 2 - size / 2
-    });
-  }, []);
+  const placeTrianglePreviewFloating = useCallback(
+    (newCss: string, previousCss: string) => {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        return;
+      }
+      const rect = canvas.getBoundingClientRect();
+      const width = PREVIEW_SWATCH_WIDTH;
+      setTrianglePreviewScreen({
+        newCss,
+        previousCss,
+        left: rect.left - PREVIEW_GAP - width,
+        top: rect.top + rect.height / 2 - PREVIEW_TOTAL_HEIGHT / 2
+      });
+    },
+    []
+  );
 
   // ─── Mouse handlers ─────────────────────────────────────────────
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    e.preventDefault();
-    const target = hitTest(e.clientX, e.clientY);
-    dragTarget.current = target;
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      const target = hitTest(e.clientX, e.clientY);
+      dragTarget.current = target;
 
-    const canvas = canvasRef.current;
-    if (canvas) { canvas.setPointerCapture(e.pointerId); }
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.setPointerCapture(e.pointerId);
+      }
 
-    if (target === "ring") {
-      const newHue = pointerToHue(e.clientX, e.clientY);
-      localHueRef.current = newHue;
-      setLocalHue(newHue);
-      placeTrianglePreviewFloating(previewCssFromHsv(newHue, hsv.s, hsv.v));
-      repaint(newHue, hsv.s, hsv.v);
-    } else if (target === "triangle") {
-      const { s, val } = pointerToSV(e.clientX, e.clientY);
-      triangleDragSvRef.current = { s, v: val };
-      placeTrianglePreviewFloating(previewCssFromHsv(localHue, s, val));
-      repaint(localHue, s, val);
-    }
-  }, [hitTest, pointerToHue, pointerToSV, localHue, hsv.s, hsv.v, repaint, previewCssFromHsv, placeTrianglePreviewFloating]);
+      const { r: br, g: bg, b: bb, a: ba } = parseColorToRgba(color);
+      const previousCss = rgbaToCss({ r: br, g: bg, b: bb, a: ba });
+      previewBaselineCssRef.current = previousCss;
 
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (dragTarget.current === null) { return; }
-    e.preventDefault();
+      if (target === "ring") {
+        const newHue = pointerToHue(e.clientX, e.clientY);
+        localHueRef.current = newHue;
+        setLocalHue(newHue);
+        placeTrianglePreviewFloating(
+          previewCssFromHsv(newHue, hsv.s, hsv.v),
+          previousCss
+        );
+        repaint(newHue, hsv.s, hsv.v);
+      } else if (target === "triangle") {
+        const { s, val } = pointerToSV(e.clientX, e.clientY);
+        triangleDragSvRef.current = { s, v: val };
+        placeTrianglePreviewFloating(
+          previewCssFromHsv(localHue, s, val),
+          previousCss
+        );
+        repaint(localHue, s, val);
+      }
+    },
+    [
+      color,
+      hitTest,
+      pointerToHue,
+      pointerToSV,
+      localHue,
+      hsv.s,
+      hsv.v,
+      repaint,
+      previewCssFromHsv,
+      placeTrianglePreviewFloating
+    ]
+  );
 
-    if (dragTarget.current === "ring") {
-      const newHue = pointerToHue(e.clientX, e.clientY);
-      localHueRef.current = newHue;
-      placeTrianglePreviewFloating(previewCssFromHsv(newHue, hsv.s, hsv.v));
-      repaint(newHue, hsv.s, hsv.v);
-    } else if (dragTarget.current === "triangle") {
-      const { s, val } = pointerToSV(e.clientX, e.clientY);
-      triangleDragSvRef.current = { s, v: val };
-      const h = localHueRef.current;
-      placeTrianglePreviewFloating(previewCssFromHsv(h, s, val));
-      repaint(h, s, val);
-    }
-  }, [pointerToHue, pointerToSV, hsv.s, hsv.v, repaint, previewCssFromHsv, placeTrianglePreviewFloating]);
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (dragTarget.current === null) {
+        return;
+      }
+      e.preventDefault();
+
+      const baseline = previewBaselineCssRef.current;
+
+      if (dragTarget.current === "ring") {
+        const newHue = pointerToHue(e.clientX, e.clientY);
+        localHueRef.current = newHue;
+        placeTrianglePreviewFloating(
+          previewCssFromHsv(newHue, hsv.s, hsv.v),
+          baseline
+        );
+        repaint(newHue, hsv.s, hsv.v);
+      } else if (dragTarget.current === "triangle") {
+        const { s, val } = pointerToSV(e.clientX, e.clientY);
+        triangleDragSvRef.current = { s, v: val };
+        const h = localHueRef.current;
+        placeTrianglePreviewFloating(previewCssFromHsv(h, s, val), baseline);
+        repaint(h, s, val);
+      }
+    },
+    [
+      pointerToHue,
+      pointerToSV,
+      hsv.s,
+      hsv.v,
+      repaint,
+      previewCssFromHsv,
+      placeTrianglePreviewFloating
+    ]
+  );
 
   const endPointerDrag = useCallback(
     (e: React.PointerEvent) => {
@@ -498,18 +559,40 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
             position: "fixed",
             left: trianglePreviewScreen.left,
             top: trianglePreviewScreen.top,
-            width: PREVIEW_SWATCH_SIZE,
-            height: PREVIEW_SWATCH_SIZE,
+            width: PREVIEW_SWATCH_WIDTH,
             zIndex: (theme) => theme.zIndex.tooltip,
+            display: "flex",
+            flexDirection: "column",
+            gap: 0,
+            pointerEvents: "none",
             boxSizing: "border-box",
-            borderRadius: 1,
+            borderRadius: PREVIEW_BORDER_RADIUS,
             border: 1,
             borderColor: "divider",
-            backgroundColor: trianglePreviewScreen.css,
-            pointerEvents: "none",
-            boxShadow: 2
+            boxShadow: 2,
+            overflow: "hidden"
           }}
-        />
+        >
+          <Box
+            sx={{
+              width: PREVIEW_SWATCH_WIDTH,
+              height: PREVIEW_SWATCH_HEIGHT,
+              flexShrink: 0,
+              backgroundColor: trianglePreviewScreen.newCss
+            }}
+          />
+          <Box
+            sx={{
+              width: PREVIEW_SWATCH_WIDTH,
+              height: PREVIEW_OLD_SWATCH_HEIGHT,
+              flexShrink: 0,
+              backgroundColor: trianglePreviewScreen.previousCss,
+              borderTop: 1,
+              borderTopColor: "divider",
+              boxSizing: "border-box"
+            }}
+          />
+        </Box>
       ) : null}
       <Box
         sx={{

@@ -348,6 +348,12 @@ const styles = (theme: Theme) =>
     "& .layer-item.group-layer.active .layer-name": {
       color: "inherit"
     },
+    "& .layer-item.layer-hidden .layer-name": {
+      color: theme.vars.palette.text.secondary
+    },
+    "& .layer-item.active.layer-hidden .layer-name": {
+      color: theme.vars.palette.text.secondary
+    },
     "& .layer-actions": {
       display: "flex",
       flexDirection: "column",
