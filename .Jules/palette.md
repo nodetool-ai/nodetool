@@ -62,6 +62,3 @@
 ## 2026-05-14 - Adding ARIA labels to custom editor modal buttons
 **Learning:** Icon-only UI buttons inside custom modals, such as `TextEditorModal`, `DataframeEditorModal`, and `SnippetSidebar`, were found to lack `aria-label` attributes. While they had visual tooltips, screen readers and automation tools (like Playwright's `get_by_role`) could not identify their purpose.
 **Action:** Always provide explicit `aria-label` properties on interactive elements that rely solely on icons to convey their action, ensuring the label matches the visual tooltip text and appropriately reflects dynamic states.
-## 2024-05-15 - Strictly use pnpm to prevent lockfile corruption
-**Learning:** Running `npm install` during local verification, even if an initial `pnpm build` fails or CI uses `npm ci`, pollutes the workspace by modifying `package-lock.json` and drops dependencies. This violates the strict boundary of "Never use npm or yarn (only pnpm)".
-**Action:** Exclusively use `pnpm` commands (`pnpm test`, `pnpm lint`, `pnpm build`) for local development and verification. If a `pnpm build` step encounters unresolved imports, skip adding new packages unless explicitly requested, and ensure `package-lock.json` and `package.json` are not committed as side-effects.
