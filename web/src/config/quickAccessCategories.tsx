@@ -92,13 +92,15 @@ const TOOLS_NODE_TYPES = new Set<string>([
   "nodetool.image.Blur",
   "nodetool.image.Channels",
   "nodetool.image.RotateAndFlip",
+  "nodetool.image.Levels",
+  "nodetool.image.Compositor",
+  "nodetool.image.Painter",
   "lib.image.filter.Invert",
   "lib.image.filter.ConvertToGrayscale",
   "lib.image.color_grading.Curves",
   "lib.image.color_grading.Exposure",
   "lib.image.color_grading.HSLAdjust",
-  "lib.image.Composite",
-  "lib.image.Blend"
+  "lib.image.Mask"
 ]);
 
 export const QUICK_ACCESS_CATEGORIES: readonly QuickAccessCategory[] = [

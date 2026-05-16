@@ -87,23 +87,7 @@ function createDrawNode(desc: Desc): NodeClass {
 
       let img = sharp(baseBytes, { failOn: "none" });
 
-      if (t === "lib.image.Blend") {
-        const other = await decodeImage((this as any).image2, context);
-        if (other) {
-          const alpha = Number((this as any).alpha ?? 0.5);
-          const adjusted = await sharp(other)
-            .ensureAlpha(Math.max(0, Math.min(1, alpha)))
-            .png()
-            .toBuffer();
-          const mixed = await sharp(baseBytes)
-            .composite([{ input: adjusted, blend: "over" }])
-            .png()
-            .toBuffer();
-          return { output: toRef(mixed, baseObj) };
-        }
-      }
-
-      if (t === "lib.image.Composite") {
+      if (t === "lib.image.Mask") {
         const fg = await decodeImage(
           (this as any).foreground ??
             (this as unknown as Record<string, unknown>).foreground ??
@@ -411,62 +395,8 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.image.Blend",
-    title: "Blend",
-    description:
-      "Blend two images with adjustable alpha mixing.\n    blend, mix, fade, transition\n\n    Use cases:\n    - Create smooth transitions between images\n    - Adjust opacity of overlays\n    - Combine multiple exposures or effects",
-    inlineFields: [],
-    inputFields:  ["image1", "image2"],
-    outputs: {
-      output: "image"
-    },
-    properties: [
-      {
-        name: "image1",
-        options: {
-          type: "image",
-          default: {
-            type: "image",
-            uri: "",
-            asset_id: null,
-            data: null,
-            metadata: null
-          },
-          title: "Image1",
-          description: "The first image to blend."
-        }
-      },
-      {
-        name: "image2",
-        options: {
-          type: "image",
-          default: {
-            type: "image",
-            uri: "",
-            asset_id: null,
-            data: null,
-            metadata: null
-          },
-          title: "Image2",
-          description: "The second image to blend."
-        }
-      },
-      {
-        name: "alpha",
-        options: {
-          type: "float",
-          default: 0.5,
-          title: "Alpha",
-          description: "The mix ratio.",
-          min: 0,
-          max: 1
-        }
-      }
-    ]
-  },
-  {
-    nodeType: "lib.image.Composite",
-    title: "Composite",
+    nodeType: "lib.image.Mask",
+    title: "Mask",
     description:
       "Combine two images using a mask for advanced compositing.\n    composite, mask, blend, layering\n\n    Use cases:\n    - Create complex image compositions\n    - Apply selective blending or effects\n    - Implement advanced photo editing techniques",
     inlineFields: [],

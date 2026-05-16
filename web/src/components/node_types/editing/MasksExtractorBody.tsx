@@ -50,7 +50,8 @@ const MASKS_EXTRACTOR_NODE_TYPES = [
   "replicate.image.background.Bria_RemoveBackground",
   "replicate.image.background.BackgroundRemover_851",
   "replicate.image.background.BackgroundRemover_Codeplug",
-  "replicate.image.process.RemoveBackground"
+  "replicate.image.process.RemoveBackground",
+  "fal.image_to_image.BriaBackgroundRemove"
 ] as const;
 
 type PreviewTab = "image" | "mask";
