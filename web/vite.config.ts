@@ -85,7 +85,10 @@ export default defineConfig(async ({ mode }) => {
       svgr()
     ],
     build: {
-      target: browserslistToEsbuild([">0.2%", "not dead", "not op_mini all"]),
+      // Note: `not ios < 14` excludes iOS 11–13. esbuild (via vite 8 / rolldown
+      // worker bundling) cannot downlevel certain destructuring patterns in
+      // monaco-editor's pre-bundled workers to those ancient targets.
+      target: browserslistToEsbuild([">0.2%", "not dead", "not op_mini all", "not ios < 14"]),
       sourcemap: isDebug,
       minify: isDebug ? false : "esbuild",
       ...(isDebug
