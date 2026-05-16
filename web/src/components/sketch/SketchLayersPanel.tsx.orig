@@ -1320,7 +1320,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             </IconButton>
           </Tooltip>
           <Tooltip title="Trim Active Layer To Bounds" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <span style={{ display: 'inline-flex' }}>
             <IconButton
               aria-label="Trim Active Layer To Bounds"
               size="small"
@@ -1334,7 +1333,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             >
               <FitScreenIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
-            </span>
           </Tooltip>
         </Box>
       </Box>

@@ -62,3 +62,6 @@
 ## 2026-05-14 - Adding ARIA labels to custom editor modal buttons
 **Learning:** Icon-only UI buttons inside custom modals, such as `TextEditorModal`, `DataframeEditorModal`, and `SnippetSidebar`, were found to lack `aria-label` attributes. While they had visual tooltips, screen readers and automation tools (like Playwright's `get_by_role`) could not identify their purpose.
 **Action:** Always provide explicit `aria-label` properties on interactive elements that rely solely on icons to convey their action, ensuring the label matches the visual tooltip text and appropriately reflects dynamic states.
+## 2024-05-16 - Tooltips on disabled IconButtons
+**Learning:** Tooltips do not show when the underlying `IconButton` is `disabled` because disabled elements do not fire pointer events in Material UI.
+**Action:** Always wrap potentially disabled interactive elements (like `<IconButton disabled>`) inside a `<Tooltip>` with a `<span style={{ display: 'inline-flex' }}>` tag. Using `inline-flex` maintains alignment and layout while catching the pointer events for the tooltip.
