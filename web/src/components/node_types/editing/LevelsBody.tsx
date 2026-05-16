@@ -27,7 +27,6 @@ import type { Theme } from "@mui/material/styles";
 import { ToggleGroup, ToggleOption } from "../../ui_primitives";
 import ImageIcon from "@mui/icons-material/Image";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
-import { shallow } from "zustand/shallow";
 
 import {
   CheckerDropzone,
@@ -43,8 +42,8 @@ import NodeProgress from "../../node/NodeProgress";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
+import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
 import { computeHistogramAsync } from "../../../utils/histogram/histogramAsync";
 import type { ImageHistogram } from "../../../utils/histogram/computeHistogram";
 
@@ -81,6 +80,11 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(0.5),
       minHeight: 0
     },
+    "& > .handle-column": {
+      top: theme.spacing(1),
+      bottom: theme.spacing(1),
+      left: `calc(${theme.spacing(-0.5)})`
+    },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
@@ -91,11 +95,6 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      "& > .handle-column": {
-        top: 0,
-        bottom: 0,
-        left: `calc(${theme.spacing(-0.5)})`
-      },
       "& img": {
         display: "block",
         maxWidth: "100%",
@@ -177,13 +176,6 @@ const asImageRef = (value: unknown): ImageRefLike | undefined => {
     height: typeof v.height === "number" ? (v.height as number) : undefined,
     data: v.data
   };
-};
-
-const unwrapOutput = (value: unknown): unknown => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
-  const v = value as Record<string, unknown>;
-  if ("output" in v) return v.output;
-  return value;
 };
 
 const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
@@ -318,11 +310,7 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
   const b_gamma = clampGamma(Number(props.b_gamma ?? 1));
   const b_white = clamp255(Number(props.b_white ?? 255));
 
-  const result = useResultsStore(
-    (state) => state.getResult(workflowId, id),
-    shallow
-  );
-  const previewValue = useMemo(() => unwrapOutput(result), [result]);
+  const previewValue = useNodeOutput(workflowId, id);
 
   const previewSource = useMemo<string | undefined>(() => {
     if (typeof previewValue === "string" && previewValue) return previewValue;
@@ -495,9 +483,9 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
       className="levels-body"
       data-bespoke-body="Levels"
     >
+      <HandleColumn id={id} properties={imageProperty} />
       <div className="preview-area">
         <ImagePreview value={previewValue} />
-        <HandleColumn id={id} properties={imageProperty} />
       </div>
 
       <div className="histogram-area">

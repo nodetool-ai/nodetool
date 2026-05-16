@@ -20,7 +20,9 @@ jest.mock("../../../../stores/ResultsStore", () => ({
   __esModule: true,
   default: jest.fn((selector: any) =>
     selector({
-      getResult: () => null
+      getOutputResult: () => undefined,
+      getResult: () => undefined,
+      getPreview: () => undefined
     })
   )
 }));
@@ -42,8 +44,10 @@ const defaultProps = {
   nodeType: "nodetool.image.Levels",
   nodeMetadata: {
     node_type: "nodetool.image.Levels",
-    properties: [{ name: "image", type: "image" }],
-    outputs: [{ name: "output", type: "image" }],
+    properties: [
+      { name: "image", type: { type: "image", type_args: [] } }
+    ],
+    outputs: [{ name: "output", type: { type: "image", type_args: [] } }],
     is_streaming_output: false
   } as unknown as import("../../../../stores/ApiTypes").NodeMetadata,
   data: { properties: {} } as import("../../../../stores/NodeData").NodeData,
@@ -70,7 +74,12 @@ describe("LevelsBody", () => {
       output: { uri: "http://example.com/image.png" }
     }));
     require("../../../../stores/ResultsStore").default.mockImplementation(
-      (selector: any) => selector({ getResult: mockGetResult })
+      (selector: any) =>
+        selector({
+          getOutputResult: () => undefined,
+          getPreview: () => undefined,
+          getResult: mockGetResult
+        })
     );
 
     renderWithTheme(<LevelsBody {...defaultProps} />);
