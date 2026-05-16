@@ -48,6 +48,19 @@ export interface UseDirectGenJobApi {
   cancel: (layerId: string) => void;
 }
 
+// Module-level so cancel() can tear down an in-flight subscription started by
+// start() in a different render. Without this the RPC handler keeps running
+// after cancel and overwrites the user-set "draft" status with "generated".
+const inFlight = new Map<string, () => void>();
+
+const clearInFlight = (layerId: string): void => {
+  const teardown = inFlight.get(layerId);
+  if (teardown) {
+    teardown();
+    inFlight.delete(layerId);
+  }
+};
+
 export function useDirectGenJob(): UseDirectGenJobApi {
   const start = useCallback(async (layerId: string) => {
     const bindings = useSketchSessionStore.getState();
@@ -109,6 +122,11 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       }
     }
 
+    // Tear down any stale subscription left behind by a previous run on this
+    // layer (e.g. cancelled but the RPC still in flight) so its handler can't
+    // settle on top of this one.
+    clearInFlight(layerId);
+
     const requestId = randomId();
     bindings.patchBinding(layerId, { status: "generating" });
 
@@ -118,6 +136,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
         unsubscribe();
         unsubscribe = undefined;
       }
+      inFlight.delete(layerId);
     };
 
     const settle = async (msg: DirectGenRpcResponse) => {
@@ -179,6 +198,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       if (msg.type !== "rpc_response") return;
       void settle(msg as DirectGenRpcResponse);
     });
+    inFlight.set(layerId, cleanup);
 
     try {
       await globalWebSocketManager.send({
@@ -206,6 +226,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
   }, []);
 
   const cancel = useCallback((layerId: string) => {
+    clearInFlight(layerId);
     useSketchSessionStore
       .getState()
       .patchBinding(layerId, { status: "draft" });
