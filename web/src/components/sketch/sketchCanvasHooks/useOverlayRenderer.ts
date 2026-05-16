@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useEffect, useRef } from "react";
+import { alpha, useTheme } from "@mui/material/styles";
 import type {
   SketchDocument,
   SketchTool,
@@ -132,6 +133,7 @@ export function useOverlayRenderer({
   lassoPointsRef,
   onScreenCanvasMetricsChange
 }: UseOverlayRendererParams): UseOverlayRendererResult {
+  const theme = useTheme();
 
   // ─── Screen-resolution canvas sizing (cursor + selection + gizmo) ───
 
@@ -677,11 +679,13 @@ export function useOverlayRenderer({
           const pixelSize = zoom;
 
           ctx.save();
-          // Filled pixel preview with tool color at low opacity
-          ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+          const crispOutline = alpha(theme.palette.grey[400], 0.82);
+          const crispCross = alpha(theme.palette.grey[600], 0.88);
+          // Muted gray fill + outline (high-zoom 1px dab preview)
+          ctx.fillStyle = alpha(theme.palette.grey[500], 0.32);
           ctx.fillRect(pixelScreenX, pixelScreenY, pixelSize, pixelSize);
           // Outline
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+          ctx.strokeStyle = crispOutline;
           ctx.lineWidth = 1;
           ctx.strokeRect(pixelScreenX + 0.5, pixelScreenY + 0.5, pixelSize - 1, pixelSize - 1);
           ctx.restore();
@@ -691,7 +695,7 @@ export function useOverlayRenderer({
           const cy = pixelScreenY + pixelSize / 2;
           const crossLen = Math.max(4, pixelSize * 0.3);
           ctx.save();
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+          ctx.strokeStyle = crispCross;
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(cx - crossLen, cy);
@@ -715,16 +719,25 @@ export function useOverlayRenderer({
         ctx.rotate(angleRad);
       }
 
-      // Outer white ring
+      const rx = Math.max(1, screenRadiusX);
+      const ry = Math.max(1, screenRadiusY);
+
+      // Faint primary halo → light gray outline → dark gray dashed inner (avoids pure white)
       ctx.beginPath();
-      ctx.ellipse(0, 0, Math.max(1, screenRadiusX), Math.max(1, screenRadiusY), 0, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
-      ctx.lineWidth = 1;
+      ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = alpha(theme.palette.primary.main, 0.14);
+      ctx.lineWidth = 3;
       ctx.stroke();
-      // Inner dark ring for contrast
+
       ctx.beginPath();
-      ctx.ellipse(0, 0, Math.max(1, screenRadiusX), Math.max(1, screenRadiusY), 0, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
+      ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = alpha(theme.palette.grey[400], 0.96);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = alpha(theme.palette.grey[900], 0.42);
       ctx.lineWidth = 1;
       ctx.setLineDash([2, 2]);
       ctx.stroke();
@@ -735,7 +748,7 @@ export function useOverlayRenderer({
       // Center dot (unrotated)
       ctx.beginPath();
       ctx.arc(localX, localY, 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.fillStyle = alpha(theme.palette.grey[700], 0.92);
       ctx.fill();
 
       // Clone stamp: draw a crosshair at the clone source position
@@ -799,7 +812,8 @@ export function useOverlayRenderer({
       pan,
       cursorCanvasRef,
       containerRef,
-      displayCanvasRef
+      displayCanvasRef,
+      theme
     ]
   );
 

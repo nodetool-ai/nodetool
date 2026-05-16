@@ -1438,9 +1438,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                   </IconButton>
                 </span>
               </Tooltip>
-              {/* Note: the top toolbar's Delete button already routes to
-                  onDeleteSelectedLayers when 2+ layers are selected, so no
-                  separate "Remove selected layers" button is needed here. */}
             </>
           ) : null}
         </Box>
