@@ -2101,6 +2101,131 @@ export class CompositorNode extends BaseNode {
   }
 }
 
+/**
+ * Painter — paint an alpha mask atop a source image. The mask is
+ * authored interactively in the web UI; `mask_data` carries a base64
+ * PNG of the painted mask (alpha == painted opacity). On execution we
+ * decode `mask_data` into an image output (the mask itself) and emit
+ * the source image alongside for downstream pipelines.
+ *
+ * Plan §9.E9 / §12. Standalone (not an extension of the sketch node) so
+ * the bespoke body stays focused on the paint-on-image workflow.
+ */
+export class PainterNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.Painter";
+  static readonly title = "Painter";
+  static readonly description =
+    "Paint an alpha mask on top of an image and output the mask.\n    image, painter, mask, brush, paint";
+  static readonly metadataOutputTypes = {
+    mask: "image",
+    image: "image"
+  };
+  static readonly inlineFields = ["mask_data"];
+  static readonly inputFields = [];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Source image painted on (passed through to output)."
+  })
+  declare image: unknown;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Mask data",
+    description:
+      "Base64-encoded PNG of the painted alpha mask. Managed by the UI."
+  })
+  declare mask_data: unknown;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+
+    // Pass the source image through (resolved bytes if available) so
+    // downstream nodes that want the original image can branch off the
+    // Painter without re-loading the asset.
+    const imageBytes = await imageBytesAsync(image, context);
+    const imageOut = imageBytes.length > 0
+      ? imageRef(imageBytes, {
+          uri: image.uri ?? "",
+          width: image.width ?? undefined,
+          height: image.height ?? undefined
+        })
+      : { ...image };
+
+    // Decode the painted mask. Empty mask_data → blank mask matching
+    // image dimensions (alpha = 0 everywhere).
+    const maskStr = typeof this.mask_data === "string" ? this.mask_data : "";
+    const maskBytes = toBytes(maskStr);
+
+    if (maskBytes.length === 0) {
+      // Fall back to a transparent canvas the size of the source image
+      // (or 1×1 if dimensions are unknown).
+      const w = Math.max(1, Number(image.width ?? 1));
+      const h = Math.max(1, Number(image.height ?? 1));
+      try {
+        const blank = await sharp({
+          create: {
+            width: w,
+            height: h,
+            channels: 4,
+            background: { r: 0, g: 0, b: 0, alpha: 0 }
+          }
+        })
+          .png()
+          .toBuffer();
+        const meta = await metadataFor(new Uint8Array(blank));
+        return {
+          mask: imageRef(new Uint8Array(blank), {
+            uri: "",
+            mimeType: "image/png",
+            width: meta.width,
+            height: meta.height
+          }),
+          image: imageOut
+        };
+      } catch {
+        return {
+          mask: imageRef(new Uint8Array(), { uri: "" }),
+          image: imageOut
+        };
+      }
+    }
+
+    // Re-encode the mask as PNG to normalize and pick up dimensions.
+    try {
+      const out = await sharp(maskBytes, { failOn: "none" })
+        .png()
+        .toBuffer();
+      const meta = await metadataFor(new Uint8Array(out));
+      return {
+        mask: imageRef(new Uint8Array(out), {
+          uri: "",
+          mimeType: "image/png",
+          width: meta.width,
+          height: meta.height
+        }),
+        image: imageOut
+      };
+    } catch {
+      return {
+        mask: imageRef(maskBytes, { uri: "" }),
+        image: imageOut
+      };
+    }
+  }
+}
+
 export const IMAGE_NODES = [
   LoadImageFileNode,
   LoadImageFolderNode,
@@ -2122,5 +2247,6 @@ export const IMAGE_NODES = [
   TextToImageNode,
   ImageToImageNode,
   ImageEditorNode,
-  CompositorNode
+  CompositorNode,
+  PainterNode
 ] as const;

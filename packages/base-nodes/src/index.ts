@@ -299,6 +299,7 @@ export {
   ImageToImageNode,
   ImageEditorNode,
   CompositorNode,
+  PainterNode,
   IMAGE_NODES
 } from "./nodes/image.js";
 export {

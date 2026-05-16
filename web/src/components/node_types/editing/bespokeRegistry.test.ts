@@ -9,6 +9,7 @@ import CompositorBody from "./CompositorBody";
 import CropBody from "./CropBody";
 import LevelsBody from "./LevelsBody";
 import MasksExtractorBody from "./MasksExtractorBody";
+import PainterBody from "./PainterBody";
 import ResizeBody from "./ResizeBody";
 import RotateAndFlipBody from "./RotateAndFlipBody";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
@@ -70,6 +71,13 @@ describe("bespokeRegistry", () => {
     expect(BESPOKE_BODY_REGISTRY["nodetool.image.Compositor"]).toBe(
       CompositorBody
     );
+  });
+
+  it("maps nodetool.image.Painter → PainterBody", () => {
+    const m = meta("nodetool.image.Painter");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(PainterBody);
+    expect(BESPOKE_BODY_REGISTRY["nodetool.image.Painter"]).toBe(PainterBody);
   });
 
   it("maps nodetool.image.Crop → CropBody", () => {
