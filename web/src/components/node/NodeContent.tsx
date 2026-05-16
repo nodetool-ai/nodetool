@@ -9,6 +9,7 @@ import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
 import { isContentCardNode } from "../node_types/contentCardRegistry";
 import ContentCardBody from "../node_types/ContentCardBody";
+import { getBespokeBody } from "../node_types/editing/bespokeRegistry";
 import HandleColumn from "./HandleColumn";
 import { isSnippetCodeNode } from "./codeNodeUi";
 import { resolveExposedInputNames } from "../../utils/exposedInputs";
@@ -173,11 +174,25 @@ const NodeContent: React.FC<NodeContentProps> = ({
   );
 
   // Body routing (plan §4.1):
-  //   bespoke registry (Track E — future)
+  //   bespoke registry (Track E)
   //     → content-card registry  (PR 4+)
   //       → generic body (this component's default layout)
   // Utility nodes (control flow, constants, etc.) intentionally never appear
-  // in CONTENT_CARD_REGISTRY and stay on the generic body forever.
+  // in either registry and stay on the generic body forever.
+  const BespokeBody = getBespokeBody(nodeMetadata);
+  if (BespokeBody) {
+    return (
+      <BespokeBody
+        id={id}
+        nodeType={nodeType}
+        nodeMetadata={nodeMetadata}
+        data={data}
+        workflowId={workflowId}
+        status={status}
+        isOutputNode={isOutputNode}
+      />
+    );
+  }
   if (isContentCardNode(nodeMetadata)) {
     return (
       <ContentCardBody
