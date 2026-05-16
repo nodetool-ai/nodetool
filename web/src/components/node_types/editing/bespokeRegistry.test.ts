@@ -3,6 +3,7 @@ import {
   getBespokeBody,
   isBespokeNode
 } from "./bespokeRegistry";
+import CropBody from "./CropBody";
 import ResizeBody from "./ResizeBody";
 import RotateAndFlipBody from "./RotateAndFlipBody";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
@@ -18,8 +19,15 @@ describe("bespokeRegistry", () => {
 
   it("does not match utility / generic nodes", () => {
     expect(isBespokeNode(meta("nodetool.control.If"))).toBe(false);
-    expect(isBespokeNode(meta("nodetool.image.Crop"))).toBe(false);
-    expect(getBespokeBody(meta("nodetool.image.Crop"))).toBeUndefined();
+    expect(isBespokeNode(meta("nodetool.image.Blur"))).toBe(false);
+    expect(getBespokeBody(meta("nodetool.image.Blur"))).toBeUndefined();
+  });
+
+  it("maps nodetool.image.Crop → CropBody", () => {
+    const m = meta("nodetool.image.Crop");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(CropBody);
+    expect(BESPOKE_BODY_REGISTRY["nodetool.image.Crop"]).toBe(CropBody);
   });
 
   it("maps nodetool.image.Resize → ResizeBody", () => {
