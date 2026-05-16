@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
 import { resolve } from "node:path";
 import { registerChildShutdownHandlers } from "../../../scripts/child-shutdown.mjs";
-import { getTsxWatchCommand } from "../../../scripts/dev-commands.mjs";
+import {
+  getTsxWatchCommand,
+  tsxWatchExcludeGlobs
+} from "../../../scripts/dev-commands.mjs";
 
 class FakeProcess extends EventEmitter {
   exit = vi.fn();
@@ -180,10 +183,16 @@ describe("registerChildShutdownHandlers", () => {
 describe("getTsxWatchCommand", () => {
   it("uses the repo-local tsx CLI through node", () => {
     const repoRoot = resolve(import.meta.dirname, "../../..");
+    const excludeArgs = tsxWatchExcludeGlobs.flatMap((pattern) => ["--exclude", pattern]);
 
     expect(getTsxWatchCommand(repoRoot, "entry.ts")).toEqual({
       command: process.execPath,
-      args: [resolve(repoRoot, "node_modules", "tsx", "dist", "cli.mjs"), "--watch", "entry.ts"]
+      args: [
+        resolve(repoRoot, "node_modules", "tsx", "dist", "cli.mjs"),
+        "watch",
+        ...excludeArgs,
+        "entry.ts"
+      ]
     });
   });
 });

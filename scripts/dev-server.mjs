@@ -4,7 +4,9 @@
  * Vite-like dev server for the TypeScript backend.
  *
  * Uses tsx to run the server directly from TypeScript source — no build step.
- * Watches all imported files and restarts automatically on changes.
+ * `tsx watch` restarts on source changes; prebuilt package output under
+ * packages/*/dist is excluded so parallel `npm run build:packages` does not
+ * cause a restart storm (see scripts/dev-commands.mjs).
  *
  * Usage:
  *   node scripts/dev-server.mjs              # default: server mode
@@ -101,7 +103,7 @@ if (await isPortInUse(host, port)) {
   process.exit(0);
 }
 
-console.log(`\n  Starting dev server (tsx --watch) on http://${host}:${port}`);
+console.log(`\n  Starting dev server (tsx watch) on http://${host}:${port}`);
 console.log(`  Entry: ${entrypoints[mode]}`);
 console.log(`  Changes to any imported .ts file will trigger a restart.\n`);
 
