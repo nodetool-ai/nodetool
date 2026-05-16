@@ -1707,24 +1707,26 @@ export class ChannelsNode extends TransformImageNode {
     const image = (this.image ?? {}) as ImageRefLike;
     const channel = String(this.channel ?? "luminance");
 
+    // Validate channel up-front so an invalid value surfaces as a hard error
+    // (transformImage's catch would otherwise swallow it).
+    const idx =
+      channel === "luminance" ? -1 :
+      channel === "green" ? 1 :
+      channel === "blue"  ? 2 :
+      channel === "alpha" ? 3 :
+      channel === "red"   ? 0 :
+      null;
+    if (idx === null) {
+      throw new Error(`Unsupported channel: ${channel}`);
+    }
+
     const output = (await transformImage(
       image,
-      (instance) => {
-        if (channel === "luminance") {
-          return instance.grayscale();
-        }
-        const idx =
-          channel === "green" ? 1 :
-          channel === "blue"  ? 2 :
-          channel === "alpha" ? 3 :
-          channel === "red"   ? 0 :
-          null;
-        if (idx === null) {
-          throw new Error(`Unsupported channel: ${channel}`);
-        }
-        // ensureAlpha guarantees channel 3 exists when the source is RGB.
-        return instance.ensureAlpha().extractChannel(idx);
-      },
+      (instance) =>
+        idx === -1
+          ? instance.grayscale()
+          : // ensureAlpha guarantees channel 3 exists when the source is RGB.
+            instance.ensureAlpha().extractChannel(idx),
       context
     )) as Record<string, unknown>;
     return { output };
