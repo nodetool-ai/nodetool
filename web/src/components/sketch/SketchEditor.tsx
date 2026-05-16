@@ -58,6 +58,7 @@ import {
   ConnectedToolbar,
   ConnectedToolTopBar,
   ConnectedLayersPanel,
+  ConnectedCanvasSizePanel,
   ConnectedContextMenu,
   SketchCanvasPane
 } from "./editor-shell";
@@ -344,7 +345,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onCropCanvasToActiveLayerExtents={
               session.canvasActions.handleCropCanvasToActiveLayerExtents
             }
-            onCanvasResize={session.canvasActions.handleCanvasResize}
             onToggleVisibility={session.layerActions.handleToggleVisibility}
             onAddLayer={(fillColor) =>
               session.layerActions.handleAddLayer({
@@ -368,11 +368,29 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onGroupSelectedLayers={session.layerActions.handleGroupSelectedLayers}
             onMergeSelectedLayers={session.layerActions.handleMergeSelectedLayers}
             onDeleteSelectedLayers={session.layerActions.handleDeleteSelectedLayers}
+            onLoadLayerAsSelection={session.canvasActions.handleLoadLayerAsSelection}
+          />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          className="sketch-editor__canvas-section"
+          title="Canvas"
+          defaultOpen={false}
+          compact
+          sx={{
+            borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+            "& > [role='button']": {
+              padding: theme.spacing(0.75, 1),
+              backgroundColor: theme.vars.palette.grey[800]
+            }
+          }}
+        >
+          <ConnectedCanvasSizePanel
+            onCanvasResize={session.canvasActions.handleCanvasResize}
             canvasResizeHandlesEnabled={session.canvasResizeHandlesEnabled}
             onCanvasResizeHandlesEnabledChange={
               session.handleCanvasResizeHandlesEnabledChange
             }
-            onLoadLayerAsSelection={session.canvasActions.handleLoadLayerAsSelection}
           />
         </CollapsibleSection>
 

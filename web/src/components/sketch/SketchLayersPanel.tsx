@@ -2,12 +2,13 @@
  * SketchLayersPanel
  *
  * Panel for managing layers: visibility, reorder, add, delete, duplicate,
- * rename, opacity, and mask designation. Also contains canvas size presets.
+ * rename, opacity, and mask designation.
  */
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useState, useRef, useMemo } from "react";
+import AddIcon from "@mui/icons-material/Add";
 import {
   sketchSliderSx,
   SKETCH_CHECKERBOARD,
@@ -24,20 +25,16 @@ import {
   IconButton,
   Menu,
   Slider,
-  TextField,
   Tooltip,
   Typography,
   Divider,
   Select,
   MenuItem,
-  FormControl,
-  Switch
+  FormControl
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import CheckIcon from "@mui/icons-material/Check";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import GradientIcon from "@mui/icons-material/Gradient";
@@ -45,8 +42,6 @@ import CallMergeIcon from "@mui/icons-material/CallMerge";
 import LayersIcon from "@mui/icons-material/Layers";
 import LockIcon from "@mui/icons-material/Lock";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import LayersClearIcon from "@mui/icons-material/LayersClear";
@@ -54,7 +49,6 @@ import FlipCameraAndroidIcon from "@mui/icons-material/FlipCameraAndroid";
 import {
   Layer,
   BlendMode,
-  CANVAS_PRESETS,
   coerceBlendMode,
   summarizeLayerImageReference,
   buildLayersPanelRows,
@@ -65,9 +59,7 @@ import type { DropPosition } from "./LayerItem";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import { useSketchStore } from "./state/useSketchStore";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
-import { useCollapsedSections } from "./useCollapsedSections";
 import { getMergeSelectedLayersPlan } from "./layerMergeSelection";
-import { StateIconButton } from "../ui_primitives";
 import { CreateGeneratedLayerDialog } from "./Inspector/CreateGeneratedLayerDialog";
 
 /**
@@ -145,81 +137,6 @@ function quickCycleDirectionForArrowKey(key: string): -1 | 1 | null {
   }
   return null;
 }
-
-type PanelSectionKey = "canvasSize";
-
-// ─── Collapsible PanelSection component ───────────────────────────────────
-
-interface PanelSectionProps {
-  title: string;
-  sectionKey: PanelSectionKey;
-  collapsed: boolean;
-  onToggle: (key: PanelSectionKey) => void;
-  children: React.ReactNode;
-  /** Optional control on the right (e.g. toggle); click does not collapse the section. */
-  titleEndAdornment?: React.ReactNode;
-}
-
-const PanelSection = memo(function PanelSection({
-  title,
-  sectionKey,
-  collapsed,
-  onToggle,
-  children,
-  titleEndAdornment
-}: PanelSectionProps) {
-  const handleClick = useCallback(() => {
-    onToggle(sectionKey);
-  }, [sectionKey, onToggle]);
-
-  return (
-    <>
-      <Box
-        className="sketch-layers-panel__section-header"
-        onClick={handleClick}
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          cursor: "pointer",
-          userSelect: "none",
-          mt: "2px",
-          width: "100%",
-          "&:hover": {
-            "& .section-label": { color: "grey.200" },
-            "& .collapse-icon": { color: "grey.200" }
-          }
-        }}
-      >
-        {collapsed ? (
-          <ChevronRightIcon
-            className="collapse-icon"
-            sx={{ fontSize: "0.85rem", color: "grey.500", mr: "2px" }}
-          />
-        ) : (
-          <ExpandMoreIcon
-            className="collapse-icon"
-            sx={{ fontSize: "0.85rem", color: "grey.500", mr: "2px" }}
-          />
-        )}
-        <Typography className="section-label" sx={{ flex: 1 }}>
-          {title}
-        </Typography>
-        {titleEndAdornment ? (
-          <Box
-            className="sketch-layers-panel__section-header-adornment"
-            onClick={(ev) => {
-              ev.stopPropagation();
-            }}
-            sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}
-          >
-            {titleEndAdornment}
-          </Box>
-        ) : null}
-      </Box>
-      {!collapsed && children}
-    </>
-  );
-});
 
 const styles = (theme: Theme) =>
   css({
@@ -402,15 +319,6 @@ const styles = (theme: Theme) =>
       "& .MuiSlider-root": {
         flex: 1
       }
-    },
-    "& .hex-input": {
-      "& .MuiInputBase-root": {
-        fontSize: SKETCH_FONT.md,
-        height: "28px"
-      },
-      "& .MuiInputBase-input": {
-        padding: `${SKETCH_SPACING.sm} ${SKETCH_SPACING.lg}`
-      }
     }
   });
 
@@ -448,12 +356,6 @@ export interface SketchLayersPanelProps {
   onTrimLayerToBounds: () => void;
   onCropCanvasToActiveLayerVisiblePixels: () => void;
   onCropCanvasToActiveLayerExtents: () => void;
-  canvasWidth: number;
-  canvasHeight: number;
-  onCanvasResize: (width: number, height: number) => void;
-  /** Edge resize handles on the canvas (persisted via parent). */
-  canvasResizeHandlesEnabled: boolean;
-  onCanvasResizeHandlesEnabledChange: (enabled: boolean) => void;
   onAddGroup: (name?: string) => void;
   onToggleGroupCollapsed: (groupId: string) => void;
   onMoveLayerToGroup: (layerId: string, groupId: string | null) => void;
@@ -497,11 +399,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onTrimLayerToBounds,
   onCropCanvasToActiveLayerVisiblePixels,
   onCropCanvasToActiveLayerExtents,
-  canvasWidth,
-  canvasHeight,
-  onCanvasResize,
-  canvasResizeHandlesEnabled,
-  onCanvasResizeHandlesEnabledChange,
   onAddGroup,
   onToggleGroupCollapsed,
   onMoveLayerToGroup,
@@ -528,13 +425,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     position: DropPosition;
   } | null>(null);
   const dragSourceIndex = useRef<number | null>(null);
-
-  // ─── Collapsible section state (persisted in localStorage) ────────
-  const [collapsedSections, handleToggleSection] =
-    useCollapsedSections<PanelSectionKey>(
-      "nodetool-sketch-layers-panel-collapsed",
-      { canvasSize: true }
-    );
 
   // ─── Per-layer generation status (for status badges) ──────────────
   // Subscribe to the bindings dictionary so each row picks up status flips
@@ -583,37 +473,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     },
     [layers, upsertBinding]
   );
-
-  // ─── Custom canvas size state ─────────────────────────────────────
-  const [customWidth, setCustomWidth] = useState(String(canvasWidth));
-  const [customHeight, setCustomHeight] = useState(String(canvasHeight));
-
-  useEffect(() => {
-    setCustomWidth(String(canvasWidth));
-    setCustomHeight(String(canvasHeight));
-  }, [canvasWidth, canvasHeight]);
-
-  const canvasCustomSizeApply = useMemo(() => {
-    const w = parseInt(customWidth, 10);
-    const h = parseInt(customHeight, 10);
-    const valid =
-      Number.isFinite(w) &&
-      Number.isFinite(h) &&
-      w > 0 &&
-      h > 0 &&
-      w <= 4096 &&
-      h <= 4096;
-    const dirty = valid && (w !== canvasWidth || h !== canvasHeight);
-    return { valid, dirty, w, h };
-  }, [customWidth, customHeight, canvasWidth, canvasHeight]);
-
-  const handleApplyCustomSize = useCallback(() => {
-    const { valid, dirty, w, h } = canvasCustomSizeApply;
-    if (!valid || !dirty) {
-      return;
-    }
-    onCanvasResize(w, h);
-  }, [canvasCustomSizeApply, onCanvasResize]);
 
   const handleStartRename = useCallback(
     (layerId: string, currentName: string) => {
@@ -1002,42 +861,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     e.stopPropagation();
     cycleBlendMode(e.deltaY > 0 ? 1 : -1);
   }, [cycleBlendMode]);
-
-  const cycleCanvasPreset = useCallback((direction: -1 | 1) => {
-    const currentIndex = CANVAS_PRESETS.findIndex(
-      (preset) => preset.width === canvasWidth && preset.height === canvasHeight
-    );
-    const next = cycleArrayValue(CANVAS_PRESETS, currentIndex, direction);
-    if (next) {
-      onCanvasResize(next.width, next.height);
-    }
-  }, [canvasWidth, canvasHeight, onCanvasResize]);
-
-  const handleCanvasPresetQuickCycleKeyDownCapture = useCallback((
-    e: React.KeyboardEvent
-  ) => {
-    if (e.altKey || e.ctrlKey || e.metaKey) {
-      return;
-    }
-    const direction = quickCycleDirectionForArrowKey(e.key);
-    if (direction === null) {
-      return;
-    }
-    e.preventDefault();
-    e.stopPropagation();
-    cycleCanvasPreset(direction);
-  }, [cycleCanvasPreset]);
-
-  const handleCanvasPresetQuickCycleWheelCapture = useCallback((
-    e: React.WheelEvent
-  ) => {
-    if (e.deltaY === 0) {
-      return;
-    }
-    e.preventDefault();
-    e.stopPropagation();
-    cycleCanvasPreset(e.deltaY > 0 ? 1 : -1);
-  }, [cycleCanvasPreset]);
 
   return (
     <Box
@@ -1654,126 +1477,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           ) : null}
         </>
       )}
-
-      {/* Push bottom sections down */}
-      <Box className="sketch-layers-panel__footer-spacer" sx={{ marginTop: "auto" }} />
-
-      <Divider />
-
-      {/* ── Canvas Size (collapsible, collapsed by default) ────────── */}
-      <Box className="sketch-layers-panel__canvas-size">
-        <PanelSection
-          title="Canvas Size"
-          sectionKey="canvasSize"
-          collapsed={collapsedSections.canvasSize}
-          onToggle={handleToggleSection}
-          titleEndAdornment={
-            <Tooltip
-              title={
-                canvasResizeHandlesEnabled
-                  ? "Hide resize handles on canvas"
-                  : "Show resize handles on canvas"
-              }
-              placement="left"
-              enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-              enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
-            >
-              <Switch
-                size="small"
-                checked={canvasResizeHandlesEnabled}
-                onChange={(_, checked) => onCanvasResizeHandlesEnabledChange(checked)}
-                inputProps={{
-                  "aria-label": "Toggle canvas resize handles"
-                }}
-              />
-            </Tooltip>
-          }
-        >
-          <Select
-            size="small"
-            displayEmpty
-            value=""
-            onChange={(e) => {
-              const preset = CANVAS_PRESETS.find(
-                (p) => p.label === e.target.value
-              );
-              if (preset) {
-                onCanvasResize(preset.width, preset.height);
-              }
-            }}
-            onKeyDownCapture={handleCanvasPresetQuickCycleKeyDownCapture}
-            onWheelCapture={handleCanvasPresetQuickCycleWheelCapture}
-            sx={{
-              width: "100%",
-              fontSize: SKETCH_FONT.sm,
-              "& .MuiSelect-select": { padding: "3px 8px" }
-            }}
-            renderValue={() => {
-              const match = CANVAS_PRESETS.find(
-                (p) => p.width === canvasWidth && p.height === canvasHeight
-              );
-              return (
-                <Typography
-                  sx={{
-                    fontSize: SKETCH_FONT.sm,
-                    color: match ? "grey.200" : SKETCH_COLORS.textFaint
-                  }}
-                >
-                  {match ? match.label : "Presets…"}
-                </Typography>
-              );
-            }}
-          >
-            {CANVAS_PRESETS.map((preset) => (
-              <MenuItem
-                key={preset.label}
-                value={preset.label}
-                sx={{ fontSize: SKETCH_FONT.sm }}
-              >
-                {preset.label} — {preset.width}×{preset.height}
-              </MenuItem>
-            ))}
-          </Select>
-          <Box
-            sx={{ display: "flex", gap: "4px", mt: "6px", alignItems: "center" }}
-          >
-            <TextField
-              className="hex-input"
-              size="small"
-              label="W"
-              type="number"
-              value={customWidth}
-              onChange={(e) => setCustomWidth(e.target.value)}
-              inputProps={{ min: 1, max: 4096, step: 1 }}
-              sx={{ flex: 1, minWidth: 0, "& .MuiInputLabel-root": { fontSize: SKETCH_FONT.sm } }}
-            />
-            <Typography sx={{ fontSize: SKETCH_FONT.md, color: SKETCH_COLORS.textFaint }}>
-              ×
-            </Typography>
-            <TextField
-              className="hex-input"
-              size="small"
-              label="H"
-              type="number"
-              value={customHeight}
-              onChange={(e) => setCustomHeight(e.target.value)}
-              inputProps={{ min: 1, max: 4096, step: 1 }}
-              sx={{ flex: 1, minWidth: 0, "& .MuiInputLabel-root": { fontSize: SKETCH_FONT.sm } }}
-            />
-            <StateIconButton
-              icon={<CheckIcon sx={{ fontSize: 18 }} />}
-              tooltip="Apply canvas size"
-              ariaLabel="Apply canvas size"
-              onClick={handleApplyCustomSize}
-              isActive={canvasCustomSizeApply.dirty}
-              color="primary"
-              disabled={!canvasCustomSizeApply.dirty}
-              size="small"
-              sx={{ flexShrink: 0 }}
-            />
-          </Box>
-        </PanelSection>
-      </Box>
 
       {/* ── Layer context menu ──────────────────────────────────── */}
       {(() => {

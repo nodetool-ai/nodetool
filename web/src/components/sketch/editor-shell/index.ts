@@ -10,6 +10,7 @@
  * - ConnectedToolbar
  * - ConnectedToolTopBar
  * - ConnectedLayersPanel
+ * - ConnectedCanvasSizePanel
  * - ConnectedContextMenu
  * - SketchCanvasPane
  */
@@ -19,6 +20,8 @@ export { ConnectedToolTopBar } from "./ConnectedToolTopBar";
 export type { ConnectedToolTopBarProps } from "./ConnectedToolTopBar";
 export { ConnectedLayersPanel } from "./ConnectedLayersPanel";
 export type { ConnectedLayersPanelProps } from "./ConnectedLayersPanel";
+export { ConnectedCanvasSizePanel } from "./ConnectedCanvasSizePanel";
+export type { ConnectedCanvasSizePanelProps } from "./ConnectedCanvasSizePanel";
 export { ConnectedContextMenu } from "./ConnectedContextMenu";
 export type { ConnectedContextMenuProps } from "./ConnectedContextMenu";
 export { SketchCanvasPane } from "./SketchCanvasPane";

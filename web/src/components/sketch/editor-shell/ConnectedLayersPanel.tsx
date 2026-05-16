@@ -1,10 +1,8 @@
 /**
  * ConnectedLayersPanel — subscribes to narrow document sub-fields (layers,
- * activeLayerId, maskLayerId, canvas dimensions), selectedLayerIds,
+ * activeLayerId, maskLayerId), selectedLayerIds,
  * isolatedLayerId, panelsHidden, foregroundColor, and activeTool.
  * Does NOT re-render on toolSettings, viewport, or selection changes.
- * Canvas-metadata changes (activeLayerId, maskLayerId, canvas dimensions) only
- * trigger a rerender when they actually change, not on every layer-data mutation.
  */
 import React, { memo } from "react";
 import SketchLayersPanel from "../SketchLayersPanel";
@@ -21,7 +19,6 @@ export interface ConnectedLayersPanelProps {
   onTrimLayerToBounds: () => void;
   onCropCanvasToActiveLayerVisiblePixels: () => void;
   onCropCanvasToActiveLayerExtents: () => void;
-  onCanvasResize: (width: number, height: number) => void;
   onToggleVisibility: (layerId: string) => void;
   onAddLayer: (fillColor?: string | null) => void;
   onRemoveLayer: (layerId: string) => void;
@@ -41,8 +38,6 @@ export interface ConnectedLayersPanelProps {
   onGroupSelectedLayers: () => void;
   onMergeSelectedLayers: () => void;
   onDeleteSelectedLayers: () => void;
-  canvasResizeHandlesEnabled: boolean;
-  onCanvasResizeHandlesEnabledChange: (enabled: boolean) => void;
   onLoadLayerAsSelection: (layerId: string) => void;
 }
 
@@ -53,8 +48,6 @@ export const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
   const layers = useSketchStore((s) => s.document.layers);
   const activeLayerId = useSketchStore((s) => s.document.activeLayerId);
   const maskLayerId = useSketchStore((s) => s.document.maskLayerId);
-  const canvasWidth = useSketchStore((s) => s.document.canvas.width);
-  const canvasHeight = useSketchStore((s) => s.document.canvas.height);
   const selectedLayerIds = useSketchStore((s) => s.selectedLayerIds);
   const isolatedLayerId = useSketchStore((s) => s.isolatedLayerId);
   const foregroundColor =
@@ -110,13 +103,6 @@ export const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
       }
       onCropCanvasToActiveLayerExtents={
         props.onCropCanvasToActiveLayerExtents
-      }
-      canvasWidth={canvasWidth}
-      canvasHeight={canvasHeight}
-      onCanvasResize={props.onCanvasResize}
-      canvasResizeHandlesEnabled={props.canvasResizeHandlesEnabled}
-      onCanvasResizeHandlesEnabledChange={
-        props.onCanvasResizeHandlesEnabledChange
       }
       onAddGroup={props.onAddGroup}
       onToggleGroupCollapsed={props.onToggleGroupCollapsed}
