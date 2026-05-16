@@ -136,11 +136,14 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     [connectedEdges]
   );
 
-  const allInputs = properties.map((property, index) => {
-    const tabIndex = tabableProperties.findIndex(
-      (p) => p.name === property.name
-    );
-    const finalTabIndex = tabIndex !== -1 ? tabIndex + 1 : -1;
+  const tabIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    tabableProperties.forEach((p, i) => map.set(p.name, i + 1));
+    return map;
+  }, [tabableProperties]);
+
+  const allInputs = useMemo(() => properties.map((property, index) => {
+    const finalTabIndex = tabIndexMap.get(property.name) ?? -1;
     const connected = isConnected(property.name);
 
     return (
@@ -158,7 +161,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
         isConnected={connected}
       />
     );
-  });
+  }), [properties, tabIndexMap, isConnected, id, nodeType, layout, data, showFields, showHandle]);
 
   const dynamicInputs = useMemo(
     () => data?.dynamic_inputs || {},
