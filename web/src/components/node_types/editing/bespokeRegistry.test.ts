@@ -6,6 +6,7 @@ import {
 import BlurBody from "./BlurBody";
 import ChannelsBody from "./ChannelsBody";
 import CropBody from "./CropBody";
+import MasksExtractorBody from "./MasksExtractorBody";
 import ResizeBody from "./ResizeBody";
 import RotateAndFlipBody from "./RotateAndFlipBody";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
@@ -37,6 +38,21 @@ describe("bespokeRegistry", () => {
     expect(isBespokeNode(m)).toBe(true);
     expect(getBespokeBody(m)).toBe(ChannelsBody);
     expect(BESPOKE_BODY_REGISTRY["nodetool.image.Channels"]).toBe(ChannelsBody);
+  });
+
+  it("maps mask-extractor node types → MasksExtractorBody", () => {
+    const types = [
+      "replicate.image.background.Bria_RemoveBackground",
+      "replicate.image.background.BackgroundRemover_851",
+      "replicate.image.background.BackgroundRemover_Codeplug",
+      "replicate.image.process.RemoveBackground"
+    ];
+    for (const t of types) {
+      const m = meta(t);
+      expect(isBespokeNode(m)).toBe(true);
+      expect(getBespokeBody(m)).toBe(MasksExtractorBody);
+      expect(BESPOKE_BODY_REGISTRY[t]).toBe(MasksExtractorBody);
+    }
   });
 
   it("maps nodetool.image.Crop → CropBody", () => {

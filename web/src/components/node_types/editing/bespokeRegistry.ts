@@ -16,6 +16,9 @@ import type { NodeData } from "../../../stores/NodeData";
 import BlurBody, { BLUR_NODE_TYPE } from "./BlurBody";
 import ChannelsBody, { CHANNELS_NODE_TYPE } from "./ChannelsBody";
 import CropBody, { CROP_NODE_TYPE } from "./CropBody";
+import MasksExtractorBody, {
+  MASKS_EXTRACTOR_NODE_TYPES
+} from "./MasksExtractorBody";
 import ResizeBody, { RESIZE_NODE_TYPE } from "./ResizeBody";
 import RotateAndFlipBody, {
   ROTATE_AND_FLIP_NODE_TYPE
@@ -40,7 +43,10 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
   [CHANNELS_NODE_TYPE]: ChannelsBody,
   [CROP_NODE_TYPE]: CropBody,
   [RESIZE_NODE_TYPE]: ResizeBody,
-  [ROTATE_AND_FLIP_NODE_TYPE]: RotateAndFlipBody
+  [ROTATE_AND_FLIP_NODE_TYPE]: RotateAndFlipBody,
+  ...Object.fromEntries(
+    MASKS_EXTRACTOR_NODE_TYPES.map((t) => [t, MasksExtractorBody] as const)
+  )
 };
 
 export const isBespokeNode = (
