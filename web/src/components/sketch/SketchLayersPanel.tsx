@@ -175,6 +175,7 @@ const PanelSection = memo(function PanelSection({
   return (
     <>
       <Box
+        className="sketch-layers-panel__section-header"
         onClick={handleClick}
         sx={{
           display: "flex",
@@ -205,6 +206,7 @@ const PanelSection = memo(function PanelSection({
         </Typography>
         {titleEndAdornment ? (
           <Box
+            className="sketch-layers-panel__section-header-adornment"
             onClick={(ev) => {
               ev.stopPropagation();
             }}
@@ -1038,13 +1040,18 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   }, [cycleCanvasPreset]);
 
   return (
-    <Box className="sketch-layers-panel" css={styles(theme)}>
+    <Box
+      className="sketch-layers-panel sketch-panel-right"
+      css={styles(theme)}
+    >
       {/* ── Color Selector ── */}
       {showColorPicker && (
-        <HueTriangleColorPicker
-          color={foregroundColor}
-          onColorChange={onForegroundColorChange}
-        />
+        <Box className="sketch-layers-panel__color-picker">
+          <HueTriangleColorPicker
+            color={foregroundColor}
+            onColorChange={onForegroundColorChange}
+          />
+        </Box>
       )}
 
       <Typography
@@ -1056,8 +1063,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       </Typography>
 
       {/* Add layers (row 1) + layer ops (row 2), left-aligned for predictable icon positions */}
-      <Box className="layer-actions">
+      <Box className="layer-actions sketch-layers-panel__layer-toolbar">
         <Box
+          className="sketch-layers-panel__add-layers-row"
           sx={{
             display: "flex",
             flexWrap: "wrap",
@@ -1264,6 +1272,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           </Tooltip>
         </Box>
         <Box
+          className="sketch-layers-panel__layer-ops-row"
           sx={{
             display: "flex",
             flexWrap: "wrap",
@@ -1439,6 +1448,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       <Divider />
 
       <Box
+        className="sketch-layers-panel__selection-actions"
         sx={{
           display: "flex",
           alignItems: "center",
@@ -1450,6 +1460,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         }}
       >
         <Box
+          className="sketch-layers-panel__selection-actions-start"
           sx={{
             display: "flex",
             alignItems: "center",
@@ -1480,6 +1491,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           ) : null}
         </Box>
         <Box
+          className="sketch-layers-panel__selection-actions-end"
           sx={{
             display: "flex",
             alignItems: "center",
@@ -1502,6 +1514,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       </Box>
 
       <Box
+        className="sketch-layers-panel__pixel-ops"
         sx={{
           display: "flex",
           flexWrap: "wrap",
@@ -1569,7 +1582,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       {/* Active layer opacity & blend mode */}
       {activeLayer && (
         <>
-          <Box className="opacity-row">
+          <Box className="opacity-row sketch-layers-panel__opacity-row">
             <Typography sx={{ fontSize: SKETCH_FONT.md, color: SKETCH_COLORS.textMuted }}>
               Opacity
             </Typography>
@@ -1590,7 +1603,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               {Math.round(activeLayer.opacity * 100)}%
             </Typography>
           </Box>
-          <FormControl size="small" sx={{ px: "6px" }}>
+          <FormControl
+            className="sketch-layers-panel__blend-mode"
+            size="small"
+            sx={{ px: "6px" }}
+          >
             <Select
               value={coerceBlendMode(activeLayer.blendMode)}
               onChange={(e) =>
@@ -1618,7 +1635,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             </Select>
           </FormControl>
           {activeLayer.imageReference ? (
-            <Box sx={{ px: "6px", pt: "4px" }}>
+            <Box
+              className="sketch-layers-panel__active-layer-ref"
+              sx={{ px: "6px", pt: "4px" }}
+            >
               <Typography
                 sx={{
                   fontSize: SKETCH_FONT.xs,
@@ -1636,122 +1656,124 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       )}
 
       {/* Push bottom sections down */}
-      <Box sx={{ marginTop: "auto" }} />
+      <Box className="sketch-layers-panel__footer-spacer" sx={{ marginTop: "auto" }} />
 
       <Divider />
 
       {/* ── Canvas Size (collapsible, collapsed by default) ────────── */}
-      <PanelSection
-        title="Canvas Size"
-        sectionKey="canvasSize"
-        collapsed={collapsedSections.canvasSize}
-        onToggle={handleToggleSection}
-        titleEndAdornment={
-          <Tooltip
-            title={
-              canvasResizeHandlesEnabled
-                ? "Hide resize handles on canvas"
-                : "Show resize handles on canvas"
-            }
-            placement="left"
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
-          >
-            <Switch
-              size="small"
-              checked={canvasResizeHandlesEnabled}
-              onChange={(_, checked) => onCanvasResizeHandlesEnabledChange(checked)}
-              inputProps={{
-                "aria-label": "Toggle canvas resize handles"
-              }}
-            />
-          </Tooltip>
-        }
-      >
-        <Select
-          size="small"
-          displayEmpty
-          value=""
-          onChange={(e) => {
-            const preset = CANVAS_PRESETS.find(
-              (p) => p.label === e.target.value
-            );
-            if (preset) {
-              onCanvasResize(preset.width, preset.height);
-            }
-          }}
-          onKeyDownCapture={handleCanvasPresetQuickCycleKeyDownCapture}
-          onWheelCapture={handleCanvasPresetQuickCycleWheelCapture}
-          sx={{
-            width: "100%",
-            fontSize: SKETCH_FONT.sm,
-            "& .MuiSelect-select": { padding: "3px 8px" }
-          }}
-          renderValue={() => {
-            const match = CANVAS_PRESETS.find(
-              (p) => p.width === canvasWidth && p.height === canvasHeight
-            );
-            return (
-              <Typography
-                sx={{
-                  fontSize: SKETCH_FONT.sm,
-                  color: match ? "grey.200" : SKETCH_COLORS.textFaint
-                }}
-              >
-                {match ? match.label : "Presets…"}
-              </Typography>
-            );
-          }}
-        >
-          {CANVAS_PRESETS.map((preset) => (
-            <MenuItem
-              key={preset.label}
-              value={preset.label}
-              sx={{ fontSize: SKETCH_FONT.sm }}
+      <Box className="sketch-layers-panel__canvas-size">
+        <PanelSection
+          title="Canvas Size"
+          sectionKey="canvasSize"
+          collapsed={collapsedSections.canvasSize}
+          onToggle={handleToggleSection}
+          titleEndAdornment={
+            <Tooltip
+              title={
+                canvasResizeHandlesEnabled
+                  ? "Hide resize handles on canvas"
+                  : "Show resize handles on canvas"
+              }
+              placement="left"
+              enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+              enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
             >
-              {preset.label} — {preset.width}×{preset.height}
-            </MenuItem>
-          ))}
-        </Select>
-        <Box
-          sx={{ display: "flex", gap: "4px", mt: "6px", alignItems: "center" }}
+              <Switch
+                size="small"
+                checked={canvasResizeHandlesEnabled}
+                onChange={(_, checked) => onCanvasResizeHandlesEnabledChange(checked)}
+                inputProps={{
+                  "aria-label": "Toggle canvas resize handles"
+                }}
+              />
+            </Tooltip>
+          }
         >
-          <TextField
-            className="hex-input"
+          <Select
             size="small"
-            label="W"
-            type="number"
-            value={customWidth}
-            onChange={(e) => setCustomWidth(e.target.value)}
-            inputProps={{ min: 1, max: 4096, step: 1 }}
-            sx={{ flex: 1, minWidth: 0, "& .MuiInputLabel-root": { fontSize: SKETCH_FONT.sm } }}
-          />
-          <Typography sx={{ fontSize: SKETCH_FONT.md, color: SKETCH_COLORS.textFaint }}>
-            ×
-          </Typography>
-          <TextField
-            className="hex-input"
-            size="small"
-            label="H"
-            type="number"
-            value={customHeight}
-            onChange={(e) => setCustomHeight(e.target.value)}
-            inputProps={{ min: 1, max: 4096, step: 1 }}
-            sx={{ flex: 1, minWidth: 0, "& .MuiInputLabel-root": { fontSize: SKETCH_FONT.sm } }}
-          />
-          <StateIconButton
-            icon={<CheckIcon sx={{ fontSize: 18 }} />}
-            tooltip="Apply canvas size"
-            ariaLabel="Apply canvas size"
-            onClick={handleApplyCustomSize}
-            isActive={canvasCustomSizeApply.dirty}
-            color="primary"
-            disabled={!canvasCustomSizeApply.dirty}
-            size="small"
-            sx={{ flexShrink: 0 }}
-          />
-        </Box>
-      </PanelSection>
+            displayEmpty
+            value=""
+            onChange={(e) => {
+              const preset = CANVAS_PRESETS.find(
+                (p) => p.label === e.target.value
+              );
+              if (preset) {
+                onCanvasResize(preset.width, preset.height);
+              }
+            }}
+            onKeyDownCapture={handleCanvasPresetQuickCycleKeyDownCapture}
+            onWheelCapture={handleCanvasPresetQuickCycleWheelCapture}
+            sx={{
+              width: "100%",
+              fontSize: SKETCH_FONT.sm,
+              "& .MuiSelect-select": { padding: "3px 8px" }
+            }}
+            renderValue={() => {
+              const match = CANVAS_PRESETS.find(
+                (p) => p.width === canvasWidth && p.height === canvasHeight
+              );
+              return (
+                <Typography
+                  sx={{
+                    fontSize: SKETCH_FONT.sm,
+                    color: match ? "grey.200" : SKETCH_COLORS.textFaint
+                  }}
+                >
+                  {match ? match.label : "Presets…"}
+                </Typography>
+              );
+            }}
+          >
+            {CANVAS_PRESETS.map((preset) => (
+              <MenuItem
+                key={preset.label}
+                value={preset.label}
+                sx={{ fontSize: SKETCH_FONT.sm }}
+              >
+                {preset.label} — {preset.width}×{preset.height}
+              </MenuItem>
+            ))}
+          </Select>
+          <Box
+            sx={{ display: "flex", gap: "4px", mt: "6px", alignItems: "center" }}
+          >
+            <TextField
+              className="hex-input"
+              size="small"
+              label="W"
+              type="number"
+              value={customWidth}
+              onChange={(e) => setCustomWidth(e.target.value)}
+              inputProps={{ min: 1, max: 4096, step: 1 }}
+              sx={{ flex: 1, minWidth: 0, "& .MuiInputLabel-root": { fontSize: SKETCH_FONT.sm } }}
+            />
+            <Typography sx={{ fontSize: SKETCH_FONT.md, color: SKETCH_COLORS.textFaint }}>
+              ×
+            </Typography>
+            <TextField
+              className="hex-input"
+              size="small"
+              label="H"
+              type="number"
+              value={customHeight}
+              onChange={(e) => setCustomHeight(e.target.value)}
+              inputProps={{ min: 1, max: 4096, step: 1 }}
+              sx={{ flex: 1, minWidth: 0, "& .MuiInputLabel-root": { fontSize: SKETCH_FONT.sm } }}
+            />
+            <StateIconButton
+              icon={<CheckIcon sx={{ fontSize: 18 }} />}
+              tooltip="Apply canvas size"
+              ariaLabel="Apply canvas size"
+              onClick={handleApplyCustomSize}
+              isActive={canvasCustomSizeApply.dirty}
+              color="primary"
+              disabled={!canvasCustomSizeApply.dirty}
+              size="small"
+              sx={{ flexShrink: 0 }}
+            />
+          </Box>
+        </PanelSection>
+      </Box>
 
       {/* ── Layer context menu ──────────────────────────────────── */}
       {(() => {
@@ -1880,6 +1902,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
         return (
           <Menu
+            className="sketch-layers-panel__context-menu"
             open={layerCtxMenu !== null}
             onClose={handleLayerCtxClose}
             anchorReference="anchorPosition"

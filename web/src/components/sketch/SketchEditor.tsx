@@ -191,32 +191,25 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
       {/* ConnectedToolbar subscribes to its own state — no prop drilling */}
       <ConnectedToolbar />
 
-      <FlexColumn sx={{ flex: 1, overflow: "hidden" }}>
-        {/* ConnectedToolTopBar handles its own panelsHidden check */}
-        <ConnectedToolTopBar
-          adjBrightness={session.canvasActions.adjBrightness}
-          adjContrast={session.canvasActions.adjContrast}
-          adjSaturation={session.canvasActions.adjSaturation}
-          onAdjustBrightnessChange={session.canvasActions.setAdjBrightness}
-          onAdjustContrastChange={session.canvasActions.setAdjContrast}
-          onAdjustSaturationChange={session.canvasActions.setAdjSaturation}
-          onAdjustApply={session.canvasActions.handleApplyAdjustments}
-          onAdjustCancel={session.canvasActions.handleCancelAdjustments}
-          onTransformCommit={session.canvasActions.handleTransformCommit}
-          onTransformCancel={session.canvasActions.handleTransformCancel}
-          onTransformReset={session.canvasActions.handleTransformReset}
-          segmentation={session.segmentation}
-          onRunSegmentation={commands.handleRunSegmentation}
-          onClearSegmentPrompts={commands.handleClearSegmentPrompts}
-          onCropCanvasToSelection={session.canvasActions.handleCropCanvasToSelection}
-          onCropCommit={session.canvasActions.handleCropCommit}
-          onCropCancelPreview={session.canvasActions.handleCropCancelPreview}
-        />
-
+      <FlexColumn
+        className="sketch-editor__workspace"
+        sx={{
+          flex: 1,
+          overflow: "hidden",
+          minHeight: 0,
+          position: "relative"
+        }}
+      >
         <Container
           className="sketch-editor__canvas-region"
           padding="none"
-          sx={{ flex: 1, position: "relative", overflow: "hidden" }}
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            position: "relative",
+            zIndex: 1,
+            overflow: "hidden"
+          }}
         >
           <SketchCanvasPane
             canvasReady={session.canvasReady}
@@ -252,12 +245,50 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             segmentation={session.segmentation}
           />
         </Container>
+        {/*
+          Tool top bar sits above the canvas in z-order but does not consume flex
+          height, so wrap/resize of tool settings no longer shrinks the canvas or
+          shifts the image. Pass-through clicks use pointer-events below.
+        */}
+        <Container
+          padding="none"
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 2,
+            pointerEvents: "none",
+            "& > *": { pointerEvents: "auto" }
+          }}
+        >
+          <ConnectedToolTopBar
+            adjBrightness={session.canvasActions.adjBrightness}
+            adjContrast={session.canvasActions.adjContrast}
+            adjSaturation={session.canvasActions.adjSaturation}
+            onAdjustBrightnessChange={session.canvasActions.setAdjBrightness}
+            onAdjustContrastChange={session.canvasActions.setAdjContrast}
+            onAdjustSaturationChange={session.canvasActions.setAdjSaturation}
+            onAdjustApply={session.canvasActions.handleApplyAdjustments}
+            onAdjustCancel={session.canvasActions.handleCancelAdjustments}
+            onTransformCommit={session.canvasActions.handleTransformCommit}
+            onTransformCancel={session.canvasActions.handleTransformCancel}
+            onTransformReset={session.canvasActions.handleTransformReset}
+            segmentation={session.segmentation}
+            onRunSegmentation={commands.handleRunSegmentation}
+            onClearSegmentPrompts={commands.handleClearSegmentPrompts}
+            onCropCanvasToSelection={session.canvasActions.handleCropCanvasToSelection}
+            onCropCommit={session.canvasActions.handleCropCommit}
+            onCropCancelPreview={session.canvasActions.handleCropCancelPreview}
+          />
+        </Container>
       </FlexColumn>
 
       {/* Right column: layers panel above, generated-layer inspector below.
           Both subscribe directly to the sketch store so panelsHidden hides
           them independently of the rest of the editor. */}
       <FlexColumn
+        className="sketch-editor__panel-right"
         sx={{
           width: SKETCH_SIZE.panelWidth,
           minWidth: SKETCH_SIZE.panelWidth,
@@ -271,6 +302,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         gap={0}
       >
         <CollapsibleSection
+          className="sketch-editor__color-section"
           title="Color"
           defaultOpen
           compact
@@ -286,6 +318,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         </CollapsibleSection>
 
         <CollapsibleSection
+          className="sketch-editor__layers-section"
           title="Layers"
           defaultOpen
           compact

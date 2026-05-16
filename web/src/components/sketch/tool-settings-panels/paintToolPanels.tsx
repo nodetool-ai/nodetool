@@ -88,8 +88,12 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
       <SketchModeToggle
         value={assist.preset}
         onChange={(_, v) => {
-          if (v) {
-            pushAssist(createStrokeAssistPreset(v as StrokeAssistPreset));
+          if (
+            v === "smooth" ||
+            v === "lazy" ||
+            v === "inking"
+          ) {
+            pushAssist(createStrokeAssistPreset(v));
           }
         }}
         sx={{ mb: "4px", flexWrap: "wrap" }}
