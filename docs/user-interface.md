@@ -8,7 +8,7 @@ Tour of the interface — Dashboard, Canvas, Global Chat, Mini-Apps, Assets. Sam
 
 > New here? Start with [Getting Started](getting-started.md), then come back.
 
-> Every screen indexed in the [App Views Gallery](app-views.md).
+> Main views indexed in the [App Views Gallery](app-views.md).
 
 ---
 
@@ -334,7 +334,7 @@ Just start typing what you want!
 
 ## Next Steps
 
-- **[App Views Gallery](app-views.md)** – Visual index of every screen, panel, and dialog
+- **[App Views Gallery](app-views.md)** – Visual index of the main screens
 - **[Workflow Editor deep dive](workflow-editor.md)** – Master the canvas
 - **[Editor Panels](editor-panels.md)** – Left, right, bottom, and floating panels
 - **[Tips & Tricks](tips-and-tricks.md)** – Power user secrets
