@@ -36,6 +36,7 @@ export function useRunSingleNode(nodeId: string): UseRunSingleNodeReturn {
 
   const runSingleNode = useCallback(() => {
     if (isWorkflowRunning) {
+      console.info("useRunSingleNode: workflow already running, skipping");
       return;
     }
 

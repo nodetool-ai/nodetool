@@ -19,8 +19,6 @@ import React, { memo, useCallback, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ImageIcon from "@mui/icons-material/Image";
 import { shallow } from "zustand/shallow";
 
@@ -28,7 +26,9 @@ import {
   CheckerDropzone,
   FlexColumn,
   FlexRow,
-  RunModelButton
+  RunModelButton,
+  ToggleGroup,
+  ToggleOption
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageView from "../../node/ImageView";
@@ -40,16 +40,17 @@ import type { NodeData } from "../../../stores/NodeData";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useNodes } from "../../../contexts/NodeContext";
 import { useRunSingleNode } from "../../../hooks/nodes/useRunSingleNode";
+import { asImageRef, unwrapOutput } from "../../../utils/imageRef";
 
 // Node types currently bound to this bespoke body. Mask-extractor / bg-removal
 // providers: per §9.E6 we ship the known Bria + 851-labs variants. Extend as
 // additional providers are confirmed in §9.E11.
-const MASKS_EXTRACTOR_NODE_TYPES: ReadonlyArray<string> = [
+const MASKS_EXTRACTOR_NODE_TYPES = [
   "replicate.image.background.Bria_RemoveBackground",
   "replicate.image.background.BackgroundRemover_851",
   "replicate.image.background.BackgroundRemover_Codeplug",
   "replicate.image.process.RemoveBackground"
-];
+] as const;
 
 type PreviewTab = "image" | "mask";
 
@@ -112,29 +113,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-interface ImageRefLike {
-  uri?: string;
-  data?: unknown;
-}
-
-const asImageRef = (value: unknown): ImageRefLike | undefined => {
-  if (!value || typeof value !== "object") return undefined;
-  const v = value as Record<string, unknown>;
-  return {
-    uri: typeof v.uri === "string" ? (v.uri as string) : undefined,
-    data: v.data
-  };
-};
-
-const unwrapOutput = (value: unknown, handle?: string | null): unknown => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
-  const v = value as Record<string, unknown>;
-  if (handle && handle in v) return v[handle];
-  if ("output" in v) return v.output;
-  return value;
-};
-
-const ImagePreview: React.FC<{ value: unknown; placeholder: string }> = ({
+const ImagePreview: React.FC<{ value: unknown; placeholder: string }> = memo(({
   value,
   placeholder
 }) => {
@@ -152,7 +131,8 @@ const ImagePreview: React.FC<{ value: unknown; placeholder: string }> = ({
     return <ImageView source={new Uint8Array(ref!.data as number[])} />;
   }
   return <CheckerDropzone message={placeholder} icon={<ImageIcon />} />;
-};
+});
+ImagePreview.displayName = "ImagePreview";
 
 export interface MasksExtractorBodyProps {
   id: string;
@@ -254,7 +234,7 @@ const MasksExtractorBodyInner: React.FC<MasksExtractorBodyProps> = ({
 
       <FlexColumn className="controls" gap={0.5}>
         <FlexRow align="center" gap={0.25}>
-          <ToggleButtonGroup
+          <ToggleGroup
             className="tab-toggle"
             size="small"
             value={tab}
@@ -262,13 +242,13 @@ const MasksExtractorBodyInner: React.FC<MasksExtractorBodyProps> = ({
             onChange={handleTabChange}
             aria-label="Preview tab"
           >
-            <ToggleButton value="image" aria-label="Image">
+            <ToggleOption value="image" aria-label="Image">
               Image
-            </ToggleButton>
-            <ToggleButton value="mask" aria-label="Mask">
+            </ToggleOption>
+            <ToggleOption value="mask" aria-label="Mask">
               Mask
-            </ToggleButton>
-          </ToggleButtonGroup>
+            </ToggleOption>
+          </ToggleGroup>
         </FlexRow>
         <div className="action-row">
           <RunModelButton
@@ -289,7 +269,7 @@ const MasksExtractorBodyInner: React.FC<MasksExtractorBodyProps> = ({
         </div>
       )}
 
-      {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
+      {isRunning && <NodeProgress id={id} workflowId={workflowId} />}
     </div>
   );
 };
