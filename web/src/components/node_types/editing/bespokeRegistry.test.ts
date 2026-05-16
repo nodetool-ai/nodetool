@@ -3,6 +3,7 @@ import {
   getBespokeBody,
   isBespokeNode
 } from "./bespokeRegistry";
+import BlurBody from "./BlurBody";
 import ChannelsBody from "./ChannelsBody";
 import CropBody from "./CropBody";
 import ResizeBody from "./ResizeBody";
@@ -22,6 +23,13 @@ describe("bespokeRegistry", () => {
     expect(isBespokeNode(meta("nodetool.control.If"))).toBe(false);
     expect(isBespokeNode(meta("nodetool.image.Levels"))).toBe(false);
     expect(getBespokeBody(meta("nodetool.image.Levels"))).toBeUndefined();
+  });
+
+  it("maps nodetool.image.Blur → BlurBody", () => {
+    const m = meta("nodetool.image.Blur");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(BlurBody);
+    expect(BESPOKE_BODY_REGISTRY["nodetool.image.Blur"]).toBe(BlurBody);
   });
 
   it("maps nodetool.image.Channels → ChannelsBody", () => {
