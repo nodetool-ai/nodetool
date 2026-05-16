@@ -83,10 +83,7 @@ function createFilterNode(desc: Desc): NodeClass {
       }
 
       // Pipeline-based nodes
-      if (t.endsWith(".Blur")) {
-        const radius = Number((this as any).radius ?? 2);
-        img = img.blur(Math.max(0.3, radius));
-      } else if (t.endsWith(".Invert")) {
+      if (t.endsWith(".Invert")) {
         img = img.negate();
       } else if (t.endsWith(".ConvertToGrayscale")) {
         img = img.grayscale();
@@ -273,10 +270,6 @@ function createFilterNode(desc: Desc): NodeClass {
           kernel: [1, 1, 1, 1, 5, 1, 1, 1, 1],
           scale: 13
         });
-      } else if (t.endsWith(".GetChannel")) {
-        const channel = String((this as any).channel ?? "red").toLowerCase();
-        const idx = channel === "green" ? 1 : channel === "blue" ? 2 : 0;
-        img = img.extractChannel(idx);
       } else if (t.endsWith(".Expand")) {
         const border = Number((this as any).border ?? 10);
         const fillVal = Number((this as any).fill ?? 0);
@@ -303,45 +296,6 @@ function createFilterNode(desc: Desc): NodeClass {
 }
 
 const DESCRIPTORS: readonly Desc[] = [
-  {
-    nodeType: "lib.image.filter.Blur",
-    title: "Blur",
-    description:
-      "Apply a Gaussian blur effect to an image.\n    image, filter, blur\n\n    - Soften images or reduce noise and detail\n    - Make focal areas stand out by blurring surroundings\n    - Protect privacy by blurring sensitive information",
-    inlineFields: [],
-    inputFields:  ["image"],
-    outputs: {
-      output: "image"
-    },
-    properties: [
-      {
-        name: "image",
-        options: {
-          type: "image",
-          default: {
-            type: "image",
-            uri: "",
-            asset_id: null,
-            data: null,
-            metadata: null
-          },
-          title: "Image",
-          description: "The image to blur."
-        }
-      },
-      {
-        name: "radius",
-        options: {
-          type: "int",
-          default: 2,
-          title: "Radius",
-          description: "Blur radius.",
-          min: 0,
-          max: 128
-        }
-      }
-    ]
-  },
   {
     nodeType: "lib.image.filter.Canny",
     title: "Canny",
@@ -550,43 +504,6 @@ const DESCRIPTORS: readonly Desc[] = [
           },
           title: "Image",
           description: "The image to find edges."
-        }
-      }
-    ]
-  },
-  {
-    nodeType: "lib.image.filter.GetChannel",
-    title: "Get Channel",
-    description:
-      "Extract a specific color channel from an image.\n    image, color, channel, isolate, extract\n\n    - Isolate color information for image analysis\n    - Manipulate specific color components in graphic design\n    - Enhance or reduce visibility of certain colors",
-    inlineFields: [],
-    inputFields:  ["image"],
-    outputs: {
-      output: "image"
-    },
-    properties: [
-      {
-        name: "image",
-        options: {
-          type: "image",
-          default: {
-            type: "image",
-            uri: "",
-            asset_id: null,
-            data: null,
-            metadata: null
-          },
-          title: "Image",
-          description: "The image to get the channel from."
-        }
-      },
-      {
-        name: "channel",
-        options: {
-          type: "enum",
-          default: "R",
-          title: "Channel",
-          values: ["R", "G", "B"]
         }
       }
     ]

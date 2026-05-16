@@ -1480,103 +1480,6 @@ export class ImageToImageNode extends BaseNode {
   }
 }
 
-export class RotateNode extends TransformImageNode {
-  static readonly nodeType = "nodetool.image.Rotate";
-  static readonly title = "Rotate";
-  static readonly description =
-    "Rotate an image by a specified angle in degrees.\n    image, rotate, angle, transform, orientation";
-  static readonly metadataOutputTypes = {
-    output: "image"
-  };
-  static readonly inlineFields = [];
-  static readonly inputFields = ["image"];
-
-  @prop({
-    type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Image",
-    description: "The image to rotate."
-  })
-  declare image: any;
-
-  @prop({
-    type: "float",
-    default: 0,
-    title: "Angle",
-    description: "Rotation angle in degrees (clockwise).",
-    min: -360,
-    max: 360
-  })
-  declare angle: any;
-
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const image = (this.image ?? {}) as ImageRefLike;
-    const angle = Number(this.angle ?? 0);
-    if (angle === 0) {
-      const bytes = await imageBytesAsync(image, context);
-      return {
-        output: imageRef(bytes, {
-          uri: image.uri ?? "",
-          width: image.width ?? undefined,
-          height: image.height ?? undefined
-        })
-      };
-    }
-    return transformImage(image, (instance) =>
-      instance.rotate(angle, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    , context);
-  }
-}
-
-export class FlipNode extends TransformImageNode {
-  static readonly nodeType = "nodetool.image.Flip";
-  static readonly title = "Flip";
-  static readonly description =
-    "Flip an image horizontally or vertically.\n    image, flip, mirror, horizontal, vertical, transform";
-  static readonly metadataOutputTypes = {
-    output: "image"
-  };
-  static readonly inlineFields = [];
-  static readonly inputFields = ["image"];
-
-  @prop({
-    type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Image",
-    description: "The image to flip."
-  })
-  declare image: any;
-
-  @prop({
-    type: "str",
-    default: "horizontal",
-    title: "Direction",
-    description: "Flip direction.",
-    values: ["horizontal", "vertical"]
-  })
-  declare direction: any;
-
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const image = (this.image ?? {}) as ImageRefLike;
-    const direction = String(this.direction ?? "horizontal");
-    return transformImage(image, (instance) =>
-      direction === "vertical" ? instance.flip() : instance.flop()
-    , context);
-  }
-}
-
 export class RotateAndFlipNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.RotateAndFlip";
   static readonly title = "Rotate & Flip";
@@ -1791,6 +1694,8 @@ export class BlurNode extends TransformImageNode {
       };
     }
 
+    // sharp.convolve() requires kernel width AND height to be in [3, 1001];
+    // anything smaller throws "Invalid convolution kernel".
     const odd = (n: number): number => (n % 2 === 0 ? n + 1 : n);
 
     const output = (await transformImage(
@@ -1801,11 +1706,14 @@ export class BlurNode extends TransformImageNode {
           return instance.blur(sigma);
         }
         if (blurType === "motion") {
-          const k = odd(Math.max(1, size));
-          const kernel = new Array(k).fill(1 / k);
-          return instance.convolve({ width: k, height: 1, kernel });
+          // Horizontal motion blur: w columns of 1/w in a single middle row,
+          // top/bottom rows zero. Padded to 3 rows so sharp accepts it.
+          const w = odd(Math.max(3, size));
+          const kernel = new Array(3 * w).fill(0);
+          for (let i = 0; i < w; i++) kernel[w + i] = 1 / w;
+          return instance.convolve({ width: w, height: 3, kernel });
         }
-        const k = odd(Math.max(1, Math.min(31, size)));
+        const k = odd(Math.max(3, Math.min(31, size)));
         const kernel = new Array(k * k).fill(1 / (k * k));
         return instance.convolve({ width: k, height: k, kernel });
       },
@@ -1829,8 +1737,6 @@ export const IMAGE_NODES = [
   ResizeNode,
   CropNode,
   FitNode,
-  RotateNode,
-  FlipNode,
   RotateAndFlipNode,
   ChannelsNode,
   BlurNode,

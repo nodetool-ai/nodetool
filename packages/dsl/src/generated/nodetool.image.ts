@@ -199,32 +199,49 @@ export function fit(inputs: FitInputs, overrides?: { syncMode?: "zip_all" | "on_
   return createNode("nodetool.image.Fit", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
-// Rotate — nodetool.image.Rotate
-export interface RotateInputs {
+// Rotate & Flip — nodetool.image.RotateAndFlip
+export interface RotateAndFlipInputs {
   image?: Connectable<ImageRef>;
   angle?: Connectable<number>;
+  flip_horizontal?: Connectable<boolean>;
+  flip_vertical?: Connectable<boolean>;
 }
 
-export interface RotateOutputs {
+export interface RotateAndFlipOutputs {
   output: ImageRef;
 }
 
-export function rotate(inputs: RotateInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RotateOutputs, "output"> {
-  return createNode("nodetool.image.Rotate", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function rotateAndFlip(inputs: RotateAndFlipInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RotateAndFlipOutputs, "output"> {
+  return createNode("nodetool.image.RotateAndFlip", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
-// Flip — nodetool.image.Flip
-export interface FlipInputs {
+// Channels — nodetool.image.Channels
+export interface ChannelsInputs {
   image?: Connectable<ImageRef>;
-  direction?: Connectable<string>;
+  channel?: Connectable<string>;
 }
 
-export interface FlipOutputs {
+export interface ChannelsOutputs {
   output: ImageRef;
 }
 
-export function flip(inputs: FlipInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FlipOutputs, "output"> {
-  return createNode("nodetool.image.Flip", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function channels(inputs: ChannelsInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ChannelsOutputs, "output"> {
+  return createNode("nodetool.image.Channels", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+}
+
+// Blur — nodetool.image.Blur
+export interface BlurInputs {
+  image?: Connectable<ImageRef>;
+  blur_type?: Connectable<string>;
+  size?: Connectable<number>;
+}
+
+export interface BlurOutputs {
+  output: ImageRef;
+}
+
+export function blur(inputs: BlurInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<BlurOutputs, "output"> {
+  return createNode("nodetool.image.Blur", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Text To Image — nodetool.image.TextToImage
@@ -264,4 +281,22 @@ export interface ImageToImageOutputs {
 
 export function imageToImage(inputs: ImageToImageInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ImageToImageOutputs, "output"> {
   return createNode("nodetool.image.ImageToImage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+}
+
+// Image Editor — nodetool.image.ImageEditor
+export interface ImageEditorInputs {
+  sketch_data?: Connectable<string>;
+  image?: Connectable<ImageRef>;
+  mask?: Connectable<ImageRef>;
+  layers?: Connectable<unknown[]>;
+}
+
+export interface ImageEditorOutputs {
+  image: ImageRef;
+  mask: ImageRef;
+  layers: ImageRef[];
+}
+
+export function imageEditor(inputs: ImageEditorInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ImageEditorOutputs> {
+  return createNode("nodetool.image.ImageEditor", inputs as Record<string, unknown>, { outputNames: ["image", "mask", "layers"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

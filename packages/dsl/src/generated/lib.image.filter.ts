@@ -3,20 +3,6 @@
 import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef } from "../types.js";
 
-// Blur — lib.image.filter.Blur
-export interface BlurInputs {
-  image?: Connectable<ImageRef>;
-  radius?: Connectable<number>;
-}
-
-export interface BlurOutputs {
-  output: ImageRef;
-}
-
-export function blur(inputs: BlurInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<BlurOutputs, "output"> {
-  return createNode("lib.image.filter.Blur", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
-}
-
 // Canny — lib.image.filter.Canny
 export interface CannyInputs {
   image?: Connectable<ImageRef>;
@@ -97,20 +83,6 @@ export interface FindEdgesOutputs {
 
 export function findEdges(inputs: FindEdgesInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FindEdgesOutputs, "output"> {
   return createNode("lib.image.filter.FindEdges", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
-}
-
-// Get Channel — lib.image.filter.GetChannel
-export interface GetChannelInputs {
-  image?: Connectable<ImageRef>;
-  channel?: Connectable<"R" | "G" | "B">;
-}
-
-export interface GetChannelOutputs {
-  output: ImageRef;
-}
-
-export function getChannel(inputs: GetChannelInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GetChannelOutputs, "output"> {
-  return createNode("lib.image.filter.GetChannel", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Invert — lib.image.filter.Invert

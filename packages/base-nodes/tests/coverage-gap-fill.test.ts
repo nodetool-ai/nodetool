@@ -4109,11 +4109,9 @@ import {
   CollectTextNode,
   ConcatTextNode,
   DescribeNode,
-  FlipNode,
   GetAudioInfoNode,
   JoinTextNode,
   ReplaceTextNode,
-  RotateNode,
   SwitchNode,
   TemplateTextNode,
   TryCatchNode
@@ -4140,11 +4138,6 @@ describe("missing exported node smoke tests", () => {
     expect(n.serialize()).toBeDefined();
   });
 
-  it("FlipNode defaults", () => {
-    const n = new FlipNode();
-    expect(n.serialize()).toBeDefined();
-  });
-
   it("GetAudioInfoNode defaults", () => {
     const n = new GetAudioInfoNode();
     expect(n.serialize()).toBeDefined();
@@ -4157,11 +4150,6 @@ describe("missing exported node smoke tests", () => {
 
   it("ReplaceTextNode defaults", () => {
     const n = new ReplaceTextNode();
-    expect(n.serialize()).toBeDefined();
-  });
-
-  it("RotateNode defaults", () => {
-    const n = new RotateNode();
     expect(n.serialize()).toBeDefined();
   });
 

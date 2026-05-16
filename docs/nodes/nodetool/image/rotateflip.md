@@ -1,25 +1,27 @@
 ---
 layout: page
-title: "Rotate"
-node_type: "nodetool.image.Rotate"
+title: "Rotate & Flip"
+node_type: "nodetool.image.RotateAndFlip"
 namespace: "nodetool.image"
 ---
 
-**Type:** `nodetool.image.Rotate`
+**Type:** `nodetool.image.RotateAndFlip`
 
 **Namespace:** `nodetool.image`
 
 ## Description
 
-Rotate an image by a specified angle in degrees.
-    image, rotate, angle, transform, orientation
+Rotate and/or flip an image in a single step.
+    image, rotate, flip, mirror, orientation, transform
 
 ## Properties
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| image | `image` | The image to rotate. | `{"type":"image","uri":"","asset_id":null,"data"...` |
+| image | `image` | The image to rotate and flip. | `{"type":"image","uri":"","asset_id":null,"data"...` |
 | angle | `float` | Rotation angle in degrees (clockwise). | `0` |
+| flip_horizontal | `bool` | Mirror left/right. | `false` |
+| flip_vertical | `bool` | Mirror top/bottom. | `false` |
 
 ## Outputs
 

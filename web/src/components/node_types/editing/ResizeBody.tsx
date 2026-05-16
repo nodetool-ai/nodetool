@@ -14,7 +14,6 @@ import type { Theme } from "@mui/material/styles";
 import LinkIcon from "@mui/icons-material/Link";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import ImageIcon from "@mui/icons-material/Image";
-import { shallow } from "zustand/shallow";
 
 import { CheckerDropzone, FlexRow, StateIconButton } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
@@ -25,8 +24,8 @@ import NumberInput from "../../inputs/NumberInput";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
+import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
 
 const RESIZE_NODE_TYPE = "nodetool.image.Resize";
 
@@ -165,20 +164,7 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
   const widthValue = Number(data.properties?.width ?? widthProperty?.default ?? 512);
   const heightValue = Number(data.properties?.height ?? heightProperty?.default ?? 512);
 
-  const result = useResultsStore(
-    (state) => state.getResult(workflowId, id),
-    shallow
-  );
-  // Resize emits a single named output "output" — extract it for preview.
-  const previewValue = useMemo(() => {
-    if (result && typeof result === "object" && !Array.isArray(result)) {
-      const r = result as Record<string, unknown>;
-      if ("output" in r) {
-        return r.output;
-      }
-    }
-    return result;
-  }, [result]);
+  const previewValue = useNodeOutput(workflowId, id);
   const previewDims = useMemo(() => extractDims(previewValue), [previewValue]);
 
   const { setProperties, setPropertyComplete } = useBespokePropertyWriter({

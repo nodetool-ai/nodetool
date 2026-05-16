@@ -102,7 +102,7 @@ const OutputContextMenu: React.FC = () => {
   const createNodeWithEdge = useCallback(
     (
       metadata: unknown,
-      position: { x: number; y: number },
+      anchor: { x: number; y: number },
       nodeType: string,
       targetHandle: string | null = null
     ) => {
@@ -111,13 +111,29 @@ const OutputContextMenu: React.FC = () => {
         return;
       }
 
-      const newNode = createNode(
-        metadata as NodeMetadata,
-        reactFlowInstance.screenToFlowPosition({
-          x: position.x + 150,
-          y: position.y
-        })
-      );
+      // Place the new node a short gap to the right of the output handle and
+      // vertically centered on it. Compute in flow space so the gap stays
+      // consistent regardless of zoom.
+      const extMeta = metadata as NodeMetadata & {
+        style?: { width?: number | string; height?: number | string };
+      };
+      const parseDim = (
+        value: number | string | undefined,
+        fallback: number
+      ): number => {
+        if (typeof value === "number") return value;
+        if (typeof value === "string") return parseInt(value, 10) || fallback;
+        return fallback;
+      };
+      const nodeHeight = parseDim(extMeta.style?.height, 200);
+      const flowAnchor = reactFlowInstance.screenToFlowPosition(anchor);
+      const GAP_X_FLOW = 40;
+      const flowPosition = {
+        x: flowAnchor.x + GAP_X_FLOW,
+        y: flowAnchor.y - nodeHeight / 2
+      };
+
+      const newNode = createNode(metadata as NodeMetadata, flowPosition);
 
       if (targetHandle) {
         newNode.data.dynamic_properties[targetHandle] = true;
@@ -177,10 +193,6 @@ const OutputContextMenu: React.FC = () => {
       if (!metadata) {
         return;
       }
-      const position = {
-        x: event.clientX - 200,
-        y: event.clientY - 100
-      };
       createNodeWithEdge(
         {
           ...metadata,
@@ -189,7 +201,7 @@ const OutputContextMenu: React.FC = () => {
             height: "300px"
           }
         },
-        position,
+        { x: event.clientX, y: event.clientY },
         "preview"
       );
     },
@@ -202,11 +214,12 @@ const OutputContextMenu: React.FC = () => {
       if (!metadata) {
         return;
       }
-      const position = {
-        x: event.clientX - 140,
-        y: event.clientY - 60
-      };
-      createNodeWithEdge(metadata, position, "reroute", "input_value");
+      createNodeWithEdge(
+        metadata,
+        { x: event.clientX, y: event.clientY },
+        "reroute",
+        "input_value"
+      );
     },
     [getMetadata, createNodeWithEdge]
   );
@@ -218,10 +231,7 @@ const OutputContextMenu: React.FC = () => {
       }
       createNodeWithEdge(
         outputNodeMetadata,
-        {
-          x: event.clientX - 230,
-          y: event.clientY - 170
-        },
+        { x: event.clientX, y: event.clientY },
         "output"
       );
     },
@@ -235,10 +245,7 @@ const OutputContextMenu: React.FC = () => {
       }
       createNodeWithEdge(
         saveNodeMetadata,
-        {
-          x: event.clientX - 230,
-          y: event.clientY - 220
-        },
+        { x: event.clientX, y: event.clientY },
         "save"
       );
     },

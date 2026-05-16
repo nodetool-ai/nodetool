@@ -3,11 +3,12 @@ layout: page
 title: "nodetool.agents Nodes"
 ---
 
-This namespace contains 24 node(s).
+This namespace contains 25 node(s).
 
 ## Available Nodes
 
 - **[Agent](agent.md)** - Generate natural language responses using LLM providers and streams output.
+- **[Agent Step](agentstep.md)** - LLM step that inherits the workflow's configured model.
 - **[Browser Agent](browseragent.md)** - Prompt-driven browser skill with bounded tool validation and schema outputs.
 - **[Classifier](classifier.md)** - Classify text into predefined or dynamic categories using LLM.
 - **[Create Thread](createthread.md)** - Create a new conversation thread and return its ID.

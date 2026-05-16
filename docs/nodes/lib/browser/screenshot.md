@@ -25,14 +25,13 @@ Takes a screenshot of a web page or specific element.
 |----------|------|-------------|---------|
 | url | `str` | URL to navigate to before taking screenshot | `` |
 | selector | `str` | Optional CSS selector for capturing a specific element | `` |
-| output_file | `str` | Path to save the screenshot (relative to workspace) | `screenshot.png` |
 | timeout | `int` | Timeout in milliseconds for page navigation | `30000` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `dict[str, any]` |  |
+| output | `image` |  |
 
 ## Related Nodes
 
