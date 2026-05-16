@@ -666,31 +666,35 @@ export function useTransformActions({
   /** Undo the last handle adjustment while still in transform mode. */
   const handleTransformUndo = useCallback(() => {
     const state = getTransformToolState();
-    if (!state) {
-      return;
+    if (
+      state &&
+      !state.handler.isMultiTarget() &&
+      state.handler.hasUndoableAdjustments()
+    ) {
+      const restored = state.handler.undoLastAdjustment(state.currentTransform);
+      if (restored) {
+        setLayerTransform(state.activeLayerId, restored);
+        return;
+      }
     }
-    if (state.handler.isMultiTarget()) {
-      return;
-    }
-    const restored = state.handler.undoLastAdjustment(state.currentTransform);
-    if (restored) {
-      setLayerTransform(state.activeLayerId, restored);
-    }
+    useSketchStore.getState().undo();
   }, [getTransformToolState, setLayerTransform]);
 
   /** Redo the last undone handle adjustment while still in transform mode. */
   const handleTransformRedo = useCallback(() => {
     const state = getTransformToolState();
-    if (!state) {
-      return;
+    if (
+      state &&
+      !state.handler.isMultiTarget() &&
+      state.handler.hasRedoableAdjustments()
+    ) {
+      const restored = state.handler.redoLastAdjustment(state.currentTransform);
+      if (restored) {
+        setLayerTransform(state.activeLayerId, restored);
+        return;
+      }
     }
-    if (state.handler.isMultiTarget()) {
-      return;
-    }
-    const restored = state.handler.redoLastAdjustment(state.currentTransform);
-    if (restored) {
-      setLayerTransform(state.activeLayerId, restored);
-    }
+    useSketchStore.getState().redo();
   }, [getTransformToolState, setLayerTransform]);
 
   // ── Quick transform operations (for transform context menu) ─────────────
