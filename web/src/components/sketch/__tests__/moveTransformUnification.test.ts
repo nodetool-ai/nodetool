@@ -8,7 +8,7 @@
  *      live preview source.
  *   2. Spring-loaded move lifecycle: modifier-driven interactionTool
  *      changes run onActivate/onDeactivate on the spring-loaded tool.
- *   3. Gizmo bounds: resolveGizmoBounds provides one explicit contract
+ *   3. Gizmo bounds: getVisualBounds provides one explicit contract
  *      for both tools; contentBounds vs raster bounds vs canvas size.
  *   4. Reconcile vs preview parity: reconcileLayerToDocumentSpace uses
  *      raster origin consistently with the preview compositing path.
@@ -21,13 +21,13 @@ import { MoveTool } from "../tools/MoveTool";
 import { TransformTool } from "../tools/TransformTool";
 import { createPreviewSession, type PreviewSession } from "../tools/previewSession";
 import {
-  resolveGizmoBounds,
-  getEffectiveRasterBounds,
-  getTransformedExtents,
-  getTransformedCenter
-} from "../painting/resolvedLayerGeometry";
+  getVisualBounds,
+  getRasterBounds,
+  computeTransformedExtents,
+  computeTransformedCenter
+} from "../transform/geometry/layerGeometry";
 import { reconcileLayerToDocumentSpace } from "../rendering/canvas2d/reconcile";
-import { setCanvasRasterBounds, getCanvasRasterBounds } from "../painting/layerBounds";
+import { setCanvasRasterBounds, getCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
 import { getToolHandler } from "../tools";
 
@@ -432,8 +432,8 @@ describe("Task 2: Spring-loaded move lifecycle", () => {
   });
 });
 
-// resolveGizmoBounds + opaque-pixel-bounds coverage lives in
-// transformTargetSet.test.ts (resolveGizmoBounds + computeOpaquePixelBounds describes).
+// getVisualBounds + opaque-pixel-bounds coverage lives in
+// transformTargetSet.test.ts (getVisualBounds + computeOpaquePixelBounds describes).
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 3. RECONCILE vs PREVIEW PARITY
@@ -456,7 +456,7 @@ describe("Task 4: Reconcile vs preview parity", () => {
     canvases.set("offset-layer", canvas);
 
     // Preview path center: tx + rasterOriginX + w/2 = 10 + (-30) + 80 = 60
-    const previewCenter = getTransformedCenter(layer.transform, {
+    const previewCenter = computeTransformedCenter(layer.transform, {
       x: -30, y: -20, width: 160, height: 140
     });
     expect(previewCenter.x).toBe(10 + (-30) + 160 / 2); // 60
@@ -530,7 +530,7 @@ describe("Task 4: Reconcile vs preview parity", () => {
     canvases.set("rotated-layer", canvas);
 
     // Preview center: 0 + (-10) + 30 = 20
-    const previewCenter = getTransformedCenter(layer.transform, {
+    const previewCenter = computeTransformedCenter(layer.transform, {
       x: -10, y: -10, width: 60, height: 60
     });
     expect(previewCenter.x).toBe(20);
@@ -563,7 +563,7 @@ describe("Task 4: Reconcile vs preview parity", () => {
     canvasCtx!.fillRect(0, 0, 40, 40);
     const canvases = new Map<string, HTMLCanvasElement>([[layer.id, canvas]]);
 
-    const previewExtents = getTransformedExtents(layer.transform, layer.contentBounds);
+    const previewExtents = computeTransformedExtents(layer.transform, layer.contentBounds);
     const result = reconcileLayerToDocumentSpace(layer.id, doc, canvases);
     expect(result).not.toBeNull();
 
@@ -606,7 +606,7 @@ describe("Task 4: Reconcile vs preview parity", () => {
     canvasCtx!.fillRect(0, 0, 40, 40);
     const canvases = new Map<string, HTMLCanvasElement>([[layer.id, canvas]]);
 
-    const previewExtents = getTransformedExtents(layer.transform, layer.contentBounds);
+    const previewExtents = computeTransformedExtents(layer.transform, layer.contentBounds);
     const result = reconcileLayerToDocumentSpace(layer.id, doc, canvases);
     expect(result).not.toBeNull();
 
@@ -642,8 +642,8 @@ describe("Task 4: Reconcile vs preview parity", () => {
     const transform = makeTransform({ x: tx, y: ty, scaleX: sx, scaleY: sy, rotation: rot });
     const rasterBounds: LayerContentBounds = { x: rasterOriginX, y: rasterOriginY, width: rw, height: rh };
 
-    // Preview path: getTransformedExtents
-    const previewExtents = getTransformedExtents(transform, rasterBounds);
+    // Preview path: computeTransformedExtents
+    const previewExtents = computeTransformedExtents(transform, rasterBounds);
 
     // Reconcile path center: tx + rasterOriginX + rw/2
     const cx = tx + rasterOriginX + rw / 2;
@@ -681,7 +681,7 @@ describe("Task 4: Reconcile vs preview parity", () => {
     const rasterBounds: LayerContentBounds = { x: rasterOriginX, y: rasterOriginY, width: rw, height: rh };
 
     // Preview path
-    const previewExtents = getTransformedExtents(transform, rasterBounds);
+    const previewExtents = computeTransformedExtents(transform, rasterBounds);
 
     // Reconcile path (manual computation matching the fixed reconcile code)
     const cx = tx + rasterOriginX + rw / 2;

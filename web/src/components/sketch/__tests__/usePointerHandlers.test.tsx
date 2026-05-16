@@ -166,7 +166,8 @@ describe("usePointerHandlers", () => {
     const originalT0 = transformTool.getOriginalTransform();
     expect(originalT0.kind === "affine" ? originalT0.x : NaN).toBe(0);
 
-    (params.drawGizmo as jest.Mock).mockClear();
+    const gizmoListener = jest.fn();
+    const unsubscribe = transformTool.subscribeGizmo(gizmoListener);
     const updatedDoc = {
       ...initialDoc,
       activeLayerId: nextLayer.id
@@ -180,7 +181,9 @@ describe("usePointerHandlers", () => {
 
     const originalT1 = transformTool.getOriginalTransform();
     expect(originalT1.kind === "affine" ? originalT1.x : NaN).toBe(40);
-    expect(params.drawGizmo).toHaveBeenCalled();
+    // Snapshot subscribers fire when syncActiveLayer reconciles to the new layer.
+    expect(gizmoListener).toHaveBeenCalled();
+    unsubscribe();
   });
 
   it("re-syncs MoveTool gizmo when the active layer changes while move stays active", () => {

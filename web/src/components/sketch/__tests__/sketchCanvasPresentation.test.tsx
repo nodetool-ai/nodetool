@@ -12,6 +12,7 @@ import SketchCanvasPresentation, {
   canvasTransformStyle
 } from "../SketchCanvasPresentation";
 import type { SketchCanvasPresentationProps } from "../SketchCanvasPresentation";
+import { TransformTool } from "../tools/TransformTool";
 
 // Mock MUI ThemeProvider — SketchCanvasPresentation uses useTheme.
 jest.mock("@mui/material/styles", () => ({
@@ -45,6 +46,7 @@ function makeProps(
     selectionCanvasRef: React.createRef<HTMLCanvasElement>(),
     cursorCanvasRef: React.createRef<HTMLCanvasElement>(),
     gizmoCanvasRef: React.createRef<HTMLCanvasElement>(),
+    transformTool: new TransformTool(),
     canvasWidth: 128,
     canvasHeight: 64,
     zoom: 1,

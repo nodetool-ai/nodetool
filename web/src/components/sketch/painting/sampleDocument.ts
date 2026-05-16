@@ -17,7 +17,7 @@ import type { Point, Layer } from "../types";
 import type { ToolContext } from "../tools/types";
 import { rgbToHex } from "../types/geometry";
 import { CoordinateMapper } from "./CoordinateMapper";
-import { getEffectiveLayerRasterBounds } from "./layerBounds";
+import { getRasterBounds } from "../transform/geometry/layerGeometry";
 
 // ─── Composite sampling ─────────────────────────────────────────────────────
 
@@ -96,7 +96,7 @@ export function hitTestLayerAtDocPoint(
     return false;
   }
 
-  const bounds = getEffectiveLayerRasterBounds(
+  const bounds = getRasterBounds(
     layer,
     layerCanvas,
     { width: layerCanvas.width, height: layerCanvas.height }

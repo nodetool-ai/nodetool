@@ -164,7 +164,10 @@ describe("TransformTool in-transform undo/redo", () => {
 
     expect(tool.getTargetSet().getIds()).toEqual([secondLayer.id]);
     expect(tool.getTargetSet().has(firstLayer.id)).toBe(false);
-    expect(ctx.drawGizmo).toHaveBeenCalled();
+    // Snapshot refreshed for the new target — gizmo lives in React now,
+    // so we check the public snapshot getter instead of the canvas paint mock.
+    const snap = tool.getGizmoSnapshot();
+    expect(snap).not.toBeNull();
   });
 
   it("has no undoable adjustments initially after activation", () => {

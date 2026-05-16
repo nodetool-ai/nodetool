@@ -12,13 +12,11 @@ import {
   IDENTITY_AFFINE,
   affineToMatrix,
   isAffineTransform,
-  isDualQuadTransform,
   isSingleQuadTransform,
   matrixToAffine,
   makeAffineTransform,
   type AffineMatrix,
   type AffineTransform,
-  type DualQuadTransform,
   type LayerTransform,
   type SingleQuadTransform
 } from "../types";
@@ -38,13 +36,6 @@ export function aff(t: LayerTransform): AffineTransform {
 export function quadOf(t: LayerTransform): SingleQuadTransform {
   if (!isSingleQuadTransform(t)) {
     throw new Error(`expected single-quad transform, got kind=${t.kind}`);
-  }
-  return t;
-}
-
-export function dualQuadOf(t: LayerTransform): DualQuadTransform {
-  if (!isDualQuadTransform(t)) {
-    throw new Error(`expected dual-quad transform, got kind=${t.kind}`);
   }
   return t;
 }

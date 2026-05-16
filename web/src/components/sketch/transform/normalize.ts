@@ -23,7 +23,6 @@ import {
   IDENTITY_AFFINE,
   cloneQuad,
   makeAffineTransform,
-  makeDualQuadTransform,
   makeSingleQuadTransform
 } from "./types";
 
@@ -59,7 +58,9 @@ function num(value: unknown, fallback: number): number {
  *
  * Migration rules:
  *   - Already canonical → cloned, validated.
- *   - `mode === "perspective-dual"` + two quads → DualQuadTransform.
+ *   - Legacy `kind: "dual-quad"` / `mode: "perspective-dual"` payloads →
+ *     lossy downgrade to a single-quad perspective using the primary quad
+ *     only (the secondary plane is dropped; users will have to re-edit).
  *   - Single-quad mode + valid quad → SingleQuadTransform.
  *   - Anything else → AffineTransform from any present TRS fields. Legacy
  *     `matrix`-only payloads are *not* preserved as matrices because the
@@ -84,12 +85,14 @@ export function normalizeLayerTransform(raw: unknown): LayerTransform {
     });
   }
 
+  // Lossy migration: legacy dual-quad payloads downgrade to a single-quad
+  // perspective using the primary quad. The secondary plane cannot be
+  // represented in the new canonical union and is discarded.
   if (
-    t.kind === "dual-quad" &&
-    isQuadShape(t.quad) &&
-    isQuadShape(t.secondaryQuad)
+    (t.kind === "dual-quad" || t.mode === "perspective-dual") &&
+    isQuadShape(t.quad)
   ) {
-    return makeDualQuadTransform(t.quad, t.secondaryQuad);
+    return makeSingleQuadTransform("perspective", t.quad);
   }
 
   if (
@@ -99,14 +102,6 @@ export function normalizeLayerTransform(raw: unknown): LayerTransform {
     isQuadShape(t.quad)
   ) {
     return makeSingleQuadTransform(t.mode as SingleQuadMode, t.quad);
-  }
-
-  if (
-    t.mode === "perspective-dual" &&
-    isQuadShape(t.quad) &&
-    isQuadShape(t.secondaryQuad)
-  ) {
-    return makeDualQuadTransform(t.quad, t.secondaryQuad);
   }
 
   if (
@@ -133,8 +128,6 @@ export function cloneAndValidateTransform(t: LayerTransform): LayerTransform {
       return { ...t };
     case "quad":
       return makeSingleQuadTransform(t.mode, t.quad);
-    case "dual-quad":
-      return makeDualQuadTransform(t.quad, t.secondaryQuad);
   }
 }
 
@@ -144,7 +137,7 @@ export function assertCanonicalTransform(t: unknown): asserts t is LayerTransfor
     throw new Error("LayerTransform: expected object");
   }
   const kind = (t as { kind?: unknown }).kind;
-  if (kind !== "affine" && kind !== "quad" && kind !== "dual-quad") {
+  if (kind !== "affine" && kind !== "quad") {
     throw new Error(`LayerTransform: unknown kind ${String(kind)}`);
   }
 }

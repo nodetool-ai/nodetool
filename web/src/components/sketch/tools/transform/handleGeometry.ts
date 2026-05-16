@@ -11,14 +11,18 @@
  * @module tools/transform/handleGeometry
  */
 
-import type { Point, LayerTransform, LayerContentBounds } from "../../types";
-import { isQuadTransform, isDualQuadTransform } from "../../types";
+import type {
+  Point,
+  LayerTransform,
+  LayerContentBounds,
+  TransformMode
+} from "../../types";
+import { isQuadTransform } from "../../types";
+import { getTransformMode } from "../../transform/modes";
 import {
-  getTransformedExtents,
-  getTransformedCorners,
-  getTransformedCenter,
-  type DocumentExtents
-} from "../../painting/resolvedLayerGeometry";
+  computeTransformedCorners,
+  computeTransformedCenter
+} from "../../transform/geometry/layerGeometry";
 
 // ─── Handle types ─────────────────────────────────────────────────────────────
 
@@ -80,16 +84,6 @@ export const HANDLE_SIZE = GIZMO_HANDLE_SIZE;
 export const OUTSIDE_ROTATE_MARGIN = GIZMO_OUTSIDE_ROTATE_MARGIN;
 export const PIVOT_HIT_RADIUS = GIZMO_PIVOT_HIT_RADIUS;
 export const PIVOT_SNAP_DISTANCE = GIZMO_PIVOT_SNAP_DISTANCE;
-
-/**
- * True when the transform is a free-form quad (warp / perspective / distort /
- * mesh-warp / dual-quad). For these modes, rotation/pivot are meaningless —
- * callers should disable the rotate handle, the outside-box rotate band, and
- * the custom pivot.
- */
-function usesQuadHandles(transform: LayerTransform): boolean {
-  return isQuadTransform(transform) || isDualQuadTransform(transform);
-}
 
 function midpoint(a: Point, b: Point): Point {
   return {
@@ -185,7 +179,7 @@ export function computeLayerCenter(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): Point {
-  return getTransformedCenter(transform, rasterBounds);
+  return computeTransformedCenter(transform, rasterBounds);
 }
 
 /**
@@ -215,8 +209,8 @@ export function buildHandlePositions(
   rasterBounds: LayerContentBounds,
   zoom: number
 ): Array<{ pos: Point; handle: TransformHandle }> {
-  if (usesQuadHandles(transform)) {
-    const corners = getTransformedCorners(transform, rasterBounds);
+  if (isQuadTransform(transform)) {
+    const corners = computeTransformedCorners(transform, rasterBounds);
     return [
       { pos: corners[0], handle: "top-left" },
       { pos: corners[1], handle: "top-right" },
@@ -224,7 +218,7 @@ export function buildHandlePositions(
       { pos: corners[2], handle: "bottom-right" }
     ];
   }
-  const center = getTransformedCenter(transform, rasterBounds);
+  const center = computeTransformedCenter(transform, rasterBounds);
   const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
   const rot = transform.kind === "affine" ? transform.rotation : 0;
 
@@ -286,12 +280,12 @@ export function hitTestHandles(
     }
   }
 
-  if (usesQuadHandles(transform)) {
-    const corners = getTransformedCorners(transform, rasterBounds);
+  if (isQuadTransform(transform)) {
+    const corners = computeTransformedCorners(transform, rasterBounds);
     return pointInPolygon(canvasPt, corners) ? "move" : null;
   }
 
-  const center = getTransformedCenter(transform, rasterBounds);
+  const center = computeTransformedCenter(transform, rasterBounds);
   const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
   const rot = transform.kind === "affine" ? transform.rotation : 0;
 
@@ -334,13 +328,17 @@ export function isInRotateZone(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds,
   canvasPt: Point,
-  zoom: number
+  zoom: number,
+  activeMode?: TransformMode
 ): boolean {
-  if (usesQuadHandles(transform)) {
+  if (isQuadTransform(transform)) {
+    return false;
+  }
+  if (activeMode && !getTransformMode(activeMode).supportsRotate) {
     return false;
   }
   const margin = OUTSIDE_ROTATE_MARGIN / zoom;
-  const center = getTransformedCenter(transform, rasterBounds);
+  const center = computeTransformedCenter(transform, rasterBounds);
   const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
   const rot = transform.kind === "affine" ? transform.rotation : 0;
 
@@ -609,28 +607,6 @@ export function docRectToScreen(
 }
 
 /**
- * Return the resolved axis-aligned bounding box (AABB) and transformed
- * corners for a layer, consuming the shared geometry seam.
- *
- * This is the single source for gizmo outline bounds and selection overlay
- * alignment.
- */
-export function getLayerGizmoBounds(
-  transform: LayerTransform,
-  rasterBounds: LayerContentBounds
-): {
-  extents: DocumentExtents;
-  corners: [Point, Point, Point, Point];
-  center: Point;
-} {
-  return {
-    extents: getTransformedExtents(transform, rasterBounds),
-    corners: getTransformedCorners(transform, rasterBounds),
-    center: getTransformedCenter(transform, rasterBounds)
-  };
-}
-
-/**
  * Anchor direction table for scale handles: the opposite edge stays fixed
  * while the dragged edge moves. { dx, dy } point from center toward the anchor.
  */
@@ -676,10 +652,10 @@ export function getPivotSnapAnchors(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): Point[] {
-  if (usesQuadHandles(transform)) {
-    const corners = getTransformedCorners(transform, rasterBounds);
+  if (isQuadTransform(transform)) {
+    const corners = computeTransformedCorners(transform, rasterBounds);
     return [
-      getTransformedCenter(transform, rasterBounds),
+      computeTransformedCenter(transform, rasterBounds),
       corners[0],
       corners[1],
       corners[3],
@@ -690,7 +666,7 @@ export function getPivotSnapAnchors(
       midpoint(corners[1], corners[2])
     ];
   }
-  const center = getTransformedCenter(transform, rasterBounds);
+  const center = computeTransformedCenter(transform, rasterBounds);
   const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
   const rot = transform.kind === "affine" ? transform.rotation : 0;
   const cx = center.x;

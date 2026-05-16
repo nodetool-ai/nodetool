@@ -31,8 +31,7 @@ export {
   snapPivotToAnchor,
   docToScreen,
   docRectToScreen,
-  canvasDocPointToGizmoDevicePixels,
-  getLayerGizmoBounds
+  canvasDocPointToGizmoDevicePixels
 } from "./handleGeometry";
 export {
   type CropRectDoc,

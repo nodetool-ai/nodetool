@@ -4,8 +4,8 @@
  *   - applyTransformPreviews (composite document builder)
  *   - isCompleteTransform (predicate)
  *
- * mergeTransformPreview / createMovePreview / resolveLayerGeometry /
- * getTransformedCorners / preview-vs-commit parity are all covered by
+ * mergeTransformPreview / createMovePreview / getLayerGeometry /
+ * computeTransformedCorners / preview-vs-commit parity are all covered by
  * transformCorrectness.test.ts (and by transformTargetSet.test.ts for
  * gizmo bounds).
  */

@@ -4,7 +4,7 @@
  * standalone app (Electron/Tauri) without depending on the wider web shell.
  */
 
-import { getLayerCompositeOffset } from "./painting";
+import { getLayerGeometry } from "./transform/geometry/layerGeometry";
 import {
   getSelectionBounds,
   sampleMask,
@@ -154,7 +154,7 @@ export function buildSketchInternalClipboardCanvas(
     if (!ctx) {
       return null;
     }
-    const offset = getLayerCompositeOffset(layer, docSize, snapshot);
+    const offset = getLayerGeometry(layer, snapshot, docSize).compositeOffset;
     ctx.drawImage(
       snapshot,
       bounds.x - offset.x,
@@ -185,7 +185,7 @@ export function buildSketchInternalClipboardCanvas(
 }
 
 export interface SketchPasteDrawParams {
-  /** Layer composite offset in document space (from {@link getLayerCompositeOffset}). */
+  /** Layer composite offset in document space (from {@link getLayerGeometry}). */
   offset: Point;
   /** Document-space top-left of pixel under cursor, if known. */
   pasteAnchorDocument: Point | null;

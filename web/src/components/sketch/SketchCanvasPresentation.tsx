@@ -19,6 +19,8 @@ import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
 import { SKETCH_Z_INDEX, SKETCH_FONT } from "./sketchStyles";
 import { selectionAntCanvasMarginCssPx } from "./sketchCanvasHooks";
 import { cursorStyleForTool } from "./sketchCursorStyle";
+import { TransformGizmo } from "./transform/gizmo/TransformGizmo";
+import type { TransformTool } from "./tools/TransformTool";
 
 export { cursorStyleForTool } from "./sketchCursorStyle";
 
@@ -82,6 +84,9 @@ export interface SketchCanvasPresentationProps {
   cursorCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   gizmoCanvasRef: React.RefObject<HTMLCanvasElement | null>;
 
+  /** TransformTool singleton — drives the React SVG gizmo. */
+  transformTool: TransformTool;
+
   // ── Layout data ────────────────────────────────────────────────────
   canvasWidth: number;
   canvasHeight: number;
@@ -130,6 +135,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
       selectionCanvasRef,
       cursorCanvasRef,
       gizmoCanvasRef,
+      transformTool,
       canvasWidth,
       canvasHeight,
       zoom,
@@ -237,11 +243,13 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
           ref={cursorCanvasRef}
           className="sketch-canvas__cursor cursor-overlay"
         />
-        {/* Gizmo canvas for transform tool handles */}
+        {/* Gizmo canvas — MoveTool / CropTool still paint here imperatively. */}
         <canvas
           ref={gizmoCanvasRef}
           className="sketch-canvas__gizmo cursor-overlay"
         />
+        {/* React/SVG gizmo for the TransformTool (declarative, viewport-aware). */}
+        <TransformGizmo containerRef={containerRef} tool={transformTool} />
         {/* Canvas resize handles */}
         {onCanvasResize && (
           <SketchCanvasResizeHandles

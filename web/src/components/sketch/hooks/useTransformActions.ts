@@ -24,7 +24,7 @@ import {
 } from "../types";
 import { deserializeLayerData, getLayerDataFromCanvas } from "../rendering/canvas2d/layerIO";
 import { reconcileLayerToDocumentSpace } from "../rendering/canvas2d/reconcile";
-import { getCanvasRasterBounds } from "../painting";
+import { getCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 import { useSketchStore } from "../state";
 import { resolveTransformTargetLayerIds } from "../tools/transformTargetSet";
 import { cloneSelectionMask, selectionHasAnyPixels } from "../selection";

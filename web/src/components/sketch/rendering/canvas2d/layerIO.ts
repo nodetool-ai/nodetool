@@ -7,7 +7,7 @@
  */
 
 import type { LayerContentBounds } from "../../types";
-import { getCanvasRasterBounds } from "../../painting/layerBounds";
+import { getCanvasRasterBounds } from "../../transform/geometry/layerGeometry";
 
 // ─── Constants & helper types ────────────────────────────────────────────────
 

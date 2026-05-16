@@ -27,9 +27,9 @@ import {
 } from "../types";
 import { hitTestLayerAtDocPoint } from "../painting/sampleDocument";
 import {
-  resolveGizmoBounds,
-  getTransformedExtents
-} from "../painting/resolvedLayerGeometry";
+  getVisualBounds,
+  computeTransformedExtents
+} from "../transform/geometry/layerGeometry";
 
 // ─── Target set ──────────────────────────────────────────────────────────────
 
@@ -39,16 +39,25 @@ export interface TransformTargetEntry {
   bounds: LayerContentBounds;
 }
 
-/** True when the layer can participate in a multi-layer union transform. */
-function isMultiTransformEligibleLayer(layer: Layer): boolean {
+/** True when the layer is transformable at all (single or multi target). */
+function isTransformEligibleLayer(layer: Layer): boolean {
   if (layer.type !== "raster" && layer.type !== "mask") {
     return false;
   }
   if (layer.locked && !layerAllowsTransformWhilePixelLocked(layer)) {
     return false;
   }
-  // Advanced per-layer modes (any quad/dual-quad transform) are excluded
-  // from multi-target unions. Only simple affine transforms participate.
+  return true;
+}
+
+/** True when the layer can participate in a multi-layer union transform. */
+function isMultiTransformEligibleLayer(layer: Layer): boolean {
+  if (!isTransformEligibleLayer(layer)) {
+    return false;
+  }
+  // Advanced per-layer modes (any quad transform) are excluded
+  // from multi-target unions because the union gizmo only carries a single
+  // affine delta. They remain fully editable as single targets.
   if (isQuadTransform(layer.transform)) {
     return false;
   }
@@ -76,6 +85,16 @@ export function resolveTransformTargetLayerIds(
     return [];
   }
 
+  // A single non-group seed targets that one layer (quad transforms are
+  // editable as single targets — only the multi-layer union path excludes them).
+  // Groups and multi-selections expand to all multi-eligible descendants.
+  const isSingleSeed =
+    seeds.length === 1 &&
+    !(doc.layers.find((l) => l.id === seeds[0])?.type === "group");
+  const eligibility = isSingleSeed
+    ? isTransformEligibleLayer
+    : isMultiTransformEligibleLayer;
+
   const expanded = new Set<string>();
   for (const id of seeds) {
     const layer = doc.layers.find((l) => l.id === id);
@@ -89,7 +108,7 @@ export function resolveTransformTargetLayerIds(
           expanded.add(descId);
         }
       }
-    } else if (isMultiTransformEligibleLayer(layer)) {
+    } else if (eligibility(layer)) {
       expanded.add(id);
     }
   }
@@ -168,7 +187,7 @@ export class TransformTargetSet {
     let maxY = -Infinity;
     for (const e of this.entries) {
       const transform = getLayerTransform(e.layerId);
-      const ext = getTransformedExtents(transform, e.bounds);
+      const ext = computeTransformedExtents(transform, e.bounds);
       minX = Math.min(minX, ext.x);
       minY = Math.min(minY, ext.y);
       maxX = Math.max(maxX, ext.x + ext.width);
@@ -287,6 +306,6 @@ export function resolveTargetEntry(
   layerCanvas: HTMLCanvasElement | undefined | null,
   fallbackSize: { width: number; height: number }
 ): TransformTargetEntry {
-  const bounds = resolveGizmoBounds(layer, layerCanvas, fallbackSize);
+  const bounds = getVisualBounds(layer, layerCanvas, fallbackSize);
   return { layerId: layer.id, bounds };
 }

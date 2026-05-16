@@ -16,7 +16,7 @@ import {
   combineMasks,
   fillRectMask
 } from "../selection";
-import { setCanvasRasterBounds } from "../painting/layerBounds";
+import { setCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 import type { SketchDocument } from "../types";
 import { createDefaultDocument, createDefaultLayer } from "../types/document";
 

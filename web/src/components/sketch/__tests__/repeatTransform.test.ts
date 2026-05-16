@@ -6,7 +6,7 @@ import { useTransformActions } from "../hooks/useTransformActions";
 import { useSketchStore } from "../state/useSketchStore";
 import { serializeLayerData } from "../rendering/canvas2d/layerIO";
 import { reconcileLayerToDocumentSpace } from "../rendering/canvas2d/reconcile";
-import { getCanvasRasterBounds, setCanvasRasterBounds } from "../painting";
+import { getCanvasRasterBounds, setCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 
 function cloneCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
   const canvas = window.document.createElement("canvas");

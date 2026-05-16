@@ -5,7 +5,7 @@
  *   - TransformTargetSet: single-target replace/clear/has semantics
  *   - pickTopmostTransformableLayer: visibility, lock, hit-test
  *   - computeOpaquePixelBounds: empty, full, partial canvas
- *   - resolveGizmoBounds: tight pixel bounds for canvas-sized layers
+ *   - getVisualBounds: tight pixel bounds for canvas-sized layers
  */
 
 import {
@@ -17,9 +17,9 @@ import {
   computeOpaquePixelBounds,
   computeLayerOpaquePixelBounds
 } from "../painting/opaquePixelBounds";
-import { resolveGizmoBounds } from "../painting/resolvedLayerGeometry";
+import { getVisualBounds } from "../transform/geometry/layerGeometry";
 import type { Layer, LayerContentBounds, LayerTransform } from "../types";
-import { setCanvasRasterBounds } from "../painting/layerBounds";
+import { setCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 
 // ─── Test helpers ────────────────────────────────────────────────────────────
 
@@ -211,9 +211,9 @@ describe("computeLayerOpaquePixelBounds", () => {
   });
 });
 
-// ─── resolveGizmoBounds with pixel bounds ────────────────────────────────────
+// ─── getVisualBounds with pixel bounds ────────────────────────────────────
 
-describe("resolveGizmoBounds (pixel bounds integration)", () => {
+describe("getVisualBounds (pixel bounds integration)", () => {
   it("returns tight pixel bounds when canvas is canvas-sized with small content", () => {
     // Layer with contentBounds matching canvas size (512x512)
     const layer = makeLayer({
@@ -225,7 +225,7 @@ describe("resolveGizmoBounds (pixel bounds integration)", () => {
     ]);
     setCanvasRasterBounds(canvas, { x: 0, y: 0, width: 512, height: 512 });
 
-    const result = resolveGizmoBounds(layer, canvas, { width: 512, height: 512 });
+    const result = getVisualBounds(layer, canvas, { width: 512, height: 512 });
     // Should return tight pixel bounds, not full 512x512
     expect(result.width).toBe(100);
     expect(result.height).toBe(100);
@@ -242,7 +242,7 @@ describe("resolveGizmoBounds (pixel bounds integration)", () => {
     ]);
     setCanvasRasterBounds(canvas, { x: 0, y: 0, width: 512, height: 512 });
 
-    const result = resolveGizmoBounds(layer, canvas, { width: 512, height: 512 });
+    const result = getVisualBounds(layer, canvas, { width: 512, height: 512 });
     // contentBounds are smaller, so use them
     expect(result).toEqual({ x: 10, y: 10, width: 50, height: 50 });
   });
@@ -254,7 +254,7 @@ describe("resolveGizmoBounds (pixel bounds integration)", () => {
     const canvas = makeCanvasWithPixels(512, 512, []);
     setCanvasRasterBounds(canvas, { x: 0, y: 0, width: 512, height: 512 });
 
-    const result = resolveGizmoBounds(layer, canvas, { width: 512, height: 512 });
+    const result = getVisualBounds(layer, canvas, { width: 512, height: 512 });
     // No opaque pixels → fall back to raster bounds
     expect(result).toEqual({ x: 0, y: 0, width: 512, height: 512 });
   });

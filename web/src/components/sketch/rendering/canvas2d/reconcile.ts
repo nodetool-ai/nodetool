@@ -9,12 +9,11 @@ import type { LayerContentBounds, SketchDocument } from "../../types";
 import { isIdentityTransform } from "../../types";
 import {
   getCanvasRasterBounds,
-  getLayerCompositeOffset,
+  getLayerGeometry,
   setCanvasRasterBounds
-} from "../../painting/layerBounds";
+} from "../../transform/geometry/layerGeometry";
 import { serializeLayerData } from "./layerIO";
 import {
-  drawImageToDualQuad,
   drawImageToQuad,
   getQuadExtents,
   translateQuad
@@ -78,18 +77,9 @@ export function reconcileLayerToDocumentSpace(
   }
   sourceCtx.drawImage(canvas, 0, 0);
 
-  if (transform.kind === "quad" || transform.kind === "dual-quad") {
+  if (transform.kind === "quad") {
     const quad = transform.quad;
-    const isDual = transform.kind === "dual-quad";
-    const secondaryQuad = isDual ? transform.secondaryQuad : null;
-    const primaryExtents = getQuadExtents(quad);
-    const secondaryExtents = secondaryQuad
-      ? getQuadExtents(secondaryQuad)
-      : primaryExtents;
-    const minX = Math.min(primaryExtents.minX, secondaryExtents.minX);
-    const minY = Math.min(primaryExtents.minY, secondaryExtents.minY);
-    const maxX = Math.max(primaryExtents.maxX, secondaryExtents.maxX);
-    const maxY = Math.max(primaryExtents.maxY, secondaryExtents.maxY);
+    const { minX, minY, maxX, maxY } = getQuadExtents(quad);
     // Tight to the transformed AABB. Padding the canvas out to the document
     // size used to bloat the gizmo bounds (it reads from this canvas's stored
     // raster bounds), making subsequent transforms snap to handles at the
@@ -107,16 +97,7 @@ export function reconcileLayerToDocumentSpace(
       return fallbackSerialize();
     }
 
-    if (secondaryQuad) {
-      drawImageToDualQuad(
-        tempCtx,
-        source,
-        translateQuad(quad, -outX, -outY),
-        translateQuad(secondaryQuad, -outX, -outY)
-      );
-    } else {
-      drawImageToQuad(tempCtx, source, translateQuad(quad, -outX, -outY));
-    }
+    drawImageToQuad(tempCtx, source, translateQuad(quad, -outX, -outY));
 
     canvas.width = outW;
     canvas.height = outH;
@@ -427,13 +408,13 @@ export function invertLayerColors(
   // layer transform translation — exactly the same contract used by
   // clearLayerBySelectionMask / fillLayerBySelectionMask via
   // getLayerCompositeOffset.
-  const compositeOffset = getLayerCompositeOffset(
+  // Use the live raster metadata; document contentBounds can lag behind after
+  // a compact re-encode and would skew subsequent selection-masked inverts.
+  const compositeOffset = getLayerGeometry(
     activeLayer,
-    { width: w, height: h },
-    // Use the live raster metadata; document contentBounds can lag behind after
-    // a compact re-encode and would skew subsequent selection-masked inverts.
-    layerCanvas
-  );
+    layerCanvas,
+    { width: w, height: h }
+  ).compositeOffset;
   const cbx = compositeOffset.x;
   const cby = compositeOffset.y;
 

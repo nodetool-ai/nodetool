@@ -10,11 +10,11 @@
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import type { Point, GradientSettings } from "../types";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
+import { ensureLayerRasterBounds } from "../transform/geometry/ensureRasterBounds";
 import {
   getCanvasRasterBounds,
-  ensureLayerRasterBounds,
-  getDocumentViewportLayerBounds
-} from "../painting";
+  getDocumentViewportInLayerSpace
+} from "../transform/geometry/layerGeometry";
 import { selectionHasAnyPixels, selectionHitTest } from "../selection";
 import GradientIcon from "@mui/icons-material/Gradient";
 
@@ -140,7 +140,7 @@ export class GradientTool implements ToolHandler {
     // document viewport so that all selection areas (including those outside
     // the current contentBounds) receive the gradient.
     if (hasSelection) {
-      const viewportBounds = getDocumentViewportLayerBounds(activeLayer, doc);
+      const viewportBounds = getDocumentViewportInLayerSpace(activeLayer, doc);
       const rasterBounds = ensureLayerRasterBounds(ctx, activeLayer, viewportBounds);
       // Recreate mapper after canvas expansion — origin may have shifted.
       mapper = new CoordinateMapper({

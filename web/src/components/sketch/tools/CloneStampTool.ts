@@ -20,7 +20,7 @@ import {
 } from "../drawingUtils";
 import { HelperToolSession } from "../painting/HelperToolSession";
 import type { HelperSetupInfo, HelperDrawInfo } from "../painting/HelperToolSession";
-import { getLayerCompositeOffset } from "../painting/layerBounds";
+import { getLayerGeometry } from "../transform/geometry/layerGeometry";
 
 export class CloneStampTool implements ToolHandler {
   readonly toolId = "clone_stamp" as const;
@@ -144,11 +144,11 @@ export class CloneStampTool implements ToolHandler {
           }
           const lc = ctx.layerCanvasesRef.current.get(layer.id);
           if (lc) {
-            const compositeOffset = getLayerCompositeOffset(
+            const compositeOffset = getLayerGeometry(
               layer,
-              { width: lc.width, height: lc.height },
-              lc
-            );
+              lc,
+              { width: lc.width, height: lc.height }
+            ).compositeOffset;
             tmpCtx.save();
             tmpCtx.globalAlpha =
               layer.opacity *

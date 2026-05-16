@@ -36,12 +36,12 @@ import {
   isCompleteTransform
 } from "../painting/transformPreview";
 import {
-  resolveLayerGeometry,
-  getTransformedExtents,
-  getTransformedCorners,
-  getTransformedCenter,
-  getEffectiveRasterBounds
-} from "../painting/resolvedLayerGeometry";
+  getLayerGeometry,
+  computeTransformedExtents,
+  computeTransformedCorners,
+  computeTransformedCenter,
+  getRasterBounds
+} from "../transform/geometry/layerGeometry";
 import {
   hitTestHandles,
   buildHandlePositions,
@@ -49,7 +49,6 @@ import {
   scaledHalfExtents,
   docToScreen,
   docRectToScreen,
-  getLayerGizmoBounds,
   rotatePoint,
   dist,
   HANDLE_RADIUS,
@@ -218,7 +217,7 @@ describe("Package B: gizmo alignment with resolved geometry", () => {
     const transform = makeTransform({ x: 50, y: 50 });
     const bounds = makeBounds({ x: 0, y: 0, width: 100, height: 100 });
 
-    const resolvedCenter = getTransformedCenter(transform, bounds);
+    const resolvedCenter = computeTransformedCenter(transform, bounds);
     const handleCenter = computeLayerCenter(transform, bounds);
 
     expect(handleCenter).toEqual(resolvedCenter);
@@ -233,7 +232,7 @@ describe("Package B: gizmo alignment with resolved geometry", () => {
     });
     const bounds = makeBounds({ x: 0, y: 0, width: 80, height: 60 });
 
-    const resolvedCenter = getTransformedCenter(transform, bounds);
+    const resolvedCenter = computeTransformedCenter(transform, bounds);
     const handleCenter = computeLayerCenter(transform, bounds);
 
     expect(handleCenter).toEqual(resolvedCenter);
@@ -247,7 +246,7 @@ describe("Package B: gizmo alignment with resolved geometry", () => {
     });
     const bounds = makeBounds({ x: 0, y: 0, width: 120, height: 80 });
 
-    const resolvedCenter = getTransformedCenter(transform, bounds);
+    const resolvedCenter = computeTransformedCenter(transform, bounds);
     const handleCenter = computeLayerCenter(transform, bounds);
 
     expect(handleCenter).toEqual(resolvedCenter);
@@ -258,7 +257,7 @@ describe("Package B: gizmo alignment with resolved geometry", () => {
     const bounds = makeBounds({ x: 0, y: 0, width: 100, height: 50 });
 
     const handles = buildHandlePositions(transform, bounds, 1);
-    const resolvedCorners = getTransformedCorners(transform, bounds);
+    const resolvedCorners = computeTransformedCorners(transform, bounds);
 
     // Find each corner handle and verify it matches the resolved corner
     const tl = handles.find((h) => h.handle === "top-left")!;
@@ -286,7 +285,7 @@ describe("Package B: gizmo alignment with resolved geometry", () => {
     const bounds = makeBounds({ x: 0, y: 0, width: 80, height: 60 });
 
     const handles = buildHandlePositions(transform, bounds, 1);
-    const resolvedCorners = getTransformedCorners(transform, bounds);
+    const resolvedCorners = computeTransformedCorners(transform, bounds);
 
     const tl = handles.find((h) => h.handle === "top-left")!;
     const tr = handles.find((h) => h.handle === "top-right")!;
@@ -314,7 +313,7 @@ describe("Package B: gizmo alignment with resolved geometry", () => {
     const bounds = makeBounds({ x: 0, y: 0, width: 80, height: 60 });
 
     const handles = buildHandlePositions(transform, bounds, 1);
-    const resolvedCorners = getTransformedCorners(transform, bounds);
+    const resolvedCorners = computeTransformedCorners(transform, bounds);
 
     const tl = handles.find((h) => h.handle === "top-left")!;
     const tr = handles.find((h) => h.handle === "top-right")!;
@@ -331,7 +330,7 @@ describe("Package B: gizmo alignment with resolved geometry", () => {
     expect(bl.pos.y).toBeCloseTo(resolvedCorners[3].y, 5);
   });
 
-  it("getLayerGizmoBounds agrees with resolveLayerGeometry", () => {
+  it("getLayerGeometry bundles extents/center/corners consistent with computeTransformed*", () => {
     const transform = makeTransform({
       x: 30,
       y: 40,
@@ -341,13 +340,17 @@ describe("Package B: gizmo alignment with resolved geometry", () => {
     });
     const bounds = makeBounds({ x: 5, y: 5, width: 100, height: 80 });
 
-    const gizmo = getLayerGizmoBounds(transform, bounds);
-    const resolved = resolveLayerGeometry({ transform, contentBounds: bounds });
+    const resolved = getLayerGeometry({ transform, contentBounds: bounds });
 
-    expect(gizmo.extents).toEqual(resolved.extents);
-    expect(gizmo.center).toEqual(resolved.center);
+    expect(resolved.transformedExtents).toEqual(
+      computeTransformedExtents(transform, bounds)
+    );
+    expect(resolved.transformedCenter).toEqual(
+      computeTransformedCenter(transform, bounds)
+    );
+    const corners = computeTransformedCorners(transform, bounds);
     for (let i = 0; i < 4; i++) {
-      expect(gizmo.corners[i]).toEqual(resolved.corners[i]);
+      expect(resolved.transformedCorners[i]).toEqual(corners[i]);
     }
   });
 });
@@ -359,7 +362,7 @@ describe("Package B: hit testing alignment with resolved geometry", () => {
     const transform = makeTransform({ x: 0, y: 0 });
     const bounds = makeBounds({ width: 100, height: 100 });
 
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
     const result = hitTestHandles(transform, bounds, center, 1);
     expect(result).toBe("move");
   });
@@ -368,7 +371,7 @@ describe("Package B: hit testing alignment with resolved geometry", () => {
     const transform = makeTransform({ x: 10, y: 10, scaleX: 2, scaleY: 2 });
     const bounds = makeBounds({ width: 50, height: 50 });
 
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
     const result = hitTestHandles(transform, bounds, center, 1);
     expect(result).toBe("move");
   });
@@ -381,7 +384,7 @@ describe("Package B: hit testing alignment with resolved geometry", () => {
     });
     const bounds = makeBounds({ width: 100, height: 100 });
 
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
     const result = hitTestHandles(transform, bounds, center, 1);
     expect(result).toBe("move");
   });
@@ -390,7 +393,7 @@ describe("Package B: hit testing alignment with resolved geometry", () => {
     const transform = makeTransform({ x: 10, y: 20 });
     const bounds = makeBounds({ width: 100, height: 50 });
 
-    const corners = getTransformedCorners(transform, bounds);
+    const corners = computeTransformedCorners(transform, bounds);
     // Top-left corner
     const result = hitTestHandles(transform, bounds, corners[0], 1);
     expect(result).toBe("top-left");
@@ -418,7 +421,7 @@ describe("Package B: left/top handle correctness", () => {
 
   it("dragging left handle inward increases scale (signed distance)", () => {
     const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
     // Left edge is at center.x - 50 = 0
     // Dragging from left edge toward center should increase scale
     const dragStart = { x: center.x - 50, y: center.y };
@@ -441,7 +444,7 @@ describe("Package B: left/top handle correctness", () => {
 
   it("dragging left handle outward increases scale (grows)", () => {
     const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
     const dragStart = { x: center.x - 50, y: center.y };
     const cursor = { x: center.x - 70, y: center.y }; // moved 20px outward
 
@@ -461,7 +464,7 @@ describe("Package B: left/top handle correctness", () => {
 
   it("dragging top handle inward decreases scale", () => {
     const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
     const dragStart = { x: center.x, y: center.y - 50 };
     const cursor = { x: center.x, y: center.y - 30 }; // moved 20px inward
 
@@ -481,7 +484,7 @@ describe("Package B: left/top handle correctness", () => {
 
   it("dragging top handle outward increases scale", () => {
     const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
     const dragStart = { x: center.x, y: center.y - 50 };
     const cursor = { x: center.x, y: center.y - 70 }; // moved 20px outward
 
@@ -501,7 +504,7 @@ describe("Package B: left/top handle correctness", () => {
 
   it("top-left corner handle scales correctly", () => {
     const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
     const dragStart = { x: center.x - 50, y: center.y - 50 };
 
     // Drag outward (both axes)
@@ -537,7 +540,7 @@ describe("Package B: left/top handle correctness", () => {
 
   it("right handle direction is consistent with left handle", () => {
     const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
 
     // Drag right handle outward
     const rightStart = { x: center.x + 50, y: center.y };
@@ -573,7 +576,7 @@ describe("Package B: left/top handle correctness", () => {
 
   it("bottom handle direction is consistent with top handle", () => {
     const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
 
     const bottomStart = { x: center.x, y: center.y + 50 };
     const bottomOut = { x: center.x, y: center.y + 70 };
@@ -606,7 +609,7 @@ describe("Package B: left/top handle correctness", () => {
 
   it("left handle anchor offset keeps the right edge fixed", () => {
     const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
 
     // Drag left handle outward (to the left) to grow
     const leftStart = { x: center.x - 50, y: center.y };
@@ -636,7 +639,7 @@ describe("Package B: left/top handle correctness", () => {
 
   it("top handle anchor offset keeps the bottom edge fixed", () => {
     const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
 
     // Drag top handle outward (upward) to grow
     const topStart = { x: center.x, y: center.y - 50 };
@@ -671,7 +674,7 @@ describe("Package B: transform computation correctness", () => {
 
   it("computeTransformForHandle dispatches move correctly", () => {
     const transform = makeTransform({ x: 10, y: 20, scaleX: 2, scaleY: 2 });
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
 
     const result = aff(computeTransformForHandle(
       "move",
@@ -692,7 +695,7 @@ describe("Package B: transform computation correctness", () => {
 
   it("computeTransformForHandle dispatches rotate correctly", () => {
     const transform = makeTransform({ x: 0, y: 0 });
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
 
     // Drag from directly above center to directly right of center
     const result = aff(computeTransformForHandle(
@@ -712,7 +715,7 @@ describe("Package B: transform computation correctness", () => {
 
   it("rotate with shift snaps to 15° increments", () => {
     const transform = makeTransform({ x: 0, y: 0 });
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
 
     const result = aff(computeTransformForHandle(
       "rotate",
@@ -733,7 +736,7 @@ describe("Package B: transform computation correctness", () => {
 
   it("scale with shift is proportional", () => {
     const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
 
     const result = aff(computeTransformForHandle(
       "bottom-right",
@@ -752,7 +755,7 @@ describe("Package B: transform computation correctness", () => {
 
   it("scale without alt anchors opposite edge", () => {
     const transform = makeTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
-    const center = getTransformedCenter(transform, bounds);
+    const center = computeTransformedCenter(transform, bounds);
 
     const result = aff(computeTransformForHandle(
       "right",
@@ -820,7 +823,7 @@ describe("Package B: advanced transform modes", () => {
 
   it("computeDistortTransform keeps the opposite corner anchored", () => {
     const transform = makeTransform({ x: 0, y: 0 });
-    const corners = getTransformedCorners(transform, bounds);
+    const corners = computeTransformedCorners(transform, bounds);
     const dragStart = corners[0];
     const cursor = { x: dragStart.x + 20, y: dragStart.y + 10 };
 
@@ -833,7 +836,7 @@ describe("Package B: advanced transform modes", () => {
       false,
       transform
     ));
-    const nextCorners = getTransformedCorners(result, bounds);
+    const nextCorners = computeTransformedCorners(result, bounds);
 
     expect(nextCorners[0].x).toBeCloseTo(cursor.x, 5);
     expect(nextCorners[0].y).toBeCloseTo(cursor.y, 5);
@@ -844,7 +847,7 @@ describe("Package B: advanced transform modes", () => {
 
   it("computeDistortTransform with shift axis-locks to a single edge direction", () => {
     const transform = makeTransform({ x: 0, y: 0 });
-    const corners = getTransformedCorners(transform, bounds);
+    const corners = computeTransformedCorners(transform, bounds);
     const dragStart = corners[0];
     const cursor = { x: dragStart.x + 30, y: dragStart.y + 5 };
 
@@ -857,7 +860,7 @@ describe("Package B: advanced transform modes", () => {
       true,
       transform
     );
-    const nextCorners = getTransformedCorners(result, bounds);
+    const nextCorners = computeTransformedCorners(result, bounds);
 
     expect(Math.abs(nextCorners[0].y - corners[0].y)).toBeLessThan(1);
     expect(nextCorners[0].x).toBeGreaterThan(corners[0].x);
@@ -865,7 +868,7 @@ describe("Package B: advanced transform modes", () => {
 
   it("computeSkewTransform moves only the dragged edge", () => {
     const transform = makeTransform({ x: 0, y: 0 });
-    const corners = getTransformedCorners(transform, bounds);
+    const corners = computeTransformedCorners(transform, bounds);
     const topMid = {
       x: (corners[0].x + corners[1].x) / 2,
       y: (corners[0].y + corners[1].y) / 2
@@ -875,7 +878,7 @@ describe("Package B: advanced transform modes", () => {
     const result = quadOf(
       computeSkewTransform(corners, "top", topMid, cursor, bounds, transform)
     );
-    const nextCorners = getTransformedCorners(result, bounds);
+    const nextCorners = computeTransformedCorners(result, bounds);
 
     expect(nextCorners[0].x).toBeGreaterThan(corners[0].x);
     expect(nextCorners[1].x).toBeGreaterThan(corners[1].x);
@@ -886,7 +889,7 @@ describe("Package B: advanced transform modes", () => {
 
   it("computePerspectiveTransform couples opposite edges for corner perspective drags", () => {
     const transform = makeTransform({ x: 0, y: 0 });
-    const corners = getTransformedCorners(transform, bounds);
+    const corners = computeTransformedCorners(transform, bounds);
     const dragStart = corners[0];
     const cursor = { x: dragStart.x - 20, y: dragStart.y + 12 };
 
@@ -898,7 +901,7 @@ describe("Package B: advanced transform modes", () => {
       bounds,
       transform
     ));
-    const nextCorners = getTransformedCorners(result, bounds);
+    const nextCorners = computeTransformedCorners(result, bounds);
 
     expect(result.mode).toBe("perspective");
     expect(result.quad).toBeDefined();
@@ -910,7 +913,7 @@ describe("Package B: advanced transform modes", () => {
 
   it("computeWarpTransform moves only the dragged corner in quad space", () => {
     const transform = makeTransform({ x: 0, y: 0 });
-    const corners = getTransformedCorners(transform, bounds);
+    const corners = computeTransformedCorners(transform, bounds);
     const dragStart = corners[0];
     const cursor = { x: dragStart.x - 18, y: dragStart.y + 14 };
 
@@ -922,7 +925,7 @@ describe("Package B: advanced transform modes", () => {
       bounds,
       transform
     ));
-    const nextCorners = getTransformedCorners(result, bounds);
+    const nextCorners = computeTransformedCorners(result, bounds);
 
     expect(result.mode).toBe("warp");
     expect(result.quad).toBeDefined();
@@ -1006,8 +1009,8 @@ describe("Package B: selection overlay alignment", () => {
     const transform = makeTransform({ x: 20, y: 30, scaleX: 1.5, scaleY: 2 });
     const bounds = makeBounds({ x: 0, y: 0, width: 100, height: 80 });
 
-    const extents = getTransformedExtents(transform, bounds);
-    const gizmoBounds = getLayerGizmoBounds(transform, bounds);
+    const extents = computeTransformedExtents(transform, bounds);
+    const gizmoBounds = { extents: computeTransformedExtents(transform, bounds), corners: computeTransformedCorners(transform, bounds), center: computeTransformedCenter(transform, bounds) };
 
     expect(gizmoBounds.extents).toEqual(extents);
   });
@@ -1022,8 +1025,8 @@ describe("Package B: selection overlay alignment", () => {
     });
     const bounds = makeBounds({ x: 0, y: 0, width: 100, height: 100 });
 
-    const extents = getTransformedExtents(transform, bounds);
-    const gizmoBounds = getLayerGizmoBounds(transform, bounds);
+    const extents = computeTransformedExtents(transform, bounds);
+    const gizmoBounds = { extents: computeTransformedExtents(transform, bounds), corners: computeTransformedCorners(transform, bounds), center: computeTransformedCenter(transform, bounds) };
 
     expect(gizmoBounds.extents.x).toBeCloseTo(extents.x, 5);
     expect(gizmoBounds.extents.y).toBeCloseTo(extents.y, 5);
@@ -1052,15 +1055,15 @@ describe("Package B: move-after-transform round-trip", () => {
     );
 
     // Geometry should show 200x200 layer at (50, 50) offset
-    const geo = resolveLayerGeometry({
+    const geo = getLayerGeometry({
       transform: movedTransform,
       contentBounds: bounds
     });
 
-    expect(geo.extents.width).toBe(200); // 100 * 2
-    expect(geo.extents.height).toBe(200);
-    expect(geo.center.x).toBe(100); // 50 + 100/2
-    expect(geo.center.y).toBe(100);
+    expect(geo.transformedExtents.width).toBe(200); // 100 * 2
+    expect(geo.transformedExtents.height).toBe(200);
+    expect(geo.transformedCenter.x).toBe(100); // 50 + 100/2
+    expect(geo.transformedCenter.y).toBe(100);
   });
 
   it("move after rotate produces correct geometry", () => {
@@ -1076,17 +1079,17 @@ describe("Package B: move-after-transform round-trip", () => {
       makeAffineTransform({ ...rotatedTransform, x: 50, y: 50 })
     );
 
-    const geo = resolveLayerGeometry({
+    const geo = getLayerGeometry({
       transform: movedTransform,
       contentBounds: bounds
     });
 
     // Rotated 100x100 square → ~141.42 AABB
     const expectedSize = 100 * Math.SQRT2;
-    expect(geo.extents.width).toBeCloseTo(expectedSize, 1);
-    expect(geo.extents.height).toBeCloseTo(expectedSize, 1);
-    expect(geo.center.x).toBe(100); // 50 + 50
-    expect(geo.center.y).toBe(100);
+    expect(geo.transformedExtents.width).toBeCloseTo(expectedSize, 1);
+    expect(geo.transformedExtents.height).toBeCloseTo(expectedSize, 1);
+    expect(geo.transformedCenter.x).toBe(100); // 50 + 50
+    expect(geo.transformedCenter.y).toBe(100);
   });
 
   it("sequential moves accumulate correctly", () => {

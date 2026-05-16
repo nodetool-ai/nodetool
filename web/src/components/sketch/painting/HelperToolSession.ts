@@ -14,10 +14,8 @@ import type { Point, Layer } from "../types";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
 import type { DirtyRectTracker } from "../rendering/canvasUtils";
 import { CoordinateMapper } from "./CoordinateMapper";
-import {
-  ensureLayerRasterBounds,
-  getDocumentViewportLayerBounds
-} from "./layerBounds";
+import { ensureLayerRasterBounds } from "../transform/geometry/ensureRasterBounds";
+import { getDocumentViewportInLayerSpace } from "../transform/geometry/layerGeometry";
 import { captureAlphaSnapshot, restoreAlphaFromSnapshot } from "./alphaLock";
 import {
   coalescedStrokePressure,
@@ -147,7 +145,7 @@ export class HelperToolSession {
     const rasterBounds = ensureLayerRasterBounds(
       ctx,
       activeLayer,
-      getDocumentViewportLayerBounds(activeLayer, doc)
+      getDocumentViewportInLayerSpace(activeLayer, doc)
     );
     this.mapper = new CoordinateMapper({
       layerTransform: activeLayer.transform ?? { x: 0, y: 0 },

@@ -19,7 +19,10 @@ import {
   type SketchDocument
 } from "../types";
 import { useSketchStore } from "../state";
-import { getCanvasRasterBounds, getLayerCompositeOffset } from "../painting";
+import {
+  getCanvasRasterBounds,
+  getLayerGeometry
+} from "../transform/geometry/layerGeometry";
 import { getSelectionBounds, selectionHasAnyPixels } from "../selection";
 import {
   buildSketchInternalClipboardCanvas,
@@ -254,7 +257,7 @@ export function useCanvasGeometryActions({
     if (sel && selectionHasAnyPixels(sel)) {
       pushHistory("clear selection");
       const layerCanvas = canvasRef.current.getLayerCanvas(activeLayerId);
-      const offset = getLayerCompositeOffset(layer, {
+      const offset = getLayerGeometry(layer, layerCanvas, {
         width: Math.max(
           1,
           layer.contentBounds?.width ?? document.canvas.width
@@ -263,7 +266,7 @@ export function useCanvasGeometryActions({
           1,
           layer.contentBounds?.height ?? document.canvas.height
         )
-      }, layerCanvas);
+      }).compositeOffset;
       canvasRef.current.clearLayerBySelectionMask(
         activeLayerId,
         offset.x,
@@ -299,7 +302,7 @@ export function useCanvasGeometryActions({
       if (sel && selectionHasAnyPixels(sel)) {
         pushHistory("fill selection");
         const layerCanvas = canvasRef.current.getLayerCanvas(activeLayerId);
-        const offset = getLayerCompositeOffset(layer, {
+        const offset = getLayerGeometry(layer, layerCanvas, {
           width: Math.max(
             1,
             layer.contentBounds?.width ?? document.canvas.width
@@ -308,7 +311,7 @@ export function useCanvasGeometryActions({
             1,
             layer.contentBounds?.height ?? document.canvas.height
           )
-        }, layerCanvas);
+        }).compositeOffset;
         canvasRef.current.fillLayerBySelectionMask(
           activeLayerId,
           offset.x,
@@ -487,11 +490,7 @@ export function useCanvasGeometryActions({
       return;
     }
 
-    const compositeOffset = getLayerCompositeOffset(
-      activeLayer,
-      { width: source.width, height: source.height },
-      source
-    );
+    const compositeOffset = getLayerGeometry(activeLayer, source, { width: source.width, height: source.height }).compositeOffset;
     drawLayerSnapshotWithTransform(
       probeCtx,
       source,
@@ -543,11 +542,7 @@ export function useCanvasGeometryActions({
       return;
     }
 
-    const compositeOffset = getLayerCompositeOffset(
-      activeLayer,
-      { width: source.width, height: source.height },
-      source
-    );
+    const compositeOffset = getLayerGeometry(activeLayer, source, { width: source.width, height: source.height }).compositeOffset;
     const cropBounds = getTransformedLayerExtents(
       source,
       compositeOffset,
@@ -700,14 +695,14 @@ export function useCanvasGeometryActions({
       if (!layer) {
         return;
       }
-      const offset = getLayerCompositeOffset(
+      const offset = getLayerGeometry(
         layer,
+        pasteSnapshot,
         {
           width: document.canvas.width,
           height: document.canvas.height
-        },
-        pasteSnapshot
-      );
+        }
+      ).compositeOffset;
 
       const pasteDoc =
         options && "pasteAnchorDocument" in options

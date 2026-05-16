@@ -6,11 +6,9 @@
  */
 
 import type { AffineMatrix, LayerContentBounds, LayerTransform, Point } from "../../types";
+import type { Rect } from "../../types/geometry";
 import { matrixToAffine, makeAffineTransform, isQuadTransform } from "../../types";
-import {
-  getTransformedCorners,
-  type DocumentExtents
-} from "../../painting/resolvedLayerGeometry";
+import { computeTransformedCorners } from "../../transform/geometry/layerGeometry";
 
 /** Multiply two 2D affine matrices (column-vector convention). */
 export function affineMultiply(A: AffineMatrix, B: AffineMatrix): AffineMatrix {
@@ -120,14 +118,14 @@ export function rasterSpaceToDocAffine(
   if (isQuadTransform(transform)) {
     return null;
   }
-  const cornersDoc = getTransformedCorners(transform, rasterBounds);
+  const cornersDoc = computeTransformedCorners(transform, rasterBounds);
   const { x: ox, y: oy, width: w, height: h } = rasterBounds;
   return fitAffineRectangleCorners(ox, oy, w, h, cornersDoc);
 }
 
 export function unionOfDocumentExtents(
-  rects: DocumentExtents[]
-): DocumentExtents | null {
+  rects: Rect[]
+): Rect | null {
   if (rects.length === 0) {
     return null;
   }

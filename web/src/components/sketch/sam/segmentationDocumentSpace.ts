@@ -1,6 +1,6 @@
 import type { LayerContentBounds, SegmentationMask, SegmentationSourceMetadata } from "../types";
 import { createDefaultDocument, createDefaultLayer, cloneTransform } from "../types";
-import { setCanvasRasterBounds } from "../painting/layerBounds";
+import { setCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 import { dataUrlToCanvas, deserializeLayerData } from "../serialization";
 import { reconcileLayerToDocumentSpace } from "../rendering/canvas2d/reconcile";
 

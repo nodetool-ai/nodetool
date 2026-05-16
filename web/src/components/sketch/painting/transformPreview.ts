@@ -48,9 +48,8 @@ export function mergeTransformPreview(
   update: LayerTransform
 ): LayerTransform {
   // Each kind owns its own field set. The update is canonical; just clone it.
-  // The previous implementation flattened fields together and silently dropped
-  // `secondaryQuad` whenever a non-dual update came in; the discriminated
-  // union makes that bug impossible.
+  // The previous implementation flattened fields together; the discriminated
+  // union makes that class of merge bug impossible.
   void base;
   return cloneTransform(update);
 }
@@ -112,13 +111,13 @@ export function createMovePreview(
   if (base.kind === "affine") {
     return makeAffineTransform({ ...base, x: newX, y: newY });
   }
-  // Quad / dual-quad: translation is expressed by translating the quad(s).
-  // For these layers callers should use computeMoveTransform directly; we
-  // fall back to identity-shifted affine to satisfy the API contract.
+  // Quad: translation is expressed by translating the quad. Callers should
+  // use computeMoveTransform directly; we fall back to identity-shifted
+  // affine to satisfy the API contract.
   return makeAffineTransform({ x: newX, y: newY });
 }
 
 /** True iff `t` is a valid canonical LayerTransform. */
 export function isCompleteTransform(t: LayerTransform): boolean {
-  return t.kind === "affine" || t.kind === "quad" || t.kind === "dual-quad";
+  return t.kind === "affine" || t.kind === "quad";
 }

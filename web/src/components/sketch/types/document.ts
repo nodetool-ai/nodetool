@@ -15,7 +15,6 @@ import type {
 import {
   IDENTITY_AFFINE,
   type AffineTransform,
-  type DualQuadTransform,
   type LayerTransform,
   type LayerTransformModeTag,
   type Quad,
@@ -25,12 +24,10 @@ import {
   cloneQuad,
   cloneTransform,
   isAffineTransform,
-  isDualQuadTransform,
   isIdentityTransform,
   isQuadTransform,
   isSingleQuadTransform,
   makeAffineTransform,
-  makeDualQuadTransform,
   makeSingleQuadTransform,
   transformModeTag
 } from "../transform/types";
@@ -77,12 +74,10 @@ export {
   cloneQuad,
   cloneTransform,
   isAffineTransform,
-  isDualQuadTransform,
   isIdentityTransform,
   isQuadTransform,
   isSingleQuadTransform,
   makeAffineTransform,
-  makeDualQuadTransform,
   makeSingleQuadTransform,
   normalizeLayerTransform,
   transformModeTag
@@ -91,7 +86,6 @@ export {
 export type {
   AffineMatrix,
   AffineTransform,
-  DualQuadTransform,
   LayerTransform,
   LayerTransformModeTag,
   Quad,

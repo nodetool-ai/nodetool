@@ -6,7 +6,7 @@
  * — TypeScript refuses code that forgets a case.
  *
  * Why a union and not a single struct?
- *   The previous shape carried optional `matrix`, `quad`, `secondaryQuad`, `mode`,
+ *   The previous shape carried optional `matrix`, `quad`, `mode`,
  *   `scaleX/Y`, `rotation` fields on every transform. Every consumer had to
  *   re-derive which fields were valid for which gesture, and they drifted.
  *   That class of bug is unrepresentable here.
@@ -66,18 +66,7 @@ export interface SingleQuadTransform {
   readonly quad: Quad;
 }
 
-/**
- * Two paired quads sharing an edge. The right edge of `quad` equals the left
- * edge of `secondaryQuad`. Renders via `drawImageToDualQuad`.
- */
-export interface DualQuadTransform {
-  readonly kind: "dual-quad";
-  readonly mode: "perspective-dual";
-  readonly quad: Quad;
-  readonly secondaryQuad: Quad;
-}
-
-export type QuadTransform = SingleQuadTransform | DualQuadTransform;
+export type QuadTransform = SingleQuadTransform;
 export type LayerTransform = AffineTransform | QuadTransform;
 
 /**
@@ -85,10 +74,7 @@ export type LayerTransform = AffineTransform | QuadTransform;
  * the pure TRS path). Convenient for the toolbar / settings panel, which
  * wants a single string to display.
  */
-export type LayerTransformModeTag =
-  | "affine"
-  | SingleQuadMode
-  | "perspective-dual";
+export type LayerTransformModeTag = "affine" | SingleQuadMode;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -111,12 +97,8 @@ export function isSingleQuadTransform(t: LayerTransform): t is SingleQuadTransfo
   return t.kind === "quad";
 }
 
-export function isDualQuadTransform(t: LayerTransform): t is DualQuadTransform {
-  return t.kind === "dual-quad";
-}
-
 export function isQuadTransform(t: LayerTransform): t is QuadTransform {
-  return t.kind === "quad" || t.kind === "dual-quad";
+  return t.kind === "quad";
 }
 
 /** True when the transform produces no visual change. */
@@ -153,15 +135,6 @@ export function makeSingleQuadTransform(mode: SingleQuadMode, quad: Quad): Singl
   return { kind: "quad", mode, quad: cloneQuad(quad) };
 }
 
-export function makeDualQuadTransform(quad: Quad, secondaryQuad: Quad): DualQuadTransform {
-  return {
-    kind: "dual-quad",
-    mode: "perspective-dual",
-    quad: cloneQuad(quad),
-    secondaryQuad: cloneQuad(secondaryQuad)
-  };
-}
-
 export function cloneQuad(q: Quad): Quad {
   return [
     { x: q[0].x, y: q[0].y },
@@ -177,12 +150,5 @@ export function cloneTransform(t: LayerTransform): LayerTransform {
       return { ...t };
     case "quad":
       return { kind: "quad", mode: t.mode, quad: cloneQuad(t.quad) };
-    case "dual-quad":
-      return {
-        kind: "dual-quad",
-        mode: "perspective-dual",
-        quad: cloneQuad(t.quad),
-        secondaryQuad: cloneQuad(t.secondaryQuad)
-      };
   }
 }

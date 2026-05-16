@@ -11,7 +11,7 @@ import {
 } from "../multiLayerTransformMath";
 import type { AffineMatrix } from "../../../types";
 import { aff } from "../../../__tests__/_transformFixtures";
-import type { DocumentExtents } from "../../../painting/resolvedLayerGeometry";
+import type { Rect as DocumentExtents } from "../../../types/geometry";
 
 describe("affineMultiply", () => {
   it("returns identity when multiplying two identities", () => {

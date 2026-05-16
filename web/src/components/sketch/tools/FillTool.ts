@@ -9,11 +9,11 @@ import type { FillSettings } from "../types";
 import { parseColorToRgba } from "../types";
 import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
-import { getCanvasRasterBounds } from "../painting";
+import { ensureLayerRasterBounds } from "../transform/geometry/ensureRasterBounds";
 import {
-  getDocumentViewportLayerBounds,
-  ensureLayerRasterBounds
-} from "../painting/layerBounds";
+  getCanvasRasterBounds,
+  getDocumentViewportInLayerSpace
+} from "../transform/geometry/layerGeometry";
 import {
   selectionHasAnyPixels,
   selectionHitTest
@@ -299,7 +299,7 @@ export class FillTool implements ToolHandler {
     // Ensure the layer canvas covers the full document viewport so the flood
     // fill can reach all pixels visible on-screen. Without this, layers with
     // compact contentBounds leave an unfilled border at the edges.
-    const viewportBounds = getDocumentViewportLayerBounds(activeLayer, doc);
+    const viewportBounds = getDocumentViewportInLayerSpace(activeLayer, doc);
     const expandedBounds = ensureLayerRasterBounds(ctx, activeLayer, viewportBounds);
 
     const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);

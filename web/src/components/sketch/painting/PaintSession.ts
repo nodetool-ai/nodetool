@@ -25,11 +25,11 @@ import type { ToolContext, ToolPointerEvent } from "../tools/types";
 import type { PaintEngine } from "./PaintEngine";
 import type { ActiveStrokeInfo } from "../rendering";
 import { CoordinateMapper } from "./CoordinateMapper";
+import { ensureLayerRasterBounds } from "../transform/geometry/ensureRasterBounds";
 import {
-  ensureLayerRasterBounds,
-  getDocumentViewportLayerBounds,
+  getDocumentViewportInLayerSpace,
   getCanvasRasterBounds
-} from "./layerBounds";
+} from "../transform/geometry/layerGeometry";
 import { paintPressureForEngine } from "../drawingUtils";
 import {
   coalescedStrokePressure,
@@ -202,7 +202,7 @@ export class PaintSession {
     const rasterBounds = ensureLayerRasterBounds(
       ctx,
       activeLayer,
-      getDocumentViewportLayerBounds(activeLayer, doc)
+      getDocumentViewportInLayerSpace(activeLayer, doc)
     );
 
     this.mapper = new CoordinateMapper({

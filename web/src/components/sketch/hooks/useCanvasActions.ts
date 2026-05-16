@@ -47,7 +47,7 @@ import { useExportSyncActions } from "./useExportSyncActions";
 import { useStrokeLifecycleActions } from "./useStrokeLifecycleActions";
 import { useTransformActions } from "./useTransformActions";
 import { useCanvasGeometryActions } from "./useCanvasGeometryActions";
-import { getLayerCompositeOffset } from "../painting/layerBounds";
+import { getLayerGeometry } from "../transform/geometry/layerGeometry";
 import { useSketchStore } from "../state";
 
 export interface UseCanvasActionsParams {
@@ -167,7 +167,7 @@ export function useCanvasActions({
     if (!tmpCtx) return;
 
     const { width: docW, height: docH } = document.canvas;
-    const offset = getLayerCompositeOffset(layer, { width: snapshot.width, height: snapshot.height }, snapshot);
+    const offset = getLayerGeometry(layer, snapshot, { width: snapshot.width, height: snapshot.height }).compositeOffset;
     const imgData = tmpCtx.getImageData(0, 0, snapshot.width, snapshot.height);
     const selData = new Uint8ClampedArray(docW * docH);
 

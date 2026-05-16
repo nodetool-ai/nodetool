@@ -1,4 +1,9 @@
-import { getLayerCompositeOffset, getCanvasRasterBounds, setCanvasRasterBounds, unionLayerBounds } from "../painting";
+import {
+  getLayerGeometry,
+  getCanvasRasterBounds,
+  setCanvasRasterBounds,
+  unionLayerBounds
+} from "../transform/geometry/layerGeometry";
 import { buildSketchInternalClipboardCanvas } from "../sketchClipboard";
 import type { Layer, LayerContentBounds, LayerTransform, Selection } from "../types";
 import { isAffineTransform } from "../types";
@@ -105,11 +110,11 @@ export function prepareSelectionFreeTransformCanvases(params: {
   setCanvasRasterBounds(selectionCanvas, selectionBounds);
 
   const baseCanvas = cloneCanvas(snapshot);
-  const offset = getLayerCompositeOffset(
+  const offset = getLayerGeometry(
     layer,
-    { width: snapshot.width, height: snapshot.height },
-    snapshot
-  );
+    snapshot,
+    { width: snapshot.width, height: snapshot.height }
+  ).compositeOffset;
   clearSelectedPixelsFromCanvas(baseCanvas, offset.x, offset.y, selection);
 
   return {

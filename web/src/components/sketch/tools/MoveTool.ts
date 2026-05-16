@@ -12,7 +12,7 @@
  * read one live preview source. See `previewSession.ts` for the
  * start → update → commit/cancel/clear lifecycle.
  *
- * Geometry policy is delegated to `painting/resolvedLayerGeometry` and
+ * Geometry policy is delegated to `transform/geometry/layerGeometry` and
  * `tools/transform/` helpers so this file owns only interaction flow.
  */
 
@@ -29,10 +29,10 @@ import { computeMoveTransform } from "./transform";
 import { hitTestLayerAtDocPoint } from "../painting/sampleDocument";
 import { mergeTransformPreview } from "../painting/transformPreview";
 import {
-  resolveGizmoBounds,
-  getTransformedExtents,
-  getTransformedCorners
-} from "../painting/resolvedLayerGeometry";
+  getVisualBounds,
+  computeTransformedExtents,
+  computeTransformedCorners
+} from "../transform/geometry/layerGeometry";
 import { docToScreen } from "./transform/handleGeometry";
 import { drawOffCanvasIndicator } from "./gizmo";
 import { useSketchStore } from "../state/useSketchStore";
@@ -53,8 +53,8 @@ function paintOffCanvasGizmo(
   }
 
   const layerCanvas = ctx.layerCanvasesRef.current.get(layerId);
-  const rasterBounds = resolveGizmoBounds(layer, layerCanvas, ctx.doc.canvas);
-  const extents = getTransformedExtents(transform, rasterBounds);
+  const rasterBounds = getVisualBounds(layer, layerCanvas, ctx.doc.canvas);
+  const extents = computeTransformedExtents(transform, rasterBounds);
 
   const cw = ctx.doc.canvas.width;
   const ch = ctx.doc.canvas.height;
@@ -69,7 +69,7 @@ function paintOffCanvasGizmo(
     return;
   }
 
-  const docCorners = getTransformedCorners(transform, rasterBounds);
+  const docCorners = computeTransformedCorners(transform, rasterBounds);
 
   ctx.drawGizmo((gc, dpr, containerW, containerH) => {
     const screenCorners: [Point, Point, Point, Point] = [

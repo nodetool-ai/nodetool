@@ -529,7 +529,6 @@ export type TransformMode =
   | "distort"
   | "skew"
   | "perspective"
-  | "perspective-dual"
   | "perspective-distort"
   | "mesh-warp"
   | "warp";

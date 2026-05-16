@@ -35,11 +35,11 @@ import {
 import type { BlurTempCanvases } from "../drawingUtils";
 import type { ActiveStrokeInfo } from "./useCompositing";
 import type { ToolContext } from "../tools/types";
+import { ensureLayerRasterBounds } from "../transform/geometry/ensureRasterBounds";
 import {
-  ensureLayerRasterBounds,
-  getDocumentViewportLayerBounds,
-  getLayerCompositeOffset
-} from "../painting";
+  getDocumentViewportInLayerSpace,
+  getLayerGeometry
+} from "../transform/geometry/layerGeometry";
 import { sketchClientToDocCanvas } from "../tools/transform/handleGeometry";
 
 export interface UsePointerHandlerUtilsParams {
@@ -270,7 +270,7 @@ export function usePointerHandlerUtils({
           invalidateLayer
         } as ToolContext,
         layer,
-        getDocumentViewportLayerBounds(layer, doc)
+        getDocumentViewportInLayerSpace(layer, doc)
       );
     },
     [
@@ -289,16 +289,16 @@ export function usePointerHandlerUtils({
         return { x: 0, y: 0 };
       }
       const layerCanvas = layerCanvasesRef.current.get(layerId);
-      return getLayerCompositeOffset(
+      return getLayerGeometry(
         layer,
+        layerCanvas,
         layerCanvas
           ? { width: layerCanvas.width, height: layerCanvas.height }
           : {
               width: Math.max(1, layer.contentBounds?.width ?? doc.canvas.width),
               height: Math.max(1, layer.contentBounds?.height ?? doc.canvas.height)
-            },
-        layerCanvas
-      );
+            }
+      ).compositeOffset;
     },
     [doc, layerCanvasesRef]
   );

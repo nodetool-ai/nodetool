@@ -19,7 +19,7 @@ import type {
 import {
   getCanvasRasterBounds,
   setCanvasRasterBounds
-} from "../painting/layerBounds";
+} from "../transform/geometry/layerGeometry";
 
 import {
   getDefaultRasterBounds,

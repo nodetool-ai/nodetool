@@ -8,7 +8,7 @@
 
 import { CoordinateMapper } from "../painting/CoordinateMapper";
 import { makeAffineTransform } from "../types";
-import { getLayerCompositeOffset } from "../painting/layerBounds";
+import { getLayerGeometry } from "../transform/geometry/layerGeometry";
 
 // ─── 1. Round-trip identity: translation-only ───────────────────────────────
 
@@ -182,8 +182,8 @@ describe("singular matrix fallback", () => {
 
 // ─── 6. dirtyToDoc consistency with getLayerCompositeOffset ─────────────────
 
-describe("dirtyToDoc consistency with getLayerCompositeOffset", () => {
-  it("offset used in dirtyToDoc matches getLayerCompositeOffset", () => {
+describe("dirtyToDoc consistency with layer composite offset", () => {
+  it("offset used in dirtyToDoc matches layer composite offset", () => {
     const tx = 15;
     const ty = -25;
     const cbx = -5;
@@ -194,7 +194,7 @@ describe("dirtyToDoc consistency with getLayerCompositeOffset", () => {
       contentBounds: { x: cbx, y: cby, width: 100, height: 100 }
     };
 
-    const compositeOffset = getLayerCompositeOffset(layer);
+    const compositeOffset = getLayerGeometry(layer).compositeOffset;
 
     const mapper = new CoordinateMapper({
       layerTransform: makeAffineTransform({ x: tx, y: ty }),

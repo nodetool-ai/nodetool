@@ -28,18 +28,6 @@ export { StrokeAssist } from "./StrokeAssist";
 export { CoordinateMapper } from "./CoordinateMapper";
 export type { CoordinateMapperConfig } from "./CoordinateMapper";
 
-// ── Layer raster bounds ────────────────────────────────────────────────────
-export {
-  getCanvasRasterBounds,
-  getLayerRasterBounds,
-  getLayerCompositeOffset,
-  getDocumentViewportLayerBounds,
-  unionLayerBounds,
-  getEffectiveLayerRasterBounds,
-  setCanvasRasterBounds,
-  ensureLayerRasterBounds
-} from "./layerBounds";
-
 // ── Document sampling / hit-testing ────────────────────────────────────────
 export {
   sampleCompositeColor,
@@ -71,18 +59,3 @@ export {
   createMovePreview,
   isCompleteTransform
 } from "./transformPreview";
-
-// ── Resolved layer geometry ────────────────────────────────────────────────
-export {
-  getEffectiveRasterBounds,
-  getCompositeOffset,
-  getTransformedExtents,
-  getTransformedCorners,
-  getTransformedCenter,
-  resolveLayerGeometry,
-  buildLayerMatrix
-} from "./resolvedLayerGeometry";
-export type {
-  DocumentExtents,
-  ResolvedLayerGeometry
-} from "./resolvedLayerGeometry";

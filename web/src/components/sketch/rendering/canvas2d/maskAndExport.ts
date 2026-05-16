@@ -12,7 +12,7 @@ import { selectionHasAnyPixels } from "../../selection";
 import {
   getCanvasRasterBounds,
   setCanvasRasterBounds
-} from "../../painting/layerBounds";
+} from "../../transform/geometry/layerGeometry";
 import { serializeLayerData } from "./layerIO";
 import type { ActiveStrokeInfo } from "../types";
 

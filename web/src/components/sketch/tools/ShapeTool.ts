@@ -11,12 +11,12 @@
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import type { Point, ShapeToolType, ShapeSettings } from "../types";
 import CategoryIcon from "@mui/icons-material/Category";
+import { CoordinateMapper } from "../painting";
+import { ensureLayerRasterBounds } from "../transform/geometry/ensureRasterBounds";
 import {
-  CoordinateMapper,
-  ensureLayerRasterBounds,
-  getDocumentViewportLayerBounds,
+  getDocumentViewportInLayerSpace,
   getCanvasRasterBounds
-} from "../painting";
+} from "../transform/geometry/layerGeometry";
 
 // ─── Shape Drawing Helpers (moved from drawingUtils.ts) ──────────────────────
 
@@ -184,7 +184,7 @@ export class ShapeTool implements ToolHandler {
     ensureLayerRasterBounds(
       ctx,
       activeLayer,
-      getDocumentViewportLayerBounds(activeLayer, ctx.doc)
+      getDocumentViewportInLayerSpace(activeLayer, ctx.doc)
     );
 
     return true;

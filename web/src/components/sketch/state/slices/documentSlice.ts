@@ -22,8 +22,7 @@ import {
   cloneTransform,
   IDENTITY_AFFINE,
   makeAffineTransform,
-  makeSingleQuadTransform,
-  makeDualQuadTransform
+  makeSingleQuadTransform
 } from "../../types";
 
 // ─── Private helpers ────────────────────────────────────────────────────────
@@ -122,21 +121,6 @@ function offsetTransform(t: LayerTransform, dx: number, dy: number): LayerTransf
         { x: t.quad[2].x + dx, y: t.quad[2].y + dy },
         { x: t.quad[3].x + dx, y: t.quad[3].y + dy }
       ]);
-    case "dual-quad":
-      return makeDualQuadTransform(
-        [
-          { x: t.quad[0].x + dx, y: t.quad[0].y + dy },
-          { x: t.quad[1].x + dx, y: t.quad[1].y + dy },
-          { x: t.quad[2].x + dx, y: t.quad[2].y + dy },
-          { x: t.quad[3].x + dx, y: t.quad[3].y + dy }
-        ],
-        [
-          { x: t.secondaryQuad[0].x + dx, y: t.secondaryQuad[0].y + dy },
-          { x: t.secondaryQuad[1].x + dx, y: t.secondaryQuad[1].y + dy },
-          { x: t.secondaryQuad[2].x + dx, y: t.secondaryQuad[2].y + dy },
-          { x: t.secondaryQuad[3].x + dx, y: t.secondaryQuad[3].y + dy }
-        ]
-      );
   }
 }
 

@@ -13,12 +13,12 @@
 
 import { Canvas2DRuntime } from "../rendering/Canvas2DRuntime";
 import type { SketchDocument } from "../types";
-import { createDefaultDocument, createDefaultLayer, makeAffineTransform, makeSingleQuadTransform, makeDualQuadTransform } from "../types";
+import { createDefaultDocument, createDefaultLayer, makeAffineTransform, makeSingleQuadTransform } from "../types";
 import {
   getCanvasRasterBounds,
-  getLayerCompositeOffset,
+  getLayerGeometry,
   setCanvasRasterBounds
-} from "../painting/layerBounds";
+} from "../transform/geometry/layerGeometry";
 
 function makeDoc(overrides?: Partial<SketchDocument>): SketchDocument {
   const base = createDefaultDocument(64, 64);
@@ -824,15 +824,15 @@ describe("Phase 1.6 – compositing and rendering hardening", () => {
     }
   });
 
-  // ─── 3. getLayerCompositeOffset pure-function tests ────────────────
+  // ─── 3. getLayerGeometry composite offset tests ────────────────
 
-  describe("getLayerCompositeOffset", () => {
+  describe("getLayerGeometry().compositeOffset", () => {
     it("sums transform and contentBounds offsets", () => {
       const layer = createDefaultLayer("offset-test", "raster", 100, 100);
       layer.transform = makeAffineTransform({ x: -10, y: -10 });
       layer.contentBounds = { x: 50, y: 50, width: 100, height: 100 };
 
-      const offset = getLayerCompositeOffset(layer);
+      const offset = getLayerGeometry(layer).compositeOffset;
       expect(offset).toEqual({ x: 40, y: 40 });
     });
 
@@ -841,7 +841,7 @@ describe("Phase 1.6 – compositing and rendering hardening", () => {
       layer.transform = makeAffineTransform({ x: 0, y: 0 });
       layer.contentBounds = { x: 10, y: 20, width: 64, height: 64 };
 
-      const offset = getLayerCompositeOffset(layer);
+      const offset = getLayerGeometry(layer).compositeOffset;
       // No canvas → uses contentBounds: x=0+10, y=0+20
       expect(offset).toEqual({ x: 10, y: 20 });
     });
@@ -857,7 +857,7 @@ describe("Phase 1.6 – compositing and rendering hardening", () => {
       setCanvasRasterBounds(canvas, { x: 20, y: 30, width: 64, height: 64 });
 
       // Canvas raster bounds (20,30) take priority over contentBounds (10,10)
-      const offset = getLayerCompositeOffset(layer, undefined, canvas);
+      const offset = getLayerGeometry(layer, canvas).compositeOffset;
       expect(offset).toEqual({ x: 25, y: 35 });
     });
   });

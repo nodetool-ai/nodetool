@@ -23,6 +23,7 @@ import {
   SKETCH_COLORS
 } from "../sketchStyles";
 import { TransformMode } from "../types";
+import { getToolbarTransformModes } from "../transform/modes";
 
 interface AdjustmentsSettingsPanelProps {
   brightness: number;
@@ -198,41 +199,24 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
             }
           }}
         >
-          <ToggleButton value="scale" sx={toggleButtonSmallSx}>
-            Scale
-          </ToggleButton>
-          <ToggleButton value="distort" sx={toggleButtonSmallSx}>
-            Distort
-          </ToggleButton>
-          <ToggleButton value="skew" sx={toggleButtonSmallSx}>
-            Skew
-          </ToggleButton>
-          <Tooltip title="Single-plane perspective. Drag a corner to skew one quad while the opposite edge follows.">
-            <ToggleButton value="perspective" sx={toggleButtonSmallSx}>
-              Persp 1
-            </ToggleButton>
-          </Tooltip>
-          <Tooltip title="Dual-plane perspective. Two quads share a fold edge — useful for box-like surfaces.">
-            <ToggleButton value="perspective-dual" sx={toggleButtonSmallSx}>
-              Persp 2
-            </ToggleButton>
-          </Tooltip>
-          <Tooltip title="Warp keeps each corner independently movable while using the shared quad rendering path.">
-            <ToggleButton value="warp" sx={toggleButtonSmallSx}>
-              Warp
-            </ToggleButton>
-          </Tooltip>
-          {/*
-           * Mesh Warp toggle is hidden until the real mesh-grid editor lands —
-           * today the gesture just aliases Warp with a different mode label.
-           * Perspective Distort is similarly placeholder (commit reuses the
-           * standard perspective bake instead of straightening the quad).
-           */}
-          <Tooltip title="Perspective Distort (preview): drag the four corners to a quad that should be rectangular; on commit the layer is straightened.">
-            <ToggleButton value="perspective-distort" sx={toggleButtonSmallSx}>
-              Distort 4-pt
-            </ToggleButton>
-          </Tooltip>
+          {getToolbarTransformModes().map((modeHandler) => {
+            const button = (
+              <ToggleButton
+                key={modeHandler.id}
+                value={modeHandler.id}
+                sx={toggleButtonSmallSx}
+              >
+                {modeHandler.label}
+              </ToggleButton>
+            );
+            return modeHandler.tooltip ? (
+              <Tooltip key={modeHandler.id} title={modeHandler.tooltip}>
+                {button}
+              </Tooltip>
+            ) : (
+              button
+            );
+          })}
         </ToggleButtonGroup>
       </Box>
       <Box className="setting-row">

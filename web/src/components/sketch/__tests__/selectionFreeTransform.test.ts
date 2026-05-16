@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { getCanvasRasterBounds, setCanvasRasterBounds } from "../painting";
+import { getCanvasRasterBounds, setCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 import {
   compositeSelectionOverBase,
   prepareSelectionFreeTransformCanvases,
@@ -9,6 +9,7 @@ import {
 } from "../selection/selectionFreeTransform";
 import { getSelectionBounds } from "../selection";
 import type { Layer, Selection } from "../types";
+import { makeAffineTransform } from "../types";
 
 function createMask(
   width: number,
@@ -51,7 +52,7 @@ describe("selection free transform helpers", () => {
       opacity: 1,
       blendMode: "normal",
       data: null,
-      transform: { x: 0, y: 0 },
+      transform: makeAffineTransform({ x: 0, y: 0 }),
       contentBounds: { x: 0, y: 0, width: 4, height: 4 }
     } as Layer;
 

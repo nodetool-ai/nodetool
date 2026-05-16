@@ -532,24 +532,30 @@ describe("TransformTool", () => {
     expect(ctx.drawSelectionOverlay).toHaveBeenCalled();
   });
 
-  it("uses ctx.drawGizmo on activation (deferred via rAF)", async () => {
+  it("publishes a non-null gizmo snapshot on activation", () => {
     const tool = new TransformTool();
     const doc = createDefaultDocument(64, 64);
     const ctx = makeToolContext({ doc });
     tool.onActivate!(ctx);
-    // onActivate defers the initial draw via rAF so the sibling
-    // useOverlayRenderer effect's clearGizmo doesn't wipe the freshly painted gizmo.
-    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
-    expect(ctx.drawGizmo).toHaveBeenCalled();
+    // Transform gizmo is React/SVG — assert on the snapshot the
+    // <TransformGizmo /> component subscribes to.
+    expect(tool.getGizmoSnapshot()).not.toBeNull();
   });
 
-  it("uses ctx.clearGizmo on deactivation", () => {
+  it("notifies gizmo subscribers and clears canvas on deactivation", () => {
     const tool = new TransformTool();
     const doc = createDefaultDocument(64, 64);
     const ctx = makeToolContext({ doc });
     tool.onActivate!(ctx);
+    const listener = jest.fn();
+    const unsubscribe = tool.subscribeGizmo(listener);
     tool.onDeactivate!(ctx);
+    expect(listener).toHaveBeenCalled();
+    // Defensive sweep: MoveTool / CropTool share the gizmo canvas, so
+    // deactivation still calls ctx.clearGizmo.
     expect(ctx.clearGizmo).toHaveBeenCalled();
+    expect(tool.getGizmoSnapshot()).toBeNull();
+    unsubscribe();
   });
 
   it("re-grabs a custom pivot after moving it outside the box", () => {

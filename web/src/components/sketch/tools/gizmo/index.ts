@@ -35,12 +35,7 @@ export {
 } from "./gizmoConstants";
 
 export {
-  // Paint primitives
-  drawBoundingBox,
-  drawSquareHandle,
-  drawRotationHandle,
-  drawPivotHandle,
-  drawTransformGizmo,
+  // Paint primitives (MoveTool + CropTool only — TransformTool is React/SVG)
   drawOffCanvasIndicator,
   drawCropOverlay,
   drawCropGizmoWithHandles

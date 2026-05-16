@@ -16,9 +16,9 @@ import {
   isLayerCompositeVisible
 } from "../../types";
 import { blendModeToComposite, drawCheckerboard } from "../../drawingUtils";
-import { getLayerCompositeOffset } from "../../painting/layerBounds";
+import { getLayerGeometry } from "../../transform/geometry/layerGeometry";
 import type { ActiveStrokeInfo, DirtyRect, ResolvedLayerBitmap } from "../types";
-import { drawImageToQuad, drawImageToDualQuad } from "./quadTransform";
+import { drawImageToQuad } from "./quadTransform";
 
 // ─── Type alias for the FX evaluator callback ───────────────────────────────
 
@@ -43,9 +43,6 @@ export function drawWithTransform(
 ): void {
   const t = layer.transform;
   switch (t.kind) {
-    case "dual-quad":
-      drawImageToDualQuad(ctx, source, t.quad, t.secondaryQuad);
-      return;
     case "quad":
       drawImageToQuad(ctx, source, t.quad);
       return;
@@ -103,14 +100,10 @@ export function drawLayerToContext(
       layer.blendMode || "normal"
     );
   }
-  const compositeOffset = getLayerCompositeOffset(
-    layer,
-    {
-      width: drawCanvas.width,
-      height: drawCanvas.height
-    },
-    layerCanvas
-  );
+  const compositeOffset = getLayerGeometry(layer, layerCanvas, {
+    width: drawCanvas.width,
+    height: drawCanvas.height
+  }).compositeOffset;
   drawWithTransform(ctx, drawCanvas, compositeOffset, layer);
   ctx.restore();
 }
@@ -183,14 +176,10 @@ export function renderDocumentComposite(
       isolatedLayerId
     );
     const hasActiveStroke = activeStroke && activeStroke.layerId === layer.id;
-    const compositeOffset = getLayerCompositeOffset(
-      layer,
-      {
-        width: drawCanvas.width,
-        height: drawCanvas.height
-      },
-      layerCanvas
-    );
+    const compositeOffset = getLayerGeometry(layer, layerCanvas, {
+      width: drawCanvas.width,
+      height: drawCanvas.height
+    }).compositeOffset;
 
     if (hasActiveStroke) {
       let tempCanvas = strokeTempCanvas;

@@ -58,12 +58,6 @@ function transformsEqual(
   if (left.kind === "quad" && right.kind === "quad") {
     return left.mode === right.mode && quadsEqual(left.quad, right.quad);
   }
-  if (left.kind === "dual-quad" && right.kind === "dual-quad") {
-    return (
-      quadsEqual(left.quad, right.quad) &&
-      quadsEqual(left.secondaryQuad, right.secondaryQuad)
-    );
-  }
   return false;
 }
 

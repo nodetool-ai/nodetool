@@ -26,7 +26,8 @@ import {
 } from "../types";
 import { Canvas2DRuntime } from "./Canvas2DRuntime";
 import { checkerboardDocumentCellPx } from "../drawingUtils";
-import { getLayerCompositeOffset } from "../painting/layerBounds";
+import { getLayerGeometry } from "../transform/geometry/layerGeometry";
+import { drawImageToQuad } from "./canvas2d/quadTransform";
 import {
   combineMasks,
   trimSelectionMask,
@@ -151,6 +152,19 @@ export class WebGPURuntime implements SketchRuntime {
   private fxTempCanvas: HTMLCanvasElement | null = null;
   /** Temp GPU texture for uploading FX-evaluated layer content. */
   private fxTempTexture: GPUTexture | null = null;
+
+  // ── Quad transform pre-rasterization ────────────────────────────────
+  /**
+   * Per-layer doc-sized CPU canvases for layers whose transform is `quad`.
+   * The Canvas2D path is the authoritative quad renderer
+   * (`drawImageToQuad`), so we bake the layer canvas onto a doc-sized
+   * surface with that helper, then upload it as an identity-positioned
+   * texture for the GPU composite. Cached per-layer because two quad
+   * layers can co-exist in one frame and overwriting a shared texture
+   * across draws within the same submission has undefined ordering.
+   */
+  private quadBakeCanvases = new Map<string, HTMLCanvasElement>();
+  private quadBakeTextures = new Map<string, GPUTexture>();
 
   // ── CPU-side fallback for readback & layer pixel ops ─────────────────
   private cpuRuntime: Canvas2DRuntime;
@@ -840,6 +854,10 @@ export class WebGPURuntime implements SketchRuntime {
       this.layerTextures.delete(layerId);
     }
     this.dirtyLayers.delete(layerId);
+    // Release any pre-baked quad transform texture / canvas for this layer.
+    this.quadBakeTextures.get(layerId)?.destroy();
+    this.quadBakeTextures.delete(layerId);
+    this.quadBakeCanvases.delete(layerId);
   }
 
   invalidateLayer(layerId: string): void {
@@ -1036,17 +1054,22 @@ export class WebGPURuntime implements SketchRuntime {
         srcTex = mergeTex;
       }
 
-      // FX evaluation: if the layer has enabled effects, evaluate on CPU and upload
-      if (layer.effects.length > 0 && layer.effects.some((e) => e.enabled)) {
-        const cpuCanvas = this.layerCanvases.get(layer.id);
-        if (cpuCanvas) {
-          const resolved = this.cpuRuntime.evaluateLayerEffects(
-            layer.id, cpuCanvas, layer.effects
-          );
-          if (resolved.surface !== cpuCanvas) {
-            srcTex = this.uploadFxTempTexture(resolved.surface);
-          }
-        }
+      // Resolve the source CPU canvas after FX evaluation. The quad
+      // pre-rasterization path needs the FX-evaluated bitmap as its source,
+      // not the raw layer canvas, so we compute it once and share with the
+      // GPU FX upload below.
+      const rawCanvas = this.layerCanvases.get(layer.id) ?? null;
+      const fxActive =
+        rawCanvas != null &&
+        layer.effects.length > 0 &&
+        layer.effects.some((e) => e.enabled);
+      const fxSurface = fxActive
+        ? this.cpuRuntime.evaluateLayerEffects(layer.id, rawCanvas!, layer.effects).surface
+        : rawCanvas;
+
+      // FX evaluation: if FX produced a different surface, upload it.
+      if (fxActive && fxSurface && fxSurface !== rawCanvas) {
+        srcTex = this.uploadFxTempTexture(fxSurface);
       }
 
       const opacityScale = getAncestorGroupOpacityProduct(
@@ -1055,8 +1078,32 @@ export class WebGPURuntime implements SketchRuntime {
       const finalOpacity = layer.opacity * opacityScale;
       const blendModeId = BLEND_MODE_ID[layer.blendMode || "normal"] ?? 0;
 
-      // Compute inverse affine transform: screen pixel → layer texel
-      const invAffine = this.computeInverseAffine(layer, srcTex.width, srcTex.height);
+      // Compute inverse affine transform: screen pixel → layer texel.
+      // Quad transforms aren't affine, so the shader can't sample them
+      // directly. Pre-rasterize the (FX-evaluated) layer canvas through
+      // Canvas2D's projective `drawImageToQuad` onto a doc-sized surface and
+      // composite it with identity affine.
+      let invAffine: InverseAffine;
+      if (layer.transform.kind === "affine") {
+        invAffine = this.computeInverseAffine(layer, srcTex.width, srcTex.height);
+      } else {
+        const baked = fxSurface
+          ? this.bakeQuadLayerToDocCanvas(
+              layer.id,
+              layer.transform,
+              fxSurface,
+              fullW,
+              fullH
+            )
+          : null;
+        if (baked) {
+          srcTex = this.uploadQuadBakeTexture(layer.id, baked);
+          // Doc-sized texture, top-left at (0,0): inverse affine is identity.
+          invAffine = { a: 1, b: 0, tx: 0, c: 0, d: 1, ty: 0 };
+        } else {
+          invAffine = this.computeInverseAffine(layer, srcTex.width, srcTex.height);
+        }
+      }
 
       // Render blend pass: reads readTex (dst) + srcTex (layer) → writes writeTex
       this.renderBlendPass(
@@ -1240,23 +1287,20 @@ export class WebGPURuntime implements SketchRuntime {
     texW: number,
     texH: number
   ): InverseAffine {
-    const compositeOffset = getLayerCompositeOffset(
+    const compositeOffset = getLayerGeometry(
       layer,
-      { width: texW, height: texH },
-      this.layerCanvases.get((layer as Layer).id)
-    );
+      this.layerCanvases.get((layer as Layer).id),
+      { width: texW, height: texH }
+    ).compositeOffset;
 
     const t = layer.transform;
-    // TODO: add WebGPU quad sampler. For quad/dual-quad transforms we currently
-    // fall back to identity (no rotation/scale), which silently mis-renders.
-    // Canvas2D path handles them correctly via drawImageToQuad.
+    // Quad transforms are baked to a doc-sized texture upstream
+    // (see `bakeQuadLayerToDocCanvas`), so by the time we get here the layer
+    // is sampled at identity. Defensive fallback for unexpected callers.
     if (t.kind !== "affine") {
-      console.warn(
-        "WebGPURuntime: quad/dual-quad transforms not yet supported; falling back to identity affine"
-      );
       return {
-        a: 1, b: 0, tx: -compositeOffset.x,
-        c: 0, d: 1, ty: -compositeOffset.y
+        a: 1, b: 0, tx: 0,
+        c: 0, d: 1, ty: 0
       };
     }
     const sx = t.scaleX;
@@ -1318,6 +1362,68 @@ export class WebGPURuntime implements SketchRuntime {
       );
     }
     return this.fxTempTexture;
+  }
+
+  /**
+   * Rasterize a quad layer onto a doc-sized CPU canvas using the
+   * Canvas2D projective drawer. Returns null when the bake fails (no 2D
+   * context, zero-sized doc, etc.). The canvas is cached per layer.
+   */
+  private bakeQuadLayerToDocCanvas(
+    layerId: string,
+    transform: Exclude<Layer["transform"], { kind: "affine" }>,
+    source: HTMLCanvasElement,
+    docW: number,
+    docH: number
+  ): HTMLCanvasElement | null {
+    if (docW <= 0 || docH <= 0) {
+      return null;
+    }
+    let bake = this.quadBakeCanvases.get(layerId);
+    if (!bake || bake.width !== docW || bake.height !== docH) {
+      bake = window.document.createElement("canvas");
+      bake.width = docW;
+      bake.height = docH;
+      this.quadBakeCanvases.set(layerId, bake);
+      // Force re-create the texture on next upload (different dimensions).
+      this.quadBakeTextures.get(layerId)?.destroy();
+      this.quadBakeTextures.delete(layerId);
+    }
+    const ctx = bake.getContext("2d");
+    if (!ctx) {
+      return null;
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, docW, docH);
+    drawImageToQuad(ctx, source, transform.quad);
+    return bake;
+  }
+
+  private uploadQuadBakeTexture(
+    layerId: string,
+    canvas: HTMLCanvasElement
+  ): GPUTexture {
+    let texture = this.quadBakeTextures.get(layerId);
+    if (
+      !texture ||
+      texture.width !== canvas.width ||
+      texture.height !== canvas.height
+    ) {
+      texture?.destroy();
+      texture = this.device.createTexture({
+        label: `quad-bake-${layerId}`,
+        size: { width: Math.max(1, canvas.width), height: Math.max(1, canvas.height) },
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+      });
+      this.quadBakeTextures.set(layerId, texture);
+    }
+    this.device.queue.copyExternalImageToTexture(
+      { source: canvas, flipY: false },
+      { texture },
+      { width: canvas.width, height: canvas.height }
+    );
+    return texture;
   }
 
   // ─── SketchRuntime: Readback / export ────────────────────────────────

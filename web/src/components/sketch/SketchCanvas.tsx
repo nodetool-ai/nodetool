@@ -42,6 +42,8 @@ import {
 import { clientToDocumentCanvas } from "./tools/transform/handleGeometry";
 import type { StrokeEndOptions } from "./tools/types";
 import SketchCanvasPresentation from "./SketchCanvasPresentation";
+import { getToolHandler } from "./tools";
+import { TransformTool } from "./tools/TransformTool";
 
 // ─── Canvas Ref Interface ────────────────────────────────────────────────────
 
@@ -458,6 +460,14 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // ─── Render ──────────────────────────────────────────────────────────
 
+    const transformTool = useMemo(() => {
+      const handler = getToolHandler("transform");
+      if (!(handler instanceof TransformTool)) {
+        throw new Error("Expected TransformTool singleton from tool registry");
+      }
+      return handler;
+    }, []);
+
     return (
       <SketchCanvasPresentation
         containerRef={containerRef}
@@ -468,6 +478,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         selectionCanvasRef={selectionCanvasRef}
         cursorCanvasRef={cursorCanvasRef}
         gizmoCanvasRef={gizmoCanvasRef}
+        transformTool={transformTool}
         canvasWidth={doc.canvas.width}
         canvasHeight={doc.canvas.height}
         zoom={zoom}

@@ -22,7 +22,7 @@ import type { ActiveStrokeInfo } from "../rendering/types";
 import {
   setCanvasRasterBounds,
   getCanvasRasterBounds
-} from "../painting/layerBounds";
+} from "../transform/geometry/layerGeometry";
 import {
   magicWandFromRgba,
   polygonToBinaryMask,

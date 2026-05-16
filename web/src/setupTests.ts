@@ -27,3 +27,15 @@ import { TextEncoder, TextDecoder } from "util";
 global.btoa = (str: string) => Buffer.from(str, "binary").toString("base64");
 global.atob = (str: string) => Buffer.from(str, "base64").toString("binary");
 
+// jsdom does not implement ResizeObserver; stub it so React components that
+// observe their container (e.g. <TransformGizmo />) can mount in tests.
+if (typeof (globalThis as { ResizeObserver?: unknown }).ResizeObserver === "undefined") {
+  class StubResizeObserver {
+    observe = (): void => {};
+    unobserve = (): void => {};
+    disconnect = (): void => {};
+  }
+  (globalThis as unknown as { ResizeObserver: typeof ResizeObserver }).ResizeObserver =
+    StubResizeObserver as unknown as typeof ResizeObserver;
+}
+

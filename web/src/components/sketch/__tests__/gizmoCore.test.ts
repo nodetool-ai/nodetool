@@ -6,7 +6,6 @@
  *   - Hover cursor behavior (correct cursor per handle + rotation)
  *   - Viewport/document-to-screen conversion (docToScreen, docRectToScreen)
  *   - Gizmo constants are consistent with existing consumers
- *   - GizmoRedrawScheduler batching
  */
 
 import {
@@ -35,7 +34,6 @@ import {
   getTransformHoverInfo,
   isPointInsideGizmo
 } from "../tools/transform/transformHoverPolicy";
-import { GizmoRedrawScheduler } from "../tools/transform/transformGizmoPainter";
 import {
   computeRotateTransform,
   computeSkewTransform
@@ -50,7 +48,7 @@ import {
 import type { AffineTransform, LayerTransform, LayerContentBounds, Point } from "../types";
 import { makeAffineTransform } from "../types";
 import { aff } from "./_transformFixtures";
-import { getTransformedCorners } from "../painting/resolvedLayerGeometry";
+import { computeTransformedCorners } from "../transform/geometry/layerGeometry";
 
 // ─── Test helpers ────────────────────────────────────────────────────────────
 
@@ -215,14 +213,14 @@ describe("gizmo hit testing", () => {
 
   it("quad-backed skew transform keeps move hit testing inside the skewed quad", () => {
     const skewed = computeSkewTransform(
-      getTransformedCorners(transform, bounds),
+      computeTransformedCorners(transform, bounds),
       "top",
       { x: 50, y: 0 },
       { x: 75, y: 20 },
       bounds,
       transform
     );
-    const center = getTransformedCorners(skewed, bounds).reduce(
+    const center = computeTransformedCorners(skewed, bounds).reduce(
       (acc, corner) => ({
         x: acc.x + corner.x / 4,
         y: acc.y + corner.y / 4
@@ -235,14 +233,14 @@ describe("gizmo hit testing", () => {
 
   it("buildHandlePositions uses transformed corners for quad-backed skew", () => {
     const skewed = computeSkewTransform(
-      getTransformedCorners(transform, bounds),
+      computeTransformedCorners(transform, bounds),
       "top",
       { x: 50, y: 0 },
       { x: 75, y: 20 },
       bounds,
       transform
     );
-    const corners = getTransformedCorners(skewed, bounds);
+    const corners = computeTransformedCorners(skewed, bounds);
     const handles = buildHandlePositions(skewed, bounds, zoom);
     const topLeft = handles.find((entry) => entry.handle === "top-left");
 
@@ -797,44 +795,5 @@ describe("rotation with custom pivot", () => {
   });
 });
 
-// ─── GizmoRedrawScheduler ────────────────────────────────────────────────────
-
-describe("GizmoRedrawScheduler", () => {
-  it("coalesces multiple schedule calls into one callback", () => {
-    jest.useFakeTimers();
-    const scheduler = new GizmoRedrawScheduler();
-    const callback = jest.fn();
-
-    scheduler.scheduleRedraw(callback);
-    scheduler.scheduleRedraw(callback);
-    scheduler.scheduleRedraw(callback);
-
-    // The scheduler uses rAF, but we can't easily trigger rAF in jest.
-    // Verify that isScheduled is true after scheduling.
-    expect(scheduler.isScheduled).toBe(true);
-
-    jest.useRealTimers();
-  });
-
-  it("cancelPending drops the callback even if rAF runs later", () => {
-    let storedCb: FrameRequestCallback | null = null;
-    const rafSpy = jest.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
-      storedCb = cb as FrameRequestCallback;
-      return 7 as unknown as number;
-    });
-    const cancelSpy = jest.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
-
-    const scheduler = new GizmoRedrawScheduler();
-    const callback = jest.fn();
-    scheduler.scheduleRedraw(callback);
-    scheduler.cancelPending();
-
-    expect(storedCb).not.toBeNull();
-    storedCb!(0);
-    expect(callback).not.toHaveBeenCalled();
-    expect(scheduler.isScheduled).toBe(false);
-
-    rafSpy.mockRestore();
-    cancelSpy.mockRestore();
-  });
-});
+// GizmoRedrawScheduler deleted in Step 5 — rAF batching is React's job now
+// that the transform gizmo is React/SVG.

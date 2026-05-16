@@ -34,7 +34,7 @@ import {
   applySelectionFinalization,
   scheduleSelectionFinalization
 } from "./selectionFinalization";
-import { getLayerCompositeOffset } from "../painting/layerBounds";
+import { getLayerGeometry } from "../transform/geometry/layerGeometry";
 
 /** Require this much document-space delta before commit. */
 const MARQUEE_MIN_DRAG_DOC_PX = 1;
@@ -233,7 +233,7 @@ export class SelectTool implements ToolHandler {
         const activeLayer = doc.layers.find(l => l.id === doc.activeLayerId);
         const activeCanvas = ctx.layerCanvasesRef.current.get(doc.activeLayerId);
         if (!activeLayer || !activeCanvas) return;
-        const offset = getLayerCompositeOffset(activeLayer, undefined, activeCanvas);
+        const offset = getLayerGeometry(activeLayer, activeCanvas).compositeOffset;
         const seedX = pt.x - offset.x;
         const seedY = pt.y - offset.y;
         const actx = activeCanvas.getContext("2d");

@@ -19,7 +19,6 @@ import type {
   Quad,
   SingleQuadMode,
   SingleQuadTransform,
-  DualQuadTransform,
   AffineTransform
 } from "../../types";
 import {
@@ -28,8 +27,7 @@ import {
   isAffineTransform,
   isQuadTransform,
   makeAffineTransform,
-  makeSingleQuadTransform,
-  makeDualQuadTransform
+  makeSingleQuadTransform
 } from "../../types";
 import {
   rotatePoint,
@@ -113,12 +111,8 @@ function buildQuadTransform(
   mode: SingleQuadMode,
   quad: PerspectiveQuad,
   baseTransform: LayerTransform
-): SingleQuadTransform | DualQuadTransform {
-  // If the prior transform was a dual-quad, keep the second plane so the
-  // dual-perspective mode survives a drag on the primary quad.
-  if (baseTransform.kind === "dual-quad") {
-    return makeDualQuadTransform(quad, baseTransform.secondaryQuad);
-  }
+): SingleQuadTransform {
+  void baseTransform;
   return makeSingleQuadTransform(mode, quad);
 }
 
@@ -426,11 +420,6 @@ export function computeMoveTransform(
       return makeSingleQuadTransform(
         dragStartTransform.mode,
         translateQuad(dragStartTransform.quad, dx, dy)
-      );
-    case "dual-quad":
-      return makeDualQuadTransform(
-        translateQuad(dragStartTransform.quad, dx, dy),
-        translateQuad(dragStartTransform.secondaryQuad, dx, dy)
       );
   }
 }

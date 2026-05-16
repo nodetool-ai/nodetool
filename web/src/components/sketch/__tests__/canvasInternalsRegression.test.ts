@@ -15,13 +15,13 @@
 import type { Layer, SketchDocument, LayerTransform } from "../types";
 import { makeAffineTransform } from "../types";
 
+import { ensureLayerRasterBounds } from "../transform/geometry/ensureRasterBounds";
 import {
-  ensureLayerRasterBounds,
-  getDocumentViewportLayerBounds,
-  getLayerCompositeOffset,
+  getDocumentViewportInLayerSpace,
+  getLayerGeometry,
   setCanvasRasterBounds,
   getCanvasRasterBounds
-} from "../painting/layerBounds";
+} from "../transform/geometry/layerGeometry";
 
 import { CoordinateMapper } from "../painting/CoordinateMapper";
 import { Canvas2DRuntime } from "../rendering/Canvas2DRuntime";
@@ -296,7 +296,7 @@ describe("Phase 1.3 – ensureLayerRasterBounds caller audit", () => {
     const ctx = makeMockToolContext(canvases);
 
     const doc = makeDoc({ layers: [layer] });
-    const viewportBounds = getDocumentViewportLayerBounds(layer, doc);
+    const viewportBounds = getDocumentViewportInLayerSpace(layer, doc);
     const expandedBounds = ensureLayerRasterBounds(ctx as never, layer, viewportBounds);
 
     // The returned bounds should be the union (larger than original)
@@ -331,7 +331,7 @@ describe("Phase 1.3 – ensureLayerRasterBounds caller audit", () => {
     const ctx = makeMockToolContext(canvases);
     const doc = makeDoc({ layers: [layer], canvas: { width: 64, height: 64, backgroundColor: "#fff" } });
 
-    const viewportBounds = getDocumentViewportLayerBounds(layer, doc);
+    const viewportBounds = getDocumentViewportInLayerSpace(layer, doc);
     const expandedBounds = ensureLayerRasterBounds(ctx as never, layer, viewportBounds);
 
     // Mapper with expanded bounds (correct, as FillTool does)
@@ -376,7 +376,7 @@ describe("Phase 1.3 – ensureLayerRasterBounds caller audit", () => {
       canvas: { width: 128, height: 128, backgroundColor: "#fff" }
     });
 
-    const viewportBounds = getDocumentViewportLayerBounds(layer, doc);
+    const viewportBounds = getDocumentViewportInLayerSpace(layer, doc);
     const expandedBounds = ensureLayerRasterBounds(ctx as never, layer, viewportBounds);
 
     // When canvas is already larger, the union bounds include the canvas's full extent
@@ -414,7 +414,7 @@ describe("Phase 1.3 – ensureLayerRasterBounds caller audit", () => {
     });
 
     // Simulate ensureLayerRasterBounds called in onDown (return value discarded)
-    const viewportBounds = getDocumentViewportLayerBounds(layer, doc);
+    const viewportBounds = getDocumentViewportInLayerSpace(layer, doc);
     ensureLayerRasterBounds(ctx as never, layer, viewportBounds);
 
     // In onUp, ShapeTool reads getCanvasRasterBounds from the potentially new canvas
@@ -452,7 +452,7 @@ describe("Phase 1.3 – ensureLayerRasterBounds caller audit", () => {
     const canvasMap = new Map<string, HTMLCanvasElement>([["layer-1", existingCanvas]]);
     const ctx = makeMockToolContext(canvasMap);
 
-    const viewportBounds = getDocumentViewportLayerBounds(layer, doc);
+    const viewportBounds = getDocumentViewportInLayerSpace(layer, doc);
     const expandedBounds = ensureLayerRasterBounds(ctx as never, layer, viewportBounds);
 
     const mapper = new CoordinateMapper({
@@ -492,7 +492,7 @@ describe("Phase 1.3 – ensureLayerRasterBounds caller audit", () => {
     const canvasMap = new Map<string, HTMLCanvasElement>([["layer-1", existingCanvas]]);
     const ctx = makeMockToolContext(canvasMap);
 
-    const viewportBounds = getDocumentViewportLayerBounds(layer, doc);
+    const viewportBounds = getDocumentViewportInLayerSpace(layer, doc);
     ensureLayerRasterBounds(ctx as never, layer, viewportBounds);
 
     const mapper = new CoordinateMapper({
@@ -574,7 +574,7 @@ describe("Phase 1.4 – overlay preview coordinate parity", () => {
       canvas: { width: 64, height: 64, backgroundColor: "#fff" }
     });
 
-    const viewportBounds = getDocumentViewportLayerBounds(layer, doc);
+    const viewportBounds = getDocumentViewportInLayerSpace(layer, doc);
     const expandedBounds = ensureLayerRasterBounds(ctx as never, layer, viewportBounds);
 
     const mapper = new CoordinateMapper({
@@ -663,11 +663,7 @@ describe("Phase 1.4 – overlay preview coordinate parity", () => {
     const overlayDocPos = { x: 50, y: 50 };
     const layerPos = mapper.docToLayer(overlayDocPos);
 
-    const compositeOffset = getLayerCompositeOffset(
-      layer,
-      { width: 128, height: 128 },
-      layerCanvas
-    );
+    const compositeOffset = getLayerGeometry(layer, layerCanvas, { width: 128, height: 128 }).compositeOffset;
 
     const committedDocX = layerPos.x + compositeOffset.x;
     const committedDocY = layerPos.y + compositeOffset.y;
@@ -694,11 +690,7 @@ describe("Phase 1.4 – overlay preview coordinate parity", () => {
     const overlayDocPos = { x: 50, y: 50 };
     const layerPos = mapper.docToLayer(overlayDocPos);
 
-    const compositeOffset = getLayerCompositeOffset(
-      layer,
-      { width: 80, height: 80 },
-      layerCanvas
-    );
+    const compositeOffset = getLayerGeometry(layer, layerCanvas, { width: 80, height: 80 }).compositeOffset;
 
     const committedDocX = layerPos.x + compositeOffset.x;
     const committedDocY = layerPos.y + compositeOffset.y;
