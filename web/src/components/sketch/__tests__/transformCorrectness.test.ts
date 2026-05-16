@@ -63,7 +63,6 @@ import {
   computeDistortTransform,
   computeSkewTransform,
   computePerspectiveTransform,
-  computeWarpTransform,
   resolveTransformGestureMode
 } from "../tools/transform/computeTransform";
 import { cursorForHandle, ROTATE_CURSOR_CSS } from "../tools/transform/cursorMapping";
@@ -831,14 +830,14 @@ describe("Package B: advanced transform modes", () => {
     ).toBe("perspective");
   });
 
-  it("preserves explicit warp mode without remapping it through modifiers", () => {
+  it("preserves explicit mesh-warp mode without remapping it through modifiers", () => {
     expect(
-      resolveTransformGestureMode("warp", "top-left", {
+      resolveTransformGestureMode("mesh-warp", "top-left", {
         ctrlOrMeta: false,
         shift: false,
         alt: false
       })
-    ).toBe("warp");
+    ).toBe("mesh-warp");
   });
 
   it("computeDistortTransform keeps the opposite corner anchored", () => {
@@ -931,23 +930,24 @@ describe("Package B: advanced transform modes", () => {
     expect(nextCorners[2]).toEqual(corners[2]);
   });
 
-  it("computeWarpTransform moves only the dragged corner in quad space", () => {
+  it("computeDistortTransform (formerly warp) moves only the dragged corner in quad space", () => {
     const transform = makeTransform({ x: 0, y: 0 });
     const corners = computeTransformedCorners(transform, bounds);
     const dragStart = corners[0];
     const cursor = { x: dragStart.x - 18, y: dragStart.y + 14 };
 
-    const result = quadOf(computeWarpTransform(
+    const result = quadOf(computeDistortTransform(
       corners,
       "top-left",
       dragStart,
       cursor,
       bounds,
+      false,
       transform
     ));
     const nextCorners = computeTransformedCorners(result, bounds);
 
-    expect(result.mode).toBe("warp");
+    expect(result.mode).toBe("distort");
     expect(result.quad).toBeDefined();
     expect(nextCorners[0].x).toBeCloseTo(cursor.x, 5);
     expect(nextCorners[0].y).toBeCloseTo(cursor.y, 5);

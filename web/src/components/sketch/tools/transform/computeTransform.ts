@@ -366,36 +366,6 @@ export function computePerspectiveTransform(
   return buildQuadTransform("perspective", nextQuad, baseTransform);
 }
 
-export function computeWarpTransform(
-  dragStartCorners: [Point, Point, Point, Point],
-  handle: Extract<
-    TransformHandle,
-    "top-left" | "top-right" | "bottom-right" | "bottom-left"
-  >,
-  dragStart: Point,
-  cursor: Point,
-  rasterBounds: LayerContentBounds,
-  baseTransform: LayerTransform
-): LayerTransform {
-  const delta = {
-    x: cursor.x - dragStart.x,
-    y: cursor.y - dragStart.y
-  };
-  const draggedIndex = CORNER_INDEX_BY_HANDLE[handle];
-  const nextQuad: PerspectiveQuad = [
-    { ...dragStartCorners[0] },
-    { ...dragStartCorners[1] },
-    { ...dragStartCorners[2] },
-    { ...dragStartCorners[3] }
-  ];
-  nextQuad[draggedIndex] = {
-    x: nextQuad[draggedIndex].x + delta.x,
-    y: nextQuad[draggedIndex].y + delta.y
-  };
-  void rasterBounds;
-  return buildQuadTransform("warp", nextQuad, baseTransform);
-}
-
 // ─── Move computation ────────────────────────────────────────────────────────
 
 /**

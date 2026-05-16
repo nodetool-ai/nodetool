@@ -80,10 +80,23 @@ export function useResolvedToolSettings() {
           ...DEFAULT_TRANSFORM_SETTINGS,
           ...liveToolSettings.transform
         };
-        // Persisted settings from older versions may still hold the removed
-        // "auto" mode; coerce it to the new default so the panel renders a
-        // valid selection and gesture resolution stays sane.
-        if ((merged.mode as string) === "auto") {
+        // Persisted settings from older versions may still hold modes that
+        // were removed by the Affinity-parity consolidation. Coerce them so
+        // the panel renders a valid selection and gesture resolution stays
+        // sane: legacy quad-tag aliases map to their current equivalents,
+        // anything else (incl. the old "auto" mode) falls back to default.
+        const raw = merged.mode as string;
+        if (raw === "warp") {
+          merged.mode = "distort";
+        } else if (raw === "perspective-distort" || raw === "perspective-dual") {
+          merged.mode = "perspective";
+        } else if (
+          raw !== "scale" &&
+          raw !== "distort" &&
+          raw !== "skew" &&
+          raw !== "perspective" &&
+          raw !== "mesh-warp"
+        ) {
           merged.mode = DEFAULT_TRANSFORM_SETTINGS.mode;
         }
         return merged;

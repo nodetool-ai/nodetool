@@ -47,7 +47,6 @@ export {
   computeDistortTransform,
   computeSkewTransform,
   computePerspectiveTransform,
-  computeWarpTransform,
   resolveTransformGestureMode
 } from "./computeTransform";
 export {

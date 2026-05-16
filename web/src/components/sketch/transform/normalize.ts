@@ -26,14 +26,29 @@ import {
   makeSingleQuadTransform
 } from "./types";
 
-const SINGLE_QUAD_MODES: ReadonlySet<string> = new Set<SingleQuadMode>([
+const SINGLE_QUAD_MODES: ReadonlySet<SingleQuadMode> = new Set<SingleQuadMode>([
   "distort",
   "skew",
   "perspective",
-  "perspective-distort",
-  "warp",
   "mesh-warp"
 ]);
+
+/**
+ * Migrate legacy quad-mode tags into the current canonical set. Returns the
+ * input tag unchanged when it's already canonical, or null when unknown.
+ */
+function migrateLegacyQuadMode(raw: string): SingleQuadMode | null {
+  if (SINGLE_QUAD_MODES.has(raw as SingleQuadMode)) {
+    return raw as SingleQuadMode;
+  }
+  if (raw === "warp") {
+    return "distort";
+  }
+  if (raw === "perspective-distort" || raw === "perspective-dual") {
+    return "perspective";
+  }
+  return null;
+}
 
 function isQuadShape(value: unknown): value is Quad {
   return (
@@ -98,18 +113,19 @@ export function normalizeLayerTransform(raw: unknown): LayerTransform {
   if (
     t.kind === "quad" &&
     typeof t.mode === "string" &&
-    SINGLE_QUAD_MODES.has(t.mode) &&
     isQuadShape(t.quad)
   ) {
-    return makeSingleQuadTransform(t.mode as SingleQuadMode, t.quad);
+    const migrated = migrateLegacyQuadMode(t.mode);
+    if (migrated) {
+      return makeSingleQuadTransform(migrated, t.quad);
+    }
   }
 
-  if (
-    typeof t.mode === "string" &&
-    SINGLE_QUAD_MODES.has(t.mode) &&
-    isQuadShape(t.quad)
-  ) {
-    return makeSingleQuadTransform(t.mode as SingleQuadMode, t.quad);
+  if (typeof t.mode === "string" && isQuadShape(t.quad)) {
+    const migrated = migrateLegacyQuadMode(t.mode);
+    if (migrated) {
+      return makeSingleQuadTransform(migrated, t.quad);
+    }
   }
 
   return makeAffineTransform({

@@ -18,5 +18,5 @@ export {
 export { ScaleMode } from "./scale";
 export { DistortMode } from "./distort";
 export { SkewMode } from "./skew";
-export { PerspectiveMode, PerspectiveDistortMode } from "./perspective";
-export { WarpMode, MeshWarpMode } from "./warp";
+export { PerspectiveMode } from "./perspective";
+export { MeshWarpMode } from "./warp";

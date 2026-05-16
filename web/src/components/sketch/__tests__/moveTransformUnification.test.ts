@@ -592,7 +592,7 @@ describe("Task 4: Reconcile vs preview parity", () => {
     ] as const;
     const layer = makeLayer({
       id: "warp-layer",
-      transform: makeSingleQuadTransform("warp", quad),
+      transform: makeSingleQuadTransform("distort", quad),
       contentBounds: makeBounds({ x: 0, y: 0, width: 40, height: 40 })
     });
     const doc = createDefaultDocument(100, 100);

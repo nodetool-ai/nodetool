@@ -51,12 +51,19 @@ export interface AffineTransform {
  * - `warp`        — bezier-style edges (currently rendered as straight).
  * - `mesh-warp`   — control mesh (UI not yet implemented; aliases warp).
  */
+/**
+ * Quad-transform tag. Four user-facing modes after the Affinity-parity
+ * consolidation: `distort` (Deform), `perspective`, `mesh-warp`, plus the
+ * internal `skew` tag that is produced when Ctrl/Cmd promotes an edge
+ * scale gesture (not exposed as its own toolbar mode).
+ *
+ * Legacy tags `warp` and `perspective-distort` are migrated by
+ * `normalizeLayerTransform` to `distort` and `perspective` respectively.
+ */
 export type SingleQuadMode =
   | "distort"
   | "skew"
   | "perspective"
-  | "perspective-distort"
-  | "warp"
   | "mesh-warp";
 
 export interface SingleQuadTransform {

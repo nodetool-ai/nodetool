@@ -109,7 +109,7 @@ function makePointerEvent(
 }
 
 function setTransformMode(
-  mode: "scale" | "distort" | "skew" | "perspective" | "warp"
+  mode: "scale" | "distort" | "skew" | "perspective" | "mesh-warp"
 ): void {
   useSketchStore.setState((state) => ({
     ...state,
@@ -192,8 +192,8 @@ describe("TransformTool — quad-mode gesture regression", () => {
     }
   });
 
-  it("warp: second onMove updates the dragged corner", () => {
-    setTransformMode("warp");
+  it("mesh-warp: second onMove updates the dragged corner", () => {
+    setTransformMode("mesh-warp");
     const ctx = makeToolContext();
     const layer = ctx.doc.layers[0];
     layer.contentBounds = { x: 0, y: 0, width: 64, height: 64 };
@@ -208,11 +208,11 @@ describe("TransformTool — quad-mode gesture regression", () => {
     const t = lastPreviewTransform(ctx);
     expect(t).not.toBeNull();
     if (t && isSingleQuadTransform(t)) {
-      expect(t.mode).toBe("warp");
+      expect(t.mode).toBe("mesh-warp");
       expect(t.quad[1].x).toBeCloseTo(90, 5);
       expect(t.quad[1].y).toBeCloseTo(20, 5);
     } else {
-      throw new Error(`expected single-quad warp transform, got ${t?.kind}`);
+      throw new Error(`expected single-quad mesh-warp transform, got ${t?.kind}`);
     }
   });
 
@@ -245,7 +245,7 @@ describe("TransformTool — quad-mode gesture regression", () => {
   });
 
   it("second drag on a now-quad layer continues to apply changes", () => {
-    setTransformMode("warp");
+    setTransformMode("mesh-warp");
     const ctx = makeToolContext();
     const layer = ctx.doc.layers[0];
     layer.contentBounds = { x: 0, y: 0, width: 64, height: 64 };

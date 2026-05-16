@@ -3,7 +3,9 @@
  *
  * Pure math correctness for each gesture is covered by
  * `tools/transform/__tests__/...` and `__tests__/transformCorrectness.test.ts`;
- * this file only verifies registry wiring, metadata, and the alias contract.
+ * this file only verifies registry wiring and metadata after the
+ * Affinity-parity consolidation (Scale, Perspective, Mesh Warp, Deform —
+ * with Skew kept as an internal-only mode driven by Ctrl+edge promotion).
  */
 
 import {
@@ -12,8 +14,6 @@ import {
   getToolbarTransformModes,
   type ModeDragInput
 } from "../index";
-import { PerspectiveMode } from "../perspective";
-import { WarpMode, MeshWarpMode } from "../warp";
 import type { Point, TransformMode } from "../../../types";
 import { IDENTITY_AFFINE } from "../../../types";
 
@@ -22,9 +22,7 @@ const ALL_MODES: ReadonlyArray<TransformMode> = [
   "distort",
   "skew",
   "perspective",
-  "perspective-distort",
-  "mesh-warp",
-  "warp"
+  "mesh-warp"
 ];
 
 const BOUNDS = { x: 0, y: 0, width: 100, height: 100 };
@@ -80,14 +78,14 @@ describe("transform/modes registry", () => {
     }
   });
 
-  it("toolbar list excludes mesh-warp but includes user-pickable modes", () => {
+  it("toolbar exposes scale and perspective; hides skew, distort, mesh-warp", () => {
+    // Deform (`distort`) and Mesh Warp are hidden until their real Affinity
+    // implementations (MLS anchors / Bezier grid) ship. Skew is reachable
+    // via Ctrl/Cmd+edge promotion from scale, never as a standalone mode.
     const toolbar = getToolbarTransformModes().map((h) => h.id);
-    expect(toolbar).toContain("scale");
-    expect(toolbar).toContain("distort");
-    expect(toolbar).toContain("skew");
-    expect(toolbar).toContain("perspective");
-    expect(toolbar).toContain("perspective-distort");
-    expect(toolbar).toContain("warp");
+    expect(toolbar).toEqual(expect.arrayContaining(["scale", "perspective"]));
+    expect(toolbar).not.toContain("skew");
+    expect(toolbar).not.toContain("distort");
     expect(toolbar).not.toContain("mesh-warp");
   });
 
@@ -96,8 +94,6 @@ describe("transform/modes registry", () => {
     const quadModes: ReadonlyArray<TransformMode> = [
       "distort",
       "perspective",
-      "perspective-distort",
-      "warp",
       "mesh-warp"
     ];
     for (const id of quadModes) {
@@ -121,30 +117,16 @@ describe("transform/modes registry", () => {
     expect(out.kind).toBe("affine");
   });
 
-  it("mesh-warp aliases the warp gesture (corner math is the warp math)", () => {
+  it("mesh-warp shares free-corner math with distort but tags differently", () => {
     const input = makeInput({ handle: "top-right" });
-    const warpOut = WarpMode.applyDrag(input);
-    const meshOut = MeshWarpMode.applyDrag(input);
-    expect(warpOut.kind).toBe("quad");
-    expect(meshOut.kind).toBe("quad");
-    if (warpOut.kind === "quad" && meshOut.kind === "quad") {
-      // Same geometry, different mode tag.
-      expect(meshOut.quad).toEqual(warpOut.quad);
-      expect(meshOut.mode).toBe("mesh-warp");
-      expect(warpOut.mode).toBe("warp");
-    }
-  });
-
-  it("perspective-distort aliases perspective with a distinct tag", () => {
-    const input = makeInput({ handle: "top-right" });
-    const baseOut = PerspectiveMode.applyDrag(input);
-    const distortOut = TRANSFORM_MODES["perspective-distort"].applyDrag(input);
-    expect(baseOut.kind).toBe("quad");
+    const distortOut = TRANSFORM_MODES.distort.applyDrag(input);
+    const meshOut = TRANSFORM_MODES["mesh-warp"].applyDrag(input);
     expect(distortOut.kind).toBe("quad");
-    if (baseOut.kind === "quad" && distortOut.kind === "quad") {
-      expect(distortOut.quad).toEqual(baseOut.quad);
-      expect(baseOut.mode).toBe("perspective");
-      expect(distortOut.mode).toBe("perspective-distort");
+    expect(meshOut.kind).toBe("quad");
+    if (distortOut.kind === "quad" && meshOut.kind === "quad") {
+      expect(meshOut.quad).toEqual(distortOut.quad);
+      expect(distortOut.mode).toBe("distort");
+      expect(meshOut.mode).toBe("mesh-warp");
     }
   });
 });

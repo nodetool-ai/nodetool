@@ -529,9 +529,7 @@ export type TransformMode =
   | "distort"
   | "skew"
   | "perspective"
-  | "perspective-distort"
-  | "mesh-warp"
-  | "warp";
+  | "mesh-warp";
 
 export interface TransformSettings {
   /**

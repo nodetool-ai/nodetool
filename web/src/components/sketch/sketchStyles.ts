@@ -106,28 +106,14 @@ export const sketchSliderSx: SxProps<Theme> = (theme) => ({
  * Compact ToggleButton sizing used throughout tool settings panels.
  * Apply directly: `<ToggleButton sx={toggleButtonSmallSx} />`
  *
- * The selected state is intentionally loud — Affinity-style — so the user
- * can tell at a glance which transform mode is active.
+ * Selected state uses MUI's default theme styling (no loud override).
  */
-export const toggleButtonSmallSx: SxProps<Theme> = (theme) => ({
+export const toggleButtonSmallSx: SxProps<Theme> = {
   fontSize: SKETCH_FONT.xs,
   py: SKETCH_SPACING.xs,
   px: SKETCH_SPACING.md,
-  fontWeight: 500,
-  color: (theme as Theme).palette.grey[300],
-  borderColor: (theme as Theme).palette.grey[700],
-  transition: "background-color 0.12s ease, color 0.12s ease",
-  "&.Mui-selected, &.Mui-selected:hover": {
-    backgroundColor: (theme as Theme).palette.primary.main,
-    color: (theme as Theme).palette.primary.contrastText,
-    borderColor: (theme as Theme).palette.primary.main,
-    fontWeight: 600,
-    boxShadow: `inset 0 0 0 1px ${(theme as Theme).palette.primary.main}`
-  },
-  "&.Mui-selected .MuiSvgIcon-root": {
-    color: (theme as Theme).palette.primary.contrastText
-  }
-});
+  fontWeight: 500
+};
 
 /**
  * Compact icon button padding used across panels and toolbars.

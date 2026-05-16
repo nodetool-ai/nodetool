@@ -25,8 +25,13 @@ const VISIBLE_HANDLES: readonly TransformHandle[] = [
 
 export const DistortMode: TransformModeHandler = {
   id: "distort",
-  label: "Distort",
-  visibleInToolbar: true,
+  label: "Deform",
+  tooltip: "Warp your image using custom anchor points. Drag a corner to move it independently.",
+  // Hidden from the toolbar until the real Affinity-style Deform tool
+  // (arbitrary anchor points + moving-least-squares warp) ships. The
+  // current 4-corner shim is kept for back-compat with already-deformed
+  // layers and for the internal compute path.
+  visibleInToolbar: false,
   visibleHandles: VISIBLE_HANDLES,
   supportsRotate: false,
   supportsPivot: false,
