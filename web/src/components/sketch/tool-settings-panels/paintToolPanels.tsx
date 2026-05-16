@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { Box, Typography, Slider, Button } from "@mui/material";
+import { Box, Typography, Slider } from "@mui/material";
 import {
   BrushSettings,
   BrushType,
@@ -85,25 +85,21 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
 
   return (
     <>
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "4px",
-          mb: "4px"
+      <SketchModeToggle
+        value={assist.preset}
+        onChange={(_, v) => {
+          if (v) {
+            pushAssist(createStrokeAssistPreset(v as StrokeAssistPreset));
+          }
         }}
+        sx={{ mb: "4px", flexWrap: "wrap" }}
       >
         {STROKE_ASSIST_PRESETS.map(({ value, label }) => (
-          <Button
-            key={value}
-            variant={assist.preset === value ? "contained" : "outlined"}
-            size="small"
-            onClick={() => pushAssist(createStrokeAssistPreset(value))}
-          >
+          <SketchModeOption key={value} value={value}>
             {label}
-          </Button>
+          </SketchModeOption>
         ))}
-      </Box>
+      </SketchModeToggle>
       <SketchModeToggle
         value={assist.mode}
         onChange={(_, v) => {

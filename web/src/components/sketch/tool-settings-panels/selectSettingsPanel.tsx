@@ -118,31 +118,23 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
               {settings.magicWandTolerance}
             </Typography>
           </Box>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 0.5,
-              flexWrap: "wrap",
-              width: "100%"
+          <SketchModeToggle
+            exclusive={false}
+            value={[
+              ...(settings.contiguous ? ["contiguous"] : []),
+              ...(settings.sampleAllLayers ? ["allLayers"] : [])
+            ]}
+            onChange={(_, vals: string[]) => {
+              onChange({
+                contiguous: vals.includes("contiguous"),
+                sampleAllLayers: vals.includes("allLayers")
+              });
             }}
+            sx={{ flexWrap: "wrap" }}
           >
-            <Button
-              size="small"
-              variant={settings.contiguous ? "contained" : "outlined"}
-              onClick={() => onChange({ contiguous: !settings.contiguous })}
-              sx={{ ...sketchButtonSmallSx, minWidth: "90px" }}
-            >
-              Contiguous
-            </Button>
-            <Button
-              size="small"
-              variant={settings.sampleAllLayers ? "contained" : "outlined"}
-              onClick={() => onChange({ sampleAllLayers: !settings.sampleAllLayers })}
-              sx={{ ...sketchButtonSmallSx, minWidth: "100px" }}
-            >
-              All Layers
-            </Button>
-          </Box>
+            <SketchModeOption value="contiguous">Contiguous</SketchModeOption>
+            <SketchModeOption value="allLayers">All Layers</SketchModeOption>
+          </SketchModeToggle>
         </>
       ) : null}
       <Box className="setting-row">
