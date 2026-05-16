@@ -1414,7 +1414,14 @@ export class WebGPURuntime implements SketchRuntime {
         label: `quad-bake-${layerId}`,
         size: { width: Math.max(1, canvas.width), height: Math.max(1, canvas.height) },
         format: "rgba8unorm",
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+        // RENDER_ATTACHMENT is required by `copyExternalImageToTexture` —
+        // the spec implements the copy via an internal render pass. Without
+        // it, WebGPU raises "Destination texture needs to have CopyDst and
+        // Render usage".
+        usage:
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.RENDER_ATTACHMENT
       });
       this.quadBakeTextures.set(layerId, texture);
     }

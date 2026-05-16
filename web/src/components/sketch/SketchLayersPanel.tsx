@@ -49,7 +49,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import LayersClearIcon from "@mui/icons-material/LayersClear";
 import FlipCameraAndroidIcon from "@mui/icons-material/FlipCameraAndroid";
 import {
   Layer,
@@ -1492,7 +1492,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               onClick={onClearLayer}
               disabled={pixelLayerCanvasActionsDisabled}
             >
-              <DeleteOutlineIcon sx={{ fontSize: "1.125rem" }} />
+              <LayersClearIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
           </span>
         </Tooltip>

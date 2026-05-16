@@ -110,20 +110,46 @@ function svToBary(s: number, val: number): { u: number; v: number; w: number } {
 
 // ─── Canvas painting ─────────────────────────────────────────────────────────
 
-/** Paint the static hue ring (only needed once). */
+/**
+ * Paint the static hue ring (only needed once).
+ *
+ * Per-pixel ImageData fill rather than 360 1°-wide arc wedges: arc-wedge
+ * fills produce visible radial banding at this size from subpixel
+ * rasterization gaps between adjacent fills. Sampling per pixel via
+ * `atan2` gives a perfectly smooth gradient with anti-aliased ring edges.
+ */
 function paintRing(ctx: CanvasRenderingContext2D) {
-  const steps = 360;
-  for (let i = 0; i < steps; i++) {
-    const startAngle = (i - 90) * Math.PI / 180;
-    const endAngle = (i + 1 - 90) * Math.PI / 180;
-    ctx.beginPath();
-    ctx.arc(CX, CY, OUTER_R - 1, startAngle, endAngle);
-    ctx.arc(CX, CY, INNER_R + 1, endAngle, startAngle, true);
-    ctx.closePath();
-    const { r, g, b } = hsvToRgb(i, 1, 1);
-    ctx.fillStyle = `rgb(${r},${g},${b})`;
-    ctx.fill();
+  const w = WIDGET_SIZE;
+  const h = WIDGET_SIZE;
+  const img = ctx.createImageData(w, h);
+  const data = img.data;
+  const outerSq = OUTER_R * OUTER_R;
+  const innerSq = INNER_R * INNER_R;
+  for (let py = 0; py < h; py++) {
+    const dy = py + 0.5 - CY;
+    for (let px = 0; px < w; px++) {
+      const dx = px + 0.5 - CX;
+      const distSq = dx * dx + dy * dy;
+      if (distSq > outerSq || distSq < innerSq) {
+        continue;
+      }
+      // Angle measured from −Y (top) going clockwise, matching the
+      // existing hue-cursor convention: hue 0° lives at 12 o'clock.
+      let angle = (Math.atan2(dy, dx) * 180) / Math.PI + 90;
+      if (angle < 0) { angle += 360; }
+      const { r, g, b } = hsvToRgb(angle, 1, 1);
+      // Anti-alias the inner and outer edges over ~1px.
+      const dist = Math.sqrt(distSq);
+      const edge = Math.min(OUTER_R - dist, dist - INNER_R);
+      const alpha = Math.max(0, Math.min(1, edge));
+      const idx = (py * w + px) * 4;
+      data[idx] = r;
+      data[idx + 1] = g;
+      data[idx + 2] = b;
+      data[idx + 3] = Math.round(alpha * 255);
+    }
   }
+  ctx.putImageData(img, 0, 0);
 }
 
 /** Paint the HSV triangle for the given hue (fixed geometry; only pixel colors depend on hue). */
