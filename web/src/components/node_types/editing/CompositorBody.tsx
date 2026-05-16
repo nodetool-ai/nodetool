@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 /**
- * CompositorBody — bespoke body for `nodetool.image.Compositor` (plan §9.E5, PR 16).
+ * CompositorBody — bespoke body for `nodetool.image.Compositor`.
  *
  * Top: full-bleed preview of the node's own composited output.
  * Middle: per-layer rows (LayerRow) with thumbnail · opacity slider ·
@@ -37,7 +37,7 @@ import LayerRow from "./LayerRow";
 import type { NodeMetadata, Property } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import useResultsStore from "../../../stores/ResultsStore";
-import { useNodes } from "../../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
 
@@ -88,7 +88,7 @@ const BLEND_MODES: { value: CompositorBlendMode; label: string }[] = [
 
 export { BLEND_MODES };
 
-interface ImageRefLike {
+export interface ImageRefLike {
   uri?: string;
   width?: number;
   height?: number;
@@ -114,19 +114,41 @@ const unwrapOutput = (value: unknown, handle?: string | null): unknown => {
   return value;
 };
 
-export const toImageSrc = (img: ImageRefLike | undefined): string | undefined => {
-  if (!img) return undefined;
-  if (img.uri) return img.uri;
-  if (img.data instanceof Uint8Array) {
-    const buf = new ArrayBuffer(img.data.byteLength);
-    new Uint8Array(buf).set(img.data);
-    return URL.createObjectURL(new Blob([buf]));
+const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
   }
-  return undefined;
+  return btoa(binary);
+};
+
+/**
+ * Hook that resolves an `ImageRefLike` to a displayable URL.
+ * Converts Uint8Array to a base64 data URI to avoid blob URL leaks.
+ */
+export const useImageUrl = (image: ImageRefLike | undefined): string | undefined => {
+  return useMemo(() => {
+    if (!image) return undefined;
+    if (image.uri) return image.uri;
+    if (typeof image.data === "string") {
+      if (
+        image.data.startsWith("data:") ||
+        image.data.startsWith("blob:") ||
+        image.data.startsWith("http")
+      ) {
+        return image.data;
+      }
+      return `data:image/png;base64,${image.data}`;
+    }
+    if (image.data instanceof Uint8Array) {
+      return `data:image/png;base64,${uint8ArrayToBase64(image.data)}`;
+    }
+    return undefined;
+  }, [image]);
 };
 
 /** Sort `image_N` keys by their numeric suffix. */
-const sortImageKeys = (keys: string[]): string[] =>
+export const sortImageKeys = (keys: string[]): string[] =>
   keys
     .filter((k) => /^image_\d+$/.test(k))
     .sort((a, b) => {
@@ -136,7 +158,7 @@ const sortImageKeys = (keys: string[]): string[] =>
     });
 
 /** Next unused `image_N` index given existing dynamic property keys. */
-const nextImageIndex = (keys: string[]): number => {
+export const nextImageIndex = (keys: string[]): number => {
   let max = -1;
   for (const k of keys) {
     const m = /^image_(\d+)$/.exec(k);
@@ -231,6 +253,7 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
 }) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
+  const nodeStoreRef = useNodeStoreRef();
 
   // Dynamic properties and per-layer state. We rely on positional
   // alignment between the sorted `image_N` inputs and `layers[i]`.
@@ -302,7 +325,7 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
     () => asImageRef(unwrapOutput(myResult)),
     [myResult]
   );
-  const previewSrc = useMemo(() => toImageSrc(previewImage), [previewImage]);
+  const previewSrc = useImageUrl(previewImage);
 
   // ── Synthesized input-handle Property entries ────────────────────
   const imageType = useMemo(
@@ -318,7 +341,7 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
     () =>
       imageKeys.map((key) => ({
         name: key,
-        type: imageType as unknown as Property["type"],
+        type: imageType,
         required: false
       })),
     [imageKeys, imageType]
@@ -375,10 +398,17 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
       const next = layers.slice();
       next.splice(idx, 1);
       writeLayers(next);
+      // Remove any edges targeting the deleted handle.
+      const edgeIds = edges
+        .filter((e) => (e.targetHandle ?? "") === key)
+        .map((e) => e.id);
+      if (edgeIds.length > 0) {
+        nodeStoreRef.getState().deleteEdges(edgeIds);
+      }
       handleDeleteProperty(key);
       setPropertyComplete();
     },
-    [imageKeys, layers, writeLayers, handleDeleteProperty, setPropertyComplete]
+    [imageKeys, layers, writeLayers, handleDeleteProperty, setPropertyComplete, edges, nodeStoreRef]
   );
 
   const onAddLayer = useCallback(() => {
@@ -414,7 +444,7 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
               index={idx}
               propertyKey={key}
               state={layers[idx] ?? DEFAULT_LAYER_STATE}
-              thumbnail={toImageSrc(upstreamForKey(key))}
+              image={upstreamForKey(key)}
               onOpacityChange={onOpacityChange}
               onOpacityComplete={onOpacityComplete}
               onBlendChange={onBlendChange}

@@ -1,9 +1,10 @@
 /**
- * Smoke + regression tests for `CompositorNode` (plan §9.E5, PR 16).
+ * Smoke + regression tests for `CompositorNode`.
  *
  * Verifies dynamic `image_N` input collection, positional alignment
- * with `layers[i]`, visibility / zero-opacity filtering, and that the
- * output is a non-empty PNG image of the base layer's dimensions.
+ * with `layers[i]`, visibility / zero-opacity filtering, blend modes,
+ * mismatched dimensions, corrupt-input handling, and that the output
+ * is a non-empty PNG image of the base layer's dimensions.
  */
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
@@ -153,5 +154,114 @@ describe("CompositorNode", () => {
     // With image_10 fully opaque blue on top, expect blue dominance.
     expect(data[2]).toBeGreaterThan(200);
     expect(data[0]).toBeLessThan(50);
+  });
+
+  it("outputs image/png mimeType", async () => {
+    const W = 4;
+    const H = 4;
+    const buf = await solidPng(W, H, { r: 128, g: 64, b: 32 });
+    const node = new CompositorNode();
+    node.assign({
+      layers: [{ opacity: 1, blend_mode: "over", visible: true }],
+      image_0: asImageRef(buf, W, H)
+    });
+    const result = await node.process();
+    const out = result.output as Record<string, unknown>;
+    expect(out.mimeType).toBe("image/png");
+  });
+
+  it("handles layers with mismatched dimensions", async () => {
+    const base = await solidPng(8, 8, { r: 255, g: 0, b: 0 });
+    const overlay = await solidPng(4, 4, { r: 0, g: 0, b: 255 });
+    const node = new CompositorNode();
+    node.assign({
+      layers: [
+        { opacity: 1, blend_mode: "over", visible: true },
+        { opacity: 1, blend_mode: "over", visible: true }
+      ],
+      image_0: asImageRef(base, 8, 8),
+      image_1: asImageRef(overlay, 4, 4)
+    });
+    const result = await node.process();
+    const out = result.output as Record<string, unknown>;
+    expect(out.width).toBe(8);
+    expect(out.height).toBe(8);
+    expect(typeof out.data).toBe("string");
+    expect((out.data as string).length).toBeGreaterThan(0);
+  });
+
+  it("falls through on corrupt image input and keeps prior canvas", async () => {
+    const W = 4;
+    const H = 4;
+    const base = await solidPng(W, H, { r: 0, g: 200, b: 0 });
+    const node = new CompositorNode();
+    node.assign({
+      layers: [
+        { opacity: 1, blend_mode: "over", visible: true },
+        { opacity: 1, blend_mode: "over", visible: true }
+      ],
+      image_0: asImageRef(base, W, H),
+      image_1: { type: "image", data: "not-valid-base64!!!", uri: "", width: W, height: H }
+    });
+    const result = await node.process();
+    const out = result.output as Record<string, unknown>;
+    // Should still return a valid PNG (the base layer) despite the corrupt overlay.
+    expect(out.width).toBe(W);
+    expect(out.height).toBe(H);
+    expect(typeof out.data).toBe("string");
+    expect((out.data as string).length).toBeGreaterThan(0);
+  });
+
+  it("supports 'multiply' blend mode", async () => {
+    const W = 4;
+    const H = 4;
+    const white = await solidPng(W, H, { r: 255, g: 255, b: 255 });
+    const red = await solidPng(W, H, { r: 255, g: 0, b: 0 });
+    const node = new CompositorNode();
+    node.assign({
+      layers: [
+        { opacity: 1, blend_mode: "over", visible: true },
+        { opacity: 1, blend_mode: "multiply", visible: true }
+      ],
+      image_0: asImageRef(white, W, H),
+      image_1: asImageRef(red, W, H)
+    });
+    const result = await node.process();
+    const out = result.output as Record<string, unknown>;
+    const bytes = Buffer.from(out.data as string, "base64");
+    const { data } = await sharp(bytes)
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const off = (Math.floor(H / 2) * W + Math.floor(W / 2)) * 4;
+    // White * Red = Red
+    expect(data[off]).toBeGreaterThan(250); // R
+    expect(data[off + 1]).toBeLessThan(5); // G
+    expect(data[off + 2]).toBeLessThan(5); // B
+  });
+
+  it("supports 'add' blend mode", async () => {
+    const W = 4;
+    const H = 4;
+    const halfRed = await solidPng(W, H, { r: 128, g: 0, b: 0 });
+    const halfGreen = await solidPng(W, H, { r: 0, g: 128, b: 0 });
+    const node = new CompositorNode();
+    node.assign({
+      layers: [
+        { opacity: 1, blend_mode: "over", visible: true },
+        { opacity: 1, blend_mode: "add", visible: true }
+      ],
+      image_0: asImageRef(halfRed, W, H),
+      image_1: asImageRef(halfGreen, W, H)
+    });
+    const result = await node.process();
+    const out = result.output as Record<string, unknown>;
+    const bytes = Buffer.from(out.data as string, "base64");
+    const { data } = await sharp(bytes)
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const off = (Math.floor(H / 2) * W + Math.floor(W / 2)) * 4;
+    expect(data[off]).toBeGreaterThan(120); // R preserved
+    expect(data[off + 1]).toBeGreaterThan(120); // G added
+    expect(data[off + 2]).toBeLessThan(10); // B stays 0
   });
 });

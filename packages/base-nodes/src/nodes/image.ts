@@ -2083,8 +2083,9 @@ export class CompositorNode extends BaseNode {
           ])
           .png()
           .toBuffer();
-      } catch {
+      } catch (err) {
         // Bad input or unsupported blend → fall through, keep prior canvas.
+        console.warn("CompositorNode: failed to composite layer, skipping.", err);
       }
     }
 

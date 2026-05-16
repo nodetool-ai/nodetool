@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 /**
- * LayerRow — single row in CompositorBody's layer list (plan §9.E5).
+ * LayerRow — single row in CompositorBody's layer list.
  *
  * Layout: [thumbnail] [opacity slider] [blend-mode select] [visibility]
  *          [delete]. Thumbnail is a 36×36 thumb sourced from the
@@ -15,19 +15,20 @@ import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import IconButton from "@mui/material/IconButton";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { SelectField } from "../../ui_primitives";
+import { SelectField, StateIconButton } from "../../ui_primitives";
 import NumberInput from "../../inputs/NumberInput";
 
 import {
   BLEND_MODES,
   type CompositorBlendMode,
-  type CompositorLayerState
+  type CompositorLayerState,
+  type ImageRefLike,
+  useImageUrl
 } from "./CompositorBody";
 
 const styles = (theme: Theme) =>
@@ -68,6 +69,9 @@ const styles = (theme: Theme) =>
     ".blend": {
       minWidth: 0
     },
+    ".blend-select": {
+      marginBottom: "0 !important"
+    },
     ".vis-btn, .del-btn": {
       padding: 4,
       "& svg": {
@@ -85,7 +89,7 @@ export interface LayerRowProps {
   /** The `image_N` dynamic-property key this row binds to. */
   propertyKey: string;
   state: CompositorLayerState;
-  thumbnail?: string;
+  image?: ImageRefLike;
   onOpacityChange: (index: number, value: number) => void;
   onOpacityComplete: () => void;
   onBlendChange: (index: number, value: CompositorBlendMode) => void;
@@ -97,7 +101,7 @@ const LayerRowImpl: React.FC<LayerRowProps> = ({
   index,
   propertyKey,
   state,
-  thumbnail,
+  image,
   onOpacityChange,
   onOpacityComplete,
   onBlendChange,
@@ -106,6 +110,7 @@ const LayerRowImpl: React.FC<LayerRowProps> = ({
 }) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
+  const thumbnail = useImageUrl(image);
 
   const handleOpacity = useCallback(
     (_: React.ChangeEvent<HTMLInputElement> | null, value: number) =>
@@ -142,7 +147,7 @@ const LayerRowImpl: React.FC<LayerRowProps> = ({
       <div className="opacity">
         <NumberInput
           id={`layer-opacity-${propertyKey}`}
-          nodeId={propertyKey}
+          nodeId=""
           name="opacity"
           description="Layer opacity (0 – 1)"
           value={state.opacity}
@@ -160,35 +165,31 @@ const LayerRowImpl: React.FC<LayerRowProps> = ({
       <div className="blend">
         <SelectField
           label=""
+          hideLabel
           value={state.blend_mode}
           onChange={handleBlend}
           options={BLEND_MODES}
           size="small"
           variant="standard"
+          className="blend-select"
         />
       </div>
 
-      <IconButton
-        className="vis-btn nodrag"
-        size="small"
+      <StateIconButton
+        className="vis-btn"
+        icon={state.visible ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
         onClick={handleToggleVisible}
-        aria-label={state.visible ? "Hide layer" : "Show layer"}
-      >
-        {state.visible ? (
-          <VisibilityIcon fontSize="small" />
-        ) : (
-          <VisibilityOffIcon fontSize="small" />
-        )}
-      </IconButton>
+        ariaLabel={state.visible ? "Hide layer" : "Show layer"}
+        tooltip={state.visible ? "Hide layer" : "Show layer"}
+      />
 
-      <IconButton
-        className="del-btn nodrag"
-        size="small"
+      <StateIconButton
+        className="del-btn"
+        icon={<DeleteOutlineIcon fontSize="small" />}
         onClick={handleDelete}
-        aria-label="Delete layer"
-      >
-        <DeleteOutlineIcon fontSize="small" />
-      </IconButton>
+        ariaLabel="Delete layer"
+        tooltip="Delete layer"
+      />
     </div>
   );
 };
