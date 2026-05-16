@@ -15,7 +15,13 @@ import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import BlurBody, { BLUR_NODE_TYPE } from "./BlurBody";
 import ChannelsBody, { CHANNELS_NODE_TYPE } from "./ChannelsBody";
+import CompositorBody, { COMPOSITOR_NODE_TYPE } from "./CompositorBody";
 import CropBody, { CROP_NODE_TYPE } from "./CropBody";
+import LevelsBody, { LEVELS_NODE_TYPE } from "./LevelsBody";
+import MasksExtractorBody, {
+  MASKS_EXTRACTOR_NODE_TYPES
+} from "./MasksExtractorBody";
+import PainterBody, { PAINTER_NODE_TYPE } from "./PainterBody";
 import ResizeBody, { RESIZE_NODE_TYPE } from "./ResizeBody";
 import RotateAndFlipBody, {
   ROTATE_AND_FLIP_NODE_TYPE
@@ -38,9 +44,15 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
 > = {
   [BLUR_NODE_TYPE]: BlurBody,
   [CHANNELS_NODE_TYPE]: ChannelsBody,
+  [COMPOSITOR_NODE_TYPE]: CompositorBody,
   [CROP_NODE_TYPE]: CropBody,
+  [LEVELS_NODE_TYPE]: LevelsBody,
+  [PAINTER_NODE_TYPE]: PainterBody,
   [RESIZE_NODE_TYPE]: ResizeBody,
-  [ROTATE_AND_FLIP_NODE_TYPE]: RotateAndFlipBody
+  [ROTATE_AND_FLIP_NODE_TYPE]: RotateAndFlipBody,
+  ...Object.fromEntries(
+    MASKS_EXTRACTOR_NODE_TYPES.map((t) => [t, MasksExtractorBody] as const)
+  )
 };
 
 export const isBespokeNode = (

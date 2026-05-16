@@ -1723,6 +1723,509 @@ export class BlurNode extends TransformImageNode {
   }
 }
 
+export class LevelsNode extends TransformImageNode {
+  static readonly nodeType = "nodetool.image.Levels";
+  static readonly title = "Levels";
+  static readonly description =
+    "Adjust input black point, gamma, and white point per RGB channel.\n    image, levels, color, tone, curves";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to adjust."
+  })
+  declare image: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Red Black",
+    description: "Red channel input black point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare r_black: any;
+
+  @prop({
+    type: "float",
+    default: 1,
+    title: "Red Gamma",
+    description: "Red channel gamma (0.01–10).",
+    min: 0.01,
+    max: 10
+  })
+  declare r_gamma: any;
+
+  @prop({
+    type: "int",
+    default: 255,
+    title: "Red White",
+    description: "Red channel input white point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare r_white: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Green Black",
+    description: "Green channel input black point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare g_black: any;
+
+  @prop({
+    type: "float",
+    default: 1,
+    title: "Green Gamma",
+    description: "Green channel gamma (0.01–10).",
+    min: 0.01,
+    max: 10
+  })
+  declare g_gamma: any;
+
+  @prop({
+    type: "int",
+    default: 255,
+    title: "Green White",
+    description: "Green channel input white point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare g_white: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Blue Black",
+    description: "Blue channel input black point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare b_black: any;
+
+  @prop({
+    type: "float",
+    default: 1,
+    title: "Blue Gamma",
+    description: "Blue channel gamma (0.01–10).",
+    min: 0.01,
+    max: 10
+  })
+  declare b_gamma: any;
+
+  @prop({
+    type: "int",
+    default: 255,
+    title: "Blue White",
+    description: "Blue channel input white point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare b_white: any;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const bytes = await imageBytesAsync(image, context);
+    if (bytes.length === 0) {
+      return {
+        output: imageRef(bytes, {
+          uri: image.uri ?? "",
+          width: image.width ?? undefined,
+          height: image.height ?? undefined
+        })
+      };
+    }
+
+    const clamp255 = (n: number): number =>
+      Math.max(0, Math.min(255, Math.round(n)));
+    const clampGamma = (n: number): number =>
+      Math.max(0.01, Math.min(10, n));
+
+    const rBlack = clamp255(Number(this.r_black ?? 0));
+    const rWhite = clamp255(Number(this.r_white ?? 255));
+    const rGamma = clampGamma(Number(this.r_gamma ?? 1));
+    const gBlack = clamp255(Number(this.g_black ?? 0));
+    const gWhite = clamp255(Number(this.g_white ?? 255));
+    const gGamma = clampGamma(Number(this.g_gamma ?? 1));
+    const bBlack = clamp255(Number(this.b_black ?? 0));
+    const bWhite = clamp255(Number(this.b_white ?? 255));
+    const bGamma = clampGamma(Number(this.b_gamma ?? 1));
+
+    const identity =
+      rBlack === 0 && rWhite === 255 && rGamma === 1 &&
+      gBlack === 0 && gWhite === 255 && gGamma === 1 &&
+      bBlack === 0 && bWhite === 255 && bGamma === 1;
+    if (identity) {
+      return {
+        output: imageRef(bytes, {
+          uri: image.uri ?? "",
+          ...this.transformMeta()
+        })
+      };
+    }
+
+    const buildLut = (black: number, gamma: number, white: number) => {
+      const lut = new Uint8Array(256);
+      const denom = Math.max(1, white - black);
+      const invGamma = 1 / gamma;
+      for (let i = 0; i < 256; i++) {
+        const t = Math.max(0, Math.min(1, (i - black) / denom));
+        lut[i] = clamp255(Math.pow(t, invGamma) * 255);
+      }
+      return lut;
+    };
+
+    const lutR = buildLut(rBlack, rGamma, rWhite);
+    const lutG = buildLut(gBlack, gGamma, gWhite);
+    const lutB = buildLut(bBlack, bGamma, bWhite);
+
+    try {
+      const { data: raw, info } = await sharp(bytes, { failOn: "none" })
+        .toColorspace("srgb")
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+      const channels = info.channels;
+      const out = Buffer.allocUnsafe(raw.length);
+      for (let i = 0; i < raw.length; i += channels) {
+        out[i] = lutR[raw[i]];
+        out[i + 1] = lutG[raw[i + 1]];
+        out[i + 2] = lutB[raw[i + 2]];
+        if (channels >= 4) {
+          out[i + 3] = raw[i + 3];
+        }
+      }
+
+      const outputBytes = await sharp(out, {
+        raw: {
+          width: info.width,
+          height: info.height,
+          channels: info.channels
+        }
+      })
+        .png()
+        .toBuffer();
+      const meta = await metadataFor(outputBytes);
+      return {
+        output: imageRef(outputBytes, {
+          uri: image.uri ?? "",
+          mimeType: inferImageMime(image.uri, outputBytes),
+          width: meta.width,
+          height: meta.height
+        })
+      };
+    } catch (err) {
+      console.error("LevelsNode processing failed:", err);
+      return {
+        output: imageRef(bytes, {
+          uri: image.uri ?? "",
+          ...this.transformMeta()
+        })
+      };
+    }
+  }
+}
+
+const COMPOSITOR_BLEND_MODES = new Set<string>([
+  "over",
+  "multiply",
+  "screen",
+  "overlay",
+  "darken",
+  "lighten",
+  "color-dodge",
+  "color-burn",
+  "hard-light",
+  "soft-light",
+  "difference",
+  "exclusion",
+  "add"
+]);
+
+type CompositorLayerState = {
+  opacity: number;
+  blend_mode: string;
+  visible: boolean;
+};
+
+function compositorLayerState(raw: unknown): CompositorLayerState {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const opacity =
+    typeof r.opacity === "number"
+      ? Math.max(0, Math.min(1, r.opacity))
+      : 1;
+  const blend =
+    typeof r.blend_mode === "string" &&
+    COMPOSITOR_BLEND_MODES.has(r.blend_mode)
+      ? r.blend_mode
+      : "over";
+  const visible = r.visible === undefined ? true : !!r.visible;
+  return { opacity, blend_mode: blend, visible };
+}
+
+/**
+ * Compositor — stacks multiple image layers with per-layer opacity and
+ * blend mode. Dynamic image inputs are named `image_0`, `image_1`, ...;
+ * the lowest-index input is the base (canvas), subsequent layers are
+ * composited on top in index order at (0, 0). Per-layer state lives in
+ * the `layers` list, indexed positionally against the sorted image
+ * inputs. Hidden / zero-opacity layers are skipped.
+ */
+export class CompositorNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.Compositor";
+  static readonly title = "Compositor";
+  static readonly description =
+    "Composite multiple image layers with per-layer opacity and blend mode.\n    image, compositor, blend, layers, mask";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly isDynamic = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
+
+  @prop({
+    type: "list",
+    default: [],
+    title: "Layers",
+    description:
+      "Per-layer state (positional): { opacity, blend_mode, visible }."
+  })
+  declare layers: unknown;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    type LayerInput = {
+      index: number;
+      image: ImageRefLike;
+      state: CompositorLayerState;
+    };
+    const layerStates = Array.isArray(this.layers) ? this.layers : [];
+
+    // Collect dynamic image_N inputs, sorted ascending by N. Position in
+    // that sorted list is the index into `layers` for per-layer state.
+    const collected: { index: number; image: ImageRefLike }[] = [];
+    for (const [key, value] of this.dynamicProps) {
+      const m = /^image_(\d+)$/.exec(key);
+      if (!m || !value || typeof value !== "object") continue;
+      collected.push({ index: Number(m[1]), image: value as ImageRefLike });
+    }
+    collected.sort((a, b) => a.index - b.index);
+
+    const inputs: LayerInput[] = collected.map((c, i) => ({
+      ...c,
+      state: compositorLayerState(layerStates[i])
+    }));
+
+    const visible = inputs.filter(
+      (l) => l.state.visible && l.state.opacity > 0
+    );
+
+    if (visible.length === 0) {
+      return {
+        output: imageRef(new Uint8Array(), {
+          uri: "",
+          width: undefined,
+          height: undefined
+        })
+      };
+    }
+
+    // Build the canvas from the lowest-index visible layer. Apply its
+    // opacity by scaling the alpha channel via `linear`.
+    const buildScaledLayer = async (
+      img: ImageRefLike,
+      opacity: number
+    ): Promise<Buffer> => {
+      const bytes = await imageBytesAsync(img, context);
+      let pipeline = sharp(bytes, { failOn: "none" }).ensureAlpha();
+      if (opacity < 1) {
+        pipeline = pipeline.linear([1, 1, 1, opacity], [0, 0, 0, 0]);
+      }
+      return pipeline.png().toBuffer();
+    };
+
+    let canvas = await buildScaledLayer(
+      visible[0].image,
+      visible[0].state.opacity
+    );
+
+    for (let i = 1; i < visible.length; i++) {
+      const layer = visible[i];
+      try {
+        const layerBuf = await buildScaledLayer(layer.image, layer.state.opacity);
+        canvas = await sharp(canvas, { failOn: "none" })
+          .composite([
+            {
+              input: layerBuf,
+              blend: layer.state.blend_mode as never,
+              top: 0,
+              left: 0
+            }
+          ])
+          .png()
+          .toBuffer();
+      } catch (err) {
+        // Bad input or unsupported blend → fall through, keep prior canvas.
+        console.warn("CompositorNode: failed to composite layer, skipping.", err);
+      }
+    }
+
+    const meta = await metadataFor(new Uint8Array(canvas));
+    return {
+      output: imageRef(new Uint8Array(canvas), {
+        uri: "",
+        mimeType: "image/png",
+        width: meta.width,
+        height: meta.height
+      })
+    };
+  }
+}
+
+/**
+ * Painter — paint an alpha mask atop a source image. The mask is
+ * authored interactively in the web UI; `mask_data` carries a base64
+ * PNG of the painted mask (alpha == painted opacity). On execution we
+ * decode `mask_data` into an image output (the mask itself) and emit
+ * the source image alongside for downstream pipelines.
+ *
+ * Plan §9.E9 / §12. Standalone (not an extension of the sketch node) so
+ * the bespoke body stays focused on the paint-on-image workflow.
+ */
+export class PainterNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.Painter";
+  static readonly title = "Painter";
+  static readonly description =
+    "Paint an alpha mask on top of an image and output the mask.\n    image, painter, mask, brush, paint";
+  static readonly metadataOutputTypes = {
+    mask: "image",
+    image: "image"
+  };
+  static readonly inlineFields = ["mask_data"];
+  static readonly inputFields = [];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Source image painted on (passed through to output)."
+  })
+  declare image: unknown;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Mask data",
+    description:
+      "Base64-encoded PNG of the painted alpha mask. Managed by the UI."
+  })
+  declare mask_data: unknown;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+
+    // Pass the source image through (resolved bytes if available) so
+    // downstream nodes that want the original image can branch off the
+    // Painter without re-loading the asset.
+    const imageBytes = await imageBytesAsync(image, context);
+    const imageOut = imageBytes.length > 0
+      ? imageRef(imageBytes, {
+          uri: image.uri ?? "",
+          width: image.width ?? undefined,
+          height: image.height ?? undefined
+        })
+      : { ...image };
+
+    // Decode the painted mask. Empty mask_data → blank mask matching
+    // image dimensions (alpha = 0 everywhere).
+    const maskStr = typeof this.mask_data === "string" ? this.mask_data : "";
+    const maskBytes = toBytes(maskStr);
+
+    if (maskBytes.length === 0) {
+      // Fall back to a transparent canvas the size of the source image
+      // (or 1×1 if dimensions are unknown).
+      const w = Math.max(1, Number(image.width ?? 1));
+      const h = Math.max(1, Number(image.height ?? 1));
+      try {
+        const blank = await sharp({
+          create: {
+            width: w,
+            height: h,
+            channels: 4,
+            background: { r: 0, g: 0, b: 0, alpha: 0 }
+          }
+        })
+          .png()
+          .toBuffer();
+        const meta = await metadataFor(blank);
+        return {
+          mask: imageRef(blank, {
+            uri: "",
+            mimeType: "image/png",
+            width: meta.width,
+            height: meta.height
+          }),
+          image: imageOut
+        };
+      } catch {
+        return {
+          mask: imageRef(new Uint8Array(), { uri: "" }),
+          image: imageOut
+        };
+      }
+    }
+
+    // Re-encode the mask as PNG to normalize and pick up dimensions.
+    try {
+      const out = await sharp(maskBytes, { failOn: "none" })
+        .png()
+        .toBuffer();
+      const meta = await metadataFor(out);
+      return {
+        mask: imageRef(out, {
+          uri: "",
+          mimeType: "image/png",
+          width: meta.width,
+          height: meta.height
+        }),
+        image: imageOut
+      };
+    } catch {
+      return {
+        mask: imageRef(maskBytes, { uri: "" }),
+        image: imageOut
+      };
+    }
+  }
+}
+
 export const IMAGE_NODES = [
   LoadImageFileNode,
   LoadImageFolderNode,
@@ -1740,7 +2243,10 @@ export const IMAGE_NODES = [
   RotateAndFlipNode,
   ChannelsNode,
   BlurNode,
+  LevelsNode,
   TextToImageNode,
   ImageToImageNode,
-  ImageEditorNode
+  ImageEditorNode,
+  CompositorNode,
+  PainterNode
 ] as const;

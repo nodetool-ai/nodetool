@@ -42,6 +42,10 @@ export interface SelectFieldProps {
   size?: "small" | "medium";
   /** MUI variant */
   variant?: "standard" | "outlined" | "filled";
+  /** Additional class name for the root element */
+  className?: string;
+  /** Hide the label entirely (also removes label margin) */
+  hideLabel?: boolean;
 }
 
 /**
@@ -92,7 +96,9 @@ const SelectFieldInternal: React.FC<SelectFieldProps> = ({
   disabled = false,
   id,
   size = "medium",
-  variant = "standard"
+  variant = "standard",
+  className,
+  hideLabel = false
 }) => {
   const theme = useTheme();
   const autoId = useId();
@@ -106,15 +112,15 @@ const SelectFieldInternal: React.FC<SelectFieldProps> = ({
   );
 
   return (
-    <div style={{ marginBottom: "24px" }}>
+    <div className={className} style={{ marginBottom: hideLabel ? 0 : "24px" }}>
       <FormControl size={size} disabled={disabled} fullWidth>
-        <InputLabel htmlFor={selectId}>{label}</InputLabel>
+        {!hideLabel && label && <InputLabel htmlFor={selectId}>{label}</InputLabel>}
         <Select
           id={selectId}
           value={value}
           onChange={handleChange}
           variant={variant}
-          label={variant !== "standard" ? label : undefined}
+          label={variant !== "standard" && !hideLabel ? label : undefined}
         >
           {options.map((option) => (
             <MenuItem key={option.value} value={option.value}>

@@ -244,6 +244,28 @@ export function blur(inputs: BlurInputs, overrides?: { syncMode?: "zip_all" | "o
   return createNode("nodetool.image.Blur", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
+// Levels — nodetool.image.Levels
+export interface LevelsInputs {
+  image?: Connectable<ImageRef>;
+  r_black?: Connectable<number>;
+  r_gamma?: Connectable<number>;
+  r_white?: Connectable<number>;
+  g_black?: Connectable<number>;
+  g_gamma?: Connectable<number>;
+  g_white?: Connectable<number>;
+  b_black?: Connectable<number>;
+  b_gamma?: Connectable<number>;
+  b_white?: Connectable<number>;
+}
+
+export interface LevelsOutputs {
+  output: ImageRef;
+}
+
+export function levels(inputs: LevelsInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<LevelsOutputs, "output"> {
+  return createNode("nodetool.image.Levels", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+}
+
 // Text To Image — nodetool.image.TextToImage
 export interface TextToImageInputs {
   model?: Connectable<unknown>;
@@ -299,4 +321,32 @@ export interface ImageEditorOutputs {
 
 export function imageEditor(inputs: ImageEditorInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ImageEditorOutputs> {
   return createNode("nodetool.image.ImageEditor", inputs as Record<string, unknown>, { outputNames: ["image", "mask", "layers"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+}
+
+// Compositor — nodetool.image.Compositor
+export interface CompositorInputs {
+  layers?: Connectable<unknown[]>;
+}
+
+export interface CompositorOutputs {
+  output: ImageRef;
+}
+
+export function compositor(inputs: CompositorInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CompositorOutputs, "output"> {
+  return createNode("nodetool.image.Compositor", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+}
+
+// Painter — nodetool.image.Painter
+export interface PainterInputs {
+  image?: Connectable<ImageRef>;
+  mask_data?: Connectable<string>;
+}
+
+export interface PainterOutputs {
+  mask: ImageRef;
+  image: ImageRef;
+}
+
+export function painter(inputs: PainterInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PainterOutputs> {
+  return createNode("nodetool.image.Painter", inputs as Record<string, unknown>, { outputNames: ["mask", "image"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }

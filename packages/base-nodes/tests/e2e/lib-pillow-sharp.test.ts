@@ -37,14 +37,14 @@ describe("native lib.image via sharp", () => {
     );
   });
 
-  it("supports blend/composite shape", async () => {
+  it("supports masked composite shape", async () => {
     const bgNodeClass = LIB_PILLOW_NODES.find(
       (n) => n.nodeType === "lib.image.draw.Background"
     );
-    const blendNodeClass = LIB_PILLOW_NODES.find(
-      (n) => n.nodeType === "lib.image.Blend"
+    const maskNodeClass = LIB_PILLOW_NODES.find(
+      (n) => n.nodeType === "lib.image.Mask"
     );
-    if (!bgNodeClass || !blendNodeClass)
+    if (!bgNodeClass || !maskNodeClass)
       throw new Error("missing pillow node classes");
 
     const bg = new bgNodeClass();
@@ -52,10 +52,12 @@ describe("native lib.image via sharp", () => {
     const imgA = await bg.process();
     bg.assign({ width: 32, height: 32, color: "#00ff00" });
     const imgB = await bg.process();
+    bg.assign({ width: 32, height: 32, color: "#808080" });
+    const mask = await bg.process();
 
-    const blend = new blendNodeClass();
-    blend.assign({ image1: imgA.output, image2: imgB.output, alpha: 0.5 });
-    const out = await blend.process();
+    const mix = new maskNodeClass();
+    mix.assign({ image1: imgA.output, image2: imgB.output, mask: mask.output });
+    const out = await mix.process();
     expect(typeof (out.output as { data: string }).data).toBe("string");
   });
 });

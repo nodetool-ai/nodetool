@@ -48,6 +48,8 @@ export default {
     "^.*contexts/WorkflowManagerContext$": "<rootDir>/src/__mocks__/WorkflowManagerContext.tsx",
     "^.*selection/magicWandAsync$": "<rootDir>/src/__mocks__/magicWandAsync.ts",
     "^.*selection/magicWandAsync\\.js$": "<rootDir>/src/__mocks__/magicWandAsync.ts",
+    "^.*utils/histogram/histogramAsync$": "<rootDir>/src/__mocks__/histogramAsync.ts",
+    "^.*utils/histogram/histogramAsync\\.js$": "<rootDir>/src/__mocks__/histogramAsync.ts",
     "^react-pdf$": "<rootDir>/src/__mocks__/emptyModule.ts",
     "^react-pdf/.*$": "<rootDir>/src/__mocks__/emptyModule.ts",
     "^.*components/asset_viewer/PDFViewer$": "<rootDir>/src/__mocks__/emptyModule.ts",

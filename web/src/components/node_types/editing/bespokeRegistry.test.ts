@@ -5,7 +5,11 @@ import {
 } from "./bespokeRegistry";
 import BlurBody from "./BlurBody";
 import ChannelsBody from "./ChannelsBody";
+import CompositorBody from "./CompositorBody";
 import CropBody from "./CropBody";
+import LevelsBody from "./LevelsBody";
+import MasksExtractorBody from "./MasksExtractorBody";
+import PainterBody from "./PainterBody";
 import ResizeBody from "./ResizeBody";
 import RotateAndFlipBody from "./RotateAndFlipBody";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
@@ -20,9 +24,8 @@ describe("bespokeRegistry", () => {
   });
 
   it("does not match utility / generic nodes", () => {
-    expect(isBespokeNode(meta("nodetool.control.If"))).toBe(false);
-    expect(isBespokeNode(meta("nodetool.image.Levels"))).toBe(false);
-    expect(getBespokeBody(meta("nodetool.image.Levels"))).toBeUndefined();
+    expect(isBespokeNode(meta("nodetool.input.StringInput"))).toBe(false);
+    expect(getBespokeBody(meta("nodetool.input.StringInput"))).toBeUndefined();
   });
 
   it("maps nodetool.image.Blur → BlurBody", () => {
@@ -37,6 +40,44 @@ describe("bespokeRegistry", () => {
     expect(isBespokeNode(m)).toBe(true);
     expect(getBespokeBody(m)).toBe(ChannelsBody);
     expect(BESPOKE_BODY_REGISTRY["nodetool.image.Channels"]).toBe(ChannelsBody);
+  });
+
+  it("maps mask-extractor node types → MasksExtractorBody", () => {
+    const types = [
+      "replicate.image.background.Bria_RemoveBackground",
+      "replicate.image.background.BackgroundRemover_851",
+      "replicate.image.background.BackgroundRemover_Codeplug",
+      "replicate.image.process.RemoveBackground"
+    ];
+    for (const t of types) {
+      const m = meta(t);
+      expect(isBespokeNode(m)).toBe(true);
+      expect(getBespokeBody(m)).toBe(MasksExtractorBody);
+      expect(BESPOKE_BODY_REGISTRY[t]).toBe(MasksExtractorBody);
+    }
+  });
+
+  it("maps nodetool.image.Levels → LevelsBody", () => {
+    const m = meta("nodetool.image.Levels");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(LevelsBody);
+    expect(BESPOKE_BODY_REGISTRY["nodetool.image.Levels"]).toBe(LevelsBody);
+  });
+
+  it("maps nodetool.image.Compositor → CompositorBody", () => {
+    const m = meta("nodetool.image.Compositor");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(CompositorBody);
+    expect(BESPOKE_BODY_REGISTRY["nodetool.image.Compositor"]).toBe(
+      CompositorBody
+    );
+  });
+
+  it("maps nodetool.image.Painter → PainterBody", () => {
+    const m = meta("nodetool.image.Painter");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(PainterBody);
+    expect(BESPOKE_BODY_REGISTRY["nodetool.image.Painter"]).toBe(PainterBody);
   });
 
   it("maps nodetool.image.Crop → CropBody", () => {
