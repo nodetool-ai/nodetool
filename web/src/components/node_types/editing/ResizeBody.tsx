@@ -27,6 +27,7 @@ import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useNodes } from "../../../contexts/NodeContext";
+import { useSignedUrl } from "../../node/output/hooks";
 import {
   useLivePreview,
   useLivePreviewActions
@@ -223,10 +224,17 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
 
   const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
 
-  // Resolve the upstream image source for live preview. We look up the edge
-  // whose target handle is `image` on this node, then read the upstream node's
-  // most recent server result. If nothing is wired, we fall back to a Constant
-  // image carried in this node's own properties.
+  // Resolve the upstream image source for live preview.
+  //
+  // Three candidate sources, tried in order:
+  //   1. Server result for the upstream node (workflow has run at least once).
+  //   2. Upstream node's `value` property — covers Constant.Image, which
+  //      carries its image inline without ever running the workflow.
+  //   3. This node's own `data.properties.image` (rare; defensive fallback).
+  //
+  // Image values may carry raw bytes (data: Uint8Array) OR just a URI. For the
+  // URI path we plumb through useSignedUrl to get a fetchable URL, then fetch
+  // the bytes once and cache them in local state. Slider drags reuse the cache.
   const upstreamSourceId = useNodes((state) => {
     const edge = state.edges.find(
       (e) => e.target === id && e.targetHandle === "image"
@@ -238,18 +246,81 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
       ? state.getResult(workflowId, upstreamSourceId)
       : undefined
   );
-  const resolveSourceBytes = useCallback((): {
+  const upstreamValueProperty = useNodes((state) => {
+    if (!upstreamSourceId) return undefined;
+    const n = state.findNode(upstreamSourceId);
+    const props = (n?.data as { properties?: Record<string, unknown> } | undefined)
+      ?.properties;
+    return props?.value;
+  });
+
+  const upstreamCandidate = useMemo(() => {
+    if (upstreamResult !== undefined) {
+      if (
+        typeof upstreamResult === "object" &&
+        upstreamResult !== null &&
+        !Array.isArray(upstreamResult) &&
+        "output" in (upstreamResult as Record<string, unknown>)
+      ) {
+        return (upstreamResult as Record<string, unknown>).output;
+      }
+      return upstreamResult;
+    }
+    if (upstreamValueProperty && typeof upstreamValueProperty === "object") {
+      return upstreamValueProperty;
+    }
+    return data.properties?.image;
+  }, [upstreamResult, upstreamValueProperty, data.properties?.image]);
+
+  const candidateUri = useMemo(() => {
+    const v = upstreamCandidate as { uri?: string } | undefined;
+    return typeof v?.uri === "string" && v.uri.length > 0 ? v.uri : undefined;
+  }, [upstreamCandidate]);
+  const signedUrl = useSignedUrl(candidateUri);
+
+  // Cached source bytes for the preview pipeline.
+  const [sourceBytes, setSourceBytes] = useState<{
     data: Uint8Array;
     width?: number;
     height?: number;
-  } | null => {
-    const candidate =
-      upstreamResult !== undefined ? upstreamResult : data.properties?.image;
-    const bytes = bytesFromValue(candidate);
-    if (!bytes || bytes.byteLength === 0) return null;
-    const dims = extractDims(candidate);
-    return { data: bytes, width: dims.width, height: dims.height };
-  }, [upstreamResult, data.properties?.image]);
+  } | null>(null);
+
+  useEffect(() => {
+    // Path 1: inline bytes (data: Uint8Array | base64).
+    const inline = bytesFromValue(upstreamCandidate);
+    if (inline && inline.byteLength > 0) {
+      const dims = extractDims(upstreamCandidate);
+      setSourceBytes({
+        data: inline,
+        width: dims.width,
+        height: dims.height
+      });
+      return;
+    }
+    // Path 2: fetch via signed URL.
+    if (signedUrl) {
+      let cancelled = false;
+      void fetch(signedUrl)
+        .then((r) => r.arrayBuffer())
+        .then((buf) => {
+          if (cancelled) return;
+          const dims = extractDims(upstreamCandidate);
+          setSourceBytes({
+            data: new Uint8Array(buf),
+            width: dims.width,
+            height: dims.height
+          });
+        })
+        .catch(() => {
+          if (!cancelled) setSourceBytes(null);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+    setSourceBytes(null);
+    return undefined;
+  }, [upstreamCandidate, signedUrl]);
 
   const { runPreview } = useLivePreviewActions();
 
@@ -268,13 +339,27 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
 
   const triggerPreview = useCallback(
     (w: number, h: number) => {
-      const source = resolveSourceBytes();
-      if (!source) return;
+      if (!sourceBytes) return;
       // Fire-and-forget — the hook handles debouncing and stale-token guards.
-      void runPreview(id, "resize", { width: w, height: h }, source);
+      void runPreview(id, "resize", { width: w, height: h }, sourceBytes);
     },
-    [id, resolveSourceBytes, runPreview]
+    [id, sourceBytes, runPreview]
   );
+
+  // Once bytes are resolved, fire an initial preview at the current W/H so the
+  // body shows the resize immediately on mount (and when the upstream loads).
+  useEffect(() => {
+    if (sourceBytes) {
+      void runPreview(
+        id,
+        "resize",
+        { width: widthValue, height: heightValue },
+        sourceBytes
+      );
+    }
+    // Only re-fire on sourceBytes identity change (upstream load) — the W/H
+    // change handlers fire the preview themselves.
+  }, [sourceBytes]);
 
   const setWidth = useCallback(
     (next: number) => {
