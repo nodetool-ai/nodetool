@@ -110,6 +110,8 @@ export class EpubMetadataLibNode extends BaseNode {
   static readonly title = "EPUB Metadata";
   static readonly description =
     "Read metadata (title, author, language, publisher, etc.) from an EPUB file.\n    epub, ebook, metadata, title, author";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["epub"];
   static readonly metadataOutputTypes = { output: "dict" };
   static readonly exposeAsTool = true;
 
@@ -134,6 +136,8 @@ export class EpubTableOfContentsLibNode extends BaseNode {
   static readonly title = "EPUB Table of Contents";
   static readonly description =
     "Get the table of contents (chapter titles, ids, hrefs) from an EPUB file.\n    epub, ebook, toc, chapters, contents";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["epub"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
   static readonly exposeAsTool = true;
 
@@ -165,6 +169,8 @@ export class EpubExtractTextLibNode extends BaseNode {
   static readonly title = "EPUB Extract Text";
   static readonly description =
     "Extract plain text from an EPUB file by concatenating all chapters.\n    epub, ebook, text, extract, content";
+  static readonly inlineFields = ["chapter_separator"];
+  static readonly inputFields = ["epub"];
   static readonly metadataOutputTypes = { output: "str" };
   static readonly exposeAsTool = true;
 
@@ -206,6 +212,8 @@ export class EpubExtractChaptersLibNode extends BaseNode {
   static readonly title = "EPUB Extract Chapters";
   static readonly description =
     "Extract each chapter as a separate text item with its title.\n    epub, ebook, chapters, split, text";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["epub"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
   static readonly exposeAsTool = true;
 

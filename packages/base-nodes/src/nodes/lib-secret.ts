@@ -4,6 +4,8 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 export class GetSecretLibNode extends BaseNode {
   static readonly nodeType = "lib.secret.GetSecret";
   static readonly title = "Get Secret";
+  static readonly inlineFields = ["name"];
+  static readonly inputFields = [];
   static readonly description =
     "Get a secret value from configuration.\n    secrets, credentials, configuration";
   static readonly metadataOutputTypes = {

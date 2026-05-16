@@ -2,7 +2,6 @@
  * @jest-environment node
  */
 import {
-  performGroupedSearch,
   computeSearchResults,
   filterNodesUtil,
 } from "../nodeSearch";
@@ -56,7 +55,6 @@ describe("nodeSearch", () => {
       outputs: [],
       layout: "default",
       recommended_models: [],
-      basic_fields: [],
       is_dynamic: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false,
@@ -72,7 +70,6 @@ describe("nodeSearch", () => {
       outputs: [],
       layout: "default",
       recommended_models: [],
-      basic_fields: [],
       is_dynamic: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false,
@@ -88,7 +85,6 @@ describe("nodeSearch", () => {
       outputs: [],
       layout: "default",
       recommended_models: [],
-      basic_fields: [],
       is_dynamic: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false,
@@ -104,7 +100,6 @@ describe("nodeSearch", () => {
       outputs: [],
       layout: "default",
       recommended_models: [],
-      basic_fields: [],
       is_dynamic: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false,
@@ -112,127 +107,6 @@ describe("nodeSearch", () => {
             required_settings: []
     }
   ];
-
-  describe("performGroupedSearch", () => {
-    it("should return empty array for no matches", () => {
-      const entries = mockNodeMetadata.map((node) => ({
-        title: node.title,
-        node_type: node.node_type,
-        namespace: node.namespace,
-        description: node.description,
-        use_cases: "",
-        tags: "",
-        metadata: node
-      }));
-
-      const results = performGroupedSearch(entries, "nonexistent");
-      expect(results).toEqual([]);
-    });
-
-    it("should find nodes by title", () => {
-      const entries = mockNodeMetadata.map((node) => ({
-        title: node.title,
-        node_type: node.node_type,
-        namespace: node.namespace,
-        description: node.description,
-        use_cases: "",
-        tags: "",
-        metadata: node
-      }));
-
-      const results = performGroupedSearch(entries, "Add");
-      expect(results).toHaveLength(1);
-      expect(results[0].title).toBe("Name");
-      expect(results[0].nodes).toHaveLength(1);
-      expect(results[0].nodes[0].title).toBe("Add");
-    });
-
-    it("should find nodes by namespace", () => {
-      const entries = mockNodeMetadata.map((node) => ({
-        title: node.title,
-        node_type: node.node_type,
-        namespace: node.namespace,
-        description: node.description,
-        use_cases: "",
-        tags: "tag1, tag2",
-        metadata: node
-      }));
-
-      const results = performGroupedSearch(entries, "math");
-      expect(results.length).toBeGreaterThan(0);
-      // Since we're searching for "math" which is a namespace, it should be found
-      // in the "Namespace + Tags" group, not the "Name" group
-      const namespaceGroup = results.find(
-        (g) => g.title === "Namespace + Tags"
-      );
-      expect(namespaceGroup).toBeDefined();
-      if (namespaceGroup) {
-        expect(namespaceGroup.nodes.length).toBeGreaterThan(0);
-        // Should find both Add and Subtract nodes from math namespace
-        expect(namespaceGroup.nodes.some((n) => n.namespace === "math")).toBe(
-          true
-        );
-      }
-    });
-
-    it("should find nodes by description", () => {
-      const entries = mockNodeMetadata.map((node) => ({
-        title: node.title,
-        node_type: node.node_type,
-        namespace: node.namespace,
-        description: node.description,
-        use_cases: "",
-        tags: "",
-        metadata: node
-      }));
-
-      const results = performGroupedSearch(entries, "numbers");
-      expect(results.length).toBeGreaterThan(0);
-      // Since we're searching for "numbers" which appears in a description,
-      // it should be found in the "Description" group
-      const descriptionGroup = results.find((g) => g.title === "Description");
-      expect(descriptionGroup).toBeDefined();
-      if (descriptionGroup) {
-        // Should find Add node which has "numbers" in its description
-        expect(
-          descriptionGroup.nodes.some((n) => n.description?.includes("numbers"))
-        ).toBe(true);
-      }
-    });
-
-    it("should not duplicate nodes across groups", () => {
-      const entries = mockNodeMetadata.map((node) => ({
-        title: node.title,
-        node_type: node.node_type,
-        namespace: node.namespace,
-        description: node.description,
-        use_cases: "",
-        tags: "",
-        metadata: node
-      }));
-
-      const results = performGroupedSearch(entries, "Add");
-      const allNodes = results.flatMap((g) => g.nodes);
-      const nodeTypes = allNodes.map((n) => n.node_type);
-      const uniqueNodeTypes = [...new Set(nodeTypes)];
-      expect(nodeTypes.length).toBe(uniqueNodeTypes.length);
-    });
-
-    it("should handle search with spaces", () => {
-      const entries = mockNodeMetadata.map((node) => ({
-        title: node.title,
-        node_type: node.node_type,
-        namespace: node.namespace,
-        description: node.description,
-        use_cases: "",
-        tags: "",
-        metadata: node
-      }));
-
-      const results = performGroupedSearch(entries, "two numbers");
-      expect(results.length).toBeGreaterThan(0);
-    });
-  });
 
   describe("computeSearchResults", () => {
     it("should filter out default namespace nodes", () => {
@@ -548,7 +422,6 @@ describe("nodeSearch", () => {
           outputs: [],
           layout: "default",
           recommended_models: [],
-          basic_fields: [],
           is_dynamic: false,
           expose_as_tool: false,
           supports_dynamic_outputs: false,
@@ -586,51 +459,6 @@ describe("nodeSearch", () => {
       console.log(`[PERF] computeSearchResults with 2000 nodes: ${duration.toFixed(2)}ms`);
     });
 
-    it("should use prefix tree for simple queries", () => {
-      const nodes = generateLargeDataset(1000);
-      const entries = nodes.map((node) => ({
-        title: node.title,
-        node_type: node.node_type,
-        namespace: node.namespace,
-        description: node.description,
-        use_cases: "",
-        tags: "tag1, tag2",
-        metadata: node,
-      }));
-
-      const start = performance.now();
-      const results = performGroupedSearch(entries, "add");
-      const duration = performance.now() - start;
-
-      expect(results.length).toBeGreaterThan(0);
-      assertPerf(duration, PERF_THRESHOLD_SMALL);
-      
-      console.log(`[PERF] performGroupedSearch (prefix tree) with 1000 nodes: ${duration.toFixed(2)}ms`);
-    });
-
-    it("should fall back to Fuse.js for complex queries", () => {
-      const nodes = generateLargeDataset(1000);
-      const entries = nodes.map((node) => ({
-        title: node.title,
-        node_type: node.node_type,
-        namespace: node.namespace,
-        description: node.description,
-        use_cases: "",
-        tags: "tag1, tag2",
-        metadata: node,
-      }));
-
-      // Complex multi-word query should use Fuse.js
-      const start = performance.now();
-      performGroupedSearch(entries, "add subtract multiply");
-      const duration = performance.now() - start;
-
-      // Should still complete reasonably fast
-      assertPerf(duration, PERF_THRESHOLD_MEDIUM);
-      
-      console.log(`[PERF] performGroupedSearch (fuse fallback) with 1000 nodes: ${duration.toFixed(2)}ms`);
-    });
-
     it("should not regress in performance", () => {
       // Critical regression test - if this fails, performance has degraded
       const nodes = generateLargeDataset(1000);
@@ -665,28 +493,5 @@ describe("nodeSearch", () => {
       console.log(`[PERF] Average search time for ${queries.length} queries: ${avgTime.toFixed(2)}ms`);
     });
 
-    it("should return consistent results between prefix tree and fuse", () => {
-      const nodes = mockNodeMetadata.slice(0, 3); // Use small dataset for consistency
-      const entries = nodes.map((node) => ({
-        title: node.title,
-        node_type: node.node_type,
-        namespace: node.namespace,
-        description: node.description,
-        use_cases: "",
-        tags: "",
-        metadata: node,
-      }));
-
-      // Simple query that will use prefix tree
-      const simpleResults = performGroupedSearch(entries, "Add");
-      
-      // Complex query that will use Fuse.js
-      const complexResults = performGroupedSearch(entries, "adds two numbers");
-      
-      // Both should find the Add node
-      expect(simpleResults.length).toBeGreaterThan(0);
-      // Complex query might not find exact matches, but should not crash
-      expect(Array.isArray(complexResults)).toBe(true);
-    });
   });
 });

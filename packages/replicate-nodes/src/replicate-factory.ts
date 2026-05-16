@@ -6,7 +6,11 @@
  * declared properties, backed by a generic process() that calls Replicate.
  */
 
-import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
+import {
+  BaseNode,
+  classifyFields,
+  registerDeclaredProperty
+} from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import {
   getReplicateApiKey,
@@ -122,6 +126,23 @@ function castValue(value: unknown, propType: string): unknown {
 }
 
 const EXCLUDED_FIELDS = new Set(["prompt_template"]);
+
+// ---------------------------------------------------------------------------
+// Field Classification
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute inlineFields and inputFields from a Replicate field list.
+ * Delegates to the shared `classifyFields` rule in node-sdk after stripping
+ * sub-fields and Replicate-specific `EXCLUDED_FIELDS`.
+ */
+function computeFieldClassification(fields: ReplicateFieldDef[]) {
+  return classifyFields(
+    fields
+      .filter((f) => !f.parentField && !EXCLUDED_FIELDS.has(f.name))
+      .map((f) => ({ name: f.name, propType: f.propType }))
+  );
+}
 
 async function buildArgs(
   instance: BaseNode,
@@ -247,6 +268,17 @@ export function createReplicateNodeClass(
   }
   Object.defineProperty(ReplicateNodeClass, "metadataOutputTypes", {
     value: { output: spec.outputType === "dict" ? "any" : spec.outputType },
+    configurable: true
+  });
+
+  // Compute and set field classification
+  const { inlineFields, inputFields } = computeFieldClassification(spec.inputFields);
+  Object.defineProperty(ReplicateNodeClass, "inlineFields", {
+    value: inlineFields,
+    configurable: true
+  });
+  Object.defineProperty(ReplicateNodeClass, "inputFields", {
+    value: inputFields,
     configurable: true
   });
 

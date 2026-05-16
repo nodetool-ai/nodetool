@@ -12,6 +12,8 @@ export class BaseUrlLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inlineFields = ["url"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -43,6 +45,8 @@ export class ExtractLinksLibNode extends BaseNode {
     links: "list"
   };
 
+  static readonly inlineFields = ["base_url"];
+  static readonly inputFields = ["html"];
   static readonly isStreamingOutput = true;
   @prop({
     type: "str",
@@ -111,6 +115,8 @@ export class ExtractImagesLibNode extends BaseNode {
     images: "list"
   };
 
+  static readonly inlineFields = ["base_url"];
+  static readonly inputFields = ["html"];
   static readonly isStreamingOutput = true;
   @prop({
     type: "str",
@@ -173,6 +179,8 @@ export class ExtractAudioLibNode extends BaseNode {
     audios: "list"
   };
 
+  static readonly inlineFields = ["base_url"];
+  static readonly inputFields = ["html"];
   static readonly isStreamingOutput = true;
   @prop({
     type: "str",
@@ -237,6 +245,8 @@ export class ExtractVideosLibNode extends BaseNode {
     videos: "list"
   };
 
+  static readonly inlineFields = ["base_url"];
+  static readonly inputFields = ["html"];
   static readonly isStreamingOutput = true;
   @prop({
     type: "str",
@@ -301,6 +311,8 @@ export class ExtractMetadataLibNode extends BaseNode {
     description: "str",
     keywords: "str"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["html"];
 
   @prop({
     type: "str",
@@ -330,6 +342,8 @@ export class HTMLToTextLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["text"];
 
   @prop({ type: "str", default: "", title: "HTML" })
   declare text: any;
@@ -363,6 +377,8 @@ export class WebsiteContentExtractorLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["html_content"];
 
   @prop({
     type: "str",

@@ -26,7 +26,10 @@ import useSelect from "../nodes/useSelect";
  * );
  * ```
  */
-export function useNodeEvents() {
+export function useNodeEvents(): {
+  handleNodeContextMenu: (event: React.MouseEvent, node: Node) => void;
+  handleNodesChange: (changes: NodeChange<Node<NodeData>>[]) => void;
+} {
   const { openContextMenu } = useContextMenu();
   const { close: closeSelect } = useSelect();
 

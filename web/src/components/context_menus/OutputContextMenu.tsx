@@ -313,10 +313,10 @@ const OutputContextMenu: React.FC = () => {
       if (compatibleProperties.length === 0) {
         return null;
       }
-      const basicFields = metadata.basic_fields || [];
+      const inputFields = metadata.input_fields ?? [];
       return (
         compatibleProperties.find((property) =>
-          basicFields.includes(property.name)
+          inputFields.includes(property.name)
         ) || compatibleProperties[0]
       );
     },

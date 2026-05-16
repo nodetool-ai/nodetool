@@ -190,13 +190,12 @@ const TemplateGrid = memo(function TemplateGrid() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<FrontendSearchResult[]>(
-    []
-  );
   const [nodesOnlySearch, setNodesOnlySearch] = useState(false);
   const [loadingWorkflowId, setLoadingWorkflowId] = useState<string | null>(
     null
   );
+  const loadingWorkflowIdRef = useRef(loadingWorkflowId);
+  loadingWorkflowIdRef.current = loadingWorkflowId;
 
   useEffect(() => {
     closePanel();
@@ -279,7 +278,7 @@ const TemplateGrid = memo(function TemplateGrid() {
   }, [data]);
   const fuse = useWorkflowSearch(baseWorkflowsForSearch);
 
-  useEffect(() => {
+  const searchResults = useMemo((): FrontendSearchResult[] => {
     if (
       nodesOnlySearch &&
       searchQuery.trim().length > 1 &&
@@ -290,12 +289,9 @@ const TemplateGrid = memo(function TemplateGrid() {
           searchData.workflows,
           searchQuery
         );
-        setSearchResults(
-          detailedNodeMatchResults.filter((sr) => sr.matches.length > 0)
-        );
-      } catch (error) {
-        console.error("Search failed:", error);
-        setSearchResults([]); // Clear results on error
+        return detailedNodeMatchResults.filter((sr) => sr.matches.length > 0);
+      } catch {
+        return [];
       }
     } else if (
       !nodesOnlySearch &&
@@ -314,16 +310,13 @@ const TemplateGrid = memo(function TemplateGrid() {
         }
         return groupedWorkflows[selectedTag] || data.workflows;
       })();
-      // Use the memoized Fuse instance for efficient search
-      const generalResults = searchWorkflowsWithFuse(
+      return searchWorkflowsWithFuse(
         fuse,
         baseWorkflowsForGeneralSearch,
         searchQuery
       );
-      setSearchResults(generalResults);
-    } else {
-      setSearchResults([]);
     }
+    return [];
   }, [
     searchData,
     data,
@@ -389,7 +382,7 @@ const TemplateGrid = memo(function TemplateGrid() {
 
   const onClickWorkflow = useCallback(
     async (workflow: Workflow) => {
-      if (loadingWorkflowId) { return; } // Prevent multiple clicks
+      if (loadingWorkflowIdRef.current) { return; }
 
       setLoadingWorkflowId(workflow.id);
       try {
@@ -400,7 +393,7 @@ const TemplateGrid = memo(function TemplateGrid() {
         setLoadingWorkflowId(null);
       }
     },
-    [copyTemplateWorkflow, navigate, loadingWorkflowId]
+    [copyTemplateWorkflow, navigate]
   );
 
   useEffect(() => {
@@ -423,9 +416,6 @@ const TemplateGrid = memo(function TemplateGrid() {
     setInputValue(newInputValue);
     if (newInputValue.trim()) {
       setSelectedTag(null);
-      if (newInputValue.length > 1) {
-        setSearchResults([]);
-      }
     } else {
       handleClearSearch();
     }

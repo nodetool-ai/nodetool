@@ -29,7 +29,6 @@ describe("PrefixTreeSearch", () => {
     outputs: [],
     layout: "default",
     recommended_models: [],
-    basic_fields: [],
     is_dynamic: false,
     expose_as_tool: false,
     supports_dynamic_outputs: false,

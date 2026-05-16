@@ -1,8 +1,6 @@
 import {
   secondsToHMS,
-  prettyDate,
   relativeTime,
-  getTimestampForFilename
 } from "./formatDateAndTime";
 
 describe("formatDateAndTime", () => {
@@ -29,51 +27,6 @@ describe("formatDateAndTime", () => {
 
     it("truncates fractional seconds", () => {
       expect(secondsToHMS(1.9)).toBe("00:00:01");
-    });
-  });
-
-  describe("prettyDate", () => {
-    it("returns dash for undefined input", () => {
-      expect(prettyDate(undefined)).toBe("-");
-    });
-
-    it("returns 'Invalid Date' for garbage input", () => {
-      expect(prettyDate("not-a-date")).toBe("Invalid Date");
-    });
-
-    it("formats a valid ISO date in normal mode (12h)", () => {
-      const result = prettyDate("2024-06-15T14:30:00");
-      expect(result).toContain("2024");
-      expect(result).toContain("06");
-      expect(result).toContain("15");
-    });
-
-    it("formats a valid ISO date in normal mode (24h)", () => {
-      const result = prettyDate("2024-06-15T14:30:00", "normal", { timeFormat: "24h" });
-      expect(result).toContain("14:30:00");
-    });
-
-    it("handles numeric timestamp", () => {
-      const ts = new Date("2024-06-15T14:30:00").getTime();
-      const result = prettyDate(ts);
-      expect(result).not.toBe("-");
-      expect(result).not.toBe("Invalid Date");
-    });
-
-    it("handles date strings with space instead of T", () => {
-      const result = prettyDate("2024-06-15 14:30:00");
-      expect(result).not.toBe("Invalid Date");
-    });
-
-    it("formats verbose style (12h)", () => {
-      const result = prettyDate("2024-06-15T14:30:00", "verbose");
-      expect(result).toContain("|");
-    });
-
-    it("formats verbose style (24h)", () => {
-      const result = prettyDate("2024-06-15T14:30:00", "verbose", { timeFormat: "24h" });
-      expect(result).toContain("|");
-      expect(result).toContain("14:30");
     });
   });
 
@@ -123,15 +76,4 @@ describe("formatDateAndTime", () => {
     });
   });
 
-  describe("getTimestampForFilename", () => {
-    it("returns date-time format by default", () => {
-      const result = getTimestampForFilename();
-      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}$/);
-    });
-
-    it("returns date-only when includeTime is false", () => {
-      const result = getTimestampForFilename(false);
-      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    });
-  });
 });

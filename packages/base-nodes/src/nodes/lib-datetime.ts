@@ -268,6 +268,8 @@ export class DateNowNode extends BaseNode {
     epoch_ms: "int",
     date: "datetime"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   async process(): Promise<Record<string, unknown>> {
     const d = new Date();
@@ -289,6 +291,8 @@ export class FormatDateNode extends BaseNode {
     iso: "str",
     epoch_ms: "int"
   };
+  static readonly inlineFields = ["pattern"];
+  static readonly inputFields = ["date"];
 
   @prop({
     type: "any",
@@ -327,6 +331,8 @@ export class DateAddNode extends BaseNode {
     epoch_ms: "int",
     date: "datetime"
   };
+  static readonly inlineFields = ["amount", "unit"];
+  static readonly inputFields = ["date"];
 
   @prop({
     type: "any",
@@ -380,6 +386,8 @@ export class DateDiffNode extends BaseNode {
     is_after: "bool",
     is_same: "bool"
   };
+  static readonly inlineFields = ["unit"];
+  static readonly inputFields = ["date_a", "date_b"];
 
   @prop({ type: "any", default: "", title: "Date A" })
   declare date_a: any;
@@ -423,6 +431,8 @@ export class DateStartEndNode extends BaseNode {
     start: "datetime",
     end: "datetime"
   };
+  static readonly inlineFields = ["unit"];
+  static readonly inputFields = ["date"];
 
   @prop({ type: "any", default: "", title: "Date" })
   declare date: any;

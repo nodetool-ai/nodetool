@@ -258,7 +258,7 @@ const SAMPLE_NODE_README: NodeMetadata = {
     }
   ] as never,
   recommended_models: SAMPLE_RECOMMENDED_MODELS,
-  basic_fields: ["prompt", "steps"],
+  inline_fields: ["prompt", "steps"],
   required_settings: [],
   is_dynamic: false,
   is_streaming_output: false,

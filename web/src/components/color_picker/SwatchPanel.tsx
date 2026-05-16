@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useState, memo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -86,18 +87,18 @@ interface SwatchPanelProps {
   onColorSelect: (color: string) => void;
 }
 
-const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
+const SwatchPanel: React.FC<SwatchPanelProps> = ({
   currentColor,
   onColorSelect
 }) => {
   const theme = useTheme();
+  const swatchStyles = useMemo(() => styles(theme), [theme]);
   const [presetsMenuAnchor, setPresetsMenuAnchor] = useState<HTMLElement | null>(null);
   const [swatchMenuAnchor, setSwatchMenuAnchor] = useState<{
     element: HTMLElement;
     swatchId: string;
   } | null>(null);
 
-  // Combine multiple store subscriptions into a single selector to reduce re-renders
   const {
     recentColors,
     swatches,
@@ -108,19 +109,16 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
     addPalette,
     removePalette
   } = useColorPickerStore(
-    useCallback(
-      (state) => ({
-        recentColors: state.recentColors,
-        swatches: state.swatches,
-        palettes: state.palettes,
-        addSwatch: state.addSwatch,
-        removeSwatch: state.removeSwatch,
-        clearRecentColors: state.clearRecentColors,
-        addPalette: state.addPalette,
-        removePalette: state.removePalette
-      }),
-      []
-    )
+    useShallow((state) => ({
+      recentColors: state.recentColors,
+      swatches: state.swatches,
+      palettes: state.palettes,
+      addSwatch: state.addSwatch,
+      removeSwatch: state.removeSwatch,
+      clearRecentColors: state.clearRecentColors,
+      addPalette: state.addPalette,
+      removePalette: state.removePalette
+    }))
   );
 
   const handleAddSwatch = useCallback(() => {
@@ -201,7 +199,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
   );
 
   return (
-    <FlexColumn css={styles(theme)} gap={2}>
+    <FlexColumn css={swatchStyles} gap={2}>
       {/* Recent Colors */}
       <FlexColumn className="section" gap={1} fullWidth>
         <FlexRow className="section-header" align="center" justify="space-between" fullWidth>
@@ -350,8 +348,8 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
       </Menu>
     </FlexColumn>
   );
-});
+};
 
 SwatchPanel.displayName = 'SwatchPanel';
 
-export default memo(SwatchPanel);
+export default React.memo(SwatchPanel);

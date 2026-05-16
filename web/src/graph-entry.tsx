@@ -94,7 +94,7 @@ const KNOWN_METADATA: Record<string, Partial<NodeMetadata>> = {
     node_type: "nodetool.team.AgentPool",
     properties: [makeProp("agents", "list")],
     outputs: [makeOutput("agents", "list")],
-    basic_fields: ["agents"]
+    inline_fields: ["agents"]
   },
   "nodetool.team.TaskBoard": {
     title: "TaskBoard",
@@ -102,7 +102,7 @@ const KNOWN_METADATA: Record<string, Partial<NodeMetadata>> = {
     node_type: "nodetool.team.TaskBoard",
     properties: [makeProp("tasks", "list")],
     outputs: [makeOutput("board", "any"), makeOutput("task_ids", "list")],
-    basic_fields: ["tasks"]
+    inline_fields: ["tasks"]
   },
   "nodetool.team.Team": {
     title: "Team",
@@ -122,7 +122,7 @@ const KNOWN_METADATA: Record<string, Partial<NodeMetadata>> = {
       makeOutput("messages", "list"),
       makeOutput("events", "list")
     ],
-    basic_fields: ["objective", "strategy", "max_iterations"]
+    inline_fields: ["objective", "strategy", "max_iterations"]
   }
 };
 
@@ -162,7 +162,7 @@ function inferMetadata(
     properties: props,
     outputs,
     recommended_models: [],
-    basic_fields: props.map((p) => p.name),
+    inline_fields: props.map((p) => p.name),
     required_settings: [],
     is_dynamic: false,
     is_streaming_output: false,
@@ -370,7 +370,6 @@ function App() {
           allMetadata[key] = {
             layout: "default",
             recommended_models: [],
-            basic_fields: [],
             required_settings: [],
             is_dynamic: false,
             is_streaming_output: false,
@@ -408,9 +407,11 @@ function App() {
           const propCount = meta?.properties?.length || 1;
           const outputCount = meta?.outputs?.length || 1;
           // Header ~50, each property ~70 (text areas are taller), each output ~30, footer ~40
-          const basicCount = meta?.basic_fields?.length || propCount;
-          const hasMore = propCount > basicCount;
-          const estimatedHeight = 50 + propCount * 75 + outputCount * 30 + (hasMore ? 40 : 0) + 40;
+          const inlineCount =
+            meta?.inline_fields?.length ?? propCount;
+          const hasHidden = propCount > inlineCount;
+          const estimatedHeight =
+            50 + propCount * 75 + outputCount * 30 + (hasHidden ? 40 : 0) + 40;
           node.measured = {
             width: node.width || 320,
             height: Math.max(estimatedHeight, 180)

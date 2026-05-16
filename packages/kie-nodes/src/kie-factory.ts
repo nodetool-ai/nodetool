@@ -6,7 +6,11 @@
  * declared properties, backed by a generic process() that calls the KIE API.
  */
 
-import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
+import {
+  BaseNode,
+  classifyFields,
+  registerDeclaredProperty
+} from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import {
   getApiKey,
@@ -109,6 +113,21 @@ function castValue(value: unknown, type: string): unknown {
     default:
       return String(value);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Field Classification
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute inlineFields and inputFields from a Kie field list.
+ * Delegates to the shared `classifyFields` rule in node-sdk after mapping
+ * each Kie `KieFieldDef.type` onto the `{ name, propType }` shape it expects.
+ */
+function computeFieldClassification(fields: KieFieldDef[]) {
+  return classifyFields(
+    fields.map((f) => ({ name: f.name, propType: f.type }))
+  );
 }
 
 function defaultForType(type: string): unknown {
@@ -334,6 +353,17 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
   }
   Object.defineProperty(KieNodeClass, "metadataOutputTypes", {
     value: { output: spec.outputType },
+    configurable: true
+  });
+
+  // Compute and set field classification
+  const { inlineFields, inputFields } = computeFieldClassification(spec.fields);
+  Object.defineProperty(KieNodeClass, "inlineFields", {
+    value: inlineFields,
+    configurable: true
+  });
+  Object.defineProperty(KieNodeClass, "inputFields", {
+    value: inputFields,
     configurable: true
   });
 

@@ -13,8 +13,7 @@ export const config: ModuleConfig = {
         "Produce royalty-free music",
         "Generate audio soundtracks",
         "Create custom music compositions"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
     "fal-ai/ace-step": {
       className: "ACEStep",
@@ -34,8 +33,7 @@ export const config: ModuleConfig = {
         "Produce complete songs from text",
         "Generate lyrical content",
         "Create vocal music compositions"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
     "fal-ai/csm-1b": {
       className: "CSM1B",
@@ -48,8 +46,7 @@ export const config: ModuleConfig = {
         "Produce conversational voice content",
         "Generate realistic speech",
         "Create interactive voice responses"
-      ],
-      basicFields: ["text"]
+      ]
     },
     "fal-ai/diffrhythm": {
       className: "DiffRhythm",
@@ -69,8 +66,7 @@ export const config: ModuleConfig = {
         "Produce percussion tracks",
         "Generate rhythm patterns",
         "Create beat sequences"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
     "fal-ai/elevenlabs/tts/multilingual-v2": {
       className: "ElevenLabsTTSMultilingualV2",
@@ -90,8 +86,7 @@ export const config: ModuleConfig = {
         "Produce localized audio content",
         "Generate international voice content",
         "Create translated audio"
-      ],
-      basicFields: ["text", "language"]
+      ]
     },
     "fal-ai/elevenlabs/text-to-dialogue/eleven-v3": {
       className: "ElevenLabsTextToDialogueV3",
@@ -110,8 +105,7 @@ export const config: ModuleConfig = {
         "Produce podcast-style content",
         "Generate character conversations",
         "Create interactive dialogues"
-      ],
-      basicFields: ["text"]
+      ]
     },
     "fal-ai/elevenlabs/sound-effects/v2": {
       className: "ElevenLabsSoundEffectsV2",
@@ -124,8 +118,7 @@ export const config: ModuleConfig = {
         "Produce game sound effects",
         "Generate environmental sounds",
         "Create audio atmosphere"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
     "fal-ai/elevenlabs/tts/eleven-v3": {
       className: "ElevenLabsTTSV3",
@@ -138,8 +131,7 @@ export const config: ModuleConfig = {
         "Produce professional narration",
         "Generate expressive speech",
         "Create audiobook content"
-      ],
-      basicFields: ["text"]
+      ]
     },
     "fal-ai/elevenlabs/music": {
       className: "ElevenLabsMusic",
@@ -152,8 +144,7 @@ export const config: ModuleConfig = {
         "Produce original compositions",
         "Generate mood music",
         "Create cinematic soundtracks"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
     "fal-ai/f5-tts": {
       className: "F5TTS",
@@ -166,8 +157,7 @@ export const config: ModuleConfig = {
         "Quick voiceover creation",
         "Efficient speech synthesis",
         "Rapid audio production"
-      ],
-      basicFields: ["text"]
+      ]
     },
     "fal-ai/kokoro": {
       className: "Kokoro",
@@ -187,8 +177,7 @@ export const config: ModuleConfig = {
         "Produce dramatic narration",
         "Generate character voices",
         "Create emotive audio content"
-      ],
-      basicFields: ["text"]
+      ]
     },
     "fal-ai/stable-audio": {
       className: "StableAudio",
@@ -201,8 +190,7 @@ export const config: ModuleConfig = {
         "Produce predictable audio",
         "Generate stable music",
         "Create dependable audio content"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
     "fal-ai/xtts": {
       className: "XTTS",
@@ -222,8 +210,7 @@ export const config: ModuleConfig = {
         "Produce voice-matched content",
         "Generate custom voice audio",
         "Create voice replications"
-      ],
-      basicFields: ["text"]
+      ]
     },
     "fal-ai/minimax-music/v2": {
       className: "MinimaxMusicV2",

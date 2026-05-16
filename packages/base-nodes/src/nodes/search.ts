@@ -86,6 +86,8 @@ export class GoogleSearchNode extends BaseNode {
   };
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["keyword"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -142,6 +144,8 @@ export class GoogleNewsNode extends BaseNode {
   };
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["keyword"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -196,6 +200,8 @@ export class GoogleImagesNode extends BaseNode {
   };
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["keyword", "image_url"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -267,6 +273,8 @@ export class GoogleFinanceNode extends BaseNode {
   };
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["query"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -319,6 +327,8 @@ export class GoogleJobsNode extends BaseNode {
   };
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["query"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -381,6 +391,8 @@ export class GoogleLensNode extends BaseNode {
     "Analyze images using Google Lens to find visual matches and related content.\n    google, lens, visual, image, search, serp, identify";
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["image_url"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -433,6 +445,8 @@ export class GoogleMapsNode extends BaseNode {
   };
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["query"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -507,6 +521,8 @@ export class GoogleShoppingNode extends BaseNode {
   };
   static readonly requiredSettings = ["SERPAPI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["query"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",

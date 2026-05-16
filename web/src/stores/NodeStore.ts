@@ -27,12 +27,17 @@ import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import { autoLayout } from "../core/graph";
 import { isConnectable, isCollectType } from "../utils/TypeHandler";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
+import { addExposedInput } from "../utils/exposedInputs";
 import { WorkflowAttributes } from "./ApiTypes";
 import { wouldCreateCycle } from "../utils/graphCycle";
 import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
 import PlaceholderNode from "../components/node_types/PlaceholderNode";
+import {
+  getContentCardDefaultSize,
+  isContentCardNode
+} from "../components/node_types/contentCardRegistry";
 import {
   graphEdgeToReactFlowEdge,
   CONTROL_HANDLE_ID,
@@ -47,6 +52,15 @@ import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { COMFY_WORKFLOW_FLAG } from "../utils/comfyWorkflowConverter";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
+
+function isUnifiedModel(value: unknown): value is UnifiedModel {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    "repo_id" in value
+  );
+}
 
 const syncReactFlowNodeChromeClass = (node: Node<NodeData>): Node<NodeData> => ({
   ...node,
@@ -432,12 +446,19 @@ export const createNodeStore = (
             return count;
           },
           setSelectedNodes: (nodes: Node<NodeData>[]): void => {
-            set({
-              nodes: get().nodes.map((node) => ({
-                ...node,
-                selected: nodes.includes(node)
-              }))
+            const nodesToSelectIds = new Set(nodes.map(n => n.id));
+            let changed = false;
+            const nextNodes = get().nodes.map((node) => {
+              const shouldBeSelected = nodesToSelectIds.has(node.id);
+              if (node.selected !== shouldBeSelected) {
+                changed = true;
+                return { ...node, selected: shouldBeSelected };
+              }
+              return node;
             });
+            if (changed) {
+              set({ nodes: nextNodes });
+            }
           },
           selectNodesByType: (nodeType: string): void => {
             const nodes = get().nodes;
@@ -458,19 +479,22 @@ export const createNodeStore = (
             if (matchingCount === 0) {
               return;
             }
-            set({
-              nodes: nodes.map((node) => {
-                const currentType = node.type;
-                const originalType = node.data?.originalType;
-                const isMatch =
-                  currentType === nodeType ||
-                  (!!originalType && originalType === nodeType);
-                return {
-                  ...node,
-                  selected: isMatch
-                };
-              })
+            let changed = false;
+            const nextNodes = nodes.map((node) => {
+              const currentType = node.type;
+              const originalType = node.data?.originalType;
+              const isMatch =
+                currentType === nodeType ||
+                (!!originalType && originalType === nodeType);
+              if (node.selected !== isMatch) {
+                changed = true;
+                return { ...node, selected: isMatch };
+              }
+              return node;
             });
+            if (changed) {
+              set({ nodes: nextNodes });
+            }
           },
           getSelectedNodeIds: (): string[] => {
             const nodes = get().nodes;
@@ -682,7 +706,7 @@ export const createNodeStore = (
 
             if (
               wouldCreateCycle(
-                filteredEdges as Edge[],
+                filteredEdges,
                 connection.source,
                 connection.target
               )
@@ -711,6 +735,32 @@ export const createNodeStore = (
             set({
               edges: addEdge(newEdge, normalizedEdges)
             });
+
+            // Persist the target as an exposed input so its handle survives
+            // disconnection. Skipped for dynamic props and control edges
+            // (those have their own surfaces) and for properties already
+            // declared as a handle by metadata (`input_fields` / inline rows
+            // render their own handle).
+            if (!isDynamicProperty && !isControlEdge) {
+              const targetMetadata = useMetadataStore
+                .getState()
+                .getMetadata(targetNode.type || "");
+              const inlineFields = targetMetadata?.inline_fields ?? [];
+              const inputFields = targetMetadata?.input_fields ?? [];
+              const isMetadataHandle =
+                inlineFields.includes(connection.targetHandle) ||
+                inputFields.includes(connection.targetHandle);
+              if (targetMetadata && !isMetadataHandle) {
+                const next = addExposedInput(
+                  targetNode.data.exposedInputs,
+                  connection.targetHandle
+                );
+                if (next !== targetNode.data.exposedInputs) {
+                  get().updateNodeData(targetNode.id, { exposedInputs: next });
+                }
+              }
+            }
+
             get().setWorkflowDirty(true);
           },
           findNode: (id: string): Node<NodeData> | undefined =>
@@ -959,13 +1009,8 @@ export const createNodeStore = (
                   )
                 ) {
                   const property = node.data.properties[key];
-                  if (
-                    property &&
-                    typeof property === "object" &&
-                    "type" in property &&
-                    "repo_id" in property
-                  ) {
-                    models.push(property as UnifiedModel);
+                  if (isUnifiedModel(property)) {
+                    models.push(property);
                   }
                 }
               }
@@ -1324,6 +1369,7 @@ export const createNodeStore = (
               metadata.node_type === "nodetool.compare.CompareImages";
             const isModel3DConstantNode =
               metadata.node_type === "nodetool.constant.Model3D";
+            const isContentCard = isContentCardNode(metadata);
             let defaultStyle: { width: number; height?: number };
             if (isPreviewNode) {
               defaultStyle = { width: 400, height: 300 };
@@ -1331,6 +1377,8 @@ export const createNodeStore = (
               defaultStyle = { width: 450, height: 350 };
             } else if (isModel3DConstantNode) {
               defaultStyle = { width: 320, height: 320 };
+            } else if (isContentCard) {
+              defaultStyle = getContentCardDefaultSize(metadata);
             } else {
               defaultStyle = { width: DEFAULT_NODE_WIDTH };
             }
@@ -1357,12 +1405,17 @@ export const createNodeStore = (
             };
           },
           selectAllNodes: (): void => {
-            set({
-              nodes: get().nodes.map((node) => ({
-                ...node,
-                selected: true
-              }))
+            let changed = false;
+            const nextNodes = get().nodes.map((node) => {
+              if (!node.selected) {
+                changed = true;
+                return { ...node, selected: true };
+              }
+              return node;
             });
+            if (changed) {
+              set({ nodes: nextNodes });
+            }
           },
           toggleBypass: (nodeId: string): void => {
             set((state) => {

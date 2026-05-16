@@ -34,7 +34,6 @@ function makeNode(overrides: Partial<NodeMetadata>): NodeMetadata {
     expose_as_tool: false,
     supports_dynamic_outputs: false,
     recommended_models: [],
-    basic_fields: [],
     required_settings: [],
     ...overrides,
   } as NodeMetadata;

@@ -499,7 +499,7 @@ const PanelCommands = memo(function PanelCommands() {
         <PermMediaRoundedIcon /> Toggle Assets
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => leftPanelToggle("workflowGrid"))}
+        onSelect={() => executeAndClose(() => leftPanelToggle("workflows"))}
       >
         <AccountTreeRoundedIcon /> Toggle Workflows Panel
       </Command.Item>

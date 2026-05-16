@@ -381,6 +381,8 @@ export class SandboxShellNode extends BaseNode {
   static readonly title = "SandboxShell";
   static readonly description =
     "Execute shell commands in an isolated sandbox session.";
+  static readonly inlineFields = ["command"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str",
     running: "bool",
@@ -452,6 +454,8 @@ export class SandboxFileNode extends BaseNode {
   static readonly title = "SandboxFile";
   static readonly description =
     "Read, write, search, and replace files inside a sandbox session.";
+  static readonly inlineFields = ["action"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };

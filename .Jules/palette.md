@@ -59,3 +59,6 @@
 ## 2025-02-28 - Missing ARIA Labels on Text/Image Layer Generation Icons
 **Learning:** Found that some newer `IconButton` tools inside `SketchLayersPanel.tsx` (Add Text-to-Image Layer, Add Image-to-Image Layer) were missing explicit `aria-label` attributes despite having Material-UI `Tooltip` components. Because tooltips alone do not reliably announce inner action intents to screen readers on interactable buttons, explicit ARIA labels are necessary.
 **Action:** Always add an explicit `aria-label` property mirroring the tooltip `title` onto standard Material-UI `IconButton` elements, particularly those responsible for core functionalities like generating specialized layer types.
+## 2026-05-14 - Adding ARIA labels to custom editor modal buttons
+**Learning:** Icon-only UI buttons inside custom modals, such as `TextEditorModal`, `DataframeEditorModal`, and `SnippetSidebar`, were found to lack `aria-label` attributes. While they had visual tooltips, screen readers and automation tools (like Playwright's `get_by_role`) could not identify their purpose.
+**Action:** Always provide explicit `aria-label` properties on interactive elements that rely solely on icons to convey their action, ensuring the label matches the visual tooltip text and appropriately reflects dynamic states.

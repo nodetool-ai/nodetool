@@ -7,7 +7,12 @@ import { useWebsocketRunner } from "../stores/WorkflowRunner";
  * Stream values to an InputNode by its `name` (node.data.name in the graph).
  * Works with the backend WebSocket `stream_input` / `end_input_stream` commands.
  */
-export function useInputStream(inputName: string) {
+interface InputStreamActions {
+  send: (value: unknown, handle?: string) => void;
+  end: (handle?: string) => void;
+}
+
+export function useInputStream(inputName: string): InputStreamActions {
   const streamInput = useWebsocketRunner((s) => s.streamInput);
   const endInputStream = useWebsocketRunner((s) => s.endInputStream);
   const state = useWebsocketRunner((s) => s.state);

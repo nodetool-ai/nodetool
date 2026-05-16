@@ -217,7 +217,6 @@ function useStructurallyProcessedEdges({
       let sourceColor = defaultColor;
       let sourceTypeLabel = "Any";
       let targetTypeSlug = "any";
-      let targetInputCount: number | undefined;
 
       if (sourceNode && normalizedSourceHandle) {
         const effective = getEffectiveSourceType(
@@ -238,12 +237,6 @@ function useStructurallyProcessedEdges({
         } else if (targetNode.type) {
           const targetMetadata = getMetadata(targetNode.type);
           if (targetMetadata) {
-            const dynamicInputKeys = new Set([
-              ...Object.keys(targetNode.data?.dynamic_inputs ?? {}),
-              ...Object.keys(targetNode.data?.dynamic_properties ?? {})
-            ]);
-            targetInputCount =
-              (targetMetadata.properties?.length ?? 0) + dynamicInputKeys.size;
             const inputHandle = findInputHandle(
               targetNode as Node<NodeData>,
               normalizedTargetHandle,
@@ -308,10 +301,7 @@ function useStructurallyProcessedEdges({
         data: {
           ...edge.data,
           dataTypeLabel: sourceTypeLabel,
-          sourceTypeColor: sourceColor,
-          sourceHandleName: normalizedSourceHandle ?? undefined,
-          targetHandleName: normalizedTargetHandle ?? undefined,
-          targetInputCount
+          sourceTypeColor: sourceColor
         }
       };
     });

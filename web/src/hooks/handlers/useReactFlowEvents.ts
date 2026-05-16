@@ -3,7 +3,10 @@ import { type OnMoveEnd, type OnMoveStart } from "@xyflow/react";
 import { useNodes } from "../../contexts/NodeContext";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 
-export function useReactFlowEvents() {
+export function useReactFlowEvents(): {
+  handleMoveEnd: OnMoveEnd;
+  handleOnMoveStart: OnMoveStart;
+} {
   const setViewport = useNodes((state) => state.setViewport);
   const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
 

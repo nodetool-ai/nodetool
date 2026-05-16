@@ -97,7 +97,6 @@ const textProcessorMetadata: NodeMetadata = {
   supports_dynamic_outputs: false,
   expose_as_tool: false,
   recommended_models: [],
-  basic_fields: [],
   is_streaming_output: false,
             required_settings: []
 };
@@ -137,7 +136,6 @@ const mathCalculatorMetadata: NodeMetadata = {
   supports_dynamic_outputs: false,
   expose_as_tool: false,
   recommended_models: [],
-  basic_fields: [],
   is_streaming_output: false,
             required_settings: []
 };
@@ -169,7 +167,6 @@ const dynamicProcessorMetadata: NodeMetadata = {
   supports_dynamic_outputs: true,
   expose_as_tool: false,
   recommended_models: [],
-  basic_fields: [],
   is_streaming_output: false,
             required_settings: []
 };

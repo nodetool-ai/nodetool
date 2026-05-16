@@ -20,8 +20,7 @@ export const config: ModuleConfig = {
         "Produce audiobook narration",
         "Generate spoken content for applications",
         "Create text-to-speech for accessibility"
-      ],
-      basicFields: ["text"]
+      ]
     },
     "fal-ai/qwen-3-tts/text-to-speech/0.6b": {
       className: "Qwen3TtsTextToSpeech06B",
@@ -34,8 +33,7 @@ export const config: ModuleConfig = {
         "Produce quick audio narration",
         "Generate spoken content with low latency",
         "Create efficient text-to-speech"
-      ],
-      basicFields: ["text"]
+      ]
     },
     "fal-ai/qwen-3-tts/voice-design/1.7b": {
       className: "Qwen3TtsVoiceDesign17B",
@@ -48,8 +46,7 @@ export const config: ModuleConfig = {
         "Generate unique voice styles",
         "Produce custom voice-overs",
         "Create tailored speech synthesis"
-      ],
-      basicFields: ["text"]
+      ]
     },
     "fal-ai/vibevoice/0.5b": {
       className: "Vibevoice05B",
@@ -69,8 +66,7 @@ export const config: ModuleConfig = {
         "Produce natural vocal narration",
         "Generate speech with personality",
         "Create engaging audio content"
-      ],
-      basicFields: ["text"]
+      ]
     },
     "fal-ai/maya": {
       className: "Maya",
@@ -83,8 +79,7 @@ export const config: ModuleConfig = {
         "Produce premium audio narration",
         "Generate natural-sounding speech",
         "Create professional audio content"
-      ],
-      basicFields: ["text"]
+      ]
     },
     "fal-ai/minimax/speech-2.6-hd": {
       className: "MinimaxSpeech26Hd",
@@ -100,8 +95,7 @@ export const config: ModuleConfig = {
       ],
       enumOverrides: {
         OutputFormat: "MinimaxSpeech26HdOutputFormat"
-      },
-      basicFields: ["text"]
+      }
     },
     "fal-ai/minimax/speech-2.6-turbo": {
       className: "MinimaxSpeech26Turbo",
@@ -117,8 +111,7 @@ export const config: ModuleConfig = {
       ],
       enumOverrides: {
         OutputFormat: "MinimaxSpeech26TurboOutputFormat"
-      },
-      basicFields: ["text"]
+      }
     },
     "fal-ai/maya/batch": {
       className: "MayaBatch",
@@ -131,8 +124,7 @@ export const config: ModuleConfig = {
         "Create bulk voice-overs",
         "Efficient audio content creation",
         "Generate multiple speech files"
-      ],
-      basicFields: ["text"]
+      ]
     },
     "fal-ai/maya/stream": {
       className: "MayaStream",
@@ -152,8 +144,7 @@ export const config: ModuleConfig = {
         "Create live voice-overs",
         "Real-time audio synthesis",
         "Generate streaming speech"
-      ],
-      basicFields: ["text"]
+      ]
     },
     "fal-ai/index-tts-2/text-to-speech": {
       className: "IndexTts2TextToSpeech",
@@ -166,8 +157,7 @@ export const config: ModuleConfig = {
         "Produce audio books",
         "Generate voice-overs",
         "Create speech content"
-      ],
-      basicFields: ["text"]
+      ]
     },
     "fal-ai/kling-video/v1/tts": {
       className: "KlingVideoV1Tts",

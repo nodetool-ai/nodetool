@@ -82,6 +82,24 @@ describe("imageUtils", () => {
       expect(result.blobUrl).toBeNull();
     });
 
+    it("resolves asset:// URI on ImageSource to /api/storage/{id}", () => {
+      const source: ImageSource = { uri: "asset://abc123.png" };
+      const result = createImageUrl(source, null);
+      expect(result.url).toBe(
+        "http://localhost:7777/api/storage/abc123.png"
+      );
+      expect(result.blobUrl).toBeNull();
+    });
+
+    it("resolves raw asset:// string to /api/storage/{id}", () => {
+      const source: ImageData = "asset://abc123.png";
+      const result = createImageUrl(source, null);
+      expect(result.url).toBe(
+        "http://localhost:7777/api/storage/abc123.png"
+      );
+      expect(result.blobUrl).toBeNull();
+    });
+
     it("handles relative URL path (API storage)", () => {
       const source: ImageData = "/api/storage/341ebf3aec5711f0aa8400007c77feb7.jpg";
       const result = createImageUrl(source, null);

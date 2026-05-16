@@ -15,7 +15,6 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     namespace: "default",
     node_type: "nodetool.workflows.base_node.Preview",
     layout: "default",
-    basic_fields: [],
     is_dynamic: false,
     properties: [
       {
@@ -53,7 +52,6 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     namespace: "nodetool.workflows",
     node_type: WORKFLOW_NODE_TYPE,
     layout: "default",
-    basic_fields: [],
     is_dynamic: true,
     properties: [],
     outputs: [],

@@ -28,6 +28,8 @@ export class SliceImageGridLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[image]"
   };
+  static readonly inlineFields = ["columns", "rows"];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -120,6 +122,8 @@ export class CombineImageGridLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = ["columns"];
+  static readonly inputFields = ["tiles"];
 
   @prop({
     type: "list[image]",

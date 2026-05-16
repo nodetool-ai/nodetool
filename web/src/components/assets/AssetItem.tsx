@@ -317,8 +317,16 @@ export type AssetItemProps = {
   onDoubleClick?: (asset: Asset) => void;
 };
 
+const deleteButtonOverlayStyle = css({
+  position: "absolute",
+  top: 4,
+  right: 4,
+  zIndex: 1000
+});
+
 const AssetItem: React.FC<AssetItemProps> = (props) => {
   const theme = useTheme();
+  const assetStyles = useMemo(() => styles(theme), [theme]);
   const {
     asset,
     draggable = true,
@@ -405,7 +413,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
 
   const result = (
     <div
-      css={styles(theme)}
+      css={assetStyles}
       className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${isDragHovered ? "drag-hover" : ""
         } ${isParent ? "parent" : ""}`}
       onDragEnter={handleDragEnter}
@@ -421,14 +429,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       onDragOver={handleDragOver}
     >
       {showDeleteButton && (
-        <div
-          css={css({
-            position: "absolute",
-            top: 4,
-            right: 4,
-            zIndex: 1000
-          })}
-        >
+        <div css={deleteButtonOverlayStyle}>
           <DeleteButton
             className="asset-delete"
             onClick={handleDelete}

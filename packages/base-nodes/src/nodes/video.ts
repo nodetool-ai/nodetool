@@ -217,13 +217,8 @@ export class TextToVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
-  static readonly basicFields = [
-    "model",
-    "prompt",
-    "aspect_ratio",
-    "resolution",
-    "duration"
-  ];
+  static readonly inlineFields: string[] = ["prompt"];
+  static readonly inputFields: string[] = [];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -328,14 +323,8 @@ export class ImageToVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
-  static readonly basicFields = [
-    "image",
-    "model",
-    "prompt",
-    "aspect_ratio",
-    "resolution",
-    "duration"
-  ];
+  static readonly inlineFields: string[] = ["prompt"];
+  static readonly inputFields: string[] = ["image"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -457,6 +446,8 @@ export class LoadVideoFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
 
   @prop({
     type: "str",
@@ -481,6 +472,8 @@ export class SaveVideoFileVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["video"];
 
   @prop({
     type: "video",
@@ -536,6 +529,8 @@ export class LoadVideoAssetsNode extends BaseNode {
     videos: "list",
     names: "list"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
 
   static readonly isStreamingOutput = true;
   @prop({
@@ -622,6 +617,8 @@ export class SaveVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["video"];
 
   @prop({
     type: "video",
@@ -683,6 +680,8 @@ export class FrameIteratorNode extends BaseNode {
     index: "int",
     fps: "float"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["video"];
 
   static readonly isStreamingOutput = true;
   @prop({
@@ -808,6 +807,8 @@ export class FpsNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "float"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["video"];
 
   @prop({
     type: "video",
@@ -863,6 +864,8 @@ export class FrameToVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["frame"];
 
   @prop({
     type: "image",
@@ -1024,6 +1027,8 @@ export class ConcatVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["a", "b"];
   static readonly isDynamic = true;
 
   @prop({

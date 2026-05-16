@@ -107,6 +107,7 @@ const BreadcrumbNav: React.FC = () => {
   const { folderTree, navigateToFolderId } = useAssets();
 
   const rootId = currentUser?.id ?? "root";
+  const breadcrumbStyles = useMemo(() => styles(theme), [theme]);
 
   const breadcrumbs = useMemo(
     () => buildBreadcrumbPath(folderTree, currentFolderId, rootId),
@@ -127,7 +128,7 @@ const BreadcrumbNav: React.FC = () => {
   }
 
   return (
-    <div css={styles(theme)} className="breadcrumb-nav">
+    <div css={breadcrumbStyles} className="breadcrumb-nav">
       {breadcrumbs.map((crumb, index) => {
         const isLast = index === breadcrumbs.length - 1;
         const isRoot = index === 0;

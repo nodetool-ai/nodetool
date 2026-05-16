@@ -10,13 +10,23 @@ import { EditorButton } from "../editor_ui";
 import { ToolbarIconButton } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
+import { useAuditCuratedCategories } from "../../hooks/useAuditCuratedCategories";
 import isEqual from "fast-deep-equal";
 import { memo, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
+import SidebarSearchPanel from "../node_menu/SidebarSearchPanel";
+import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
+import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
+import QuickAccessGrid from "../node_menu/QuickAccessGrid";
 
 import { IconForType } from "../../config/data_types";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
+import {
+  getCategory,
+  QUICK_ACCESS_CATEGORIES,
+  type QuickAccessCategoryId
+} from "../../config/quickAccessCategories";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -197,58 +207,26 @@ const VerticalToolbar = memo(function VerticalToolbar({
 }) {
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
 
-  const handlePanelToggleClick = useCallback(() => {
-    handlePanelToggle();
-  }, [handlePanelToggle]);
-
-  const handleWorkflowViewClick = useCallback(() => {
-    onViewChange("workflowGrid");
-  }, [onViewChange]);
-
-  const handleAssetsViewClick = useCallback(() => {
-    onViewChange("assets");
-  }, [onViewChange]);
+  // Sidebar shows the category as "active" only when the panel is open and
+  // that category is selected. Closing the panel clears the highlight.
+  const renderedActive: QuickAccessCategoryId | "" =
+    panelVisible && QUICK_ACCESS_CATEGORIES.some((c) => c.id === activeView)
+      ? (activeView as QuickAccessCategoryId)
+      : "";
 
   return (
     <div className="vertical-toolbar">
-      {/* Drawer views section - My Stuff */}
-      <Tooltip
-        title={getShortcutTooltip("toggleWorkflows")}
-        placement="right-start"
-        delay={TOOLTIP_ENTER_DELAY}
-      >
-        <ToolbarIconButton
-          tabIndex={-1}
-          ariaLabel="Show workflows"
-          onClick={handleWorkflowViewClick}
-          className={
-            activeView === "workflowGrid" && panelVisible ? "active" : ""
-          }
-          icon={<GridViewIcon />}
-        />
-      </Tooltip>
-      <Tooltip
-        title={getShortcutTooltip("toggleAssets")}
-        placement="right-start"
-        delay={TOOLTIP_ENTER_DELAY}
-      >
-        <ToolbarIconButton
-          tabIndex={-1}
-          ariaLabel="Show assets"
-          onClick={handleAssetsViewClick}
-          className={activeView === "assets" && panelVisible ? "active" : ""}
-          icon={<IconForType iconName="asset" showTooltip={false} iconSize="small" />}
-        />
-      </Tooltip>
-
-
+      <QuickAccessSidebar
+        activeCategory={renderedActive as QuickAccessCategoryId}
+        onCategoryClick={(id) => onViewChange(id as LeftPanelView)}
+      />
       <div style={{ flexGrow: 1 }} />
       <ThemeToggle />
       <Tooltip title="Toggle Panel" placement="right-start">
         <ToolbarIconButton
           tabIndex={-1}
           ariaLabel="Toggle panel"
-          onClick={handlePanelToggleClick}
+          onClick={handlePanelToggle}
           icon={<CodeIcon />}
         />
       </Tooltip>
@@ -273,8 +251,61 @@ const PanelContent = memo(function PanelContent({
     handlePanelToggle("assets");
   }, [navigate, handlePanelToggle]);
 
+  // Tile-grid categories share one renderer; panel-kind categories each
+  // route to a dedicated component below.
+  const category = getCategory(activeView as QuickAccessCategoryId);
+  if (category?.kind === "tile-grid") {
+    return (
+      <Box
+        sx={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          margin: isMobile ? "0" : "0 0.5em"
+        }}
+      >
+        {!isMobile && <PanelHeadline title={category.label} />}
+        <QuickAccessGrid category={category} />
+      </Box>
+    );
+  }
+
   return (
     <>
+      {activeView === "search" && (
+        <Box
+          sx={{
+            width: "100%",
+            height: "100%",
+            margin: isMobile ? "0" : "0 0.5em",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column"
+          }}
+        >
+          {!isMobile && <PanelHeadline title="Search nodes" />}
+          {/* Plan §7.5: compact sidebar search; "Open full menu" jumps to
+              the floating NodeMenu for namespace-tree browsing. */}
+          <SidebarSearchPanel />
+        </Box>
+      )}
+      {activeView === "history" && (
+        <Box
+          sx={{
+            width: "100%",
+            height: "100%",
+            margin: isMobile ? "0" : "0 0.5em",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column"
+          }}
+        >
+          {!isMobile && <PanelHeadline title="History" />}
+          <HistoryTilesPanel />
+        </Box>
+      )}
       {activeView === "assets" && (
         <Box
           className="assets-container"
@@ -298,7 +329,7 @@ const PanelContent = memo(function PanelContent({
           <AssetGrid maxItemSize={5} isMobile={isMobile} />
         </Box>
       )}
-      {activeView === "workflowGrid" && (
+      {activeView === "workflows" && (
         <Box
           className="workflow-grid-container"
           sx={{
@@ -316,7 +347,6 @@ const PanelContent = memo(function PanelContent({
           </ScrollArea>
         </Box>
       )}
-
     </>
   );
 });
@@ -409,7 +439,8 @@ const MobilePanelLeft: React.FC<{
     );
 
     const launcherTitle =
-      activeView === "assets" ? "Assets" : "Workflows";
+      QUICK_ACCESS_CATEGORIES.find((c) => c.id === activeView)?.label ??
+      "Workflows";
 
     return (
       <>
@@ -432,8 +463,8 @@ const MobilePanelLeft: React.FC<{
             <div css={mobileHeaderExtrasStyles(theme)}>
               <Tooltip title="Workflows" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
                 <ToolbarIconButton
-                  className={`tab-button ${activeView === "workflowGrid" ? "active" : ""}`}
-                  onClick={() => handleSheetViewChange("workflowGrid")}
+                  className={`tab-button ${activeView === "workflows" ? "active" : ""}`}
+                  onClick={() => handleSheetViewChange("workflows")}
                   ariaLabel="Show workflows"
                   tabIndex={-1}
                   icon={<GridViewIcon />}
@@ -498,12 +529,13 @@ const PanelLeft: React.FC = () => {
     handlePanelToggle
   } = useResizePanel("left");
 
-  useCombo(["1"], () => handlePanelToggle("workflowGrid"), false);
+  useCombo(["1"], () => handlePanelToggle("workflows"), false);
   useCombo(["2"], () => handlePanelToggle("assets"), false);
+  useAuditCuratedCategories();
 
 
   const activeView =
-    usePanelStore((state) => state.panel.activeView) || "workflowGrid";
+    usePanelStore((state) => state.panel.activeView) || "workflows";
   const setVisibility = usePanelStore((state) => state.setVisibility);
 
   const onViewChange = useCallback(

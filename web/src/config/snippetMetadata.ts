@@ -79,7 +79,6 @@ export function generateSnippetMetadata(): Record<string, NodeMetadata> {
       namespace,
       node_type: nodeType,
       layout: "default",
-      basic_fields: inputKeys,
       is_dynamic: true,
       properties,
       outputs,

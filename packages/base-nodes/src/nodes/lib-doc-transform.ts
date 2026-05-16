@@ -95,6 +95,8 @@ export class ConvertTextPandocLibNode extends PandocBaseLibNode {
   static readonly title = "Convert Text";
   static readonly description =
     "Converts text content between different document formats using pandoc.\n    convert, text, format, pandoc\n\n    Use cases:\n    - Convert text content between various formats (Markdown, HTML, LaTeX, etc.)\n    - Transform content without saving to disk\n    - Process text snippets in different formats";
+  static readonly inlineFields = ["content"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -219,6 +221,8 @@ export class ConvertFilePandocLibNode extends PandocBaseLibNode {
   static readonly title = "Convert File";
   static readonly description =
     "Converts between different document formats using pandoc.\n    convert, document, format, pandoc\n\n    Use cases:\n    - Convert between various document formats (Markdown, HTML, LaTeX, etc.)\n    - Generate documentation in different formats\n    - Create publication-ready documents";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
   };

@@ -8,7 +8,8 @@ type Desc = {
   nodeType: string;
   title: string;
   description: string;
-  basicFields: string[];
+  inlineFields: string[];
+  inputFields:  string[];
   outputs: Record<string, string>;
   properties: Array<{ name: string; options: PropOptions }>;
 };
@@ -18,7 +19,8 @@ function createFilterNode(desc: Desc): NodeClass {
     static readonly nodeType = desc.nodeType;
     static readonly title = desc.title;
     static readonly description = desc.description;
-    static readonly basicFields = desc.basicFields;
+    static readonly inlineFields = desc.inlineFields;
+    static readonly inputFields  = desc.inputFields;
     static readonly metadataOutputTypes = desc.outputs;
 
     async process(
@@ -306,7 +308,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Blur",
     description:
       "Apply a Gaussian blur effect to an image.\n    image, filter, blur\n\n    - Soften images or reduce noise and detail\n    - Make focal areas stand out by blurring surroundings\n    - Protect privacy by blurring sensitive information",
-    basicFields: ["image", "radius"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -344,7 +347,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Canny",
     description:
       "Apply Canny edge detection to an image.\n    image, filter, edges\n\n    - Highlight areas of rapid intensity change\n    - Outline object boundaries and structure\n    - Enhance inputs for object detection and image segmentation",
-    basicFields: ["image", "low_threshold", "high_threshold"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -393,7 +397,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Contour",
     description:
       "Apply a contour filter to highlight image edges.\n    image, filter, contour\n\n    - Extract key features from complex images\n    - Aid pattern recognition and object detection\n    - Create stylized contour sketch art effects",
-    basicFields: ["image"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -420,7 +425,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Convert To Grayscale",
     description:
       "Convert an image to grayscale.\n    image, grayscale\n\n    - Simplify images for feature and edge detection\n    - Prepare images for shape-based machine learning\n    - Create vintage or monochrome aesthetic effects",
-    basicFields: ["image"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -447,7 +453,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Emboss",
     description:
       "Apply an emboss filter for a 3D raised effect.\n    image, filter, emboss\n\n    - Add texture and depth to photos\n    - Create visually interesting graphics\n    - Incorporate unique effects in digital artwork",
-    basicFields: ["image"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -474,7 +481,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Expand",
     description:
       "Add a border around an image to increase its size.\n    image, border, expand\n\n    - Make images stand out by adding a colored border\n    - Create framed photo effects\n    - Separate image content from surroundings",
-    basicFields: ["image", "border", "fill"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -523,7 +531,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Find Edges",
     description:
       "Detect and highlight edges in an image.\n    image, filter, edges\n\n    - Analyze structural patterns in images\n    - Aid object detection in computer vision\n    - Detect important features like corners and ridges",
-    basicFields: ["image"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -550,7 +559,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Get Channel",
     description:
       "Extract a specific color channel from an image.\n    image, color, channel, isolate, extract\n\n    - Isolate color information for image analysis\n    - Manipulate specific color components in graphic design\n    - Enhance or reduce visibility of certain colors",
-    basicFields: ["image", "channel"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -586,7 +596,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Invert",
     description:
       "Invert the colors of an image.\n    image, filter, invert\n\n    - Create negative versions of images for visual effects\n    - Analyze image data by bringing out hidden details\n    - Preprocess images for operations that work better on inverted colors",
-    basicFields: ["image"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -613,7 +624,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Posterize",
     description:
       "Reduce the number of colors in an image for a poster-like effect.\n    image, filter, posterize\n\n    - Create graphic art by simplifying image colors\n    - Apply artistic effects to photographs\n    - Generate visually compelling content for advertising",
-    basicFields: ["image", "bits"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -651,7 +663,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Smooth",
     description:
       "Apply smoothing to reduce image noise and detail.\n    image, filter, smooth\n\n    - Enhance visual aesthetics of images\n    - Improve object detection by reducing irrelevant details\n    - Aid facial recognition by simplifying images",
-    basicFields: ["image"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -678,7 +691,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Solarize",
     description:
       "Apply a solarize effect to partially invert image tones.\n    image, filter, solarize\n\n    - Create surreal artistic photo effects\n    - Enhance visual data by making certain elements more prominent\n    - Add a unique style to images for graphic design",
-    basicFields: ["image", "threshold"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },

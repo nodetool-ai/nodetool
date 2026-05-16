@@ -1,10 +1,11 @@
-import { memo, useState, useCallback, useRef, useEffect } from "react";
-import { colorForType, textColorForType } from "../config/data_types";
+import { memo, useState, useCallback, useContext, useRef, useEffect } from "react";
+import { colorForType } from "../config/data_types";
 import { typeToString } from "../utils/TypeHandler";
 import { createPortal } from "react-dom";
 import { getMousePosition } from "../utils/MousePosition";
 import { TypeMetadata } from "../stores/ApiTypes";
 import useConnectionStore from "../stores/ConnectionStore";
+import { NodeSelectionContext } from "./node/NodeSelectionContext";
 
 const LEFT_OFFSET_X = -32;
 const RIGHT_OFFSET_X = 32;
@@ -28,13 +29,13 @@ const formatTypeString = (typeMetadata: TypeMetadata): string => {
   ) {
     const typeArgs = typeMetadata.type_args;
     const types = [typeArgs[0].type, typeArgs[1].type].sort();
-    
+
     // Check if it's a union of float and int (in any order)
     if (types[0] === "float" && types[1] === "int") {
       return "number";
     }
   }
-  
+
   return typeToString(typeMetadata);
 };
 
@@ -70,6 +71,10 @@ const HandleTooltip = memo(function HandleTooltip({
   const isConnecting = useConnectionStore(
     (state) => state.connecting || state.isReconnecting
   );
+  // When the owning node is selected, force every handle's tooltip visible
+  // so the user can see every port's name + type at a glance without
+  // hovering each one. Selection toggles cleanly via the context provider.
+  const nodeSelected = useContext(NodeSelectionContext);
 
   // Ref to keep track of the timer used for delaying tooltip appearance
   const showTimerRef = useRef<number | null>(null);
@@ -94,13 +99,37 @@ const HandleTooltip = memo(function HandleTooltip({
     setShowTooltip(false);
   }, [isConnecting]);
 
+  // Force-show the tooltip while the owning node is selected. Position is
+  // captured once from the wrapper's bounding rect when selection turns on
+  // (and re-captured when handlePosition changes).
+  useEffect(() => {
+    if (!nodeSelected || isConnecting || !enableHover) {
+      setShowTooltip(false);
+      return;
+    }
+    if (showTimerRef.current !== null) {
+      clearTimeout(showTimerRef.current);
+      showTimerRef.current = null;
+    }
+    const el = wrapperRef.current;
+    if (!el) {
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    setTooltipPosition({
+      x: handlePosition === "left" ? rect.left : rect.right,
+      y: rect.top + rect.height / 2
+    });
+    setShowTooltip(true);
+  }, [nodeSelected, isConnecting, enableHover, handlePosition]);
+
   const prettyName = displayName ?? paramName
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
-  
+
   const displayType = formatTypeString(typeMetadata);
-  // Use "float" for color when displaying "number" (float|int union), 
+  // Use "float" for color when displaying "number" (float|int union),
   // since both float and int use the same color
   const typeString = displayType === "number" ? "float" : typeMetadata.type;
 
@@ -117,13 +146,17 @@ const HandleTooltip = memo(function HandleTooltip({
   }, [enableHover, isConnecting]);
 
   const handleMouseLeave = useCallback(() => {
+    // Don't hide the forced tooltip on mouse-leave while the node is selected.
+    if (nodeSelected) {
+      return;
+    }
     // Cancel pending timer if it exists
     if (showTimerRef.current !== null) {
       clearTimeout(showTimerRef.current);
       showTimerRef.current = null;
     }
     setShowTooltip(false);
-  }, []);
+  }, [nodeSelected]);
 
   const handleFocus = useCallback(() => {
     if (!enableHover) {
@@ -141,8 +174,11 @@ const HandleTooltip = memo(function HandleTooltip({
   }, [enableHover]);
 
   const handleBlur = useCallback(() => {
+    if (nodeSelected) {
+      return;
+    }
     setShowTooltip(false);
-  }, []);
+  }, [nodeSelected]);
 
   const isPropertyVariant = variant === "property";
 
@@ -161,12 +197,15 @@ const HandleTooltip = memo(function HandleTooltip({
       <div
         className="handle-tooltip-content"
         style={{
-          backgroundColor: isPropertyVariant
-            ? "var(--palette-grey-800)"
-            : colorForType(typeString),
+          backgroundColor: "transparent",
           color: isPropertyVariant
             ? "var(--palette-grey-100)"
-            : textColorForType(typeString)
+            : colorForType(typeString),
+          border: `1px solid ${
+            isPropertyVariant
+              ? "var(--palette-grey-700)"
+              : colorForType(typeString)
+          }`
         }}
       >
         <div className="handle-tooltip-name">

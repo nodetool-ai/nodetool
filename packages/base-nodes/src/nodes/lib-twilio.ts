@@ -17,6 +17,8 @@ function twilioAuthHeader(sid: string, token: string): string {
 export class TwilioSendSMSLibNode extends BaseNode {
   static readonly nodeType = "lib.twilio.SendSMS";
   static readonly title = "Send SMS";
+  static readonly inlineFields = ["to", "from_number"];
+  static readonly inputFields = ["body"];
   static readonly description =
     "Send an SMS message via the Twilio REST API.\n    twilio, sms, text, send, message\n\n    Use cases:\n    - Send notification texts\n    - Automate SMS alerts\n    - Send verification codes";
   static readonly metadataOutputTypes = {
@@ -133,6 +135,8 @@ export class TwilioSendSMSLibNode extends BaseNode {
 export class TwilioSendWhatsAppLibNode extends BaseNode {
   static readonly nodeType = "lib.twilio.SendWhatsApp";
   static readonly title = "Send WhatsApp";
+  static readonly inlineFields = ["to", "from_number"];
+  static readonly inputFields = ["body"];
   static readonly description =
     "Send a WhatsApp message via the Twilio REST API.\n    twilio, whatsapp, message, send\n\n    Use cases:\n    - Send WhatsApp notifications\n    - Automate WhatsApp customer messages\n    - Send rich media via WhatsApp";
   static readonly metadataOutputTypes = {
@@ -258,6 +262,8 @@ export class TwilioSendWhatsAppLibNode extends BaseNode {
 export class TwilioGetMessagesLibNode extends BaseNode {
   static readonly nodeType = "lib.twilio.GetMessages";
   static readonly title = "Get Messages";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly description =
     "List recent SMS/MMS messages from a Twilio account.\n    twilio, sms, messages, list, history\n\n    Use cases:\n    - Retrieve message history\n    - Monitor incoming messages\n    - Audit sent messages";
   static readonly metadataOutputTypes = {
@@ -414,6 +420,8 @@ export class TwilioGetMessagesLibNode extends BaseNode {
 export class TwilioLookupLibNode extends BaseNode {
   static readonly nodeType = "lib.twilio.Lookup";
   static readonly title = "Lookup Phone Number";
+  static readonly inlineFields = ["phone_number"];
+  static readonly inputFields = [];
   static readonly description =
     "Look up phone number information using the Twilio Lookup API.\n    twilio, phone, lookup, carrier, number\n\n    Use cases:\n    - Validate phone numbers\n    - Get carrier information\n    - Determine phone number type (mobile, landline)";
   static readonly metadataOutputTypes = {

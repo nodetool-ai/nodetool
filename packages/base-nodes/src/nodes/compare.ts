@@ -27,7 +27,8 @@ export class CompareImagesNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "none"
   };
-  static readonly basicFields = ["image_a", "image_b"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image_a", "image_b"];
 
   @prop({
     type: "image",

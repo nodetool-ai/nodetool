@@ -5,6 +5,8 @@ export class SentimentAnalysisLibNode extends BaseNode {
   static readonly title = "Sentiment Analysis";
   static readonly description =
     "Analyzes sentiment of text using natural's SentimentAnalyzer.\n    sentiment, opinion, polarity, text analysis, NLP\n\n    Use cases:\n    - Determine positive or negative tone of text\n    - Analyze customer feedback sentiment\n    - Score product reviews\n    - Monitor social media sentiment";
+  static readonly inlineFields = ["text", "language"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     score: "float",
     comparative: "float",
@@ -78,6 +80,8 @@ export class TokenizeLibNode extends BaseNode {
   static readonly title = "Tokenize";
   static readonly description =
     "Tokenizes text into words or sentences.\n    tokenize, split, words, sentences, NLP\n\n    Use cases:\n    - Break text into individual words for analysis\n    - Split text into sentences for processing\n    - Prepare text for further NLP operations\n    - Count words or sentences in text";
+  static readonly inlineFields = ["text", "mode"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list",
     count: "int"
@@ -128,6 +132,8 @@ export class StemLibNode extends BaseNode {
   static readonly title = "Stem";
   static readonly description =
     "Stems words to their root form.\n    stem, root, morphology, NLP, text processing\n\n    Use cases:\n    - Reduce words to their base form for matching\n    - Normalize text for search indexing\n    - Prepare text for comparison and deduplication\n    - Improve text similarity matching";
+  static readonly inlineFields = ["text", "algorithm"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str",
     tokens: "list"
@@ -180,6 +186,8 @@ export class TfIdfLibNode extends BaseNode {
   static readonly title = "TF-IDF";
   static readonly description =
     "Computes TF-IDF scores for terms across multiple documents.\n    tf-idf, term frequency, document frequency, text analysis, NLP\n\n    Use cases:\n    - Rank document relevance for a search query\n    - Identify important terms in a collection of documents\n    - Build keyword extraction pipelines\n    - Compare document similarity by term importance";
+  static readonly inlineFields = ["query"];
+  static readonly inputFields = ["documents"];
   static readonly metadataOutputTypes = {
     output: "list"
   };
@@ -229,6 +237,8 @@ export class ClassifyTextLibNode extends BaseNode {
   static readonly title = "Classify Text";
   static readonly description =
     "Trains a Naive Bayes classifier and classifies text.\n    classify, categorize, naive bayes, machine learning, NLP\n\n    Use cases:\n    - Categorize text into predefined labels\n    - Build simple spam detection\n    - Classify customer support tickets\n    - Sort documents by topic";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = ["training_data"];
   static readonly metadataOutputTypes = {
     output: "str",
     classifications: "list"
@@ -293,6 +303,8 @@ export class ExtractEntitiesLibNode extends BaseNode {
   static readonly title = "Extract Entities";
   static readonly description =
     "Extracts named entities and parts of speech using compromise.\n    NER, named entities, parts of speech, NLP, text analysis\n\n    Use cases:\n    - Extract people, places, and organizations from text\n    - Identify nouns and verbs in sentences\n    - Build knowledge graphs from unstructured text\n    - Analyze text structure and content";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     people: "list",
     places: "list",
@@ -351,6 +363,8 @@ export class PhoneticMatchLibNode extends BaseNode {
   static readonly title = "Phonetic Match";
   static readonly description =
     "Computes phonetic codes for words using Soundex, Metaphone, or Double Metaphone.\n    phonetics, soundex, metaphone, fuzzy matching, NLP\n\n    Use cases:\n    - Find words that sound alike\n    - Build fuzzy name matching systems\n    - Implement spell correction suggestions\n    - Match names with different spellings";
+  static readonly inlineFields = ["text", "algorithm"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str",
     tokens: "list"

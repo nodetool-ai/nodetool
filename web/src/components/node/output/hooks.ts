@@ -30,7 +30,7 @@ interface ImageValue extends TypedValue {
   name?: string;
 }
 
-function toUint8Array(
+export function toUint8Array(
   value: unknown
 ): Uint8Array<ArrayBuffer> | undefined {
   if (!value) {
@@ -170,9 +170,29 @@ export function useSignedUrl(uri: string | undefined | null): string {
   return data?.url ?? resolveAssetUri(uri);
 }
 
-export function useVideoSrc(value: unknown) {
+function isVideoValue(value: unknown): value is VideoValue {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    (value as TypedValue).type === "video"
+  );
+}
+
+function isImageValueArray(value: unknown): value is ImageValue[] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    typeof value[0] === "object" &&
+    value[0] !== null &&
+    "type" in value[0] &&
+    (value[0] as TypedValue).type === "image"
+  );
+}
+
+export function useVideoSrc(value: unknown): React.RefObject<HTMLVideoElement | null> {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const videoValue = value as VideoValue | null;
+  const videoValue = isVideoValue(value) ? value : null;
   const signedUrl = useSignedUrl(videoValue?.uri);
 
   useEffect(() => {
@@ -191,20 +211,15 @@ export function useVideoSrc(value: unknown) {
   return videoRef;
 }
 
-export function useImageAssets(value: unknown) {
+export function useImageAssets(value: unknown): { assets: Asset[]; urls: string[] } {
   return useMemo(() => {
-    const imageValues = value as ImageValue[];
-    if (
-      !Array.isArray(imageValues) ||
-      imageValues.length === 0 ||
-      imageValues[0]?.type !== "image"
-    ) {
-      return { assets: [] as Asset[], urls: [] as string[] };
+    if (!isImageValueArray(value)) {
+      return { assets: [], urls: [] };
     }
+    const imageValues = value;
     const urls: string[] = [];
-    const assets: Asset[] = (imageValues as AssetRef[]).map(
-      (item: AssetRef, index: number) => {
-        const imageItem = item as ImageValue;
+    const assets: Asset[] = imageValues.map(
+      (imageItem: ImageValue, index: number) => {
         const contentType = "image/png";
         let url = "";
         if (imageItem.uri) {
@@ -244,7 +259,7 @@ export function useImageAssets(value: unknown) {
   }, [value]);
 }
 
-export function useRevokeBlobUrls(urls: string[]) {
+export function useRevokeBlobUrls(urls: string[]): void {
   useEffect(() => {
     return () => {
       urls.forEach((u) => {

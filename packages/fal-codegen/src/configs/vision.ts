@@ -13,8 +13,7 @@ export const config: ModuleConfig = {
         "Quality control for generated images",
         "Rank images by text relevance",
         "Evaluate caption accuracy"
-      ],
-      basicFields: ["image", "text"]
+      ]
     },
     "fal-ai/arbiter/image/image": {
       className: "ArbiterImageImage",
@@ -33,8 +32,7 @@ export const config: ModuleConfig = {
         "Find duplicate images",
         "Rank image variations",
         "Evaluate image consistency"
-      ],
-      basicFields: ["image1", "image2"]
+      ]
     },
     "fal-ai/arbiter/image": {
       className: "ArbiterImage",
@@ -47,8 +45,7 @@ export const config: ModuleConfig = {
         "Evaluate visual properties",
         "Assess image characteristics",
         "Generate quality reports"
-      ],
-      basicFields: ["image"]
+      ]
     },
     "fal-ai/florence-2-large/region-to-description": {
       className: "Florence2RegionToDescription",
@@ -61,8 +58,7 @@ export const config: ModuleConfig = {
         "Extract region information",
         "Annotate image areas",
         "Create detailed region descriptions"
-      ],
-      basicFields: ["image", "region"]
+      ]
     },
     "fal-ai/florence-2-large/ocr": {
       className: "Florence2OCR",
@@ -75,8 +71,7 @@ export const config: ModuleConfig = {
         "Digitize printed text",
         "Parse image text content",
         "Convert images to text"
-      ],
-      basicFields: ["image"]
+      ]
     },
     "fal-ai/florence-2-large/more-detailed-caption": {
       className: "Florence2MoreDetailedCaption",
@@ -95,8 +90,7 @@ export const config: ModuleConfig = {
         "Produce rich image narratives",
         "Analyze image content thoroughly",
         "Generate long-form descriptions"
-      ],
-      basicFields: ["image"]
+      ]
     },
     "fal-ai/florence-2-large/region-to-category": {
       className: "Florence2RegionToCategory",
@@ -115,8 +109,7 @@ export const config: ModuleConfig = {
         "Label image segments",
         "Identify region types",
         "Semantic region analysis"
-      ],
-      basicFields: ["image", "region"]
+      ]
     },
     "fal-ai/florence-2-large/caption": {
       className: "Florence2Caption",
@@ -129,8 +122,7 @@ export const config: ModuleConfig = {
         "Describe images concisely",
         "Automate image descriptions",
         "Produce accessibility captions"
-      ],
-      basicFields: ["image"]
+      ]
     },
     "fal-ai/florence-2-large/detailed-caption": {
       className: "Florence2DetailedCaption",
@@ -149,8 +141,7 @@ export const config: ModuleConfig = {
         "Produce comprehensive captions",
         "Analyze image context",
         "Generate informative descriptions"
-      ],
-      basicFields: ["image"]
+      ]
     },
     "fal-ai/sam-3/image/embed": {
       className: "Sam3ImageEmbed",

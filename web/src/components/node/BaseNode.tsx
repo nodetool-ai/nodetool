@@ -32,7 +32,7 @@ import InputNodeNameWarning from "./InputNodeNameWarning";
 import RequiredSettingsWarning from "./RequiredSettingsWarning";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
-import ResultOverlay from "./ResultOverlay";
+import { NodeSelectionContext } from "./NodeSelectionContext";
 import { getBaseNodeSelectionStyles } from "./selectionStyles";
 import NodeToolButtons from "./NodeToolButtons";
 import NodeExecutionTime from "./NodeExecutionTime";
@@ -61,8 +61,7 @@ import {
   CODE_NODE_TYPE,
   isCodeNode,
   isCodeNodeTitleEditable,
-  resolveCodeNodeTitle,
-  resolveVisibleBasicFields
+  resolveCodeNodeTitle
 } from "./codeNodeUi";
 
 // CONSTANTS
@@ -73,21 +72,6 @@ const MAX_OUTPUT_DRIVEN_MIN_HEIGHT_PX = 320;
 const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
 const MIN_NODE_HEIGHT = 100;
-
-const RESULT_PANEL_STYLE: React.CSSProperties = {
-  position: "absolute",
-  bottom: "calc(100% + 8px)",
-  left: 0,
-  right: 0,
-  maxHeight: 300,
-  overflow: "auto",
-  borderRadius: "var(--rounded-lg)",
-  backgroundColor: "var(--palette-grey-900)",
-  border: "1px solid var(--palette-grey-800)",
-  zIndex: 5,
-  boxShadow: "0 -2px 12px rgba(0,0,0,0.25), 0 4px 24px rgba(0,0,0,0.15)",
-  padding: "8px"
-};
 
 const isEmptyResult = (obj: unknown) =>
   obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
@@ -375,7 +359,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
   const updateNode = useNodes((state: NodeStoreState) => state.updateNode);
   const hasParent = Boolean(parentId);
-  const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
   const initialRenderRef = useRef(true);
   const suppressResultOverlay = type === "nodetool.constant.Model3D";
@@ -422,27 +405,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const meta = useMemo(() => {
-    const nodeBasicFields = resolveVisibleBasicFields(
-      type,
-      metadata.basic_fields || [],
-      data
-    );
     return {
       nodeNamespace: metadata.namespace || "",
-      nodeBasicFields,
-      hasAdvancedFields:
-        (metadata.properties?.length ?? 0) >
-        nodeBasicFields.length,
       showFooter: !specialNamespaces.includes(metadata.namespace || "")
     };
-  }, [
-    data,
-    type,
-    metadata.basic_fields,
-    metadata.namespace,
-    metadata.properties?.length,
-    specialNamespaces
-  ]);
+  }, [metadata.namespace, specialNamespaces]);
 
   const displayTitle = useMemo(
     () => resolveCodeNodeTitle(type, data.title, metadata.title),
@@ -669,12 +636,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [data.collapsed]
   );
 
-  const onToggleAdvancedFields = useCallback(() => {
-    setShowAdvancedFields(!showAdvancedFields);
-    // Reset node height to auto-size when toggling advanced fields
-    updateNode(id, { height: undefined, measured: undefined });
-  }, [showAdvancedFields, updateNode, id]);
-
   const handleNamespaceClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -716,26 +677,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [hasError, isOverlayVisible, id, updateNode]);
 
   return (
+    <NodeSelectionContext.Provider value={selected}>
     <Container
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
       className={styleProps.className}
       sx={containerSx}
     >
-      {/* Result panel — floats above the node */}
-      {isOverlayVisible && (
-        <div
-          className="result-panel-above"
-          style={RESULT_PANEL_STYLE}
-        >
-          <ResultOverlay
-            result={result}
-            nodeId={id}
-            workflowId={workflow_id}
-            nodeName={displayTitle}
-            onShowInputs={nodeType.isOutputNode ? undefined : handleShowInputs}
-          />
-        </div>
-      )}
       <Handle
         type="target"
         id={CONTROL_HANDLE_ID}
@@ -790,10 +737,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           nodeMetadata={metadata}
           isOutputNode={nodeType.isOutputNode}
           data={data}
-          hasAdvancedFields={meta.hasAdvancedFields}
-          showAdvancedFields={showAdvancedFields}
-          onToggleAdvancedFields={onToggleAdvancedFields}
-          basicFields={meta.nodeBasicFields}
           status={status}
           workflowId={workflow_id}
           showResultOverlay={
@@ -856,6 +799,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         </Tooltip>
       )}
     </Container>
+    </NodeSelectionContext.Provider>
   );
 };
 
