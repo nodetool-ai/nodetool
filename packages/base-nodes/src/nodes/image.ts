@@ -1667,6 +1667,65 @@ export class RotateAndFlipNode extends TransformImageNode {
   }
 }
 
+export class ChannelsNode extends TransformImageNode {
+  static readonly nodeType = "nodetool.image.Channels";
+  static readonly title = "Channels";
+  static readonly description =
+    "Extract a single channel from an image as a grayscale preview.\n    image, channel, red, green, blue, alpha, luminance";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to extract a channel from."
+  })
+  declare image: any;
+
+  @prop({
+    type: "str",
+    default: "luminance",
+    title: "Channel",
+    description: "Which channel to extract.",
+    values: ["red", "green", "blue", "alpha", "luminance"]
+  })
+  declare channel: any;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const channel = String(this.channel ?? "luminance");
+
+    const output = (await transformImage(
+      image,
+      (instance) => {
+        if (channel === "luminance") {
+          return instance.grayscale();
+        }
+        const idx =
+          channel === "green" ? 1 :
+          channel === "blue"  ? 2 :
+          channel === "alpha" ? 3 : 0;
+        // ensureAlpha guarantees channel 3 exists when the source is RGB.
+        return instance.ensureAlpha().extractChannel(idx);
+      },
+      context
+    )) as Record<string, unknown>;
+    return { output };
+  }
+}
+
 export const IMAGE_NODES = [
   LoadImageFileNode,
   LoadImageFolderNode,
@@ -1684,6 +1743,7 @@ export const IMAGE_NODES = [
   RotateNode,
   FlipNode,
   RotateAndFlipNode,
+  ChannelsNode,
   TextToImageNode,
   ImageToImageNode,
   ImageEditorNode
