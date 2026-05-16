@@ -89,7 +89,9 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
         value={assist.preset}
         onChange={(_, v) => {
           if (v) {
-            pushAssist(createStrokeAssistPreset(v as StrokeAssistPreset));
+            pushAssist(
+              createStrokeAssistPreset(v as Exclude<StrokeAssistPreset, "custom">)
+            );
           }
         }}
         sx={{ mb: "4px", flexWrap: "wrap" }}
