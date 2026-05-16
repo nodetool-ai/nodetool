@@ -67,11 +67,18 @@ const makeProps = (overrides: Record<string, unknown> = {}) => ({
   ...overrides
 });
 
+const stubStore = (overrides: Record<string, unknown> = {}) => ({
+  getOutputResult: () => null,
+  getResult: () => null,
+  getPreview: () => null,
+  ...overrides
+});
+
 describe("ChannelsBody", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedUseResultsStore.mockImplementation((selector: any) =>
-      selector({ getResult: () => null })
+      selector(stubStore())
     );
   });
 
@@ -83,9 +90,11 @@ describe("ChannelsBody", () => {
 
   it("renders ImageView when a result is present", () => {
     mockedUseResultsStore.mockImplementation((selector: any) =>
-      selector({
-        getResult: () => ({ output: { uri: "test-image.png" } })
-      })
+      selector(
+        stubStore({
+          getResult: () => ({ output: { uri: "test-image.png" } })
+        })
+      )
     );
     renderWithTheme(<ChannelsBody {...makeProps()} />);
     expect(screen.getByTestId("image-view")).toBeInTheDocument();

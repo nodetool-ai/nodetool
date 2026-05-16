@@ -3,7 +3,7 @@ layout: page
 title: "Node Reference"
 ---
 
-Complete reference documentation for all 566 NodeTool nodes across 70 namespaces.
+Complete reference documentation for all 578 NodeTool nodes across 70 namespaces.
 
 ## Namespaces
 
@@ -29,7 +29,7 @@ Complete reference documentation for all 566 NodeTool nodes across 70 namespaces
 ### lib
 
 - **[lib.audio](lib/audio/)** - 16 node(s)
-- **[lib.browser](lib/browser/)** - 6 node(s)
+- **[lib.browser](lib/browser/)** - 5 node(s)
 - **[lib.charts](lib/charts/)** - 1 node(s)
 - **[lib.convert](lib/convert/)** - 1 node(s)
 - **[lib.convert.pandoc](lib/convert/pandoc/)** - 2 node(s)
@@ -47,7 +47,7 @@ Complete reference documentation for all 566 NodeTool nodes across 70 namespaces
 - **[lib.notion](lib/notion/)** - 6 node(s)
 - **[lib.ocr](lib/ocr/)** - 2 node(s)
 - **[lib.os](lib/os/)** - 29 node(s)
-- **[lib.pdf](lib/pdf/)** - 10 node(s)
+- **[lib.pdf](lib/pdf/)** - 11 node(s)
 - **[lib.pptx](lib/pptx/)** - 2 node(s)
 - **[lib.rss](lib/rss/)** - 2 node(s)
 - **[lib.s3](lib/s3/)** - 7 node(s)
@@ -73,20 +73,20 @@ Complete reference documentation for all 566 NodeTool nodes across 70 namespaces
 
 ### nodetool
 
-- **[nodetool.agents](nodetool/agents/)** - 24 node(s)
+- **[nodetool.agents](nodetool/agents/)** - 25 node(s)
 - **[nodetool.audio](nodetool/audio/)** - 23 node(s)
 - **[nodetool.code](nodetool/code/)** - 19 node(s)
 - **[nodetool.compare](nodetool/compare/)** - 1 node(s)
 - **[nodetool.constant](nodetool/constant/)** - 28 node(s)
-- **[nodetool.control](nodetool/control/)** - 6 node(s)
+- **[nodetool.control](nodetool/control/)** - 17 node(s)
 - **[nodetool.data](nodetool/data/)** - 30 node(s)
 - **[nodetool.document](nodetool/document/)** - 8 node(s)
 - **[nodetool.generators](nodetool/generators/)** - 5 node(s)
-- **[nodetool.image](nodetool/image/)** - 17 node(s)
+- **[nodetool.image](nodetool/image/)** - 19 node(s)
 - **[nodetool.input](nodetool/input/)** - 33 node(s)
 - **[nodetool.model3d](nodetool/model3d/)** - 17 node(s)
 - **[nodetool.output](nodetool/output/)** - 1 node(s)
-- **[nodetool.sandbox](nodetool/sandbox/)** - 4 node(s)
+- **[nodetool.sandbox](nodetool/sandbox/)** - 2 node(s)
 - **[nodetool.team](nodetool/team/)** - 2 node(s)
 - **[nodetool.text](nodetool/text/)** - 50 node(s)
 - **[nodetool.triggers](nodetool/triggers/)** - 5 node(s)

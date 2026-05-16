@@ -29,14 +29,11 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
-import { shallow } from "zustand/shallow";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
+import type { SelectChangeEvent } from "@mui/material/Select";
 
-import {
-  CheckerDropzone,
-  FlexColumn,
-  FlexRow,
-  SelectField
-} from "../../ui_primitives";
+import { CheckerDropzone } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
@@ -44,9 +41,8 @@ import NumberInput from "../../inputs/NumberInput";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
-import { useNodes } from "../../../contexts/NodeContext";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
+import { useNodeOutput, useUpstreamValue } from "../../../hooks/nodes/useNodeIO";
 
 const CROP_NODE_TYPE = "nodetool.image.Crop";
 
@@ -82,6 +78,11 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(0.5),
       minHeight: 0
     },
+    "& > .handle-column": {
+      top: theme.spacing(1),
+      bottom: theme.spacing(1),
+      left: `calc(${theme.spacing(-0.5)})`
+    },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
@@ -91,12 +92,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900],
       display: "flex",
       alignItems: "center",
-      justifyContent: "center",
-      "& > .handle-column": {
-        top: 0,
-        bottom: 0,
-        left: `calc(${theme.spacing(-0.5)})`
-      }
+      justifyContent: "center"
     },
     ".image-stage": {
       position: "relative",
@@ -151,39 +147,70 @@ const styles = (theme: Theme) =>
       borderRadius: "var(--rounded-sm)",
       pointerEvents: "none"
     },
-    ".aspect-row": {
-      flex: "0 0 auto"
-    },
-    ".dims-row": {
+    ".controls": {
       flex: "0 0 auto",
+      display: "grid",
+      gridTemplateColumns: "auto 1fr auto",
+      columnGap: theme.spacing(1),
+      rowGap: theme.spacing(0.75),
+      alignItems: "center",
+      padding: `${theme.spacing(0.5)} ${theme.spacing(0.75)} ${theme.spacing(0.25)}`
+    },
+    ".ctrl-label": {
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.text.secondary,
+      textTransform: "uppercase",
+      letterSpacing: "0.04em",
+      lineHeight: 1
+    },
+    ".aspect-select": {
+      gridColumn: "2 / span 2",
+      width: "100%",
+      fontSize: theme.fontSizeSmaller,
+      ".MuiSelect-select": {
+        padding: `${theme.spacing(0.25)} ${theme.spacing(1)} ${theme.spacing(0.25)} 0`
+      }
+    },
+    ".dims-cluster": {
       display: "flex",
-      alignItems: "flex-end",
-      gap: theme.spacing(0.5)
-    },
-    ".dim-field": {
-      flex: "1 1 50%",
-      minWidth: 0
-    },
-    ".outputs-row": {
-      flex: "0 0 auto"
+      alignItems: "center",
+      gap: theme.spacing(0.5),
+      minWidth: 0,
+      "& .dim-field": {
+        flex: "1 1 0",
+        minWidth: 0
+      },
+      "& .dim-x": {
+        flex: "0 0 auto",
+        color: theme.vars.palette.text.secondary,
+        fontSize: theme.fontSizeSmaller,
+        fontFamily: theme.fontFamily2,
+        userSelect: "none"
+      }
     },
     ".reset-btn": {
-      flex: "0 0 auto",
+      gridColumn: "3",
       display: "inline-flex",
       alignItems: "center",
-      gap: theme.spacing(0.25),
-      padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
+      justifyContent: "center",
+      width: 22,
+      height: 22,
+      padding: 0,
       borderRadius: "var(--rounded-sm)",
       border: `1px solid ${theme.vars.palette.divider}`,
       background: "transparent",
       color: theme.vars.palette.text.secondary,
-      fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmaller,
       cursor: "pointer",
       "&:hover": {
         background: theme.vars.palette.action.hover,
         color: theme.vars.palette.text.primary
+      },
+      "& svg": {
+        fontSize: 14
       }
+    },
+    ".outputs-row": {
+      flex: "0 0 auto"
     }
   });
 
@@ -203,18 +230,6 @@ const asImageRef = (value: unknown): ImageRefLike | undefined => {
     height: typeof v.height === "number" ? (v.height as number) : undefined,
     data: v.data
   };
-};
-
-/** Walk the `output`-shaped result envelope down to the bare image value. */
-const unwrapOutput = (
-  value: unknown,
-  handle?: string | null
-): unknown => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
-  const v = value as Record<string, unknown>;
-  if (handle && handle in v) return v[handle];
-  if ("output" in v) return v.output;
-  return value;
 };
 
 const toSource = (img: ImageRefLike | undefined): string | undefined => {
@@ -283,42 +298,21 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
     [properties]
   );
 
-  // ── Resolve preview source image ──────────────────────────────────
-  // Edge feeding our `image` input → upstream node's result on its
-  // sourceHandle. Fall back to a constant `image` prop value, then to
-  // our own result so the user sees something post-run.
-  const upstreamEdge = useNodes(
-    (state) =>
-      state.edges.find(
-        (e) => e.target === id && (e.targetHandle ?? "") === "image"
-      ),
-    shallow
+  // Resolve preview source: edge feeding `image` → constant `image` prop →
+  // our own output (post-run fallback so the user sees something).
+  const inputValue = useUpstreamValue(
+    workflowId,
+    id,
+    "image",
+    data.properties?.image
   );
-
-  const upstreamResult = useResultsStore(
-    (state) =>
-      upstreamEdge
-        ? state.getResult(workflowId, upstreamEdge.source)
-        : undefined,
-    shallow
-  );
-
-  const myResult = useResultsStore(
-    (state) => state.getResult(workflowId, id),
-    shallow
-  );
+  const ownOutput = useNodeOutput(workflowId, id);
 
   const sourceImage: ImageRefLike | undefined = useMemo(() => {
-    if (upstreamEdge) {
-      const v = unwrapOutput(upstreamResult, upstreamEdge.sourceHandle);
-      const ref = asImageRef(v);
-      if (ref) return ref;
-    }
-    const constRef = asImageRef(data.properties?.image);
-    if (constRef && (constRef.uri || constRef.data)) return constRef;
-    const myImg = asImageRef(unwrapOutput(myResult));
-    return myImg;
-  }, [upstreamEdge, upstreamResult, data.properties?.image, myResult]);
+    const fromInput = asImageRef(inputValue);
+    if (fromInput && (fromInput.uri || fromInput.data)) return fromInput;
+    return asImageRef(ownOutput);
+  }, [inputValue, ownOutput]);
 
   const sourceSrc = useMemo(() => toSource(sourceImage), [sourceImage]);
 
@@ -513,8 +507,8 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
 
   // ── Aspect / W / H / Reset handlers ───────────────────────────────
   const handleAspectChange = useCallback(
-    (value: string) => {
-      const key = value as AspectKey;
+    (event: SelectChangeEvent<AspectKey>) => {
+      const key = event.target.value as AspectKey;
       setAspect(key);
       const ratio = parseAspect(key);
       if (!ratio || !imgDims) return;
@@ -590,6 +584,7 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
 
   return (
     <div css={cssStyles} className="crop-body" data-bespoke-body="Crop">
+      <HandleColumn id={id} properties={imageProperty} />
       <div className="preview-area">
         <div className="image-stage" ref={stageRef}>
           {sourceSrc ? (
@@ -681,21 +676,28 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
             {cropW} × {cropH} px
           </span>
         )}
-        <HandleColumn id={id} properties={imageProperty} />
       </div>
 
-      <FlexColumn className="controls" gap={0.5}>
-        <div className="aspect-row">
-          <SelectField
-            label="Aspect ratio"
-            value={aspect}
-            onChange={handleAspectChange}
-            options={ASPECT_OPTIONS}
-            size="small"
-            variant="standard"
-          />
-        </div>
-        <FlexRow className="dims-row" align="flex-end" gap={0.5}>
+      <div className="controls">
+        <span className="ctrl-label">Aspect</span>
+        <Select
+          className="aspect-select nodrag"
+          size="small"
+          variant="standard"
+          value={aspect}
+          onChange={handleAspectChange}
+          aria-label="Aspect ratio"
+          disableUnderline
+        >
+          {ASPECT_OPTIONS.map((o) => (
+            <MenuItem key={o.value} value={o.value} dense>
+              {o.label}
+            </MenuItem>
+          ))}
+        </Select>
+
+        <span className="ctrl-label">Size</span>
+        <div className="dims-cluster">
           <div className="dim-field">
             <NumberInput
               id={`crop-width-${id}`}
@@ -709,10 +711,12 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
               color="secondary"
               inputType="int"
               showSlider={false}
+              hideLabel
               onChange={handleWidthChange}
               onChangeComplete={setPropertyComplete}
             />
           </div>
+          <span className="dim-x">×</span>
           <div className="dim-field">
             <NumberInput
               id={`crop-height-${id}`}
@@ -726,21 +730,22 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
               color="secondary"
               inputType="int"
               showSlider={false}
+              hideLabel
               onChange={handleHeightChange}
               onChangeComplete={setPropertyComplete}
             />
           </div>
-          <button
-            type="button"
-            className="reset-btn"
-            onClick={handleReset}
-            aria-label="Reset crop"
-          >
-            <RestartAltIcon fontSize="small" />
-            Reset
-          </button>
-        </FlexRow>
-      </FlexColumn>
+        </div>
+        <button
+          type="button"
+          className="reset-btn"
+          onClick={handleReset}
+          aria-label="Reset crop"
+          title="Reset crop"
+        >
+          <RestartAltIcon fontSize="small" />
+        </button>
+      </div>
 
       {!isOutputNode && (
         <div className="outputs-row">

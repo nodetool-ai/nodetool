@@ -539,15 +539,6 @@ describe("lib-image-enhance nodes", () => {
 // ===========================================================================
 
 describe("lib-image-filter nodes", () => {
-  it("Blur — blurs image with given radius", async () => {
-    const img = await makeTestImage(8, 8);
-    const output = await runNode(LIB_IMAGE_FILTER_NODES, ".Blur", {
-      image: img,
-      radius: 2
-    });
-    assertValidImage(output);
-  });
-
   it("Canny — detects edges", async () => {
     const img = await makeTestImage(8, 8);
     const output = await runNode(LIB_IMAGE_FILTER_NODES, ".Canny", {
@@ -606,15 +597,6 @@ describe("lib-image-filter nodes", () => {
     const img = await makeTestImage(8, 8);
     const output = await runNode(LIB_IMAGE_FILTER_NODES, ".FindEdges", {
       image: img
-    });
-    assertValidImage(output);
-  });
-
-  it("GetChannel — extracts red channel", async () => {
-    const img = await makeTestImage(4, 4, 200, 100, 50);
-    const output = await runNode(LIB_IMAGE_FILTER_NODES, ".GetChannel", {
-      image: img,
-      channel: "R"
     });
     assertValidImage(output);
   });

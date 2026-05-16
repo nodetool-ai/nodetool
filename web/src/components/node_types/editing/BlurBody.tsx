@@ -2,9 +2,9 @@
 /**
  * BlurBody — bespoke body for `nodetool.image.Blur` (plan §9.E4, PR 12).
  *
- * Image preview at top with a CSS-filter approximation of the current blur
- * for instant visual feedback; server reconciles on commit. Bottom: type
- * dropdown (Gaussian / Box / Motion) and a 0–100 size slider.
+ * Top: preview of the server output. Bottom: type dropdown (Gaussian /
+ * Box / Motion) and a 0–100 size slider. The preview reflects whatever
+ * the server most recently produced — no client-side approximation.
  */
 
 import React, { memo, useCallback, useMemo } from "react";
@@ -15,14 +15,8 @@ import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import type { SelectChangeEvent } from "@mui/material/Select";
 import ImageIcon from "@mui/icons-material/Image";
-import { shallow } from "zustand/shallow";
 
-import {
-  CheckerDropzone,
-  FlexColumn,
-  FlexRow,
-  NodeSlider
-} from "../../ui_primitives";
+import { CheckerDropzone, NodeSlider } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageView from "../../node/ImageView";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -30,8 +24,8 @@ import NodeProgress from "../../node/NodeProgress";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
+import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
 
 const BLUR_NODE_TYPE = "nodetool.image.Blur";
 
@@ -41,14 +35,6 @@ const BLUR_TYPES: ReadonlyArray<{ value: BlurType; label: string }> = [
   { value: "gaussian", label: "Gaussian" },
   { value: "box", label: "Box" },
   { value: "motion", label: "Motion" }
-];
-
-const SIZE_MARKS = [
-  { value: 0, label: "0" },
-  { value: 25 },
-  { value: 50, label: "50" },
-  { value: 75 },
-  { value: 100, label: "100" }
 ];
 
 const styles = (theme: Theme) =>
@@ -63,6 +49,11 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(0.5),
       minHeight: 0
     },
+    "& > .handle-column": {
+      top: theme.spacing(1),
+      bottom: theme.spacing(1),
+      left: `calc(${theme.spacing(-0.5)})`
+    },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
@@ -73,20 +64,6 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      "& > .handle-column": {
-        top: 0,
-        bottom: 0,
-        left: `calc(${theme.spacing(-0.5)})`
-      },
-      ".blur-wrap": {
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        transition: "filter 60ms linear",
-        willChange: "filter"
-      },
       "& img": {
         display: "block",
         maxWidth: "100%",
@@ -96,30 +73,35 @@ const styles = (theme: Theme) =>
     },
     ".controls": {
       flex: "0 0 auto",
-      paddingTop: theme.spacing(0.25)
+      display: "grid",
+      gridTemplateColumns: "auto 1fr auto",
+      columnGap: theme.spacing(1),
+      rowGap: theme.spacing(0.75),
+      alignItems: "center",
+      padding: `${theme.spacing(0.5)} ${theme.spacing(0.75)} ${theme.spacing(0.25)}`
     },
-    ".type-row": {
-      paddingLeft: theme.spacing(0.5),
-      paddingRight: theme.spacing(0.5)
-    },
-    ".type-select": {
-      flex: "1 1 auto",
-      fontSize: theme.fontSizeSmaller,
-      ".MuiSelect-select": {
-        padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`
-      }
-    },
-    ".size-row": {
-      paddingLeft: theme.spacing(0.5),
-      paddingRight: theme.spacing(0.5)
-    },
-    ".size-readout": {
-      flex: "0 0 auto",
-      minWidth: 32,
-      fontFamily: theme.fontFamily2,
+    ".ctrl-label": {
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.text.secondary,
-      textAlign: "right"
+      textTransform: "uppercase",
+      letterSpacing: "0.04em",
+      lineHeight: 1
+    },
+    ".ctrl-value": {
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.text.primary,
+      minWidth: 24,
+      textAlign: "right",
+      lineHeight: 1
+    },
+    ".type-select": {
+      gridColumn: "2 / span 2",
+      width: "100%",
+      fontSize: theme.fontSizeSmaller,
+      ".MuiSelect-select": {
+        padding: `${theme.spacing(0.25)} ${theme.spacing(1)} ${theme.spacing(0.25)} 0`
+      }
     },
     ".outputs-row": {
       flex: "0 0 auto"
@@ -195,28 +177,7 @@ const BlurBodyInner: React.FC<BlurBodyProps> = ({
   const blurType: BlurType = (BLUR_TYPES.find((t) => t.value === rawType)
     ?.value ?? "gaussian") as BlurType;
 
-  // Live preview filter — CSS `blur(Npx)` is a Gaussian; we use it as a
-  // visual approximation for all three modes and let the server output
-  // reconcile the exact algorithm once a run lands.
-  const filter = useMemo(() => {
-    if (!size) return "none";
-    const px = Math.max(0, size * 0.5);
-    return `blur(${px}px)`;
-  }, [size]);
-
-  const result = useResultsStore(
-    (state) => state.getResult(workflowId, id),
-    shallow
-  );
-  const previewValue = useMemo(() => {
-    if (result && typeof result === "object" && !Array.isArray(result)) {
-      const r = result as Record<string, unknown>;
-      if ("output" in r) {
-        return r.output;
-      }
-    }
-    return result;
-  }, [result]);
+  const previewValue = useNodeOutput(workflowId, id);
 
   const { setProperty, setPropertyComplete } = useBespokePropertyWriter({
     nodeId: id,
@@ -246,45 +207,41 @@ const BlurBodyInner: React.FC<BlurBodyProps> = ({
 
   return (
     <div css={cssStyles} className="blur-body" data-bespoke-body="Blur">
+      <HandleColumn id={id} properties={imageProperty} />
       <div className="preview-area">
-        <div className="blur-wrap" style={{ filter }}>
-          <ImagePreview value={previewValue} />
-        </div>
-        <HandleColumn id={id} properties={imageProperty} />
+        <ImagePreview value={previewValue} />
       </div>
 
-      <FlexColumn className="controls" gap={0.5}>
-        <FlexRow className="type-row" align="center" gap={0.5}>
-          <Select
-            className="type-select"
-            size="small"
-            variant="standard"
-            value={blurType}
-            onChange={handleTypeChange}
-            aria-label="Blur type"
-            disableUnderline
-          >
-            {BLUR_TYPES.map((t) => (
-              <MenuItem key={t.value} value={t.value} dense>
-                {t.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FlexRow>
-        <FlexRow className="size-row" align="center" gap={0.5}>
-          <NodeSlider
-            min={0}
-            max={100}
-            step={1}
-            marks={SIZE_MARKS}
-            value={size}
-            onChange={handleSizeChange}
-            onChangeCommitted={handleSizeCommitted}
-            aria-label="Blur size"
-          />
-          <span className="size-readout">{Math.round(size)}</span>
-        </FlexRow>
-      </FlexColumn>
+      <div className="controls">
+        <span className="ctrl-label">Type</span>
+        <Select
+          className="type-select nodrag"
+          size="small"
+          variant="standard"
+          value={blurType}
+          onChange={handleTypeChange}
+          aria-label="Blur type"
+          disableUnderline
+        >
+          {BLUR_TYPES.map((t) => (
+            <MenuItem key={t.value} value={t.value} dense>
+              {t.label}
+            </MenuItem>
+          ))}
+        </Select>
+
+        <span className="ctrl-label">Size</span>
+        <NodeSlider
+          min={0}
+          max={100}
+          step={1}
+          value={size}
+          onChange={handleSizeChange}
+          onChangeCommitted={handleSizeCommitted}
+          aria-label="Blur size"
+        />
+        <span className="ctrl-value">{Math.round(size)}</span>
+      </div>
 
       {!isOutputNode && (
         <div className="outputs-row">

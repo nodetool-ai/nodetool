@@ -38,12 +38,16 @@ export interface GmailSearchInputs {
 export interface GmailSearchOutputs {
   email: Record<string, unknown>;
   message_id: string;
+  subject: string;
+  sender: string;
+  date: string;
+  body: string;
   emails: unknown[];
   message_ids: unknown[];
 }
 
 export function gmailSearch(inputs: GmailSearchInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GmailSearchOutputs> {
-  return createNode("lib.mail.GmailSearch", inputs as Record<string, unknown>, { outputNames: ["email", "message_id", "emails", "message_ids"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+  return createNode("lib.mail.GmailSearch", inputs as Record<string, unknown>, { outputNames: ["email", "message_id", "subject", "sender", "date", "body", "emails", "message_ids"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Add Label — lib.mail.AddLabel

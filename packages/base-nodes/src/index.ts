@@ -294,8 +294,6 @@ export {
   ResizeNode,
   CropNode,
   FitNode,
-  RotateNode,
-  FlipNode,
   ChannelsNode,
   TextToImageNode,
   ImageToImageNode,

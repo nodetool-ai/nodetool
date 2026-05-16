@@ -14,6 +14,13 @@ namespace: "nodetool.agents"
 Generate natural language responses using LLM providers and streams output.
     llm, text-generation, chatbot, question-answering, streaming
 
+    Dynamic properties are substituted as {{variable}} placeholders in both
+    the prompt and system text. Add a property named `subject` and write
+    `Classify: {{subject}}` in the prompt — the wired value replaces the
+    placeholder at run time. Unknown placeholders are left intact. For
+    Jinja-style filters (truncate, upper, etc.), chain a Format Text node
+    upstream instead.
+
 ## Properties
 
 | Property | Type | Description | Default |

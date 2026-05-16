@@ -7,32 +7,32 @@ describe("native lib.image via sharp", () => {
     const registry = new NodeRegistry();
     registerBaseNodes(registry);
 
-    expect(registry.has("lib.image.filter.Blur")).toBe(true);
+    expect(registry.has("lib.image.filter.Invert")).toBe(true);
     expect(registry.has("lib.image.enhance.Brightness")).toBe(true);
     expect(registry.has("lib.image.color_grading.Exposure")).toBe(true);
     expect(registry.has("lib.image.draw.Background")).toBe(true);
   });
 
-  it("creates a background and applies blur", async () => {
+  it("creates a background and applies a filter", async () => {
     const bgNodeClass = LIB_PILLOW_NODES.find(
       (n) => n.nodeType === "lib.image.draw.Background"
     );
-    const blurNodeClass = LIB_PILLOW_NODES.find(
-      (n) => n.nodeType === "lib.image.filter.Blur"
+    const invertNodeClass = LIB_PILLOW_NODES.find(
+      (n) => n.nodeType === "lib.image.filter.Invert"
     );
-    if (!bgNodeClass || !blurNodeClass)
+    if (!bgNodeClass || !invertNodeClass)
       throw new Error("missing pillow node classes");
     const bg = new bgNodeClass();
     bg.assign({ width: 64, height: 64, color: "#112233" });
     const outBg = await bg.process();
 
-    const blur = new blurNodeClass();
-    blur.assign({ image: outBg.output, sigma: 1.0 });
-    const outBlur = await blur.process();
+    const invert = new invertNodeClass();
+    invert.assign({ image: outBg.output });
+    const outInvert = await invert.process();
 
     expect(typeof (outBg.output as { data: string }).data).toBe("string");
-    expect(typeof (outBlur.output as { data: string }).data).toBe("string");
-    expect((outBlur.output as { data: string }).data.length).toBeGreaterThan(
+    expect(typeof (outInvert.output as { data: string }).data).toBe("string");
+    expect((outInvert.output as { data: string }).data.length).toBeGreaterThan(
       20
     );
   });

@@ -13,7 +13,6 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
-import { shallow } from "zustand/shallow";
 
 import {
   CheckerDropzone,
@@ -29,8 +28,8 @@ import NodeProgress from "../../node/NodeProgress";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
+import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
 
 const CHANNELS_NODE_TYPE = "nodetool.image.Channels";
 
@@ -58,6 +57,11 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(0.5),
       minHeight: 0
     },
+    "& > .handle-column": {
+      top: theme.spacing(1),
+      bottom: theme.spacing(1),
+      left: `calc(${theme.spacing(-0.5)})`
+    },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
@@ -68,11 +72,6 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      "& > .handle-column": {
-        top: 0,
-        bottom: 0,
-        left: `calc(${theme.spacing(-0.5)})`
-      },
       "& img": {
         display: "block",
         maxWidth: "100%",
@@ -155,19 +154,7 @@ const ChannelsBodyInner: React.FC<ChannelsBodyProps> = ({
     ? (rawChannel as Channel)
     : "luminance");
 
-  const result = useResultsStore(
-    (state) => state.getResult(workflowId, id),
-    shallow
-  );
-  const previewValue = useMemo(() => {
-    if (result && typeof result === "object" && !Array.isArray(result)) {
-      const r = result as Record<string, unknown>;
-      if ("output" in r) {
-        return r.output;
-      }
-    }
-    return result;
-  }, [result]);
+  const previewValue = useNodeOutput(workflowId, id);
 
   const { setProperty, setPropertyComplete } = useBespokePropertyWriter({
     nodeId: id,
@@ -190,9 +177,9 @@ const ChannelsBodyInner: React.FC<ChannelsBodyProps> = ({
       className="channels-body"
       data-bespoke-body="Channels"
     >
+      <HandleColumn id={id} properties={imageProperty} />
       <div className="preview-area">
         <ImagePreview value={previewValue} />
-        <HandleColumn id={id} properties={imageProperty} />
       </div>
 
       <FlexColumn className="controls" gap={0.5}>

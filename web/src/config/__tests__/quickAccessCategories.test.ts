@@ -90,14 +90,14 @@ describe("quickAccessCategories", () => {
   it("tools matches the curated editing-node list", () => {
     const all = [
       meta("nodetool.image.Crop", "image"),
-      meta("lib.image.filter.Blur", "image"),
+      meta("nodetool.image.Blur", "image"),
       meta("not.in.tools", "image")
     ];
     const ids = filterNodesForCategory(getCategory("tools")!, all).map(
       (m) => m.node_type
     );
     expect(ids).toContain("nodetool.image.Crop");
-    expect(ids).toContain("lib.image.filter.Blur");
+    expect(ids).toContain("nodetool.image.Blur");
     expect(ids).not.toContain("not.in.tools");
   });
 
