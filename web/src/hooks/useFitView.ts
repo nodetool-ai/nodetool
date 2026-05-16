@@ -49,7 +49,7 @@ export function getNodesBounds(
  * fitView({ padding: 0.2 }); // Custom padding
  * fitView({ nodeIds: ['node-1', 'node-2'] }); // Specific nodes
  */
-export const useFitView = () => {
+export const useFitView = (): ((options?: { padding?: number; nodeIds?: string[] }) => void) => {
   const reactFlowInstance = useReactFlow();
   const { nodes, selectedNodes, setSelectedNodes, setViewport } = useNodes(
     useShallow((state) => ({

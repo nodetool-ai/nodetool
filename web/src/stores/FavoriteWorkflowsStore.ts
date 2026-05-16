@@ -67,7 +67,15 @@ export const useFavoriteWorkflowsStore = create<FavoriteWorkflowsState>()(
   )
 );
 
-export const useFavoriteWorkflowActions = () => {
+export interface FavoriteWorkflowActions {
+  toggleFavorite: (workflowId: string) => void;
+  addFavorite: (workflowId: string) => void;
+  removeFavorite: (workflowId: string) => void;
+  isFavorite: (workflowId: string) => boolean;
+  clearAll: () => void;
+}
+
+export const useFavoriteWorkflowActions = (): FavoriteWorkflowActions => {
   const toggleFavorite = useFavoriteWorkflowsStore((state) => state.toggleFavorite);
   const addFavorite = useFavoriteWorkflowsStore((state) => state.addFavorite);
   const removeFavorite = useFavoriteWorkflowsStore((state) => state.removeFavorite);
@@ -76,10 +84,10 @@ export const useFavoriteWorkflowActions = () => {
   return { toggleFavorite, addFavorite, removeFavorite, isFavorite, clearAll };
 };
 
-export const useIsWorkflowFavorite = (workflowId: string) =>
+export const useIsWorkflowFavorite = (workflowId: string): boolean =>
   useFavoriteWorkflowsStore((state) =>
     state.favoriteWorkflowIds.includes(workflowId)
   );
 
-export const useFavoriteWorkflowIds = () =>
+export const useFavoriteWorkflowIds = (): string[] =>
   useFavoriteWorkflowsStore((state) => state.favoriteWorkflowIds);
