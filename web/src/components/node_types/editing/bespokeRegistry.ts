@@ -13,6 +13,8 @@
 import type React from "react";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
+import BlurBody, { BLUR_NODE_TYPE } from "./BlurBody";
+import ChannelsBody, { CHANNELS_NODE_TYPE } from "./ChannelsBody";
 import CropBody, { CROP_NODE_TYPE } from "./CropBody";
 import ResizeBody, { RESIZE_NODE_TYPE } from "./ResizeBody";
 import RotateAndFlipBody, {
@@ -34,6 +36,8 @@ export type BespokeBodyComponent = React.ComponentType<BespokeBodyProps>;
 export const BESPOKE_BODY_REGISTRY: Readonly<
   Record<string, BespokeBodyComponent>
 > = {
+  [BLUR_NODE_TYPE]: BlurBody,
+  [CHANNELS_NODE_TYPE]: ChannelsBody,
   [CROP_NODE_TYPE]: CropBody,
   [RESIZE_NODE_TYPE]: ResizeBody,
   [ROTATE_AND_FLIP_NODE_TYPE]: RotateAndFlipBody

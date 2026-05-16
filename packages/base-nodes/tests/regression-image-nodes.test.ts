@@ -23,7 +23,8 @@ import {
   GetMetadataNode,
   TextToImageNode,
   ImageToImageNode,
-  BatchToListNode
+  BatchToListNode,
+  ChannelsNode
 } from "../src/index.js";
 
 // ---------------------------------------------------------------------------
@@ -441,5 +442,119 @@ describe("BatchToListNode — validation", () => {
     expect(result.output).toBeDefined();
     expect(Array.isArray(result.output)).toBe(true);
     expect((result.output as unknown[]).length).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 9. ChannelsNode — channel extraction
+// ---------------------------------------------------------------------------
+
+describe("ChannelsNode — channel extraction", () => {
+  async function makeRgbaImage(
+    r = 255,
+    g = 128,
+    b = 64,
+    a = 200
+  ): Promise<Record<string, unknown>> {
+    const buf = await sharp({
+      create: { width: 2, height: 2, channels: 4, background: { r, g, b, alpha: a / 255 } }
+    })
+      .png()
+      .toBuffer();
+    return {
+      type: "image",
+      data: buf.toString("base64"),
+      uri: ""
+    };
+  }
+
+  async function decodeChannel(output: Record<string, unknown>) {
+    const data = output.data as string;
+    const buf = Buffer.from(data, "base64");
+    const { data: raw, info } = await sharp(buf)
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    return { raw, info };
+  }
+
+  it("extracts red channel", async () => {
+    const img = await makeRgbaImage(255, 0, 0, 255);
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "red" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    expect(typeof output.data).toBe("string");
+    const { raw, info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+    expect(raw[0]).toBe(255);
+  });
+
+  it("extracts green channel", async () => {
+    const img = await makeRgbaImage(0, 255, 0, 255);
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "green" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    const { raw, info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+    expect(raw[0]).toBe(255);
+  });
+
+  it("extracts blue channel", async () => {
+    const img = await makeRgbaImage(0, 0, 255, 255);
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "blue" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    const { raw, info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+    expect(raw[0]).toBe(255);
+  });
+
+  it("extracts alpha channel", async () => {
+    const img = await makeRgbaImage(0, 0, 0, 128);
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "alpha" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    const { raw, info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+    expect(raw[0]).toBe(128);
+  });
+
+  it("produces luminance / grayscale", async () => {
+    const img = await makeRgbaImage(100, 150, 200, 255);
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "luminance" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    const { raw, info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+    // Luminance of (100,150,200) should be somewhere in between
+    expect(raw[0]).toBeGreaterThan(100);
+    expect(raw[0]).toBeLessThan(200);
+  });
+
+  it("throws on unsupported channel", async () => {
+    const img = await makeRgbaImage();
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "cyan" });
+    await expect(node.process()).rejects.toThrow(/Unsupported channel/);
+  });
+
+  it("defaults to luminance when channel is not set", async () => {
+    const img = await makeRgbaImage(100, 150, 200, 255);
+    const node = new ChannelsNode();
+    node.assign({ image: img });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    const { info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
   });
 });

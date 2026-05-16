@@ -1667,6 +1667,154 @@ export class RotateAndFlipNode extends TransformImageNode {
   }
 }
 
+export class ChannelsNode extends TransformImageNode {
+  static readonly nodeType = "nodetool.image.Channels";
+  static readonly title = "Channels";
+  static readonly description =
+    "Extract a single channel from an image as a grayscale preview.\n    image, channel, red, green, blue, alpha, luminance";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to extract a channel from."
+  })
+  declare image: any;
+
+  @prop({
+    type: "str",
+    default: "luminance",
+    title: "Channel",
+    description: "Which channel to extract.",
+    values: ["red", "green", "blue", "alpha", "luminance"]
+  })
+  declare channel: any;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const channel = String(this.channel ?? "luminance");
+
+    const output = (await transformImage(
+      image,
+      (instance) => {
+        if (channel === "luminance") {
+          return instance.grayscale();
+        }
+        if (
+          channel === "red" ||
+          channel === "green" ||
+          channel === "blue" ||
+          channel === "alpha"
+        ) {
+          return instance.ensureAlpha().extractChannel(channel);
+        }
+        throw new Error(`Unsupported channel: ${channel}`);
+      },
+      context
+    )) as Record<string, unknown>;
+    return { output };
+  }
+}
+
+export class BlurNode extends TransformImageNode {
+  static readonly nodeType = "nodetool.image.Blur";
+  static readonly title = "Blur";
+  static readonly description =
+    "Blur an image — Box, Gaussian, or horizontal Motion variants.\n    image, blur, gaussian, box, motion, filter";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to blur."
+  })
+  declare image: any;
+
+  @prop({
+    type: "str",
+    default: "gaussian",
+    title: "Type",
+    description: "Blur algorithm: gaussian (smooth), box (boxcar), motion (horizontal streak).",
+    values: ["gaussian", "box", "motion"]
+  })
+  declare blur_type: any;
+
+  @prop({
+    type: "int",
+    default: 5,
+    title: "Size",
+    description: "Blur amount (0 = none, 100 = max).",
+    min: 0,
+    max: 100
+  })
+  declare size: any;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const size = Math.max(0, Math.min(100, Math.round(Number(this.size ?? 0))));
+    const blurType = String(this.blur_type ?? "gaussian");
+
+    if (size <= 0) {
+      const bytes = await imageBytesAsync(image, context);
+      return {
+        output: imageRef(bytes, {
+          uri: image.uri ?? "",
+          width: image.width ?? undefined,
+          height: image.height ?? undefined
+        })
+      };
+    }
+
+    const odd = (n: number): number => (n % 2 === 0 ? n + 1 : n);
+
+    const output = (await transformImage(
+      image,
+      (instance) => {
+        if (blurType === "gaussian") {
+          const sigma = Math.max(0.3, size * 0.5);
+          return instance.blur(sigma);
+        }
+        if (blurType === "motion") {
+          const k = odd(Math.max(1, size));
+          const kernel = new Array(k).fill(1 / k);
+          return instance.convolve({ width: k, height: 1, kernel });
+        }
+        const k = odd(Math.max(1, Math.min(31, size)));
+        const kernel = new Array(k * k).fill(1 / (k * k));
+        return instance.convolve({ width: k, height: k, kernel });
+      },
+      context
+    )) as Record<string, unknown>;
+    return { output };
+  }
+}
+
 export const IMAGE_NODES = [
   LoadImageFileNode,
   LoadImageFolderNode,
@@ -1684,6 +1832,8 @@ export const IMAGE_NODES = [
   RotateNode,
   FlipNode,
   RotateAndFlipNode,
+  ChannelsNode,
+  BlurNode,
   TextToImageNode,
   ImageToImageNode,
   ImageEditorNode
