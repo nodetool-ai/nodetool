@@ -26,7 +26,7 @@ import NumberInput from "../../inputs/NumberInput";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import useResultsStore from "../../../stores/ResultsStore";
-import { useNodes } from "../../../contexts/NodeContext";
+import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 
 const RESIZE_NODE_TYPE = "nodetool.image.Resize";
 
@@ -137,6 +137,7 @@ export interface ResizeBodyProps {
 
 const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
   id,
+  nodeType,
   nodeMetadata,
   data,
   workflowId,
@@ -180,7 +181,10 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
   }, [result]);
   const previewDims = useMemo(() => extractDims(previewValue), [previewValue]);
 
-  const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
+  const { setProperties, setPropertyComplete } = useBespokePropertyWriter({
+    nodeId: id,
+    nodeType
+  });
 
   const [chainLocked, setChainLocked] = useState(false);
   // Aspect captured when the lock engages — kept as a ref so it survives
@@ -200,12 +204,12 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
       const w = Math.max(1, Math.round(next));
       if (chainLocked && aspectRef.current && aspectRef.current > 0) {
         const h = Math.max(1, Math.round(w / aspectRef.current));
-        updateNodeProperties(id, { width: w, height: h });
+        setProperties({ width: w, height: h });
       } else {
-        updateNodeProperties(id, { width: w });
+        setProperties({ width: w });
       }
     },
-    [chainLocked, id, updateNodeProperties]
+    [chainLocked, setProperties]
   );
 
   const setHeight = useCallback(
@@ -213,12 +217,12 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
       const h = Math.max(1, Math.round(next));
       if (chainLocked && aspectRef.current && aspectRef.current > 0) {
         const w = Math.max(1, Math.round(h * aspectRef.current));
-        updateNodeProperties(id, { width: w, height: h });
+        setProperties({ width: w, height: h });
       } else {
-        updateNodeProperties(id, { height: h });
+        setProperties({ height: h });
       }
     },
-    [chainLocked, id, updateNodeProperties]
+    [chainLocked, setProperties]
   );
 
   const handleWidthChange = useCallback(
@@ -258,6 +262,7 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
               inputType="int"
               showSlider={false}
               onChange={handleWidthChange}
+              onChangeComplete={setPropertyComplete}
             />
           )}
         </div>
@@ -285,6 +290,7 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
               inputType="int"
               showSlider={false}
               onChange={handleHeightChange}
+              onChangeComplete={setPropertyComplete}
             />
           )}
         </div>
