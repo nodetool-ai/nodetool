@@ -27,8 +27,10 @@ export default function BusinessHero() {
         </h1>
 
         <p className="text-xl md:text-2xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-          For small studios, post-production shops, and agency teams: every major model,
-          your own keys, your workflows. No credit markup, no vendor lock-in, no acquisition risk.
+          For small studios, post houses, and agency teams who can&apos;t afford
+          to rebuild their pipeline every time a vendor gets acquired or
+          hikes credit prices. Every major model, your keys, your workflows —
+          on disks you own.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
