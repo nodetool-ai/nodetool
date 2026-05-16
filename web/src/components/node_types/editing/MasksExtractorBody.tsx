@@ -20,7 +20,6 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
-import { shallow } from "zustand/shallow";
 
 import {
   CheckerDropzone,
@@ -37,10 +36,12 @@ import NodeProgress from "../../node/NodeProgress";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
-import { useNodes } from "../../../contexts/NodeContext";
 import { useRunSingleNode } from "../../../hooks/nodes/useRunSingleNode";
-import { asImageRef, unwrapOutput } from "../../../utils/imageRef";
+import {
+  useNodeOutput,
+  useUpstreamValue
+} from "../../../hooks/nodes/useNodeIO";
+import { asImageRef } from "../../../utils/imageRef";
 
 // Node types currently bound to this bespoke body. Mask-extractor / bg-removal
 // providers: per §9.E6 we ship the known Bria + 851-labs variants. Extend as
@@ -66,6 +67,11 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(0.5),
       minHeight: 0
     },
+    "& > .handle-column": {
+      top: theme.spacing(1),
+      bottom: theme.spacing(1),
+      left: `calc(${theme.spacing(-0.5)})`
+    },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
@@ -76,11 +82,6 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      "& > .handle-column": {
-        top: 0,
-        bottom: 0,
-        left: `calc(${theme.spacing(-0.5)})`
-      },
       "& img": {
         display: "block",
         maxWidth: "100%",
@@ -163,41 +164,19 @@ const MasksExtractorBodyInner: React.FC<MasksExtractorBodyProps> = ({
     [properties]
   );
 
-  // Resolve upstream image (cached result of whatever feeds our `image`
-  // input), so the Image tab can show what the node will receive on next run.
-  const upstreamEdge = useNodes(
-    (state) =>
-      state.edges.find(
-        (e) => e.target === id && (e.targetHandle ?? "") === "image"
-      ),
-    shallow
+  // Image tab shows the cached upstream input (what the node will receive
+  // on the next run). Mask tab shows the server's most recent output.
+  const inputValue = useUpstreamValue(
+    workflowId,
+    id,
+    "image",
+    data.properties?.image
   );
-
-  const upstreamResult = useResultsStore(
-    (state) =>
-      upstreamEdge
-        ? state.getResult(workflowId, upstreamEdge.source)
-        : undefined,
-    shallow
-  );
-
-  const myResult = useResultsStore(
-    (state) => state.getResult(workflowId, id),
-    shallow
-  );
-
   const imageTabValue = useMemo(() => {
-    if (upstreamEdge) {
-      const v = unwrapOutput(upstreamResult, upstreamEdge.sourceHandle);
-      const ref = asImageRef(v);
-      if (ref && (ref.uri || ref.data)) return ref;
-    }
-    const constRef = asImageRef(data.properties?.image);
-    if (constRef && (constRef.uri || constRef.data)) return constRef;
-    return undefined;
-  }, [upstreamEdge, upstreamResult, data.properties?.image]);
-
-  const maskTabValue = useMemo(() => unwrapOutput(myResult), [myResult]);
+    const ref = asImageRef(inputValue);
+    return ref && (ref.uri || ref.data) ? ref : undefined;
+  }, [inputValue]);
+  const maskTabValue = useNodeOutput(workflowId, id);
 
   const { runSingleNode, isWorkflowRunning } = useRunSingleNode(id);
 
@@ -217,6 +196,7 @@ const MasksExtractorBodyInner: React.FC<MasksExtractorBodyProps> = ({
       className="masks-extractor-body"
       data-bespoke-body="MasksExtractor"
     >
+      <HandleColumn id={id} properties={imageProperty} />
       <div className="preview-area">
         {tab === "image" ? (
           <ImagePreview
@@ -229,7 +209,6 @@ const MasksExtractorBodyInner: React.FC<MasksExtractorBodyProps> = ({
             placeholder="Run the node to extract a mask"
           />
         )}
-        <HandleColumn id={id} properties={imageProperty} />
       </div>
 
       <FlexColumn className="controls" gap={0.5}>
