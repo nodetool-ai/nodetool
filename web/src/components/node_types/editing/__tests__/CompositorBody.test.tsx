@@ -15,14 +15,14 @@ import {
 } from "../CompositorBody";
 import { LayerRow, type LayerRowProps } from "../LayerRow";
 
-jest.mock("../../../hooks/nodes/useBespokePropertyWriter", () => ({
+jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
   useBespokePropertyWriter: () => ({
     setProperties: jest.fn(),
     setPropertyComplete: jest.fn()
   })
 }));
 
-jest.mock("../../../hooks/nodes/useDynamicProperty", () => ({
+jest.mock("../../../../hooks/nodes/useDynamicProperty", () => ({
   useDynamicProperty: () => ({
     handleAddProperty: jest.fn(),
     handleDeleteProperty: jest.fn()

@@ -39,7 +39,9 @@ import type { NodeData } from "../../../stores/NodeData";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
+import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
+import { unwrapOutput } from "../../../utils/imageRef";
 
 const COMPOSITOR_NODE_TYPE = "nodetool.image.Compositor";
 
@@ -104,14 +106,6 @@ const asImageRef = (value: unknown): ImageRefLike | undefined => {
     height: typeof v.height === "number" ? v.height : undefined,
     data: v.data
   };
-};
-
-const unwrapOutput = (value: unknown, handle?: string | null): unknown => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
-  const v = value as Record<string, unknown>;
-  if (handle && handle in v) return v[handle];
-  if ("output" in v) return v.output;
-  return value;
 };
 
 const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
@@ -317,13 +311,10 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
   );
 
   // Own composited output for the top preview.
-  const myResult = useResultsStore(
-    (state) => state.getResult(workflowId, id),
-    shallow
-  );
+  const ownOutput = useNodeOutput(workflowId, id);
   const previewImage = useMemo(
-    () => asImageRef(unwrapOutput(myResult)),
-    [myResult]
+    () => asImageRef(ownOutput),
+    [ownOutput]
   );
   const previewSrc = useImageUrl(previewImage);
 
