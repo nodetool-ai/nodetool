@@ -1577,6 +1577,96 @@ export class FlipNode extends TransformImageNode {
   }
 }
 
+export class RotateAndFlipNode extends TransformImageNode {
+  static readonly nodeType = "nodetool.image.RotateAndFlip";
+  static readonly title = "Rotate & Flip";
+  static readonly description =
+    "Rotate and/or flip an image in a single step.\n    image, rotate, flip, mirror, orientation, transform";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to rotate and flip."
+  })
+  declare image: any;
+
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Angle",
+    description: "Rotation angle in degrees (clockwise).",
+    min: -360,
+    max: 360
+  })
+  declare angle: any;
+
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Flip Horizontal",
+    description: "Mirror left/right."
+  })
+  declare flip_horizontal: any;
+
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Flip Vertical",
+    description: "Mirror top/bottom."
+  })
+  declare flip_vertical: any;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const angle = Number(this.angle ?? 0);
+    const flipH = !!this.flip_horizontal;
+    const flipV = !!this.flip_vertical;
+    if (angle === 0 && !flipH && !flipV) {
+      const bytes = await imageBytesAsync(image, context);
+      return {
+        output: imageRef(bytes, {
+          uri: image.uri ?? "",
+          width: image.width ?? undefined,
+          height: image.height ?? undefined
+        })
+      };
+    }
+    return transformImage(
+      image,
+      (instance) => {
+        let pipeline = instance;
+        if (flipH) {
+          pipeline = pipeline.flop();
+        }
+        if (flipV) {
+          pipeline = pipeline.flip();
+        }
+        if (angle !== 0) {
+          pipeline = pipeline.rotate(angle, {
+            background: { r: 0, g: 0, b: 0, alpha: 0 }
+          });
+        }
+        return pipeline;
+      },
+      context
+    );
+  }
+}
+
 export const IMAGE_NODES = [
   LoadImageFileNode,
   LoadImageFolderNode,
@@ -1593,6 +1683,7 @@ export const IMAGE_NODES = [
   FitNode,
   RotateNode,
   FlipNode,
+  RotateAndFlipNode,
   TextToImageNode,
   ImageToImageNode,
   ImageEditorNode

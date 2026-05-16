@@ -14,6 +14,9 @@ import type React from "react";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import ResizeBody, { RESIZE_NODE_TYPE } from "./ResizeBody";
+import RotateAndFlipBody, {
+  ROTATE_AND_FLIP_NODE_TYPE
+} from "./RotateAndFlipBody";
 
 export interface BespokeBodyProps {
   id: string;
@@ -30,7 +33,8 @@ export type BespokeBodyComponent = React.ComponentType<BespokeBodyProps>;
 export const BESPOKE_BODY_REGISTRY: Readonly<
   Record<string, BespokeBodyComponent>
 > = {
-  [RESIZE_NODE_TYPE]: ResizeBody
+  [RESIZE_NODE_TYPE]: ResizeBody,
+  [ROTATE_AND_FLIP_NODE_TYPE]: RotateAndFlipBody
 };
 
 export const isBespokeNode = (
