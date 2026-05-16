@@ -9,7 +9,6 @@
  *    textures and applies standard blend modes in the shader. Used for
  *    non-normal blend modes (multiply, screen, overlay, etc.).
  * 4. **Blit** – copies the intermediate composite texture to the swap chain.
- * 5. **Border** – 1px outline around the canvas boundary.
  */
 
 // ─── Shared full-screen-quad vertex shader ────────────────────────────────
@@ -403,31 +402,5 @@ fn fs_ants(@location(0) uv: vec2f) -> @location(0) vec4f {
     return vec4f(0.0);
   }
   return out;
-}
-`;
-
-// ─── Border fragment shader ───────────────────────────────────────────────
-
-export const BORDER_FRAGMENT = /* wgsl */ `
-struct BorderUniforms {
-  canvasSize: vec2f,
-  lineWidth: f32,
-  _pad: f32,
-  color: vec4f,
-};
-
-@group(0) @binding(0) var<uniform> border: BorderUniforms;
-
-@fragment
-fn fs_border(@location(0) uv: vec2f) -> @location(0) vec4f {
-  let pixel = uv * border.canvasSize;
-  let dist = min(
-    min(pixel.x, border.canvasSize.x - pixel.x),
-    min(pixel.y, border.canvasSize.y - pixel.y)
-  );
-  if (dist <= border.lineWidth) {
-    return border.color;
-  }
-  return vec4f(0.0, 0.0, 0.0, 0.0);
 }
 `;

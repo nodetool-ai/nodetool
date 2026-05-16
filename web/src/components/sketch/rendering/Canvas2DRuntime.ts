@@ -221,7 +221,7 @@ export class Canvas2DRuntime implements SketchRuntime {
   /**
    * Render document pixels only: visibility, opacity, blend modes, transforms,
    * effects, and optional active-stroke preview. This excludes display-only
-   * chrome such as the checkerboard background and canvas border.
+   * chrome such as the checkerboard background.
    */
   private renderDocumentCompositeToContext(
     ctx: CanvasRenderingContext2D,

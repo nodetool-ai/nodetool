@@ -2,7 +2,7 @@
  * EyedropperTool – reads a pixel from the composite and dispatches an event.
  *
  * Uses `sampleCompositeColor` from the shared sampling contract so
- * display-only chrome (checkerboard, canvas border) never leaks into
+ * display-only chrome (checkerboard background) never leaks into
  * the sampled result. This is the same readback path used by magic wand,
  * clone-stamp source preview, and any future readback helpers.
  *

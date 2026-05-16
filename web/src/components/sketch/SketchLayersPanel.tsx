@@ -244,10 +244,10 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(0.75),
-      /* Vertical + right only; left padding comes from LayerItem sx (depth indent). */
-      paddingTop: theme.spacing(0.5),
-      paddingBottom: theme.spacing(0.5),
-      paddingRight: theme.spacing(1),
+      /* Right only; no vertical padding — thumbnails dictate row height. */
+      paddingTop: 0,
+      paddingBottom: 0,
+      paddingRight: theme.spacing(0.5),
       borderRadius: SKETCH_SIZE.borderRadius,
       cursor: "pointer",
       fontSize: SKETCH_FONT.md,
@@ -298,8 +298,8 @@ const styles = (theme: Theme) =>
         /* Shorter than raster rows: parent `.layer-item` min-height cleared here. */
         minHeight: "unset",
         gap: theme.spacing(0.375),
-        paddingTop: theme.spacing(0.125),
-        paddingBottom: theme.spacing(0.125),
+        paddingTop: 0,
+        paddingBottom: 0,
         backgroundColor: alpha(theme.palette.common.white, 0.04),
         borderLeft: `2px solid ${theme.vars.palette.grey[600]}`,
         "&:hover": {
@@ -332,6 +332,38 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       fontSize: SKETCH_FONT.xxs,
       color: theme.vars.palette.grey[500]
+    },
+    "& .layer-visibility-cell": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      boxSizing: "border-box",
+      width: SKETCH_SIZE.layerThumbnail,
+      minHeight: SKETCH_SIZE.layerThumbnail,
+      flexShrink: 0,
+      alignSelf: "center",
+      backgroundColor: alpha(theme.palette.common.black, 0.42),
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      borderRadius: "2px",
+      "& .MuiIconButton-root": {
+        padding: "2px"
+      }
+    },
+    "& .layer-item:hover:not(.active) .layer-visibility-cell": {
+      borderColor: theme.vars.palette.grey[600],
+      backgroundColor: alpha(theme.palette.common.black, 0.38)
+    },
+    "& .layer-item.active .layer-visibility-cell": {
+      borderColor: alpha(theme.palette.primary.contrastText, 0.22),
+      backgroundColor: alpha(theme.palette.common.black, 0.48)
+    },
+    "& .layer-item.selected-secondary:not(.active):not(.group-layer):hover .layer-visibility-cell":
+      {
+        borderColor: theme.vars.palette.grey[500]
+      },
+    "& .layer-item.selected-secondary:not(.active) .layer-visibility-cell": {
+      borderColor: theme.vars.palette.grey[600],
+      backgroundColor: alpha(theme.palette.common.black, 0.4)
     },
     "& .layer-name": {
       flex: 1,

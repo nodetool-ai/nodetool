@@ -49,8 +49,8 @@ export const SKETCH_SPACING = {
 } as const;
 
 export const SKETCH_SIZE = {
-  /** Row min-height; thumbnails sized to match (~40% larger than original 36/28). */
-  layerItemHeight: "50.4px",
+  /** Row min-height aligned to thumbnail (+ border); avoids extra vertical padding. */
+  layerItemHeight: "41px",
   layerThumbnail: "39.2px",
   panelWidth: "260px",
   iconButtonPad: "3px",

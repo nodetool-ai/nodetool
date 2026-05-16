@@ -22,18 +22,67 @@ interface PendingWheel {
   clientY: number;
 }
 
-// macOS trackpad pinch arrives as a wheel event with ctrlKey=true synthesized by the browser.
-// cmd/ctrl + wheel also zooms for mouse users. Plain wheel/two-finger swipe pans.
-type WheelInput = Pick<
+// macOS trackpad pinch-zoom is a ctrlKey wheel event.
+// Ctrl/Meta + wheel stays zoom everywhere.
+// Discrete mouse wheels → zoom vertically; fluid trackpad two-finger pans use pixel deltas.
+export type WheelSrc = Pick<
   WheelEvent,
-  "deltaX"
-  | "deltaY"
-  | "clientX"
-  | "clientY"
-  | "ctrlKey"
-  | "metaKey"
-  | "preventDefault"
->;
+  "deltaX" | "deltaY" | "deltaMode" | "clientX" | "clientY" | "ctrlKey" | "metaKey" | "preventDefault"
+> & {
+  /** Legacy WebKit/Chromium ±120 multiples for physical detents (not typed on WheelEvent everywhere). */
+  wheelDelta?: number;
+  wheelDeltaY?: number;
+};
+
+/** Split one wheel gesture into zoom (vertical Δ) vs 2-D pan vectors. Exported for tests. */
+export function partitionWheelViewportMotion(event: WheelSrc): {
+  zoomDelta: number;
+  panX: number;
+  panY: number;
+} {
+  if (event.ctrlKey || event.metaKey) {
+    return {
+      zoomDelta: event.deltaY,
+      panX: event.deltaX,
+      panY: 0
+    };
+  }
+
+  const lineOrPageLike =
+    event.deltaMode === WheelEvent.DOM_DELTA_LINE ||
+    event.deltaMode === WheelEvent.DOM_DELTA_PAGE;
+
+  if (lineOrPageLike) {
+    return {
+      zoomDelta: event.deltaY,
+      panX: event.deltaX,
+      panY: 0
+    };
+  }
+
+  // Pixel mode — keep two-finger trackpad gestures as pan ...
+  let verticalActsAsZoomTick = false;
+  const absY = Math.abs(event.deltaY);
+  if (absY !== 0 && event.deltaX === 0) {
+    const legacy =
+      typeof event.wheelDelta === "number"
+        ? event.wheelDelta
+        : typeof event.wheelDeltaY === "number"
+          ? event.wheelDeltaY
+          : 0;
+    verticalActsAsZoomTick =
+      legacy !== 0 && Math.abs(legacy) >= 120 && Math.abs(legacy) % 120 === 0;
+    if (!verticalActsAsZoomTick && absY >= 120) {
+      verticalActsAsZoomTick = true;
+    }
+  }
+
+  if (verticalActsAsZoomTick && event.deltaX === 0) {
+    return { zoomDelta: event.deltaY, panX: 0, panY: 0 };
+  }
+
+  return { zoomDelta: 0, panX: event.deltaX, panY: event.deltaY };
+}
 
 export function useWheelZoom({
   zoom,
@@ -47,10 +96,11 @@ export function useWheelZoom({
   const pendingRef = useRef<PendingWheel | null>(null);
 
   const handleZoomWheel = useCallback(
-    (event: WheelInput) => {
+    (event: WheelSrc) => {
       event.preventDefault();
 
-      const isZoom = event.ctrlKey || event.metaKey;
+      const { zoomDelta: zd, panX: xd, panY: yd } = partitionWheelViewportMotion(event);
+
       const pending = pendingRef.current ?? {
         zoomDelta: 0,
         panX: 0,
@@ -60,12 +110,10 @@ export function useWheelZoom({
       };
       pending.clientX = event.clientX;
       pending.clientY = event.clientY;
-      if (isZoom) {
-        pending.zoomDelta += event.deltaY;
-      } else {
-        pending.panX += event.deltaX;
-        pending.panY += event.deltaY;
-      }
+      pending.zoomDelta += zd;
+      pending.panX += xd;
+      pending.panY += yd;
+
       pendingRef.current = pending;
 
       if (rafRef.current !== null) {

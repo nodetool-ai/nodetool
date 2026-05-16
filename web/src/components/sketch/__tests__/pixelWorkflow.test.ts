@@ -51,7 +51,7 @@ describe("drawPixelGrid", () => {
     expect(ctx.moveTo).toHaveBeenCalledTimes(10);
   });
 
-  it("uses non-zero white stroke alpha at grid threshold", () => {
+  it("uses non-zero light-gray stroke alpha at grid threshold", () => {
     let strokeStyle = "";
     const ctx = {
       save: jest.fn(),
@@ -66,7 +66,7 @@ describe("drawPixelGrid", () => {
     } as unknown as CanvasRenderingContext2D;
     drawPixelGrid(ctx, 4, 4, PIXEL_GRID_MIN_ZOOM);
     const m = strokeStyle.match(
-      /rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*([\d.]+)\s*\)/
+      /rgba\(\s*200\s*,\s*200\s*,\s*200\s*,\s*([\d.]+)\s*\)/
     );
     expect(m).not.toBeNull();
     expect(parseFloat(m![1])).toBeGreaterThan(0);

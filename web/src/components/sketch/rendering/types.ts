@@ -309,7 +309,7 @@ export interface SketchRuntime {
    * Canvas2DRuntime or duplicate compositing logic.
    *
    * The returned pixels are document content only. Display-only decorations
-   * such as the checkerboard background and canvas border must be excluded.
+   * such as the checkerboard background must be excluded.
    *
    * @param doc - The current document state.
    * @param isolatedLayerId - If set, only this layer is composited (solo/isolate preview).

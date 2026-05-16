@@ -25,7 +25,7 @@ import { getRasterBounds } from "../transform/geometry/layerGeometry";
  * Sample the composite document color at a document-space point.
  *
  * Always uses `readbackComposite` (via `getFullCompositeImageData`) so
- * display-only chrome (checkerboard, canvas border) never leaks into the
+ * display-only chrome (checkerboard background) never leaks into the
  * result. Returns a hex string such as "#ff0000" or null when sampling
  * fails or the point is out of bounds.
  */

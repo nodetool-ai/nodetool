@@ -126,6 +126,9 @@ export const PIXEL_GRID_MIN_ZOOM = 20;
 /** Opacity ramp ends here (grid reaches full stroke alpha). */
 export const PIXEL_GRID_FULL_OPACITY_ZOOM = 28;
 
+/** Light gray (not pure white) for zoomed pixel grid lines on dark UI chrome. */
+const PIXEL_GRID_STROKE_RGB = { r: 200, g: 200, b: 200 } as const;
+
 /**
  * Pencil pixel-snap cursor: independent of {@link PIXEL_GRID_MIN_ZOOM} so the cell
  * cursor appears at modest zoom (e.g. 200%).
@@ -163,7 +166,7 @@ export function drawPixelGrid(
   const lw = 1 / zoom;
 
   ctx.save();
-  ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+  ctx.strokeStyle = `rgba(${PIXEL_GRID_STROKE_RGB.r}, ${PIXEL_GRID_STROKE_RGB.g}, ${PIXEL_GRID_STROKE_RGB.b}, ${opacity})`;
   ctx.lineWidth = lw;
 
   // Vertical lines

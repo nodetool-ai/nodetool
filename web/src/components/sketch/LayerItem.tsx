@@ -2,7 +2,7 @@
  * LayerItem
  *
  * Renders an individual layer row within the layers panel, including
- * thumbnail, name (with inline rename), visibility, isolate, and
+ * thumbnail, isolate, name (with inline rename), visibility (right), and
  * exposed input/output indicators. Supports drag-and-drop reordering.
  * Group layers show an expand/collapse toggle and a folder icon.
  */
@@ -236,57 +236,6 @@ const LayerItem: React.FC<LayerItemProps> = ({
           <Box className="layer-thumbnail-empty" />
         )}
 
-        {/* Disable the ripple here so press-and-drag visibility toggling stays stable. */}
-        <IconButton
-          size="small"
-          disableRipple
-          aria-label={`${layer.visible ? "Hide" : "Show"} ${layer.name}`}
-          onPointerDown={(e) =>
-            onVisibilityButtonMouseDown(
-              e as unknown as React.MouseEvent<HTMLButtonElement>,
-              layer.id
-            )
-          }
-          onPointerEnter={(e) =>
-            onVisibilityButtonMouseEnter(
-              e as unknown as React.MouseEvent<HTMLButtonElement>,
-              layer.id
-            )
-          }
-          onPointerUp={(e) => {
-            if (
-              typeof e.currentTarget.hasPointerCapture === "function" &&
-              e.currentTarget.hasPointerCapture(e.pointerId)
-            ) {
-              e.currentTarget.releasePointerCapture(e.pointerId);
-            }
-          }}
-          onPointerCancel={(e) => {
-            if (
-              typeof e.currentTarget.hasPointerCapture === "function" &&
-              e.currentTarget.hasPointerCapture(e.pointerId)
-            ) {
-              e.currentTarget.releasePointerCapture(e.pointerId);
-            }
-          }}
-          onClick={(e) => onVisibilityButtonClick(e, layer.id)}
-          sx={
-            isGroup
-              ? GROUP_LAYER_ICON_BUTTON_SX
-              : { padding: SKETCH_SPACING.sm, flexShrink: 0 }
-          }
-        >
-          {layer.visible ? (
-            <VisibilityIcon
-              sx={{ fontSize: isGroup ? "0.9rem" : "1.125rem" }}
-            />
-          ) : (
-            <VisibilityOffIcon
-              sx={{ fontSize: isGroup ? "0.9rem" : "1.125rem", opacity: 0.65 }}
-            />
-          )}
-        </IconButton>
-
         {!isGroup && (
           <Tooltip
             title={isIsolated ? "Show all layers" : "Solo this layer"}
@@ -406,7 +355,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
               gap: "3px",
               flexShrink: 0,
               width: 10,
-              ml: "4px"
+              ml: "2px"
             }}
           >
             <Tooltip
@@ -445,6 +394,59 @@ const LayerItem: React.FC<LayerItemProps> = ({
             </Tooltip>
           </Box>
         )}
+
+        {/* Discrete cell mirrors thumbnail column — see `.layer-visibility-cell` in panel styles */}
+        <Box className="layer-visibility-cell">
+          <IconButton
+            size="small"
+            disableRipple
+            aria-label={`${layer.visible ? "Hide" : "Show"} ${layer.name}`}
+            onPointerDown={(e) =>
+              onVisibilityButtonMouseDown(
+                e as unknown as React.MouseEvent<HTMLButtonElement>,
+                layer.id
+              )
+            }
+            onPointerEnter={(e) =>
+              onVisibilityButtonMouseEnter(
+                e as unknown as React.MouseEvent<HTMLButtonElement>,
+                layer.id
+              )
+            }
+            onPointerUp={(e) => {
+              if (
+                typeof e.currentTarget.hasPointerCapture === "function" &&
+                e.currentTarget.hasPointerCapture(e.pointerId)
+              ) {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              }
+            }}
+            onPointerCancel={(e) => {
+              if (
+                typeof e.currentTarget.hasPointerCapture === "function" &&
+                e.currentTarget.hasPointerCapture(e.pointerId)
+              ) {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              }
+            }}
+            onClick={(e) => onVisibilityButtonClick(e, layer.id)}
+            sx={
+              isGroup
+                ? GROUP_LAYER_ICON_BUTTON_SX
+                : { flexShrink: 0 }
+            }
+          >
+            {layer.visible ? (
+              <VisibilityIcon
+                sx={{ fontSize: isGroup ? "0.9rem" : "1.125rem" }}
+              />
+            ) : (
+              <VisibilityOffIcon
+                sx={{ fontSize: isGroup ? "0.9rem" : "1.125rem", opacity: 0.65 }}
+              />
+            )}
+          </IconButton>
+        </Box>
       </Box>
     </Box>
   );

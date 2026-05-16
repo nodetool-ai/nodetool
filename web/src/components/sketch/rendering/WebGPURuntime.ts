@@ -39,7 +39,6 @@ import {
   LAYER_COMPOSITE_FRAGMENT,
   BLEND_COMPOSITE_FRAGMENT,
   BLIT_FRAGMENT,
-  BORDER_FRAGMENT,
   SELECTION_ANTS_FRAGMENT
 } from "./shaders";
 
@@ -115,8 +114,6 @@ export class WebGPURuntime implements SketchRuntime {
   /** Pipeline for blitting composite texture → swap chain. */
   private blitPipeline: GPURenderPipeline | null = null;
   private blitBindGroupLayout: GPUBindGroupLayout | null = null;
-  private borderPipeline: GPURenderPipeline | null = null;
-  private borderBindGroupLayout: GPUBindGroupLayout | null = null;
   private selectionAntsPipeline: GPURenderPipeline | null = null;
   private selectionAntsBindGroupLayout: GPUBindGroupLayout | null = null;
 
@@ -406,45 +403,6 @@ export class WebGPURuntime implements SketchRuntime {
         module: blitModule,
         entryPoint: "fs_blit",
         targets: [{ format: this.presentationFormat }]
-      },
-      primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
-    });
-
-    // ── Border ─────────────────────────────────────────────────────────
-    const borderModule = device.createShaderModule({
-      label: "border-frag",
-      code: FULLSCREEN_QUAD_VERTEX + BORDER_FRAGMENT
-    });
-
-    this.borderBindGroupLayout = device.createBindGroupLayout({
-      label: "border-bgl",
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.FRAGMENT,
-          buffer: { type: "uniform" }
-        }
-      ]
-    });
-
-    this.borderPipeline = device.createRenderPipeline({
-      label: "border-pipeline",
-      layout: device.createPipelineLayout({
-        bindGroupLayouts: [this.borderBindGroupLayout]
-      }),
-      vertex: {
-        module: borderModule,
-        entryPoint: "vs_main"
-      },
-      fragment: {
-        module: borderModule,
-        entryPoint: "fs_border",
-        targets: [
-          {
-            format: this.presentationFormat,
-            blend: SOURCE_OVER_BLEND
-          }
-        ]
       },
       primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
     });
@@ -942,8 +900,7 @@ export class WebGPURuntime implements SketchRuntime {
   // Flow:
   //   1. Draw checkerboard → pingPongA (becomes initial "read")
   //   2. For each layer: blend shader reads "read" + layer → writes "write", swap
-  //   3. Draw border → current "read" (the final composite)
-  //   4. Blit current "read" → swap chain
+  //   3. Blit current "read" → swap chain
 
   compositeToDisplay(
     targetCanvas: HTMLCanvasElement,
@@ -1117,40 +1074,7 @@ export class WebGPURuntime implements SketchRuntime {
       writeTex = tmp;
     }
 
-    // ── Pass 3: Border → readTex (current composite) ──────────────────
-    if (this.borderPipeline && this.borderBindGroupLayout) {
-      const pass = encoder.beginRenderPass({
-        colorAttachments: [
-          {
-            view: readTex.createView(),
-            loadOp: "load",
-            storeOp: "store"
-          }
-        ]
-      });
-
-      const borderData = new Float32Array([
-        fullW, fullH, 1.0, 0.0,
-        1.0, 1.0, 1.0, 0.25
-      ]);
-      const borderBuffer = device.createBuffer({
-        size: borderData.byteLength,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-      });
-      device.queue.writeBuffer(borderBuffer, 0, borderData);
-
-      const bindGroup = device.createBindGroup({
-        layout: this.borderBindGroupLayout,
-        entries: [{ binding: 0, resource: { buffer: borderBuffer } }]
-      });
-
-      pass.setPipeline(this.borderPipeline);
-      pass.setBindGroup(0, bindGroup);
-      pass.draw(4);
-      pass.end();
-    }
-
-    // ── Pass 4: Blit readTex → swap chain ─────────────────────────────
+    // ── Pass 3: Blit readTex → swap chain ─────────────────────────────
     if (this.blitPipeline && this.blitBindGroupLayout) {
       const pass = encoder.beginRenderPass({
         colorAttachments: [
@@ -1175,7 +1099,7 @@ export class WebGPURuntime implements SketchRuntime {
       pass.end();
     }
 
-    // Pass 5: marching ants overlay (fullscreen, samples GPU mask texture).
+    // Pass 4: marching ants overlay (fullscreen, samples GPU mask texture).
     let selectionAntsActive = false;
     if (
       selectionAntsView &&
