@@ -1,0 +1,11 @@
+--- packages/base-nodes/src/nodes/generators.ts
++++ packages/base-nodes/src/nodes/generators.ts
+@@ -164,7 +164,7 @@
+                 ...context.env
+               },
+               node: node.id,
+-              abortSignal: signal ?? context.abortSignal
++              abortSignal: signal
+             });
+
+             try {

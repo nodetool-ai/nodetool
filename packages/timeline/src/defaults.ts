@@ -42,7 +42,7 @@ import type {
  * usable in browser builds.
  */
 export function createTimeOrderedUuid(): string {
-  return globalThis.crypto.randomUUID().replace(/-/g, "");
+  return (globalThis as any).crypto.randomUUID().replace(/-/g, "");
 }
 
 function nowIso(): string {

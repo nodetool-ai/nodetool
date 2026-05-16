@@ -1,0 +1,11 @@
+--- packages/base-nodes/src/nodes/agents.ts
++++ packages/base-nodes/src/nodes/agents.ts
+@@ -137,7 +137,7 @@
+               ...context.env
+             },
+             node: node.id,
+-            abortSignal: signal ?? context.abortSignal
++            abortSignal: signal
+           });
+
+           try {

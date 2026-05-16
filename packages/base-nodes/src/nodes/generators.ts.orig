@@ -164,7 +164,7 @@ function getModelConfig(props: Record<string, unknown>): {
   providerId: string;
   modelId: string;
 } {
-  const model = ((props.model ?? {}) as LanguageModelLike);
+  const model = ((props.model ?? {}) as LanguageModelLike) ?? {};
   return {
     providerId: typeof model.provider === "string" ? model.provider : "",
     modelId: typeof model.id === "string" ? model.id : ""

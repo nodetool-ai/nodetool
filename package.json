@@ -119,7 +119,7 @@
     "@eslint/js": "^10.0.1",
     "@openai/codex-sdk": "^0.118.0",
     "@types/jest": "^30.0.0",
-    "@types/node": "^22.0.0",
+    "@types/node": "^22.19.19",
     "@vitest/coverage-v8": "^4.1.2",
     "concurrently": "^9.0.0",
     "eslint": "^10.0.3",
@@ -130,6 +130,7 @@
     "vitest": "^4.1.2"
   },
   "dependencies": {
+    "esbuild": "^0.28.0",
     "keytar": "^7.9.0",
     "msgpackr": "^1.11.9",
     "ts-node": "^10.9.2"

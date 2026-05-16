@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash } from "crypto";
 
 const HASH_INPUT_VERSION_PREFIX = "v1:";
 

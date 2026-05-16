@@ -1,19 +1,17 @@
 {
-  "name": "@nodetool-ai/image-editor",
+  "name": "@nodetool-ai/timeline",
   "version": "0.7.0-rc.23",
-  "description": "Shared image-editor types, dependency hashing, and seeded layer templates",
+  "description": "Core timeline types and status models for the NodeTool timeline feature",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
-    "check": "npm run lint && npm run test",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/node": "^22.19.19",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   },
@@ -35,7 +33,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/nodetool-ai/nodetool.git",
-    "directory": "packages/image-editor"
+    "directory": "packages/timeline"
   },
   "homepage": "https://nodetool.ai",
   "bugs": {
