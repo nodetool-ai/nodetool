@@ -26,12 +26,7 @@ import NumberInput from "../../inputs/NumberInput";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import useResultsStore from "../../../stores/ResultsStore";
-import { useNodes } from "../../../contexts/NodeContext";
-import { useSignedUrl } from "../../node/output/hooks";
-import {
-  useLivePreview,
-  useLivePreviewActions
-} from "../../../preview/useLivePreview";
+import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 
 const RESIZE_NODE_TYPE = "nodetool.image.Resize";
 
@@ -111,38 +106,6 @@ const extractDims = (
   };
 };
 
-/**
- * Decode an arbitrary image carrier into raw bytes.
- * Returns `null` when the value doesn't contain inline bytes — caller must
- * decide how to handle (typically: skip the preview update).
- */
-const bytesFromValue = (value: unknown): Uint8Array | null => {
-  if (!value) return null;
-  if (value instanceof Uint8Array) return value;
-  if (typeof value === "string") {
-    // base64 or data URI
-    const raw = value.startsWith("data:")
-      ? value.slice(value.indexOf(",") + 1)
-      : value;
-    try {
-      const bin = atob(raw);
-      const out = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-      return out;
-    } catch {
-      return null;
-    }
-  }
-  if (typeof value === "object") {
-    const v = value as Record<string, unknown>;
-    if (v.data instanceof Uint8Array) return v.data;
-    if (Array.isArray(v.data)) return new Uint8Array(v.data as number[]);
-    // Recurse through the typical ImageRef wrapper { output: { data, ... } }
-    if (v.output !== undefined) return bytesFromValue(v.output);
-  }
-  return null;
-};
-
 const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
   if (typeof value === "string" && value) {
     return <ImageView source={value} />;
@@ -174,6 +137,7 @@ export interface ResizeBodyProps {
 
 const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
   id,
+  nodeType,
   nodeMetadata,
   data,
   workflowId,
@@ -206,7 +170,7 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
     shallow
   );
   // Resize emits a single named output "output" — extract it for preview.
-  const serverPreviewValue = useMemo(() => {
+  const previewValue = useMemo(() => {
     if (result && typeof result === "object" && !Array.isArray(result)) {
       const r = result as Record<string, unknown>;
       if ("output" in r) {
@@ -215,114 +179,12 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
     }
     return result;
   }, [result]);
-
-  // Client-side overlay. When present, it wins over the server result so the
-  // user sees their slider drag immediately.
-  const livePreview = useLivePreview(id);
-  const previewValue = livePreview ?? serverPreviewValue;
   const previewDims = useMemo(() => extractDims(previewValue), [previewValue]);
 
-  const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
-
-  // Resolve the upstream image source for live preview.
-  //
-  // Three candidate sources, tried in order:
-  //   1. Server result for the upstream node (workflow has run at least once).
-  //   2. Upstream node's `value` property — covers Constant.Image, which
-  //      carries its image inline without ever running the workflow.
-  //   3. This node's own `data.properties.image` (rare; defensive fallback).
-  //
-  // Image values may carry raw bytes (data: Uint8Array) OR just a URI. For the
-  // URI path we plumb through useSignedUrl to get a fetchable URL, then fetch
-  // the bytes once and cache them in local state. Slider drags reuse the cache.
-  const upstreamSourceId = useNodes((state) => {
-    const edge = state.edges.find(
-      (e) => e.target === id && e.targetHandle === "image"
-    );
-    return edge?.source;
+  const { setProperties, setPropertyComplete } = useBespokePropertyWriter({
+    nodeId: id,
+    nodeType
   });
-  const upstreamResult = useResultsStore((state) =>
-    upstreamSourceId
-      ? state.getResult(workflowId, upstreamSourceId)
-      : undefined
-  );
-  const upstreamValueProperty = useNodes((state) => {
-    if (!upstreamSourceId) return undefined;
-    const n = state.findNode(upstreamSourceId);
-    const props = (n?.data as { properties?: Record<string, unknown> } | undefined)
-      ?.properties;
-    return props?.value;
-  });
-
-  const upstreamCandidate = useMemo(() => {
-    if (upstreamResult !== undefined) {
-      if (
-        typeof upstreamResult === "object" &&
-        upstreamResult !== null &&
-        !Array.isArray(upstreamResult) &&
-        "output" in (upstreamResult as Record<string, unknown>)
-      ) {
-        return (upstreamResult as Record<string, unknown>).output;
-      }
-      return upstreamResult;
-    }
-    if (upstreamValueProperty && typeof upstreamValueProperty === "object") {
-      return upstreamValueProperty;
-    }
-    return data.properties?.image;
-  }, [upstreamResult, upstreamValueProperty, data.properties?.image]);
-
-  const candidateUri = useMemo(() => {
-    const v = upstreamCandidate as { uri?: string } | undefined;
-    return typeof v?.uri === "string" && v.uri.length > 0 ? v.uri : undefined;
-  }, [upstreamCandidate]);
-  const signedUrl = useSignedUrl(candidateUri);
-
-  // Cached source bytes for the preview pipeline.
-  const [sourceBytes, setSourceBytes] = useState<{
-    data: Uint8Array;
-    width?: number;
-    height?: number;
-  } | null>(null);
-
-  useEffect(() => {
-    // Path 1: inline bytes (data: Uint8Array | base64).
-    const inline = bytesFromValue(upstreamCandidate);
-    if (inline && inline.byteLength > 0) {
-      const dims = extractDims(upstreamCandidate);
-      setSourceBytes({
-        data: inline,
-        width: dims.width,
-        height: dims.height
-      });
-      return;
-    }
-    // Path 2: fetch via signed URL.
-    if (signedUrl) {
-      let cancelled = false;
-      void fetch(signedUrl)
-        .then((r) => r.arrayBuffer())
-        .then((buf) => {
-          if (cancelled) return;
-          const dims = extractDims(upstreamCandidate);
-          setSourceBytes({
-            data: new Uint8Array(buf),
-            width: dims.width,
-            height: dims.height
-          });
-        })
-        .catch(() => {
-          if (!cancelled) setSourceBytes(null);
-        });
-      return () => {
-        cancelled = true;
-      };
-    }
-    setSourceBytes(null);
-    return undefined;
-  }, [upstreamCandidate, signedUrl]);
-
-  const { runPreview } = useLivePreviewActions();
 
   const [chainLocked, setChainLocked] = useState(false);
   // Aspect captured when the lock engages — kept as a ref so it survives
@@ -337,58 +199,30 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
     }
   }, [chainLocked, widthValue, heightValue]);
 
-  const triggerPreview = useCallback(
-    (w: number, h: number) => {
-      if (!sourceBytes) return;
-      // Fire-and-forget — the hook handles debouncing and stale-token guards.
-      void runPreview(id, "resize", { width: w, height: h }, sourceBytes);
-    },
-    [id, sourceBytes, runPreview]
-  );
-
-  // Once bytes are resolved, fire an initial preview at the current W/H so the
-  // body shows the resize immediately on mount (and when the upstream loads).
-  useEffect(() => {
-    if (sourceBytes) {
-      void runPreview(
-        id,
-        "resize",
-        { width: widthValue, height: heightValue },
-        sourceBytes
-      );
-    }
-    // Only re-fire on sourceBytes identity change (upstream load) — the W/H
-    // change handlers fire the preview themselves.
-  }, [sourceBytes]);
-
   const setWidth = useCallback(
     (next: number) => {
       const w = Math.max(1, Math.round(next));
-      let h = heightValue;
       if (chainLocked && aspectRef.current && aspectRef.current > 0) {
-        h = Math.max(1, Math.round(w / aspectRef.current));
-        updateNodeProperties(id, { width: w, height: h });
+        const h = Math.max(1, Math.round(w / aspectRef.current));
+        setProperties({ width: w, height: h });
       } else {
-        updateNodeProperties(id, { width: w });
+        setProperties({ width: w });
       }
-      triggerPreview(w, h);
     },
-    [chainLocked, heightValue, id, triggerPreview, updateNodeProperties]
+    [chainLocked, setProperties]
   );
 
   const setHeight = useCallback(
     (next: number) => {
       const h = Math.max(1, Math.round(next));
-      let w = widthValue;
       if (chainLocked && aspectRef.current && aspectRef.current > 0) {
-        w = Math.max(1, Math.round(h * aspectRef.current));
-        updateNodeProperties(id, { width: w, height: h });
+        const w = Math.max(1, Math.round(h * aspectRef.current));
+        setProperties({ width: w, height: h });
       } else {
-        updateNodeProperties(id, { height: h });
+        setProperties({ height: h });
       }
-      triggerPreview(w, h);
     },
-    [chainLocked, widthValue, id, triggerPreview, updateNodeProperties]
+    [chainLocked, setProperties]
   );
 
   const handleWidthChange = useCallback(
@@ -428,6 +262,7 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
               inputType="int"
               showSlider={false}
               onChange={handleWidthChange}
+              onChangeComplete={setPropertyComplete}
             />
           )}
         </div>
@@ -455,6 +290,7 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
               inputType="int"
               showSlider={false}
               onChange={handleHeightChange}
+              onChangeComplete={setPropertyComplete}
             />
           )}
         </div>
