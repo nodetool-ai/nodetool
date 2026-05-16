@@ -308,6 +308,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           defaultOpen
           compact
           sx={{
+            fontSize: theme.fontSizeSmall,
             borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
             "& > [role='button']": {
               padding: theme.spacing(0.75, 1),
@@ -324,6 +325,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           defaultOpen
           compact
           sx={{
+            fontSize: theme.fontSizeSmall,
             minHeight: 0,
             borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
             "& > [role='button']": {
@@ -378,6 +380,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           defaultOpen={false}
           compact
           sx={{
+            fontSize: theme.fontSizeSmall,
             borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
             "& > [role='button']": {
               padding: theme.spacing(0.75, 1),

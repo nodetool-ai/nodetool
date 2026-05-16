@@ -877,14 +877,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         </Box>
       )}
 
-      <Typography
-        className="section-label sketch-layers-panel__title"
-        component="span"
-        sx={{ display: "block", width: "100%", minHeight: 30, lineHeight: "30px" }}
-      >
-        Layers
-      </Typography>
-
       {/* Add layers (row 1) + layer ops (row 2), left-aligned for predictable icon positions */}
       <Box className="layer-actions sketch-layers-panel__layer-toolbar">
         <Box

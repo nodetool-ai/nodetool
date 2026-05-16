@@ -193,6 +193,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
         onWheelCapture={handleCanvasPresetQuickCycleWheelCapture}
         sx={{
           width: "100%",
+          marginTop: 0.5,
           fontSize: SKETCH_FONT.sm,
           "& .MuiSelect-select": { padding: "3px 8px" }
         }}
@@ -223,7 +224,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
         ))}
       </Select>
 
-      <FlexRow align="center" gap={0.5} sx={{ mt: 0.25 }}>
+      <FlexRow align="center" gap={0.5} sx={{ mt: 4 }}>
         <TextField
           size="small"
           label="W"
