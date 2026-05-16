@@ -24,8 +24,8 @@ describe("bespokeRegistry", () => {
   });
 
   it("does not match utility / generic nodes", () => {
-    expect(isBespokeNode(meta("nodetool.image.Painter"))).toBe(false);
-    expect(getBespokeBody(meta("nodetool.image.Painter"))).toBeUndefined();
+    expect(isBespokeNode(meta("nodetool.input.StringInput"))).toBe(false);
+    expect(getBespokeBody(meta("nodetool.input.StringInput"))).toBeUndefined();
   });
 
   it("maps nodetool.image.Blur → BlurBody", () => {

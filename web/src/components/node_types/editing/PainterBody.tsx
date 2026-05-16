@@ -37,7 +37,6 @@ import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
-import { shallow } from "zustand/shallow";
 
 import {
   CheckerDropzone,
@@ -54,8 +53,7 @@ import NumberInput from "../../inputs/NumberInput";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
-import { useNodes } from "../../../contexts/NodeContext";
+import { useUpstreamValue } from "../../../hooks/nodes/useNodeIO";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 
 const PAINTER_NODE_TYPE = "nodetool.image.Painter";
@@ -88,14 +86,6 @@ const asImageRef = (value: unknown): ImageRefLike | undefined => {
     height: typeof v.height === "number" ? v.height : undefined,
     data: v.data
   };
-};
-
-const unwrapOutput = (value: unknown, handle?: string | null): unknown => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
-  const v = value as Record<string, unknown>;
-  if (handle && handle in v) return v[handle];
-  if ("output" in v) return v.output;
-  return value;
 };
 
 const toImageSrc = (img: ImageRefLike | undefined): string | undefined => {
@@ -231,31 +221,18 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
-  // ── Source-image resolution (same pattern as CropBody) ───────────
-  const upstreamEdge = useNodes(
-    (state) =>
-      state.edges.find(
-        (e) => e.target === id && (e.targetHandle ?? "") === "image"
-      ),
-    shallow
+  // Source image to paint on: upstream edge value if wired, otherwise the
+  // constant set via the Inspector.
+  const inputValue = useUpstreamValue(
+    workflowId,
+    id,
+    "image",
+    data.properties?.image
   );
-
-  const upstreamResult = useResultsStore(
-    (state) =>
-      upstreamEdge
-        ? state.getResult(workflowId, upstreamEdge.source)
-        : undefined,
-    shallow
+  const sourceImage: ImageRefLike | undefined = useMemo(
+    () => asImageRef(inputValue),
+    [inputValue]
   );
-
-  const sourceImage: ImageRefLike | undefined = useMemo(() => {
-    if (upstreamEdge) {
-      const v = unwrapOutput(upstreamResult, upstreamEdge.sourceHandle);
-      const ref = asImageRef(v);
-      if (ref) return ref;
-    }
-    return asImageRef(data.properties?.image);
-  }, [upstreamEdge, upstreamResult, data.properties?.image]);
 
   // Blob URL lifecycle: revoke previous URL on change / unmount.
   const blobUrlRef = useRef<string | undefined>(undefined);
