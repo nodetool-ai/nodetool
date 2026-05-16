@@ -2184,9 +2184,9 @@ export class PainterNode extends BaseNode {
         })
           .png()
           .toBuffer();
-        const meta = await metadataFor(new Uint8Array(blank));
+        const meta = await metadataFor(blank);
         return {
-          mask: imageRef(new Uint8Array(blank), {
+          mask: imageRef(blank, {
             uri: "",
             mimeType: "image/png",
             width: meta.width,
@@ -2207,9 +2207,9 @@ export class PainterNode extends BaseNode {
       const out = await sharp(maskBytes, { failOn: "none" })
         .png()
         .toBuffer();
-      const meta = await metadataFor(new Uint8Array(out));
+      const meta = await metadataFor(out);
       return {
-        mask: imageRef(new Uint8Array(out), {
+        mask: imageRef(out, {
           uri: "",
           mimeType: "image/png",
           width: meta.width,

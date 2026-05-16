@@ -37,12 +37,16 @@ import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
-import IconButton from "@mui/material/IconButton";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import { shallow } from "zustand/shallow";
 
-import { CheckerDropzone, FlexColumn, FlexRow } from "../../ui_primitives";
+import {
+  CheckerDropzone,
+  FlexColumn,
+  FlexRow,
+  ToggleGroup,
+  ToggleOption,
+  ToolbarIconButton
+} from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
@@ -59,6 +63,12 @@ const PAINTER_NODE_TYPE = "nodetool.image.Painter";
 // Max number of undo states retained. Keeps memory bounded; older
 // states are dropped from the front of the queue.
 const MAX_HISTORY = 30;
+
+const DEFAULT_CANVAS_SIZE = 512;
+const DEFAULT_BRUSH_SIZE = 24;
+const DEFAULT_BRUSH_OPACITY = 1;
+const DEFAULT_COLOR = "#ffffff";
+const DEFAULT_BG_FADE = 1;
 
 type Tool = "brush" | "eraser";
 
@@ -92,9 +102,7 @@ const toImageSrc = (img: ImageRefLike | undefined): string | undefined => {
   if (!img) return undefined;
   if (img.uri) return img.uri;
   if (img.data instanceof Uint8Array) {
-    const buf = new ArrayBuffer(img.data.byteLength);
-    new Uint8Array(buf).set(img.data);
-    return URL.createObjectURL(new Blob([buf]));
+    return URL.createObjectURL(new Blob([img.data]));
   }
   return undefined;
 };
@@ -209,8 +217,6 @@ export interface PainterBodyProps {
   isOutputNode: boolean;
 }
 
-const DEFAULT_CANVAS_SIZE = 512;
-
 const PainterBodyInner: React.FC<PainterBodyProps> = ({
   id,
   nodeType,
@@ -249,7 +255,20 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
     return asImageRef(data.properties?.image);
   }, [upstreamEdge, upstreamResult, data.properties?.image]);
 
+  // Blob URL lifecycle: revoke previous URL on change / unmount.
+  const blobUrlRef = useRef<string | undefined>(undefined);
   const sourceSrc = useMemo(() => toImageSrc(sourceImage), [sourceImage]);
+  useEffect(() => {
+    if (sourceSrc && sourceSrc.startsWith("blob:")) {
+      blobUrlRef.current = sourceSrc;
+    }
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = undefined;
+      }
+    };
+  }, [sourceSrc]);
 
   const [imgDims, setImgDims] = useState<{ w: number; h: number } | null>(null);
   useEffect(() => {
@@ -268,15 +287,29 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
     []
   );
 
+  const onSourceError = useCallback(() => {
+    setImgDims(null);
+  }, []);
+
   const canvasW = imgDims?.w ?? DEFAULT_CANVAS_SIZE;
   const canvasH = imgDims?.h ?? DEFAULT_CANVAS_SIZE;
 
   // ── Tool state ───────────────────────────────────────────────────
+  // Rehydrate from persisted node properties on mount.
+  const props = data.properties ?? {};
   const [tool, setTool] = useState<Tool>("brush");
-  const [brushSize, setBrushSize] = useState<number>(24);
-  const [brushOpacity, setBrushOpacity] = useState<number>(1);
-  const [color, setColor] = useState<string>("#ffffff");
-  const [bgFade, setBgFade] = useState<number>(1);
+  const [brushSize, setBrushSize] = useState<number>(
+    typeof props.brush_size === "number" ? props.brush_size : DEFAULT_BRUSH_SIZE
+  );
+  const [brushOpacity, setBrushOpacity] = useState<number>(
+    typeof props.brush_opacity === "number" ? props.brush_opacity : DEFAULT_BRUSH_OPACITY
+  );
+  const [color, setColor] = useState<string>(
+    typeof props.brush_color === "string" ? props.brush_color : DEFAULT_COLOR
+  );
+  const [bgFade, setBgFade] = useState<number>(
+    typeof props.bg_fade === "number" ? props.bg_fade : DEFAULT_BG_FADE
+  );
 
   // ── Paint canvas + history ───────────────────────────────────────
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -352,6 +385,13 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
         }
         const img = new Image();
         img.onload = () => {
+          // If the saved mask dimensions no longer match the canvas
+          // (source image changed), clear instead of stretching.
+          if (img.naturalWidth !== c.width || img.naturalHeight !== c.height) {
+            ctx.clearRect(0, 0, c.width, c.height);
+            resolve();
+            return;
+          }
           ctx.clearRect(0, 0, c.width, c.height);
           ctx.drawImage(img, 0, 0, c.width, c.height);
           resolve();
@@ -446,7 +486,11 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
       const pt = eventToCanvasXY(e);
       lastPointRef.current = pt;
       drawStrokeTo(pt); // dot at click
-      (e.currentTarget as HTMLCanvasElement).setPointerCapture(e.pointerId);
+      const target = e.currentTarget as HTMLCanvasElement;
+      if (typeof target.setPointerCapture === "function") {
+        target.setPointerCapture(e.pointerId);
+      }
+      pointerCaptureTargetRef.current = target;
     },
     [drawStrokeTo, ensureCanvas, eventToCanvasXY, pushUndoSnapshot]
   );
@@ -459,22 +503,56 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
     [drawStrokeTo, eventToCanvasXY]
   );
 
-  const finishStroke = useCallback(() => {
-    if (!pointerActiveRef.current) return;
-    pointerActiveRef.current = false;
-    lastPointRef.current = null;
-    const snap = snapshotMask();
-    if (snap) writeMaskData(snap, true);
-    isDirtyRef.current = false;
-  }, [snapshotMask, writeMaskData]);
+  const pointerCaptureTargetRef = useRef<HTMLCanvasElement | null>(null);
+
+  const finishStroke = useCallback(
+    (e?: React.PointerEvent<HTMLCanvasElement>) => {
+      if (!pointerActiveRef.current) return;
+      pointerActiveRef.current = false;
+      lastPointRef.current = null;
+      const snap = snapshotMask();
+      if (snap) writeMaskData(snap, true);
+      isDirtyRef.current = false;
+      const target = pointerCaptureTargetRef.current ?? e?.currentTarget;
+      if (target) {
+        try {
+          target.releasePointerCapture(e?.pointerId ?? 0);
+        } catch {
+          // Pointer may already be released.
+        }
+        pointerCaptureTargetRef.current = null;
+      }
+    },
+    [snapshotMask, writeMaskData]
+  );
 
   const onPointerUp = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       e.stopPropagation();
-      finishStroke();
+      finishStroke(e);
     },
     [finishStroke]
   );
+
+  // Safety: release pointer capture on unmount.
+  useEffect(() => {
+    return () => {
+      const target = pointerCaptureTargetRef.current;
+      if (target) {
+        try {
+          // Release any active pointer capture when the component unmounts.
+          const activeId = (target as any).ownerDocument?.pointerLockElement
+            ? undefined
+            : 0;
+          if (activeId !== undefined) {
+            target.releasePointerCapture(activeId);
+          }
+        } catch {
+          // Ignore — capture may already be gone.
+        }
+      }
+    };
+  }, []);
 
   // ── Undo / redo / clear ──────────────────────────────────────────
   const onUndo = useCallback(async () => {
@@ -569,6 +647,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
                 className="source"
                 src={sourceSrc}
                 onLoad={onSourceLoad}
+                onError={onSourceError}
                 alt=""
                 style={{ opacity: bgFade }}
               />
@@ -656,7 +735,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
               onChange={onColorChange}
             />
           </div>
-          <ToggleButtonGroup
+          <ToggleGroup
             className="tool-toggle"
             value={tool}
             exclusive
@@ -664,35 +743,33 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
             size="small"
             aria-label="Paint tool"
           >
-            <ToggleButton value="brush" aria-label="Brush">
+            <ToggleOption value="brush" aria-label="Brush">
               <BrushIcon />
-            </ToggleButton>
-            <ToggleButton value="eraser" aria-label="Eraser">
+            </ToggleOption>
+            <ToggleOption value="eraser" aria-label="Eraser">
               <AutoFixHighIcon />
-            </ToggleButton>
-          </ToggleButtonGroup>
+            </ToggleOption>
+          </ToggleGroup>
         </FlexColumn>
       </div>
 
       <FlexRow className="bottom-row" align="center" gap={0.5}>
-        <IconButton
+        <ToolbarIconButton
           className="nodrag"
           size="small"
           onClick={onUndo}
           disabled={undoDisabled}
-          aria-label="Undo"
-        >
-          <UndoIcon fontSize="small" />
-        </IconButton>
-        <IconButton
+          tooltip="Undo"
+          icon={<UndoIcon fontSize="small" />}
+        />
+        <ToolbarIconButton
           className="nodrag"
           size="small"
           onClick={onRedo}
           disabled={redoDisabled}
-          aria-label="Redo"
-        >
-          <RedoIcon fontSize="small" />
-        </IconButton>
+          tooltip="Redo"
+          icon={<RedoIcon fontSize="small" />}
+        />
         <div className="fade-field">
           <NumberInput
             id={`painter-fade-${id}`}
@@ -709,14 +786,13 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
             onChange={onBgFade}
           />
         </div>
-        <IconButton
+        <ToolbarIconButton
           className="nodrag"
           size="small"
           onClick={onClear}
-          aria-label="Clear painted mask"
-        >
-          <RestartAltIcon fontSize="small" />
-        </IconButton>
+          tooltip="Clear painted mask"
+          icon={<RestartAltIcon fontSize="small" />}
+        />
       </FlexRow>
 
       {!isOutputNode && (
