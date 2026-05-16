@@ -102,7 +102,9 @@ const toImageSrc = (img: ImageRefLike | undefined): string | undefined => {
   if (!img) return undefined;
   if (img.uri) return img.uri;
   if (img.data instanceof Uint8Array) {
-    return URL.createObjectURL(new Blob([img.data]));
+    return URL.createObjectURL(
+      new Blob([img.data as BlobPart], { type: "image/png" })
+    );
   }
   return undefined;
 };
