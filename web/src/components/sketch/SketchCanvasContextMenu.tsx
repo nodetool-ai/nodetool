@@ -256,7 +256,7 @@ export interface SketchCanvasContextMenuProps {
   onCropCanvasToSelection: () => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
-  onStrokeSelectionBorder: () => void;
+  onConvertSelectionToBorder: () => void;
   onDeselectSelection: () => void;
   onReselectSelection: () => void;
   onFillSelectionWithForeground: () => void;
@@ -326,7 +326,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   onCropCanvasToSelection,
   onFeatherSelection,
   onSmoothSelectionBorders,
-  onStrokeSelectionBorder,
+  onConvertSelectionToBorder,
   onDeselectSelection,
   onReselectSelection,
   onFillSelectionWithForeground,
@@ -610,7 +610,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                   onInvertSelection={onInvertSelection}
                   onFeatherSelection={onFeatherSelection}
                   onSmoothSelectionBorders={onSmoothSelectionBorders}
-                  onStrokeSelectionBorder={onStrokeSelectionBorder}
+                  onConvertSelectionToBorder={onConvertSelectionToBorder}
                   onAdjustBrightnessChange={onAdjustBrightnessChange}
                   onAdjustContrastChange={onAdjustContrastChange}
                   onAdjustSaturationChange={onAdjustSaturationChange}
@@ -729,7 +729,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     icon={<InvertColorsIcon sx={{ fontSize: 16, transform: "scaleX(-1)" }} />}
                     label="Stroke"
                     disabled={!hasActiveSelection}
-                    onClick={() => { onStrokeSelectionBorder(); onClose(); }}
+                    onClick={() => { onConvertSelectionToBorder(); onClose(); }}
                   />
                 </Stack>
               </Box>

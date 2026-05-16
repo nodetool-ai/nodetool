@@ -32,7 +32,7 @@ interface SelectSettingsPanelProps {
   onCropCanvasToSelection?: () => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
-  onStrokeSelectionBorder: () => void;
+  onConvertSelectionToBorder: () => void;
 }
 
 export const SelectSettingsPanel = memo(function SelectSettingsPanel({
@@ -43,7 +43,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
   onCropCanvasToSelection,
   onFeatherSelection,
   onSmoothSelectionBorders,
-  onStrokeSelectionBorder
+  onConvertSelectionToBorder
 }: SelectSettingsPanelProps) {
   const refineAnchorRef = useRef<HTMLButtonElement | null>(null);
   const [refineOpen, setRefineOpen] = useState(false);
@@ -231,7 +231,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
         onChange={onChange}
         onFeatherSelection={onFeatherSelection}
         onSmoothSelectionBorders={onSmoothSelectionBorders}
-        onConvertSelectionToBorder={onStrokeSelectionBorder}
+        onConvertSelectionToBorder={onConvertSelectionToBorder}
       />
     </>
   );

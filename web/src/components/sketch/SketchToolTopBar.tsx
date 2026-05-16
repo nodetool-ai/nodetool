@@ -82,7 +82,7 @@ export interface SketchToolTopBarProps {
   onCropCanvasToSelection: () => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
-  onStrokeSelectionBorder: () => void;
+  onConvertSelectionToBorder: () => void;
   onAdjustBrightnessChange: (value: number) => void;
   onAdjustContrastChange: (value: number) => void;
   onAdjustSaturationChange: (value: number) => void;
@@ -143,7 +143,7 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   onCropCanvasToSelection,
   onFeatherSelection,
   onSmoothSelectionBorders,
-  onStrokeSelectionBorder,
+  onConvertSelectionToBorder,
   onAdjustBrightnessChange,
   onAdjustContrastChange,
   onAdjustSaturationChange,
@@ -207,7 +207,7 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         onCropCanvasToSelection={onCropCanvasToSelection}
         onFeatherSelection={onFeatherSelection}
         onSmoothSelectionBorders={onSmoothSelectionBorders}
-        onStrokeSelectionBorder={onStrokeSelectionBorder}
+        onConvertSelectionToBorder={onConvertSelectionToBorder}
         onAdjustBrightnessChange={onAdjustBrightnessChange}
         onAdjustContrastChange={onAdjustContrastChange}
         onAdjustSaturationChange={onAdjustSaturationChange}

@@ -73,7 +73,7 @@ function renderContextMenu() {
         onCropCanvasToSelection={jest.fn()}
         onFeatherSelection={jest.fn()}
         onSmoothSelectionBorders={jest.fn()}
-        onStrokeSelectionBorder={jest.fn()}
+        onConvertSelectionToBorder={jest.fn()}
         onDeselectSelection={jest.fn()}
         onReselectSelection={jest.fn()}
         onFillSelectionWithForeground={jest.fn()}
