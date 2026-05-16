@@ -17,7 +17,7 @@ import { useEffect, useState } from "react";
  * }
  * ```
  */
-export const useIsDarkMode = () => {
+export const useIsDarkMode = (): boolean => {
   const [isDarkMode, setIsDarkMode] = useState(() =>
     document.documentElement.classList.contains("dark")
   );

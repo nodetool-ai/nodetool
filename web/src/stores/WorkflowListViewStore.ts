@@ -71,14 +71,14 @@ export const useWorkflowListViewStore = create<WorkflowListViewState>()(
   )
 );
 
-export const useWorkflowListViewActions = () =>
+export const useWorkflowListViewActions = (): WorkflowListViewState["actions"] =>
   useWorkflowListViewStore((state) => state.actions);
 
-export const useShowGraphPreview = () =>
+export const useShowGraphPreview = (): boolean =>
   useWorkflowListViewStore((state) => state.showGraphPreview);
 
-export const useSortBy = () =>
+export const useSortBy = (): SortBy =>
   useWorkflowListViewStore((state) => state.sortBy);
 
-export const useSelectedTags = () =>
+export const useSelectedTags = (): string[] =>
   useWorkflowListViewStore((state) => state.selectedTags);

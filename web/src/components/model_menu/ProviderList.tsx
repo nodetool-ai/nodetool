@@ -38,7 +38,6 @@ import {
   getProviderUrl
 } from "../../utils/providerDisplay";
 import {
-  ModelMenuStoreHook,
   requiredSecretForProvider,
   useLanguageModelMenuStore
 } from "../../stores/ModelMenuStore";
@@ -498,11 +497,19 @@ const listStyles = css({
   maxHeight: "calc(100% - 20px)"
 });
 
+type ProviderStoreHook = <Selected>(
+  selector: (state: {
+    selectedProvider: string | null;
+    setSelectedProvider: (provider: string | null) => void;
+  }) => Selected,
+  equalityFn?: (left: Selected, right: Selected) => boolean
+) => Selected;
+
 export interface ProviderListProps {
   providers: string[];
   isLoading: boolean;
   isError: boolean;
-  storeHook?: ModelMenuStoreHook<any>;
+  storeHook?: ProviderStoreHook;
   forceUnselect?: boolean;
   iconOnly?: boolean;
 }

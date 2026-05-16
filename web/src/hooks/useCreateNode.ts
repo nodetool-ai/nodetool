@@ -18,7 +18,7 @@ import { shallow } from "zustand/shallow";
  */
 export const useCreateNode = (
   centerPosition: { x: number; y: number } | undefined = undefined
-) => {
+): ((metadata: NodeMetadata) => void) => {
   const { clickPosition, closeNodeMenu } = useNodeMenuStore(
     useShallow((state) => ({
       clickPosition: state.clickPosition,
