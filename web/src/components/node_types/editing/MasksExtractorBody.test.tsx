@@ -72,7 +72,13 @@ jest.mock("../../ui_primitives", () => ({
       {React.Children.map(children, (child) =>
         React.isValidElement(child)
           ? React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
-              onClick: () => onChange(null, (child as React.ReactElement<Record<string, unknown>>).props.value)
+              onClick: () =>
+                onChange(
+                  null,
+                  String(
+                    (child as React.ReactElement<Record<string, unknown>>).props.value
+                  )
+                )
             })
           : child
       )}
