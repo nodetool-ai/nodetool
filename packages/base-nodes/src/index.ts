@@ -495,6 +495,26 @@ export {
   LIB_TWILIO_NODES
 } from "./nodes/lib-twilio.js";
 export {
+  CreateCalendarEventAppleNode,
+  ListCalendarEventsAppleNode,
+  CreateNoteAppleNode,
+  ListNotesAppleNode,
+  CreateReminderAppleNode,
+  ListRemindersAppleNode,
+  SendMessageAppleNode,
+  SendMailAppleNode,
+  SearchContactsAppleNode,
+  GetFrontSafariTabAppleNode,
+  OpenSafariURLAppleNode,
+  SafariSelectionTextAppleNode,
+  SafariPageTextAppleNode,
+  GetClipboardTextAppleNode,
+  SetClipboardTextAppleNode,
+  SayTextAppleNode,
+  PostNotificationAppleNode,
+  LIB_APPLE_NODES
+} from "./nodes/lib-apple.js";
+export {
   ConvertToMarkdownLibNode,
   LIB_MARKITDOWN_NODES
 } from "./nodes/lib-doc-convert.js";
@@ -722,6 +742,7 @@ import { LIB_HTTP_NODES } from "./nodes/lib-http.js";
 import { LIB_GRAPHQL_NODES } from "./nodes/lib-graphql.js";
 import { LIB_MAIL_NODES } from "./nodes/lib-mail.js";
 import { LIB_TWILIO_NODES } from "./nodes/lib-twilio.js";
+import { LIB_APPLE_NODES } from "./nodes/lib-apple.js";
 import { LIB_MARKITDOWN_NODES } from "./nodes/lib-doc-convert.js";
 import { LIB_SEABORN_NODES } from "./nodes/lib-charts.js";
 import { LIB_PEDALBOARD_EXTRA_NODES } from "./nodes/lib-audio-effects.js";
@@ -794,6 +815,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_GRAPHQL_NODES,
   ...LIB_MAIL_NODES,
   ...LIB_TWILIO_NODES,
+  ...LIB_APPLE_NODES,
   ...LIB_MARKITDOWN_NODES,
   ...LIB_SEABORN_NODES,
   ...LIB_PEDALBOARD_EXTRA_NODES,
