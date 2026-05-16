@@ -1716,7 +1716,12 @@ export class ChannelsNode extends TransformImageNode {
         const idx =
           channel === "green" ? 1 :
           channel === "blue"  ? 2 :
-          channel === "alpha" ? 3 : 0;
+          channel === "alpha" ? 3 :
+          channel === "red"   ? 0 :
+          null;
+        if (idx === null) {
+          throw new Error(`Unsupported channel: ${channel}`);
+        }
         // ensureAlpha guarantees channel 3 exists when the source is RGB.
         return instance.ensureAlpha().extractChannel(idx);
       },

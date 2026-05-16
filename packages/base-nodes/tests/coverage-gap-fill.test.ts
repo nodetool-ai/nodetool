@@ -4105,6 +4105,7 @@ describe("lib-audio-effects signal verification", () => {
 // Missing node coverage references (ensures exported-node-coverage.test.ts passes)
 // ---------------------------------------------------------------------------
 import {
+  ChannelsNode,
   CollectTextNode,
   ConcatTextNode,
   DescribeNode,
@@ -4131,6 +4132,11 @@ describe("missing exported node smoke tests", () => {
 
   it("DescribeNode defaults", () => {
     const n = new DescribeNode();
+    expect(n.serialize()).toBeDefined();
+  });
+
+  it("ChannelsNode defaults", () => {
+    const n = new ChannelsNode();
     expect(n.serialize()).toBeDefined();
   });
 

@@ -12,12 +12,16 @@ import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ImageIcon from "@mui/icons-material/Image";
 import { shallow } from "zustand/shallow";
 
-import { CheckerDropzone, FlexColumn, FlexRow } from "../../ui_primitives";
+import {
+  CheckerDropzone,
+  FlexColumn,
+  FlexRow,
+  ToggleGroup,
+  ToggleOption
+} from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageView from "../../node/ImageView";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -81,47 +85,33 @@ const styles = (theme: Theme) =>
       paddingTop: theme.spacing(0.25)
     },
     ".channel-toggle": {
-      width: "100%",
-      ".MuiToggleButton-root": {
-        flex: "1 1 auto",
-        padding: `${theme.spacing(0.25)} ${theme.spacing(0.5)}`,
-        fontSize: theme.fontSizeSmaller,
-        fontFamily: theme.fontFamily2,
-        textTransform: "none",
-        minWidth: 0
-      }
+      width: "100%"
     },
     ".outputs-row": {
       flex: "0 0 auto"
     }
   });
 
-const extractImageRef = (
-  value: unknown
-): { uri?: string; data?: unknown } => {
-  if (!value || typeof value !== "object") {
-    return {};
-  }
-  const v = value as Record<string, unknown>;
-  return {
-    uri: typeof v.uri === "string" ? (v.uri as string) : undefined,
-    data: v.data
-  };
-};
-
 const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
   if (typeof value === "string" && value) {
     return <ImageView source={value} />;
   }
-  const v = extractImageRef(value);
-  if (v.uri) {
-    return <ImageView source={v.uri} />;
-  }
-  if (v.data instanceof Uint8Array) {
-    return <ImageView source={v.data} />;
-  }
-  if (Array.isArray(v.data)) {
-    return <ImageView source={new Uint8Array(v.data as number[])} />;
+  if (value && typeof value === "object") {
+    const v = value as Record<string, unknown>;
+    const uri = typeof v.uri === "string" ? v.uri : undefined;
+    if (uri) {
+      return <ImageView source={uri} />;
+    }
+    const data = v.data;
+    if (typeof data === "string" && data) {
+      return <ImageView source={data} />;
+    }
+    if (data instanceof Uint8Array) {
+      return <ImageView source={data} />;
+    }
+    if (Array.isArray(data)) {
+      return <ImageView source={new Uint8Array(data as number[])} />;
+    }
   }
   return (
     <CheckerDropzone
@@ -185,9 +175,10 @@ const ChannelsBodyInner: React.FC<ChannelsBodyProps> = ({
   });
 
   const handleChannelChange = useCallback(
-    (_: React.MouseEvent<HTMLElement>, next: string | null) => {
-      if (!next || !CHANNEL_VALUES.has(next as Channel)) return;
-      setProperty("channel", next);
+    (_: React.MouseEvent<HTMLElement>, next: string | string[] | null) => {
+      const selected = Array.isArray(next) ? next[0] : next;
+      if (!selected || !CHANNEL_VALUES.has(selected as Channel)) return;
+      setProperty("channel", selected);
       setPropertyComplete();
     },
     [setProperty, setPropertyComplete]
@@ -206,25 +197,27 @@ const ChannelsBodyInner: React.FC<ChannelsBodyProps> = ({
 
       <FlexColumn className="controls" gap={0.5}>
         <FlexRow align="center" justify="stretch" gap={0.25}>
-          <ToggleButtonGroup
+          <ToggleGroup
             className="channel-toggle"
             size="small"
             value={channel}
             exclusive
             onChange={handleChannelChange}
             aria-label="Channel"
+            fullWidth
+            compact
           >
             {CHANNELS.map((c) => (
-              <ToggleButton
+              <ToggleOption
                 key={c.value}
                 value={c.value}
                 aria-label={c.label}
                 title={c.label}
               >
                 {c.short}
-              </ToggleButton>
+              </ToggleOption>
             ))}
-          </ToggleButtonGroup>
+          </ToggleGroup>
         </FlexRow>
       </FlexColumn>
 
