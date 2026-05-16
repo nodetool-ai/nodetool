@@ -1723,6 +1723,225 @@ export class BlurNode extends TransformImageNode {
   }
 }
 
+export class LevelsNode extends TransformImageNode {
+  static readonly nodeType = "nodetool.image.Levels";
+  static readonly title = "Levels";
+  static readonly description =
+    "Adjust input black point, gamma, and white point per RGB channel.\n    image, levels, color, tone, curves";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to adjust."
+  })
+  declare image: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Red Black",
+    description: "Red channel input black point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare r_black: any;
+
+  @prop({
+    type: "float",
+    default: 1,
+    title: "Red Gamma",
+    description: "Red channel gamma (0.01–10).",
+    min: 0.01,
+    max: 10
+  })
+  declare r_gamma: any;
+
+  @prop({
+    type: "int",
+    default: 255,
+    title: "Red White",
+    description: "Red channel input white point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare r_white: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Green Black",
+    description: "Green channel input black point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare g_black: any;
+
+  @prop({
+    type: "float",
+    default: 1,
+    title: "Green Gamma",
+    description: "Green channel gamma (0.01–10).",
+    min: 0.01,
+    max: 10
+  })
+  declare g_gamma: any;
+
+  @prop({
+    type: "int",
+    default: 255,
+    title: "Green White",
+    description: "Green channel input white point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare g_white: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Blue Black",
+    description: "Blue channel input black point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare b_black: any;
+
+  @prop({
+    type: "float",
+    default: 1,
+    title: "Blue Gamma",
+    description: "Blue channel gamma (0.01–10).",
+    min: 0.01,
+    max: 10
+  })
+  declare b_gamma: any;
+
+  @prop({
+    type: "int",
+    default: 255,
+    title: "Blue White",
+    description: "Blue channel input white point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare b_white: any;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const bytes = await imageBytesAsync(image, context);
+    if (bytes.length === 0) {
+      return {
+        output: imageRef(bytes, {
+          uri: image.uri ?? "",
+          width: image.width ?? undefined,
+          height: image.height ?? undefined
+        })
+      };
+    }
+
+    const clamp255 = (n: number): number =>
+      Math.max(0, Math.min(255, Math.round(n)));
+    const clampGamma = (n: number): number =>
+      Math.max(0.01, Math.min(10, n));
+
+    const rBlack = clamp255(Number(this.r_black ?? 0));
+    const rWhite = clamp255(Number(this.r_white ?? 255));
+    const rGamma = clampGamma(Number(this.r_gamma ?? 1));
+    const gBlack = clamp255(Number(this.g_black ?? 0));
+    const gWhite = clamp255(Number(this.g_white ?? 255));
+    const gGamma = clampGamma(Number(this.g_gamma ?? 1));
+    const bBlack = clamp255(Number(this.b_black ?? 0));
+    const bWhite = clamp255(Number(this.b_white ?? 255));
+    const bGamma = clampGamma(Number(this.b_gamma ?? 1));
+
+    const identity =
+      rBlack === 0 && rWhite === 255 && rGamma === 1 &&
+      gBlack === 0 && gWhite === 255 && gGamma === 1 &&
+      bBlack === 0 && bWhite === 255 && bGamma === 1;
+    if (identity) {
+      return {
+        output: imageRef(bytes, {
+          uri: image.uri ?? "",
+          ...this.transformMeta()
+        })
+      };
+    }
+
+    const buildLut = (black: number, gamma: number, white: number) => {
+      const lut = new Uint8Array(256);
+      const denom = Math.max(1, white - black);
+      const invGamma = 1 / gamma;
+      for (let i = 0; i < 256; i++) {
+        const t = Math.max(0, Math.min(1, (i - black) / denom));
+        lut[i] = clamp255(Math.pow(t, invGamma) * 255);
+      }
+      return lut;
+    };
+
+    const lutR = buildLut(rBlack, rGamma, rWhite);
+    const lutG = buildLut(gBlack, gGamma, gWhite);
+    const lutB = buildLut(bBlack, bGamma, bWhite);
+
+    try {
+      const { data: raw, info } = await sharp(bytes, { failOn: "none" })
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+      const channels = info.channels;
+      const out = Buffer.allocUnsafe(raw.length);
+      for (let i = 0; i < raw.length; i += channels) {
+        out[i] = lutR[raw[i]];
+        out[i + 1] = lutG[raw[i + 1]];
+        out[i + 2] = lutB[raw[i + 2]];
+        if (channels >= 4) {
+          out[i + 3] = raw[i + 3];
+        }
+      }
+
+      const outputBytes = await sharp(out, {
+        raw: {
+          width: info.width,
+          height: info.height,
+          channels: info.channels
+        }
+      })
+        .png()
+        .toBuffer();
+      const meta = await metadataFor(outputBytes);
+      return {
+        output: imageRef(outputBytes, {
+          uri: image.uri ?? "",
+          mimeType: inferImageMime(image.uri, outputBytes),
+          width: meta.width,
+          height: meta.height
+        })
+      };
+    } catch {
+      return {
+        output: imageRef(bytes, {
+          uri: image.uri ?? "",
+          ...this.transformMeta()
+        })
+      };
+    }
+  }
+}
+
 export const IMAGE_NODES = [
   LoadImageFileNode,
   LoadImageFolderNode,
@@ -1740,6 +1959,7 @@ export const IMAGE_NODES = [
   RotateAndFlipNode,
   ChannelsNode,
   BlurNode,
+  LevelsNode,
   TextToImageNode,
   ImageToImageNode,
   ImageEditorNode
