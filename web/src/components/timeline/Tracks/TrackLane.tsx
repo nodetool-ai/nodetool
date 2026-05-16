@@ -333,8 +333,10 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
       setRubberBand({ left, top, width, height });
 
-      // Compute which clips overlap the rubber-band
-      const rbStartMs = (left + e.currentTarget.scrollLeft) * msPerPx;
+      // Compute which clips overlap the rubber-band. The lane itself is not
+      // the scroll container — TracksRegion is — so e.currentTarget.scrollLeft
+      // is always 0. Use the UI store's tracked scroll offset instead.
+      const rbStartMs = (left + scrollLeftPx) * msPerPx;
       const rbEndMs = rbStartMs + width * msPerPx;
 
       // Read clips lazily to avoid subscribing to the full array in render
@@ -351,7 +353,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
       setSelection(selected);
     },
-    [msPerPx, track.id, setSelection]
+    [msPerPx, scrollLeftPx, track.id, setSelection]
   );
 
   const handleLanePointerUp = useCallback(() => {

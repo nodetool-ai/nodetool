@@ -312,6 +312,15 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
       throw new Error("Clip is not bound to a workflow");
     }
 
+    // Single-flight per clip: if a job is already queued or running for this
+    // clip, do nothing. Without this guard a rapid double-click registers a
+    // second job that overwrites the first in the store, orphans the local
+    // subscription, and leaves the original job running on the server.
+    const existing = useTimelineGenerationStore.getState().clipJobs[clip.id];
+    if (existing && (existing.status === "queued" || existing.status === "running")) {
+      return;
+    }
+
     const workflow = await queryClient.fetchQuery({
       queryKey: workflowQueryKey(workflowId),
       queryFn: () => fetchWorkflowById(workflowId),

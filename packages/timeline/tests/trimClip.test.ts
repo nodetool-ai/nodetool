@@ -68,6 +68,13 @@ describe("trimClip", () => {
     expect(() => trimClip(clip, "end", 500, 900)).toThrow(/beyond source out-point/);
   });
 
+  it("throws when the start edge would move before zero on the timeline", () => {
+    const clip: TimelineClip = { ...makeBaseClip(), startMs: 50, inPointMs: 200 };
+    expect(() => trimClip(clip, "start", 100, 1000)).toThrow(
+      /before zero on the timeline/
+    );
+  });
+
   it("preserves generation hash fields", () => {
     const clip = makeBaseClip();
     const trimmed = trimClip(clip, "end", -50, 1000);
