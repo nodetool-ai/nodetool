@@ -3,6 +3,7 @@ import {
   getBespokeBody,
   isBespokeNode
 } from "./bespokeRegistry";
+import BlurBody from "./BlurBody";
 import CropBody from "./CropBody";
 import ResizeBody from "./ResizeBody";
 import RotateAndFlipBody from "./RotateAndFlipBody";
@@ -19,8 +20,15 @@ describe("bespokeRegistry", () => {
 
   it("does not match utility / generic nodes", () => {
     expect(isBespokeNode(meta("nodetool.control.If"))).toBe(false);
-    expect(isBespokeNode(meta("nodetool.image.Blur"))).toBe(false);
-    expect(getBespokeBody(meta("nodetool.image.Blur"))).toBeUndefined();
+    expect(isBespokeNode(meta("nodetool.image.Channels"))).toBe(false);
+    expect(getBespokeBody(meta("nodetool.image.Channels"))).toBeUndefined();
+  });
+
+  it("maps nodetool.image.Blur → BlurBody", () => {
+    const m = meta("nodetool.image.Blur");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(BlurBody);
+    expect(BESPOKE_BODY_REGISTRY["nodetool.image.Blur"]).toBe(BlurBody);
   });
 
   it("maps nodetool.image.Crop → CropBody", () => {
