@@ -16,7 +16,7 @@ export const tsxWatchExcludeGlobs = [
  * repo-local tsx CLI under watch mode.
  *
  * Uses the `tsx watch` subcommand (with path excludes) instead of
- * `tsx --watch`, so rebuild output under packages/*/dist does not
+ * `tsx --watch`, so rebuild output under packages/&lt;name&gt;/dist does not
  * constantly restart the server during parallel `build:packages`.
  */
 export function getTsxWatchCommand(repoRoot, entrypoint) {

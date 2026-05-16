@@ -5,8 +5,8 @@
  *
  * Uses tsx to run the server directly from TypeScript source — no build step.
  * `tsx watch` restarts on source changes; prebuilt package output under
- * packages/*/dist is excluded so parallel `npm run build:packages` does not
- * cause a restart storm (see scripts/dev-commands.mjs).
+ * `packages/<name>/dist` is excluded so parallel `npm run build:packages`
+ * does not cause a restart storm (see scripts/dev-commands.mjs).
  *
  * Usage:
  *   node scripts/dev-server.mjs              # default: server mode
