@@ -71,8 +71,8 @@ jest.mock("../../ui_primitives", () => ({
     <div data-testid="toggle-group" data-value={value}>
       {React.Children.map(children, (child) =>
         React.isValidElement(child)
-          ? React.cloneElement(child as React.ReactElement, {
-              onClick: () => onChange(null, (child as React.ReactElement).props.value)
+          ? React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
+              onClick: () => onChange(null, (child as React.ReactElement<Record<string, unknown>>).props.value)
             })
           : child
       )}
@@ -119,11 +119,16 @@ describe("MasksExtractorBody", () => {
       properties: [{ name: "image", type: "image" }],
       outputs: []
     },
-    data: { properties: {} },
+    data: {
+      properties: {},
+      selectable: undefined,
+      dynamic_properties: {},
+      workflow_id: "wf-1"
+    },
     workflowId: "wf-1",
     status: "idle",
     isOutputNode: false
-  };
+  } as unknown as React.ComponentProps<typeof MasksExtractorBody>;
 
   const mockRunSingleNode = jest.fn();
 
@@ -142,7 +147,10 @@ describe("MasksExtractorBody", () => {
     render(
       <MasksExtractorBody
         {...defaultProps}
-        data={{ properties: { image: { uri: "test.jpg" } } }}
+        data={{
+          ...defaultProps.data,
+          properties: { image: { uri: "test.jpg" } }
+        }}
       />
     );
     expect(screen.getByTestId("image-view")).toBeInTheDocument();
