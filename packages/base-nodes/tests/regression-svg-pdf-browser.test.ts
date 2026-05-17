@@ -349,5 +349,24 @@ describe("SpiderCrawl robots.txt regression", () => {
 // ---------------------------------------------------------------------------
 
 describe("KIE manifest model ID regression", () => {
-  it("manifest file loads successfully", () => { expect(1).toBe(1); });
+  let manifest: any[];
+
+  try {
+    const manifestPath = resolve(
+      __dirname,
+      "../../kie-nodes/src/kie-manifest.json"
+    );
+    manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
+  } catch {
+    manifest = [];
+  }
+
+  it("manifest file loads successfully", () => {
+    expect(manifest.length).toBeGreaterThan(0);
+  });
+
+  // Per-model ID regression checks for GPTImage4o, KlingAIAvatar, SeedanceV1,
+  // RunwayGen3Alpha, and ElevenLabsSoundEffect were removed: the manifest was
+  // regenerated and none of those `className` entries exist anymore. Re-add
+  // targeted checks if a specific model ID convention regresses.
 });
