@@ -13,6 +13,7 @@ import type {
   PropertyMetadata,
   TypeMetadata
 } from "./metadata.js";
+import { normalizePlatforms } from "@nodetool-ai/protocol";
 import type { DeclaredPropertyMetadata } from "./decorators.js";
 
 export interface GetNodeMetadataOptions {
@@ -246,7 +247,8 @@ export function getNodeMetadata(
     expose_as_tool: nodeClass.exposeAsTool,
     supports_dynamic_outputs: nodeClass.supportsDynamicOutputs,
     auto_save_asset: nodeClass.autoSaveAsset || undefined,
-    model_packs: nodeClass.modelPacks
+    model_packs: nodeClass.modelPacks,
+    platforms: normalizePlatforms(nodeClass.platforms)
   };
 
   if (!options.mergePythonBackfill) {

@@ -9,6 +9,7 @@
 
 import {
   WorkflowRunner,
+  type NodeValidator,
   type RunJobRequest,
   type RunResult
 } from "@nodetool-ai/kernel";
@@ -21,6 +22,7 @@ import {
 import type {
   Edge,
   NodeDescriptor,
+  Platform,
   ProcessingMessage
 } from "@nodetool-ai/protocol";
 
@@ -51,6 +53,14 @@ export interface RunWorkflowOptions {
 
   /** Abort the run when this signal fires. */
   signal?: AbortSignal;
+
+  /**
+   * Reject graphs whose nodes do not declare support for this deployment
+   * platform. When set, the runner runs both property validation and
+   * platform validation as a pre-flight; unsupported nodes cause the run
+   * to fail before any actor is spawned.
+   */
+  platform?: Platform;
 }
 
 /**
@@ -81,7 +91,12 @@ export async function* runWorkflow(
   const runner = new WorkflowRunner(jobId, {
     resolveExecutor: (node) => opts.registry.resolve(node),
     executionContext: context,
-    validateNode: opts.registry.createNodeValidator()
+    validateNode: composeValidators(
+      opts.registry.createNodeValidator(),
+      opts.platform
+        ? opts.registry.createPlatformValidator(opts.platform)
+        : null
+    )
   });
 
   const queue: ProcessingMessage[] = [];
@@ -153,6 +168,20 @@ export async function* runWorkflow(
     throw new Error("Workflow runner exited without a result");
   }
   return result;
+}
+
+function composeValidators(
+  a: NodeValidator,
+  b: NodeValidator | null
+): NodeValidator {
+  if (!b) return a;
+  return (descriptor, connectedHandles) => {
+    const aIssues = a(descriptor, connectedHandles) ?? [];
+    const bIssues = b(descriptor, connectedHandles) ?? [];
+    if (aIssues.length === 0) return bIssues;
+    if (bIssues.length === 0) return aIssues;
+    return [...aIssues, ...bIssues];
+  };
 }
 
 function generateJobId(): string {

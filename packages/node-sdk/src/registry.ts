@@ -1,4 +1,5 @@
-import type { NodeDescriptor } from "@nodetool-ai/protocol";
+import type { NodeDescriptor, Platform } from "@nodetool-ai/protocol";
+import { supportsPlatform } from "@nodetool-ai/protocol";
 import type { NodeExecutor, ResolvedNodeType } from "@nodetool-ai/kernel";
 import type { NodeClass } from "./base-node.js";
 import type {
@@ -94,6 +95,59 @@ export class NodeRegistry {
   ) => NodePropertyValidationIssue[] {
     return (descriptor, connectedHandles) =>
       this.validateNode(descriptor, connectedHandles);
+  }
+
+  /**
+   * Return a new NodeRegistry containing only the node classes that declare
+   * support for `target`. Loaded (Python) metadata is copied across when the
+   * matching class is included.
+   *
+   * Used at bundle / deployment time to construct a registry tailored to the
+   * active platform — the workflow runner then naturally fails on any graph
+   * referencing an unsupported node type.
+   */
+  forPlatform(target: Platform): NodeRegistry {
+    const filtered = new NodeRegistry({
+      strictMetadata: this._strictMetadata
+    });
+    for (const [nodeType, nodeClass] of this._classes) {
+      if (!supportsPlatform(nodeClass.platforms, target)) continue;
+      const metadata = this._registeredMetadataByType.get(nodeType);
+      filtered.register(nodeClass, metadata ? { metadata } : {});
+      const loaded = this._loadedMetadataByType.get(nodeType);
+      if (loaded) filtered._loadedMetadataByType.set(nodeType, loaded);
+    }
+    return filtered;
+  }
+
+  /**
+   * Validator that rejects nodes not supporting `target`. Compose with
+   * {@link createNodeValidator} when enforcing platform constraints in a
+   * registry that contains nodes for multiple platforms.
+   */
+  createPlatformValidator(
+    target: Platform
+  ): (
+    descriptor: NodeDescriptor,
+    connectedHandles: ReadonlySet<string>
+  ) => NodePropertyValidationIssue[] {
+    return (descriptor) => {
+      const nodeClass = this._classes.get(descriptor.type);
+      const platforms =
+        nodeClass?.platforms ??
+        this.resolveMetadata(descriptor.type)?.platforms;
+      if (supportsPlatform(platforms, target)) return [];
+      const supported =
+        platforms && platforms.length > 0 ? platforms.join(", ") : "node";
+      return [
+        {
+          nodeId: descriptor.id,
+          nodeType: descriptor.type,
+          property: "*",
+          message: `Node ${descriptor.type} is not supported on platform '${target}' (supports: ${supported})`
+        }
+      ];
+    };
   }
 
   resolve(descriptor: NodeDescriptor): NodeExecutor {

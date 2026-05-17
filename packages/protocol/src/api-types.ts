@@ -564,6 +564,11 @@ export interface NodeMetadata {
   supports_dynamic_outputs: boolean;
   model_packs?: ModelPack[];
   fal_unit_pricing?: FalUnitPricing | null;
+  /**
+   * Deployment platforms this node supports. See `@nodetool-ai/protocol`'s
+   * Platform type. Absent or empty values are treated as ["node"].
+   */
+  platforms?: readonly ("node" | "workers" | "edge")[];
 }
 
 export interface IndexResponse {

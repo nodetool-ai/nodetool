@@ -14,3 +14,10 @@ export {
 } from "./wrap-primitives.js";
 export * from "./toolSchemas.js";
 export * from "./agent-protocol.js";
+export {
+  type Platform,
+  ALL_PLATFORMS,
+  DEFAULT_PLATFORMS,
+  normalizePlatforms,
+  supportsPlatform
+} from "./platform.js";
