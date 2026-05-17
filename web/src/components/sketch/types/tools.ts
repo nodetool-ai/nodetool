@@ -257,6 +257,13 @@ export interface PencilSettings {
   stabilizer: number;
   /** New stroke input assist model. Falls back to legacy `stabilizer` when absent. */
   strokeAssist?: StrokeAssistSettings;
+  /**
+   * When true, dabs are drawn as crisp N×N filled squares centered on the
+   * pixel under the cursor (pixel-art style) instead of antialiased circles.
+   * Optional for back-compat with older serialized documents; treat absent
+   * as `true` (the default for new pencils).
+   */
+  pixelPerfect?: boolean;
 }
 
 /** Apply global {@link ToolSettings.penPressure} for paint engines (brush/pencil store strips these for UI). */
@@ -596,7 +603,8 @@ export const DEFAULT_PENCIL_SETTINGS: PencilSettings = {
   pressureMinScale: DEFAULT_PRESSURE_MIN_SCALE,
   pressureCurve: DEFAULT_PRESSURE_CURVE,
   stabilizer: 0,
-  strokeAssist: { ...DEFAULT_STROKE_ASSIST_SETTINGS }
+  strokeAssist: { ...DEFAULT_STROKE_ASSIST_SETTINGS },
+  pixelPerfect: true
 };
 
 export const DEFAULT_ERASER_SETTINGS: EraserSettings = {

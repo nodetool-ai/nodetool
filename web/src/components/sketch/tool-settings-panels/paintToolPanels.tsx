@@ -438,9 +438,22 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
   omitStrokeAssist = false
 }: PencilSettingsPanelProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const pixelMode: "pixel" | "soft" =
+    (settings.pixelPerfect ?? true) ? "pixel" : "soft";
   return (
     <>
       <SettingGroup>
+        <SketchModeToggle
+          value={pixelMode}
+          onChange={(_, v) => {
+            if (v) {
+              onChange({ pixelPerfect: v === "pixel" });
+            }
+          }}
+        >
+          <SketchModeOption value="pixel">Pixel</SketchModeOption>
+          <SketchModeOption value="soft">Soft</SketchModeOption>
+        </SketchModeToggle>
         {!omitPaintSliders && (
           <>
             <Box className="setting-row setting-row--wide">

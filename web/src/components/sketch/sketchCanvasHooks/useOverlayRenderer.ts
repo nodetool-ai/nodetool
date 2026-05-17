@@ -26,7 +26,8 @@ import {
 } from "../drawingUtils";
 import {
   SKETCH_FULL_OPACITY_THRESHOLD,
-  snapStrokeDabCenterDoc
+  snapStrokeDabCenterDoc,
+  pixelPerfectPencilDabFootprint
 } from "../painting/strokeRendering";
 import {
   sketchClientToDocCanvas,
@@ -548,10 +549,18 @@ export function useOverlayRenderer({
       const docW = doc.canvas.width;
       const docH = doc.canvas.height;
 
-      const pencilLikeDabSnap = (): { size: number; opacity: number } | null => {
+      const pencilLikeDabSnap = (): {
+        size: number;
+        opacity: number;
+        pixelPerfect: boolean;
+      } | null => {
         if (interactionTool === "pencil") {
           const p = doc.toolSettings.pencil;
-          return { size: p.size, opacity: p.opacity };
+          return {
+            size: p.size,
+            opacity: p.opacity,
+            pixelPerfect: p.pixelPerfect ?? true
+          };
         }
         if (interactionTool === "eraser") {
           const eraser = doc.toolSettings.eraser;
@@ -560,7 +569,13 @@ export function useOverlayRenderer({
             (eraser as { tip?: "brush" | "pencil" }).tip ??
             "brush";
           if (eraserMode === "pencil") {
-            return { size: eraser.size, opacity: eraser.opacity };
+            // Eraser pencil mode follows the pencil tool's pixelPerfect flag,
+            // so toggling it on the pencil applies to eraser dabs uniformly.
+            return {
+              size: eraser.size,
+              opacity: eraser.opacity,
+              pixelPerfect: doc.toolSettings.pencil.pixelPerfect ?? true
+            };
           }
         }
         return null;
@@ -610,7 +625,8 @@ export function useOverlayRenderer({
                 dabDocCoords.x,
                 dabDocCoords.y,
                 dabSnap.size,
-                dabSnap.opacity
+                dabSnap.opacity,
+                dabSnap.pixelPerfect
               )
             : docPt;
         const ac = sketchDocCanvasToClient(
@@ -639,6 +655,8 @@ export function useOverlayRenderer({
       let hardnessScale = 1;
       /** Crisp 1×1 doc-pixel dab preview — same thresholds as `drawPencilStroke` `usePixelCrispDab`. */
       let showCrispPixelCursor = false;
+      /** Pixel-perfect N×N rect preview — set when pencil/eraser-pencil pixelPerfect is on. */
+      let pixelPerfectN = 0;
       if (interactionTool === "brush") {
         size = doc.toolSettings.brush.size;
         roundness = doc.toolSettings.brush.roundness;
@@ -660,10 +678,19 @@ export function useOverlayRenderer({
       } else if (interactionTool === "pencil") {
         size = doc.toolSettings.pencil.size;
         const p = doc.toolSettings.pencil;
-        showCrispPixelCursor =
-          zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM &&
+        const pencilPixelPerfect = p.pixelPerfect ?? true;
+        if (
+          pencilPixelPerfect &&
           p.opacity >= SKETCH_FULL_OPACITY_THRESHOLD &&
-          p.size <= 1.25;
+          zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM
+        ) {
+          pixelPerfectN = Math.max(1, Math.round(p.size));
+        } else {
+          showCrispPixelCursor =
+            zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM &&
+            p.opacity >= SKETCH_FULL_OPACITY_THRESHOLD &&
+            p.size <= 1.25;
+        }
       } else if (interactionTool === "blur") {
         size = doc.toolSettings.blur.size;
       } else if (interactionTool === "clone_stamp") {
@@ -691,11 +718,79 @@ export function useOverlayRenderer({
             hardnessScale = innerStop + (1 - innerStop) * 0.5;
           }
         } else {
-          showCrispPixelCursor =
-            zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM &&
+          // Eraser pencil mode follows pencil's pixelPerfect flag.
+          const pencilPixelPerfect =
+            doc.toolSettings.pencil.pixelPerfect ?? true;
+          if (
+            pencilPixelPerfect &&
             eraser.opacity >= SKETCH_FULL_OPACITY_THRESHOLD &&
-            eraser.size <= 1.25;
+            zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM
+          ) {
+            pixelPerfectN = Math.max(1, Math.round(eraser.size));
+          } else {
+            showCrispPixelCursor =
+              zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM &&
+              eraser.opacity >= SKETCH_FULL_OPACITY_THRESHOLD &&
+              eraser.size <= 1.25;
+          }
         }
+      }
+
+      // ── Pixel-perfect pencil/eraser N×N dab preview ───────────────────
+      if (pixelPerfectN > 0 && dabDocCoords && dabSnap) {
+        const containerEl = containerRef.current;
+        if (containerEl) {
+          const contBounds = containerEl.getBoundingClientRect();
+          const { ix, iy, n } = pixelPerfectPencilDabFootprint(
+            dabDocCoords.x,
+            dabDocCoords.y,
+            dabSnap.size
+          );
+          const tlClient = sketchDocCanvasToClient(
+            ix,
+            iy,
+            displayCanvasRef.current,
+            contBounds,
+            zoom,
+            pan,
+            docW,
+            docH
+          );
+          const rectScreenX = (tlClient.x - cRect.left) * scaleX;
+          const rectScreenY = (tlClient.y - cRect.top) * scaleY;
+          const rectScreenSize = zoom * n;
+
+          ctx.save();
+          ctx.fillStyle = alpha(theme.palette.grey[500], 0.28);
+          ctx.fillRect(
+            rectScreenX,
+            rectScreenY,
+            rectScreenSize,
+            rectScreenSize
+          );
+          ctx.strokeStyle = alpha(theme.palette.grey[900], 0.55);
+          ctx.lineWidth = 2;
+          ctx.strokeRect(
+            rectScreenX + 1,
+            rectScreenY + 1,
+            rectScreenSize - 2,
+            rectScreenSize - 2
+          );
+          ctx.strokeStyle = alpha(theme.palette.grey[200], 0.92);
+          ctx.lineWidth = 1;
+          ctx.strokeRect(
+            rectScreenX + 0.5,
+            rectScreenY + 0.5,
+            rectScreenSize - 1,
+            rectScreenSize - 1
+          );
+          ctx.restore();
+
+          if (interactionTool === "pencil") {
+            drawPencilRawPointerHint(ctx, theme, rawLocalX, rawLocalY, zoom);
+          }
+        }
+        return;
       }
 
       // ── Crisp pencil dab: 1 doc pixel (matches fillRect(ix,iy,1,1)) ────────
