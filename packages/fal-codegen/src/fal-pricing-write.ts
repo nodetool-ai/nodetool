@@ -1,40 +1,38 @@
 /**
- * Build and write the two FAL pricing JSON bundles consumed by `web/`:
+ * FAL-specific shim around `@nodetool-ai/node-sdk`'s pricing-bundle helpers.
  *
- *  - `fal-node-type-pricing.json` — keyed by NodeTool `node_type`, used at
- *     load time to attach `fal_unit_pricing` onto each `NodeMetadata`.
- *  - `fal-unit-pricing.json` — keyed by FAL `endpoint_id`, raw price catalog.
- *     Kept around so the frontend can show "snapshot recorded at" and so we
- *     can debug a pricing diff without re-deriving from the node-type map.
+ * The bundle shape, schema version, and write logic are shared so that the
+ * upcoming `replicate-codegen` and `kie-codegen` packages can emit identical
+ * JSON structures. The only FAL-specific bit lives here:
  *
- * Both bundles are committed alongside `fal-manifest.json` (despite living in
- * `src/generated/`) so users without a `FAL_API_KEY` configured at runtime
- * still see prices in the node menu on first paint.
+ *   - `nodeTypeFor(spec)` derives the runtime node type via the
+ *     `fal-factory.ts` convention `fal.<moduleName>.<ClassName>`.
+ *   - `buildFalPricingBundles` maps `NodeSpec & { moduleName }` arrays onto
+ *     the generic `PricingBundleSpec` shape before delegating.
  */
 
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import {
+  buildPricingBundles as buildPricingBundlesGeneric,
+  writePricingBundles as writePricingBundlesGeneric,
+  writeEmptyPricingBundles as writeEmptyPricingBundlesGeneric,
+  NODE_TYPE_PRICING_SCHEMA_VERSION,
+  type NodeTypePricingBundle,
+  type PricingBundleSpec,
+  type PricingOutputPaths,
+  type UnitPricing,
+  type UnitPricingCatalog,
+  type UnitPricingEntry
+} from "@nodetool-ai/node-sdk";
 import type { NodeSpec } from "./types.js";
 import type { PricingEntry } from "./fal-pricing-fetch.js";
 
-/** Stable on-disk schema version; bump when the JSON shape changes. */
-export const FAL_PRICING_SCHEMA_VERSION = 1;
-
-export interface FalUnitPricingEntry extends PricingEntry {
-  endpoint_id: string;
-}
-
-export interface FalNodeTypePricingBundle {
-  schemaVersion: number;
-  writtenAt: string;
-  byNodeType: Record<string, FalUnitPricingEntry>;
-}
-
-export interface FalUnitPricingCatalog {
-  schemaVersion: number;
-  writtenAt: string;
-  prices: Record<string, PricingEntry>;
-}
+export {
+  NODE_TYPE_PRICING_SCHEMA_VERSION as FAL_PRICING_SCHEMA_VERSION,
+  type NodeTypePricingBundle as FalNodeTypePricingBundle,
+  type UnitPricingCatalog as FalUnitPricingCatalog,
+  type UnitPricingEntry as FalUnitPricingEntry,
+  type PricingOutputPaths
+};
 
 export type SpecWithModule = NodeSpec & { moduleName: string };
 
@@ -43,82 +41,28 @@ export function nodeTypeFor(spec: SpecWithModule): string {
   return `fal.${spec.moduleName}.${spec.className}`;
 }
 
+function toPricingBundleSpec(spec: SpecWithModule): PricingBundleSpec {
+  return { endpointId: spec.endpointId, nodeType: nodeTypeFor(spec) };
+}
+
+function toUnitPricing(prices: Record<string, PricingEntry>): Record<string, UnitPricing> {
+  // `PricingEntry` and `UnitPricing` are structurally identical today; the
+  // explicit conversion keeps the seam visible for the day a provider grows
+  // extra fields.
+  return prices;
+}
+
 export function buildPricingBundles(
   specs: readonly SpecWithModule[],
   prices: Record<string, PricingEntry>,
   writtenAt: string
-): { byNodeType: FalNodeTypePricingBundle; catalog: FalUnitPricingCatalog } {
-  const byNodeType: Record<string, FalUnitPricingEntry> = {};
-  const catalog: Record<string, PricingEntry> = {};
-
-  for (const spec of specs) {
-    const entry = prices[spec.endpointId];
-    if (!entry) continue;
-    byNodeType[nodeTypeFor(spec)] = { endpoint_id: spec.endpointId, ...entry };
-    catalog[spec.endpointId] = entry;
-  }
-
-  return {
-    byNodeType: {
-      schemaVersion: FAL_PRICING_SCHEMA_VERSION,
-      writtenAt,
-      byNodeType
-    },
-    catalog: {
-      schemaVersion: FAL_PRICING_SCHEMA_VERSION,
-      writtenAt,
-      prices: catalog
-    }
-  };
-}
-
-export interface PricingOutputPaths {
-  byNodeTypePath: string;
-  catalogPath: string;
-}
-
-export async function writePricingBundles(
-  bundles: {
-    byNodeType: FalNodeTypePricingBundle;
-    catalog: FalUnitPricingCatalog;
-  },
-  paths: PricingOutputPaths
-): Promise<void> {
-  await mkdir(dirname(paths.byNodeTypePath), { recursive: true });
-  await Promise.all([
-    writeFile(
-      paths.byNodeTypePath,
-      JSON.stringify(bundles.byNodeType, null, 2) + "\n"
-    ),
-    writeFile(
-      paths.catalogPath,
-      JSON.stringify(bundles.catalog, null, 2) + "\n"
-    )
-  ]);
-}
-
-/**
- * Write empty (stub) bundles. Used when `--no-pricing` is passed or when
- * `FAL_API_KEY` is unavailable, so consumers always find a parseable JSON at
- * the alias targets and Vite/Jest don't fail to resolve.
- */
-export async function writeEmptyPricingBundles(
-  paths: PricingOutputPaths
-): Promise<void> {
-  const writtenAt = new Date(0).toISOString();
-  await writePricingBundles(
-    {
-      byNodeType: {
-        schemaVersion: FAL_PRICING_SCHEMA_VERSION,
-        writtenAt,
-        byNodeType: {}
-      },
-      catalog: {
-        schemaVersion: FAL_PRICING_SCHEMA_VERSION,
-        writtenAt,
-        prices: {}
-      }
-    },
-    paths
+): { byNodeType: NodeTypePricingBundle; catalog: UnitPricingCatalog } {
+  return buildPricingBundlesGeneric(
+    specs.map(toPricingBundleSpec),
+    toUnitPricing(prices),
+    writtenAt
   );
 }
+
+export const writePricingBundles = writePricingBundlesGeneric;
+export const writeEmptyPricingBundles = writeEmptyPricingBundlesGeneric;
