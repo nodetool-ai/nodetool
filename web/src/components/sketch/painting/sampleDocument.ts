@@ -36,7 +36,10 @@ export function sampleCompositeColor(
   const x = Math.round(docPoint.x);
   const y = Math.round(docPoint.y);
 
-  const id = ctx.getFullCompositeImageData?.();
+  const getter =
+    ctx.getColorPickCompositeImageData ?? ctx.getFullCompositeImageData;
+  const id = getter?.();
+
   if (id && x >= 0 && y >= 0 && x < id.width && y < id.height) {
     const i = (y * id.width + x) * 4;
     return rgbToHex(id.data[i], id.data[i + 1], id.data[i + 2]);

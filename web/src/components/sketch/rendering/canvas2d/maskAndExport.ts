@@ -14,6 +14,7 @@ import {
   setCanvasRasterBounds
 } from "../../transform/geometry/layerGeometry";
 import { serializeLayerData } from "./layerIO";
+import type { RenderDocumentCompositeOptions } from "./composite";
 import type { ActiveStrokeInfo } from "../types";
 
 // ─── Type aliases for injected rendering callbacks ───────────────────────────
@@ -22,8 +23,18 @@ export type RenderDocumentCompositeFn = (
   ctx: CanvasRenderingContext2D,
   doc: SketchDocument,
   isolatedLayerId: string | null | undefined,
-  activeStroke: ActiveStrokeInfo | null
+  activeStroke: ActiveStrokeInfo | null,
+  compositeOptions?: RenderDocumentCompositeOptions
 ) => void;
+
+/** Options for CPU readback composites (eyedropper, etc.). */
+export interface ReadbackCompositeOptions {
+  /**
+   * When true, composites all raster layers ignoring visibility/isolate preview
+   * so sampling matches pixels on every layer.
+   */
+  sampleHiddenRasterLayers?: boolean;
+}
 
 export type DrawLayerToContextFn = (
   ctx: CanvasRenderingContext2D,
@@ -104,7 +115,8 @@ export function readbackComposite(
   isolatedLayerId: string | null | undefined,
   activeStroke: ActiveStrokeInfo | null,
   renderDocumentCompositeToContext: RenderDocumentCompositeFn,
-  readbackCanvas: HTMLCanvasElement | null
+  readbackCanvas: HTMLCanvasElement | null,
+  readbackOpts?: ReadbackCompositeOptions
 ): { imageData: ImageData | null; readbackCanvas: HTMLCanvasElement | null } {
   const cw = doc.canvas.width;
   const ch = doc.canvas.height;
@@ -128,7 +140,20 @@ export function readbackComposite(
     return { imageData: null, readbackCanvas };
   }
   drawCtx.clearRect(0, 0, cw, ch);
-  renderDocumentCompositeToContext(drawCtx, doc, isolatedLayerId, activeStroke);
+
+  const pickAllLayers = readbackOpts?.sampleHiddenRasterLayers === true;
+  const compositeOptions: RenderDocumentCompositeOptions | undefined = pickAllLayers
+    ? { ignoreLayerVisibility: true }
+    : undefined;
+  const effectiveIsolate = pickAllLayers ? null : isolatedLayerId;
+
+  renderDocumentCompositeToContext(
+    drawCtx,
+    doc,
+    effectiveIsolate,
+    activeStroke,
+    compositeOptions
+  );
 
   return { imageData: drawCtx.getImageData(0, 0, cw, ch), readbackCanvas };
 }

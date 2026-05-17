@@ -976,19 +976,20 @@ export function getDescendantIds(layers: Layer[], groupId: string): string[] {
  * visible and every ancestor group is visible. Hiding a group therefore hides
  * all descendant pixels without changing child `visible` flags.
  *
- * When `isolatedLayerId` matches this layer, ancestor visibility is ignored so
- * solo/isolate still shows that layer's pixels.
+ * When `isolatedLayerId` matches this layer, ancestor visibility — and this
+ * layer's own visibility flag — are ignored so solo/isolate still shows
+ * that layer's pixels (edit hidden layer in isolation).
  */
 export function isLayerCompositeVisible(
   layers: Layer[],
   layer: Layer,
   isolatedLayerId: string | null | undefined
 ): boolean {
-  if (!layer.visible) {
-    return false;
-  }
   if (isolatedLayerId && layer.id === isolatedLayerId) {
     return true;
+  }
+  if (!layer.visible) {
+    return false;
   }
   let current: Layer | undefined = layer;
   let depth = 0;

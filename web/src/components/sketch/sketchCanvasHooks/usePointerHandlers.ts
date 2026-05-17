@@ -264,6 +264,7 @@ export function usePointerHandlers({
   altHeldRef: altHeldRefShared
 }: UsePointerHandlersParams): UsePointerHandlersResult {
   const [spaceHeldUi, setSpaceHeldUi] = useState(false);
+  const [altHeldUi, setAltHeldUi] = useState(false);
   const [isPanningUi, setIsPanningUi] = useState(false);
 
   // ─── Core interaction state refs ────────────────────────────────────
@@ -290,6 +291,7 @@ export function usePointerHandlers({
       isSpacePanningRef,
       isSizeDraggingRef,
       onSpaceHeldChange: setSpaceHeldUi,
+      onAltHeldChange: setAltHeldUi,
       shiftHeldRef: shiftHeldRefShared,
       altHeldRef: altHeldRefShared
     });
@@ -310,7 +312,12 @@ export function usePointerHandlers({
       ? "grab"
       : interactionTool === "transform" && transformHoverCursor !== null
         ? transformHoverCursor
-        : cursorStyleForTool(interactionTool);
+        : altHeldUi &&
+            !spaceHeldUi &&
+            isPaintingTool(activeTool) &&
+            activeTool !== "clone_stamp"
+          ? "crosshair"
+          : cursorStyleForTool(interactionTool);
 
   // ─── Utility callbacks ───────────────────────────────────────────────
   const {
@@ -352,6 +359,17 @@ export function usePointerHandlers({
   },
   // eslint-disable-next-line react-hooks/exhaustive-deps -- activeStrokeRef is stable
   [doc, isolatedLayerId]);
+
+  const getColorPickCompositeImageData = useCallback((): ImageData | null => {
+    return runtimeRef.current.readbackComposite(
+      doc,
+      isolatedLayerId ?? null,
+      activeStrokeRef.current,
+      { sampleHiddenRasterLayers: true }
+    );
+  },
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- activeStrokeRef is stable; isolation ignored for pick
+  [doc]);
 
   // ─── Async tool commit generation ──────────────────────────────────
   // Monotonically increasing counter used to detect stale async commits.
@@ -424,6 +442,7 @@ export function usePointerHandlers({
     selectStartRef,
     lassoPointsRef,
     getFullCompositeImageData,
+    getColorPickCompositeImageData,
     setTransformHoverCursor,
   });
 

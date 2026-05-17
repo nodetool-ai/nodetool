@@ -1419,6 +1419,29 @@ describe("sampleColorHex", () => {
     expect(hex).toBe("#ff0000");
   });
 
+  it("prefers getColorPickCompositeImageData when both getters exist", () => {
+    const width = 2;
+    const height = 2;
+    const pickDataArr = new Uint8ClampedArray(width * height * 4).fill(0);
+    pickDataArr[0] = 255;
+    const pickData = { data: pickDataArr, width, height } as ImageData;
+    const fullData = {
+      data: new Uint8ClampedArray(width * height * 4).fill(0),
+      width,
+      height
+    } as ImageData;
+
+    const pickSpy = jest.fn(() => pickData);
+    const fullSpy = jest.fn(() => fullData);
+    const toolCtx = makeToolContext({
+      getColorPickCompositeImageData: pickSpy,
+      getFullCompositeImageData: fullSpy
+    });
+    expect(sampleColorHex(toolCtx, { x: 0, y: 0 })).toBe("#ff0000");
+    expect(pickSpy).toHaveBeenCalled();
+    expect(fullSpy).not.toHaveBeenCalled();
+  });
+
   it("returns hex from getFullCompositeImageData when display canvas unavailable", () => {
     // Create a mock ImageData-like object (JSDOM doesn't have ImageData constructor)
     const width = 4;

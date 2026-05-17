@@ -608,6 +608,10 @@ export function useOverlayRenderer({
       const localX = (anchorClientX - cRect.left) * scaleX;
       const localY = (anchorClientY - cRect.top) * scaleY;
 
+      /** Raw pointer on cursor canvas (sub-pixel); snapped dab preview uses anchorClient*. */
+      const rawLocalX = (clientX - cRect.left) * scaleX;
+      const rawLocalY = (clientY - cRect.top) * scaleY;
+
       let size: number;
       let roundness = 1;
       let angle = 0;
@@ -720,6 +724,18 @@ export function useOverlayRenderer({
           ctx.lineTo(cx, cy + crossLen);
           ctx.stroke();
           ctx.restore();
+
+          // Faint round hint at actual mouse position (dab stays pixel-snapped above).
+          if (interactionTool === "pencil") {
+            const hintR = Math.max(3.5, Math.min(10, zoom * 0.45));
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(rawLocalX, rawLocalY, hintR, 0, Math.PI * 2);
+            ctx.strokeStyle = alpha(theme.palette.grey[400], 0.22);
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.restore();
+          }
         }
         return;
       }
@@ -767,12 +783,22 @@ export function useOverlayRenderer({
       ctx.fillStyle = alpha(theme.palette.grey[700], 0.92);
       ctx.fill();
 
+      // Pencil (non-lazy): faint ring at raw pointer — ellipse dab preview stays snapped.
+      if (interactionTool === "pencil" && !lazyActive) {
+        const hintR = Math.max(3.5, Math.min(10, zoom * 0.45));
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(rawLocalX, rawLocalY, hintR, 0, Math.PI * 2);
+        ctx.strokeStyle = alpha(theme.palette.grey[400], 0.22);
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+      }
+
       // ── Lazy-brush leash overlay ─────────────────────────────────
       // Draw the connecting line between the raw cursor and the brush
       // tip (which is `localX/Y` because `docPt` was overridden above).
       if (lazyActive && contRect && contRect.width > 0 && contRect.height > 0) {
-        const rawLocalX = (clientX - cRect.left) * scaleX;
-        const rawLocalY = (clientY - cRect.top) * scaleY;
         const dxLeash = rawLocalX - localX;
         const dyLeash = rawLocalY - localY;
         const distLeash = Math.hypot(dxLeash, dyLeash);

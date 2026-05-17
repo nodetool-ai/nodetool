@@ -7,7 +7,7 @@
  * clone-stamp source preview, and any future readback helpers.
  *
  * Also exports `sampleColorHex` so the dispatcher can delegate Alt+click
- * eyedropper sampling without duplicating the pixel readback logic.
+ * color-picker sampling without duplicating the pixel readback logic.
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
@@ -46,7 +46,7 @@ export class EyedropperTool implements ToolHandler {
 
 export const definition: ToolDefinition = {
   tool: "eyedropper",
-  label: "Eyedropper",
+  label: "Color Picker",
   Icon: ColorizeIcon,
   group: "painting"
 };

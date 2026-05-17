@@ -15,7 +15,13 @@
  * Readback (flatten / mask export) goes through Canvas2DRuntime helpers.
  */
 
-import type { SketchRuntime, ActiveStrokeInfo, DirtyRect, ResolvedLayerBitmap } from "./types";
+import type {
+  SketchRuntime,
+  ActiveStrokeInfo,
+  DirtyRect,
+  ResolvedLayerBitmap,
+  SketchReadbackCompositeOptions
+} from "./types";
 import {
   getAncestorGroupOpacityProduct,
   isLayerCompositeVisible,
@@ -2108,11 +2114,12 @@ export class WebGPURuntime implements SketchRuntime {
   readbackComposite(
     doc: import("../types").SketchDocument,
     isolatedLayerId: string | null | undefined,
-    activeStroke: ActiveStrokeInfo | null
+    activeStroke: ActiveStrokeInfo | null,
+    options?: SketchReadbackCompositeOptions
   ): ImageData | null {
     // Delegate to the CPU runtime which shares the same layer canvas map.
     // This produces pixel-accurate results with effects applied.
-    return this.cpuRuntime.readbackComposite(doc, isolatedLayerId, activeStroke);
+    return this.cpuRuntime.readbackComposite(doc, isolatedLayerId, activeStroke, options);
   }
 
   // ─── Lifecycle ───────────────────────────────────────────────────────

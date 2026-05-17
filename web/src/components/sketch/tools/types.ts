@@ -184,8 +184,13 @@ export interface ToolContext {
   selectStartRef?: React.MutableRefObject<Point | null>;
   lassoPointsRef?: React.MutableRefObject<Point[]>;
 
-  // ── Full composite readback (magic wand, eyedropper) ───────────────
+  // ── Full composite readback (magic wand, color picker) ─────────────
   getFullCompositeImageData?: () => ImageData | null;
+  /**
+   * All raster layers (ignores visibility + isolate preview) — used only for
+   * color sampling so picks match pixels on disabled/hidden layers.
+   */
+  getColorPickCompositeImageData?: () => ImageData | null;
 
   /**
    * Transform tool: drives {@link SketchCanvasPresentation}'s container cursor.

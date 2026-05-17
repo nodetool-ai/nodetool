@@ -9,7 +9,13 @@
  * directly via ref during the migration.
  */
 
-import type { SketchRuntime, ActiveStrokeInfo, DirtyRect, ResolvedLayerBitmap } from "./types";
+import type {
+  SketchRuntime,
+  SketchReadbackCompositeOptions,
+  ActiveStrokeInfo,
+  DirtyRect,
+  ResolvedLayerBitmap
+} from "./types";
 import type {
   LayerContentBounds,
   LayerEffect,
@@ -38,6 +44,7 @@ import {
   compositeToDisplayCanvas,
   renderDocumentComposite,
   drawLayerToContext as drawLayerToContextFn,
+  type RenderDocumentCompositeOptions,
   type StrokeTempState
 } from "./canvas2d/composite";
 import {
@@ -120,9 +127,16 @@ export class Canvas2DRuntime implements SketchRuntime {
     ctx: CanvasRenderingContext2D,
     doc: SketchDocument,
     isolatedLayerId: string | null | undefined,
-    activeStroke: ActiveStrokeInfo | null
+    activeStroke: ActiveStrokeInfo | null,
+    compositeOptions?: RenderDocumentCompositeOptions
   ): void => {
-    this.renderDocumentCompositeToContext(ctx, doc, isolatedLayerId, activeStroke);
+    this.renderDocumentCompositeToContext(
+      ctx,
+      doc,
+      isolatedLayerId,
+      activeStroke,
+      compositeOptions
+    );
   };
 
   /** Bound wrapper for drawLayerToContext. */
@@ -229,7 +243,8 @@ export class Canvas2DRuntime implements SketchRuntime {
     ctx: CanvasRenderingContext2D,
     doc: SketchDocument,
     isolatedLayerId: string | null | undefined,
-    activeStroke: ActiveStrokeInfo | null
+    activeStroke: ActiveStrokeInfo | null,
+    compositeOptions?: RenderDocumentCompositeOptions
   ): void {
     const nextState = renderDocumentComposite(
       ctx,
@@ -238,7 +253,8 @@ export class Canvas2DRuntime implements SketchRuntime {
       activeStroke,
       this.layerCanvases,
       this.boundEvaluateLayerEffects,
-      this.getStrokeTempState()
+      this.getStrokeTempState(),
+      compositeOptions
     );
     this.applyStrokeTempState(nextState);
   }
@@ -647,14 +663,16 @@ export class Canvas2DRuntime implements SketchRuntime {
   readbackComposite(
     doc: SketchDocument,
     isolatedLayerId: string | null | undefined,
-    activeStroke: ActiveStrokeInfo | null
+    activeStroke: ActiveStrokeInfo | null,
+    options?: SketchReadbackCompositeOptions
   ): ImageData | null {
     const { imageData, readbackCanvas } = readbackCompositeFn(
       doc,
       isolatedLayerId,
       activeStroke,
       this.boundRenderDocComposite,
-      this.readbackCanvas
+      this.readbackCanvas,
+      options
     );
     this.readbackCanvas = readbackCanvas;
     return imageData;
