@@ -65,7 +65,7 @@ describe("NodeGenerator.generate()", () => {
   it("generates correct title for multi-word class name", () => {
     const spec = makeSpec({ className: "StableDiffusionXL" });
     const code = gen.generate(spec, "text_to_image");
-    expect(code).toContain(`static readonly title = "Stable Diffusion X L"`);
+    expect(code).toContain(`static readonly title = "Stable Diffusion XL"`);
   });
 
   it("generates description with docstring and tags", () => {

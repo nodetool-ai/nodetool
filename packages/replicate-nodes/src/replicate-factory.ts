@@ -9,6 +9,7 @@
 import {
   BaseNode,
   classifyFields,
+  classNameToTitle,
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
@@ -61,10 +62,6 @@ export interface ReplicateManifestEntry {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function toTitle(className: string): string {
-  return className.replace(/([A-Z])/g, " $1").trim();
-}
 
 function isAssetPropType(propType: string): boolean {
   return [
@@ -218,7 +215,7 @@ export function createReplicateNodeClass(
 ): NodeClass {
   const moduleId = spec.moduleName.replace(/-/g, ".");
   const nodeType = `replicate.${moduleId}.${spec.className}`;
-  const title = toTitle(spec.className);
+  const title = classNameToTitle(spec.className);
   const descFirstLine = spec.docstring || `${spec.className} node`;
   const descSecondLine =
     spec.tags.length > 0 ? spec.tags.join(", ") : "replicate, ai";

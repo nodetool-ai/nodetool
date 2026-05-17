@@ -5,16 +5,12 @@
  * Each class extends BaseNode and calls Kie.ai API via shared helpers.
  */
 
-import { classifyFields } from "@nodetool-ai/node-sdk";
+import { classifyFields, classNameToTitle } from "@nodetool-ai/node-sdk";
 import type { NodeConfig, ModuleConfig, FieldDef } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function toTitle(className: string): string {
-  return className.replace(/([A-Z])/g, " $1").trim();
-}
 
 function castFn(type: string): string {
   switch (type) {
@@ -120,7 +116,7 @@ export class KieNodeGenerator {
   ): string {
     const fullClassName = `${node.className}Node`;
     const nodeType = `kie.${moduleName}.${node.className}`;
-    const title = node.title || toTitle(node.className);
+    const title = node.title || classNameToTitle(node.className);
     const description = node.description.replace(/`/g, "'");
     const pollInterval =
       node.pollInterval ?? moduleConfig.defaultPollInterval ?? 2000;

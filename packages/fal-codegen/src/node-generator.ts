@@ -5,6 +5,8 @@
  * Each generated class extends FalNode and uses @prop() decorators.
  */
 
+import { classNameToTitle } from "@nodetool-ai/node-sdk";
+
 import type {
   NodeSpec,
   NodeConfig,
@@ -16,11 +18,6 @@ import type {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** Insert a space before each capital letter: "FluxDev" → "Flux Dev" */
-function toTitle(className: string): string {
-  return className.replace(/([A-Z])/g, " $1").trim();
-}
 
 /** module name used in nodeType: dashes → underscores */
 function moduleNameToId(moduleName: string): string {
@@ -277,7 +274,7 @@ export class NodeGenerator {
   private _renderClass(spec: NodeSpec, moduleName: string): string {
     const moduleId = moduleNameToId(moduleName);
     const nodeType = `fal.${moduleId}.${spec.className}`;
-    const title = toTitle(spec.className);
+    const title = classNameToTitle(spec.className);
 
     // Description: first line docstring, second line tags
     const descFirstLine = spec.docstring || `${spec.className} node`;

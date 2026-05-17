@@ -169,11 +169,17 @@ registerBuiltinProvider("xai", XAIProvider, { XAI_API_KEY: "" });
 // Local-only providers — require local servers/CLIs, skip in production
 if (process.env["NODETOOL_ENV"] !== "production") {
   // Ollama defaults to the standard local daemon port so the provider is
-  // usable out-of-the-box. Users running a remote instance override via env.
-  registerBuiltinProvider("ollama", OllamaProvider, {
-    OLLAMA_API_URL:
-      process.env["OLLAMA_API_URL"] ?? "http://127.0.0.1:11434"
-  });
+  // usable out-of-the-box. The URL is registered as an optionalKwarg so it
+  // re-resolves from the secret store / env on every getProvider() call —
+  // users changing OLLAMA_API_URL via Settings → API Keys see the change
+  // take effect without a restart. Empty kwargs keep isProviderConfigured()
+  // returning true for the zero-config localhost case.
+  registerBuiltinProvider(
+    "ollama",
+    OllamaProvider,
+    {},
+    { OLLAMA_API_URL: "http://127.0.0.1:11434" }
+  );
   // LM Studio: URL (and optional API key) are user-configurable via the
   // Settings → API Keys panel. Register them as optionalKwargs so the
   // registry resolves them from the secret store / env on every
