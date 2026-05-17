@@ -274,6 +274,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
             padding: "2px 12px",
             borderRadius: "4px",
             fontSize: SKETCH_FONT.md,
+            fontFamily: SKETCH_FONT.familyMono,
             pointerEvents: "none",
             zIndex: 5,
             display: "flex",
@@ -283,17 +284,10 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
           <span>{canvasWidth} × {canvasHeight}</span>
           <span>{Math.round(zoom * 100)}%</span>
           {cursorDocPos !== null && (
-            <span>{cursorDocPos.x}, {cursorDocPos.y}</span>
+            <span style={{ fontSize: SKETCH_FONT.sm, minWidth: 65 }}>
+              {cursorDocPos.x}, {cursorDocPos.y}
+            </span>
           )}
-          <span
-            style={{
-              textTransform: "uppercase",
-              fontSize: SKETCH_FONT.xs,
-              opacity: 0.7
-            }}
-          >
-            {backend}
-          </span>
         </Box>
       </div>
     );

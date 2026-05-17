@@ -577,6 +577,15 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       if (t.closest("button, input")) {
         return;
       }
+      // Ctrl/Cmd+click on the layer thumbnail loads the layer's alpha as
+      // a selection mask — that is a dedicated gesture handled by the
+      // thumbnail's own click handler. Without this bail-out, the row's
+      // pointerdown would also fire `toggleLayerInSelection`, mutating
+      // selectedLayerIds and causing a re-render that swallowed the
+      // thumbnail click before the selection mask could be loaded.
+      if (t.closest(".layer-thumbnail")) {
+        return;
+      }
       e.preventDefault();
       suppressNextLayerRowClickRef.current = layerId;
       if (layerRowShiftHeld(e)) {
@@ -1416,16 +1425,33 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         onClose={() => setMergeMenuAnchor(null)}
         slotProps={{ paper: { sx: { minWidth: 200 } } }}
       >
-        <MenuItem
-          sx={{ fontSize: "0.8rem", py: "4px", minHeight: 0 }}
-          disabled={!canMergeDown}
-          onClick={() => {
-            onMergeDown();
-            setMergeMenuAnchor(null);
-          }}
-        >
-          Merge Down
-        </MenuItem>
+        {/* One merge entry that toggles based on selection: pairwise
+            "Merge Down" makes no sense when 2+ layers are selected, and
+            "Merge Selected" makes no sense for a single layer — collapsing
+            them avoids showing the wrong/disabled action for the context. */}
+        {hasMultiLayerSelection ? (
+          <MenuItem
+            sx={{ fontSize: "0.8rem", py: "4px", minHeight: 0 }}
+            disabled={!canMergeSelectedLayers}
+            onClick={() => {
+              onMergeSelectedLayers();
+              setMergeMenuAnchor(null);
+            }}
+          >
+            Merge Selected Layers
+          </MenuItem>
+        ) : (
+          <MenuItem
+            sx={{ fontSize: "0.8rem", py: "4px", minHeight: 0 }}
+            disabled={!canMergeDown}
+            onClick={() => {
+              onMergeDown();
+              setMergeMenuAnchor(null);
+            }}
+          >
+            Merge Down
+          </MenuItem>
+        )}
         <MenuItem
           sx={{ fontSize: "0.8rem", py: "4px", minHeight: 0 }}
           onClick={() => {
@@ -1434,16 +1460,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           }}
         >
           Flatten Visible
-        </MenuItem>
-        <MenuItem
-          sx={{ fontSize: "0.8rem", py: "4px", minHeight: 0 }}
-          disabled={!hasMultiLayerSelection || !canMergeSelectedLayers}
-          onClick={() => {
-            onMergeSelectedLayers();
-            setMergeMenuAnchor(null);
-          }}
-        >
-          Merge Selected Layers
         </MenuItem>
       </Menu>
 
@@ -1776,13 +1792,15 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             >
               Flip Vertical
             </MenuItem>
-            <MenuItem
-              sx={menuItemSx}
-              onClick={handleCtxMergeDown}
-              disabled={!ctxCanMergeDown}
-            >
-              Merge Down
-            </MenuItem>
+            {!isMulti && (
+              <MenuItem
+                sx={menuItemSx}
+                onClick={handleCtxMergeDown}
+                disabled={!ctxCanMergeDown}
+              >
+                Merge Down
+              </MenuItem>
+            )}
             <MenuItem sx={menuItemSx} onClick={handleCtxFlatten}>
               Flatten Visible
             </MenuItem>

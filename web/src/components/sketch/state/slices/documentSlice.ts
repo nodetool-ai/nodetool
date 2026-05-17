@@ -553,6 +553,12 @@ export const createDocumentSlice: StateCreator<
           l.id === lower.id
             ? {
                 ...l,
+                // The runtime has baked both layers into a doc-sized raster
+                // on the lower canvas. Always reveal the surviving layer:
+                // hiding the only remaining record of merged pixels (because
+                // the lower layer happened to be invisible going in) makes
+                // the operation look destructive even though the data is fine.
+                visible: true,
                 transform: { ...IDENTITY_AFFINE },
                 contentBounds: {
                   x: 0,

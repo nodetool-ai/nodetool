@@ -483,19 +483,48 @@ export function mergeLayerDown(
   if (upperLayer) {
     drawLayerToContext(mergedCtx, doc, upperLayerId);
   }
-  lowerCtx.clearRect(0, 0, lowerCanvas.width, lowerCanvas.height);
-  lowerCtx.drawImage(mergedCanvas, 0, 0);
+
+  // The merged result is full-document-sized. The original lowerCanvas
+  // may be smaller (cropped to contentBounds, or a never-painted 1×1
+  // placeholder) — drawing the merged canvas at (0, 0) onto a smaller
+  // buffer would silently clip everything past its width/height,
+  // visually "cutting off a part" or, for tiny placeholder canvases,
+  // appearing to clear the layer entirely.
+  //
+  // Resize the lower canvas to document dimensions first (assigning
+  // width/height also clears the canvas), then composite. The store
+  // resets the lower layer's transform to identity and contentBounds
+  // to full-doc after this call, so the canvas pixels become directly
+  // addressable in document space starting at (0, 0).
+  const docWidth = doc.canvas.width;
+  const docHeight = doc.canvas.height;
+  if (lowerCanvas.width !== docWidth || lowerCanvas.height !== docHeight) {
+    lowerCanvas.width = docWidth;
+    lowerCanvas.height = docHeight;
+  } else {
+    lowerCtx.clearRect(0, 0, lowerCanvas.width, lowerCanvas.height);
+  }
+  // Re-acquire the context: assigning canvas.width invalidates the prior
+  // 2D context state (transform, alpha, composite op) — even though the
+  // context object itself is still usable, the safe path is to use it
+  // immediately for the drawImage call.
+  const refreshedCtx = lowerCanvas.getContext("2d");
+  if (!refreshedCtx) {
+    layerCanvases.delete(upperLayerId);
+    return;
+  }
+  refreshedCtx.drawImage(mergedCanvas, 0, 0);
   setCanvasRasterBounds(lowerCanvas, {
     x: 0,
     y: 0,
-    width: doc.canvas.width,
-    height: doc.canvas.height
+    width: docWidth,
+    height: docHeight
   });
   layerCanvases.delete(upperLayerId);
   return serializeLayerData(lowerCanvas.toDataURL("image/png"), {
     x: 0,
     y: 0,
-    width: doc.canvas.width,
-    height: doc.canvas.height
+    width: docWidth,
+    height: docHeight
   });
 }

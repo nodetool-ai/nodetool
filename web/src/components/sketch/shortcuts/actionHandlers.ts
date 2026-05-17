@@ -40,7 +40,18 @@ export const ACTION_HANDLERS: ActionHandlerMap = {
   "redo": (_e, p) => p.handleRedo(),
   "copy": (_e, p) => p.handleCopy(),
   "cut": (_e, p) => p.handleCut(),
-  "paste": (_e, p) => { void p.handlePaste(false); },
+  // Ctrl+V — Photoshop-style: paste into a NEW layer centered on the
+  // cursor. Falls back to in-place paste only if the new-layer flow
+  // isn't wired (older callers).
+  "paste": (_e, p) => {
+    if (p.handlePasteAsNewLayer) {
+      void p.handlePasteAsNewLayer();
+    } else {
+      void p.handlePaste(false);
+    }
+  },
+  // Ctrl+Shift+V — paste in place into the active layer (keeps the
+  // masked-alpha-first internal-buffer behavior).
   "paste-masked": (_e, p) => { void p.handlePaste(true); },
   "free-transform": (_e, p) => {
     if (p.handleFreeTransform) {

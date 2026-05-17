@@ -57,7 +57,7 @@
     "turbo:lint": "turbo run lint",
     "turbo:typecheck": "turbo run typecheck",
     "turbo:check": "turbo run typecheck lint test",
-    "dev": "concurrently \"node scripts/dev-server.mjs\" \"npm run dev --workspace=web\"",
+    "dev": "concurrently --raw --kill-others-on-fail \"node scripts/dev-server.mjs\" \"npm run dev --workspace=web\"",
     "dev:fast": "npm run dev",
     "dev:web": "npm run dev --workspace=web",
     "dev:server": "node scripts/dev-server.mjs",

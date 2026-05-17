@@ -3,10 +3,10 @@
  *
  * Radial HSV color selector:
  * - Outer ring: static hue spectrum (0–360°)
- * - Inner equilateral triangle (fixed orientation): saturation + value for the selected hue
- *   - Top vertex = fully saturated color (S=1, V=1) for the current hue
+ * - Inner equilateral triangle: saturation + value for the selected hue
+ *   - Tip (saturated-hue vertex) rotates to point at the ring angle for the current hue
  *   - Other vertices = white (S=0, V=1) and black (S=0, V=0)
- * The triangle does not rotate when the hue ring changes; only its colors update.
+ * Triangle fill is cached per integer degree of hue; ring cursor can move smoothly between degrees.
  * A round cursor is always visible inside the triangle.
  */
 
@@ -67,13 +67,22 @@ function normalizeHueDeg(h: number): number {
 
 // ─── Geometry helpers ────────────────────────────────────────────────────────
 
-/** Equilateral triangle in a fixed orientation (hue vertex at top). Geometry is independent of hue. */
-function triVertsFixed(): [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }] {
-  const hRad = -Math.PI / 2; // same as hue 0°: vertex v0 points up (−Y in canvas)
+/**
+ * Equilateral triangle with the saturated-hue vertex aimed at `hueDeg` on the ring
+ * (same convention as `paintHueCursor`: hue 0° at 12 o'clock, clockwise).
+ */
+function triVertsForHue(hueDeg: number): [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }] {
+  const hNorm = normalizeHueDeg(hueDeg);
+  const hRad = (hNorm - 90) * Math.PI / 180;
   const v0 = { x: CX + TRI_R * Math.cos(hRad), y: CY + TRI_R * Math.sin(hRad) };
   const v1 = { x: CX + TRI_R * Math.cos(hRad + 2 * Math.PI / 3), y: CY + TRI_R * Math.sin(hRad + 2 * Math.PI / 3) };
   const v2 = { x: CX + TRI_R * Math.cos(hRad + 4 * Math.PI / 3), y: CY + TRI_R * Math.sin(hRad + 4 * Math.PI / 3) };
   return [v0, v1, v2];
+}
+
+/** Matches `ensureTriangleLayer` cache key — geometry aligns with rasterized triangle. */
+function snapHueDegForTriangle(hueDeg: number): number {
+  return Math.round(normalizeHueDeg(hueDeg));
 }
 
 /** Barycentric coordinates of P relative to triangle (A, B, C). */
@@ -162,9 +171,9 @@ function paintRing(ctx: CanvasRenderingContext2D) {
   ctx.putImageData(img, 0, 0);
 }
 
-/** Paint the HSV triangle for the given hue (fixed geometry; only pixel colors depend on hue). */
+/** Paint the HSV triangle for the given hue (rotation + fills both follow `hueDeg`). */
 function paintTriangle(ctx: CanvasRenderingContext2D, hueDeg: number) {
-  const [v0, v1, v2] = triVertsFixed();
+  const [v0, v1, v2] = triVertsForHue(hueDeg);
 
   // Build bounding box
   const minX = Math.floor(Math.min(v0.x, v1.x, v2.x));
@@ -235,9 +244,9 @@ function paintHueCursor(ctx: CanvasRenderingContext2D, hueDeg: number) {
   ctx.stroke();
 }
 
-/** Draw the SV cursor inside the triangle. */
-function paintSVCursor(ctx: CanvasRenderingContext2D, s: number, val: number) {
-  const [v0, v1, v2] = triVertsFixed();
+/** Draw the SV cursor inside the triangle (uses snapped hue to match cached triangle bitmap). */
+function paintSVCursor(ctx: CanvasRenderingContext2D, hueDeg: number, s: number, val: number) {
+  const [v0, v1, v2] = triVertsForHue(snapHueDegForTriangle(hueDeg));
   const { u, v, w } = svToBary(s, val);
   const cx = u * v0.x + v * v1.x + w * v2.x;
   const cy = u * v0.y + v * v1.y + w * v2.y;
@@ -351,7 +360,7 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
     ctx.drawImage(triLayer, 0, 0);
 
     paintHueCursor(ctx, hue);
-    paintSVCursor(ctx, sat, val);
+    paintSVCursor(ctx, hue, sat, val);
   }, [ensureTriangleLayer]);
 
   useEffect(() => {
@@ -372,7 +381,8 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
 
     if (dist >= INNER_R && dist <= OUTER_R) { return "ring"; }
 
-    const [v0, v1, v2] = triVertsFixed();
+    const hSnap = snapHueDegForTriangle(localHueRef.current);
+    const [v0, v1, v2] = triVertsForHue(hSnap);
     const { u, v, w } = barycentric(px, py, v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
     if (u >= HIT_EPSILON && v >= HIT_EPSILON && w >= HIT_EPSILON) { return "triangle"; }
 
@@ -401,7 +411,8 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
     const rect = canvas.getBoundingClientRect();
     const px = (clientX - rect.left) * (WIDGET_SIZE / rect.width);
     const py = (clientY - rect.top) * (WIDGET_SIZE / rect.height);
-    const [v0, v1, v2] = triVertsFixed();
+    const hSnap = snapHueDegForTriangle(localHueRef.current);
+    const [v0, v1, v2] = triVertsForHue(hSnap);
     const raw = barycentric(px, py, v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
     const clamped = clampBarycentric(raw.u, raw.v, raw.w);
     return baryToSV(clamped.u, clamped.v, clamped.w);

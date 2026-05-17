@@ -11,6 +11,7 @@ import type {
   SelectSettings
 } from "./types";
 import { resolveAction, isInteractiveTarget, ACTION_HANDLERS, useSpringLoadedModifiers } from "./shortcuts";
+import { offsetSelectionByDocumentDelta } from "./selection";
 
 type ArrowKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
 
@@ -30,6 +31,12 @@ export interface UseEditorKeyboardShortcutsParams {
   handleCopy: () => void;
   handleCut: () => void;
   handlePaste: (preferInternalClipboardFirst?: boolean) => Promise<void>;
+  /**
+   * Photoshop-style Ctrl+V: pastes the clipboard image into a NEW layer
+   * centered on the cursor. Optional — when absent, the shortcut falls
+   * back to the in-place `handlePaste`.
+   */
+  handlePasteAsNewLayer?: () => Promise<string | null>;
   handleNudgeLayer: (
     dx: number,
     dy: number,
@@ -119,7 +126,28 @@ export function useEditorKeyboardShortcuts(
       if (dx !== 0 || dy !== 0) {
         const recordHistory = nudgeHistoryPendingRef.current;
         nudgeHistoryPendingRef.current = false;
-        paramsRef.current.handleNudgeLayer(dx, dy, { recordHistory, syncOutputs: false });
+        // When the selection tool is active and a selection mask exists,
+        // arrow keys nudge the selection (matches Photoshop/Affinity). This
+        // is purely a selection offset — the underlying pixels stay put.
+        // Falls back to the regular layer nudge for every other tool, and
+        // also when there's no selection to move.
+        const sketchState = useSketchStore.getState();
+        const sel = sketchState.selection;
+        if (sketchState.activeTool === "select" && sel) {
+          sketchState.setSelection(
+            offsetSelectionByDocumentDelta(sel, dx, dy)
+          );
+          if (recordHistory) {
+            sketchState.pushHistory("nudge selection", undefined, {
+              selectionOnly: true
+            });
+          }
+        } else {
+          paramsRef.current.handleNudgeLayer(dx, dy, {
+            recordHistory,
+            syncOutputs: false
+          });
+        }
       }
 
       if (anyArrowHeld()) {

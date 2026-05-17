@@ -30,12 +30,18 @@ export const SKETCH_CHECKERBOARD = {
 
 // ─── Typography Scale ──────────────────────────────────────────────────────────
 
+/** Monospace stack — keep in sync with ThemeNodetool `fontFamily2`. */
+const SKETCH_FONT_FAMILY_MONO =
+  "'JetBrains Mono', 'Inter', Arial, sans-serif" as const;
+
 export const SKETCH_FONT = {
-  /** Channel labels (R/G/B, H/S/L) */  xxs: "0.45rem",
-  /** FG/BG labels, tiny readouts */     xs: "0.6rem",
-  /** Setting labels, value readouts */  sm: "0.65rem",
-  /** Layer names, general UI */         md: "0.7rem",
-  /** Panel section headings */          section: "0.72rem",
+  /** Monospace for coordinates, dimensions readouts, hex. Same as `theme.fontFamily2`. */
+  familyMono: SKETCH_FONT_FAMILY_MONO,
+  /** Channel labels (R/G/B, H/S/L) */ xxs: "0.45rem",
+  /** FG/BG labels, tiny readouts */ xs: "0.6rem",
+  /** Setting labels, value readouts */ sm: "0.65rem",
+  /** Layer names, general UI */ md: "0.7rem",
+  /** Panel section headings */ section: "0.72rem",
 } as const;
 
 // ─── Spacing / Size Scale ─────────────────────────────────────────────────────

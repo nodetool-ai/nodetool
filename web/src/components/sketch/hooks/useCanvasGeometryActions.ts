@@ -743,6 +743,76 @@ export function useCanvasGeometryActions({
     ]
   );
 
+  /**
+   * Photoshop-style paste: create a NEW layer containing the resolved
+   * clipboard image, anchored so the image is centered on the last known
+   * pointer position (falling back to the document center). Returns the
+   * new layer id (or null when nothing was on the clipboard).
+   *
+   * Pasting into a fresh, doc-sized layer avoids two pitfalls of the
+   * paste-into-active-layer flow: the image isn't clipped by the active
+   * layer's content-bounds, and existing pixels can't be visually
+   * "lost" by an unexpected composite. The active layer is left
+   * untouched; the new layer becomes active.
+   */
+  const handlePasteAsNewLayer = useCallback(
+    async (
+      createLayer: () => string | null,
+      options?: { preferInternalClipboardFirst?: boolean }
+    ): Promise<string | null> => {
+      if (!canvasRef.current) {
+        return null;
+      }
+      const imageToPaste = await resolveSketchPasteImageCanvas({
+        internalBuffer: clipboardCanvasRef.current,
+        preferInternalClipboardFirst:
+          options?.preferInternalClipboardFirst ?? false
+      });
+      if (!imageToPaste) {
+        return null;
+      }
+
+      const newLayerId = createLayer();
+      if (!newLayerId) {
+        return null;
+      }
+      // Materialize a doc-sized canvas in the runtime so snapshot/restore
+      // operate on a real buffer. Without this, `snapshotLayerCanvas`
+      // returns null on the freshly-added layer (reconciliation hasn't
+      // run yet) and the paste silently bails.
+      canvasRef.current.setLayerData(newLayerId, null);
+
+      pushHistory("paste");
+
+      const snapshot = canvasRef.current.snapshotLayerCanvas(newLayerId);
+      if (!snapshot) {
+        return newLayerId;
+      }
+      const ctx = snapshot.getContext("2d");
+      if (!ctx) {
+        return newLayerId;
+      }
+
+      const liveDoc = useSketchStore.getState().document;
+      const docWidth = liveDoc.canvas.width;
+      const docHeight = liveDoc.canvas.height;
+      const anchor =
+        canvasRef.current.getPasteAnchorDocumentPoint() ?? {
+          x: Math.round(docWidth / 2),
+          y: Math.round(docHeight / 2)
+        };
+      const destX = Math.round(anchor.x - imageToPaste.width / 2);
+      const destY = Math.round(anchor.y - imageToPaste.height / 2);
+      ctx.drawImage(imageToPaste, destX, destY);
+
+      canvasRef.current.restoreLayerCanvas(newLayerId, snapshot);
+      syncPixelLayerFromCanvas(newLayerId);
+      canvasRef.current.redrawDisplay();
+      return newLayerId;
+    },
+    [canvasRef, pushHistory, syncPixelLayerFromCanvas]
+  );
+
   /** Import a dropped or externally-provided image file into the active layer. */
   const handleDropImage = useCallback(
     async (file: File) => {
@@ -967,6 +1037,7 @@ export function useCanvasGeometryActions({
     handleCopy,
     handleCut,
     handlePaste,
+    handlePasteAsNewLayer,
     handleDropImage,
     handleDropAsset,
     adjBrightness,

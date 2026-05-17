@@ -173,6 +173,18 @@ export function useEditorCommands({
     [canvasRef]
   );
 
+  /**
+   * Photoshop-style Ctrl+V: paste the clipboard image into a new layer
+   * centered on the cursor. Lives at the editor-commands level because it
+   * needs both the clipboard plumbing (`canvasActions`) and the
+   * add-layer action (`layerActions`).
+   */
+  const handlePasteAsNewLayer = useCallback(async () => {
+    return canvasActions.handlePasteAsNewLayer(() =>
+      layerActions.handleAddLayer()
+    );
+  }, [canvasActions, layerActions]);
+
   const handleLayerViaCopy = useCallback(async () => {
     canvasActions.handleCopy();
     const newLayerId = layerActions.handleAddLayer();
@@ -211,6 +223,7 @@ export function useEditorCommands({
     handleCopy: canvasActions.handleCopy,
     handleCut: canvasActions.handleCut,
     handlePaste: canvasActions.handlePaste,
+    handlePasteAsNewLayer,
     handleNudgeLayer: canvasActions.handleNudgeLayer,
     syncSketchOutputsNow: canvasActions.syncSketchOutputsNow,
     setActiveTool: sessionStore.setActiveTool,
