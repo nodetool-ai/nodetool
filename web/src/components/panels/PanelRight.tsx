@@ -17,11 +17,9 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { Workflow, WorkflowVersion, Node as GraphNode, Edge as GraphEdge } from "../../stores/ApiTypes";
 import useMetadataStore from "../../stores/MetadataStore";
 import { setFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntimeState";
-import type { NodeStore } from "../../stores/NodeStore";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 
 import { TOOLBAR_WIDTH, PANEL_RESIZE_HANDLE_WIDTH, TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import WorkflowAssistantChat from "./WorkflowAssistantChat";
 import LogPanel from "./LogPanel";
 import PanelHeadline from "../ui/PanelHeadline";
 
@@ -142,29 +140,6 @@ import SandboxesPanel from "../dashboard/SandboxesPanel";
 import VerticalToolbar from "./VerticalToolbar";
 
 /* ------------------------------------------------------------------ */
-/*  ChatAgentPanel – renders either Workflow Chat or Agent directly    */
-/* ------------------------------------------------------------------ */
-
-interface ChatAgentPanelProps {
-  activeTab: "assistant" | "agent";
-  activeNodeStore: NodeStore | undefined;
-}
-
-const ChatAgentPanel = memo(function ChatAgentPanel({
-  activeTab,
-  activeNodeStore,
-}: ChatAgentPanelProps) {
-  if (activeTab === "assistant") {
-    return activeNodeStore ? (
-      <NodeContext.Provider value={activeNodeStore}>
-        <WorkflowAssistantChat />
-      </NodeContext.Provider>
-    ) : null;
-  }
-  return <AgentPanel />;
-});
-
-/* ------------------------------------------------------------------ */
 /*  MobilePanelRight – bottom-sheet variant used on small viewports    */
 /* ------------------------------------------------------------------ */
 
@@ -224,7 +199,6 @@ const mobileTabRailStyles = (theme: Theme) =>
 
 const RIGHT_VIEW_LABELS: Record<RightPanelView, string> = {
   inspector: "Inspector",
-  assistant: "Assistant",
   agent: "Agent",
   workspace: "Workspace",
   versions: "Versions",
@@ -294,11 +268,6 @@ const MobilePanelRight: React.FC<MobilePanelRightProps> = ({
         headerExtras={
           <div css={mobileTabRailStyles(theme)}>
             {renderTabButton("inspector", "Inspector", <CenterFocusWeakIcon />)}
-            {renderTabButton(
-              "assistant",
-              "Assistant",
-              <SvgFileIcon iconName="assistant" svgProp={{ width: 18, height: 18 }} />
-            )}
             {renderTabButton("agent", "Agent", <SmartToyIcon />)}
             {workspacesEnabled &&
               renderTabButton("workspace", "Workspace", <FolderIcon />)}
@@ -553,7 +522,6 @@ const PanelRight: React.FC = () => {
 
   // Memoize toolbar toggle handlers to prevent unnecessary VerticalToolbar re-renders
   const handleInspectorToggle = useCallback(() => handlePanelToggle("inspector"), [handlePanelToggle]);
-  const handleAssistantToggle = useCallback(() => handlePanelToggle("assistant"), [handlePanelToggle]);
   const handleLogsToggle = useCallback(() => handlePanelToggle("logs"), [handlePanelToggle]);
   const handleJobsToggle = useCallback(() => handlePanelToggle("jobs"), [handlePanelToggle]);
   const handleWorkspaceToggle = useCallback(() => handlePanelToggle("workspace"), [handlePanelToggle]);
@@ -654,11 +622,8 @@ const PanelRight: React.FC = () => {
               <WorkflowAssetPanel />
             </Box>
           </Box>
-        ) : (activeView === "assistant" || activeView === "agent") ? (
-          <ChatAgentPanel
-            activeTab={activeView}
-            activeNodeStore={activeNodeStore}
-          />
+        ) : activeView === "agent" ? (
+          <AgentPanel />
         ) : (
           activeNodeStore && (
             <NodeContext.Provider value={activeNodeStore}>
@@ -709,7 +674,6 @@ const PanelRight: React.FC = () => {
       {/* Fixed toolbar - always on the right edge */}
       <VerticalToolbar
         handleInspectorToggle={handleInspectorToggle}
-        handleAssistantToggle={handleAssistantToggle}
         handleLogsToggle={handleLogsToggle}
         handleJobsToggle={handleJobsToggle}
         handleWorkspaceToggle={handleWorkspaceToggle}

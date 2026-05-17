@@ -20,11 +20,9 @@ import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
 import DesktopWindowsIcon from "@mui/icons-material/DesktopWindows";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
-import SvgFileIcon from "../SvgFileIcon";
 
 interface VerticalToolbarProps {
     handleInspectorToggle: () => void;
-    handleAssistantToggle: () => void;
     handleLogsToggle: () => void;
     handleJobsToggle: () => void;
     handleWorkspaceToggle: () => void;
@@ -33,13 +31,12 @@ interface VerticalToolbarProps {
     handleWorkflowAssetsToggle: () => void;
     handleSandboxesToggle: () => void;
     handleAgentToggle: () => void;
-    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "sandboxes" | "agent";
+    activeView: "inspector" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "sandboxes" | "agent";
     panelVisible: boolean;
 }
 
 function VerticalToolbar({
     handleInspectorToggle,
-    handleAssistantToggle,
     handleLogsToggle,
     handleJobsToggle,
     handleWorkspaceToggle,
@@ -64,16 +61,6 @@ function VerticalToolbar({
                 ariaLabel="Toggle Inspector panel (I)"
                 className="inspector"
                 active={isActive("inspector")}
-            />
-
-            <ToolbarIconButton
-                icon={<SvgFileIcon iconName="assistant" svgProp={{ width: 18, height: 18 }} />}
-                tooltip={getShortcutTooltip("toggleOperator")}
-                tooltipPlacement="left-start"
-                onClick={handleAssistantToggle}
-                ariaLabel="Toggle Operator panel (O)"
-                className="assistant"
-                active={isActive("assistant")}
             />
 
             <ToolbarIconButton

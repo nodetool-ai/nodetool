@@ -6,7 +6,6 @@ import { persist } from "zustand/middleware";
 
 export type RightPanelView =
   | "inspector"
-  | "assistant"
   | "logs"
   | "workspace"
   | "versions"
@@ -146,7 +145,6 @@ export const useRightPanelStore = create<ResizePanelState>()(
         const persistedPanel = (persisted.panel ?? {}) as Partial<PanelState>;
         const validViews: RightPanelView[] = [
           "inspector",
-          "assistant",
           "logs",
           "workspace",
           "versions",

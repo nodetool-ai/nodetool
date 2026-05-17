@@ -74,7 +74,6 @@ import ZoomOutRoundedIcon from "@mui/icons-material/ZoomOutRounded";
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 
 // Icons — Panels
-import ChatRoundedIcon from "@mui/icons-material/ChatRounded";
 import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
 import PermMediaRoundedIcon from "@mui/icons-material/PermMediaRounded";
 import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
@@ -487,11 +486,6 @@ const PanelCommands = memo(function PanelCommands() {
         onSelect={() => executeAndClose(() => rightPanelToggle("workflow"))}
       >
         <SettingsRoundedIcon /> Toggle Workflow Settings
-      </Command.Item>
-      <Command.Item
-        onSelect={() => executeAndClose(() => rightPanelToggle("assistant"))}
-      >
-        <ChatRoundedIcon /> Toggle Chat
       </Command.Item>
       <Command.Item
         onSelect={() => executeAndClose(() => leftPanelToggle("assets"))}

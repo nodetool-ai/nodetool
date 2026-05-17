@@ -543,7 +543,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }));
 
         // Prepare messages for cache and wire (workflow_id only on wire)
-        // Preserve workflow_id if already set by caller (e.g., WorkflowAssistantChat)
+        // Preserve workflow_id if already set by caller (e.g., ChatComposer node)
         const messageForCache: Message = {
           ...message,
           thread_id: threadId,

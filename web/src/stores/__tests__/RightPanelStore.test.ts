@@ -80,15 +80,6 @@ describe("RightPanelStore", () => {
       expect(useRightPanelStore.getState().panel.activeView).toBe("inspector");
     });
 
-    it("sets active view to assistant", () => {
-      const { setActiveView } = useRightPanelStore.getState();
-      act(() => {
-        setActiveView("assistant");
-      });
-
-      expect(useRightPanelStore.getState().panel.activeView).toBe("assistant");
-    });
-
     it("sets active view to logs", () => {
       const { setActiveView } = useRightPanelStore.getState();
       act(() => {
@@ -103,11 +94,11 @@ describe("RightPanelStore", () => {
     it("shows panel when changing to new view", () => {
       const { handleViewChange } = useRightPanelStore.getState();
       act(() => {
-        handleViewChange("assistant");
+        handleViewChange("agent");
       });
 
       const { panel } = useRightPanelStore.getState();
-      expect(panel.activeView).toBe("assistant");
+      expect(panel.activeView).toBe("agent");
       expect(panel.isVisible).toBe(true);
     });
 
@@ -141,16 +132,16 @@ describe("RightPanelStore", () => {
 
     it("switches views and shows panel", () => {
       const { handleViewChange } = useRightPanelStore.getState();
-      
+
       act(() => {
         handleViewChange("inspector");
       });
       expect(useRightPanelStore.getState().panel.activeView).toBe("inspector");
 
       act(() => {
-        handleViewChange("assistant");
+        handleViewChange("agent");
       });
-      expect(useRightPanelStore.getState().panel.activeView).toBe("assistant");
+      expect(useRightPanelStore.getState().panel.activeView).toBe("agent");
       expect(useRightPanelStore.getState().panel.isVisible).toBe(true);
     });
   });
