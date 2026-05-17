@@ -14,7 +14,7 @@
  *  5. On failure, surface the node-level error and arm the retry path.
  */
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback } from "react";
 import { trpcClient } from "../../trpc/client";
 import { queryClient } from "../../queryClient";
 import {
@@ -388,55 +388,6 @@ const subscribeJob = async (
   }
 };
 
-/**
- * Reconnect-style helper that re-subscribes to active layer jobs, restricted
- * to the supplied set of layer ids so message volume stays scoped to layers
- * the caller cares about. Mirrors `useTimelineGenerationSubscriptions`.
- */
-export const useSketchGenerationSubscriptions = (
-  bindings: LayerGenerationBinding[]
-): void => {
-  const layerJobs = useSketchGenerationStore((state) => state.layerJobs);
-
-  const activeJobs = useMemo(() => {
-    const byLayerId = new Map(bindings.map((b) => [b.layerId, b]));
-    return Object.values(layerJobs)
-      .filter((job) => isActiveStatus(job.status))
-      .filter((job) => byLayerId.has(job.layerId))
-      .map((job) => {
-        const binding = byLayerId.get(job.layerId)!;
-        return {
-          layerId: job.layerId,
-          jobId: job.jobId,
-          workflowId: job.workflowId,
-          documentId: binding.documentId,
-          selectedOutputNodeId: binding.selectedOutputNodeId,
-          dependencyHash: binding.dependencyHash,
-          workflowUpdatedAt: binding.workflowUpdatedAt,
-          paramOverridesSnapshot: binding.paramOverrides
-        };
-      });
-  }, [layerJobs, bindings]);
-
-  useEffect(() => {
-    const activeJobIdSet = new Set(activeJobs.map((job) => job.jobId));
-
-    for (const [jobId, ctx] of jobContexts) {
-      if (!activeJobIdSet.has(jobId)) {
-        const layerInActiveSet = activeJobs.some(
-          (j) => j.layerId === ctx.layerId
-        );
-        if (!layerInActiveSet) {
-          unsubscribeJob(jobId);
-        }
-      }
-    }
-
-    for (const activeJob of activeJobs) {
-      void subscribeJob(activeJob.jobId, activeJob, true);
-    }
-  }, [activeJobs]);
-};
 
 interface UseGenerateLayerResult {
   generateLayer: () => Promise<void>;

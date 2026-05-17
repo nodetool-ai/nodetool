@@ -5,12 +5,6 @@ import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 /** Keep in sync with `--node-collapsed-height` in `styles/vars.css` */
 export const NODE_COLLAPSED_STRIP_HEIGHT_PX = 40;
 
-/**
- * A5: minimum width of a collapsed node strip. Keeps enough room for the
- * icon + title + collapse toggle without forcing the full expanded width.
- */
-export const NODE_COLLAPSED_MIN_WIDTH_PX = 140;
-
 const MIN_EXPANDED_BODY_PX = 100;
 
 function parseCssPixelHeight(value: unknown): number | undefined {

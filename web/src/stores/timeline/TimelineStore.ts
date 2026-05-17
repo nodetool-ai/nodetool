@@ -835,12 +835,3 @@ export const getTimelineTemporal = (): TemporalState<PartializedState> =>
   (useTimelineStore as unknown as { temporal: { getState: () => TemporalState<PartializedState> } })
     .temporal.getState();
 
-// ── Convenience selectors ──────────────────────────────────────────────────
-
-/** Returns only the clips belonging to a specific track (selector-stable). */
-export const useTrackClips = (trackId: string): TimelineClip[] =>
-  useTimelineStore(
-    (state) => state.clips.filter((c) => c.trackId === trackId),
-    // Prevent re-renders when the filtered result contains the same clip objects
-    (a, b) => a.length === b.length && a.every((c, i) => c === b[i])
-  );

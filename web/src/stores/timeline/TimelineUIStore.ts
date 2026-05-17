@@ -154,10 +154,6 @@ export const useTimelineUIStore = create<TimelineUIState>((set, get) => ({
 export const useIsClipSelected = (id: string): boolean =>
   useTimelineUIStore((state) => state.selectedClipIds.has(id));
 
-/** Returns the zoom value (msPerPx). */
-export const useMsPerPx = (): number =>
-  useTimelineUIStore((state) => state.msPerPx);
-
 /** Returns [selectedClipIds, clearSelection] with shallow equality. */
 export const useSelectionActions = () =>
   useTimelineUIStore(
