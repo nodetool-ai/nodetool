@@ -48,7 +48,7 @@ export function normalizeModelMeta(m: LanguageModel): NormalizedModelMeta {
     /(reason|r1|qwq)/.test(text) && "reasoning",
     /(code|coder)/.test(text) && "code",
     /\bmath\b/.test(text) && "math"
-  ].filter(Boolean) as string[];
+  ].filter((v): v is string => Boolean(v));
 
   const sizeMatch = text.match(/(\d+(?:\.\d+)?)\s*(b|m)\b/);
   const sizeB = sizeMatch

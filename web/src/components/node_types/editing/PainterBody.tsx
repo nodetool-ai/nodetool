@@ -519,8 +519,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
       const target = pointerCaptureTargetRef.current;
       if (target) {
         try {
-          // Release any active pointer capture when the component unmounts.
-          const activeId = (target as any).ownerDocument?.pointerLockElement
+          const activeId = target.ownerDocument?.pointerLockElement
             ? undefined
             : 0;
           if (activeId !== undefined) {
