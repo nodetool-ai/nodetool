@@ -16,6 +16,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import GridViewIcon from "@mui/icons-material/GridView";
 import ImageIcon from "@mui/icons-material/Image";
 import MovieIcon from "@mui/icons-material/Movie";
+import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import BoltIcon from "@mui/icons-material/Bolt";
 import BuildIcon from "@mui/icons-material/Build";
@@ -34,6 +35,7 @@ export type QuickAccessCategoryId =
   | "assets"
   | "image-models"
   | "video-models"
+  | "audio-models"
   | "3d-models"
   | "quick-access"
   | "tools";
@@ -141,6 +143,13 @@ export const QUICK_ACCESS_CATEGORIES: readonly QuickAccessCategory[] = [
     icon: <MovieIcon />,
     kind: "tile-grid",
     filter: primaryVariantIs("video")
+  },
+  {
+    id: "audio-models",
+    label: "Audio Models",
+    icon: <AudiotrackIcon />,
+    kind: "tile-grid",
+    filter: primaryVariantIs("audio")
   },
   {
     id: "3d-models",
