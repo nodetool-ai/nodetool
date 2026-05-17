@@ -38,7 +38,17 @@ import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import TrashIconSvg from "../../icons/trash.svg?react";
 const DeleteIcon = TrashIconSvg as React.FC<React.SVGProps<SVGSVGElement>>;
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import GradientIcon from "@mui/icons-material/Gradient";
+const MaskIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    viewBox="0 0 24 24"
+    width="1em"
+    height="1em"
+    fill="currentColor"
+    {...props}
+  >
+    <path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm2 0v14h14V5H5zm7 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10z" />
+  </svg>
+);
 import CallMergeIcon from "@mui/icons-material/CallMerge";
 import LockIcon from "@mui/icons-material/Lock";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
@@ -1391,7 +1401,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }
               color={maskLayerId === activeLayerId ? "warning" : "default"}
             >
-              <GradientIcon sx={{ fontSize: "1.125rem" }} />
+              <MaskIcon style={{ width: "1.125rem", height: "1.125rem" }} />
             </IconButton>
           </Tooltip>
           <Tooltip
