@@ -16,12 +16,36 @@ function fakeWheel(init: Partial<WheelSrc>): WheelSrc {
     clientY: 0,
     ctrlKey: false,
     metaKey: false,
+    shiftKey: false,
     preventDefault: () => {},
     ...init,
   };
 }
 
 describe("partitionWheelViewportMotion", () => {
+  it("routes shift+wheel to vertical pan", () => {
+    const out = partitionWheelViewportMotion(
+      fakeWheel({ deltaY: 30, deltaX: 0, shiftKey: true }),
+    );
+    expect(out.zoomDelta).toBe(0);
+    expect(out.panX).toBe(0);
+    expect(out.panY).toBe(30);
+  });
+
+  it("routes ctrl+wheel on a mouse wheel to horizontal pan", () => {
+    const out = partitionWheelViewportMotion(
+      fakeWheel({
+        deltaY: -120,
+        deltaX: 0,
+        ctrlKey: true,
+        wheelDeltaY: 120,
+      }),
+    );
+    expect(out.zoomDelta).toBe(0);
+    expect(out.panX).toBe(-120);
+    expect(out.panY).toBe(0);
+  });
+
   it("routes ctrl+wheel to zoom (pinch pattern)", () => {
     expect(
       partitionWheelViewportMotion(

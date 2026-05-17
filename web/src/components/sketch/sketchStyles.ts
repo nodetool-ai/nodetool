@@ -174,19 +174,14 @@ export const settingRowChildrenSx = (t: Theme) => ({
       fontSize: SKETCH_FONT.sm,
       whiteSpace: "nowrap",
       color: t.vars.palette.grey[200],
-      // Push the label slightly off the slider thumb. MUI's small
-      // slider thumb extends past the rail endpoints, so at value=0
-      // the thumb would touch the label glyphs. The right-side
-      // value cell gets the same treatment via the slider's margin.
-      paddingRight: "2px",
     },
     "& .MuiSlider-root": {
       width: "100px",
       minWidth: "80px",
-      // 6px clearance on each side so the thumb at 0% / 100%
-      // never overlaps the adjacent label or value column.
-      marginLeft: "6px",
-      marginRight: "6px",
+      // Minimal clearance — the thumb may touch label/value at the
+      // extremes but the wider gap looked airy and disconnected.
+      marginLeft: "2px",
+      marginRight: "2px",
     },
   },
   // Opt-in wider slider for the primary "Size" control. Doubling its
@@ -244,13 +239,15 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (theme) => {
     "& .setting-row": {
       display: "flex",
       alignItems: "center",
-      gap: SKETCH_SPACING.lg,
-      flexWrap: "wrap",
+      gap: SKETCH_SPACING.md,
+      flexWrap: "nowrap",
       "& .MuiSlider-root": {
-        flex: "1 1 140px",
-        minWidth: "120px",
+        flex: "1 1 80px",
+        minWidth: "60px",
         width: "100%",
         maxWidth: "100%",
+        marginLeft: "2px",
+        marginRight: "2px",
       },
       "& .setting-label": {
         fontSize: SKETCH_FONT.sm,

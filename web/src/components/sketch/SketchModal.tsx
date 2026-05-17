@@ -190,19 +190,19 @@ const SketchModal: React.FC<SketchModalProps> = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      // Esc never closes the editor — it's reserved for tool / selection
+      // cancel (see `cancel-or-deselect` shortcut). We only intercept it
+      // here to dismiss modal-local overlays (shortcuts help, discard
+      // confirmation) before falling through to the global handler.
       if (e.key === "Escape") {
         if (shortcutsPaneOpen) {
           setShortcutsPaneOpen(false);
-          return;
-        }
-        if (confirmDiscard) {
+        } else if (confirmDiscard) {
           setConfirmDiscard(false);
-        } else {
-          handleRequestClose();
         }
       }
     },
-    [handleRequestClose, confirmDiscard, shortcutsPaneOpen]
+    [confirmDiscard, shortcutsPaneOpen]
   );
 
   if (!open) {
@@ -390,13 +390,13 @@ const SketchModal: React.FC<SketchModalProps> = ({
           ) : (
             <>
               <Tooltip title="Discard all changes and close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                <IconButton size="small" aria-label="Discard changes" onClick={() => setConfirmDiscard(true)} sx={{ color: "grey.500" }}>
+                <IconButton size="small" aria-label="Discard changes" onClick={() => setConfirmDiscard(true)} sx={{ color: "grey.200" }}>
                   <TrashIcon width={16} height={16} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title={`Close (${displayCombo("cancel-or-deselect")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                <IconButton size="small" aria-label="Close" onClick={handleRequestClose}>
-                  <CloseIcon fontSize="small" />
+              <Tooltip title="Save & Close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+                <IconButton size="small" aria-label="Save and close" onClick={handleRequestClose} sx={{ color: "success.light" }}>
+                  <CheckIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             </>
