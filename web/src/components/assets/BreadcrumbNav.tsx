@@ -80,7 +80,7 @@ function buildBreadcrumbPath(
   };
 
   // folderTree values are root-level nodes
-  const rootNodes = Object.values(folderTree) as AssetTreeNode[];
+  const rootNodes = Object.values(folderTree);
   traverse(rootNodes, rootId);
 
   // Walk up from current folder to root

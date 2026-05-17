@@ -337,7 +337,7 @@ export const createTimelineStore = (
                 const t = byId.get(id);
                 return t ? { ...t, index } : null;
               })
-              .filter(Boolean) as TimelineTrack[];
+              .filter((t): t is TimelineTrack => t !== null);
             return { tracks: reordered };
           }),
 

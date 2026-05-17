@@ -32,11 +32,10 @@ self.addEventListener("message", (event: MessageEvent<HistogramRequest>) => {
     luminance: hist.luminance.buffer as ArrayBuffer,
     pixelCount: hist.pixelCount
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (self as any).postMessage(response, [
+  (self as unknown as DedicatedWorkerGlobalScope).postMessage(response, [
     response.r,
     response.g,
     response.b,
     response.luminance
-  ]);
+  ] as Transferable[]);
 });

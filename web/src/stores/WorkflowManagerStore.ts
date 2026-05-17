@@ -403,7 +403,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         const getWorkflow = get().getWorkflow;
         const promises = workflowIds.map((id) => getWorkflow(id));
         const workflows = await Promise.all(promises);
-        return workflows.filter((w) => w !== undefined) as Workflow[];
+        return workflows.filter((w): w is Workflow => w !== undefined);
       },
 
       // Loads public workflows available from the API.
