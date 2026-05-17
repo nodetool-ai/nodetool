@@ -367,12 +367,6 @@ const SketchModal: React.FC<SketchModalProps> = ({
             )}
           </Menu>
 
-          <Tooltip title={`Export PNG (${displayCombo("export-png")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <IconButton size="small" aria-label="Export PNG" onClick={() => editorRef.current?.exportPng()}>
-              <SaveAltIcon sx={{ fontSize: "18px" }} />
-            </IconButton>
-          </Tooltip>
-
           <Divider orientation="vertical" flexItem sx={{ mx: "4px" }} />
 
           {confirmDiscard ? (
@@ -388,18 +382,25 @@ const SketchModal: React.FC<SketchModalProps> = ({
               </IconButton>
             </>
           ) : (
-            <>
-              <Tooltip title="Discard all changes and close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                <IconButton size="small" aria-label="Discard changes" onClick={() => setConfirmDiscard(true)} sx={{ color: "grey.200" }}>
-                  <TrashIcon width={16} height={16} />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Save & Close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                <IconButton size="small" aria-label="Save and close" onClick={handleRequestClose} sx={{ color: "success.light" }}>
-                  <CheckIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </>
+            <Tooltip title="Discard all changes and close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+              <IconButton size="small" aria-label="Discard changes" onClick={() => setConfirmDiscard(true)} sx={{ color: "error.light" }}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          <Tooltip title={`Export Image (${displayCombo("export-png")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+            <IconButton size="small" aria-label="Export Image" onClick={() => editorRef.current?.exportPng()}>
+              <SaveAltIcon sx={{ fontSize: "18px" }} />
+            </IconButton>
+          </Tooltip>
+
+          {!confirmDiscard && (
+            <Tooltip title="Save & Close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+              <IconButton size="small" aria-label="Save and close" onClick={handleRequestClose} sx={{ color: "success.light" }}>
+                <CheckIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           )}
         </Box>
       </Box>

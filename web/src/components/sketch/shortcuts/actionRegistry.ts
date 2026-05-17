@@ -75,7 +75,7 @@ export const ACTION_REGISTRY: readonly ActionMeta[] = [
   { id: "deselect", label: "Deselect", displayGroup: "Selection" },
   { id: "reselect", label: "Reselect", displayGroup: "Selection" },
   { id: "invert-selection", label: "Invert Selection", displayGroup: "Selection" },
-  { id: "export-png", label: "Export PNG", displayGroup: "Canvas" },
+  { id: "export-png", label: "Export Image", displayGroup: "Canvas" },
   { id: "zoom-reset", label: "Reset Zoom", displayGroup: "Canvas" },
   { id: "zoom-100", label: "Zoom to 100%", displayGroup: "Canvas" },
   { id: "zoom-in", label: "Zoom In", displayGroup: "Canvas" },
