@@ -1761,9 +1761,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             <MenuItem
               sx={menuItemSx}
               onClick={handleCtxDuplicate}
-              disabled={!ctxLayer || isMulti}
+              disabled={!ctxLayer}
             >
-              Duplicate
+              {isMulti ? "Duplicate Layers" : "Duplicate"}
             </MenuItem>
             <MenuItem sx={menuItemSx} onClick={handleCtxDelete}>
               Remove

@@ -102,8 +102,49 @@ export function useLayerActions({
 
   const handleDuplicateLayer = useCallback(
     (layerId: string) => {
-      duplicateLayer(layerId);
-      pushHistory("duplicate layer");
+      // When the target is part of an explicit multi-layer selection,
+      // duplicate every selected layer in document order. The store's
+      // duplicateLayer inserts each clone directly above its source and
+      // clears `selectedLayerIds` per call, so we snapshot the selection
+      // up front and re-select the newly created layers afterwards so
+      // the user can keep operating on the duplicates as a group.
+      const { selectedLayerIds } = useSketchStore.getState();
+      const isMultiTarget =
+        selectedLayerIds.length >= 2 && selectedLayerIds.includes(layerId);
+      if (!isMultiTarget) {
+        duplicateLayer(layerId);
+        pushHistory("duplicate layer");
+        return;
+      }
+      const selectedSet = new Set(selectedLayerIds);
+      // Iterate top → bottom: each insertion happens at sourceIdx+1, and
+      // walking top-down means earlier insertions never shift indices of
+      // sources we still need to read by id (we read by id anyway, but
+      // this also keeps the resulting clones in the same relative order
+      // as the originals).
+      const orderedSources = useSketchStore
+        .getState()
+        .document.layers.filter((l) => selectedSet.has(l.id))
+        .map((l) => l.id);
+      const newIds: string[] = [];
+      for (let i = orderedSources.length - 1; i >= 0; i -= 1) {
+        const beforeIds = new Set(
+          useSketchStore.getState().document.layers.map((l) => l.id)
+        );
+        duplicateLayer(orderedSources[i]);
+        const afterLayers = useSketchStore.getState().document.layers;
+        const created = afterLayers.find((l) => !beforeIds.has(l.id));
+        if (created) {
+          newIds.push(created.id);
+        }
+      }
+      if (newIds.length >= 2) {
+        useSketchStore.setState({
+          selectedLayerIds: newIds,
+          layerShiftRangeAnchorId: newIds[0]
+        });
+      }
+      pushHistory("duplicate layers");
     },
     [pushHistory, duplicateLayer]
   );

@@ -134,6 +134,12 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   suspendKeyboardShortcuts
 }, ref) {
   const theme = useTheme();
+  // Tab toggles a fully chrome-less canvas view: hide the left tools
+  // column AND the entire right panel column (color / layers / canvas).
+  // The right column is gated here at the wrapper instead of inside
+  // every child so the column's reserved width also collapses, letting
+  // the canvas grow into the freed space.
+  const panelsHidden = useSketchStore((s) => s.panelsHidden);
 
   // ─── Session layer (all transient editor-session state) ─────────────
   const session = useEditorSession({
@@ -285,9 +291,11 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         </Container>
       </FlexColumn>
 
-      {/* Right column: layers panel above, generated-layer inspector below.
-          Both subscribe directly to the sketch store so panelsHidden hides
-          them independently of the rest of the editor. */}
+      {/* Right column: color, layers, canvas size sections. The wrapper
+          itself is gated on `panelsHidden` so Tab collapses the column's
+          reserved width (not just blanks its contents), giving the
+          canvas the freed real estate. */}
+      {!panelsHidden && (
       <FlexColumn
         className="sketch-editor__panel-right"
         sx={{
@@ -400,6 +408,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
 
         <ConnectedGeneratedLayerSection />
       </FlexColumn>
+      )}
 
       <ConnectedContextMenu
         open={session.canvasActions.contextMenu !== null}

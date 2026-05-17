@@ -567,13 +567,36 @@ export function useCanvasGeometryActions({
   ]);
 
   const handleCropCanvasToSelection = useCallback(() => {
-    const sel = useSketchStore.getState().selection;
+    const store = useSketchStore.getState();
+    const sel = store.selection;
     if (!sel) return;
     const bounds = getSelectionBounds(sel);
     if (!bounds || bounds.width <= 0 || bounds.height <= 0) return;
 
+    // Clamp the selection bbox to the current canvas: a selection mask
+    // can extend outside the document (e.g. after nudging the mask off
+    // the canvas, or when the mask grid was bigger than the doc to
+    // begin with). Cropping to the raw bbox then produces a canvas that
+    // overshoots the visible area on one or more sides, leaving an
+    // empty strip and making the crop look imprecise. Intersect with
+    // [0, 0, docW, docH] before passing to finalizeCanvasCrop.
+    const { width: docW, height: docH } = store.document.canvas;
+    const minX = Math.max(0, bounds.x);
+    const minY = Math.max(0, bounds.y);
+    const maxX = Math.min(docW, bounds.x + bounds.width);
+    const maxY = Math.min(docH, bounds.y + bounds.height);
+    const cropW = maxX - minX;
+    const cropH = maxY - minY;
+    if (cropW <= 0 || cropH <= 0) {
+      // Selection lies entirely outside the canvas — nothing meaningful
+      // to crop to. Clear the selection but skip the crop so the user
+      // doesn't end up with a zero-sized document.
+      store.setSelection(null);
+      return;
+    }
+
     reconcileAllLayerTransforms();
-    finalizeCanvasCrop(bounds.x, bounds.y, bounds.width, bounds.height);
+    finalizeCanvasCrop(minX, minY, cropW, cropH);
     // Drop the selection: after the canvas is cropped to the bbox, the
     // selection's document-space origin no longer points anywhere
     // meaningful (it referred to the pre-crop document) and showing it
