@@ -487,21 +487,34 @@ async function serverAllowsModel(
 
 async function getServerAvailability(): Promise<Record<string, boolean>> {
   // Skip localhost probes in production — local servers won't be available
-  if (isProduction()) return { ollama: false, llama_cpp: false };
+  if (isProduction()) {
+    return { ollama: false, llama_cpp: false, lmstudio: false };
+  }
 
-  const ollamaUrl = (
-    process.env.OLLAMA_API_URL ?? "http://127.0.0.1:11434"
-  ).replace(/\/+$/, "");
-  const llamaUrl = process.env.LLAMA_CPP_URL?.replace(/\/+$/, "") ?? "";
+  // Resolve URLs the same way getProvider() does: secret store → env → default.
+  // Otherwise a user-set URL in Settings → API Keys wouldn't filter the
+  // recommended-models list correctly.
+  const getSecret = secretResolverFor("1");
+  const resolve = async (key: string, fallback: string): Promise<string> => {
+    const fromStore = await getSecret(key);
+    return (fromStore || process.env[key] || fallback).replace(/\/+$/, "");
+  };
 
-  const [ollama, llama] = await Promise.all([
+  const [ollamaUrl, llamaUrl, lmstudioUrl] = await Promise.all([
+    resolve("OLLAMA_API_URL", "http://127.0.0.1:11434"),
+    resolve("LLAMA_CPP_URL", ""),
+    resolve("LMSTUDIO_API_URL", "http://127.0.0.1:1234")
+  ]);
+
+  const [ollama, llama, lmstudio] = await Promise.all([
     isServerReachable(`${ollamaUrl}/api/tags`),
     llamaUrl
       ? isServerReachable(`${llamaUrl}/v1/models`)
-      : Promise.resolve(false)
+      : Promise.resolve(false),
+    isServerReachable(`${lmstudioUrl}/v1/models`)
   ]);
 
-  return { ollama, llama_cpp: llama };
+  return { ollama, llama_cpp: llama, lmstudio };
 }
 
 async function recommendedModels(

@@ -84,6 +84,10 @@ describe("cursorStyleForTool", () => {
     expect(cursorStyleForTool("crop")).toBe("crosshair");
   });
 
+  it('returns "crosshair" for color picker / eyedropper tool', () => {
+    expect(cursorStyleForTool("eyedropper")).toBe("crosshair");
+  });
+
   it('returns "crosshair" for select tool', () => {
     expect(cursorStyleForTool("select")).toBe("crosshair");
   });

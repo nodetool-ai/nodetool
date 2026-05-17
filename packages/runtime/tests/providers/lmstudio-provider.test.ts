@@ -22,6 +22,37 @@ describe("LMStudioProvider", () => {
     });
   });
 
+  it("uses LMSTUDIO_API_URL from secrets when no explicit baseURL", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [{ id: "m" }] })
+    });
+    const provider = new LMStudioProvider(
+      { LMSTUDIO_API_URL: "http://localhost:5678/" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    await provider.getAvailableLanguageModels();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "http://localhost:5678/v1/models",
+      expect.anything()
+    );
+    expect(provider.getContainerEnv()).toMatchObject({
+      LMSTUDIO_API_URL: "http://localhost:5678"
+    });
+  });
+
+  it("options.baseURL takes precedence over secrets URL", () => {
+    const provider = new LMStudioProvider(
+      { LMSTUDIO_API_URL: "http://from-secrets:1111" },
+      { client: {} as any, baseURL: "http://from-options:2222" }
+    );
+    expect(provider.getContainerEnv()).toMatchObject({
+      LMSTUDIO_API_URL: "http://from-options:2222"
+    });
+  });
+
   it("returns container env with API key when set", () => {
     const provider = new LMStudioProvider(
       { LMSTUDIO_API_KEY: "my-key" },

@@ -9,6 +9,7 @@
 import {
   BaseNode,
   classifyFields,
+  classNameToTitle,
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
@@ -93,10 +94,6 @@ export interface KieManifestEntry {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function toTitle(className: string): string {
-  return className.replace(/([A-Z])/g, " $1").trim();
-}
 
 function isAssetType(type: string): boolean {
   return ["image", "audio", "video", "list[image]", "list[video]", "list[audio]"].includes(type);
@@ -261,7 +258,7 @@ async function buildParams(
 
 export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
   const nodeType = `kie.${spec.moduleName}.${spec.className}`;
-  const title = spec.title || toTitle(spec.className);
+  const title = spec.title || classNameToTitle(spec.className);
   const description = spec.description;
   const isImageOutput = spec.outputType === "image";
   // Generative outputs — auto-save assets and auto-show result preview in UI

@@ -184,7 +184,7 @@ export interface ToolContext {
   selectStartRef?: React.MutableRefObject<Point | null>;
   lassoPointsRef?: React.MutableRefObject<Point[]>;
 
-  // ── Full composite readback (magic wand, eyedropper) ───────────────
+  // ── Full composite readback (magic wand, color picker) ─────────────
   getFullCompositeImageData?: () => ImageData | null;
 
   /**

@@ -42,7 +42,7 @@ export {
   type PreviewSessionState
 } from "./previewSession";
 
-export { EyedropperTool } from "./EyedropperTool";
+export { ColorPickerTool, sampleColorHex } from "./ColorPickerTool";
 export { MoveTool } from "./MoveTool";
 export { TransformTool } from "./TransformTool";
 export { FillTool } from "./FillTool";
@@ -58,7 +58,7 @@ export { CloneStampTool } from "./CloneStampTool";
 export { AdjustTool } from "./AdjustTool";
 export { SegmentTool } from "./SegmentTool";
 
-import { EyedropperTool } from "./EyedropperTool";
+import { ColorPickerTool } from "./ColorPickerTool";
 import { MoveTool } from "./MoveTool";
 import { TransformTool } from "./TransformTool";
 import { FillTool } from "./FillTool";
@@ -94,7 +94,7 @@ export function getToolHandler(tool: SketchTool): ToolHandler {
 
   switch (key) {
     case "eyedropper":
-      handler = new EyedropperTool();
+      handler = new ColorPickerTool();
       break;
     case "move":
       handler = new MoveTool();

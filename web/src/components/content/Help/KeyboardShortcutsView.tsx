@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useCallback
 } from "react";
-import Keyboard from "react-simple-keyboard";
+import { KeyboardReact as Keyboard } from "react-simple-keyboard";
 import "react-simple-keyboard/build/css/index.css";
 import { ToggleButtonGroup, ToggleButton } from "@mui/material";
 import { Tooltip } from "../../ui_primitives";
@@ -46,7 +46,6 @@ interface HoverHandlers {
 const hoverHandlerMap = new WeakMap<HTMLElement, HoverHandlers>();
 
 type CategoryFilter =
-  | "all"
   | "editor"
   | "panel"
   | "assets"
@@ -66,7 +65,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     return "english";
   });
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>(() =>
-    imageEditorShortcuts ? "image-editor" : "all"
+    imageEditorShortcuts ? "image-editor" : "editor"
   );
 
   useEffect(() => {
@@ -97,12 +96,10 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   const [keyboardTooltipAnchorEl, setKeyboardTooltipAnchorEl] =
     useState<HTMLElement | null>(null);
 
-  const filtered = useMemo(() => {
-    if (categoryFilter === "all") {return shortcuts;}
-    if (categoryFilter === "assets")
-      {return shortcuts.filter((s) => s.category === "assets");}
-    return shortcuts.filter((s) => s.category === categoryFilter);
-  }, [shortcuts, categoryFilter]);
+  const filtered = useMemo(
+    () => shortcuts.filter((s) => s.category === categoryFilter),
+    [shortcuts, categoryFilter]
+  );
 
   const activeShortcuts = useMemo(
     () => expandShortcutsForOS(filtered, os === "mac"),
@@ -421,7 +418,6 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         size="small"
         sx={{ mb: 2, ml: imageEditorShortcuts ? 2 : 8 }}
       >
-        <ToggleButton value="all">All</ToggleButton>
         {imageEditorShortcuts ? (
           <ToggleButton value="image-editor">Image Editor</ToggleButton>
         ) : (

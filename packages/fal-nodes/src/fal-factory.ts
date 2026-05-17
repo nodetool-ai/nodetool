@@ -9,6 +9,7 @@
 import {
   BaseNode,
   classifyFields,
+  classNameToTitle,
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
@@ -48,10 +49,6 @@ export interface FalManifestEntry {
     min?: number;
     max?: number;
   }>;
-}
-
-function toTitle(className: string): string {
-  return className.replace(/([A-Z])/g, " $1").trim();
 }
 
 function isAssetPropType(propType: string): boolean {
@@ -272,7 +269,7 @@ function mapOutput(
 
 export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
   const nodeType = `fal.${spec.moduleName}.${spec.className}`;
-  const title = toTitle(spec.className);
+  const title = classNameToTitle(spec.className);
   const descFirstLine = spec.docstring || `${spec.className} node`;
   const descSecondLine =
     spec.tags.length > 0 ? spec.tags.join(", ") : "fal, ai";

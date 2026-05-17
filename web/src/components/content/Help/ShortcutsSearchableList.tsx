@@ -106,7 +106,7 @@ export const ShortcutsSearchableList: React.FC<ShortcutsSearchableListProps> = (
                   className="help-item"
                   sx={{ display: "flex", alignItems: "center" }}
                 >
-                  <Text sx={{ minWidth: 160 }}>{s.title}</Text>
+                  <Text sx={{ minWidth: 200 }}>{s.title}</Text>
                   <Box sx={{ minWidth: 200 }}>
                     {getShortcutTooltip(s.slug, undefined, "combo", false, catalog)}
                   </Box>

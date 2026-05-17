@@ -29,6 +29,7 @@ import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
 import type { MenuEventData } from "../window";
+import { useSketchCanvasRefStore } from "../stores/sketch/SketchCanvasRefStore";
 
 /**
  * Hook that registers and manages all keyboard shortcuts for the node editor.
@@ -307,6 +308,17 @@ export const useNodeEditorShortcuts = (
   const handleMenuEvent = useCallback(
     (data: MenuEventData) => {
       if (!active) {
+        return;
+      }
+      // When the sketch editor is mounted it owns selectAll/duplicate;
+      // these are routed there via its own menu handler. Avoid double-firing
+      // node-editor actions on top.
+      const isSketchActive =
+        useSketchCanvasRefStore.getState().flattenToDataUrl !== null;
+      if (
+        isSketchActive &&
+        (data.type === "selectAll" || data.type === "duplicate")
+      ) {
         return;
       }
       switch (data.type) {

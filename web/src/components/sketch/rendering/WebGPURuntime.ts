@@ -15,7 +15,12 @@
  * Readback (flatten / mask export) goes through Canvas2DRuntime helpers.
  */
 
-import type { SketchRuntime, ActiveStrokeInfo, DirtyRect, ResolvedLayerBitmap } from "./types";
+import type {
+  SketchRuntime,
+  ActiveStrokeInfo,
+  DirtyRect,
+  ResolvedLayerBitmap
+} from "./types";
 import {
   getAncestorGroupOpacityProduct,
   isLayerCompositeVisible,
