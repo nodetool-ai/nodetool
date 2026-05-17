@@ -202,6 +202,17 @@ export const settingRowChildrenSx = (t: Theme) => ({
     "& .MuiToggleButton-root": {
       padding: `${SKETCH_SPACING.xs} ${SKETCH_SPACING.md}`,
       fontSize: SKETCH_FONT.xs,
+      // Make the selected state pop against the dark toolbar — MUI's
+      // default selected background is barely a few percent lighter
+      // than the surrounding bar, so users couldn't tell which option
+      // was active in tool params.
+      "&.Mui-selected": {
+        backgroundColor: t.vars.palette.grey[600],
+        color: t.vars.palette.grey[50],
+        "&:hover": {
+          backgroundColor: t.vars.palette.grey[500],
+        },
+      },
     },
   },
 } as const);
@@ -260,6 +271,13 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (theme) => {
       "& .MuiToggleButton-root": {
         padding: `${SKETCH_SPACING.xs} ${SKETCH_SPACING.md}`,
         fontSize: SKETCH_FONT.xs,
+        "&.Mui-selected": {
+          backgroundColor: t.vars.palette.grey[600],
+          color: t.vars.palette.grey[50],
+          "&:hover": {
+            backgroundColor: t.vars.palette.grey[500],
+          },
+        },
       },
     },
     "& .MuiIconButton-root": {

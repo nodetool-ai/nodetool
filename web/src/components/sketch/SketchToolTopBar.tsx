@@ -46,7 +46,12 @@ const styles = (theme: Theme) =>
     minHeight: "40px",
     overflowX: "auto",
     flexWrap: "wrap",
-    alignContent: "center",
+    // Wrapped rows anchor to the top of the bar instead of being
+    // re-centered when the row count changes. Without this, toggling
+    // the Advanced disclosure (which adds a wrapped row below) made
+    // the first row shift by 1px because `alignContent: center` had
+    // free space inside `minHeight` only when there was one row.
+    alignContent: "flex-start",
     flexShrink: 0,
     "& .MuiIconButton-root": {
       padding: "3px"
