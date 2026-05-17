@@ -186,6 +186,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
         {/* Group expand/collapse toggle */}
         {isGroup ? (
           <IconButton
+            aria-label={layer.collapsed ? "Expand group" : "Collapse group"}
             size="small"
             onClick={(e) => {
               e.stopPropagation();
@@ -252,6 +253,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
             enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <IconButton
+              aria-label={isIsolated ? "Show all layers" : "Solo this layer"}
               size="small"
               onClick={(e) => {
                 e.stopPropagation();
