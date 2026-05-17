@@ -7,11 +7,14 @@ import BlurBody from "./BlurBody";
 import ChannelsBody from "./ChannelsBody";
 import CompositorBody from "./CompositorBody";
 import CropBody from "./CropBody";
+import ExposureBody from "./ExposureBody";
+import HSLAdjustBody from "./HSLAdjustBody";
 import LevelsBody from "./LevelsBody";
 import MasksExtractorBody from "./MasksExtractorBody";
 import PainterBody from "./PainterBody";
 import ResizeBody from "./ResizeBody";
 import RotateAndFlipBody from "./RotateAndFlipBody";
+import ScaleBody from "./ScaleBody";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 
 const meta = (node_type: string): NodeMetadata =>
@@ -100,6 +103,31 @@ describe("bespokeRegistry", () => {
     expect(getBespokeBody(m)).toBe(RotateAndFlipBody);
     expect(BESPOKE_BODY_REGISTRY["nodetool.image.RotateAndFlip"]).toBe(
       RotateAndFlipBody
+    );
+  });
+
+  it("maps nodetool.image.Scale → ScaleBody", () => {
+    const m = meta("nodetool.image.Scale");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(ScaleBody);
+    expect(BESPOKE_BODY_REGISTRY["nodetool.image.Scale"]).toBe(ScaleBody);
+  });
+
+  it("maps lib.image.color_grading.Exposure → ExposureBody", () => {
+    const m = meta("lib.image.color_grading.Exposure");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(ExposureBody);
+    expect(BESPOKE_BODY_REGISTRY["lib.image.color_grading.Exposure"]).toBe(
+      ExposureBody
+    );
+  });
+
+  it("maps lib.image.color_grading.HSLAdjust → HSLAdjustBody", () => {
+    const m = meta("lib.image.color_grading.HSLAdjust");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(HSLAdjustBody);
+    expect(BESPOKE_BODY_REGISTRY["lib.image.color_grading.HSLAdjust"]).toBe(
+      HSLAdjustBody
     );
   });
 });
