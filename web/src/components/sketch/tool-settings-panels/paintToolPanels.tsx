@@ -129,10 +129,26 @@ interface StrokeAssistSettingsPanelProps<T extends StrokeAssistToolSettings> {
 const STROKE_ASSIST_PRESETS: Array<{
   value: Exclude<StrokeAssistPreset, "custom">;
   label: string;
+  tooltip: string;
 }> = [
-  { value: "smooth", label: "Smooth" },
-  { value: "lazy", label: "Lazy" },
-  { value: "inking", label: "Ink" }
+  {
+    value: "smooth",
+    label: "Smooth",
+    tooltip:
+      "Rolling-average stabilizer. Filters jitter while the tip keeps following the cursor — good for general drawing."
+  },
+  {
+    value: "lazy",
+    label: "Lazy",
+    tooltip:
+      "Rope/leash. Tip stays still until the cursor exceeds a dead-zone radius, then trails behind in a straight line. Best for slow, deliberate inking."
+  },
+  {
+    value: "inking",
+    label: "Ink",
+    tooltip:
+      "Lazy leash + 45° angle snap. Long strokes lock to nearest 45° direction — for clean axis-aligned linework."
+  }
 ];
 
 const STROKE_ASSIST_ANGLE_OPTIONS = [15, 30, 45, 90];
@@ -214,13 +230,23 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
         }}
         sx={{ flexWrap: "wrap" }}
       >
-        <SketchModeOption value="off">Off</SketchModeOption>
-        {STROKE_ASSIST_PRESETS.map(({ value, label }) => (
-          <SketchModeOption key={value} value={value}>
+        <SketchModeOption
+          value="off"
+          title="No stroke assist. Tip follows the raw pointer."
+        >
+          Off
+        </SketchModeOption>
+        {STROKE_ASSIST_PRESETS.map(({ value, label, tooltip }) => (
+          <SketchModeOption key={value} value={value} title={tooltip}>
             {label}
           </SketchModeOption>
         ))}
-        <SketchModeOption value="custom">Custom</SketchModeOption>
+        <SketchModeOption
+          value="custom"
+          title="Tune algorithm, strength and angle snap manually."
+        >
+          Custom
+        </SketchModeOption>
       </SketchModeToggle>
       {assistOn && (
         <Box className="setting-row">
@@ -252,8 +278,18 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
             }
           }}
         >
-          <SketchModeOption value="stabilizer">Stabilizer</SketchModeOption>
-          <SketchModeOption value="lazy">Drag</SketchModeOption>
+          <SketchModeOption
+            value="stabilizer"
+            title="Rolling-average smoothing — tip follows the cursor along a low-pass-filtered path."
+          >
+            Stabilizer
+          </SketchModeOption>
+          <SketchModeOption
+            value="lazy"
+            title="Leash drag — tip stays put inside a dead-zone, then trails the cursor along a straight line."
+          >
+            Drag
+          </SketchModeOption>
         </SketchModeToggle>
       )}
       <SketchModeToggle
@@ -267,9 +303,15 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
         }}
         sx={{ flexWrap: "wrap" }}
       >
-        <SketchModeOption value="off">Free</SketchModeOption>
+        <SketchModeOption value="off" title="No angle snap.">
+          Free
+        </SketchModeOption>
         {STROKE_ASSIST_ANGLE_OPTIONS.map((angle) => (
-          <SketchModeOption key={angle} value={angle}>
+          <SketchModeOption
+            key={angle}
+            value={angle}
+            title={`Snap stroke direction to nearest ${angle}°.`}
+          >
             {angle}°
           </SketchModeOption>
         ))}
@@ -451,8 +493,18 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
             }
           }}
         >
-          <SketchModeOption value="pixel">Pixel</SketchModeOption>
-          <SketchModeOption value="soft">Soft</SketchModeOption>
+          <SketchModeOption
+            value="pixel"
+            title="Pixel-art mode. Each dab is a crisp N×N square centered on the pixel under the cursor."
+          >
+            Pixel
+          </SketchModeOption>
+          <SketchModeOption
+            value="soft"
+            title="Soft mode. Antialiased circular dabs — feels like a small brush."
+          >
+            Soft
+          </SketchModeOption>
         </SketchModeToggle>
         {!omitPaintSliders && (
           <>
@@ -540,8 +592,18 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
             }
           }}
         >
-          <SketchModeOption value="brush">Brush</SketchModeOption>
-          <SketchModeOption value="pencil">Pencil</SketchModeOption>
+          <SketchModeOption
+            value="brush"
+            title="Erase with the current brush stamp (soft / hard / spray follow brush settings)."
+          >
+            Brush
+          </SketchModeOption>
+          <SketchModeOption
+            value="pencil"
+            title="Erase with crisp pencil dabs — follows the pencil tool's Pixel/Soft toggle."
+          >
+            Pencil
+          </SketchModeOption>
         </SketchModeToggle>
       </SettingGroup>
       <SettingGroup>
