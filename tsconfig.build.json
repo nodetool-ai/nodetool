@@ -34,6 +34,7 @@
     { "path": "packages/sdk" },
     { "path": "packages/sandbox" },
     { "path": "packages/sandbox-agent" },
-    { "path": "packages/sandbox-tools" }
+    { "path": "packages/sandbox-tools" },
+    { "path": "packages/workflow-runner" }
   ]
 }
