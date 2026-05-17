@@ -123,12 +123,6 @@ export interface RenderDocumentCompositeOptions {
    * @default false
    */
   includeMaskLayers?: boolean;
-  /**
-   * Composite every raster-like layer ignoring `visible`/ancestor visibility.
-   * Used for color-picker sampling across hidden layers while preserving blend order.
-   * @default false
-   */
-  ignoreLayerVisibility?: boolean;
 }
 
 /**
@@ -147,7 +141,6 @@ export function renderDocumentComposite(
   options?: RenderDocumentCompositeOptions
 ): StrokeTempState {
   const includeMaskLayers = options?.includeMaskLayers ?? false;
-  const ignoreVisibility = Boolean(options?.ignoreLayerVisibility);
   let { strokeTempCanvas } = strokeState;
 
   for (const layer of doc.layers) {
@@ -157,10 +150,7 @@ export function renderDocumentComposite(
     if (layer.type === "mask" && !includeMaskLayers) {
       continue;
     }
-    if (
-      !ignoreVisibility &&
-      !isLayerCompositeVisible(doc.layers, layer, isolatedLayerId)
-    ) {
+    if (!isLayerCompositeVisible(doc.layers, layer, isolatedLayerId)) {
       continue;
     }
     if (isolatedLayerId && layer.id !== isolatedLayerId) {

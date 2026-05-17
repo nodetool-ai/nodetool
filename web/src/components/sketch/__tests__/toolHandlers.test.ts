@@ -22,7 +22,7 @@ import { ShapeTool } from "../tools/ShapeTool";
 import { GradientTool } from "../tools/GradientTool";
 import { CropTool } from "../tools/CropTool";
 import { SelectTool } from "../tools/SelectTool";
-import { EyedropperTool, sampleColorHex } from "../tools/EyedropperTool";
+import { ColorPickerTool, sampleColorHex } from "../tools/ColorPickerTool";
 import { BlurTool } from "../tools/BlurTool";
 import { CloneStampTool } from "../tools/CloneStampTool";
 import { SegmentTool } from "../tools/SegmentTool";
@@ -244,7 +244,7 @@ describe("tool handler interface compliance", () => {
     GradientTool,
     CropTool,
     SelectTool,
-    EyedropperTool,
+    ColorPickerTool,
     BlurTool,
     CloneStampTool
   ];
@@ -815,9 +815,9 @@ describe("TransformTool", () => {
   });
 });
 
-describe("EyedropperTool", () => {
+describe("ColorPickerTool", () => {
   it("dispatches sketch-eyedropper custom event on pointer down", () => {
-    const tool = new EyedropperTool();
+    const tool = new ColorPickerTool();
     const canvas = window.document.createElement("canvas");
     canvas.width = 64;
     canvas.height = 64;
@@ -1417,29 +1417,6 @@ describe("sampleColorHex", () => {
     });
     const hex = sampleColorHex(toolCtx, { x: 1, y: 1 });
     expect(hex).toBe("#ff0000");
-  });
-
-  it("prefers getColorPickCompositeImageData when both getters exist", () => {
-    const width = 2;
-    const height = 2;
-    const pickDataArr = new Uint8ClampedArray(width * height * 4).fill(0);
-    pickDataArr[0] = 255;
-    const pickData = { data: pickDataArr, width, height } as ImageData;
-    const fullData = {
-      data: new Uint8ClampedArray(width * height * 4).fill(0),
-      width,
-      height
-    } as ImageData;
-
-    const pickSpy = jest.fn(() => pickData);
-    const fullSpy = jest.fn(() => fullData);
-    const toolCtx = makeToolContext({
-      getColorPickCompositeImageData: pickSpy,
-      getFullCompositeImageData: fullSpy
-    });
-    expect(sampleColorHex(toolCtx, { x: 0, y: 0 })).toBe("#ff0000");
-    expect(pickSpy).toHaveBeenCalled();
-    expect(fullSpy).not.toHaveBeenCalled();
   });
 
   it("returns hex from getFullCompositeImageData when display canvas unavailable", () => {

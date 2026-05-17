@@ -23,7 +23,7 @@ import { getToolHandler } from "../tools";
 import { CloneStampTool } from "../tools/CloneStampTool";
 import { TransformTool } from "../tools/TransformTool";
 import { CropTool } from "../tools/CropTool";
-import { sampleColorHex } from "../tools/EyedropperTool";
+import { sampleColorHex } from "../tools/ColorPickerTool";
 import type { ToolContext, ToolPointerEvent, StrokeEndOptions } from "../tools/types";
 import { buildToolContext } from "../tools/buildToolContext";
 import { useKeyboardModifiers } from "./useKeyboardModifiers";
@@ -360,17 +360,6 @@ export function usePointerHandlers({
   // eslint-disable-next-line react-hooks/exhaustive-deps -- activeStrokeRef is stable
   [doc, isolatedLayerId]);
 
-  const getColorPickCompositeImageData = useCallback((): ImageData | null => {
-    return runtimeRef.current.readbackComposite(
-      doc,
-      isolatedLayerId ?? null,
-      activeStrokeRef.current,
-      { sampleHiddenRasterLayers: true }
-    );
-  },
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- activeStrokeRef is stable; isolation ignored for pick
-  [doc]);
-
   // ─── Async tool commit generation ──────────────────────────────────
   // Monotonically increasing counter used to detect stale async commits.
   // Incremented whenever a new gesture starts, the tool changes, or a new
@@ -442,7 +431,6 @@ export function usePointerHandlers({
     selectStartRef,
     lassoPointsRef,
     getFullCompositeImageData,
-    getColorPickCompositeImageData,
     setTransformHoverCursor,
   });
 

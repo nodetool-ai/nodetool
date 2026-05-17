@@ -53,6 +53,5 @@ export {
 } from "./maskAndExport";
 export type {
   RenderDocumentCompositeFn,
-  DrawLayerToContextFn,
-  ReadbackCompositeOptions
+  DrawLayerToContextFn
 } from "./maskAndExport";

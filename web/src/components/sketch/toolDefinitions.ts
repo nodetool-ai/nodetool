@@ -25,7 +25,7 @@ import { definition as brushDef } from "./tools/BrushTool";
 import { definition as pencilDef } from "./tools/PencilTool";
 import { definition as eraserDef } from "./tools/EraserTool";
 import { definition as fillDef } from "./tools/FillTool";
-import { definition as eyedropperDef } from "./tools/EyedropperTool";
+import { definition as colorPickerToolDef } from "./tools/ColorPickerTool";
 import { definition as blurDef } from "./tools/BlurTool";
 import { definition as cloneStampDef } from "./tools/CloneStampTool";
 import { definition as shapeDef } from "./tools/ShapeTool";
@@ -44,7 +44,7 @@ export const PAINTING_TOOLS: ToolDefinition[] = [
   pencilDef,
   eraserDef,
   fillDef,
-  eyedropperDef,
+  colorPickerToolDef,
   blurDef,
   cloneStampDef
 ];
@@ -59,7 +59,7 @@ export const SHAPE_TOOLS: ToolDefinition[] = [
 
 export const TOOLBAR_TOOL_GROUPS: readonly ToolDefinition[][] = [
   [moveDef, transformDef, selectDef, cropDef],
-  [brushDef, pencilDef, eraserDef, fillDef, eyedropperDef],
+  [brushDef, pencilDef, eraserDef, fillDef, colorPickerToolDef],
   [blurDef, cloneStampDef, adjustDef, gradientDef],
   [shapeDef, segmentDef]
 ];

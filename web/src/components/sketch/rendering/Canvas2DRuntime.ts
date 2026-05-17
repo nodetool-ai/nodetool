@@ -11,7 +11,6 @@
 
 import type {
   SketchRuntime,
-  SketchReadbackCompositeOptions,
   ActiveStrokeInfo,
   DirtyRect,
   ResolvedLayerBitmap
@@ -44,7 +43,6 @@ import {
   compositeToDisplayCanvas,
   renderDocumentComposite,
   drawLayerToContext as drawLayerToContextFn,
-  type RenderDocumentCompositeOptions,
   type StrokeTempState
 } from "./canvas2d/composite";
 import {
@@ -127,16 +125,9 @@ export class Canvas2DRuntime implements SketchRuntime {
     ctx: CanvasRenderingContext2D,
     doc: SketchDocument,
     isolatedLayerId: string | null | undefined,
-    activeStroke: ActiveStrokeInfo | null,
-    compositeOptions?: RenderDocumentCompositeOptions
+    activeStroke: ActiveStrokeInfo | null
   ): void => {
-    this.renderDocumentCompositeToContext(
-      ctx,
-      doc,
-      isolatedLayerId,
-      activeStroke,
-      compositeOptions
-    );
+    this.renderDocumentCompositeToContext(ctx, doc, isolatedLayerId, activeStroke);
   };
 
   /** Bound wrapper for drawLayerToContext. */
@@ -243,8 +234,7 @@ export class Canvas2DRuntime implements SketchRuntime {
     ctx: CanvasRenderingContext2D,
     doc: SketchDocument,
     isolatedLayerId: string | null | undefined,
-    activeStroke: ActiveStrokeInfo | null,
-    compositeOptions?: RenderDocumentCompositeOptions
+    activeStroke: ActiveStrokeInfo | null
   ): void {
     const nextState = renderDocumentComposite(
       ctx,
@@ -253,8 +243,7 @@ export class Canvas2DRuntime implements SketchRuntime {
       activeStroke,
       this.layerCanvases,
       this.boundEvaluateLayerEffects,
-      this.getStrokeTempState(),
-      compositeOptions
+      this.getStrokeTempState()
     );
     this.applyStrokeTempState(nextState);
   }
@@ -663,16 +652,14 @@ export class Canvas2DRuntime implements SketchRuntime {
   readbackComposite(
     doc: SketchDocument,
     isolatedLayerId: string | null | undefined,
-    activeStroke: ActiveStrokeInfo | null,
-    options?: SketchReadbackCompositeOptions
+    activeStroke: ActiveStrokeInfo | null
   ): ImageData | null {
     const { imageData, readbackCanvas } = readbackCompositeFn(
       doc,
       isolatedLayerId,
       activeStroke,
       this.boundRenderDocComposite,
-      this.readbackCanvas,
-      options
+      this.readbackCanvas
     );
     this.readbackCanvas = readbackCanvas;
     return imageData;

@@ -19,8 +19,7 @@ import type {
   SketchRuntime,
   ActiveStrokeInfo,
   DirtyRect,
-  ResolvedLayerBitmap,
-  SketchReadbackCompositeOptions
+  ResolvedLayerBitmap
 } from "./types";
 import {
   getAncestorGroupOpacityProduct,
@@ -2114,12 +2113,11 @@ export class WebGPURuntime implements SketchRuntime {
   readbackComposite(
     doc: import("../types").SketchDocument,
     isolatedLayerId: string | null | undefined,
-    activeStroke: ActiveStrokeInfo | null,
-    options?: SketchReadbackCompositeOptions
+    activeStroke: ActiveStrokeInfo | null
   ): ImageData | null {
     // Delegate to the CPU runtime which shares the same layer canvas map.
     // This produces pixel-accurate results with effects applied.
-    return this.cpuRuntime.readbackComposite(doc, isolatedLayerId, activeStroke, options);
+    return this.cpuRuntime.readbackComposite(doc, isolatedLayerId, activeStroke);
   }
 
   // ─── Lifecycle ───────────────────────────────────────────────────────

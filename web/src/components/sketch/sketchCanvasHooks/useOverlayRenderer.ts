@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { alpha, useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import type {
   SketchDocument,
   SketchTool,
@@ -51,6 +52,29 @@ export function selectionAntCanvasMarginCssPx(zoom: number): number {
 /** Same pacing idea as GPU ants: slow dash drift so Canvas2D preview does not sparkle. */
 function liveSelectionPreviewAntsPhase(): number {
   return (performance.now() * 0.018) % 256;
+}
+
+/** Soft ring at actual pointer — readable on light/dark canvas behind pixel-snapped pencil dab. */
+function drawPencilRawPointerHint(
+  ctx: CanvasRenderingContext2D,
+  theme: Theme,
+  rawLocalX: number,
+  rawLocalY: number,
+  zoom: number
+): void {
+  const hintR = Math.max(5, Math.min(14, zoom * 0.6));
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(rawLocalX, rawLocalY, hintR, 0, Math.PI * 2);
+  ctx.strokeStyle = alpha(theme.palette.grey[900], 0.42);
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(rawLocalX, rawLocalY, hintR, 0, Math.PI * 2);
+  ctx.strokeStyle = alpha(theme.palette.grey[200], 0.88);
+  ctx.lineWidth = 1.25;
+  ctx.stroke();
+  ctx.restore();
 }
 
 export interface UseOverlayRendererParams {
@@ -573,15 +597,12 @@ export function useOverlayRenderer({
       if (lazyActive && lazyLeash) {
         docPt = { x: lazyLeash.tipDoc.x, y: lazyLeash.tipDoc.y };
       }
-      // `PencilEngine.stabilize` snaps to integer grid before `dabAt`; preview must use
-      // the same grid so 1px crisp dabs match. Eraser pencil mode does not integer-snap in
-      // `EraserEngine.stabilize`, so keep continuous doc coords there.
-      const dabDocCoords =
-        docPt &&
-        dabSnap &&
-        interactionTool === "pencil"
-          ? { x: Math.round(docPt.x), y: Math.round(docPt.y) }
-          : docPt;
+      // Pass continuous doc coords to `snapStrokeDabCenterDoc` — its crisp
+      // branch already maps `(x, y)` to the pixel containing the pointer
+      // (floor-equivalent), matching `PencilEngine.stabilize` (now `floor`)
+      // and `dabAt`'s `round(x - 0.5)` formula. No pre-round here, otherwise
+      // we double-snap and shift the dab into the next pixel right/down.
+      const dabDocCoords = docPt;
       if (contRect && contRect.width > 0 && contRect.height > 0 && docPt) {
         const anchorDoc =
           dabSnap && dabDocCoords
@@ -725,16 +746,9 @@ export function useOverlayRenderer({
           ctx.stroke();
           ctx.restore();
 
-          // Faint round hint at actual mouse position (dab stays pixel-snapped above).
+          // Raw-pointer hint (dab stays pixel-snapped above).
           if (interactionTool === "pencil") {
-            const hintR = Math.max(3.5, Math.min(10, zoom * 0.45));
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(rawLocalX, rawLocalY, hintR, 0, Math.PI * 2);
-            ctx.strokeStyle = alpha(theme.palette.grey[400], 0.22);
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            ctx.restore();
+            drawPencilRawPointerHint(ctx, theme, rawLocalX, rawLocalY, zoom);
           }
         }
         return;
@@ -783,16 +797,9 @@ export function useOverlayRenderer({
       ctx.fillStyle = alpha(theme.palette.grey[700], 0.92);
       ctx.fill();
 
-      // Pencil (non-lazy): faint ring at raw pointer — ellipse dab preview stays snapped.
+      // Pencil (non-lazy): raw-pointer hint — ellipse dab preview stays snapped.
       if (interactionTool === "pencil" && !lazyActive) {
-        const hintR = Math.max(3.5, Math.min(10, zoom * 0.45));
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(rawLocalX, rawLocalY, hintR, 0, Math.PI * 2);
-        ctx.strokeStyle = alpha(theme.palette.grey[400], 0.22);
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.restore();
+        drawPencilRawPointerHint(ctx, theme, rawLocalX, rawLocalY, zoom);
       }
 
       // ── Lazy-brush leash overlay ─────────────────────────────────

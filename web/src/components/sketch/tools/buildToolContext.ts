@@ -130,7 +130,6 @@ export interface BuildToolContextParams {
 
   // ── Full composite readback ──
   getFullCompositeImageData?: () => ImageData | null;
-  getColorPickCompositeImageData?: () => ImageData | null;
 
   setTransformHoverCursor?: (cursor: string | null) => void;
 }
@@ -202,7 +201,6 @@ export function buildToolContext(params: BuildToolContextParams): ToolContext {
     selectStartRef: params.selectStartRef,
     lassoPointsRef: params.lassoPointsRef,
     getFullCompositeImageData: params.getFullCompositeImageData,
-    getColorPickCompositeImageData: params.getColorPickCompositeImageData,
     setTransformHoverCursor: params.setTransformHoverCursor,
   };
 }

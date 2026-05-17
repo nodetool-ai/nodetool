@@ -11,8 +11,7 @@ export type {
   ActiveStrokeInfo,
   ResolvedLayerBitmap,
   WorkingSpace,
-  DynamicRange,
-  SketchReadbackCompositeOptions
+  DynamicRange
 } from "./types";
 
 export { Canvas2DRuntime } from "./Canvas2DRuntime";

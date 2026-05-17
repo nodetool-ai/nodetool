@@ -88,16 +88,16 @@ describe("drawPixelGrid", () => {
 // ─── PencilEngine snap-to-pixel tests ───────────────────────────────────────
 
 describe("PencilEngine snap-to-pixel", () => {
-  it("stabilize() snaps to nearest integer", () => {
+  it("stabilize() snaps to the pixel containing the pointer (floor)", () => {
     const engine = new PencilEngine({
       size: 1, opacity: 1, color: "#000000",
       pressureSensitivity: false, pressureAffects: "size",
       pressureMinScale: 0.1, pressureCurve: 1, stabilizer: 0
     });
-    expect(engine.stabilize({ x: 3.7, y: 4.2 })).toEqual({ x: 4, y: 4 });
-    expect(engine.stabilize({ x: 0.5, y: 0.5 })).toEqual({ x: 1, y: 1 });
-    expect(engine.stabilize({ x: 0.3, y: 2.9 })).toEqual({ x: 0, y: 3 });
-    expect(engine.stabilize({ x: 10.1, y: 7.8 })).toEqual({ x: 10, y: 8 });
+    expect(engine.stabilize({ x: 3.7, y: 4.2 })).toEqual({ x: 3, y: 4 });
+    expect(engine.stabilize({ x: 0.5, y: 0.5 })).toEqual({ x: 0, y: 0 });
+    expect(engine.stabilize({ x: 0.3, y: 2.9 })).toEqual({ x: 0, y: 2 });
+    expect(engine.stabilize({ x: 10.1, y: 7.8 })).toEqual({ x: 10, y: 7 });
   });
 
   it("evaluate() snaps coordinates to integers", () => {

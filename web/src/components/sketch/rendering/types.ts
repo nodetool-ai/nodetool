@@ -35,15 +35,6 @@ export interface DirtyRect {
   h: number;
 }
 
-/** Extra options for {@link SketchRuntime.readbackComposite}. */
-export interface SketchReadbackCompositeOptions {
-  /**
-   * When true, composites all raster layers ignoring visibility/isolate preview
-   * so color picking reflects every layer's pixels (stack order unchanged).
-   */
-  sampleHiddenRasterLayers?: boolean;
-}
-
 // ─── Resolved layer output ───────────────────────────────────────────────────
 
 /**
@@ -382,14 +373,12 @@ export interface SketchRuntime {
    * @param doc - The current document state.
    * @param isolatedLayerId - If set, only this layer is composited (solo/isolate preview).
    * @param activeStroke - Optional in-progress stroke for live preview.
-   * @param options - Optional readback tweaks (see `SketchReadbackCompositeOptions`).
    * @returns ImageData at document resolution, or null if readback fails.
    */
   readbackComposite(
     doc: SketchDocument,
     isolatedLayerId: string | null | undefined,
-    activeStroke: ActiveStrokeInfo | null,
-    options?: SketchReadbackCompositeOptions
+    activeStroke: ActiveStrokeInfo | null
   ): ImageData | null;
 
   // ─── Lifecycle ───────────────────────────────────────────────────────
