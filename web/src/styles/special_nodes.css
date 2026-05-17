@@ -388,5 +388,5 @@
 
 .react-flow__node-default .node-header {
   border: 0;
-  background-color: var(--palette-grey-700);
+  background-color: transparent;
 }
