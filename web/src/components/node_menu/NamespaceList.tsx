@@ -425,6 +425,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   metadata
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => namespaceStyles(theme), [theme]);
   const {
     searchTerm,
     selectedPath,
@@ -461,7 +462,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
       : 1;
 
   const totalNodes = useMemo(() => {
-    return Object.values(allMetadata).length;
+    return Object.keys(allMetadata).length;
   }, [allMetadata]);
 
   const isHomeLayout = !(
@@ -474,7 +475,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
 
   return (
     <div
-      css={namespaceStyles(theme)}
+      css={cssStyles}
       className={`${
         (searchTerm.length > minSearchTermLength ||
           selectedInputType ||

@@ -138,6 +138,7 @@ const styles = (theme: Theme) =>
 const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { id, type, data, selected } = props;
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastEmittedHeight = useRef<number>(0);
   const [isFocused, setIsFocused] = useState(false);
@@ -273,7 +274,7 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <Container
-      css={styles(theme)}
+      css={cssStyles}
       className={`base-node constant-string-node node-body ${data.collapsed ? "collapsed " : ""}${selected ? "selected" : ""}`}
       style={
         {

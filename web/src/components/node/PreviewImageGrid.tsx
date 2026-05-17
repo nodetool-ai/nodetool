@@ -382,16 +382,6 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
     };
   }, [images]);
 
-  // Lightweight resize observer to trigger reflow on container changes, if needed later.
-  useEffect(() => {
-    if (!containerRef.current) { return; }
-    const ro = new ResizeObserver(() => {
-      // no-op for now; grid is auto-fill and responds via CSS
-    });
-    ro.observe(containerRef.current);
-    return () => ro.disconnect();
-  }, []);
-
   return (
     <div className="preview-image-grid" css={gridCss} ref={containerRef}>
       {/* Selection mode toggle button */}

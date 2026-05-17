@@ -211,6 +211,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   showCheckboxes
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => listStyles(theme), [theme]);
   const currentWorkflowId = useWorkflowManager(
     (state) => state.currentWorkflowId
   );
@@ -288,7 +289,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
     <Box
       ref={containerRef}
       className="container list"
-      css={listStyles(theme)}
+      css={cssStyles}
       onScroll={handleScroll}
       sx={{ height: "100%", width: "100%", overflow: "auto" }}
     >

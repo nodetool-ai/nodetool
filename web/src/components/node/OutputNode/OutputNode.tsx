@@ -296,6 +296,7 @@ const CONTENT_DIV_STYLE = {
  */
 const OutputNode: React.FC<OutputNodeProps> = (props) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -418,7 +419,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
 
   return (
     <Container
-      css={styles(theme)}
+      css={cssStyles}
       sx={getOutputNodeSelectionSx(theme, Boolean(props.selected))}
       className={`output-node nopan node-drag-handle node-body ${
         hasParent ? "hasParent " : ""

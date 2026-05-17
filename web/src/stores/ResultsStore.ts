@@ -6,6 +6,7 @@ import { PlanningUpdate, Task, ToolCallUpdate } from "./ApiTypes";
 type ResultsStore = {
   results: Record<string, unknown>;
   outputResults: Record<string, unknown>;
+  resultsVersion: number;
   progress: Record<string, { progress: number; total: number; chunk?: string }>;
   edges: Record<string, { status: string; counter?: number }>;
   chunks: Record<string, string>;
@@ -128,6 +129,7 @@ const filterRecord = <T>(
 const useResultsStore = create<ResultsStore>((set, get) => ({
   results: {},
   outputResults: {},
+  resultsVersion: 0,
   progress: {},
   chunks: {},
   tasks: {},
@@ -364,22 +366,25 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const key = hashKey(workflowId, nodeId);
     set((state) => {
       const currentResult = state.results[key];
+      const nextVersion = state.resultsVersion + 1;
       if (currentResult === undefined || !append) {
-        return { results: { ...state.results, [key]: result } };
+        return { results: { ...state.results, [key]: result }, resultsVersion: nextVersion };
       } else {
         if (Array.isArray(currentResult)) {
           return {
             results: {
               ...state.results,
               [key]: [...currentResult, result]
-            }
+            },
+            resultsVersion: nextVersion
           };
         } else {
           return {
             results: {
               ...state.results,
               [key]: [currentResult, result]
-            }
+            },
+            resultsVersion: nextVersion
           };
         }
       }
@@ -431,9 +436,11 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const key = hashKey(workflowId, nodeId);
     set((state) => {
       const currentResult = state.outputResults[key];
+      const nextVersion = state.resultsVersion + 1;
       if (currentResult === undefined || !append) {
         return {
-          outputResults: { ...state.outputResults, [key]: result }
+          outputResults: { ...state.outputResults, [key]: result },
+          resultsVersion: nextVersion
         };
       } else {
         if (Array.isArray(currentResult)) {
@@ -441,14 +448,16 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
             outputResults: {
               ...state.outputResults,
               [key]: [...currentResult, result]
-            }
+            },
+            resultsVersion: nextVersion
           };
         } else {
           return {
             outputResults: {
               ...state.outputResults,
               [key]: [currentResult, result]
-            }
+            },
+            resultsVersion: nextVersion
           };
         }
       }

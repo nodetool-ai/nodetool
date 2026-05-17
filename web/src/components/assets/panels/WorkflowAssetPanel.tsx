@@ -12,7 +12,6 @@ import AssetGridContent from "../AssetGridContent";
 import AssetViewer from "../AssetViewer";
 import AssetDeleteConfirmation from "../AssetDeleteConfirmation";
 import useResultsStore from "../../../stores/ResultsStore";
-import { shallow } from "zustand/shallow";
 import WorkflowAssetToolbar from "./WorkflowAssetToolbar";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import { getAssetCategory } from "../assetGridUtils";
@@ -36,11 +35,9 @@ const WorkflowAssetPanel: React.FC = () => {
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
   const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
 
-  // Subscribe to results store to detect new results
-  const { results, outputResults } = useResultsStore(
-    (state) => ({ results: state.results, outputResults: state.outputResults }),
-    shallow
-  );
+  // Subscribe only to a monotonic version counter — avoids re-renders from
+  // iterating the entire results/outputResults records on every store mutation.
+  const resultsVersion = useResultsStore((state) => state.resultsVersion);
 
   const {
     assets,
@@ -82,51 +79,19 @@ const WorkflowAssetPanel: React.FC = () => {
     });
   }, [assets, assetsOrder, typeFilter]);
 
-  // Track results for the current workflow and refetch when they change
-  const prevResultsRef = useRef<{ results: typeof results; outputResults: typeof outputResults } | null>(null);
-
-  // Memoize filtered results to avoid repeated filtering on every render
-  const currentWorkflowResults = useMemo(() => {
-    if (!currentWorkflowId) {return [];}
-    return Object.keys(results).filter((key) => key.startsWith(currentWorkflowId));
-  }, [results, currentWorkflowId]);
-
-  const currentWorkflowOutputResults = useMemo(() => {
-    if (!currentWorkflowId) {return [];}
-    return Object.keys(outputResults).filter((key) => key.startsWith(currentWorkflowId));
-  }, [outputResults, currentWorkflowId]);
-
+  // Refetch assets when new results arrive (debounced)
+  const prevVersionRef = useRef(resultsVersion);
   useEffect(() => {
-    if (!currentWorkflowId) {
+    if (!currentWorkflowId || resultsVersion === prevVersionRef.current) {
+      prevVersionRef.current = resultsVersion;
       return;
     }
-
-    // Check if we have new results
-    const prevResults = prevResultsRef.current;
-    if (prevResults) {
-      const prevWorkflowResults = Object.keys(prevResults.results).filter(
-        (key) => key.startsWith(currentWorkflowId)
-      );
-      const prevWorkflowOutputResults = Object.keys(prevResults.outputResults).filter(
-        (key) => key.startsWith(currentWorkflowId)
-      );
-
-      // If result count changed, refetch assets (new result likely created new asset)
-      if (
-        currentWorkflowResults.length !== prevWorkflowResults.length ||
-        currentWorkflowOutputResults.length !== prevWorkflowOutputResults.length
-      ) {
-        // Debounce the refetch slightly to avoid too many requests
-        const timeoutId = setTimeout(() => {
-          refetch();
-        }, 1000);
-
-        return () => clearTimeout(timeoutId);
-      }
-    }
-
-    prevResultsRef.current = { results, outputResults };
-  }, [results, outputResults, currentWorkflowId, refetch, currentWorkflowResults, currentWorkflowOutputResults]);
+    prevVersionRef.current = resultsVersion;
+    const timeoutId = setTimeout(() => {
+      refetch();
+    }, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [resultsVersion, currentWorkflowId, refetch]);
 
   const handleDoubleClick = useCallback(
     (asset: Asset) => {

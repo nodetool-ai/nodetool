@@ -87,6 +87,7 @@ interface RerouteNodeProps extends NodeProps {
 
 const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const { selected, id, data } = props;
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -190,7 +191,7 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
       placement="top"
     >
       <Container
-        css={styles(theme)}
+        css={cssStyles}
         className={`node-drag-handle node-body reroute-node ${
           selected ? "selected" : ""
         }`}
