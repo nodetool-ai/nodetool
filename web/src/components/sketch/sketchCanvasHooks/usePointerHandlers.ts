@@ -169,6 +169,14 @@ export interface UsePointerHandlersParams {
   // Local React state setters for transform preview. Never persisted.
   setLayerTransformPreview?: (layerId: string, transform: LayerTransform) => void;
   clearLayerTransformPreview?: (layerId?: string) => void;
+
+  /**
+   * Must match `useOverlayRenderer`'s modifier refs when both hooks are
+   * composed (see `useCanvasOrchestration`). Otherwise overlay shape
+   * preview reads stale Shift/Alt while `ToolContext` uses pointer-updated refs.
+   */
+  shiftHeldRef?: React.MutableRefObject<boolean>;
+  altHeldRef?: React.MutableRefObject<boolean>;
 }
 
 export interface UsePointerHandlersResult {
@@ -251,7 +259,9 @@ export function usePointerHandlers({
   foregroundColor = "#000000",
   onCanvasLeave,
   setLayerTransformPreview,
-  clearLayerTransformPreview
+  clearLayerTransformPreview,
+  shiftHeldRef: shiftHeldRefShared,
+  altHeldRef: altHeldRefShared
 }: UsePointerHandlersParams): UsePointerHandlersResult {
   const [spaceHeldUi, setSpaceHeldUi] = useState(false);
   const [isPanningUi, setIsPanningUi] = useState(false);
@@ -279,7 +289,9 @@ export function usePointerHandlers({
     useKeyboardModifiers({
       isSpacePanningRef,
       isSizeDraggingRef,
-      onSpaceHeldChange: setSpaceHeldUi
+      onSpaceHeldChange: setSpaceHeldUi,
+      shiftHeldRef: shiftHeldRefShared,
+      altHeldRef: altHeldRefShared
     });
 
   const [transformHoverCursor, setTransformHoverCursor] = useState<

@@ -199,7 +199,9 @@ export function useCanvasOrchestration(
 
   // ─── Modifier refs (shared between overlay + pointer) ─────────────
   // Created at this level to break the circular dependency: overlay needs
-  // shift/alt refs from pointer, pointer needs overlay draw callbacks.
+  // shift/alt refs while pointer handlers own keyboard listeners. Both must
+  // read/write the **same** refs so shape preview (`drawOverlayShape`) sees
+  // `event.shiftKey` updates from `ShapeTool.onMove` instead of always false.
   const shiftHeldRef = useRef(false);
   const altHeldRef = useRef(false);
   const selectStartRef = useRef<Point | null>(null);
@@ -381,7 +383,9 @@ export function useCanvasOrchestration(
     foregroundColor,
     onCanvasLeave,
     setLayerTransformPreview,
-    clearLayerTransformPreview
+    clearLayerTransformPreview,
+    shiftHeldRef,
+    altHeldRef
   });
 
   return {
