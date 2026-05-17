@@ -192,15 +192,15 @@ const WorkflowAssistantChat: React.FC = () => {
         continue;
       }
       if (
-        nodeType === "MessageInput" ||
-        nodeType === "nodetool.input.MessageInput" ||
-        nodeType.endsWith(".MessageInput")
+        nodeType === "ChatComposer" ||
+        nodeType === "nodetool.input.ChatComposer" ||
+        nodeType.endsWith(".ChatComposer")
       ) {
         msgNames.push(nodeName);
       } else if (
-        nodeType === "MessageListInput" ||
-        nodeType === "nodetool.input.MessageListInput" ||
-        nodeType.endsWith(".MessageListInput")
+        nodeType === "ChatMessages" ||
+        nodeType === "nodetool.input.ChatMessages" ||
+        nodeType.endsWith(".ChatMessages")
       ) {
         msgListNames.push(nodeName);
       }
@@ -317,7 +317,7 @@ const WorkflowAssistantChat: React.FC = () => {
   const handleSendMessage = useCallback(
     async (message: Message) => {
       // In agent mode, let the agent run autonomously: skip the
-      // workflow_target/MessageInput routing and tool auto-injection.
+      // workflow_target/ChatComposer routing and tool auto-injection.
       const messageAgentMode = (message as Message & { agent_mode?: boolean })
         .agent_mode;
       const useWorkflowRouting = !messageAgentMode && hasMessageInput;
@@ -360,7 +360,8 @@ const WorkflowAssistantChat: React.FC = () => {
     ]
   );
 
-  // Add MessageInput node to workflow
+  // Add a ChatComposer + ChatMessages pair to the workflow so the user can
+  // chat with it. Both nodes are required for the round-trip flow.
   const handleAddMessageInput = useCallback(() => {
     const workflowId = currentWorkflowId;
     if (!workflowId) {
@@ -373,24 +374,28 @@ const WorkflowAssistantChat: React.FC = () => {
       return;
     }
 
-    const metadata = nodeMetadata["nodetool.input.MessageInput"];
-    if (!metadata) {
-      console.error("MessageInput node metadata not found");
+    const composerMetadata = nodeMetadata["nodetool.input.ChatComposer"];
+    const messagesMetadata = nodeMetadata["nodetool.input.ChatMessages"];
+    if (!composerMetadata || !messagesMetadata) {
+      console.error("Chat node metadata not found");
       return;
     }
 
     const store = currentNodeStore.getState();
 
-    const position = {
-      x: 100 + Math.random() * 200,
-      y: 100 + Math.random() * 200
-    };
+    const composerNode = store.createNode(
+      composerMetadata,
+      { x: 100, y: 100 },
+      { name: "message" }
+    );
+    const messagesNode = store.createNode(
+      messagesMetadata,
+      { x: 100, y: 360 },
+      { name: "messages" }
+    );
 
-    const newNode = store.createNode(metadata, position, {
-      name: "message"
-    });
-
-    store.addNode(newNode);
+    store.addNode(composerNode);
+    store.addNode(messagesNode);
   }, [currentWorkflowId, getNodeStore, nodeMetadata]);
 
   // Map status to ChatView compatible status
@@ -455,9 +460,9 @@ const WorkflowAssistantChat: React.FC = () => {
             maxWidth: "320px"
           }}
         >
-          In chat mode, messages route to your workflow&apos;s
-          MessageInput/MessageListInput nodes. In agent mode, the selected
-          provider runs autonomously with planning and tool use.
+          In chat mode, messages route to your workflow&apos;s Chat Composer
+          and Chat Messages nodes. In agent mode, the selected provider runs
+          autonomously with planning and tool use.
         </p>
         {!hasMessageInput && (
           <EditorButton
@@ -471,7 +476,7 @@ const WorkflowAssistantChat: React.FC = () => {
               textTransform: "none"
             }}
           >
-            Add Message Input
+            Add Chat Nodes
           </EditorButton>
         )}
       </div>

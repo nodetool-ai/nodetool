@@ -15,6 +15,8 @@ import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import BlurBody, { BLUR_NODE_TYPE } from "./BlurBody";
 import ChannelsBody, { CHANNELS_NODE_TYPE } from "./ChannelsBody";
+import ChatComposerBody, { CHAT_COMPOSER_NODE_TYPE } from "./ChatComposerBody";
+import ChatMessagesBody, { CHAT_MESSAGES_NODE_TYPE } from "./ChatMessagesBody";
 import CompositorBody, { COMPOSITOR_NODE_TYPE } from "./CompositorBody";
 import CropBody, { CROP_NODE_TYPE } from "./CropBody";
 import CurvesBody, { CURVES_NODE_TYPE } from "./CurvesBody";
@@ -54,6 +56,8 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
 > = {
   [BLUR_NODE_TYPE]: BlurBody,
   [CHANNELS_NODE_TYPE]: ChannelsBody,
+  [CHAT_COMPOSER_NODE_TYPE]: ChatComposerBody,
+  [CHAT_MESSAGES_NODE_TYPE]: ChatMessagesBody,
   [COMPOSITOR_NODE_TYPE]: CompositorBody,
   [CROP_NODE_TYPE]: CropBody,
   [CURVES_NODE_TYPE]: CurvesBody,

@@ -41,8 +41,8 @@ import {
   AssetFolderInputNode,
   FilePathInputNode,
   DocumentFileInputNode,
-  MessageInputNode,
-  MessageListInputNode,
+  ChatComposerNode,
+  ChatMessagesNode,
   MessageDeconstructorNode,
   // output
   OutputNode,
@@ -317,11 +317,11 @@ describe("input nodes — full coverage", () => {
     },
     { Cls: FilePathInputNode, expected: "" },
     {
-      Cls: MessageInputNode,
+      Cls: ChatComposerNode,
       verify: (value: any) =>
         expect(value).toMatchObject({ type: "message", role: "" })
     },
-    { Cls: MessageListInputNode, expected: [] }
+    { Cls: ChatMessagesNode, expected: [] }
   ];
 
   for (const { Cls, expected, verify } of simpleInputNodes) {

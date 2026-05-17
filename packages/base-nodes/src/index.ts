@@ -136,8 +136,8 @@ export {
   AssetFolderInputNode,
   FilePathInputNode,
   DocumentFileInputNode,
-  MessageInputNode,
-  MessageListInputNode,
+  ChatComposerNode,
+  ChatMessagesNode,
   MessageDeconstructorNode,
   INPUT_NODES
 } from "./nodes/input.js";

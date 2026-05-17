@@ -1160,15 +1160,15 @@ export class AssetFolderInputNode extends BaseNode {
   }
 }
 
-export class MessageInputNode extends BaseNode {
-  static readonly nodeType = "nodetool.input.MessageInput";
-  static readonly title = "Message Input";
+export class ChatComposerNode extends BaseNode {
+  static readonly nodeType = "nodetool.input.ChatComposer";
+  static readonly title = "Chat Composer";
   static readonly description =
-    "Accepts a chat message object for workflows.\n    input, parameter, message, chat, conversation";
+    "Chat composer for workflows — renders a message input UI on the canvas. Outputs the message sent by the user.\n    input, chat, composer, message, conversation";
   static readonly metadataOutputTypes = {
     output: "message"
   };
-  static readonly inlineFields = ["value"];
+  static readonly inlineFields = [];
   static readonly inputFields = [];
 
   @prop({
@@ -1224,15 +1224,15 @@ export class MessageInputNode extends BaseNode {
   }
 }
 
-export class MessageListInputNode extends BaseNode {
-  static readonly nodeType = "nodetool.input.MessageListInput";
-  static readonly title = "Message List Input";
+export class ChatMessagesNode extends BaseNode {
+  static readonly nodeType = "nodetool.input.ChatMessages";
+  static readonly title = "Chat Messages";
   static readonly description =
-    "Accepts a list of chat message objects for workflows.\n    input, parameter, messages, chat, conversation, history";
+    "Chat messages display for workflows — renders a scrollable conversation thread on the canvas. Outputs the full message list.\n    input, chat, messages, conversation, history";
   static readonly metadataOutputTypes = {
     output: "list[message]"
   };
-  static readonly inlineFields = ["value"];
+  static readonly inlineFields = [];
   static readonly inputFields = [];
 
   @prop({
@@ -1576,7 +1576,7 @@ export const INPUT_NODES = [
   AssetFolderInputNode,
   FilePathInputNode,
   DocumentFileInputNode,
-  MessageInputNode,
-  MessageListInputNode,
+  ChatComposerNode,
+  ChatMessagesNode,
   MessageDeconstructorNode
 ] as const;

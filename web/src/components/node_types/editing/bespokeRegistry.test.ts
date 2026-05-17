@@ -5,6 +5,8 @@ import {
 } from "./bespokeRegistry";
 import BlurBody from "./BlurBody";
 import ChannelsBody from "./ChannelsBody";
+import ChatComposerBody from "./ChatComposerBody";
+import ChatMessagesBody from "./ChatMessagesBody";
 import CompositorBody from "./CompositorBody";
 import CropBody from "./CropBody";
 import CurvesBody from "./CurvesBody";
@@ -48,6 +50,24 @@ describe("bespokeRegistry", () => {
     expect(isBespokeNode(m)).toBe(true);
     expect(getBespokeBody(m)).toBe(ChannelsBody);
     expect(BESPOKE_BODY_REGISTRY["nodetool.image.Channels"]).toBe(ChannelsBody);
+  });
+
+  it("maps nodetool.input.ChatComposer → ChatComposerBody", () => {
+    const m = meta("nodetool.input.ChatComposer");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(ChatComposerBody);
+    expect(BESPOKE_BODY_REGISTRY["nodetool.input.ChatComposer"]).toBe(
+      ChatComposerBody
+    );
+  });
+
+  it("maps nodetool.input.ChatMessages → ChatMessagesBody", () => {
+    const m = meta("nodetool.input.ChatMessages");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(ChatMessagesBody);
+    expect(BESPOKE_BODY_REGISTRY["nodetool.input.ChatMessages"]).toBe(
+      ChatMessagesBody
+    );
   });
 
   it("maps mask-extractor node types → MasksExtractorBody", () => {

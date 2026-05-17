@@ -462,34 +462,34 @@ export function documentFileInput(inputs: DocumentFileInputInputs, overrides?: {
   return createNode("nodetool.input.DocumentFileInput", inputs as Record<string, unknown>, { outputNames: ["document", "path"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
-// Message Input — nodetool.input.MessageInput
-export interface MessageInputInputs {
+// Chat Composer — nodetool.input.ChatComposer
+export interface ChatComposerInputs {
   name?: Connectable<string>;
   value?: Connectable<unknown>;
   description?: Connectable<string>;
 }
 
-export interface MessageInputOutputs {
+export interface ChatComposerOutputs {
   output: unknown;
 }
 
-export function messageInput(inputs: MessageInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<MessageInputOutputs, "output"> {
-  return createNode("nodetool.input.MessageInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function chatComposer(inputs: ChatComposerInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ChatComposerOutputs, "output"> {
+  return createNode("nodetool.input.ChatComposer", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
-// Message List Input — nodetool.input.MessageListInput
-export interface MessageListInputInputs {
+// Chat Messages — nodetool.input.ChatMessages
+export interface ChatMessagesInputs {
   name?: Connectable<string>;
   value?: Connectable<unknown[]>;
   description?: Connectable<string>;
 }
 
-export interface MessageListInputOutputs {
+export interface ChatMessagesOutputs {
   output: unknown[];
 }
 
-export function messageListInput(inputs: MessageListInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<MessageListInputOutputs, "output"> {
-  return createNode("nodetool.input.MessageListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function chatMessages(inputs: ChatMessagesInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ChatMessagesOutputs, "output"> {
+  return createNode("nodetool.input.ChatMessages", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
 }
 
 // Message Deconstructor — nodetool.input.MessageDeconstructor

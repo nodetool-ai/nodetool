@@ -8,7 +8,7 @@
  * Gaps covered:
  *   1. Routing priority: workflow_target/workflow_id checked BEFORE agent_mode
  *   2. handleWorkflowMessage: runs workflow, streams events, builds response
- *   3. _detect_message_input_names: scans graph for MessageInput/MessageListInput
+ *   3. _detect_message_input_names: scans graph for ChatComposer/ChatMessages
  *   4. _create_response_message: converts workflow outputs to typed Message content
  *   5. Workflow params serialization (message + messages params)
  *   6. Chat workflow vs regular workflow routing (run_mode="chat")
@@ -621,7 +621,7 @@ describe("detectMessageInputNames: scans graph for input node types", () => {
     ws = new MockWS();
   });
 
-  it("detects MessageInput and MessageListInput node names from graph", async () => {
+  it("detects ChatComposer and ChatMessages node names from graph", async () => {
     const workflow = await Workflow.create({
       user_id: "1",
       name: "Detect Names WF",
@@ -630,15 +630,15 @@ describe("detectMessageInputNames: scans graph for input node types", () => {
         nodes: [
           {
             id: "n1",
-            type: "nodetool.input.MessageInput",
-            name: "nodetool.input.MessageInput",
+            type: "nodetool.input.ChatComposer",
+            name: "nodetool.input.ChatComposer",
             data: { name: "my_message" },
             properties: {}
           },
           {
             id: "n2",
-            type: "nodetool.input.MessageListInput",
-            name: "nodetool.input.MessageListInput",
+            type: "nodetool.input.ChatMessages",
+            name: "nodetool.input.ChatMessages",
             data: { name: "my_messages" },
             properties: {}
           },

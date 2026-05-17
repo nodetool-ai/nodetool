@@ -4,7 +4,7 @@ export const getInputKind = (nodeType: string): MiniAppInputKind | null => {
   switch (nodeType) {
     case "nodetool.input.StringInput":
     case "nodetool.input.TextInput":
-    case "nodetool.input.MessageInput":
+    case "nodetool.input.ChatComposer":
       return "string";
     case "nodetool.input.BooleanInput":
       return "boolean";

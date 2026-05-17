@@ -5,7 +5,7 @@ describe("miniapps/utils", () => {
     it.each([
       ["nodetool.input.StringInput", "string"],
       ["nodetool.input.TextInput", "string"],
-      ["nodetool.input.MessageInput", "string"],
+      ["nodetool.input.ChatComposer", "string"],
       ["nodetool.input.BooleanInput", "boolean"],
       ["nodetool.input.IntegerInput", "integer"],
       ["nodetool.input.FloatInput", "float"],

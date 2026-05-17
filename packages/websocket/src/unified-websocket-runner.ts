@@ -2622,11 +2622,10 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
-   * Detect message input node names from a workflow graph.
-   * Mirrors Python's WorkflowMessageProcessor._detect_message_input_names().
+   * Detect chat composer/messages node names from a workflow graph.
    *
-   * Scans graph nodes for types ending in .MessageInput / .MessageListInput
-   * and returns their data.name values.
+   * Scans graph nodes for the ChatComposer / ChatMessages node types and
+   * returns their data.name values for parameter routing.
    */
   private detectMessageInputNames(graph: {
     nodes: Array<Record<string, unknown>>;
@@ -2646,15 +2645,15 @@ export class UnifiedWebSocketRunner {
 
       if (
         messageName === null &&
-        (nodeType === "nodetool.input.MessageInput" ||
-          nodeType.endsWith(".MessageInput"))
+        (nodeType === "nodetool.input.ChatComposer" ||
+          nodeType.endsWith(".ChatComposer"))
       ) {
         messageName = nodeName;
       }
       if (
         messagesName === null &&
-        (nodeType === "nodetool.input.MessageListInput" ||
-          nodeType.endsWith(".MessageListInput"))
+        (nodeType === "nodetool.input.ChatMessages" ||
+          nodeType.endsWith(".ChatMessages"))
       ) {
         messagesName = nodeName;
       }

@@ -1,7 +1,7 @@
 {
   "graph": {
     "nodes": [
-      { "id": "message", "type": "nodetool.input.MessageInput", "name": "message" },
+      { "id": "message", "type": "nodetool.input.ChatComposer", "name": "message" },
       { "id": "extract", "type": "nodetool.input.MessageDeconstructor" },
       { "id": "system", "type": "test.Input", "name": "system" },
       { "id": "model", "type": "nodetool.input.LanguageModelInput", "name": "model" },
