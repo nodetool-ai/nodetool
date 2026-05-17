@@ -7,14 +7,19 @@ import BlurBody from "./BlurBody";
 import ChannelsBody from "./ChannelsBody";
 import CompositorBody from "./CompositorBody";
 import CropBody from "./CropBody";
+import CurvesBody from "./CurvesBody";
 import ExposureBody from "./ExposureBody";
+import FitBody from "./FitBody";
 import HSLAdjustBody from "./HSLAdjustBody";
 import LevelsBody from "./LevelsBody";
+import MaskBody from "./MaskBody";
 import MasksExtractorBody from "./MasksExtractorBody";
 import PainterBody from "./PainterBody";
+import PasteBody from "./PasteBody";
 import ResizeBody from "./ResizeBody";
 import RotateAndFlipBody from "./RotateAndFlipBody";
 import ScaleBody from "./ScaleBody";
+import SimpleFilterBody from "./SimpleFilterBody";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 
 const meta = (node_type: string): NodeMetadata =>
@@ -129,5 +134,48 @@ describe("bespokeRegistry", () => {
     expect(BESPOKE_BODY_REGISTRY["lib.image.color_grading.HSLAdjust"]).toBe(
       HSLAdjustBody
     );
+  });
+
+  it("maps lib.image.color_grading.Curves → CurvesBody", () => {
+    const m = meta("lib.image.color_grading.Curves");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(CurvesBody);
+    expect(BESPOKE_BODY_REGISTRY["lib.image.color_grading.Curves"]).toBe(
+      CurvesBody
+    );
+  });
+
+  it("maps nodetool.image.Fit → FitBody", () => {
+    const m = meta("nodetool.image.Fit");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(FitBody);
+    expect(BESPOKE_BODY_REGISTRY["nodetool.image.Fit"]).toBe(FitBody);
+  });
+
+  it("maps nodetool.image.Paste → PasteBody", () => {
+    const m = meta("nodetool.image.Paste");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(PasteBody);
+    expect(BESPOKE_BODY_REGISTRY["nodetool.image.Paste"]).toBe(PasteBody);
+  });
+
+  it("maps lib.image.Mask → MaskBody", () => {
+    const m = meta("lib.image.Mask");
+    expect(isBespokeNode(m)).toBe(true);
+    expect(getBespokeBody(m)).toBe(MaskBody);
+    expect(BESPOKE_BODY_REGISTRY["lib.image.Mask"]).toBe(MaskBody);
+  });
+
+  it("maps simple-filter node types → SimpleFilterBody", () => {
+    const types = [
+      "lib.image.filter.Invert",
+      "lib.image.filter.ConvertToGrayscale"
+    ];
+    for (const t of types) {
+      const m = meta(t);
+      expect(isBespokeNode(m)).toBe(true);
+      expect(getBespokeBody(m)).toBe(SimpleFilterBody);
+      expect(BESPOKE_BODY_REGISTRY[t]).toBe(SimpleFilterBody);
+    }
   });
 });
