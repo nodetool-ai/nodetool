@@ -120,6 +120,7 @@ const ClipListPopover: React.FC<ClipListPopoverProps> = memo(
                 aria-label={`Select clip: ${clip.name}`}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
                     handleSelectClip(clip.id);
                   }
                 }}

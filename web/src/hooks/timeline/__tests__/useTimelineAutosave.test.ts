@@ -217,6 +217,56 @@ describe("useTimelineAutosave", () => {
     ).toBe("2026-01-01T00:00:01Z");
   });
 
+  it("flushes immediately (no debounce) when unmounted with a save in flight", async () => {
+    seedSequence();
+    let resolveFirst: (v: unknown) => void = () => {};
+    (updateMutate as any).mockImplementationOnce(
+      () =>
+        new Promise((resolve: (v: unknown) => void) => {
+          resolveFirst = resolve;
+        })
+    );
+
+    const { unmount } = renderHook(() =>
+      useTimelineAutosave({ debounceMs: 50 })
+    );
+
+    act(() => {
+      useTimelineStore.getState().addTrack("video");
+    });
+    act(() => {
+      jest.advanceTimersByTime(60);
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+
+    // Queue another mutation while the first save is still pending, then
+    // unmount — the post-completion handler should bypass the debounce.
+    act(() => {
+      useTimelineStore.getState().addTrack("audio");
+    });
+    unmount();
+
+    await act(async () => {
+      resolveFirst({
+        id: "seq-1",
+        projectId: "proj-1",
+        name: "Seq",
+        fps: 30,
+        width: 1920,
+        height: 1080,
+        durationMs: 0,
+        tracks: [],
+        clips: [],
+        markers: [],
+        createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:02Z"
+      });
+    });
+
+    // The second save fires without waiting for the debounce timer.
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(2));
+  });
+
   it("notifies on save failure", async () => {
     seedSequence();
     (updateMutate as any).mockRejectedValueOnce(new Error("boom"));

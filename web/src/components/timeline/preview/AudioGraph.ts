@@ -36,6 +36,12 @@ interface TrackChainState {
 
 const DB_TO_LIN = (db: number): number => Math.pow(10, db / 20);
 
+/**
+ * LRU cap on decoded AudioBuffer entries. A 3-min stereo @ 48 kHz buffer is
+ * ~70 MB; we keep a small working set and rely on re-decode on miss.
+ */
+const BUFFER_CACHE_MAX = 16;
+
 export class AudioGraph {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
@@ -61,7 +67,11 @@ export class AudioGraph {
 
   async loadBuffer(assetId: string, url: string): Promise<AudioBuffer | null> {
     if (this.bufferCache.has(assetId)) {
-      return this.bufferCache.get(assetId)!;
+      const buffer = this.bufferCache.get(assetId)!;
+      // Touch as most-recent for LRU ordering.
+      this.bufferCache.delete(assetId);
+      this.bufferCache.set(assetId, buffer);
+      return buffer;
     }
     if (this.loadingPromises.has(assetId)) {
       return this.loadingPromises.get(assetId)!;
@@ -79,6 +89,14 @@ export class AudioGraph {
       .then((buffer) => {
         this.bufferCache.set(assetId, buffer);
         this.loadingPromises.delete(assetId);
+        // Evict least-recently-used entries to bound memory. Sources that are
+        // already running hold their own buffer reference, so eviction here
+        // does not interrupt in-flight playback.
+        while (this.bufferCache.size > BUFFER_CACHE_MAX) {
+          const oldestKey = this.bufferCache.keys().next().value;
+          if (oldestKey === undefined || oldestKey === assetId) break;
+          this.bufferCache.delete(oldestKey);
+        }
         return buffer;
       })
       .catch((err) => {
@@ -350,9 +368,15 @@ export class AudioGraph {
         continue;
       }
 
+      // If the speed change has been baked into the asset, the asset already
+      // plays at the right speed → do not re-apply the rate, and treat the
+      // clip's timeline duration as 1:1 with the buffer.
+      const rate =
+        clip.speedBaked ? 1 : Math.max(0.0001, clip.speedMultiplier ?? 1);
+
       const src = ctx.createBufferSource();
       src.buffer = buffer;
-      src.playbackRate.value = clip.speedMultiplier ?? 1;
+      src.playbackRate.value = rate;
 
       const volumeLinear = clip.volumeDb
         ? Math.pow(10, clip.volumeDb / 20)
@@ -364,14 +388,23 @@ export class AudioGraph {
       // Schedule the clip's start on the audio clock. If the clip begins in
       // the future (relative to the playhead), defer src.start; otherwise
       // start immediately with a buffer offset for mid-clip seeks.
+      //
+      // `src.start(when, offset, duration)` takes offset/duration in
+      // *buffer* seconds, while clip.startMs / durationMs / inPointMs are
+      // *timeline* milliseconds. With playbackRate = r, 1 timeline second
+      // consumes r buffer seconds, so we multiply by `rate`.
       const clipLeadSec = Math.max(0, (clip.startMs - currentTimeMs) / 1000);
+      const intoClipTimelineSec =
+        Math.max(0, currentTimeMs - clip.startMs) / 1000;
       const bufferOffsetSec =
-        Math.max(0, currentTimeMs - clip.startMs) / 1000 +
-        (clip.inPointMs ?? 0) / 1000;
-      const remainingMs =
+        intoClipTimelineSec * rate + (clip.inPointMs ?? 0) / 1000;
+      const remainingTimelineMs =
         clip.startMs + clip.durationMs - Math.max(currentTimeMs, clip.startMs);
-      const durationSec = Math.max(0, remainingMs / 1000);
+      const remainingTimelineSec = Math.max(0, remainingTimelineMs / 1000);
+      const bufferDurationSec = remainingTimelineSec * rate;
       const startAt = now + clipLeadSec;
+      // Wall-clock time at which playback ends — used to schedule fade-out.
+      const clipEndAt = startAt + remainingTimelineSec;
 
       if (clip.fadeInMs && clip.fadeInMs > 0) {
         const fadeEndMs = clip.startMs + clip.fadeInMs;
@@ -388,7 +421,6 @@ export class AudioGraph {
       }
 
       if (clip.fadeOutMs && clip.fadeOutMs > 0) {
-        const clipEndAt = startAt + durationSec;
         const fadeSec = clip.fadeOutMs / 1000;
         const fadeOutStartAt = Math.max(startAt, clipEndAt - fadeSec);
         if (fadeOutStartAt < clipEndAt) {
@@ -401,7 +433,7 @@ export class AudioGraph {
       const trackGain = this.getTrackGain(clip.trackId);
       clipGain.connect(trackGain);
 
-      src.start(startAt, bufferOffsetSec, durationSec);
+      src.start(startAt, bufferOffsetSec, bufferDurationSec);
 
       this.clipSources.set(clip.id, src);
       this.clipGains.set(clip.id, clipGain);

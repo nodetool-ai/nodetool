@@ -22,6 +22,10 @@ export function trimClip(
     throw new Error("trimClip cannot extend before source start");
   }
 
+  if (nextStartMs < 0) {
+    throw new Error("trimClip cannot start before zero on the timeline");
+  }
+
   if (maxDurationMs !== undefined && nextOutPointMs > maxDurationMs) {
     throw new Error("trimClip cannot extend beyond source out-point");
   }

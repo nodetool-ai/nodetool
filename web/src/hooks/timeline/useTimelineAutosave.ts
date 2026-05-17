@@ -60,6 +60,11 @@ export function useTimelineAutosave(
 
   useEffect(() => {
     let scheduleFn: () => void = () => {};
+    // When the host component unmounts while a save is in flight, the
+    // post-completion handler should bypass the debounce and flush the
+    // pending edit immediately so we don't lose work if the page closes
+    // shortly after.
+    let flushImmediatelyOnComplete = false;
 
     const runSave = async (snapshot: DocumentSnapshot) => {
       if (!snapshot.sequenceId) return;
@@ -93,7 +98,11 @@ export function useTimelineAutosave(
       } finally {
         inFlightRef.current = false;
         if (pendingRef.current) {
-          scheduleFn();
+          if (flushImmediatelyOnComplete) {
+            flush();
+          } else {
+            scheduleFn();
+          }
         }
       }
     };
@@ -147,7 +156,15 @@ export function useTimelineAutosave(
 
     return () => {
       unsubscribe();
-      flush();
+      if (inFlightRef.current) {
+        // A save is already running. Setting this flag tells its `finally`
+        // handler to flush the still-pending snapshot immediately rather
+        // than re-debouncing — protects the last edit when the page closes
+        // shortly after unmount.
+        flushImmediatelyOnComplete = true;
+      } else {
+        flush();
+      }
     };
   }, [debounceMs]);
 }

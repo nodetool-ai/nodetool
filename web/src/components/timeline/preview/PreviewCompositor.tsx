@@ -35,6 +35,9 @@ const COLD_POOL_SIZE = 4;
 const TOTAL_POOL_SIZE = HOT_POOL_SIZE + COLD_POOL_SIZE;
 /** Preload upcoming clips within this lookahead window (ms). */
 const PRELOAD_LOOKAHEAD_MS = 30_000;
+/** LRU cap on cached decoded <img> elements. Keeps memory bounded in long
+ *  sessions that touch many unique image assets. */
+const IMAGE_CACHE_MAX = 64;
 /**
  * Top-of-UI track (lowest `track.index`) renders on top in the composite —
  * matches Premiere / Resolve / FCP. Compositor draws layers from low z to
@@ -230,7 +233,13 @@ export const PreviewCompositor: React.FC = memo(() => {
   const poolContainerRef = useRef<HTMLDivElement>(null);
 
   // Image element cache, keyed by URL — fed to the compositor as image layers.
+  // Capped LRU (insertion order = recency) to bound memory in long sessions.
   const imageElementCache = useRef<Map<string, HTMLImageElement>>(new Map());
+
+  // Pending video-element seek closures, keyed by the element. Stored on a
+  // ref so the once-attached `loadedmetadata` listener always runs the most
+  // recent target rather than a stale snapshot.
+  const pendingSeeks = useRef<Map<HTMLVideoElement, () => void>>(new Map());
 
   const containerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -261,6 +270,7 @@ export const PreviewCompositor: React.FC = memo(() => {
     videoRefs.current = pool;
     setPoolReady(true);
 
+    const pendingSeeksMap = pendingSeeks.current;
     return () => {
       for (const el of pool) {
         el.pause();
@@ -270,6 +280,7 @@ export const PreviewCompositor: React.FC = memo(() => {
         }
       }
       videoRefs.current = [];
+      pendingSeeksMap.clear();
       setPoolReady(false);
     };
   }, []);
@@ -488,27 +499,67 @@ export const PreviewCompositor: React.FC = memo(() => {
       }
 
       const clip = clipById.get(slot.clipId);
-      const clipOffsetMs =
-        currentTimeMs - (clip?.startMs ?? 0) + (clip?.inPointMs ?? 0);
-      const targetSec = Math.max(0, clipOffsetMs / 1000);
+      // If the speed change has been baked into the asset, the asset already
+      // plays at the right rate; otherwise the source media is at original
+      // speed and 1 timeline second consumes `rate` source seconds.
+      const rate = clip?.speedBaked
+        ? 1
+        : Math.max(0.0001, clip?.speedMultiplier ?? 1);
+      const intoClipTimelineSec =
+        (currentTimeMs - (clip?.startMs ?? 0)) / 1000;
+      const targetSec = Math.max(
+        0,
+        intoClipTimelineSec * rate + (clip?.inPointMs ?? 0) / 1000
+      );
 
-      if (!isPlaying) {
-        if (Math.abs(el.currentTime - targetSec) > 0.04) {
-          el.currentTime = targetSec;
+      // Setting currentTime before HAVE_METADATA is silently clamped to 0 and
+      // a subsequent play() can reject with AbortError. Defer until the
+      // element reports metadata; on next render the slot's pending closure
+      // (kept in pendingSeeks) re-runs with fresh state.
+      const applySeek = () => {
+        if (el.readyState < 1) return;
+        if (!isPlaying) {
+          if (Math.abs(el.currentTime - targetSec) > 0.04) {
+            el.currentTime = targetSec;
+          }
+        } else {
+          if (Math.abs(el.currentTime - targetSec) > 0.15) {
+            el.currentTime = targetSec;
+          }
         }
+        el.playbackRate = rate;
+
+        if (isPlaying && el.paused) {
+          void el.play().catch(() => {
+            // Autoplay blocked; continue scrubbing via currentTime.
+          });
+        } else if (!isPlaying && !el.paused) {
+          el.pause();
+        }
+      };
+
+      if (el.readyState >= 1) {
+        applySeek();
       } else {
-        if (Math.abs(el.currentTime - targetSec) > 0.15) {
-          el.currentTime = targetSec;
+        // Always stash the latest closure so the listener runs with the most
+        // recent target. Only attach the listener once; mark the element so
+        // re-runs of this effect don't pile up handlers.
+        pendingSeeks.current.set(el, applySeek);
+        if (el.getAttribute("data-seek-pending") !== "1") {
+          el.setAttribute("data-seek-pending", "1");
+          el.addEventListener(
+            "loadedmetadata",
+            () => {
+              el.removeAttribute("data-seek-pending");
+              const fn = pendingSeeks.current.get(el);
+              if (fn) {
+                pendingSeeks.current.delete(el);
+                fn();
+              }
+            },
+            { once: true }
+          );
         }
-      }
-      el.playbackRate = clip?.speedMultiplier ?? 1;
-
-      if (isPlaying && el.paused) {
-        void el.play().catch(() => {
-          // Autoplay blocked; continue scrubbing via currentTime.
-        });
-      } else if (!isPlaying && !el.paused) {
-        el.pause();
       }
     });
 
@@ -556,6 +607,9 @@ export const PreviewCompositor: React.FC = memo(() => {
       if (!url) return null;
       const cached = imageElementCache.current.get(url);
       if (cached) {
+        // Touch as most-recent for LRU ordering.
+        imageElementCache.current.delete(url);
+        imageElementCache.current.set(url, cached);
         return cached.complete && cached.naturalWidth > 0 ? cached : null;
       }
       const img = new Image();
@@ -567,6 +621,12 @@ export const PreviewCompositor: React.FC = memo(() => {
       };
       img.src = url;
       imageElementCache.current.set(url, img);
+      // Evict least-recently-used entries until under the cap.
+      while (imageElementCache.current.size > IMAGE_CACHE_MAX) {
+        const oldestKey = imageElementCache.current.keys().next().value;
+        if (oldestKey === undefined || oldestKey === url) break;
+        imageElementCache.current.delete(oldestKey);
+      }
       return null;
     },
     []
