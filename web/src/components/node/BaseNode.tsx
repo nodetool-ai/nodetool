@@ -18,6 +18,7 @@ import {
 } from "@xyflow/react";
 import isEqual from "fast-deep-equal";
 import { Tooltip, EditorButton, Container } from "../ui_primitives";
+import FalPricingFooter from "./FalPricingFooter";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
@@ -800,6 +801,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           </EditorButton>
         </Tooltip>
       )}
+
+      <FalPricingFooter metadata={metadata} selected={!!selected} />
     </Container>
     </NodeSelectionContext.Provider>
   );
