@@ -71,7 +71,10 @@ const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
 const MAX_OUTPUT_DRIVEN_MIN_HEIGHT_PX = 320;
 const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
-const MIN_NODE_HEIGHT = 400;
+/** Floor for user-resize and for nodes whose own minHeight isn't metadata-driven. */
+const MIN_RESIZE_HEIGHT = 100;
+/** Floor for agent nodes — they have many outputs + dynamic-property UI. */
+const MIN_AGENT_HEIGHT = 400;
 
 const isEmptyResult = (obj: unknown) =>
   obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
@@ -127,7 +130,7 @@ const resizer = (
         }}
         minWidth={200}
         maxWidth={MAX_NODE_WIDTH}
-        minHeight={MIN_NODE_HEIGHT}
+        minHeight={MIN_RESIZE_HEIGHT}
       />
     </div>
   </div>
@@ -249,7 +252,7 @@ const getStyleProps = (
    * Other nodes: same formula but capped so `min-height` cannot dominate measured height on collapse.
    */
   const minHeight = nodeType.isAgentNode
-    ? MIN_NODE_HEIGHT
+    ? MIN_AGENT_HEIGHT
     : Math.min(outputCountMin, MAX_OUTPUT_DRIVEN_MIN_HEIGHT_PX);
   return {
     className: `base-node node-body
