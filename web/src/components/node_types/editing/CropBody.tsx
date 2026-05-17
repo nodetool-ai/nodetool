@@ -752,7 +752,6 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
           <NodeOutputs
             id={id}
             outputs={nodeMetadata.outputs}
-            isStreamingOutput={nodeMetadata.is_streaming_output}
           />
         </div>
       )}

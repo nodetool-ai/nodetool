@@ -39,6 +39,15 @@ const styles = (theme: Theme) =>
       position: "relative",
       minHeight: 0,
       pointerEvents: "auto"
+    },
+    "& .handle-only .react-flow__handle.react-flow__handle-left": {
+      top: "50%",
+      bottom: "auto",
+      transform: "translate(0, -50%)",
+      transformOrigin: "right center"
+    },
+    "& .handle-only .react-flow__handle.react-flow__handle-left:hover": {
+      transform: "translate(0, -50%) scale(1.75, 1.2)"
     }
   });
 

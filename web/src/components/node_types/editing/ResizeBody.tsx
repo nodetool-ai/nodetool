@@ -287,7 +287,6 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
           <NodeOutputs
             id={id}
             outputs={nodeMetadata.outputs}
-            isStreamingOutput={nodeMetadata.is_streaming_output}
           />
         </div>
       )}

@@ -244,7 +244,6 @@ const MasksExtractorBodyInner: React.FC<MasksExtractorBodyProps> = ({
           <NodeOutputs
             id={id}
             outputs={nodeMetadata.outputs}
-            isStreamingOutput={nodeMetadata.is_streaming_output}
           />
         </div>
       )}

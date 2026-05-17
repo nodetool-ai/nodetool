@@ -187,11 +187,6 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      "& > .handle-column": {
-        top: 0,
-        bottom: 0,
-        left: `calc(${theme.spacing(-0.5)})`
-      },
       "& img": {
         maxWidth: "100%",
         maxHeight: 280,
@@ -429,6 +424,7 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
 
   return (
     <div css={cssStyles} className="compositor-body" data-bespoke-body="Compositor">
+      <HandleColumn id={id} properties={handleProperties} />
       <div className="preview-area">
         {previewSrc ? (
           <img src={previewSrc} alt="Composited output" />
@@ -438,7 +434,6 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
             icon={<ImageIcon />}
           />
         )}
-        <HandleColumn id={id} properties={handleProperties} />
       </div>
 
       <FlexColumn className="layers" gap={0.5}>
@@ -474,7 +469,6 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
           <NodeOutputs
             id={id}
             outputs={nodeMetadata.outputs}
-            isStreamingOutput={nodeMetadata.is_streaming_output}
           />
         </div>
       )}

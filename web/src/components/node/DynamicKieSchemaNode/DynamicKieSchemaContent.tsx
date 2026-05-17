@@ -116,7 +116,6 @@ export const DynamicKieSchemaContent: React.FC<DynamicKieSchemaContentProps> =
               <NodeOutputs
                 id={id}
                 outputs={nodeMetadata.outputs}
-                isStreamingOutput={nodeMetadata.is_streaming_output}
               />
             </Box>
           )}

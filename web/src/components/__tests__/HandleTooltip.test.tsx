@@ -292,23 +292,6 @@ describe('HandleTooltip', () => {
   });
 
   describe('Tooltip Content', () => {
-    it('should display streaming output info when flag is set', async () => {
-      const props = { ...defaultProps, isStreamingOutput: true };
-
-      render(<HandleTooltip {...props} />);
-
-      const wrapper = screen.getByRole('button');
-
-      await act(async () => {
-        wrapper.focus();
-      });
-
-      await waitFor(() => {
-        const tooltipInfo = document.querySelector('.handle-tooltip-info');
-        expect(tooltipInfo).toHaveTextContent('Streaming output - emits values continuously during execution');
-      });
-    });
-
     it('should display collect input info when flag is set', async () => {
       const props = { ...defaultProps, isCollectInput: true };
 
@@ -326,7 +309,7 @@ describe('HandleTooltip', () => {
       });
     });
 
-    it('should display parameter name and type in tooltip', async () => {
+    it('should display parameter name in tooltip', async () => {
       render(<HandleTooltip {...defaultProps} />);
 
       const wrapper = screen.getByRole('button');
@@ -337,9 +320,8 @@ describe('HandleTooltip', () => {
 
       await waitFor(() => {
         const tooltipName = document.querySelector('.handle-tooltip-name');
-        const tooltipType = document.querySelector('.handle-tooltip-type');
         expect(tooltipName).toHaveTextContent('Test Param');
-        expect(tooltipType).toHaveTextContent('string');
+        expect(document.querySelector('.handle-tooltip-type')).toBeNull();
       });
     });
   });

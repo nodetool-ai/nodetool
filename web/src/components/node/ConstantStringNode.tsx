@@ -348,7 +348,6 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <NodeOutputs
           id={id}
           outputs={metadata.outputs}
-          isStreamingOutput={metadata.is_streaming_output}
         />
 
         <NodeResizeHandle minWidth={200} minHeight={100} />

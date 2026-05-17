@@ -16,11 +16,10 @@ export type NodeOutputProps = {
   id: string;
   output: OutputSlot;
   isDynamic?: boolean;
-  isStreamingOutput?: boolean;
   displayName?: string;
 };
 
-const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput, displayName }) => {
+const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
   const { connectType, connectDirection, connectNodeId, connectHandleId } =
     useConnectionStore(
       (state) => ({
@@ -149,8 +148,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput, 
         displayName={displayName}
         className={classConnectable}
         handlePosition="right"
-        isStreamingOutput={isStreamingOutput}
-        enableHover={false}
+        enableHover={true}
       >
         <Handle
           type="source"
@@ -158,7 +156,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput, 
           position={Position.Right}
           isConnectable={isConnectable}
           onContextMenu={(e) => outputContextMenu(e, id, output)}
-          className={`${classConnectable} ${Slugify(output.type.type)}${isStreamingOutput ? " streaming-handle" : ""}`}
+          className={`${classConnectable} ${Slugify(output.type.type)}`}
         />
       </HandleTooltip>
     </div>

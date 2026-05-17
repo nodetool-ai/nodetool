@@ -447,14 +447,29 @@ ul.multi-outputs li::marker {
 
 .handle-tooltip-wrapper {
   padding: 0;
+  display: contents;
 }
 
 .handle-tooltip {
-  position: fixed;
+  position: absolute;
   pointer-events: none;
   opacity: 0;
   transition: opacity 150ms ease-in-out;
   z-index: 999;
+  top: 50%;
+  white-space: nowrap;
+  width: max-content;
+  transform: translateY(calc(-50% + 2px));
+}
+
+.handle-tooltip.handle-left {
+  right: 100%;
+  margin-right: 16px;
+}
+
+.handle-tooltip.handle-right {
+  left: 100%;
+  margin-left: 16px;
 }
 
 .handle-tooltip.show {
@@ -468,9 +483,7 @@ ul.multi-outputs li::marker {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 0.5em;
   text-align: center;
-  padding: 0.4em;
   visibility: visible;
   white-space: nowrap;
 }
@@ -479,24 +492,10 @@ ul.multi-outputs li::marker {
   font-size: var(--fontSizeNormal);
   font-weight: bold;
   border: 0;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
   width: 100%;
   padding: 0.25em 0.5em;
-  margin-bottom: 0.2em;
   line-height: 1.2;
-}
-
-.handle-tooltip-type {
-  width: fit-content;
-  font-family: var(--fontFamily2);
-  font-size: var(--fontSizeSmall);
-  background-color: var(--palette-grey-800);
-  color: var(--palette-grey-100);
-  opacity: 0.8;
-  border: 0;
-  border-radius: 0.4em;
-  padding: 0.2em 0.5em;
-  line-height: 1;
 }
 
 .handle-tooltip-streaming,

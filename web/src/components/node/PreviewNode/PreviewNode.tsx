@@ -501,7 +501,6 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             <NodeOutputs
               id={props.id}
               outputs={nodeMetadata.outputs}
-              isStreamingOutput={nodeMetadata.is_streaming_output}
             />
           )}
         </>

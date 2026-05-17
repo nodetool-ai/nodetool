@@ -116,7 +116,6 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
           <NodeOutputs
             id={id}
             outputs={nodeMetadata.outputs}
-            isStreamingOutput={nodeMetadata.is_streaming_output}
           />
         </Box>
         {status === "running" && (

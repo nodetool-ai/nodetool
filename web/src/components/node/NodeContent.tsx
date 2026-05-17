@@ -259,7 +259,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
         <NodeOutputs
           id={id}
           outputs={nodeMetadata.outputs}
-          isStreamingOutput={nodeMetadata.is_streaming_output}
         />
       )}
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}

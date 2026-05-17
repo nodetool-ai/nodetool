@@ -580,7 +580,6 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
           <NodeOutputs
             id={id}
             outputs={nodeMetadata.outputs}
-            isStreamingOutput={nodeMetadata.is_streaming_output}
           />
         </div>
       )}

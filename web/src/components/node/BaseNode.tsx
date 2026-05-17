@@ -71,7 +71,7 @@ const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
 const MAX_OUTPUT_DRIVEN_MIN_HEIGHT_PX = 320;
 const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
-const MIN_NODE_HEIGHT = 100;
+const MIN_NODE_HEIGHT = 400;
 
 const isEmptyResult = (obj: unknown) =>
   obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
@@ -102,8 +102,7 @@ const NODE_CONTENT_CONTAINER_STYLE: React.CSSProperties = {
   flex: "1 1 auto",
   minHeight: 0,
   width: "100%",
-  overflow: "visible",
-  clipPath: "inset(0 -60px)"
+  overflow: "visible"
 };
 
 /** Collapsed: no side clip-path — clipping a zero-height box can hide sockets and confuse RF measurements */

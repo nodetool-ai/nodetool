@@ -116,7 +116,6 @@ export const DynamicReplicateContent: React.FC<DynamicReplicateContentProps> =
               <NodeOutputs
                 id={id}
                 outputs={nodeMetadata.outputs}
-                isStreamingOutput={nodeMetadata.is_streaming_output}
               />
             </Box>
           )}
