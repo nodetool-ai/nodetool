@@ -11,6 +11,10 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { HighlightText } from "../ui_primitives/HighlightText";
+import {
+  formatFalUnitPricingShort,
+  formatFalUnitPricingTooltip
+} from "../../utils/formatFalUnitPricing";
 import isEqual from "fast-deep-equal";
 
 interface NodeInfoProps {
@@ -238,6 +242,29 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
       </Text>
 
       <Divider sx={{ opacity: 0.5, margin: ".1em 0" }} />
+
+      {nodeMetadata.fal_unit_pricing && (
+        <Tooltip
+          delay={TOOLTIP_ENTER_DELAY}
+          placement="top-start"
+          title={
+            <Text sx={{ whiteSpace: "pre-line", fontSize: "inherit" }}>
+              {formatFalUnitPricingTooltip(nodeMetadata.fal_unit_pricing)}
+            </Text>
+          }
+        >
+          <Text
+            sx={{
+              fontSize: theme.fontSizeSmall,
+              color: theme.vars.palette.success.main,
+              fontWeight: 600,
+              cursor: "default"
+            }}
+          >
+            FAL: {formatFalUnitPricingShort(nodeMetadata.fal_unit_pricing)}
+          </Text>
+        </Tooltip>
+      )}
 
       {showConnections && (
         <div className="inputs-outputs">
