@@ -154,21 +154,48 @@ export const settingRowChildrenSx = (t: Theme) => ({
   "& .setting-row": {
     display: "flex",
     alignItems: "center",
-    gap: SKETCH_SPACING.sm,
-    "& .MuiSlider-root": {
-      width: "80px",
-      minWidth: "60px",
+    // `md` rather than `sm` so neighbouring rows have visible breathing
+    // room — without it sliders, labels, and values from adjacent rows
+    // visually crowd each other on the top bar.
+    gap: SKETCH_SPACING.md,
+    // Reserve a fixed-width column for the numeric value so the row
+    // length never changes when digits flip (e.g. 100% → 99% → 100%).
+    // Previously `minWidth: 24px` allowed the value cell to grow with
+    // its content and shoved every following row a pixel or two to
+    // the right, which looked like the whole bar was "jumping".
+    "& .setting-value": {
+      fontSize: SKETCH_FONT.sm,
+      width: "36px",
+      flexShrink: 0,
+      textAlign: "right",
+      color: t.vars.palette.grey[100],
     },
     "& .setting-label": {
       fontSize: SKETCH_FONT.sm,
       whiteSpace: "nowrap",
       color: t.vars.palette.grey[200],
+      // Push the label slightly off the slider thumb. MUI's small
+      // slider thumb extends past the rail endpoints, so at value=0
+      // the thumb would touch the label glyphs. The right-side
+      // value cell gets the same treatment via the slider's margin.
+      paddingRight: "2px",
     },
-    "& .setting-value": {
-      fontSize: SKETCH_FONT.sm,
-      minWidth: "24px",
-      textAlign: "right",
-      color: t.vars.palette.grey[100],
+    "& .MuiSlider-root": {
+      width: "100px",
+      minWidth: "80px",
+      // 6px clearance on each side so the thumb at 0% / 100%
+      // never overlaps the adjacent label or value column.
+      marginLeft: "6px",
+      marginRight: "6px",
+    },
+  },
+  // Opt-in wider slider for the primary "Size" control. Doubling its
+  // width (relative to other sliders) gives the user finer control on
+  // the value most often tuned, without bloating every other row.
+  "& .setting-row--wide": {
+    "& .MuiSlider-root": {
+      width: "200px",
+      minWidth: "140px",
     },
   },
   "& .MuiToggleButtonGroup-root": {
@@ -221,7 +248,8 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (theme) => {
       },
       "& .setting-value": {
         fontSize: SKETCH_FONT.sm,
-        minWidth: "24px",
+        width: "36px",
+        flexShrink: 0,
         textAlign: "right",
         color: t.vars.palette.grey[100],
       },

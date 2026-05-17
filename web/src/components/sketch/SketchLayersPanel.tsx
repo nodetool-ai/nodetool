@@ -35,7 +35,8 @@ import {
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import DeleteIcon from "@mui/icons-material/Delete";
+import TrashIconSvg from "../../icons/trash.svg?react";
+const DeleteIcon = TrashIconSvg as React.FC<React.SVGProps<SVGSVGElement>>;
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import GradientIcon from "@mui/icons-material/Gradient";
 import CallMergeIcon from "@mui/icons-material/CallMerge";
@@ -1263,7 +1264,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 }
                 disabled={!canDeleteToolbarLayer}
               >
-                <DeleteIcon sx={{ fontSize: "1.125rem" }} />
+                <DeleteIcon width={18} height={18} />
               </IconButton>
             </span>
           </Tooltip>
