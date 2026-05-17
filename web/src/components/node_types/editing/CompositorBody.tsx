@@ -297,17 +297,33 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
     shallow
   );
 
-  const results = useResultsStore((state) => state.results);
+  // Only subscribe to upstream source results relevant to this node's edges,
+  // not the entire results record.
+  const upstreamSourceIds = useMemo(
+    () => edges.map((e) => `${workflowId}:${e.source}`),
+    [edges, workflowId]
+  );
+  const upstreamResults = useResultsStore(
+    (state) => {
+      const out: Record<string, unknown> = {};
+      for (const key of upstreamSourceIds) {
+        const val = state.results[key];
+        if (val !== undefined) out[key] = val;
+      }
+      return out;
+    },
+    shallow
+  );
   const upstreamForKey = useCallback(
     (key: string): ImageRefLike | undefined => {
       const edge = edges.find((e) => (e.targetHandle ?? "") === key);
       if (!edge) {
         return asImageRef(dynamicProperties[key]);
       }
-      const sourceResult = results[`${workflowId}:${edge.source}`];
+      const sourceResult = upstreamResults[`${workflowId}:${edge.source}`];
       return asImageRef(unwrapOutput(sourceResult, edge.sourceHandle));
     },
-    [edges, results, workflowId, dynamicProperties]
+    [edges, upstreamResults, workflowId, dynamicProperties]
   );
 
   // Own composited output for the top preview.
