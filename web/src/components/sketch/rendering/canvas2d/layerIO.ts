@@ -157,6 +157,36 @@ export function findContentRect(
  * Read back layer raster data as a serialized string, using compact encoding
  * when the non-transparent content is significantly smaller than the full canvas.
  */
+/**
+ * Tag a canvas with the data URL it was just serialized to. setLayerData
+ * checks this tag to short-circuit redundant re-hydration: if the caller
+ * passes back the SAME data URL we just produced, the canvas is already
+ * pixel-identical and we don't need to clear + decode + redraw (which
+ * races with strokes in progress and intermittently wipes them).
+ */
+const CANVAS_SERIALIZED_DATA_KEY = "__nodetoolSerializedData";
+
+interface CanvasWithSerializedTag extends HTMLCanvasElement {
+  [CANVAS_SERIALIZED_DATA_KEY]?: string | null;
+}
+
+function tagCanvasSerializedData(
+  canvas: HTMLCanvasElement,
+  data: string | null
+): void {
+  (canvas as CanvasWithSerializedTag)[CANVAS_SERIALIZED_DATA_KEY] = data;
+}
+
+export function getCanvasSerializedData(
+  canvas: HTMLCanvasElement
+): string | null | undefined {
+  return (canvas as CanvasWithSerializedTag)[CANVAS_SERIALIZED_DATA_KEY];
+}
+
+export function clearCanvasSerializedData(canvas: HTMLCanvasElement): void {
+  delete (canvas as CanvasWithSerializedTag)[CANVAS_SERIALIZED_DATA_KEY];
+}
+
 export function getLayerDataFromCanvas(
   canvas: HTMLCanvasElement
 ): string | null {
@@ -171,13 +201,14 @@ export function getLayerDataFromCanvas(
   // content-sized PNG instead of the full (often doc-sized) canvas.
   const contentRect = findContentRect(canvas);
   if (!contentRect) {
-    // Empty layer — store a 1×1 null image at the canvas origin.
-    return serializeLayerData(null, {
+    const data = serializeLayerData(null, {
       x: fullBounds.x,
       y: fullBounds.y,
       width: 1,
       height: 1
     });
+    tagCanvasSerializedData(canvas, data);
+    return data;
   }
 
   const contentBounds = {
@@ -187,21 +218,25 @@ export function getLayerDataFromCanvas(
     height: contentRect.height
   };
 
-  // Only crop when it meaningfully reduces the encoded area (>10% reduction).
   const originalArea = canvas.width * canvas.height;
   const contentArea = contentRect.width * contentRect.height;
   if (contentArea >= originalArea * 0.9) {
-    return serializeLayerData(canvas.toDataURL("image/png"), fullBounds);
+    const data = serializeLayerData(canvas.toDataURL("image/png"), fullBounds);
+    tagCanvasSerializedData(canvas, data);
+    return data;
   }
 
-  // Encode only the content region.
   const cropped = window.document.createElement("canvas");
   cropped.width = contentRect.width;
   cropped.height = contentRect.height;
   const croppedCtx = cropped.getContext("2d");
   if (!croppedCtx) {
-    return serializeLayerData(canvas.toDataURL("image/png"), fullBounds);
+    const data = serializeLayerData(canvas.toDataURL("image/png"), fullBounds);
+    tagCanvasSerializedData(canvas, data);
+    return data;
   }
   croppedCtx.drawImage(canvas, -contentRect.x, -contentRect.y);
-  return serializeLayerData(cropped.toDataURL("image/png"), contentBounds);
+  const data = serializeLayerData(cropped.toDataURL("image/png"), contentBounds);
+  tagCanvasSerializedData(canvas, data);
+  return data;
 }

@@ -11,7 +11,9 @@ export {
   serializeLayerData,
   deserializeLayerData,
   findContentRect,
-  getLayerDataFromCanvas
+  getLayerDataFromCanvas,
+  getCanvasSerializedData,
+  clearCanvasSerializedData
 } from "./layerIO";
 export type { SerializedLayerData } from "./layerIO";
 

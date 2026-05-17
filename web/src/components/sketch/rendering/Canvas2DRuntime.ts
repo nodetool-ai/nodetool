@@ -24,7 +24,8 @@ import {
 import {
   getDefaultRasterBounds,
   deserializeLayerData,
-  getLayerDataFromCanvas
+  getLayerDataFromCanvas,
+  getCanvasSerializedData
 } from "./canvas2d/layerIO";
 import { resolveAssetUri } from "../../node/output/hooks";
 import {
@@ -291,6 +292,20 @@ export class Canvas2DRuntime implements SketchRuntime {
     bounds: LayerContentBounds,
     onComplete?: () => void
   ): void {
+    // Short-circuit: if the data we're being asked to hydrate from is the
+    // SAME string we just serialized off of this layer's live canvas, the
+    // canvas is already pixel-identical. Re-decoding and redrawing would
+    // race with any stroke painted onto the live canvas between the
+    // serialize and this call, intermittently wiping just-drawn pixels.
+    const existing = this.layerCanvases.get(layerId);
+    if (
+      existing &&
+      data != null &&
+      getCanvasSerializedData(existing) === data
+    ) {
+      onComplete?.();
+      return;
+    }
     const defaultBounds = getDefaultRasterBounds(bounds);
     const decoded = deserializeLayerData(data, defaultBounds);
     const desiredWidth = decoded.bounds.width;

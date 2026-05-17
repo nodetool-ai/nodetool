@@ -118,17 +118,6 @@ export function useStrokeLifecycleActions({
 
   const handleStrokeStart = useCallback(() => {
     canvasRef.current?.drainPendingStrokeCommit();
-    // CRITICAL: materialize any pending stroke finalization into the
-    // Zustand store BEFORE we push history. Without this, a previous
-    // stroke whose pixel commit was deferred (handleStrokeEnd routes
-    // most strokes through pendingStrokeFinalizeRef and only flushes
-    // lazily via rAF / idle callback) is still invisible to the store
-    // when pushHistory runs. The delta comparison then sees
-    // pre-previous-stroke pixels matching the prior entry's snapshot,
-    // records no change for this entry, and a later undo collapses
-    // *both* strokes into a single step. Flushing synchronously here
-    // guarantees each stroke gets its own undo checkpoint.
-    flushPendingStrokeFinalization();
     const activeLayerId = document.activeLayerId;
     const isTransformOnlyGesture = isTransformOnlyTool(interactionTool);
     const activeLayerSnapshot =
@@ -156,8 +145,7 @@ export function useStrokeLifecycleActions({
     canvasRef,
     pushHistory,
     activeTool,
-    interactionTool,
-    flushPendingStrokeFinalization
+    interactionTool
   ]);
 
   const handleStrokeEnd = useCallback(
