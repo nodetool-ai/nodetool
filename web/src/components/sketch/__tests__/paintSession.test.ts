@@ -864,7 +864,7 @@ describe("ShapeTool (transform-aware commit)", () => {
       (ctx.overlayCanvasRef as { current: HTMLCanvasElement | null }).current = overlayCanvas;
       tool.onDown(ctx, makePointerEvent());
       tool.onUp!(ctx, makePointerEvent());
-      expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null);
+      expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null, undefined);
     } finally {
       getContextSpy.mockRestore();
     }

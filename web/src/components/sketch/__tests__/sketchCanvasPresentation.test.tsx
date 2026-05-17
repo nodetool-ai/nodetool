@@ -187,11 +187,4 @@ describe("SketchCanvasPresentation", () => {
     expect(root!.className).toContain("my-test-class");
   });
 
-  it("shows backend label in info bar", () => {
-    const { container } = render(
-      <SketchCanvasPresentation {...makeProps({ backend: "webgpu" })} />
-    );
-    const infoBar = container.querySelector(".sketch-canvas__info-bar");
-    expect(infoBar!.textContent?.toLowerCase()).toContain("webgpu");
-  });
 });

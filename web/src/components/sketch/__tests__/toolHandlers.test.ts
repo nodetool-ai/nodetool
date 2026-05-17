@@ -1134,7 +1134,7 @@ describe("ShapeTool", () => {
       tool.onDown(ctx, makePointerEvent());
       tool.onUp(ctx, makePointerEvent());
 
-      expect(ctx.onLayerContentBoundsChange).toHaveBeenCalledWith(layerId, {
+      expect(ctx.onStrokeEnd).toHaveBeenCalledWith(layerId, null, {
         x: -16,
         y: -8,
         width: 80,

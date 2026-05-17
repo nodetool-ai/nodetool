@@ -32,11 +32,13 @@ jest.mock("../../../contexts/NodeContext", () => ({
     updateNode: typeof mockUpdateNode;
     updateNodeData: typeof mockUpdateNodeData;
     workflow: { id: string };
+    findNode: () => undefined;
   }) => unknown) =>
     selector({
       updateNode: mockUpdateNode,
       updateNodeData: mockUpdateNodeData,
-      workflow: { id: "wf-1" }
+      workflow: { id: "wf-1" },
+      findNode: () => undefined
     })
   )
 }));

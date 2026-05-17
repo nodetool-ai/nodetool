@@ -8,6 +8,32 @@ jest.mock("../PreviewCompositor", () => ({
     React.createElement("div", { "data-testid": "preview-compositor" })
 }));
 
+jest.mock("../AudioGraph", () => {
+  return {
+    AudioGraph: class {
+      ensureClip = jest.fn();
+      schedulePlayback = jest.fn();
+      stop = jest.fn();
+      stopAll = jest.fn();
+      suspend = jest.fn();
+      resume = jest.fn();
+      playFrom = jest.fn();
+      scheduleClips = jest.fn();
+      scheduleClipsAt = jest.fn();
+      seek = jest.fn();
+      setMasterVolume = jest.fn();
+      dispose = jest.fn();
+      ensureClipBuffer = jest.fn().mockResolvedValue(undefined);
+      getContext = () => ({
+        resume: jest.fn().mockResolvedValue(undefined),
+        suspend: jest.fn().mockResolvedValue(undefined),
+        currentTime: 0,
+        state: "suspended" as const
+      });
+    }
+  };
+});
+
 const mockPlay = jest.fn();
 const mockPause = jest.fn();
 const mockStop = jest.fn();
