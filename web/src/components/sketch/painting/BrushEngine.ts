@@ -8,7 +8,12 @@
 
 import type { Point, BrushSettings } from "../types";
 import { resolveStrokeAssistSettings } from "../types";
-import type { PaintEngine, EngineCompositeOp, StrokeBufferMode } from "./PaintEngine";
+import type {
+  PaintEngine,
+  EngineCompositeOp,
+  StrokeBufferMode,
+  EngineAssistMode
+} from "./PaintEngine";
 import {
   drawBrushStroke as drawBrushStrokeUtil
 } from "../drawingUtils";
@@ -84,5 +89,12 @@ export class BrushEngine implements PaintEngine {
     maxY: number;
   } | null {
     return this.dirtyRect.current ?? null;
+  }
+
+  getAssistMode(): EngineAssistMode {
+    return resolveStrokeAssistSettings(
+      this.settings.stabilizer,
+      this.settings.strokeAssist
+    ).mode;
   }
 }

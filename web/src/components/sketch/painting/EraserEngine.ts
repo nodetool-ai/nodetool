@@ -16,7 +16,12 @@ import {
   DEFAULT_PENCIL_SETTINGS,
   resolveStrokeAssistSettings
 } from "../types";
-import type { PaintEngine, EngineCompositeOp, StrokeBufferMode } from "./PaintEngine";
+import type {
+  PaintEngine,
+  EngineCompositeOp,
+  StrokeBufferMode,
+  EngineAssistMode
+} from "./PaintEngine";
 import {
   drawEraserStroke as drawEraserStrokeUtil
 } from "../drawingUtils";
@@ -107,5 +112,12 @@ export class EraserEngine implements PaintEngine {
     maxY: number;
   } | null {
     return this.dirtyRect.current ?? null;
+  }
+
+  getAssistMode(): EngineAssistMode {
+    return resolveStrokeAssistSettings(
+      this.eraser.stabilizer,
+      this.eraser.strokeAssist
+    ).mode;
   }
 }

@@ -37,6 +37,7 @@ import {
   drawSelectionRectOutline,
   marqueeRectFromDocPoints
 } from "../selection";
+import { getLazyLeash } from "../painting/lazyLeashState";
 
 /**
  * Extra CSS pixels around the sketch viewport for the selection marching-ants bitmap.
@@ -557,6 +558,21 @@ export function useOverlayRenderer({
           docH
         );
       }
+
+      // ── Lazy-brush leash ───────────────────────────────────────────
+      // When an active paint stroke runs with assist mode === "lazy",
+      // the actual brush tip lags behind the cursor. Anchor the brush
+      // ring at the lagging tip and draw the leash (line + raw cursor
+      // marker) after the ring so the user can see where paint goes.
+      const lazyLeash = getLazyLeash();
+      const lazyActive =
+        lazyLeash !== null &&
+        (interactionTool === "brush" ||
+          interactionTool === "pencil" ||
+          interactionTool === "eraser");
+      if (lazyActive && lazyLeash) {
+        docPt = { x: lazyLeash.tipDoc.x, y: lazyLeash.tipDoc.y };
+      }
       // `PencilEngine.stabilize` snaps to integer grid before `dabAt`; preview must use
       // the same grid so 1px crisp dabs match. Eraser pencil mode does not integer-snap in
       // `EraserEngine.stabilize`, so keep continuous doc coords there.
@@ -750,6 +766,46 @@ export function useOverlayRenderer({
       ctx.arc(localX, localY, 1.5, 0, Math.PI * 2);
       ctx.fillStyle = alpha(theme.palette.grey[700], 0.92);
       ctx.fill();
+
+      // ── Lazy-brush leash overlay ─────────────────────────────────
+      // Draw the connecting line between the raw cursor and the brush
+      // tip (which is `localX/Y` because `docPt` was overridden above).
+      if (lazyActive && contRect && contRect.width > 0 && contRect.height > 0) {
+        const rawLocalX = (clientX - cRect.left) * scaleX;
+        const rawLocalY = (clientY - cRect.top) * scaleY;
+        const dxLeash = rawLocalX - localX;
+        const dyLeash = rawLocalY - localY;
+        const distLeash = Math.hypot(dxLeash, dyLeash);
+        if (distLeash > 0.5) {
+          ctx.save();
+          // Dashed leash line (tip → cursor)
+          ctx.beginPath();
+          ctx.moveTo(localX, localY);
+          ctx.lineTo(rawLocalX, rawLocalY);
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = alpha(theme.palette.grey[900], 0.32);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(localX, localY);
+          ctx.lineTo(rawLocalX, rawLocalY);
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+          ctx.strokeStyle = alpha(theme.palette.grey[200], 0.95);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          // Small ring at the raw cursor position
+          ctx.beginPath();
+          ctx.arc(rawLocalX, rawLocalY, 4, 0, Math.PI * 2);
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = alpha(theme.palette.grey[200], 0.95);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(rawLocalX, rawLocalY, 1.25, 0, Math.PI * 2);
+          ctx.fillStyle = alpha(theme.palette.grey[900], 0.85);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
 
       // Clone stamp: draw a crosshair at the clone source position
       if (interactionTool === "clone_stamp") {
