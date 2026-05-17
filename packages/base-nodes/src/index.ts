@@ -68,6 +68,7 @@ export {
   JoinTextNode,
   CollectTextNode,
   FormatTextNode,
+  PromptNode,
   TemplateTextNode,
   ReplaceTextNode,
   ToStringNode,

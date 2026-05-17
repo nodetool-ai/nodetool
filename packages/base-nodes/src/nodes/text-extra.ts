@@ -2405,6 +2405,85 @@ export class FormatTextNode extends BaseNode {
   }
 }
 
+export class PromptNode extends BaseNode {
+  static readonly nodeType = "nodetool.text.Prompt";
+  static readonly title = "Prompt";
+  static readonly description =
+    "Compose a prompt string with named variables. Add variables via the Add Variable button; reference them in the prompt as {{ variable }} (or {variable}). Supports filters: {{ var|upper }}, {{ var|lower }}, {{ var|capitalize }}, {{ var|title }}, {{ var|trim }}, {{ var|truncate(n) }}, {{ var|default(val) }}.\n\n    prompt, text, template, variable, llm, agent";
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
+
+  static readonly isDynamic = true;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description:
+      "Prompt text. Reference variables with {{ name }} or {name}."
+  })
+  declare prompt: any;
+
+  private applyFilter(value: string, filter: string): string {
+    const trimmed = filter.trim();
+    if (trimmed === "upper") return value.toUpperCase();
+    if (trimmed === "lower") return value.toLowerCase();
+    if (trimmed === "capitalize") {
+      return value.length === 0
+        ? ""
+        : value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    }
+    if (trimmed === "title") {
+      return toTitleCase(value);
+    }
+    if (trimmed === "trim") return value.trim();
+    const truncateMatch = trimmed.match(/^truncate\((\d+)\)$/);
+    if (truncateMatch) {
+      const n = Number(truncateMatch[1]);
+      return value.length <= n ? value : value.slice(0, n) + "...";
+    }
+    const defaultMatch = trimmed.match(/^default\((.+)\)$/);
+    if (defaultMatch) {
+      return value === "" ? defaultMatch[1].replace(/^['"]|['"]$/g, "") : value;
+    }
+    return value;
+  }
+
+  private applyFilters(value: string, filters: string[]): string {
+    let result = value;
+    for (const f of filters) {
+      result = this.applyFilter(result, f);
+    }
+    return result;
+  }
+
+  async process(): Promise<Record<string, unknown>> {
+    let result = String(this.prompt ?? "");
+    const props: Record<string, unknown> = Object.fromEntries(this.dynamicProps);
+
+    result = result.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_match, expr: string) => {
+      const parts = expr.split("|").map((p: string) => p.trim());
+      const varName = parts[0];
+      if (varName in props) {
+        const strValue = String(props[varName] ?? "");
+        return parts.length > 1
+          ? this.applyFilters(strValue, parts.slice(1))
+          : strValue;
+      }
+      return _match;
+    });
+
+    for (const [key, value] of Object.entries(props)) {
+      const strValue = String(value ?? "");
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const single = new RegExp(`(?<!\\{)\\{${escapedKey}\\}(?!\\})`, "g");
+      result = result.replace(single, () => strValue);
+    }
+    return { output: result };
+  }
+}
+
 export class TemplateTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Template";
   static readonly title = "Template";
@@ -2565,6 +2644,7 @@ export const TEXT_EXTRA_NODES = [
   JoinTextNode,
   CollectTextNode,
   FormatTextNode,
+  PromptNode,
   TemplateTextNode,
   ReplaceTextNode,
   ToStringNode
