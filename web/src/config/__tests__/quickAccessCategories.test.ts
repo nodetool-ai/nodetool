@@ -22,7 +22,7 @@ const meta = (
   }) as unknown as NodeMetadata;
 
 describe("quickAccessCategories", () => {
-  it("ships nine categories in order", () => {
+  it("ships ten categories in order", () => {
     const ids = QUICK_ACCESS_CATEGORIES.map((c) => c.id);
     expect(ids).toEqual([
       "search",
@@ -31,6 +31,7 @@ describe("quickAccessCategories", () => {
       "assets",
       "image-models",
       "video-models",
+      "audio-models",
       "3d-models",
       "quick-access",
       "tools"
@@ -64,6 +65,12 @@ describe("quickAccessCategories", () => {
   it("video-models matches only video outputs", () => {
     const all = [meta("a.GenA", "video"), meta("b.GenB", "image")];
     const out = filterNodesForCategory(getCategory("video-models")!, all);
+    expect(out.map((m) => m.node_type)).toEqual(["a.GenA"]);
+  });
+
+  it("audio-models matches only audio outputs", () => {
+    const all = [meta("a.GenA", "audio"), meta("b.GenB", "image")];
+    const out = filterNodesForCategory(getCategory("audio-models")!, all);
     expect(out.map((m) => m.node_type)).toEqual(["a.GenA"]);
   });
 
