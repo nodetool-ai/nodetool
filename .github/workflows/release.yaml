@@ -603,6 +603,23 @@ jobs:
       - name: Smoke-test updater manifests
         run: node scripts/smoke-release-updater-assets.mjs release-assets "${{ needs.preflight.outputs.version }}" "${{ needs.preflight.outputs.release_channel }}"
 
+      # The win-unpacked zip is kept as a workflow artifact for debugging,
+      # but is intentionally NOT attached to the GitHub Release.
+      # Drop it from release-assets/ here so the publish step doesn't need a
+      # negation glob (which would fail when no win-unpacked zip is present
+      # and `fail_on_unmatched_files: true` is set).
+      - name: Drop win-unpacked archives from release assets
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          removed=0
+          for f in release-assets/*win-unpacked*.zip; do
+            echo "Removing from release-assets: $f"
+            rm -f "$f"
+            removed=$((removed + 1))
+          done
+          echo "Removed ${removed} win-unpacked archive(s)."
+
       - name: Publish release
         uses: softprops/action-gh-release@v3
         with:
@@ -612,7 +629,6 @@ jobs:
           make_latest: ${{ needs.preflight.outputs.make_latest }}
           files: |
             release-assets/*.zip
-            !release-assets/*win-unpacked*.zip
             release-assets/*.dmg
             release-assets/*.AppImage
             release-assets/*.exe

@@ -174,7 +174,22 @@ if (process.env["NODETOOL_ENV"] !== "production") {
     OLLAMA_API_URL:
       process.env["OLLAMA_API_URL"] ?? "http://127.0.0.1:11434"
   });
-  registerBuiltinProvider("lmstudio", LMStudioProvider, {});
+  // LM Studio: URL (and optional API key) are user-configurable via the
+  // Settings → API Keys panel. Register them as optionalKwargs so the
+  // registry resolves them from the secret store / env on every
+  // getProvider() call — that way changing the port in settings takes
+  // effect immediately without forcing isProviderConfigured() to return
+  // false when the user hasn't set anything (LM Studio runs at the default
+  // localhost:1234 out of the box).
+  registerBuiltinProvider(
+    "lmstudio",
+    LMStudioProvider,
+    {},
+    {
+      LMSTUDIO_API_URL: "http://127.0.0.1:1234",
+      LMSTUDIO_API_KEY: "lm-studio"
+    }
+  );
   registerBuiltinProvider("claude_agent", ClaudeAgentProvider, {});
 }
 
