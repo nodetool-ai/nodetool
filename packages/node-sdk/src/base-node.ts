@@ -1,4 +1,4 @@
-import type { NodeDescriptor, SyncMode } from "@nodetool-ai/protocol";
+import type { NodeDescriptor, Platform, SyncMode } from "@nodetool-ai/protocol";
 import type { NodeExecutor } from "@nodetool-ai/kernel";
 import type {
   ProcessingContext,
@@ -68,6 +68,11 @@ export type NodeClass = {
   supportsDynamicOutputs?: boolean;
   autoSaveAsset: boolean;
   modelPacks?: unknown[];
+  /**
+   * Deployment platforms this node supports. See `@nodetool-ai/protocol`'s
+   * Platform type. Unset is treated as ["node"].
+   */
+  platforms?: readonly Platform[];
   metadataOutputTypes?: DeclaredOutputTypes;
   outputTypes: DeclaredOutputTypes;
   getDeclaredProperties(): Array<{
@@ -128,6 +133,12 @@ export abstract class BaseNode {
   static readonly supportsDynamicOutputs: boolean | undefined = undefined;
   static readonly autoSaveAsset: boolean = false;
   static readonly modelPacks: unknown[] | undefined = undefined;
+  /**
+   * Deployment platforms this node supports. Defaults to ["node"]; nodes
+   * that work in V8 isolates should claim "workers" and/or "edge"
+   * explicitly. See `@nodetool-ai/protocol`'s Platform type.
+   */
+  static readonly platforms: readonly Platform[] | undefined = undefined;
   static readonly metadataOutputTypes: DeclaredOutputTypes | undefined =
     undefined;
   static readonly outputTypes: DeclaredOutputTypes = {};

@@ -22,7 +22,7 @@
  * Errors before streaming begins are returned as JSON with status 4xx/5xx.
  */
 
-import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import type { Platform, ProcessingMessage } from "@nodetool-ai/protocol";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import { runWorkflow, type GraphData, type RunWorkflowOptions } from "./run.js";
@@ -52,6 +52,14 @@ export interface CreateWorkflowHandlerOptions {
     body: WorkflowRequestBody,
     req: Request
   ) => WorkflowRequestBody | Promise<WorkflowRequestBody>;
+
+  /**
+   * Deployment platform this handler serves. When set, the runner rejects
+   * graphs containing nodes that do not declare support for this platform.
+   * The registry passed in should normally have been filtered with
+   * `registry.forPlatform(platform)` for matching bundle / runtime semantics.
+   */
+  platform?: Platform;
 }
 
 export interface WorkflowRequestBody {
@@ -98,7 +106,8 @@ export function createWorkflowHandler(
       workflowId: body.workflow_id,
       jobId: body.job_id,
       context: context instanceof ProcessingContext ? context : undefined,
-      signal: req.signal
+      signal: req.signal,
+      platform: opts.platform
     };
 
     const stream = new ReadableStream<Uint8Array>({

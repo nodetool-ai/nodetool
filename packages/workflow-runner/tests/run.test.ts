@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from "vitest";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import type { NodeExecutor } from "@nodetool-ai/kernel";
+import type { NodeExecutor, NodeValidator } from "@nodetool-ai/kernel";
 import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
 import { runWorkflow } from "../src/run.js";
 
@@ -59,6 +59,57 @@ describe("runWorkflow", () => {
 
     expect(result.status).toBe("completed");
     expect(seen).toContain("job_update");
+  });
+
+  it("composes platform validation with the registry's property validator", async () => {
+    let propCalls = 0;
+    let platformCalls = 0;
+    const propValidator: NodeValidator = () => {
+      propCalls++;
+      return null;
+    };
+    const platformValidator: NodeValidator = (descriptor) => {
+      platformCalls++;
+      return descriptor.type === "test.Banned"
+        ? [
+            {
+              nodeId: descriptor.id,
+              nodeType: descriptor.type,
+              property: "*",
+              message: "not supported on platform 'workers'"
+            }
+          ]
+        : [];
+    };
+
+    const registry = {
+      resolve: () => passthrough(),
+      createNodeValidator: () => propValidator,
+      createPlatformValidator: () => platformValidator
+    } as unknown as NodeRegistry;
+
+    const gen = runWorkflow({
+      graph: {
+        nodes: [{ id: "bad", type: "test.Banned" }],
+        edges: []
+      },
+      registry,
+      platform: "workers"
+    });
+
+    let result;
+    while (true) {
+      const n = await gen.next();
+      if (n.done) {
+        result = n.value;
+        break;
+      }
+    }
+
+    expect(result.status).toBe("failed");
+    expect(result.error).toMatch(/workers/);
+    expect(propCalls).toBeGreaterThan(0);
+    expect(platformCalls).toBeGreaterThan(0);
   });
 
   it("honours an AbortSignal before the run begins", async () => {

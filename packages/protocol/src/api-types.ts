@@ -555,6 +555,11 @@ export interface NodeMetadata {
   expose_as_tool: boolean;
   supports_dynamic_outputs: boolean;
   model_packs?: ModelPack[];
+  /**
+   * Deployment platforms this node supports. See `@nodetool-ai/protocol`'s
+   * Platform type. Absent or empty values are treated as ["node"].
+   */
+  platforms?: readonly ("node" | "workers" | "edge")[];
 }
 
 export interface IndexResponse {

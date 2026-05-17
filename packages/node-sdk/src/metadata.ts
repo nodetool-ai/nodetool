@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import os from "node:os";
+import type { Platform } from "@nodetool-ai/protocol";
 
 export interface TypeMetadata {
   type: string;
@@ -64,6 +65,12 @@ export interface NodeMetadata {
   supports_dynamic_outputs?: boolean;
   auto_save_asset?: boolean;
   model_packs?: unknown[];
+  /**
+   * Deployment platforms this node supports. Absent or empty values are
+   * treated as ["node"] (most restrictive). See `@nodetool-ai/protocol`'s
+   * Platform type for the closed set.
+   */
+  platforms?: readonly Platform[];
 }
 
 export interface PackageMetadata {
