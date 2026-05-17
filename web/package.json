@@ -46,6 +46,7 @@
     "jszip": "^3.10.1",
     "lexical": "^0.32.1",
     "monaco-editor": "^0.55.1",
+    "mp4-muxer": "^5.2.2",
     "papaparse": "^5.5.3",
     "plotly.js": "^3.5.1",
     "prismjs": "^1.30.0",

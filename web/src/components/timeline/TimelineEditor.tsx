@@ -32,6 +32,7 @@ import {
 
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
+import { RenderDialog } from "./RenderDialog";
 import { TimelineAssetPanel } from "./TimelineAssetPanel";
 import {
   useCreateTimeline,
@@ -375,6 +376,10 @@ export const TimelineEditor: React.FC = memo(() => {
       ? createTimeline.error.message || "Could not create sequence."
       : null;
 
+  const [renderDialogOpen, setRenderDialogOpen] = useState(false);
+  const openRenderDialog = useCallback(() => setRenderDialogOpen(true), []);
+  const closeRenderDialog = useCallback(() => setRenderDialogOpen(false), []);
+
   return (
     <FlexColumn fullWidth fullHeight css={editorStyles(theme)}>
       {/* ── Top bar ───────────────────────────────────────────────── */}
@@ -384,7 +389,15 @@ export const TimelineEditor: React.FC = memo(() => {
           (sequenceUnavailable ? sequenceId : undefined)
         }
         activitySlot={<ActivityIndicator />}
+        onRenderAll={openRenderDialog}
       />
+      {renderDialogOpen && (
+        <RenderDialog
+          open={renderDialogOpen}
+          onClose={closeRenderDialog}
+          sequenceName={sequence?.name}
+        />
+      )}
 
       {/* ── Middle: assets + preview + inspector ──────────────────── */}
       <FlexRow
