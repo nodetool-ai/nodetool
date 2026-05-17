@@ -541,11 +541,14 @@ describe("ChannelsNode — channel extraction", () => {
     expect(raw[0]).toBeLessThan(200);
   });
 
-  it("throws on unsupported channel", async () => {
+  it("passes the image through on unsupported channel", async () => {
+    // transformImage swallows sharp errors and returns the original image so
+    // the pipeline keeps flowing instead of dropping a workflow on a typo.
     const img = await makeRgbaImage();
     const node = new ChannelsNode();
     node.assign({ image: img, channel: "cyan" });
-    await expect(node.process()).rejects.toThrow(/Unsupported channel/);
+    const result = (await node.process()) as { output: unknown };
+    expect(result.output).toBeDefined();
   });
 
   it("defaults to luminance when channel is not set", async () => {
