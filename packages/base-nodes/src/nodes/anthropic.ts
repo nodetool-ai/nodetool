@@ -9,8 +9,8 @@ import type { NodeClass } from "@nodetool-ai/node-sdk";
 export class ClaudeAgentNode extends BaseNode {
   static readonly nodeType = "anthropic.agents.ClaudeAgent";
   static readonly title = "Claude Agent";
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields: string[] = [];
+  static readonly inlineFields = [];
+  static readonly inputFields: string[] = ["prompt"];
   static readonly description =
     "Run Claude as an agent in a sandboxed environment with tool use capabilities.\n    claude, agent, ai, anthropic, sandbox, assistant\n\n    Uses the Claude Agent SDK to run Claude with access to tools in a secure sandbox.\n    The agent can execute commands, read/write files, and use various tools while\n    maintaining security through sandbox isolation.\n\n    Use cases:\n    - Automated coding and debugging tasks\n    - File manipulation and analysis\n    - Complex multi-step workflows\n    - Research and data gathering";
   static readonly metadataOutputTypes = {

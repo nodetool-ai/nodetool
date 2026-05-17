@@ -365,8 +365,11 @@ describe("TextToImageNode — provider params", () => {
     expect(node.resolution).toBe("2K");
   });
 
-  it("keeps the node body compact: only `prompt` is inline", () => {
-    expect(TextToImageNode.inlineFields).toEqual(["prompt"]);
+  it("keeps the node body compact: no inline fields, prompt is an input handle", () => {
+    expect(TextToImageNode.inlineFields).toEqual([]);
+    expect(TextToImageNode.inputFields).toEqual(
+      expect.arrayContaining(["prompt"])
+    );
     // All sampler/composition controls (guidance_scale, num_inference_steps,
     // seed, safety_check, width, height, aspect_ratio, resolution, ...)
     // live in the Inspector and are intentionally not inline.

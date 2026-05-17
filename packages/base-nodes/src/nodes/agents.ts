@@ -1807,8 +1807,8 @@ export class AgentNode extends BaseNode {
     thinking: "chunk",
     audio: "audio"
   };
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields = ["image", "audio"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt", "image", "audio"];
   static readonly supportsDynamicOutputs = true;
   // Dynamic properties become {{variable}} placeholders the user can wire
   // into the prompt and system prompt — e.g. add `subject` and `body`

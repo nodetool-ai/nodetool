@@ -1233,8 +1233,8 @@ export class TextToImageNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields = [];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt"];
   static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
@@ -1340,8 +1340,8 @@ export class ImageToImageNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields = ["image"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt", "image"];
   static readonly autoSaveAsset = true;
   static readonly exposeAsTool = true;
 

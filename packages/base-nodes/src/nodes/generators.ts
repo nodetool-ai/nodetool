@@ -548,8 +548,8 @@ export class DataGeneratorNode extends BaseNode {
     dataframe: "dataframe",
     index: "int"
   };
-  static readonly inlineFields = ["prompt", "columns"];
-  static readonly inputFields = [];
+  static readonly inlineFields = ["columns"];
+  static readonly inputFields = ["prompt"];
 
   static readonly isStreamingOutput = true;
   @prop({
@@ -650,8 +650,8 @@ export class ListGeneratorNode extends BaseNode {
     item: "str",
     index: "int"
   };
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields = [];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt"];
 
   static readonly isStreamingOutput = true;
   @prop({
@@ -753,8 +753,8 @@ export class ChartGeneratorNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "chart_config"
   };
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields = ["data"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt", "data"];
 
   @prop({
     type: "language_model",
@@ -985,8 +985,8 @@ export class SVGGeneratorNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[svg_element]"
   };
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields = ["image", "audio"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt", "image", "audio"];
 
   @prop({
     type: "language_model",

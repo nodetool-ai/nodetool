@@ -85,8 +85,8 @@ export class TextTo3DNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields = [];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt"];
   static readonly exposeAsTool = true;
 
   @prop({

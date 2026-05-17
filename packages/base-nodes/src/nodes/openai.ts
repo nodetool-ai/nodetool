@@ -224,8 +224,8 @@ export class ModerationNode extends BaseNode {
 export class CreateImageNode extends BaseNode {
   static readonly nodeType = "openai.image.CreateImage";
   static readonly title = "Create Image";
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields: string[] = [];
+  static readonly inlineFields = [];
+  static readonly inputFields: string[] = ["prompt"];
   static readonly description =
     "Generates images from textual descriptions.\n    image, t2i, tti, text-to-image, create, generate, picture, photo, art, drawing, illustration";
   static readonly metadataOutputTypes = {
@@ -325,8 +325,8 @@ export class CreateImageNode extends BaseNode {
 export class EditImageNode extends BaseNode {
   static readonly nodeType = "openai.image.EditImage";
   static readonly title = "Edit Image";
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields = ["image", "mask"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt", "image", "mask"];
   static readonly description =
     "Edit images using OpenAI's gpt-image-1 model.\n    image, edit, modify, transform, inpaint, outpaint, variation\n\n    Takes an input image and a text prompt to generate a modified version.\n    Can be used for inpainting, outpainting, style transfer, and image modification.\n    Optionally accepts a mask to specify which areas to edit.";
   static readonly metadataOutputTypes = {

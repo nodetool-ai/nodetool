@@ -217,8 +217,8 @@ export class TextToVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
-  static readonly inlineFields: string[] = ["prompt"];
-  static readonly inputFields: string[] = [];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["prompt"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -323,8 +323,8 @@ export class ImageToVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
-  static readonly inlineFields: string[] = ["prompt"];
-  static readonly inputFields: string[] = ["image"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["prompt", "image"];
   static readonly exposeAsTool = true;
 
   @prop({
