@@ -11,9 +11,6 @@
  *     skips threads whose first message lacks the llm-agent marker.
  *   - getSessionMessages refuses cross-user reads (returns empty even if
  *     the thread exists for another user).
- *
- * The harness providers are stubbed so the LLM provider path is exercised
- * in isolation.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { initTestDb, Thread, Message } from "@nodetool-ai/models";
@@ -36,35 +33,6 @@ const { processChatSpy } = vi.hoisted(() => ({
 
 vi.mock("@nodetool-ai/chat", () => ({
   processChat: processChatSpy,
-}));
-
-vi.mock("../src/agent/codex-agent.js", () => ({
-  CodexQuerySession: class {},
-  listCodexModels: async () => [],
-}));
-vi.mock("../src/agent/opencode-agent.js", () => ({
-  OpenCodeQuerySession: class {},
-  listOpenCodeModels: async () => [],
-  listOpenCodeSessions: async () => [],
-  getOpenCodeSessionMessages: async () => [],
-  closeOpenCodeServer: () => {},
-}));
-vi.mock("../src/agent/pi-agent.js", () => ({
-  PiQuerySession: class {},
-  listPiModels: async () => [],
-  listPiSessions: async () => [],
-  getPiSessionMessages: async () => [],
-}));
-vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
-  query: () => ({
-    [Symbol.asyncIterator]() {
-      return { next: async () => ({ done: true, value: undefined }) };
-    },
-    interrupt() {},
-    close() {},
-  }),
-  listSessions: async () => [],
-  getSessionMessages: async () => [],
 }));
 
 vi.mock("@nodetool-ai/runtime", async (importOriginal) => {

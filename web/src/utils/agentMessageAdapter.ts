@@ -1,6 +1,6 @@
 /**
- * Adapter module for converting Claude/Codex/OpenCode agent SDK messages
- * to NodeTool Message types for use in ChatView.
+ * Adapter module for converting agent SDK messages to NodeTool Message types
+ * for use in ChatView.
  *
  * Messages arrive over the agent WebSocket (`/ws/agent`, see
  * `web/src/lib/agent/AgentSocketClient.ts`) as serialized `AgentMessage`
@@ -35,7 +35,7 @@ interface AgentMessage {
 }
 
 /**
- * Convert a serialized Claude Agent message (from IPC) to a NodeTool Message.
+ * Convert a serialized agent message to a NodeTool Message.
  * Returns null for message types that shouldn't be displayed.
  */
 export function agentMessageToNodeToolMessage(
@@ -83,8 +83,8 @@ export function agentMessageToNodeToolMessage(
         content: contents,
         created_at: new Date().toISOString(),
         thread_id: msg.session_id,
-        provider: "anthropic",
-        model: "claude-agent",
+        provider: "",
+        model: "",
         ...(toolCalls ? { tool_calls: toolCalls } : {}),
       };
     }
@@ -98,8 +98,8 @@ export function agentMessageToNodeToolMessage(
           content: [{ type: "text", text: msg.text }],
           created_at: new Date().toISOString(),
           thread_id: msg.session_id,
-          provider: "anthropic",
-          model: "claude-agent"
+          provider: "",
+          model: ""
         };
       }
       if (msg.is_error && msg.errors) {
@@ -111,8 +111,8 @@ export function agentMessageToNodeToolMessage(
           content: [{ type: "text", text: `Error: ${errorText}` }],
           created_at: new Date().toISOString(),
           thread_id: msg.session_id,
-          provider: "anthropic",
-          model: "claude-agent"
+          provider: "",
+          model: ""
         };
       }
       return null;
@@ -125,7 +125,7 @@ export function agentMessageToNodeToolMessage(
 
 /**
  * Convert a NodeTool Message to a plain text string suitable for
- * sending to the Claude Agent SDK via session.send().
+ * sending to the agent session via send().
  */
 export function nodeToolMessageToText(message: Message): string {
   if (typeof message.content === "string") {

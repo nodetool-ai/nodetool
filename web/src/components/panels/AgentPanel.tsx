@@ -49,20 +49,10 @@ import {
 } from "../ui_primitives";
 
 const PROVIDER_LABELS: Record<AgentProvider, string> = {
-  claude: "Claude",
-  codex: "Codex",
-  opencode: "OpenCode",
-  pi: "Pi",
   llm: "LLM"
 };
 
-const ALL_PROVIDERS: AgentProvider[] = [
-  "claude",
-  "codex",
-  "opencode",
-  "pi",
-  "llm"
-];
+const ALL_PROVIDERS: AgentProvider[] = ["llm"];
 
 function isAgentProvider(value: string): value is AgentProvider {
   return (ALL_PROVIDERS as string[]).includes(value);
@@ -251,7 +241,7 @@ const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
 const AgentPanel: React.FC = () => {
   const theme = useTheme();
   const [newSessionDialogOpen, setNewSessionDialogOpen] = useState(false);
-  const [draftProvider, setDraftProvider] = useState<AgentProvider>("claude");
+  const [draftProvider, setDraftProvider] = useState<AgentProvider>("llm");
   const [draftWorkspaceId, setDraftWorkspaceId] = useState<string | null>(null);
   const [draftWorkspacePath, setDraftWorkspacePath] = useState<string | null>(null);
   const [draftModel, setDraftModel] = useState<string>("");
@@ -388,11 +378,9 @@ const AgentPanel: React.FC = () => {
   }, [workspaces, workspaceId, setWorkspaceContext]);
 
   useEffect(() => {
-    // The harness providers' model lists depend on the workspace (e.g. Claude
-    // Code reads `~/.config`). The "llm" provider aggregates from registered
-    // chat providers and ignores the workspace, so we don't gate on it.
-    const isLlm = draftProvider === "llm";
-    if (!newSessionDialogOpen || (!isLlm && !draftWorkspacePath)) {
+    // The "llm" provider aggregates from registered chat providers and ignores
+    // the workspace.
+    if (!newSessionDialogOpen) {
       setDraftModels([]);
       setDraftModelsLoading(false);
       return;
@@ -401,8 +389,7 @@ const AgentPanel: React.FC = () => {
     setDraftModelsLoading(true);
     getAgentSocketClient()
       .listModels({
-        provider: draftProvider,
-        workspacePath: isLlm ? undefined : draftWorkspacePath ?? undefined
+        provider: draftProvider
       })
       .then((models) => {
         if (cancelled) {

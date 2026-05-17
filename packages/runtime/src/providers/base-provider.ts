@@ -251,9 +251,8 @@ export abstract class BaseProvider {
     toolChoice?: string | "any";
     maxTokens?: number;
     /**
-     * Upper bound on internal agentic turns for providers that handle
-     * multi-turn tool execution within a single call (e.g. claude_agent).
-     * Ignored by providers that delegate the loop to the caller.
+     * Reserved for providers that drive multi-turn tool loops internally.
+     * No built-in provider currently uses it — the caller drives the loop.
      */
     maxTurns?: number;
     temperature?: number;

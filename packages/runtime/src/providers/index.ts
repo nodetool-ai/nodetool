@@ -27,7 +27,6 @@ import { VLLMProvider } from "./vllm-provider.js";
 import { HuggingFaceProvider } from "./huggingface-provider.js";
 import { PythonProvider } from "./python-provider.js";
 import { ReplicateProvider } from "./replicate-provider.js";
-import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 import { FalProvider } from "./fal-provider.js";
 import { KieProvider } from "./kie-provider.js";
 import { AkiProvider } from "./aki-provider.js";
@@ -40,15 +39,6 @@ import { FakeProvider } from "./fake-provider.js";
 export { BaseProvider, providerCapabilities } from "./base-provider.js";
 export type { ProviderCapability } from "./base-provider.js";
 export { AnthropicProvider };
-export { ClaudeAgentProvider };
-export {
-  ClaudeAgentError,
-  classifyClaudeAgentError
-} from "./claude-agent-provider.js";
-export type {
-  OnToolCall,
-  ClaudeAgentErrorKind
-} from "./claude-agent-provider.js";
 export { GeminiProvider };
 export { LlamaProvider };
 export { OpenAIProvider };
@@ -175,7 +165,6 @@ if (process.env["NODETOOL_ENV"] !== "production") {
       process.env["OLLAMA_API_URL"] ?? "http://127.0.0.1:11434"
   });
   registerBuiltinProvider("lmstudio", LMStudioProvider, {});
-  registerBuiltinProvider("claude_agent", ClaudeAgentProvider, {});
 }
 
 // Fake provider for end-to-end testing without external API keys.

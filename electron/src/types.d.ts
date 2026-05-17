@@ -934,8 +934,6 @@ export type RuntimePackageId =
   | "pandoc"
   | "pdftotext"
   | "yt-dlp"
-  | "claude-agent-sdk"
-  | "codex-sdk"
   | "transformers-js"
   | "tensorflow-js";
 

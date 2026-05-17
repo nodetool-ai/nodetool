@@ -1,5 +1,5 @@
 /**
- * Shared types + the workflow-builder system prompt used by every agent SDK
+ * Shared types + the workflow-builder system prompt used by the agent SDK
  * provider. Lives in its own file so the LLM provider can import it without
  * pulling in `agent-runtime.ts` — that file in turn imports
  * LlmAgentSdkProvider, which would create a TDZ-style circular import where
@@ -74,12 +74,12 @@ export interface AgentQuerySession {
   close(): void;
 }
 
-/** Provider interface for agent SDKs (Claude, Codex, OpenCode, LLM). */
+/** Provider interface for agent SDKs. */
 export interface AgentSdkProvider {
   readonly name: string;
   /**
-   * `userId` is required so the LLM provider can look up the right user's
-   * configured chat-provider secrets. Harness providers may ignore it.
+   * `userId` is required so the provider can look up the right user's
+   * configured chat-provider secrets.
    */
   listModels(
     userId: string,
@@ -90,16 +90,16 @@ export interface AgentSdkProvider {
     workspacePath: string;
     /**
      * Authenticated user owning this session. Required — the agent socket
-     * route refuses unauthenticated connections, and providers that persist
-     * (LLM) must scope writes to this user. Harness providers may ignore it.
+     * route refuses unauthenticated connections, and persisted threads must
+     * be scoped to this user.
      */
     userId: string;
     resumeSessionId?: string;
     systemPrompt?: string;
     modelParams?: AgentModelParams;
     /**
-     * For the "llm" provider only — picks the underlying chat provider
-     * (anthropic / openai / gemini / …). Ignored by harness providers.
+     * Picks the underlying chat provider (anthropic / openai / gemini / …)
+     * that serves the chosen model.
      */
     chatProviderId?: string;
   }): AgentQuerySession;

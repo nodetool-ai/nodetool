@@ -9,7 +9,7 @@
  * both import from here to stay in lockstep.
  */
 
-export type AgentProvider = "claude" | "codex" | "opencode" | "pi" | "llm";
+export type AgentProvider = "llm";
 
 export interface AgentModelDescriptor {
   id: string;
@@ -17,30 +17,20 @@ export interface AgentModelDescriptor {
   isDefault?: boolean;
   provider?: AgentProvider;
   /**
-   * For `provider === "llm"` only: the underlying chat provider id
-   * (e.g. "anthropic", "openai", "gemini") that should serve this model.
-   * Lets one logical "llm" agent provider front-end models from many
-   * registered runtime providers without overloading `id`.
+   * The underlying chat provider id (e.g. "anthropic", "openai", "gemini")
+   * that serves this model. Lets the logical "llm" agent provider front-end
+   * models from many registered runtime providers without overloading `id`.
    */
   chatProviderId?: string;
-  /** Supports adjustable reasoning effort (Codex) */
-  supportsReasoningEffort?: boolean;
-  /** Supports max turns setting */
-  supportsMaxTurns?: boolean;
 }
 
-/** Runtime parameters for an agent session */
-export interface AgentModelParams {
-  /** Max agentic turns before stopping */
-  maxTurns?: number;
-  /** Reasoning effort level (Codex only) */
-  reasoningEffort?: "minimal" | "low" | "medium" | "high" | "xhigh";
-}
+/** Runtime parameters for an agent session (currently empty — reserved). */
+export interface AgentModelParams {}
 
 export interface AgentSessionOptions {
   provider?: AgentProvider;
   model: string;
-  /** Underlying chat provider id when `provider === "llm"`. */
+  /** Underlying chat provider id that serves the chosen model. */
   chatProviderId?: string;
   workspacePath?: string;
   resumeSessionId?: string;

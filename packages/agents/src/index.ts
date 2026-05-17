@@ -174,10 +174,6 @@ export {
   RemoveTaskTool,
   FinishPlanTool
 } from "./tools/plan-builder-tools.js";
-export {
-  isAgenticProvider,
-  rejectAgenticProvider
-} from "./reject-agentic-provider.js";
 
 // Graph-native planner tools
 export { AddNodeTool } from "./tools/add-node-tool.js";

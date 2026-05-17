@@ -1,7 +1,7 @@
 /**
- * AgentStore - Zustand store for managing Claude/Codex/OpenCode agent sessions.
+ * AgentStore - Zustand store for managing in-process LLM agent sessions.
  *
- * The agent runtime now runs on the NodeTool server (see
+ * The agent runtime runs on the NodeTool server (see
  * `packages/websocket/src/agent/`). This store is a thin client that talks
  * to the server over `/ws/agent` via {@link AgentSocketClient}. The same
  * code path is used in both the web app and the Electron renderer — there
@@ -27,7 +27,7 @@ import type {
 
 export type { AgentProvider, AgentModelDescriptor } from "../lib/agent/agentTypes";
 
-const AGENT_PROVIDERS: readonly AgentProvider[] = ["claude", "codex", "opencode", "pi", "llm"];
+const AGENT_PROVIDERS: readonly AgentProvider[] = ["llm"];
 
 function isAgentProvider(value: string): value is AgentProvider {
   return (AGENT_PROVIDERS as readonly string[]).includes(value);
@@ -178,10 +178,10 @@ const useAgentStore = create<AgentState>((set, get) => ({
   sessionId: null,
   error: null,
   isAvailable: true,
-  model: "claude-sonnet-4-6",
+  model: "",
   availableModels: [],
   modelsLoading: false,
-  provider: "claude",
+  provider: "llm",
   streamUnsubscribe: null,
   hasAssistantInCurrentTurn: false,
   workspacePath: null,
@@ -282,24 +282,13 @@ const useAgentStore = create<AgentState>((set, get) => ({
     const selectedWorkspacePath = options?.workspacePath ?? workspacePath;
     const selectedWorkspaceId = options?.workspaceId ?? workspaceId;
     const resumeSessionId = options?.resumeSessionId;
-    const isLlm = provider === "llm";
 
     if (streamUnsubscribe) {
       streamUnsubscribe();
       set({ streamUnsubscribe: null });
     }
 
-    // The LLM provider runs in-process with only ui_* tools — no workspace
-    // is needed. Every other provider (CLI harness) does need one.
-    if (!isLlm && !selectedWorkspacePath) {
-      set({
-        status: "error",
-        error: "Select a workspace before starting an agent session."
-      });
-      return;
-    }
-
-    if (isLlm && !chatProviderId) {
+    if (!chatProviderId) {
       set({
         status: "error",
         error:
@@ -320,9 +309,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
         model,
         workspacePath: selectedWorkspacePath ?? undefined,
         resumeSessionId,
-        // Only attach `chatProviderId` for LLM sessions — keeps the call
-        // shape stable for existing harness-provider tests / consumers.
-        ...(isLlm && chatProviderId ? { chatProviderId } : {})
+        chatProviderId
       });
       const now = new Date().toISOString();
 
@@ -462,18 +449,10 @@ const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   sendMessage: async (message: Message) => {
-    const { sessionId, workspacePath } = get();
+    const { sessionId } = get();
     const text = nodeToolMessageToText(message);
 
     if (!text.trim()) return;
-
-    if (!workspacePath) {
-      set({
-        status: "error",
-        error: "Select a workspace before sending a message."
-      });
-      return;
-    }
 
     const userMessage: Message = {
       type: "message",
@@ -641,7 +620,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
           created_at: new Date().toISOString(),
           thread_id: m.session_id,
           provider: "anthropic",
-          model: "claude-agent"
+          model: ""
         }));
       } catch (err) {
         console.error("Failed to load session transcript:", err);
@@ -678,7 +657,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
 
       const entries: AgentSessionHistoryEntry[] = sdkSessions.map((s) => ({
         id: s.sessionId,
-        provider: s.provider && isAgentProvider(s.provider) ? s.provider : "claude",
+        provider: s.provider && isAgentProvider(s.provider) ? s.provider : "llm",
         model: "",
         workspacePath: s.cwd ?? "",
         createdAt: s.createdAt

@@ -53,8 +53,8 @@ describe("agentMessageAdapter", () => {
         expect(result?.id).toBe("test-uuid-1");
         expect(result?.role).toBe("assistant");
         expect(result?.thread_id).toBe("test-session-1");
-        expect(result?.provider).toBe("anthropic");
-        expect(result?.model).toBe("claude-agent");
+        expect(result?.provider).toBe("");
+        expect(result?.model).toBe("");
         expect(result?.content).toEqual([
           { type: "text", text: "Hello, world!" },
           { type: "text", text: " How are you?" },

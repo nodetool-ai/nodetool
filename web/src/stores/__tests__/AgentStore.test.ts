@@ -6,10 +6,11 @@ describe("AgentStore", () => {
     Promise<string>,
     [
       {
-        provider?: "claude" | "codex" | "opencode";
+        provider?: "llm";
         model: string;
         workspacePath?: string;
         resumeSessionId?: string;
+        chatProviderId?: string;
       }
     ]
   >();
@@ -48,7 +49,17 @@ describe("AgentStore", () => {
   async function loadStore() {
     jest.resetModules();
     const module = await import("../AgentStore");
-    return module.default;
+    const store = module.default;
+    // The only remaining provider is "llm", which requires a model + chat
+    // provider before createSession() will run. Seed sensible defaults so
+    // tests that just exercise the streaming/lifecycle paths don't have to
+    // re-state them.
+    store.setState({
+      provider: "llm",
+      model: "gpt-4o",
+      chatProviderId: "openai"
+    });
+    return store;
   }
 
   function makeUserMessage(text: string): Message {
@@ -207,10 +218,11 @@ describe("AgentStore", () => {
     expect(state.status).toBe("loading");
     expect(createSessionMock).toHaveBeenCalledTimes(1);
     expect(createSessionMock).toHaveBeenCalledWith({
-      provider: "claude",
-      model: "claude-sonnet-4-6",
+      provider: "llm",
+      model: "gpt-4o",
       workspacePath: "/tmp/workspace-1",
-      resumeSessionId: undefined
+      resumeSessionId: undefined,
+      chatProviderId: "openai"
     });
     expect(sendMessageMock).toHaveBeenCalledWith("session-1", "Hello");
   });
@@ -285,7 +297,7 @@ describe("AgentStore", () => {
     const useAgentStore = await loadStore();
     useAgentStore.setState({ chatProviderId: "anthropic" });
 
-    useAgentStore.getState().setProvider("claude");
+    useAgentStore.getState().setProvider("llm");
     expect(useAgentStore.getState().chatProviderId).toBeNull();
   });
 
@@ -397,19 +409,4 @@ describe("AgentStore", () => {
     expect(useAgentStore.getState().error).toMatch(/Pick an LLM model/i);
   });
 
-  it("createSession for harness provider still requires a workspace", async () => {
-    const useAgentStore = await loadStore();
-    useAgentStore.setState({
-      provider: "claude",
-      model: "claude-sonnet-4-6",
-      workspacePath: null,
-      workspaceId: null
-    });
-
-    await useAgentStore.getState().createSession();
-
-    expect(createSessionMock).not.toHaveBeenCalled();
-    expect(useAgentStore.getState().status).toBe("error");
-    expect(useAgentStore.getState().error).toMatch(/workspace/i);
-  });
 });
