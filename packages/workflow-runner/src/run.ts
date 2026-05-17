@@ -1,0 +1,162 @@
+/**
+ * runWorkflow — execute a graph against a NodeRegistry and yield messages live.
+ *
+ * This is the portable core: no fs, no subprocess, no transport assumptions.
+ * The caller supplies the graph, the registry, and (optionally) a context.
+ * Everything platform-specific (storage backend, secret resolution, etc.)
+ * is injected via the context.
+ */
+
+import {
+  WorkflowRunner,
+  type RunJobRequest,
+  type RunResult
+} from "@nodetool-ai/kernel";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import {
+  ProcessingContext,
+  type CacheAdapter,
+  type StorageAdapter
+} from "@nodetool-ai/runtime";
+import type {
+  Edge,
+  NodeDescriptor,
+  ProcessingMessage
+} from "@nodetool-ai/protocol";
+
+export type GraphData = {
+  nodes: NodeDescriptor[];
+  edges: Edge[];
+};
+
+export interface RunWorkflowOptions {
+  graph: GraphData;
+  registry: NodeRegistry;
+  params?: Record<string, unknown>;
+  jobId?: string;
+  workflowId?: string;
+
+  /** Pre-built context. If omitted, a minimal one is created from the fields below. */
+  context?: ProcessingContext;
+
+  /** Optional context inputs (ignored when `context` is provided). */
+  storage?: StorageAdapter | null;
+  workspaceStorage?: StorageAdapter | null;
+  cache?: CacheAdapter;
+  environment?: Record<string, string>;
+  secretResolver?: (
+    key: string,
+    userId: string
+  ) => Promise<string | null | undefined> | string | null | undefined;
+
+  /** Abort the run when this signal fires. */
+  signal?: AbortSignal;
+}
+
+/**
+ * Execute a workflow and stream ProcessingMessages as they are emitted.
+ *
+ * Yields each message live; the final `RunResult` is the generator's return value.
+ *
+ * ```ts
+ * for await (const msg of runWorkflow(opts)) { ... }
+ * ```
+ */
+export async function* runWorkflow(
+  opts: RunWorkflowOptions
+): AsyncGenerator<ProcessingMessage, RunResult, void> {
+  const jobId = opts.jobId ?? generateJobId();
+  const context =
+    opts.context ??
+    new ProcessingContext({
+      jobId,
+      workflowId: opts.workflowId ?? null,
+      storage: opts.storage ?? null,
+      workspaceStorage: opts.workspaceStorage ?? null,
+      cache: opts.cache,
+      environment: opts.environment,
+      secretResolver: opts.secretResolver
+    });
+
+  const runner = new WorkflowRunner(jobId, {
+    resolveExecutor: (node) => opts.registry.resolve(node),
+    executionContext: context,
+    validateNode: opts.registry.createNodeValidator()
+  });
+
+  const queue: ProcessingMessage[] = [];
+  let wake: (() => void) | null = null;
+  const tap = context as unknown as {
+    emit: (m: ProcessingMessage) => void;
+  };
+  const origEmit = tap.emit.bind(context);
+  tap.emit = (m) => {
+    origEmit(m);
+    queue.push(m);
+    const w = wake;
+    wake = null;
+    w?.();
+  };
+
+  const request: RunJobRequest = {
+    job_id: jobId,
+    workflow_id: opts.workflowId,
+    params: opts.params
+  };
+
+  let finished = false;
+  let runError: unknown = null;
+  let result: RunResult | null = null;
+
+  const runPromise = runner
+    .run(request, opts.graph)
+    .then((r) => {
+      result = r;
+    })
+    .catch((err) => {
+      runError = err;
+    })
+    .finally(() => {
+      finished = true;
+      const w = wake;
+      wake = null;
+      w?.();
+    });
+
+  const onAbort = (): void => {
+    const w = wake;
+    wake = null;
+    w?.();
+  };
+  opts.signal?.addEventListener("abort", onAbort, { once: true });
+
+  try {
+    while (!finished || queue.length > 0) {
+      if (queue.length === 0) {
+        if (opts.signal?.aborted) break;
+        await new Promise<void>((resolve) => {
+          wake = resolve;
+        });
+        continue;
+      }
+      const msg = queue.shift()!;
+      yield msg;
+    }
+    await runPromise;
+  } finally {
+    opts.signal?.removeEventListener("abort", onAbort);
+    tap.emit = origEmit;
+  }
+
+  if (runError) throw runError;
+  if (!result) {
+    throw new Error("Workflow runner exited without a result");
+  }
+  return result;
+}
+
+function generateJobId(): string {
+  const g = globalThis as { crypto?: { randomUUID?: () => string } };
+  if (g.crypto?.randomUUID) return g.crypto.randomUUID();
+  return `job_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}

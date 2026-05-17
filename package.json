@@ -37,6 +37,7 @@
     "packages/sandbox",
     "packages/sandbox-agent",
     "packages/sandbox-tools",
+    "packages/workflow-runner",
     "web",
     "electron",
     "examples/chat_app"
