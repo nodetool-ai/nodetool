@@ -7,7 +7,6 @@ export const TOOLTIP_LEAVE_DELAY = 0;
 export const TOOLTIP_ENTER_NEXT_DELAY = 350;
 
 // NOTIFICATIONS
-export const NOTIFICATIONS_LIST_MAX_ITEMS = 100;
 export const NOTIFICATION_TIMEOUT_DEFAULT = 3000; // 3 seconds - default notification timeout
 export const NOTIFICATION_TIMEOUT_SHORT = 2000; // 2 seconds - brief success messages
 export const NOTIFICATION_TIMEOUT_MEDIUM = 4000; // 4 seconds - warnings and info messages
