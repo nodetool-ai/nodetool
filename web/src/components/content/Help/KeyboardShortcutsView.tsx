@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useCallback
 } from "react";
-import Keyboard from "react-simple-keyboard";
+import { KeyboardReact as Keyboard } from "react-simple-keyboard";
 import "react-simple-keyboard/build/css/index.css";
 import { ToggleButtonGroup, ToggleButton } from "@mui/material";
 import { Tooltip } from "../../ui_primitives";
