@@ -35,7 +35,6 @@ import HandleTooltip from "../HandleTooltip";
 import type { NodeStoreState } from "../../stores/NodeStore";
 import {
   NODE_COLLAPSED_BODY_HEIGHT_WIN,
-  NODE_COLLAPSED_HANDLE_CENTER,
   NODE_COLLAPSED_LAYOUT
 } from "../../styles/collapsedNodeTokens";
 
@@ -69,8 +68,14 @@ const styles = (theme: Theme) =>
     ".header-wrapper .input-handle-wrapper": {
       position: "absolute",
       left: "-8px",
-      ...NODE_COLLAPSED_HANDLE_CENTER,
+      top: "50%",
+      transform: "translateY(-50%)",
       zIndex: 11
+    },
+    ".header-wrapper .input-handle-wrapper .react-flow__handle-left": {
+      top: "50%",
+      left: 0,
+      transform: "translateY(-50%)"
     },
     ".header-actions": {
       position: "absolute",
@@ -129,7 +134,7 @@ const styles = (theme: Theme) =>
       "& > .constant-string-body": {
         display: "none !important"
       },
-      "& .constant-string-collapsed-hide": {
+      "& .constant-string-collapsed-hide .node-resize-handle": {
         display: "none !important"
       }
     }
@@ -344,12 +349,11 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         />
       </div>
 
-      <div className="constant-string-collapsed-hide">
-        <NodeOutputs
-          id={id}
-          outputs={metadata.outputs}
-        />
+      <div className="node-content-container">
+        <NodeOutputs id={id} outputs={metadata.outputs} />
+      </div>
 
+      <div className="constant-string-collapsed-hide">
         <NodeResizeHandle minWidth={200} minHeight={100} />
       </div>
 
