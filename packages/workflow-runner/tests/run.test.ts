@@ -4,9 +4,13 @@
  * so the test stays free of base-nodes' heavy dependencies.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import type { NodeExecutor, NodeValidator } from "@nodetool-ai/kernel";
+import {
+  WorkflowRunner,
+  type NodeExecutor,
+  type NodeValidator
+} from "@nodetool-ai/kernel";
 import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
 import { runWorkflow } from "../src/run.js";
 
@@ -18,9 +22,11 @@ function passthrough(): NodeExecutor {
   };
 }
 
-function fakeRegistry(): NodeRegistry {
+function fakeRegistry(
+  resolve: (node: NodeDescriptor) => NodeExecutor = () => passthrough()
+): NodeRegistry {
   return {
-    resolve: () => passthrough(),
+    resolve,
     createNodeValidator: () => () => []
   } as unknown as NodeRegistry;
 }
@@ -59,6 +65,71 @@ describe("runWorkflow", () => {
 
     expect(result.status).toBe("completed");
     expect(seen).toContain("job_update");
+  });
+
+  it("cancels the runner when the AbortSignal fires", async () => {
+    const cancelSpy = vi.spyOn(WorkflowRunner.prototype, "cancel");
+    try {
+      const ctrl = new AbortController();
+      const streamingExecutor: NodeExecutor = {
+        async process() {
+          return {};
+        },
+        async run(inputs) {
+          for await (const value of inputs.stream("value")) {
+            void value;
+          }
+        }
+      };
+
+      const gen = runWorkflow({
+        graph: {
+          nodes: [
+            {
+              id: "in",
+              type: "test.Input",
+              name: "value",
+              is_streaming_output: true
+            },
+            {
+              id: "stream",
+              type: "test.Streaming",
+              is_streaming_input: true
+            }
+          ],
+          edges: [
+            {
+              source: "in",
+              sourceHandle: "value",
+              target: "stream",
+              targetHandle: "value"
+            }
+          ]
+        },
+        registry: fakeRegistry((node) =>
+          node.type === "test.Streaming" ? streamingExecutor : passthrough()
+        ),
+        signal: ctrl.signal
+      });
+
+      const first = await gen.next();
+      expect(first.done).toBe(false);
+      ctrl.abort();
+
+      let status: string | undefined;
+      while (true) {
+        const next = await gen.next();
+        if (next.done) {
+          status = next.value.status;
+          break;
+        }
+      }
+
+      expect(cancelSpy).toHaveBeenCalledTimes(1);
+      expect(status).toBe("cancelled");
+    } finally {
+      cancelSpy.mockRestore();
+    }
   });
 
   it("composes platform validation with the registry's property validator", async () => {

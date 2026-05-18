@@ -74,28 +74,24 @@ export function createWorkflowHandler(
 ): (req: Request) => Promise<Response> {
   return async function handle(req: Request): Promise<Response> {
     if (req.method !== "POST") {
-      return jsonError(405, "method_not_allowed", "POST required");
+      return jsonError(405, "method_not_allowed");
     }
 
     let body: WorkflowRequestBody;
     try {
       body = (await req.json()) as WorkflowRequestBody;
     } catch {
-      return jsonError(400, "invalid_json", "Body must be valid JSON");
+      return jsonError(400, "invalid_json");
     }
 
     if (!body || typeof body !== "object" || !body.graph) {
-      return jsonError(400, "missing_graph", "Body must include a `graph`");
+      return jsonError(400, "missing_graph");
     }
 
     try {
       if (opts.beforeRun) body = await opts.beforeRun(body, req);
-    } catch (err) {
-      return jsonError(
-        400,
-        "before_run_failed",
-        err instanceof Error ? err.message : String(err)
-      );
+    } catch {
+      return jsonError(400, "before_run_failed");
     }
 
     const context = (await opts.createContext?.(req)) ?? undefined;
@@ -126,10 +122,10 @@ export function createWorkflowHandler(
             }
             write(formatSse(null, value));
           }
-        } catch (err) {
+        } catch {
           write(
             formatSse("error", {
-              message: err instanceof Error ? err.message : String(err)
+              message: "Workflow execution failed"
             })
           );
         } finally {
@@ -159,11 +155,24 @@ function formatSse(event: string | null, data: unknown): string {
   return `${prefix}data: ${payload}\n\n`;
 }
 
-function jsonError(status: number, code: string, message: string): Response {
-  return new Response(JSON.stringify({ error: code, message }), {
-    status,
-    headers: { "content-type": "application/json" }
-  });
+const ERROR_MESSAGES: Record<string, string> = {
+  method_not_allowed: "POST required",
+  invalid_json: "Body must be valid JSON",
+  missing_graph: "Body must include a `graph`",
+  before_run_failed: "beforeRun hook failed"
+};
+
+function jsonError(status: number, code: string): Response {
+  return new Response(
+    JSON.stringify({
+      error: code,
+      message: ERROR_MESSAGES[code] ?? "Request failed"
+    }),
+    {
+      status,
+      headers: { "content-type": "application/json" }
+    }
+  );
 }
 
 export type { ProcessingMessage };

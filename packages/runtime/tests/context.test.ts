@@ -60,6 +60,24 @@ describe("ProcessingContext – message queue", () => {
     expect(received[0].type).toBe("job_update");
   });
 
+  it("supports multiple message listeners", () => {
+    const first: ProcessingMessage[] = [];
+    const second: ProcessingMessage[] = [];
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    const unsubscribeFirst = ctx.addMessageListener((msg) => first.push(msg));
+    ctx.addMessageListener((msg) => second.push(msg));
+
+    ctx.emit({ type: "job_update", status: "running" });
+    unsubscribeFirst();
+    ctx.emit({ type: "job_update", status: "completed" });
+
+    expect(first.map((msg) => msg.type)).toEqual(["job_update"]);
+    expect(second.map((msg) => msg.type)).toEqual([
+      "job_update",
+      "job_update"
+    ]);
+  });
+
   it("clearMessages empties the queue", () => {
     const ctx = new ProcessingContext({ jobId: "j1" });
     ctx.emit({ type: "job_update", status: "running" });
