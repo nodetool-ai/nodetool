@@ -26,7 +26,8 @@ let mockStores: {
 
 const setMockState = (
   edges: typeof mockEdges,
-  stores: Partial<typeof mockStores> = {}
+  stores: Partial<typeof mockStores> = {},
+  nodes: typeof mockNodes = {}
 ) => {
   mockEdges = edges;
   mockStores = {
@@ -34,13 +35,22 @@ const setMockState = (
     results: stores.results ?? {},
     previews: stores.previews ?? {}
   };
+  for (const key of Object.keys(mockNodes)) {
+    delete mockNodes[key];
+  }
+  Object.assign(mockNodes, nodes);
 };
 
 jest.mock("../../../contexts/NodeContext", () => ({
   __esModule: true,
   useNodes: (selector: (state: unknown) => unknown) =>
-    selector({ edges: mockEdges })
+    selector({
+      edges: mockEdges,
+      findNode: (id: string) => mockNodes[id]
+    })
 }));
+
+const mockNodes: Record<string, { id: string; type?: string; data: { properties: Record<string, unknown> } }> = {};
 
 jest.mock("../../../stores/ResultsStore", () => ({
   __esModule: true,
@@ -153,5 +163,34 @@ describe("useUpstreamValue", () => {
       useUpstreamValue("wf", "blur", "image", undefined)
     );
     expect(result.current).toEqual({ uri: "latest.png" });
+  });
+
+  it("falls back to a literal source node's property when wired but not run", () => {
+    setMockState(
+      [
+        {
+          source: "const-img",
+          sourceHandle: "output",
+          target: "painter",
+          targetHandle: "image"
+        }
+      ],
+      {},
+      {
+        "const-img": {
+          id: "const-img",
+          type: "nodetool.constant.Image",
+          data: {
+            properties: {
+              value: { uri: "asset://img-1", type: "image" }
+            }
+          }
+        }
+      }
+    );
+    const { result } = renderHook(() =>
+      useUpstreamValue("wf", "painter", "image", { uri: "local.png" })
+    );
+    expect(result.current).toEqual({ uri: "asset://img-1", type: "image" });
   });
 });

@@ -59,13 +59,17 @@ import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 import NumberInput from "../../inputs/NumberInput";
 
-import type { NodeMetadata } from "../../../stores/ApiTypes";
+import type { NodeMetadata, Image } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useUpstreamValue } from "../../../hooks/nodes/useNodeIO";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useAssetUpload } from "../../../serverState/useAssetUpload";
+import { useAsset } from "../../../serverState/useAsset";
 import type { Asset } from "../../../stores/ApiTypes";
 import { resolveExposedInputNames } from "../../../utils/exposedInputs";
+import { asImageRef } from "../../../utils/imageRef";
+import { createImageUrl } from "../../../utils/imageUtils";
+import { resolveAssetUri } from "../../node/output/hooks";
 
 const PAINTER_NODE_TYPE = "nodetool.image.Painter";
 
@@ -87,28 +91,6 @@ interface ImageRefLike {
   height?: number;
   data?: unknown;
 }
-
-const asImageRef = (value: unknown): ImageRefLike | undefined => {
-  if (!value || typeof value !== "object") return undefined;
-  const v = value as Record<string, unknown>;
-  return {
-    uri: typeof v.uri === "string" ? v.uri : undefined,
-    width: typeof v.width === "number" ? v.width : undefined,
-    height: typeof v.height === "number" ? v.height : undefined,
-    data: v.data
-  };
-};
-
-const toImageSrc = (img: ImageRefLike | undefined): string | undefined => {
-  if (!img) return undefined;
-  if (img.uri) return img.uri;
-  if (img.data instanceof Uint8Array) {
-    return URL.createObjectURL(
-      new Blob([img.data as BlobPart], { type: "image/png" })
-    );
-  }
-  return undefined;
-};
 
 const styles = (theme: Theme) =>
   css({
@@ -376,18 +358,42 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
     () => asImageRef(inputValue),
     [inputValue]
   );
+  const imageProp = useMemo(
+    () =>
+      inputValue && typeof inputValue === "object"
+        ? (inputValue as Image)
+        : undefined,
+    [inputValue]
+  );
+  const { uri: assetUri } = useAsset({ image: imageProp });
 
   // Blob URL lifecycle: revoke previous URL on change / unmount.
-  const blobUrlRef = useRef<string | undefined>(undefined);
-  const sourceSrc = useMemo(() => toImageSrc(sourceImage), [sourceImage]);
-  useEffect(() => {
-    if (sourceSrc && sourceSrc.startsWith("blob:")) {
-      blobUrlRef.current = sourceSrc;
+  const blobUrlRef = useRef<string | null>(null);
+  const sourceSrc = useMemo(() => {
+    if (!sourceImage && !assetUri) {
+      return undefined;
     }
+    const uriCandidate =
+      sourceImage?.uri && sourceImage.uri.length > 0
+        ? sourceImage.uri
+        : assetUri;
+    const result = createImageUrl(
+      uriCandidate || sourceImage?.data != null
+        ? {
+            uri: uriCandidate,
+            data: sourceImage?.data as string | Uint8Array | number[] | undefined
+          }
+        : undefined,
+      blobUrlRef.current
+    );
+    blobUrlRef.current = result.blobUrl;
+    return result.url ? resolveAssetUri(result.url) : undefined;
+  }, [sourceImage, assetUri]);
+  useEffect(() => {
     return () => {
       if (blobUrlRef.current) {
         URL.revokeObjectURL(blobUrlRef.current);
-        blobUrlRef.current = undefined;
+        blobUrlRef.current = null;
       }
     };
   }, [sourceSrc]);

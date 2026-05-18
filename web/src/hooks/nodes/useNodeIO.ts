@@ -14,9 +14,12 @@
  * the resolution chain.
  */
 import { shallow } from "zustand/shallow";
+import { useMemo } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import useResultsStore from "../../stores/ResultsStore";
 import { unwrapOutput } from "../../utils/imageRef";
+import { resolveExternalEdgeValue } from "../../utils/edgeValue";
+import type { NodeStoreState } from "../../stores/NodeStore";
 
 const readAnyStoreValue = (
   state: ReturnType<typeof useResultsStore.getState>,
@@ -55,22 +58,38 @@ export const useUpstreamValue = (
   inputName: string,
   constantFallback?: unknown
 ): unknown => {
-  const upstreamEdge = useNodes(
-    (state) =>
-      state.edges.find(
-        (e) => e.target === nodeId && (e.targetHandle ?? "") === inputName
-      ),
+  const { upstreamEdge, findNode } = useNodes(
+    useMemo(
+      () => (state: NodeStoreState) => ({
+        upstreamEdge: state.edges.find(
+          (e) => e.target === nodeId && (e.targetHandle ?? "") === inputName
+        ),
+        findNode: state.findNode
+      }),
+      [nodeId, inputName]
+    ),
     shallow
   );
 
-  const upstreamValue = useResultsStore((state) => {
-    const src = upstreamEdge?.source;
-    if (!src) return undefined;
-    return unwrapOutput(
-      readAnyStoreValue(state, workflowId, src),
-      upstreamEdge?.sourceHandle
-    );
-  }, shallow);
+  return useResultsStore((state) => {
+    if (!upstreamEdge) {
+      return constantFallback;
+    }
 
-  return upstreamEdge ? upstreamValue : constantFallback;
+    const storeValue = unwrapOutput(
+      readAnyStoreValue(state, workflowId, upstreamEdge.source),
+      upstreamEdge.sourceHandle
+    );
+    if (storeValue !== undefined) {
+      return storeValue;
+    }
+
+    const resolved = resolveExternalEdgeValue(
+      upstreamEdge,
+      workflowId,
+      (wf, src) => readAnyStoreValue(state, wf, src),
+      findNode
+    );
+    return resolved.hasValue ? resolved.value : undefined;
+  }, shallow);
 };
