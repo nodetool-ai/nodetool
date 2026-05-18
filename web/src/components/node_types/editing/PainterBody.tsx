@@ -123,7 +123,15 @@ const styles = (theme: Theme) =>
       position: "relative",
       borderRadius: "var(--rounded-sm)",
       overflow: "hidden",
-      backgroundColor: theme.vars.palette.grey[900],
+      // Subtle checker so the canvas footprint is visible against the node
+      // body — easier to tell where the paintable area ends.
+      backgroundColor: theme.vars.palette.grey[800],
+      backgroundImage: `linear-gradient(45deg, ${theme.vars.palette.grey[900]} 25%, transparent 25%),
+        linear-gradient(-45deg, ${theme.vars.palette.grey[900]} 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, ${theme.vars.palette.grey[900]} 75%),
+        linear-gradient(-45deg, transparent 75%, ${theme.vars.palette.grey[900]} 75%)`,
+      backgroundSize: "12px 12px",
+      backgroundPosition: "0 0, 0 6px, 6px -6px, -6px 0",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -150,8 +158,46 @@ const styles = (theme: Theme) =>
         inset: 0,
         width: "100%",
         height: "100%",
-        cursor: "crosshair",
+        pointerEvents: "none",
         touchAction: "none"
+      },
+      /*
+       * Live stroke buffer: stacked above the committed paint canvas, receives
+       * pointer events, painted at full alpha. Its CSS `opacity` shows the
+       * stroke at its target brush opacity during draw; on pointerup the
+       * buffer is composited onto the main canvas in one drawImage with the
+       * correct globalAlpha + globalCompositeOperation, then cleared.
+       * Single-composite avoids alpha accumulation at segment overlaps.
+       */
+      "& canvas.paint-buffer": {
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        cursor: "none",
+        touchAction: "none",
+        pointerEvents: "auto"
+      },
+      /*
+       * Brush cursor: a thin-outlined circle that follows the pointer over
+       * the paint area, sized to match `brushSize` in CSS pixels. Position
+       * and size are mutated imperatively so high-frequency pointer moves
+       * don't trigger React re-renders.
+       */
+      "& .brush-cursor": {
+        position: "absolute",
+        left: 0,
+        top: 0,
+        width: 0,
+        height: 0,
+        borderRadius: "50%",
+        border: `1px solid ${theme.vars.palette.common.white}`,
+        outline: `1px solid ${theme.vars.palette.common.black}`,
+        transform: "translate(-50%, -50%)",
+        pointerEvents: "none",
+        opacity: 0,
+        transition: "opacity 80ms linear",
+        zIndex: 2
       }
     },
     ".toolbar": {
@@ -291,7 +337,16 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
   );
 
   // ── Paint canvas + history ───────────────────────────────────────
+  // Two canvases:
+  //   canvasRef       — persistent, committed strokes only.
+  //   bufferRef       — live overlay for the in-flight stroke. Painted at
+  //                     alpha=1; CSS opacity shows the target brush opacity.
+  //                     On pointerup the buffer is composited onto the main
+  //                     canvas in a single drawImage so overlaps don't stack
+  //                     alpha. Pointer events are bound to the buffer.
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const bufferRef = useRef<HTMLCanvasElement | null>(null);
+  const cursorRef = useRef<HTMLDivElement | null>(null);
   /** Snapshots of the paint canvas as data-URLs. */
   const undoStackRef = useRef<string[]>([]);
   const redoStackRef = useRef<string[]>([]);
@@ -403,11 +458,12 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
 
   const eventToCanvasXY = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
-      const c = ensureCanvas();
-      if (!c) return { x: 0, y: 0 };
-      const rect = c.getBoundingClientRect();
-      const sx = c.width / Math.max(1, rect.width);
-      const sy = c.height / Math.max(1, rect.height);
+      // Pointer events live on the buffer; both canvases share dimensions.
+      const target = bufferRef.current ?? ensureCanvas();
+      if (!target) return { x: 0, y: 0 };
+      const rect = target.getBoundingClientRect();
+      const sx = target.width / Math.max(1, rect.width);
+      const sy = target.height / Math.max(1, rect.height);
       return {
         x: (e.clientX - rect.left) * sx,
         y: (e.clientY - rect.top) * sy
@@ -428,22 +484,20 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
 
   const drawStrokeTo = useCallback(
     (to: { x: number; y: number }) => {
-      const c = ensureCanvas();
-      const ctx = c?.getContext("2d");
-      if (!c || !ctx) return;
+      // Always paint into the live buffer at full alpha, source-over. The
+      // brush opacity is applied once at commit time (see finishStroke);
+      // painting at alpha=1 here means overlapping segments don't stack.
+      const buf = bufferRef.current;
+      const ctx = buf?.getContext("2d");
+      if (!buf || !ctx) return;
       const from = lastPointRef.current ?? to;
       ctx.save();
       ctx.lineWidth = brushSize;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      if (tool === "eraser") {
-        ctx.globalCompositeOperation = "destination-out";
-        ctx.strokeStyle = `rgba(0,0,0,${brushOpacity})`;
-      } else {
-        ctx.globalCompositeOperation = "source-over";
-        ctx.globalAlpha = brushOpacity;
-        ctx.strokeStyle = color;
-      }
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.strokeStyle = color;
       ctx.beginPath();
       ctx.moveTo(from.x, from.y);
       ctx.lineTo(to.x, to.y);
@@ -451,14 +505,20 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
       ctx.restore();
       lastPointRef.current = to;
     },
-    [brushOpacity, brushSize, color, ensureCanvas, tool]
+    [brushSize, color]
   );
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
+      // Left button only — middle/right are reserved for pan / context menu.
+      if (e.button !== 0) return;
       e.stopPropagation();
       const c = ensureCanvas();
-      if (!c) return;
+      const buf = bufferRef.current;
+      if (!c || !buf) return;
+      // Fresh buffer for this stroke — no carry-over from prior strokes.
+      const bctx = buf.getContext("2d");
+      bctx?.clearRect(0, 0, buf.width, buf.height);
       pointerActiveRef.current = true;
       isDirtyRef.current = true;
       pushUndoSnapshot();
@@ -474,12 +534,44 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
     [drawStrokeTo, ensureCanvas, eventToCanvasXY, pushUndoSnapshot]
   );
 
+  const updateBrushCursor = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      const cur = cursorRef.current;
+      const buf = bufferRef.current;
+      if (!cur || !buf) return;
+      const rect = buf.getBoundingClientRect();
+      // React Flow applies `transform: scale(zoom)` to the viewport, so
+      // `getBoundingClientRect()` returns post-transform screen pixels while
+      // CSS `left/top/width/height` on a transformed-subtree child are
+      // interpreted in pre-transform local pixels. Convert by the ratio
+      // offsetWidth / rect.width (local / screen ≈ 1 / zoom). Without this
+      // the cursor drifts at any zoom ≠ 1 and falls outside `.paint-stage`,
+      // where `.paint-area { overflow: hidden }` clips it.
+      const sxLocal = buf.offsetWidth / Math.max(1, rect.width);
+      const syLocal = buf.offsetHeight / Math.max(1, rect.height);
+      const localPerCanvasPx = buf.offsetWidth / Math.max(1, buf.width);
+      const sizeCss = Math.max(2, brushSize * localPerCanvasPx);
+      cur.style.width = `${sizeCss}px`;
+      cur.style.height = `${sizeCss}px`;
+      cur.style.left = `${(e.clientX - rect.left) * sxLocal}px`;
+      cur.style.top = `${(e.clientY - rect.top) * syLocal}px`;
+      cur.style.opacity = "1";
+    },
+    [brushSize]
+  );
+
+  const hideBrushCursor = useCallback(() => {
+    const cur = cursorRef.current;
+    if (cur) cur.style.opacity = "0";
+  }, []);
+
   const onPointerMove = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
+      updateBrushCursor(e);
       if (!pointerActiveRef.current) return;
       drawStrokeTo(eventToCanvasXY(e));
     },
-    [drawStrokeTo, eventToCanvasXY]
+    [drawStrokeTo, eventToCanvasXY, updateBrushCursor]
   );
 
   const pointerCaptureTargetRef = useRef<HTMLCanvasElement | null>(null);
@@ -489,6 +581,27 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
       if (!pointerActiveRef.current) return;
       pointerActiveRef.current = false;
       lastPointRef.current = null;
+
+      // Composite the buffered stroke onto the main canvas in a single
+      // drawImage. globalAlpha applies the brush opacity once across the
+      // whole stroke — overlapping segments inside the buffer were drawn at
+      // alpha=1 so they don't accumulate. compositeOp branches on the tool:
+      // source-over for brush (additive), destination-out for eraser
+      // (subtractive — the buffer's alpha channel becomes the cut-out mask).
+      const main = ensureCanvas();
+      const buf = bufferRef.current;
+      const mctx = main?.getContext("2d");
+      const bctx = buf?.getContext("2d");
+      if (main && buf && mctx && bctx) {
+        mctx.save();
+        mctx.globalAlpha = brushOpacity;
+        mctx.globalCompositeOperation =
+          tool === "eraser" ? "destination-out" : "source-over";
+        mctx.drawImage(buf, 0, 0);
+        mctx.restore();
+        bctx.clearRect(0, 0, buf.width, buf.height);
+      }
+
       const snap = snapshotMask();
       if (snap) writeMaskData(snap, true);
       isDirtyRef.current = false;
@@ -502,7 +615,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
         pointerCaptureTargetRef.current = null;
       }
     },
-    [snapshotMask, writeMaskData]
+    [brushOpacity, ensureCanvas, snapshotMask, tool, writeMaskData]
   );
 
   const onPointerUp = useCallback(
@@ -634,11 +747,21 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
                 className="paint nodrag"
                 width={canvasW}
                 height={canvasH}
+              />
+              <canvas
+                ref={bufferRef}
+                className="paint-buffer nodrag"
+                width={canvasW}
+                height={canvasH}
+                style={{ opacity: brushOpacity }}
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
                 onPointerCancel={onPointerUp}
+                onPointerEnter={updateBrushCursor}
+                onPointerLeave={hideBrushCursor}
               />
+              <div ref={cursorRef} className="brush-cursor" aria-hidden />
             </div>
           ) : (
             <div className="paint-stage">
@@ -654,11 +777,25 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
                   maxWidth: "100%",
                   maxHeight: "100%"
                 }}
+              />
+              <canvas
+                ref={bufferRef}
+                className="paint-buffer nodrag"
+                width={canvasW}
+                height={canvasH}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  opacity: brushOpacity
+                }}
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
                 onPointerCancel={onPointerUp}
+                onPointerEnter={updateBrushCursor}
+                onPointerLeave={hideBrushCursor}
               />
+              <div ref={cursorRef} className="brush-cursor" aria-hidden />
               <CheckerDropzone
                 message="Paint, or connect an image"
                 icon={<ImageIcon />}
