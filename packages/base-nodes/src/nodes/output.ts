@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { audioBytesAsync } from "../lib/audio-wav.js";
 
@@ -116,6 +117,11 @@ export class OutputNode extends BaseNode {
   static readonly inputFields = ["value"];
 
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "value" }
+  };
+
   @prop({
     type: "str",
     default: "",

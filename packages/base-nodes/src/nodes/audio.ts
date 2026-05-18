@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -80,6 +81,13 @@ export class LoadAudioAssetsNode extends BaseNode {
   static readonly inputFields: string[] = [];
 
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    audio: { kind: "iteration", source: "__execution__", group: "items" },
+    name: { kind: "iteration", source: "__execution__", group: "items" },
+    audios: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "folder",
     default: {
@@ -187,6 +195,13 @@ export class LoadAudioFolderNode extends BaseNode {
   static readonly inputFields: string[] = [];
 
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    audio: { kind: "iteration", source: "__execution__", group: "items" },
+    path: { kind: "iteration", source: "__execution__", group: "items" },
+    audios: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "str",
     default: "",
@@ -1218,6 +1233,11 @@ export class TextToSpeechNode extends BaseNode {
   static readonly exposeAsTool = true;
 
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    audio: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "tts_model",
     default: {

@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 
 export class IfNode extends BaseNode {
   static readonly nodeType = "nodetool.control.If";
@@ -15,6 +16,11 @@ export class IfNode extends BaseNode {
 
   static readonly isStreamingOutput = true;
   static readonly syncMode = "zip_all" as const;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    if_true: { kind: "forward", source: "value" },
+    if_false: { kind: "forward", source: "value" }
+  };
   @prop({
     type: "bool",
     default: false,
@@ -55,6 +61,11 @@ export class ForEachNode extends BaseNode {
   static readonly inputFields = [];
 
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "iteration", source: "__execution__", group: "items" },
+    index: { kind: "iteration", source: "__execution__", group: "items" }
+  };
   @prop({
     type: "list[any]",
     default: [],
@@ -105,6 +116,11 @@ export class TakeNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_item" },
+    index: { kind: "forward", source: "input_item" }
+  };
 
   @prop({
     type: "any",
@@ -163,6 +179,10 @@ export class CollectNode extends BaseNode {
 
   static readonly syncMode = "on_any" as const;
   static readonly isStreamingInput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "aggregate", source: "input_item", collapse: "innermost" }
+  };
 
   @prop({
     type: "any",
@@ -201,6 +221,10 @@ export class RerouteNode extends BaseNode {
 
   static readonly isStreamingOutput = true;
   static readonly syncMode = "on_any" as const;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_value" }
+  };
   @prop({
     type: "any",
     default: [],
@@ -226,6 +250,12 @@ export class SwitchNode extends BaseNode {
   };
   static readonly inlineFields = [];
   static readonly inputFields = [];
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    matched: { kind: "forward", source: "input" },
+    default: { kind: "forward", source: "input" },
+    index: { kind: "single", source: "input" }
+  };
 
   @prop({
     type: "any",
@@ -277,6 +307,12 @@ export class TryCatchNode extends BaseNode {
   };
   static readonly inlineFields = [];
   static readonly inputFields = [];
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "value" },
+    error: { kind: "single", source: "value" },
+    has_error: { kind: "single", source: "value" }
+  };
 
   @prop({
     type: "any",
@@ -322,6 +358,11 @@ export class DropNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_item" },
+    index: { kind: "forward", source: "input_item" }
+  };
 
   @prop({
     type: "any",
@@ -387,6 +428,10 @@ export class FilterEqualNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_item" }
+  };
 
   @prop({
     type: "any",
@@ -460,6 +505,10 @@ export class FilterCodeNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_item" }
+  };
 
   @prop({
     type: "any",
@@ -509,6 +558,11 @@ export class ChunkNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "iteration", source: "input_item", group: "batch" },
+    index: { kind: "iteration", source: "input_item", group: "batch" }
+  };
 
   @prop({
     type: "any",
@@ -568,6 +622,10 @@ export class LastNode extends BaseNode {
   static readonly inputFields = [];
 
   static readonly isStreamingInput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "aggregate", source: "input_item", collapse: "innermost" }
+  };
 
   @prop({
     type: "any",
@@ -609,6 +667,10 @@ export class CountStreamNode extends BaseNode {
   static readonly inputFields = [];
 
   static readonly isStreamingInput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "aggregate", source: "input_item", collapse: "innermost" }
+  };
 
   @prop({
     type: "any",
@@ -675,6 +737,10 @@ export class DistinctNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_item" }
+  };
 
   @prop({
     type: "any",
@@ -726,6 +792,10 @@ export class TakeWhileNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_item" }
+  };
 
   @prop({
     type: "any",
@@ -779,6 +849,10 @@ export class DropWhileNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_item" }
+  };
 
   @prop({
     type: "any",
@@ -830,6 +904,10 @@ export class TapNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_item" }
+  };
 
   @prop({
     type: "any",

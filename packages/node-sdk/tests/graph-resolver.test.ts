@@ -20,7 +20,11 @@ const sampleMetadata: NodeMetadata = {
       type: { type: "list", type_args: [{ type: "string", type_args: [] }] }
     }
   ],
-  is_streaming_output: true
+  is_streaming_output: true,
+  input_mode: "buffered",
+  output_correlation: {
+    output: { kind: "single", source: "__execution__" }
+  }
 };
 
 class LazyNode extends BaseNode {
@@ -58,7 +62,11 @@ describe("createGraphNodeTypeResolver", () => {
       isDynamic: false,
       descriptorDefaults: {
         name: "Strict Node",
-        is_streaming_output: true
+        is_streaming_output: true,
+        input_mode: "buffered",
+        output_correlation: {
+          output: { kind: "single", source: "__execution__" }
+        }
       }
     });
   });
@@ -119,6 +127,10 @@ describe("createGraphNodeTypeResolver", () => {
     expect(resolved?.descriptorDefaults).toEqual({
       name: "Zip Node",
       is_streaming_output: true,
+      input_mode: "buffered",
+      output_correlation: {
+        output: { kind: "single", source: "__execution__" }
+      },
       sync_mode: "zip_all"
     });
   });

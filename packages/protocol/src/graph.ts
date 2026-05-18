@@ -54,6 +54,24 @@ export type ControlEvent = RunEvent | StopEvent;
 
 export type SyncMode = "on_any" | "zip_all";
 
+export type InputMode = "buffered" | "stream" | "controlled";
+
+export type OutputKind =
+  | "single"
+  | "iteration"
+  | "chunk"
+  | "forward"
+  | "aggregate";
+
+export type CollapseSpec = "innermost";
+
+export interface OutputCorrelation {
+  kind: OutputKind;
+  source: string;
+  group?: string;
+  collapse?: CollapseSpec;
+}
+
 /**
  * Minimal node descriptor for graph operations.
  * The full BaseNode equivalent lives in the node-sdk package.
@@ -86,6 +104,12 @@ export interface NodeDescriptor {
 
   /** Whether this node produces streaming output. */
   is_streaming_output?: boolean;
+
+  /** Correlation-aware input execution mode. */
+  input_mode?: InputMode;
+
+  /** Per-output correlation metadata. */
+  output_correlation?: Record<string, OutputCorrelation>;
 
   /** Sync mode: fire-on-first or wait-all. */
   sync_mode?: SyncMode;

@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 
 export class FloatInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.FloatInput";
@@ -1338,6 +1339,10 @@ export class RealtimeAudioInputNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["value"];
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    chunk: { kind: "single", source: "__execution__" }
+  };
 
   @prop({
     type: "str",

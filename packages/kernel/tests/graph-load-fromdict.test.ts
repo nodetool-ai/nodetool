@@ -19,7 +19,11 @@ describe("Graph.loadFromDict", () => {
           descriptorDefaults: {
             name: "Resolved Input",
             sync_mode: "on_any",
-            is_streaming_output: false
+            is_streaming_output: false,
+            input_mode: "buffered",
+            output_correlation: {
+              output: { kind: "single", source: "__execution__" }
+            }
           }
         };
       }
@@ -38,7 +42,48 @@ describe("Graph.loadFromDict", () => {
     expect(node?.propertyTypes).toEqual({ value: "int" });
     expect(node?.outputs).toEqual({ output: "int" });
     expect(node?.sync_mode).toBe("on_any");
+    expect(node?.input_mode).toBe("buffered");
+    expect(node?.output_correlation).toEqual({
+      output: { kind: "single", source: "__execution__" }
+    });
     expect(node?.name).toBe("Resolved Input");
+  });
+
+  it("prefers resolver correlation metadata over saved node metadata", async () => {
+    const graph = await Graph.loadFromDict(
+      {
+        nodes: [
+          {
+            id: "n1",
+            type: "test.Node",
+            input_mode: "stream",
+            output_correlation: {
+              output: { kind: "forward", source: "old_input" }
+            }
+          }
+        ],
+        edges: []
+      },
+      {
+        resolver: {
+          resolveNodeType: async (nodeType) => ({
+            nodeType,
+            descriptorDefaults: {
+              input_mode: "buffered",
+              output_correlation: {
+                output: { kind: "single", source: "__execution__" }
+              }
+            }
+          })
+        }
+      }
+    );
+
+    const node = graph.findNode("n1");
+    expect(node?.input_mode).toBe("buffered");
+    expect(node?.output_correlation).toEqual({
+      output: { kind: "single", source: "__execution__" }
+    });
   });
 
   it("drops unresolved nodes and connected edges when skipErrors is true", async () => {

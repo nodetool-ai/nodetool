@@ -1,7 +1,7 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { WorkflowRunner, Graph } from "@nodetool-ai/kernel";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
+import type { NodeDescriptor, Edge, InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import { randomUUID } from "node:crypto";
 
 /**
@@ -20,6 +20,10 @@ export class WorkflowNode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "single", source: "__execution__" }
+  };
   static readonly inlineFields = ["workflow_id"];
   static readonly inputFields = [];
 

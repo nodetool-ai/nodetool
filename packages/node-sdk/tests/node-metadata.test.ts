@@ -60,6 +60,52 @@ describe("getNodeMetadata", () => {
     expect(meta.is_streaming_output).toBe(true);
   });
 
+  it("includes correlation metadata", () => {
+    class CorrelatedNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.Correlated";
+      static readonly title = "Correlated";
+      static readonly description = "Has correlation metadata";
+      static readonly inputMode = "stream" as const;
+      static readonly outputCorrelation = {
+        output: { kind: "forward", source: "input" }
+      } as const;
+
+      async process() {
+        return {};
+      }
+    }
+
+    const meta = getNodeMetadata(CorrelatedNode);
+    expect(meta.input_mode).toBe("stream");
+    expect(meta.output_correlation).toEqual({
+      output: { kind: "forward", source: "input" }
+    });
+  });
+
+  it("throws on invalid correlation metadata", () => {
+    class BadAggregateNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.BadAggregate";
+      static readonly title = "Bad Aggregate";
+      static readonly description = "Aggregate on a buffered node — rejected";
+      static readonly inputMode = "buffered" as const;
+      static readonly outputCorrelation = {
+        output: {
+          kind: "aggregate",
+          source: "input",
+          collapse: "innermost"
+        }
+      } as const;
+
+      async process() {
+        return {};
+      }
+    }
+
+    expect(() => getNodeMetadata(BadAggregateNode)).toThrow(
+      /aggregate output .* is not allowed on buffered nodes/
+    );
+  });
+
   it("infers string types from defaults", () => {
     const meta = getNodeMetadata(StringConcat);
     const propA = meta.properties.find((p) => p.name === "a");

@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getS3Client(
@@ -91,6 +92,11 @@ export class S3ListObjectsLibNode extends BaseNode {
     "AWS_SECRET_ACCESS_KEY"
   ];
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    object: { kind: "iteration", source: "__execution__", group: "items" },
+    objects: { kind: "single", source: "__execution__" }
+  };
 
   @prop({
     type: "str",

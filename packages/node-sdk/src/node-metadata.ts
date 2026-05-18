@@ -14,6 +14,10 @@ import type {
   TypeMetadata
 } from "./metadata.js";
 import type { DeclaredPropertyMetadata } from "./decorators.js";
+import {
+  CorrelationMetadataError,
+  validateOutputCorrelation
+} from "./correlation-validation.js";
 
 export interface GetNodeMetadataOptions {
   pythonMetadata?: NodeMetadata;
@@ -225,6 +229,18 @@ export function getNodeMetadata(
     type: toMetadataType(o.type)
   }));
 
+  if (nodeClass.outputCorrelation) {
+    const issues = validateOutputCorrelation(
+      nodeType,
+      nodeClass.inputMode,
+      nodeClass.outputCorrelation,
+      outputs.map((o) => o.name)
+    );
+    if (issues.length > 0) {
+      throw new CorrelationMetadataError(issues);
+    }
+  }
+
   const tsMetadata: NodeMetadata = {
     title: nodeClass.title || nodeType,
     description: nodeClass.description || "",
@@ -241,6 +257,8 @@ export function getNodeMetadata(
     required_runtimes: nodeClass.requiredRuntimes ?? [],
     is_streaming_input: nodeClass.isStreamingInput || false,
     is_streaming_output: nodeClass.isStreamingOutput || false,
+    input_mode: nodeClass.inputMode,
+    output_correlation: nodeClass.outputCorrelation,
     is_controlled: nodeClass.isControlled || false,
     is_dynamic: nodeClass.isDynamic || false,
     expose_as_tool: nodeClass.exposeAsTool,

@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { VideoRef, StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { execFile as execFileCb } from "node:child_process";
@@ -533,6 +534,14 @@ export class LoadVideoAssetsNode extends BaseNode {
   static readonly inputFields: string[] = [];
 
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    video: { kind: "iteration", source: "__execution__", group: "items" },
+    name: { kind: "iteration", source: "__execution__", group: "items" },
+    videos: { kind: "single", source: "__execution__" },
+    names: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "folder",
     default: {
@@ -684,6 +693,13 @@ export class FrameIteratorNode extends BaseNode {
   static readonly inputFields: string[] = ["video"];
 
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    frame: { kind: "iteration", source: "__execution__", group: "items" },
+    index: { kind: "iteration", source: "__execution__", group: "items" },
+    fps: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "video",
     default: {
@@ -861,6 +877,11 @@ export class FrameToVideoNode extends BaseNode {
   static readonly description =
     "Combine a sequence of frames into a single video file.\n    video, frames, combine, sequence";
   static readonly isStreamingInput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "aggregate", source: "frame", collapse: "innermost" }
+  };
+
   static readonly metadataOutputTypes = {
     output: "video"
   };

@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
@@ -267,6 +268,12 @@ export class LoadImageFolderNode extends BaseNode {
   static readonly inputFields = [];
 
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    image: { kind: "iteration", source: "__execution__", group: "items" },
+    images: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "str",
     default: "",
@@ -476,6 +483,13 @@ export class LoadImageAssetsNode extends BaseNode {
   static readonly inputFields = [];
 
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    image: { kind: "iteration", source: "__execution__", group: "items" },
+    name: { kind: "iteration", source: "__execution__", group: "items" },
+    images: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "folder",
     default: {

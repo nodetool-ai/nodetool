@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 
 const TWILIO_TIMEOUT = 30000;
 
@@ -272,6 +273,11 @@ export class TwilioGetMessagesLibNode extends BaseNode {
   };
   static readonly exposeAsTool = true;
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    message: { kind: "iteration", source: "__execution__", group: "items" },
+    messages: { kind: "single", source: "__execution__" }
+  };
   static readonly requiredSettings = [
     "TWILIO_ACCOUNT_SID",
     "TWILIO_AUTH_TOKEN"

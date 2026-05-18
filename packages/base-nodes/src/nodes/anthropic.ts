@@ -5,6 +5,7 @@
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 
 export class ClaudeAgentNode extends BaseNode {
   static readonly nodeType = "anthropic.agents.ClaudeAgent";
@@ -20,6 +21,12 @@ export class ClaudeAgentNode extends BaseNode {
   static readonly requiredSettings = ["ANTHROPIC_API_KEY"];
 
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "single", source: "__execution__" },
+    chunk: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "str",
     default: "",

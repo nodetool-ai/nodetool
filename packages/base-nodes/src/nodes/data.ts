@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -873,6 +874,12 @@ export class RowIteratorNode extends BaseNode {
   };
 
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    dict: { kind: "iteration", source: "dataframe", group: "items" },
+    index: { kind: "iteration", source: "dataframe", group: "items" }
+  };
+
   @prop({
     type: "dataframe",
     default: {
@@ -1079,6 +1086,12 @@ export class ForEachRowNode extends BaseNode {
   static readonly exposeAsTool = true;
 
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    row: { kind: "iteration", source: "dataframe", group: "items" },
+    index: { kind: "iteration", source: "dataframe", group: "items" }
+  };
+
   @prop({
     type: "dataframe",
     default: {
@@ -1122,6 +1135,14 @@ export class LoadCSVAssetsNode extends BaseNode {
   static readonly exposeAsTool = true;
 
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    dataframe: { kind: "iteration", source: "folder", group: "items" },
+    name: { kind: "iteration", source: "folder", group: "items" },
+    dataframes: { kind: "single", source: "folder" },
+    names: { kind: "single", source: "folder" }
+  };
+
   @prop({
     type: "folder",
     default: {
@@ -1614,6 +1635,11 @@ export class FilterNoneNode extends BaseNode {
 
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "value" }
+  };
+
   @prop({
     type: "any",
     default: [],

@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 
 function notionHeaders(token: string): Record<string, string> {
   return {
@@ -100,6 +101,11 @@ export class NotionSearchLibNode extends BaseNode {
   static readonly exposeAsTool = true;
   static readonly requiredSettings = ["NOTION_API_KEY"];
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    result: { kind: "iteration", source: "__execution__", group: "items" },
+    results: { kind: "single", source: "__execution__" }
+  };
 
   @prop({
     type: "str",
@@ -303,6 +309,11 @@ export class NotionGetPageContentLibNode extends BaseNode {
   static readonly exposeAsTool = true;
   static readonly requiredSettings = ["NOTION_API_KEY"];
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    block: { kind: "iteration", source: "__execution__", group: "items" },
+    blocks: { kind: "single", source: "__execution__" }
+  };
 
   @prop({
     type: "str",
@@ -599,6 +610,11 @@ export class NotionQueryDatabaseLibNode extends BaseNode {
   static readonly exposeAsTool = true;
   static readonly requiredSettings = ["NOTION_API_KEY"];
   static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    result: { kind: "iteration", source: "__execution__", group: "items" },
+    results: { kind: "single", source: "__execution__" }
+  };
 
   @prop({
     type: "str",

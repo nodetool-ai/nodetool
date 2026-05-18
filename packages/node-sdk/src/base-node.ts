@@ -1,4 +1,9 @@
-import type { NodeDescriptor, SyncMode } from "@nodetool-ai/protocol";
+import type {
+  InputMode,
+  NodeDescriptor,
+  OutputCorrelation,
+  SyncMode
+} from "@nodetool-ai/protocol";
 import type { NodeExecutor } from "@nodetool-ai/kernel";
 import type {
   ProcessingContext,
@@ -61,6 +66,8 @@ export type NodeClass = {
   requiredRuntimes?: string[];
   isStreamingInput: boolean;
   isStreamingOutput: boolean;
+  inputMode?: InputMode;
+  outputCorrelation?: Record<string, OutputCorrelation>;
   isDynamic: boolean;
   syncMode: SyncMode;
   isControlled: boolean;
@@ -121,6 +128,10 @@ export abstract class BaseNode {
   static readonly requiredRuntimes: string[] | undefined = undefined;
   static readonly isStreamingInput: boolean = false;
   static readonly isStreamingOutput: boolean = false;
+  static readonly inputMode: InputMode | undefined = undefined;
+  static readonly outputCorrelation:
+    | Record<string, OutputCorrelation>
+    | undefined = undefined;
   static readonly isDynamic: boolean = false;
   static readonly syncMode: SyncMode = "zip_all";
   static readonly isControlled: boolean = false;
@@ -388,6 +399,8 @@ export abstract class BaseNode {
       name: cls.title,
       is_streaming_input: cls.isStreamingInput,
       is_streaming_output: cls.isStreamingOutput,
+      input_mode: cls.inputMode,
+      output_correlation: cls.outputCorrelation,
       sync_mode: cls.syncMode,
       is_controlled: cls.isControlled
     };

@@ -383,6 +383,9 @@ export class Graph {
           descriptorDefaults.is_streaming_output ||
           node.is_streaming_output ||
           false,
+        input_mode: descriptorDefaults.input_mode ?? node.input_mode,
+        output_correlation:
+          descriptorDefaults.output_correlation ?? node.output_correlation,
         is_controlled:
           descriptorDefaults.is_controlled || node.is_controlled || false
       };
