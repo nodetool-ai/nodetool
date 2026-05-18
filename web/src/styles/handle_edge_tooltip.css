@@ -498,6 +498,14 @@ ul.multi-outputs li::marker {
   line-height: 1.2;
 }
 
+.handle-tooltip-type {
+  font-size: var(--fontSizeSmaller);
+  font-family: var(--fontFamily2, monospace);
+  opacity: 0.8;
+  padding: 0 0.5em 0.2em;
+  line-height: 1.1;
+}
+
 .handle-tooltip-streaming,
 .handle-tooltip-info {
   font-size: var(--fontSizeSmall);

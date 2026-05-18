@@ -321,7 +321,8 @@ describe('HandleTooltip', () => {
       await waitFor(() => {
         const tooltipName = document.querySelector('.handle-tooltip-name');
         expect(tooltipName).toHaveTextContent('Test Param');
-        expect(document.querySelector('.handle-tooltip-type')).toBeNull();
+        const tooltipType = document.querySelector('.handle-tooltip-type');
+        expect(tooltipType).toHaveTextContent('string');
       });
     });
   });

@@ -58,6 +58,7 @@ const HandleTooltip = memo(function HandleTooltip({
   variant = "handle"
 }: HandleTooltipProps) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   const tooltipIdRef = useRef<string>(generateTooltipId());
   const isConnecting = useConnectionStore(
     (state) => state.connecting || state.isReconnecting
@@ -88,6 +89,7 @@ const HandleTooltip = memo(function HandleTooltip({
       showTimerRef.current = null;
     }
     setShowTooltip(false);
+    setIsHovering(false);
   }, [isConnecting]);
 
   useEffect(() => {
@@ -118,16 +120,18 @@ const HandleTooltip = memo(function HandleTooltip({
     }
     showTimerRef.current = window.setTimeout(() => {
       setShowTooltip(true);
+      setIsHovering(true);
     }, ENTER_DELAY);
   }, [enableHover, isConnecting]);
 
   const handleMouseLeave = useCallback(() => {
-    if (nodeSelected) {
-      return;
-    }
     if (showTimerRef.current !== null) {
       clearTimeout(showTimerRef.current);
       showTimerRef.current = null;
+    }
+    setIsHovering(false);
+    if (nodeSelected) {
+      return;
     }
     setShowTooltip(false);
   }, [nodeSelected]);
@@ -137,9 +141,11 @@ const HandleTooltip = memo(function HandleTooltip({
       return;
     }
     setShowTooltip(true);
+    setIsHovering(true);
   }, [enableHover]);
 
   const handleBlur = useCallback(() => {
+    setIsHovering(false);
     if (nodeSelected) {
       return;
     }
@@ -180,6 +186,11 @@ const HandleTooltip = memo(function HandleTooltip({
             <div className="handle-tooltip-name">
               {prettyName}
             </div>
+            {isHovering && (
+              <div className="handle-tooltip-type">
+                {displayType}
+              </div>
+            )}
             {isCollectInput && (
               <div className="handle-tooltip-info">
                 Collect input - accepts multiple connections that are combined into a list
