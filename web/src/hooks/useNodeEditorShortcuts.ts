@@ -131,7 +131,7 @@ export const useNodeEditorShortcuts = (
 
   // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {
-    if (!active) {
+    if (!active || isTextInputActive()) {
       return;
     }
 
