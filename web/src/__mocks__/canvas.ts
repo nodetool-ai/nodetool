@@ -30,7 +30,7 @@ const createCanvas = jest.fn(() => ({
     rect: jest.fn(),
     clip: jest.fn()
   })),
-  toBuffer: jest.fn((callback: any) => callback(null, Buffer.from(""))),
+  toBuffer: jest.fn((callback: (err: Error | null, buf: Buffer) => void) => callback(null, Buffer.from(""))),
   width: 300,
   height: 150
 }));
