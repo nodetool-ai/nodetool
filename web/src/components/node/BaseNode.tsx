@@ -661,6 +661,39 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       : false
   );
 
+  // Hover-reveal of all handle tooltips. The user can hover the node body
+  // to see every input/output port's name without hovering each handle one
+  // by one. A short delay filters out incidental mouse-passes during pan.
+  const [isNodeHovered, setIsNodeHovered] = useState(false);
+  const hoverTimerRef = useRef<number | null>(null);
+  const HOVER_REVEAL_DELAY = 180;
+
+  const handleNodeMouseEnter = useCallback(() => {
+    if (hoverTimerRef.current !== null) {
+      window.clearTimeout(hoverTimerRef.current);
+    }
+    hoverTimerRef.current = window.setTimeout(() => {
+      setIsNodeHovered(true);
+      hoverTimerRef.current = null;
+    }, HOVER_REVEAL_DELAY);
+  }, []);
+
+  const handleNodeMouseLeave = useCallback(() => {
+    if (hoverTimerRef.current !== null) {
+      window.clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setIsNodeHovered(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current !== null) {
+        window.clearTimeout(hoverTimerRef.current);
+      }
+    };
+  }, []);
+
   // Force node re-measurement when content that affects height changes
   // (error messages appearing/disappearing, result overlay toggling).
   // Without this, React Flow's cached handle positions become stale.
@@ -680,11 +713,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [hasError, isOverlayVisible, id, updateNode]);
 
   return (
-    <NodeSelectionContext.Provider value={selected}>
+    <NodeSelectionContext.Provider value={selected || isNodeHovered}>
     <Container
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
       className={styleProps.className}
       sx={containerSx}
+      onMouseEnter={handleNodeMouseEnter}
+      onMouseLeave={handleNodeMouseLeave}
     >
       <Handle
         type="target"
