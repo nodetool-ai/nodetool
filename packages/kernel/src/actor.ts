@@ -25,9 +25,15 @@ import { EMPTY_LINEAGE } from "@nodetool-ai/protocol";
 const log = createLogger("nodetool.kernel.actor");
 import type { ProcessingContext, NodeExecutor } from "@nodetool-ai/runtime";
 import { withNodeSpan } from "@nodetool-ai/runtime";
-import { NodeInbox } from "./inbox.js";
+import { NodeInbox, type MessageEnvelope } from "./inbox.js";
 import { NodeInputs, NodeOutputs } from "./io.js";
 import { isCorrelationEnabled } from "./correlation-flag.js";
+import type { NodeAnalysis } from "./correlation-analysis.js";
+import {
+  iterationRootId,
+  projectLineageKey,
+  tryProjectLineageKey
+} from "./correlation-analysis.js";
 
 /**
  * Hints from the actor about how to route an invocation's outputs.
@@ -39,6 +45,61 @@ export interface OutputRoutingHints {
 }
 
 export type { NodeExecutor };
+
+/**
+ * Canonical lineage keys join `root=index` pairs with `,`. To compute the
+ * parent key for a shorter scope, take the first `prefixLength` pairs.
+ */
+function trimKey(key: string, prefixLength: number): string {
+  if (prefixLength === 0) return "";
+  if (key === "") return "";
+  const parts = key.split(",");
+  if (parts.length <= prefixLength) return key;
+  return parts.slice(0, prefixLength).join(",");
+}
+
+/**
+ * Find every pending max-scope key in `maxBuckets` whose parent (trimmed to
+ * `parentLength`) equals `parentKey`. Used when a strict-prefix sticky
+ * arrival can unblock pending child firings.
+ */
+function enumerateCandidateKeysForParent(
+  maxBuckets: ReadonlyMap<string, ReadonlyMap<string, ReadonlyArray<unknown>>>,
+  _dataHandles: ReadonlyArray<string>,
+  _handleClass: ReadonlyMap<string, "max" | "prefix" | "empty">,
+  _handleScope: ReadonlyMap<string, ReadonlyArray<string>>,
+  _maxLength: number,
+  parentKey: string,
+  parentLength: number
+): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const buckets of maxBuckets.values()) {
+    for (const key of buckets.keys()) {
+      if (seen.has(key)) continue;
+      if (trimKey(key, parentLength) === parentKey) {
+        seen.add(key);
+        out.push(key);
+      }
+    }
+  }
+  return out;
+}
+
+function enumerateAllPendingKeys(
+  maxBuckets: ReadonlyMap<string, ReadonlyMap<string, ReadonlyArray<unknown>>>
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const buckets of maxBuckets.values()) {
+    for (const key of buckets.keys()) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(key);
+    }
+  }
+  return out;
+}
 
 // ---------------------------------------------------------------------------
 // Actor result
@@ -105,6 +166,20 @@ export class NodeActor {
   /** Control context for controller nodes (injected as _control_context input). */
   private _controlContext: Record<string, unknown> | null;
 
+  /**
+   * Static correlation analysis for this node, supplied by the runner when
+   * `NODETOOL_USE_CORRELATION=1`. When undefined, the legacy sync_mode
+   * scheduler runs. PR 3 step 3.
+   */
+  private _correlation: NodeAnalysis | undefined;
+
+  /**
+   * Per-iteration-root, per-parent-key counter for actor-minted iteration
+   * tokens. §2 — counters are scoped by `(root id, exact parent lineage)`
+   * and never reset for repeated invocations with the same parent key.
+   */
+  private _iterationCounters = new Map<string, Map<string, number>>();
+
   constructor(opts: {
     node: NodeDescriptor;
     inbox: NodeInbox;
@@ -119,6 +194,7 @@ export class NodeActor {
     stickyHandles?: Set<string>;
     listInputHandles?: Set<string>;
     controlContext?: Record<string, unknown> | null;
+    correlation?: NodeAnalysis;
   }) {
     this.node = opts.node;
     this.inbox = opts.inbox;
@@ -129,6 +205,7 @@ export class NodeActor {
     this._initialStickyHandles = opts.stickyHandles ?? new Set();
     this._listInputHandles = opts.listInputHandles ?? new Set();
     this._controlContext = opts.controlContext ?? null;
+    this._correlation = opts.correlation;
   }
 
   // -----------------------------------------------------------------------
@@ -204,6 +281,10 @@ export class NodeActor {
       } else if (this.node.is_controlled) {
         // Controlled mode: wait for control events from inbox
         await this._runControlled();
+      } else if (isCorrelationEnabled() && this._correlation) {
+        // Correlated buffered scheduler (PR 3 step 3). Static analysis is
+        // required, so the runner only supplies it when the flag is on.
+        await this._runCorrelated(this._correlation);
       } else {
         // Standard buffered or streaming-output mode
         await this._runBuffered();
@@ -282,6 +363,368 @@ export class NodeActor {
     }
   }
 
+  // -----------------------------------------------------------------------
+  // Correlated buffered scheduler (PR 3 of docs/correlation-design.md)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Project an envelope's lineage onto a static scope, returning the
+   * canonical key or `null` if the lineage is incomplete for the scope.
+   */
+  private _projectKey(
+    envelope: MessageEnvelope,
+    scope: ReadonlyArray<string>
+  ): string | null {
+    return tryProjectLineageKey(envelope.correlation_lineage, scope);
+  }
+
+  /**
+   * Mint the next token index for `rootId` under `parentKey` and remember it.
+   * Counters never reset within one workflow run, matching §2's rule that
+   * repeated invocations with the same parent key continue numbering instead
+   * of restarting at 0.
+   */
+  private _mintIterationToken(rootId: string, parentKey: string): number {
+    let perRoot = this._iterationCounters.get(rootId);
+    if (!perRoot) {
+      perRoot = new Map();
+      this._iterationCounters.set(rootId, perRoot);
+    }
+    const next = perRoot.get(parentKey) ?? 0;
+    perRoot.set(parentKey, next + 1);
+    return next;
+  }
+
+  /**
+   * Correlated buffered scheduler — replaces `_runBuffered` under
+   * `NODETOOL_USE_CORRELATION=1`.
+   *
+   * Algorithm (v1 of §4):
+   *  1. Classify each connected data handle by its static scope:
+   *       - max-scope: scope length == invocation scope length → bucket per key
+   *       - strict-prefix sticky: shorter non-empty scope → sticky per projected
+   *         parent key
+   *       - empty: empty scope → single sticky entry
+   *  2. Find the repeating driver, if any: at most one max-scope handle may be
+   *     `repeats_per_key`. Static validation already rejects more than one.
+   *  3. Pull envelopes via `iterAnyWithEnvelope`. On each arrival:
+   *       - record into the right bucket,
+   *       - re-evaluate the keys that could now be ready.
+   *  4. For each ready key, gather values and call `_executeWithInputs`.
+   *
+   * Source nodes (no connected data handles) fire once with empty inputs.
+   */
+  private async _runCorrelated(analysis: NodeAnalysis): Promise<void> {
+    this._inCorrelatedBuffered = true;
+    try {
+      await this._runCorrelatedImpl(analysis);
+    } finally {
+      this._inCorrelatedBuffered = false;
+    }
+  }
+
+  private async _runCorrelatedImpl(analysis: NodeAnalysis): Promise<void> {
+    const dataHandles = [...this.inbox["_buffers"].keys()].filter(
+      (h) => h !== "__control__"
+    );
+
+    if (dataHandles.length === 0) {
+      // Source node: fire once with empty inputs at empty scope.
+      await this._executeWithInputs({});
+      return;
+    }
+
+    type HandleClass = "max" | "prefix" | "empty";
+
+    const handleScope = new Map<string, ReadonlyArray<string>>();
+    const handleClass = new Map<string, HandleClass>();
+    const handleRepeats = new Map<string, boolean>();
+    const invocationScope = analysis.invocationScope;
+
+    for (const h of dataHandles) {
+      const info = analysis.inputs.get(h);
+      const scope = info?.scope ?? [];
+      handleScope.set(h, scope);
+      handleRepeats.set(h, info?.repeatsPerKey ?? false);
+      if (scope.length === 0) {
+        handleClass.set(h, "empty");
+      } else if (scope.length === invocationScope.length) {
+        handleClass.set(h, "max");
+      } else {
+        handleClass.set(h, "prefix");
+      }
+    }
+
+    const driverHandle = (() => {
+      for (const h of dataHandles) {
+        if (handleClass.get(h) === "max" && handleRepeats.get(h)) {
+          return h;
+        }
+      }
+      return null;
+    })();
+
+    // Buckets keyed by canonical projected key.
+    const maxBuckets = new Map<string, Map<string, MessageEnvelope[]>>();
+    const prefixSticky = new Map<string, Map<string, MessageEnvelope>>();
+    const emptySticky = new Map<string, MessageEnvelope>();
+
+    for (const h of dataHandles) {
+      const cls = handleClass.get(h);
+      if (cls === "max") maxBuckets.set(h, new Map());
+      else if (cls === "prefix") prefixSticky.set(h, new Map());
+    }
+
+    const fired = new Set<string>();
+
+    const isReady = (key: string): boolean => {
+      for (const h of dataHandles) {
+        const cls = handleClass.get(h);
+        if (cls === "max") {
+          const bucket = maxBuckets.get(h)!.get(key);
+          if (!bucket || bucket.length === 0) {
+            // No driver value: not ready unless a non-driver max handle has
+            // sticky from a side-input semantic — which only applies when a
+            // repeating driver exists.
+            if (driverHandle && h !== driverHandle) {
+              // Side input must have produced for this exact key. v1: still
+              // wait for it to arrive.
+              return false;
+            }
+            return false;
+          }
+        } else if (cls === "prefix") {
+          // Need a sticky value for the projected parent key.
+          const parentScope = handleScope.get(h)!;
+          // Build the parent key by trimming the max-scope key against this
+          // handle's scope. Since handle scope is a prefix of invocation
+          // scope, the parent key is the first parentScope.length entries.
+          const parentKey = trimKey(key, parentScope.length);
+          const stickyMap = prefixSticky.get(h)!;
+          if (!stickyMap.has(parentKey)) return false;
+        } else {
+          // empty-scope sticky
+          if (!emptySticky.has(h)) {
+            // Allow node properties / dynamic_properties to supply defaults:
+            // _executeWithInputs already merges them. So an empty-scope
+            // handle without an envelope is treated as "use the node's
+            // declared default" if the handle has no open upstream.
+            if (this.inbox.isOpen(h)) return false;
+          }
+        }
+      }
+      return true;
+    };
+
+    const collect = (key: string): {
+      values: Record<string, unknown>;
+      envelopes: Map<string, MessageEnvelope>;
+    } => {
+      const values: Record<string, unknown> = {};
+      const envelopes = new Map<string, MessageEnvelope>();
+      for (const h of dataHandles) {
+        const cls = handleClass.get(h);
+        if (cls === "max") {
+          const bucket = maxBuckets.get(h)!.get(key);
+          if (!bucket || bucket.length === 0) continue;
+          const env = bucket.shift()!;
+          envelopes.set(h, env);
+          values[h] = env.data;
+          if (bucket.length === 0) maxBuckets.get(h)!.delete(key);
+        } else if (cls === "prefix") {
+          const parentScope = handleScope.get(h)!;
+          const parentKey = trimKey(key, parentScope.length);
+          const env = prefixSticky.get(h)!.get(parentKey);
+          if (env) {
+            envelopes.set(h, env);
+            values[h] = env.data;
+          }
+        } else {
+          const env = emptySticky.get(h);
+          if (env) {
+            envelopes.set(h, env);
+            values[h] = env.data;
+          }
+        }
+      }
+      return { values, envelopes };
+    };
+
+    const tryFire = async (candidateKeys: Iterable<string>): Promise<void> => {
+      for (const key of candidateKeys) {
+        if (fired.has(key) && driverHandle === null) {
+          // For non-repeating drivers each key fires at most once because
+          // bucket consumption strips it. The fired set protects against
+          // double-fire when the same key comes from multiple notifications.
+          continue;
+        }
+        if (!isReady(key)) continue;
+        const { values, envelopes } = collect(key);
+        // Set per-invocation envelopes so output routing can derive lineage.
+        this._lastEnvelopes = envelopes;
+        await this._executeWithInputs(values);
+        if (driverHandle === null) fired.add(key);
+      }
+    };
+
+    // Pre-seed: if any handle starts with no upstream (closed), nothing
+    // arrives. Continue and let the loop terminate.
+    for await (const [handle, envelope] of this.inbox.iterAnyWithEnvelope()) {
+      if (handle === "__control__") continue;
+      const cls = handleClass.get(handle);
+      if (cls === undefined) continue;
+
+      if (cls === "max") {
+        const scope = handleScope.get(handle)!;
+        const key = this._projectKey(envelope, scope) ?? "";
+        let bucket = maxBuckets.get(handle)!.get(key);
+        if (!bucket) {
+          bucket = [];
+          maxBuckets.get(handle)!.set(key, bucket);
+        }
+        bucket.push(envelope);
+        await tryFire([key]);
+      } else if (cls === "prefix") {
+        const parentScope = handleScope.get(handle)!;
+        const parentKey = this._projectKey(envelope, parentScope) ?? "";
+        prefixSticky.get(handle)!.set(parentKey, envelope);
+        // Try firing any max-scope keys whose parent matches this parentKey.
+        const candidates = enumerateCandidateKeysForParent(
+          maxBuckets,
+          dataHandles,
+          handleClass,
+          handleScope,
+          invocationScope.length,
+          parentKey,
+          parentScope.length
+        );
+        await tryFire(candidates);
+      } else {
+        emptySticky.set(handle, envelope);
+        // Empty-scope arrival can unblock any pending max-scope key.
+        const candidates = enumerateAllPendingKeys(maxBuckets);
+        await tryFire(candidates);
+      }
+    }
+
+    // If the node has no max-scope inputs (all empty / prefix), fire once.
+    if (
+      [...handleClass.values()].every((c) => c !== "max") &&
+      !fired.has("")
+    ) {
+      // Build values from sticky state.
+      const values: Record<string, unknown> = {};
+      const envelopes = new Map<string, MessageEnvelope>();
+      let readyOrAllowed = true;
+      for (const h of dataHandles) {
+        if (handleClass.get(h) === "prefix") {
+          // Use the only sticky entry, if any.
+          const sticky = prefixSticky.get(h)!;
+          if (sticky.size === 0) {
+            // No value arrived; defaults will apply in _executeWithInputs.
+            continue;
+          }
+          const first = sticky.values().next().value as MessageEnvelope;
+          envelopes.set(h, first);
+          values[h] = first.data;
+        } else {
+          const env = emptySticky.get(h);
+          if (env) {
+            envelopes.set(h, env);
+            values[h] = env.data;
+          } else if (this.inbox.isOpen(h)) {
+            readyOrAllowed = false;
+          }
+        }
+      }
+      if (readyOrAllowed) {
+        this._lastEnvelopes = envelopes;
+        await this._executeWithInputs(values);
+        fired.add("");
+      }
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Correlated invocation lineage and output routing
+  // -----------------------------------------------------------------------
+
+  /**
+   * Under the correlated scheduler the invocation lineage is the projected
+   * lineage of the consumed max-scope envelopes, written canonically. PR 2's
+   * fallback (single non-list handle) still applies when the analyzer is not
+   * available.
+   */
+  private _correlatedInvocationLineage(): CorrelationLineage | undefined {
+    if (!this._correlation) return undefined;
+    const invocationScope = this._correlation.invocationScope;
+    if (invocationScope.length === 0) {
+      // For empty-scope nodes the lineage is also empty.
+      return EMPTY_LINEAGE;
+    }
+    // Build a lineage from the longest projection any consumed envelope
+    // supplies. Max-scope envelopes have the complete projection; prefix
+    // envelopes contribute parent roots only.
+    const out: Record<string, { index: number }> = {};
+    for (const env of this._lastEnvelopes.values()) {
+      for (const root of invocationScope) {
+        if (root in env.correlation_lineage) {
+          out[root] = env.correlation_lineage[root];
+        }
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Build the per-slot lineage map for an emission. Single/forward/chunk
+   * outputs inherit the invocation lineage; iteration outputs mint a token
+   * per group per frame.
+   */
+  private _correlatedOutputLineage(
+    invocationLineage: CorrelationLineage,
+    emittedHandles: ReadonlyArray<string>
+  ): Record<string, CorrelationLineage> | undefined {
+    if (!this._correlation) return undefined;
+    const declared = this.node.output_correlation ?? {};
+    const perSlot: Record<string, CorrelationLineage> = {};
+    const groupTokens = new Map<string, number>();
+    const invocationScope = this._correlation.invocationScope;
+    const parentKey = invocationScope.length
+      ? projectLineageKey(invocationLineage, invocationScope)
+      : "";
+
+    for (const handle of emittedHandles) {
+      const corr = declared[handle];
+      if (!corr) {
+        perSlot[handle] = invocationLineage;
+        continue;
+      }
+      if (corr.kind === "iteration") {
+        const root = iterationRootId(this.node.id, handle, corr.group);
+        let index = groupTokens.get(root);
+        if (index === undefined) {
+          // Reuse the token already minted for this frame, if any
+          // (`_mintIterationFrameOverrides` mints before _sendOutputs runs).
+          const fromFrame = this._lastMintedFrameTokens.get(root);
+          if (fromFrame !== undefined) {
+            index = fromFrame;
+          } else {
+            index = this._mintIterationToken(root, parentKey);
+          }
+          groupTokens.set(root, index);
+        }
+        perSlot[handle] = { ...invocationLineage, [root]: { index } };
+      } else {
+        // single/forward/chunk all inherit invocation lineage in v1.
+        // forward outputs route their source envelope's lineage via
+        // outputs.forward(); the static path is invocation lineage.
+        perSlot[handle] = invocationLineage;
+      }
+    }
+    return perSlot;
+  }
+
   /**
    * on_any execution: wait for all handles to have at least one value,
    * then fire. After initial fire, each subsequent item fires immediately.
@@ -358,10 +801,22 @@ export class NodeActor {
         this._executionContext
       )) {
         const routed = this._filterStreamingPartial(partial);
-        if (Object.keys(routed).length === 0) continue;
+        const handles = Object.keys(routed);
+        if (handles.length === 0) continue;
+        // Strip actor-reserved `index` from iteration groups before routing
+        // (the actor mints the token index; node code is migrating away from
+        // supplying it). §1 — under the correlation scheduler this becomes
+        // a validation error after migration; for now we warn-and-overwrite.
+        const overrides = this._mintIterationFrameOverrides(routed);
         Object.assign(this._streamingCollectedOutputs, routed);
+        if (overrides) Object.assign(this._streamingCollectedOutputs, overrides);
+        const emit = overrides ? { ...routed, ...overrides } : routed;
         this._latestResult = { ...this._streamingCollectedOutputs };
-        await this._sendOutputs(this.node.id, routed, this._currentHints());
+        await this._sendOutputs(
+          this.node.id,
+          emit,
+          this._currentHints(Object.keys(emit))
+        );
       }
       this._latestResult = { ...(this._streamingCollectedOutputs ?? {}) };
     } else {
@@ -370,19 +825,101 @@ export class NodeActor {
         this._executionContext
       );
       this._latestResult = outputs;
-      await this._sendOutputs(this.node.id, outputs, this._currentHints());
+      await this._sendOutputs(
+        this.node.id,
+        outputs,
+        this._currentHints(Object.keys(outputs))
+      );
     }
   }
+
+  /**
+   * For each iteration group present in `frame`, mint or reuse a token. If
+   * the frame supplies an `index` value for a group that has an `index`
+   * sibling handle declared, overwrite it with the actor-minted index. §1.
+   *
+   * Returns the override map (only the slots that needed mutation) or null
+   * when no iteration groups are in play.
+   */
+  private _mintIterationFrameOverrides(
+    frame: Record<string, unknown>
+  ): Record<string, unknown> | null {
+    if (!this._correlation) return null;
+    const declared = this.node.output_correlation;
+    if (!declared) return null;
+    const invocationScope = this._correlation.invocationScope;
+    const parentKey =
+      invocationScope.length && this._currentInvocationLineage
+        ? projectLineageKey(this._currentInvocationLineage, invocationScope)
+        : "";
+
+    // Collect groups whose handles appear in the frame.
+    const groupHandles = new Map<string, string[]>(); // group root → handles
+    for (const handle of Object.keys(frame)) {
+      const corr = declared[handle];
+      if (!corr || corr.kind !== "iteration") continue;
+      const root = iterationRootId(this.node.id, handle, corr.group);
+      let arr = groupHandles.get(root);
+      if (!arr) {
+        arr = [];
+        groupHandles.set(root, arr);
+      }
+      arr.push(handle);
+    }
+    if (groupHandles.size === 0) return null;
+
+    // Each frame mints fresh tokens; clear last frame's bookkeeping.
+    this._lastMintedFrameTokens.clear();
+    const overrides: Record<string, unknown> = {};
+    for (const [root, handles] of groupHandles) {
+      const index = this._mintIterationToken(root, parentKey);
+      for (const handle of handles) {
+        if (handle === "index") {
+          overrides[handle] = index;
+        }
+      }
+      // Stash the minted token so _correlatedOutputLineage reuses it.
+      this._lastMintedFrameTokens.set(root, index);
+    }
+    return Object.keys(overrides).length > 0 ? overrides : null;
+  }
+
+  /** Tokens minted for the most recent frame, reused by output lineage. */
+  private _lastMintedFrameTokens = new Map<string, number>();
+
+  /**
+   * True while `_runCorrelated` is the active execution path. PR 3 keeps the
+   * streaming-input branch on PR 2's single-envelope inheritance so test
+   * fixtures and unmigrated stream filters without explicit
+   * `output_correlation` keep working.
+   */
+  private _inCorrelatedBuffered = false;
 
   /**
    * Build routing hints for the current invocation.
    *
    * Under PR 2 only single-input single-edge buffered nodes inherit lineage.
-   * Source nodes (no inputs) get empty lineage by default — no hint needed.
+   * Under PR 3, when correlation analysis is available the actor mints
+   * per-slot lineage for iteration outputs and propagates invocation lineage
+   * for single/forward/chunk outputs.
    */
-  private _currentHints(): OutputRoutingHints | undefined {
+  private _currentHints(
+    emittedHandles?: ReadonlyArray<string>
+  ): OutputRoutingHints | undefined {
     if (!isCorrelationEnabled()) return undefined;
     if (this._currentInvocationLineage === undefined) return undefined;
+    if (this._correlation && emittedHandles && emittedHandles.length > 0) {
+      const perSlot = this._correlatedOutputLineage(
+        this._currentInvocationLineage,
+        emittedHandles
+      );
+      if (perSlot) {
+        return {
+          invocationLineage: this._currentInvocationLineage,
+          perSlotLineage: perSlot
+        };
+      }
+    }
     return { invocationLineage: this._currentInvocationLineage };
   }
 
@@ -402,6 +939,9 @@ export class NodeActor {
    */
   private _computeInvocationLineage(): CorrelationLineage | undefined {
     if (!isCorrelationEnabled()) return undefined;
+    if (this._correlation && this._inCorrelatedBuffered) {
+      return this._correlatedInvocationLineage();
+    }
 
     const dataHandles = [...this._lastEnvelopes.keys()].filter(
       (h) => h !== "__control__" && !this._listInputHandles.has(h)

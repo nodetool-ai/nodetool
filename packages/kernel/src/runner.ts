@@ -33,9 +33,14 @@ import { NodeInbox } from "./inbox.js";
 import { NodeActor, type NodeExecutor } from "./actor.js";
 import {
   externalEdgeId,
+  isCorrelationEnabled,
   syntheticEdgeId
 } from "./correlation-flag.js";
 import type { CorrelationLineage } from "@nodetool-ai/protocol";
+import {
+  analyzeCorrelation,
+  type CorrelationAnalysisResult
+} from "./correlation-analysis.js";
 
 /**
  * Hints from the actor about how to route an invocation's outputs.
@@ -184,6 +189,12 @@ export class WorkflowRunner {
   /** Per-edge streaming flag (true if on a streaming path). */
   private _streamingEdges = new Map<string, boolean>();
 
+  /**
+   * Static correlation analysis result. Populated only when
+   * `NODETOOL_USE_CORRELATION=1`; otherwise the legacy scheduler runs.
+   */
+  private _correlation: CorrelationAnalysisResult | undefined;
+
   /** Control edges that have routed at least one event (used for diagnostics). */
   private _controlEdgesRouted = new Set<string>();
 
@@ -327,6 +338,30 @@ export class WorkflowRunner {
       // Analyze streaming paths (Python parity: _analyze_streaming)
       this._analyzeStreaming();
 
+      // Static correlation analysis runs only under the feature flag so the
+      // legacy scheduler is unaffected. Issues abort the run with a graph
+      // validation error.
+      if (isCorrelationEnabled()) {
+        this._correlation = analyzeCorrelation({
+          nodes: this._graph.nodes,
+          edges: this._graph.edges
+        });
+        if (this._correlation.issues.length > 0) {
+          const lines = this._correlation.issues.map((i) => `  - ${i.message}`);
+          throw new GraphValidationError(
+            `Correlation analysis failed:\n${lines.join("\n")}`,
+            this._correlation.issues
+              .filter((i): i is typeof i & { nodeId: string } => !!i.nodeId)
+              .map((i) => ({
+                nodeId: i.nodeId,
+                nodeType: i.nodeType,
+                property: i.handle ?? "",
+                message: i.message
+              }))
+          );
+        }
+      }
+
       // Validate
       this._graph.validate();
 
@@ -430,6 +465,7 @@ export class WorkflowRunner {
     this._messages = [];
     this._cancelled = false;
     this._pendingControlResponses = new Map();
+    this._correlation = undefined;
   }
 
   /**
@@ -758,7 +794,8 @@ export class WorkflowRunner {
         executionContext: this._options.executionContext,
         stickyHandles,
         listInputHandles: this._multiEdgeListInputs.get(node.id),
-        controlContext
+        controlContext,
+        correlation: this._correlation?.nodes.get(node.id)
       });
 
       actorPromises.push(
