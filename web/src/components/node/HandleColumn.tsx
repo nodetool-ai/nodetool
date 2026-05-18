@@ -40,7 +40,11 @@ const styles = (theme: Theme) =>
       position: "relative",
       height: HANDLE_ROW_HEIGHT,
       flex: "0 0 auto",
+      marginBottom: theme.spacing(2),
       pointerEvents: "auto"
+    },
+    ".handle-only:last-child": {
+      marginBottom: 0
     },
     "& .handle-only .react-flow__handle.react-flow__handle-left": {
       top: "50%",

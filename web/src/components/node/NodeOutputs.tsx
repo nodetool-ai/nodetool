@@ -35,7 +35,11 @@ const styles = (theme: Theme) =>
       width: "auto",
       height: HANDLE_ROW_HEIGHT,
       flex: "0 0 auto",
+      marginBottom: theme.spacing(2),
       pointerEvents: "auto"
+    },
+    "& .output-handle-container:last-child": {
+      marginBottom: 0
     }
   });
 
