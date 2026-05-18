@@ -276,7 +276,7 @@ export interface FalUnitPricing {
   billing_unit: string;
   currency: string;
   source?: "live" | "bundle";
-  checked_at?: string;
+  checked_at?: string | null;
 }
 
 export interface NodeMetadata extends BaseNodeMetadata {
