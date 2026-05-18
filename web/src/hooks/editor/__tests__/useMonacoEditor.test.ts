@@ -49,12 +49,14 @@ describe("useMonacoEditor", () => {
 
     expect(result.current.MonacoEditor).toBeNull();
     expect(result.current.monacoLoadError).toBeNull();
+    expect(result.current.isMonacoLoading).toBe(false);
 
     await act(async () => {
       await result.current.loadMonacoIfNeeded();
     });
 
     expect(result.current.MonacoEditor).not.toBeNull();
+    expect(result.current.isMonacoLoading).toBe(false);
 
     // handlers should be callable without throwing
     expect(() => result.current.handleMonacoFind()).not.toThrow();
