@@ -8,6 +8,7 @@
  * supplied by the actor/runner, decoupled from WorkflowRunner internals.
  */
 
+import type { CorrelationLineage } from "@nodetool-ai/protocol";
 import type { MessageEnvelope } from "./inbox.js";
 import { NodeInbox } from "./inbox.js";
 
@@ -96,17 +97,39 @@ export class NodeInputs {
 // NodeOutputs
 // ---------------------------------------------------------------------------
 
+export interface EmitOptions {
+  /**
+   * Override the lineage propagated downstream for this emission.
+   * Used by `outputs.forward()` to copy the source envelope's lineage; can be
+   * supplied directly when a stream node mints lineage itself.
+   */
+  lineage?: CorrelationLineage;
+}
+
 export interface NodeOutputsOptions {
   /**
    * Called for each emitted (slot, value) pair to route the value downstream.
    * If not provided, outputs are only collected locally.
+   *
+   * `opts.lineage` is forwarded to the inbox `put()` call so the downstream
+   * envelope carries the correct correlation lineage.
    */
-  sendFn?: (slot: string, value: unknown) => Promise<void>;
+  sendFn?: (
+    slot: string,
+    value: unknown,
+    opts?: EmitOptions
+  ) => Promise<void>;
 
   /**
    * Called when complete(slot) is invoked to signal early EOS on a slot.
    */
   eosCallback?: (slot: string) => void;
+
+  /**
+   * Send `lineage_done` for `slot` at the projected key carried by
+   * `envelope`. Plumbed in PR 3 when correlated scheduling lands.
+   */
+  dropFn?: (slot: string, envelope: MessageEnvelope) => Promise<void>;
 }
 
 /**
@@ -119,24 +142,38 @@ export interface NodeOutputsOptions {
  */
 export class NodeOutputs {
   private _collected: Record<string, unknown> = {};
-  private _sendFn: ((slot: string, value: unknown) => Promise<void>) | null;
+  private _sendFn:
+    | ((slot: string, value: unknown, opts?: EmitOptions) => Promise<void>)
+    | null;
   private _eosCallback: ((slot: string) => void) | null;
+  private _dropFn:
+    | ((slot: string, envelope: MessageEnvelope) => Promise<void>)
+    | null;
 
   constructor(opts: NodeOutputsOptions = {}) {
     this._sendFn = opts.sendFn ?? null;
     this._eosCallback = opts.eosCallback ?? null;
+    this._dropFn = opts.dropFn ?? null;
   }
 
   /**
    * Emit a value to a named output slot.
    * Routes downstream via sendFn (if set) and collects the last value per slot.
    * An empty or null slot name defaults to "output".
+   *
+   * If `opts.lineage` is provided, that lineage is propagated to the
+   * downstream envelope; otherwise the actor's ambient invocation lineage is
+   * used.
    */
-  async emit(slot: string, value: unknown): Promise<void> {
+  async emit(
+    slot: string,
+    value: unknown,
+    opts?: EmitOptions
+  ): Promise<void> {
     const resolvedSlot = slot || "output";
     this._collected[resolvedSlot] = value;
     if (this._sendFn) {
-      await this._sendFn(resolvedSlot, value);
+      await this._sendFn(resolvedSlot, value, opts);
     }
   }
 
@@ -145,6 +182,32 @@ export class NodeOutputs {
    */
   async default(value: unknown): Promise<void> {
     await this.emit("output", value);
+  }
+
+  /**
+   * Forward an envelope to `slot`, preserving its correlation lineage.
+   *
+   * `value` defaults to `envelope.data`; pass it explicitly when a forward
+   * node transforms the payload but keeps the source lineage.
+   */
+  async forward(
+    slot: string,
+    envelope: MessageEnvelope,
+    value?: unknown
+  ): Promise<void> {
+    await this.emit(slot, value ?? envelope.data, {
+      lineage: envelope.correlation_lineage
+    });
+  }
+
+  /**
+   * Send `lineage_done` for `slot` at the projected key carried by
+   * `envelope`. No-op until PR 3's correlated scheduler is in place.
+   */
+  async drop(slot: string, envelope: MessageEnvelope): Promise<void> {
+    if (this._dropFn) {
+      await this._dropFn(slot || "output", envelope);
+    }
   }
 
   /**

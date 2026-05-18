@@ -12,6 +12,8 @@
  */
 
 import { randomUUID } from "crypto";
+import type { CorrelationLineage } from "@nodetool-ai/protocol";
+import { EMPTY_LINEAGE } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // MessageEnvelope
@@ -22,17 +24,37 @@ export interface MessageEnvelope {
   metadata: Record<string, unknown>;
   timestamp: number; // epoch ms
   event_id: string;
+  correlation_lineage: CorrelationLineage;
+  source_edge_id: string;
+}
+
+export interface PutOptions {
+  metadata?: Record<string, unknown>;
+  correlation_lineage?: CorrelationLineage;
+  source_edge_id?: string;
+}
+
+function isPutOptions(
+  v: Record<string, unknown> | PutOptions
+): v is PutOptions {
+  return (
+    "metadata" in v ||
+    "correlation_lineage" in v ||
+    "source_edge_id" in v
+  );
 }
 
 function makeEnvelope(
   data: unknown,
-  metadata: Record<string, unknown> = {}
+  opts: PutOptions = {}
 ): MessageEnvelope {
   return {
     data,
-    metadata,
+    metadata: opts.metadata ?? {},
     timestamp: Date.now(),
-    event_id: randomUUID()
+    event_id: randomUUID(),
+    correlation_lineage: opts.correlation_lineage ?? EMPTY_LINEAGE,
+    source_edge_id: opts.source_edge_id ?? ""
   };
 }
 
@@ -109,7 +131,7 @@ export class NodeInbox {
   async put(
     handle: string,
     item: unknown,
-    metadata: Record<string, unknown> = {}
+    metadataOrOpts: Record<string, unknown> | PutOptions = {}
   ): Promise<void> {
     if (this._closed) return;
 
@@ -132,7 +154,10 @@ export class NodeInbox {
       if (this._closed) return;
     }
 
-    const envelope = makeEnvelope(item, metadata);
+    const opts = isPutOptions(metadataOrOpts)
+      ? metadataOrOpts
+      : { metadata: metadataOrOpts };
+    const envelope = makeEnvelope(item, opts);
     this._buffers.get(handle)!.push(envelope);
     this._arrival.push(handle);
     this._notifyWaiters();

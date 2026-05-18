@@ -15,13 +15,28 @@
  */
 
 import { createLogger } from "@nodetool-ai/config";
-import type { NodeDescriptor, ControlEvent } from "@nodetool-ai/protocol";
+import type {
+  CorrelationLineage,
+  NodeDescriptor,
+  ControlEvent
+} from "@nodetool-ai/protocol";
+import { EMPTY_LINEAGE } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.kernel.actor");
 import type { ProcessingContext, NodeExecutor } from "@nodetool-ai/runtime";
 import { withNodeSpan } from "@nodetool-ai/runtime";
 import { NodeInbox } from "./inbox.js";
 import { NodeInputs, NodeOutputs } from "./io.js";
+import { isCorrelationEnabled } from "./correlation-flag.js";
+
+/**
+ * Hints from the actor about how to route an invocation's outputs.
+ * See runner.ts for the consumer.
+ */
+export interface OutputRoutingHints {
+  invocationLineage?: CorrelationLineage;
+  perSlotLineage?: Record<string, CorrelationLineage>;
+}
 
 export type { NodeExecutor };
 
@@ -64,8 +79,24 @@ export class NodeActor {
   /** Callback to route outputs downstream. */
   private _sendOutputs: (
     nodeId: string,
-    outputs: Record<string, unknown>
+    outputs: Record<string, unknown>,
+    hints?: OutputRoutingHints
   ) => Promise<void>;
+
+  /**
+   * Lineage of the current invocation. Set when the actor consumes input(s)
+   * under the correlation flag and the inheritance case is unambiguous
+   * (single-edge single-input handle).
+   */
+  private _currentInvocationLineage: CorrelationLineage | undefined;
+
+  /**
+   * Most recent envelope consumed per handle during the current gather.
+   * Reset before each invocation. Used to compute invocation lineage when
+   * the correlation flag is on.
+   */
+  private _lastEnvelopes: Map<string, import("./inbox.js").MessageEnvelope> =
+    new Map();
 
   /** Callback to emit processing messages (NodeUpdate, etc.). */
   private _emitMessage: (msg: unknown) => void;
@@ -80,7 +111,8 @@ export class NodeActor {
     executor: NodeExecutor;
     sendOutputs: (
       nodeId: string,
-      outputs: Record<string, unknown>
+      outputs: Record<string, unknown>,
+      hints?: OutputRoutingHints
     ) => Promise<void>;
     emitMessage: (msg: unknown) => void;
     executionContext?: ProcessingContext;
@@ -134,8 +166,16 @@ export class NodeActor {
           // NodeInputs and pushes outputs via NodeOutputs.
           const nodeInputs = new NodeInputs(this.inbox);
           const nodeOutputs = new NodeOutputs({
-            sendFn: async (slot: string, value: unknown) => {
-              await this._sendOutputs(this.node.id, { [slot]: value });
+            sendFn: async (slot: string, value: unknown, opts) => {
+              const hints: OutputRoutingHints = {};
+              if (opts?.lineage !== undefined) {
+                hints.perSlotLineage = { [slot]: opts.lineage };
+              }
+              await this._sendOutputs(
+                this.node.id,
+                { [slot]: value },
+                hints
+              );
             }
           });
           await this._executor.run(
@@ -243,8 +283,11 @@ export class NodeActor {
     const pendingHandles = new Set(inputHandles);
     let initialFired = false;
 
-    for await (const [handle, item] of this.inbox.iterAny()) {
+    for await (const [handle, envelope] of this.inbox.iterAnyWithEnvelope()) {
       if (handle === "__control__") continue;
+
+      const item = envelope.data;
+      this._lastEnvelopes.set(handle, envelope);
 
       if (this._listInputHandles.has(handle)) {
         if (Array.isArray(item)) {
@@ -298,6 +341,8 @@ export class NodeActor {
       inputHandles: Object.keys(inputs)
     });
 
+    this._currentInvocationLineage = this._computeInvocationLineage();
+
     if (this.node.is_streaming_output && this._executor.genProcess) {
       this._streamingCollectedOutputs = {};
       for await (const partial of this._executor.genProcess(
@@ -308,7 +353,7 @@ export class NodeActor {
         if (Object.keys(routed).length === 0) continue;
         Object.assign(this._streamingCollectedOutputs, routed);
         this._latestResult = { ...this._streamingCollectedOutputs };
-        await this._sendOutputs(this.node.id, routed);
+        await this._sendOutputs(this.node.id, routed, this._currentHints());
       }
       this._latestResult = { ...(this._streamingCollectedOutputs ?? {}) };
     } else {
@@ -317,8 +362,44 @@ export class NodeActor {
         this._executionContext
       );
       this._latestResult = outputs;
-      await this._sendOutputs(this.node.id, outputs);
+      await this._sendOutputs(this.node.id, outputs, this._currentHints());
     }
+  }
+
+  /**
+   * Build routing hints for the current invocation.
+   *
+   * Under PR 2 only single-input single-edge buffered nodes inherit lineage.
+   * Source nodes (no inputs) get empty lineage by default — no hint needed.
+   */
+  private _currentHints(): OutputRoutingHints | undefined {
+    if (!isCorrelationEnabled()) return undefined;
+    if (this._currentInvocationLineage === undefined) return undefined;
+    return { invocationLineage: this._currentInvocationLineage };
+  }
+
+  /**
+   * Compute the invocation lineage for the current set of consumed envelopes.
+   * Returns undefined when the case is ambiguous or the flag is off — that
+   * leaves downstream routing with empty lineage, matching pre-PR-2 behavior.
+   *
+   * PR 2 only handles the unambiguous "exactly one connected single-edge
+   * data input" case. PR 3 extends this with full multi-input merging.
+   */
+  private _computeInvocationLineage(): CorrelationLineage | undefined {
+    if (!isCorrelationEnabled()) return undefined;
+
+    const dataHandles = [...this._lastEnvelopes.keys()].filter(
+      (h) =>
+        h !== "__control__" && !this._listInputHandles.has(h)
+    );
+    if (dataHandles.length !== 1) {
+      this._lastEnvelopes.clear();
+      return undefined;
+    }
+    const env = this._lastEnvelopes.get(dataHandles[0]);
+    this._lastEnvelopes.clear();
+    return env?.correlation_lineage;
   }
 
   /**
@@ -399,7 +480,9 @@ export class NodeActor {
           data: item,
           metadata: {},
           timestamp: Date.now(),
-          event_id: ""
+          event_id: "",
+          correlation_lineage: EMPTY_LINEAGE,
+          source_edge_id: ""
         });
         continue;
       }
@@ -586,6 +669,7 @@ export class NodeActor {
     const buf = this.inbox["_buffers"].get(handle);
     if (!buf || buf.length === 0) return undefined;
     const envelope = buf.shift()!;
+    this._lastEnvelopes.set(handle, envelope);
     return envelope.data;
   }
 

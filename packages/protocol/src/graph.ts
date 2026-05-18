@@ -73,6 +73,26 @@ export interface OutputCorrelation {
 }
 
 /**
+ * One correlation token per iteration root in a message's lineage.
+ *
+ * See docs/correlation-design.md §2.
+ */
+export interface CorrelationToken {
+  index: number;
+}
+
+/**
+ * Map from iteration-root id to its current token.
+ *
+ * Empty for source-node and constant outputs. Iteration nodes add one entry
+ * per minted root. Lineage is preserved by `forward` outputs, extended by
+ * `iteration` outputs, and trimmed by `aggregate` outputs.
+ */
+export type CorrelationLineage = Readonly<Record<string, CorrelationToken>>;
+
+export const EMPTY_LINEAGE: CorrelationLineage = Object.freeze({});
+
+/**
  * Minimal node descriptor for graph operations.
  * The full BaseNode equivalent lives in the node-sdk package.
  */

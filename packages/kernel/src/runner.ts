@@ -31,6 +31,25 @@ import { Graph, GraphValidationError } from "./graph.js";
 import { rewriteBypassedNodes } from "./graph-utils.js";
 import { NodeInbox } from "./inbox.js";
 import { NodeActor, type NodeExecutor } from "./actor.js";
+import {
+  externalEdgeId,
+  syntheticEdgeId
+} from "./correlation-flag.js";
+import type { CorrelationLineage } from "@nodetool-ai/protocol";
+
+/**
+ * Hints from the actor about how to route an invocation's outputs.
+ *
+ * Under PR 2 only `invocationLineage` is consumed, and only for outputs whose
+ * static correlation kind would inherit the invocation scope. PR 3 extends
+ * this with per-output explicit lineage from `outputs.forward()` calls.
+ */
+export interface OutputRoutingHints {
+  /** Lineage carried by the consumed envelope when the node had exactly one. */
+  invocationLineage?: CorrelationLineage;
+  /** Explicit per-slot lineage overrides (e.g. from outputs.forward). */
+  perSlotLineage?: Record<string, CorrelationLineage>;
+}
 
 // ---------------------------------------------------------------------------
 // Node-level validation hook
@@ -229,7 +248,9 @@ export class WorkflowRunner {
         }
         const targetInbox = this._inboxes.get(edge.target);
         if (!targetInbox) continue;
-        await targetInbox.put(edge.targetHandle, value);
+        await targetInbox.put(edge.targetHandle, value, {
+          source_edge_id: externalEdgeId(inputName, edge.sourceHandle)
+        });
         this._incrementEdgeCounter(edge);
       }
     }
@@ -648,7 +669,16 @@ export class WorkflowRunner {
       for (const edge of outgoing) {
         const targetInbox = this._inboxes.get(edge.target);
         if (targetInbox) {
-          await targetInbox.put(edge.targetHandle, value);
+          await targetInbox.put(edge.targetHandle, value, {
+            source_edge_id:
+              edge.id ??
+              syntheticEdgeId(
+                edge.source,
+                edge.sourceHandle,
+                edge.target,
+                edge.targetHandle
+              )
+          });
         }
         this._incrementEdgeCounter(edge);
       }
@@ -719,8 +749,8 @@ export class WorkflowRunner {
         node,
         inbox,
         executor,
-        sendOutputs: async (nodeId, outputs) => {
-          await this._sendMessages(nodeId, outputs);
+        sendOutputs: async (nodeId, outputs, hints) => {
+          await this._sendMessages(nodeId, outputs, hints);
         },
         emitMessage: (msg) => {
           this._emit(msg as ProcessingMessage);
@@ -787,7 +817,8 @@ export class WorkflowRunner {
    */
   private async _sendMessages(
     sourceNodeId: string,
-    outputs: Record<string, unknown>
+    outputs: Record<string, unknown>,
+    routingHints: OutputRoutingHints = {}
   ): Promise<void> {
     if (this._cancelled) return;
 
@@ -856,11 +887,18 @@ export class WorkflowRunner {
           continue; // skip non-object values
         }
 
-        await targetInbox.put("__control__", controlEvent);
-        // Track that this edge has routed at least one event
         const ctrlEdgeId =
           edge.id ??
-          `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
+          syntheticEdgeId(
+            edge.source,
+            edge.sourceHandle,
+            edge.target,
+            edge.targetHandle
+          );
+        await targetInbox.put("__control__", controlEvent, {
+          source_edge_id: ctrlEdgeId
+        });
+        // Track that this edge has routed at least one event
         this._controlEdgesRouted.add(ctrlEdgeId);
         continue;
       }
@@ -889,7 +927,21 @@ export class WorkflowRunner {
         target: edge.target,
         targetHandle: edge.targetHandle
       });
-      await targetInbox.put(edge.targetHandle, value);
+      const edgeId =
+        edge.id ??
+        syntheticEdgeId(
+          edge.source,
+          edge.sourceHandle,
+          edge.target,
+          edge.targetHandle
+        );
+      const lineage =
+        routingHints.perSlotLineage?.[edge.sourceHandle] ??
+        routingHints.invocationLineage;
+      await targetInbox.put(edge.targetHandle, value, {
+        source_edge_id: edgeId,
+        correlation_lineage: lineage
+      });
       this._incrementEdgeCounter(edge);
     }
 
