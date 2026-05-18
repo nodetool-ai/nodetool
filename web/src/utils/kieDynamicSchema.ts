@@ -5,7 +5,7 @@
  * and dynamic_outputs.
  */
 
-export interface KieDynamicInputMetadata {
+interface KieDynamicInputMetadata {
   type: string;
   type_args?: unknown[];
   optional?: boolean;
@@ -17,7 +17,7 @@ export interface KieDynamicInputMetadata {
   default?: unknown;
 }
 
-export interface ResolvedKieSchema {
+interface ResolvedKieSchema {
   dynamic_properties: Record<string, unknown>;
   dynamic_inputs?: Record<string, KieDynamicInputMetadata>;
   dynamic_outputs: Record<
