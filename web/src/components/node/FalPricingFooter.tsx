@@ -11,7 +11,14 @@
  * and BaseNode only needs to render `<FalPricingFooter metadata=... selected=... />`.
  */
 
-import React, { memo, useCallback, useEffect, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { useTheme } from "@mui/material/styles";
 import LaunchIcon from "@mui/icons-material/Launch";
 import {
@@ -44,11 +51,23 @@ export interface FalPricingFooterProps {
   metadata: NodeMetadata;
   /** Only render the chip while the parent node is selected. */
   selected: boolean;
+  /**
+   * Canvas chip anchored under the node. `inline`: compact chip for panels (inspector).
+   * @default "nodeFooter"
+   */
+  variant?: "nodeFooter" | "inline";
+  /**
+   * When this identity changes while the menu is open, close the menu
+   * (use the inspected node's id when `variant === "inline"`).
+   */
+  popoverResetDep?: string;
 }
 
 const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
   metadata,
-  selected
+  selected,
+  variant = "nodeFooter",
+  popoverResetDep
 }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -84,6 +103,20 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
     }
   }, [selected]);
 
+  const popoverAnchorPrev = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (popoverResetDep === undefined) {
+      return;
+    }
+    if (
+      popoverAnchorPrev.current !== undefined &&
+      popoverAnchorPrev.current !== popoverResetDep
+    ) {
+      setAnchorEl(null);
+    }
+    popoverAnchorPrev.current = popoverResetDep;
+  }, [popoverResetDep]);
+
   const pricing = metadata.fal_unit_pricing;
   if (!selected || !pricing) {
     return null;
@@ -94,39 +127,54 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
     ? theme.vars.palette.warning
     : theme.vars.palette.success;
 
+  const placement = variant === "inline" ? "bottom-left" : "top-right";
+
+  const chipSx = useMemo(
+    () => ({
+      bgcolor: tier.dark,
+      color: tier.contrastText,
+      px: 1,
+      py: 0,
+      height: 20,
+      borderRadius: 1,
+      fontSize: "0.65rem",
+      fontWeight: 600,
+      lineHeight: 1.4,
+      minHeight: 0,
+      textTransform: "none",
+      border: "1px solid",
+      borderColor: "transparent",
+      whiteSpace: "nowrap",
+      cursor: "pointer",
+      ...(variant === "nodeFooter"
+        ? {
+            position: "absolute" as const,
+            bottom: -25,
+            right: 4,
+            left: "auto",
+            flexShrink: 0,
+            zIndex: 1000
+          }
+        : {
+            position: "static" as const,
+            flexShrink: 0
+          }),
+      "&:hover": {
+        bgcolor: tier.main
+      }
+    }),
+    [tier.dark, tier.contrastText, tier.main, variant]
+  );
+
   return (
     <>
       <EditorButton
         variant="text"
-        className="node-fal-pricing nodrag nopan"
+        className={`node-fal-pricing nodrag nopan fal-pricing-${variant}`}
         aria-haspopup="true"
         aria-expanded={menuOpen}
         onClick={handleClick}
-        sx={{
-          position: "absolute",
-          bottom: -25,
-          right: 4,
-          left: "auto",
-          bgcolor: tier.dark,
-          color: tier.contrastText,
-          px: 1,
-          py: 0,
-          height: 20,
-          borderRadius: 1,
-          fontSize: "0.65rem",
-          fontWeight: 600,
-          lineHeight: 1.4,
-          minHeight: 0,
-          textTransform: "none",
-          zIndex: 1000,
-          border: "1px solid",
-          borderColor: "transparent",
-          whiteSpace: "nowrap",
-          cursor: "pointer",
-          "&:hover": {
-            bgcolor: tier.main
-          }
-        }}
+        sx={chipSx}
       >
         {pricing.source === "live" && (
           <span
@@ -143,7 +191,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
         anchorEl={anchorEl}
         open={menuOpen}
         onClose={handleClose}
-        placement="top-right"
+        placement={placement}
         paperSx={{
           minWidth: 220,
           fontSize: "12px"

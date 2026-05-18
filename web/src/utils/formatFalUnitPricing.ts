@@ -55,7 +55,7 @@ export function formatFalUnitPricingTooltip(p: FalUnitPricing): string {
   return [
     vague ? `${money} (simplified)` : money,
     vague
-      ? "Varies by resolution and quality — open this model on fal.ai."
+      ? "Varies by resolution and quality — use fal.ai link to see detailed pricing."
       : null,
     when,
     `Endpoint: ${p.endpoint_id}`,
