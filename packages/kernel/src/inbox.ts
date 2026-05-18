@@ -90,6 +90,14 @@ export class NodeInbox {
   /** Optional per-handle buffer capacity. */
   private _bufferLimit: number | null;
 
+  /**
+   * Pending-key safety limits. Default to conservative finite values so the
+   * correlated scheduler cannot accumulate unbounded buckets when an upstream
+   * close is missing. Hitting either is a terminal execution error. §6.
+   */
+  private _maxPendingKeys: number;
+  private _maxPendingMessagesPerKey: number;
+
   /** Flag: inbox is closed (no more data accepted). */
   private _closed = false;
 
@@ -119,8 +127,26 @@ export class NodeInbox {
    */
   private _signalEdgesByHandle = new Map<string, Set<string>>();
 
-  constructor(bufferLimit: number | null = null) {
+  constructor(
+    bufferLimit: number | null = null,
+    opts: {
+      maxPendingKeys?: number;
+      maxPendingMessagesPerKey?: number;
+    } = {}
+  ) {
     this._bufferLimit = bufferLimit;
+    this._maxPendingKeys = opts.maxPendingKeys ?? 10_000;
+    this._maxPendingMessagesPerKey = opts.maxPendingMessagesPerKey ?? 10_000;
+  }
+
+  /** Configured pending-key limit (read by the actor for diagnostics). */
+  get maxPendingKeys(): number {
+    return this._maxPendingKeys;
+  }
+
+  /** Configured per-key message limit. */
+  get maxPendingMessagesPerKey(): number {
+    return this._maxPendingMessagesPerKey;
   }
 
   // -----------------------------------------------------------------------

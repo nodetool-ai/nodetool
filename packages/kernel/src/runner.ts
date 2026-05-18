@@ -1045,6 +1045,31 @@ export class WorkflowRunner {
       const edgeId =
         edge.id ??
         `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
+
+      // §6 — at source EOS, synthesize `lineage_scope_closed` for every
+      // possible child root the edge could have produced. Downstream
+      // aggregators rely on receiving a close even when zero child tokens
+      // were minted.
+      if (this._correlation && targetInbox) {
+        const nodeAnalysis = this._correlation.nodes.get(nodeId);
+        const outputAnalysis = nodeAnalysis?.outputs.get(edge.sourceHandle);
+        if (outputAnalysis) {
+          for (const root of outputAnalysis.possibleChildRoots) {
+            targetInbox.signalLineageScopeClosed(
+              edge.targetHandle,
+              {
+                type: "lineage_scope_closed",
+                source_edge_id: edgeId,
+                output: edge.sourceHandle,
+                parent_lineage: {},
+                closed_root: root
+              },
+              []
+            );
+          }
+        }
+      }
+
       this._emit({
         type: "edge_update",
         workflow_id: this.jobId,

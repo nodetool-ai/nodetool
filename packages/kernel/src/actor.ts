@@ -577,10 +577,26 @@ export class NodeActor {
       if (cls === "max") {
         const scope = handleScope.get(handle)!;
         const key = this._projectKey(envelope, scope) ?? "";
-        let bucket = maxBuckets.get(handle)!.get(key);
+        const handleBuckets = maxBuckets.get(handle)!;
+        let bucket = handleBuckets.get(key);
         if (!bucket) {
+          if (handleBuckets.size >= this.inbox.maxPendingKeys) {
+            throw new Error(
+              `Inbox for node "${this.node.id}" exceeded max_pending_keys ` +
+                `(${this.inbox.maxPendingKeys}) on handle "${handle}". ` +
+                `Likely missing upstream close — see docs/correlation-design.md §6.`
+            );
+          }
           bucket = [];
-          maxBuckets.get(handle)!.set(key, bucket);
+          handleBuckets.set(key, bucket);
+        }
+        if (bucket.length >= this.inbox.maxPendingMessagesPerKey) {
+          throw new Error(
+            `Inbox for node "${this.node.id}" exceeded ` +
+              `max_pending_messages_per_key (` +
+              `${this.inbox.maxPendingMessagesPerKey}) on handle "${handle}" ` +
+              `for key "${key}".`
+          );
         }
         bucket.push(envelope);
         await tryFire([key]);
