@@ -53,7 +53,7 @@ describe("NodeInputs – firstWithEnvelope", () => {
   it("returns an envelope with data and metadata", async () => {
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
-    await inbox.put("a", "hello", { key: "val" });
+    await inbox.put("a", "hello", { metadata: { key: "val" } });
     inbox.markSourceDone("a");
 
     const inputs = new NodeInputs(inbox);
@@ -103,7 +103,7 @@ describe("NodeInputs – streamWithEnvelope", () => {
   it("yields envelopes with metadata", async () => {
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
-    await inbox.put("a", "x", { m: 1 });
+    await inbox.put("a", "x", { metadata: { m: 1 } });
     inbox.markSourceDone("a");
 
     const inputs = new NodeInputs(inbox);

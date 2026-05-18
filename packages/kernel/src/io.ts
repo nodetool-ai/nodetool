@@ -14,17 +14,30 @@ import { NodeInbox } from "./inbox.js";
 
 export class NodeInputs {
   private _inbox: NodeInbox;
+  private _envelopeTracker: Map<string, MessageEnvelope> | null;
 
-  constructor(inbox: NodeInbox) {
+  /**
+   * `envelopeTracker`, when provided, records the most recently consumed
+   * envelope per handle. The actor passes its own `_lastEnvelopes` map so
+   * raw `stream()`/`first()`/`any()` consumers still surface lineage to the
+   * actor — that's how unmigrated stream filters (Take, Drop, Filter*)
+   * inherit lineage even when they call `outputs.emit()` with no options.
+   */
+  constructor(
+    inbox: NodeInbox,
+    envelopeTracker?: Map<string, MessageEnvelope> | null
+  ) {
     this._inbox = inbox;
+    this._envelopeTracker = envelopeTracker ?? null;
   }
 
   /**
    * Return the first available item for a handle, or default if EOS.
    */
   async first(name: string, defaultValue?: unknown): Promise<unknown> {
-    for await (const item of this._inbox.iterInput(name)) {
-      return item;
+    for await (const envelope of this._inbox.iterInputWithEnvelope(name)) {
+      this._envelopeTracker?.set(name, envelope);
+      return envelope.data;
     }
     return defaultValue;
   }
@@ -37,17 +50,20 @@ export class NodeInputs {
     defaultValue?: unknown
   ): Promise<MessageEnvelope | unknown> {
     for await (const envelope of this._inbox.iterInputWithEnvelope(name)) {
+      this._envelopeTracker?.set(name, envelope);
       return envelope;
     }
     return defaultValue;
   }
 
   /**
-   * Async generator: yields items until EOS.
+   * Async generator: yields items until EOS. The most recent envelope per
+   * handle is recorded so the actor can derive invocation lineage.
    */
   async *stream(name: string): AsyncGenerator<unknown> {
-    for await (const item of this._inbox.iterInput(name)) {
-      yield item;
+    for await (const envelope of this._inbox.iterInputWithEnvelope(name)) {
+      this._envelopeTracker?.set(name, envelope);
+      yield envelope.data;
     }
   }
 
@@ -56,6 +72,7 @@ export class NodeInputs {
    */
   async *streamWithEnvelope(name: string): AsyncGenerator<MessageEnvelope> {
     for await (const envelope of this._inbox.iterInputWithEnvelope(name)) {
+      this._envelopeTracker?.set(name, envelope);
       yield envelope;
     }
   }
@@ -64,8 +81,9 @@ export class NodeInputs {
    * Async generator: yields [handle, item] tuples in arrival order.
    */
   async *any(): AsyncGenerator<[string, unknown]> {
-    for await (const tuple of this._inbox.iterAny()) {
-      yield tuple;
+    for await (const [handle, envelope] of this._inbox.iterAnyWithEnvelope()) {
+      this._envelopeTracker?.set(handle, envelope);
+      yield [handle, envelope.data];
     }
   }
 
@@ -73,8 +91,9 @@ export class NodeInputs {
    * Async generator: yields [handle, MessageEnvelope] tuples.
    */
   async *anyWithEnvelope(): AsyncGenerator<[string, MessageEnvelope]> {
-    for await (const tuple of this._inbox.iterAnyWithEnvelope()) {
-      yield tuple;
+    for await (const [handle, envelope] of this._inbox.iterAnyWithEnvelope()) {
+      this._envelopeTracker?.set(handle, envelope);
+      yield [handle, envelope];
     }
   }
 
@@ -187,15 +206,19 @@ export class NodeOutputs {
   /**
    * Forward an envelope to `slot`, preserving its correlation lineage.
    *
-   * `value` defaults to `envelope.data`; pass it explicitly when a forward
-   * node transforms the payload but keeps the source lineage.
+   * With two arguments, the envelope's `data` is forwarded unchanged. With
+   * three arguments, the caller-supplied value replaces it — including
+   * `null`/`undefined`, which would otherwise be indistinguishable from
+   * "not supplied" if we used `??`.
    */
   async forward(
     slot: string,
     envelope: MessageEnvelope,
-    value?: unknown
+    ...overrideValue: [] | [unknown]
   ): Promise<void> {
-    await this.emit(slot, value ?? envelope.data, {
+    const value =
+      overrideValue.length > 0 ? overrideValue[0] : envelope.data;
+    await this.emit(slot, value, {
       lineage: envelope.correlation_lineage
     });
   }

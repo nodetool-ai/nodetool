@@ -163,13 +163,21 @@ export class NodeActor {
       if (this.node.is_streaming_input) {
         if (this._executor.run) {
           // Streaming input mode with run(): node drains inbox via
-          // NodeInputs and pushes outputs via NodeOutputs.
-          const nodeInputs = new NodeInputs(this.inbox);
+          // NodeInputs and pushes outputs via NodeOutputs. Passing
+          // _lastEnvelopes as the tracker lets unmigrated filters that
+          // call inputs.stream()+outputs.emit() inherit lineage from the
+          // single-edge input automatically — matching the buffered rule.
+          const nodeInputs = new NodeInputs(this.inbox, this._lastEnvelopes);
           const nodeOutputs = new NodeOutputs({
             sendFn: async (slot: string, value: unknown, opts) => {
               const hints: OutputRoutingHints = {};
               if (opts?.lineage !== undefined) {
                 hints.perSlotLineage = { [slot]: opts.lineage };
+              } else {
+                const inherited = this._computeInvocationLineage();
+                if (inherited !== undefined) {
+                  hints.invocationLineage = inherited;
+                }
               }
               await this._sendOutputs(
                 this.node.id,
@@ -379,27 +387,27 @@ export class NodeActor {
   }
 
   /**
-   * Compute the invocation lineage for the current set of consumed envelopes.
-   * Returns undefined when the case is ambiguous or the flag is off — that
-   * leaves downstream routing with empty lineage, matching pre-PR-2 behavior.
+   * Compute the invocation lineage for the current set of consumed
+   * envelopes. Returns undefined when the case is ambiguous or the flag is
+   * off — downstream routing then sees empty lineage, matching pre-PR-2
+   * behavior.
    *
-   * PR 2 only handles the unambiguous "exactly one connected single-edge
+   * PR 2 handles only the unambiguous "exactly one connected single-edge
    * data input" case. PR 3 extends this with full multi-input merging.
+   *
+   * The map is NOT cleared here so that streaming-input nodes that emit
+   * multiple times per consumed envelope continue to inherit lineage on
+   * every emit. Buffered gather paths overwrite envelopes per handle on
+   * each iteration, which naturally tracks the latest consumed envelope.
    */
   private _computeInvocationLineage(): CorrelationLineage | undefined {
     if (!isCorrelationEnabled()) return undefined;
 
     const dataHandles = [...this._lastEnvelopes.keys()].filter(
-      (h) =>
-        h !== "__control__" && !this._listInputHandles.has(h)
+      (h) => h !== "__control__" && !this._listInputHandles.has(h)
     );
-    if (dataHandles.length !== 1) {
-      this._lastEnvelopes.clear();
-      return undefined;
-    }
-    const env = this._lastEnvelopes.get(dataHandles[0]);
-    this._lastEnvelopes.clear();
-    return env?.correlation_lineage;
+    if (dataHandles.length !== 1) return undefined;
+    return this._lastEnvelopes.get(dataHandles[0])?.correlation_lineage;
   }
 
   /**
@@ -565,7 +573,7 @@ export class NodeActor {
 
       // Handle still open: wait for the next value.
       if (this.inbox.isOpen(handle)) {
-        const gen = this.inbox.iterInput(handle);
+        const gen = this.inbox.iterInputWithEnvelope(handle);
         const next = await gen.next();
         if (next.done) {
           // EOS — only initial-sticky handles fall back to the cached value.
@@ -576,8 +584,9 @@ export class NodeActor {
           }
           return null;
         }
-        result[handle] = next.value;
-        this._stickyValues[handle] = next.value;
+        this._lastEnvelopes.set(handle, next.value);
+        result[handle] = next.value.data;
+        this._stickyValues[handle] = next.value.data;
         gotNew = true;
         await gen.return(undefined);
         continue;

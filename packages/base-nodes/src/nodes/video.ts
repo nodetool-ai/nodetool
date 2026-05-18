@@ -695,9 +695,9 @@ export class FrameIteratorNode extends BaseNode {
   static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
-    frame: { kind: "iteration", source: "__execution__", group: "items" },
-    index: { kind: "iteration", source: "__execution__", group: "items" },
-    fps: { kind: "single", source: "__execution__" }
+    frame: { kind: "iteration", source: "video", group: "items" },
+    index: { kind: "iteration", source: "video", group: "items" },
+    fps: { kind: "single", source: "video" }
   };
 
   @prop({

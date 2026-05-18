@@ -192,6 +192,78 @@ describe("WorkflowRunner – envelope propagation under NODETOOL_USE_CORRELATION
     expect(captured.envelopes[0].source_edge_id).toBe("e2");
   });
 
+  it("streaming filter inherits lineage from inputs.stream() on plain emit", async () => {
+    // Mirrors how unmigrated stream nodes (Take, Drop, Filter*) work today:
+    // they consume raw values via inputs.stream() and emit via
+    // outputs.emit() without explicit lineage. With the envelope tracker
+    // hooked into NodeInputs, the actor's sendFn fallback should still
+    // forward the consumed envelope's lineage downstream.
+    const captured = { envelopes: [] as MessageEnvelope[] };
+    const seededLineage: CorrelationLineage = {
+      "src:items": { index: 11 }
+    };
+
+    const nodes: NodeDescriptor[] = [
+      { id: "src", type: "test.Seed", is_streaming_input: true },
+      {
+        id: "filter",
+        type: "test.RawFilter",
+        is_streaming_input: true
+      },
+      { id: "sink", type: "test.Sink", is_streaming_input: true }
+    ];
+    const edges: Edge[] = [
+      {
+        id: "e1",
+        source: "src",
+        sourceHandle: "value",
+        target: "filter",
+        targetHandle: "value"
+      },
+      {
+        id: "e2",
+        source: "filter",
+        sourceHandle: "value",
+        target: "sink",
+        targetHandle: "value"
+      }
+    ];
+
+    const seedExecutor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async run(_inputs: NodeInputs, outputs: NodeOutputs) {
+        await outputs.emit("value", "payload", { lineage: seededLineage });
+      }
+    };
+
+    const rawFilterExecutor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      // Old-style stream node: reads scalars, emits scalars, no envelopes.
+      async run(inputs: NodeInputs, outputs: NodeOutputs) {
+        for await (const v of inputs.stream("value")) {
+          await outputs.emit("value", v);
+        }
+      }
+    };
+
+    const runner = makeRunner({
+      "test.Seed": seedExecutor,
+      "test.RawFilter": rawFilterExecutor,
+      "test.Sink": captureSinkExecutor(captured)
+    });
+    const result = await runner.run(
+      { job_id: "raw-filter-lineage", params: {} },
+      { nodes, edges }
+    );
+    expect(result.status).toBe("completed");
+    expect(captured.envelopes).toHaveLength(1);
+    expect(captured.envelopes[0].correlation_lineage).toEqual(seededLineage);
+  });
+
   it("does not change output values when the flag is off", async () => {
     delete process.env[FLAG];
 

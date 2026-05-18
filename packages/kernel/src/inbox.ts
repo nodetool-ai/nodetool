@@ -34,16 +34,6 @@ export interface PutOptions {
   source_edge_id?: string;
 }
 
-function isPutOptions(
-  v: Record<string, unknown> | PutOptions
-): v is PutOptions {
-  return (
-    "metadata" in v ||
-    "correlation_lineage" in v ||
-    "source_edge_id" in v
-  );
-}
-
 function makeEnvelope(
   data: unknown,
   opts: PutOptions = {}
@@ -131,7 +121,7 @@ export class NodeInbox {
   async put(
     handle: string,
     item: unknown,
-    metadataOrOpts: Record<string, unknown> | PutOptions = {}
+    opts: PutOptions = {}
   ): Promise<void> {
     if (this._closed) return;
 
@@ -154,9 +144,6 @@ export class NodeInbox {
       if (this._closed) return;
     }
 
-    const opts = isPutOptions(metadataOrOpts)
-      ? metadataOrOpts
-      : { metadata: metadataOrOpts };
     const envelope = makeEnvelope(item, opts);
     this._buffers.get(handle)!.push(envelope);
     this._arrival.push(handle);

@@ -47,10 +47,10 @@ describe("MessageEnvelope correlation fields", () => {
     expect(envelope?.correlation_lineage).toBe(lineage);
   });
 
-  it("still accepts the legacy metadata-record positional arg", async () => {
+  it("PutOptions.metadata round-trips on the envelope", async () => {
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
-    await inbox.put("a", "x", { trace: "abc" });
+    await inbox.put("a", "x", { metadata: { trace: "abc" } });
     const envelope = (await inbox.iterInputWithEnvelope("a").next()).value;
     expect(envelope?.metadata).toEqual({ trace: "abc" });
     expect(envelope?.correlation_lineage).toEqual(EMPTY_LINEAGE);
@@ -150,6 +150,50 @@ describe("NodeOutputs.forward", () => {
       "transformed"
     );
     expect(captured).toBe("transformed");
+  });
+
+  it("preserves an explicit null override (distinguished from omitted arg)", async () => {
+    let captured: unknown = "untouched";
+    const outputs = new NodeOutputs({
+      sendFn: async (_slot, value) => {
+        captured = value;
+      }
+    });
+    await outputs.forward(
+      "output",
+      {
+        data: "raw",
+        metadata: {},
+        timestamp: 0,
+        event_id: "e3",
+        correlation_lineage: EMPTY_LINEAGE,
+        source_edge_id: ""
+      },
+      null
+    );
+    expect(captured).toBeNull();
+  });
+
+  it("preserves an explicit undefined override", async () => {
+    let captured: unknown = "untouched";
+    const outputs = new NodeOutputs({
+      sendFn: async (_slot, value) => {
+        captured = value;
+      }
+    });
+    await outputs.forward(
+      "output",
+      {
+        data: "raw",
+        metadata: {},
+        timestamp: 0,
+        event_id: "e4",
+        correlation_lineage: EMPTY_LINEAGE,
+        source_edge_id: ""
+      },
+      undefined
+    );
+    expect(captured).toBeUndefined();
   });
 });
 
