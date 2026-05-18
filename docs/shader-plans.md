@@ -22,19 +22,46 @@ Phase 1 of the Shared Shader Pool migration. Creates `web/src/lib/gpu/` as the s
 - **Host portability** via `GPUContext` adapter holding a `TgpuRoot` obtained from `tgpu.initFromDevice({ device })`. The same module code runs against browser `navigator.gpu`, Electron, and Node.js Dawn (`webgpu` npm package) devices.
 - **Surface from day one:** `surface: "internal"` (free to churn) vs `surface: "published"` (frozen, additive-only, what workflow nodes are allowed to see in Phase 4). Promotion is a deliberate review, never a side effect of writing a shader.
 - **Versioned IDs.** A module is `(id, version)`. Saved workflows pin a version; renames/splits ship as new versions, never in-place.
-- **Color/alpha defaults are starting points, not global truths.** Modules declare per-input `colorSpace` and `alpha`; the Executor enforces.
+- **Canonical inputs and the mask slot.** Image-in/image-out modules (filter, color, keyer, transform, mixer) declare:
+  - **`source`** — required main texture input. The string `"source"` is reserved across `IOContract`, recipes (`in: { foo: "source" }`), and dimension propagation (`"same-as:source"`).
+  - **`mask`** — optional mask texture input. **Modules in these categories should expose a `mask` slot by default.** Region-constrained effects ("blur only the background", "desaturate everything except this layer", "vignette inside a clipping shape") are how filters and color ops are actually used in real workflows; a catalog of 50 modules with no mask slot is a catalog that needs retrofitting. Treat omitting `mask` as the deliberate exception (e.g. `color.invert` on a thumbnail), not the default.
+
+  When a module exposes a `mask` slot:
+  - Coverage is read from `mask.a` by default; modules may declare `mask.r` for single-channel masks.
+  - The effect convention is `output = mix(source, processed, coverage * effectAmount)`.
+  - Missing-mask semantics are executor-enforced: sampling an unbound `mask` returns `1.0` everywhere via a 1×1 white texture the host supplies. Modules write the WGSL as if the mask is always present.
+
+  Source modules (`io.inputs = {}`) and recipes that internally generate textures are exempt. Multi-input modules (composite, channel-merge) declare their own input names; the `mask` slot, if used, keeps the same semantics.
+- **Working color space is linear; storage may be sRGB-encoded.** The Executor relies on WebGPU's automatic sRGB→linear at sample time and linear→sRGB at write time via `*-srgb` formats. Alpha is **premultiplied between modules**. `LabeledTexture.meta` records storage encoding; modules declare per-input `colorSpace` and `alpha` (what they expect); mismatches insert a registered conversion (under `color/convert/*`, auto-inserted by the Executor) or fail loud.
 - **Coordinates:** normalized UVs `[0,1]`, top-left origin, explicit output dimensions.
+- **No executor-inserted readback.** `Executor.encode`/`RecipeRunner.encode` encode GPU work only — they never call `copyTextureToBuffer`, `mapAsync`, or any path that pulls pixels to CPU as part of a normal FX path. **`ImageRef` materialization remains a deliberate host-side step** at Phase 4 workflow boundaries (decode on the way in, encode/readback on the way out). That invariant is required for realtime: the display path stays GPU-resident at frame rate; CPU readback, when needed, happens only at explicit boundaries (e.g. sampling one frame into a workflow, or feeding an inference node at inference rate — both owned by the realtime host layer, see Phase 5).
 - **Registry uses explicit `ALL_SHADERS` barrel** (not `import.meta.glob`). Node-bundling-safe, grep-able, tree-shakeable.
+
+## Cache key shape (specified now, implemented later)
+
+A future cache key is `(module.id, module.version, params_hash, inputs_content_hash, output_spec_hash)`. This forces three constraints on every module today, even though no cache exists yet:
+
+- Params must be hashable — no function values, no mutable refs.
+- `LabeledTexture` exposes a content version counter, incremented on every write. That is the `inputs_content_hash` source; full pixel hashing is not required.
+- Modules must not read hidden global state inside WGSL — all inputs flow through declared bindings and uniforms.
+
+The cache itself lands when Phase 3's timeline preview needs it. Specifying the key shape now is what makes the eventual cache cheap.
+
+## Scratch pool: bucketed allocation
+
+`ctx.scratch` allocates by bucket: `(format, usage, ceilToBucket(width), ceilToBucket(height))` where bucket dims round up to the next multiple of 64 (or next power of 2 above 256). The caller sees only the requested viewport; the underlying texture may be larger. Phase 1 ships the canary using a single scratch texture; the bucketing rule is what Phase 3's `RecipeRunner` will lean on so timelines with many clip resolutions (1920×1080, 1920×800 letterboxed, 1280×720, 3840×2160, plus thumbnails) reuse rather than fragment.
 
 ## Dependency: TypeGPU
 
-Adopted in Phase 1. The earlier plan deferred it; the critique made clear why that was wrong:
-- Hand-written uniform packing across four hosts is the single highest-drift risk in the design. TypeGPU's `d.struct` schemas generate aligned/padded buffers automatically.
-- Hand-rebuilt bind group layouts in each host are the second-highest risk. TypeGPU's typed layouts are the source of truth; `root.unwrap(layout)` returns the `GPUBindGroupLayout` that the WGSL was authored against.
+Adopted in Phase 1. Reasons:
+- One typed schema (`d.struct`) per module is the source of truth for both the WGSL `*Uniforms` struct and the host-side packed buffer. As modules grow (vec3 padding, struct arrays, mixed scalar/vec fields) hand-rolled `Float32Array`/`DataView` math gets fragile; today's timeline code is straightforward typed-array writes, so this is preventative, not corrective.
+- Hand-rebuilt bind group layouts in each host are real drift risk. TypeGPU's typed layouts are the source of truth; `root.unwrap(layout)` returns the `GPUBindGroupLayout` that the WGSL was authored against.
 - `tgpu.initFromDevice({ device })` accepts any `GPUDevice` — browser, Dawn, Electron — so the cross-runtime story is inherited rather than designed.
 - WGSL stays hand-written; `tgpu.resolve(...)` connects it to the typed layout. The TS-to-WGSL compiler (`'use gpu'`) is not adopted.
 
 ## Phase 1 scope
+
+> **Note on existing scaffold.** `web/src/lib/gpu/registry.ts` and `shaders/index.ts` already exist as placeholder Phase-1 scaffolding (string-id `ShaderModule` with no `version`, no `params`, no `bindGroupLayout`, no `IOContract`; `ALL_SHADERS` empty; `colorSpace`/`alphaMode` descriptive-only). These are **replaced**, not extended, by the TypeGPU-backed contracts below. There are no existing consumers to break.
 
 1. Add `typegpu` dependency to `web/package.json`.
 2. Create `web/src/lib/gpu/` with:
@@ -97,10 +124,14 @@ interface Executor {
     inputs: Record<string, LabeledTexture>;
     output: LabeledTexture;
     params: P;
-    dispatch?: { x: number; y: number; z?: number };
+    dispatch:
+      | { kind: "fragment" }
+      | { kind: "compute"; x: number; y: number; z?: number };
   }): void;
 }
 ```
+
+The `dispatch` discriminator is set now even though Phase 2 only uses the `compute` arm — making it a discriminated union from day one means fragment passes (the default for image-in/image-out from Phase 3 onwards) drop in without an Executor signature change.
 
 Single shared implementation. Steps per call: resolve variant (Phase 3 expands this), validate input labels against `module.io.inputs`, get-or-compile pipeline via `ctx.pipelineCache`, pack `params` via the module's TypeGPU schema, build the bind group from the module's typed layout, encode the compute dispatch. The host owns *when* to submit and *where* the output texture lives.
 
@@ -112,7 +143,7 @@ interface ShaderModule<P> {
   version: number;                                // 1
   surface: "internal" | "published";
   category: ShaderCategory;
-  kind: "compute" | "vertex" | "fragment" | "snippet";
+  kind: "fragment" | "compute" | "snippet";       // fragment is default for image-in/image-out
 
   params: TgpuStructSchema<P>;                    // TypeGPU schema
   paramDefaults: P;
@@ -129,6 +160,16 @@ interface ShaderModule<P> {
 ```
 
 `IOContract` declares per-input `colorSpace`, `alpha`, `bindingKinds`, and an output spec with `dimensions: "same-as:<inputName>" | "host-specified" | "derived"`. The Executor checks `LabeledTexture.meta` against this.
+
+**Default kind for new modules is `fragment`.** Filters, color, keyer, sources, transform, and mixer ops use a full-screen triangle render pass — no workgroup boundary handling, free interpolation, easier blending. Phase 2's five timeline effects stay on `compute` because that's what the existing shaders use; this is a migration accident, not a design choice. New modules from Phase 3 onward default to fragment. `compute` is reserved for ops that genuinely need shared memory or reductions (histogram, summed-area tables, FFT-style passes).
+
+**RoD propagation.** Every module's `IOContract` declares an `rod` field:
+
+```ts
+rod: "same-as:source" | "expand:<paramName>" | "union-of-inputs" | "explicit"
+```
+
+Phase 1–2: every module declares `"same-as:source"`. The Executor does nothing with it yet. Phase 3 onwards, blur declares `"expand:radius"`, crop declares `"explicit"`, composite declares `"union-of-inputs"`. RoI propagation, tiling, and partial-region re-cooks are explicitly out of scope until a real consumer demands them — only the RoD declaration is required now, because retrofitting it across a 50-module catalog is the kind of thing that gets perpetually deferred.
 
 ## Migration steps
 
@@ -276,6 +317,8 @@ Variants become first-class this phase. A module may declare multiple variants w
 
 The Executor resolves a variant by matching `inputs[*].meta.bindingKind` against each variant's `bindGroupLayout` and filtering by `ctx.capabilities`. Timeline gets the `texture_external` fast path automatically; Node.js Dawn falls back to `texture_2d`; sketch picks whichever its uploads produce.
 
+**`texture_external` and camera/video (realtime alignment).** A registered `color/convert/srgbExternalToLinear` module (exact id TBD) is the canonical consumer of `texture_external` for sRGB-encoded `VideoFrame`/camera surfaces: bind the external texture in the **same** command-buffer submission where it was imported, emit linear premultiplied `rgba8unorm` (`texture_2d`), everything downstream binds regular textures. Matches WebGPU's rule that imported external texture handles expire at submit. Realtime capture spikes and minimum-viable paths should use this module as the first FX stage.
+
 Variants are added only when a concrete second consumer or binding kind exists. `interactive`/`export` quality variants stay deferred until a real quality/perf split is demonstrated.
 
 ## Mode parameters vs separate operations
@@ -296,7 +339,7 @@ Variants are added only when a concrete second consumer or binding kind exists. 
 
 ## Optional mask inputs
 
-Filter/color/keyer/transform/mixer modules may declare an optional `mask` input in `io.inputs`. Missing mask = full coverage. The Executor enforces optional-input semantics. Timeline can ignore mask inputs until it has clip/track mask UI.
+Optional `mask` inputs follow the canonical-inputs contract from Phase 1. Filter/color/keyer/transform/mixer modules in this phase ship with the `mask` slot exposed unless there's a clear reason not to. Timelines that lack mask UI simply pass none — the executor's missing-mask semantics handle it.
 
 ## Surface promotion
 
@@ -369,6 +412,8 @@ Decision rule: only add another dep if it solves a concrete current-phase proble
 Two outcomes:
 1. Workflow nodes generated from the shared catalog, chaining on GPU without intermediate readback, producing `ImageRef` only at workflow boundaries.
 2. A single image pipeline shared between editor (sketch, timeline) and headless (Node.js workflow execution, Cloud Run, RunPod): same WGSL, same TypeGPU schemas, same Executor — different `GPUContext` adapters, different I/O codecs.
+
+The first concrete consumer is **texture FX chains**: workflow-graph subgraphs of shader nodes that share GPU textures, materialize an `ImageRef` only at the chain's downstream boundary, and run the same modules sketch and timeline already use. Frame-loop realtime hosts build on Phase 5 of this doc (pool contract); **session lifecycle and workflow partitioning** belong in the separate realtime plan (draft).
 
 Ideal path:
 
@@ -507,6 +552,10 @@ Shader node "color.hsb" (version 1):
 
 Param UI is driven by the module's TypeGPU schema + `paramUi` hints (min/max/step). Execution maps params → uniform → Executor.encode → labeled texture out. Versioned IDs are saved with the workflow; loading a workflow uses `registry.get({ id, version, surface: "published" })`.
 
+The workflow node's `nodeType` (the `NodeRegistry` key in `packages/node-sdk`) **encodes the module version** — e.g. `shader.color.hsb@v2`, not bare `shader.color.hsb`. Without this, upgrading a published module silently changes node behavior in saved workflows. The `@v<n>` suffix is the bridge between the workflow `NodeRegistry`'s string-keyed identity and the shader registry's `(id, version)` identity.
+
+**Workflow-load failure mode.** Loading a workflow that references `(id, version)` not present in the running registry **fails loud at load time**, naming the missing module. No silent fallback to a different version. Migrating saved workflows to a newer version is a deliberate user action with a diff preview. Removing a `published` module requires a deprecation window with a documented replacement — this is the difference between "old workflows still work in two years" and "every release silently breaks somebody's graph."
+
 ## Readback policy
 
 Avoid readback between shader nodes. The runner inspects graph edges and only materializes `ImageRef` at GPU-to-non-GPU boundaries or final outputs.
@@ -579,3 +628,87 @@ Image In → HSB → Gaussian Blur → Vignette → Image Out
 ```
 
 Prove in browser, then validate the same pipeline in Node.js/Dawn. Broad catalog coverage and full sharp parity come in follow-up work.
+
+---
+
+# Shared Shader Pool — Phase 5: Realtime and frame-loop hosts
+
+**ID:** `P-2026-05-13-shared-shader-pool-phase-5-realtime`
+**State:** draft
+**Tags:** gpu, shaders, realtime, frame-loop, phase-5
+**Repo:** default (`/home/claude/nodetool`)
+
+**Companion (orchestration + param store):** `__PLANS__/feat-realtime/PLAN-REALTIME-2.md` — workflow ↔ renderer bridge, runner third mode, `RealtimeLoop`, inference subprocess. Kept separate so this repo’s shader plan stays in `docs/` and evolves at a different cadence.
+
+**Depends on:** Phase 1, Phase 2, Phase 3, Phase 4
+
+**Scope (this document):** What the shared pool **must** provide so *any* realtime or frame-loop consumer — minimal webcam→FX→canvas, texture bus with async inference, feedback/trails, future NDI/Syphon — can plug in **without** forking WGSL or duplicating bind layouts. **Out of scope here:** session lifecycle, workflow vs realtime partitioning, param store, kernel runner "third mode", Python inference subprocess, zero-copy verification checklists — **see PLAN-REALTIME-2**. Phase 5 below is the **GPU catalog + executor contract** side; PLAN-REALTIME-2 is the **orchestration** side.
+
+## Goal
+
+Run the **same** `ShaderModule` catalog at frame rate inside a dedicated host (tick loop), not only in request/response workflow runs. The pool stays host-agnostic; the realtime host owns capture, scheduling, and when (if ever) CPU readback happens. Phase 5 ensures the foundation laid in Phases 1–4 is **sufficient** for that class of hosts — including optional feedback and sinks beyond `ImageRef`.
+
+## What the pool guarantees (foundation for any realtime host)
+
+- **Same artifacts as Phases 1–4:** `ShaderModule`, Executor, RecipeRunner, registry, variant resolution, `LabeledTexture`, `IOContract` (including `rod`), `TimeContract`, bucketed `ctx.scratch`, pipeline cache on `GPUContext`.
+- **No implicit readback** — restated from Phase 1: the Executor never pulls pixels to CPU; hosts that need a CPU image do so explicitly (workflow boundary, `sample_frame`-style operations, inference input at model rate).
+- **`texture_external` path** — Phase 3 variant + `color/convert/srgbExternalToLinear` (or equivalent registered module) so camera/video can enter the catalog as linear `texture_2d` in one submit.
+- **Optional cross-frame state** — hosts that need trails, accumulation, or temporal effects use **`ctx.persistent`** (or equivalent): refcounted textures that survive across ticks, distinct from frame-scoped scratch. Simple realtime paths may use **only** scratch + ping-pong between two bucketed textures; persistent is for when feedback cannot be expressed as a single ping-pong pair.
+- **`previousFrame` (or named prior-output) input** — optional graph concept: a source slot bound to **last tick's** output for a named handle. Keeps the per-tick graph a DAG while still allowing feedback; host advances the handle after submit. Catalog modules stay unchanged; wiring is host responsibility.
+
+## What changes vs. Phase 4 (conceptual)
+
+| Aspect | Phase 4 (texture FX chain) | Phase 5 (frame-loop host) |
+|---|---|---|
+| Execution model | Run-once, request/response | Continuous tick (source-driven or capped) |
+| Texture lifetime | Per-run scratch + boundary `ImageRef` | Per-tick scratch **plus optional** `ctx.persistent` for feedback/state |
+| Feedback | DAG only | `previousFrame` / named prior-output + optional persistent textures |
+| Sources | `ImageRef` / `GPUTextureRef` | Same modules; **live** sources (webcam, file, later NDI/Syphon) enter via `texture_external` + convert pass, then identical FX |
+| Outputs | `ImageRef` at boundaries | **Primary:** WebGPU canvas / surface the host owns. **Optional later:** NDI/Syphon/Spout as presentation sinks — not required for pool acceptance |
+| Params | Workflow node inputs | Per-tick uniforms packed from snapshot (PLAN-REALTIME-2 param store → TypeGPU-backed `ShaderModule.params`) |
+| Time | Static or keyframed | `time` / `frame` / `deltaTime` from host each tick |
+
+## Ideas from the realtime draft worth preserving (host layer, not catalog)
+
+These guide **PLAN-REALTIME-2**; the pool does not implement them, but should **not** contradict them:
+
+- **Workflow context vs realtime context** — event-driven workflow vs continuous renderer loop; bridge via an explicit param/image channel (details in PLAN-REALTIME-2), not by pretending every graph edge is per-frame.
+- **Workflow-driven control** — orchestration-only: serialized param pushes (`set_param`-style), not textures every frame over WebSocket. Realtime snapshots the param store once per tick → packs Executor uniforms against each node's TypeGPU schema. **`ImageRef`/bulk images occasional** (`set_image`-style); never implicit every-frame edges on the workflow DAG (see PLAN-REALTIME-2 "Graph boundary").
+- **GPUExternalTexture lifetime** — import, convert to linear `texture_2d` in the same submission, never store the external handle across frames (aligns with Phase 3 module above).
+- **FX path stays GPU** — display and multi-pass FX never force readback; heavy work (e.g. inference) may use **async nodes** at a lower rate with an explicit GPU→CPU step at that boundary only.
+- **Capture abstraction** — webcam first; same FX pipeline when NDI/Syphon land (new sources, same downstream modules).
+
+## Non-goals (Phase 5 in *this* shader-pool document)
+
+- Specifying `RealtimeLoop`, param store API, `realtime_session_start` / server routing, or kernel third execution mode.
+- Python subprocess, model loading, or StreamDiffusion-class pipelines (realtime plan + `nodetool-realtime`).
+- Replacing sketch or timeline internal loops; they remain separate hosts that already benefit from the same catalog.
+- User-authored shader nodes (still a separate plan).
+
+## Acceptance shape (pool-side)
+
+1. **Minimal —** `texture_external` (or uploaded `texture_2d`) → shared catalog module chain (e.g. HSB → blur) → canvas, at source frame rate, with **no** CPU read on the FX chain (Executor-only path).
+2. **Feedback —** A graph using `previousFrame` and/or `ctx.persistent` runs for a sustained session without texture leaks.
+3. **Reuse —** The same `ShaderModule` binaries (import graph) are used by sketch, timeline, Phase 4 workflow chains, and the Phase 5 frame-loop host.
+
+Full end-to-end realtime acceptance (multi-platform zero-copy capture, async inference, workflow integration) is **gated on PLAN-REALTIME-2**, not on this document alone.
+
+---
+
+# Deferred ideas (revisit when triggered)
+
+These were considered during plan review and intentionally left out. Each lists the trigger that should reopen it. **Do not design ahead of the trigger.**
+
+- **RoI propagation upstream.** Trigger: first time a workflow re-cooks at full resolution because of a small upstream parameter change and a user complains, or first parameter-driven preview that needs region-limited re-render.
+- **Tiled / scanline execution.** Trigger: first user hitting WebGPU max texture dimensions, or first VRAM OOM on a real workflow. Module declarations should grow a `tileSafe: boolean` field at that point.
+- **Dynamic / imperative recipes** (`buildPasses(params, ctx) → Pass[]`). Trigger: first op that needs runtime-determined pass count — large-radius blur via mip pyramid, bloom with N downsample levels, iterative dilate/erode, conditional passes (tonemap `mode = none` as recipe-level passthrough).
+- **WGSL hot reload.** Trigger: shader-author feedback that the Vite HMR + TS rebuild cycle is slowing iteration. Dev-only path that re-resolves WGSL and rebuilds the pipeline without rebuilding the module object.
+- **Param expressions / driven values.** Trigger: first concrete request to drive a param from another node's output, an audio level, a curve, or MIDI/OSC. Belongs in the workflow graph, not the shader pool — but `params` may need to become `{ value, expression?, binding? }` per field.
+- **`wantsMips` and derived resources.** Trigger: first module that needs a mip chain, gaussian pyramid, or summed-area table. vvvv's `WantsMips` is the model.
+- **Structured `bindingKind`.** Trigger: variant count for any module exceeds ~3, or first module needing array textures, 3D textures, multi-sampled, or format-discriminated variants. Replace string enum with `{ dimension, sampleType, multisampled, viewDimension }` matching `GPUTextureBindingLayout`.
+- **Format propagation rules.** Trigger: first time a module outputs different precision based on input precision (HDR-aware tonemap, float16 chains).
+- **Multi-level cache (source-decode + graph-output).** Trigger: timeline preview of a multi-effect chain on a 4K clip drops frames, or per-keystroke param scrubbing re-cooks the whole chain. The cache key shape (Phase 1) is already specified for this.
+- **Compute queue separation.** Trigger: realtime preview encoding starts blocking UI work, or export saturation is limited by interactive scheduling.
+- **HDR / wide-gamut pipeline.** Trigger: first export target that requires it. Separate plan; SDR-first stays.
+- **Pixel-identity tolerance.** Trigger: first flaky Phase 2 pixel-identity test. Decide then between byte-identical (current implicit assumption) and `max-diff < ε` (the honest version).
+- **Per-input sampler binding clarification.** Trigger: first module that needs a different sampler for a mask input vs a color input in the same bind group.
