@@ -136,15 +136,9 @@ const styles = (theme: Theme) =>
       position: "relative",
       borderRadius: "var(--rounded-sm)",
       overflow: "hidden",
-      // Subtle checker so the canvas footprint is visible against the node
-      // body — easier to tell where the paintable area ends.
+      // Solid letterbox around the canvas — distinguishes "outside the
+      // paintable area" from the canvas itself, which carries the checker.
       backgroundColor: theme.vars.palette.grey[800],
-      backgroundImage: `linear-gradient(45deg, ${theme.vars.palette.grey[900]} 25%, transparent 25%),
-        linear-gradient(-45deg, ${theme.vars.palette.grey[900]} 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, ${theme.vars.palette.grey[900]} 75%),
-        linear-gradient(-45deg, transparent 75%, ${theme.vars.palette.grey[900]} 75%)`,
-      backgroundSize: "12px 12px",
-      backgroundPosition: "0 0, 0 6px, 6px -6px, -6px 0",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -158,6 +152,15 @@ const styles = (theme: Theme) =>
       position: "relative",
       maxWidth: "100%",
       maxHeight: "100%",
+      // Checker pattern only on the canvas footprint, so transparent
+      // regions of the paint canvas read as "unpainted".
+      backgroundColor: theme.vars.palette.grey[900],
+      backgroundImage: `linear-gradient(45deg, ${theme.vars.palette.grey[800]} 25%, transparent 25%),
+        linear-gradient(-45deg, ${theme.vars.palette.grey[800]} 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, ${theme.vars.palette.grey[800]} 75%),
+        linear-gradient(-45deg, transparent 75%, ${theme.vars.palette.grey[800]} 75%)`,
+      backgroundSize: "12px 12px",
+      backgroundPosition: "0 0, 0 6px, 6px -6px, -6px 0",
       "& img.source": {
         display: "block",
         maxWidth: "100%",
@@ -244,6 +247,11 @@ const styles = (theme: Theme) =>
     ".tools-row .row-spacer": {
       flex: "1 1 auto"
     },
+    /* Canvas dimensions row: Width + Height share the full row, half each. */
+    ".canvas-row .dim-field": {
+      flex: "1 1 0",
+      minWidth: 0
+    },
     /* Color picker rendered as a larger square swatch so it visually pairs
        with the bigger tool icons in row 1. */
     ".color-input": {
@@ -273,6 +281,36 @@ const styles = (theme: Theme) =>
     },
     ".outputs-row": {
       flex: "0 0 auto"
+    },
+    /*
+     * Collapsed strip: hide the toolbar and canvas stage, shrink the
+     * `.paint-row` / `.paint-area` to zero. We can't `display: none` the
+     * whole `.painter-body` because `<HandleColumn>` is mounted *inside*
+     * `.paint-area`; killing that subtree would unmount the handles and
+     * orphan any connected edges. Keep the frame alive at 0 height so the
+     * handle column still resolves its absolute position against the strip.
+     * (Mirrors the `.preview-area` pattern in `collapsed.css`.)
+     */
+    ".node-body.collapsed &.painter-body": {
+      height: 0,
+      minHeight: 0,
+      padding: 0,
+      margin: 0,
+      gap: 0,
+      overflow: "visible",
+      "& > .bottom-toolbar, & .paint-stage": {
+        display: "none"
+      },
+      "& .paint-row, & .paint-area": {
+        height: 0,
+        minHeight: 0,
+        padding: 0,
+        margin: 0,
+        background: "none",
+        border: "none",
+        overflow: "visible",
+        flex: "none"
+      }
     }
   });
 
@@ -347,8 +385,24 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
     setImgDims(null);
   }, []);
 
-  const canvasW = imgDims?.w ?? DEFAULT_CANVAS_SIZE;
-  const canvasH = imgDims?.h ?? DEFAULT_CANVAS_SIZE;
+  // Canvas resolution priority: source-image dims → user-configured
+  // `canvas_width` / `canvas_height` props → DEFAULT_CANVAS_SIZE. The user
+  // props let painting work standalone (no image connected) at a known size,
+  // and get overwritten when an image is dropped (see onAreaDrop).
+  // Reads `data.properties` directly: the local `props` alias is defined
+  // further down the function body and would TDZ-error if referenced here.
+  const rawCanvasWidth = data.properties?.canvas_width;
+  const rawCanvasHeight = data.properties?.canvas_height;
+  const configuredW =
+    typeof rawCanvasWidth === "number" && rawCanvasWidth > 0
+      ? rawCanvasWidth
+      : DEFAULT_CANVAS_SIZE;
+  const configuredH =
+    typeof rawCanvasHeight === "number" && rawCanvasHeight > 0
+      ? rawCanvasHeight
+      : DEFAULT_CANVAS_SIZE;
+  const canvasW = imgDims?.w ?? configuredW;
+  const canvasH = imgDims?.h ?? configuredH;
 
   // ── Tool state ───────────────────────────────────────────────────
   // Rehydrate from persisted node properties on mount.
@@ -415,6 +469,22 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
       if (!imageFile) return;
       e.preventDefault();
       e.stopPropagation();
+      // Probe the file's natural dimensions client-side so we can sync
+      // `canvas_width` / `canvas_height` immediately. The upload itself may
+      // take a moment; setting the canvas size up front avoids a flash of
+      // wrong-aspect-ratio canvas before the asset URL resolves.
+      const probeUrl = URL.createObjectURL(imageFile);
+      const probe = new Image();
+      probe.onload = () => {
+        if (probe.naturalWidth > 0 && probe.naturalHeight > 0) {
+          setProperty("canvas_width", probe.naturalWidth);
+          setProperty("canvas_height", probe.naturalHeight);
+        }
+        URL.revokeObjectURL(probeUrl);
+      };
+      probe.onerror = () => URL.revokeObjectURL(probeUrl);
+      probe.src = probeUrl;
+
       useAssetUpload.getState().uploadAsset({
         file: imageFile,
         workflow_id: workflowId,
@@ -487,13 +557,11 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
         }
         const img = new Image();
         img.onload = () => {
-          // If the saved mask dimensions no longer match the canvas
-          // (source image changed), clear instead of stretching.
-          if (img.naturalWidth !== c.width || img.naturalHeight !== c.height) {
-            ctx.clearRect(0, 0, c.width, c.height);
-            resolve();
-            return;
-          }
+          // Always scale-fit the saved mask onto the current canvas. Earlier
+          // we cleared on size mismatch to avoid stretching when an image
+          // source changed; but that also wiped strokes on a user-driven
+          // canvas resize. Scaling preserves the user's work; the small
+          // distortion on aspect-ratio changes is the better trade-off.
           ctx.clearRect(0, 0, c.width, c.height);
           ctx.drawImage(img, 0, 0, c.width, c.height);
           resolve();
@@ -518,7 +586,18 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
       return;
     }
     loadDataUrlIntoCanvas(`data:image/png;base64,${raw}`);
-  }, [propsMaskData, ensureCanvas, loadDataUrlIntoCanvas, canvasW, canvasH]);
+  }, [propsMaskData, ensureCanvas, loadDataUrlIntoCanvas]);
+
+  // Canvas resize → re-hydrate. Changing a `<canvas>` element's width/height
+  // attributes wipes its bitmap, which would clear the user's strokes on a
+  // canvas-size change. Redraw from the persisted mask (scaled-fit) so the
+  // strokes survive. Skipped during an in-flight stroke.
+  useEffect(() => {
+    if (isDirtyRef.current) return;
+    const raw = lastMaskDataRef.current;
+    if (!raw) return;
+    loadDataUrlIntoCanvas(`data:image/png;base64,${raw}`);
+  }, [canvasW, canvasH, loadDataUrlIntoCanvas]);
 
   // ── Drawing primitives ───────────────────────────────────────────
   const pointerActiveRef = useRef(false);
@@ -798,6 +877,22 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
     },
     []
   );
+  const onCanvasWidth = useCallback(
+    (_: React.ChangeEvent<HTMLInputElement> | null, value: number) => {
+      const v = Math.max(1, Math.min(4096, Math.round(value)));
+      setProperty("canvas_width", v);
+      setPropertyComplete();
+    },
+    [setProperty, setPropertyComplete]
+  );
+  const onCanvasHeight = useCallback(
+    (_: React.ChangeEvent<HTMLInputElement> | null, value: number) => {
+      const v = Math.max(1, Math.min(4096, Math.round(value)));
+      setProperty("canvas_height", v);
+      setPropertyComplete();
+    },
+    [setProperty, setPropertyComplete]
+  );
 
   const undoDisabled = undoStackRef.current.length === 0;
   const redoDisabled = redoStackRef.current.length === 0;
@@ -863,11 +958,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
                 className="paint-buffer nodrag"
                 width={canvasW}
                 height={canvasH}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  opacity: brushOpacity
-                }}
+                style={{ opacity: brushOpacity }}
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
@@ -976,6 +1067,46 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
               onChange={onBrushOpacity}
             />
           </div>
+        </FlexRow>
+
+        {/* Canvas dimensions: full names ("Width", "Height"), one per half. */}
+        <FlexRow className="bottom-row canvas-row" align="center" gap={0.5}>
+          <div className="dim-field">
+            <NumberInput
+              id={`painter-canvas-w-${id}`}
+              nodeId={id}
+              name="width"
+              description="Canvas width in pixels"
+              value={configuredW}
+              min={1}
+              max={4096}
+              size="small"
+              color="secondary"
+              inputType="int"
+              showSlider={false}
+              onChange={onCanvasWidth}
+            />
+          </div>
+          <div className="dim-field">
+            <NumberInput
+              id={`painter-canvas-h-${id}`}
+              nodeId={id}
+              name="height"
+              description="Canvas height in pixels"
+              value={configuredH}
+              min={1}
+              max={4096}
+              size="small"
+              color="secondary"
+              inputType="int"
+              showSlider={false}
+              onChange={onCanvasHeight}
+            />
+          </div>
+        </FlexRow>
+
+        {/* Background opacity on its own row below the dimensions. */}
+        <FlexRow className="bottom-row" align="center" gap={0.5}>
           <div className="slider-field">
             <NumberInput
               id={`painter-fade-${id}`}

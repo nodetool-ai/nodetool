@@ -2147,6 +2147,24 @@ export class PainterNode extends BaseNode {
   })
   declare mask_data: unknown;
 
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Canvas width",
+    description:
+      "Width of the paint canvas in pixels. Overwritten by the source image's width when an image is set."
+  })
+  declare canvas_width: number;
+
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Canvas height",
+    description:
+      "Height of the paint canvas in pixels. Overwritten by the source image's height when an image is set."
+  })
+  declare canvas_height: number;
+
   async process(
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
@@ -2170,10 +2188,17 @@ export class PainterNode extends BaseNode {
     const maskBytes = toBytes(maskStr);
 
     if (maskBytes.length === 0) {
-      // Fall back to a transparent canvas the size of the source image
-      // (or 1×1 if dimensions are unknown).
-      const w = Math.max(1, Number(image.width ?? 1));
-      const h = Math.max(1, Number(image.height ?? 1));
+      // Fall back to a transparent canvas. Prefer the source image's
+      // dimensions; otherwise use the user-configured canvas size; finally
+      // 1×1 if nothing is known.
+      const w = Math.max(
+        1,
+        Number(image.width ?? this.canvas_width ?? 1)
+      );
+      const h = Math.max(
+        1,
+        Number(image.height ?? this.canvas_height ?? 1)
+      );
       try {
         const blank = await sharp({
           create: {
