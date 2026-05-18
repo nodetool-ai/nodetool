@@ -57,7 +57,7 @@ type SupabaseSubscription = {
 /**
  * Interface defining the structure of the authentication Zustand store.
  */
-export interface LoginStore {
+interface LoginStore {
   /** The current Supabase session object, or null if not logged in. */
   session: Session | null;
   /** The current Supabase user object derived from the session, or null. */

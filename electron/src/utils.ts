@@ -171,7 +171,6 @@ export {
   assertSafeReadablePath,
   checkPermissions,
   fileExists,
-  PermissionResult,
   getServerPort,
   getServerUrl,
   getServerWebSocketUrl,

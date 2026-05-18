@@ -6,7 +6,7 @@
  * to allow relative URLs which will be proxied by Vite to localhost:7777.
  */
 
-export const defaultLocalUrl = ""; // Empty string for relative URLs (proxied by Vite)
+const defaultLocalUrl = ""; // Empty string for relative URLs (proxied by Vite)
 
 const apiEnv = import.meta.env.VITE_API_URL;
 

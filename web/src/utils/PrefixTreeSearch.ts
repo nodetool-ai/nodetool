@@ -75,7 +75,7 @@ export interface SearchField {
 /**
  * Search options
  */
-export interface PrefixSearchOptions {
+interface PrefixSearchOptions {
   maxResults?: number;
   minScore?: number;
   fields?: ("title" | "namespace" | "description" | "tags")[];
@@ -84,7 +84,7 @@ export interface PrefixSearchOptions {
 /**
  * Search result with scoring information
  */
-export interface PrefixSearchResult {
+interface PrefixSearchResult {
   node: NodeMetadata;
   score: number;
   matchedField: string;
