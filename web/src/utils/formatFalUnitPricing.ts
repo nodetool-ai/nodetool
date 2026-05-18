@@ -1,6 +1,14 @@
 import type { FalUnitPricing } from "../stores/ApiTypes";
 import { relativeTime } from "./formatDateAndTime";
 
+/**
+ * fal.ai exposes a single `unit_price` + `billing_unit` per endpoint from
+ * `GET https://api.fal.ai/v1/models/pricing`.
+ *
+ * For some endpoints (e.g. ChatGPT Images) `billing_unit` is `"units"` — their
+ * public tier tables are finer-grained than this scalar row.
+ */
+
 function formatMoney(amount: number, currency: string): string {
   try {
     const digits = amount > 0 && amount < 0.01 ? 4 : 2;
@@ -16,26 +24,42 @@ function formatMoney(amount: number, currency: string): string {
   }
 }
 
-/** Compact label for node chrome (e.g. $0.04). */
+/**
+ * fal only returns `{ unit_price, billing_unit }` per endpoint. When `billing_unit`
+ * is vague (e.g. `"units"`), treat the figure as UI-warn-worthy: tiered /
+ * proportional billing may diverge strongly from what users expect one image/run to cost.
+ */
+export function isFalVagueBillingSummary(p: { billing_unit: string }): boolean {
+  return /\bunits?\b/i.test(p.billing_unit.trim());
+}
+
+/** Compact label for node chrome (fal monetary `unit_price`). */
 export function formatFalUnitPricingShort(p: FalUnitPricing): string {
   return formatMoney(p.unit_price, p.currency);
 }
 
-/** Tooltip body: price, source + snapshot time, endpoint. */
+/** Snapshot age for tooltip (uses `checked_at`). */
+function formatFalPricingAgeLine(p: FalUnitPricing): string {
+  if (p.checked_at == null || String(p.checked_at).trim() === "") {
+    return "Price · date unknown";
+  }
+  return `Price from ${relativeTime(p.checked_at)}`;
+}
+
+/** Tooltip: short stack; extra line only for vague summaries. */
 export function formatFalUnitPricingTooltip(p: FalUnitPricing): string {
-  const price = `${formatMoney(p.unit_price, p.currency)} per ${p.billing_unit}`;
-  const sourceLabel =
-    p.source === "live"
-      ? "Live price"
-      : p.source === "bundle"
-        ? "Bundle list price"
-        : "List price";
-  const when = p.checked_at
-    ? (() => {
-        const rel = relativeTime(p.checked_at);
-        const relDisplay = rel === "just now" ? "now" : rel;
-        return `${sourceLabel} · ${relDisplay}`;
-      })()
-    : sourceLabel;
-  return [price, when, `Endpoint: ${p.endpoint_id}`].filter(Boolean).join("\n");
+  const vague = isFalVagueBillingSummary(p);
+  const money = `${formatMoney(p.unit_price, p.currency)} per ${p.billing_unit}`;
+  const when = formatFalPricingAgeLine(p);
+
+  return [
+    vague ? `${money} (simplified)` : money,
+    vague
+      ? "Varies by resolution and quality — open this model on fal.ai."
+      : null,
+    when,
+    `Endpoint: ${p.endpoint_id}`,
+  ]
+    .filter((s): s is string => Boolean(s))
+    .join("\n");
 }

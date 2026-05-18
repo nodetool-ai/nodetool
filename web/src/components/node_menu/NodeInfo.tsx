@@ -13,7 +13,8 @@ import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { HighlightText } from "../ui_primitives/HighlightText";
 import {
   formatFalUnitPricingShort,
-  formatFalUnitPricingTooltip
+  formatFalUnitPricingTooltip,
+  isFalVagueBillingSummary
 } from "../../utils/formatFalUnitPricing";
 import isEqual from "fast-deep-equal";
 
@@ -256,7 +257,9 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
           <Text
             sx={{
               fontSize: theme.fontSizeSmall,
-              color: theme.vars.palette.success.main,
+              color: isFalVagueBillingSummary(nodeMetadata.fal_unit_pricing)
+                ? theme.vars.palette.warning.main
+                : theme.vars.palette.success.main,
               fontWeight: 600,
               cursor: "default"
             }}

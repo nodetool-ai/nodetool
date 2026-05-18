@@ -29,7 +29,8 @@ import { EditorButton } from "../editor_ui";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import {
   formatFalUnitPricingShort,
-  formatFalUnitPricingTooltip
+  formatFalUnitPricingTooltip,
+  isFalVagueBillingSummary
 } from "../../utils/formatFalUnitPricing";
 import {
   FAL_DASHBOARD_KEYS_URL,
@@ -88,6 +89,11 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
     return null;
   }
 
+  const vaguePrice = isFalVagueBillingSummary(pricing);
+  const tier = vaguePrice
+    ? theme.vars.palette.warning
+    : theme.vars.palette.success;
+
   return (
     <>
       <EditorButton
@@ -101,8 +107,8 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
           bottom: -25,
           right: 4,
           left: "auto",
-          bgcolor: theme.vars.palette.success.dark,
-          color: theme.vars.palette.success.contrastText,
+          bgcolor: tier.dark,
+          color: tier.contrastText,
           px: 1,
           py: 0,
           height: 20,
@@ -118,7 +124,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
           whiteSpace: "nowrap",
           cursor: "pointer",
           "&:hover": {
-            bgcolor: theme.vars.palette.success.main
+            bgcolor: tier.main
           }
         }}
       >
@@ -147,7 +153,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
           <Caption
             sx={{
               fontWeight: 600,
-              color: theme.vars.palette.success.main,
+              color: tier.main,
               textTransform: "uppercase",
               letterSpacing: "0.05em"
             }}
