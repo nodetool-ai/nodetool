@@ -150,6 +150,20 @@ describe("validateOutputCorrelation", () => {
     expect(issues).toEqual([]);
   });
 
+  it("rejects declared outputs that are missing a correlation entry", () => {
+    const issues = validateOutputCorrelation(
+      "test.Partial",
+      "buffered",
+      {
+        output: { kind: "single", source: "__execution__" }
+      },
+      ["output", "metadata"]
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0].handle).toBe("metadata");
+    expect(issues[0].message).toMatch(/missing a correlation entry/);
+  });
+
   it("collects multiple issues at once", () => {
     const issues = validateOutputCorrelation(
       "test.Multi",

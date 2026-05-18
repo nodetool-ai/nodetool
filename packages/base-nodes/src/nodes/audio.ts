@@ -1235,7 +1235,12 @@ export class TextToSpeechNode extends BaseNode {
   static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
-    audio: { kind: "single", source: "__execution__" }
+    audio: { kind: "single", source: "__execution__" },
+    // `chunk` is declared on the output schema but the current process()
+    // accumulates and returns only `audio`. PR 1 classifies it as single
+    // (aspirational) per the design's stale-chunk-port guidance; a follow-up
+    // either makes the node stream real chunks or removes the handle.
+    chunk: { kind: "single", source: "__execution__" }
   };
 
   @prop({

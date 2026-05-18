@@ -383,9 +383,12 @@ export class Graph {
           descriptorDefaults.is_streaming_output ||
           node.is_streaming_output ||
           false,
-        input_mode: descriptorDefaults.input_mode ?? node.input_mode,
-        output_correlation:
-          descriptorDefaults.output_correlation ?? node.output_correlation,
+        // Correlation metadata is authoritative from the registry. Saved JSON
+        // is treated as a cache and overwritten — including when the resolver
+        // intentionally returns undefined for a node type that no longer
+        // declares correlation. See docs/correlation-design.md §1.
+        input_mode: descriptorDefaults.input_mode,
+        output_correlation: descriptorDefaults.output_correlation,
         is_controlled:
           descriptorDefaults.is_controlled || node.is_controlled || false
       };

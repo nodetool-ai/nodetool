@@ -105,5 +105,20 @@ export function validateOutputCorrelation(
     }
   }
 
+  // Every declared output must have a correlation entry. A node may opt out
+  // of correlation entirely by leaving output_correlation undefined; once it
+  // declares any entry it has committed to the per-output contract.
+  if (declaredOutputSet.size > 0) {
+    for (const handle of declaredOutputSet) {
+      if (!(handle in outputCorrelation)) {
+        issues.push({
+          nodeType,
+          handle,
+          message: `declared output "${handle}" is missing a correlation entry`
+        });
+      }
+    }
+  }
+
   return issues;
 }

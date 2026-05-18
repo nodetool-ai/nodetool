@@ -155,7 +155,10 @@ function mergeMetadata(
         : (pyMetadata.outputs ?? []).map(cloneOutputMetadata),
     // Backfill optional fields from Python when TS doesn't set them
     layout: tsMetadata.layout ?? pyMetadata.layout,
-    model_packs: tsMetadata.model_packs ?? pyMetadata.model_packs
+    model_packs: tsMetadata.model_packs ?? pyMetadata.model_packs,
+    input_mode: tsMetadata.input_mode ?? pyMetadata.input_mode,
+    output_correlation:
+      tsMetadata.output_correlation ?? pyMetadata.output_correlation
   };
 }
 

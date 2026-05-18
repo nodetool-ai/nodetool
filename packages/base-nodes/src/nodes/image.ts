@@ -271,6 +271,7 @@ export class LoadImageFolderNode extends BaseNode {
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     image: { kind: "iteration", source: "__execution__", group: "items" },
+    path: { kind: "iteration", source: "__execution__", group: "items" },
     images: { kind: "single", source: "__execution__" }
   };
 

@@ -86,6 +86,41 @@ describe("Graph.loadFromDict", () => {
     });
   });
 
+  it("drops saved correlation metadata when resolver omits it", async () => {
+    // Resolver-wins is absolute: when the registry no longer declares
+    // correlation metadata for a node type, stale saved values must not
+    // resurface from the workflow JSON cache.
+    const graph = await Graph.loadFromDict(
+      {
+        nodes: [
+          {
+            id: "n1",
+            type: "test.Node",
+            input_mode: "stream",
+            output_correlation: {
+              output: { kind: "forward", source: "stale" }
+            }
+          }
+        ],
+        edges: []
+      },
+      {
+        resolver: {
+          resolveNodeType: async (nodeType) => ({
+            nodeType,
+            descriptorDefaults: {
+              name: "No Correlation"
+            }
+          })
+        }
+      }
+    );
+
+    const node = graph.findNode("n1");
+    expect(node?.input_mode).toBeUndefined();
+    expect(node?.output_correlation).toBeUndefined();
+  });
+
   it("drops unresolved nodes and connected edges when skipErrors is true", async () => {
     const graph = await Graph.loadFromDict(
       {
