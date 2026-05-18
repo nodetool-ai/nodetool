@@ -141,7 +141,11 @@ const styles = (theme: Theme) =>
     },
     ".paint-area": {
       flex: "1 1 auto",
+      // Default `min-height: auto` on flex items prevents shrinking below
+      // content height; explicit 0 lets max-height constraints on children
+      // actually scale the canvas down at small node heights.
       minWidth: 0,
+      minHeight: 0,
       position: "relative",
       borderRadius: "var(--rounded-sm)",
       overflow: "hidden",
@@ -154,6 +158,16 @@ const styles = (theme: Theme) =>
     },
     ".paint-stage": {
       position: "relative",
+      // `display: inline-block` shrink-wraps the stage to its in-flow child
+      // (img in the with-image branch, the main canvas in the no-image
+      // branch). Without this the default `display: block` makes width fill
+      // the parent, so the absolute-positioned buffer would extend past the
+      // visible canvas — strokes would map to the buffer's outer rect while
+      // commits land inside the smaller main canvas, producing offset/clipped
+      // paint at non-default canvas sizes.
+      display: "inline-block",
+      minWidth: 0,
+      minHeight: 0,
       maxWidth: "100%",
       maxHeight: "100%",
       // Checker pattern only on the canvas footprint, so transparent
@@ -180,6 +194,19 @@ const styles = (theme: Theme) =>
         height: "100%",
         pointerEvents: "none",
         touchAction: "none"
+      },
+      /* No-image variant: the main canvas drives stage size as a replaced
+         element with intrinsic dimensions. Override the absolute positioning
+         from `.paint` so it sits in normal flow, and let max constraints
+         shrink it to fit the parent while preserving aspect ratio. */
+      "& canvas.paint-empty": {
+        position: "relative",
+        inset: "auto",
+        display: "block",
+        width: "auto",
+        height: "auto",
+        maxWidth: "100%",
+        maxHeight: "100%"
       },
       /*
        * Live stroke buffer: stacked above the committed paint canvas, receives
@@ -561,13 +588,12 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
         }
         const img = new Image();
         img.onload = () => {
-          // Always scale-fit the saved mask onto the current canvas. Earlier
-          // we cleared on size mismatch to avoid stretching when an image
-          // source changed; but that also wiped strokes on a user-driven
-          // canvas resize. Scaling preserves the user's work; the small
-          // distortion on aspect-ratio changes is the better trade-off.
+          // Draw the saved mask at its native size, anchored at (0,0). On
+          // a smaller new canvas the right/bottom edges naturally clip; on
+          // a larger one the extra space stays transparent. Avoids
+          // stretching the user's strokes when canvas dimensions change.
           ctx.clearRect(0, 0, c.width, c.height);
-          ctx.drawImage(img, 0, 0, c.width, c.height);
+          ctx.drawImage(img, 0, 0);
           resolve();
         };
         img.onerror = () => resolve();
@@ -944,18 +970,19 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
             </div>
           ) : (
             <div className="paint-stage">
+              {/* No source image: the main canvas is the in-flow size driver.
+                  Canvas is a replaced element with intrinsic dimensions from
+                  its `width`/`height` HTML attrs, so `max-width/max-height:
+                  100%` shrinks it to fit the parent while preserving aspect
+                  ratio — same behavior `<img>` gives the with-image branch.
+                  No inline width/height override here, and no
+                  `CheckerDropzone` (which would cover everything with its own
+                  pattern and hide the letterbox grey[800] from .paint-area). */}
               <canvas
                 ref={canvasRef}
-                className="paint nodrag"
+                className="paint paint-empty nodrag"
                 width={canvasW}
                 height={canvasH}
-                style={{
-                  position: "relative",
-                  width: canvasW,
-                  height: canvasH,
-                  maxWidth: "100%",
-                  maxHeight: "100%"
-                }}
               />
               <canvas
                 ref={bufferRef}
@@ -971,10 +998,6 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
                 onPointerLeave={hideBrushCursor}
               />
               <div ref={cursorRef} className="brush-cursor" aria-hidden />
-              <CheckerDropzone
-                message="Paint, or connect an image"
-                icon={<ImageIcon />}
-              />
             </div>
           )}
         </div>
@@ -1081,7 +1104,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
             <NumberInput
               id={`painter-canvas-w-${id}`}
               nodeId={id}
-              name="width"
+              name="canvas width"
               description="Canvas width in pixels"
               value={configuredW}
               min={1}
@@ -1097,7 +1120,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
             <NumberInput
               id={`painter-canvas-h-${id}`}
               nodeId={id}
-              name="height"
+              name="canvas height"
               description="Canvas height in pixels"
               value={configuredH}
               min={1}
