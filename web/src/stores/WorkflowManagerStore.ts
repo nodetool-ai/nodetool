@@ -38,9 +38,16 @@ import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 
 const isWorkflowNotFoundError = (err: unknown): boolean => {
   if (!err || typeof err !== "object") return false;
-  const e = err as { data?: { code?: string }; message?: string };
-  if (e.data?.code === "NOT_FOUND") return true;
-  return typeof e.message === "string" && /not found/i.test(e.message);
+  if ("data" in err) {
+    const data = (err as { data: unknown }).data;
+    if (data && typeof data === "object" && "code" in data && (data as { code: unknown }).code === "NOT_FOUND") {
+      return true;
+    }
+  }
+  if ("message" in err && typeof (err as { message: unknown }).message === "string") {
+    return /not found/i.test((err as { message: string }).message);
+  }
+  return false;
 };
 
 // -----------------------------------------------------------------

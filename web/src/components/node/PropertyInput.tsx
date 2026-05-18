@@ -482,7 +482,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   });
 
   const onChange = useCallback(
-    (value: any) => {
+    (value: unknown) => {
       if (onValueChange) {
         onValueChange(value);
         return;
