@@ -128,7 +128,16 @@ const styles = (theme: Theme) =>
       display: "flex",
       gap: theme.spacing(0.5),
       // Canvas is now full-bleed — no side toolbar column.
-      width: "100%"
+      width: "100%",
+      // HandleColumn lives here (sibling of `.paint-area`, not inside it) so
+      // `.paint-area { overflow: hidden }` doesn't clip the protruding
+      // handles at their negative-`left` position.
+      position: "relative",
+      "& > .handle-column": {
+        top: 0,
+        bottom: 0,
+        left: 0
+      }
     },
     ".paint-area": {
       flex: "1 1 auto",
@@ -141,12 +150,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[800],
       display: "flex",
       alignItems: "center",
-      justifyContent: "center",
-      "& > .handle-column": {
-        top: 0,
-        bottom: 0,
-        left: `calc(${theme.spacing(-0.5)})`
-      }
+      justifyContent: "center"
     },
     ".paint-stage": {
       position: "relative",
@@ -973,9 +977,11 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
               />
             </div>
           )}
-          <HandleColumn id={id} properties={handleProperties} />
         </div>
-
+        {/* HandleColumn is a sibling of `.paint-area` — not inside it —
+            so the area's `overflow: hidden` doesn't clip handles at their
+            negative-left protrusion. */}
+        <HandleColumn id={id} properties={handleProperties} />
       </div>
 
       <FlexColumn className="bottom-toolbar nodrag" gap={0.5}>
