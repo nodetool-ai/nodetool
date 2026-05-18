@@ -133,9 +133,6 @@ const styles = (theme: Theme) =>
       height: NODE_COLLAPSED_BODY_HEIGHT_WIN,
       "& > .constant-string-body": {
         display: "none !important"
-      },
-      "& .constant-string-collapsed-hide .node-resize-handle": {
-        display: "none !important"
       }
     }
   });
@@ -212,6 +209,9 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // non-textarea overhead (header, padding, outputs) measured from the
   // DOM, and set an explicit height on the React Flow node.
   useLayoutEffect(() => {
+    if (data.collapsed) {
+      return;
+    }
     const textarea = textareaRef.current;
     if (!textarea) {
       return;
@@ -241,7 +241,7 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       lastEmittedHeight.current = desiredNodeH;
       updateNode(id, { height: desiredNodeH });
     }
-  }, [localValue, id, updateNode]);
+  }, [localValue, id, updateNode, data.collapsed]);
 
   const headerColor = useMemo(() => {
     const firstOutputType = metadata?.outputs?.[0]?.type?.type as
@@ -353,9 +353,7 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <NodeOutputs id={id} outputs={metadata.outputs} />
       </div>
 
-      <div className="constant-string-collapsed-hide">
-        <NodeResizeHandle minWidth={200} minHeight={100} />
-      </div>
+      <NodeResizeHandle minWidth={200} minHeight={100} />
 
       {isExpanded && (
         <TextEditorModal

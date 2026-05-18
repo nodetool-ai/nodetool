@@ -13,15 +13,6 @@ export const NODE_COLLAPSED_LAYOUT = {
   overflow: "var(--node-collapsed-overflow)"
 } as const;
 
-/**
- * Vertical center for handles anchored in the header row (constant string helper,
- * aligns with collapsed.css `.react-flow__handle` rules).
- */
-export const NODE_COLLAPSED_HANDLE_CENTER = {
-  top: "var(--node-collapsed-handle-mid-y)",
-  transform: "translateY(-50%)"
-} as const;
-
 /** Overrides expanded-node `height: 100%` rules (e.g. Constant String). */
 export const NODE_COLLAPSED_BODY_HEIGHT_WIN =
   "var(--node-collapsed-height) !important";

@@ -390,6 +390,25 @@
   transform: translateY(calc(-50% - var(--node-collapsed-handle-y-nudge))) !important;
 }
 
+/* Wrapper owns strip alignment — reset generic collapsed handle offsets (mirror .handle-popup). */
+.react-flow__node-nodetool\.constant\.String
+  .constant-string-node.node-body.collapsed
+  .header-wrapper
+  .input-handle-wrapper
+  .react-flow__handle-left:not(.control-handle) {
+  top: 50% !important;
+  left: 0 !important;
+  transform: none !important;
+}
+
+.react-flow__node-nodetool\.constant\.String
+  .constant-string-node.node-body.collapsed
+  .header-wrapper
+  .input-handle-wrapper
+  .react-flow__handle-left:not(.control-handle):hover {
+  transform: scale(1.75, 1.5) !important;
+}
+
 .react-flow__node-nodetool\.group\.Loop .loop-node.collapsed {
   min-height: 7em;
   height: 7em;
