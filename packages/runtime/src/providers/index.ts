@@ -196,6 +196,18 @@ if (process.env["NODETOOL_ENV"] !== "production") {
       LMSTUDIO_API_KEY: "lm-studio"
     }
   );
+  // llama.cpp OpenAI-compatible server — URL only from Settings / env (no
+  // default host). Empty kwarg keeps the provider "unavailable" until configured.
+  registerBuiltinProvider("llama_cpp", LlamaProvider, {
+    LLAMA_CPP_URL: ""
+  });
+  // vLLM — base URL from Settings / env; optional API key defaults like LM Studio.
+  registerBuiltinProvider(
+    "vllm",
+    VLLMProvider,
+    { VLLM_BASE_URL: "" },
+    { VLLM_API_KEY: "sk-no-key-required" }
+  );
   registerBuiltinProvider("claude_agent", ClaudeAgentProvider, {});
 }
 
