@@ -327,6 +327,32 @@ describe('HandleTooltip', () => {
     });
   });
 
+  describe('Connect-time label', () => {
+    it('shows the name (no type) on compatible handles while connecting', () => {
+      mockUseConnectionStore.mockImplementation((selector: (state: { connecting: boolean; isReconnecting: boolean }) => unknown) =>
+        selector({ connecting: true, isReconnecting: false })
+      );
+
+      render(<HandleTooltip {...defaultProps} className="is-connectable" />);
+
+      const tooltip = document.querySelector('.handle-tooltip');
+      expect(tooltip).toBeInTheDocument();
+      expect(tooltip).toHaveClass('connecting');
+      expect(document.querySelector('.handle-tooltip-name')).toHaveTextContent('Test Param');
+      expect(document.querySelector('.handle-tooltip-type')).toBeNull();
+    });
+
+    it('does not show a tooltip on incompatible handles while connecting', () => {
+      mockUseConnectionStore.mockImplementation((selector: (state: { connecting: boolean; isReconnecting: boolean }) => unknown) =>
+        selector({ connecting: true, isReconnecting: false })
+      );
+
+      render(<HandleTooltip {...defaultProps} className="not-connectable" />);
+
+      expect(document.querySelector('.handle-tooltip')).not.toBeInTheDocument();
+    });
+  });
+
   describe('Handle Position', () => {
     it('should accept "left" handle position', () => {
       render(<HandleTooltip {...defaultProps} handlePosition="left" />);

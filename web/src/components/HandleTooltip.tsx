@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useContext, useRef, useEffect } from "react";
+import { memo, useState, useCallback, useContext, useMemo, useRef, useEffect } from "react";
 import { colorForType } from "../config/data_types";
 import { typeToString } from "../utils/TypeHandler";
 import { TypeMetadata } from "../stores/ApiTypes";
@@ -88,6 +88,8 @@ const HandleTooltip = memo(function HandleTooltip({
       clearTimeout(showTimerRef.current);
       showTimerRef.current = null;
     }
+    // Tear down hover/selection-driven tooltip when a drag starts; the
+    // connect-time name label is rendered separately below.
     setShowTooltip(false);
     setIsHovering(false);
   }, [isConnecting]);
@@ -154,6 +156,17 @@ const HandleTooltip = memo(function HandleTooltip({
 
   const isPropertyVariant = variant === "property";
 
+  // While a connection is being dragged, expose the names of every handle
+  // that ReactFlow marked as compatible (the same `is-connectable` class
+  // used for the scale-up effect). Caller passes className as either
+  // "is-connectable" or "not-connectable".
+  const isCompatibleForConnect = useMemo(
+    () => className.split(/\s+/).includes("is-connectable"),
+    [className]
+  );
+  const connectingShow = isConnecting && isCompatibleForConnect;
+  const effectiveShow = showTooltip || connectingShow;
+
   return (
     <div
       className={`handle-tooltip-wrapper ${className}`}
@@ -164,15 +177,17 @@ const HandleTooltip = memo(function HandleTooltip({
       tabIndex={0}
       role="button"
       aria-label={`${prettyName} (${displayType})`}
-      aria-describedby={showTooltip ? tooltipIdRef.current : undefined}
+      aria-describedby={effectiveShow ? tooltipIdRef.current : undefined}
     >
       {children}
-      {showTooltip && (
+      {effectiveShow && (
         <div
           role="tooltip"
           id={tooltipIdRef.current}
           aria-live="polite"
-          className={`handle-tooltip handle-${handlePosition} show`}
+          className={`handle-tooltip handle-${handlePosition} show${
+            connectingShow ? " connecting" : ""
+          }`}
         >
           <div
             className="handle-tooltip-content"

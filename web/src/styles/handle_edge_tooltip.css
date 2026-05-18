@@ -477,6 +477,12 @@ ul.multi-outputs li::marker {
   transition: opacity 150ms ease-in-out 500ms;
 }
 
+/* Connect-time label on compatible handles — surface immediately, no delay. */
+.handle-tooltip.connecting.show {
+  opacity: 1;
+  transition: opacity 100ms ease-in-out;
+}
+
 /* Handle tooltip inner content */
 .handle-tooltip-content {
   display: flex;
