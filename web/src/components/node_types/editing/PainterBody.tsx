@@ -158,14 +158,15 @@ const styles = (theme: Theme) =>
     },
     ".paint-stage": {
       position: "relative",
-      // `display: inline-block` shrink-wraps the stage to its in-flow child
-      // (img in the with-image branch, the main canvas in the no-image
-      // branch). Without this the default `display: block` makes width fill
-      // the parent, so the absolute-positioned buffer would extend past the
-      // visible canvas — strokes would map to the buffer's outer rect while
-      // commits land inside the smaller main canvas, producing offset/clipped
-      // paint at non-default canvas sizes.
-      display: "inline-block",
+      // Aspect ratio is forced via inline `style.aspectRatio` set from
+      // `canvasW`/`canvasH`. Combined with `width: 100%` + max constraints,
+      // the stage scales to fill its parent without stretching: width is
+      // pulled to the parent's width OR — when that would make height
+      // exceed the parent — width is recomputed from the max-clamped
+      // height. `<canvas>`'s implicit aspect ratio from HTML attrs isn't
+      // reliably honoured the way `<img>`'s is, so we encode it on the box.
+      display: "block",
+      width: "100%",
       minWidth: 0,
       minHeight: 0,
       maxWidth: "100%",
@@ -194,19 +195,6 @@ const styles = (theme: Theme) =>
         height: "100%",
         pointerEvents: "none",
         touchAction: "none"
-      },
-      /* No-image variant: the main canvas drives stage size as a replaced
-         element with intrinsic dimensions. Override the absolute positioning
-         from `.paint` so it sits in normal flow, and let max constraints
-         shrink it to fit the parent while preserving aspect ratio. */
-      "& canvas.paint-empty": {
-        position: "relative",
-        inset: "auto",
-        display: "block",
-        width: "auto",
-        height: "auto",
-        maxWidth: "100%",
-        maxHeight: "100%"
       },
       /*
        * Live stroke buffer: stacked above the committed paint canvas, receives
@@ -240,10 +228,15 @@ const styles = (theme: Theme) =>
         borderRadius: "50%",
         border: `1px solid ${theme.vars.palette.common.white}`,
         outline: `1px solid ${theme.vars.palette.common.black}`,
-        transform: "translate(-50%, -50%)",
+        // Initial transform — overwritten by `updateBrushCursor` per-move.
+        // Using transform (not left/top) keeps moves on the composite path.
+        transform: "translate(0, 0) translate(-50%, -50%)",
         pointerEvents: "none",
         opacity: 0,
         transition: "opacity 80ms linear",
+        // `will-change: transform` hints the browser to give this its own
+        // GPU layer up front so per-move transform writes don't churn.
+        willChange: "transform",
         zIndex: 2
       }
     },
@@ -631,6 +624,13 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
 
   // ── Drawing primitives ───────────────────────────────────────────
   const pointerActiveRef = useRef(false);
+  // Mirrors `pointerActiveRef` as React state to gate the buffer's CSS
+  // opacity. Buffer with `opacity < 1` becomes a permanent GPU compositing
+  // layer; at high zoom the texture is huge and every cursor move forces a
+  // recomposite, making the whole node sluggish. Toggling opacity to 1 (no
+  // layer) between strokes restores snappy hover. Opacity drops back to
+  // `brushOpacity` on pointerdown so the live preview still shows.
+  const [isPainting, setIsPainting] = useState(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
   const eventToCanvasXY = useCallback(
@@ -698,6 +698,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
       bctx?.clearRect(0, 0, buf.width, buf.height);
       pointerActiveRef.current = true;
       isDirtyRef.current = true;
+      setIsPainting(true);
       pushUndoSnapshot();
       const pt = eventToCanvasXY(e);
       lastPointRef.current = pt;
@@ -719,19 +720,21 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
       const rect = buf.getBoundingClientRect();
       // React Flow applies `transform: scale(zoom)` to the viewport, so
       // `getBoundingClientRect()` returns post-transform screen pixels while
-      // CSS `left/top/width/height` on a transformed-subtree child are
-      // interpreted in pre-transform local pixels. Convert by the ratio
-      // offsetWidth / rect.width (local / screen ≈ 1 / zoom). Without this
-      // the cursor drifts at any zoom ≠ 1 and falls outside `.paint-stage`,
-      // where `.paint-area { overflow: hidden }` clips it.
+      // CSS lengths on a transformed-subtree child are interpreted in
+      // pre-transform local pixels. Convert by offsetWidth/rect.width
+      // (≈ 1/zoom). Without this the cursor drifts at zoom ≠ 1.
       const sxLocal = buf.offsetWidth / Math.max(1, rect.width);
       const syLocal = buf.offsetHeight / Math.max(1, rect.height);
       const localPerCanvasPx = buf.offsetWidth / Math.max(1, buf.width);
       const sizeCss = Math.max(2, brushSize * localPerCanvasPx);
+      const x = (e.clientX - rect.left) * sxLocal;
+      const y = (e.clientY - rect.top) * syLocal;
       cur.style.width = `${sizeCss}px`;
       cur.style.height = `${sizeCss}px`;
-      cur.style.left = `${(e.clientX - rect.left) * sxLocal}px`;
-      cur.style.top = `${(e.clientY - rect.top) * syLocal}px`;
+      // Position via transform (composite-only) instead of left/top
+      // (layout-triggering). The trailing -50%/-50% centers the circle on
+      // the pointer. Was a hot path on every pointermove.
+      cur.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
       cur.style.opacity = "1";
     },
     [brushSize]
@@ -757,6 +760,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
     (e?: React.PointerEvent<HTMLCanvasElement>) => {
       if (!pointerActiveRef.current) return;
       pointerActiveRef.current = false;
+      setIsPainting(false);
       lastPointRef.current = null;
 
       // Composite the buffered stroke onto the main canvas in a single
@@ -938,7 +942,10 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
           onDrop={onAreaDrop}
         >
           {sourceSrc ? (
-            <div className="paint-stage">
+            <div
+              className="paint-stage"
+              style={{ aspectRatio: `${canvasW} / ${canvasH}` }}
+            >
               <img
                 className="source"
                 src={sourceSrc}
@@ -958,7 +965,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
                 className="paint-buffer nodrag"
                 width={canvasW}
                 height={canvasH}
-                style={{ opacity: brushOpacity }}
+                style={{ opacity: isPainting ? brushOpacity : 1 }}
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
@@ -969,7 +976,10 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
               <div ref={cursorRef} className="brush-cursor" aria-hidden />
             </div>
           ) : (
-            <div className="paint-stage">
+            <div
+              className="paint-stage"
+              style={{ aspectRatio: `${canvasW} / ${canvasH}` }}
+            >
               {/* No source image: the main canvas is the in-flow size driver.
                   Canvas is a replaced element with intrinsic dimensions from
                   its `width`/`height` HTML attrs, so `max-width/max-height:
@@ -980,7 +990,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
                   pattern and hide the letterbox grey[800] from .paint-area). */}
               <canvas
                 ref={canvasRef}
-                className="paint paint-empty nodrag"
+                className="paint nodrag"
                 width={canvasW}
                 height={canvasH}
               />
@@ -989,7 +999,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
                 className="paint-buffer nodrag"
                 width={canvasW}
                 height={canvasH}
-                style={{ opacity: brushOpacity }}
+                style={{ opacity: isPainting ? brushOpacity : 1 }}
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
