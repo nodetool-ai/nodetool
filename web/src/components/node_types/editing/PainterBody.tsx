@@ -136,23 +136,19 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[800],
       display: "flex",
       alignItems: "center",
-      justifyContent: "center"
+      justifyContent: "center",
+      containerType: "size"
     },
     ".paint-stage": {
       position: "relative",
-      // Aspect ratio is forced via inline `style.aspectRatio` set from
-      // `canvasW`/`canvasH`. Combined with `width: 100%` + max constraints,
-      // the stage scales to fill its parent without stretching: width is
-      // pulled to the parent's width OR — when that would make height
-      // exceed the parent — width is recomputed from the max-clamped
-      // height. `<canvas>`'s implicit aspect ratio from HTML attrs isn't
-      // reliably honoured the way `<img>`'s is, so we encode it on the box.
+      // `aspectRatio` + `width`/`height` min(cqw,cqh) inline styles shrink the
+      // stage to fit `.paint-area` without distortion when the node is resized
+      // in either dimension. Plain `width: 100%` + `max-height: 100%` breaks
+      // aspect ratio under height constraints — canvases stretch but `<img
+      // object-fit: contain>` does not.
       display: "block",
-      width: "100%",
       minWidth: 0,
       minHeight: 0,
-      maxWidth: "100%",
-      maxHeight: "100%",
       // Checker pattern only on the canvas footprint, so transparent
       // regions of the paint canvas read as "unpainted".
       backgroundColor: theme.vars.palette.grey[900],
@@ -437,6 +433,15 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
       : DEFAULT_CANVAS_SIZE;
   const canvasW = imgDims?.w ?? configuredW;
   const canvasH = imgDims?.h ?? configuredH;
+
+  const paintStageStyle = useMemo(
+    (): React.CSSProperties => ({
+      aspectRatio: `${canvasW} / ${canvasH}`,
+      width: `min(100cqw, calc(100cqh * ${canvasW} / ${canvasH}))`,
+      height: `min(100cqh, calc(100cqw * ${canvasH} / ${canvasW}))`
+    }),
+    [canvasW, canvasH]
+  );
 
   // ── Tool state ───────────────────────────────────────────────────
   // Rehydrate from persisted node properties on mount.
@@ -952,10 +957,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
           onDrop={onAreaDrop}
         >
           {sourceSrc ? (
-            <div
-              className="paint-stage"
-              style={{ aspectRatio: `${canvasW} / ${canvasH}` }}
-            >
+            <div className="paint-stage" style={paintStageStyle}>
               <img
                 className="source"
                 src={sourceSrc}
@@ -986,10 +988,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
               <div ref={cursorRef} className="brush-cursor" aria-hidden />
             </div>
           ) : (
-            <div
-              className="paint-stage"
-              style={{ aspectRatio: `${canvasW} / ${canvasH}` }}
-            >
+            <div className="paint-stage" style={paintStageStyle}>
               {/* No source image: the main canvas is the in-flow size driver.
                   Canvas is a replaced element with intrinsic dimensions from
                   its `width`/`height` HTML attrs, so `max-width/max-height:
