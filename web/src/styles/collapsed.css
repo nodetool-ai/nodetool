@@ -70,6 +70,23 @@
   display: none !important;
 }
 
+/* Collapsed strip stacks every handle at the same midpoint — the per-handle
+   hover tooltips and hover-reveal labels would pile up on top of each other
+   and obscure the strip. Suppress them; the user can expand to see names. */
+.react-flow__node.collapsed .handle-tooltip {
+  display: none !important;
+}
+
+/* Exception: if a side has exactly one handle there's no pile-up, so let
+   its tooltip show. Covers homogeneous wrappers — `.handle-column` for
+   exposed-input handles, `.output-handle-column` for outputs. Mixed cases
+   (e.g. a lone `.handle-popup` from an inline PropertyField) still
+   suppress; that's a known trade-off, not a bug. */
+.react-flow__node.collapsed .handle-column:has(> .handle-only:only-child) .handle-tooltip,
+.react-flow__node.collapsed .output-handle-column:has(> .output-handle-container:only-child) .handle-tooltip {
+  display: revert !important;
+}
+
 /* ContentCardBody renders <HandleColumn> *inside* `.preview-area`. When
    collapsed, hide the preview's visual children but keep the slot itself so
    the handle column stays mounted and its absolute positioning resolves
