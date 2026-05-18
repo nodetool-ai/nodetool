@@ -181,9 +181,13 @@ const styles = (theme: Theme) =>
       backgroundSize: "12px 12px",
       backgroundPosition: "0 0, 0 6px, 6px -6px, -6px 0",
       "& img.source": {
+        // Fill the aspect-ratio'd stage. `object-fit: contain` keeps the
+        // image's aspect ratio inside the box — since `canvas_width/height`
+        // sync to the image on drop, the box already matches the image's
+        // ratio, so contain just sits flush.
         display: "block",
-        maxWidth: "100%",
-        maxHeight: "100%",
+        width: "100%",
+        height: "100%",
         objectFit: "contain",
         userSelect: "none",
         pointerEvents: "none"
