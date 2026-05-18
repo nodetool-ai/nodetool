@@ -199,9 +199,7 @@ interface WorkflowFormProps {
 
 const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormProps) => {
   const [localWorkflow, setLocalWorkflow] = useState<Workflow>(workflow);
-  const { saveWorkflow } = useWorkflowManager((state) => ({
-    saveWorkflow: state.saveWorkflow
-  }));
+  const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );

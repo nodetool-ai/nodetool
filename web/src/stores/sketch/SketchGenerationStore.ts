@@ -15,6 +15,7 @@
  */
 
 import { create } from "zustand";
+import { shallow } from "zustand/shallow";
 import useResultsStore from "../ResultsStore";
 
 export type LayerGenerationStatus =
@@ -245,7 +246,7 @@ export const useGeneratingLayerIds = (): string[] =>
       (id) =>
         state.layerJobs[id].status === "queued" ||
         state.layerJobs[id].status === "running"
-    )
+    ), shallow
   );
 
 /** IDs of layers whose latest job failed. */
@@ -253,5 +254,5 @@ export const useFailedLayerIds = (): string[] =>
   useSketchGenerationStore((state) =>
     Object.keys(state.layerJobs).filter(
       (id) => state.layerJobs[id].status === "failed"
-    )
+    ), shallow
   );

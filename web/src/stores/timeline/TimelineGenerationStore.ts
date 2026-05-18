@@ -18,6 +18,7 @@
  */
 
 import { create } from "zustand";
+import { shallow } from "zustand/shallow";
 import { useTimelineStore } from "./TimelineStore";
 import useResultsStore from "../ResultsStore";
 
@@ -299,7 +300,7 @@ export const useGeneratingClipIds = (): string[] =>
       (id) =>
         state.clipJobs[id].status === "queued" ||
         state.clipJobs[id].status === "running"
-    )
+    ), shallow
   );
 
 /**
@@ -309,5 +310,5 @@ export const useFailedClipIds = (): string[] =>
   useTimelineGenerationStore((state) =>
     Object.keys(state.clipJobs).filter(
       (id) => state.clipJobs[id].status === "failed"
-    )
+    ), shallow
   );
