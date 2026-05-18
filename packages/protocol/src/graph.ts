@@ -93,6 +93,34 @@ export type CorrelationLineage = Readonly<Record<string, CorrelationToken>>;
 export const EMPTY_LINEAGE: CorrelationLineage = Object.freeze({});
 
 /**
+ * Control-plane signal emitted by a source edge announcing that it will not
+ * produce a value for `lineage` on `output`. Correlated joins waiting for that
+ * key learn the key is unavailable before source EOS. See §6.
+ */
+export interface LineageDone {
+  type: "lineage_done";
+  source_edge_id: string;
+  output: string;
+  lineage: CorrelationLineage;
+}
+
+/**
+ * Control-plane signal emitted by a source edge announcing that no more
+ * descendant tokens of `closed_root` will arrive under `parent_lineage`. Sent
+ * even when no child token was minted. See §6.
+ */
+export interface LineageScopeClosed {
+  type: "lineage_scope_closed";
+  source_edge_id: string;
+  output: string;
+  parent_lineage: CorrelationLineage;
+  closed_root: string;
+}
+
+/** Any of the correlation control-plane signals. */
+export type LineageControlSignal = LineageDone | LineageScopeClosed;
+
+/**
  * Minimal node descriptor for graph operations.
  * The full BaseNode equivalent lives in the node-sdk package.
  */
