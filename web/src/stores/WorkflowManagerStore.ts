@@ -16,6 +16,8 @@ import {
 import { trpcClient } from "../trpc/client";
 import { debounce, omit } from "../utils/lodashAlternatives";
 import { createErrorMessage } from "../utils/errorHandling";
+import { fetchLiveFalPricing } from "../utils/fetchLiveFalPricing";
+import useMetadataStore from "./MetadataStore";
 import { uuidv4 } from "./uuidv4";
 import { QueryClient } from "@tanstack/react-query";
 import {
@@ -573,6 +575,41 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
         const runnerStore = getWorkflowRunnerStore(workflow.id);
         subscribeToWorkflowUpdates(workflow.id, workflow, runnerStore, get().getNodeStore);
+
+        // Refresh live FAL pricing for the FAL nodes in this workflow.
+        // Subscribes to MetadataStore so we still fire once metadata loads
+        // (workflows restored from localStorage open before metadata fetch).
+        const falNodeTypes = [
+          ...new Set(
+            (workflow.graph?.nodes ?? []).map((n) => n.type as string)
+          )
+        ].filter((t) => t.startsWith("fal."));
+
+        if (falNodeTypes.length > 0) {
+          const doFetch = (): boolean => {
+            const meta = useMetadataStore.getState().metadata;
+            const endpointIds = falNodeTypes
+              .map((t) => meta[t]?.fal_unit_pricing?.endpoint_id)
+              .filter((id): id is string => Boolean(id));
+            if (endpointIds.length === 0) return false;
+            fetchLiveFalPricing(meta, endpointIds)
+              .then((updated) => {
+                if (updated) {
+                  useMetadataStore.getState().setMetadata({ ...meta });
+                }
+              })
+              .catch(() => {
+                // surfaced as console.error inside fetchLiveFalPricing
+              });
+            return true;
+          };
+
+          if (!doFetch()) {
+            const unsub = useMetadataStore.subscribe(() => {
+              if (doFetch()) unsub();
+            });
+          }
+        }
       },
 
        /**

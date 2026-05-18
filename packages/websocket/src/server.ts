@@ -70,6 +70,8 @@ import oauthRoutes from "./routes/oauth.js";
 import workspaceRoutes from "./routes/workspace.js";
 import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
+import falCreditsRoute from "./routes/fal-credits.js";
+import falPricingRoute from "./routes/fal-pricing.js";
 import { agentSocketRoute, getAgentRuntime } from "./agent/index.js";
 
 // @llamaindex/liteparse bundles a webpack pdf.js whose `isNodeJS` heuristic
@@ -842,6 +844,8 @@ await app.register(oauthRoutes, routeOpts);
 await app.register(workspaceRoutes, routeOpts);
 await app.register(filesRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
+await app.register(falCreditsRoute);
+await app.register(falPricingRoute);
 // MCP endpoints are only available in local/dev mode — not in production.
 // The configuration endpoints moved to the tRPC `mcpConfig` router; the
 // `/mcp` proxy below is a bare MCP over-HTTP transport and stays on REST.

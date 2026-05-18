@@ -265,6 +265,20 @@ export interface Asset extends ProtocolAsset {
 export interface UnifiedModel extends ProtocolUnifiedModel {}
 
 /** Frontend-enriched node metadata (search info, runtime hints, etc.) */
+/**
+ * FAL.ai list price on generated FAL nodes — frontend-enriched shape adds
+ * `source` (live vs. bundle vs. backend) and `checked_at` ISO timestamp on
+ * top of the transport-only protocol shape.
+ */
+export interface FalUnitPricing {
+  endpoint_id: string;
+  unit_price: number;
+  billing_unit: string;
+  currency: string;
+  source?: "live" | "bundle";
+  checked_at?: string;
+}
+
 export interface NodeMetadata extends BaseNodeMetadata {
   searchInfo?: {
     score?: number;
@@ -284,6 +298,8 @@ export interface NodeMetadata extends BaseNodeMetadata {
    * Populated by the backend from node metadata; used to show install prompts.
    */
   required_runtimes?: string[];
+  /** FAL.ai unit pricing from generated TS nodes / metadata index. */
+  fal_unit_pricing?: FalUnitPricing | null;
   /**
    * Marks a node as generative — its outputs should be auto-saved as assets
    * by the backend, and the UI uses this flag to auto-show the result preview

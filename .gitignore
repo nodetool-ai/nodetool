@@ -70,7 +70,12 @@ key.pem
 # Dev
 .codegen-cache/
 .schema-cache/
-packages/fal-nodes/src/generated/
+packages/fal-nodes/src/generated/*
+# FAL pricing bundles are generated alongside fal-manifest.json and committed
+# so users get prices on first paint even without a FAL_API_KEY configured.
+# (Use `/*` rather than `/` above so these `!` re-include rules can take effect.)
+!packages/fal-nodes/src/generated/fal-node-type-pricing.json
+!packages/fal-nodes/src/generated/fal-unit-pricing.json
 packages/replicate-nodes/src/generated/
 .codegpt
 __plans__
