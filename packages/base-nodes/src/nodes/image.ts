@@ -2142,7 +2142,8 @@ export class PainterNode extends BaseNode {
     default: "",
     title: "Mask data",
     description:
-      "Base64-encoded PNG of the painted alpha mask. Managed by the UI."
+      "Base64-encoded PNG of the painted alpha mask. Managed by the UI.",
+    json_schema_extra: { hidden_in_inspector: true }
   })
   declare mask_data: unknown;
 

@@ -33,7 +33,15 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 import BrushIcon from "@mui/icons-material/Brush";
-import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import SvgIcon, { type SvgIconProps } from "@mui/material/SvgIcon";
+
+// Inline SVG so we don't depend on an icon-set that ships an eraser glyph.
+// Stylized rubber/wedge eraser at the standard 24px MUI viewBox.
+const EraserIcon = (props: SvgIconProps) => (
+  <SvgIcon {...props}>
+    <path d="M16.24 3.56l4.24 4.24a2 2 0 0 1 0 2.83l-9.9 9.9a2 2 0 0 1-2.83 0l-4.24-4.24a2 2 0 0 1 0-2.83l9.9-9.9a2 2 0 0 1 2.83 0zM6.71 14.12l3.18 3.18 3.18-3.18-3.18-3.18-3.18 3.18zM3 21h18v-2H3v2z" />
+  </SvgIcon>
+);
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
@@ -55,6 +63,9 @@ import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useUpstreamValue } from "../../../hooks/nodes/useNodeIO";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
+import { useAssetUpload } from "../../../serverState/useAssetUpload";
+import type { Asset } from "../../../stores/ApiTypes";
+import { resolveExposedInputNames } from "../../../utils/exposedInputs";
 
 const PAINTER_NODE_TYPE = "nodetool.image.Painter";
 
@@ -115,7 +126,9 @@ const styles = (theme: Theme) =>
       flex: "1 1 auto",
       minHeight: 200,
       display: "flex",
-      gap: theme.spacing(0.5)
+      gap: theme.spacing(0.5),
+      // Canvas is now full-bleed — no side toolbar column.
+      width: "100%"
     },
     ".paint-area": {
       flex: "1 1 auto",
@@ -200,45 +213,63 @@ const styles = (theme: Theme) =>
         zIndex: 2
       }
     },
-    ".toolbar": {
-      flex: "0 0 96px",
+    /* Two-row weavy-style bottom toolbar:
+       row 1: brush/eraser/color | undo/redo/clear
+       row 2: size | opacity | background-opacity */
+    ".bottom-toolbar": {
+      flex: "0 0 auto",
       display: "flex",
       flexDirection: "column",
       gap: theme.spacing(0.75),
-      padding: theme.spacing(0.5),
+      padding: theme.spacing(1),
+      margin: theme.spacing(0.5, 0),
       borderRadius: "var(--rounded-sm)",
       background: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller
     },
-    ".toolbar label": {
-      color: theme.vars.palette.text.secondary,
-      fontSize: theme.fontSizeSmaller,
-      marginBottom: 2
-    },
-    ".color-input": {
-      width: "100%",
-      height: 24,
-      border: "none",
-      padding: 0,
-      background: "transparent",
-      cursor: "pointer"
-    },
-    ".tool-toggle .MuiToggleButton-root": {
-      flex: "1 1 50%",
-      padding: theme.spacing(0.25),
-      "& svg": { fontSize: 16 }
-    },
     ".bottom-row": {
-      flex: "0 0 auto",
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(0.5)
     },
-    ".fade-field": {
-      flex: "1 1 auto",
+    /* Row 2 sliders: equal-width tracks so the three numeric fields align. */
+    ".sliders-row .slider-field": {
+      flex: "1 1 0",
       minWidth: 0
+    },
+    /* Row 1: pushes the undo/redo/clear cluster to the right edge so the
+       left group (tools + color) hugs the start. */
+    ".tools-row .row-spacer": {
+      flex: "1 1 auto"
+    },
+    /* Color picker rendered as a larger square swatch so it visually pairs
+       with the bigger tool icons in row 1. */
+    ".color-input": {
+      width: 36,
+      height: 36,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: "var(--rounded-sm)",
+      padding: 0,
+      background: "transparent",
+      cursor: "pointer",
+      flex: "0 0 auto"
+    },
+    ".tool-toggle .MuiToggleButton-root": {
+      padding: theme.spacing(0.5, 0.75),
+      "& svg": { fontSize: 22 }
+    },
+    /* History cluster (undo/redo/clear) styled as proper buttons: the
+       background separates them from the surrounding toolbar tint so they
+       read as actionable rather than just hoverable. */
+    ".tools-row .toolbar-icon-button": {
+      backgroundColor: theme.vars.palette.action.selected,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: "var(--rounded-sm)",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.focus
+      }
     },
     ".outputs-row": {
       flex: "0 0 auto"
@@ -362,6 +393,43 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
     nodeId: id,
     nodeType
   });
+
+  // ── Drop-to-load source image ────────────────────────────────────
+  // Accept external image files dropped onto the paint area. The drop is
+  // stopped before React Flow's global drop handler runs (which would create
+  // a new asset node next to ours). Files are uploaded as assets; on success
+  // we point the `image` property at the new asset and the source image
+  // pipeline takes over (hydrating canvasW/H, drawing the source layer).
+  const onAreaDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    if (e.dataTransfer.types.includes("Files")) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = "copy";
+    }
+  }, []);
+
+  const onAreaDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      const files = Array.from(e.dataTransfer.files ?? []);
+      const imageFile = files.find((f) => f.type.startsWith("image/"));
+      if (!imageFile) return;
+      e.preventDefault();
+      e.stopPropagation();
+      useAssetUpload.getState().uploadAsset({
+        file: imageFile,
+        workflow_id: workflowId,
+        onCompleted: (asset: Asset) => {
+          setProperty("image", {
+            type: "image",
+            asset_id: asset.id,
+            uri: asset.get_url ?? undefined
+          });
+          setPropertyComplete();
+        }
+      });
+    },
+    [setProperty, setPropertyComplete, workflowId]
+  );
 
   // Hydrate the canvas from `mask_data` whenever it changes externally
   // (workflow load, undo at graph level, …). Skipped during local
@@ -692,10 +760,18 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
     () => nodeMetadata.properties ?? [],
     [nodeMetadata.properties]
   );
-  const imageProperty = useMemo(
-    () => properties.filter((p) => p.name === "image"),
-    [properties]
-  );
+  // Input handles: backend `input_fields` ∪ user-promoted `exposedInputs`.
+  // The `image` source belongs in `input_fields` on the backend node; this
+  // also lets the user promote brush_color / brush_size / etc. from the
+  // Inspector and have those render as handles, matching `ContentCardBody`.
+  // We always guarantee `image` is in the handle column even if the backend
+  // metadata omits it from `input_fields`, since it's the Painter's primary
+  // upstream input.
+  const handleProperties = useMemo(() => {
+    const names = new Set(resolveExposedInputNames(nodeMetadata, data));
+    names.add("image");
+    return properties.filter((p) => names.has(p.name));
+  }, [data, nodeMetadata, properties]);
 
   const onBrushSize = useCallback(
     (_: React.ChangeEvent<HTMLInputElement> | null, value: number) =>
@@ -731,7 +807,11 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
   return (
     <div css={cssStyles} className="painter-body" data-bespoke-body="Painter">
       <div className="paint-row">
-        <div className="paint-area">
+        <div
+          className="paint-area"
+          onDragOver={onAreaDragOver}
+          onDrop={onAreaDrop}
+        >
           {sourceSrc ? (
             <div className="paint-stage">
               <img
@@ -802,54 +882,15 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
               />
             </div>
           )}
-          <HandleColumn id={id} properties={imageProperty} />
+          <HandleColumn id={id} properties={handleProperties} />
         </div>
 
-        <FlexColumn className="toolbar nodrag" gap={0.75}>
-          <div>
-            <label htmlFor={`painter-size-${id}`}>Size</label>
-            <NumberInput
-              id={`painter-size-${id}`}
-              nodeId={id}
-              name="brush_size"
-              description="Brush size (px)"
-              value={brushSize}
-              min={1}
-              max={256}
-              size="small"
-              color="secondary"
-              inputType="int"
-              showSlider={false}
-              onChange={onBrushSize}
-            />
-          </div>
-          <div>
-            <label htmlFor={`painter-opacity-${id}`}>Opacity</label>
-            <NumberInput
-              id={`painter-opacity-${id}`}
-              nodeId={id}
-              name="brush_opacity"
-              description="Brush opacity (0 – 1)"
-              value={brushOpacity}
-              min={0}
-              max={1}
-              size="small"
-              color="secondary"
-              inputType="float"
-              showSlider={false}
-              onChange={onBrushOpacity}
-            />
-          </div>
-          <div>
-            <label htmlFor={`painter-color-${id}`}>Color</label>
-            <input
-              id={`painter-color-${id}`}
-              className="color-input"
-              type="color"
-              value={color}
-              onChange={onColorChange}
-            />
-          </div>
+      </div>
+
+      <FlexColumn className="bottom-toolbar nodrag" gap={0.5}>
+        {/* Row 1: tools — brush/eraser, color, undo/redo/clear. Compact
+            icon strip; no sliders here so the row stays tight. */}
+        <FlexRow className="bottom-row tools-row" align="center" gap={0.5}>
           <ToggleGroup
             className="tool-toggle"
             value={tool}
@@ -862,53 +903,97 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
               <BrushIcon />
             </ToggleOption>
             <ToggleOption value="eraser" aria-label="Eraser">
-              <AutoFixHighIcon />
+              <EraserIcon />
             </ToggleOption>
           </ToggleGroup>
-        </FlexColumn>
-      </div>
-
-      <FlexRow className="bottom-row" align="center" gap={0.5}>
-        <ToolbarIconButton
-          className="nodrag"
-          size="small"
-          onClick={onUndo}
-          disabled={undoDisabled}
-          tooltip="Undo"
-          icon={<UndoIcon fontSize="small" />}
-        />
-        <ToolbarIconButton
-          className="nodrag"
-          size="small"
-          onClick={onRedo}
-          disabled={redoDisabled}
-          tooltip="Redo"
-          icon={<RedoIcon fontSize="small" />}
-        />
-        <div className="fade-field">
-          <NumberInput
-            id={`painter-fade-${id}`}
-            nodeId={id}
-            name="bg_fade"
-            description="Background fade (0 = hide, 1 = full)"
-            value={bgFade}
-            min={0}
-            max={1}
-            size="small"
-            color="secondary"
-            inputType="float"
-            showSlider={true}
-            onChange={onBgFade}
+          <input
+            id={`painter-color-${id}`}
+            className="color-input"
+            type="color"
+            value={color}
+            onChange={onColorChange}
+            aria-label="Brush color"
           />
-        </div>
-        <ToolbarIconButton
-          className="nodrag"
-          size="small"
-          onClick={onClear}
-          tooltip="Clear painted mask"
-          icon={<RestartAltIcon fontSize="small" />}
-        />
-      </FlexRow>
+          <div className="row-spacer" />
+          <ToolbarIconButton
+            className="nodrag"
+            size="small"
+            onClick={onUndo}
+            disabled={undoDisabled}
+            tooltip="Undo"
+            icon={<UndoIcon fontSize="small" />}
+          />
+          <ToolbarIconButton
+            className="nodrag"
+            size="small"
+            onClick={onRedo}
+            disabled={redoDisabled}
+            tooltip="Redo"
+            icon={<RedoIcon fontSize="small" />}
+          />
+          <ToolbarIconButton
+            className="nodrag"
+            size="small"
+            onClick={onClear}
+            tooltip="Clear painted mask"
+            icon={<RestartAltIcon fontSize="small" />}
+          />
+        </FlexRow>
+
+        {/* Row 2: sliders — equal-width tracks for size, opacity, bg fade.
+            Labels come from the `name` prop via PropertyLabel's titleize,
+            so use short single-word names. */}
+        <FlexRow className="bottom-row sliders-row" align="center" gap={0.5}>
+          <div className="slider-field">
+            <NumberInput
+              id={`painter-size-${id}`}
+              nodeId={id}
+              name="size"
+              description="Brush size in pixels"
+              value={brushSize}
+              min={1}
+              max={256}
+              size="small"
+              color="secondary"
+              inputType="int"
+              showSlider={true}
+              onChange={onBrushSize}
+            />
+          </div>
+          <div className="slider-field">
+            <NumberInput
+              id={`painter-opacity-${id}`}
+              nodeId={id}
+              name="opacity"
+              description="Brush opacity (0–1)"
+              value={brushOpacity}
+              min={0}
+              max={1}
+              size="small"
+              color="secondary"
+              inputType="float"
+              showSlider={true}
+              onChange={onBrushOpacity}
+            />
+          </div>
+          <div className="slider-field">
+            <NumberInput
+              id={`painter-fade-${id}`}
+              nodeId={id}
+              name="background_opacity"
+              description="Background image opacity (0 = hide, 1 = full)"
+              value={bgFade}
+              min={0}
+              max={1}
+              size="small"
+              color="secondary"
+              inputType="float"
+              showSlider={true}
+              onChange={onBgFade}
+            />
+          </div>
+        </FlexRow>
+      </FlexColumn>
 
       {!isOutputNode && (
         <div className="outputs-row">

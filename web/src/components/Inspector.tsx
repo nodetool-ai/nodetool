@@ -500,6 +500,9 @@ const Inspector: React.FC = () => {
                 toggle except those whose handle is already determined by
                 metadata (inline rows or declared input_fields). */}
             {metadata.properties.map((property, index) => {
+              if (property.json_schema_extra?.hidden_in_inspector === true) {
+                return null;
+              }
               const hasToggle = !metadataHandleNames.has(property.name);
               const exposed = (selectedNode.data.exposedInputs ?? []).includes(
                 property.name
