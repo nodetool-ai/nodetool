@@ -1164,7 +1164,7 @@ export class ChatComposerNode extends BaseNode {
   static readonly nodeType = "nodetool.input.ChatComposer";
   static readonly title = "Chat Composer";
   static readonly description =
-    "Chat composer for workflows — renders a message input UI on the canvas. Outputs the message sent by the user.\n    input, chat, composer, message, conversation";
+    "Chat composer for workflows — renders a message input UI on the canvas. Outputs the message sent by the user. Use MessageDeconstructor to split into fields.\n    input, chat, composer, message, conversation";
   static readonly metadataOutputTypes = {
     output: "message"
   };
@@ -1220,7 +1220,7 @@ export class ChatComposerNode extends BaseNode {
   declare description: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return { value: this.value ?? {} };
+    return { output: this.value ?? {} };
   }
 }
 
