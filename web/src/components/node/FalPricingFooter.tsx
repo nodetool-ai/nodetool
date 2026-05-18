@@ -117,12 +117,9 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
     popoverAnchorPrev.current = popoverResetDep;
   }, [popoverResetDep]);
 
-  const pricing = metadata.fal_unit_pricing;
-  if (!selected || !pricing) {
-    return null;
-  }
-
-  const vaguePrice = isFalVagueBillingSummary(pricing);
+  const pricing = metadata.fal_unit_pricing ?? null;
+  const vaguePrice =
+    pricing != null ? isFalVagueBillingSummary(pricing) : false;
   const tier = vaguePrice
     ? theme.vars.palette.warning
     : theme.vars.palette.success;
@@ -165,6 +162,10 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
     }),
     [tier.dark, tier.contrastText, tier.main, variant]
   );
+
+  if (!selected || !pricing) {
+    return null;
+  }
 
   return (
     <>

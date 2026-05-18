@@ -53,9 +53,9 @@ export function formatFalUnitPricingTooltip(p: FalUnitPricing): string {
   const when = formatFalPricingAgeLine(p);
 
   return [
-    vague ? `${money} (simplified)` : money,
+    vague ? `${money} (SEE DETAILS)` : money,
     vague
-      ? "Varies by resolution and quality — use fal.ai link to see detailed pricing."
+      ? "\nVaries by resolution and quality.\nView on fal.ai to see detailed pricing.\n"
       : null,
     when,
     `Endpoint: ${p.endpoint_id}`,
