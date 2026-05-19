@@ -31,6 +31,23 @@ export interface StreamingInputs {
   anyWithEnvelope(): AsyncGenerator<[string, MessageEnvelopeLike]>;
   /** Return the first available item for a handle, or default if EOS. */
   first(name: string, defaultValue?: unknown): Promise<unknown>;
+
+  /**
+   * Static scope (ordered iteration roots, outermost first) for a connected
+   * input handle. Returns `[]` if the handle has no static scope (constant /
+   * config edge), or if correlation analysis was not run.
+   *
+   * Used by join nodes (§7) to identify each side's differing iteration root
+   * and project to the common parent prefix.
+   */
+  scopeFor(handle: string): ReadonlyArray<string>;
+
+  /**
+   * The node's invocation scope — the largest non-empty input scope under the
+   * legacy comparable-prefix rule, or the longest common parent prefix on
+   * join nodes (§7). `[]` when analysis is off or the node has no inputs.
+   */
+  invocationScope(): ReadonlyArray<string>;
 }
 
 /**
@@ -59,6 +76,19 @@ export interface MessageEnvelopeLike {
 export interface StreamingOutputs {
   /** Emit a value to a named output slot. */
   emit(slot: string, value: unknown, opts?: { lineage?: Record<string, { index: number }> }): Promise<void>;
+  /**
+   * Emit a frame of grouped values atomically. Every sibling handle that
+   * shares an iteration group (same root id) receives the **same** minted
+   * token, so a Zip pair (`{ left, right, index }`) is one logical item
+   * downstream — not three independent items with different tokens. §1.
+   *
+   * Non-iteration handles in `values` inherit the supplied `opts.lineage`
+   * (or the actor's ambient invocation lineage if omitted).
+   */
+  emitGroup(
+    values: Record<string, unknown>,
+    opts?: { lineage?: Record<string, { index: number }> }
+  ): Promise<void>;
   /** Forward an envelope's lineage to `slot`. §5. */
   forward(
     slot: string,

@@ -11,10 +11,12 @@
 import type { CorrelationLineage } from "@nodetool-ai/protocol";
 import type { MessageEnvelope } from "./inbox.js";
 import { NodeInbox } from "./inbox.js";
+import type { NodeAnalysis, Scope } from "./correlation-analysis.js";
 
 export class NodeInputs {
   private _inbox: NodeInbox;
   private _envelopeTracker: Map<string, MessageEnvelope> | null;
+  private _analysis: NodeAnalysis | undefined;
 
   /**
    * `envelopeTracker`, when provided, records the most recently consumed
@@ -22,13 +24,35 @@ export class NodeInputs {
    * raw `stream()`/`first()`/`any()` consumers still surface lineage to the
    * actor — that's how unmigrated stream filters (Take, Drop, Filter*)
    * inherit lineage even when they call `outputs.emit()` with no options.
+   *
+   * `analysis` is the per-node static correlation analysis; nodes that need
+   * scope information at runtime (Zip/Cross) read it via `scopeFor()` and
+   * `invocationScope()`.
    */
   constructor(
     inbox: NodeInbox,
-    envelopeTracker?: Map<string, MessageEnvelope> | null
+    envelopeTracker?: Map<string, MessageEnvelope> | null,
+    analysis?: NodeAnalysis
   ) {
     this._inbox = inbox;
     this._envelopeTracker = envelopeTracker ?? null;
+    this._analysis = analysis;
+  }
+
+  /**
+   * Static scope of a connected input handle, or `[]` when analysis is off
+   * or the handle has no scope.
+   */
+  scopeFor(handle: string): Scope {
+    return this._analysis?.inputs.get(handle)?.scope ?? [];
+  }
+
+  /**
+   * The node's invocation scope (largest comparable input scope, or longest
+   * common parent prefix on join nodes), or `[]` when analysis is off.
+   */
+  invocationScope(): Scope {
+    return this._analysis?.invocationScope ?? [];
   }
 
   /**
@@ -149,6 +173,16 @@ export interface NodeOutputsOptions {
    * `envelope`. Plumbed in PR 3 when correlated scheduling lands.
    */
   dropFn?: (slot: string, envelope: MessageEnvelope) => Promise<void>;
+
+  /**
+   * Atomically emit a frame across multiple slots, minting one shared token
+   * per iteration group so sibling handles in a group share lineage. Falls
+   * back to sequential `sendFn` if not supplied.
+   */
+  emitGroupFn?: (
+    values: Record<string, unknown>,
+    opts?: EmitOptions
+  ) => Promise<void>;
 }
 
 /**
@@ -168,11 +202,43 @@ export class NodeOutputs {
   private _dropFn:
     | ((slot: string, envelope: MessageEnvelope) => Promise<void>)
     | null;
+  private _emitGroupFn:
+    | ((values: Record<string, unknown>, opts?: EmitOptions) => Promise<void>)
+    | null;
 
   constructor(opts: NodeOutputsOptions = {}) {
     this._sendFn = opts.sendFn ?? null;
     this._eosCallback = opts.eosCallback ?? null;
     this._dropFn = opts.dropFn ?? null;
+    this._emitGroupFn = opts.emitGroupFn ?? null;
+  }
+
+  /**
+   * Atomically emit a frame across multiple slots, sharing one minted token
+   * per iteration group. Required for stream-mode iteration outputs (Zip,
+   * Cross) so paired sibling handles do not get split into independent
+   * items. §1.
+   *
+   * Falls back to sequential `emit()` (which mints independently per slot)
+   * if no `emitGroupFn` is wired — preserved for test fixtures with no
+   * actor.
+   */
+  async emitGroup(
+    values: Record<string, unknown>,
+    opts?: EmitOptions
+  ): Promise<void> {
+    for (const [slot, value] of Object.entries(values)) {
+      this._collected[slot] = value;
+    }
+    if (this._emitGroupFn) {
+      await this._emitGroupFn(values, opts);
+      return;
+    }
+    for (const [slot, value] of Object.entries(values)) {
+      if (this._sendFn) {
+        await this._sendFn(slot, value, opts);
+      }
+    }
   }
 
   /**

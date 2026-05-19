@@ -945,11 +945,21 @@ export class TapNode extends BaseNode {
 /**
  * Zip — explicit join for two independent iteration sources.
  *
- * §7 of docs/correlation-design.md. Pairs values by matched iteration `index`
- * within the longest common parent prefix. V1 accepts at most one differing
- * iteration root per input after the prefix; deeper differences must be
- * aggregated or zipped in stages first. Emits a new iteration root
+ * §7 of docs/correlation-design.md. Pairs values by matched iteration
+ * `index` within the longest common parent prefix. V1 accepts at most one
+ * differing iteration root per input after the prefix; deeper differences
+ * must be aggregated or zipped in stages first. Emits a new iteration root
  * `${node.id}:zip` so downstream nodes see one ordinary correlated stream.
+ *
+ * Pairing strategy (matches the analyzer's static facts):
+ *   1. `inputs.invocationScope()` is the common parent prefix.
+ *   2. For each handle, `inputs.scopeFor(handle)` minus the parent prefix
+ *      is the set of "differing" roots; V1 requires exactly one.
+ *   3. Bucket key per arrival = `parentKey | differingIndex`. Pair when both
+ *      sides have a value for the same bucket key.
+ *   4. Emit via `outputs.emitGroup({ left, right, index })` so all three
+ *      sibling handles share one minted `${nodeId}:zip` token — the actor
+ *      mints once per emitGroup call.
  */
 export class ZipNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Zip";
@@ -1006,34 +1016,73 @@ export class ZipNode extends BaseNode {
     inputs: StreamingInputs,
     outputs: StreamingOutputs
   ): Promise<void> {
-    // Buffer each side keyed by the differing root's index, projected to
-    // their common-parent key. Once both sides have a value for the same
-    // (parent_key, index) bucket, emit a paired frame. The actor mints the
-    // group's iteration root; outputs.emit relies on it via the actor's
-    // per-slot lineage rules.
     const limit = Math.max(1, Number(this.max_unmatched_pairs ?? 1024));
-    const lefts = new Map<string, unknown>();
-    const rights = new Map<string, unknown>();
+    const parentScope = inputs.invocationScope();
+    const parentSet = new Set(parentScope);
 
-    const bucketKey = (env: { correlation_lineage: Record<string, { index: number }> }): string => {
-      // Use a deterministic key from the lineage map: scope-order is not
-      // available here, so include every (root,index) pair sorted by root
-      // name. This keys per identical lineage projection.
-      const parts = Object.keys(env.correlation_lineage)
-        .sort()
-        .map((k) => `${k}=${env.correlation_lineage[k].index}`);
+    const findDiffering = (handle: string): string => {
+      const scope = inputs.scopeFor(handle);
+      const differing = scope.filter((r) => !parentSet.has(r));
+      if (differing.length !== 1) {
+        throw new Error(
+          `Zip handle "${handle}" must have exactly one iteration root ` +
+            `after the common parent prefix; got ${differing.length} ` +
+            `(${differing.join(", ") || "none"}). Aggregate or zip in stages.`
+        );
+      }
+      return differing[0];
+    };
+    const leftDiff = findDiffering("left");
+    const rightDiff = findDiffering("right");
+
+    const projectParent = (
+      env: { correlation_lineage: Record<string, { index: number }> }
+    ): string => {
+      // Canonical projection in scope order — matches analyzeCorrelation.
+      if (parentScope.length === 0) return "";
+      const parts: string[] = [];
+      for (const root of parentScope) {
+        const tok = env.correlation_lineage[root];
+        if (!tok) return ""; // missing — bucket as root-level
+        parts.push(`${root}=${tok.index}`);
+      }
       return parts.join(",");
     };
 
+    const bucketKey = (
+      env: { correlation_lineage: Record<string, { index: number }> },
+      diff: string
+    ): { key: string; index: number } => {
+      const tok = env.correlation_lineage[diff];
+      if (!tok) {
+        throw new Error(
+          `Zip received an envelope on a side missing its differing ` +
+            `root "${diff}" — upstream did not mint a token.`
+        );
+      }
+      return { key: `${projectParent(env)}|${tok.index}`, index: tok.index };
+    };
+
+    interface Pending {
+      data: unknown;
+      index: number;
+    }
+    const lefts = new Map<string, Pending>();
+    const rights = new Map<string, Pending>();
+
     const tryEmit = async () => {
-      for (const [key, lval] of lefts) {
-        if (rights.has(key)) {
-          const rval = rights.get(key);
-          lefts.delete(key);
-          rights.delete(key);
-          await outputs.emit("left", lval);
-          await outputs.emit("right", rval);
-        }
+      for (const [key, l] of lefts) {
+        const r = rights.get(key);
+        if (!r) continue;
+        lefts.delete(key);
+        rights.delete(key);
+        // emitGroup mints one shared zip token; all three sibling handles
+        // (left, right, index) end up as the SAME logical item downstream.
+        await outputs.emitGroup({
+          left: l.data,
+          right: r.data,
+          index: l.index
+        });
       }
     };
 
@@ -1046,17 +1095,18 @@ export class ZipNode extends BaseNode {
       }
     };
 
-    // Drain both inputs concurrently.
     const leftLoop = (async () => {
       for await (const env of inputs.streamWithEnvelope("left")) {
-        lefts.set(bucketKey(env), env.data);
+        const { key, index } = bucketKey(env, leftDiff);
+        lefts.set(key, { data: env.data, index });
         watchLimit();
         await tryEmit();
       }
     })();
     const rightLoop = (async () => {
       for await (const env of inputs.streamWithEnvelope("right")) {
-        rights.set(bucketKey(env), env.data);
+        const { key, index } = bucketKey(env, rightDiff);
+        rights.set(key, { data: env.data, index });
         watchLimit();
         await tryEmit();
       }
@@ -1127,33 +1177,67 @@ export class CrossNode extends BaseNode {
     outputs: StreamingOutputs
   ): Promise<void> {
     const limit = Math.max(1, Number(this.max_output_count ?? 1024));
-    const lefts: unknown[] = [];
-    const rights: unknown[] = [];
+    const parentScope = inputs.invocationScope();
+    const projectParent = (
+      env: { correlation_lineage: Record<string, { index: number }> }
+    ): string => {
+      if (parentScope.length === 0) return "";
+      const parts: string[] = [];
+      for (const root of parentScope) {
+        const tok = env.correlation_lineage[root];
+        if (!tok) return "";
+        parts.push(`${root}=${tok.index}`);
+      }
+      return parts.join(",");
+    };
+
+    // Group each side by parent key so the cartesian product stays within
+    // a shared parent scope. Cross-parent products are not what Cross is
+    // for; they would conflate independent items.
+    const leftByParent = new Map<string, unknown[]>();
+    const rightByParent = new Map<string, unknown[]>();
 
     const leftLoop = (async () => {
-      for await (const v of inputs.stream("left")) {
-        lefts.push(v);
+      for await (const env of inputs.streamWithEnvelope("left")) {
+        const pk = projectParent(env);
+        let bucket = leftByParent.get(pk);
+        if (!bucket) {
+          bucket = [];
+          leftByParent.set(pk, bucket);
+        }
+        bucket.push(env.data);
       }
     })();
     const rightLoop = (async () => {
-      for await (const v of inputs.stream("right")) {
-        rights.push(v);
+      for await (const env of inputs.streamWithEnvelope("right")) {
+        const pk = projectParent(env);
+        let bucket = rightByParent.get(pk);
+        if (!bucket) {
+          bucket = [];
+          rightByParent.set(pk, bucket);
+        }
+        bucket.push(env.data);
       }
     })();
     await Promise.all([leftLoop, rightLoop]);
 
     let emitted = 0;
-    for (const l of lefts) {
-      for (const r of rights) {
-        if (emitted >= limit) {
-          throw new Error(
-            `Cross node exceeded max_output_count (${limit}); ` +
-              `truncate the inputs or raise the limit. §7.`
-          );
+    for (const [pk, lefts] of leftByParent) {
+      const rights = rightByParent.get(pk);
+      if (!rights) continue;
+      for (const l of lefts) {
+        for (const r of rights) {
+          if (emitted >= limit) {
+            throw new Error(
+              `Cross node exceeded max_output_count (${limit}); ` +
+                `truncate the inputs or raise the limit. §7.`
+            );
+          }
+          // emitGroup mints one shared cross token per pair so left and
+          // right end up as the SAME logical item downstream.
+          await outputs.emitGroup({ left: l, right: r });
+          emitted++;
         }
-        await outputs.emit("left", l);
-        await outputs.emit("right", r);
-        emitted++;
       }
     }
   }

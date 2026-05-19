@@ -250,7 +250,11 @@ export class NodeActor {
           // _lastEnvelopes as the tracker lets unmigrated filters that
           // call inputs.stream()+outputs.emit() inherit lineage from the
           // single-edge input automatically — matching the buffered rule.
-          const nodeInputs = new NodeInputs(this.inbox, this._lastEnvelopes);
+          const nodeInputs = new NodeInputs(
+            this.inbox,
+            this._lastEnvelopes,
+            this._correlation
+          );
           const nodeOutputs = new NodeOutputs({
             sendFn: async (slot: string, value: unknown, opts) => {
               const hints: OutputRoutingHints = {};
@@ -280,6 +284,9 @@ export class NodeActor {
                 { [slot]: value },
                 hints
               );
+            },
+            emitGroupFn: async (values, opts) => {
+              await this._emitGroup(values, opts?.lineage);
             },
             dropFn: async (slot: string, envelope) => {
               // outputs.drop(slot, envelope) → send `lineage_done` on every
@@ -930,12 +937,62 @@ export class NodeActor {
   private _lastMintedFrameTokens = new Map<string, number>();
 
   /**
+   * Atomically route a frame of values across multiple slots, minting one
+   * shared token per iteration group so sibling handles in the same group
+   * (e.g. Zip's `left` and `right`) end up as one logical item downstream.
+   * §1, §7.
+   *
+   * Algorithm:
+   *  1. Walk every slot in `values` and resolve its `output_correlation`.
+   *  2. For each iteration group present in this frame, mint exactly one
+   *     token (per (root, parent_key)) and remember it for the duration of
+   *     this emit.
+   *  3. Build a per-slot lineage map that attaches the same token to every
+   *     sibling handle in a group. Non-iteration slots inherit the
+   *     caller-supplied lineage (or the actor's invocation lineage).
+   *  4. Hand the whole frame to `_sendOutputs` in one call so the runner
+   *     routes them as a single atomic delivery.
+   */
+  private async _emitGroup(
+    values: Record<string, unknown>,
+    callerLineage?: CorrelationLineage
+  ): Promise<void> {
+    const declared = this.node.output_correlation ?? {};
+    const parentLineage =
+      callerLineage ?? this._computeInvocationLineage() ?? EMPTY_LINEAGE;
+    const parentKey = this._correlation
+      ? projectLineageKey(parentLineage, this._correlation.invocationScope)
+      : "";
+
+    const groupTokens = new Map<string, number>(); // root -> minted index
+    const perSlotLineage: Record<string, CorrelationLineage> = {};
+    for (const slot of Object.keys(values)) {
+      const corr = declared[slot];
+      if (corr?.kind === "iteration") {
+        const root = iterationRootId(this.node.id, slot, corr.group);
+        let index = groupTokens.get(root);
+        if (index === undefined) {
+          index = this._mintIterationToken(root, parentKey);
+          groupTokens.set(root, index);
+        }
+        perSlotLineage[slot] = { ...parentLineage, [root]: { index } };
+      } else {
+        perSlotLineage[slot] = parentLineage;
+      }
+    }
+    await this._sendOutputs(this.node.id, values, {
+      invocationLineage: parentLineage,
+      perSlotLineage
+    });
+  }
+
+  /**
    * For stream-mode iteration outputs (e.g. `Zip.pair`), mint a fresh token
    * whenever `outputs.emit()` is called without an explicit lineage. Each
    * emit is a logical item, so the token advances per call. Sibling-handle
    * reuse within a single frame is handled by genProcess via
-   * `_mintIterationFrameOverrides`; stream nodes that need grouped emission
-   * across sibling handles should use a future `outputs.emitGroup()` API.
+   * `_mintIterationFrameOverrides`, or by `outputs.emitGroup()` in stream
+   * mode — see `_emitGroup` above.
    */
   private _maybeMintForSlot(
     slot: string,

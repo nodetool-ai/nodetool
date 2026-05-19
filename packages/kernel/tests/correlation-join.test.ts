@@ -130,12 +130,16 @@ describe("static analysis — join nodes", () => {
     ]);
   });
 
-  it("runtime: Zip pairs values from incomparable iteration sources", async () => {
+  it("runtime: Zip pairs by parent-prefix + differing-root index, shares one minted token across sibling handles", async () => {
     const originalFlag = process.env[FLAG];
     process.env[FLAG] = "1";
 
     try {
-      const captured: { envelopes: MessageEnvelope[] } = { envelopes: [] };
+      // Sinks for both Zip outputs — we verify the two siblings carry the
+      // SAME minted `zip:zip` token per pair (i.e. they are one logical
+      // item, not two independent items).
+      const leftCaptured: MessageEnvelope[] = [];
+      const rightCaptured: MessageEnvelope[] = [];
 
       const seedA: NodeExecutor = {
         async process() {
@@ -155,8 +159,7 @@ describe("static analysis — join nodes", () => {
           return {};
         },
         async run(_inputs: NodeInputs, outputs: NodeOutputs) {
-          // Note: intentionally emit out of order to verify pairing by
-          // lineage, not arrival.
+          // Intentionally out of order so a FIFO join would mispair.
           await outputs.emit("value", "B1", {
             lineage: { "b:items": { index: 1 } }
           });
@@ -165,35 +168,63 @@ describe("static analysis — join nodes", () => {
           });
         }
       };
-      // Test-only Zip: pair by left.index == right.index using lineage.
+
+      // Inline Zip mirroring ZipNode's actual strategy: project to parent
+      // prefix (empty here) + differing-root index, then emitGroup with
+      // sibling handles so the actor mints ONE token per pair.
       const zip: NodeExecutor = {
         async process() {
           return {};
         },
         async run(inputs: NodeInputs, outputs: NodeOutputs) {
-          const lefts = new Map<number, unknown>();
-          const rights = new Map<number, unknown>();
+          const parentScope = inputs.invocationScope();
+          const parentSet = new Set(parentScope);
+          const findDiff = (handle: string): string => {
+            const scope = inputs.scopeFor(handle);
+            const d = scope.filter((r) => !parentSet.has(r));
+            if (d.length !== 1) throw new Error(`Zip: bad scope on ${handle}`);
+            return d[0];
+          };
+          const ld = findDiff("left");
+          const rd = findDiff("right");
+          const projParent = (env: MessageEnvelope) => {
+            if (parentScope.length === 0) return "";
+            return parentScope
+              .map((r) => `${r}=${env.correlation_lineage[r]?.index ?? "?"}`)
+              .join(",");
+          };
+          const lefts = new Map<string, { data: unknown; index: number }>();
+          const rights = new Map<string, { data: unknown; index: number }>();
           const flush = async () => {
             for (const [k, l] of lefts) {
-              if (rights.has(k)) {
-                const r = rights.get(k);
-                lefts.delete(k);
-                rights.delete(k);
-                await outputs.emit("pair", `${l}+${r}`);
-              }
+              const r = rights.get(k);
+              if (!r) continue;
+              lefts.delete(k);
+              rights.delete(k);
+              await outputs.emitGroup({
+                left: l.data,
+                right: r.data,
+                index: l.index
+              });
             }
           };
           const leftLoop = (async () => {
-            for await (const e of inputs.streamWithEnvelope("left")) {
-              const idx = e.correlation_lineage["a:items"]?.index ?? -1;
-              lefts.set(idx, e.data);
+            for await (const env of inputs.streamWithEnvelope("left")) {
+              const idx = env.correlation_lineage[ld].index;
+              lefts.set(`${projParent(env)}|${idx}`, {
+                data: env.data,
+                index: idx
+              });
               await flush();
             }
           })();
           const rightLoop = (async () => {
-            for await (const e of inputs.streamWithEnvelope("right")) {
-              const idx = e.correlation_lineage["b:items"]?.index ?? -1;
-              rights.set(idx, e.data);
+            for await (const env of inputs.streamWithEnvelope("right")) {
+              const idx = env.correlation_lineage[rd].index;
+              rights.set(`${projParent(env)}|${idx}`, {
+                data: env.data,
+                index: idx
+              });
               await flush();
             }
           })();
@@ -201,16 +232,20 @@ describe("static analysis — join nodes", () => {
           await flush();
         }
       };
-      const sink: NodeExecutor = {
+
+      const sinkExec = (
+        handle: string,
+        bucket: MessageEnvelope[]
+      ): NodeExecutor => ({
         async process() {
           return {};
         },
         async run(inputs: NodeInputs) {
-          for await (const env of inputs.streamWithEnvelope("value")) {
-            captured.envelopes.push(env);
+          for await (const env of inputs.streamWithEnvelope(handle)) {
+            bucket.push(env);
           }
         }
-      };
+      });
 
       const nodes: NodeDescriptor[] = [
         {
@@ -236,21 +271,21 @@ describe("static analysis — join nodes", () => {
           type: "test.Zip",
           is_streaming_input: true,
           is_join_node: true,
-          outputs: { pair: "any" },
+          outputs: { left: "any", right: "any", index: "int" },
           output_correlation: {
-            pair: { kind: "iteration", source: "__execution__", group: "zip" }
+            left: { kind: "iteration", source: "__execution__", group: "zip" },
+            right: { kind: "iteration", source: "__execution__", group: "zip" },
+            index: { kind: "iteration", source: "__execution__", group: "zip" }
           }
         },
-        {
-          id: "sink",
-          type: "test.Sink",
-          is_streaming_input: true
-        }
+        { id: "leftSink", type: "test.Sink", is_streaming_input: true },
+        { id: "rightSink", type: "test.Sink", is_streaming_input: true }
       ];
       const edges: Edge[] = [
-        { id: "e1", source: "a", sourceHandle: "value", target: "zip", targetHandle: "left" },
-        { id: "e2", source: "b", sourceHandle: "value", target: "zip", targetHandle: "right" },
-        { id: "e3", source: "zip", sourceHandle: "pair", target: "sink", targetHandle: "value" }
+        { id: "ea", source: "a", sourceHandle: "value", target: "zip", targetHandle: "left" },
+        { id: "eb", source: "b", sourceHandle: "value", target: "zip", targetHandle: "right" },
+        { id: "el", source: "zip", sourceHandle: "left", target: "leftSink", targetHandle: "value" },
+        { id: "er", source: "zip", sourceHandle: "right", target: "rightSink", targetHandle: "value" }
       ];
 
       const runner = new WorkflowRunner("zip-job", {
@@ -262,8 +297,10 @@ describe("static analysis — join nodes", () => {
               return seedB;
             case "zip":
               return zip;
-            case "sink":
-              return sink;
+            case "leftSink":
+              return sinkExec("value", leftCaptured);
+            case "rightSink":
+              return sinkExec("value", rightCaptured);
             default:
               throw new Error(`No executor for ${node.id}`);
           }
@@ -274,12 +311,33 @@ describe("static analysis — join nodes", () => {
         { nodes, edges }
       );
       expect(result.status).toBe("completed");
-      const values = captured.envelopes.map((e) => e.data).sort();
-      expect(values).toEqual(["A0+B0", "A1+B1"]);
-      // Each emitted pair carries the new zip iteration root.
-      for (const env of captured.envelopes) {
-        expect(env.correlation_lineage["zip:zip"]).toBeDefined();
+
+      // The pair set is {A0↔B0, A1↔B1}. Emission order depends on which
+      // side arrived second for each bucket — we only care about identity.
+      expect(leftCaptured).toHaveLength(2);
+      expect(rightCaptured).toHaveLength(2);
+
+      // Identity assertion: at each emit index, left and right share the
+      // SAME minted zip:zip token. Independent per-slot minting would make
+      // the two sinks see different tokens — that was the bug this fixes.
+      for (let i = 0; i < leftCaptured.length; i++) {
+        const lt = leftCaptured[i].correlation_lineage["zip:zip"];
+        const rt = rightCaptured[i].correlation_lineage["zip:zip"];
+        expect(lt).toBeDefined();
+        expect(rt).toBeDefined();
+        expect(lt!.index).toBe(rt!.index);
       }
+
+      // And the resulting pairs are correctly aligned: at each emit, the
+      // left and right values are from the same source iteration index.
+      const pairs = leftCaptured.map((e, i) => `${e.data}+${rightCaptured[i].data}`);
+      expect(pairs.sort()).toEqual(["A0+B0", "A1+B1"]);
+
+      // Two pairs, distinct shared tokens.
+      const tokenIndices = leftCaptured.map(
+        (e) => e.correlation_lineage["zip:zip"]!.index
+      );
+      expect(new Set(tokenIndices).size).toBe(2);
     } finally {
       if (originalFlag === undefined) {
         delete process.env[FLAG];
