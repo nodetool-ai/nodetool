@@ -1,8 +1,26 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import LevelsBody from "../LevelsBody";
 import mockTheme from "../../../../__mocks__/themeMock";
+import { ContextMenuProvider } from "../../../../providers/ContextMenuProvider";
+
+jest.mock("../../../node/ImageView", () => ({
+  __esModule: true,
+  default: () => null
+}));
+
+jest.mock("../../../node/HandleColumn", () => ({
+  __esModule: true,
+  default: () => null
+}));
+
+jest.mock("../../../node/NodeOutputs", () => ({
+  __esModule: true,
+  NodeOutputs: () => null,
+  default: () => null
+}));
 
 const mockSetProperty = jest.fn();
 const mockSetProperties = jest.fn();
@@ -57,7 +75,13 @@ const defaultProps = {
 };
 
 const renderWithTheme = (ui: React.ReactElement) =>
-  render(<ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>);
+  render(
+    <MemoryRouter>
+      <ThemeProvider theme={mockTheme}>
+        <ContextMenuProvider active={false}>{ui}</ContextMenuProvider>
+      </ThemeProvider>
+    </MemoryRouter>
+  );
 
 describe("LevelsBody", () => {
   beforeEach(() => {
@@ -88,7 +112,7 @@ describe("LevelsBody", () => {
 
   it("switches channel when toggle buttons are clicked", () => {
     renderWithTheme(<LevelsBody {...defaultProps} />);
-    const gButton = screen.getByRole("button", { name: /G/i });
+    const gButton = screen.getAllByRole("button", { name: /G/i })[0];
     fireEvent.click(gButton);
     expect(gButton).toHaveAttribute("aria-pressed", "true");
   });

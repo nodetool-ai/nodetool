@@ -33,10 +33,9 @@ export interface UseEditorKeyboardShortcutsParams {
   handlePaste: (preferInternalClipboardFirst?: boolean) => Promise<void>;
   /**
    * Photoshop-style Ctrl+V: pastes the clipboard image into a NEW layer
-   * centered on the cursor. Optional — when absent, the shortcut falls
-   * back to the in-place `handlePaste`.
+   * centered on the cursor.
    */
-  handlePasteAsNewLayer?: () => Promise<string | null>;
+  handlePasteAsNewLayer: () => Promise<string | null>;
   handleNudgeLayer: (
     dx: number,
     dy: number,
@@ -55,19 +54,19 @@ export interface UseEditorKeyboardShortcutsParams {
   swapColors: () => void;
   resetColors: () => void;
   togglePanelsHidden: () => void;
-  cancelActiveTool?: () => void;
+  cancelActiveTool: () => void;
   handleInvertLayerColors: () => void;
-  handleTransformCommit?: () => void;
-  handleCropCommit?: () => void;
-  handleTransformCancel?: () => void;
-  handleTransformReset?: () => void;
-  handleTransformUndo?: () => void;
-  handleTransformRedo?: () => void;
-  handleLayerViaCopy?: () => void;
-  handleLayerViaCut?: () => void;
-  handleFreeTransform?: () => void;
-  handleRepeatLastTransform?: () => void;
-  handleRepeatLastTransformOnCopy?: () => void;
+  handleTransformCommit: () => void;
+  handleCropCommit: () => void;
+  handleTransformCancel: () => void;
+  handleTransformReset: () => void;
+  handleTransformUndo: () => void;
+  handleTransformRedo: () => void;
+  handleLayerViaCopy: () => void;
+  handleLayerViaCut: () => void;
+  handleFreeTransform: () => void;
+  handleRepeatLastTransform: () => void;
+  handleRepeatLastTransformOnCopy: () => void;
   /**
    * When true (e.g. keyboard shortcuts overlay open), editor shortcuts are ignored
    * so keys can reach the overlay / on-screen keyboard demo.

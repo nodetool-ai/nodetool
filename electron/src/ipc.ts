@@ -62,6 +62,35 @@ import {
   openSystemDirectory,
 } from "./fileExplorer";
 
+const MIME_TYPE_MAP: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  bmp: "image/bmp",
+  ico: "image/x-icon",
+  svg: "image/svg+xml",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
+  m4a: "audio/mp4",
+  flac: "audio/flac",
+  aac: "audio/aac",
+  mp4: "video/mp4",
+  avi: "video/x-msvideo",
+  mov: "video/quicktime",
+  wmv: "video/x-ms-wmv",
+  flv: "video/x-flv",
+  webm: "video/webm",
+  mkv: "video/x-matroska",
+  pdf: "application/pdf",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  txt: "text/plain",
+  html: "text/html",
+};
+
 import WebSocket from "ws";
 
 /**
@@ -604,42 +633,8 @@ export function initializeIpcHandlers(): void {
         const buffer = await fs.readFile(safePath);
         const ext = path.extname(safePath).toLowerCase().replace(".", "");
         
-        // MIME type lookup map for better maintainability
-        const mimeTypeMap: Record<string, string> = {
-          // Image types
-          png: "image/png",
-          jpg: "image/jpeg",
-          jpeg: "image/jpeg",
-          gif: "image/gif",
-          webp: "image/webp",
-          bmp: "image/bmp",
-          ico: "image/x-icon",
-          svg: "image/svg+xml",
-          // Audio types
-          mp3: "audio/mpeg",
-          wav: "audio/wav",
-          ogg: "audio/ogg",
-          m4a: "audio/mp4",
-          flac: "audio/flac",
-          aac: "audio/aac",
-          // Video types
-          mp4: "video/mp4",
-          avi: "video/x-msvideo",
-          mov: "video/quicktime",
-          wmv: "video/x-ms-wmv",
-          flv: "video/x-flv",
-          webm: "video/webm",
-          mkv: "video/x-matroska",
-          // Document types
-          pdf: "application/pdf",
-          doc: "application/msword",
-          docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          txt: "text/plain",
-          html: "text/html",
-        };
-        
-        const mimeType = mimeTypeMap[ext] || "application/octet-stream";
-        
+        const mimeType = MIME_TYPE_MAP[ext] || "application/octet-stream";
+
         return `data:${mimeType};base64,${buffer.toString("base64")}`;
       } catch (error) {
         logMessage(`Failed to read file as data URL: ${error}`, "warn");
@@ -665,41 +660,7 @@ export function initializeIpcHandlers(): void {
         const buffer = await fs.readFile(safePath);
         const ext = path.extname(safePath).toLowerCase().replace(".", "");
 
-        // MIME type lookup map for better maintainability
-        const mimeTypeMap: Record<string, string> = {
-          // Image types
-          png: "image/png",
-          jpg: "image/jpeg",
-          jpeg: "image/jpeg",
-          gif: "image/gif",
-          webp: "image/webp",
-          bmp: "image/bmp",
-          ico: "image/x-icon",
-          svg: "image/svg+xml",
-          // Audio types
-          mp3: "audio/mpeg",
-          wav: "audio/wav",
-          ogg: "audio/ogg",
-          m4a: "audio/mp4",
-          flac: "audio/flac",
-          aac: "audio/aac",
-          // Video types
-          mp4: "video/mp4",
-          avi: "video/x-msvideo",
-          mov: "video/quicktime",
-          wmv: "video/x-ms-wmv",
-          flv: "video/x-flv",
-          webm: "video/webm",
-          mkv: "video/x-matroska",
-          // Document types
-          pdf: "application/pdf",
-          doc: "application/msword",
-          docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          txt: "text/plain",
-          html: "text/html",
-        };
-
-        const mimeType = mimeTypeMap[ext] || "application/octet-stream";
+        const mimeType = MIME_TYPE_MAP[ext] || "application/octet-stream";
 
         return { buffer, mimeType };
       } catch (error) {

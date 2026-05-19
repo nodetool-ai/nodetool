@@ -1,4 +1,6 @@
 export * from "./base-node.js";
+export * from "./class-name-to-title.js";
+export * from "./pricing-bundle.js";
 export * from "./field-classification.js";
 export * from "./registry.js";
 export * from "./metadata.js";

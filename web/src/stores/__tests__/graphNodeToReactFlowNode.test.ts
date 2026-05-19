@@ -296,8 +296,8 @@ describe("graphNodeToReactFlowNode", () => {
 
       const result = graphNodeToReactFlowNode(workflow, graphNode);
 
-      expect(result.height).toBe(45);
-      expect(result.style?.height).toBe(45);
+      expect(result.height).toBe(40);
+      expect(result.style?.height).toBe(40);
       expect(result.data.expandedHeightPx).toBe(220);
     });
   });

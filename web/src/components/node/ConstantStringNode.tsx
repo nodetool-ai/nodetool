@@ -35,7 +35,6 @@ import HandleTooltip from "../HandleTooltip";
 import type { NodeStoreState } from "../../stores/NodeStore";
 import {
   NODE_COLLAPSED_BODY_HEIGHT_WIN,
-  NODE_COLLAPSED_HANDLE_CENTER,
   NODE_COLLAPSED_LAYOUT
 } from "../../styles/collapsedNodeTokens";
 
@@ -69,8 +68,14 @@ const styles = (theme: Theme) =>
     ".header-wrapper .input-handle-wrapper": {
       position: "absolute",
       left: "-8px",
-      ...NODE_COLLAPSED_HANDLE_CENTER,
+      top: "50%",
+      transform: "translateY(-50%)",
       zIndex: 11
+    },
+    ".header-wrapper .input-handle-wrapper .react-flow__handle-left": {
+      top: "50%",
+      left: 0,
+      transform: "translateY(-50%)"
     },
     ".header-actions": {
       position: "absolute",
@@ -127,9 +132,6 @@ const styles = (theme: Theme) =>
       ...NODE_COLLAPSED_LAYOUT,
       height: NODE_COLLAPSED_BODY_HEIGHT_WIN,
       "& > .constant-string-body": {
-        display: "none !important"
-      },
-      "& .constant-string-collapsed-hide": {
         display: "none !important"
       }
     }
@@ -207,6 +209,9 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // non-textarea overhead (header, padding, outputs) measured from the
   // DOM, and set an explicit height on the React Flow node.
   useLayoutEffect(() => {
+    if (data.collapsed) {
+      return;
+    }
     const textarea = textareaRef.current;
     if (!textarea) {
       return;
@@ -236,7 +241,7 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       lastEmittedHeight.current = desiredNodeH;
       updateNode(id, { height: desiredNodeH });
     }
-  }, [localValue, id, updateNode]);
+  }, [localValue, id, updateNode, data.collapsed]);
 
   const headerColor = useMemo(() => {
     const firstOutputType = metadata?.outputs?.[0]?.type?.type as
@@ -344,14 +349,11 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         />
       </div>
 
-      <div className="constant-string-collapsed-hide">
-        <NodeOutputs
-          id={id}
-          outputs={metadata.outputs}
-        />
-
-        <NodeResizeHandle minWidth={200} minHeight={100} />
+      <div className="node-content-container">
+        <NodeOutputs id={id} outputs={metadata.outputs} />
       </div>
+
+      <NodeResizeHandle minWidth={200} minHeight={100} />
 
       {isExpanded && (
         <TextEditorModal

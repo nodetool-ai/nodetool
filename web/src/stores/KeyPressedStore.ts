@@ -15,6 +15,7 @@ import { useMemo, useEffect, useContext } from "react";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { KeyboardContext } from "../components/KeyboardProvider";
+import { isEditableElement } from "../utils/browser";
 import { useRightPanelStore } from "./RightPanelStore";
 
 // Allowed key combinations for HTMLTextAreaElement
@@ -49,20 +50,6 @@ interface ComboOptions {
 // Module-level variables and functions
 const comboCallbacks = new Map<string, ComboOptions>();
 let lastPointerDownWasCanvas = false;
-
-/**
- * Is this element a text-editing target the platform itself treats as editable?
- * Covers <input>, <textarea>, and any element under contentEditable=true (Slate,
- * Lexical, Monaco, ProseMirror, custom rich-text editors). Far more robust than
- * matching class names.
- */
-const isEditable = (node: Element | null | undefined): boolean => {
-  if (!(node instanceof HTMLElement)) return false;
-  if (node instanceof HTMLInputElement) return true;
-  if (node instanceof HTMLTextAreaElement) return true;
-  if (node.isContentEditable) return true;
-  return false;
-};
 
 const isWorkflowEditorElement = (node: Element | null | undefined): boolean =>
   node instanceof HTMLElement &&
@@ -102,8 +89,8 @@ const executeComboCallbacks = (
   // Now, check if we should suppress it due to input focus.
   
   const isInputFocused =
-    isEditable(activeElement) ||
-    (event?.target instanceof Element && isEditable(event.target));
+    isEditableElement(activeElement) ||
+    (event?.target instanceof Element && isEditableElement(event.target));
 
   // Canvas focus = focus is somewhere inside the workflow editor *and not*
   // inside an editable child. Without the input-focus exclusion, a Lexical
@@ -295,16 +282,19 @@ const initKeyListeners = () => {
     const { key, shiftKey, ctrlKey, altKey, metaKey, repeat } = event;
     const normalizedKey = key.toLowerCase();
 
-    const eventTarget = event.target as HTMLElement;
+    const eventTarget =
+      event.target instanceof Element ? event.target : null;
     const targetIsTextarea = eventTarget instanceof HTMLTextAreaElement;
+    const targetIsMonaco =
+      eventTarget instanceof HTMLElement &&
+      eventTarget.closest(".monaco-editor") !== null;
 
-    // For textareas, block unallowed keydowns at the source so they never reach
-    // setKeysPressed (and thus never fire any combo). This preserves typing
-    // (which is the browser's native handling of the keydown) without polluting
-    // the global pressed-keys state. Other editable targets (input,
-    // contentEditable) fall through; suppression is handled inside
-    // executeComboCallbacks via the isEditable() check on activeElement/target.
-    if (isPressed && targetIsTextarea) {
+    // For textareas and Monaco, block unallowed keydowns at the source so they
+    // never reach setKeysPressed (and thus never fire any combo). This
+    // preserves typing without polluting the global pressed-keys state. Other
+    // editable targets (input, contentEditable) fall through; suppression is
+    // handled inside executeComboCallbacks via isEditableElement().
+    if (isPressed && (targetIsTextarea || targetIsMonaco)) {
       const isEventKeyAModifier = [
         "shift",
         "control",
@@ -362,10 +352,10 @@ const initKeyListeners = () => {
 
   const handlePointerDown = (event: PointerEvent) => {
     const target = event.target instanceof Element ? event.target : null;
-    const targetIsEditable = isEditable(target);
+    const targetIsEditable = isEditableElement(target);
     lastPointerDownWasCanvas = !targetIsEditable && isWorkflowEditorElement(target);
 
-    if (lastPointerDownWasCanvas && isEditable(document.activeElement)) {
+    if (lastPointerDownWasCanvas && isEditableElement(document.activeElement)) {
       (document.activeElement as HTMLElement).blur();
     }
   };

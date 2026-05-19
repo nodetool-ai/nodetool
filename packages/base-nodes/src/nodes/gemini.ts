@@ -225,8 +225,8 @@ export class EmbeddingNode extends BaseNode {
 export class ImageGenerationNode extends BaseNode {
   static readonly nodeType = "gemini.image.ImageGeneration";
   static readonly title = "Image Generation";
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields = ["image"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt", "image"];
   static readonly description =
     "Generate an image using Google's Imagen model via the Gemini API.\n    google, image generation, ai, imagen\n\n    Use cases:\n    - Create images from text descriptions\n    - Generate assets for creative projects\n    - Explore AI-powered image synthesis";
   static readonly metadataOutputTypes = {
@@ -396,8 +396,8 @@ export class ImageGenerationNode extends BaseNode {
 export class TextToVideoGeminiNode extends BaseNode {
   static readonly nodeType = "gemini.video.TextToVideo";
   static readonly title = "Text To Video";
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields: string[] = [];
+  static readonly inlineFields = [];
+  static readonly inputFields: string[] = ["prompt"];
   static readonly description =
     "Generate videos from text prompts using Google's Veo models.\n    google, video, generation, text-to-video, veo, ai\n\n    This node uses Google's Veo models to generate high-quality videos from text descriptions.\n    Supports 720p resolution at 24fps with 8-second duration and native audio generation.";
   static readonly metadataOutputTypes = {
@@ -481,8 +481,8 @@ export class TextToVideoGeminiNode extends BaseNode {
 export class ImageToVideoGeminiNode extends BaseNode {
   static readonly nodeType = "gemini.video.ImageToVideo";
   static readonly title = "Image To Video";
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields = ["image"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt", "image"];
   static readonly description =
     "Generate videos from images using Google's Veo models.\n    google, video, generation, image-to-video, veo, ai, animation\n\n    This node uses Google's Veo models to animate static images into dynamic videos.\n    Supports 720p resolution at 24fps with 8-second duration and native audio generation.";
   static readonly metadataOutputTypes = {

@@ -19,6 +19,8 @@ export function useKeyboardModifiers(params: {
   isSizeDraggingRef: React.MutableRefObject<boolean>;
   /** Fires once when Space becomes held / released (not on key-repeat). */
   onSpaceHeldChange?: (held: boolean) => void;
+  /** Fires when Alt becomes held / released (keyboard path). */
+  onAltHeldChange?: (held: boolean) => void;
   /**
    * Optional refs shared with overlay preview (e.g. `useOverlayRenderer`).
    * When omitted, internal refs are used. Tools update these on pointer
@@ -32,6 +34,7 @@ export function useKeyboardModifiers(params: {
     isSpacePanningRef,
     isSizeDraggingRef,
     onSpaceHeldChange,
+    onAltHeldChange,
     shiftHeldRef: shiftHeldRefOpt,
     altHeldRef: altHeldRefOpt
   } = params;
@@ -59,7 +62,11 @@ export function useKeyboardModifiers(params: {
         sKeyHeldRef.current = true;
       }
       if (e.key === "Alt") {
+        const wasHeld = altHeldRef.current;
         altHeldRef.current = true;
+        if (!wasHeld) {
+          onAltHeldChange?.(true);
+        }
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -79,6 +86,7 @@ export function useKeyboardModifiers(params: {
       }
       if (e.key === "Alt") {
         altHeldRef.current = false;
+        onAltHeldChange?.(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown, true);
@@ -87,7 +95,14 @@ export function useKeyboardModifiers(params: {
       window.removeEventListener("keydown", handleKeyDown, true);
       window.removeEventListener("keyup", handleKeyUp, true);
     };
-  }, [isSpacePanningRef, isSizeDraggingRef, onSpaceHeldChange, shiftHeldRef, altHeldRef]);
+  }, [
+    isSpacePanningRef,
+    isSizeDraggingRef,
+    onSpaceHeldChange,
+    onAltHeldChange,
+    shiftHeldRef,
+    altHeldRef
+  ]);
 
   return { shiftHeldRef, altHeldRef, spaceHeldRef, sKeyHeldRef };
 }

@@ -20,8 +20,13 @@ const JSONProperty = (props: PropertyProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
-  const { MonacoEditor, monacoLoadError, loadMonacoIfNeeded, monacoOnMount } =
-    useMonacoEditor();
+  const {
+    MonacoEditor,
+    monacoLoadError,
+    isMonacoLoading,
+    loadMonacoIfNeeded,
+    monacoOnMount
+  } = useMonacoEditor();
 
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => {
@@ -36,6 +41,15 @@ const JSONProperty = (props: PropertyProps) => {
   const onChange = props.onChange;
   const validateJSON = useCallback(
     (code: string) => {
+      if (!code.trim()) {
+        setError(null);
+        onChange({
+          type: "json",
+          data: code
+        });
+        return;
+      }
+
       try {
         JSON.parse(code);
         setError(null);
@@ -212,13 +226,13 @@ const JSONProperty = (props: PropertyProps) => {
               />
             ) : monacoLoadError ? (
               <div className="editor-error">{monacoLoadError}</div>
-            ) : value ? (
-              <div className="editor-placeholder" tabIndex={0}>
-                {value}
-              </div>
-            ) : (
+            ) : isMonacoLoading ? (
               <div className="editor-loading">
                 <LoadingSpinner />
+              </div>
+            ) : (
+              <div className="editor-placeholder" tabIndex={0}>
+                {value}
               </div>
             )}
           </div>

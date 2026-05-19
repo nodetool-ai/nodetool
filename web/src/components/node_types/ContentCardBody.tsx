@@ -517,7 +517,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   return (
     <div
       css={cssStyles}
-      className="content-card-body"
+      className="content-card-body node-drag-handle"
       data-content-card-variant={variant}
     >
       <div className="preview-area">

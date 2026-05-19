@@ -37,8 +37,17 @@ export function computeHistogramAsync(
   }
 
   return new Promise<ImageHistogram>((resolve, reject) => {
+    // In ts-jest (CommonJS) `import.meta` is unavailable; fall back to the
+    // origin so the test's MockWorker constructor can still capture the call.
+    let metaUrl: string;
+    try {
+      metaUrl = new Function("return import.meta.url")() as string;
+    } catch {
+      metaUrl =
+        typeof location !== "undefined" ? location.href : "file:///";
+    }
     const worker = new Worker(
-      new URL("./histogramWorker.ts", import.meta.url),
+      new URL("./histogramWorker.ts", metaUrl),
       { type: "module" }
     );
 

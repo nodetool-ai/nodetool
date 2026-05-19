@@ -361,51 +361,10 @@ describe("lib-image-draw nodes", () => {
     assertValidImage(output);
   });
 
-  it("Blend — blends two images, output is valid image", async () => {
-    const img1 = await makeTestImage(4, 4, 255, 0, 0);
-    const img2 = await makeTestImage(4, 4, 0, 0, 255);
-    const output = await runNode(LIB_IMAGE_DRAW_NODES, ".Blend", {
-      image1: img1,
-      image2: img2,
-      alpha: 0.5
-    });
-    assertValidImage(output);
-    // Blending red+blue should differ from pure red
-    await assertPixelsChanged(img1, output);
-  });
-
-  it("Composite — uses mask to composite foreground over background", async () => {
-    const bg = await makeTestImage(4, 4, 0, 255, 0);
-    const fg = await makeTestImage(4, 4, 255, 0, 0);
-    const blackMask = await makeTestImage(4, 4, 0, 0, 0);
-    const whiteMask = await makeTestImage(4, 4, 255, 255, 255);
-
-    const outputWithBlackMask = await runNode(LIB_IMAGE_DRAW_NODES, ".Composite", {
-      image1: bg,
-      image2: fg,
-      mask: blackMask
-    });
-    const outputWithWhiteMask = await runNode(LIB_IMAGE_DRAW_NODES, ".Composite", {
-      image1: bg,
-      image2: fg,
-      mask: whiteMask
-    });
-
-    assertValidImage(outputWithBlackMask);
-    assertValidImage(outputWithWhiteMask);
-
-    const { raw: blackMaskRaw } = await decodeOutput(outputWithBlackMask);
-    const { raw: whiteMaskRaw } = await decodeOutput(outputWithWhiteMask);
-
-    // Black mask should keep background (green), white mask should keep
-    // foreground (red).
-    expect(blackMaskRaw[0]).toBeLessThanOrEqual(RGB_CHANNEL_NEAR_ZERO_THRESHOLD);
-    expect(blackMaskRaw[1]).toBeGreaterThanOrEqual(RGB_CHANNEL_NEAR_MAX_THRESHOLD);
-    expect(blackMaskRaw[2]).toBeLessThanOrEqual(RGB_CHANNEL_NEAR_ZERO_THRESHOLD);
-    expect(whiteMaskRaw[0]).toBeGreaterThanOrEqual(RGB_CHANNEL_NEAR_MAX_THRESHOLD);
-    expect(whiteMaskRaw[1]).toBeLessThanOrEqual(RGB_CHANNEL_NEAR_ZERO_THRESHOLD);
-    expect(whiteMaskRaw[2]).toBeLessThanOrEqual(RGB_CHANNEL_NEAR_ZERO_THRESHOLD);
-  });
+<<<<<<< HEAD
+  // Blend / Composite nodes were superseded by the Compositor node and removed.
+=======
+>>>>>>> 5b271dba (🎨 Palette: Fix base-nodes tests and add ARIA labels to LayerItem)
 });
 
 // ===========================================================================

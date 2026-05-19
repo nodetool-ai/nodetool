@@ -9,6 +9,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 import PainterBody, { PAINTER_NODE_TYPE } from "../PainterBody";
+import { useUpstreamValue } from "../../../../hooks/nodes/useNodeIO";
 
 // ── Mocks ─────────────────────────────────────────────────────────
 jest.mock("../../../../contexts/NodeContext", () => ({
@@ -30,6 +31,14 @@ jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
     setProperty: jest.fn(),
     setPropertyComplete: jest.fn()
   })
+}));
+
+jest.mock("../../../../hooks/nodes/useNodeIO", () => ({
+  useUpstreamValue: jest.fn(() => undefined)
+}));
+
+jest.mock("../../../../serverState/useAsset", () => ({
+  useAsset: jest.fn(() => ({ uri: undefined }))
 }));
 
 jest.mock("../../../../components/node/HandleColumn", () => ({
@@ -87,9 +96,28 @@ const makeProps = (overrides: Record<string, unknown> = {}) =>
   }) as React.ComponentProps<typeof PainterBody>;
 
 describe("PainterBody", () => {
+  beforeEach(() => {
+    jest.mocked(useUpstreamValue).mockReturnValue(undefined);
+  });
+
   it("renders without a source image", () => {
     renderWithTheme(<PainterBody {...makeProps()} />);
     expect(screen.getByText(/Paint, or connect an image/i)).toBeInTheDocument();
+  });
+
+  it("shows a connected upstream image", () => {
+    jest.mocked(useUpstreamValue).mockReturnValue({
+      type: "image",
+      uri: "/api/storage/test-image.png",
+      width: 640,
+      height: 480
+    });
+
+    renderWithTheme(<PainterBody {...makeProps()} />);
+
+    const img = document.querySelector("img.source") as HTMLImageElement | null;
+    expect(img).toBeTruthy();
+    expect(img?.getAttribute("src")).toContain("/api/storage/test-image.png");
   });
 
   it("rehydrates brush_size from persisted properties", () => {

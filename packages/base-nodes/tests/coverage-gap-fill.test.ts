@@ -4111,6 +4111,7 @@ import {
   DescribeNode,
   GetAudioInfoNode,
   JoinTextNode,
+  PromptNode,
   ReplaceTextNode,
   SwitchNode,
   TemplateTextNode,
@@ -4145,6 +4146,11 @@ describe("missing exported node smoke tests", () => {
 
   it("JoinTextNode defaults", () => {
     const n = new JoinTextNode();
+    expect(n.serialize()).toBeDefined();
+  });
+
+  it("PromptNode defaults", () => {
+    const n = new PromptNode();
     expect(n.serialize()).toBeDefined();
   });
 

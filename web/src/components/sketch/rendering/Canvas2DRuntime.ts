@@ -9,7 +9,12 @@
  * directly via ref during the migration.
  */
 
-import type { SketchRuntime, ActiveStrokeInfo, DirtyRect, ResolvedLayerBitmap } from "./types";
+import type {
+  SketchRuntime,
+  ActiveStrokeInfo,
+  DirtyRect,
+  ResolvedLayerBitmap
+} from "./types";
 import type {
   LayerContentBounds,
   LayerEffect,

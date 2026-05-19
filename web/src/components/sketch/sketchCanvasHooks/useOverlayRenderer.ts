@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { alpha, useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import type {
   SketchDocument,
   SketchTool,
@@ -25,7 +26,8 @@ import {
 } from "../drawingUtils";
 import {
   SKETCH_FULL_OPACITY_THRESHOLD,
-  snapStrokeDabCenterDoc
+  snapStrokeDabCenterDoc,
+  pixelPerfectPencilDabFootprint
 } from "../painting/strokeRendering";
 import {
   sketchClientToDocCanvas,
@@ -51,6 +53,29 @@ export function selectionAntCanvasMarginCssPx(zoom: number): number {
 /** Same pacing idea as GPU ants: slow dash drift so Canvas2D preview does not sparkle. */
 function liveSelectionPreviewAntsPhase(): number {
   return (performance.now() * 0.018) % 256;
+}
+
+/** Soft ring at actual pointer — readable on light/dark canvas behind pixel-snapped pencil dab. */
+function drawPencilRawPointerHint(
+  ctx: CanvasRenderingContext2D,
+  theme: Theme,
+  rawLocalX: number,
+  rawLocalY: number,
+  zoom: number
+): void {
+  const hintR = Math.max(5, Math.min(14, zoom * 0.6));
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(rawLocalX, rawLocalY, hintR, 0, Math.PI * 2);
+  ctx.strokeStyle = alpha(theme.palette.grey[900], 0.42);
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(rawLocalX, rawLocalY, hintR, 0, Math.PI * 2);
+  ctx.strokeStyle = alpha(theme.palette.grey[200], 0.88);
+  ctx.lineWidth = 1.25;
+  ctx.stroke();
+  ctx.restore();
 }
 
 export interface UseOverlayRendererParams {
@@ -524,10 +549,18 @@ export function useOverlayRenderer({
       const docW = doc.canvas.width;
       const docH = doc.canvas.height;
 
-      const pencilLikeDabSnap = (): { size: number; opacity: number } | null => {
+      const pencilLikeDabSnap = (): {
+        size: number;
+        opacity: number;
+        pixelPerfect: boolean;
+      } | null => {
         if (interactionTool === "pencil") {
           const p = doc.toolSettings.pencil;
-          return { size: p.size, opacity: p.opacity };
+          return {
+            size: p.size,
+            opacity: p.opacity,
+            pixelPerfect: p.pixelPerfect ?? true
+          };
         }
         if (interactionTool === "eraser") {
           const eraser = doc.toolSettings.eraser;
@@ -536,7 +569,13 @@ export function useOverlayRenderer({
             (eraser as { tip?: "brush" | "pencil" }).tip ??
             "brush";
           if (eraserMode === "pencil") {
-            return { size: eraser.size, opacity: eraser.opacity };
+            // Eraser pencil mode follows the pencil tool's pixelPerfect flag,
+            // so toggling it on the pencil applies to eraser dabs uniformly.
+            return {
+              size: eraser.size,
+              opacity: eraser.opacity,
+              pixelPerfect: doc.toolSettings.pencil.pixelPerfect ?? true
+            };
           }
         }
         return null;
@@ -573,15 +612,12 @@ export function useOverlayRenderer({
       if (lazyActive && lazyLeash) {
         docPt = { x: lazyLeash.tipDoc.x, y: lazyLeash.tipDoc.y };
       }
-      // `PencilEngine.stabilize` snaps to integer grid before `dabAt`; preview must use
-      // the same grid so 1px crisp dabs match. Eraser pencil mode does not integer-snap in
-      // `EraserEngine.stabilize`, so keep continuous doc coords there.
-      const dabDocCoords =
-        docPt &&
-        dabSnap &&
-        interactionTool === "pencil"
-          ? { x: Math.round(docPt.x), y: Math.round(docPt.y) }
-          : docPt;
+      // Pass continuous doc coords to `snapStrokeDabCenterDoc` — its crisp
+      // branch already maps `(x, y)` to the pixel containing the pointer
+      // (floor-equivalent), matching `PencilEngine.stabilize` (now `floor`)
+      // and `dabAt`'s `round(x - 0.5)` formula. No pre-round here, otherwise
+      // we double-snap and shift the dab into the next pixel right/down.
+      const dabDocCoords = docPt;
       if (contRect && contRect.width > 0 && contRect.height > 0 && docPt) {
         const anchorDoc =
           dabSnap && dabDocCoords
@@ -589,7 +625,8 @@ export function useOverlayRenderer({
                 dabDocCoords.x,
                 dabDocCoords.y,
                 dabSnap.size,
-                dabSnap.opacity
+                dabSnap.opacity,
+                dabSnap.pixelPerfect
               )
             : docPt;
         const ac = sketchDocCanvasToClient(
@@ -608,12 +645,18 @@ export function useOverlayRenderer({
       const localX = (anchorClientX - cRect.left) * scaleX;
       const localY = (anchorClientY - cRect.top) * scaleY;
 
+      /** Raw pointer on cursor canvas (sub-pixel); snapped dab preview uses anchorClient*. */
+      const rawLocalX = (clientX - cRect.left) * scaleX;
+      const rawLocalY = (clientY - cRect.top) * scaleY;
+
       let size: number;
       let roundness = 1;
       let angle = 0;
       let hardnessScale = 1;
       /** Crisp 1×1 doc-pixel dab preview — same thresholds as `drawPencilStroke` `usePixelCrispDab`. */
       let showCrispPixelCursor = false;
+      /** Pixel-perfect N×N rect preview — set when pencil/eraser-pencil pixelPerfect is on. */
+      let pixelPerfectN = 0;
       if (interactionTool === "brush") {
         size = doc.toolSettings.brush.size;
         roundness = doc.toolSettings.brush.roundness;
@@ -635,10 +678,19 @@ export function useOverlayRenderer({
       } else if (interactionTool === "pencil") {
         size = doc.toolSettings.pencil.size;
         const p = doc.toolSettings.pencil;
-        showCrispPixelCursor =
-          zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM &&
+        const pencilPixelPerfect = p.pixelPerfect ?? true;
+        if (
+          pencilPixelPerfect &&
           p.opacity >= SKETCH_FULL_OPACITY_THRESHOLD &&
-          p.size <= 1.25;
+          zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM
+        ) {
+          pixelPerfectN = Math.max(1, Math.round(p.size));
+        } else {
+          showCrispPixelCursor =
+            zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM &&
+            p.opacity >= SKETCH_FULL_OPACITY_THRESHOLD &&
+            p.size <= 1.25;
+        }
       } else if (interactionTool === "blur") {
         size = doc.toolSettings.blur.size;
       } else if (interactionTool === "clone_stamp") {
@@ -666,11 +718,79 @@ export function useOverlayRenderer({
             hardnessScale = innerStop + (1 - innerStop) * 0.5;
           }
         } else {
-          showCrispPixelCursor =
-            zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM &&
+          // Eraser pencil mode follows pencil's pixelPerfect flag.
+          const pencilPixelPerfect =
+            doc.toolSettings.pencil.pixelPerfect ?? true;
+          if (
+            pencilPixelPerfect &&
             eraser.opacity >= SKETCH_FULL_OPACITY_THRESHOLD &&
-            eraser.size <= 1.25;
+            zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM
+          ) {
+            pixelPerfectN = Math.max(1, Math.round(eraser.size));
+          } else {
+            showCrispPixelCursor =
+              zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM &&
+              eraser.opacity >= SKETCH_FULL_OPACITY_THRESHOLD &&
+              eraser.size <= 1.25;
+          }
         }
+      }
+
+      // ── Pixel-perfect pencil/eraser N×N dab preview ───────────────────
+      if (pixelPerfectN > 0 && dabDocCoords && dabSnap) {
+        const containerEl = containerRef.current;
+        if (containerEl) {
+          const contBounds = containerEl.getBoundingClientRect();
+          const { ix, iy, n } = pixelPerfectPencilDabFootprint(
+            dabDocCoords.x,
+            dabDocCoords.y,
+            dabSnap.size
+          );
+          const tlClient = sketchDocCanvasToClient(
+            ix,
+            iy,
+            displayCanvasRef.current,
+            contBounds,
+            zoom,
+            pan,
+            docW,
+            docH
+          );
+          const rectScreenX = (tlClient.x - cRect.left) * scaleX;
+          const rectScreenY = (tlClient.y - cRect.top) * scaleY;
+          const rectScreenSize = zoom * n;
+
+          ctx.save();
+          ctx.fillStyle = alpha(theme.palette.grey[500], 0.28);
+          ctx.fillRect(
+            rectScreenX,
+            rectScreenY,
+            rectScreenSize,
+            rectScreenSize
+          );
+          ctx.strokeStyle = alpha(theme.palette.grey[900], 0.55);
+          ctx.lineWidth = 2;
+          ctx.strokeRect(
+            rectScreenX + 1,
+            rectScreenY + 1,
+            rectScreenSize - 2,
+            rectScreenSize - 2
+          );
+          ctx.strokeStyle = alpha(theme.palette.grey[200], 0.92);
+          ctx.lineWidth = 1;
+          ctx.strokeRect(
+            rectScreenX + 0.5,
+            rectScreenY + 0.5,
+            rectScreenSize - 1,
+            rectScreenSize - 1
+          );
+          ctx.restore();
+
+          if (interactionTool === "pencil") {
+            drawPencilRawPointerHint(ctx, theme, rawLocalX, rawLocalY, zoom);
+          }
+        }
+        return;
       }
 
       // ── Crisp pencil dab: 1 doc pixel (matches fillRect(ix,iy,1,1)) ────────
@@ -720,6 +840,11 @@ export function useOverlayRenderer({
           ctx.lineTo(cx, cy + crossLen);
           ctx.stroke();
           ctx.restore();
+
+          // Raw-pointer hint (dab stays pixel-snapped above).
+          if (interactionTool === "pencil") {
+            drawPencilRawPointerHint(ctx, theme, rawLocalX, rawLocalY, zoom);
+          }
         }
         return;
       }
@@ -767,12 +892,15 @@ export function useOverlayRenderer({
       ctx.fillStyle = alpha(theme.palette.grey[700], 0.92);
       ctx.fill();
 
+      // Pencil (non-lazy): raw-pointer hint — ellipse dab preview stays snapped.
+      if (interactionTool === "pencil" && !lazyActive) {
+        drawPencilRawPointerHint(ctx, theme, rawLocalX, rawLocalY, zoom);
+      }
+
       // ── Lazy-brush leash overlay ─────────────────────────────────
       // Draw the connecting line between the raw cursor and the brush
       // tip (which is `localX/Y` because `docPt` was overridden above).
       if (lazyActive && contRect && contRect.width > 0 && contRect.height > 0) {
-        const rawLocalX = (clientX - cRect.left) * scaleX;
-        const rawLocalY = (clientY - cRect.top) * scaleY;
         const dxLeash = rawLocalX - localX;
         const dyLeash = rawLocalY - localY;
         const distLeash = Math.hypot(dxLeash, dyLeash);

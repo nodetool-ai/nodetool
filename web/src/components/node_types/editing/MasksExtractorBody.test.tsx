@@ -8,7 +8,7 @@ jest.mock("../../../stores/ResultsStore", () => ({
 }));
 
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn()
+  useNodes: jest.fn().mockReturnValue({ upstreamEdge: undefined, findNode: jest.fn() })
 }));
 
 jest.mock("../../../hooks/nodes/useRunSingleNode", () => ({
@@ -141,7 +141,7 @@ describe("MasksExtractorBody", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockUseNodes.mockReturnValue(undefined);
+    mockUseNodes.mockReturnValue({ upstreamEdge: undefined, findNode: jest.fn() });
     mockUseResultsStore.mockReturnValue(undefined);
     mockUseRunSingleNode.mockReturnValue({
       runSingleNode: mockRunSingleNode,

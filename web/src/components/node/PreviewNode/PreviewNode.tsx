@@ -113,15 +113,16 @@ const styles = (theme: Theme) =>
         {
           height: "fit-content !important"
         },
-      // header
+      // header — keep full hit target; stack above NodeOutputs' right column (z-index 3)
       ".node-header": {
+        position: "relative",
+        zIndex: 4,
         width: "100%",
         minHeight: "unset",
         top: 0,
         left: 0,
         margin: 0,
-        padding: "1.25em .5em 0",
-        height: "1em",
+        padding: 0,
         border: 0
       },
       "& .react-flow__resize-control.handle.bottom.right": {

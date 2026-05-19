@@ -9,7 +9,11 @@ export function cursorStyleForTool(interactionTool: SketchTool): string {
   if (interactionTool === "move" || interactionTool === "transform") {
     return "move";
   }
-  if (interactionTool === "crop" || interactionTool === "select") {
+  if (
+    interactionTool === "crop" ||
+    interactionTool === "select" ||
+    interactionTool === "eyedropper"
+  ) {
     return "crosshair";
   }
   if (

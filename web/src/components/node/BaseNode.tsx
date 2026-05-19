@@ -18,6 +18,7 @@ import {
 } from "@xyflow/react";
 import isEqual from "fast-deep-equal";
 import { Tooltip, EditorButton, Container } from "../ui_primitives";
+import FalPricingFooter from "./FalPricingFooter";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
@@ -71,7 +72,10 @@ const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
 const MAX_OUTPUT_DRIVEN_MIN_HEIGHT_PX = 320;
 const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
-const MIN_NODE_HEIGHT = 400;
+/** Floor for user-resize and for nodes whose own minHeight isn't metadata-driven. */
+const MIN_RESIZE_HEIGHT = 100;
+/** Floor for agent nodes — they have many outputs + dynamic-property UI. */
+const MIN_AGENT_HEIGHT = 400;
 
 const isEmptyResult = (obj: unknown) =>
   obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
@@ -127,7 +131,7 @@ const resizer = (
         }}
         minWidth={200}
         maxWidth={MAX_NODE_WIDTH}
-        minHeight={MIN_NODE_HEIGHT}
+        minHeight={MIN_RESIZE_HEIGHT}
       />
     </div>
   </div>
@@ -249,7 +253,7 @@ const getStyleProps = (
    * Other nodes: same formula but capped so `min-height` cannot dominate measured height on collapse.
    */
   const minHeight = nodeType.isAgentNode
-    ? MIN_NODE_HEIGHT
+    ? MIN_AGENT_HEIGHT
     : Math.min(outputCountMin, MAX_OUTPUT_DRIVEN_MIN_HEIGHT_PX);
   return {
     className: `base-node node-body
@@ -657,6 +661,39 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       : false
   );
 
+  // Hover-reveal of all handle tooltips. The user can hover the node body
+  // to see every input/output port's name without hovering each handle one
+  // by one. A short delay filters out incidental mouse-passes during pan.
+  const [isNodeHovered, setIsNodeHovered] = useState(false);
+  const hoverTimerRef = useRef<number | null>(null);
+  const HOVER_REVEAL_DELAY = 180;
+
+  const handleNodeMouseEnter = useCallback(() => {
+    if (hoverTimerRef.current !== null) {
+      window.clearTimeout(hoverTimerRef.current);
+    }
+    hoverTimerRef.current = window.setTimeout(() => {
+      setIsNodeHovered(true);
+      hoverTimerRef.current = null;
+    }, HOVER_REVEAL_DELAY);
+  }, []);
+
+  const handleNodeMouseLeave = useCallback(() => {
+    if (hoverTimerRef.current !== null) {
+      window.clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setIsNodeHovered(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current !== null) {
+        window.clearTimeout(hoverTimerRef.current);
+      }
+    };
+  }, []);
+
   // Force node re-measurement when content that affects height changes
   // (error messages appearing/disappearing, result overlay toggling).
   // Without this, React Flow's cached handle positions become stale.
@@ -676,11 +713,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [hasError, isOverlayVisible, id, updateNode]);
 
   return (
-    <NodeSelectionContext.Provider value={selected}>
+    <NodeSelectionContext.Provider value={selected || isNodeHovered}>
     <Container
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
       className={styleProps.className}
       sx={containerSx}
+      onMouseEnter={handleNodeMouseEnter}
+      onMouseLeave={handleNodeMouseLeave}
     >
       <Handle
         type="target"
@@ -797,6 +836,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           </EditorButton>
         </Tooltip>
       )}
+
+      <FalPricingFooter metadata={metadata} selected={!!selected} />
     </Container>
     </NodeSelectionContext.Provider>
   );

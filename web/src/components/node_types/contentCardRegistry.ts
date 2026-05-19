@@ -128,17 +128,17 @@ export const isContentCardNode = (
  * (plan §6.3). Resolved from the node's primary output via
  * `getContentCardDefaultSize`. Single source of truth for content-card sizes.
  */
-// Heights include ~120 px of vertical space below the preview for the inline
-// prompt/parameter field(s) that most generator nodes expose. Users can resize
-// further; these are just the comfortable defaults.
+// Heights are sized for the preview area only; prompt/text inputs now render
+// as left-edge handles (see classifyFields), so we no longer pad for an inline
+// editor row. Users can resize further; these are just the comfortable defaults.
 export const CONTENT_CARD_SIZES = {
-  image: { width: 280, height: 400 },
-  image_mask: { width: 280, height: 400 },
-  video: { width: 320, height: 340 },
-  text: { width: 320, height: 320 },
-  audio: { width: 320, height: 240 },
-  model_3d: { width: 280, height: 400 },
-  generic: { width: 280, height: 400 }
+  image: { width: 280, height: 280 },
+  image_mask: { width: 280, height: 280 },
+  video: { width: 320, height: 220 },
+  text: { width: 320, height: 220 },
+  audio: { width: 320, height: 160 },
+  model_3d: { width: 280, height: 280 },
+  generic: { width: 280, height: 280 }
 } as const;
 
 /**

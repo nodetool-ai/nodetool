@@ -283,9 +283,25 @@ const ReactFlowWrapper = ({
           : typeof sh === "string"
             ? sh.trim()
             : "";
+      // Handles can be added/removed without changing node height:
+      //   - exposedInputs: inspector "show as input" toggle promotes a static property
+      //   - dynamic_properties / dynamic_inputs / dynamic_outputs: dynamic nodes
+      // ReactFlow caches handle bounds, so we must signal a refresh whenever
+      // the set of handles can change, or new handles stay un-draggable until
+      // some other event (e.g. a connection drag) forces a refresh.
+      const exposedPart = (n.data.exposedInputs ?? []).join(",");
+      const dynPropsPart = Object.keys(n.data.dynamic_properties ?? {})
+        .sort()
+        .join(",");
+      const dynInputsPart = Object.keys(n.data.dynamic_inputs ?? {})
+        .sort()
+        .join(",");
+      const dynOutputsPart = Object.keys(n.data.dynamic_outputs ?? {})
+        .sort()
+        .join(",");
       next.set(
         n.id,
-        `${typeof n.height === "number" ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}`
+        `${typeof n.height === "number" ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${dynPropsPart}:${dynInputsPart}:${dynOutputsPart}`
       );
     }
     const changedIds: string[] = [];

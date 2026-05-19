@@ -14,7 +14,15 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import isEqual from "fast-deep-equal";
 import { areNodesEqualIgnoringPosition } from "../utils/nodeEquality";
 import { EditorUiProvider } from "./editor_ui";
-import { Caption, CloseButton, CollapsibleSection, ScrollArea, Text, Tooltip } from "./ui_primitives";
+import {
+  Caption,
+  CloseButton,
+  CollapsibleSection,
+  ScrollArea,
+  Text,
+  Tooltip
+} from "./ui_primitives";
+import FalPricingFooter from "./node/FalPricingFooter";
 import { DYNAMIC_KIE_NODE_TYPE } from "./node/DynamicKieSchemaNode";
 import PropertyVisibilityToggle from "./properties/PropertyVisibilityToggle";
 import {
@@ -465,6 +473,16 @@ const Inspector: React.FC = () => {
                   nodrag={false}
                 />
               </div>
+              {metadata.fal_unit_pricing ? (
+                <Box sx={{ mt: 0.5 }}>
+                  <FalPricingFooter
+                    metadata={metadata}
+                    selected
+                    variant="inline"
+                    popoverResetDep={selectedNode.id}
+                  />
+                </Box>
+              ) : null}
               <div className="namespace">{metadata.node_type}</div>
               {metadata.description && (
                 <CollapsibleSection
@@ -482,6 +500,9 @@ const Inspector: React.FC = () => {
                 toggle except those whose handle is already determined by
                 metadata (inline rows or declared input_fields). */}
             {metadata.properties.map((property, index) => {
+              if (property.json_schema_extra?.hidden_in_inspector === true) {
+                return null;
+              }
               const hasToggle = !metadataHandleNames.has(property.name);
               const exposed = (selectedNode.data.exposedInputs ?? []).includes(
                 property.name

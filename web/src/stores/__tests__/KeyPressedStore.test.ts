@@ -320,6 +320,33 @@ describe("KeyPressedStore", () => {
       unregisterComboCallback("c+meta");
     });
 
+    it("does not execute space callback when Monaco editor is focused", () => {
+      const callback = jest.fn();
+      registerComboCallback(" ", { callback, preventDefault: true });
+
+      const monacoRoot = document.createElement("div");
+      monacoRoot.className = "monaco-editor";
+      const viewLine = document.createElement("div");
+      const textarea = document.createElement("textarea");
+      monacoRoot.appendChild(viewLine);
+      monacoRoot.appendChild(textarea);
+      document.body.appendChild(monacoRoot);
+      textarea.focus();
+
+      const { setKeysPressed } = useKeyPressedStore.getState();
+      const event = new KeyboardEvent("keydown", { key: " " });
+      Object.defineProperty(event, "target", { value: viewLine });
+
+      act(() => {
+        setKeysPressed({ " ": true }, event);
+      });
+
+      expect(callback).not.toHaveBeenCalled();
+
+      document.body.removeChild(monacoRoot);
+      unregisterComboCallback(" ");
+    });
+
     it("executes copy callback when no input is focused", () => {
       const callback = jest.fn();
       registerComboCallback("c+control", { callback, preventDefault: false });

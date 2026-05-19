@@ -16,6 +16,8 @@ import {
 import { trpcClient } from "../trpc/client";
 import { debounce, omit } from "../utils/lodashAlternatives";
 import { createErrorMessage } from "../utils/errorHandling";
+import { fetchLiveFalPricing } from "../utils/fetchLiveFalPricing";
+import useMetadataStore from "./MetadataStore";
 import { uuidv4 } from "./uuidv4";
 import { QueryClient } from "@tanstack/react-query";
 import {
@@ -36,9 +38,16 @@ import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 
 const isWorkflowNotFoundError = (err: unknown): boolean => {
   if (!err || typeof err !== "object") return false;
-  const e = err as { data?: { code?: string }; message?: string };
-  if (e.data?.code === "NOT_FOUND") return true;
-  return typeof e.message === "string" && /not found/i.test(e.message);
+  if ("data" in err) {
+    const data = (err as { data: unknown }).data;
+    if (data && typeof data === "object" && "code" in data && (data as { code: unknown }).code === "NOT_FOUND") {
+      return true;
+    }
+  }
+  if ("message" in err && typeof (err as { message: unknown }).message === "string") {
+    return /not found/i.test((err as { message: string }).message);
+  }
+  return false;
 };
 
 // -----------------------------------------------------------------
@@ -573,6 +582,41 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
         const runnerStore = getWorkflowRunnerStore(workflow.id);
         subscribeToWorkflowUpdates(workflow.id, workflow, runnerStore, get().getNodeStore);
+
+        // Refresh live FAL pricing for the FAL nodes in this workflow.
+        // Subscribes to MetadataStore so we still fire once metadata loads
+        // (workflows restored from localStorage open before metadata fetch).
+        const falNodeTypes = [
+          ...new Set(
+            (workflow.graph?.nodes ?? []).map((n) => n.type as string)
+          )
+        ].filter((t) => t.startsWith("fal."));
+
+        if (falNodeTypes.length > 0) {
+          const doFetch = (): boolean => {
+            const meta = useMetadataStore.getState().metadata;
+            const endpointIds = falNodeTypes
+              .map((t) => meta[t]?.fal_unit_pricing?.endpoint_id)
+              .filter((id): id is string => Boolean(id));
+            if (endpointIds.length === 0) return false;
+            fetchLiveFalPricing(meta, endpointIds)
+              .then((updated) => {
+                if (updated) {
+                  useMetadataStore.getState().setMetadata({ ...meta });
+                }
+              })
+              .catch(() => {
+                // surfaced as console.error inside fetchLiveFalPricing
+              });
+            return true;
+          };
+
+          if (!doFetch()) {
+            const unsub = useMetadataStore.subscribe(() => {
+              if (doFetch()) unsub();
+            });
+          }
+        }
       },
 
        /**

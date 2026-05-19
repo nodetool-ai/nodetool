@@ -9,7 +9,7 @@ export type GraphNode = Node;
 export type GraphEdge = Edge;
 export type InlineGraph = WorkflowGraph;
 
-export interface InlineGraphJobOptions {
+interface InlineGraphJobOptions {
   graph: InlineGraph;
   params?: Record<string, unknown>;
   signal?: AbortSignal;
@@ -17,7 +17,7 @@ export interface InlineGraphJobOptions {
 }
 
 /** Result shape consumed by sketch `WebSocketNodeExecutor`. */
-export interface InlineGraphJobResult {
+interface InlineGraphJobResult {
   success: boolean;
   outputs: Record<string, unknown>;
   error?: string;

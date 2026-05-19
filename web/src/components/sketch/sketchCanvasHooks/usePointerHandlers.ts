@@ -23,7 +23,7 @@ import { getToolHandler } from "../tools";
 import { CloneStampTool } from "../tools/CloneStampTool";
 import { TransformTool } from "../tools/TransformTool";
 import { CropTool } from "../tools/CropTool";
-import { sampleColorHex } from "../tools/EyedropperTool";
+import { sampleColorHex } from "../tools/ColorPickerTool";
 import type { ToolContext, ToolPointerEvent, StrokeEndOptions } from "../tools/types";
 import { buildToolContext } from "../tools/buildToolContext";
 import { useKeyboardModifiers } from "./useKeyboardModifiers";
@@ -264,6 +264,7 @@ export function usePointerHandlers({
   altHeldRef: altHeldRefShared
 }: UsePointerHandlersParams): UsePointerHandlersResult {
   const [spaceHeldUi, setSpaceHeldUi] = useState(false);
+  const [altHeldUi, setAltHeldUi] = useState(false);
   const [isPanningUi, setIsPanningUi] = useState(false);
 
   // ─── Core interaction state refs ────────────────────────────────────
@@ -290,6 +291,7 @@ export function usePointerHandlers({
       isSpacePanningRef,
       isSizeDraggingRef,
       onSpaceHeldChange: setSpaceHeldUi,
+      onAltHeldChange: setAltHeldUi,
       shiftHeldRef: shiftHeldRefShared,
       altHeldRef: altHeldRefShared
     });
@@ -310,7 +312,12 @@ export function usePointerHandlers({
       ? "grab"
       : interactionTool === "transform" && transformHoverCursor !== null
         ? transformHoverCursor
-        : cursorStyleForTool(interactionTool);
+        : altHeldUi &&
+            !spaceHeldUi &&
+            isPaintingTool(activeTool) &&
+            activeTool !== "clone_stamp"
+          ? "crosshair"
+          : cursorStyleForTool(interactionTool);
 
   // ─── Utility callbacks ───────────────────────────────────────────────
   const {

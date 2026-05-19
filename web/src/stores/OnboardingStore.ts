@@ -28,7 +28,7 @@ export const ONBOARDING_STEP_ORDER: OnboardingStepId[] = [
   "run"
 ];
 
-export interface OnboardingState {
+interface OnboardingState {
   active: boolean;
   /** index into ONBOARDING_STEP_ORDER */
   currentStep: number;

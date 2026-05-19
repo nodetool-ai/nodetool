@@ -10,19 +10,20 @@ import { OutputSlot } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
 
+const HANDLE_ROW_HEIGHT = 18;
+
 const styles = (theme: Theme) =>
   css({
     "&.output-handle-column": {
       position: "absolute",
-      top: theme.spacing(1),
-      bottom: theme.spacing(1),
+      top: theme.spacing(4),
       right: 0,
       width: 0,
       pointerEvents: "none",
       zIndex: 3,
       display: "flex",
       flexDirection: "column",
-      justifyContent: "space-around",
+      justifyContent: "flex-start",
       gap: theme.spacing(0.25)
     },
     "& .output-handle-container": {
@@ -32,9 +33,13 @@ const styles = (theme: Theme) =>
       bottom: "auto",
       left: "auto",
       width: "auto",
-      height: "auto",
-      minHeight: 0,
+      height: HANDLE_ROW_HEIGHT,
+      flex: "0 0 auto",
+      marginBottom: theme.spacing(2),
       pointerEvents: "auto"
+    },
+    "& .output-handle-container:last-child": {
+      marginBottom: 0
     }
   });
 

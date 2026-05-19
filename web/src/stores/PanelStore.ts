@@ -15,6 +15,7 @@ export type LeftPanelView =
   | "assets"
   | "image-models"
   | "video-models"
+  | "audio-models"
   | "3d-models"
   | "quick-access"
   | "tools";
@@ -186,6 +187,7 @@ export const usePanelStore = create<ResizePanelState>()(
           "assets",
           "image-models",
           "video-models",
+          "audio-models",
           "3d-models",
           "quick-access",
           "tools"

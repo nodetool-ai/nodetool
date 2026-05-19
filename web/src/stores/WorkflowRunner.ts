@@ -274,7 +274,12 @@ export const createWorkflowRunnerStore = (
       // A stuck "running" state with no active job_id or no live WS means we
       // never received a terminal job_update (e.g. WS dropped, worker crashed).
       // Reset so the user can retry instead of getting permanently blocked.
-      const stuck = busy && (!currentJobId || !wsConnected);
+      // "connecting" is mid-handshake, not stuck — only treat the
+      // post-handshake states as stuck candidates.
+      const stuck =
+        busy &&
+        currentState !== "connecting" &&
+        (!currentJobId || !wsConnected);
       if (busy && !stuck) {
         console.warn(
           `WorkflowRunner[${workflowId}]: Ignoring run request while workflow is busy`,

@@ -49,7 +49,7 @@ This namespace contains 50 node(s).
 - **[Starts With](startswith.md)** - Checks if text starts with a specified prefix.
 - **[Strip Accents](stripaccents.md)** - Removes accent marks while keeping base characters.
 - **[Surround With](surroundwith.md)** - Wraps text with the provided prefix and suffix.
-- **[Template](template.md)** - Uses template syntax to format strings with variables. Supports {{ variable }...
+- **[Template](template.md)** - Uses template syntax to format strings with variables. Supports {% raw %}{{ variable }}{% endraw %}...
 - **[To Lowercase](tolowercase.md)** - Converts text to lowercase.
 - **[To String](tostring.md)** - Converts any input value to its string representation.
 - **[To Title Case](totitlecase.md)** - Converts text to title case.

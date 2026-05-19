@@ -1233,8 +1233,8 @@ export class TextToImageNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields = [];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt"];
   static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
@@ -1340,8 +1340,8 @@ export class ImageToImageNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields = ["image"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt", "image"];
   static readonly autoSaveAsset = true;
   static readonly exposeAsTool = true;
 
@@ -2142,9 +2142,28 @@ export class PainterNode extends BaseNode {
     default: "",
     title: "Mask data",
     description:
-      "Base64-encoded PNG of the painted alpha mask. Managed by the UI."
+      "Base64-encoded PNG of the painted alpha mask. Managed by the UI.",
+    json_schema_extra: { hidden_in_inspector: true }
   })
   declare mask_data: unknown;
+
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Canvas width",
+    description:
+      "Width of the paint canvas in pixels. Overwritten by the source image's width when an image is set."
+  })
+  declare canvas_width: number;
+
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Canvas height",
+    description:
+      "Height of the paint canvas in pixels. Overwritten by the source image's height when an image is set."
+  })
+  declare canvas_height: number;
 
   async process(
     context?: ProcessingContext
@@ -2169,10 +2188,17 @@ export class PainterNode extends BaseNode {
     const maskBytes = toBytes(maskStr);
 
     if (maskBytes.length === 0) {
-      // Fall back to a transparent canvas the size of the source image
-      // (or 1×1 if dimensions are unknown).
-      const w = Math.max(1, Number(image.width ?? 1));
-      const h = Math.max(1, Number(image.height ?? 1));
+      // Fall back to a transparent canvas. Prefer the source image's
+      // dimensions; otherwise use the user-configured canvas size; finally
+      // 1×1 if nothing is known.
+      const w = Math.max(
+        1,
+        Number(image.width ?? this.canvas_width ?? 1)
+      );
+      const h = Math.max(
+        1,
+        Number(image.height ?? this.canvas_height ?? 1)
+      );
       try {
         const blank = await sharp({
           create: {
