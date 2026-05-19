@@ -1,6 +1,24 @@
 # Automatic Message Correlation: Replacing `sync_mode`
 
-Status: **Draft**.
+Status: **Implementation in progress**. PRs 0–4 landed on the TypeScript side
+behind `NODETOOL_USE_CORRELATION=1`. PR 5 (default-on) is blocked on the
+Python stdio bridge work tracked under PR 4a/4b.
+
+| PR  | Description                                            | Status         |
+| --- | ------------------------------------------------------ | -------------- |
+| 0   | Inventory and tests                                    | Done            |
+| 1   | Add metadata, no scheduler change                      | Done            |
+| 2   | Propagate envelopes behind the flag                    | Done            |
+| 3   | Correlated buffered scheduler                          | Done (steps 1–4) |
+| 4   | Migrate stream nodes, Zip/Cross                        | TS-side done; Python bridge (4a/4b) outstanding |
+| 5   | Make correlation default                               | Blocked on 4b   |
+
+The correlation analyzer (`packages/kernel/src/correlation-analysis.ts`), the
+correlated buffered scheduler (`NodeActor._runCorrelated`), lineage signal
+recording (`NodeInbox.signalLineageDone`/`signalLineageScopeClosed`), pending
+key limits, EOS-driven `lineage_scope_closed` synthesis, and the
+`ZipNode`/`CrossNode` base nodes are all on `main` in TypeScript. The flag is
+still off by default; the legacy `sync_mode` scheduler runs when it is unset.
 
 ## Problem
 
