@@ -524,13 +524,12 @@ async function recommendedModels(
   const models = [...RECOMMENDED_MODELS];
   if (!checkServers) return models;
   const servers = await getServerAvailability();
-  const filtered: UnifiedModel[] = [];
-  for (const model of models) {
-    if (await serverAllowsModel(model, servers)) {
-      filtered.push(model);
-    }
-  }
-  return filtered;
+
+  const allowedResults = await Promise.all(
+    models.map((model) => serverAllowsModel(model, servers))
+  );
+
+  return models.filter((_, index) => allowedResults[index]);
 }
 
 function selectRecommended(
