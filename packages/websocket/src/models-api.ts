@@ -215,24 +215,21 @@ async function listRepoCachedFiles(repoId: string): Promise<string[]> {
 
   async function walk(root: string, current: string): Promise<void> {
     const entries = await readdir(current, { withFileTypes: true });
-    const promises: Promise<void>[] = [];
-    for (const entry of entries) {
+    const promises = entries.map(async (entry) => {
       const full = join(current, entry.name);
       if (entry.isDirectory()) {
-        promises.push(walk(root, full));
-        continue;
+        await walk(root, full);
+        return;
       }
       if (entry.isFile() || entry.isSymbolicLink()) {
         const rel = full.slice(root.length + 1).replaceAll("\\", "/");
         collected.add(rel);
       }
-    }
+    });
     await Promise.all(promises);
   }
 
-  await Promise.all(
-    snapshotDirs.map((snapshotDir) => walk(snapshotDir, snapshotDir))
-  );
+  await Promise.all(snapshotDirs.map((dir) => walk(dir, dir)));
 
   return [...collected];
 }
