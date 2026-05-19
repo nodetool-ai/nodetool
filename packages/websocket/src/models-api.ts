@@ -549,13 +549,19 @@ async function getAllModels(userId = "1"): Promise<UnifiedModel[]> {
 
   // Include language models from all available providers
   const availableIds = await getAvailableProviderIds(userId);
-  for (const providerId of availableIds) {
+  const providerModelsPromises = availableIds.map(async (providerId) => {
     try {
       const models = await getLanguageModelsByProvider(providerId, userId);
-      all.push(...models.map(toUnifiedLanguageModel));
+      return models.map(toUnifiedLanguageModel);
     } catch {
       // Provider unavailable — skip
+      return [];
     }
+  });
+
+  const providerModelsArrays = await Promise.all(providerModelsPromises);
+  for (const models of providerModelsArrays) {
+    all.push(...models);
   }
 
   // Include HuggingFace cached/recommended models
