@@ -122,8 +122,8 @@ describe("PainterNode", () => {
     node.assign({ image: undefined, mask_data: "" });
     const result = await node.process();
     const mask = result.mask as Record<string, unknown>;
-    expect(mask.width).toBe(1);
-    expect(mask.height).toBe(1);
+    expect(mask.width).toBe(node.canvas_width ?? 1);
+    expect(mask.height).toBe(node.canvas_height ?? 1);
   });
 
   it("falls back gracefully when mask_data is malformed", async () => {
