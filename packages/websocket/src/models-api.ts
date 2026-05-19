@@ -642,17 +642,20 @@ async function isLlamaCppModelCached(
   if (!(await pathExists(repoDir))) return false;
 
   const snapshots = await readdir(repoDir, { withFileTypes: true });
-  for (const snapshot of snapshots) {
-    if (!snapshot.isDirectory()) continue;
-    if (await pathExists(join(repoDir, snapshot.name, filePath))) {
-      return true;
-    }
-    if (await pathExists(join(repoDir, snapshot.name, basename(filePath)))) {
-      return true;
-    }
-  }
+  const checkPromises = snapshots
+    .filter((snapshot) => snapshot.isDirectory())
+    .map(async (snapshot) => {
+      if (await pathExists(join(repoDir, snapshot.name, filePath))) {
+        return true;
+      }
+      if (await pathExists(join(repoDir, snapshot.name, basename(filePath)))) {
+        return true;
+      }
+      return false;
+    });
 
-  return false;
+  const results = await Promise.all(checkPromises);
+  return results.some((exists) => exists);
 }
 
 async function fastCacheStatus(
