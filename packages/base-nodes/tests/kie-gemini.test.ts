@@ -447,6 +447,27 @@ describe("ImageGenerationNode", () => {
     await expect(node.process()).rejects.toThrow("No image bytes in response");
   });
 
+  it("falls back to predict endpoint when Imagen generateImages returns 404", async () => {
+    const node = new ImageGenerationNode();
+    mockFetch.mockResolvedValueOnce(jsonResponse("not found", 404));
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({
+        predictions: [{ bytesBase64Encoded: "fallbackbase64" }]
+      })
+    );
+
+    node.assign({
+      prompt: "cat",
+      model: "imagen-3.0-generate-002"
+    });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
+    expect(result.output).toEqual({ type: "image", data: "fallbackbase64" });
+    expect(mockFetch.mock.calls[0][0]).toContain(":generateImages");
+    expect(mockFetch.mock.calls[1][0]).toContain(":predict");
+  });
+
   it("throws on API error for Imagen", async () => {
     const node = new ImageGenerationNode();
     mockFetch.mockResolvedValueOnce(jsonResponse("err", 500));
