@@ -7,6 +7,7 @@
  */
 
 import type { ProcessingContext } from "./context.js";
+import type { CorrelationLineage } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // Streaming I/O interfaces (implemented by NodeInputs / NodeOutputs in kernel)
@@ -60,7 +61,10 @@ export interface MessageEnvelopeLike {
   metadata: Record<string, unknown>;
   timestamp: number;
   event_id: string;
-  correlation_lineage: Record<string, { index: number }>;
+  // Reuse the protocol's `CorrelationLineage` (a `Readonly<Record<...>>`)
+  // so node-visible envelopes are typed consistently with the on-wire
+  // shape and mutation is discouraged at the type level.
+  correlation_lineage: CorrelationLineage;
   source_edge_id: string;
 }
 
@@ -75,7 +79,7 @@ export interface MessageEnvelopeLike {
  */
 export interface StreamingOutputs {
   /** Emit a value to a named output slot. */
-  emit(slot: string, value: unknown, opts?: { lineage?: Record<string, { index: number }> }): Promise<void>;
+  emit(slot: string, value: unknown, opts?: { lineage?: CorrelationLineage }): Promise<void>;
   /**
    * Emit a frame of grouped values atomically. Every sibling handle that
    * shares an iteration group (same root id) receives the **same** minted
@@ -87,7 +91,7 @@ export interface StreamingOutputs {
    */
   emitGroup(
     values: Record<string, unknown>,
-    opts?: { lineage?: Record<string, { index: number }> }
+    opts?: { lineage?: CorrelationLineage }
   ): Promise<void>;
   /** Forward an envelope's lineage to `slot`. §5. */
   forward(

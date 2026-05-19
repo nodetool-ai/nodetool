@@ -1039,11 +1039,22 @@ export class ZipNode extends BaseNode {
       env: { correlation_lineage: Record<string, { index: number }> }
     ): string => {
       // Canonical projection in scope order — matches analyzeCorrelation.
+      // Missing parent tokens indicate an upstream correlation bug; we
+      // fail fast rather than collapsing distinct parents into the same
+      // bucket (which would silently cross-pair items from independent
+      // parent scopes). §7.
       if (parentScope.length === 0) return "";
       const parts: string[] = [];
       for (const root of parentScope) {
         const tok = env.correlation_lineage[root];
-        if (!tok) return ""; // missing — bucket as root-level
+        if (!tok) {
+          throw new Error(
+            `Zip received an envelope missing parent root "${root}" — ` +
+              `the analyzer requires the common parent prefix to be present ` +
+              `on both sides. Upstream correlation likely failed to mint or ` +
+              `propagate the parent token.`
+          );
+        }
         parts.push(`${root}=${tok.index}`);
       }
       return parts.join(",");
@@ -1181,11 +1192,20 @@ export class CrossNode extends BaseNode {
     const projectParent = (
       env: { correlation_lineage: Record<string, { index: number }> }
     ): string => {
+      // Fail fast on missing parent tokens; collapsing distinct parents
+      // into the empty bucket would generate cross-products across
+      // independent parent scopes. §7.
       if (parentScope.length === 0) return "";
       const parts: string[] = [];
       for (const root of parentScope) {
         const tok = env.correlation_lineage[root];
-        if (!tok) return "";
+        if (!tok) {
+          throw new Error(
+            `Cross received an envelope missing parent root "${root}" — ` +
+              `the analyzer requires the common parent prefix to be present ` +
+              `on both sides.`
+          );
+        }
         parts.push(`${root}=${tok.index}`);
       }
       return parts.join(",");
