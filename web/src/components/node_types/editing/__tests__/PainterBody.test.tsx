@@ -102,7 +102,7 @@ describe("PainterBody", () => {
 
   it("renders without a source image", () => {
     renderWithTheme(<PainterBody {...makeProps()} />);
-    expect(document.querySelector("canvas.paint-buffer")).toBeTruthy();
+    expect(document.querySelector("canvas.paint-buffer")).not.toBeNull();
   });
 
   it("shows a connected upstream image", () => {
