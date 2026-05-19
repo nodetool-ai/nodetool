@@ -230,6 +230,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
       <Box sx={{ display: "flex", gap: "2px", ml: 1 }}>
         <Tooltip title="Commit (Enter)" placement="bottom">
           <IconButton
+            aria-label="Commit (Enter)"
             size="small"
             color="success"
             onClick={onCommit}
@@ -240,6 +241,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
         </Tooltip>
         <Tooltip title="Cancel (Esc)" placement="bottom">
           <IconButton
+            aria-label="Cancel (Esc)"
             size="small"
             color="error"
             onClick={onCancel}
@@ -250,6 +252,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
         </Tooltip>
         <Tooltip title="Reset" placement="bottom">
           <IconButton
+            aria-label="Reset"
             size="small"
             onClick={onReset}
             sx={{
@@ -290,26 +293,32 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
       </Typography>
       <Box sx={{ display: "flex", gap: "2px", ml: 1 }}>
         <Tooltip title="Apply crop (Enter)" placement="bottom">
-          <IconButton
-            size="small"
-            color="success"
-            disabled={!hasPendingCrop}
-            onClick={onApply}
-            sx={{ padding: "3px" }}
-          >
-            <CheckIcon sx={{ fontSize: 18 }} />
-          </IconButton>
+          <span style={{ display: 'inline-flex' }}>
+            <IconButton
+              aria-label="Apply crop (Enter)"
+              size="small"
+              color="success"
+              disabled={!hasPendingCrop}
+              onClick={onApply}
+              sx={{ padding: "3px" }}
+            >
+              <CheckIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </span>
         </Tooltip>
         <Tooltip title="Cancel crop preview (Esc)" placement="bottom">
-          <IconButton
-            size="small"
-            color="error"
-            disabled={!hasPendingCrop}
-            onClick={onCancel}
-            sx={{ padding: "3px" }}
-          >
-            <CloseIcon sx={{ fontSize: 18 }} />
-          </IconButton>
+          <span style={{ display: 'inline-flex' }}>
+            <IconButton
+              aria-label="Cancel crop preview (Esc)"
+              size="small"
+              color="error"
+              disabled={!hasPendingCrop}
+              onClick={onCancel}
+              sx={{ padding: "3px" }}
+            >
+              <CloseIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </span>
         </Tooltip>
       </Box>
     </>
