@@ -545,8 +545,7 @@ describe("ChannelsNode — channel extraction", () => {
     const img = await makeRgbaImage();
     const node = new ChannelsNode();
     node.assign({ image: img, channel: "cyan" });
-    const res = await node.process();
-    expect(res.output).toBeDefined();
+    await expect(node.process()).rejects.toThrow(/Unsupported channel/);
   });
 
   it("defaults to luminance when channel is not set", async () => {

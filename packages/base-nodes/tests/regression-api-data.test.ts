@@ -102,14 +102,14 @@ describe("GoogleSearchNode output structure regression", () => {
 // 3. Supabase credentials from secrets/env - no crash on (this as any).supabase_url
 // ---------------------------------------------------------------------------
 describe("Supabase credentials regression", () => {
-  it("SelectLibNode reads credentials from secrets, not from instance properties", async () => {
+  it("SelectLibNode reads credentials from secrets, not from instance properties", () => {
     const node = new SelectLibNode();
     // The old bug tried to read (this as any).supabase_url directly.
     // The fix reads from _secrets via getSupabaseCredentials().
     // Without credentials it should throw a clear error about SUPABASE_URL/KEY.
     node.assign({ table_name: "test_table" });
     node.setDynamic("_secrets", {});
-    await expect(node.process()).rejects.toThrow(/supabase.*url.*key|url.*key.*required/i);
+    expect(node.process()).rejects.toThrow(/supabase.*url.*key|url.*key.*required/i);
   });
 
   it("does not have supabase_url as an instance property", () => {
