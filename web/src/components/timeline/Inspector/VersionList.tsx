@@ -86,14 +86,14 @@ export const VersionList: React.FC<VersionListProps> = memo(
           favorite
         });
       },
-      [setFavoriteMutation.mutate, sequenceId, clipId]
+      [setFavoriteMutation, sequenceId, clipId]
     );
 
     const handleDelete = useCallback(
       (versionId: string) => {
         deleteMutation.mutate({ id: sequenceId, clipId, versionId });
       },
-      [deleteMutation.mutate, sequenceId, clipId]
+      [deleteMutation, sequenceId, clipId]
     );
 
     // Versions displayed newest-first
