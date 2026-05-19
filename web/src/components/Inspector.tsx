@@ -29,6 +29,7 @@ import {
   addExposedInput,
   removeExposedInput
 } from "../utils/exposedInputs";
+import usePropertyValidationStore from "../stores/PropertyValidationStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -145,8 +146,112 @@ const styles = (theme: Theme) =>
     ".property-row .property-visibility-toggle": {
       flex: "0 0 auto",
       marginTop: "0.15em"
+    },
+    ".validation-banner": {
+      margin: "0.5em 0 0.75em",
+      padding: "0.5em 0.75em",
+      borderLeft: `3px solid ${theme.vars.palette.error.main}`,
+      backgroundColor: "var(--palette-error-overlay)",
+      borderRadius: "2px",
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.error.main
+    },
+    ".validation-banner .validation-banner-title": {
+      fontWeight: 600,
+      marginBottom: "0.25em",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.25em"
+    },
+    ".validation-banner .validation-banner-row": {
+      display: "block",
+      width: "100%",
+      textAlign: "left",
+      padding: "0.15em 0",
+      background: "transparent",
+      border: "none",
+      cursor: "pointer",
+      color: "inherit",
+      font: "inherit"
+    },
+    ".validation-banner .validation-banner-row:hover": {
+      textDecoration: "underline"
+    },
+    ".validation-banner .validation-banner-row-property": {
+      fontFamily: "var(--fontFamily2)",
+      fontWeight: 600
     }
   });
+
+interface ValidationErrorBannerProps {
+  workflowId: string | undefined;
+  nodeId: string;
+}
+
+const ValidationErrorBanner: React.FC<ValidationErrorBannerProps> = ({
+  workflowId,
+  nodeId
+}) => {
+  const errors = usePropertyValidationStore((state) => {
+    if (!workflowId) return [];
+    const prefix = `${workflowId}:${nodeId}:`;
+    const out: { property: string; message: string }[] = [];
+    for (const k in state.errors) {
+      if (k.startsWith(prefix)) {
+        out.push({
+          property: k.slice(prefix.length),
+          message: state.errors[k as `${string}:${string}:${string}`]
+        });
+      }
+    }
+    return out;
+  });
+
+  const handleScrollToField = useCallback((property: string) => {
+    // Find the PropertyField inside the inspector and scroll it into view.
+    const root = document.querySelector(".inspector");
+    if (!root) return;
+    const target = root.querySelector(
+      `.node-property.has-validation-error[data-property="${CSS.escape(property)}"]`
+    );
+    if (target instanceof HTMLElement) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    // Fallback: scroll the banner itself into view (the message is here).
+    const banner = root.querySelector(".validation-banner");
+    if (banner instanceof HTMLElement) {
+      banner.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
+  if (errors.length === 0) return null;
+
+  return (
+    <div className="validation-banner" role="alert">
+      <div className="validation-banner-title">
+        <WarningAmberOutlinedIcon fontSize="small" />
+        {errors.length === 1 ? "1 issue" : `${errors.length} issues`} to fix
+      </div>
+      {errors.map((err) => (
+        <button
+          type="button"
+          key={`${err.property}::${err.message}`}
+          className="validation-banner-row"
+          onClick={() => handleScrollToField(err.property)}
+        >
+          {err.property ? (
+            <>
+              <span className="validation-banner-row-property">{err.property}</span>
+              {": "}
+            </>
+          ) : null}
+          {err.message}
+        </button>
+      ))}
+    </div>
+  );
+};
 
 const Inspector: React.FC = () => {
   // Use selector directly instead of calling getSelectedNodes() to avoid filtering on every store update
@@ -496,6 +601,14 @@ const Inspector: React.FC = () => {
                 </CollapsibleSection>
               )}
             </div>
+            {/* Validation errors banner — surfaces every issue for this
+                node so users see errors even when the field is on a handle
+                that has no Inspector row (output slots, dynamic inputs,
+                multi-edge list handles, graph-level issues). */}
+            <ValidationErrorBanner
+              workflowId={selectedNode.data.workflow_id}
+              nodeId={selectedNode.id}
+            />
             {/* Property list — every property gets the show-as-input
                 toggle except those whose handle is already determined by
                 metadata (inline rows or declared input_fields). */}

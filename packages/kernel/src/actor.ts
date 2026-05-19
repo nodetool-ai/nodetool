@@ -27,7 +27,6 @@ import type { ProcessingContext, NodeExecutor } from "@nodetool-ai/runtime";
 import { withNodeSpan } from "@nodetool-ai/runtime";
 import { NodeInbox, type MessageEnvelope } from "./inbox.js";
 import { NodeInputs, NodeOutputs } from "./io.js";
-import { isCorrelationEnabled } from "./correlation-flag.js";
 import type { NodeAnalysis } from "./correlation-analysis.js";
 import {
   iterationRootId,
@@ -137,9 +136,6 @@ export class NodeActor {
   /** Collected non-null outputs for streaming-output nodes. */
   private _streamingCollectedOutputs: Record<string, unknown> | null = null;
 
-  /** Handles that are sticky from the start (non-streaming edges). */
-  private _initialStickyHandles: Set<string>;
-
   /** Handles where multiple upstream values should be collected into a list. */
   private _listInputHandles: Set<string>;
 
@@ -173,9 +169,7 @@ export class NodeActor {
   private _controlContext: Record<string, unknown> | null;
 
   /**
-   * Static correlation analysis for this node, supplied by the runner when
-   * `NODETOOL_USE_CORRELATION=1`. When undefined, the legacy sync_mode
-   * scheduler runs. PR 3 step 3.
+   * Static correlation analysis for this node, supplied by the runner.
    */
   private _correlation: NodeAnalysis | undefined;
 
@@ -197,7 +191,6 @@ export class NodeActor {
     ) => Promise<void>;
     emitMessage: (msg: unknown) => void;
     executionContext?: ProcessingContext;
-    stickyHandles?: Set<string>;
     listInputHandles?: Set<string>;
     controlContext?: Record<string, unknown> | null;
     correlation?: NodeAnalysis;
@@ -208,7 +201,6 @@ export class NodeActor {
     this._sendOutputs = opts.sendOutputs;
     this._emitMessage = opts.emitMessage;
     this._executionContext = opts.executionContext;
-    this._initialStickyHandles = opts.stickyHandles ?? new Set();
     this._listInputHandles = opts.listInputHandles ?? new Set();
     this._controlContext = opts.controlContext ?? null;
     this._correlation = opts.correlation;
@@ -261,12 +253,7 @@ export class NodeActor {
               const callerSuppliedLineage = opts?.lineage !== undefined;
               if (callerSuppliedLineage) {
                 hints.perSlotLineage = { [slot]: opts!.lineage! };
-              } else if (isCorrelationEnabled()) {
-                // All correlation-derived routing — invocation inheritance,
-                // iteration minting, aggregate collapse — only runs when the
-                // flag is on. With the flag off the actor must not attach
-                // minted lineage to outputs (would undermine the feature-
-                // flag guarantee).
+              } else {
                 const inherited = this._computeInvocationLineage();
                 if (inherited !== undefined) {
                   hints.invocationLineage = inherited;
@@ -301,23 +288,9 @@ export class NodeActor {
               );
             },
             emitGroupFn: async (values, opts) => {
-              if (isCorrelationEnabled()) {
-                await this._emitGroup(values, opts?.lineage);
-              } else {
-                // Flag off: sequential emit, no minting. Same behaviour as
-                // calling outputs.emit() one slot at a time on the legacy
-                // path.
-                for (const [slot, value] of Object.entries(values)) {
-                  await this._sendOutputs(
-                    this.node.id,
-                    { [slot]: value },
-                    opts?.lineage ? { perSlotLineage: { [slot]: opts.lineage } } : {}
-                  );
-                }
-              }
+              await this._emitGroup(values, opts?.lineage);
             },
             dropFn: async (slot: string, envelope) => {
-              if (!isCorrelationEnabled()) return;
               // outputs.drop(slot, envelope) → send `lineage_done` on every
               // outgoing edge for `slot` at the envelope's projected key.
               // §5. The drop signal lets downstream joins move past keys
@@ -343,13 +316,11 @@ export class NodeActor {
       } else if (this.node.is_controlled) {
         // Controlled mode: wait for control events from inbox
         await this._runControlled();
-      } else if (isCorrelationEnabled() && this._correlation) {
-        // Correlated buffered scheduler (PR 3 step 3). Static analysis is
-        // required, so the runner only supplies it when the flag is on.
-        await this._runCorrelated(this._correlation);
       } else {
-        // Standard buffered or streaming-output mode
-        await this._runBuffered();
+        if (!this._correlation) {
+          throw new Error(`Missing correlation analysis for node "${this.node.id}"`);
+        }
+        await this._runCorrelated(this._correlation);
       }
     } catch (err) {
       errorMessage = err instanceof Error ? err.message : String(err);
@@ -394,36 +365,6 @@ export class NodeActor {
   // Execution modes
   // -----------------------------------------------------------------------
 
-  /**
-   * Buffered / streaming-output execution.
-   * Gathers inputs per sync_mode, then runs process or genProcess.
-   */
-  private async _runBuffered(): Promise<void> {
-    const syncMode = this.node.sync_mode ?? "zip_all";
-    const inputHandles = [...this.inbox["_buffers"].keys()].filter(
-      (h) => h !== "__control__"
-    );
-
-    // Source nodes with no data inputs should execute once with empty inputs.
-    if (inputHandles.length === 0) {
-      await this._executeWithInputs({});
-      return;
-    }
-
-    if (syncMode === "on_any") {
-      return this._runOnAny(inputHandles);
-    }
-
-    // zip_all: keep gathering input batches until inbox is drained.
-    while (true) {
-      const inputs = await this._gatherZipAll();
-      if (inputs === null) break;
-
-      await this._executeWithInputs(inputs);
-
-      if (this.inbox.isFullyDrained()) break;
-    }
-  }
 
   // -----------------------------------------------------------------------
   // Correlated buffered scheduler (PR 3 of docs/correlation-design.md)
@@ -459,7 +400,7 @@ export class NodeActor {
 
   /**
    * Correlated buffered scheduler — replaces `_runBuffered` under
-   * `NODETOOL_USE_CORRELATION=1`.
+   * correlation.
    *
    * Algorithm (v1 of §4):
    *  1. Classify each connected data handle by its static scope:
@@ -804,42 +745,6 @@ export class NodeActor {
   }
 
   /**
-   * on_any execution: wait for all handles to have at least one value,
-   * then fire. After initial fire, each subsequent item fires immediately.
-   */
-  private async _runOnAny(inputHandles: string[]): Promise<void> {
-    const current: Record<string, unknown> = {};
-    const pendingHandles = new Set(inputHandles);
-    let initialFired = false;
-
-    for await (const [handle, envelope] of this.inbox.iterAnyWithEnvelope()) {
-      if (handle === "__control__") continue;
-
-      const item = envelope.data;
-      this._lastEnvelopes.set(handle, envelope);
-
-      if (this._listInputHandles.has(handle)) {
-        if (Array.isArray(item)) {
-          current[handle] = item;
-        } else {
-          current[handle] = await this._collectScalarListInput(handle, item);
-        }
-      } else {
-        current[handle] = item;
-      }
-
-      if (!initialFired) {
-        pendingHandles.delete(handle);
-        if (pendingHandles.size > 0) continue;
-        await this._executeWithInputs({ ...current });
-        initialFired = true;
-      } else {
-        await this._executeWithInputs({ ...current });
-      }
-    }
-  }
-
-  /**
    * Execute process or genProcess with the given inputs.
    */
   private async _executeWithInputs(
@@ -866,7 +771,6 @@ export class NodeActor {
     log.info("Executing node", {
       nodeId: this.node.id,
       type: this.node.type,
-      syncMode: this.node.sync_mode ?? "zip_all",
       inputHandles: Object.keys(inputs)
     });
 
@@ -1089,10 +993,7 @@ export class NodeActor {
   }
 
   /**
-   * True while `_runCorrelated` is the active execution path. PR 3 keeps the
-   * streaming-input branch on PR 2's single-envelope inheritance so test
-   * fixtures and unmigrated stream filters without explicit
-   * `output_correlation` keep working.
+   * True while `_runCorrelated` is the active execution path.
    */
   private _inCorrelatedBuffered = false;
 
@@ -1107,7 +1008,6 @@ export class NodeActor {
   private _currentHints(
     emittedHandles?: ReadonlyArray<string>
   ): OutputRoutingHints | undefined {
-    if (!isCorrelationEnabled()) return undefined;
     if (this._currentInvocationLineage === undefined) return undefined;
     if (this._correlation && emittedHandles && emittedHandles.length > 0) {
       const perSlot = this._correlatedOutputLineage(
@@ -1126,9 +1026,7 @@ export class NodeActor {
 
   /**
    * Compute the invocation lineage for the current set of consumed
-   * envelopes. Returns undefined when the case is ambiguous or the flag is
-   * off — downstream routing then sees empty lineage, matching pre-PR-2
-   * behavior.
+   * envelopes. Returns undefined when the case is ambiguous.
    *
    * PR 2 handles only the unambiguous "exactly one connected single-edge
    * data input" case. PR 3 extends this with full multi-input merging.
@@ -1139,7 +1037,6 @@ export class NodeActor {
    * each iteration, which naturally tracks the latest consumed envelope.
    */
   private _computeInvocationLineage(): CorrelationLineage | undefined {
-    if (!isCorrelationEnabled()) return undefined;
     if (this._correlation && this._inCorrelatedBuffered) {
       return this._correlatedInvocationLineage();
     }
@@ -1261,166 +1158,6 @@ export class NodeActor {
         this._cachedInputs[handle] = envelope.data;
       }
     }
-  }
-
-  // -----------------------------------------------------------------------
-  // Input gathering (sync modes)
-  // -----------------------------------------------------------------------
-
-  /**
-   * zip_all: wait until every registered handle has at least one item,
-   * using "sticky" semantics for handles that have no more upstream.
-   */
-  private _stickyValues: Record<string, unknown> = {};
-
-  private async _gatherZipAll(): Promise<Record<string, unknown> | null> {
-    const handles = [...this.inbox["_buffers"].keys()].filter(
-      (h) => h !== "__control__"
-    );
-
-    if (handles.length === 0) return null;
-
-    const result: Record<string, unknown> = {};
-    let gotNew = false;
-
-    for (const handle of handles) {
-      if (this._listInputHandles.has(handle)) {
-        const collected = await this._collectListInput(handle);
-        if (collected === null) return null;
-        result[handle] = collected.values;
-        gotNew = gotNew || collected.gotNew;
-        continue;
-      }
-
-      if (this.inbox.hasBuffered(handle)) {
-        const popped = this._popHandle(handle);
-        if (popped !== undefined) {
-          result[handle] = popped;
-          this._stickyValues[handle] = popped;
-          gotNew = true;
-          continue;
-        }
-      }
-
-      // Topology-marked sticky handles (one-shot upstream like Constant)
-      // reuse their last value across firings. Streaming handles do NOT —
-      // when they EOS, zip_all halts. Use on_any if you want broadcast/
-      // fan-out semantics across closed streaming handles.
-      const isInitialSticky = this._initialStickyHandles.has(handle);
-      if (isInitialSticky && handle in this._stickyValues) {
-        result[handle] = this._stickyValues[handle];
-        continue;
-      }
-
-      // Handle still open: wait for the next value.
-      if (this.inbox.isOpen(handle)) {
-        const gen = this.inbox.iterInputWithEnvelope(handle);
-        const next = await gen.next();
-        if (next.done) {
-          // EOS — only initial-sticky handles fall back to the cached value.
-          // Non-sticky streaming handles closing means no more pairs.
-          if (isInitialSticky && handle in this._stickyValues) {
-            result[handle] = this._stickyValues[handle];
-            continue;
-          }
-          return null;
-        }
-        this._lastEnvelopes.set(handle, next.value);
-        result[handle] = next.value.data;
-        this._stickyValues[handle] = next.value.data;
-        gotNew = true;
-        await gen.return(undefined);
-        continue;
-      }
-
-      // Handle closed and not initial-sticky (or no value ever received) —
-      // can't form a complete tuple, stop iterating.
-      return null;
-    }
-
-    if (!gotNew) return null; // every handle yielded only sticky reuse
-    return result;
-  }
-
-  private async _collectScalarListInput(
-    handle: string,
-    firstValue: unknown
-  ): Promise<unknown[]> {
-    const values: unknown[] = [];
-    this._appendListInputValue(values, firstValue);
-
-    while (true) {
-      while (this.inbox.hasBuffered(handle)) {
-        const popped = this._popHandle(handle);
-        if (popped !== undefined) {
-          this._appendListInputValue(values, popped);
-        }
-      }
-
-      if (!this.inbox.isOpen(handle)) {
-        return values;
-      }
-
-      const gen = this.inbox.iterInput(handle);
-      const next = await gen.next();
-      if (next.done) {
-        return values;
-      }
-      this._appendListInputValue(values, next.value);
-      await gen.return(undefined);
-    }
-  }
-
-  private _appendListInputValue(values: unknown[], value: unknown): void {
-    if (Array.isArray(value)) {
-      values.push(...value);
-    } else {
-      values.push(value);
-    }
-  }
-
-  private async _collectListInput(
-    handle: string
-  ): Promise<{ values: unknown[]; gotNew: boolean } | null> {
-    const values: unknown[] = [];
-    let gotNew = false;
-
-    while (true) {
-      while (this.inbox.hasBuffered(handle)) {
-        const popped = this._popHandle(handle);
-        if (popped !== undefined) {
-          this._appendListInputValue(values, popped);
-          gotNew = true;
-        }
-      }
-
-      if (!this.inbox.isOpen(handle)) {
-        break;
-      }
-
-      const gen = this.inbox.iterInput(handle);
-      const next = await gen.next();
-      if (next.done) {
-        break;
-      }
-      this._appendListInputValue(values, next.value);
-      gotNew = true;
-      await gen.return(undefined);
-    }
-
-    if (!gotNew) return null;
-    return { values, gotNew };
-  }
-
-  /**
-   * Pop a single item from a specific handle's buffer.
-   */
-  private _popHandle(handle: string): unknown | undefined {
-    const buf = this.inbox["_buffers"].get(handle);
-    if (!buf || buf.length === 0) return undefined;
-    const envelope = buf.shift()!;
-    this._lastEnvelopes.set(handle, envelope);
-    return envelope.data;
   }
 
   // -----------------------------------------------------------------------

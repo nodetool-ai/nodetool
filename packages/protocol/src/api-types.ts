@@ -584,7 +584,6 @@ export interface Node {
   ui_properties?: unknown;
   dynamic_properties?: Record<string, unknown>;
   dynamic_outputs?: Record<string, PropertyTypeMetadata>;
-  sync_mode: string;
   [key: string]: unknown;
 }
 

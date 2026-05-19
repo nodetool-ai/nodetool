@@ -13,8 +13,7 @@ import { createLogger } from "@nodetool-ai/config";
 import type {
   Edge,
   NodeDescriptor,
-  GraphData,
-  SyncMode
+  GraphData
 } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.kernel.graph");
@@ -366,12 +365,6 @@ export class Graph {
           ...(resolved.outputs ?? {}),
           ...(node.outputs ?? {})
         },
-        sync_mode:
-          node.sync_mode ??
-          ((node.properties as Record<string, unknown> | undefined)
-            ?.sync_mode as SyncMode | undefined) ??
-          descriptorDefaults.sync_mode ??
-          "on_any",
         // Streaming/control flags: registry metadata (descriptorDefaults) is
         // the source of truth.  Saved graph data may have stale or missing
         // values, so always prefer the registry if it declares true.

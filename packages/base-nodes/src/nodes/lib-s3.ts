@@ -91,7 +91,6 @@ export class S3ListObjectsLibNode extends BaseNode {
     "AWS_ACCESS_KEY_ID",
     "AWS_SECRET_ACCESS_KEY"
   ];
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     object: { kind: "iteration", source: "__execution__", group: "items" },

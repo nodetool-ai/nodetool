@@ -7,6 +7,7 @@
  */
 
 import type { NodeClass } from "./base-node.js";
+import { hasStreamingOutput } from "./base-node.js";
 import type {
   NodeMetadata,
   OutputSlotMetadata,
@@ -259,7 +260,7 @@ export function getNodeMetadata(
     required_settings: nodeClass.requiredSettings ?? [],
     required_runtimes: nodeClass.requiredRuntimes ?? [],
     is_streaming_input: nodeClass.isStreamingInput || false,
-    is_streaming_output: nodeClass.isStreamingOutput || false,
+    is_streaming_output: hasStreamingOutput(nodeClass),
     input_mode: nodeClass.inputMode,
     output_correlation: nodeClass.outputCorrelation,
     is_controlled: nodeClass.isControlled || false,

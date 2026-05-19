@@ -272,7 +272,6 @@ export class TwilioGetMessagesLibNode extends BaseNode {
     messages: "list"
   };
   static readonly exposeAsTool = true;
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     message: { kind: "iteration", source: "__execution__", group: "items" },

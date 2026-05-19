@@ -196,7 +196,6 @@ export class ListDocumentsNode extends BaseNode {
     documents: "list"
   };
 
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     document: { kind: "iteration", source: "__execution__", group: "items" },
@@ -336,7 +335,6 @@ export class SplitDocumentNode extends BaseNode {
     }
   ];
 
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     text: { kind: "iteration", source: "document", group: "items" },
@@ -442,7 +440,6 @@ export class SplitHTMLNode extends BaseNode {
     chunks: "list"
   };
 
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     text: { kind: "iteration", source: "document", group: "items" },
@@ -585,7 +582,6 @@ export class SplitJSONNode extends BaseNode {
     chunks: "list"
   };
 
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     text: { kind: "iteration", source: "document", group: "items" },
@@ -735,7 +731,6 @@ export class SplitRecursivelyNode extends BaseNode {
     chunks: "list"
   };
 
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     text: { kind: "iteration", source: "document", group: "items" },
@@ -908,7 +903,6 @@ export class SplitMarkdownNode extends BaseNode {
     chunks: "list"
   };
 
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     text: { kind: "iteration", source: "document", group: "items" },

@@ -1338,7 +1338,6 @@ export class RealtimeAudioInputNode extends BaseNode {
   };
   static readonly inlineFields = [];
   static readonly inputFields = ["value"];
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   // RealtimeAudioInput pushes successive audio frames for a single logical
   // stream via runner.pushInputValue. Each chunk is a chunk of one logical

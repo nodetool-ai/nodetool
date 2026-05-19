@@ -13,8 +13,8 @@ export interface EmbeddingOutputs {
   output: unknown[];
 }
 
-export function embedding(inputs: EmbeddingInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<EmbeddingOutputs, "output"> {
-  return createNode("openai.text.Embedding", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function embedding(inputs: EmbeddingInputs): DslNode<EmbeddingOutputs, "output"> {
+  return createNode("openai.text.Embedding", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Web Search — openai.text.WebSearch
@@ -26,8 +26,8 @@ export interface WebSearchOutputs {
   output: string;
 }
 
-export function webSearch(inputs: WebSearchInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<WebSearchOutputs, "output"> {
-  return createNode("openai.text.WebSearch", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function webSearch(inputs: WebSearchInputs): DslNode<WebSearchOutputs, "output"> {
+  return createNode("openai.text.WebSearch", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Moderation — openai.text.Moderation
@@ -42,6 +42,6 @@ export interface ModerationOutputs {
   category_scores: Record<string, number>;
 }
 
-export function moderation(inputs: ModerationInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ModerationOutputs> {
-  return createNode("openai.text.Moderation", inputs as Record<string, unknown>, { outputNames: ["flagged", "categories", "category_scores"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function moderation(inputs: ModerationInputs): DslNode<ModerationOutputs> {
+  return createNode("openai.text.Moderation", inputs as Record<string, unknown>, { outputNames: ["flagged", "categories", "category_scores"] });
 }

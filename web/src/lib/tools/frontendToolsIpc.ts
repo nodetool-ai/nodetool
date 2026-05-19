@@ -17,7 +17,6 @@ import "./builtin/addNode";
 import "./builtin/updateNodeData";
 import "./builtin/connectNodes";
 import "./builtin/setNodeTitle";
-import "./builtin/setNodeSyncMode";
 import "./builtin/moveNode";
 import "./builtin/getGraph";
 import "./builtin/searchNodes";

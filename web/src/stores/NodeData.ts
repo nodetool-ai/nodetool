@@ -14,7 +14,6 @@ export type NodeData = {
   endpoint_id?: string;
   /** Resolved Kie.ai model id when schema is loaded */
   model_id?: string;
-  sync_mode?: string;
   workflow_id: string;
   title?: string;
   /** Marks snippet-backed Code nodes so the UI can lock title editing and hide code by default. */

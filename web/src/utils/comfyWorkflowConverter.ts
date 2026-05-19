@@ -76,7 +76,6 @@ function comfyNodeToNodeToolNode(comfyNode: ComfyUINode): GraphNode {
     id: String(comfyNode.id),
     type: nodeType,
     data: properties,
-    sync_mode: "on_any",
     ui_properties: {
       position: {
         x: comfyNode.pos[0],
@@ -448,7 +447,6 @@ export function comfyPromptToNodeToolGraph(prompt: ComfyUIPrompt): Graph {
       id: nodeId,
       type: `comfy.${promptNode.class_type}`,
       data: properties,
-      sync_mode: "on_any",
       ui_properties: {
         position: {
           x: (index % 4) * 320,

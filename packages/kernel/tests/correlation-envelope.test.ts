@@ -7,21 +7,17 @@
  *  - syntheticEdgeId / externalEdgeId are deterministic.
  *  - NodeOutputs.forward copies envelope lineage to the sendFn opts.
  *  - NodeOutputs.emit accepts an explicit lineage override.
- *  - The correlation flag reads process.env at observation time.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import type { CorrelationLineage } from "@nodetool-ai/protocol";
 import { EMPTY_LINEAGE } from "@nodetool-ai/protocol";
 import { NodeInbox } from "../src/inbox.js";
 import { NodeOutputs } from "../src/io.js";
 import {
   externalEdgeId,
-  isCorrelationEnabled,
   syntheticEdgeId
-} from "../src/correlation-flag.js";
-
-const FLAG = "NODETOOL_USE_CORRELATION";
+} from "../src/edge-ids.js";
 
 describe("MessageEnvelope correlation fields", () => {
   it("defaults to empty lineage and empty source_edge_id", async () => {
@@ -68,37 +64,6 @@ describe("synthetic edge ids", () => {
     expect(externalEdgeId("user_input", "value")).toBe(
       "external:user_input:value"
     );
-  });
-});
-
-describe("correlation flag", () => {
-  const originalEnv = process.env[FLAG];
-
-  afterEach(() => {
-    if (originalEnv === undefined) {
-      delete process.env[FLAG];
-    } else {
-      process.env[FLAG] = originalEnv;
-    }
-  });
-
-  it("returns false when env var is unset", () => {
-    delete process.env[FLAG];
-    expect(isCorrelationEnabled()).toBe(false);
-  });
-
-  it("accepts 1, true, yes, on (case-insensitive)", () => {
-    for (const raw of ["1", "true", "TRUE", "yes", "On"]) {
-      process.env[FLAG] = raw;
-      expect(isCorrelationEnabled()).toBe(true);
-    }
-  });
-
-  it("rejects 0, false, empty, garbage", () => {
-    for (const raw of ["0", "false", "", "no", "garbage"]) {
-      process.env[FLAG] = raw;
-      expect(isCorrelationEnabled()).toBe(false);
-    }
   });
 });
 

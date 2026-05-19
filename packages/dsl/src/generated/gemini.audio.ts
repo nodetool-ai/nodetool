@@ -15,8 +15,8 @@ export interface TextToSpeechOutputs {
   output: AudioRef;
 }
 
-export function textToSpeech(inputs: TextToSpeechInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<TextToSpeechOutputs, "output"> {
-  return createNode("gemini.audio.TextToSpeech", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function textToSpeech(inputs: TextToSpeechInputs): DslNode<TextToSpeechOutputs, "output"> {
+  return createNode("gemini.audio.TextToSpeech", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Transcribe — gemini.audio.Transcribe
@@ -30,6 +30,6 @@ export interface TranscribeOutputs {
   output: string;
 }
 
-export function transcribe(inputs: TranscribeInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<TranscribeOutputs, "output"> {
-  return createNode("gemini.audio.Transcribe", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function transcribe(inputs: TranscribeInputs): DslNode<TranscribeOutputs, "output"> {
+  return createNode("gemini.audio.Transcribe", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

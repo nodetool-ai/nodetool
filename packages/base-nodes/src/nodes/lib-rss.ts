@@ -84,7 +84,6 @@ export class FetchRSSFeedLibNode extends BaseNode {
 
   static readonly inlineFields = ["url"];
   static readonly inputFields = [];
-  static readonly isStreamingOutput = true;
   @prop({
     type: "str",
     default: "",

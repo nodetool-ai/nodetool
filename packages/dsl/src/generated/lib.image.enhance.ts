@@ -14,8 +14,8 @@ export interface AdaptiveContrastOutputs {
   output: ImageRef;
 }
 
-export function adaptiveContrast(inputs: AdaptiveContrastInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<AdaptiveContrastOutputs, "output"> {
-  return createNode("lib.image.enhance.AdaptiveContrast", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function adaptiveContrast(inputs: AdaptiveContrastInputs): DslNode<AdaptiveContrastOutputs, "output"> {
+  return createNode("lib.image.enhance.AdaptiveContrast", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Auto Contrast — lib.image.enhance.AutoContrast
@@ -28,8 +28,8 @@ export interface AutoContrastOutputs {
   output: ImageRef;
 }
 
-export function autoContrast(inputs: AutoContrastInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<AutoContrastOutputs, "output"> {
-  return createNode("lib.image.enhance.AutoContrast", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function autoContrast(inputs: AutoContrastInputs): DslNode<AutoContrastOutputs, "output"> {
+  return createNode("lib.image.enhance.AutoContrast", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Brightness — lib.image.enhance.Brightness
@@ -42,8 +42,8 @@ export interface BrightnessOutputs {
   output: ImageRef;
 }
 
-export function brightness(inputs: BrightnessInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<BrightnessOutputs, "output"> {
-  return createNode("lib.image.enhance.Brightness", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function brightness(inputs: BrightnessInputs): DslNode<BrightnessOutputs, "output"> {
+  return createNode("lib.image.enhance.Brightness", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Color — lib.image.enhance.Color
@@ -56,8 +56,8 @@ export interface ColorOutputs {
   output: ImageRef;
 }
 
-export function color(inputs: ColorInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ColorOutputs, "output"> {
-  return createNode("lib.image.enhance.Color", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function color(inputs: ColorInputs): DslNode<ColorOutputs, "output"> {
+  return createNode("lib.image.enhance.Color", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Contrast — lib.image.enhance.Contrast
@@ -70,8 +70,8 @@ export interface ContrastOutputs {
   output: ImageRef;
 }
 
-export function contrast(inputs: ContrastInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ContrastOutputs, "output"> {
-  return createNode("lib.image.enhance.Contrast", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function contrast(inputs: ContrastInputs): DslNode<ContrastOutputs, "output"> {
+  return createNode("lib.image.enhance.Contrast", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Detail — lib.image.enhance.Detail
@@ -83,8 +83,8 @@ export interface DetailOutputs {
   output: ImageRef;
 }
 
-export function detail(inputs: DetailInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DetailOutputs, "output"> {
-  return createNode("lib.image.enhance.Detail", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function detail(inputs: DetailInputs): DslNode<DetailOutputs, "output"> {
+  return createNode("lib.image.enhance.Detail", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Edge Enhance — lib.image.enhance.EdgeEnhance
@@ -96,8 +96,8 @@ export interface EdgeEnhanceOutputs {
   output: ImageRef;
 }
 
-export function edgeEnhance(inputs: EdgeEnhanceInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<EdgeEnhanceOutputs, "output"> {
-  return createNode("lib.image.enhance.EdgeEnhance", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function edgeEnhance(inputs: EdgeEnhanceInputs): DslNode<EdgeEnhanceOutputs, "output"> {
+  return createNode("lib.image.enhance.EdgeEnhance", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Equalize — lib.image.enhance.Equalize
@@ -109,8 +109,8 @@ export interface EqualizeOutputs {
   output: ImageRef;
 }
 
-export function equalize(inputs: EqualizeInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<EqualizeOutputs, "output"> {
-  return createNode("lib.image.enhance.Equalize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function equalize(inputs: EqualizeInputs): DslNode<EqualizeOutputs, "output"> {
+  return createNode("lib.image.enhance.Equalize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Rank Filter — lib.image.enhance.RankFilter
@@ -124,8 +124,8 @@ export interface RankFilterOutputs {
   output: ImageRef;
 }
 
-export function rankFilter(inputs: RankFilterInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RankFilterOutputs, "output"> {
-  return createNode("lib.image.enhance.RankFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function rankFilter(inputs: RankFilterInputs): DslNode<RankFilterOutputs, "output"> {
+  return createNode("lib.image.enhance.RankFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Sharpen — lib.image.enhance.Sharpen
@@ -137,8 +137,8 @@ export interface SharpenOutputs {
   output: ImageRef;
 }
 
-export function sharpen(inputs: SharpenInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SharpenOutputs, "output"> {
-  return createNode("lib.image.enhance.Sharpen", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function sharpen(inputs: SharpenInputs): DslNode<SharpenOutputs, "output"> {
+  return createNode("lib.image.enhance.Sharpen", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Sharpness — lib.image.enhance.Sharpness
@@ -151,8 +151,8 @@ export interface SharpnessOutputs {
   output: ImageRef;
 }
 
-export function sharpness(inputs: SharpnessInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SharpnessOutputs, "output"> {
-  return createNode("lib.image.enhance.Sharpness", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function sharpness(inputs: SharpnessInputs): DslNode<SharpnessOutputs, "output"> {
+  return createNode("lib.image.enhance.Sharpness", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Unsharp Mask — lib.image.enhance.UnsharpMask
@@ -167,6 +167,6 @@ export interface UnsharpMaskOutputs {
   output: ImageRef;
 }
 
-export function unsharpMask(inputs: UnsharpMaskInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<UnsharpMaskOutputs, "output"> {
-  return createNode("lib.image.enhance.UnsharpMask", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function unsharpMask(inputs: UnsharpMaskInputs): DslNode<UnsharpMaskOutputs, "output"> {
+  return createNode("lib.image.enhance.UnsharpMask", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

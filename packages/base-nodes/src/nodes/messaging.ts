@@ -24,7 +24,6 @@ export class DiscordBotTrigger extends BaseNode {
   };
   static readonly requiredSettings = ["DISCORD_BOT_TOKEN"];
 
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     message_id: { kind: "iteration", source: "__execution__", group: "messages" },
@@ -241,7 +240,6 @@ export class TelegramBotTrigger extends BaseNode {
   };
   static readonly requiredSettings = ["TELEGRAM_BOT_TOKEN"];
 
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     update_id: { kind: "iteration", source: "__execution__", group: "messages" },

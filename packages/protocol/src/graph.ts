@@ -52,8 +52,6 @@ export type ControlEvent = RunEvent | StopEvent;
 // Node descriptor (minimal shape for the kernel layer)
 // ---------------------------------------------------------------------------
 
-export type SyncMode = "on_any" | "zip_all";
-
 export type InputMode = "buffered" | "stream" | "controlled";
 
 export type OutputKind =
@@ -158,9 +156,6 @@ export interface NodeDescriptor {
 
   /** Per-output correlation metadata. */
   output_correlation?: Record<string, OutputCorrelation>;
-
-  /** Sync mode: fire-on-first or wait-all. */
-  sync_mode?: SyncMode;
 
   /** Whether this node is controlled via control edges. */
   is_controlled?: boolean;

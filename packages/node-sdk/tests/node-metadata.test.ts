@@ -718,4 +718,45 @@ describe("getNodeMetadata – outputTypes support", () => {
     expect(meta.outputs[0].stream).toBeUndefined();
     expect(meta.is_streaming_output).toBe(true);
   });
+
+  it("auto-derives is_streaming_output when genProcess is overridden", () => {
+    class AutoStreamingNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.AutoStreaming";
+      static readonly title = "Auto Streaming";
+      static readonly description = "";
+      static readonly outputTypes = { value: "int" };
+
+      async process() {
+        return {};
+      }
+
+      async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+        yield { value: 1 };
+        yield { value: 2 };
+      }
+    }
+
+    const meta = getNodeMetadata(
+      AutoStreamingNode as unknown as import("../src/base-node.js").NodeClass
+    );
+    expect(meta.is_streaming_output).toBe(true);
+  });
+
+  it("leaves is_streaming_output false when neither flag nor genProcess override is set", () => {
+    class NonStreamingNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.NonStreaming";
+      static readonly title = "Non Streaming";
+      static readonly description = "";
+      static readonly outputTypes = { value: "int" };
+
+      async process() {
+        return { value: 1 };
+      }
+    }
+
+    const meta = getNodeMetadata(
+      NonStreamingNode as unknown as import("../src/base-node.js").NodeClass
+    );
+    expect(meta.is_streaming_output).toBe(false);
+  });
 });

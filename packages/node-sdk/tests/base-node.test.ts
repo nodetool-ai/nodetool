@@ -76,7 +76,6 @@ describe("BaseNode", () => {
   it("genProcess() streams outputs via executor", async () => {
     class StreamNode extends BaseNode {
       static readonly nodeType = "test.Stream";
-      static readonly isStreamingOutput = true;
       async process() {
         return {};
       }
@@ -152,7 +151,6 @@ describe("BaseNode", () => {
   it("toExecutor() genProcess passes _control_context via getDynamic()", async () => {
     class ContextStreamNode extends BaseNode {
       static readonly nodeType = "test.ContextStream";
-      static readonly isStreamingOutput = true;
       async process() {
         return {};
       }

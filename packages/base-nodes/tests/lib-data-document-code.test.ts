@@ -14,7 +14,6 @@ import {
   MergeDataframeNode,
   AppendDataframeNode,
   JoinDataframeNode,
-  RowIteratorNode,
   FindRowNode,
   SortByColumnNode,
   DropDuplicatesNode,
@@ -340,19 +339,6 @@ describe("data nodes", () => {
       const out = result.output as DF;
       expect(out.rows).toHaveLength(1);
       expect(out.rows[0]).toEqual({ id: 1, name: "Alice", score: 90 });
-    });
-  });
-
-  // -- RowIteratorNode --
-  describe("RowIteratorNode", () => {
-    it("yields each row with index", async () => {
-      const node = new RowIteratorNode();
-      Object.assign(node, { dataframe: df([{ v: "a" }, { v: "b" }]) });
-      const items = await collectGen(node.genProcess());
-      expect(items).toEqual([
-        { dict: { v: "a" }, index: 0 },
-        { dict: { v: "b" }, index: 1 }
-      ]);
     });
   });
 

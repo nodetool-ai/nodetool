@@ -13,9 +13,8 @@
  * The runtime correlation lineage is a token map; the static scope supplies
  * the ordering needed for projection, prefix checks, and `collapse: "innermost"`.
  *
- * This pass is consumed by `_runCorrelated` in PR 3. It is independent of the
- * `NODETOOL_USE_CORRELATION` flag — analysis can be run for diagnostics or
- * validation without flipping execution behavior.
+ * This pass is consumed by `_runCorrelated` and runs for every workflow before
+ * execution.
  */
 
 import type {
@@ -466,13 +465,6 @@ export function analyzeCorrelation(
       let contributorEdges: ReadonlySet<string> = EMPTY_SET;
 
       if (source === "__execution__") {
-        // Use the node execution scope.
-        base = {
-          scope: invocationScope,
-          repeats: false,
-          possibleChildRoots: EMPTY_SET
-        };
-
         // Repeats propagate from any single-edge non-list input at the
         // invocation scope that itself repeats.
         let repeatsAtExec = false;

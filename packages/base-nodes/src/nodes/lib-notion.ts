@@ -100,7 +100,6 @@ export class NotionSearchLibNode extends BaseNode {
   };
   static readonly exposeAsTool = true;
   static readonly requiredSettings = ["NOTION_API_KEY"];
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     result: { kind: "iteration", source: "__execution__", group: "items" },
@@ -308,7 +307,6 @@ export class NotionGetPageContentLibNode extends BaseNode {
   };
   static readonly exposeAsTool = true;
   static readonly requiredSettings = ["NOTION_API_KEY"];
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     block: { kind: "iteration", source: "__execution__", group: "items" },
@@ -609,7 +607,6 @@ export class NotionQueryDatabaseLibNode extends BaseNode {
   };
   static readonly exposeAsTool = true;
   static readonly requiredSettings = ["NOTION_API_KEY"];
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     result: { kind: "iteration", source: "__execution__", group: "items" },

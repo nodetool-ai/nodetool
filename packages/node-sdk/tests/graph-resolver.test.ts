@@ -40,7 +40,6 @@ class ZipNode extends BaseNode {
   static readonly nodeType = "test.zip.Node";
   static readonly title = "Zip Node";
   static readonly description = "";
-  static readonly syncMode = "zip_all" as const;
 
   async process() {
     return {};
@@ -112,7 +111,7 @@ describe("createGraphNodeTypeResolver", () => {
     expect(resolved?.nodeType).toBe("test.lazy.Node");
   });
 
-  it("hydrates descriptor sync_mode from the registered node class", async () => {
+  it("hydrates descriptor defaults from the registered node class", async () => {
     const registry = new NodeRegistry();
     registry.register(ZipNode, {
       metadata: {
@@ -130,8 +129,7 @@ describe("createGraphNodeTypeResolver", () => {
       input_mode: "buffered",
       output_correlation: {
         output: { kind: "single", source: "__execution__" }
-      },
-      sync_mode: "zip_all"
+      }
     });
   });
 });

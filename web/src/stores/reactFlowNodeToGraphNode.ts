@@ -77,7 +77,6 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     parent_id: node.parentId,
     ui_properties: ui_properties,
     dynamic_properties: node.data?.dynamic_properties || {},
-    dynamic_outputs: node.data?.dynamic_outputs || {},
-    sync_mode: node.data?.sync_mode || "on_any"
+    dynamic_outputs: node.data?.dynamic_outputs || {}
   };
 }

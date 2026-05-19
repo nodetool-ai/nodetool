@@ -139,7 +139,6 @@ export class ListWorkspaceFilesNode extends BaseNode {
     files: "list"
   };
 
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     file: { kind: "iteration", source: "__execution__", group: "items" },
@@ -720,6 +719,8 @@ export class SaveImageFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inputFields: string[] = ["image"];
+
 
   @prop({
     type: "image",
@@ -814,6 +815,8 @@ export class SaveVideoFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
+
 
   @prop({
     type: "video",

@@ -267,7 +267,6 @@ export class LoadImageFolderNode extends BaseNode {
   static readonly inlineFields = ["folder"];
   static readonly inputFields = [];
 
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     image: { kind: "iteration", source: "__execution__", group: "items" },
@@ -483,7 +482,6 @@ export class LoadImageAssetsNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = [];
 
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     image: { kind: "iteration", source: "__execution__", group: "items" },
@@ -781,7 +779,7 @@ export class ImageEditorNode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly inlineFields = ["sketch_data"];
-  static readonly inputFields = [];
+  static readonly inputFields = ["image", "mask"];
 
   @prop({
     type: "str",
@@ -2136,7 +2134,7 @@ export class PainterNode extends BaseNode {
     image: "image"
   };
   static readonly inlineFields = ["mask_data"];
-  static readonly inputFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",

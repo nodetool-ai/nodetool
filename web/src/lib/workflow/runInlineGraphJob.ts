@@ -23,17 +23,6 @@ interface InlineGraphJobResult {
   error?: string;
 }
 
-function normalizeGraph(graph: InlineGraph): WorkflowGraph {
-  return {
-    nodes: graph.nodes.map((node) => ({
-      ...node,
-      sync_mode:
-        typeof node.sync_mode === "string" ? node.sync_mode : "on_any"
-    })),
-    edges: graph.edges
-  };
-}
-
 function mergeOutputsRecord(
   into: Record<string, unknown>,
   from: Record<string, unknown>
@@ -67,7 +56,6 @@ export async function runInlineGraphJob(
     user_id = session?.user?.id ?? "";
   }
 
-  const normalized = normalizeGraph(graph);
   const outputs: Record<string, unknown> = {};
   let settled = false;
 
@@ -193,7 +181,7 @@ export async function runInlineGraphJob(
         api_url: BASE_URL,
         params,
         explicit_types: false,
-        graph: normalized
+        graph
       }
     });
   } catch (err) {

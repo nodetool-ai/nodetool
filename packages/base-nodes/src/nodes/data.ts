@@ -862,51 +862,6 @@ export class JoinDataframeNode extends BaseNode {
   }
 }
 
-export class RowIteratorNode extends BaseNode {
-  static readonly nodeType = "nodetool.data.RowIterator";
-  static readonly title = "Row Iterator";
-  static readonly description = "Iterate over rows of a dataframe.";
-  static readonly inlineFields = [];
-  static readonly inputFields = ["dataframe"];
-  static readonly metadataOutputTypes = {
-    dict: "dict",
-    index: "any"
-  };
-
-  static readonly isStreamingOutput = true;
-  static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
-    dict: { kind: "iteration", source: "dataframe", group: "items" },
-    index: { kind: "iteration", source: "dataframe", group: "items" }
-  };
-
-  @prop({
-    type: "dataframe",
-    default: {
-      type: "dataframe",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-      columns: null
-    },
-    title: "Dataframe",
-    description: "The input dataframe."
-  })
-  declare dataframe: any;
-
-  async process(): Promise<Record<string, unknown>> {
-    return {};
-  }
-
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
-    const rows = asRows(this.dataframe ?? this.dataframe);
-    for (const [index, row] of rows.entries()) {
-      yield { dict: row, index };
-    }
-  }
-}
-
 export class FindRowNode extends BaseNode {
   static readonly nodeType = "nodetool.data.FindRow";
   static readonly title = "Find Row";
@@ -1085,7 +1040,6 @@ export class ForEachRowNode extends BaseNode {
   };
   static readonly exposeAsTool = true;
 
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     row: { kind: "iteration", source: "dataframe", group: "items" },
@@ -1134,7 +1088,6 @@ export class LoadCSVAssetsNode extends BaseNode {
   };
   static readonly exposeAsTool = true;
 
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     dataframe: { kind: "iteration", source: "folder", group: "items" },
@@ -1643,7 +1596,6 @@ export class FilterNoneNode extends BaseNode {
   // Pre-existing across many test fixtures that assert the current shape;
   // converting requires a coordinated test refactor — left for a follow-up.
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "value" }
@@ -1755,7 +1707,6 @@ export const DATA_NODES = [
   MergeDataframeNode,
   AppendDataframeNode,
   JoinDataframeNode,
-  RowIteratorNode,
   FindRowNode,
   SortByColumnNode,
   DropDuplicatesNode,

@@ -68,7 +68,6 @@ export class ExecutePythonNode extends BaseNode {
     "Executes Python code with safety restrictions.\n    python, code, execute\n\n    Use cases:\n    - Run custom data transformations\n    - Prototype node functionality\n    - Debug and testing workflows\n\n    IMPORTANT: Only enabled in non-production environments";
   static readonly inlineFields = ["code"];
   static readonly inputFields = [];
-  static readonly isStreamingOutput = true;
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
@@ -215,7 +214,6 @@ export class ExecuteBashNode extends BaseNode {
     "Executes Bash script with safety restrictions.\n    bash, shell, code, execute";
   static readonly inlineFields = ["code"];
   static readonly inputFields = [];
-  static readonly isStreamingOutput = true;
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
@@ -295,7 +293,6 @@ export class ExecuteRubyNode extends BaseNode {
     "Executes Ruby code with safety restrictions.\n    ruby, code, execute";
   static readonly inlineFields = ["code"];
   static readonly inputFields = [];
-  static readonly isStreamingOutput = true;
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
@@ -369,7 +366,6 @@ export class ExecuteLuaNode extends BaseNode {
     "Executes Lua code with a local sandbox (no Docker).\n    lua, code, execute, sandbox";
   static readonly inlineFields = ["code"];
   static readonly inputFields = [];
-  static readonly isStreamingOutput = true;
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
@@ -467,7 +463,6 @@ export class ExecuteCommandNode extends BaseNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
-  static readonly isStreamingOutput = true;
   @prop({
     type: "str",
     default: "",

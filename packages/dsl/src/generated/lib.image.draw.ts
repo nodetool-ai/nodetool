@@ -14,8 +14,8 @@ export interface BackgroundOutputs {
   output: ImageRef;
 }
 
-export function background(inputs: BackgroundInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<BackgroundOutputs, "output"> {
-  return createNode("lib.image.draw.Background", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function background(inputs: BackgroundInputs): DslNode<BackgroundOutputs, "output"> {
+  return createNode("lib.image.draw.Background", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Gaussian Noise — lib.image.draw.GaussianNoise
@@ -30,8 +30,8 @@ export interface GaussianNoiseOutputs {
   output: ImageRef;
 }
 
-export function gaussianNoise(inputs: GaussianNoiseInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GaussianNoiseOutputs, "output"> {
-  return createNode("lib.image.draw.GaussianNoise", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function gaussianNoise(inputs: GaussianNoiseInputs): DslNode<GaussianNoiseOutputs, "output"> {
+  return createNode("lib.image.draw.GaussianNoise", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Render Text — lib.image.draw.RenderText
@@ -50,6 +50,6 @@ export interface RenderTextOutputs {
   output: ImageRef;
 }
 
-export function renderText(inputs: RenderTextInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RenderTextOutputs, "output"> {
-  return createNode("lib.image.draw.RenderText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function renderText(inputs: RenderTextInputs): DslNode<RenderTextOutputs, "output"> {
+  return createNode("lib.image.draw.RenderText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

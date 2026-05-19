@@ -103,7 +103,6 @@ export class CodeNode extends BaseNode {
   static readonly inputFields = [];
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
-  static readonly isStreamingOutput = true;
 
   /** Persistent state across streaming invocations; reset each workflow run. */
   private _state: Record<string, unknown> = {};
@@ -224,7 +223,7 @@ export class CodeNode extends BaseNode {
 function extractDynamicInputs(
   inputs: Record<string, unknown>
 ): Record<string, unknown> {
-  const reserved = new Set(["code", "timeout", "sync_mode"]);
+  const reserved = new Set(["code", "timeout"]);
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(inputs)) {
     if (reserved.has(key) || key.startsWith("_")) continue;

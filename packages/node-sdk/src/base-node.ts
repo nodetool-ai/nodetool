@@ -1,8 +1,7 @@
 import type {
   InputMode,
   NodeDescriptor,
-  OutputCorrelation,
-  SyncMode
+  OutputCorrelation
 } from "@nodetool-ai/protocol";
 import type { NodeExecutor } from "@nodetool-ai/kernel";
 import type {
@@ -69,7 +68,6 @@ export type NodeClass = {
   inputMode?: InputMode;
   outputCorrelation?: Record<string, OutputCorrelation>;
   isDynamic: boolean;
-  syncMode: SyncMode;
   isControlled: boolean;
   isJoinNode: boolean;
   exposeAsTool?: boolean;
@@ -116,6 +114,42 @@ export type NodeProps<T extends BaseNode> = Partial<
   Pick<T, Exclude<keyof T, BaseNodeKey | `__${string}` | `_${string}`>>
 >;
 
+/**
+ * True if a class is a streaming-output node. Resolution order:
+ *
+ *   1. Explicit static `isStreamingOutput` flag wins (rare opt-in/out).
+ *   2. Subclass overrides `genProcess` → it yields multiple values.
+ *   3. Any output handle declares `forward`, `iteration`, or `chunk`
+ *      correlation → the node emits per-input or per-iteration. `single`
+ *      and `aggregate` correlations indicate one value per execution.
+ *
+ * This lets pure-`process()` filter/reroute/forward nodes (IfNode, Output,
+ * FilterNone, etc.) declare streaming via correlation alone — no flag, no
+ * generator needed.
+ */
+export const hasStreamingOutput = (cls: NodeClass): boolean => {
+  if (cls.isStreamingOutput) {
+    return true;
+  }
+  const proto = (cls as unknown as { prototype?: { genProcess?: unknown } })
+    .prototype;
+  if (
+    !!proto?.genProcess &&
+    proto.genProcess !== BaseNode.prototype.genProcess
+  ) {
+    return true;
+  }
+  const corr = cls.outputCorrelation;
+  if (corr) {
+    for (const c of Object.values(corr)) {
+      if (c.kind === "forward" || c.kind === "iteration" || c.kind === "chunk") {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
 export abstract class BaseNode {
   static readonly nodeType: string = "";
   static readonly title: string = "";
@@ -134,7 +168,6 @@ export abstract class BaseNode {
     | Record<string, OutputCorrelation>
     | undefined = undefined;
   static readonly isDynamic: boolean = false;
-  static readonly syncMode: SyncMode = "zip_all";
   static readonly isControlled: boolean = false;
   /**
    * `Zip` and `Cross` set this to true so static correlation analysis allows
@@ -405,10 +438,9 @@ export abstract class BaseNode {
       type: cls.nodeType,
       name: cls.title,
       is_streaming_input: cls.isStreamingInput,
-      is_streaming_output: cls.isStreamingOutput,
+      is_streaming_output: hasStreamingOutput(cls as unknown as NodeClass),
       input_mode: cls.inputMode,
       output_correlation: cls.outputCorrelation,
-      sync_mode: cls.syncMode,
       is_controlled: cls.isControlled,
       is_join_node: cls.isJoinNode || undefined
     };

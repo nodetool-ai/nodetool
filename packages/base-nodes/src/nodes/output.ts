@@ -116,7 +116,6 @@ export class OutputNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["value"];
 
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "value" }

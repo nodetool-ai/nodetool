@@ -12,11 +12,7 @@ export {
   type ResolvedNodeType
 } from "./graph.js";
 export { NodeInbox, type MessageEnvelope } from "./inbox.js";
-export {
-  isCorrelationEnabled,
-  syntheticEdgeId,
-  externalEdgeId
-} from "./correlation-flag.js";
+export { syntheticEdgeId, externalEdgeId } from "./edge-ids.js";
 export {
   analyzeCorrelation,
   CorrelationAnalysisError,

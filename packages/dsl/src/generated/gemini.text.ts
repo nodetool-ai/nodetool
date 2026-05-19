@@ -14,8 +14,8 @@ export interface GroundedSearchOutputs {
   text: string;
 }
 
-export function groundedSearch(inputs: GroundedSearchInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GroundedSearchOutputs> {
-  return createNode("gemini.text.GroundedSearch", inputs as Record<string, unknown>, { outputNames: ["results", "sources", "text"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function groundedSearch(inputs: GroundedSearchInputs): DslNode<GroundedSearchOutputs> {
+  return createNode("gemini.text.GroundedSearch", inputs as Record<string, unknown>, { outputNames: ["results", "sources", "text"] });
 }
 
 // Embedding — gemini.text.Embedding
@@ -28,6 +28,6 @@ export interface EmbeddingOutputs {
   output: unknown[];
 }
 
-export function embedding(inputs: EmbeddingInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<EmbeddingOutputs, "output"> {
-  return createNode("gemini.text.Embedding", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function embedding(inputs: EmbeddingInputs): DslNode<EmbeddingOutputs, "output"> {
+  return createNode("gemini.text.Embedding", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

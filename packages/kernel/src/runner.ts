@@ -31,11 +31,7 @@ import { Graph, GraphValidationError } from "./graph.js";
 import { rewriteBypassedNodes } from "./graph-utils.js";
 import { NodeInbox } from "./inbox.js";
 import { NodeActor, type NodeExecutor } from "./actor.js";
-import {
-  externalEdgeId,
-  isCorrelationEnabled,
-  syntheticEdgeId
-} from "./correlation-flag.js";
+import { externalEdgeId, syntheticEdgeId } from "./edge-ids.js";
 import type { CorrelationLineage } from "@nodetool-ai/protocol";
 import {
   analyzeCorrelation,
@@ -196,8 +192,7 @@ export class WorkflowRunner {
   private _streamingEdges = new Map<string, boolean>();
 
   /**
-   * Static correlation analysis result. Populated only when
-   * `NODETOOL_USE_CORRELATION=1`; otherwise the legacy scheduler runs.
+   * Static correlation analysis result. Always populated before actors run.
    */
   private _correlation: CorrelationAnalysisResult | undefined;
 
@@ -344,28 +339,25 @@ export class WorkflowRunner {
       // Analyze streaming paths (Python parity: _analyze_streaming)
       this._analyzeStreaming();
 
-      // Static correlation analysis runs only under the feature flag so the
-      // legacy scheduler is unaffected. Issues abort the run with a graph
-      // validation error.
-      if (isCorrelationEnabled()) {
-        this._correlation = analyzeCorrelation({
-          nodes: this._graph.nodes,
-          edges: this._graph.edges
-        });
-        if (this._correlation.issues.length > 0) {
-          const lines = this._correlation.issues.map((i) => `  - ${i.message}`);
-          throw new GraphValidationError(
-            `Correlation analysis failed:\n${lines.join("\n")}`,
-            this._correlation.issues
-              .filter((i): i is typeof i & { nodeId: string } => !!i.nodeId)
-              .map((i) => ({
-                nodeId: i.nodeId,
-                nodeType: i.nodeType,
-                property: i.handle ?? "",
-                message: i.message
-              }))
-          );
-        }
+      // Static correlation analysis is mandatory. Issues abort the run with
+      // a graph validation error before any actor is spawned.
+      this._correlation = analyzeCorrelation({
+        nodes: this._graph.nodes,
+        edges: this._graph.edges
+      });
+      if (this._correlation.issues.length > 0) {
+        const lines = this._correlation.issues.map((i) => `  - ${i.message}`);
+        throw new GraphValidationError(
+          `Correlation analysis failed:\n${lines.join("\n")}`,
+          this._correlation.issues
+            .filter((i): i is typeof i & { nodeId: string } => !!i.nodeId)
+            .map((i) => ({
+              nodeId: i.nodeId,
+              nodeType: i.nodeType,
+              property: i.handle ?? "",
+              message: i.message
+            }))
+        );
       }
 
       // Validate
@@ -773,15 +765,6 @@ export class WorkflowRunner {
       const inbox = this._inboxes.get(node.id)!;
       const executor = this._options.resolveExecutor(node);
 
-      // Compute sticky handles: handles fed by non-streaming edges
-      // are sticky from the start (Python parity: _analyze_streaming).
-      const stickyHandles = new Set<string>();
-      for (const edge of incoming) {
-        if (!this.edgeStreams(edge)) {
-          stickyHandles.add(edge.targetHandle);
-        }
-      }
-
       // Build control context for controller nodes (Python parity:
       // _is_controller / _build_control_context). This tells the node
       // which downstream nodes it controls and their available properties.
@@ -798,7 +781,6 @@ export class WorkflowRunner {
           this._emit(msg as ProcessingMessage);
         },
         executionContext: this._options.executionContext,
-        stickyHandles,
         listInputHandles: this._multiEdgeListInputs.get(node.id),
         controlContext,
         correlation: this._correlation?.nodes.get(node.id)

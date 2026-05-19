@@ -19,7 +19,6 @@ export class WorkflowNode extends BaseNode {
     "Execute a sub-workflow. Select a workflow to populate its inputs and outputs dynamically.";
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "single", source: "__execution__" }

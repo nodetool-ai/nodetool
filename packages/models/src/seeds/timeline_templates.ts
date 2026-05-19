@@ -31,8 +31,7 @@ function node(def: NodeDef): Record<string, unknown> {
     parent_id: null,
     ui_properties: def.ui_properties ?? {},
     dynamic_properties: {},
-    dynamic_outputs: {},
-    sync_mode: "on_any"
+    dynamic_outputs: {}
   };
 }
 

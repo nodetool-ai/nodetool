@@ -160,14 +160,13 @@ export class GmailSearchLibNode extends BaseNode {
     message_ids: "list"
   };
   static readonly inlineFields = ["from_address", "subject"];
-  static readonly inputFields = [];
+  static readonly inputFields = ["text"];
   static readonly requiredSettings = [
     "GOOGLE_MAIL_USER",
     "GOOGLE_APP_PASSWORD"
   ];
   static readonly exposeAsTool = true;
 
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     email: { kind: "iteration", source: "__execution__", group: "items" },

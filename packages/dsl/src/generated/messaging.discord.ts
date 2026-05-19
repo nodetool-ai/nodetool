@@ -22,8 +22,8 @@ export interface DiscordBotTriggerOutputs {
   event_type: string;
 }
 
-export function discordBotTrigger(inputs: DiscordBotTriggerInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DiscordBotTriggerOutputs> {
-  return createNode("messaging.discord.DiscordBotTrigger", inputs as Record<string, unknown>, { outputNames: ["message_id", "content", "author", "channel", "guild", "attachments", "timestamp", "source", "event_type"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function discordBotTrigger(inputs: DiscordBotTriggerInputs): DslNode<DiscordBotTriggerOutputs> {
+  return createNode("messaging.discord.DiscordBotTrigger", inputs as Record<string, unknown>, { outputNames: ["message_id", "content", "author", "channel", "guild", "attachments", "timestamp", "source", "event_type"], streaming: true });
 }
 
 // Discord Send Message — messaging.discord.DiscordSendMessage
@@ -39,6 +39,6 @@ export interface DiscordSendMessageOutputs {
   output: Record<string, unknown>;
 }
 
-export function discordSendMessage(inputs: DiscordSendMessageInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DiscordSendMessageOutputs, "output"> {
-  return createNode("messaging.discord.DiscordSendMessage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function discordSendMessage(inputs: DiscordSendMessageInputs): DslNode<DiscordSendMessageOutputs, "output"> {
+  return createNode("messaging.discord.DiscordSendMessage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

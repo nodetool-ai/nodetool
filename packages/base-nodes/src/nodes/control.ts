@@ -12,10 +12,8 @@ export class IfNode extends BaseNode {
     if_false: "any"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["value", "condition"];
 
-  static readonly isStreamingOutput = true;
-  static readonly syncMode = "zip_all" as const;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     if_true: { kind: "forward", source: "value" },
@@ -58,9 +56,8 @@ export class ForEachNode extends BaseNode {
     index: "int"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["input_list"];
 
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "iteration", source: "__execution__", group: "items" },
@@ -112,10 +109,9 @@ export class TakeNode extends BaseNode {
     index: "int"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "stream";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_item" },
@@ -175,9 +171,8 @@ export class CollectNode extends BaseNode {
     output: "list[any]"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["input_item"];
 
-  static readonly syncMode = "on_any" as const;
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
@@ -217,10 +212,8 @@ export class RerouteNode extends BaseNode {
     output: "any"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["input_value"];
 
-  static readonly isStreamingOutput = true;
-  static readonly syncMode = "on_any" as const;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_value" }
@@ -249,7 +242,7 @@ export class SwitchNode extends BaseNode {
     index: "int"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["value", "input"];
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     matched: { kind: "forward", source: "input" },
@@ -306,7 +299,7 @@ export class TryCatchNode extends BaseNode {
     has_error: "bool"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["value", "fallback"];
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "value" },
@@ -354,10 +347,9 @@ export class DropNode extends BaseNode {
     index: "int"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "stream";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_item" },
@@ -424,10 +416,9 @@ export class FilterEqualNode extends BaseNode {
     output: "any"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["input_item", "value"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "stream";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_item" }
@@ -501,10 +492,9 @@ export class FilterCodeNode extends BaseNode {
     output: "any"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "stream";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_item" }
@@ -554,10 +544,9 @@ export class ChunkNode extends BaseNode {
     index: "int"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "stream";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "iteration", source: "input_item", group: "batch" },
@@ -619,7 +608,7 @@ export class LastNode extends BaseNode {
     output: "any"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
@@ -664,7 +653,7 @@ export class CountStreamNode extends BaseNode {
     output: "int"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
@@ -733,10 +722,9 @@ export class DistinctNode extends BaseNode {
     output: "any"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "stream";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_item" }
@@ -788,10 +776,9 @@ export class TakeWhileNode extends BaseNode {
     output: "any"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "stream";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_item" }
@@ -845,10 +832,9 @@ export class DropWhileNode extends BaseNode {
     output: "any"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "stream";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_item" }
@@ -900,10 +886,9 @@ export class TapNode extends BaseNode {
     output: "any"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "stream";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "input_item" }
@@ -972,7 +957,7 @@ export class ZipNode extends BaseNode {
     index: "int"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["left", "right"];
 
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
@@ -1144,7 +1129,7 @@ export class CrossNode extends BaseNode {
     right: "any"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = [];
+  static readonly inputFields = ["left", "right"];
 
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";

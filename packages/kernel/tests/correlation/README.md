@@ -21,7 +21,6 @@ nodes the design has not classified yet.
 | source EOS synthesizes `lineage_scope_closed` | `drops-closes/` |
 | explicit join matches by identity | `explicit-joins/` |
 | limits bound pending state        | `limits/`       |
-| flag isolates behaviour           | `flag-compat/`  |
 | descriptor validation rejects bad metadata | `descriptor-validation/` |
 | Python bridge round-trips lineage | `bridge/` (blocked on PR 4a/4b) |
 

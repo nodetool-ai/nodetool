@@ -72,7 +72,11 @@ import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
 import falCreditsRoute from "./routes/fal-credits.js";
 import falPricingRoute from "./routes/fal-pricing.js";
-import { agentSocketRoute, getAgentRuntime } from "./agent/index.js";
+import {
+  agentSocketRoute,
+  getAgentRuntime,
+  setLlmAgentGraphPlannerRegistry
+} from "./agent/index.js";
 
 // @llamaindex/liteparse bundles a webpack pdf.js whose `isNodeJS` heuristic
 // resolves to false inside Electron utilityProcess (process.type === "utility"),
@@ -380,6 +384,7 @@ if (process.env["NODETOOL_ENV"] !== "production") {
 registerFalNodes(registry);
 registerKieNodes(registry);
 registerReplicateNodes(registry);
+setLlmAgentGraphPlannerRegistry(registry);
 if (process.env["NODETOOL_ENV"] !== "production") {
   registerTransformersJsProvider();
 }

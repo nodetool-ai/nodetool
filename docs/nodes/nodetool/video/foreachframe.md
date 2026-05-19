@@ -1,11 +1,11 @@
 ---
 layout: page
-title: "Frame Iterator"
-node_type: "nodetool.video.FrameIterator"
+title: "For Each Frame"
+node_type: "nodetool.video.ForEachFrame"
 namespace: "nodetool.video"
 ---
 
-**Type:** `nodetool.video.FrameIterator`
+**Type:** `nodetool.video.ForEachFrame`
 
 **Namespace:** `nodetool.video`
 
