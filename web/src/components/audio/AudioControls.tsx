@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
-import React, { useCallback, ReactElement } from "react";
+import React, { useCallback, useMemo, ReactElement, memo } from "react";
 import { Text, ToolbarIconButton } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
@@ -154,7 +154,7 @@ async function download(filename: string, assetUrl: string) {
   }
 }
 
-const AudioControls: React.FC<AudioControlsProps> = ({
+const AudioControls: React.FC<AudioControlsProps> = memo(({
   fontSize = "tiny",
   isPlaying = false,
   zoom,
@@ -168,6 +168,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
   onZoomChange
 }): ReactElement => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const handleSliderChange = useCallback(
     (event: Event, newValue: number | number[], _activeThumb: number): void => {
       event.preventDefault();
@@ -195,7 +196,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
 
   return (
     <div
-      css={styles(theme)}
+      css={cssStyles}
       className="audio-controls"
       style={{ position: "relative" }}
     >
@@ -252,6 +253,6 @@ const AudioControls: React.FC<AudioControlsProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default AudioControls;
