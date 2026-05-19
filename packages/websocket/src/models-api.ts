@@ -201,12 +201,12 @@ async function repoFileInCache(
   relativePath: string
 ): Promise<boolean> {
   const snapshotDirs = await listSnapshotDirs(repoId);
-  for (const snapshotDir of snapshotDirs) {
-    if (await pathExists(join(snapshotDir, relativePath))) {
-      return true;
-    }
-  }
-  return false;
+  const checks = await Promise.all(
+    snapshotDirs.map((snapshotDir) =>
+      pathExists(join(snapshotDir, relativePath))
+    )
+  );
+  return checks.some((exists) => exists);
 }
 
 async function listRepoCachedFiles(repoId: string): Promise<string[]> {
