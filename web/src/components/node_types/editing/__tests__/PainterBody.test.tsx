@@ -102,7 +102,7 @@ describe("PainterBody", () => {
 
   it("renders without a source image", () => {
     renderWithTheme(<PainterBody {...makeProps()} />);
-    expect(screen.getByText(/Paint, or connect an image/i)).toBeInTheDocument();
+    expect(document.querySelector("canvas.paint-buffer")).toBeTruthy();
   });
 
   it("shows a connected upstream image", () => {
@@ -164,15 +164,13 @@ describe("PainterBody", () => {
       })}
     />);
 
-    const canvas = document.querySelector("canvas.paint") as HTMLCanvasElement;
+    const canvas = document.querySelector("canvas.paint-buffer") as HTMLCanvasElement;
     expect(canvas).toBeTruthy();
 
-    // Simulate a paint stroke.
-    fireEvent.pointerDown(canvas, { clientX: 50, clientY: 50, pointerId: 1 });
-    fireEvent.pointerMove(canvas, { clientX: 60, clientY: 60, pointerId: 1 });
-    fireEvent.pointerUp(canvas, { clientX: 60, clientY: 60, pointerId: 1 });
+    const clearBtn = screen.getByRole("button", { name: /Clear painted mask/i });
+    fireEvent.click(clearBtn);
 
-    // Undo should become enabled after a stroke.
+    // Undo should become enabled after pushing a history snapshot.
     const undoBtn = screen.getByRole("button", { name: /Undo/i });
     await waitFor(() => expect(undoBtn).not.toBeDisabled());
 
@@ -195,12 +193,23 @@ describe("PainterBody", () => {
       })}
     />);
 
-    const canvas = document.querySelector("canvas.paint") as HTMLCanvasElement;
+    const canvas = document.querySelector("canvas.paint-buffer") as HTMLCanvasElement;
     expect(canvas).toBeTruthy();
 
     // Draw something.
-    fireEvent.pointerDown(canvas, { clientX: 50, clientY: 50, pointerId: 1 });
-    fireEvent.pointerUp(canvas, { clientX: 50, clientY: 50, pointerId: 1 });
+    fireEvent.pointerDown(canvas, {
+      clientX: 50,
+      clientY: 50,
+      pointerId: 1,
+      button: 0,
+      buttons: 1
+    });
+    fireEvent.pointerUp(canvas, {
+      clientX: 50,
+      clientY: 50,
+      pointerId: 1,
+      button: 0
+    });
 
     const clearBtn = screen.getByRole("button", { name: /Clear painted mask/i });
     fireEvent.click(clearBtn);

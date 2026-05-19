@@ -141,8 +141,25 @@ describe("MasksExtractorBody", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockUseNodes.mockReturnValue(undefined);
-    mockUseResultsStore.mockReturnValue(undefined);
+    mockUseNodes.mockImplementation((selector: (state: unknown) => unknown) => {
+      if (typeof selector === "function") {
+        return selector({
+          edges: [],
+          findNode: jest.fn(() => undefined)
+        });
+      }
+      return undefined;
+    });
+    mockUseResultsStore.mockImplementation((selector: (state: unknown) => unknown) => {
+      if (typeof selector === "function") {
+        return selector({
+          getOutputResult: () => undefined,
+          getPreview: () => undefined,
+          getResult: () => undefined
+        });
+      }
+      return undefined;
+    });
     mockUseRunSingleNode.mockReturnValue({
       runSingleNode: mockRunSingleNode,
       isWorkflowRunning: false
@@ -175,12 +192,22 @@ describe("MasksExtractorBody", () => {
   });
 
   it("shows upstream image in Image tab when edge is connected", () => {
-    mockUseNodes.mockReturnValue({
-      id: "edge-1",
-      source: "upstream-node",
-      target: "node-1",
-      sourceHandle: "output",
-      targetHandle: "image"
+    mockUseNodes.mockImplementation((selector: (state: unknown) => unknown) => {
+      if (typeof selector === "function") {
+        return selector({
+          edges: [
+            {
+              id: "edge-1",
+              source: "upstream-node",
+              target: "node-1",
+              sourceHandle: "output",
+              targetHandle: "image"
+            }
+          ],
+          findNode: jest.fn(() => undefined)
+        });
+      }
+      return undefined;
     });
 
     mockUseResultsStore.mockImplementation((selector: (state: unknown) => unknown) => {
