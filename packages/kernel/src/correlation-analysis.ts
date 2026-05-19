@@ -384,28 +384,49 @@ export function analyzeCorrelation(
 
     // Compute invocation scope: the largest non-empty input scope. Validate
     // that all non-empty input scopes are pairwise prefix-comparable.
+    //
+    // Join nodes (Zip/Cross, §7) are the only nodes allowed to receive
+    // incomparable scopes. Their invocation scope is the longest common
+    // parent prefix across all non-empty input scopes; their iteration
+    // outputs append the join root on top of that prefix.
     let invocationScope: Scope = [];
     const nonEmptyHandles: string[] = [];
     for (const [handle, info] of inputs) {
       if (info.scope.length === 0) continue;
       nonEmptyHandles.push(handle);
     }
-    for (let i = 0; i < nonEmptyHandles.length; i++) {
-      for (let j = i + 1; j < nonEmptyHandles.length; j++) {
-        const a = inputs.get(nonEmptyHandles[i])!.scope;
-        const b = inputs.get(nonEmptyHandles[j])!.scope;
-        if (!comparable(a, b)) {
-          issues.push({
-            nodeId: node.id,
-            nodeType: node.type,
-            message: `Inputs "${nonEmptyHandles[i]}" and "${nonEmptyHandles[j]}" come from independent iteration sources (scopes ${formatScope(a)} and ${formatScope(b)}). Add Zip or Cross to declare how they should join.`
-          });
+    if (!node.is_join_node) {
+      for (let i = 0; i < nonEmptyHandles.length; i++) {
+        for (let j = i + 1; j < nonEmptyHandles.length; j++) {
+          const a = inputs.get(nonEmptyHandles[i])!.scope;
+          const b = inputs.get(nonEmptyHandles[j])!.scope;
+          if (!comparable(a, b)) {
+            issues.push({
+              nodeId: node.id,
+              nodeType: node.type,
+              message: `Inputs "${nonEmptyHandles[i]}" and "${nonEmptyHandles[j]}" come from independent iteration sources (scopes ${formatScope(a)} and ${formatScope(b)}). Add Zip or Cross to declare how they should join.`
+            });
+          }
         }
       }
-    }
-    for (const handle of nonEmptyHandles) {
-      const sc = inputs.get(handle)!.scope;
-      if (sc.length > invocationScope.length) invocationScope = sc;
+      for (const handle of nonEmptyHandles) {
+        const sc = inputs.get(handle)!.scope;
+        if (sc.length > invocationScope.length) invocationScope = sc;
+      }
+    } else {
+      // Compute longest common parent prefix across all non-empty inputs.
+      let common: Scope | null = null;
+      for (const handle of nonEmptyHandles) {
+        const sc = inputs.get(handle)!.scope;
+        if (common === null) {
+          common = sc;
+          continue;
+        }
+        let i = 0;
+        while (i < common.length && i < sc.length && common[i] === sc[i]) i++;
+        common = common.slice(0, i);
+      }
+      invocationScope = common ?? [];
     }
 
     // Determine input mode (for output validation rules).

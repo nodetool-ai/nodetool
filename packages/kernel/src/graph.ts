@@ -390,7 +390,9 @@ export class Graph {
         input_mode: descriptorDefaults.input_mode,
         output_correlation: descriptorDefaults.output_correlation,
         is_controlled:
-          descriptorDefaults.is_controlled || node.is_controlled || false
+          descriptorDefaults.is_controlled || node.is_controlled || false,
+        is_join_node:
+          descriptorDefaults.is_join_node || node.is_join_node || undefined
       };
 
       resolvedNodes.push(hydratedNode);

@@ -42,6 +42,12 @@ import {
 export interface OutputRoutingHints {
   invocationLineage?: CorrelationLineage;
   perSlotLineage?: Record<string, CorrelationLineage>;
+  /**
+   * Slots in this set are being dropped (lineage_done) for the given lineage,
+   * not emitted with a value. §5. The runner sends `signalLineageDone` to
+   * downstream inboxes instead of `put`.
+   */
+  lineageDoneSlots?: Set<string>;
 }
 
 export type { NodeExecutor };
@@ -248,12 +254,25 @@ export class NodeActor {
           const nodeOutputs = new NodeOutputs({
             sendFn: async (slot: string, value: unknown, opts) => {
               const hints: OutputRoutingHints = {};
-              if (opts?.lineage !== undefined) {
-                hints.perSlotLineage = { [slot]: opts.lineage };
+              const callerSuppliedLineage = opts?.lineage !== undefined;
+              if (callerSuppliedLineage) {
+                hints.perSlotLineage = { [slot]: opts!.lineage! };
               } else {
                 const inherited = this._computeInvocationLineage();
                 if (inherited !== undefined) {
                   hints.invocationLineage = inherited;
+                }
+                // Iteration outputs declared on this node mint a token per
+                // (group, parent_key) so `outputs.emit()` without explicit
+                // lineage still attaches the new root. Skip when the caller
+                // supplied lineage — they own the lineage shape (e.g.
+                // forward(), or a source seeding its own root).
+                const minted = this._maybeMintForSlot(slot, hints);
+                if (minted) {
+                  hints.perSlotLineage = {
+                    ...(hints.perSlotLineage ?? {}),
+                    [slot]: minted
+                  };
                 }
               }
               await this._sendOutputs(
@@ -261,6 +280,13 @@ export class NodeActor {
                 { [slot]: value },
                 hints
               );
+            },
+            dropFn: async (slot: string, envelope) => {
+              // outputs.drop(slot, envelope) → send `lineage_done` on every
+              // outgoing edge for `slot` at the envelope's projected key.
+              // §5. The drop signal lets downstream joins move past keys
+              // that were intentionally filtered out.
+              await this._propagateLineageDone(slot, envelope.correlation_lineage);
             }
           });
           await this._executor.run(
@@ -902,6 +928,50 @@ export class NodeActor {
 
   /** Tokens minted for the most recent frame, reused by output lineage. */
   private _lastMintedFrameTokens = new Map<string, number>();
+
+  /**
+   * For stream-mode iteration outputs (e.g. `Zip.pair`), mint a fresh token
+   * whenever `outputs.emit()` is called without an explicit lineage. Each
+   * emit is a logical item, so the token advances per call. Sibling-handle
+   * reuse within a single frame is handled by genProcess via
+   * `_mintIterationFrameOverrides`; stream nodes that need grouped emission
+   * across sibling handles should use a future `outputs.emitGroup()` API.
+   */
+  private _maybeMintForSlot(
+    slot: string,
+    hints: OutputRoutingHints
+  ): CorrelationLineage | undefined {
+    const corr = this.node.output_correlation?.[slot];
+    if (!corr || corr.kind !== "iteration") return undefined;
+    const root = iterationRootId(this.node.id, slot, corr.group);
+    const parentLineage = hints.invocationLineage ?? EMPTY_LINEAGE;
+    const parentKey = this._correlation
+      ? projectLineageKey(parentLineage, this._correlation.invocationScope)
+      : "";
+    const index = this._mintIterationToken(root, parentKey);
+    return { ...parentLineage, [root]: { index } };
+  }
+
+  /**
+   * For each outgoing edge that consumes `slot`, send `signalLineageDone` to
+   * the downstream inbox with the envelope's projected key. §5/§6.
+   */
+  private async _propagateLineageDone(
+    slot: string,
+    lineage: CorrelationLineage
+  ): Promise<void> {
+    // The actor doesn't know the downstream inbox map directly; the runner
+    // owns _sendOutputs. We extend the routing channel by passing a sentinel
+    // value with `__lineage_done__` metadata so the runner can dispatch it.
+    await this._sendOutputs(
+      this.node.id,
+      { [slot]: undefined },
+      {
+        perSlotLineage: { [slot]: lineage },
+        lineageDoneSlots: new Set([slot])
+      } as OutputRoutingHints
+    );
+  }
 
   /**
    * True while `_runCorrelated` is the active execution path. PR 3 keeps the

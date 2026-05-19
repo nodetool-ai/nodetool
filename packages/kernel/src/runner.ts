@@ -54,6 +54,12 @@ export interface OutputRoutingHints {
   invocationLineage?: CorrelationLineage;
   /** Explicit per-slot lineage overrides (e.g. from outputs.forward). */
   perSlotLineage?: Record<string, CorrelationLineage>;
+  /**
+   * Slots being dropped for the given lineage. The runner sends
+   * `signalLineageDone` to downstream inboxes for these slots instead of
+   * delivering a value. §5.
+   */
+  lineageDoneSlots?: Set<string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -937,6 +943,41 @@ export class WorkflowRunner {
         });
         // Track that this edge has routed at least one event
         this._controlEdgesRouted.add(ctrlEdgeId);
+        continue;
+      }
+
+      // Drop signal: send `lineage_done` to the downstream inbox instead of
+      // delivering a value. §5. The actor sets `lineageDoneSlots` when a
+      // stream node calls `outputs.drop()`.
+      if (routingHints.lineageDoneSlots?.has(edge.sourceHandle)) {
+        const targetInboxDrop = this._inboxes.get(edge.target);
+        if (!targetInboxDrop) continue;
+        const lineage =
+          routingHints.perSlotLineage?.[edge.sourceHandle] ?? {};
+        const edgeId =
+          edge.id ??
+          syntheticEdgeId(
+            edge.source,
+            edge.sourceHandle,
+            edge.target,
+            edge.targetHandle
+          );
+        // Use the downstream input handle's static scope so the projection
+        // keys match the actor's bucket key on that handle.
+        const downstreamScope =
+          this._correlation?.nodes
+            .get(edge.target)
+            ?.inputs.get(edge.targetHandle)?.scope ?? [];
+        targetInboxDrop.signalLineageDone(
+          edge.targetHandle,
+          {
+            type: "lineage_done",
+            source_edge_id: edgeId,
+            output: edge.sourceHandle,
+            lineage
+          },
+          downstreamScope
+        );
         continue;
       }
 

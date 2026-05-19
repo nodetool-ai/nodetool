@@ -942,6 +942,223 @@ export class TapNode extends BaseNode {
   }
 }
 
+/**
+ * Zip — explicit join for two independent iteration sources.
+ *
+ * §7 of docs/correlation-design.md. Pairs values by matched iteration `index`
+ * within the longest common parent prefix. V1 accepts at most one differing
+ * iteration root per input after the prefix; deeper differences must be
+ * aggregated or zipped in stages first. Emits a new iteration root
+ * `${node.id}:zip` so downstream nodes see one ordinary correlated stream.
+ */
+export class ZipNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.Zip";
+  static readonly title = "Zip";
+  static readonly description =
+    "Pair items from two independent iteration sources by matched index within the common parent.";
+  static readonly metadataOutputTypes = {
+    left: "any",
+    right: "any",
+    index: "int"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
+
+  static readonly isStreamingInput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly isJoinNode = true;
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    left: { kind: "iteration", source: "__execution__", group: "zip" },
+    right: { kind: "iteration", source: "__execution__", group: "zip" },
+    index: { kind: "iteration", source: "__execution__", group: "zip" }
+  };
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Left",
+    description: "Left iteration source."
+  })
+  declare left: any;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Right",
+    description: "Right iteration source."
+  })
+  declare right: any;
+
+  @prop({
+    type: "int",
+    default: 1024,
+    title: "Max Unmatched Pairs",
+    description:
+      "Maximum number of unmatched items to buffer before failing. §7."
+  })
+  declare max_unmatched_pairs: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    // Buffer each side keyed by the differing root's index, projected to
+    // their common-parent key. Once both sides have a value for the same
+    // (parent_key, index) bucket, emit a paired frame. The actor mints the
+    // group's iteration root; outputs.emit relies on it via the actor's
+    // per-slot lineage rules.
+    const limit = Math.max(1, Number(this.max_unmatched_pairs ?? 1024));
+    const lefts = new Map<string, unknown>();
+    const rights = new Map<string, unknown>();
+
+    const bucketKey = (env: { correlation_lineage: Record<string, { index: number }> }): string => {
+      // Use a deterministic key from the lineage map: scope-order is not
+      // available here, so include every (root,index) pair sorted by root
+      // name. This keys per identical lineage projection.
+      const parts = Object.keys(env.correlation_lineage)
+        .sort()
+        .map((k) => `${k}=${env.correlation_lineage[k].index}`);
+      return parts.join(",");
+    };
+
+    const tryEmit = async () => {
+      for (const [key, lval] of lefts) {
+        if (rights.has(key)) {
+          const rval = rights.get(key);
+          lefts.delete(key);
+          rights.delete(key);
+          await outputs.emit("left", lval);
+          await outputs.emit("right", rval);
+        }
+      }
+    };
+
+    const watchLimit = () => {
+      if (lefts.size > limit || rights.size > limit) {
+        throw new Error(
+          `Zip node "${(this as { id?: string }).id ?? "?"}" exceeded ` +
+            `max_unmatched_pairs (${limit}). §7 — likely one side is missing values.`
+        );
+      }
+    };
+
+    // Drain both inputs concurrently.
+    const leftLoop = (async () => {
+      for await (const env of inputs.streamWithEnvelope("left")) {
+        lefts.set(bucketKey(env), env.data);
+        watchLimit();
+        await tryEmit();
+      }
+    })();
+    const rightLoop = (async () => {
+      for await (const env of inputs.streamWithEnvelope("right")) {
+        rights.set(bucketKey(env), env.data);
+        watchLimit();
+        await tryEmit();
+      }
+    })();
+    await Promise.all([leftLoop, rightLoop]);
+    await tryEmit();
+  }
+}
+
+/**
+ * Cross — cartesian product of two iteration sources within their common
+ * parent prefix. §7.
+ *
+ * V1 buffers both sides until their scopes close for the common parent key
+ * and errors before emitting more than `max_output_count` pairs.
+ */
+export class CrossNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.Cross";
+  static readonly title = "Cross";
+  static readonly description =
+    "Emit the cartesian product of two iteration sources within their common parent.";
+  static readonly metadataOutputTypes = {
+    left: "any",
+    right: "any"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
+
+  static readonly isStreamingInput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly isJoinNode = true;
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    left: { kind: "iteration", source: "__execution__", group: "cross" },
+    right: { kind: "iteration", source: "__execution__", group: "cross" }
+  };
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Left",
+    description: "Left iteration source."
+  })
+  declare left: any;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Right",
+    description: "Right iteration source."
+  })
+  declare right: any;
+
+  @prop({
+    type: "int",
+    default: 1024,
+    title: "Max Output Count",
+    description:
+      "Maximum number of pairs to emit. Buffering both sides without a cap can blow memory."
+  })
+  declare max_output_count: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const limit = Math.max(1, Number(this.max_output_count ?? 1024));
+    const lefts: unknown[] = [];
+    const rights: unknown[] = [];
+
+    const leftLoop = (async () => {
+      for await (const v of inputs.stream("left")) {
+        lefts.push(v);
+      }
+    })();
+    const rightLoop = (async () => {
+      for await (const v of inputs.stream("right")) {
+        rights.push(v);
+      }
+    })();
+    await Promise.all([leftLoop, rightLoop]);
+
+    let emitted = 0;
+    for (const l of lefts) {
+      for (const r of rights) {
+        if (emitted >= limit) {
+          throw new Error(
+            `Cross node exceeded max_output_count (${limit}); ` +
+              `truncate the inputs or raise the limit. §7.`
+          );
+        }
+        await outputs.emit("left", l);
+        await outputs.emit("right", r);
+        emitted++;
+      }
+    }
+  }
+}
+
 export const CONTROL_NODES = [
   IfNode,
   ForEachNode,
@@ -959,5 +1176,7 @@ export const CONTROL_NODES = [
   CollectNode,
   RerouteNode,
   SwitchNode,
-  TryCatchNode
+  TryCatchNode,
+  ZipNode,
+  CrossNode
 ] as const;

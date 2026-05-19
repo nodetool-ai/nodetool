@@ -71,6 +71,7 @@ export type NodeClass = {
   isDynamic: boolean;
   syncMode: SyncMode;
   isControlled: boolean;
+  isJoinNode: boolean;
   exposeAsTool?: boolean;
   supportsDynamicOutputs?: boolean;
   autoSaveAsset: boolean;
@@ -135,6 +136,12 @@ export abstract class BaseNode {
   static readonly isDynamic: boolean = false;
   static readonly syncMode: SyncMode = "zip_all";
   static readonly isControlled: boolean = false;
+  /**
+   * `Zip` and `Cross` set this to true so static correlation analysis allows
+   * incomparable input scopes on these nodes only. See
+   * docs/correlation-design.md §7.
+   */
+  static readonly isJoinNode: boolean = false;
   static readonly exposeAsTool: boolean | undefined = undefined;
   static readonly supportsDynamicOutputs: boolean | undefined = undefined;
   static readonly autoSaveAsset: boolean = false;
@@ -402,7 +409,8 @@ export abstract class BaseNode {
       input_mode: cls.inputMode,
       output_correlation: cls.outputCorrelation,
       sync_mode: cls.syncMode,
-      is_controlled: cls.isControlled
+      is_controlled: cls.isControlled,
+      is_join_node: cls.isJoinNode || undefined
     };
     if (Object.keys(propertyTypes).length > 0) {
       desc.propertyTypes = propertyTypes;

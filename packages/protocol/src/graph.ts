@@ -168,6 +168,14 @@ export interface NodeDescriptor {
   /** Whether this node is dynamic (runtime outputs). */
   is_dynamic?: boolean;
 
+  /**
+   * If true, this node is an explicit join (`Zip` or `Cross`) and is allowed
+   * to receive inputs whose scopes are pairwise incomparable. Static
+   * correlation analysis emits the joined output at
+   * `commonParentPrefix + [iterationRoot]`. §7.
+   */
+  is_join_node?: boolean;
+
   /** Property type strings keyed by property name (e.g. { values: "list[int]" }). */
   propertyTypes?: Record<string, string>;
 
