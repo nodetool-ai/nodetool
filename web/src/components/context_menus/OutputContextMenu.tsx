@@ -34,13 +34,15 @@ const OutputContextMenu: React.FC = () => {
     menuPosition,
     closeContextMenu,
     type: sourceType,
-    handleId: sourceHandle
+    handleId: sourceHandle,
+    payload
   } = useContextMenuStore((state) => ({
     nodeId: state.nodeId,
     menuPosition: state.menuPosition,
     closeContextMenu: state.closeContextMenu,
     type: state.type,
-    handleId: state.handleId
+    handleId: state.handleId,
+    payload: state.payload
   }), shallow);
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
@@ -362,14 +364,23 @@ const OutputContextMenu: React.FC = () => {
       if (!menuPosition) {
         return;
       }
+      const anchorPosition =
+        (payload as { dropPosition?: { x: number; y: number } } | null)
+          ?.dropPosition ?? menuPosition;
       const property = getPreferredConnectableInput(metadata);
       if (!property) {
         return;
       }
-      createNodeWithEdge(metadata, menuPosition, "connectable", property.name);
+      createNodeWithEdge(metadata, anchorPosition, "connectable", property.name);
       closeContextMenu();
     },
-    [closeContextMenu, createNodeWithEdge, getPreferredConnectableInput, menuPosition]
+    [
+      closeContextMenu,
+      createNodeWithEdge,
+      getPreferredConnectableInput,
+      menuPosition,
+      payload
+    ]
   );
 
   useEffect(() => {

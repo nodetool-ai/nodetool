@@ -649,12 +649,15 @@ const InputContextMenu: React.FC = () => {
       if (!menuPosition) {
         return;
       }
+      const anchorPosition =
+        (payload as { dropPosition?: { x: number; y: number } } | null)
+          ?.dropPosition ?? menuPosition;
       const outputName = getPreferredConnectableOutput(metadata);
       if (!outputName) {
         return;
       }
       const isCollect = type ? isCollectType(type) : false;
-      const placement = computeFlowPosition(menuPosition, metadata);
+      const placement = computeFlowPosition(anchorPosition, metadata);
       const newNode = createNode(metadata, {
         x: placement.x,
         y: placement.y
@@ -682,6 +685,7 @@ const InputContextMenu: React.FC = () => {
     },
     [
       menuPosition,
+      payload,
       getPreferredConnectableOutput,
       type,
       computeFlowPosition,
