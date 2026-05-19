@@ -18,8 +18,10 @@ import ImageIcon from "@mui/icons-material/Image";
 import MovieIcon from "@mui/icons-material/Movie";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
-import BoltIcon from "@mui/icons-material/Bolt";
 import BuildIcon from "@mui/icons-material/Build";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
+import LoginIcon from "@mui/icons-material/Login";
+import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { IconForType } from "./data_types";
 
 import type { NodeMetadata } from "../stores/ApiTypes";
@@ -33,11 +35,13 @@ export type QuickAccessCategoryId =
   | "history"
   | "workflows"
   | "assets"
+  | "io"
   | "image-models"
   | "video-models"
   | "audio-models"
   | "3d-models"
-  | "quick-access"
+  | "agents"
+  | "control-flow"
   | "tools";
 
 export type QuickAccessCategoryKind = "panel" | "tile-grid";
@@ -60,24 +64,6 @@ const primaryVariantIs =
     const v = getContentCardVariant(getPrimaryOutput(m));
     return variants.includes(v);
   };
-
-/**
- * Quick-access entries (plan §7.3 row "Quick access"): "Prompt, Import,
- * Export, Preview, Import Model, Import LoRA — useful primitives". Resolved
- * to the actual node_types present in the registry.
- */
-const QUICK_ACCESS_NODE_TYPES = new Set<string>([
-  "nodetool.agents.Agent",
-  "nodetool.input.StringInput",
-  "nodetool.input.ImageInput",
-  "nodetool.input.IntegerInput",
-  "nodetool.input.FloatInput",
-  "nodetool.output.Output",
-  "nodetool.workflows.base_node.Preview",
-  "nodetool.image.LoadImageFile",
-  "nodetool.image.LoadImageAssets",
-  "nodetool.image.SaveImage"
-]);
 
 /**
  * Tools category (plan §7.3 row "Tools"): editing nodes (Levels, Crop,
@@ -131,6 +117,22 @@ export const QUICK_ACCESS_CATEGORIES: readonly QuickAccessCategory[] = [
     kind: "panel"
   },
   {
+    id: "io",
+    label: "Inputs / Outputs",
+    icon: <LoginIcon />,
+    kind: "tile-grid",
+    filter: (m) =>
+      m.node_type.startsWith("nodetool.input.") ||
+      m.node_type.startsWith("nodetool.output.")
+  },
+  {
+    id: "tools",
+    label: "Tools",
+    icon: <BuildIcon />,
+    kind: "tile-grid",
+    filter: (m) => TOOLS_NODE_TYPES.has(m.node_type)
+  },
+  {
     id: "image-models",
     label: "Image Models",
     icon: <ImageIcon />,
@@ -159,18 +161,18 @@ export const QUICK_ACCESS_CATEGORIES: readonly QuickAccessCategory[] = [
     filter: primaryVariantIs("model_3d")
   },
   {
-    id: "quick-access",
-    label: "Quick access",
-    icon: <BoltIcon />,
+    id: "agents",
+    label: "Agents",
+    icon: <SmartToyIcon />,
     kind: "tile-grid",
-    filter: (m) => QUICK_ACCESS_NODE_TYPES.has(m.node_type)
+    filter: (m) => /(^|\.)agents\./.test(m.node_type)
   },
   {
-    id: "tools",
-    label: "Tools",
-    icon: <BuildIcon />,
+    id: "control-flow",
+    label: "Control Flow",
+    icon: <CallSplitIcon />,
     kind: "tile-grid",
-    filter: (m) => TOOLS_NODE_TYPES.has(m.node_type)
+    filter: (m) => m.node_type.startsWith("nodetool.control.")
   }
 ];
 
@@ -194,7 +196,6 @@ export const CURATED_NODE_TYPES: ReadonlyMap<string, QuickAccessCategoryId[]> =
         m.set(t, arr);
       }
     };
-    add(QUICK_ACCESS_NODE_TYPES, "quick-access");
     add(TOOLS_NODE_TYPES, "tools");
     return m;
   })();

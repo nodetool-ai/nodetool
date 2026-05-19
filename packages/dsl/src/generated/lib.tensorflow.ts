@@ -13,8 +13,8 @@ export interface MobileNetClassifyOutputs {
   output: unknown[];
 }
 
-export function mobileNetClassify(inputs: MobileNetClassifyInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<MobileNetClassifyOutputs, "output"> {
-  return createNode("lib.tensorflow.MobileNetClassify", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function mobileNetClassify(inputs: MobileNetClassifyInputs): DslNode<MobileNetClassifyOutputs, "output"> {
+  return createNode("lib.tensorflow.MobileNetClassify", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // TensorFlow MobileNet Embedding — lib.tensorflow.MobileNetEmbedding
@@ -26,8 +26,8 @@ export interface MobileNetEmbeddingOutputs {
   output: unknown[];
 }
 
-export function mobileNetEmbedding(inputs: MobileNetEmbeddingInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<MobileNetEmbeddingOutputs, "output"> {
-  return createNode("lib.tensorflow.MobileNetEmbedding", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function mobileNetEmbedding(inputs: MobileNetEmbeddingInputs): DslNode<MobileNetEmbeddingOutputs, "output"> {
+  return createNode("lib.tensorflow.MobileNetEmbedding", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // TensorFlow COCO-SSD Detect — lib.tensorflow.CocoSsdDetect
@@ -41,8 +41,8 @@ export interface CocoSsdDetectOutputs {
   output: unknown[];
 }
 
-export function cocoSsdDetect(inputs: CocoSsdDetectInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CocoSsdDetectOutputs, "output"> {
-  return createNode("lib.tensorflow.CocoSsdDetect", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function cocoSsdDetect(inputs: CocoSsdDetectInputs): DslNode<CocoSsdDetectOutputs, "output"> {
+  return createNode("lib.tensorflow.CocoSsdDetect", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // TensorFlow BERT QnA — lib.tensorflow.Qna
@@ -55,6 +55,6 @@ export interface QnaOutputs {
   output: unknown[];
 }
 
-export function qna(inputs: QnaInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<QnaOutputs, "output"> {
-  return createNode("lib.tensorflow.Qna", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function qna(inputs: QnaInputs): DslNode<QnaOutputs, "output"> {
+  return createNode("lib.tensorflow.Qna", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

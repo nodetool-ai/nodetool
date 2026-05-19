@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -195,7 +196,12 @@ export class ListDocumentsNode extends BaseNode {
     documents: "list"
   };
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    document: { kind: "iteration", source: "__execution__", group: "items" },
+    documents: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "str",
     default: "~",
@@ -329,7 +335,14 @@ export class SplitDocumentNode extends BaseNode {
     }
   ];
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "iteration", source: "document", group: "items" },
+    source_id: { kind: "iteration", source: "document", group: "items" },
+    start_index: { kind: "iteration", source: "document", group: "items" },
+    chunks: { kind: "single", source: "document" }
+  };
+
   @prop({
     type: "language_model",
     default: {
@@ -427,7 +440,14 @@ export class SplitHTMLNode extends BaseNode {
     chunks: "list"
   };
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "iteration", source: "document", group: "items" },
+    source_id: { kind: "iteration", source: "document", group: "items" },
+    start_index: { kind: "iteration", source: "document", group: "items" },
+    chunks: { kind: "single", source: "document" }
+  };
+
   @prop({
     type: "document",
     default: {
@@ -562,7 +582,14 @@ export class SplitJSONNode extends BaseNode {
     chunks: "list"
   };
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "iteration", source: "document", group: "items" },
+    source_id: { kind: "iteration", source: "document", group: "items" },
+    start_index: { kind: "iteration", source: "document", group: "items" },
+    chunks: { kind: "single", source: "document" }
+  };
+
   @prop({
     type: "document",
     default: {
@@ -704,7 +731,14 @@ export class SplitRecursivelyNode extends BaseNode {
     chunks: "list"
   };
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "iteration", source: "document", group: "items" },
+    source_id: { kind: "iteration", source: "document", group: "items" },
+    start_index: { kind: "iteration", source: "document", group: "items" },
+    chunks: { kind: "single", source: "document" }
+  };
+
   @prop({
     type: "document",
     default: {
@@ -869,7 +903,14 @@ export class SplitMarkdownNode extends BaseNode {
     chunks: "list"
   };
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "iteration", source: "document", group: "items" },
+    source_id: { kind: "iteration", source: "document", group: "items" },
+    start_index: { kind: "iteration", source: "document", group: "items" },
+    chunks: { kind: "single", source: "document" }
+  };
+
   @prop({
     type: "document",
     default: {

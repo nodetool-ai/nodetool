@@ -28,7 +28,6 @@ export class RealtimeTextToSpeechNode extends BaseNode {
   static readonly inputFields: string[] = ["chunk"];
   static readonly requiredSettings = ["ELEVENLABS_API_KEY"];
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
 
   @prop({
     type: "enum",

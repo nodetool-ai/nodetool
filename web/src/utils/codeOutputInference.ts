@@ -74,7 +74,7 @@ const SANDBOX_GLOBALS = new Set([
   "undefined", "true", "false", "null", "NaN", "Infinity",
   "this", "arguments", "globalThis", "self", "window", "document", "process",
   // Code node reserved props
-  "code", "timeout", "sync_mode", "state",
+  "code", "timeout", "state",
   // Sandbox internals
   "__maxIter",
 ]);

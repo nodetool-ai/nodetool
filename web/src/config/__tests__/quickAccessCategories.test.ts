@@ -22,19 +22,21 @@ const meta = (
   }) as unknown as NodeMetadata;
 
 describe("quickAccessCategories", () => {
-  it("ships ten categories in order", () => {
+  it("ships twelve categories in order", () => {
     const ids = QUICK_ACCESS_CATEGORIES.map((c) => c.id);
     expect(ids).toEqual([
       "search",
       "history",
       "workflows",
       "assets",
+      "io",
+      "tools",
       "image-models",
       "video-models",
       "audio-models",
       "3d-models",
-      "quick-access",
-      "tools"
+      "agents",
+      "control-flow"
     ]);
   });
 
@@ -80,18 +82,48 @@ describe("quickAccessCategories", () => {
     expect(out.map((m) => m.node_type)).toEqual(["a.GenA"]);
   });
 
-  it("quick-access matches the curated node-type list", () => {
+  it("io matches `nodetool.input.*` and `nodetool.output.*`", () => {
     const all = [
-      meta("nodetool.agents.Agent", "str", "Agent"),
-      meta("nodetool.input.StringInput", "str", "String Input"),
-      meta("some.other.Node", "image", "Other")
+      meta("nodetool.input.StringInput", "str"),
+      meta("nodetool.output.Output", "any"),
+      meta("nodetool.image.Resize", "image")
     ];
-    const ids = filterNodesForCategory(getCategory("quick-access")!, all).map(
+    const ids = filterNodesForCategory(getCategory("io")!, all).map(
+      (m) => m.node_type
+    );
+    expect(ids).toContain("nodetool.input.StringInput");
+    expect(ids).toContain("nodetool.output.Output");
+    expect(ids).not.toContain("nodetool.image.Resize");
+  });
+
+  it("control-flow matches `nodetool.control.*`", () => {
+    const all = [
+      meta("nodetool.control.If", "any"),
+      meta("nodetool.control.ForEach", "any"),
+      meta("nodetool.image.Resize", "image")
+    ];
+    const ids = filterNodesForCategory(getCategory("control-flow")!, all).map(
+      (m) => m.node_type
+    );
+    expect(ids).toContain("nodetool.control.If");
+    expect(ids).toContain("nodetool.control.ForEach");
+    expect(ids).not.toContain("nodetool.image.Resize");
+  });
+
+  it("agents matches any node under an `*.agents.*` namespace", () => {
+    const all = [
+      meta("nodetool.agents.Agent", "str"),
+      meta("anthropic.agents.ClaudeAgent", "str"),
+      meta("openai.agents.RealtimeAgent", "str"),
+      meta("nodetool.image.Resize", "image")
+    ];
+    const ids = filterNodesForCategory(getCategory("agents")!, all).map(
       (m) => m.node_type
     );
     expect(ids).toContain("nodetool.agents.Agent");
-    expect(ids).toContain("nodetool.input.StringInput");
-    expect(ids).not.toContain("some.other.Node");
+    expect(ids).toContain("anthropic.agents.ClaudeAgent");
+    expect(ids).toContain("openai.agents.RealtimeAgent");
+    expect(ids).not.toContain("nodetool.image.Resize");
   });
 
   it("tools matches the curated editing-node list", () => {

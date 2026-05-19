@@ -135,7 +135,6 @@ export class ListFilesLibNode extends BaseNode {
     files: "list"
   };
 
-  static readonly isStreamingOutput = true;
   @prop({
     type: "str",
     default: "~",

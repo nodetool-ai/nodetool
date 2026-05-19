@@ -261,8 +261,6 @@ export function createGraphNodeTypeResolver(
           typeMetadataToString(output.type)
         ])
       );
-      const NodeClass = registry.getClass(nodeType);
-      const syncMode = NodeClass?.syncMode;
       return {
         nodeType: metadata.node_type,
         propertyTypes,
@@ -272,8 +270,12 @@ export function createGraphNodeTypeResolver(
           name: metadata.title,
           ...(metadata.is_streaming_input && { is_streaming_input: true }),
           ...(metadata.is_streaming_output && { is_streaming_output: true }),
+          ...(metadata.input_mode && { input_mode: metadata.input_mode }),
+          ...(metadata.output_correlation && {
+            output_correlation: metadata.output_correlation
+          }),
           ...(metadata.is_controlled && { is_controlled: true }),
-          ...(syncMode !== undefined && { sync_mode: syncMode }),
+          ...(metadata.is_join_node && { is_join_node: true }),
           ...(Object.keys(propertyMeta).length > 0 && { propertyMeta })
         }
       };

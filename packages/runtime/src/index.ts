@@ -71,7 +71,8 @@ export { PythonNodeExecutor } from "./python-node-executor.js";
 export {
   type NodeExecutor,
   type StreamingInputs,
-  type StreamingOutputs
+  type StreamingOutputs,
+  type MessageEnvelopeLike
 } from "./node-executor.js";
 export { executeComfy } from "./comfy-executor.js";
 export type {

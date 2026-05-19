@@ -145,7 +145,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   }${isConnected ? " is-connected" : ""}`;
 
   const inner = (
-    <div className={fieldClass}>
+    <div className={fieldClass} data-property={property.name}>
       {showHandle && (
         <div className="handle-popup" style={handlePopupStyle}>
           <HandleTooltip

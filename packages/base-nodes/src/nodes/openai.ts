@@ -638,7 +638,7 @@ export class TranscribeNode extends BaseNode {
     segments: "list[audio_chunk]"
   };
   static readonly inlineFields: string[] = [];
-  static readonly inputFields = ["audio"];
+  static readonly inputFields = ["audio", "prompt"];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly exposeAsTool = true;
 
@@ -870,7 +870,6 @@ export class RealtimeAgentNode extends BaseNode {
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly supportsDynamicOutputs = true;
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
 
   @prop({
     type: "enum",
@@ -1185,7 +1184,6 @@ export class RealtimeTranscriptionNode extends BaseNode {
   };
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
 
   @prop({
     type: "enum",

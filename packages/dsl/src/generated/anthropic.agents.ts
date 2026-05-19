@@ -17,6 +17,6 @@ export interface ClaudeAgentOutputs {
   chunk: unknown;
 }
 
-export function claudeAgent(inputs: ClaudeAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ClaudeAgentOutputs> {
-  return createNode("anthropic.agents.ClaudeAgent", inputs as Record<string, unknown>, { outputNames: ["text", "chunk"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function claudeAgent(inputs: ClaudeAgentInputs): DslNode<ClaudeAgentOutputs> {
+  return createNode("anthropic.agents.ClaudeAgent", inputs as Record<string, unknown>, { outputNames: ["text", "chunk"], streaming: true });
 }

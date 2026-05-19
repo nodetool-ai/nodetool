@@ -74,8 +74,6 @@ const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
 /** Floor for user-resize and for nodes whose own minHeight isn't metadata-driven. */
 const MIN_RESIZE_HEIGHT = 100;
-/** Floor for agent nodes — they have many outputs + dynamic-property UI. */
-const MIN_AGENT_HEIGHT = 400;
 
 const isEmptyResult = (obj: unknown) =>
   obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
@@ -248,13 +246,9 @@ const getStyleProps = (
   const outputCountMin = metadata
     ? BASE_HEIGHT + (metadata.outputs?.length ?? 0) * INCREMENT_PER_OUTPUT
     : BASE_HEIGHT;
-  /**
-   * Agent: many logical outputs — use a sane floor only.
-   * Other nodes: same formula but capped so `min-height` cannot dominate measured height on collapse.
-   */
-  const minHeight = nodeType.isAgentNode
-    ? MIN_AGENT_HEIGHT
-    : Math.min(outputCountMin, MAX_OUTPUT_DRIVEN_MIN_HEIGHT_PX);
+  // Cap metadata-driven minHeight so many-output types do not force huge
+  // boxes (collapse snapshot / RF measure).
+  const minHeight = Math.min(outputCountMin, MAX_OUTPUT_DRIVEN_MIN_HEIGHT_PX);
   return {
     className: `base-node node-body
       ${hasParent ? "has-parent" : ""}

@@ -11,7 +11,12 @@ import type {
   ProviderStreamItem,
   ToolCall
 } from "@nodetool-ai/runtime";
-import type { Chunk, LanguageModel, ProcessingMessage } from "@nodetool-ai/protocol";
+import type {
+  Chunk,
+  LanguageModel,
+  OutputCorrelation,
+  ProcessingMessage
+} from "@nodetool-ai/protocol";
 import { MultiModeAgent, Tool as AgentTool } from "@nodetool-ai/agents";
 import { hydrateBuiltinAgentTool } from "./agent-tool-hydration.js";
 
@@ -1232,7 +1237,16 @@ export class SummarizerNode extends BaseNode {
     chunk: "chunk"
   };
   static readonly inlineFields = ["text"];
-  static readonly inputFields = ["image", "audio"];
+  static readonly inputFields = ["image", "audio", "system_prompt"];
+  // TODO: process() awaits the full provider response and only returns
+  // `text` — `chunk` is never emitted. To actually stream, convert to
+  // `genProcess` and yield each provider piece as a `chunk`, then flip
+  // `chunk` to `iteration`. Keeping `single` so metadata reflects current
+  // behavior.
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "single", source: "__execution__" },
+    chunk: { kind: "single", source: "__execution__" }
+  };
   static readonly recommendedModels = [
     {
       id: "phi3.5:latest",
@@ -1291,7 +1305,6 @@ export class SummarizerNode extends BaseNode {
     { ...GEMMA_3_4B_IT_GGUF_BASE, description: "Efficient Gemma 3 for summarization via llama.cpp." }
   ];
 
-  static readonly isStreamingOutput = true;
   @prop({
     type: "str",
     default:
@@ -1438,7 +1451,7 @@ export class ExtractorNode extends BaseNode {
   static readonly description =
     "Extract structured data from text content using LLM providers.\n    data-extraction, structured-data, nlp, parsing\n\n    Specialized for extracting structured information:\n    - Converting unstructured text into structured data\n    - Identifying and extracting specific fields from documents\n    - Parsing text according to predefined schemas\n    - Creating structured records from natural language content";
   static readonly inlineFields = ["text"];
-  static readonly inputFields = ["image", "audio"];
+  static readonly inputFields = ["image", "audio", "system_prompt"];
   static readonly supportsDynamicOutputs = true;
   static readonly recommendedModels = [
     {
@@ -1597,7 +1610,7 @@ export class ClassifierNode extends BaseNode {
     output: "str"
   };
   static readonly inlineFields = ["text"];
-  static readonly inputFields = ["image", "audio"];
+  static readonly inputFields = ["image", "audio", "system_prompt"];
   static readonly recommendedModels = [
     {
       id: "phi3.5:latest",
@@ -1794,6 +1807,16 @@ export class AgentNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "image", "audio"];
   static readonly supportsDynamicOutputs = true;
+  // Streamed outputs: each yielded chunk/thinking/audio is a distinct
+  // iteration step. Without this, the analyzer defaults to `single`, which
+  // gives every yield the same lineage key — downstream collapses to the
+  // last value and early chunks are dropped.
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "single", source: "__execution__" },
+    chunk: { kind: "iteration", source: "__execution__", group: "stream" },
+    thinking: { kind: "iteration", source: "__execution__", group: "stream" },
+    audio: { kind: "iteration", source: "__execution__", group: "stream" }
+  };
   static readonly recommendedModels = [
     {
       id: "gpt-oss:20b",
@@ -2216,7 +2239,6 @@ export class AgentNode extends BaseNode {
     }
   ];
 
-  static readonly isStreamingOutput = true;
   @prop({
     type: "language_model",
     default: {

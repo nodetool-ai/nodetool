@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 
 export class FloatInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.FloatInput";
@@ -1337,7 +1338,14 @@ export class RealtimeAudioInputNode extends BaseNode {
   };
   static readonly inlineFields = [];
   static readonly inputFields = ["value"];
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  // RealtimeAudioInput pushes successive audio frames for a single logical
+  // stream via runner.pushInputValue. Each chunk is a chunk of one logical
+  // realtime stream, so kind: "chunk" preserves the repeats-per-key
+  // semantics downstream rather than collapsing to one.
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    chunk: { kind: "chunk", source: "__execution__" }
+  };
 
   @prop({
     type: "str",

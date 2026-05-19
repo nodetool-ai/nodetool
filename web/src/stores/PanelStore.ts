@@ -13,11 +13,13 @@ export type LeftPanelView =
   | "history"
   | "workflows"
   | "assets"
+  | "io"
   | "image-models"
   | "video-models"
   | "audio-models"
   | "3d-models"
-  | "quick-access"
+  | "agents"
+  | "control-flow"
   | "tools";
 export type PanelView = LeftPanelView;
 
@@ -185,12 +187,14 @@ export const usePanelStore = create<ResizePanelState>()(
           "history",
           "workflows",
           "assets",
+          "io",
+          "tools",
           "image-models",
           "video-models",
           "audio-models",
           "3d-models",
-          "quick-access",
-          "tools"
+          "agents",
+          "control-flow"
         ];
         // Legacy persisted value remap: "workflowGrid" → "workflows".
         const raw = persistedPanel.activeView as string | undefined;

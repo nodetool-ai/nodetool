@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import { root as fsSafeRoot, type Root } from "@openclaw/fs-safe";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -138,7 +139,12 @@ export class ListWorkspaceFilesNode extends BaseNode {
     files: "list"
   };
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    file: { kind: "iteration", source: "__execution__", group: "items" },
+    files: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "str",
     default: ".",
@@ -713,6 +719,8 @@ export class SaveImageFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inputFields: string[] = ["image"];
+
 
   @prop({
     type: "image",
@@ -807,6 +815,8 @@ export class SaveVideoFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
+
 
   @prop({
     type: "video",

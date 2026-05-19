@@ -197,8 +197,7 @@ function parseWorkflow(raw: unknown): Workflow {
         data: (n.properties ?? n.data ?? {}) as GraphNode["data"],
         ui_properties: (n.ui_properties ?? {}) as GraphNode["ui_properties"],
         dynamic_properties: {},
-        dynamic_outputs: {},
-        sync_mode: "on_any"
+        dynamic_outputs: {}
       })),
       edges: rawEdges.map((e, i) => ({
         id: (e.id as string) || `edge_${i}`,

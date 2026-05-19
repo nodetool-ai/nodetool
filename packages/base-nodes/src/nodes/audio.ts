@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -79,7 +80,13 @@ export class LoadAudioAssetsNode extends BaseNode {
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = [];
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    audio: { kind: "iteration", source: "__execution__", group: "items" },
+    name: { kind: "iteration", source: "__execution__", group: "items" },
+    audios: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "folder",
     default: {
@@ -186,7 +193,13 @@ export class LoadAudioFolderNode extends BaseNode {
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = [];
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    audio: { kind: "iteration", source: "__execution__", group: "items" },
+    path: { kind: "iteration", source: "__execution__", group: "items" },
+    audios: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "str",
     default: "",
@@ -852,174 +865,39 @@ export class AudioMixerNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.AudioMixer";
   static readonly title = "Audio Mixer";
   static readonly description =
-    "Mix up to 5 audio tracks together with individual volume controls.\n    audio, mix, volume, combine, blend, layer, add, overlay";
+    "Mix multiple audio tracks together. Add tracks dynamically with the “add audio input” button; wire a Gain node upstream of any track that needs a different level.\n    audio, mix, combine, blend, layer, add, overlay";
   static readonly metadataOutputTypes = {
     output: "audio"
   };
   static readonly inlineFields: string[] = [];
-  static readonly inputFields: string[] = ["track1", "track2", "track3", "track4", "track5"];
-
-  @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Track1",
-    description: "First audio track to mix."
-  })
-  declare track1: any;
-
-  @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Track2",
-    description: "Second audio track to mix."
-  })
-  declare track2: any;
-
-  @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Track3",
-    description: "Third audio track to mix."
-  })
-  declare track3: any;
-
-  @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Track4",
-    description: "Fourth audio track to mix."
-  })
-  declare track4: any;
-
-  @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Track5",
-    description: "Fifth audio track to mix."
-  })
-  declare track5: any;
-
-  @prop({
-    type: "float",
-    default: 1,
-    title: "Volume1",
-    description: "Volume for track 1. 1.0 is original volume.",
-    min: 0,
-    max: 2
-  })
-  declare volume1: any;
-
-  @prop({
-    type: "float",
-    default: 1,
-    title: "Volume2",
-    description: "Volume for track 2. 1.0 is original volume.",
-    min: 0,
-    max: 2
-  })
-  declare volume2: any;
-
-  @prop({
-    type: "float",
-    default: 1,
-    title: "Volume3",
-    description: "Volume for track 3. 1.0 is original volume.",
-    min: 0,
-    max: 2
-  })
-  declare volume3: any;
-
-  @prop({
-    type: "float",
-    default: 1,
-    title: "Volume4",
-    description: "Volume for track 4. 1.0 is original volume.",
-    min: 0,
-    max: 2
-  })
-  declare volume4: any;
-
-  @prop({
-    type: "float",
-    default: 1,
-    title: "Volume5",
-    description: "Volume for track 5. 1.0 is original volume.",
-    min: 0,
-    max: 2
-  })
-  declare volume5: any;
+  static readonly inputFields: string[] = [];
+  static readonly isDynamic = true;
 
   async process(): Promise<Record<string, unknown>> {
-    const entries = [
-      { track: this.track1, volume: this.volume1 },
-      { track: this.track2, volume: this.volume2 },
-      { track: this.track3, volume: this.volume3 },
-      { track: this.track4, volume: this.volume4 },
-      { track: this.track5, volume: this.volume5 }
-    ];
-    const filtered = entries.filter(
-      (e) => e.track && typeof e.track === "object"
+    const inputs = Array.from(this.dynamicProps.values()).filter(
+      (t) => t && typeof t === "object"
     );
+
     const tracks = (
-      await Promise.all(
-        filtered.map(async (e) => ({
-          bytes: await audioBytesAsync(e.track),
-          volume: Number.isFinite(Number(e.volume)) ? Number(e.volume) : 1
-        }))
-      )
-    ).filter((t) => t.bytes.length > 0);
+      await Promise.all(inputs.map((t) => audioBytesAsync(t)))
+    ).filter((bytes) => bytes.length > 0);
 
     if (tracks.length === 0)
       return { output: audioRefFromBytes(new Uint8Array()) };
 
     // If every track is a valid WAV file, mix in Float32 sample space and
     // emit a valid WAV so downstream nodes receive a playable file.
-    const parsed = tracks.map((t) => ({
-      wav: tryDecodeWav({ data: t.bytes }),
-      bytes: t.bytes,
-      volume: t.volume
+    const parsed = tracks.map((bytes) => ({
+      wav: tryDecodeWav({ data: bytes }),
+      bytes
     }));
     if (parsed.every((p) => p.wav !== null)) {
-      const wavs = parsed as Array<{
-        wav: WavData;
-        bytes: Uint8Array;
-        volume: number;
-      }>;
+      const wavs = parsed as Array<{ wav: WavData; bytes: Uint8Array }>;
       const len = Math.max(...wavs.map((p) => p.wav.samples.length));
       const mixed = new Float32Array(len);
       for (let i = 0; i < len; i += 1) {
         let total = 0;
-        for (const p of wavs) total += (p.wav.samples[i] ?? 0) * p.volume;
+        for (const p of wavs) total += p.wav.samples[i] ?? 0;
         mixed[i] = total / wavs.length;
       }
       return {
@@ -1029,15 +907,14 @@ export class AudioMixerNode extends BaseNode {
       };
     }
 
-    // Fallback: byte-level averaging with volume scaling (preserves
-    // backward-compatible behavior for non-WAV / headerless byte streams).
-    const len = Math.max(...tracks.map((t) => t.bytes.length));
+    // Fallback: byte-level averaging (preserves backward-compatible
+    // behavior for non-WAV / headerless byte streams).
+    const len = Math.max(...tracks.map((bytes) => bytes.length));
     const out = new Uint8Array(len);
     for (let i = 0; i < len; i += 1) {
       let total = 0;
-      for (const t of tracks) total += (t.bytes[i] ?? 0) * t.volume;
-      const avg = total / tracks.length;
-      out[i] = Math.max(0, Math.min(255, Math.round(avg)));
+      for (const bytes of tracks) total += bytes[i] ?? 0;
+      out[i] = Math.max(0, Math.min(255, Math.round(total / tracks.length)));
     }
     return { output: audioRefFromBytes(out) };
   }
@@ -1127,48 +1004,20 @@ export class CreateSilenceNode extends BaseNode {
 
 export class ConcatAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.Concat";
-  static readonly title = "Concat";
+  static readonly title = "Concatenate Audio";
   static readonly description =
-    "Concatenates audio files together.\n    audio, edit, join, +";
+    "Concatenates audio files together. Add inputs dynamically with the “add audio input” button.\n    audio, edit, join, +";
   static readonly metadataOutputTypes = {
     output: "audio"
   };
   static readonly inlineFields: string[] = [];
-  static readonly inputFields: string[] = ["a", "b"];
+  static readonly inputFields: string[] = [];
   static readonly exposeAsTool = true;
   static readonly isDynamic = true;
 
-  @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "A",
-    description: "The first audio file."
-  })
-  declare a: any;
-
-  @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "B",
-    description: "The second audio file."
-  })
-  declare b: any;
-
   async process(): Promise<Record<string, unknown>> {
-    const parts = [this.a, this.b, ...Array.from(this.dynamicProps.values())].map(
-      (value) => audioBytes(value)
+    const parts = Array.from(this.dynamicProps.values()).map((value) =>
+      audioBytes(value)
     );
     return { output: audioRefFromBytes(concatBytes(parts)) };
   }
@@ -1176,7 +1025,7 @@ export class ConcatAudioNode extends BaseNode {
 
 export class ConcatAudioListNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.ConcatList";
-  static readonly title = "Concat List";
+  static readonly title = "Concatenate Audio List";
   static readonly description =
     "Concatenates multiple audio files together in sequence.\n    audio, edit, join, multiple, +";
   static readonly metadataOutputTypes = {
@@ -1213,11 +1062,20 @@ export class TextToSpeechNode extends BaseNode {
     chunk: "chunk"
   };
   static readonly inlineFields: string[] = ["text"];
-  static readonly inputFields: string[] = [];
+  static readonly inputFields: string[] = ["text"];
   static readonly autoSaveAsset = true;
   static readonly exposeAsTool = true;
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    audio: { kind: "single", source: "__execution__" },
+    // `chunk` is declared on the output schema but the current process()
+    // accumulates and returns only `audio`. PR 1 classifies it as single
+    // (aspirational) per the design's stale-chunk-port guidance; a follow-up
+    // either makes the node stream real chunks or removes the handle.
+    chunk: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "tts_model",
     default: {

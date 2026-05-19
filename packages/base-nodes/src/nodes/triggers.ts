@@ -156,7 +156,6 @@ export class ManualTriggerNode extends BaseNode {
   };
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
 
   @prop({
     type: "int",
@@ -251,7 +250,6 @@ export class IntervalTriggerNode extends BaseNode {
     event_type: "str"
   };
 
-  static readonly isStreamingOutput = true;
 
   @prop({
     type: "int",
@@ -386,7 +384,6 @@ export class WebhookTriggerNode extends BaseNode {
     event_type: "str"
   };
 
-  static readonly isStreamingOutput = true;
 
   @prop({
     type: "int",
@@ -578,7 +575,6 @@ export class FileWatchTriggerNode extends BaseNode {
     timestamp: "str"
   };
 
-  static readonly isStreamingOutput = true;
 
   @prop({
     type: "int",

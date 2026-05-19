@@ -13,8 +13,7 @@ import { createLogger } from "@nodetool-ai/config";
 import type {
   Edge,
   NodeDescriptor,
-  GraphData,
-  SyncMode
+  GraphData
 } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.kernel.graph");
@@ -366,12 +365,6 @@ export class Graph {
           ...(resolved.outputs ?? {}),
           ...(node.outputs ?? {})
         },
-        sync_mode:
-          node.sync_mode ??
-          ((node.properties as Record<string, unknown> | undefined)
-            ?.sync_mode as SyncMode | undefined) ??
-          descriptorDefaults.sync_mode ??
-          "on_any",
         // Streaming/control flags: registry metadata (descriptorDefaults) is
         // the source of truth.  Saved graph data may have stale or missing
         // values, so always prefer the registry if it declares true.
@@ -383,8 +376,18 @@ export class Graph {
           descriptorDefaults.is_streaming_output ||
           node.is_streaming_output ||
           false,
+        // Correlation metadata is authoritative from the registry. Saved JSON
+        // is treated as a cache and overwritten — including when the resolver
+        // intentionally returns undefined for a node type that no longer
+        // declares correlation. See docs/correlation-design.md §1.
+        input_mode: descriptorDefaults.input_mode,
+        output_correlation: descriptorDefaults.output_correlation,
         is_controlled:
-          descriptorDefaults.is_controlled || node.is_controlled || false
+          descriptorDefaults.is_controlled || node.is_controlled || false,
+        // Correlation metadata is registry-authoritative; saved JSON is a
+        // cache that gets overwritten — matching `input_mode` /
+        // `output_correlation` above. See docs/correlation-design.md §1.
+        is_join_node: descriptorDefaults.is_join_node
       };
 
       resolvedNodes.push(hydratedNode);

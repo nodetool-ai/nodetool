@@ -136,7 +136,6 @@ const SketchEditorPage = React.lazy(
 const registerFrontendTools = () => {
   Promise.all([
     import("./lib/tools/builtin/addNode"),
-    import("./lib/tools/builtin/setNodeSyncMode"),
     import("./lib/tools/builtin/connectNodes"),
     import("./lib/tools/builtin/updateNodeData"),
     import("./lib/tools/builtin/moveNode"),

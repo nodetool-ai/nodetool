@@ -22,8 +22,8 @@ export interface CDLOutputs {
   output: ImageRef;
 }
 
-export function cdl(inputs: CDLInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CDLOutputs, "output"> {
-  return createNode("lib.image.color_grading.CDL", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function cdl(inputs: CDLInputs): DslNode<CDLOutputs, "output"> {
+  return createNode("lib.image.color_grading.CDL", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Color Balance — lib.image.color_grading.ColorBalance
@@ -37,8 +37,8 @@ export interface ColorBalanceOutputs {
   output: ImageRef;
 }
 
-export function colorBalance(inputs: ColorBalanceInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ColorBalanceOutputs, "output"> {
-  return createNode("lib.image.color_grading.ColorBalance", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function colorBalance(inputs: ColorBalanceInputs): DslNode<ColorBalanceOutputs, "output"> {
+  return createNode("lib.image.color_grading.ColorBalance", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Curves — lib.image.color_grading.Curves
@@ -58,8 +58,8 @@ export interface CurvesOutputs {
   output: ImageRef;
 }
 
-export function curves(inputs: CurvesInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CurvesOutputs, "output"> {
-  return createNode("lib.image.color_grading.Curves", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function curves(inputs: CurvesInputs): DslNode<CurvesOutputs, "output"> {
+  return createNode("lib.image.color_grading.Curves", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Exposure — lib.image.color_grading.Exposure
@@ -77,8 +77,8 @@ export interface ExposureOutputs {
   output: ImageRef;
 }
 
-export function exposure(inputs: ExposureInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExposureOutputs, "output"> {
-  return createNode("lib.image.color_grading.Exposure", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function exposure(inputs: ExposureInputs): DslNode<ExposureOutputs, "output"> {
+  return createNode("lib.image.color_grading.Exposure", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Film Look — lib.image.color_grading.FilmLook
@@ -92,8 +92,8 @@ export interface FilmLookOutputs {
   output: ImageRef;
 }
 
-export function filmLook(inputs: FilmLookInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FilmLookOutputs, "output"> {
-  return createNode("lib.image.color_grading.FilmLook", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function filmLook(inputs: FilmLookInputs): DslNode<FilmLookOutputs, "output"> {
+  return createNode("lib.image.color_grading.FilmLook", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // HSLAdjust — lib.image.color_grading.HSLAdjust
@@ -109,8 +109,8 @@ export interface HSLAdjustOutputs {
   output: ImageRef;
 }
 
-export function hslAdjust(inputs: HSLAdjustInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<HSLAdjustOutputs, "output"> {
-  return createNode("lib.image.color_grading.HSLAdjust", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function hslAdjust(inputs: HSLAdjustInputs): DslNode<HSLAdjustOutputs, "output"> {
+  return createNode("lib.image.color_grading.HSLAdjust", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Lift Gamma Gain — lib.image.color_grading.LiftGammaGain
@@ -134,8 +134,8 @@ export interface LiftGammaGainOutputs {
   output: ImageRef;
 }
 
-export function liftGammaGain(inputs: LiftGammaGainInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<LiftGammaGainOutputs, "output"> {
-  return createNode("lib.image.color_grading.LiftGammaGain", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function liftGammaGain(inputs: LiftGammaGainInputs): DslNode<LiftGammaGainOutputs, "output"> {
+  return createNode("lib.image.color_grading.LiftGammaGain", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Saturation Vibrance — lib.image.color_grading.SaturationVibrance
@@ -149,8 +149,8 @@ export interface SaturationVibranceOutputs {
   output: ImageRef;
 }
 
-export function saturationVibrance(inputs: SaturationVibranceInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SaturationVibranceOutputs, "output"> {
-  return createNode("lib.image.color_grading.SaturationVibrance", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function saturationVibrance(inputs: SaturationVibranceInputs): DslNode<SaturationVibranceOutputs, "output"> {
+  return createNode("lib.image.color_grading.SaturationVibrance", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Split Toning — lib.image.color_grading.SplitToning
@@ -167,8 +167,8 @@ export interface SplitToningOutputs {
   output: ImageRef;
 }
 
-export function splitToning(inputs: SplitToningInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SplitToningOutputs, "output"> {
-  return createNode("lib.image.color_grading.SplitToning", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function splitToning(inputs: SplitToningInputs): DslNode<SplitToningOutputs, "output"> {
+  return createNode("lib.image.color_grading.SplitToning", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Vignette — lib.image.color_grading.Vignette
@@ -184,6 +184,6 @@ export interface VignetteOutputs {
   output: ImageRef;
 }
 
-export function vignette(inputs: VignetteInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<VignetteOutputs, "output"> {
-  return createNode("lib.image.color_grading.Vignette", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function vignette(inputs: VignetteInputs): DslNode<VignetteOutputs, "output"> {
+  return createNode("lib.image.color_grading.Vignette", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

@@ -93,7 +93,6 @@ export function graphNodeToReactFlowNode(
       })(),
       dynamic_properties: node.dynamic_properties ?? {},
       dynamic_outputs: node.dynamic_outputs || {},
-      sync_mode: node.sync_mode,
       selectable,
       collapsed: isCollapsed,
       bypassed: isBypassed,

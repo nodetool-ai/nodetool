@@ -15,8 +15,8 @@ export interface SentimentAnalysisOutputs {
   negative_words: unknown[];
 }
 
-export function sentimentAnalysis(inputs: SentimentAnalysisInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SentimentAnalysisOutputs> {
-  return createNode("lib.nlp.SentimentAnalysis", inputs as Record<string, unknown>, { outputNames: ["score", "comparative", "positive_words", "negative_words"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function sentimentAnalysis(inputs: SentimentAnalysisInputs): DslNode<SentimentAnalysisOutputs> {
+  return createNode("lib.nlp.SentimentAnalysis", inputs as Record<string, unknown>, { outputNames: ["score", "comparative", "positive_words", "negative_words"] });
 }
 
 // Tokenize — lib.nlp.Tokenize
@@ -30,8 +30,8 @@ export interface TokenizeOutputs {
   count: number;
 }
 
-export function tokenize(inputs: TokenizeInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<TokenizeOutputs> {
-  return createNode("lib.nlp.Tokenize", inputs as Record<string, unknown>, { outputNames: ["output", "count"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function tokenize(inputs: TokenizeInputs): DslNode<TokenizeOutputs> {
+  return createNode("lib.nlp.Tokenize", inputs as Record<string, unknown>, { outputNames: ["output", "count"] });
 }
 
 // Stem — lib.nlp.Stem
@@ -45,8 +45,8 @@ export interface StemOutputs {
   tokens: unknown[];
 }
 
-export function stem(inputs: StemInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<StemOutputs> {
-  return createNode("lib.nlp.Stem", inputs as Record<string, unknown>, { outputNames: ["output", "tokens"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function stem(inputs: StemInputs): DslNode<StemOutputs> {
+  return createNode("lib.nlp.Stem", inputs as Record<string, unknown>, { outputNames: ["output", "tokens"] });
 }
 
 // TF-IDF — lib.nlp.TfIdf
@@ -59,8 +59,8 @@ export interface TfIdfOutputs {
   output: unknown[];
 }
 
-export function tfIdf(inputs: TfIdfInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<TfIdfOutputs, "output"> {
-  return createNode("lib.nlp.TfIdf", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function tfIdf(inputs: TfIdfInputs): DslNode<TfIdfOutputs, "output"> {
+  return createNode("lib.nlp.TfIdf", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Classify Text — lib.nlp.ClassifyText
@@ -74,8 +74,8 @@ export interface ClassifyTextOutputs {
   classifications: unknown[];
 }
 
-export function classifyText(inputs: ClassifyTextInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ClassifyTextOutputs> {
-  return createNode("lib.nlp.ClassifyText", inputs as Record<string, unknown>, { outputNames: ["output", "classifications"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function classifyText(inputs: ClassifyTextInputs): DslNode<ClassifyTextOutputs> {
+  return createNode("lib.nlp.ClassifyText", inputs as Record<string, unknown>, { outputNames: ["output", "classifications"] });
 }
 
 // Extract Entities — lib.nlp.ExtractEntities
@@ -92,8 +92,8 @@ export interface ExtractEntitiesOutputs {
   verbs: unknown[];
 }
 
-export function extractEntities(inputs: ExtractEntitiesInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExtractEntitiesOutputs> {
-  return createNode("lib.nlp.ExtractEntities", inputs as Record<string, unknown>, { outputNames: ["people", "places", "organizations", "numbers", "nouns", "verbs"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function extractEntities(inputs: ExtractEntitiesInputs): DslNode<ExtractEntitiesOutputs> {
+  return createNode("lib.nlp.ExtractEntities", inputs as Record<string, unknown>, { outputNames: ["people", "places", "organizations", "numbers", "nouns", "verbs"] });
 }
 
 // Phonetic Match — lib.nlp.PhoneticMatch
@@ -107,6 +107,6 @@ export interface PhoneticMatchOutputs {
   tokens: unknown[];
 }
 
-export function phoneticMatch(inputs: PhoneticMatchInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PhoneticMatchOutputs> {
-  return createNode("lib.nlp.PhoneticMatch", inputs as Record<string, unknown>, { outputNames: ["output", "tokens"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function phoneticMatch(inputs: PhoneticMatchInputs): DslNode<PhoneticMatchOutputs> {
+  return createNode("lib.nlp.PhoneticMatch", inputs as Record<string, unknown>, { outputNames: ["output", "tokens"] });
 }

@@ -11,8 +11,8 @@ export interface EmailOutputs {
   output: boolean;
 }
 
-export function email(inputs: EmailInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<EmailOutputs, "output"> {
-  return createNode("lib.validate.Email", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function email(inputs: EmailInputs): DslNode<EmailOutputs, "output"> {
+  return createNode("lib.validate.Email", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Validate URL — lib.validate.URL
@@ -24,8 +24,8 @@ export interface URLOutputs {
   output: boolean;
 }
 
-export function url(inputs: URLInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<URLOutputs, "output"> {
-  return createNode("lib.validate.URL", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function url(inputs: URLInputs): DslNode<URLOutputs, "output"> {
+  return createNode("lib.validate.URL", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Validate IP Address — lib.validate.IP
@@ -39,8 +39,8 @@ export interface IPOutputs {
   is_ipv6: boolean;
 }
 
-export function ip(inputs: IPInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<IPOutputs> {
-  return createNode("lib.validate.IP", inputs as Record<string, unknown>, { outputNames: ["is_ip", "is_ipv4", "is_ipv6"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function ip(inputs: IPInputs): DslNode<IPOutputs> {
+  return createNode("lib.validate.IP", inputs as Record<string, unknown>, { outputNames: ["is_ip", "is_ipv4", "is_ipv6"] });
 }
 
 // Validate String — lib.validate.String
@@ -58,8 +58,8 @@ export interface StringOutputs {
   is_alphanumeric: boolean;
 }
 
-export function string(inputs: StringInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<StringOutputs> {
-  return createNode("lib.validate.String", inputs as Record<string, unknown>, { outputNames: ["is_email", "is_url", "is_uuid", "is_json", "is_numeric", "is_alpha", "is_alphanumeric"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function string(inputs: StringInputs): DslNode<StringOutputs> {
+  return createNode("lib.validate.String", inputs as Record<string, unknown>, { outputNames: ["is_email", "is_url", "is_uuid", "is_json", "is_numeric", "is_alpha", "is_alphanumeric"] });
 }
 
 // Sanitize String — lib.validate.Sanitize
@@ -73,6 +73,6 @@ export interface SanitizeOutputs {
   normalized_email: string;
 }
 
-export function sanitize(inputs: SanitizeInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SanitizeOutputs> {
-  return createNode("lib.validate.Sanitize", inputs as Record<string, unknown>, { outputNames: ["escaped", "trimmed", "normalized_email"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function sanitize(inputs: SanitizeInputs): DslNode<SanitizeOutputs> {
+  return createNode("lib.validate.Sanitize", inputs as Record<string, unknown>, { outputNames: ["escaped", "trimmed", "normalized_email"] });
 }
