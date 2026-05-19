@@ -155,3 +155,46 @@ describe("flag-compat — descriptor fields are backward-compatible", () => {
     expect(envs.map((e) => e.data)).toEqual([1, 2]);
   });
 });
+
+describe("flag-compat — flag-off never attaches minted lineage to outputs", () => {
+  it("an iteration node under flag=0 emits envelopes with empty correlation_lineage", async () => {
+    // Verifies the actor's iteration-minting path is gated on the flag.
+    // Without this, a node declaring `output_correlation: iteration` would
+    // mint tokens regardless, undermining the feature-flag isolation.
+    const out = await runWorkflow({
+      jobId: "flag-off-no-mint",
+      flag: "0",
+      nodes: [
+        {
+          id: "src",
+          type: "nodetool.input.IntegerInput",
+          name: "items",
+          properties: { value: ["a", "b"] }
+        },
+        {
+          id: "fe",
+          type: "nodetool.control.ForEach",
+          is_streaming_output: true,
+          outputs: { output: "any" },
+          output_correlation: { output: iterationOutput("items") }
+        },
+        { id: "sink", type: "test.Sink", is_streaming_input: true }
+      ],
+      edges: [
+        dataEdge("src", "value", "fe", "input_list"),
+        dataEdge("fe", "output", "sink", "value")
+      ],
+      executors: { fe: foreachNode() },
+      captureFrom: { sink: ["value"] }
+    });
+    expect(out.result.status).toBe("completed");
+    const envs = out.captured.get("sink")!.get("value")!;
+    expect(envs).toHaveLength(2);
+    // Under flag=0 the actor must NOT mint iteration tokens, even though
+    // the descriptor declares `kind: iteration`. correlation_lineage stays
+    // empty on every emitted envelope.
+    for (const env of envs) {
+      expect(env.correlation_lineage).toEqual({});
+    }
+  });
+});

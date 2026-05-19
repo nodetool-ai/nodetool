@@ -1633,6 +1633,15 @@ export class FilterNoneNode extends BaseNode {
     output: "any"
   };
 
+  // TODO(correlation): this node is marked `isStreamingInput=true` but uses
+  // `input_mode: "buffered"` and only implements `process()`. With
+  // `isStreamingInput=true` the actor calls `process({})` once with empty
+  // inputs, so it does not actually filter a stream. To act as a real
+  // stream filter it should switch to `input_mode: "stream"`, implement
+  // `run()`, and call `outputs.forward()` / `outputs.drop()` (the latter
+  // emits `lineage_done` so downstream joins don't wait on filtered keys).
+  // Pre-existing across many test fixtures that assert the current shape;
+  // converting requires a coordinated test refactor — left for a follow-up.
   static readonly isStreamingInput = true;
   static readonly isStreamingOutput = true;
   static readonly inputMode: InputMode = "buffered";

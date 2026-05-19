@@ -261,7 +261,12 @@ export class NodeActor {
               const callerSuppliedLineage = opts?.lineage !== undefined;
               if (callerSuppliedLineage) {
                 hints.perSlotLineage = { [slot]: opts!.lineage! };
-              } else {
+              } else if (isCorrelationEnabled()) {
+                // All correlation-derived routing — invocation inheritance,
+                // iteration minting, aggregate collapse — only runs when the
+                // flag is on. With the flag off the actor must not attach
+                // minted lineage to outputs (would undermine the feature-
+                // flag guarantee).
                 const inherited = this._computeInvocationLineage();
                 if (inherited !== undefined) {
                   hints.invocationLineage = inherited;
@@ -296,9 +301,23 @@ export class NodeActor {
               );
             },
             emitGroupFn: async (values, opts) => {
-              await this._emitGroup(values, opts?.lineage);
+              if (isCorrelationEnabled()) {
+                await this._emitGroup(values, opts?.lineage);
+              } else {
+                // Flag off: sequential emit, no minting. Same behaviour as
+                // calling outputs.emit() one slot at a time on the legacy
+                // path.
+                for (const [slot, value] of Object.entries(values)) {
+                  await this._sendOutputs(
+                    this.node.id,
+                    { [slot]: value },
+                    opts?.lineage ? { perSlotLineage: { [slot]: opts.lineage } } : {}
+                  );
+                }
+              }
             },
             dropFn: async (slot: string, envelope) => {
+              if (!isCorrelationEnabled()) return;
               // outputs.drop(slot, envelope) → send `lineage_done` on every
               // outgoing edge for `slot` at the envelope's projected key.
               // §5. The drop signal lets downstream joins move past keys

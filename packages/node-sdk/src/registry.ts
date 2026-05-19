@@ -277,6 +277,7 @@ export function createGraphNodeTypeResolver(
             output_correlation: metadata.output_correlation
           }),
           ...(metadata.is_controlled && { is_controlled: true }),
+          ...(metadata.is_join_node && { is_join_node: true }),
           ...(syncMode !== undefined && { sync_mode: syncMode }),
           ...(Object.keys(propertyMeta).length > 0 && { propertyMeta })
         }

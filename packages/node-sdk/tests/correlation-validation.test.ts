@@ -128,11 +128,15 @@ describe("validateOutputCorrelation", () => {
       "test.Mismatch",
       "buffered",
       {
+        // declared — satisfies the "every declared output needs an entry" rule
+        output: { kind: "single", source: "__execution__" },
+        // not declared — should be the only issue raised
         ghost: { kind: "single", source: "__execution__" }
       },
       ["output"]
     );
     expect(issues).toHaveLength(1);
+    expect(issues[0].handle).toBe("ghost");
     expect(issues[0].message).toMatch(/not in declared outputs/);
   });
 
