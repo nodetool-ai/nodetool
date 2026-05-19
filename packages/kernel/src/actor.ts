@@ -278,6 +278,16 @@ export class NodeActor {
                     [slot]: minted
                   };
                 }
+                // Aggregate outputs collapse a root from the consumed
+                // lineage. The static analyzer drops it from the output
+                // scope; the runtime lineage on each emit must match.
+                const collapsed = this._maybeCollapseForSlot(slot, hints);
+                if (collapsed) {
+                  hints.perSlotLineage = {
+                    ...(hints.perSlotLineage ?? {}),
+                    [slot]: collapsed
+                  };
+                }
               }
               await this._sendOutputs(
                 this.node.id,
@@ -984,6 +994,35 @@ export class NodeActor {
       invocationLineage: parentLineage,
       perSlotLineage
     });
+  }
+
+  /**
+   * For `aggregate(innermost)` outputs, drop the collapsed root from the
+   * inherited lineage so the emitted envelope sits at the parent scope.
+   * The static analyzer drops the root from the output scope at graph load;
+   * this is the runtime mirror.
+   *
+   * Returns the rewritten lineage, or `undefined` when no collapse applies.
+   */
+  private _maybeCollapseForSlot(
+    slot: string,
+    hints: OutputRoutingHints
+  ): CorrelationLineage | undefined {
+    const corr = this.node.output_correlation?.[slot];
+    if (!corr || corr.kind !== "aggregate") return undefined;
+    if (corr.collapse !== "innermost") return undefined;
+    if (!this._correlation) return undefined;
+
+    // The source input handle's scope ends with the root to collapse.
+    const sourceInput = this._correlation.inputs.get(corr.source);
+    if (!sourceInput || sourceInput.scope.length === 0) return undefined;
+    const collapsed = sourceInput.scope[sourceInput.scope.length - 1];
+
+    const base = hints.invocationLineage ?? EMPTY_LINEAGE;
+    if (!(collapsed in base)) return base;
+    const out: Record<string, { index: number }> = { ...base };
+    delete out[collapsed];
+    return out;
   }
 
   /**
