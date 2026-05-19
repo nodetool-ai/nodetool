@@ -649,10 +649,10 @@ async function getAllModels(userId: string): Promise<UnifiedModel[]> {
   all.push(...RECOMMENDED_MODELS);
 
   const availableIds = await getAvailableProviderIds(userId);
-  for (const providerId of availableIds) {
+  const providerModelsPromises = availableIds.map(async (providerId) => {
     try {
       const instance = await instantiateProvider(providerId, userId);
-      if (!instance) continue;
+      if (!instance) return [];
       const models = await instance.getAvailableLanguageModels();
       const toolFlags = await Promise.all(
         models.map((m) =>
@@ -661,12 +661,16 @@ async function getAllModels(userId: string): Promise<UnifiedModel[]> {
             .catch(() => null as boolean | null)
         )
       );
-      models.forEach((m, i) => {
-        all.push(toUnifiedLanguageModel(m, toolFlags[i]));
-      });
+      return models.map((m, i) => toUnifiedLanguageModel(m, toolFlags[i]));
     } catch {
       // Provider unavailable — skip
+      return [];
     }
+  });
+
+  const providerModelsArrays = await Promise.all(providerModelsPromises);
+  for (const models of providerModelsArrays) {
+    all.push(...models);
   }
 
   if (!isProduction()) {
