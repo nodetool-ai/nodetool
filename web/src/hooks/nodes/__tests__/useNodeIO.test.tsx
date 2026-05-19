@@ -165,6 +165,22 @@ describe("useUpstreamValue", () => {
     expect(result.current).toEqual({ uri: "latest.png" });
   });
 
+  it("falls back to the constant value when wired upstream has no resolvable value", () => {
+    setMockState([
+      {
+        source: "non-literal-upstream",
+        sourceHandle: "output",
+        target: "invert",
+        targetHandle: "image"
+      }
+    ]);
+    const fallback = { uri: "cached-input.png" };
+    const { result } = renderHook(() =>
+      useUpstreamValue("wf", "invert", "image", fallback)
+    );
+    expect(result.current).toEqual(fallback);
+  });
+
   it("falls back to a literal source node's property when wired but not run", () => {
     setMockState(
       [

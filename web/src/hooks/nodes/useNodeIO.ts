@@ -90,6 +90,6 @@ export const useUpstreamValue = (
       (wf, src) => readAnyStoreValue(state, wf, src),
       findNode
     );
-    return resolved.hasValue ? resolved.value : undefined;
+    return resolved.hasValue ? resolved.value : constantFallback;
   }, shallow);
 };
