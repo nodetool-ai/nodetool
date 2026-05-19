@@ -1,6 +1,4 @@
-## 2025-03-08 - Batching node deletions to bypass O(N) Zustand churn
-**Learning:** Found an iterative Zustand action invocation (`deleteNode`) mapping over an array in `SelectionContextMenu.tsx`. For every iteration, `deleteNode` would wrap its own internal call to `deleteNodes([id])` resulting in redundant re-evaluations and subsequent component renders.
-**Action:** Always favor bulk/batch updates (`deleteNodes(selectedIds)`) over iterative individual state mutations inside React arrays/maps, especially on `Zustand` state managers where state changes instantly dispatch updates to all subscribed hooks.
+## 2024-05-18 - Parallelize AudioBuffer Loading
 
 ## 2025-03-08 - Optimizing Node Selection in NodeStore
 **Learning:** `setSelectedNodes`, `selectNodesByType` and `selectAllNodes` in `web/src/stores/NodeStore.ts` were calling `get().nodes.map()` and indiscriminately spreading objects to update their `selected` property, resulting in unnecessary new object allocations and array regeneration even when nothing changed, which triggered React re-renders.
@@ -21,3 +19,5 @@ Previously, the code iterated through items using `for (const item of items)` an
 ## Testing
 - Verified standard performance functionality by running `pnpm test` in the `web` workspace.
 - Passed all existing tests for clipboard interactions and the broader sketch workspace perfectly.
+**Learning:** When loading multiple independent audio buffers over the network within a loop, using `await` sequentially creates a performance bottleneck proportional to the number of buffers.
+**Action:** Always map the independent network requests to an array of Promises and resolve them concurrently using `Promise.all` before executing the sequential synchronous operations.

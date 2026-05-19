@@ -355,6 +355,17 @@ export class AudioGraph {
 
     this.updateTracks(tracks);
 
+    const bufferPromises = clips.map(async ({ clip, assetUrl }) => {
+      if (this.clipSources.has(clip.id) || !clip.currentAssetId) {
+        return { clipId: clip.id, buffer: null };
+      }
+      const buffer = await this.loadBuffer(clip.currentAssetId, assetUrl);
+      return { clipId: clip.id, buffer };
+    });
+
+    const loadedBuffers = await Promise.all(bufferPromises);
+    const bufferMap = new Map(loadedBuffers.map((b) => [b.clipId, b.buffer]));
+
     for (const { clip, assetUrl } of clips) {
       if (this.clipSources.has(clip.id)) {
         continue;
@@ -363,7 +374,7 @@ export class AudioGraph {
         continue;
       }
 
-      const buffer = await this.loadBuffer(clip.currentAssetId, assetUrl);
+      const buffer = bufferMap.get(clip.id);
       if (!buffer) {
         continue;
       }

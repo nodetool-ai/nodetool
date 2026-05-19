@@ -201,12 +201,12 @@ async function repoFileInCache(
   relativePath: string
 ): Promise<boolean> {
   const snapshotDirs = await listSnapshotDirs(repoId);
-  for (const snapshotDir of snapshotDirs) {
-    if (await pathExists(join(snapshotDir, relativePath))) {
-      return true;
-    }
-  }
-  return false;
+  const checks = await Promise.all(
+    snapshotDirs.map((snapshotDir) =>
+      pathExists(join(snapshotDir, relativePath))
+    )
+  );
+  return checks.some((exists) => exists);
 }
 
 async function listRepoCachedFiles(repoId: string): Promise<string[]> {
@@ -215,22 +215,21 @@ async function listRepoCachedFiles(repoId: string): Promise<string[]> {
 
   async function walk(root: string, current: string): Promise<void> {
     const entries = await readdir(current, { withFileTypes: true });
-    for (const entry of entries) {
+    const promises = entries.map(async (entry) => {
       const full = join(current, entry.name);
       if (entry.isDirectory()) {
         await walk(root, full);
-        continue;
+        return;
       }
       if (entry.isFile() || entry.isSymbolicLink()) {
         const rel = full.slice(root.length + 1).replaceAll("\\", "/");
         collected.add(rel);
       }
-    }
+    });
+    await Promise.all(promises);
   }
 
-  for (const snapshotDir of snapshotDirs) {
-    await walk(snapshotDir, snapshotDir);
-  }
+  await Promise.all(snapshotDirs.map((dir) => walk(dir, dir)));
 
   return [...collected];
 }
@@ -525,13 +524,12 @@ async function recommendedModels(
   const models = [...RECOMMENDED_MODELS];
   if (!checkServers) return models;
   const servers = await getServerAvailability();
-  const filtered: UnifiedModel[] = [];
-  for (const model of models) {
-    if (await serverAllowsModel(model, servers)) {
-      filtered.push(model);
-    }
-  }
-  return filtered;
+
+  const allowedResults = await Promise.all(
+    models.map((model) => serverAllowsModel(model, servers))
+  );
+
+  return models.filter((_, index) => allowedResults[index]);
 }
 
 function selectRecommended(
