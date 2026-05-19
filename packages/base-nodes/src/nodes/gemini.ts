@@ -251,11 +251,7 @@ export class ImageGenerationNode extends BaseNode {
     description: "The image generation model to use",
     values: [
       "gemini-2.0-flash-preview-image-generation",
-      "gemini-2.5-flash-image-preview",
-      "gemini-3-pro-image-preview",
-      "imagen-3.0-generate-001",
-      "imagen-3.0-generate-002",
-      "imagen-4.0-generate-001"
+      "imagen-3.0-generate-002"
     ]
   })
   declare model: any;
@@ -353,49 +349,18 @@ export class ImageGenerationNode extends BaseNode {
       throw new Error("No image bytes returned in response");
     }
 
-    // Imagen models primarily use the generateImages endpoint.
+    // Imagen models use the generateImages endpoint.
     const url = `${GEMINI_API_BASE}/models/${model}:generateImages?key=${apiKey}`;
     const body = {
       prompt,
       config: { numberOfImages: 1 }
     };
 
-    let res = await fetch(url, {
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
-
-    if (res.status === 404) {
-      // Some Imagen model versions only support the :predict endpoint.
-      const fallbackUrl = `${GEMINI_API_BASE}/models/${model}:predict?key=${apiKey}`;
-      const fallbackBody = {
-        instances: [{ prompt }],
-        parameters: { sampleCount: 1 }
-      };
-
-      res = await fetch(fallbackUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(fallbackBody)
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Gemini API error ${res.status}: ${errText}`);
-      }
-
-      const data = (await res.json()) as Record<string, unknown>;
-      const predictions = data.predictions as
-        | Array<Record<string, unknown>>
-        | undefined;
-      const imageBytes = predictions?.[0]?.bytesBase64Encoded;
-      if (typeof imageBytes !== "string" || imageBytes.length === 0) {
-        throw new Error("No image bytes in response");
-      }
-
-      return { output: { type: "image", data: imageBytes } };
-    }
 
     if (!res.ok) {
       const errText = await res.text();
