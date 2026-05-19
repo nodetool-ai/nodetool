@@ -1,6 +1,10 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type {
+  ProcessingContext,
+  StreamingInputs,
+  StreamingOutputs
+} from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import Papa from "papaparse";
@@ -1586,17 +1590,8 @@ export class FilterNoneNode extends BaseNode {
     output: "any"
   };
 
-  // TODO(correlation): this node is marked `isStreamingInput=true` but uses
-  // `input_mode: "buffered"` and only implements `process()`. With
-  // `isStreamingInput=true` the actor calls `process({})` once with empty
-  // inputs, so it does not actually filter a stream. To act as a real
-  // stream filter it should switch to `input_mode: "stream"`, implement
-  // `run()`, and call `outputs.forward()` / `outputs.drop()` (the latter
-  // emits `lineage_done` so downstream joins don't wait on filtered keys).
-  // Pre-existing across many test fixtures that assert the current shape;
-  // converting requires a coordinated test refactor — left for a follow-up.
   static readonly isStreamingInput = true;
-  static readonly inputMode: InputMode = "buffered";
+  static readonly inputMode: InputMode = "stream";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "forward", source: "value" }
   };
@@ -1609,8 +1604,26 @@ export class FilterNoneNode extends BaseNode {
   })
   declare value: any;
 
+  // Streaming filter: forwards non-null items and drops null/undefined.
+  // `outputs.drop` emits `lineage_done` for the dropped key so downstream
+  // joins (Zip/Cross) don't wait on a key that will never arrive.
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    for await (const env of inputs.streamWithEnvelope("value")) {
+      if (env.data == null) {
+        await outputs.drop("output", env);
+      } else {
+        await outputs.forward("output", env);
+      }
+    }
+  }
+
+  // Kept for direct (non-actor) invocation and existing buffered-style unit
+  // tests. The kernel selects `run()` when `inputMode === "stream"`.
   async process(): Promise<Record<string, unknown>> {
-    const value = this.value ?? this.value ?? null;
+    const value = this.value ?? null;
     if (value == null) {
       return {};
     }
