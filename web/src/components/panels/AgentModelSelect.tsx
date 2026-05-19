@@ -201,11 +201,11 @@ const AgentModelSelectInner: React.FC<AgentModelSelectProps> = ({
     return () => window.clearTimeout(id);
   }, [open, options, value, searchable]);
 
-  useEffect(() => {
-    if (activeIndex >= filtered.length) {
-      setActiveIndex(filtered.length === 0 ? -1 : filtered.length - 1);
-    }
-  }, [filtered.length, activeIndex]);
+  // Clamp activeIndex during render when filtered list shrinks — avoids the
+  // extra commit cycle of a useEffect doing the same correction.
+  if (activeIndex >= filtered.length) {
+    setActiveIndex(filtered.length === 0 ? -1 : filtered.length - 1);
+  }
 
   const handleOpen = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     if (isDisabled) return;
