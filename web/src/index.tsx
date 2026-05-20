@@ -73,6 +73,8 @@ import MobileClassProvider from "./components/MobileClassProvider";
 const AppHeader = React.lazy(() => import("./components/panels/AppHeader"));
 import { SkipLinks } from "./components/ui_primitives/SkipLinks";
 
+import ChatComposerLayout from "./components/chat/containers/ChatComposerLayout";
+
 // Lazy-loaded route components for code splitting
 const GlobalChat = React.lazy(
   () => import("./components/chat/containers/GlobalChat")
@@ -261,12 +263,50 @@ function getRoutes() {
       element: <NavigateToStart />
     },
     {
-      path: "/dashboard",
-      element: (
-        <ProtectedRoute>
-          <Portal />
-        </ProtectedRoute>
-      )
+      element: <ChatComposerLayout />,
+      children: [
+        {
+          path: "/dashboard",
+          element: (
+            <ProtectedRoute>
+              <Portal />
+            </ProtectedRoute>
+          )
+        },
+        {
+          path: "/chat/:thread_id?",
+          element: (
+            <ProtectedRoute>
+              <div
+                className="page-enter"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  width: "100%",
+                  height: "100%"
+                }}
+              >
+                <SkipLinks />
+                {/* Fixed application header at the very top */}
+                <AppHeader />
+                {/* Main chat area beneath the header */}
+                <div
+                  id="main-content"
+                  style={{
+                    display: "flex",
+                    width: "100%",
+                    height: "100%"
+                  }}
+                >
+                  <PanelLeft />
+                  <GlobalChat />
+                  <PanelBottom />
+                </div>
+              </div>
+            </ProtectedRoute>
+          )
+        }
+      ]
     },
     {
       // Legacy route — the getting-started checklist now lives in the
@@ -296,39 +336,6 @@ function getRoutes() {
     {
       path: "/login",
       element: <Login />
-    },
-    {
-      path: "/chat/:thread_id?",
-      element: (
-        <ProtectedRoute>
-          <div
-            className="page-enter"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              width: "100%",
-              height: "100%"
-            }}
-          >
-            <SkipLinks />
-            {/* Fixed application header at the very top */}
-            <AppHeader />
-            {/* Main chat area beneath the header */}
-            <div
-              id="main-content"
-              style={{
-                display: "flex",
-                width: "100%",
-                height: "100%"
-              }}
-            >
-              <PanelLeft />
-              <GlobalChat />
-              <PanelBottom />
-            </div>
-          </div>
-        </ProtectedRoute>
-      )
     },
     {
       path: "/apps/:workflowId?",
