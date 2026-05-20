@@ -62,7 +62,6 @@ npm run test:e2e                # Run tests
 electron/src/
 ├── main.ts              # Main process entry point
 ├── preload.ts           # Preload script (contextBridge)
-├── agent.ts             # Claude Agent session (Electron-specific)
 ├── config.ts            # Conda environment detection
 ├── WorkflowRunner.ts    # Workflow execution in main process
 └── components/          # React components for Electron UI

@@ -27,7 +27,7 @@ import type {
 
 export type { AgentProvider, AgentModelDescriptor } from "../lib/agent/agentTypes";
 
-const AGENT_PROVIDERS: readonly AgentProvider[] = ["claude", "codex", "opencode", "pi", "llm"];
+const AGENT_PROVIDERS: readonly AgentProvider[] = ["pi", "llm"];
 
 function isAgentProvider(value: string): value is AgentProvider {
   return (AGENT_PROVIDERS as readonly string[]).includes(value);
@@ -124,7 +124,7 @@ interface AgentState {
    * Underlying chat provider id when `provider === "llm"`. Set when the user
    * picks a model from the aggregated llm provider list — each
    * AgentModelDescriptor carries its own `chatProviderId`. Ignored by the
-   * harness providers (claude/codex/opencode/pi).
+   * Pi harness provider.
    */
   chatProviderId: string | null;
   setChatProviderId: (id: string | null) => void;
@@ -178,10 +178,10 @@ const useAgentStore = create<AgentState>((set, get) => ({
   sessionId: null,
   error: null,
   isAvailable: true,
-  model: "claude-sonnet-4-6",
+  model: "",
   availableModels: [],
   modelsLoading: false,
-  provider: "claude",
+  provider: "llm",
   streamUnsubscribe: null,
   hasAssistantInCurrentTurn: false,
   workspacePath: null,
@@ -641,7 +641,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
           created_at: new Date().toISOString(),
           thread_id: m.session_id,
           provider: "anthropic",
-          model: "claude-agent"
+          model: "agent"
         }));
       } catch (err) {
         console.error("Failed to load session transcript:", err);
@@ -678,7 +678,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
 
       const entries: AgentSessionHistoryEntry[] = sdkSessions.map((s) => ({
         id: s.sessionId,
-        provider: s.provider && isAgentProvider(s.provider) ? s.provider : "claude",
+        provider: s.provider && isAgentProvider(s.provider) ? s.provider : "llm",
         model: "",
         workspacePath: s.cwd ?? "",
         createdAt: s.createdAt

@@ -74,4 +74,5 @@ describe('package descriptions', () => {
     expect(needsTorchPlatformDetection('nunchaku')).toBe(true);
     expect(needsTorchPlatformDetection('nodetool-core')).toBe(false);
   });
+
 });

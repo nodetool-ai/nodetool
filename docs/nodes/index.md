@@ -7,10 +7,6 @@ Complete reference documentation for all 581 NodeTool nodes across 70 namespaces
 
 ## Namespaces
 
-### anthropic
-
-- **[anthropic.agents](anthropic/agents/)** - 1 node(s)
-
 ### apify
 
 - **[apify.scraping](apify/scraping/)** - 7 node(s)

@@ -29,7 +29,6 @@
     "ws": "^8.19.0"
   },
   "devDependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.101",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
     "typescript": "^5.7.2",

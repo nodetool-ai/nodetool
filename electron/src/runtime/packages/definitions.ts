@@ -131,28 +131,6 @@ export const RUNTIME_PACKAGES: Record<RuntimePackageId, RuntimePackage> = {
     verifyBinary: "yt-dlp",
   }),
 
-  "claude-agent-sdk": new NpmRuntimePackage({
-    id: "claude-agent-sdk",
-    name: "Claude Agent SDK",
-    description:
-      "Optional Claude Code agent integration for the local NodeTool backend.",
-    category: "library",
-    versionRange: "0.2.x",
-    npmPackages: ["@anthropic-ai/claude-agent-sdk@0.2.126"],
-    packageNames: ["@anthropic-ai/claude-agent-sdk"],
-  }),
-
-  "codex-sdk": new NpmRuntimePackage({
-    id: "codex-sdk",
-    name: "OpenAI Codex SDK",
-    description:
-      "Optional OpenAI Codex agent integration for the local NodeTool backend.",
-    category: "library",
-    versionRange: "0.128.x",
-    npmPackages: ["@openai/codex-sdk@0.128.0"],
-    packageNames: ["@openai/codex-sdk"],
-  }),
-
   "transformers-js": new NpmRuntimePackage({
     id: "transformers-js",
     name: "Transformers.js",

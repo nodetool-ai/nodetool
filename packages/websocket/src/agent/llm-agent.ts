@@ -1,6 +1,6 @@
 /**
  * LlmAgentSdkProvider — runs an in-process LLM as an agent against the same
- * `ui_*` tool surface the Claude/Codex/OpenCode/Pi harnesses use, and the
+ * `ui_*` tool surface the Pi harness uses, and the
  * same workflow-builder system prompt.
  *
  * Architecture:
@@ -124,7 +124,7 @@ class UiBridgeTool extends Tool {
     } catch (err) {
       // Tool failures (validation, runtime, etc.) must be returned to the
       // model as a tool-result so it can self-correct on the next turn,
-      // matching how harness providers (Claude SDK, MCP) surface errors.
+      // matching how the Pi harness (MCP) surfaces errors.
       // Rethrowing here would crash the entire processChat loop and end the
       // session on a single bad call.
       const message = err instanceof Error ? err.message : String(err);
@@ -793,8 +793,8 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
     if (!userId) {
       throw new Error("listSessions requires an authenticated userId");
     }
-    // listSessions() in the harness providers returns sessions stored by their
-    // SDK (e.g. ~/.claude). For LLM sessions we own the storage — query the
+    // listSessions() in the Pi harness returns sessions stored by its
+    // SDK (~/.pi). For LLM sessions we own the storage — query the
     // `nodetool_messages` table for threads marked with LLM_AGENT_MARKER and
     // hydrate the most recent message of each as a summary.
     try {
