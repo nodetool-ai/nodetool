@@ -37,11 +37,3 @@ interface ProgressEvent {
   readonly total: number;
 }
 
-/**
- * Augment Jest matchers with @testing-library/jest-native custom matchers.
- */
-declare namespace jest {
-  interface Matchers<R> {
-    toHaveTextContent(text: string | RegExp): R;
-  }
-}
