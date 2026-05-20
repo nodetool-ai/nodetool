@@ -34,7 +34,6 @@ describe("reactFlowNodeToGraphNode", () => {
     expect(uiProps(result).width).toBe(280);
     expect(uiProps(result).height).toBeUndefined();
     expect(uiProps(result).selectable).toBe(true);
-    expect(result.sync_mode).toBe("on_any");
   });
 
   it("preserves title and color from node data", () => {

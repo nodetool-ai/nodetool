@@ -810,7 +810,7 @@ export class TranscribeGeminiNode extends BaseNode {
   static readonly nodeType = "gemini.audio.Transcribe";
   static readonly title = "Transcribe";
   static readonly inlineFields: string[] = [];
-  static readonly inputFields = ["audio"];
+  static readonly inputFields = ["audio", "prompt"];
   static readonly description =
     "Transcribe audio to text using Google's Gemini models.\n    google, transcription, speech-to-text, audio, whisper, ai\n\n    This node converts audio input into text using Google's multimodal Gemini models.\n    Supports various audio formats and provides accurate speech-to-text transcription.\n\n    Use cases:\n    - Convert recorded audio to text\n    - Transcribe podcasts and interviews\n    - Generate subtitles from audio tracks\n    - Create meeting notes from audio recordings\n    - Analyze speech content in audio files";
   static readonly metadataOutputTypes = {

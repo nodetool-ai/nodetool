@@ -39,7 +39,7 @@
       {
         "id": "abb8ee0b-dbf0-4969-8046-c2e690b7d1e4",
         "parent_id": null,
-        "type": "nodetool.video.FrameIterator",
+        "type": "nodetool.video.ForEachFrame",
         "data": {
           "start": 0,
           "end": 2

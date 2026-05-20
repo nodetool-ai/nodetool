@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { Message, ProcessingContext, ToolCall } from "@nodetool-ai/runtime";
 import {
   isChunkItem,
@@ -382,7 +383,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
   static readonly description =
     "Generate structured JSON objects from instructions using LLM providers.\n    data-generation, structured-data, json, synthesis\n\n    Specialized for creating structured information:\n    - Generating JSON that follows dynamic schemas\n    - Fabricating records from requirements and guidance\n    - Simulating sample data for downstream workflows\n    - Producing consistent structured outputs for testing";
   static readonly inlineFields = ["instructions", "context"];
-  static readonly inputFields = [];
+  static readonly inputFields = ["system_prompt", "image", "audio"];
   static readonly supportsDynamicOutputs = true;
 
   @prop({
@@ -551,7 +552,13 @@ export class DataGeneratorNode extends BaseNode {
   static readonly inlineFields = ["columns"];
   static readonly inputFields = ["prompt"];
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    record: { kind: "iteration", source: "__execution__", group: "items" },
+    index: { kind: "iteration", source: "__execution__", group: "items" },
+    dataframe: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "language_model",
     default: {
@@ -653,7 +660,12 @@ export class ListGeneratorNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt"];
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    item: { kind: "iteration", source: "__execution__", group: "items" },
+    index: { kind: "iteration", source: "__execution__", group: "items" }
+  };
+
   @prop({
     type: "language_model",
     default: {

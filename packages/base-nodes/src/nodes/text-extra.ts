@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import { extname, join } from "node:path";
@@ -1013,6 +1014,8 @@ export class IsEmptyTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "bool"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1083,6 +1086,8 @@ export class StripAccentsNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1118,6 +1123,8 @@ export class SlugifyNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1166,6 +1173,8 @@ export class HasLengthTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "bool"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1208,6 +1217,8 @@ export class TruncateTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1250,6 +1261,8 @@ export class PadTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1312,6 +1325,8 @@ export class LengthTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "int"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1366,6 +1381,8 @@ export class IndexOfTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "int"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1442,6 +1459,8 @@ export class SurroundWithTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1483,6 +1502,8 @@ export class CountTokensNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "int"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1672,6 +1693,8 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     text: "str"
   };
   static readonly exposeAsTool = true;
+  static readonly inputFields: string[] = ["audio"];
+
 
   @prop({
     type: "asr_model",
@@ -1807,6 +1830,8 @@ export class SaveTextFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "text"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1853,6 +1878,8 @@ export class SaveTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "text"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1900,7 +1927,6 @@ export class LoadTextFolderNode extends BaseNode {
     paths: "list"
   };
 
-  static readonly isStreamingOutput = true;
   @prop({
     type: "str",
     default: "",
@@ -2014,7 +2040,6 @@ export class LoadTextAssetsNode extends BaseNode {
     names: "list"
   };
 
-  static readonly isStreamingOutput = true;
   @prop({
     type: "folder",
     default: {
@@ -2086,9 +2111,9 @@ export class FilterStringNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-
-  static readonly isStreamingOutput = true;
-  static readonly syncMode = "on_any" as const;
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "value" }
+  };
 
   private _filterType: FilterStringType = "contains";
   private _criteria = "";
@@ -2185,9 +2210,9 @@ export class FilterRegexStringNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-
-  static readonly isStreamingOutput = true;
-  static readonly syncMode = "on_any" as const;
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "value" }
+  };
 
   private _pattern = "";
   private _fullMatch = false;
@@ -2252,23 +2277,20 @@ export class ConcatTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Concat";
   static readonly title = "Concatenate Text";
   static readonly description =
-    "Concatenates text inputs into a single output.\n    text, combine, add, concatenate, merge, join, append";
+    "Concatenates text inputs into a single output. Add inputs dynamically with the “add text input” button.\n    text, combine, add, concatenate, merge, join, append";
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
   static readonly isDynamic = true;
 
-  @prop({ type: "str", default: "", title: "A", description: "First text input." })
-  declare a: any;
-
-  @prop({ type: "str", default: "", title: "B", description: "Second text input." })
-  declare b: any;
-
   async process(): Promise<Record<string, unknown>> {
-    const values = [this.a, this.b, ...Array.from(this.dynamicProps.values())].map(
-      (value) => String(value ?? "")
-    );
-    return { output: values.join("") };
+    return {
+      output: Array.from(this.dynamicProps.values())
+        .map((value) => String(value ?? ""))
+        .join("")
+    };
   }
 }
 
@@ -2308,7 +2330,6 @@ export class CollectTextNode extends BaseNode {
     output: "str"
   };
 
-  static readonly syncMode = "on_any" as const;
 
   private _items: string[] = [];
 
@@ -2339,6 +2360,8 @@ export class FormatTextNode extends BaseNode {
   };
 
   static readonly isDynamic = true;
+  static readonly inputFields: string[] = ["template"];
+
 
   @prop({
     type: "str",
@@ -2415,6 +2438,8 @@ export class PromptNode extends BaseNode {
   };
 
   static readonly isDynamic = true;
+  static readonly inputFields: string[] = ["prompt"];
+
 
   @prop({
     type: "str",
@@ -2527,6 +2552,8 @@ export class ReplaceTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text", description: "The input text." })
   declare text: any;

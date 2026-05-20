@@ -4709,11 +4709,6 @@ export interface components {
             dynamic_outputs?: {
                 [key: string]: components["schemas"]["TypeMetadata-Input"];
             };
-            /**
-             * Sync Mode
-             * @default on_any
-             */
-            sync_mode: string;
         };
         /** Node */
         "Node-Output": {
@@ -4738,11 +4733,6 @@ export interface components {
             dynamic_outputs?: {
                 [key: string]: components["schemas"]["TypeMetadata-Output"];
             };
-            /**
-             * Sync Mode
-             * @default on_any
-             */
-            sync_mode: string;
         };
         /**
          * NodeMetadata

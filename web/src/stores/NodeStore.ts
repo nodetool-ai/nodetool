@@ -1370,6 +1370,13 @@ export const createNodeStore = (
             const isModel3DConstantNode =
               metadata.node_type === "nodetool.constant.Model3D";
             const isContentCard = isContentCardNode(metadata);
+            // Agent-style content cards use {{variable}} templating, not
+            // media preview — they should size like regular nodes (auto
+            // height) instead of inheriting the text variant's 320×220.
+            const isAgentStyle =
+              metadata.node_type === "nodetool.agents.Agent" ||
+              metadata.node_type === "anthropic.agents.ClaudeAgent" ||
+              metadata.node_type === "openai.agents.RealtimeAgent";
             let defaultStyle: { width: number; height?: number };
             if (isPreviewNode) {
               defaultStyle = { width: 400, height: 300 };
@@ -1377,6 +1384,8 @@ export const createNodeStore = (
               defaultStyle = { width: 450, height: 350 };
             } else if (isModel3DConstantNode) {
               defaultStyle = { width: 320, height: 320 };
+            } else if (isAgentStyle) {
+              defaultStyle = { width: DEFAULT_NODE_WIDTH };
             } else if (isContentCard) {
               defaultStyle = getContentCardDefaultSize(metadata);
             } else {

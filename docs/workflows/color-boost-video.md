@@ -21,13 +21,13 @@ video, start
 {% mermaid %}
 graph TD
   video_7074f1["Video"]
-  frameiterator_abb8ee["FrameIterator"]
+  foreachframe_abb8ee["ForEachFrame"]
   color_b14f76["Color"]
   frametovideo_4ca887["FrameToVideo"]
-  video_7074f1 --> frameiterator_abb8ee
-  frameiterator_abb8ee --> color_b14f76
+  video_7074f1 --> foreachframe_abb8ee
+  foreachframe_abb8ee --> color_b14f76
   color_b14f76 --> frametovideo_4ca887
-  frameiterator_abb8ee --> frametovideo_4ca887
-  frameiterator_abb8ee --> frametovideo_4ca887
-  frameiterator_abb8ee --> frametovideo_4ca887
+  foreachframe_abb8ee --> frametovideo_4ca887
+  foreachframe_abb8ee --> frametovideo_4ca887
+  foreachframe_abb8ee --> frametovideo_4ca887
 {% endmermaid %}

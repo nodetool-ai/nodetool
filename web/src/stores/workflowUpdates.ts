@@ -435,13 +435,40 @@ export const handleUpdate = (
           usePropertyValidationStore
             .getState()
             .setIssues(workflow.id, validationIssues);
-          const noun =
-            validationIssues.length === 1 ? "field" : "fields";
+          const firstIssue = validationIssues[0];
+          const nodeStore = getNodeStore(workflow.id);
+          const firstNode = nodeStore
+            ?.getState()
+            .findNode(firstIssue.node_id);
+          const nodeLabel =
+            firstNode?.data?.title?.trim() ||
+            (firstNode?.type as string | undefined)?.split(".").pop() ||
+            firstIssue.node_id;
+          const noun = validationIssues.length === 1 ? "field" : "fields";
+          const content =
+            validationIssues.length === 1
+              ? firstIssue.property
+                ? `Fix “${firstIssue.property}” on ${nodeLabel} before running.`
+                : `Fix “${nodeLabel}” before running: ${firstIssue.message}`
+              : `Fix ${validationIssues.length} ${noun} before running (starting at ${nodeLabel}).`;
           runner.addNotification({
             type: "error",
             alert: true,
-            content: `Fix ${validationIssues.length} highlighted ${noun} before running.`,
-            timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
+            content,
+            timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED,
+            action: {
+              label: "Show",
+              onClick: () => {
+                const store = getNodeStore(workflow.id);
+                if (!store) return;
+                const { findNode, setSelectedNodes, setShouldFitToScreen } =
+                  store.getState();
+                const target = findNode(firstIssue.node_id);
+                if (!target) return;
+                setSelectedNodes([target]);
+                setShouldFitToScreen(true, [firstIssue.node_id]);
+              }
+            }
           });
         } else {
           runner.addNotification({

@@ -12,6 +12,25 @@ export {
   type ResolvedNodeType
 } from "./graph.js";
 export { NodeInbox, type MessageEnvelope } from "./inbox.js";
+export { syntheticEdgeId, externalEdgeId } from "./edge-ids.js";
+export {
+  analyzeCorrelation,
+  CorrelationAnalysisError,
+  comparable,
+  isPrefixOf,
+  iterationRootId,
+  edgeKey,
+  projectLineageKey,
+  tryProjectLineageKey,
+  type Scope,
+  type EdgeAnalysis,
+  type OutputAnalysis,
+  type InputAnalysis,
+  type NodeAnalysis,
+  type CorrelationAnalysisIssue,
+  type CorrelationAnalysisResult,
+  type AnalyzeOptions
+} from "./correlation-analysis.js";
 export { NodeActor, type NodeExecutor, type ActorResult } from "./actor.js";
 export {
   WorkflowRunner,

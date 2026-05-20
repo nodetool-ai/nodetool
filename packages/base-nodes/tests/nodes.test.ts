@@ -389,7 +389,7 @@ describe("input/output/workspace nodes", () => {
     _sb.assign({ duration: 4 });
     const silenceB = await _sb.process();
     const _cat = new ConcatAudioNode();
-    _cat.assign({ a: silenceA.output, b: silenceB.output });
+    _cat.assign({ audio_1: silenceA.output, audio_2: silenceB.output });
     const concat = await _cat.process();
     const concatOutput = concat.output as { data: string };
     expect(concatOutput.data.length).toBeGreaterThan(0);

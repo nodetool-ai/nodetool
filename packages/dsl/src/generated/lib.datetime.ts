@@ -12,8 +12,8 @@ export interface NowOutputs {
   date: unknown;
 }
 
-export function now(inputs?: NowInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<NowOutputs> {
-  return createNode("lib.datetime.Now", (inputs ?? {}) as Record<string, unknown>, { outputNames: ["iso", "epoch_ms", "date"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function now(inputs?: NowInputs): DslNode<NowOutputs> {
+  return createNode("lib.datetime.Now", (inputs ?? {}) as Record<string, unknown>, { outputNames: ["iso", "epoch_ms", "date"] });
 }
 
 // Format Date — lib.datetime.Format
@@ -28,8 +28,8 @@ export interface FormatOutputs {
   epoch_ms: number;
 }
 
-export function format(inputs: FormatInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FormatOutputs> {
-  return createNode("lib.datetime.Format", inputs as Record<string, unknown>, { outputNames: ["formatted", "iso", "epoch_ms"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function format(inputs: FormatInputs): DslNode<FormatOutputs> {
+  return createNode("lib.datetime.Format", inputs as Record<string, unknown>, { outputNames: ["formatted", "iso", "epoch_ms"] });
 }
 
 // Add / Subtract Time — lib.datetime.Add
@@ -45,8 +45,8 @@ export interface AddOutputs {
   date: unknown;
 }
 
-export function add(inputs: AddInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<AddOutputs> {
-  return createNode("lib.datetime.Add", inputs as Record<string, unknown>, { outputNames: ["iso", "epoch_ms", "date"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function add(inputs: AddInputs): DslNode<AddOutputs> {
+  return createNode("lib.datetime.Add", inputs as Record<string, unknown>, { outputNames: ["iso", "epoch_ms", "date"] });
 }
 
 // Date Difference — lib.datetime.Diff
@@ -63,8 +63,8 @@ export interface DiffOutputs {
   is_same: boolean;
 }
 
-export function diff(inputs: DiffInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DiffOutputs> {
-  return createNode("lib.datetime.Diff", inputs as Record<string, unknown>, { outputNames: ["diff", "is_before", "is_after", "is_same"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function diff(inputs: DiffInputs): DslNode<DiffOutputs> {
+  return createNode("lib.datetime.Diff", inputs as Record<string, unknown>, { outputNames: ["diff", "is_before", "is_after", "is_same"] });
 }
 
 // Start / End of Period — lib.datetime.StartEnd
@@ -80,6 +80,6 @@ export interface StartEndOutputs {
   end: unknown;
 }
 
-export function startEnd(inputs: StartEndInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<StartEndOutputs> {
-  return createNode("lib.datetime.StartEnd", inputs as Record<string, unknown>, { outputNames: ["start_iso", "end_iso", "start", "end"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function startEnd(inputs: StartEndInputs): DslNode<StartEndOutputs> {
+  return createNode("lib.datetime.StartEnd", inputs as Record<string, unknown>, { outputNames: ["start_iso", "end_iso", "start", "end"] });
 }

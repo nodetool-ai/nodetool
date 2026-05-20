@@ -20,7 +20,6 @@ import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-import SyncIcon from "@mui/icons-material/Sync";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
@@ -64,7 +63,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const dropdownOpen = Boolean(anchorEl);
 
-  const syncMode = nodeData?.sync_mode || "on_any";
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
   const isBypassed = Boolean(nodeData?.bypassed);
   const isInGroup = Boolean(node?.parentId);
@@ -126,21 +124,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
       navigate(`/templates?node=${encodeURIComponent(nodeType)}`);
     }
   }, [navigate, node?.type]);
-
-  const handleSelectSyncMode = useCallback((mode: "on_any" | "zip_all") => {
-    if (nodeId !== null) {
-      updateNodeData(nodeId, { sync_mode: mode });
-    }
-    setAnchorEl(null);
-  }, [nodeId, updateNodeData]);
-
-  const handleSelectOnAny = useCallback(() => {
-    handleSelectSyncMode("on_any");
-  }, [handleSelectSyncMode]);
-
-  const handleSelectZipAll = useCallback(() => {
-    handleSelectSyncMode("zip_all");
-  }, [handleSelectSyncMode]);
 
   const handleOpenDropdown = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -302,49 +285,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
             <FilterListIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Select All Same Type</ListItemText>
-        </MenuItem>
-
-        <Divider />
-
-        <MenuItem disabled sx={{ py: 0.5, minHeight: "unset" }}>
-          <ListItemText
-            primary="Sync Mode"
-            secondary="How inputs are coordinated"
-            primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }}
-            secondaryTypographyProps={{ fontSize: "0.7rem" }}
-          />
-        </MenuItem>
-
-        <MenuItem
-          selected={syncMode === "on_any"}
-          onClick={handleSelectOnAny}
-          sx={{ py: 0.5, minHeight: "unset", pl: 3 }}
-        >
-          <ListItemIcon sx={{ minWidth: 32 }}>
-            <SyncIcon sx={{ fontSize: "1rem" }} />
-          </ListItemIcon>
-          <ListItemText
-            primary="on_any"
-            secondary="Run when any input arrives"
-            primaryTypographyProps={{ fontSize: "0.75rem" }}
-            secondaryTypographyProps={{ fontSize: "0.7rem" }}
-          />
-        </MenuItem>
-
-        <MenuItem
-          selected={syncMode === "zip_all"}
-          onClick={handleSelectZipAll}
-          sx={{ py: 0.5, minHeight: "unset", pl: 3 }}
-        >
-          <ListItemIcon sx={{ minWidth: 32 }}>
-            <SyncIcon sx={{ fontSize: "1rem", transform: "scaleX(-1)" }} />
-          </ListItemIcon>
-          <ListItemText
-            primary="zip_all"
-            secondary="Wait for all inputs; process items together"
-            primaryTypographyProps={{ fontSize: "0.75rem" }}
-            secondaryTypographyProps={{ fontSize: "0.7rem" }}
-          />
         </MenuItem>
 
         {isDevelopment && [

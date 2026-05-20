@@ -206,7 +206,7 @@ export function useCanvasActions({
   const flushPendingCanvasSync = useCallback(() => {
     strokeLifecycle.flushPendingStrokeFinalization();
     exportSync.flushPendingExportSync();
-  }, [strokeLifecycle.flushPendingStrokeFinalization, exportSync.flushPendingExportSync]);
+  }, [strokeLifecycle, exportSync]);
 
   return {
     handleStrokeStart: strokeLifecycle.handleStrokeStart,

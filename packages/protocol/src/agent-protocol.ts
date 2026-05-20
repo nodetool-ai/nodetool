@@ -112,6 +112,12 @@ export interface AgentMessage {
       arguments: string;
     };
   }>;
+  /** Processing event payload for execution-tree UI updates. */
+  event?: unknown;
+  /** Processing event type, e.g. planning_update or tool_call_update. */
+  event_type?: string;
+  /** Groups execution events into one rendered execution tree. */
+  agent_execution_id?: string;
 }
 
 /** Manifest entry describing a frontend (renderer-executed) tool. */

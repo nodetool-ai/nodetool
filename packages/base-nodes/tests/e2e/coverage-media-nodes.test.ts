@@ -50,7 +50,7 @@ import {
   SaveVideoFileVideoNode,
   LoadVideoAssetsNode,
   SaveVideoNode,
-  FrameIteratorNode,
+  ForEachFrameNode,
   FpsNode,
   FrameToVideoNode,
   ConcatVideoNode,
@@ -548,14 +548,7 @@ describe("audio nodes — full coverage", () => {
     const a = { data: Buffer.from([10, 20]).toString("base64") };
     const b = { data: Buffer.from([30, 40]).toString("base64") };
     const _n = new AudioMixerNode();
-    // Set unused tracks to non-object values to exclude them from mixing
-    _n.assign({
-      track1: a,
-      track2: b,
-      track3: null,
-      track4: null,
-      track5: null
-    });
+    _n.assign({ a, b });
     const result = await _n.process();
     const outData = Buffer.from(
       (result.output as { data: string }).data,
@@ -576,11 +569,8 @@ describe("audio nodes — full coverage", () => {
     try {
       const _n = new AudioMixerNode();
       _n.assign({
-        track1: { uri: `file://${aPath}` },
-        track2: { uri: `file://${bPath}` },
-        track3: null,
-        track4: null,
-        track5: null
+        a: { uri: `file://${aPath}` },
+        b: { uri: `file://${bPath}` }
       });
 
       const result = await _n.process();
@@ -605,35 +595,10 @@ describe("audio nodes — full coverage", () => {
     expect(outData.length).toBe(0);
   });
 
-  it("AudioMixerNode applies per-track volume multipliers", async () => {
-    const a = { data: Buffer.from([100, 100]).toString("base64") };
-    const b = { data: Buffer.from([100, 100]).toString("base64") };
-    const _n = new AudioMixerNode();
-    _n.assign({
-      track1: a,
-      track2: b,
-      track3: null,
-      track4: null,
-      track5: null,
-      volume1: 2,
-      volume2: 0
-    });
-    const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    // (100*2 + 100*0) / 2 = 100 for every sample
-    expect(outData[0]).toBe(100);
-    expect(outData[1]).toBe(100);
-  });
-
-  it("AudioMixerNode ignores empty default tracks in the divisor", async () => {
-    // Only one real track; the other 4 defaults have no data and must not
-    // dilute the amplitude.
+  it("AudioMixerNode emits the input unchanged when only one track has data", async () => {
     const a = { data: Buffer.from([50, 100, 150]).toString("base64") };
     const _n = new AudioMixerNode();
-    _n.assign({ track1: a });
+    _n.assign({ a });
     const result = await _n.process();
     const outData = Buffer.from(
       (result.output as { data: string }).data,
@@ -667,7 +632,7 @@ describe("audio nodes — full coverage", () => {
     const a = { data: makeMonoWav([1000, 2000, 3000]) };
     const b = { data: makeMonoWav([3000, 4000, 5000]) };
     const _n = new AudioMixerNode();
-    _n.assign({ track1: a, track2: b });
+    _n.assign({ a, b });
     const result = await _n.process();
     const outBytes = Buffer.from(
       (result.output as { data: string }).data,
@@ -937,28 +902,14 @@ describe("audio nodes — full coverage", () => {
       audio: { type: "audio", uri: "" },
       loops: 2
     });
-    expect(new AudioMixerNode().serialize()).toMatchObject({
-      track1: { type: "audio", uri: "" },
-      track2: { type: "audio", uri: "" },
-      track3: { type: "audio", uri: "" },
-      track4: { type: "audio", uri: "" },
-      track5: { type: "audio", uri: "" },
-      volume1: 1,
-      volume2: 1,
-      volume3: 1,
-      volume4: 1,
-      volume5: 1
-    });
+    expect(new AudioMixerNode().serialize()).toEqual({});
     expect(new TrimAudioNode().serialize()).toMatchObject({
       audio: { type: "audio", uri: "" },
       start: 0,
       end: 0
     });
     expect(new CreateSilenceNode().serialize()).toEqual({ duration: 1 });
-    expect(new ConcatAudioNode().serialize()).toMatchObject({
-      a: { type: "audio", uri: "" },
-      b: { type: "audio", uri: "" }
-    });
+    expect(new ConcatAudioNode().serialize()).toEqual({});
     expect(new ConcatAudioListNode().serialize()).toEqual({ audio_files: [] });
     expect(new TextToSpeechNode().serialize()).toMatchObject({
       text: "Hello! This is a text-to-speech demonstration.",
@@ -982,9 +933,9 @@ describe("audio nodes — full coverage", () => {
     expect(outData.length).toBe(0);
   });
 
-  it("AudioMixerNode handles non-array audios input", async () => {
+  it("AudioMixerNode ignores non-object dynamic inputs", async () => {
     const _n = new AudioMixerNode();
-    _n.assign({ track1: "not-array" });
+    _n.assign({ a: "not-an-audio-ref" });
     const result = await _n.process();
     const outData = Buffer.from(
       (result.output as { data: string }).data,
@@ -1019,7 +970,7 @@ describe("audio nodes — full coverage", () => {
     const a = { data: Buffer.from([1]).toString("base64") };
     const b = { data: Buffer.from([2]).toString("base64") };
     const _n = new ConcatAudioNode();
-    _n.assign({ a: a, b: b });
+    _n.assign({ audio_1: a, audio_2: b });
     const result = await _n.process();
     const outData = Buffer.from(
       (result.output as { data: string }).data,
@@ -1496,9 +1447,9 @@ describe("video nodes — full coverage", () => {
     expect(output.uri).toMatch(/vid_\d{8}\.mp4/);
   });
 
-  it("FrameIteratorNode yields no frames without ffmpeg", async () => {
+  it("ForEachFrameNode yields no frames without ffmpeg", async () => {
     const data = Buffer.from(new Array(4096).fill(42)).toString("base64");
-    const node = new FrameIteratorNode();
+    const node = new ForEachFrameNode();
     const frames: Array<Record<string, unknown>> = [];
     node.assign({ video: { data } });
     // ffmpeg is not available in test, so genProcess throws or yields nothing
@@ -1513,8 +1464,8 @@ describe("video nodes — full coverage", () => {
     expect(frames.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("FrameIteratorNode process returns empty", async () => {
-    const result = await new FrameIteratorNode().process();
+  it("ForEachFrameNode process returns empty", async () => {
+    const result = await new ForEachFrameNode().process();
     expect(result).toEqual({});
   });
 
@@ -1555,7 +1506,7 @@ describe("video nodes — full coverage", () => {
     const a = { data: Buffer.from([1, 2]).toString("base64") };
     const b = { data: Buffer.from([3, 4]).toString("base64") };
     const _n = new ConcatVideoNode();
-    _n.assign({ video_a: a, video_b: b });
+    _n.assign({ video_1: a, video_2: b });
     const result = await _n.process();
     const outData = Buffer.from(
       (result.output as { data: string }).data,
@@ -1737,7 +1688,7 @@ describe("video nodes — full coverage", () => {
       folder: { type: "folder", uri: "" },
       name: "%Y-%m-%d-%H-%M-%S.mp4"
     });
-    expect(new FrameIteratorNode().serialize()).toMatchObject({
+    expect(new ForEachFrameNode().serialize()).toMatchObject({
       video: { type: "video", uri: "" },
       start: 0,
       end: -1
@@ -1749,10 +1700,7 @@ describe("video nodes — full coverage", () => {
       frame: { type: "image", uri: "" },
       fps: 30
     });
-    expect(new ConcatVideoNode().serialize()).toMatchObject({
-      video_a: { type: "video", uri: "" },
-      video_b: { type: "video", uri: "" }
-    });
+    expect(new ConcatVideoNode().serialize()).toEqual({});
     expect(new TrimVideoNode().serialize()).toMatchObject({
       video: { type: "video", uri: "" },
       start_time: 0,

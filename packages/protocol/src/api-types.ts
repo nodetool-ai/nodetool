@@ -6,7 +6,7 @@
  * Used by both the backend HTTP handlers and the frontend stores.
  */
 
-import type { Edge } from "./graph.js";
+import type { Edge, InputMode, OutputCorrelation } from "./graph.js";
 
 // ---------------------------------------------------------------------------
 // Media Refs
@@ -560,6 +560,8 @@ export interface NodeMetadata {
   required_settings: string[];
   is_dynamic: boolean;
   is_streaming_output: boolean;
+  input_mode?: InputMode;
+  output_correlation?: Record<string, OutputCorrelation>;
   expose_as_tool: boolean;
   supports_dynamic_outputs: boolean;
   model_packs?: ModelPack[];
@@ -582,7 +584,6 @@ export interface Node {
   ui_properties?: unknown;
   dynamic_properties?: Record<string, unknown>;
   dynamic_outputs?: Record<string, PropertyTypeMetadata>;
-  sync_mode: string;
   [key: string]: unknown;
 }
 

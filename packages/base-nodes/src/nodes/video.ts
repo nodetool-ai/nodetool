@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { VideoRef, StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { execFile as execFileCb } from "node:child_process";
@@ -324,7 +325,7 @@ export class ImageToVideoNode extends BaseNode {
     output: "video"
   };
   static readonly inlineFields: string[] = [];
-  static readonly inputFields: string[] = ["prompt", "image"];
+  static readonly inputFields: string[] = ["image", "prompt"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -532,7 +533,14 @@ export class LoadVideoAssetsNode extends BaseNode {
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = [];
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    video: { kind: "iteration", source: "__execution__", group: "items" },
+    name: { kind: "iteration", source: "__execution__", group: "items" },
+    videos: { kind: "single", source: "__execution__" },
+    names: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "folder",
     default: {
@@ -670,9 +678,9 @@ export class SaveVideoNode extends BaseNode {
   }
 }
 
-export class FrameIteratorNode extends BaseNode {
-  static readonly nodeType = "nodetool.video.FrameIterator";
-  static readonly title = "Frame Iterator";
+export class ForEachFrameNode extends BaseNode {
+  static readonly nodeType = "nodetool.video.ForEachFrame";
+  static readonly title = "For Each Frame";
   static readonly description =
     "Extract frames from a video file using OpenCV.\n    video, frames, extract, sequence";
   static readonly metadataOutputTypes = {
@@ -683,7 +691,13 @@ export class FrameIteratorNode extends BaseNode {
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["video"];
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    frame: { kind: "iteration", source: "video", group: "items" },
+    index: { kind: "iteration", source: "video", group: "items" },
+    fps: { kind: "single", source: "video" }
+  };
+
   @prop({
     type: "video",
     default: {
@@ -861,6 +875,11 @@ export class FrameToVideoNode extends BaseNode {
   static readonly description =
     "Combine a sequence of frames into a single video file.\n    video, frames, combine, sequence";
   static readonly isStreamingInput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "aggregate", source: "frame", collapse: "innermost" }
+  };
+
   static readonly metadataOutputTypes = {
     output: "video"
   };
@@ -1020,55 +1039,19 @@ abstract class VideoTransformNode extends BaseNode {
 
 export class ConcatVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Concat";
-  static readonly title = "Concat";
+  static readonly title = "Concatenate Video";
   static readonly description =
-    "Concatenate multiple video files into a single video, including audio when available.\n    video, concat, merge, combine, audio, +";
+    "Concatenate multiple video files into a single video, including audio when available. Add inputs dynamically with the “add video input” button.\n    video, concat, merge, combine, audio, +";
   static readonly requiredRuntimes = ["ffmpeg"];
   static readonly metadataOutputTypes = {
     output: "video"
   };
   static readonly inlineFields: string[] = [];
-  static readonly inputFields: string[] = ["a", "b"];
+  static readonly inputFields: string[] = [];
   static readonly isDynamic = true;
 
-  @prop({
-    type: "video",
-    default: {
-      type: "video",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-      duration: null,
-      format: null
-    },
-    title: "Video A",
-    description: "The first video to concatenate."
-  })
-  declare video_a: any;
-
-  @prop({
-    type: "video",
-    default: {
-      type: "video",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-      duration: null,
-      format: null
-    },
-    title: "Video B",
-    description: "The second video to concatenate."
-  })
-  declare video_b: any;
-
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const inputValues = [
-      this.video_a,
-      this.video_b,
-      ...Array.from(this.dynamicProps.values())
-    ];
+    const inputValues = Array.from(this.dynamicProps.values());
     const parts: Uint8Array[] = [];
     for (const input of inputValues) {
       const bytes = await videoBytesAsync(input, context);
@@ -1121,6 +1104,8 @@ export class TrimVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
+
 
   @prop({
     type: "video",
@@ -1949,6 +1934,8 @@ export class ReverseVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
+
 
   @prop({
     type: "video",
@@ -2154,6 +2141,8 @@ export class AddAudioVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video", "audio"];
+
 
   @prop({
     type: "video",
@@ -2356,6 +2345,8 @@ export class ExtractAudioVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inputFields: string[] = ["video"];
+
 
   @prop({
     type: "video",
@@ -2415,6 +2406,8 @@ export class ExtractFrameVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inputFields: string[] = ["video"];
+
 
   @prop({
     type: "video",
@@ -2496,6 +2489,8 @@ export class GetVideoInfoNode extends BaseNode {
     codec: "str",
     has_audio: "bool"
   };
+  static readonly inputFields: string[] = ["video"];
+
 
   @prop({
     type: "video",
@@ -2604,7 +2599,7 @@ export const VIDEO_NODES = [
   SaveVideoFileVideoNode,
   LoadVideoAssetsNode,
   SaveVideoNode,
-  FrameIteratorNode,
+  ForEachFrameNode,
   FpsNode,
   FrameToVideoNode,
   ConcatVideoNode,

@@ -580,6 +580,10 @@ export default function useConnectionHandlers() {
         !isReconnecting &&
         (targetIsPane || targetIsGroup || targetIsHandle)
       ) {
+        const dropPosition = {
+          x: event.clientX,
+          y: event.clientY
+        };
         if (connectDirection === "source") {
           openContextMenu(
             "output-context-menu",
@@ -588,7 +592,10 @@ export default function useConnectionHandlers() {
             event.clientY - 50,
             "react-flow__pane",
             connectType ?? undefined,
-            connectHandleId || ""
+            connectHandleId || "",
+            undefined,
+            undefined,
+            { dropPosition }
           );
         }
         if (connectDirection === "target") {
@@ -605,7 +612,12 @@ export default function useConnectionHandlers() {
             connectHandleId || "",
             undefined,
             undefined,
-            { connectMin, connectMax, connectDefault } // Pass min/max/default through payload
+            {
+              connectMin,
+              connectMax,
+              connectDefault,
+              dropPosition
+            } // Pass min/max/default through payload
           );
         }
       }

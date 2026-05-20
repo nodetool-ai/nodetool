@@ -33,6 +33,9 @@ export const CONTENT_CARD_REGISTRY: ReadonlySet<string> = new Set([
   "nodetool.video.TextToVideo",
   "nodetool.video.ImageToVideo",
   "nodetool.audio.TextToSpeech",
+  "nodetool.audio.AudioMixer",
+  "nodetool.audio.Concat",
+  "nodetool.video.Concat",
   "nodetool.text.AutomaticSpeechRecognition",
 
   // Provider image/video/audio nodes
@@ -242,8 +245,7 @@ export const getDynamicInputLabel = (metadata: NodeMetadata): string => {
   if (
     t === "nodetool.agents.Agent" ||
     t === "anthropic.agents.ClaudeAgent" ||
-    t === "openai.agents.RealtimeAgent" ||
-    t === "nodetool.text.Concat"
+    t === "openai.agents.RealtimeAgent"
   ) {
     return "variable";
   }

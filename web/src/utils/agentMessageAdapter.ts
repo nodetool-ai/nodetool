@@ -32,6 +32,9 @@ interface AgentMessage {
       arguments: string;
     };
   }>;
+  event?: unknown;
+  event_type?: string;
+  agent_execution_id?: string;
 }
 
 /**
@@ -116,6 +119,25 @@ export function agentMessageToNodeToolMessage(
         };
       }
       return null;
+    }
+
+    case "stream_event": {
+      if (!msg.event_type && msg.event === undefined) {
+        return null;
+      }
+      return {
+        type: "message",
+        id: msg.uuid,
+        role: "agent_execution",
+        content: (msg.event ?? { type: msg.event_type, content: msg.text }) as
+          | Record<string, unknown>
+          | string,
+        created_at: new Date().toISOString(),
+        thread_id: msg.session_id,
+        agent_execution_id:
+          msg.agent_execution_id ?? `agent-execution-${msg.session_id}`,
+        execution_event_type: msg.event_type ?? null
+      };
     }
 
     default:

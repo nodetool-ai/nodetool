@@ -14,6 +14,6 @@ export interface MaskOutputs {
   output: ImageRef;
 }
 
-export function mask(inputs: MaskInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<MaskOutputs, "output"> {
-  return createNode("lib.image.Mask", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function mask(inputs: MaskInputs): DslNode<MaskOutputs, "output"> {
+  return createNode("lib.image.Mask", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
