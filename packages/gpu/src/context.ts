@@ -1,0 +1,195 @@
+/**
+ * `GPUContext` — the host-portability adapter.
+ *
+ * Holds a TypeGPU `root` (from `tgpu.initFromDevice({ device })`) plus the
+ * per-host services the Executor leans on: a pipeline cache, a scratch
+ * texture pool, and a capability record. The same `ShaderModule` code runs
+ * against a browser `navigator.gpu` device, an Electron device, or a
+ * Node.js Dawn device — only the adapter that builds this object differs.
+ */
+
+import tgpu from "typegpu";
+import type { TgpuRoot } from "typegpu";
+import { LabeledTexture, createLabeledTexture } from "./texture.js";
+import type { LabeledTextureMeta } from "./texture.js";
+
+/** Host capabilities used by variant resolution (Phase 3) and validation. */
+export interface GPUCapabilities {
+  /** `texture_external` import supported (camera/video fast path). */
+  textureExternal: boolean;
+  /** `float16` storage textures supported. */
+  f16Storage: boolean;
+}
+
+export type CachedPipeline = GPURenderPipeline | GPUComputePipeline;
+
+/** Get-or-compile cache for pipelines, keyed by the caller (module id+variant). */
+export interface PipelineCache {
+  get(key: string): CachedPipeline | undefined;
+  set(key: string, pipeline: CachedPipeline): void;
+}
+
+export interface ScratchSpec {
+  width: number;
+  height: number;
+  format: GPUTextureFormat;
+  usage: GPUTextureUsageFlags;
+  meta?: Partial<LabeledTextureMeta>;
+  label?: string;
+}
+
+/**
+ * Frame/run-scoped texture pool. `acquire` returns a texture at least as
+ * large as requested (bucketed); `release` returns it for reuse. Hosts own
+ * lifetime — the pool never reads pixels back to the CPU.
+ */
+export interface ScratchPool {
+  acquire(spec: ScratchSpec): LabeledTexture;
+  release(texture: LabeledTexture): void;
+  dispose(): void;
+}
+
+export interface GPUContext {
+  readonly root: TgpuRoot;
+  readonly device: GPUDevice;
+  readonly capabilities: GPUCapabilities;
+  readonly pipelineCache: PipelineCache;
+  readonly scratch: ScratchPool;
+}
+
+/** Round a dimension up to the allocation bucket (multiple of 64, pow2 ≥ 256). */
+export function ceilToBucket(value: number): number {
+  const v = Math.max(1, Math.floor(value));
+  if (v <= 256) {
+    return Math.ceil(v / 64) * 64;
+  }
+  let pow = 256;
+  while (pow < v) {
+    pow *= 2;
+  }
+  return pow;
+}
+
+function makePipelineCache(): PipelineCache {
+  const cache = new Map<string, CachedPipeline>();
+  return {
+    get: (key) => cache.get(key),
+    set: (key, pipeline) => {
+      cache.set(key, pipeline);
+    }
+  };
+}
+
+/** Bucket key per scratch texture, for routing `release` back to its pool. */
+const poolKeys = new WeakMap<LabeledTexture, string>();
+
+/**
+ * Bucketed, refcounted scratch pool. Buckets on
+ * `(format, usage, bucketW, bucketH)`; the caller sees only the requested
+ * viewport, the underlying texture may be larger.
+ */
+export function makeScratchPool(device: GPUDevice): ScratchPool {
+  const free = new Map<string, LabeledTexture[]>();
+  const live = new Set<LabeledTexture>();
+
+  const bucketKey = (spec: ScratchSpec): string =>
+    `${spec.format}:${spec.usage}:${ceilToBucket(spec.width)}x${ceilToBucket(
+      spec.height
+    )}`;
+
+  return {
+    acquire(spec) {
+      const key = bucketKey(spec);
+      const pooled = free.get(key);
+      const reused = pooled?.pop();
+      if (reused) {
+        live.add(reused);
+        return reused;
+      }
+      const texture = createLabeledTexture(device, {
+        width: ceilToBucket(spec.width),
+        height: ceilToBucket(spec.height),
+        format: spec.format,
+        usage: spec.usage,
+        label: spec.label ?? `scratch-${key}`,
+        meta: spec.meta
+      });
+      // Stash the bucket key on the instance for release routing.
+      poolKeys.set(texture, key);
+      live.add(texture);
+      return texture;
+    },
+    release(texture) {
+      if (!live.delete(texture)) {
+        return;
+      }
+      const key = poolKeys.get(texture);
+      if (!key) {
+        texture.destroy();
+        return;
+      }
+      const pooled = free.get(key);
+      if (pooled) {
+        pooled.push(texture);
+      } else {
+        free.set(key, [texture]);
+      }
+    },
+    dispose() {
+      for (const texture of live) {
+        texture.destroy();
+      }
+      live.clear();
+      for (const pooled of free.values()) {
+        for (const texture of pooled) {
+          texture.destroy();
+        }
+      }
+      free.clear();
+    }
+  };
+}
+
+function detectCapabilities(device: GPUDevice): GPUCapabilities {
+  const features = device.features;
+  return {
+    textureExternal: true,
+    f16Storage: features.has("shader-f16")
+  };
+}
+
+/**
+ * Build a {@link GPUContext} from the browser `navigator.gpu`. Browser/WebGPU
+ * only — kept out of the package's pure root so Node consumers can import the
+ * catalog without touching `navigator`.
+ */
+export async function createBrowserGPUContext(
+  options: { adapterOptions?: GPURequestAdapterOptions } = {}
+): Promise<GPUContext> {
+  const nav = (globalThis as { navigator?: { gpu?: GPU } }).navigator;
+  const gpu = nav?.gpu;
+  if (!gpu) {
+    throw new Error("WebGPU is not available (navigator.gpu is undefined)");
+  }
+  const adapter = await gpu.requestAdapter(options.adapterOptions);
+  if (!adapter) {
+    throw new Error("No WebGPU adapter available");
+  }
+  const device = await adapter.requestDevice();
+  return createGPUContextFromDevice(device);
+}
+
+/**
+ * Build a {@link GPUContext} from an already-acquired `GPUDevice` (browser,
+ * Electron, or Node.js Dawn). The shared path every adapter funnels into.
+ */
+export function createGPUContextFromDevice(device: GPUDevice): GPUContext {
+  const root = tgpu.initFromDevice({ device });
+  return {
+    root,
+    device,
+    capabilities: detectCapabilities(device),
+    pipelineCache: makePipelineCache(),
+    scratch: makeScratchPool(device)
+  };
+}

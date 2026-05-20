@@ -11,6 +11,9 @@
     "test:watch": "vitest",
     "lint": "tsc --noEmit"
   },
+  "dependencies": {
+    "typegpu": "^0.11.6"
+  },
   "devDependencies": {
     "@webgpu/types": "^0.1.70",
     "typescript": "^5.7.2",
@@ -22,6 +25,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./pool": {
+      "nodetool-dev": "./src/pool.ts",
+      "types": "./dist/pool.d.ts",
+      "import": "./dist/pool.js",
+      "default": "./dist/pool.js"
     },
     "./webgpu": {
       "nodetool-dev": "./src/webgpu/index.ts",

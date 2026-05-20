@@ -23,11 +23,13 @@ The compositor-unification work landed a cross-runtime GPU package this plan now
 # Shared Shader Pool — Phase 1
 
 **ID:** `P-2026-05-12-shared-shader-pool-phase-1`
-**State:** draft
+**State:** in progress
 **Tags:** shader-pool, webgpu, typegpu, phase-1, sketch, timeline
 **Repo:** default (`packages/gpu/`)
 
 **Depends on:** Phase 0.
+
+**Progress (branch `claude/typegpu-gpu-shaders-XvH3O`):** TypeGPU adopted as a hard dependency. Shipped: the `blend/` + `compositor/` restructure; the TypeGPU-backed pool primitives (`module.ts` `defineModule`/`ShaderModule`, `texture.ts` `LabeledTexture`, `context.ts` `GPUContext` + bucketed scratch + device adapters, `registry.ts`, `executor.ts` fragment arm, `fullscreenQuad.ts`); the `_canary.passthrough@1` module + `ALL_SHADERS` barrel; the `WebGPULayerCompositor` retrofit onto a TypeGPU `d.struct` uniform schema + typed bind group layouts (byte-identity locked by a unit test). Tests: registry/module/canary unit suites + a GPU smoke test that runs the canary against a 4×4 texture when a device is available (skips otherwise). **One deviation from the plan:** the pool primitives live behind a dedicated `./pool` export rather than folded into the package root. The root stays pure (blend catalog only, no TypeGPU import) so Node consumers (`base-nodes`) keep their zero-GPU import path, and so web's Jest — which mocks ESM deps rather than transforming them — only needs a TypeGPU mock on the `./webgpu` (compositor) path, not on every blend-catalog importer. Remaining: confirm the full repo `typecheck`/`lint`/`test` matrix in CI (web/electron deps weren't fully buildable in the authoring sandbox).
 
 Phase 1 of the Shared Shader Pool migration. **Renames `packages/compositor/` → `packages/gpu/`** and grows it into the shared home for WGSL source bundled with its typed bind group layout, typed uniform schema, sampler config, and I/O contract. The blend catalog, shared WGSL, and `WebGPULayerCompositor` from Phase 0 move under it (`blend/`, `compositor/`). No migration of timeline/sketch *effect* code yet — Phase 1 ships the *primitives* (TypeGPU-backed `ShaderModule`/Executor/registry), retrofits `WebGPULayerCompositor` onto the typed layout, and proves the pattern with one end-to-end canary.
 
