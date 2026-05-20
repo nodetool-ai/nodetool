@@ -80,6 +80,16 @@ describe("partitionWheelViewportMotion", () => {
     expect(out.panY).toBe(0);
   });
 
+  it("ignores horizontal wheel delta while zooming off Mac", () => {
+    const out = partitionWheelViewportMotion(
+      fakeWheel({ deltaY: -100, deltaX: 42 }),
+      false,
+    );
+    expect(out.zoomDelta).toBe(-100);
+    expect(out.panX).toBe(0);
+    expect(out.panY).toBe(0);
+  });
+
   it("zooms on ctrl+wheel off Mac (no Photoshop-style horizontal pan)", () => {
     const out = partitionWheelViewportMotion(
       fakeWheel({ deltaY: -120, deltaX: 0, ctrlKey: true }),

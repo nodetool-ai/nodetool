@@ -74,7 +74,7 @@ export function partitionWheelViewportMotion(
     const primary = event.deltaY !== 0 ? event.deltaY : event.deltaX;
     return { zoomDelta: 0, panX: primary, panY: 0 };
   }
-  return { zoomDelta: event.deltaY, panX: event.deltaX, panY: 0 };
+  return { zoomDelta: event.deltaY, panX: 0, panY: 0 };
 }
 
 export function useWheelZoom({
