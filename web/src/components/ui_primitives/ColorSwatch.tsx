@@ -49,7 +49,7 @@ export interface ColorSwatchProps extends Omit<BoxProps, 'color' | 'onClick'> {
  *   {colors.map(c => <ColorSwatch key={c} color={c} onClick={setColor} />)}
  * </FlexRow>
  */
-export const ColorSwatch: React.FC<ColorSwatchProps> = ({
+export const ColorSwatch: React.FC<ColorSwatchProps> = React.memo(({
   color,
   size = 24,
   selected = false,
@@ -110,6 +110,6 @@ export const ColorSwatch: React.FC<ColorSwatchProps> = ({
   }
 
   return swatch;
-};
+});
 
 ColorSwatch.displayName = "ColorSwatch";
