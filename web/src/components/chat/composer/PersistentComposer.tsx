@@ -4,6 +4,7 @@ import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import ChatInputSection from "../containers/ChatInputSection";
 import { useComposerSlotContext } from "./composerSlotContext";
 import { useFlipPosition } from "./useFlipPosition";
+import type { AgentPlanner } from "./AgentModeSelector";
 
 interface Box {
   top: number;
@@ -32,6 +33,30 @@ const PersistentComposer: React.FC = () => {
   const setSelectedTools = useGlobalChatStore((s) => s.setSelectedTools);
   const setAgentMode = useGlobalChatStore((s) => s.setAgentMode);
   const stopGeneration = useGlobalChatStore((s) => s.stopGeneration);
+  const selectedCollections = useGlobalChatStore((s) => s.selectedCollections);
+  const setSelectedCollections = useGlobalChatStore(
+    (s) => s.setSelectedCollections
+  );
+  const agentPlanner = useGlobalChatStore((s) => s.agentPlanner);
+  const setAgentPlanner = useGlobalChatStore((s) => s.setAgentPlanner);
+  const createNewThread = useGlobalChatStore((s) => s.createNewThread);
+  const switchThread = useGlobalChatStore((s) => s.switchThread);
+
+  const handleNewChat = useCallback(async () => {
+    try {
+      const newThreadId = await createNewThread();
+      switchThread(newThreadId);
+    } catch (error) {
+      console.error("Failed to create new thread:", error);
+    }
+  }, [createNewThread, switchThread]);
+
+  const handleAgentPlannerChange = useCallback(
+    (planner: AgentPlanner) => {
+      setAgentPlanner(planner);
+    },
+    [setAgentPlanner]
+  );
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [box, setBox] = useState<Box>(HIDDEN_BOX);
@@ -111,6 +136,11 @@ const PersistentComposer: React.FC = () => {
         onToolsChange={setSelectedTools}
         agentMode={agentMode}
         onAgentModeToggle={setAgentMode}
+        selectedCollections={selectedCollections}
+        onCollectionsChange={setSelectedCollections}
+        agentPlanner={agentPlanner}
+        onAgentPlannerChange={handleAgentPlannerChange}
+        onNewChat={handleNewChat}
       />
     </div>
   );
