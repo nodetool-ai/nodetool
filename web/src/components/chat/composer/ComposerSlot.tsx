@@ -39,7 +39,8 @@ const ComposerSlot: React.FC<ComposerSlotProps> = ({ onSend, className }) => {
       ref={ref}
       className={className}
       data-composer-slot=""
-      style={{ height: composerHeight || undefined, flexShrink: 0 }}
+      // Reserve space only once the composer reports a real height; collapse otherwise.
+      style={{ height: composerHeight > 0 ? composerHeight : undefined, flexShrink: 0 }}
     />
   );
 };

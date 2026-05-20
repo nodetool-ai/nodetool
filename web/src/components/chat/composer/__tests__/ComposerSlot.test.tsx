@@ -1,7 +1,7 @@
 // web/src/components/chat/composer/__tests__/ComposerSlot.test.tsx
 import React from "react";
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import {
   ComposerSlotProvider,
   useComposerSlotContext
@@ -37,13 +37,24 @@ describe("ComposerSlot", () => {
   });
 
   it("reserves vertical space equal to the composer height", () => {
+    function HeightControl() {
+      const { setComposerHeight } = useComposerSlotContext();
+      return (
+        <button onClick={() => setComposerHeight(56)}>set-height</button>
+      );
+    }
+
     render(
       <ComposerSlotProvider>
         <ComposerSlot onSend={send} className="slot" />
+        <HeightControl />
       </ComposerSlotProvider>
     );
     const slot = document.querySelector("[data-composer-slot]") as HTMLElement;
-    expect(slot).toBeTruthy();
-    expect(slot.getAttribute("data-composer-slot")).toBe("");
+    expect(slot).toBeInTheDocument();
+    // Collapses (no height style) until a composer reports its height.
+    expect(slot.style.height).toBe("");
+    act(() => { screen.getByText("set-height").click(); });
+    expect(slot.style.height).toBe("56px");
   });
 });
