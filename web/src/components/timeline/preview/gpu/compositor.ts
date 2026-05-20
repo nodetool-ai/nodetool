@@ -227,6 +227,7 @@ export class WebGPUCompositor {
       pass.end();
     }
 
+    this.core.beginFrame();
     for (const layer of this.layers) {
       const src = this.uploadSource(layer);
       if (!src) continue;

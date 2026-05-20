@@ -1322,6 +1322,7 @@ export class WebGPURuntime implements SketchRuntime {
     }
 
     // ── Pass 2: Layer compositing (ping-pong) ─────────────────────────
+    this.compositor.beginFrame();
     const mergeTex =
       activeStroke != null ? this.uploadStrokeMergePreview(activeStroke) : null;
 

@@ -149,6 +149,13 @@ export class WebGPULayerCompositor {
   private widthPx = 0;
   private heightPx = 0;
 
+  // Per-frame uniform buffers, reused across frames. One distinct buffer per
+  // blend pass within a frame: every pass in a frame is encoded into the same
+  // submit, so they cannot share a buffer (queue.writeBuffer would alias to
+  // the last write). `beginFrame` resets the ring index each frame.
+  private uniformBuffers: GPUBuffer[] = [];
+  private passIndex = 0;
+
   constructor(
     device: GPUDevice,
     format: GPUTextureFormat,
@@ -288,6 +295,14 @@ export class WebGPULayerCompositor {
   }
 
   /**
+   * Reset the per-frame uniform-buffer ring. Call once before the frame's
+   * sequence of {@link renderBlendPass} calls.
+   */
+  beginFrame(): void {
+    this.passIndex = 0;
+  }
+
+  /**
    * Composite one layer: reads `readTex` (current accumulation) and the
    * layer source, writes the blended result to `writeTex` (full-screen).
    */
@@ -307,10 +322,16 @@ export class WebGPULayerCompositor {
       invAffine.c, invAffine.d, invAffine.ty, 0,
       borderRadius, smoothness, this.filterMode, 0
     ]);
-    const uniformBuffer = this.device.createBuffer({
-      size: BLEND_UNIFORM_BYTES,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    });
+    const idx = this.passIndex++;
+    let uniformBuffer = this.uniformBuffers[idx];
+    if (!uniformBuffer) {
+      uniformBuffer = this.device.createBuffer({
+        label: `layer-compositor-uniform-${idx}`,
+        size: BLEND_UNIFORM_BYTES,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      });
+      this.uniformBuffers[idx] = uniformBuffer;
+    }
     this.device.queue.writeBuffer(uniformBuffer, 0, uniformData);
 
     const bindGroup = this.device.createBindGroup({
@@ -360,5 +381,9 @@ export class WebGPULayerCompositor {
     this.pingPongB?.destroy();
     this.pingPongA = null;
     this.pingPongB = null;
+    for (const buffer of this.uniformBuffers) {
+      buffer.destroy();
+    }
+    this.uniformBuffers = [];
   }
 }
