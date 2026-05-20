@@ -7,7 +7,7 @@
     "description": "Seedream3.0 - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Seedream3.0",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -69,7 +69,7 @@
     "description": "Seedream4.0 - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Seedream4.0's advanced AI model",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -155,7 +155,7 @@
     "description": "Seedream4.0 - Edit via Kie.ai.\n\n    kie, image, ai\n\n    Image editing by Seedream4.0",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -258,7 +258,7 @@
     "description": "Seedream4.5 - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Seedream's advanced AI model",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -334,7 +334,7 @@
     "description": "Seedream4.5 - Edit via Kie.ai.\n\n    kie, image, ai\n\n    Image editing by Seedream4.5",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -427,7 +427,7 @@
     "description": "Seedream5.0 Lite - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Seedream's advanced AI model",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -504,7 +504,7 @@
     "description": "Seedream5.0 Lite - Image to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Seedream's advanced AI model",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -598,7 +598,7 @@
     "description": "Z-Image via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by z-image",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -654,7 +654,7 @@
     "description": "Google - Nano Banana 2 via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Nano Banana 2",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -749,7 +749,7 @@
     "description": "Google - imagen4-fast via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Google imagen4-fast",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -823,7 +823,7 @@
     "description": "Google - imagen4-ultra via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Google imagen4-ultra",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -884,7 +884,7 @@
     "description": "Google - imagen4 via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Google imagen4",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -945,7 +945,7 @@
     "description": "Google - Nano Banana Edit via Kie.ai.\n\n    kie, image, ai\n\n    Image editing using Google's Nano Banana Edit model",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -1023,7 +1023,7 @@
     "description": "Google - Nano Banana via Kie.ai.\n\n    kie, image, ai\n\n    Content generation using google/nano-banana",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -1084,7 +1084,7 @@
     "description": "Google - Nano Banana Pro via Kie.ai.\n\n    kie, image, ai\n\n    Image generation using Google's Pro Image to Image model",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -1175,7 +1175,7 @@
     "description": "Flux-2 - Pro Image to Image via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by flux-2/pro-image-to-image",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "images",
@@ -1268,7 +1268,7 @@
     "description": "Flux-2 - Pro Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Flux-2's advanced AI model",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -1343,7 +1343,7 @@
     "description": "Flux-2 - Image to Image via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by flux-2/flex-image-to-image",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "images",
@@ -1436,7 +1436,7 @@
     "description": "Flux-2 - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Flux-2's advanced AI model",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -1512,7 +1512,7 @@
     "description": "Grok Imagine - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Query Task Status",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -1570,7 +1570,7 @@
     "description": "Grok Imagine - image to image via Kie.ai.\n\n    kie, image, ai\n\n    Content generation using grok-imagine/image-to-image",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -1616,7 +1616,7 @@
     "description": "GPT Image-1.5 - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Overview",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -1678,7 +1678,7 @@
     "description": "GPT Image-1.5 - Image to Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Overview",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "images",
@@ -1757,7 +1757,7 @@
     "description": "GPT Image-2 - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Create Task",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -1815,7 +1815,7 @@
     "description": "GPT Image 2 - Image To Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Create Task",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -1888,7 +1888,7 @@
     "description": "Topaz - Image Upscale via Kie.ai.\n\n    kie, image, ai\n\n    Enhance image resolution and quality using advanced AI upscaling powered by Topaz",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "image",
@@ -1942,7 +1942,7 @@
     "description": "Recraft - Remove Background via Kie.ai.\n\n    kie, image, ai\n\n    remove background by recraft/remove-background",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "image",
@@ -1969,7 +1969,7 @@
     "description": "Recraft - Crisp Upscale via Kie.ai.\n\n    kie, image, ai\n\n    Enhance image resolution and quality using advanced AI upscaling powered by Recraft",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "image",
@@ -1996,7 +1996,7 @@
     "description": "Ideogram - Character Edit via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by ideogram/character-edit",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -2134,7 +2134,7 @@
     "description": "Ideogram - Character Remix via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by ideogram/character-remix",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -2310,7 +2310,7 @@
     "description": "Ideogram - Character via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by ideogram/character",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -2435,7 +2435,7 @@
     "description": "Ideogram V3 Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by ideogram/v3-text-to-image",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -2531,7 +2531,7 @@
     "description": "Ideogram V3 Edit via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by ideogram/v3-edit",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -2628,7 +2628,7 @@
     "description": "Ideogram V3 Remix via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by ideogram/v3-remix",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -2769,7 +2769,7 @@
     "description": "Qwen - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Qwen's advanced AI model",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -2891,7 +2891,7 @@
     "description": "Qwen - Image to Image via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Qwen's advanced AI model",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -3028,7 +3028,7 @@
     "description": "Qwen - Image Edit via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by qwen/image-edit",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -3193,7 +3193,7 @@
     "description": "Qwen2 - Image Edit via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by qwen2/image-edit",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -3288,7 +3288,7 @@
     "description": "Qwen2 - Text To Image via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by qwen2/text-to-image",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -3359,7 +3359,7 @@
     "description": "Wan 2.7 Image via Kie.ai.\n\n    kie, image, ai\n\n    Based on wan/2-7-image, image generation and editing are achieved.",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",
@@ -3505,7 +3505,7 @@
     "description": "Wan 2.7 Image Pro via Kie.ai.\n\n    kie, image, ai\n\n    Based on wan/2-7-image-pro, image generation and editing are achieved.",
     "outputType": "image",
     "pollInterval": 1500,
-    "maxAttempts": 200,
+    "maxAttempts": 400,
     "fields": [
       {
         "name": "prompt",

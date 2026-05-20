@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { ModuleConfig, NodeConfig } from "./types.js";
 
 const MODULE_DEFAULTS: Record<string, Pick<ModuleConfig, "defaultPollInterval" | "defaultMaxAttempts">> = {
-  image: { defaultPollInterval: 1500, defaultMaxAttempts: 200 },
+  image: { defaultPollInterval: 1500, defaultMaxAttempts: 400 },
   audio: { defaultPollInterval: 4000, defaultMaxAttempts: 120 },
   video: { defaultPollInterval: 8000, defaultMaxAttempts: 450 }
 };

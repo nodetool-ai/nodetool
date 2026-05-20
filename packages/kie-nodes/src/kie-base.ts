@@ -19,6 +19,22 @@ function headers(apiKey: string): Record<string, string> {
   };
 }
 
+function withTaskId(message: string, taskId: string): string {
+  return `${message} (taskId: ${taskId})`;
+}
+
+function pollTimeoutError(
+  taskId: string,
+  maxAttempts: number,
+  pollInterval: number
+): Error {
+  const timeoutSeconds = (maxAttempts * pollInterval) / 1000;
+  return new Error(
+    `Task timed out after ${timeoutSeconds}s (taskId: ${taskId}). ` +
+      "The job may still complete on KIE — check recordInfo or the KIE dashboard."
+  );
+}
+
 function checkStatus(data: Record<string, unknown>): void {
   const code = Number(data.code);
   const map: Record<number, string> = {
@@ -71,11 +87,11 @@ async function pollStatus(
     if (state === "failed") {
       const msg =
         (data.data as Record<string, unknown>)?.failMsg || "Unknown error";
-      throw new Error(`Task failed: ${msg}`);
+      throw new Error(withTaskId(`Task failed: ${msg}`, taskId));
     }
     await new Promise((r) => setTimeout(r, pollInterval));
   }
-  throw new Error(`Task timed out after ${maxAttempts * pollInterval}ms`);
+  throw pollTimeoutError(taskId, maxAttempts, pollInterval);
 }
 
 async function downloadResult(
@@ -84,17 +100,19 @@ async function downloadResult(
 ): Promise<{ bytes: Buffer; taskId: string }> {
   const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
   const res = await fetch(url, { headers: headers(apiKey) });
-  if (!res.ok) throw new Error(`Failed to get result: ${res.status}`);
+  if (!res.ok) throw new Error(withTaskId(`Failed to get result: ${res.status}`, taskId));
   const data = (await res.json()) as Record<string, unknown>;
   if (data.code !== undefined) checkStatus(data);
   const resultJsonStr = (data.data as Record<string, unknown>)
     ?.resultJson as string;
-  if (!resultJsonStr) throw new Error("No resultJson in response");
+  if (!resultJsonStr) throw new Error(withTaskId("No resultJson in response", taskId));
   const resultData = JSON.parse(resultJsonStr) as Record<string, unknown>;
   const resultUrls = resultData.resultUrls as string[];
-  if (!resultUrls?.length) throw new Error("No resultUrls in resultJson");
+  if (!resultUrls?.length) throw new Error(withTaskId("No resultUrls in resultJson", taskId));
   const dlRes = await fetch(resultUrls[0]);
-  if (!dlRes.ok) throw new Error(`Failed to download from ${resultUrls[0]}`);
+  if (!dlRes.ok) {
+    throw new Error(withTaskId(`Failed to download from ${resultUrls[0]}`, taskId));
+  }
   const buf = Buffer.from(await dlRes.arrayBuffer());
   return { bytes: buf, taskId };
 }
@@ -289,7 +307,7 @@ async function pollCustom(
       const flag = Number(successFlag);
       if (flag === 1) return data;
       if (flag === 2 || flag === 3) {
-        throw new Error(`Task failed: ${data.msg || "Unknown error"}`);
+        throw new Error(withTaskId(`Task failed: ${data.msg || "Unknown error"}`, taskId));
       }
     }
 
@@ -298,12 +316,12 @@ async function pollCustom(
     if (state === "success") return data;
     if (state === "fail") {
       const msg = inner?.failMsg || data.msg || "Unknown error";
-      throw new Error(`Task failed: ${msg}`);
+      throw new Error(withTaskId(`Task failed: ${msg}`, taskId));
     }
 
     await new Promise((r) => setTimeout(r, pollInterval));
   }
-  throw new Error(`Task timed out after ${maxAttempts * pollInterval}ms`);
+  throw pollTimeoutError(taskId, maxAttempts, pollInterval);
 }
 
 async function downloadCustomResult(
@@ -421,10 +439,12 @@ export async function kiePollSuno(
     if (data.code !== undefined) checkStatus(data);
     const status = (data.data as Record<string, unknown>)?.status as string;
     if (status === "SUCCESS") return data;
-    if (failed.has(status)) throw new Error(`Suno task failed: ${status}`);
+    if (failed.has(status)) {
+      throw new Error(withTaskId(`Suno task failed: ${status}`, taskId));
+    }
     await new Promise((r) => setTimeout(r, pollInterval));
   }
-  throw new Error(`Suno task timed out`);
+  throw pollTimeoutError(taskId, maxAttempts, pollInterval);
 }
 
 export async function kieExecuteSunoTask(

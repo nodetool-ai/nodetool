@@ -3,7 +3,7 @@ import type { ModuleConfig } from "../types.js";
 export const imageConfig: ModuleConfig = {
   "moduleName": "image",
   "defaultPollInterval": 1500,
-  "defaultMaxAttempts": 200,
+  "defaultMaxAttempts": 400,
   "nodes": [
     {
       "className": "BytedanceSeedream",
