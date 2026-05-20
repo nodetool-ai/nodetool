@@ -33,6 +33,21 @@ import {
  * loading/fetching/error state so pages can render incremental results safely.
  */
 
+export interface ModelsByProviderResult<T> {
+  models: T[];
+  providers: string[];
+  isLoading: boolean;
+  isFetching: boolean;
+  error: Error | null | undefined;
+  refetch: () => Promise<void>;
+}
+
+export interface LanguageModelsByProviderResult extends ModelsByProviderResult<LanguageModel> {
+  providerErrors: Array<{ provider: string; error: unknown }>;
+  loadingProgress: { total: number; loaded: number; loading: number };
+  allowedProviders: string[] | undefined;
+}
+
 /**
  * Hook to fetch language models from all providers that support language models.
  * Queries each provider in parallel for better performance.
@@ -45,7 +60,7 @@ export const useLanguageModelsByProvider = (options?: {
    * to support tools — matches the BaseProvider default).
    */
   requireToolSupport?: boolean;
-}) => {
+}): LanguageModelsByProviderResult => {
   const { providers: allProviders, isLoading: providersLoading } =
     useLanguageModelProviders();
 
@@ -132,7 +147,7 @@ export const useLanguageModelsByProvider = (options?: {
  * Hook to fetch image models from all providers that support image generation.
  * Queries each provider in parallel for better performance.
  */
-export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "image_to_image" }) => {
+export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "image_to_image" }): ModelsByProviderResult<ImageModel> => {
   const { providers, isLoading: providersLoading, error: providersError } = useImageModelProviders();
 
   const queries = useQueries({
@@ -197,7 +212,7 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
  * Hook to fetch TTS models from all providers that support text-to-speech.
  * Queries each provider in parallel for better performance.
  */
-export const useTTSModelsByProvider = () => {
+export const useTTSModelsByProvider = (): ModelsByProviderResult<TTSModel> => {
   const { providers, isLoading: providersLoading } = useTTSProviders();
 
   const queries = useQueries({
@@ -246,7 +261,7 @@ export const useTTSModelsByProvider = () => {
  * Hook to fetch ASR models from all providers that support automatic speech recognition.
  * Queries each provider in parallel for better performance.
  */
-export const useASRModelsByProvider = () => {
+export const useASRModelsByProvider = (): ModelsByProviderResult<ASRModel> => {
   const { providers, isLoading: providersLoading } = useASRProviders();
 
   const queries = useQueries({
@@ -295,7 +310,7 @@ export const useASRModelsByProvider = () => {
  * Hook to fetch video models from all providers that support video generation.
  * Queries each provider in parallel for better performance.
  */
-export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "image_to_video" }) => {
+export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "image_to_video" }): ModelsByProviderResult<VideoModel> => {
   const { providers, isLoading: providersLoading } = useVideoProviders();
 
   const queries = useQueries({
@@ -353,7 +368,7 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
 export const useHuggingFaceImageModelsByProvider = (opts?: {
   task?: "text_to_image" | "image_to_image";
   modelType?: string;
-}) => {
+}): ModelsByProviderResult<ImageModel> => {
   const baseData = useImageModelsByProvider(opts?.task ? { task: opts.task } : undefined);
 
   const query = useQuery({
@@ -440,7 +455,7 @@ const convertUnifiedToImageModel = (model: UnifiedModel): ImageModel => {
  */
 export const useTransformersJsModelsByType = (opts?: {
   modelType?: string;
-}) => {
+}): ModelsByProviderResult<ImageModel> => {
   const query = useQuery({
     queryKey: ["tjs-models", opts?.modelType ?? "none"],
     enabled: !!opts?.modelType,
@@ -456,13 +471,20 @@ export const useTransformersJsModelsByType = (opts?: {
     refetchOnMount: "always"
   });
 
+  const refetch = useMemo(
+    () => async () => {
+      await query.refetch();
+    },
+    [query]
+  );
+
   return {
     models: query.data ?? [],
     providers: ["transformers_js"],
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     error: query.error,
-    refetch: query.refetch
+    refetch
   };
 };
 
