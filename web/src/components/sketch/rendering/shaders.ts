@@ -1,47 +1,13 @@
 /**
- * WGSL shaders for the WebGPU compositing pipeline.
+ * Sketch-specific WGSL fragment shaders: the checkerboard background, the
+ * selection marching-ants / mask overlay, and the selection-mask refine
+ * (blur / dilate / erode) passes.
  *
- * Pipelines:
- * 1. **Checkerboard** – procedural checkerboard background.
- * 2. **Layer composite** – blits a layer texture with opacity, affine
- *    transform, and hardware source-over blend (normal blend mode fast path).
- * 3. **Blend composite** – reads both src (layer) and dst (current composite)
- *    textures and applies standard blend modes in the shader. Used for
- *    non-normal blend modes (multiply, screen, overlay, etc.).
- * 4. **Blit** – copies the intermediate composite texture to the swap chain.
+ * Layer compositing (blend modes, inverse-affine sampling, ping-pong
+ * accumulation, blit) lives in the shared @nodetool-ai/compositor/webgpu
+ * engine. These fragments are concatenated with that engine's exported
+ * `FULLSCREEN_QUAD_VERTEX` at pipeline-build time.
  */
-
-import { WGSL_BLEND_FUNCTIONS } from "@nodetool-ai/compositor";
-
-// ─── Shared full-screen-quad vertex shader ────────────────────────────────
-
-export const FULLSCREEN_QUAD_VERTEX = /* wgsl */ `
-struct VertexOutput {
-  @builtin(position) position: vec4f,
-  @location(0) uv: vec2f,
-};
-
-@vertex
-fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
-  // Full-screen triangle strip: 4 vertices → 2 triangles covering NDC [-1,1]
-  var pos = array<vec2f, 4>(
-    vec2f(-1.0, -1.0),
-    vec2f( 1.0, -1.0),
-    vec2f(-1.0,  1.0),
-    vec2f( 1.0,  1.0),
-  );
-  var uv = array<vec2f, 4>(
-    vec2f(0.0, 1.0),
-    vec2f(1.0, 1.0),
-    vec2f(0.0, 0.0),
-    vec2f(1.0, 0.0),
-  );
-  var out: VertexOutput;
-  out.position = vec4f(pos[vertexIndex], 0.0, 1.0);
-  out.uv = uv[vertexIndex];
-  return out;
-}
-`;
 
 // ─── Checkerboard fragment shader ─────────────────────────────────────────
 
@@ -62,135 +28,6 @@ fn fs_checkerboard(@location(0) uv: vec2f) -> @location(0) vec4f {
   let checker = floor(pixel / vec2f(params.cellSize));
   let isEven = (i32(checker.x) + i32(checker.y)) % 2 == 0;
   return select(params.colorB, params.colorA, isEven);
-}
-`;
-
-// ─── Shared: inverse-affine layer sampling ────────────────────────────────
-//
-// Both the normal layer shader and the blend composite shader need to map
-// screen UV → layer texel via a 2×3 inverse affine matrix. The matrix is
-// passed as two vec4f rows: invRow0 = (a, b, tx, 0), invRow1 = (c, d, ty, 0).
-//
-// The function is inlined into both shaders via string concatenation.
-
-const SAMPLE_LAYER_WGSL = /* wgsl */ `
-fn sampleLayerTexel(uv: vec2f, canvasSize: vec2f, invRow0: vec4f, invRow1: vec4f, tex: texture_2d<f32>) -> vec4f {
-  let px = uv * canvasSize;
-  let texel = vec2f(
-    invRow0.x * px.x + invRow0.y * px.y + invRow0.z,
-    invRow1.x * px.x + invRow1.y * px.y + invRow1.z
-  );
-  let dims = textureDimensions(tex);
-  let dimsF = vec2f(f32(dims.x), f32(dims.y));
-  if (texel.x < 0.0 || texel.x >= dimsF.x || texel.y < 0.0 || texel.y >= dimsF.y) {
-    return vec4f(0.0, 0.0, 0.0, 0.0);
-  }
-  let ix = i32(clamp(floor(texel.x), 0.0, max(dimsF.x - 1.0, 0.0)));
-  let iy = i32(clamp(floor(texel.y), 0.0, max(dimsF.y - 1.0, 0.0)));
-  return textureLoad(tex, vec2i(ix, iy), 0);
-}
-`;
-
-// ─── Layer composite fragment shader (normal blend, hardware source-over) ─
-
-export const LAYER_COMPOSITE_FRAGMENT = /* wgsl */ `
-struct LayerUniforms {
-  // x: opacity, y: canvasW, z: canvasH, w: unused
-  params0: vec4f,
-  // inverse affine row 0: a, b, tx, unused
-  invRow0: vec4f,
-  // inverse affine row 1: c, d, ty, unused
-  invRow1: vec4f,
-};
-
-@group(0) @binding(0) var<uniform> layer: LayerUniforms;
-@group(0) @binding(1) var layerTexture: texture_2d<f32>;
-
-${SAMPLE_LAYER_WGSL}
-
-@fragment
-fn fs_layer(@location(0) uv: vec2f) -> @location(0) vec4f {
-  let opacity = layer.params0.x;
-  let canvasSize = layer.params0.yz;
-  let color = sampleLayerTexel(uv, canvasSize, layer.invRow0, layer.invRow1, layerTexture);
-  return vec4f(color.rgb, color.a * opacity);
-}
-`;
-
-// ─── Blend mode implementations (shared — @nodetool-ai/compositor) ────────
-
-const BLEND_MODES_WGSL = WGSL_BLEND_FUNCTIONS;
-
-// ─── Blend composite fragment shader (non-normal blend modes) ─────────────
-
-export const BLEND_COMPOSITE_FRAGMENT = /* wgsl */ `
-struct BlendUniforms {
-  // x: opacity, y: blendMode (as f32), z: canvasW, w: canvasH
-  params0: vec4f,
-  // inverse affine row 0: a, b, tx, unused
-  invRow0: vec4f,
-  // inverse affine row 1: c, d, ty, unused
-  invRow1: vec4f,
-};
-
-@group(0) @binding(0) var<uniform> u: BlendUniforms;
-@group(0) @binding(1) var srcTexture: texture_2d<f32>;
-@group(0) @binding(2) var dstTexture: texture_2d<f32>;
-
-${SAMPLE_LAYER_WGSL}
-${BLEND_MODES_WGSL}
-
-@fragment
-fn fs_blend(@location(0) uv: vec2f) -> @location(0) vec4f {
-  let opacity = u.params0.x;
-  let blendMode = u32(u.params0.y);
-  let canvasSize = u.params0.zw;
-
-  // Read destination (current composite copy)
-  let dstDims = textureDimensions(dstTexture);
-  let dstPx = vec2i(
-    i32(clamp(floor(uv.x * f32(dstDims.x)), 0.0, f32(dstDims.x) - 1.0)),
-    i32(clamp(floor(uv.y * f32(dstDims.y)), 0.0, f32(dstDims.y) - 1.0))
-  );
-  let dst = textureLoad(dstTexture, dstPx, 0);
-
-  // Sample source layer via inverse affine transform
-  let srcRaw = sampleLayerTexel(uv, canvasSize, u.invRow0, u.invRow1, srcTexture);
-
-  // Apply layer opacity
-  let sa = srcRaw.a * opacity;
-  if (sa <= 0.0) { return dst; }
-
-  let da = dst.a;
-  let sc = srcRaw.rgb;
-  let dc = dst.rgb;
-
-  // Apply blend function B(Cs, Cd)
-  let blended = applyBlendMode(sc, dc, blendMode);
-
-  // Standard compositing formula (W3C):
-  // Co = αs × (1 - αd) × Cs + αs × αd × B(Cs, Cd) + (1 - αs) × αd × Cd
-  // αo = αs + αd × (1 - αs)
-  let co = sa * (1.0 - da) * sc + sa * da * blended + (1.0 - sa) * da * dc;
-  let ao = sa + da * (1.0 - sa);
-
-  return vec4f(co, ao);
-}
-`;
-
-// ─── Blit fragment shader (composite → swap chain) ────────────────────────
-
-export const BLIT_FRAGMENT = /* wgsl */ `
-@group(0) @binding(0) var blitTexture: texture_2d<f32>;
-
-@fragment
-fn fs_blit(@location(0) uv: vec2f) -> @location(0) vec4f {
-  let dims = textureDimensions(blitTexture);
-  let px = vec2i(
-    i32(clamp(floor(uv.x * f32(dims.x)), 0.0, f32(dims.x) - 1.0)),
-    i32(clamp(floor(uv.y * f32(dims.y)), 0.0, f32(dims.y) - 1.0))
-  );
-  return textureLoad(blitTexture, px, 0);
 }
 `;
 

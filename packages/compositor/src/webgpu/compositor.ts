@@ -133,12 +133,6 @@ const BLEND_UNIFORM_BYTES = 64;
 /** SDF antialias band (layer-local units) when a border radius is active. */
 const BORDER_RADIUS_SMOOTHNESS = 0.01;
 
-const PING_PONG_USAGE =
-  GPUTextureUsage.RENDER_ATTACHMENT |
-  GPUTextureUsage.TEXTURE_BINDING |
-  GPUTextureUsage.COPY_SRC |
-  GPUTextureUsage.COPY_DST;
-
 export class WebGPULayerCompositor {
   private readonly device: GPUDevice;
   private readonly format: GPUTextureFormat;
@@ -270,19 +264,24 @@ export class WebGPULayerCompositor {
     }
     const safeW = Math.max(1, width);
     const safeH = Math.max(1, height);
+    const usage =
+      GPUTextureUsage.RENDER_ATTACHMENT |
+      GPUTextureUsage.TEXTURE_BINDING |
+      GPUTextureUsage.COPY_SRC |
+      GPUTextureUsage.COPY_DST;
     this.pingPongA?.destroy();
     this.pingPongB?.destroy();
     this.pingPongA = this.device.createTexture({
       label: "layer-compositor-ping-A",
       size: { width: safeW, height: safeH },
       format: this.format,
-      usage: PING_PONG_USAGE
+      usage
     });
     this.pingPongB = this.device.createTexture({
       label: "layer-compositor-ping-B",
       size: { width: safeW, height: safeH },
       format: this.format,
-      usage: PING_PONG_USAGE
+      usage
     });
     this.widthPx = width;
     this.heightPx = height;
