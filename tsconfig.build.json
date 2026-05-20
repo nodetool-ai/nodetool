@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "packages/gpu" },
     { "path": "packages/protocol" },
     { "path": "packages/timeline" },
     { "path": "packages/image-editor" },

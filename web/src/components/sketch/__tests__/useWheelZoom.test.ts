@@ -1,5 +1,12 @@
 /**
  * Sketch viewport wheel → zoom vs pan routing.
+ *
+ * Mirrors ReactFlow's gesture model (see web/src/components/node/
+ * ReactFlowWrapper.tsx): the zoom-vs-pan discriminator is `ctrlKey` alone —
+ * macOS reports a trackpad pinch as a synthetic ctrlKey wheel event, so
+ * ctrlKey always means zoom. No magnitude heuristic. Platform gates match
+ * ReactFlow: on Mac two-finger scroll pans (panOnScroll); elsewhere the
+ * mouse wheel zooms (zoomOnScroll).
  */
 
 import {
@@ -23,75 +30,82 @@ function fakeWheel(init: Partial<WheelSrc>): WheelSrc {
 }
 
 describe("partitionWheelViewportMotion", () => {
-  it("routes shift+wheel to vertical pan", () => {
+  it("zooms on ctrl/pinch regardless of delta magnitude (Mac)", () => {
+    // The old bug: a fast pinch (large deltaY) was misclassified as a mouse
+    // wheel and panned. ReactFlow routes any ctrlKey wheel to zoom.
     const out = partitionWheelViewportMotion(
-      fakeWheel({ deltaY: 30, deltaX: 0, shiftKey: true }),
+      fakeWheel({ deltaY: 120, deltaX: 0, ctrlKey: true }),
+      true,
     );
-    expect(out.zoomDelta).toBe(0);
+    expect(out.zoomDelta).toBe(120);
     expect(out.panX).toBe(0);
-    expect(out.panY).toBe(30);
-  });
-
-  it("routes ctrl+wheel on a mouse wheel to horizontal pan", () => {
-    const out = partitionWheelViewportMotion(
-      fakeWheel({
-        deltaY: -120,
-        deltaX: 0,
-        ctrlKey: true,
-        wheelDeltaY: 120,
-      }),
-    );
-    expect(out.zoomDelta).toBe(0);
-    expect(out.panX).toBe(-120);
     expect(out.panY).toBe(0);
   });
 
-  it("routes ctrl+wheel to zoom (pinch pattern)", () => {
+  it("zooms on a gentle pinch (Mac)", () => {
     expect(
       partitionWheelViewportMotion(
         fakeWheel({ deltaY: 8, deltaX: 0, ctrlKey: true }),
+        true,
       ).zoomDelta,
     ).toBe(8);
   });
 
-  it("routes LINE-mode vertical scroll as zoom (+ horizontal pans)", () => {
+  it("pans both axes on Mac two-finger scroll (no ctrl)", () => {
     const out = partitionWheelViewportMotion(
-      fakeWheel({
-        deltaMode: WheelEvent.DOM_DELTA_LINE,
-        deltaY: -1,
-        deltaX: 4,
-      }),
+      fakeWheel({ deltaY: -15, deltaX: -3 }),
+      true,
     );
-    expect(out.zoomDelta).toBe(-1);
-    expect(out.panX).toBe(4);
-    expect(out.panY).toBe(0);
-  });
-
-  it("routes small PIXEL deltas as pan (trackpad two-finger scroll)", () => {
-    const out = partitionWheelViewportMotion(fakeWheel({ deltaY: -15, deltaX: -3 }));
     expect(out.zoomDelta).toBe(0);
     expect(out.panY).toBe(-15);
     expect(out.panX).toBe(-3);
   });
 
-  it("routes legacy ±120-detent PIXEL deltas as zoom", () => {
+  it("never zooms a plain wheel on Mac (panOnScroll), even when coarse", () => {
     const out = partitionWheelViewportMotion(
-      fakeWheel({
-        deltaY: -100,
-        deltaX: 0,
-        wheelDeltaY: -120,
-      }),
+      fakeWheel({ deltaY: -150, deltaX: 0 }),
+      true,
+    );
+    expect(out.zoomDelta).toBe(0);
+    expect(out.panY).toBe(-150);
+  });
+
+  it("zooms a mouse wheel off Mac (zoomOnScroll)", () => {
+    const out = partitionWheelViewportMotion(
+      fakeWheel({ deltaY: -150, deltaX: 0 }),
+      false,
+    );
+    expect(out.zoomDelta).toBe(-150);
+    expect(out.panX).toBe(0);
+    expect(out.panY).toBe(0);
+  });
+
+  it("ignores horizontal wheel delta while zooming off Mac", () => {
+    const out = partitionWheelViewportMotion(
+      fakeWheel({ deltaY: -100, deltaX: 42 }),
+      false,
     );
     expect(out.zoomDelta).toBe(-100);
+    expect(out.panX).toBe(0);
     expect(out.panY).toBe(0);
+  });
+
+  it("zooms on ctrl+wheel off Mac (no Photoshop-style horizontal pan)", () => {
+    const out = partitionWheelViewportMotion(
+      fakeWheel({ deltaY: -120, deltaX: 0, ctrlKey: true }),
+      false,
+    );
+    expect(out.zoomDelta).toBe(-120);
     expect(out.panX).toBe(0);
   });
 
-  it("routes coarse single-step PIXEL vertical deltas as zoom (mouse fallback)", () => {
-    expect(
-      partitionWheelViewportMotion(
-        fakeWheel({ deltaY: -150, deltaX: 0 }),
-      ).zoomDelta,
-    ).toBe(-150);
+  it("routes shift+wheel to horizontal pan off Mac", () => {
+    const out = partitionWheelViewportMotion(
+      fakeWheel({ deltaY: 30, deltaX: 0, shiftKey: true }),
+      false,
+    );
+    expect(out.zoomDelta).toBe(0);
+    expect(out.panX).toBe(30);
+    expect(out.panY).toBe(0);
   });
 });

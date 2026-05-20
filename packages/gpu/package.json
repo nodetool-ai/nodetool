@@ -1,7 +1,7 @@
 {
-  "name": "@nodetool-ai/timeline",
+  "name": "@nodetool-ai/gpu",
   "version": "0.7.0-rc.23",
-  "description": "Core timeline types and status models for the NodeTool timeline feature",
+  "description": "Canonical blend-mode catalog and shared WGSL blend functions for NodeTool compositors (sketch, timeline, Compositor node)",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,10 +11,8 @@
     "test:watch": "vitest",
     "lint": "tsc --noEmit"
   },
-  "dependencies": {
-    "@nodetool-ai/gpu": "*"
-  },
   "devDependencies": {
+    "@webgpu/types": "^0.1.70",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   },
@@ -25,18 +23,18 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./dependencyHash.js": {
-      "nodetool-dev": "./src/dependencyHash.ts",
-      "types": "./dist/dependencyHash.d.ts",
-      "import": "./dist/dependencyHash.js",
-      "default": "./dist/dependencyHash.js"
+    "./webgpu": {
+      "nodetool-dev": "./src/webgpu/index.ts",
+      "types": "./dist/webgpu/index.d.ts",
+      "import": "./dist/webgpu/index.js",
+      "default": "./dist/webgpu/index.js"
     }
   },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/nodetool-ai/nodetool.git",
-    "directory": "packages/timeline"
+    "directory": "packages/gpu"
   },
   "homepage": "https://nodetool.ai",
   "bugs": {

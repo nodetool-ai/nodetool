@@ -312,7 +312,13 @@ describe("WorkflowRunner – multi-edge list detection", () => {
     const nodes: NodeDescriptor[] = [
       { id: "src1", type: "test.Src" },
       { id: "src2", type: "test.Src" },
-      { id: "collector", type: "test.Collector" }
+      // The collector aggregates two incoming edges on handle "items", so the
+      // handle must be declared as a list type for correlation analysis.
+      {
+        id: "collector",
+        type: "test.Collector",
+        propertyTypes: { items: "list[any]" }
+      }
     ];
     // Two edges to the same target handle "items"
     const edges: Edge[] = [

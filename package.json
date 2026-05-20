@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": [
     "packages/protocol",
+    "packages/gpu",
     "packages/timeline",
     "packages/image-editor",
     "packages/kernel",

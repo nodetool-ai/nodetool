@@ -1,4 +1,9 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import {
+  type BlendMode,
+  blendModeToSharpBlend,
+  coerceBlendMode
+} from "@nodetool-ai/gpu";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -1957,25 +1962,9 @@ export class LevelsNode extends TransformImageNode {
   }
 }
 
-const COMPOSITOR_BLEND_MODES = new Set<string>([
-  "over",
-  "multiply",
-  "screen",
-  "overlay",
-  "darken",
-  "lighten",
-  "color-dodge",
-  "color-burn",
-  "hard-light",
-  "soft-light",
-  "difference",
-  "exclusion",
-  "add"
-]);
-
 type CompositorLayerState = {
   opacity: number;
-  blend_mode: string;
+  blend_mode: BlendMode;
   visible: boolean;
 };
 
@@ -1985,13 +1974,10 @@ function compositorLayerState(raw: unknown): CompositorLayerState {
     typeof r.opacity === "number"
       ? Math.max(0, Math.min(1, r.opacity))
       : 1;
-  const blend =
-    typeof r.blend_mode === "string" &&
-    COMPOSITOR_BLEND_MODES.has(r.blend_mode)
-      ? r.blend_mode
-      : "over";
   const visible = r.visible === undefined ? true : !!r.visible;
-  return { opacity, blend_mode: blend, visible };
+  // Stored values are canonical blend modes; the legacy "over" name still
+  // resolves to "normal" via coerceBlendMode.
+  return { opacity, blend_mode: coerceBlendMode(r.blend_mode), visible };
 }
 
 /**
@@ -2089,7 +2075,7 @@ export class CompositorNode extends BaseNode {
           .composite([
             {
               input: layerBuf,
-              blend: layer.state.blend_mode as never,
+              blend: blendModeToSharpBlend(layer.state.blend_mode) as never,
               top: 0,
               left: 0
             }

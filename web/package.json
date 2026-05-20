@@ -23,6 +23,7 @@
     "@mui/material": "^7.3.10",
     "@mui/x-date-pickers": "^7.29.4",
     "@mui/x-tree-view": "^7.29.10",
+    "@nodetool-ai/gpu": "*",
     "@nodetool-ai/image-editor": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/timeline": "*",

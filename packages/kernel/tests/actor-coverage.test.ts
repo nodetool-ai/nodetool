@@ -10,8 +10,22 @@
 import { describe, it, expect } from "vitest";
 import { NodeActor, type NodeExecutor } from "../src/actor.js";
 import { NodeInbox } from "../src/inbox.js";
+import type { NodeAnalysis } from "../src/correlation-analysis.js";
 import type { NodeDescriptor, NodeUpdate } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+
+/**
+ * Minimal analysis for nodes whose inputs all arrive at the empty scope
+ * (scalars/config from source nodes). Per docs/correlation-design.md §"Validation
+ * rules" #1, empty scopes are constants/config: each handle is sticky-latest and
+ * the node fires once when its handles are satisfied. This is faithful for these
+ * tests because their upstreams are plain source nodes emitting at empty scope.
+ */
+const EMPTY_ANALYSIS: NodeAnalysis = {
+  invocationScope: [],
+  inputs: new Map(),
+  outputs: new Map()
+};
 
 function makeNode(overrides: Partial<NodeDescriptor> = {}): NodeDescriptor {
   return { id: "test_node", type: "test.Node", ...overrides };
@@ -41,7 +55,8 @@ function createActor(
     },
     emitMessage: (msg) => messages.push(msg),
     executionContext,
-    stickyHandles
+    stickyHandles,
+    correlation: EMPTY_ANALYSIS
   });
 
   return { actor, sentOutputs, messages };
@@ -236,13 +251,13 @@ describe("NodeActor – execution context forwarding", () => {
   });
 });
 
-describe("NodeActor – zip_all sticky edge cases", () => {
-  it("reuses topology-sticky value when handle is open but EOS arrives", async () => {
-    // Scenario: handle "a" has data, handle "b" is topology-sticky
-    // (non-streaming upstream) and EOSes after first value — its cached
-    // value should be reused. Pure streaming handles do NOT do this; use
-    // sync_mode: "on_any" for that pattern.
-    const node = makeNode({ sync_mode: "zip_all" });
+describe("NodeActor – empty-scope sticky inputs", () => {
+  it("fires once with the latest value of each empty-scope handle", async () => {
+    // Empty-scope handles are constants/config (correlation-design.md §"Validation
+    // rules" #1): each retains its LATEST value and the node fires once when all
+    // handles are satisfied. Pushing a=1,b=10 then a=2 yields a single call with
+    // the latest values {a:2, b:10} — not the old zip_all FIFO pairing.
+    const node = makeNode();
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
     inbox.addUpstream("b", 1);
@@ -255,19 +270,10 @@ describe("NodeActor – zip_all sticky edge cases", () => {
       }
     };
 
-    const { actor, sentOutputs } = createActor(
-      node,
-      inbox,
-      executor,
-      undefined,
-      new Set(["b"])
-    );
+    const { actor } = createActor(node, inbox, executor);
 
-    // First batch: both handles
     await inbox.put("a", 1);
     await inbox.put("b", 10);
-
-    // Second batch: only a has new data, b closes after first
     await inbox.put("a", 2);
 
     inbox.markSourceDone("a");
@@ -275,15 +281,15 @@ describe("NodeActor – zip_all sticky edge cases", () => {
 
     await actor.run();
 
-    // First call should have both inputs
-    expect(calls[0]).toEqual({ a: 1, b: 10 });
-    // Second call should use sticky for b
-    expect(calls[1]).toEqual({ a: 2, b: 10 });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toEqual({ a: 2, b: 10 });
   });
 
-  it("returns null when handle is closed with no sticky value", async () => {
-    // Edge case: handle registered but no data ever arrives
-    const node = makeNode({ sync_mode: "zip_all" });
+  it("fires with the handles that received data when another closes empty", async () => {
+    // "b" never receives a value and its upstream closes. Empty-scope handles
+    // with no value contribute nothing (the node would fall back to its declared
+    // default); a satisfied handle still drives a single firing.
+    const node = makeNode();
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
     inbox.addUpstream("b", 1);
@@ -298,23 +304,23 @@ describe("NodeActor – zip_all sticky edge cases", () => {
 
     const { actor } = createActor(node, inbox, executor);
 
-    // Only provide data for "a", close "b" without data
     await inbox.put("a", 1);
     inbox.markSourceDone("a");
     inbox.markSourceDone("b");
 
-    const result = await actor.run();
-    // Should complete without calling process since b has no data
-    expect(calls).toHaveLength(0);
-    expect(result.outputs).toEqual({});
+    await actor.run();
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toEqual({ a: 1 });
   });
 });
 
-describe("NodeActor – zip_all: open handle EOS with existing sticky", () => {
-  it("uses topology-sticky value when iterInput returns EOS on an open handle", async () => {
-    // Handle "b" is topology-sticky. iterInput returns done after one
-    // value, but the cached value is reused for further "a" arrivals.
-    const node = makeNode({ sync_mode: "zip_all" });
+describe("NodeActor – empty-scope sticky: multi-source handle", () => {
+  it("keeps the latest value when one upstream of a handle closes early", async () => {
+    // "b" has two upstream sources. One closes after delivering a value; the
+    // empty-scope handle keeps that latest value (correlation-design.md
+    // §"Validation rules" #1) and the node fires once with the latest of each.
+    const node = makeNode();
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
     inbox.addUpstream("b", 2); // 2 upstream sources
@@ -327,41 +333,30 @@ describe("NodeActor – zip_all: open handle EOS with existing sticky", () => {
       }
     };
 
-    const { actor } = createActor(
-      node,
-      inbox,
-      executor,
-      undefined,
-      new Set(["b"])
-    );
+    const { actor } = createActor(node, inbox, executor);
 
-    // First batch: both handles have data
     await inbox.put("a", 1);
     await inbox.put("b", 10);
-
-    // Second batch: "a" has new data, "b" has one source done but second still "open" with no data
     await inbox.put("a", 2);
-    // Mark one of b's sources done (b still "open" with 1 remaining)
+    // One of b's sources finishes; b's latest sticky value stays 10.
     inbox.markSourceDone("b");
 
-    // Now close everything
     inbox.markSourceDone("a");
     inbox.markSourceDone("b"); // b now fully closed
 
     await actor.run();
 
-    // First call: a=1, b=10
-    expect(calls[0]).toEqual({ a: 1, b: 10 });
-    // Second call: a=2, b should use sticky=10 (b was open, iterInput returned EOS, sticky existed)
-    expect(calls[1]).toEqual({ a: 2, b: 10 });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toEqual({ a: 2, b: 10 });
   });
 });
 
-describe("NodeActor – zip_all: inbox closed while waiting (lines 324-326)", () => {
-  it("falls back to sticky when inbox is closed during iterInput wait", async () => {
-    // This tests the path where iterInput returns done because inbox is closed,
-    // but a sticky value exists from a prior iteration.
-    const node = makeNode({ sync_mode: "zip_all" });
+describe("NodeActor – empty-scope sticky: single firing on close", () => {
+  it("fires once with the latest of each handle when all upstreams close", async () => {
+    // Empty-scope handles are sticky-latest constants (correlation-design.md
+    // §"Validation rules" #1). Multiple values on "a" do not re-fire the node;
+    // it fires once with the latest value of each handle when its upstreams close.
+    const node = makeNode();
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
     inbox.addUpstream("b", 1);
@@ -370,38 +365,32 @@ describe("NodeActor – zip_all: inbox closed while waiting (lines 324-326)", ()
     const executor: NodeExecutor = {
       async process(inputs) {
         calls.push({ ...inputs });
-        // After first call, close the inbox to trigger the EOS+sticky path
-        if (calls.length === 1) {
-          // Closing inbox causes iterInput to return done on next iteration
-          await inbox.closeAll();
-        }
         return { out: "ok" };
       }
     };
 
     const { actor } = createActor(node, inbox, executor);
 
-    // Provide data for first iteration
     await inbox.put("a", 1);
     await inbox.put("b", 10);
-
-    // Provide second value for "a" but nothing for "b"
-    // When the actor processes the second iteration, it will try to get "b"
-    // via iterInput, but inbox is closed, so it returns done.
-    // Since "b" has a sticky value from iteration 1, it should use that.
     await inbox.put("a", 2);
+
+    inbox.markSourceDone("a");
+    inbox.markSourceDone("b");
 
     const result = await actor.run();
 
-    expect(calls.length).toBeGreaterThanOrEqual(1);
-    expect(calls[0]).toEqual({ a: 1, b: 10 });
-    expect(result.outputs).toBeDefined();
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toEqual({ a: 2, b: 10 });
+    expect(result.outputs).toEqual({ out: "ok" });
   });
 });
 
-describe("NodeActor – on_any mode via async iteration (lines 274-281)", () => {
-  it("uses async iterAny when no buffered items available initially", async () => {
-    const node = makeNode({ sync_mode: "on_any" });
+describe("NodeActor – async arrival after run() starts", () => {
+  it("awaits inputs that arrive after run() and fires once", async () => {
+    // No data is buffered before run(); the actor awaits arrivals via the async
+    // iterator. Once both empty-scope handles are satisfied it fires once.
+    const node = makeNode();
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
     inbox.addUpstream("b", 1);
@@ -426,14 +415,18 @@ describe("NodeActor – on_any mode via async iteration (lines 274-281)", () => 
 
     await actor.run();
 
-    expect(calls.length).toBeGreaterThanOrEqual(1);
-    expect(sentOutputs.length).toBeGreaterThanOrEqual(1);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toEqual({ a: 1, b: 2 });
+    expect(sentOutputs).toHaveLength(1);
   });
 });
 
-describe("NodeActor – zip_all closed handle reuses topology sticky", () => {
-  it("reuses topology-sticky value from first iteration when handle closes", async () => {
-    const node = makeNode({ sync_mode: "zip_all" });
+describe("NodeActor – empty-scope sticky: latest value wins on close", () => {
+  it("fires once with the latest empty-scope value when a handle closes early", async () => {
+    // "b" delivers one value then closes; "a" delivers two values. Empty-scope
+    // handles are sticky-latest (correlation-design.md §"Validation rules" #1),
+    // so the single firing uses a's latest (30) and b's retained value (20).
+    const node = makeNode();
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
     inbox.addUpstream("b", 1);
@@ -446,27 +439,18 @@ describe("NodeActor – zip_all closed handle reuses topology sticky", () => {
       }
     };
 
-    const { actor } = createActor(
-      node,
-      inbox,
-      executor,
-      undefined,
-      new Set(["b"])
-    );
+    const { actor } = createActor(node, inbox, executor);
 
-    // Both handles have data for first iteration
     await inbox.put("a", 10);
     await inbox.put("b", 20);
-    // "a" has second value, "b" is done
     await inbox.put("a", 30);
     inbox.markSourceDone("a");
     inbox.markSourceDone("b");
 
     await actor.run();
 
-    expect(calls[0]).toEqual({ a: 10, b: 20 });
-    // Second iteration: a=30, b=sticky(20)
-    expect(calls[1]).toEqual({ a: 30, b: 20 });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toEqual({ a: 30, b: 20 });
   });
 });
 

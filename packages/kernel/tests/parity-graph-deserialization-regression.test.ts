@@ -5,7 +5,9 @@
  *  - API graph `data` is normalized to kernel `properties`
  *  - static property values shadowed by incoming edges are removed
  *  - malformed/dangling edges are skipped by default
- *  - omitted sync_mode falls back to Python's default: "on_any"
+ *  - a buffered actor with only empty-scope inputs fires once with the latest
+ *    sticky value per handle (correlation redesign — see
+ *    docs/correlation-design.md §4)
  */
 
 import { describe, it, expect } from "vitest";
@@ -13,6 +15,13 @@ import { Graph, GraphValidationError } from "../src/graph.js";
 import { NodeActor, type NodeExecutor } from "../src/actor.js";
 import { NodeInbox } from "../src/inbox.js";
 import type { NodeDescriptor } from "@nodetool-ai/protocol";
+import type { NodeAnalysis } from "../src/correlation-analysis.js";
+
+const EMPTY_ANALYSIS: NodeAnalysis = {
+  invocationScope: [],
+  inputs: new Map(),
+  outputs: new Map()
+};
 
 function makeNode(overrides: Partial<NodeDescriptor> = {}): NodeDescriptor {
   return { id: "test_node", type: "test.Node", ...overrides };
@@ -110,8 +119,8 @@ describe("Python parity — Graph.fromDict normalization", () => {
   });
 });
 
-describe("omitted sync_mode default", () => {
-  it("defaults buffered actors to zip_all semantics (strict pairing)", async () => {
+describe("buffered actor default (empty-scope) semantics", () => {
+  it("fires once with the latest sticky value per handle", async () => {
     const inbox = new NodeInbox();
     inbox.addUpstream("left", 1);
     inbox.addUpstream("right", 1);
@@ -124,7 +133,8 @@ describe("omitted sync_mode default", () => {
       inbox,
       executor,
       sendOutputs: async () => {},
-      emitMessage: () => {}
+      emitMessage: () => {},
+      correlation: EMPTY_ANALYSIS
     });
 
     await inbox.put("left", 1);
@@ -135,9 +145,10 @@ describe("omitted sync_mode default", () => {
 
     await actor.run();
 
-    // zip_all pairs positionally. left=[1,3], right=[2]: only one pair
-    // fires; the trailing left=3 has no right partner, so it's dropped.
-    // Use sync_mode: "on_any" for broadcast/fan-out semantics.
-    expect(calls).toEqual([{ left: 1, right: 2 }]);
+    // Empty-scope (the default with no correlation scope) is sticky-latest with
+    // a single fire: each handle keeps its most recent value and the node runs
+    // once. left=3 overwrites left=1, so the actor fires with {left:3, right:2}.
+    // (zip_all/positional pairing was removed in the correlation redesign.)
+    expect(calls).toEqual([{ left: 3, right: 2 }]);
   });
 });
