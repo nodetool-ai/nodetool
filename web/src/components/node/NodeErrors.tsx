@@ -172,15 +172,17 @@ export const NodeErrors: React.FC<{
     window.open(url, "_blank", "noopener,noreferrer");
   }, [error, logs, nodeType]);
 
-  if (!hasNodeError(error)) {
-    return null;
-  }
-
+  // Computed before the early return so the hook order stays stable
+  // (rules-of-hooks). `nodeErrorToDisplayString` tolerates an absent error.
   const errorDisplay = nodeErrorToDisplayString(error);
   const kieTaskId = useMemo(
     () => extractKieTaskId(errorDisplay),
     [errorDisplay]
   );
+
+  if (!hasNodeError(error)) {
+    return null;
+  }
 
   return (
     <div css={memoizedErrorStyles} className="node-error nodrag nowheel">
