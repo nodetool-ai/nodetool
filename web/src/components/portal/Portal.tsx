@@ -87,7 +87,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       maxWidth: 640,
       position: "relative",
-      // Override ChatInputSection margin
+      // Override the composer slot margin (ComposerSlot carries .chat-input-section)
       "& .chat-input-section": {
         margin: "0 auto",
         width: "100%",
