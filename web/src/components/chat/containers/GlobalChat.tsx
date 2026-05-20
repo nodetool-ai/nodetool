@@ -645,6 +645,7 @@ const GlobalChat: React.FC = () => {
               currentLogUpdate={currentLogUpdate}
               workflowId={workflowId}
               noMessagesPlaceholder={welcomePlaceholder}
+              useExternalComposer
             />
           </FlexColumn>
         </FlexRow>

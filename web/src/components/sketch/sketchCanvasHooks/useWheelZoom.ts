@@ -22,13 +22,6 @@ interface PendingWheel {
   clientY: number;
 }
 
-// Modifier semantics:
-//   Shift + wheel → vertical pan (force, even on trackpads that natively pan)
-//   Ctrl  + wheel → horizontal pan on physical mouse wheels (Photoshop-style)
-//   Meta  + wheel → zoom
-//   Ctrl  + trackpad pinch (synthetic ctrlKey, tiny pixel deltas) → zoom
-//   Discrete mouse wheels with no modifier → zoom vertically
-//   Trackpad two-finger pixel deltas → pan
 export type WheelSrc = Pick<
   WheelEvent,
   | "deltaX"
@@ -40,84 +33,48 @@ export type WheelSrc = Pick<
   | "metaKey"
   | "shiftKey"
   | "preventDefault"
-> & {
-  /** Legacy WebKit/Chromium ±120 multiples for physical detents (not typed on WheelEvent everywhere). */
-  wheelDelta?: number;
-  wheelDeltaY?: number;
-};
+>;
 
-/** Heuristic: discrete mouse-wheel detent (vs. fluid trackpad pixel scroll). */
-function isDiscreteMouseWheel(event: WheelSrc): boolean {
-  if (
-    event.deltaMode === WheelEvent.DOM_DELTA_LINE ||
-    event.deltaMode === WheelEvent.DOM_DELTA_PAGE
-  ) {
-    return true;
-  }
-  const absY = Math.abs(event.deltaY);
-  if (absY === 0 || event.deltaX !== 0) {
-    return false;
-  }
-  const legacy =
-    typeof event.wheelDelta === "number"
-      ? event.wheelDelta
-      : typeof event.wheelDeltaY === "number"
-        ? event.wheelDeltaY
-        : 0;
-  if (legacy !== 0 && Math.abs(legacy) >= 120 && Math.abs(legacy) % 120 === 0) {
-    return true;
-  }
-  return absY >= 120;
-}
+/** Match ReactFlow's platform gate (see node/ReactFlowWrapper.tsx). */
+const IS_MAC =
+  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 
-/** Split one wheel gesture into zoom (vertical Δ) vs 2-D pan vectors. Exported for tests. */
-export function partitionWheelViewportMotion(event: WheelSrc): {
+/**
+ * Split one wheel gesture into zoom (vertical Δ) vs 2-D pan vectors, mirroring
+ * ReactFlow's gesture model. The zoom-vs-pan discriminator is `ctrlKey` alone:
+ * macOS reports a trackpad pinch as a synthetic ctrlKey wheel event, so ctrlKey
+ * (pinch or a real Ctrl+wheel) always zooms — no fragile magnitude heuristic,
+ * which is what previously misrouted fast pinches into a pan. Platform gates
+ * match ReactFlowWrapper: on Mac a plain two-finger scroll pans (panOnScroll);
+ * elsewhere the mouse wheel zooms (zoomOnScroll). `isMac` is a parameter so the
+ * routing is testable without stubbing `navigator`.
+ *
+ * Exported for tests.
+ */
+export function partitionWheelViewportMotion(
+  event: WheelSrc,
+  isMac: boolean = IS_MAC
+): {
   zoomDelta: number;
   panX: number;
   panY: number;
 } {
-  // Combine deltas so users with horizontal-only or vertical-only wheels still
-  // get the requested axis (e.g. a vertical mouse wheel with Ctrl held should
-  // pan horizontally even though deltaX is 0).
-  const primary = event.deltaY !== 0 ? event.deltaY : event.deltaX;
-
-  // Shift+wheel: force vertical pan regardless of input device.
-  if (event.shiftKey) {
-    return { zoomDelta: 0, panX: 0, panY: primary };
-  }
-
-  // Ctrl+wheel on a physical mouse wheel: horizontal pan.
-  // Trackpad pinch arrives as ctrlKey with tiny pixel deltas — keep that as zoom.
-  if (event.ctrlKey && !event.metaKey && isDiscreteMouseWheel(event)) {
-    return { zoomDelta: 0, panX: primary, panY: 0 };
-  }
-
-  // Meta+wheel (Cmd on Mac) or Ctrl+trackpad pinch → zoom.
+  // Pinch / Ctrl+wheel / Cmd+wheel → zoom.
   if (event.ctrlKey || event.metaKey) {
-    return {
-      zoomDelta: event.deltaY,
-      panX: event.deltaX,
-      panY: 0
-    };
-  }
-
-  if (
-    event.deltaMode === WheelEvent.DOM_DELTA_LINE ||
-    event.deltaMode === WheelEvent.DOM_DELTA_PAGE
-  ) {
-    return {
-      zoomDelta: event.deltaY,
-      panX: event.deltaX,
-      panY: 0
-    };
-  }
-
-  // Pixel mode — keep two-finger trackpad gestures as pan, mouse wheel as zoom.
-  if (isDiscreteMouseWheel(event)) {
     return { zoomDelta: event.deltaY, panX: 0, panY: 0 };
   }
 
-  return { zoomDelta: 0, panX: event.deltaX, panY: event.deltaY };
+  // Mac trackpad two-finger scroll → 2-D pan.
+  if (isMac) {
+    return { zoomDelta: 0, panX: event.deltaX, panY: event.deltaY };
+  }
+
+  // Off Mac: Shift+wheel pans horizontally, otherwise the wheel zooms.
+  if (event.shiftKey) {
+    const primary = event.deltaY !== 0 ? event.deltaY : event.deltaX;
+    return { zoomDelta: 0, panX: primary, panY: 0 };
+  }
+  return { zoomDelta: event.deltaY, panX: 0, panY: 0 };
 }
 
 export function useWheelZoom({

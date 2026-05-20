@@ -25,7 +25,6 @@ describe("toApiNode", () => {
       outputs: { result: "number" },
       is_streaming_input: false,
       is_streaming_output: false,
-      sync_mode: "zip_all",
       is_controlled: false,
       is_dynamic: false,
       parent_id: "parent-1",
@@ -41,8 +40,7 @@ describe("toApiNode", () => {
       data: { a: 1, b: 2 },
       ui_properties: { x: 10, y: 20 },
       dynamic_properties: { extra: "value" },
-      dynamic_outputs: { alt: { type: "string" } },
-      sync_mode: "zip_all"
+      dynamic_outputs: { alt: { type: "string" } }
     });
     // Runtime fields should NOT be present
     expect((api as Record<string, unknown>).outputs).toBeUndefined();
@@ -71,8 +69,7 @@ describe("toApiNode", () => {
       data: {},
       ui_properties: {},
       dynamic_properties: {},
-      dynamic_outputs: {},
-      sync_mode: "on_any"
+      dynamic_outputs: {}
     });
   });
 });

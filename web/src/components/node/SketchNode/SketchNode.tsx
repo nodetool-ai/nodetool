@@ -56,6 +56,7 @@ import { useNodes } from "../../../contexts/NodeContext";
 import useSelect from "../../../hooks/nodes/useSelect";
 import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import useResultsStore from "../../../stores/ResultsStore";
+import { shallow } from "zustand/shallow";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import type { Node as FlowNode } from "@xyflow/react";
@@ -541,7 +542,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         state.getPreview(props.data.workflow_id, connection.sourceId);
     }
     return out;
-  });
+  }, shallow);
 
   useSyncEdgeSelection(props.id, Boolean(props.selected));
 

@@ -1,7 +1,6 @@
 import { act } from "@testing-library/react";
 import {
   useNotificationStore,
-  verbosityCheck,
   NotificationType
 } from "../NotificationStore";
 
@@ -425,36 +424,3 @@ describe("NotificationStore", () => {
   });
 });
 
-describe("verbosityCheck", () => {
-  it("returns true when notification type is in accepted types", () => {
-    expect(verbosityCheck("info", ["info", "warning", "error"])).toBe(true);
-    expect(verbosityCheck("warning", ["info", "warning", "error"])).toBe(true);
-    expect(verbosityCheck("error", ["info", "warning", "error"])).toBe(true);
-  });
-
-  it("returns false when notification type is not in accepted types", () => {
-    expect(verbosityCheck("debug", ["info", "warning", "error"])).toBe(false);
-    expect(verbosityCheck("progress", ["info", "warning"])).toBe(false);
-  });
-
-  it("handles empty accepted types array", () => {
-    expect(verbosityCheck("info", [])).toBe(false);
-  });
-
-  it("handles all notification types", () => {
-    const allTypes: NotificationType[] = [
-      "info",
-      "debug",
-      "error",
-      "warning",
-      "progress",
-      "node",
-      "job",
-      "success"
-    ];
-
-    allTypes.forEach((type) => {
-      expect(verbosityCheck(type, allTypes)).toBe(true);
-    });
-  });
-});

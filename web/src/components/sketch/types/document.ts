@@ -5,6 +5,7 @@
  * presets, normalization logic, and layer-tree helpers.
  */
 
+import { type BlendMode, coerceBlendMode } from "@nodetool-ai/gpu";
 import type {
   ToolSettings,
   EraserSettings,
@@ -123,44 +124,11 @@ export const SYMMETRY_DEFAULT_RAYS = 6;
 
 export type LayerType = "raster" | "mask" | "group";
 
-export type BlendMode =
-  | "normal"
-  | "multiply"
-  | "screen"
-  | "overlay"
-  | "darken"
-  | "lighten"
-  | "color-dodge"
-  | "color-burn"
-  | "hard-light"
-  | "soft-light"
-  | "difference"
-  | "exclusion";
-
-const BLEND_MODE_VALUES = [
-  "normal",
-  "multiply",
-  "screen",
-  "overlay",
-  "darken",
-  "lighten",
-  "color-dodge",
-  "color-burn",
-  "hard-light",
-  "soft-light",
-  "difference",
-  "exclusion"
-] as const satisfies readonly BlendMode[];
-
-const BLEND_MODE_SET: ReadonlySet<string> = new Set(BLEND_MODE_VALUES);
-
-/** Ensures UI (e.g. layer blend Select) never receives garbage strings like data URLs. */
-export function coerceBlendMode(value: unknown): BlendMode {
-  if (typeof value === "string" && BLEND_MODE_SET.has(value)) {
-    return value as BlendMode;
-  }
-  return "normal";
-}
+// Blend modes are defined once in @nodetool-ai/gpu and shared by the
+// sketch editor, the timeline preview compositor, and the Compositor node.
+// (imported at the top of this module; re-exported here for sketch consumers)
+export { coerceBlendMode };
+export type { BlendMode };
 
 /**
  * How the (optionally cropped) source image is mapped into the layer's

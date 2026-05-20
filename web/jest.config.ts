@@ -9,6 +9,8 @@ export default {
   testTimeout: 10000,
   maxWorkers: "50%",
   moduleNameMapper: {
+    "^@nodetool-ai/gpu/webgpu$": "<rootDir>/../packages/gpu/src/webgpu/index.ts",
+    "^@nodetool-ai/gpu$": "<rootDir>/../packages/gpu/src/index.ts",
     "^@nodetool-ai/protocol$": "<rootDir>/../packages/protocol/src/index.ts",
     "^@nodetool-ai/protocol/(.*)$": "<rootDir>/../packages/protocol/src/$1",
     "^@nodetool-ai/timeline$": "<rootDir>/../packages/timeline/src/index.ts",

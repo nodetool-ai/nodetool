@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import {
   getWorkflowRunnerStore,
   WorkflowRunner
@@ -10,34 +10,21 @@ import {
 export const useWorkflowRunnerState = (
   workflowId: string | undefined
 ): WorkflowRunner["state"] | null => {
-  const [runnerState, setRunnerState] = useState<WorkflowRunner["state"] | null>(
-    null
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!workflowId) return () => {};
+      const store = getWorkflowRunnerStore(workflowId);
+      return store.subscribe(onStoreChange);
+    },
+    [workflowId]
   );
 
-  useEffect(() => {
-    if (!workflowId) {
-      setRunnerState(null);
-      return;
-    }
-
-    const store = getWorkflowRunnerStore(workflowId);
-
-    // Initialize from current state
-    setRunnerState(store.getState().state);
-
-    // Subscribe to state changes
-    const unsubscribe = store.subscribe((state, prevState) => {
-      if (state.state !== prevState.state) {
-        setRunnerState(state.state);
-      }
-    });
-
-    return () => {
-      unsubscribe();
-    };
+  const getSnapshot = useCallback(() => {
+    if (!workflowId) return null;
+    return getWorkflowRunnerStore(workflowId).getState().state;
   }, [workflowId]);
 
-  return runnerState;
+  return useSyncExternalStore(subscribe, getSnapshot);
 };
 
 /** Hook to check if a workflow is currently running. */

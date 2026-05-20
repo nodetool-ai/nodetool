@@ -26,6 +26,7 @@
     "@napi-rs/canvas": "^0.1.65",
     "@nodetool-ai/agents": "*",
     "@nodetool-ai/code-runners": "*",
+    "@nodetool-ai/gpu": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/kie-nodes": "*",

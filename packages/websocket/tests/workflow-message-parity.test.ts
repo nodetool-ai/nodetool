@@ -136,6 +136,13 @@ function streamingResolver(nodeType: string) {
       outputs: { chunk: "chunk" },
       descriptorDefaults: {
         is_streaming_output: true,
+        output_correlation: {
+          chunk: {
+            kind: "iteration",
+            source: "__execution__",
+            group: "items"
+          }
+        },
         name: "Streamer"
       }
     };
