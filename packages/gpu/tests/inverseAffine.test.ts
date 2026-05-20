@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { forwardClipMatrixToInverseAffine } from "../src/webgpu/compositor.js";
+import { forwardClipMatrixToInverseAffine } from "../src/compositor/compositor.js";
 
 /**
  * Build a column-major 4×4 matrix from the affine 2×2 block (a00,a01,a10,a11)

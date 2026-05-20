@@ -1,10 +1,11 @@
 /**
- * @nodetool-ai/gpu/webgpu – Shared WebGPU compositing engine.
+ * @nodetool-ai/gpu/webgpu — Browser/WebGPU runtime entry point.
  *
- * Browser/WebGPU-only. Kept in a separate entry point so the pure
- * blend-mode catalog (the package root) stays importable by Node-side
- * consumers without pulling in WebGPU types.
+ * Kept separate from the package root so the pure blend catalog + pool
+ * contracts (the root export) stay importable by Node-side consumers without
+ * pulling in `navigator.gpu`. This entry adds the browser `GPUContext`
+ * adapter and the shared layer-compositing engine.
  */
 
-export * from "./compositor.js";
-export * from "./shaders.js";
+export * from "../compositor/index.js";
+export { createBrowserGPUContext } from "../context.js";

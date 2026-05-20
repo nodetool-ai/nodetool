@@ -18,7 +18,7 @@
  * are opt-in via uniforms (used by the timeline for scaled video clips).
  */
 
-import { WGSL_BLEND_FUNCTIONS } from "../wgsl.js";
+import { WGSL_BLEND_FUNCTIONS } from "../blend/wgsl.js";
 
 // ─── Full-screen quad vertex shader (4-vertex triangle strip) ─────────────
 

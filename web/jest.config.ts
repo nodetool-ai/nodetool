@@ -10,7 +10,13 @@ export default {
   maxWorkers: "50%",
   moduleNameMapper: {
     "^@nodetool-ai/gpu/webgpu$": "<rootDir>/../packages/gpu/src/webgpu/index.ts",
+    "^@nodetool-ai/gpu/pool$": "<rootDir>/../packages/gpu/src/pool.ts",
     "^@nodetool-ai/gpu$": "<rootDir>/../packages/gpu/src/index.ts",
+    // TypeGPU ships ESM-only (Jest does not transform it); mock it like the
+    // other ESM deps below. The compositor (`@nodetool-ai/gpu/webgpu`) imports
+    // it at module load.
+    "^typegpu$": "<rootDir>/src/__mocks__/typegpu.ts",
+    "^typegpu/data$": "<rootDir>/src/__mocks__/typegpuData.ts",
     "^@nodetool-ai/protocol$": "<rootDir>/../packages/protocol/src/index.ts",
     "^@nodetool-ai/protocol/(.*)$": "<rootDir>/../packages/protocol/src/$1",
     "^@nodetool-ai/timeline$": "<rootDir>/../packages/timeline/src/index.ts",

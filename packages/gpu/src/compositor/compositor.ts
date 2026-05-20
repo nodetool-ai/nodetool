@@ -13,11 +13,41 @@
  * (smooth scaled video) plus an optional rounded-rect mask.
  */
 
+import tgpu from "typegpu";
+import type { TgpuBuffer, TgpuRoot } from "typegpu";
+import * as d from "typegpu/data";
 import {
   BLEND_COMPOSITE_FRAGMENT,
   BLIT_FRAGMENT,
   FULLSCREEN_QUAD_VERTEX
 } from "./shaders.js";
+
+/**
+ * Blend-pass uniform schema (4 × vec4f = 64 bytes). The single source of
+ * truth for both the WGSL `BlendUniforms` struct (see `shaders.ts`) and the
+ * host-side packed buffer. Field order mirrors the WGSL struct exactly.
+ */
+const BlendUniforms = d.struct({
+  params0: d.vec4f, // opacity, blendMode, canvasW, canvasH
+  invRow0: d.vec4f, // inverse-affine row 0: a, b, tx, _
+  invRow1: d.vec4f, // inverse-affine row 1: c, d, ty, _
+  params1: d.vec4f // borderRadius, smoothness, filterMode, _
+});
+
+/** Typed bind group layout for the blend pass. Binding order = WGSL order. */
+const blendLayout = tgpu.bindGroupLayout({
+  u: { uniform: BlendUniforms },
+  srcTexture: { texture: "float" },
+  dstTexture: { texture: "float" },
+  srcSampler: { sampler: "filtering" }
+});
+
+/** Typed bind group layout for the blit pass (single sampled texture). */
+const blitLayout = tgpu.bindGroupLayout({
+  blitTexture: { texture: "float" }
+});
+
+type BlendUniformBuffer = TgpuBuffer<typeof BlendUniforms>;
 
 /** 2×3 affine matrix mapping screen pixels → layer texels. */
 export interface InverseAffine {
@@ -128,14 +158,13 @@ export function forwardClipMatrixToInverseAffine(
   };
 }
 
-/** Bytes for the blend uniform: 4 × vec4f. */
-const BLEND_UNIFORM_BYTES = 64;
 /** SDF antialias band (layer-local units) when a border radius is active. */
 const BORDER_RADIUS_SMOOTHNESS = 0.01;
 
 export class WebGPULayerCompositor {
   private readonly device: GPUDevice;
   private readonly format: GPUTextureFormat;
+  private readonly root: TgpuRoot;
 
   private readonly blendBindGroupLayout: GPUBindGroupLayout;
   private readonly blendPipeline: GPURenderPipeline;
@@ -151,9 +180,9 @@ export class WebGPULayerCompositor {
 
   // Per-frame uniform buffers, reused across frames. One distinct buffer per
   // blend pass within a frame: every pass in a frame is encoded into the same
-  // submit, so they cannot share a buffer (queue.writeBuffer would alias to
-  // the last write). `beginFrame` resets the ring index each frame.
-  private uniformBuffers: GPUBuffer[] = [];
+  // submit, so they cannot share a buffer (a write would alias to the last
+  // value). `beginFrame` resets the ring index each frame.
+  private uniformBuffers: BlendUniformBuffer[] = [];
   private passIndex = 0;
 
   constructor(
@@ -165,6 +194,7 @@ export class WebGPULayerCompositor {
     this.device = device;
     this.format = format;
     this.filterMode = filter === "linear" ? 1 : 0;
+    this.root = tgpu.initFromDevice({ device });
 
     this.sampler = device.createSampler({
       label: `${label}-sampler`,
@@ -174,31 +204,10 @@ export class WebGPULayerCompositor {
       addressModeV: "clamp-to-edge"
     });
 
-    this.blendBindGroupLayout = device.createBindGroupLayout({
-      label: `${label}-blend-bgl`,
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.FRAGMENT,
-          buffer: { type: "uniform" }
-        },
-        {
-          binding: 1,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" }
-        },
-        {
-          binding: 2,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" }
-        },
-        {
-          binding: 3,
-          visibility: GPUShaderStage.FRAGMENT,
-          sampler: { type: "filtering" }
-        }
-      ]
-    });
+    // TypeGPU owns the bind group layouts: `root.unwrap(layout)` returns the
+    // GPUBindGroupLayout the WGSL in shaders.ts is authored against, so the
+    // host and the shader can never drift apart.
+    this.blendBindGroupLayout = this.root.unwrap(blendLayout);
 
     const blendModule = device.createShaderModule({
       label: `${label}-blend-frag`,
@@ -218,16 +227,7 @@ export class WebGPULayerCompositor {
       primitive: { topology: "triangle-strip" }
     });
 
-    this.blitBindGroupLayout = device.createBindGroupLayout({
-      label: `${label}-blit-bgl`,
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" }
-        }
-      ]
-    });
+    this.blitBindGroupLayout = this.root.unwrap(blitLayout);
     const blitModule = device.createShaderModule({
       label: `${label}-blit-frag`,
       code: FULLSCREEN_QUAD_VERTEX + BLIT_FRAGMENT
@@ -316,28 +316,31 @@ export class WebGPULayerCompositor {
     const borderRadius = params.borderRadius ?? 0;
     const smoothness = borderRadius > 0 ? BORDER_RADIUS_SMOOTHNESS : 0;
 
-    const uniformData = new Float32Array([
-      params.opacity, params.blendModeId, params.canvasW, params.canvasH,
-      invAffine.a, invAffine.b, invAffine.tx, 0,
-      invAffine.c, invAffine.d, invAffine.ty, 0,
-      borderRadius, smoothness, this.filterMode, 0
-    ]);
     const idx = this.passIndex++;
     let uniformBuffer = this.uniformBuffers[idx];
     if (!uniformBuffer) {
-      uniformBuffer = this.device.createBuffer({
-        label: `layer-compositor-uniform-${idx}`,
-        size: BLEND_UNIFORM_BYTES,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-      });
+      uniformBuffer = this.root
+        .createBuffer(BlendUniforms)
+        .$usage("uniform")
+        .$name(`layer-compositor-uniform-${idx}`);
       this.uniformBuffers[idx] = uniformBuffer;
     }
-    this.device.queue.writeBuffer(uniformBuffer, 0, uniformData);
+    uniformBuffer.write({
+      params0: d.vec4f(
+        params.opacity,
+        params.blendModeId,
+        params.canvasW,
+        params.canvasH
+      ),
+      invRow0: d.vec4f(invAffine.a, invAffine.b, invAffine.tx, 0),
+      invRow1: d.vec4f(invAffine.c, invAffine.d, invAffine.ty, 0),
+      params1: d.vec4f(borderRadius, smoothness, this.filterMode, 0)
+    });
 
     const bindGroup = this.device.createBindGroup({
       layout: this.blendBindGroupLayout,
       entries: [
-        { binding: 0, resource: { buffer: uniformBuffer } },
+        { binding: 0, resource: { buffer: uniformBuffer.buffer } },
         { binding: 1, resource: params.source.createView() },
         { binding: 2, resource: readTex.createView() },
         { binding: 3, resource: this.sampler }
@@ -381,9 +384,10 @@ export class WebGPULayerCompositor {
     this.pingPongB?.destroy();
     this.pingPongA = null;
     this.pingPongB = null;
-    for (const buffer of this.uniformBuffers) {
-      buffer.destroy();
-    }
+    // The uniform buffers were created through the root, so destroying the
+    // root frees them. The GPUDevice itself is caller-owned and survives
+    // (root was created via initFromDevice).
     this.uniformBuffers = [];
+    this.root.destroy();
   }
 }
