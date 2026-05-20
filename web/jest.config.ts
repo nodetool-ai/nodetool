@@ -9,6 +9,7 @@ export default {
   testTimeout: 10000,
   maxWorkers: "50%",
   moduleNameMapper: {
+    "^@nodetool-ai/compositor/webgpu$": "<rootDir>/../packages/compositor/src/webgpu/index.ts",
     "^@nodetool-ai/compositor$": "<rootDir>/../packages/compositor/src/index.ts",
     "^@nodetool-ai/protocol$": "<rootDir>/../packages/protocol/src/index.ts",
     "^@nodetool-ai/protocol/(.*)$": "<rootDir>/../packages/protocol/src/$1",
