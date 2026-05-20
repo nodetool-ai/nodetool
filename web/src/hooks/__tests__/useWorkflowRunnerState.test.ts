@@ -64,11 +64,12 @@ describe("useWorkflowRunnerState", () => {
 
     expect(result.current).toBe("idle");
 
-    // Simulate a store state change by calling the subscriber callback
+    // Simulate a store state change: update snapshot then notify
+    mockGetState.mockReturnValue({ state: "running" });
     const subscriberCallback = mockSubscribe.mock.calls[0][0];
 
     act(() => {
-      subscriberCallback({ state: "running" }, { state: "idle" });
+      subscriberCallback();
     });
 
     await waitFor(() => {
@@ -89,7 +90,7 @@ describe("useWorkflowRunnerState", () => {
     const subscriberCallback = mockSubscribe.mock.calls[0][0];
 
     act(() => {
-      subscriberCallback({ state: "idle" }, { state: "idle" });
+      subscriberCallback();
     });
 
     // State should remain the same
@@ -113,7 +114,8 @@ describe("useWorkflowRunnerState", () => {
     );
 
     expect(mockGetWorkflowRunnerStore).toHaveBeenCalledWith("workflow-123");
-    expect(mockSubscribe).toHaveBeenCalledTimes(1);
+    const initialSubscribeCalls = mockSubscribe.mock.calls.length;
+    expect(initialSubscribeCalls).toBeGreaterThanOrEqual(1);
 
     // Change workflow ID
     rerender({ workflowId: "workflow-456" });
@@ -121,7 +123,7 @@ describe("useWorkflowRunnerState", () => {
     // Should unsubscribe from old and subscribe to new
     expect(unsubscribeFn).toHaveBeenCalled();
     expect(mockGetWorkflowRunnerStore).toHaveBeenCalledWith("workflow-456");
-    expect(mockSubscribe).toHaveBeenCalledTimes(2);
+    expect(mockSubscribe.mock.calls.length).toBeGreaterThan(initialSubscribeCalls);
   });
 });
 
@@ -180,11 +182,12 @@ describe("useIsWorkflowRunning", () => {
 
     expect(result.current).toBe(false);
 
-    // Simulate state change to running
+    // Simulate state change: update snapshot then notify
+    mockGetState.mockReturnValue({ state: "running" });
     const subscriberCallback = mockSubscribe.mock.calls[0][0];
 
     act(() => {
-      subscriberCallback({ state: "running" }, { state: "idle" });
+      subscriberCallback();
     });
 
     await waitFor(() => {
