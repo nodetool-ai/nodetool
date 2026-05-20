@@ -164,9 +164,7 @@ const providerIconMap: Record<string, string> = {
   // Anthropic / Claude
   anthropic: anthropicIcon,
   claude: claudeColorIcon,
-  claude_agent: claudeColorIcon,
-  "claude-agent": claudeColorIcon,
-  
+
   // Google / Gemini
   google: geminiColorIcon,
   gemini: geminiColorIcon,

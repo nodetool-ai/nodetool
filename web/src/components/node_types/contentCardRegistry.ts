@@ -257,8 +257,6 @@ const PROMPT_TEMPLATE_NODES = new Set<string>([
 export const getDynamicInputLabel = (metadata: NodeMetadata): string => {
   const t = metadata.node_type ?? "";
   // Template-style nodes use {{variable}} substitution — say "variable".
-  // This is the prompt-templating subset of the content-card allow-set above
-  // (the "Text-content nodes (LLM-style, prompt templating)" group).
   if (PROMPT_TEMPLATE_NODES.has(t)) {
     return "variable";
   }

@@ -37,8 +37,6 @@ const PACKAGE_EMOJIS: Record<string, string> = {
   ruby: "💎",
   lua: "🌙",
   pdftotext: "📑",
-  claude_agent_sdk: "🧠",
-  codex_sdk: "💻",
   transformers_js: "🤖",
   tensorflow_js: "📊",
 };
