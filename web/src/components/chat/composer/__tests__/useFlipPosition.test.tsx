@@ -36,7 +36,8 @@ describe("useFlipPosition", () => {
   });
 
   afterEach(() => {
-    animateSpy.mockRestore();
+    // Restore all spies (animate + any getBoundingClientRect spies created per-test)
+    jest.restoreAllMocks();
   });
 
   it("does not animate on first render (no previous rect)", () => {
