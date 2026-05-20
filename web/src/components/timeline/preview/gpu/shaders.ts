@@ -2,7 +2,7 @@
  * Per-clip / per-track GPU effect compute shaders for the timeline preview.
  *
  * Layer compositing (transform, blend modes, ping-pong accumulation, blit)
- * lives in the shared @nodetool-ai/compositor/webgpu engine. These compute
+ * lives in the shared @nodetool-ai/gpu/webgpu engine. These compute
  * passes run beforehand to produce the per-clip effected source textures the
  * compositor then blends.
  */

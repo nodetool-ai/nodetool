@@ -15,11 +15,11 @@
  * Readback (flatten / mask export) goes through Canvas2DRuntime helpers.
  */
 
-import { blendModeGpuId } from "@nodetool-ai/compositor";
+import { blendModeGpuId } from "@nodetool-ai/gpu";
 import {
   FULLSCREEN_QUAD_VERTEX,
   WebGPULayerCompositor
-} from "@nodetool-ai/compositor/webgpu";
+} from "@nodetool-ai/gpu/webgpu";
 import type {
   SketchRuntime,
   ActiveStrokeInfo,
@@ -107,7 +107,7 @@ export class WebGPURuntime implements SketchRuntime {
    * Owns the blend + blit pipelines and the ping-pong accumulation
    * textures. Sketch supplies `nearest` filtering for pixel-exact paint and
    * drives it with one blend pass per visible layer. Shared with the
-   * timeline preview via @nodetool-ai/compositor/webgpu.
+   * timeline preview via @nodetool-ai/gpu/webgpu.
    */
   private compositor: WebGPULayerCompositor | null = null;
 

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BLEND_MODE_TUPLE } from "@nodetool-ai/compositor";
+import { BLEND_MODE_TUPLE } from "@nodetool-ai/gpu";
 
 const blendModeEnum = z.enum(BLEND_MODE_TUPLE);
 

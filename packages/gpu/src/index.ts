@@ -1,5 +1,5 @@
 /**
- * @nodetool-ai/compositor – Public API
+ * @nodetool-ai/gpu – Public API
  *
  * Canonical blend-mode definitions and shared WGSL blend functions used by
  * the sketch editor, the timeline preview compositor, and the Compositor

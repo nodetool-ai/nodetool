@@ -12,7 +12,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/compositor": "*"
+    "@nodetool-ai/gpu": "*"
   },
   "devDependencies": {
     "typescript": "^5.7.2",

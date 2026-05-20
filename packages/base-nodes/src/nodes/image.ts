@@ -3,7 +3,7 @@ import {
   type BlendMode,
   blendModeToSharpBlend,
   coerceBlendMode
-} from "@nodetool-ai/compositor";
+} from "@nodetool-ai/gpu";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";

@@ -28,7 +28,7 @@ import {
   type BlendMode,
   BLEND_MODES,
   coerceBlendMode
-} from "@nodetool-ai/compositor";
+} from "@nodetool-ai/gpu";
 
 import {
   CheckerDropzone,
@@ -51,7 +51,7 @@ import { unwrapOutput } from "../../../utils/imageRef";
 
 const COMPOSITOR_NODE_TYPE = "nodetool.image.Compositor";
 
-/** Canonical blend modes are owned by `@nodetool-ai/compositor`. */
+/** Canonical blend modes are owned by `@nodetool-ai/gpu`. */
 export type CompositorBlendMode = BlendMode;
 
 export interface CompositorLayerState {

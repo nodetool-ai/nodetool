@@ -5,7 +5,7 @@
  * checkerboard and pixel-grid drawing helpers used across the sketch editor.
  */
 
-import { blendModeToCanvasOp } from "@nodetool-ai/compositor";
+import { blendModeToCanvasOp } from "@nodetool-ai/gpu";
 import type { BlendMode } from "../types";
 
 // ─── Dirty-rect types ────────────────────────────────────────────────────────

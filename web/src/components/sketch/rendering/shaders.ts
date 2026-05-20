@@ -4,7 +4,7 @@
  * (blur / dilate / erode) passes.
  *
  * Layer compositing (blend modes, inverse-affine sampling, ping-pong
- * accumulation, blit) lives in the shared @nodetool-ai/compositor/webgpu
+ * accumulation, blit) lives in the shared @nodetool-ai/gpu/webgpu
  * engine. These fragments are concatenated with that engine's exported
  * `FULLSCREEN_QUAD_VERTEX` at pipeline-build time.
  */

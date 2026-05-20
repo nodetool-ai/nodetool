@@ -5,7 +5,7 @@
  * presets, normalization logic, and layer-tree helpers.
  */
 
-import { type BlendMode, coerceBlendMode } from "@nodetool-ai/compositor";
+import { type BlendMode, coerceBlendMode } from "@nodetool-ai/gpu";
 import type {
   ToolSettings,
   EraserSettings,
@@ -124,7 +124,7 @@ export const SYMMETRY_DEFAULT_RAYS = 6;
 
 export type LayerType = "raster" | "mask" | "group";
 
-// Blend modes are defined once in @nodetool-ai/compositor and shared by the
+// Blend modes are defined once in @nodetool-ai/gpu and shared by the
 // sketch editor, the timeline preview compositor, and the Compositor node.
 // (imported at the top of this module; re-exported here for sketch consumers)
 export { coerceBlendMode };

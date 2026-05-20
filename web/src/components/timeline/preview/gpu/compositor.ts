@@ -1,8 +1,8 @@
-import { blendModeGpuId } from "@nodetool-ai/compositor";
+import { blendModeGpuId } from "@nodetool-ai/gpu";
 import {
   WebGPULayerCompositor,
   forwardClipMatrixToInverseAffine
-} from "@nodetool-ai/compositor/webgpu";
+} from "@nodetool-ai/gpu/webgpu";
 import { WebGPUEffectsProcessor } from "./effectsProcessor";
 import {
   IDENTITY_TRANSFORM,

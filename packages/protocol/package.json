@@ -12,7 +12,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/compositor": "*",
+    "@nodetool-ai/gpu": "*",
     "zod": "^4.0.0"
   },
   "devDependencies": {

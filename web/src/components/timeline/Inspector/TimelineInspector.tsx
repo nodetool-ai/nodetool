@@ -15,7 +15,7 @@ import type {
   ClipTransition,
   TimelineClip
 } from "@nodetool-ai/timeline";
-import { BLEND_MODES } from "@nodetool-ai/compositor";
+import { BLEND_MODES } from "@nodetool-ai/gpu";
 import {
   CollapsibleSection,
   EditorButton,
