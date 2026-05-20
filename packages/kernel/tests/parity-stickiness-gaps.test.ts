@@ -19,6 +19,10 @@ import { describe, it, expect } from "vitest";
 import { NodeActor, type NodeExecutor } from "../src/actor.js";
 import { NodeInbox } from "../src/inbox.js";
 import { WorkflowRunner } from "../src/runner.js";
+import {
+  analyzeCorrelation,
+  type NodeAnalysis
+} from "../src/correlation-analysis.js";
 import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
@@ -63,7 +67,7 @@ function createActor(
   node: NodeDescriptor,
   inbox: NodeInbox,
   executor: NodeExecutor,
-  stickyHandles?: Set<string>
+  correlation?: NodeAnalysis
 ): { actor: NodeActor; sentOutputs: SentOutput[]; messages: unknown[] } {
   const sentOutputs: SentOutput[] = [];
   const messages: unknown[] = [];
@@ -75,9 +79,63 @@ function createActor(
       sentOutputs.push({ nodeId, outputs: { ...outputs } });
     },
     emitMessage: (msg) => messages.push(msg),
-    stickyHandles
+    correlation
   });
   return { actor, sentOutputs, messages };
+}
+
+/**
+ * Build the real `NodeAnalysis` for the combiner node "C" in the canonical
+ * zip_all graph used throughout Gap #5:
+ *
+ *   A (single output)            ---> C.a
+ *   B (per-item iteration output) ---> C.b
+ *
+ * The static analyzer assigns C.a an empty scope (strict-prefix / empty-scope
+ * sticky) and C.b the iteration scope [B:items] (max-scope). This is what
+ * makes A's value sticky and reused for each distinct B item — see
+ * docs/correlation-design.md §4 (lines 334-356): empty-scope handles stay
+ * sticky, max-scope handles fire per projected key.
+ */
+function zipAllCAnalysis(): NodeAnalysis {
+  const nodes: NodeDescriptor[] = [
+    {
+      id: "A",
+      type: "test.Source",
+      outputs: { value: "any" },
+      output_correlation: { value: { kind: "single", source: "__execution__" } }
+    },
+    {
+      id: "B",
+      type: "test.ForEach",
+      outputs: { value: "any" },
+      output_correlation: {
+        value: { kind: "iteration", source: "__execution__", group: "items" }
+      }
+    },
+    {
+      id: "C",
+      type: "test.Combiner",
+      outputs: { sum: "any" },
+      output_correlation: { sum: { kind: "single", source: "__execution__" } }
+    }
+  ];
+  const edges: Edge[] = [
+    { id: "e_ac", source: "A", sourceHandle: "value", target: "C", targetHandle: "a" },
+    { id: "e_bc", source: "B", sourceHandle: "value", target: "C", targetHandle: "b" }
+  ];
+  const result = analyzeCorrelation({ nodes, edges });
+  if (result.issues.length > 0) {
+    throw new Error(
+      `unexpected analysis issues: ${result.issues.map((i) => i.message).join("; ")}`
+    );
+  }
+  return result.nodes.get("C")!;
+}
+
+/** Lineage that places a B item at iteration index `i` (root "B:items"). */
+function bItemLineage(i: number): Record<string, { index: number }> {
+  return { "B:items": { index: i } };
 }
 
 function makeRunner(executorMap: Record<string, NodeExecutor>): WorkflowRunner {
@@ -109,14 +167,16 @@ describe("Gap #5 — zip_all stickiness: streaming vs non-streaming edges", () =
    * sent EOS. With the current implementation, the timing depends on when
    * A closes relative to B's items arriving.
    */
-  it("non-streaming handle should be sticky from the start (actor-level)", async () => {
-    // GAP #5: This tests actor-level zip_all behavior.
-    // In Python, the non-streaming handle is sticky from the start.
-    // In TypeScript, stickiness is open/closed based, not streaming-analysis based.
-    const node = makeNode({ id: "C", sync_mode: "zip_all" });
+  it("empty-scope handle is sticky; max-scope handle fires per item (actor-level)", async () => {
+    // GAP #5 under correlation: stickiness is decided by the static scope of
+    // each handle, not by sync_mode. The analyzer assigns C.a the empty scope
+    // (sticky) and C.b the iteration scope [B:items] (max-scope). C therefore
+    // fires once per distinct B item, reusing A's sticky value each time.
+    // docs/correlation-design.md §4 lines 335-355.
+    const node = makeNode({ id: "C" });
     const inbox = new NodeInbox();
-    inbox.addUpstream("a", 1); // non-streaming source (A)
-    inbox.addUpstream("b", 1); // streaming source (B)
+    inbox.addUpstream("a", 1); // non-streaming source (A) → empty scope
+    inbox.addUpstream("b", 1); // per-item source (B) → [B:items]
 
     const { executor, calls } = (() => {
       const calls: Array<Record<string, unknown>> = [];
@@ -131,47 +191,33 @@ describe("Gap #5 — zip_all stickiness: streaming vs non-streaming edges", () =
       };
     })();
 
-    // Wire A's handle as sticky from the start, mirroring what the runner
-    // does via edgeStreams() topology analysis for non-streaming upstreams.
-    const { actor, sentOutputs } = createActor(
-      node,
-      inbox,
-      executor,
-      new Set(["a"])
-    );
+    const { actor } = createActor(node, inbox, executor, zipAllCAnalysis());
 
     // A sends one value and closes
     await inbox.put("a", 10);
     inbox.markSourceDone("a");
 
-    // B sends 3 values then closes
-    await inbox.put("b", 1);
-    await inbox.put("b", 2);
-    await inbox.put("b", 3);
+    // B sends 3 items, each at its own iteration index, then closes
+    await inbox.put("b", 1, { correlation_lineage: bItemLineage(0) });
+    await inbox.put("b", 2, { correlation_lineage: bItemLineage(1) });
+    await inbox.put("b", 3, { correlation_lineage: bItemLineage(2) });
     inbox.markSourceDone("b");
 
     await actor.run();
 
-    // Python would fire 3 times, reusing A's sticky value for each B item.
-    // TypeScript should also fire 3 times because A is closed (sticky).
-    // This test verifies the basic case where A closes before B items arrive.
+    // C fires 3 times, reusing A's sticky value for each B item.
     expect(calls).toHaveLength(3);
     expect(calls[0]).toEqual({ a: 10, b: 1 });
     expect(calls[1]).toEqual({ a: 10, b: 2 });
     expect(calls[2]).toEqual({ a: 10, b: 3 });
   });
 
-  it("interleaved arrival: non-streaming value arrives after some streaming items", async () => {
-    // GAP #5: This exposes the timing-dependent divergence.
-    // In Python, A's handle is sticky from the start (streaming analysis).
-    // In TypeScript, A's handle is only sticky after it closes (EOS).
-    //
-    // When A hasn't closed yet and B items arrive, TypeScript's _gatherZipAll
-    // will wait for A on each iteration. If A has data buffered, it pops it.
-    // If A has no data and is still open, it blocks on iterInput(a).
-    //
-    // This scenario: B sends items, A sends one value, A closes, B sends more.
-    const node = makeNode({ id: "C", sync_mode: "zip_all" });
+  it("interleaved arrival: empty-scope value buffered alongside the items", async () => {
+    // GAP #5 under correlation: the empty-scope handle A is sticky from the
+    // moment its envelope is buffered — it does not need to close first. The
+    // actor buckets each B item by its projected key [B:items=i] and reuses
+    // A's sticky value for every key. docs/correlation-design.md §4 line 355.
+    const node = makeNode({ id: "C" });
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
     inbox.addUpstream("b", 1);
@@ -184,21 +230,19 @@ describe("Gap #5 — zip_all stickiness: streaming vs non-streaming edges", () =
       }
     };
 
-    const { actor } = createActor(node, inbox, executor, new Set(["a"]));
+    const { actor } = createActor(node, inbox, executor, zipAllCAnalysis());
 
-    // Both A and B have data ready; A closes after one value.
-    // B has multiple items.
+    // A and all three B items are buffered before the actor runs.
     await inbox.put("a", "X");
-    await inbox.put("b", 1);
-    await inbox.put("b", 2);
-    await inbox.put("b", 3);
+    await inbox.put("b", 1, { correlation_lineage: bItemLineage(0) });
+    await inbox.put("b", 2, { correlation_lineage: bItemLineage(1) });
+    await inbox.put("b", 3, { correlation_lineage: bItemLineage(2) });
     inbox.markSourceDone("a");
     inbox.markSourceDone("b");
 
     await actor.run();
 
-    // After A closes with one value, it should be sticky. B has 3 items.
-    // Expect 3 firings, each reusing A's sticky value "X".
+    // A's empty-scope value "X" is sticky and reused for every B item.
     expect(calls).toHaveLength(3);
     expect(calls.map((c) => c.b)).toEqual([1, 2, 3]);
     expect(calls.every((c) => c.a === "X")).toBe(true);
@@ -317,14 +361,36 @@ describe("Gap #5 — stickyHandles wired from runner streaming analysis", () => 
     //
     // We use the real WorkflowRunner to verify end-to-end wiring.
     const nodes: NodeDescriptor[] = [
-      { id: "A", type: "test.Source", name: "a_input" },
+      {
+        id: "A",
+        type: "test.Source",
+        name: "a_input",
+        outputs: { value: "any" },
+        output_correlation: {
+          value: { kind: "single", source: "__execution__" }
+        }
+      },
       {
         id: "B",
         type: "test.StreamSource",
         name: "b_input",
-        is_streaming_output: true
+        is_streaming_output: true,
+        outputs: { value: "any" },
+        // B emits one logical item per yield, so its output is an iteration
+        // root. This is what gives C.b a max-scope key per item while C.a stays
+        // empty-scope sticky. docs/correlation-design.md §3 (iteration outputs).
+        output_correlation: {
+          value: { kind: "iteration", source: "__execution__", group: "items" }
+        }
       },
-      { id: "C", type: "test.Combiner", sync_mode: "zip_all" }
+      {
+        id: "C",
+        type: "test.Combiner",
+        outputs: { result: "any" },
+        output_correlation: {
+          result: { kind: "single", source: "__execution__" }
+        }
+      }
     ];
     const edges: Edge[] = [
       {
@@ -375,46 +441,60 @@ describe("Gap #5 — stickyHandles wired from runner streaming analysis", () => 
 
 describe("Gap #10 — multi-edge list type validation", () => {
   /**
-   * Python's _classify_list_inputs() checks whether the target property
-   * has is_list_type() == true before marking a handle for list aggregation.
-   * If the property is a scalar (e.g., int), Python does NOT aggregate
-   * even if multiple edges connect to the same handle.
+   * The original gap recorded a divergence: TypeScript's
+   * _detectMultiEdgeListInputs() counted edges and aggregated regardless of
+   * property type, while Python's _classify_list_inputs() checked
+   * is_list_type() first.
    *
-   * TypeScript's _detectMultiEdgeListInputs() just counts edges:
-   * if count > 1, it marks for aggregation regardless of property type.
+   * The correlation redesign closed this gap. Both the runner
+   * (_detectMultiEdgeListInputs, src/runner.ts ~line 645) and the static
+   * analyzer (analyzeCorrelation, src/correlation-analysis.ts ~line 336) now
+   * require the target handle to be a list type before aggregating. Two edges
+   * into a NON-list handle are a hard correlation-analysis error
+   * (docs/correlation-design.md §3 line 358: "A non-list, non-repeating handle
+   * may receive at most one value for a given key").
    *
-   * This means TypeScript will try to aggregate two values into a list
-   * even for a scalar handle, which diverges from Python.
+   * These tests now assert the post-redesign behavior.
    */
-  it("two edges to the same handle: TS marks for aggregation regardless of type", async () => {
-    // GAP #10: TypeScript aggregates any handle with >1 edge into a list.
-    // Python would NOT aggregate if the target property is not a list type.
-    //
-    // Graph: A --> C.x, B --> C.x (two edges to the same "x" handle)
-    const nodes: NodeDescriptor[] = [
-      { id: "A", type: "test.Input", name: "a" },
-      { id: "B", type: "test.Input", name: "b" },
-      { id: "C", type: "test.Adder" }
-    ];
-    const edges: Edge[] = [
+  it("two edges to a list handle: marked for aggregation; scalar handle is rejected", async () => {
+    // List handle: two edges into C.x where x is list[int]. The graph is
+    // valid, C runs, and the handle is marked for aggregation.
+    const listNodes: NodeDescriptor[] = [
       {
-        id: "e1",
-        source: "A",
-        sourceHandle: "value",
-        target: "C",
-        targetHandle: "x"
+        id: "A",
+        type: "test.Input",
+        name: "a",
+        outputs: { value: "any" },
+        output_correlation: {
+          value: { kind: "single", source: "__execution__" }
+        }
       },
       {
-        id: "e2",
-        source: "B",
-        sourceHandle: "value",
-        target: "C",
-        targetHandle: "x"
+        id: "B",
+        type: "test.Input",
+        name: "b",
+        outputs: { value: "any" },
+        output_correlation: {
+          value: { kind: "single", source: "__execution__" }
+        }
+      },
+      {
+        id: "C",
+        type: "test.Adder",
+        propertyTypes: { x: "list[int]" },
+        outputs: { result: "any" },
+        output_correlation: {
+          result: { kind: "single", source: "__execution__" }
+        }
       }
+    ];
+    const listEdges: Edge[] = [
+      { id: "e1", source: "A", sourceHandle: "value", target: "C", targetHandle: "x" },
+      { id: "e2", source: "B", sourceHandle: "value", target: "C", targetHandle: "x" }
     ];
 
     const receivedInputs: Array<Record<string, unknown>> = [];
-    const runner = makeRunner({
+    const listRunner = makeRunner({
       C: {
         async process(inputs) {
           receivedInputs.push({ ...inputs });
@@ -422,62 +502,89 @@ describe("Gap #10 — multi-edge list type validation", () => {
         }
       }
     });
-
-    await runner.run(
-      { job_id: "j1", params: { a: 10, b: 20 } },
-      { nodes, edges }
+    const listResult = await listRunner.run(
+      { job_id: "list", params: { a: 10, b: 20 } },
+      { nodes: listNodes, edges: listEdges }
     );
 
-    // In TypeScript, _detectMultiEdgeListInputs sees 2 edges to C:x
-    // and marks it for list aggregation.
-    // The runner's inbox will receive two separate put() calls for "x".
-    // The actor's zip_all gathers them — depending on inbox semantics,
-    // C may see x=10 on one call and x=20 on another, or both.
-    //
-    // The key divergence: Python with a scalar handle would NOT aggregate.
-    // This test documents what TypeScript actually does.
+    expect(listResult.status).toBe("completed");
     expect(receivedInputs.length).toBeGreaterThanOrEqual(1);
+    const listMultiEdge = (
+      listRunner as unknown as { _multiEdgeListInputs: Map<string, Set<string>> }
+    )._multiEdgeListInputs;
+    expect(listMultiEdge.get("C")?.has("x")).toBe(true);
 
-    // Document the current TS behavior — C receives each value separately
-    // (zip_all pops one at a time from the buffer). Both sources feed
-    // the same handle so C fires twice.
-    // In Python with a non-list property, the second edge value would
-    // overwrite the first (no list aggregation), and C would fire once.
+    // Scalar handle: the same two-edge topology into a non-list handle is now
+    // rejected by correlation analysis, so the run fails and C never executes.
+    const scalarNodes: NodeDescriptor[] = listNodes.map((n) =>
+      n.id === "C" ? { ...n, propertyTypes: { x: "int" } } : n
+    );
+    const scalarReceived: Array<Record<string, unknown>> = [];
+    const scalarRunner = makeRunner({
+      C: {
+        async process(inputs) {
+          scalarReceived.push({ ...inputs });
+          return { result: inputs.x };
+        }
+      }
+    });
+    const scalarResult = await scalarRunner.run(
+      { job_id: "scalar", params: { a: 10, b: 20 } },
+      { nodes: scalarNodes, edges: listEdges }
+    );
+
+    expect(scalarResult.status).toBe("failed");
+    expect(scalarReceived).toHaveLength(0);
+    const scalarMultiEdge = (
+      scalarRunner as unknown as { _multiEdgeListInputs: Map<string, Set<string>> }
+    )._multiEdgeListInputs;
+    expect(scalarMultiEdge.has("C")).toBe(false);
   });
 
-  it("_detectMultiEdgeListInputs counts edges without checking property type", async () => {
-    // Directly verify that the runner's internal state marks multi-edge handles.
-    // This is a structural test — we inspect the runner after it processes edges.
+  it("_detectMultiEdgeListInputs marks list handles and ignores single edges", async () => {
+    // Structural test: inspect the runner's _multiEdgeListInputs after a run.
+    // C.x receives two edges and is list-typed → marked. D.y receives one edge
+    // → not marked.
     const nodes: NodeDescriptor[] = [
-      { id: "A", type: "test.Input", name: "a" },
-      { id: "B", type: "test.Input", name: "b" },
-      { id: "C", type: "test.Proc" },
-      { id: "D", type: "test.Proc" }
+      {
+        id: "A",
+        type: "test.Input",
+        name: "a",
+        outputs: { value: "any" },
+        output_correlation: {
+          value: { kind: "single", source: "__execution__" }
+        }
+      },
+      {
+        id: "B",
+        type: "test.Input",
+        name: "b",
+        outputs: { value: "any" },
+        output_correlation: {
+          value: { kind: "single", source: "__execution__" }
+        }
+      },
+      {
+        id: "C",
+        type: "test.Proc",
+        propertyTypes: { x: "list[int]" },
+        outputs: { out: "any" },
+        output_correlation: { out: { kind: "single", source: "__execution__" } }
+      },
+      {
+        id: "D",
+        type: "test.Proc",
+        propertyTypes: { y: "int" },
+        outputs: { out: "any" },
+        output_correlation: { out: { kind: "single", source: "__execution__" } }
+      }
     ];
     const edges: Edge[] = [
-      // Two edges to C.x — should be marked as multi-edge
-      {
-        id: "e1",
-        source: "A",
-        sourceHandle: "value",
-        target: "C",
-        targetHandle: "x"
-      },
-      {
-        id: "e2",
-        source: "B",
-        sourceHandle: "value",
-        target: "C",
-        targetHandle: "x"
-      },
-      // One edge to D.y — should NOT be marked
-      {
-        id: "e3",
-        source: "A",
-        sourceHandle: "value",
-        target: "D",
-        targetHandle: "y"
-      }
+      // Two edges to C.x (list type) — should be marked as multi-edge.
+      { id: "e1", source: "A", sourceHandle: "value", target: "C", targetHandle: "x" },
+      { id: "e2", source: "B", sourceHandle: "value", target: "C", targetHandle: "x" },
+      // One edge to D.y — should NOT be marked.
+      { id: "e3", source: "A", sourceHandle: "value", target: "D", targetHandle: "y" }
     ];
 
     const runner = makeRunner({
@@ -490,16 +597,14 @@ describe("Gap #10 — multi-edge list type validation", () => {
       { nodes, edges }
     );
 
-    // Access private _multiEdgeListInputs to verify detection
-    // GAP #10: TypeScript marks C.x as multi-edge list without checking
-    // if property "x" is actually a list type. Python would check.
     const multiEdge = (
       runner as unknown as { _multiEdgeListInputs: Map<string, Set<string>> }
     )._multiEdgeListInputs;
+    // C.x is a list type with 2 edges → marked.
     expect(multiEdge.has("C")).toBe(true);
     expect(multiEdge.get("C")!.has("x")).toBe(true);
 
-    // D.y has only one edge — should NOT be marked
+    // D.y has only one edge — should NOT be marked.
     expect(multiEdge.has("D")).toBe(false);
   });
 

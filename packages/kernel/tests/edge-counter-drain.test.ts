@@ -326,7 +326,9 @@ describe("Edge counter lifecycle (T-K-15)", () => {
       { id: "a", type: "test.Input", name: "x" },
       { id: "b", type: "test.Proc" },
       { id: "c", type: "test.Proc" },
-      { id: "d", type: "test.Proc" }
+      // d aggregates two incoming edges on handle "a", so the handle must be
+      // declared as a list type for correlation analysis to accept the graph.
+      { id: "d", type: "test.Proc", propertyTypes: { a: "list[any]" } }
     ];
     const edges: Edge[] = [
       {

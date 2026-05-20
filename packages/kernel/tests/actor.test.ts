@@ -12,8 +12,20 @@
 import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
 import { NodeActor, type NodeExecutor } from "../src/actor.js";
 import { NodeInbox } from "../src/inbox.js";
+import type { NodeAnalysis } from "../src/correlation-analysis.js";
 import type { NodeDescriptor, NodeUpdate } from "@nodetool-ai/protocol";
 import { configureLogging } from "@nodetool-ai/config";
+
+// Minimal correlation analysis: scalar inputs from source nodes resolve to the
+// empty scope, which is exactly what an absent per-handle entry defaults to in
+// _runCorrelatedImpl (`info?.scope ?? []`). The correlated scheduler derives
+// the actual handle set from the inbox, so an empty analysis faithfully drives
+// the buffered/zip path these single-node tests exercise.
+const EMPTY_ANALYSIS: NodeAnalysis = {
+  invocationScope: [],
+  inputs: new Map(),
+  outputs: new Map()
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -58,6 +70,7 @@ function createActor(
     node,
     inbox,
     executor,
+    correlation: EMPTY_ANALYSIS,
     sendOutputs: async (nodeId, outputs) => {
       sentOutputs.push({ nodeId, outputs });
     },
@@ -119,7 +132,7 @@ describe("NodeActor – buffered mode", () => {
     expect(logged).toContain('"type":"test.Node"');
   });
 
-  it("defaults to zip_all when sync_mode is omitted", async () => {
+  it("fires once with latest sticky values for empty-scope handles", async () => {
     const node = makeNode();
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
@@ -139,10 +152,11 @@ describe("NodeActor – buffered mode", () => {
 
     await actor.run();
 
-    // zip_all: a=[1,3], b=[2]. First pair fires (1,2). Second iteration
-    // pops a=3 but b is closed with no buffered/sticky → halt. Use on_any
-    // for broadcast/fan-out across closed streaming handles.
-    expect(calls).toEqual([{ a: 1, b: 2 }]);
+    // Empty-scope (scalar/config) handles are sticky: each retains its latest
+    // value and the node fires once when all handles are satisfied — a's last
+    // value (3) wins, b stays 2. The removed zip_all mode paired by arrival
+    // order; the correlated scheduler keys by lineage instead.
+    expect(calls).toEqual([{ a: 3, b: 2 }]);
   });
 
   it("calls process once and sends outputs", async () => {
@@ -258,9 +272,9 @@ describe("NodeActor – streaming output", () => {
   });
 });
 
-describe("NodeActor – on_any sync mode", () => {
-  it("waits for all handles before initial fire, then fires on each subsequent item", async () => {
-    const node = makeNode({ sync_mode: "on_any" });
+describe("NodeActor – empty-scope sticky inputs", () => {
+  it("fires once with latest values when an empty-scope handle repeats", async () => {
+    const node = makeNode();
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
     inbox.addUpstream("b", 1);
@@ -268,7 +282,7 @@ describe("NodeActor – on_any sync mode", () => {
     const { executor, calls } = trackingExecutor((inputs) => ({
       result: inputs
     }));
-    const { actor, sentOutputs } = createActor(node, inbox, executor);
+    const { actor } = createActor(node, inbox, executor);
 
     // Put one item on each handle, then a second on "a"
     await inbox.put("a", "first");
@@ -279,12 +293,10 @@ describe("NodeActor – on_any sync mode", () => {
 
     await actor.run();
 
-    // Initial fire after both handles have data, then one more for "third"
-    expect(calls).toHaveLength(2);
-    // First call has both handles
-    expect(calls[0]).toEqual({ a: "first", b: "second" });
-    // Second call updates "a" while "b" retains its last value
-    expect(calls[1]).toEqual({ a: "third", b: "second" });
+    // Empty-scope handles are sticky: a single fire with the latest value on
+    // each handle. (The removed on_any mode re-fired on every new item.)
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toEqual({ a: "third", b: "second" });
   });
 
   it("fires once when each handle has exactly one item", async () => {
