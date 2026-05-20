@@ -229,6 +229,23 @@ export const getContentCardDefaultSize = (
 };
 
 /**
+ * Prompt/template nodes that substitute `{{variables}}` — their dynamic-input
+ * button reads "+ Add variable". This is the prompt-templating subset of
+ * `CONTENT_CARD_REGISTRY` above; keep the two in sync.
+ */
+const PROMPT_TEMPLATE_NODES = new Set<string>([
+  "nodetool.agents.Agent",
+  "nodetool.agents.Summarizer",
+  "nodetool.agents.Extractor",
+  "nodetool.agents.Classifier",
+  "nodetool.text.Concat",
+  "nodetool.data.Describe",
+  "anthropic.agents.ClaudeAgent",
+  "openai.agents.RealtimeAgent",
+  "mistral.text.ChatComplete"
+]);
+
+/**
  * Human label for the `DynamicInputButton` shown in a content card.
  * Picked from primary-output variant — image generators say
  * "+ Add another image input", text/prompt nodes say "+ Add variable", etc.
@@ -240,13 +257,9 @@ export const getContentCardDefaultSize = (
 export const getDynamicInputLabel = (metadata: NodeMetadata): string => {
   const t = metadata.node_type ?? "";
   // Template-style nodes use {{variable}} substitution — say "variable".
-  // (Only nodes also matched by `isContentCardNode` show this button — keep
-  // this list in sync with the explicit allow-set above.)
-  if (
-    t === "nodetool.agents.Agent" ||
-    t === "anthropic.agents.ClaudeAgent" ||
-    t === "openai.agents.RealtimeAgent"
-  ) {
+  // This is the prompt-templating subset of the content-card allow-set above
+  // (the "Text-content nodes (LLM-style, prompt templating)" group).
+  if (PROMPT_TEMPLATE_NODES.has(t)) {
     return "variable";
   }
   const variant = getContentCardVariant(getPrimaryOutput(metadata));
