@@ -29,43 +29,42 @@ const ComposerSlotContext = createContext<ComposerSlotContextValue | null>(
   null
 );
 
+interface ActiveSlot {
+  el: HTMLElement;
+  send: ComposerSendHandler;
+}
+
 export const ComposerSlotProvider: React.FC<{ children: React.ReactNode }> = ({
   children
 }) => {
-  const [activeSlot, setActiveSlot] = useState<HTMLElement | null>(null);
+  // Slot element and its send handler are kept in ONE state value so they can
+  // never diverge. (Splitting them invited an impure render-phase setState in
+  // unregisterSlot that, under StrictMode's mount→cleanup→remount, left the
+  // slot active but the send handler null.)
+  const [active, setActive] = useState<ActiveSlot | null>(null);
   const [composerHeight, setComposerHeight] = useState(0);
-  const [activeSend, setActiveSend] = useState<ComposerSendHandler | null>(
-    null
-  );
 
   const registerSlot = useCallback(
     (el: HTMLElement, send: ComposerSendHandler) => {
-      setActiveSlot(el);
-      setActiveSend(() => send);
+      setActive({ el, send });
     },
     []
   );
 
   const unregisterSlot = useCallback((el: HTMLElement) => {
-    setActiveSlot((current) => {
-      if (current === el) {
-        setActiveSend(null);
-        return null;
-      }
-      return current;
-    });
+    setActive((current) => (current && current.el === el ? null : current));
   }, []);
 
   const value = useMemo<ComposerSlotContextValue>(
     () => ({
-      activeSlot,
-      activeSend,
+      activeSlot: active?.el ?? null,
+      activeSend: active?.send ?? null,
       composerHeight,
       registerSlot,
       unregisterSlot,
       setComposerHeight
     }),
-    [activeSlot, activeSend, composerHeight, registerSlot, unregisterSlot]
+    [active, composerHeight, registerSlot, unregisterSlot]
   );
 
   return (
