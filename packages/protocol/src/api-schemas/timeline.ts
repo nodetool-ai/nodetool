@@ -148,6 +148,49 @@ export const timelineTrack = z.object({
 });
 export type TimelineTrack = z.infer<typeof timelineTrack>;
 
+// ── Per-clip placement, transitions, and GPU effects ─────────────────────────
+
+export const clipTransform = z.object({
+  position: z.object({ x: z.number(), y: z.number() }),
+  scale: z.object({ x: z.number(), y: z.number() }),
+  rotation: z.number(),
+  anchor: z.object({ x: z.number(), y: z.number() })
+});
+export type ClipTransform = z.infer<typeof clipTransform>;
+
+export const clipTransition = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("crossfade"), durationMs: z.number() })
+]);
+export type ClipTransition = z.infer<typeof clipTransition>;
+
+export const clipColorEffect = z.object({
+  id: z.string(),
+  type: z.literal("color"),
+  enabled: z.boolean(),
+  brightness: z.number().optional(),
+  contrast: z.number().optional(),
+  saturation: z.number().optional(),
+  hue: z.number().optional(),
+  temperature: z.number().optional(),
+  tint: z.number().optional(),
+  shadows: z.number().optional(),
+  highlights: z.number().optional()
+});
+
+export const clipBlurEffect = z.object({
+  id: z.string(),
+  type: z.literal("blur"),
+  enabled: z.boolean(),
+  radius: z.number(),
+  sigma: z.number().optional()
+});
+
+export const clipEffect = z.discriminatedUnion("type", [
+  clipColorEffect,
+  clipBlurEffect
+]);
+export type ClipEffect = z.infer<typeof clipEffect>;
+
 export const timelineClip = z
   .object({
     id: z.string(),
@@ -187,7 +230,11 @@ export const timelineClip = z
     speedBaked: z.boolean().optional(),
     volumeDb: z.number().optional(),
     fadeInMs: z.number().optional(),
-    fadeOutMs: z.number().optional()
+    fadeOutMs: z.number().optional(),
+    transform: clipTransform.optional(),
+    borderRadius: z.number().optional(),
+    effects: z.array(clipEffect).optional(),
+    transitionIn: clipTransition.optional()
   });
 export type TimelineClip = z.infer<typeof timelineClip>;
 
