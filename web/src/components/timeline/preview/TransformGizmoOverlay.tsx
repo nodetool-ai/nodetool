@@ -18,7 +18,7 @@
  * @module timeline/preview/TransformGizmoOverlay
  */
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import type { ClipTransform } from "@nodetool-ai/timeline";
 
 import { buildTransformMatrix, containBaseScale } from "./gpu/transform";
@@ -26,6 +26,8 @@ import {
   HANDLE_SIZE,
   ROTATION_HANDLE_OFFSET,
   ROTATION_HANDLE_RADIUS_FACTOR,
+  PIVOT_CROSSHAIR_SIZE,
+  PIVOT_SNAP_DISTANCE,
   GIZMO_PRIMARY_COLOR,
   GIZMO_PRIMARY_SEMI,
   GIZMO_PRIMARY_FAINT,
@@ -36,6 +38,7 @@ import {
   BOUNDING_BOX_DASH_ON,
   BOUNDING_BOX_DASH_OFF
 } from "../../sketch/tools/gizmo/gizmoConstants";
+import { ClipTransformContextMenu } from "./ClipTransformContextMenu";
 
 interface Point {
   x: number;
@@ -55,7 +58,18 @@ const ROTATION_SNAP_RAD = (15 * Math.PI) / 180;
 type CornerHandle = "tl" | "tr" | "br" | "bl";
 type EdgeHandle = "t" | "r" | "b" | "l";
 type ScaleHandle = CornerHandle | EdgeHandle;
-type GizmoTarget = ScaleHandle | "rotate" | "body";
+type GizmoTarget = ScaleHandle | "rotate" | "pivot" | "body";
+
+const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
+/** Snap a normalized [0,1] coord to 0/0.5/1 when within the pixel threshold. */
+const snapAnchor = (norm01: number, dimPx: number): number => {
+  for (const target of [0, 0.5, 1]) {
+    if (Math.abs(norm01 - target) * dimPx < PIVOT_SNAP_DISTANCE) {
+      return target;
+    }
+  }
+  return clamp01(norm01);
+};
 
 export interface TransformGizmoOverlayProps {
   /** Selected clip id (target of mutations). */
@@ -92,8 +106,8 @@ interface BoxGeometry {
   /** [TL, TR, BR, BL] in frame CSS px. */
   corners: [Point, Point, Point, Point];
   center: Point;
-  /** Screen rotation of the box in degrees (for the rotation-line group). */
-  rotationDeg: number;
+  /** Pivot (anchor) point in frame CSS px. */
+  pivot: Point;
 }
 
 function computeGeometry(
@@ -121,9 +135,10 @@ function computeGeometry(
     at(-1, -1)
   ];
   const center = at(0, 0);
-  // Screen rotation is the negative of clip rotation due to the Y flip.
-  const rotationDeg = (-t.rotation * 180) / Math.PI;
-  return { corners, center, rotationDeg };
+  // The anchor point's quad coordinate; buildTransformMatrix keeps it fixed
+  // under rotation/scale, so it is the true pivot.
+  const pivot = at((t.anchor.x - 0.5) * 2, (t.anchor.y - 0.5) * 2);
+  return { corners, center, pivot };
 }
 
 const sub = (a: Point, b: Point): Point => ({ x: a.x - b.x, y: a.y - b.y });
@@ -151,10 +166,16 @@ interface DragSession {
   /** Distance from fixed point to dragged handle, along each axis, at start. */
   startProjU: number;
   startProjV: number;
-  /** Box center in CSS at drag start (rotation pivot). */
+  /** Box center in CSS at drag start (kept fixed during scale). */
   startCenter: Point;
-  /** Angle from center to pointer at drag start (screen radians). */
+  /** Reference point for rotation (the pivot) in CSS at drag start. */
+  rotationRef: Point;
+  /** Angle from rotation ref to pointer at drag start (screen radians). */
   startAngle: number;
+  /** Top-left corner + box axis lengths at start (for pivot mapping). */
+  tl: Point;
+  widthU: number;
+  heightV: number;
 }
 
 interface SquareHandleProps {
@@ -213,6 +234,7 @@ export function TransformGizmoOverlay({
   onChange
 }: TransformGizmoOverlayProps): React.ReactElement | null {
   const dragRef = useRef<DragSession | null>(null);
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
 
   if (
     sourceWidth <= 0 ||
@@ -310,16 +332,21 @@ export function TransformGizmoOverlay({
   };
 
   const beginDrag = (target: GizmoTarget) => (e: React.PointerEvent) => {
+    if (e.button !== 0) {
+      return;
+    }
     e.stopPropagation();
     e.preventDefault();
-    svgOf(e).setPointerCapture?.(e.pointerId);
+    const svg = svgOf(e);
+    svg.setPointerCapture?.(e.pointerId);
+    svg.focus?.({ preventScroll: true });
     const axisU = norm(sub(tr, tl));
     const axisV = norm(sub(bl, tl));
     const pointer = pointerInFrame(e);
     let fixed = geo.center;
     let startProjU = 1;
     let startProjV = 1;
-    if (target !== "rotate" && target !== "body") {
+    if (target !== "rotate" && target !== "body" && target !== "pivot") {
       fixed = fixedPointFor(target);
       const moving = movingPointFor(target);
       const rel = sub(moving, fixed);
@@ -341,7 +368,11 @@ export function TransformGizmoOverlay({
       startProjU,
       startProjV,
       startCenter: geo.center,
-      startAngle: Math.atan2(pointer.y - geo.center.y, pointer.x - geo.center.x)
+      rotationRef: geo.pivot,
+      startAngle: Math.atan2(pointer.y - geo.pivot.y, pointer.x - geo.pivot.x),
+      tl,
+      widthU: len(sub(tr, tl)),
+      heightV: len(sub(bl, tl))
     };
   };
 
@@ -369,15 +400,31 @@ export function TransformGizmoOverlay({
 
     if (drag.target === "rotate") {
       const angle = Math.atan2(
-        pointer.y - drag.startCenter.y,
-        pointer.x - drag.startCenter.x
+        pointer.y - drag.rotationRef.y,
+        pointer.x - drag.rotationRef.x
       );
-      // Screen angle is the negative of clip rotation.
+      // Screen angle is the negative of clip rotation. The matrix keeps the
+      // pivot fixed, so no position compensation is needed.
       let next = start.rotation - (angle - drag.startAngle);
       if (e.shiftKey) {
         next = Math.round(next / ROTATION_SNAP_RAD) * ROTATION_SNAP_RAD;
       }
-      const candidate: ClipTransform = { ...start, rotation: next };
+      onChange(clipId, { ...start, rotation: next });
+      return;
+    }
+
+    if (drag.target === "pivot") {
+      // Map the pointer onto the box's local axes → normalized anchor, then
+      // compensate position so the rendered clip stays put (only the pivot
+      // moves). Y is flipped: anchor.y = 1 at the top edge.
+      const rel = sub(pointer, drag.tl);
+      const projU = dot(rel, drag.axisU) / (drag.widthU || 1);
+      const projV = dot(rel, drag.axisV) / (drag.heightV || 1);
+      const anchor = {
+        x: snapAnchor(projU, drag.widthU),
+        y: snapAnchor(1 - projV, drag.heightV)
+      };
+      const candidate: ClipTransform = { ...start, anchor };
       onChange(clipId, keepCenter(candidate, start, drag.startCenter));
       return;
     }
@@ -508,11 +555,68 @@ export function TransformGizmoOverlay({
     }
   };
 
+  // ── Quick transform operations (context menu + keyboard) ────────────────
+  const rotateBy = (rad: number) =>
+    onChange(clipId, { ...t, rotation: t.rotation + rad });
+  const flipH = () =>
+    onChange(clipId, { ...t, scale: { ...t.scale, x: -t.scale.x } });
+  const flipV = () =>
+    onChange(clipId, { ...t, scale: { ...t.scale, y: -t.scale.y } });
+  const reset = () =>
+    onChange(clipId, {
+      position: { x: 0, y: 0 },
+      scale: { x: 1, y: 1 },
+      rotation: 0,
+      anchor: { x: 0.5, y: 0.5 }
+    });
+  const nudge = (dxPx: number, dyPx: number) =>
+    onChange(clipId, {
+      ...t,
+      position: { x: t.position.x + dxPx, y: t.position.y + dyPx }
+    });
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const step = e.shiftKey ? 10 : 1;
+    switch (e.key) {
+      case "ArrowLeft":
+        nudge(-step, 0);
+        break;
+      case "ArrowRight":
+        nudge(step, 0);
+        break;
+      case "ArrowUp":
+        nudge(0, -step);
+        break;
+      case "ArrowDown":
+        nudge(0, step);
+        break;
+      case ".":
+        reset();
+        break;
+      default:
+        return;
+    }
+    // Only swallow keys we actually handled, so frame-stepping still works
+    // when the gizmo is not the keyboard target.
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const onContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuPos({ x: e.clientX, y: e.clientY });
+  };
+
   const polyPoints = geo.corners.map((c) => `${c.x},${c.y}`).join(" ");
 
   return (
+    <>
     <svg
       data-testid="timeline-transform-gizmo"
+      tabIndex={-1}
+      onKeyDown={onKeyDown}
+      onContextMenu={onContextMenu}
       style={{
         position: "absolute",
         inset: 0,
@@ -521,7 +625,8 @@ export function TransformGizmoOverlay({
         overflow: "visible",
         zIndex: 10000,
         pointerEvents: "none",
-        touchAction: "none"
+        touchAction: "none",
+        outline: "none"
       }}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
@@ -569,6 +674,54 @@ export function TransformGizmoOverlay({
       <SquareHandle cx={rightMid.x} cy={rightMid.y} cursor="ew-resize" onDown={beginDrag("r")} />
       <SquareHandle cx={bottomMid.x} cy={bottomMid.y} cursor="ns-resize" onDown={beginDrag("b")} />
       <SquareHandle cx={leftMid.x} cy={leftMid.y} cursor="ew-resize" onDown={beginDrag("l")} />
+
+      {/* Pivot crosshair — drag to move the rotation/scale center. */}
+      <g
+        style={{ cursor: "move", pointerEvents: "all" }}
+        onPointerDown={beginDrag("pivot")}
+        data-testid="timeline-transform-pivot"
+      >
+        <circle cx={geo.pivot.x} cy={geo.pivot.y} r={PIVOT_CROSSHAIR_SIZE + 2} fill="transparent" />
+        <line
+          x1={geo.pivot.x - PIVOT_CROSSHAIR_SIZE}
+          y1={geo.pivot.y}
+          x2={geo.pivot.x + PIVOT_CROSSHAIR_SIZE}
+          y2={geo.pivot.y}
+          stroke={GIZMO_PRIMARY_COLOR}
+          strokeWidth={GIZMO_LINE_WIDTH}
+        />
+        <line
+          x1={geo.pivot.x}
+          y1={geo.pivot.y - PIVOT_CROSSHAIR_SIZE}
+          x2={geo.pivot.x}
+          y2={geo.pivot.y + PIVOT_CROSSHAIR_SIZE}
+          stroke={GIZMO_PRIMARY_COLOR}
+          strokeWidth={GIZMO_LINE_WIDTH}
+        />
+        <circle
+          cx={geo.pivot.x}
+          cy={geo.pivot.y}
+          r={3}
+          fill={HANDLE_FILL_DEFAULT}
+          stroke={GIZMO_PRIMARY_COLOR}
+          strokeWidth={GIZMO_LINE_WIDTH}
+        />
+      </g>
+
     </svg>
+    {menuPos && (
+      <ClipTransformContextMenu
+        open
+        position={menuPos}
+        onClose={() => setMenuPos(null)}
+        onReset={reset}
+        onRotate90CW={() => rotateBy(Math.PI / 2)}
+        onRotate90CCW={() => rotateBy(-Math.PI / 2)}
+        onRotate180={() => rotateBy(Math.PI)}
+        onFlipHorizontal={flipH}
+        onFlipVertical={flipV}
+      />
+    )}
+    </>
   );
 }
