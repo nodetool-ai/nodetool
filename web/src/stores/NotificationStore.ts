@@ -62,13 +62,6 @@ interface NotificationStore {
   updateLastDisplayedTimestamp: (timestamp: Date) => void;
 }
 
-export function verbosityCheck(
-  notificationType: NotificationType,
-  acceptedTypes: string[]
-): boolean {
-  return acceptedTypes.includes(notificationType);
-}
-
 export const useNotificationStore = create<NotificationStore>()((set, get) => ({
   notifications: [],
   lastDisplayedTimestamp: null,
