@@ -5,6 +5,8 @@ import ChatInputSection from "../containers/ChatInputSection";
 import { useComposerSlotContext } from "./composerSlotContext";
 import { useFlipPosition } from "./useFlipPosition";
 import type { AgentPlanner } from "./AgentModeSelector";
+import type { LanguageModel } from "../../../stores/ApiTypes";
+import type { ComposerSendHandler } from "./composerSlotContext";
 
 interface Box {
   top: number;
@@ -13,14 +15,124 @@ interface Box {
   height: number;
 }
 
-const HIDDEN_BOX: Box = { top: 0, left: 0, width: 0, height: 0 };
 const NOOP = () => {};
+
+type InputStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "loading"
+  | "error"
+  | "streaming"
+  | "reconnecting"
+  | "disconnecting"
+  | "failed";
+
+interface PositionedComposerProps {
+  box: Box;
+  visible: boolean;
+  status: InputStatus;
+  onSendMessage: ComposerSendHandler;
+  onStop: () => void;
+  onNewChat: () => void;
+  selectedModel: LanguageModel;
+  onModelChange: (model: LanguageModel) => void;
+  selectedTools: string[];
+  onToolsChange: (tools: string[]) => void;
+  agentMode: boolean;
+  onAgentModeToggle: (enabled: boolean) => void;
+  selectedCollections: string[];
+  onCollectionsChange: (collections: string[]) => void;
+  agentPlanner: AgentPlanner;
+  onAgentPlannerChange: (planner: AgentPlanner) => void;
+  setComposerHeight: (px: number) => void;
+}
+
+/**
+ * The actual fixed overlay. Mounted only once a real slot box exists, so the
+ * FLIP hook's first run captures a real position (no spurious animation) and
+ * subsequent runs animate between real positions — never from the (0,0)
+ * placeholder corner.
+ */
+const PositionedComposer: React.FC<PositionedComposerProps> = ({
+  box,
+  visible,
+  status,
+  onSendMessage,
+  onStop,
+  onNewChat,
+  selectedModel,
+  onModelChange,
+  selectedTools,
+  onToolsChange,
+  agentMode,
+  onAgentModeToggle,
+  selectedCollections,
+  onCollectionsChange,
+  agentPlanner,
+  onAgentPlannerChange,
+  setComposerHeight
+}) => {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  // Report our own height back to the active slot so it reserves matching space.
+  useLayoutEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      setComposerHeight(el.offsetHeight);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [setComposerHeight]);
+
+  useFlipPosition(rootRef, [box.top, box.left, box.width]);
+
+  return (
+    <div
+      ref={rootRef}
+      data-persistent-composer=""
+      style={{
+        position: "fixed",
+        top: box.top,
+        left: box.left,
+        width: box.width || undefined,
+        height: box.height || undefined,
+        visibility: visible ? "visible" : "hidden",
+        pointerEvents: visible ? "auto" : "none",
+        zIndex: 1200
+      }}
+    >
+      <ChatInputSection
+        status={status}
+        onSendMessage={onSendMessage}
+        onStop={onStop}
+        selectedModel={selectedModel}
+        onModelChange={onModelChange}
+        selectedTools={selectedTools}
+        onToolsChange={onToolsChange}
+        agentMode={agentMode}
+        onAgentModeToggle={onAgentModeToggle}
+        selectedCollections={selectedCollections}
+        onCollectionsChange={onCollectionsChange}
+        agentPlanner={agentPlanner}
+        onAgentPlannerChange={onAgentPlannerChange}
+        onNewChat={onNewChat}
+      />
+    </div>
+  );
+};
 
 /**
  * Single composer instance shared across the routes nested under
- * ChatComposerLayout. Rendered as a fixed overlay positioned over the active
- * ComposerSlot; FLIP-animates between slots when the active slot changes
+ * ChatComposerLayout. Measures the active ComposerSlot and positions a fixed
+ * overlay over it; FLIP-animates between slots when the active slot changes
  * (i.e. on navigation between the start page and the chat view).
+ *
+ * The overlay is not rendered until a slot has been measured, and the measured
+ * box is retained across transient route-change gaps (when the old slot has
+ * unregistered but the new one hasn't registered yet). Together these keep the
+ * composer from snapping to the top-left corner and FLIPping in from there.
  */
 const PersistentComposer: React.FC = () => {
   const { activeSlot, activeSend, setComposerHeight } =
@@ -58,14 +170,14 @@ const PersistentComposer: React.FC = () => {
     [setAgentPlanner]
   );
 
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const [box, setBox] = useState<Box>(HIDDEN_BOX);
+  const [box, setBox] = useState<Box | null>(null);
 
   const measure = useCallback(() => {
-    if (!activeSlot) {
-      setBox(HIDDEN_BOX);
-      return;
-    }
+    // No active slot (mid-route-transition or the Portal setup screen): keep
+    // the last measured box so the overlay stays where it was. Resetting to
+    // (0,0) here made the composer jump to the top-left corner and FLIP down
+    // when the next slot registered. Visibility hides it during the gap.
+    if (!activeSlot) return;
     const r = activeSlot.getBoundingClientRect();
     setBox({ top: r.top, left: r.left, width: r.width, height: r.height });
   }, [activeSlot]);
@@ -82,67 +194,34 @@ const PersistentComposer: React.FC = () => {
     };
   }, [activeSlot, measure]);
 
-  useLayoutEffect(() => {
-    const el = rootRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => {
-      setComposerHeight(el.offsetHeight);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [setComposerHeight]);
+  // Don't render anything until we have a real slot position; this avoids a
+  // (0,0) placeholder frame that the FLIP would otherwise animate in from.
+  if (!box) return null;
 
-  useFlipPosition(rootRef, [box.top, box.left, box.width]);
-
-  const visible = !!activeSlot;
-
-  // Narrow "stopping" out of status since ChatInputSection doesn't accept it
-  const inputStatus =
-    status === "stopping"
-      ? ("loading" as const)
-      : (status as
-          | "disconnected"
-          | "connecting"
-          | "connected"
-          | "loading"
-          | "error"
-          | "streaming"
-          | "reconnecting"
-          | "disconnecting"
-          | "failed");
+  // Narrow "stopping" out of status since ChatInputSection doesn't accept it.
+  const inputStatus: InputStatus =
+    status === "stopping" ? "loading" : (status as InputStatus);
 
   return (
-    <div
-      ref={rootRef}
-      data-persistent-composer=""
-      style={{
-        position: "fixed",
-        top: box.top,
-        left: box.left,
-        width: box.width || undefined,
-        height: box.height || undefined,
-        visibility: visible ? "visible" : "hidden",
-        pointerEvents: visible ? "auto" : "none",
-        zIndex: 1200
-      }}
-    >
-      <ChatInputSection
-        status={inputStatus}
-        onSendMessage={activeSend ?? NOOP}
-        onStop={stopGeneration}
-        selectedModel={selectedModel}
-        onModelChange={setSelectedModel}
-        selectedTools={selectedTools}
-        onToolsChange={setSelectedTools}
-        agentMode={agentMode}
-        onAgentModeToggle={setAgentMode}
-        selectedCollections={selectedCollections}
-        onCollectionsChange={setSelectedCollections}
-        agentPlanner={agentPlanner}
-        onAgentPlannerChange={handleAgentPlannerChange}
-        onNewChat={handleNewChat}
-      />
-    </div>
+    <PositionedComposer
+      box={box}
+      visible={!!activeSlot}
+      status={inputStatus}
+      onSendMessage={activeSend ?? NOOP}
+      onStop={stopGeneration}
+      onNewChat={handleNewChat}
+      selectedModel={selectedModel}
+      onModelChange={setSelectedModel}
+      selectedTools={selectedTools}
+      onToolsChange={setSelectedTools}
+      agentMode={agentMode}
+      onAgentModeToggle={setAgentMode}
+      selectedCollections={selectedCollections}
+      onCollectionsChange={setSelectedCollections}
+      agentPlanner={agentPlanner}
+      onAgentPlannerChange={handleAgentPlannerChange}
+      setComposerHeight={setComposerHeight}
+    />
   );
 };
 

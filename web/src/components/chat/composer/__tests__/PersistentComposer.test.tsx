@@ -84,22 +84,22 @@ function renderTree() {
 describe("PersistentComposer", () => {
   beforeEach(() => sendSpy.mockClear());
 
-  it("renders exactly one composer", () => {
+  it("renders nothing until a slot is registered, avoiding a (0,0) placeholder", () => {
     renderTree();
-    expect(screen.getAllByTestId("composer")).toHaveLength(1);
-  });
-
-  it("is hidden until a slot is active, then visible", () => {
-    renderTree();
-    const root = document.querySelector(
-      "[data-persistent-composer]"
-    ) as HTMLElement;
-    expect(root).toBeTruthy();
-    expect(root.style.visibility).toBe("hidden");
+    // No slot yet → no overlay at all (so the FLIP can't animate in from 0,0).
+    expect(document.querySelector("[data-persistent-composer]")).toBeNull();
+    expect(screen.queryByTestId("composer")).toBeNull();
 
     act(() => {
       screen.getByText("register").click();
     });
+
+    // Once a slot exists, exactly one composer is mounted and visible.
+    expect(screen.getAllByTestId("composer")).toHaveLength(1);
+    const root = document.querySelector(
+      "[data-persistent-composer]"
+    ) as HTMLElement;
+    expect(root).toBeTruthy();
     expect(root.style.visibility).toBe("visible");
   });
 
