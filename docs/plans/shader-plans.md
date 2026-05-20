@@ -1,14 +1,38 @@
+# Shared Shader Pool — Phase 0: Foundations shipped (compositor branch)
+
+**ID:** `P-2026-05-20-shared-shader-pool-phase-0-compositor`
+**State:** done (PR #3228, branch `claude/unify-compositor`)
+**Tags:** shader-pool, webgpu, compositor, blend-modes, phase-0
+
+The compositor-unification work landed a cross-runtime GPU package this plan now builds on. It was hand-rolled (not TypeGPU) and scoped to blend/compositing, but it already establishes the package home, the cross-runtime split, the canonical blend catalog, and a shared multi-layer compositing engine. Phase 1 grows it into the typed shader pool rather than starting from `web/src/lib/gpu/`.
+
+**Shipped in `packages/compositor/`** (renamed to `packages/gpu/` in Phase 1):
+- `blendModes.ts` — canonical `BlendMode` union + `BLEND_MODE_TUPLE`, stable `gpuId`s, and Canvas2D / Sharp-libvips mappings. Single source of truth, consumed by the sketch editor, the timeline preview, the `CompositorNode` (server-side Sharp via `blendModeToSharpBlend`), and `packages/protocol`'s timeline Zod schema (`BLEND_MODE_TUPLE`).
+- `wgsl.ts` — `WGSL_BLEND_FUNCTIONS`: the shared `applyBlendMode` switch keyed on `gpuId`, injected into both sketch and timeline fragment shaders.
+- `webgpu/compositor.ts` — `WebGPULayerCompositor`: owns the blend + blit pipelines, ping-pong accumulation textures, sampler, and a per-frame uniform-buffer ring. Drives both sketch (`nearest` filtering, pixel-exact paint) and timeline (`linear` + rounded-rect mask). This is the "composite layer" primitive the original plan slotted for Phase 4 Batch 4 — it shipped early as **shared host-runtime**, which is why the thesis boundary below now puts layer compositing on the shared side.
+- `webgpu/shaders.ts` — fullscreen-quad vertex + blend/blit fragment shaders.
+
+**Cross-runtime split already in place.** The package root export is pure (catalog + WGSL strings, no WebGPU runtime), Node-importable by `base-nodes`; the `./webgpu` export is browser/WebGPU-only. This is exactly the boundary Phase 4's Node.js/Dawn goal needs, so that becomes a context-adapter detail rather than a port.
+
+**Two deltas from the original plan, resolved in Phase 1:**
+1. Home is a package, not `web/src/lib/gpu/`. → rename `packages/compositor/` → `packages/gpu/`, fold the blend catalog under `blend/` and the layer engine under `compositor/`.
+2. Shipped code is hand-rolled (`@webgpu/types` + manual uniform packing). → still adopt TypeGPU per the original plan; `WebGPULayerCompositor` is retrofitted onto TypeGPU schemas/layouts in Phase 1.
+
+---
+
 # Shared Shader Pool — Phase 1
 
 **ID:** `P-2026-05-12-shared-shader-pool-phase-1`
 **State:** draft
 **Tags:** shader-pool, webgpu, typegpu, phase-1, sketch, timeline
-**Repo:** default (`/home/claude/nodetool`)
+**Repo:** default (`packages/gpu/`)
 
-Phase 1 of the Shared Shader Pool migration. Creates `web/src/lib/gpu/` as the shared home for WGSL source bundled with its typed bind group layout, typed uniform schema, sampler config, and I/O contract. No migration of existing sketch or timeline code yet — Phase 1 ships the *primitives* and one end-to-end canary that proves the pattern.
+**Depends on:** Phase 0.
+
+Phase 1 of the Shared Shader Pool migration. **Renames `packages/compositor/` → `packages/gpu/`** and grows it into the shared home for WGSL source bundled with its typed bind group layout, typed uniform schema, sampler config, and I/O contract. The blend catalog, shared WGSL, and `WebGPULayerCompositor` from Phase 0 move under it (`blend/`, `compositor/`). No migration of timeline/sketch *effect* code yet — Phase 1 ships the *primitives* (TypeGPU-backed `ShaderModule`/Executor/registry), retrofits `WebGPULayerCompositor` onto the typed layout, and proves the pattern with one end-to-end canary.
 
 **Thesis:** Share things that have one correct answer regardless of consumer. Don't share things whose correctness depends on the consumer.
-- Shared: WGSL + bind group layout + sampler config + typed uniform packer + I/O contract + small Executor.
+- Shared: WGSL + bind group layout + sampler config + typed uniform packer + I/O contract + small Executor + the layer-compositing engine (`WebGPULayerCompositor`, shared as of Phase 0).
 - Host-owned: scheduling, texture lifetime, presentation, recipe execution policy (until proven worth sharing).
 
 **Goal:** Establish the `ShaderModule` artifact, `LabeledTexture` wrapper, `GPUContext` adapter, and registry — all TypeGPU-backed — so later phases never re-derive uniform layouts or bind group layouts by hand.
@@ -61,17 +85,19 @@ Adopted in Phase 1. Reasons:
 
 ## Phase 1 scope
 
-> **Note on existing scaffold.** `web/src/lib/gpu/registry.ts` and `shaders/index.ts` already exist as placeholder Phase-1 scaffolding (string-id `ShaderModule` with no `version`, no `params`, no `bindGroupLayout`, no `IOContract`; `ALL_SHADERS` empty; `colorSpace`/`alphaMode` descriptive-only). These are **replaced**, not extended, by the TypeGPU-backed contracts below. There are no existing consumers to break.
+> **Starting point.** Phase 0 shipped `packages/compositor/` (canonical blend catalog, shared WGSL, `WebGPULayerCompositor`, cross-runtime entry split) hand-rolled against `@webgpu/types`. Phase 1 renames it to `packages/gpu/` and layers the TypeGPU-backed contracts on top. Existing consumers (`web`, `packages/timeline`, `packages/base-nodes`, `packages/protocol`) import the package; the rename is a coordinated `@nodetool-ai/compositor` → `@nodetool-ai/gpu` update plus the Jest/Vitest module-mapper entries.
 
-1. Add `typegpu` dependency to `web/package.json`.
-2. Create `web/src/lib/gpu/` with:
+1. **Rename the package** `packages/compositor/` → `packages/gpu/` (`@nodetool-ai/gpu`); move existing files to `src/blend/` (`blendModes.ts`, `wgsl.ts`) and `src/compositor/` (`WebGPULayerCompositor`, shaders). Keep the dual entry points: pure root (`./` — catalog + WGSL, Node-safe) and `./webgpu` (engine). Update all consumers and test module mappers.
+2. Add `typegpu` dependency to `packages/gpu/package.json`.
+3. Create the pool primitives in `packages/gpu/src/`:
    - `module.ts` — `defineModule()` builder + `ShaderModule<P>` type
    - `texture.ts` — `LabeledTexture` wrapper + creation helpers
    - `context.ts` — `GPUContext` interface + default browser adapter using `navigator.gpu`
    - `registry.ts` — `register()`, `get({ id, version, surface })`, `list({ surface, category })`
    - `index.ts` — public barrel
-3. One canary module at `shaders/_canary/passthrough/v1/module.ts` that copies an input texture to an output texture. Proves: TypeGPU schema → bind group → WGSL resolution → executor → labeled output, end-to-end, in one file.
-4. Smoke test: from a Vitest file that creates a software-rasterizer `GPUDevice` (or skips if unavailable), run the canary against a 4×4 texture and assert pixel equality.
+4. **Retrofit `WebGPULayerCompositor` onto TypeGPU.** Replace its hand-packed 4×vec4f uniform `Float32Array` and hand-built bind group layout with a TypeGPU `d.struct` schema + typed layout (`root.unwrap(layout)` returns the `GPUBindGroupLayout` the WGSL is authored against). Behavior, the `gpuId`-keyed blend switch, and the per-frame uniform-buffer ring are preserved; this is the first real proof the typed contracts hold for a non-trivial existing shader, not just the canary.
+5. One canary module at `src/shaders/_canary/passthrough/v1/module.ts` that copies an input texture to an output texture. Proves: TypeGPU schema → bind group → WGSL resolution → executor → labeled output, end-to-end, in one file.
+6. Smoke test: from a Vitest file that creates a software-rasterizer `GPUDevice` (or skips if unavailable), run the canary against a 4×4 texture and assert pixel equality. Keep the existing Phase 0 tests (blend catalog, inverse-affine) green through the rename.
 
 ## Non-goals (Phase 1)
 
@@ -88,7 +114,7 @@ Adopted in Phase 1. Reasons:
 **ID:** `P-2026-05-13-shared-shader-pool-phase-2-compute-effects`
 **State:** draft
 **Tags:** gpu, shaders, timeline, typegpu, executor, phase-2
-**Repo:** default (`/home/claude/nodetool`)
+**Repo:** default (`packages/gpu/`)
 
 **Depends on:** Phase 1
 **Scope:** Convert the five timeline compute effects into `ShaderModule` form (TypeGPU-backed), introduce the shared `Executor`, and refactor `WebGPUEffectsProcessor` to dispatch through it. Hand-written uniform packing in timeline goes away.
@@ -109,9 +135,9 @@ All five remain `surface: "internal"` in Phase 2. Promotion to `published` happe
 
 ## Current code
 
-- Timeline compute shader source: `web/src/components/timeline/preview/gpu/shaders.ts`
+- Timeline compute shader source: `web/src/components/timeline/preview/gpu/shaders.ts` (per-clip effect compute passes; **distinct from** the layer-composite pass, which already runs through `WebGPULayerCompositor` after Phase 0).
 - Timeline compute execution host: `web/src/components/timeline/preview/gpu/effectsProcessor.ts`
-- Phase 1 shared pool: `web/src/lib/gpu/`
+- Phase 1 shared pool: `packages/gpu/src/`
 
 ## Executor (introduced this phase)
 
@@ -173,8 +199,8 @@ Phase 1–2: every module declares `"same-as:source"`. The Executor does nothing
 
 ## Migration steps
 
-1. Define `Executor` in `web/src/lib/gpu/executor.ts`. One implementation, shared.
-2. Migrate each timeline shader to `web/src/lib/gpu/shaders/<category>/<id>/v1/module.ts` using `defineModule`. WGSL bodies move verbatim; bindings and the uniform struct are translated into TypeGPU schema/layout once.
+1. Define `Executor` in `packages/gpu/src/executor.ts`. One implementation, shared.
+2. Migrate each timeline shader to `packages/gpu/src/shaders/<category>/<id>/v1/module.ts` using `defineModule`. WGSL bodies move verbatim; bindings and the uniform struct are translated into TypeGPU schema/layout once.
 3. Refactor `WebGPUEffectsProcessor` to call `Executor.encode(...)` per effect. Effect ordering, host-owned scratch textures, and pass scheduling stay unchanged. Hand-written `ArrayBuffer` packing is removed.
 4. Sketch's existing effect path is untouched — it migrates in Phase 3 as part of the catalog expansion work.
 5. Delete migrated entries from `web/src/components/timeline/preview/gpu/shaders.ts`.
@@ -214,7 +240,7 @@ No variant routing in Phase 2. Variants land in Phase 3 when a concrete second b
 **ID:** `P-2026-05-13-shared-shader-pool-phase-3-shader-catalog-expansio`
 **State:** draft
 **Tags:** gpu, shaders, catalog, typegpu, recipes, phase-3
-**Repo:** default (`/home/claude/nodetool`)
+**Repo:** default (`packages/gpu/`)
 
 **Depends on:** Phase 1, Phase 2
 **Scope:** Grow the catalog in reviewable batches, introduce `RecipeRunner` for multi-pass operations when Batch 4 needs it, formalize variant resolution against host capabilities, and start promoting stable modules to `surface: "published"`.
@@ -268,6 +294,8 @@ Defer `arrange`, `spriteSheet`, `trim` — they need graph-level layout decision
 
 ### Batch 4: Mixer and layer effects + RecipeRunner
 Composite layer, color overlay, drop shadow, outline, channel merge/split/shuffle.
+
+> **Composite layer already exists** as `WebGPULayerCompositor` (Phase 0), retrofitted onto TypeGPU in Phase 1. Batch 4's job here is not to build it but to decide whether the multi-layer blend/ping-pong engine is exposed as a single `mixer.composite` `ShaderModule` (one pass per layer driven by the Executor) or stays a bespoke runtime the recipe layer calls into. Lean: keep `WebGPULayerCompositor` as the runtime and add a thin `mixer.composite` module that delegates, so the blend math (already shared via `blend/wgsl.ts`) isn't forked again.
 
 This batch introduces `RecipeRunner`:
 
@@ -402,7 +430,7 @@ Decision rule: only add another dep if it solves a concrete current-phase proble
 **ID:** `P-2026-05-13-shared-shader-pool-phase-4-shader-nodes`
 **State:** draft
 **Tags:** gpu, shaders, workflow, nodes, nodejs, dawn, sharp-replacement, phase-4
-**Repo:** default (`/home/claude/nodetool`)
+**Repo:** default (`packages/gpu/`)
 
 **Depends on:** Phase 1, Phase 2, Phase 3
 **Scope:** Expose `published`-surface modules as workflow graph nodes that chain on the GPU, ship the Node.js Dawn `GPUContext` adapter, and migrate Node-side pixel operations off `sharp` onto the shared catalog.
@@ -636,7 +664,7 @@ Prove in browser, then validate the same pipeline in Node.js/Dawn. Broad catalog
 **ID:** `P-2026-05-13-shared-shader-pool-phase-5-realtime`
 **State:** draft
 **Tags:** gpu, shaders, realtime, frame-loop, phase-5
-**Repo:** default (`/home/claude/nodetool`)
+**Repo:** default (`packages/gpu/`)
 
 **Companion (orchestration + param store):** `__PLANS__/feat-realtime/PLAN-REALTIME-2.md` — workflow ↔ renderer bridge, runner third mode, `RealtimeLoop`, inference subprocess. Kept separate so this repo’s shader plan stays in `docs/` and evolves at a different cadence.
 
