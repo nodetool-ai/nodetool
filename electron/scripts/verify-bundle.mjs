@@ -16,12 +16,18 @@
  *        Exits 1 with diagnostics if any check fails.
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const ELECTRON_DIR = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const MAIN_JS = path.join(ELECTRON_DIR, "dist-electron", "main.js");
+const DIST_ELECTRON = path.join(ELECTRON_DIR, "dist-electron");
+const MAIN_JS = path.join(DIST_ELECTRON, "main.js");
+const ALLOWED_BUNDLE_FILES = new Set([
+  "main.js",
+  "preload.js",
+  "preload-workflow.js",
+]);
 
 // Markers that indicate a native module was inlined into main.js by Rollup.
 // Each entry is { pattern, module, why }. We use plain substring matching for
@@ -51,6 +57,28 @@ const main = (() => {
     fail(`could not read ${MAIN_JS}: ${e.message}`);
   }
 })();
+
+const bundleFiles = (() => {
+  try {
+    return readdirSync(DIST_ELECTRON).filter((name) => name.endsWith(".js"));
+  } catch (e) {
+    fail(`could not read ${DIST_ELECTRON}: ${e.message}`);
+  }
+})();
+
+const unexpectedChunks = bundleFiles.filter((name) => !ALLOWED_BUNDLE_FILES.has(name));
+if (unexpectedChunks.length > 0) {
+  console.error("verify-bundle: unexpected code-split chunks in dist-electron/");
+  for (const name of unexpectedChunks) {
+    console.error(`  - ${name}`);
+  }
+  console.error(
+    "\nThe Electron main process must be a single main.js bundle. " +
+      "Split chunks (e.g. logger-*.js) break circular imports at launch. " +
+      "Set inlineDynamicImports: true and codeSplitting: false in vite.config.ts."
+  );
+  process.exit(1);
+}
 
 const leaked = FORBIDDEN_MARKERS.filter(({ pattern }) => main.includes(pattern));
 
