@@ -58,9 +58,28 @@ const main = (() => {
   }
 })();
 
+function listJsFiles(rootDir, currentDir = rootDir) {
+  const entries = readdirSync(currentDir, { withFileTypes: true });
+  const jsFiles = [];
+
+  for (const entry of entries) {
+    const entryPath = path.join(currentDir, entry.name);
+    if (entry.isDirectory()) {
+      jsFiles.push(...listJsFiles(rootDir, entryPath));
+      continue;
+    }
+    if (!entry.isFile() || !entry.name.endsWith(".js")) {
+      continue;
+    }
+    jsFiles.push(path.relative(rootDir, entryPath).replaceAll(path.sep, "/"));
+  }
+
+  return jsFiles;
+}
+
 const bundleFiles = (() => {
   try {
-    return readdirSync(DIST_ELECTRON).filter((name) => name.endsWith(".js"));
+    return listJsFiles(DIST_ELECTRON);
   } catch (e) {
     fail(`could not read ${DIST_ELECTRON}: ${e.message}`);
   }
