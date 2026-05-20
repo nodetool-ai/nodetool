@@ -17,11 +17,13 @@ import { shallow } from "zustand/shallow";
 import type { TimelineClip, TrackEffect } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
+import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 
 import { WebGPUCompositor } from "./gpu/compositor";
 import type { CompositeLayer, CompositorBlendMode } from "./gpu/types";
+import { TransformGizmoOverlay } from "./TransformGizmoOverlay";
 
 interface PlaceholderLayer {
   clipId: string;
@@ -194,6 +196,11 @@ export const PreviewCompositor: React.FC = memo(() => {
     shallow
   );
 
+  const patchClip = useTimelineStore((s) => s.patchClip);
+  const selectedClipId = useTimelineUIStore((s) =>
+    s.selectedClipIds.size === 1 ? [...s.selectedClipIds][0] : null
+  );
+
   const assetUrlCache = useRef<Map<string, string>>(new Map());
   const [urlCacheVersion, setUrlCacheVersion] = useState(0);
   const getAsset = useAssetStore((s) => s.get);
@@ -247,6 +254,11 @@ export const PreviewCompositor: React.FC = memo(() => {
   const compositorRef = useRef<WebGPUCompositor | null>(null);
   const [gpuReady, setGpuReady] = useState(false);
   const [gpuFailed, setGpuFailed] = useState(false);
+
+  // Frame element CSS size and canvas backing size, mirrored into state so the
+  // transform gizmo overlay can map clip space → screen pixels.
+  const [frameSize, setFrameSize] = useState({ w: 0, h: 0 });
+  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
 
   useLayoutEffect(() => {
     const container = poolContainerRef.current;
@@ -342,6 +354,9 @@ export const PreviewCompositor: React.FC = memo(() => {
           : { w: rect.height * aspect, h: rect.height };
       frame.style.width = `${fit.w}px`;
       frame.style.height = `${fit.h}px`;
+      setFrameSize((prev) =>
+        prev.w === fit.w && prev.h === fit.h ? prev : { w: fit.w, h: fit.h }
+      );
 
       const dpr = window.devicePixelRatio || 1;
       const w = Math.max(1, Math.floor(fit.w * dpr));
@@ -351,6 +366,9 @@ export const PreviewCompositor: React.FC = memo(() => {
         canvas.height = h;
         compositorRef.current?.resize(w, h);
       }
+      setCanvasSize((prev) =>
+        prev.w === w && prev.h === h ? prev : { w, h }
+      );
     };
     apply();
     const ro = new ResizeObserver(apply);
@@ -460,6 +478,45 @@ export const PreviewCompositor: React.FC = memo(() => {
       placeholderLayers: placeholders
     };
   }, [sortedTracks, clipsByTrackId, currentTimeMs, resolveUrl, urlCacheVersion]);
+
+  // Source dims + transform for the single selected clip, but only while it is
+  // actually rendered (active at the playhead) so the gizmo traces a visible
+  // box. Dimensions come from the already-decoded media elements.
+  const selectedGizmo = useMemo(() => {
+    if (!selectedClipId) return null;
+    const clip = clipById.get(selectedClipId);
+    if (!clip) return null;
+
+    let w = 0;
+    let h = 0;
+    const vSlot = activeVideoSlots.find((s) => s.clipId === selectedClipId);
+    const iLayer = activeImageLayers.find((l) => l.clipId === selectedClipId);
+    if (vSlot) {
+      const idx = clipSlotMap.current.get(selectedClipId);
+      const el = idx !== undefined ? videoRefs.current[idx] : undefined;
+      w = el?.videoWidth ?? 0;
+      h = el?.videoHeight ?? 0;
+    } else if (iLayer?.assetUrl) {
+      const img = imageElementCache.current.get(iLayer.assetUrl);
+      w = img?.naturalWidth ?? 0;
+      h = img?.naturalHeight ?? 0;
+    } else {
+      return null;
+    }
+    if (w <= 0 || h <= 0) return null;
+    return {
+      clipId: selectedClipId,
+      transform: clip.transform,
+      sourceWidth: w,
+      sourceHeight: h
+    };
+  }, [
+    selectedClipId,
+    clipById,
+    activeVideoSlots,
+    activeImageLayers,
+    urlCacheVersion
+  ]);
 
   // Drive the HTMLVideoElement pool (src/seek/play state). Same logic as
   // before, just without setting display/zIndex/blendMode — those are owned
@@ -724,6 +781,20 @@ export const PreviewCompositor: React.FC = memo(() => {
             pointerEvents: "none"
           }}
         />
+
+        {selectedGizmo && (
+          <TransformGizmoOverlay
+            clipId={selectedGizmo.clipId}
+            transform={selectedGizmo.transform}
+            sourceWidth={selectedGizmo.sourceWidth}
+            sourceHeight={selectedGizmo.sourceHeight}
+            canvasWidth={canvasSize.w}
+            canvasHeight={canvasSize.h}
+            frameWidth={frameSize.w}
+            frameHeight={frameSize.h}
+            onChange={(id, next) => patchClip(id, { transform: next })}
+          />
+        )}
 
         {placeholderLayers.map((layer) => (
           <div
