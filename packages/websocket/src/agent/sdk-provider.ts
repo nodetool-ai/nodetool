@@ -75,7 +75,7 @@ export interface AgentQuerySession {
   close(): void;
 }
 
-/** Provider interface for agent SDKs (Claude, Codex, OpenCode, LLM). */
+/** Provider interface for agent SDKs (Pi, LLM). */
 export interface AgentSdkProvider {
   readonly name: string;
   /**

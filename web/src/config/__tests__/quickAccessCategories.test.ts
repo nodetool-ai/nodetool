@@ -113,7 +113,6 @@ describe("quickAccessCategories", () => {
   it("agents matches any node under an `*.agents.*` namespace", () => {
     const all = [
       meta("nodetool.agents.Agent", "str"),
-      meta("anthropic.agents.ClaudeAgent", "str"),
       meta("openai.agents.RealtimeAgent", "str"),
       meta("nodetool.image.Resize", "image")
     ];
@@ -121,7 +120,6 @@ describe("quickAccessCategories", () => {
       (m) => m.node_type
     );
     expect(ids).toContain("nodetool.agents.Agent");
-    expect(ids).toContain("anthropic.agents.ClaudeAgent");
     expect(ids).toContain("openai.agents.RealtimeAgent");
     expect(ids).not.toContain("nodetool.image.Resize");
   });

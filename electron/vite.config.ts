@@ -50,7 +50,6 @@ const externalModules = ["electron", "electron/common", ...builtins];
 // in the runtime providers and the verify-bundle.mjs static check.
 const mainExternalModules = [
   ...externalModules,
-  "@anthropic-ai/claude-agent-sdk",
   "@nodetool-ai/protocol",
   "zod",
   "sharp",

@@ -9,7 +9,7 @@
  * both import from here to stay in lockstep.
  */
 
-export type AgentProvider = "claude" | "codex" | "opencode" | "pi" | "llm";
+export type AgentProvider = "pi" | "llm";
 
 export interface AgentModelDescriptor {
   id: string;

@@ -63,7 +63,6 @@ export const CONTENT_CARD_REGISTRY: ReadonlySet<string> = new Set([
   "nodetool.agents.Classifier",
   "nodetool.text.Concat",
   "nodetool.data.Describe",
-  "anthropic.agents.ClaudeAgent",
   "openai.agents.RealtimeAgent",
   "mistral.text.ChatComplete"
 ]);
@@ -244,7 +243,6 @@ export const getDynamicInputLabel = (metadata: NodeMetadata): string => {
   // this list in sync with the explicit allow-set above.)
   if (
     t === "nodetool.agents.Agent" ||
-    t === "anthropic.agents.ClaudeAgent" ||
     t === "openai.agents.RealtimeAgent"
   ) {
     return "variable";

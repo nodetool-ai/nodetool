@@ -1,5 +1,5 @@
 /**
- * Adapter module for converting Claude/Codex/OpenCode agent SDK messages
+ * Adapter module for converting agent SDK messages
  * to NodeTool Message types for use in ChatView.
  *
  * Messages arrive over the agent WebSocket (`/ws/agent`, see
@@ -38,7 +38,7 @@ interface AgentMessage {
 }
 
 /**
- * Convert a serialized Claude Agent message (from IPC) to a NodeTool Message.
+ * Convert a serialized agent message to a NodeTool Message.
  * Returns null for message types that shouldn't be displayed.
  */
 export function agentMessageToNodeToolMessage(
@@ -87,7 +87,7 @@ export function agentMessageToNodeToolMessage(
         created_at: new Date().toISOString(),
         thread_id: msg.session_id,
         provider: "anthropic",
-        model: "claude-agent",
+        model: "agent",
         ...(toolCalls ? { tool_calls: toolCalls } : {}),
       };
     }
@@ -102,7 +102,7 @@ export function agentMessageToNodeToolMessage(
           created_at: new Date().toISOString(),
           thread_id: msg.session_id,
           provider: "anthropic",
-          model: "claude-agent"
+          model: "agent"
         };
       }
       if (msg.is_error && msg.errors) {
@@ -115,7 +115,7 @@ export function agentMessageToNodeToolMessage(
           created_at: new Date().toISOString(),
           thread_id: msg.session_id,
           provider: "anthropic",
-          model: "claude-agent"
+          model: "agent"
         };
       }
       return null;
@@ -147,7 +147,7 @@ export function agentMessageToNodeToolMessage(
 
 /**
  * Convert a NodeTool Message to a plain text string suitable for
- * sending to the Claude Agent SDK via session.send().
+ * sending to the agent via session.send().
  */
 export function nodeToolMessageToText(message: Message): string {
   if (typeof message.content === "string") {

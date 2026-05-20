@@ -6,7 +6,7 @@ describe("AgentStore", () => {
     Promise<string>,
     [
       {
-        provider?: "claude" | "codex" | "opencode";
+        provider?: "pi" | "llm";
         model: string;
         workspacePath?: string;
         resumeSessionId?: string;
@@ -105,6 +105,7 @@ describe("AgentStore", () => {
 
   it("skips duplicate success result when assistant content already streamed", async () => {
     const useAgentStore = await loadStore();
+    useAgentStore.setState({ provider: "pi" });
     useAgentStore
       .getState()
       .setWorkspaceContext("workspace-1", "/tmp/workspace-1");
@@ -136,6 +137,7 @@ describe("AgentStore", () => {
 
   it("updates an existing streamed message when uuid repeats", async () => {
     const useAgentStore = await loadStore();
+    useAgentStore.setState({ provider: "pi" });
     useAgentStore
       .getState()
       .setWorkspaceContext("workspace-1", "/tmp/workspace-1");
@@ -168,6 +170,7 @@ describe("AgentStore", () => {
 
   it("keeps success result when no assistant message is present", async () => {
     const useAgentStore = await loadStore();
+    useAgentStore.setState({ provider: "pi" });
     useAgentStore
       .getState()
       .setWorkspaceContext("workspace-1", "/tmp/workspace-1");
@@ -198,6 +201,7 @@ describe("AgentStore", () => {
     useAgentStore
       .getState()
       .setWorkspaceContext("workspace-1", "/tmp/workspace-1");
+    useAgentStore.setState({ provider: "pi", model: "claude-sonnet-4-6" });
     await useAgentStore.getState().sendMessage(makeUserMessage("Hello"));
 
     const state = useAgentStore.getState();
@@ -207,7 +211,7 @@ describe("AgentStore", () => {
     expect(state.status).toBe("loading");
     expect(createSessionMock).toHaveBeenCalledTimes(1);
     expect(createSessionMock).toHaveBeenCalledWith({
-      provider: "claude",
+      provider: "pi",
       model: "claude-sonnet-4-6",
       workspacePath: "/tmp/workspace-1",
       resumeSessionId: undefined
@@ -217,6 +221,7 @@ describe("AgentStore", () => {
 
   it("stops active execution without closing the session", async () => {
     const useAgentStore = await loadStore();
+    useAgentStore.setState({ provider: "pi" });
     useAgentStore
       .getState()
       .setWorkspaceContext("workspace-1", "/tmp/workspace-1");
@@ -285,7 +290,7 @@ describe("AgentStore", () => {
     const useAgentStore = await loadStore();
     useAgentStore.setState({ chatProviderId: "anthropic" });
 
-    useAgentStore.getState().setProvider("claude");
+    useAgentStore.getState().setProvider("pi");
     expect(useAgentStore.getState().chatProviderId).toBeNull();
   });
 
@@ -400,7 +405,7 @@ describe("AgentStore", () => {
   it("createSession for harness provider still requires a workspace", async () => {
     const useAgentStore = await loadStore();
     useAgentStore.setState({
-      provider: "claude",
+      provider: "pi",
       model: "claude-sonnet-4-6",
       workspacePath: null,
       workspaceId: null

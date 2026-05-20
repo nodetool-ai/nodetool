@@ -4,8 +4,7 @@
  * Wraps @mariozechner/pi-coding-agent to expose a NodeTool agent session that
  * talks to whichever LLM provider the user has configured in pi
  * (~/.pi/agent/auth.json). Frontend UI tools are bridged into pi as
- * `customTools` that forward calls back through the NodeTool AgentTransport,
- * mirroring the MCP bridge used by Claude/Codex.
+ * `customTools` that forward calls back through the NodeTool AgentTransport.
  */
 
 import { randomUUID } from "node:crypto";

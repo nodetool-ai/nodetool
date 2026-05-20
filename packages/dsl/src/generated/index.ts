@@ -1,6 +1,5 @@
 // Auto-generated — do not edit manually
 
-export * as anthropicAgents from "./anthropic.agents.js";
 export * as apifyScraping from "./apify.scraping.js";
 export * as geminiAudio from "./gemini.audio.js";
 export * as geminiImage from "./gemini.image.js";

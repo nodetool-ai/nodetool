@@ -38,33 +38,11 @@ vi.mock("@nodetool-ai/chat", () => ({
   processChat: processChatSpy,
 }));
 
-vi.mock("../src/agent/codex-agent.js", () => ({
-  CodexQuerySession: class {},
-  listCodexModels: async () => [],
-}));
-vi.mock("../src/agent/opencode-agent.js", () => ({
-  OpenCodeQuerySession: class {},
-  listOpenCodeModels: async () => [],
-  listOpenCodeSessions: async () => [],
-  getOpenCodeSessionMessages: async () => [],
-  closeOpenCodeServer: () => {},
-}));
 vi.mock("../src/agent/pi-agent.js", () => ({
   PiQuerySession: class {},
   listPiModels: async () => [],
   listPiSessions: async () => [],
   getPiSessionMessages: async () => [],
-}));
-vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
-  query: () => ({
-    [Symbol.asyncIterator]() {
-      return { next: async () => ({ done: true, value: undefined }) };
-    },
-    interrupt() {},
-    close() {},
-  }),
-  listSessions: async () => [],
-  getSessionMessages: async () => [],
 }));
 
 vi.mock("@nodetool-ai/runtime", async (importOriginal) => {
