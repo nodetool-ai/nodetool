@@ -27,7 +27,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "postinstall": "electron-rebuild -f -w better-sqlite3,bufferutil -m .."
+    "postinstall": "node scripts/rebuild-native.mjs"
   },
   "author": "matti.georgi@gmail.com",
   "license": "AGPL-3.0-only",
