@@ -13,10 +13,12 @@ function prefersReducedMotion(): boolean {
 }
 
 /**
- * FLIP animation: after every dependency change, compares the element's
- * previous bounding rect with its current one and animates the delta away via
- * the Web Animations API. The element must already have moved to its final
- * layout position (set by the caller) before this effect runs.
+ * FLIP animation. On each dependency change this effect runs AFTER React has
+ * committed the new layout, so getBoundingClientRect() returns the element's
+ * new ("Last") position. `prevRect` holds the position measured at the previous
+ * commit (the "First" position), because it was stored by the prior effect run
+ * while the DOM was still in its old position. We animate the First→Last delta
+ * away via the Web Animations API, then store Last for the next transition.
  */
 export function useFlipPosition(
   ref: RefObject<HTMLElement | null>,
@@ -28,37 +30,30 @@ export function useFlipPosition(
     const el = ref.current;
     if (!el) return;
 
-    // "Last" — element has already moved to its new layout position.
     const last = el.getBoundingClientRect();
     const first = prevRect.current;
+    prevRect.current = last;
 
-    if (first && !prefersReducedMotion()) {
-      const dx = first.left - last.left;
-      const dy = first.top - last.top;
-      const sx = last.width === 0 ? 1 : first.width / last.width;
-      const sy = last.height === 0 ? 1 : first.height / last.height;
+    if (!first) return;
+    if (prefersReducedMotion()) return;
 
-      if (dx !== 0 || dy !== 0 || sx !== 1 || sy !== 1) {
-        el.animate(
-          [
-            {
-              transformOrigin: "top left",
-              transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`
-            },
-            { transformOrigin: "top left", transform: "none" }
-          ],
-          { duration: FLIP_DURATION_MS, easing: FLIP_EASING, fill: "both" }
-        );
-      }
-    }
+    const dx = first.left - last.left;
+    const dy = first.top - last.top;
+    const sx = last.width === 0 ? 1 : first.width / last.width;
+    const sy = last.height === 0 ? 1 : first.height / last.height;
 
-    // Capture the "First" position for the next transition (cleanup runs
-    // just before the next effect, after the next layout has committed).
-    return () => {
-      if (ref.current) {
-        prevRect.current = ref.current.getBoundingClientRect();
-      }
-    };
+    if (dx === 0 && dy === 0 && sx === 1 && sy === 1) return;
+
+    el.animate(
+      [
+        {
+          transformOrigin: "top left",
+          transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`
+        },
+        { transformOrigin: "top left", transform: "none" }
+      ],
+      { duration: FLIP_DURATION_MS, easing: FLIP_EASING, fill: "both" }
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 }

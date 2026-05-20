@@ -1,41 +1,6 @@
 // Set timezone to UTC to ensure consistent test results
 process.env.TZ = 'UTC';
 
-// Polyfill Element.prototype.animate for jsdom (Web Animations API stub).
-// Tests that need to spy on or assert animate() calls require the method to
-// exist on the prototype before jest.spyOn can instrument it.
-if (typeof Element !== 'undefined' && !Element.prototype.animate) {
-  Element.prototype.animate = function(_keyframes, _options) {
-    return {
-      cancel: () => {},
-      finish: () => {},
-      pause: () => {},
-      play: () => {},
-      reverse: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-      finished: Promise.resolve({}),
-      ready: Promise.resolve({}),
-      currentTime: 0,
-      playbackRate: 1,
-      playState: 'idle',
-      effect: null,
-      timeline: null,
-      id: '',
-      pending: false,
-      startTime: null,
-      oncancel: null,
-      onfinish: null,
-      onremove: null,
-      replaceState: 'active',
-      commitStyles: () => {},
-      persist: () => {},
-      updatePlaybackRate: () => {},
-    };
-  };
-}
-
 // Note: React is imported via standard imports in test files.
 // CJS mode in ts-jest handles the default export properly.
 

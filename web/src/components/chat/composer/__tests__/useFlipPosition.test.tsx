@@ -4,6 +4,11 @@ import "@testing-library/jest-dom";
 import { render } from "@testing-library/react";
 import { useFlipPosition } from "../useFlipPosition";
 
+if (typeof Element.prototype.animate !== "function") {
+  // jsdom lacks the Web Animations API; provide a no-op so spyOn can wrap it.
+  Element.prototype.animate = () => ({}) as Animation;
+}
+
 function makeRect(x: number, y: number, w = 100, h = 40): DOMRect {
   return {
     x, y, width: w, height: h, top: y, left: x,
@@ -46,7 +51,7 @@ describe("useFlipPosition", () => {
   });
 
   it("animates from the previous rect to the current rect on change", () => {
-    const rects = [makeRect(0, 500), makeRect(0, 500), makeRect(0, 0)];
+    const rects = [makeRect(0, 500), makeRect(0, 0)];
     let call = 0;
     jest
       .spyOn(Element.prototype, "getBoundingClientRect")
@@ -62,7 +67,7 @@ describe("useFlipPosition", () => {
 
   it("skips animation when prefers-reduced-motion is set", () => {
     matchMediaMock.mockReturnValue({ matches: true });
-    const rects = [makeRect(0, 500), makeRect(0, 500), makeRect(0, 0)];
+    const rects = [makeRect(0, 500), makeRect(0, 0)];
     let call = 0;
     jest
       .spyOn(Element.prototype, "getBoundingClientRect")
