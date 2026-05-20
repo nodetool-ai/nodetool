@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": [
     "packages/protocol",
+    "packages/compositor",
     "packages/timeline",
     "packages/image-editor",
     "packages/kernel",

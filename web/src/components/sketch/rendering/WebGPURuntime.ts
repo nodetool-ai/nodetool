@@ -15,6 +15,7 @@
  * Readback (flatten / mask export) goes through Canvas2DRuntime helpers.
  */
 
+import { blendModeGpuId } from "@nodetool-ai/compositor";
 import type {
   SketchRuntime,
   ActiveStrokeInfo,
@@ -47,23 +48,6 @@ import {
   SELECTION_ANTS_FRAGMENT,
   MASK_BLUR_FRAGMENT
 } from "./shaders";
-
-// ─── Blend mode ID mapping (must match shader switch cases) ──────────────
-
-const BLEND_MODE_ID: Record<string, number> = {
-  "normal": 0,
-  "multiply": 1,
-  "screen": 2,
-  "overlay": 3,
-  "darken": 4,
-  "lighten": 5,
-  "color-dodge": 6,
-  "color-burn": 7,
-  "hard-light": 8,
-  "soft-light": 9,
-  "difference": 10,
-  "exclusion": 11
-};
 
 /** Hardware source-over blend for normal blend mode (fast path). */
 const SOURCE_OVER_BLEND: GPUBlendState = {
@@ -1552,7 +1536,7 @@ export class WebGPURuntime implements SketchRuntime {
         doc.layers, layer, isolatedLayerId
       );
       const finalOpacity = layer.opacity * opacityScale;
-      const blendModeId = BLEND_MODE_ID[layer.blendMode || "normal"] ?? 0;
+      const blendModeId = blendModeGpuId(layer.blendMode);
 
       // Compute inverse affine transform: screen pixel → layer texel.
       // Quad transforms aren't affine, so the shader can't sample them

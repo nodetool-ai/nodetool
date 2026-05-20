@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { BLEND_MODE_TUPLE } from "@nodetool-ai/compositor";
+
+const blendModeEnum = z.enum(BLEND_MODE_TUPLE);
 
 // ── Shared sub-schemas ───────────────────────────────────────────────────────
 
@@ -179,9 +182,7 @@ export const timelineClip = z
     hidden: z.boolean().optional(),
     versions: z.array(clipVersion),
     opacity: z.number().optional(),
-    blendMode: z
-      .enum(["normal", "screen", "multiply", "add", "overlay"])
-      .optional(),
+    blendMode: blendModeEnum.optional(),
     speedMultiplier: z.number().optional(),
     speedBaked: z.boolean().optional(),
     volumeDb: z.number().optional(),

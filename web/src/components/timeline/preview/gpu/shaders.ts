@@ -1,3 +1,5 @@
+import { WGSL_BLEND_FUNCTIONS } from "@nodetool-ai/compositor";
+
 /**
  * Composite shader. The full preview pipeline is:
  *
@@ -18,7 +20,7 @@
  *   borderRadius:4   (normalized 0..0.5; 0 = sharp corners)
  *   aspect:      4   (source w/h)
  *   smoothness:  4
- *   blendMode:   4   (u32 enum — see BLEND_MODE_* constants below)
+ *   blendMode:   4   (u32 enum — gpuId from @nodetool-ai/compositor)
  *   _pad:       12
  */
 export const compositeShader = /* wgsl */ `
@@ -44,11 +46,7 @@ struct VsOut {
   @location(1) local: vec2<f32>,
 };
 
-const BLEND_NORMAL: u32   = 0u;
-const BLEND_ADD: u32      = 1u;
-const BLEND_MULTIPLY: u32 = 2u;
-const BLEND_SCREEN: u32   = 3u;
-const BLEND_OVERLAY: u32  = 4u;
+${WGSL_BLEND_FUNCTIONS}
 
 @vertex
 fn vs(@builtin(vertex_index) i: u32) -> VsOut {
@@ -80,25 +78,6 @@ fn sdRoundedRect(p: vec2<f32>, b: vec2<f32>, r: f32) -> f32 {
   return min(max(q.x, q.y), 0.0) + length(max(q, vec2<f32>(0.0))) - r;
 }
 
-fn applyBlend(src: vec3<f32>, dst: vec3<f32>, mode: u32) -> vec3<f32> {
-  if (mode == BLEND_ADD) {
-    return min(src + dst, vec3<f32>(1.0));
-  }
-  if (mode == BLEND_MULTIPLY) {
-    return src * dst;
-  }
-  if (mode == BLEND_SCREEN) {
-    return src + dst - src * dst;
-  }
-  if (mode == BLEND_OVERLAY) {
-    let lt = step(dst, vec3<f32>(0.5));
-    let dark = 2.0 * src * dst;
-    let light = vec3<f32>(1.0) - 2.0 * (vec3<f32>(1.0) - src) * (vec3<f32>(1.0) - dst);
-    return mix(light, dark, lt);
-  }
-  return src; // BLEND_NORMAL
-}
-
 @fragment
 fn fs(in: VsOut) -> @location(0) vec4<f32> {
   // Screen-space UV for sampling the previous accumulation. WebGPU's
@@ -128,7 +107,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
 
   // Blend math runs in non-premultiplied RGB; the layer's effective alpha
   // is its texture alpha × layer opacity × border-radius mask.
-  let blended = applyBlend(layer.rgb, dst.rgb, u.blendMode);
+  let blended = applyBlendMode(layer.rgb, dst.rgb, u.blendMode);
   let outRgb = mix(dst.rgb, blended, layerAlpha);
   let outA = layerAlpha + dst.a * (1.0 - layerAlpha);
   return vec4<f32>(outRgb, outA);

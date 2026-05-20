@@ -12,6 +12,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@nodetool-ai/compositor": "*",
     "zod": "^4.0.0"
   },
   "devDependencies": {

@@ -1,3 +1,4 @@
+import { blendModeGpuId } from "@nodetool-ai/compositor";
 import { WebGPUEffectsProcessor } from "./effectsProcessor";
 import { blitShader, compositeShader } from "./shaders";
 import {
@@ -8,7 +9,6 @@ import {
 import type {
   CompositeLayer,
   CompositeSource,
-  CompositorBlendMode,
   CompositorInitResult
 } from "./types";
 
@@ -17,14 +17,6 @@ import type {
 // and the struct size rounds up to 112.
 const LAYER_UNIFORM_BYTES = 112;
 const ACCUM_FORMAT: GPUTextureFormat = "rgba8unorm";
-
-const BLEND_MODE_INDEX: Record<CompositorBlendMode, number> = {
-  normal: 0,
-  add: 1,
-  multiply: 2,
-  screen: 3,
-  overlay: 4
-};
 
 interface SourceTexture {
   texture: GPUTexture;
@@ -427,7 +419,7 @@ export class WebGPUCompositor {
           ? Math.min(0.5, radiusPx / Math.min(src.width, src.height))
           : 0;
       const aspect = src.height === 0 ? 1 : src.width / src.height;
-      const blendIndex = BLEND_MODE_INDEX[layer.blendMode] ?? 0;
+      const blendIndex = blendModeGpuId(layer.blendMode);
 
       const uniformBuffer = this.getUniformBuffer(drawn);
       const data = new ArrayBuffer(LAYER_UNIFORM_BYTES);

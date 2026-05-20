@@ -7,6 +7,7 @@ import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { usePersistedFold } from "./usePersistedFold";
 import type {
+  BlendMode,
   ClipBlurEffect,
   ClipColorEffect,
   ClipEffect,
@@ -14,6 +15,7 @@ import type {
   ClipTransition,
   TimelineClip
 } from "@nodetool-ai/timeline";
+import { BLEND_MODES } from "@nodetool-ai/compositor";
 import {
   CollapsibleSection,
   EditorButton,
@@ -42,8 +44,6 @@ const containerStyles = css({
   overflow: "auto"
 });
 const sectionContentStyles = css({ padding: 8 });
-
-const BLEND_MODES = ["normal", "screen", "multiply", "add", "overlay"] as const;
 
 /** Stable IDs for the inspector-managed effects so they can round-trip in
  *  `clip.effects` without an add/remove UI. Each clip has at most one of each. */
@@ -211,8 +211,8 @@ export const TimelineInspector: React.FC = memo(() => {
             )}
             {isOverlay && !isAudio && (
               <FormField label="Blend mode">
-                <NodeSelect value={clip.blendMode ?? "normal"} onChange={(e) => patchClip(clip.id, { blendMode: e.target.value as (typeof BLEND_MODES)[number] })}>
-                  {BLEND_MODES.map((mode) => <NodeMenuItem key={mode} value={mode}>{mode}</NodeMenuItem>)}
+                <NodeSelect value={clip.blendMode ?? "normal"} onChange={(e) => patchClip(clip.id, { blendMode: e.target.value as BlendMode })}>
+                  {BLEND_MODES.map((mode) => <NodeMenuItem key={mode.value} value={mode.value}>{mode.label}</NodeMenuItem>)}
                 </NodeSelect>
               </FormField>
             )}

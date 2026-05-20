@@ -19,12 +19,10 @@ export type ClipStatus =
   | "locked"
   | "missing";
 
-export type BlendMode =
-  | "normal"
-  | "screen"
-  | "multiply"
-  | "add"
-  | "overlay";
+// Blend modes are defined once in @nodetool-ai/compositor and shared by the
+// sketch editor, the timeline preview compositor, and the Compositor node.
+import type { BlendMode } from "@nodetool-ai/compositor";
+export type { BlendMode };
 
 export interface TimelineSequence {
   id: string;

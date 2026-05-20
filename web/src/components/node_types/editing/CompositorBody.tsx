@@ -9,7 +9,7 @@
  *         `layers: List[Dict]` prop, indexed positionally against the
  *         sorted dynamic image inputs.
  * Bottom: "+ Add another layer" — appends a fresh `image_N` dynamic
- *         property and a matching `{opacity:1, blend_mode:'over',
+ *         property and a matching `{opacity:1, blend_mode:'normal',
  *         visible:true}` entry to `layers`.
  *
  * Input handles for each `image_N` are rendered via `HandleColumn` over
@@ -23,6 +23,12 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 import { shallow } from "zustand/shallow";
+
+import {
+  type BlendMode,
+  BLEND_MODES,
+  coerceBlendMode
+} from "@nodetool-ai/compositor";
 
 import {
   CheckerDropzone,
@@ -45,20 +51,8 @@ import { unwrapOutput } from "../../../utils/imageRef";
 
 const COMPOSITOR_NODE_TYPE = "nodetool.image.Compositor";
 
-export type CompositorBlendMode =
-  | "over"
-  | "multiply"
-  | "screen"
-  | "overlay"
-  | "darken"
-  | "lighten"
-  | "color-dodge"
-  | "color-burn"
-  | "hard-light"
-  | "soft-light"
-  | "difference"
-  | "exclusion"
-  | "add";
+/** Canonical blend modes are owned by `@nodetool-ai/compositor`. */
+export type CompositorBlendMode = BlendMode;
 
 export interface CompositorLayerState {
   opacity: number;
@@ -68,25 +62,9 @@ export interface CompositorLayerState {
 
 const DEFAULT_LAYER_STATE: CompositorLayerState = {
   opacity: 1,
-  blend_mode: "over",
+  blend_mode: "normal",
   visible: true
 };
-
-const BLEND_MODES: { value: CompositorBlendMode; label: string }[] = [
-  { value: "over", label: "Normal" },
-  { value: "multiply", label: "Multiply" },
-  { value: "screen", label: "Screen" },
-  { value: "overlay", label: "Overlay" },
-  { value: "darken", label: "Darken" },
-  { value: "lighten", label: "Lighten" },
-  { value: "color-dodge", label: "Color Dodge" },
-  { value: "color-burn", label: "Color Burn" },
-  { value: "hard-light", label: "Hard Light" },
-  { value: "soft-light", label: "Soft Light" },
-  { value: "difference", label: "Difference" },
-  { value: "exclusion", label: "Exclusion" },
-  { value: "add", label: "Add" }
-];
 
 export { BLEND_MODES };
 
@@ -265,11 +243,7 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
         typeof raw.opacity === "number"
           ? Math.max(0, Math.min(1, raw.opacity))
           : DEFAULT_LAYER_STATE.opacity;
-      const blend_mode =
-        typeof raw.blend_mode === "string" &&
-        BLEND_MODES.some((m) => m.value === raw.blend_mode)
-          ? (raw.blend_mode as CompositorBlendMode)
-          : DEFAULT_LAYER_STATE.blend_mode;
+      const blend_mode = coerceBlendMode(raw.blend_mode);
       const visible =
         raw.visible === undefined ? DEFAULT_LAYER_STATE.visible : !!raw.visible;
       return { opacity, blend_mode, visible };
