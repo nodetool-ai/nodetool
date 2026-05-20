@@ -4,7 +4,6 @@ import React, {
   useCallback,
   useContext,
   useMemo,
-  useRef,
   useState
 } from "react";
 import type { MessageContent } from "../../../stores/ApiTypes";
@@ -35,14 +34,12 @@ export const ComposerSlotProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [activeSlot, setActiveSlot] = useState<HTMLElement | null>(null);
   const [composerHeight, setComposerHeight] = useState(0);
-  const sendRef = useRef<ComposerSendHandler | null>(null);
   const [activeSend, setActiveSend] = useState<ComposerSendHandler | null>(
     null
   );
 
   const registerSlot = useCallback(
     (el: HTMLElement, send: ComposerSendHandler) => {
-      sendRef.current = send;
       setActiveSlot(el);
       setActiveSend(() => send);
     },
@@ -52,7 +49,6 @@ export const ComposerSlotProvider: React.FC<{ children: React.ReactNode }> = ({
   const unregisterSlot = useCallback((el: HTMLElement) => {
     setActiveSlot((current) => {
       if (current === el) {
-        sendRef.current = null;
         setActiveSend(null);
         return null;
       }
