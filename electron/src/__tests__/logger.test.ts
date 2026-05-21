@@ -9,7 +9,7 @@ jest.mock("electron-log", () => ({
   },
 }));
 
-jest.mock("../config", () => ({
+jest.mock("../systemPaths", () => ({
   getSystemDataPath: jest.fn((name: string) => `/tmp/nodetool-test/${name}`),
 }));
 

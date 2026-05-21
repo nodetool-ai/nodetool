@@ -51,10 +51,15 @@ const externalModules = ["electron", "electron/common", ...builtins];
 const mainExternalModules = [
   ...externalModules,
   "@nodetool-ai/protocol",
+  "electron-log",
+  "electron-updater",
   "zod",
   "sharp",
   /^@img\/sharp-/,
 ];
+
+// Vite 8 adds `codeSplitting`; Rollup 4 typings (used by tsc) do not include it yet.
+const vite8MainOutput = { codeSplitting: false } satisfies Record<string, unknown>;
 
 export default defineConfig({
   base: "./",
@@ -75,7 +80,13 @@ export default defineConfig({
               output: {
                 format: "cjs",
                 entryFileNames: "[name].js",
-                codeSplitting: false,
+                // Vite 6 / Rollup 4: inlineDynamicImports disables code splitting.
+                // Vite 8: codeSplitting replaces the deprecated inlineDynamicImports.
+                // Keep both so Mac CI (Vite 8) and local dev (Vite 6 plugin path)
+                // always emit a single main.js — split chunks break circular deps
+                // between logger and config at launch (e.a is not a function).
+                inlineDynamicImports: true,
+                ...vite8MainOutput,
               },
             },
           },
