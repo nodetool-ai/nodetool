@@ -735,14 +735,32 @@ export const PreviewCompositor: React.FC = memo(() => {
     return out;
   }, [activeVideoSlots, activeImageLayers, ensureImageElement]);
 
-  // One-shot render whenever scene state changes (paused mode + scrubbing).
-  useEffect(() => {
+  const renderFrame = useCallback(() => {
     if (!gpuReady) return;
     const compositor = compositorRef.current;
     if (!compositor) return;
     compositor.setLayers(buildLayers());
     compositor.render();
   }, [gpuReady, buildLayers]);
+
+  // One-shot render whenever scene state changes (paused mode + scrubbing).
+  useEffect(() => {
+    renderFrame();
+  }, [renderFrame]);
+
+  // A paused scrub sets el.currentTime, which decodes the target frame
+  // asynchronously — so the one-shot render above runs before the frame is
+  // ready and paints a stale (or empty) texture. Re-composite once each video
+  // element fires `seeked`, when the decoded frame is actually available.
+  useEffect(() => {
+    if (!poolReady) return;
+    const pool = videoRefs.current;
+    const onSeeked = () => renderFrame();
+    pool.forEach((el) => el.addEventListener("seeked", onSeeked));
+    return () => {
+      pool.forEach((el) => el.removeEventListener("seeked", onSeeked));
+    };
+  }, [poolReady, renderFrame]);
 
   // While playing, drive a rAF render loop so video frame textures stay fresh
   // between AudioContext-clock store updates.
