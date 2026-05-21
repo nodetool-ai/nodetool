@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useState, useRef } from "react";
+import { memo, useState, useRef, useEffect } from "react";
 import {
   Box,
   Modal,
@@ -41,6 +41,7 @@ import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowRuntimeCheck } from "../../hooks/useWorkflowRuntimeCheck";
+import { useRightPanelStore } from "../../stores/RightPanelStore";
 
 declare global {
   interface Window {
@@ -78,6 +79,16 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const undo = useTemporalNodes((state) => state.undo);
   const redo = useTemporalNodes((state) => state.redo);
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
+
+  // Auto-reveal the Inspector whenever a node becomes selected.
+  const setActiveView = useRightPanelStore((state) => state.setActiveView);
+  const setPanelVisibility = useRightPanelStore((state) => state.setVisibility);
+  useEffect(() => {
+    if (active && selectedNodeCount > 0) {
+      setActiveView("inspector");
+      setPanelVisibility(true);
+    }
+  }, [active, selectedNodeCount, setActiveView, setPanelVisibility]);
 
   // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux).
   // Global scope: must work even when an input/editor is focused.
