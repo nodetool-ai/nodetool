@@ -157,6 +157,34 @@ jobs:
       - name: Print selected version
         run: echo "Using VERSION=$VERSION channel=$RELEASE_CHANNEL tag=$RELEASE_TAG"
 
+      - name: Free up disk space (macOS)
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          set -uo pipefail
+          # Root cause of shipped-but-broken DMGs: the runner ran out of disk
+          # during dmgbuild's `ditto`, which silently dropped the Electron
+          # Framework binary from the artifact (see the "Verify macOS DMG/zip
+          # integrity" guard below). An Electron build never touches the iOS
+          # simulators, the Android SDK, or the extra Xcode versions that
+          # dominate the macOS runner image, so reclaim that space up front.
+          echo "Disk before cleanup:"; df -h /
+          xcrun simctl delete all 2>/dev/null || true
+          sudo rm -rf ~/Library/Developer/CoreSimulator/Caches/* 2>/dev/null || true
+          sudo rm -rf /Library/Developer/CoreSimulator/Profiles/Runtimes/* 2>/dev/null || true
+          sudo rm -rf ~/Library/Android /Users/runner/Library/Android 2>/dev/null || true
+          sudo rm -rf "${ANDROID_SDK_ROOT:-}" "${ANDROID_HOME:-}" 2>/dev/null || true
+          # Keep the active Xcode (codesign/notarytool need it); drop the rest.
+          active="$(xcode-select -p 2>/dev/null | sed -E 's#(/Applications/Xcode[^/]*\.app).*#\1#')"
+          for x in /Applications/Xcode_*.app /Applications/Xcode.app; do
+            [ -e "$x" ] || continue
+            if [ "$x" != "$active" ]; then
+              echo "Removing unused $x"
+              sudo rm -rf "$x" 2>/dev/null || true
+            fi
+          done
+          echo "Disk after cleanup:"; df -h /
+
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
@@ -551,6 +579,93 @@ jobs:
           done
           if [ "$fail" -ne 0 ]; then
             echo "::error::Smoke launch failed; refusing to upload."
+            exit 1
+          fi
+
+      - name: Verify macOS DMG/zip integrity
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Guard against electron-builder/dmgbuild regressions that silently
+          # drop files from the produced artifacts. The observed failure mode is
+          # the runner running out of disk during dmgbuild's `ditto` copy: ditto
+          # fails on the largest file (the ~150 MB Electron Framework Mach-O) with
+          # "No space left on device", but electron-builder only logs the stderr
+          # and continues — shipping a DMG that mounts fine yet aborts at launch
+          # ("Nodetool cannot be opened because of a problem"). The smoke-launch
+          # above only exercises the *unpacked* app, so it cannot catch this.
+          # Mount each DMG and assert the framework binary is present and large
+          # enough to be real (>50 MB); do the same for the updater .zip.
+          fail=0
+          shopt -s nullglob
+          find_framework_binary() {
+            local framework_dir="$1"
+            # Electron packaging can produce either a versioned framework layout
+            # or a framework-level binary symlink/copy depending on how
+            # electron-builder materializes the app bundle in each artifact.
+            local candidate_versioned="$framework_dir/Versions/A/Electron Framework"
+            local candidate_flat="$framework_dir/Electron Framework"
+            if [ -f "$candidate_versioned" ]; then
+              printf '%s\n' "$candidate_versioned"
+              return 0
+            fi
+            if [ -f "$candidate_flat" ]; then
+              printf '%s\n' "$candidate_flat"
+              return 0
+            fi
+            return 1
+          }
+          for dmg in electron/dist/Nodetool-*.dmg; do
+            echo "::group::Verify $dmg"
+            mountpoint=$(hdiutil attach -nobrowse -readonly -plist "$dmg" \
+              | /usr/bin/python3 -c "import sys,plistlib; p=plistlib.loads(sys.stdin.buffer.read()); print(next(e['mount-point'] for e in p['system-entities'] if 'mount-point' in e))")
+            framework_dir="$mountpoint/Nodetool.app/Contents/Frameworks/Electron Framework.framework"
+            if ! fw="$(find_framework_binary "$framework_dir")"; then
+              echo "::error file=$dmg::Missing Electron Framework binary (checked Versions/A and framework-level Electron Framework)"
+              ls -la "$framework_dir/" || true
+              if [ -d "$framework_dir/Versions" ]; then
+                ls -la "$framework_dir/Versions/" || true
+              fi
+              fail=1
+            else
+              size=$(stat -f %z "$fw")
+              if [ "$size" -lt 52428800 ]; then
+                echo "::error file=$dmg::Electron Framework binary suspiciously small: ${size} bytes"
+                fail=1
+              else
+                echo "  OK: Electron Framework $(($size / 1048576)) MB at $fw"
+              fi
+            fi
+            hdiutil detach -quiet "$mountpoint" || hdiutil detach -force "$mountpoint" || true
+            echo "::endgroup::"
+          done
+          # Also sanity-check the .zip (electron-updater consumes this).
+          for zip in electron/dist/Nodetool-*.zip; do
+            echo "::group::Verify $zip"
+            entry_versioned="Nodetool.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework"
+            entry_flat="Nodetool.app/Contents/Frameworks/Electron Framework.framework/Electron Framework"
+            # Keep diagnostics concise while still showing enough context to debug.
+            # 120 lines ~= listing headers + ~100 entries, balancing debuggability
+            # with CI log volume.
+            diag_limit=120
+            # Path contains spaces, so don't use $NF — match the first numeric line in the listing body.
+            size=$(unzip -l "$zip" "$entry_versioned" 2>/dev/null | awk 'NR>3 && $1 ~ /^[0-9]+$/ {print $1; exit}')
+            if [ -z "${size:-}" ]; then
+              size=$(unzip -l "$zip" "$entry_flat" 2>/dev/null | awk 'NR>3 && $1 ~ /^[0-9]+$/ {print $1; exit}')
+            fi
+            if [ -z "${size:-}" ] || [ "${size:-0}" -lt 52428800 ]; then
+              echo "::error file=$zip::Electron Framework missing or too small in zip (size=${size:-0})"
+              unzip -l "$zip" "Nodetool.app/Contents/Frameworks/Electron Framework.framework/*" 2>/dev/null | sed -n "1,${diag_limit}p" || true
+              unzip -l "$zip" "Nodetool.app/Contents/Frameworks/Electron Framework.framework/Versions/*" 2>/dev/null | sed -n "1,${diag_limit}p" || true
+              fail=1
+            else
+              echo "  OK: Electron Framework $(($size / 1048576)) MB"
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::macOS artifact verification failed; refusing to upload."
             exit 1
           fi
 
