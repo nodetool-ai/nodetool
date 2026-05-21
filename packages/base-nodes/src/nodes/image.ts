@@ -2,7 +2,6 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import {
   type BlendMode,
   blendModeGpuId,
-  blendModeToSharpBlend,
   coerceBlendMode
 } from "@nodetool-ai/gpu";
 import { compositeImageLayers } from "@nodetool-ai/gpu/node";
@@ -1989,6 +1988,13 @@ function compositorLayerState(raw: unknown): CompositorLayerState {
  * composited on top in index order at (0, 0). Per-layer state lives in
  * the `layers` list, indexed positionally against the sorted image
  * inputs. Hidden / zero-opacity layers are skipped.
+ *
+ * Compositing runs on the GPU through the shared WebGPULayerCompositor (the
+ * same engine the sketch editor and timeline preview use), via Node.js Dawn —
+ * the blend math is identical to the browser path. WebGPU is required; there
+ * is no CPU fallback. Sharp is used only as the codec layer: decode each layer
+ * to straight-alpha RGBA on the way in, encode the composite to PNG on the
+ * way out.
  */
 export class CompositorNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Compositor";
@@ -2050,129 +2056,9 @@ export class CompositorNode extends BaseNode {
       };
     }
 
-    // Build the canvas from the lowest-index visible layer. Apply its
-    // opacity by scaling the alpha channel via `linear`.
-    const buildScaledLayer = async (
-      img: ImageRefLike,
-      opacity: number
-    ): Promise<Buffer> => {
-      const bytes = await imageBytesAsync(img, context);
-      let pipeline = sharp(bytes, { failOn: "none" }).ensureAlpha();
-      if (opacity < 1) {
-        pipeline = pipeline.linear([1, 1, 1, opacity], [0, 0, 0, 0]);
-      }
-      return pipeline.png().toBuffer();
-    };
-
-    let canvas = await buildScaledLayer(
-      visible[0].image,
-      visible[0].state.opacity
-    );
-
-    for (let i = 1; i < visible.length; i++) {
-      const layer = visible[i];
-      try {
-        const layerBuf = await buildScaledLayer(layer.image, layer.state.opacity);
-        canvas = await sharp(canvas, { failOn: "none" })
-          .composite([
-            {
-              input: layerBuf,
-              blend: blendModeToSharpBlend(layer.state.blend_mode) as never,
-              top: 0,
-              left: 0
-            }
-          ])
-          .png()
-          .toBuffer();
-      } catch (err) {
-        // Bad input or unsupported blend → fall through, keep prior canvas.
-        console.warn("CompositorNode: failed to composite layer, skipping.", err);
-      }
-    }
-
-    const meta = await metadataFor(new Uint8Array(canvas));
-    return {
-      output: imageRef(new Uint8Array(canvas), {
-        uri: "",
-        mimeType: "image/png",
-        width: meta.width,
-        height: meta.height
-      })
-    };
-  }
-}
-
-/**
- * CompositorGPU — the WebGPU-backed sibling of {@link CompositorNode}.
- *
- * Same inputs and per-layer model (dynamic `image_0`, `image_1`, … with
- * positional `layers` state), but the blend is run on the GPU through the
- * shared {@link WebGPULayerCompositor} (the same engine the sketch editor and
- * timeline preview use), via Node.js Dawn. Sharp is used only as the codec
- * layer here: decode each layer to straight-alpha RGBA on the way in, encode
- * the composited RGBA to PNG on the way out. The blend math itself lives in
- * `@nodetool-ai/gpu`, identical to the browser path.
- *
- * Requires WebGPU (the optional `webgpu`/Dawn package). There is no silent
- * CPU fallback — for a pure-CPU path, use {@link CompositorNode}.
- */
-export class CompositorGPUNode extends BaseNode {
-  static readonly nodeType = "nodetool.image.CompositorGPU";
-  static readonly title = "Compositor (GPU)";
-  static readonly description =
-    "Composite multiple image layers on the GPU with per-layer opacity and blend mode.\n    image, compositor, blend, layers, gpu, webgpu";
-  static readonly metadataOutputTypes = {
-    output: "image"
-  };
-  static readonly isDynamic = true;
-  static readonly inlineFields = [];
-  static readonly inputFields = [];
-
-  @prop({
-    type: "list",
-    default: [],
-    title: "Layers",
-    description:
-      "Per-layer state (positional): { opacity, blend_mode, visible }."
-  })
-  declare layers: unknown;
-
-  async process(
-    context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
-    const layerStates = Array.isArray(this.layers) ? this.layers : [];
-
-    // Collect dynamic image_N inputs, sorted ascending by N. Position in
-    // that sorted list is the index into `layers` for per-layer state.
-    const collected: { index: number; image: ImageRefLike }[] = [];
-    for (const [key, value] of this.dynamicProps) {
-      const m = /^image_(\d+)$/.exec(key);
-      if (!m || !value || typeof value !== "object") continue;
-      collected.push({ index: Number(m[1]), image: value as ImageRefLike });
-    }
-    collected.sort((a, b) => a.index - b.index);
-
-    const inputs = collected.map((c, i) => ({
-      image: c.image,
-      state: compositorLayerState(layerStates[i])
-    }));
-
-    const visible = inputs.filter(
-      (l) => l.state.visible && l.state.opacity > 0
-    );
-
-    if (visible.length === 0) {
-      return {
-        output: imageRef(new Uint8Array(), {
-          uri: "",
-          width: undefined,
-          height: undefined
-        })
-      };
-    }
-
     // Decode each visible layer to straight-alpha RGBA. The first visible
-    // layer defines the canvas size; layers stack at (0, 0) at native size.
+    // layer defines the canvas size; layers stack at (0, 0) at native size,
+    // cropped to the canvas (matching a top-left paste).
     const decoded: {
       rgba: Uint8Array;
       width: number;
@@ -2183,17 +2069,22 @@ export class CompositorGPUNode extends BaseNode {
     for (const layer of visible) {
       const bytes = await imageBytesAsync(layer.image, context);
       if (bytes.length === 0) continue;
-      const { data, info } = await sharp(bytes, { failOn: "none" })
-        .ensureAlpha()
-        .raw()
-        .toBuffer({ resolveWithObject: true });
-      decoded.push({
-        rgba: new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
-        width: info.width,
-        height: info.height,
-        opacity: layer.state.opacity,
-        blendModeId: blendModeGpuId(layer.state.blend_mode)
-      });
+      try {
+        const { data, info } = await sharp(bytes, { failOn: "none" })
+          .ensureAlpha()
+          .raw()
+          .toBuffer({ resolveWithObject: true });
+        decoded.push({
+          rgba: new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
+          width: info.width,
+          height: info.height,
+          opacity: layer.state.opacity,
+          blendModeId: blendModeGpuId(layer.state.blend_mode)
+        });
+      } catch (err) {
+        // Undecodable input → skip this layer, keep the rest of the stack.
+        console.warn("CompositorNode: failed to decode layer, skipping.", err);
+      }
     }
 
     if (decoded.length === 0) {
@@ -2206,12 +2097,12 @@ export class CompositorGPUNode extends BaseNode {
       };
     }
 
-    const canvasWidth = decoded[0].width;
-    const canvasHeight = decoded[0].height;
+    // Composite on the GPU through the shared WebGPULayerCompositor (the same
+    // engine the sketch editor and timeline preview use), via Node.js Dawn.
     const result = await compositeImageLayers(
       decoded,
-      canvasWidth,
-      canvasHeight
+      decoded[0].width,
+      decoded[0].height
     );
 
     const png = await sharp(Buffer.from(result.rgba), {
@@ -2404,6 +2295,5 @@ export const IMAGE_NODES = [
   ImageToImageNode,
   ImageEditorNode,
   CompositorNode,
-  CompositorGPUNode,
   PainterNode
 ] as const;
