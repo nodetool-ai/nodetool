@@ -18,14 +18,8 @@ import useResultsStore from "./ResultsStore";
 import { useComfyUIStore } from "./ComfyUIStore";
 import { Edge, Node } from "@xyflow/react";
 import {
-  Prediction,
-  NodeProgress,
-  NodeUpdate,
-  JobUpdate,
   RunJobRequest,
-  WorkflowAttributes,
-  TaskUpdate,
-  PlanningUpdate
+  WorkflowAttributes
 } from "./ApiTypes";
 import { uuidv4 } from "./uuidv4";
 import { useNotificationStore, Notification } from "./NotificationStore";
@@ -39,7 +33,7 @@ import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { createRunnerMessageHandler } from "../core/workflow/runnerProtocol";
-import { getNodeStore } from "./workflowUpdates";
+import { getNodeStore, MsgpackData } from "./workflowUpdates";
 
 export type MessageHandler = (
   workflow: WorkflowAttributes,
@@ -92,13 +86,7 @@ export type WorkflowRunner = {
   endInputStream: (inputName: string, handle?: string) => void;
 };
 
-export type MsgpackData =
-  | JobUpdate
-  | Prediction
-  | NodeProgress
-  | NodeUpdate
-  | TaskUpdate
-  | PlanningUpdate;
+export type { MsgpackData };
 
 export type WorkflowRunnerStore = UseBoundStore<StoreApi<WorkflowRunner>>;
 

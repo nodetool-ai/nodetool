@@ -634,6 +634,37 @@ const applyToolCallUpdate = (
   };
 };
 
+interface AgentExecutionMessage extends Message {
+  execution_event_type?: string;
+}
+
+function isPlanningUpdateContent(content: unknown): content is PlanningUpdate {
+  return (
+    typeof content === "object" &&
+    content !== null &&
+    !Array.isArray(content) &&
+    (content as Record<string, unknown>).type === "planning_update"
+  );
+}
+
+function isTaskUpdateContent(content: unknown): content is TaskUpdate {
+  return (
+    typeof content === "object" &&
+    content !== null &&
+    !Array.isArray(content) &&
+    (content as Record<string, unknown>).type === "task_update"
+  );
+}
+
+function isLogUpdateContent(content: unknown): content is LogUpdate {
+  return (
+    typeof content === "object" &&
+    content !== null &&
+    !Array.isArray(content) &&
+    (content as Record<string, unknown>).type === "log_update"
+  );
+}
+
 const applyAgentExecutionMessage = (
   state: GlobalChatState,
   threadId: string,
@@ -650,11 +681,7 @@ const applyAgentExecutionMessage = (
       : state.threads
   };
 
-  // Debug logging for agent execution messages
-  // These properties exist on agent_execution messages but aren't in the base Message type
-  const agentMsg = msg as Message & {
-    execution_event_type?: string;
-  };
+  const agentMsg = msg as AgentExecutionMessage;
   console.debug("applyAgentExecutionMessage:", {
     execution_event_type: agentMsg.execution_event_type,
     content_type: typeof agentMsg.content,
@@ -662,29 +689,28 @@ const applyAgentExecutionMessage = (
     has_content: !!agentMsg.content
   });
 
+  const content = agentMsg.content;
+
   if (agentMsg.execution_event_type === "planning_update") {
-    const content = agentMsg.content;
     console.debug("PlanningUpdate content:", content);
-    if (content && typeof content === "object" && !Array.isArray(content)) {
-      update.currentPlanningUpdate = content as unknown as PlanningUpdate;
+    if (isPlanningUpdateContent(content)) {
+      update.currentPlanningUpdate = content;
       console.info("Set currentPlanningUpdate:", content);
     } else {
       console.warn("PlanningUpdate content is invalid:", content);
     }
   } else if (agentMsg.execution_event_type === "task_update") {
-    const content = agentMsg.content;
-    if (content && typeof content === "object" && !Array.isArray(content)) {
-      update.currentTaskUpdate = content as unknown as TaskUpdate;
+    if (isTaskUpdateContent(content)) {
+      update.currentTaskUpdate = content;
       update.currentTaskUpdateThreadId = threadId;
       update.lastTaskUpdatesByThread = {
         ...state.lastTaskUpdatesByThread,
-        [threadId]: content as unknown as TaskUpdate
+        [threadId]: content
       };
     }
   } else if (agentMsg.execution_event_type === "log_update") {
-    const content = agentMsg.content;
-    if (content && typeof content === "object" && !Array.isArray(content)) {
-      update.currentLogUpdate = content as unknown as LogUpdate;
+    if (isLogUpdateContent(content)) {
+      update.currentLogUpdate = content;
     }
   }
 
