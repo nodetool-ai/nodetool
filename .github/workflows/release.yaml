@@ -170,10 +170,13 @@ jobs:
           # dominate the macOS runner image, so reclaim that space up front.
           echo "Disk before cleanup:"; df -h /
           xcrun simctl delete all 2>/dev/null || true
-          sudo rm -rf ~/Library/Developer/CoreSimulator/Caches/* 2>/dev/null || true
-          sudo rm -rf /Library/Developer/CoreSimulator/Profiles/Runtimes/* 2>/dev/null || true
+          # Simulator runtimes/images are the largest reclaimable chunk after
+          # the extra Xcodes (tens of GB) and an Electron build never uses them.
+          sudo rm -rf /Library/Developer/CoreSimulator 2>/dev/null || true
+          sudo rm -rf ~/Library/Developer/CoreSimulator 2>/dev/null || true
           sudo rm -rf ~/Library/Android /Users/runner/Library/Android 2>/dev/null || true
           sudo rm -rf "${ANDROID_SDK_ROOT:-}" "${ANDROID_HOME:-}" 2>/dev/null || true
+          sudo rm -rf /usr/local/lib/android 2>/dev/null || true
           # Keep the active Xcode (codesign/notarytool need it); drop the rest.
           active="$(xcode-select -p 2>/dev/null | sed -E 's#(/Applications/Xcode[^/]*\.app).*#\1#')"
           for x in /Applications/Xcode_*.app /Applications/Xcode.app; do
@@ -525,6 +528,15 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           ulimit -n 65536
+          # Diagnostic: log host free space every 20s for the duration of the
+          # build so a dmgbuild "No space left on device" can be correlated with
+          # actual host disk pressure. If df still shows GBs free when ENOSPC
+          # fires, the staging DMG image is undersized (not host disk).
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            ( while true; do printf 'DISKMON %s ' "$(date -u +%H:%M:%S)"; df -h / | tail -1; sleep 20; done ) &
+            DISKMON_PID=$!
+            trap 'kill "$DISKMON_PID" 2>/dev/null || true' EXIT
+          fi
           cd electron
           npm run vite:build
           npm run prepare-backend
