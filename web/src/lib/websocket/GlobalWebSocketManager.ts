@@ -4,7 +4,7 @@ import {
   handleResourceChange,
   invalidateAllResourceQueries
 } from "../../stores/resourceChangeHandler";
-import { handleSystemStats } from "../../stores/systemStatsHandler";
+import { handleSystemStats, SystemStatsMessage } from "../../stores/systemStatsHandler";
 import { ResourceChangeUpdate } from "../../stores/ApiTypes";
 import { ConnectionState, WebSocketManager } from "./WebSocketManager";
 import { FrontendToolRegistry } from "../tools/frontendTools";
@@ -22,6 +22,23 @@ export interface WebSocketMessage {
 }
 
 type MessageHandler = (message: WebSocketMessage) => void;
+
+function isResourceChange(msg: WebSocketMessage): msg is WebSocketMessage & ResourceChangeUpdate {
+  return msg.type === "resource_change";
+}
+
+function isSystemStats(msg: WebSocketMessage): msg is WebSocketMessage & SystemStatsMessage {
+  return msg.type === "system_stats";
+}
+
+interface RpcResponse extends WebSocketMessage {
+  type: "rpc_response";
+  request_id: string;
+}
+
+function isRpcResponse(msg: WebSocketMessage): msg is RpcResponse {
+  return msg.type === "rpc_response" && typeof (msg as Record<string, unknown>).request_id === "string";
+}
 
 interface GlobalWebSocketEvents {
   open: () => void;
@@ -180,22 +197,18 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
    * have routing keys but should update global state.
    */
   private routeMessage(message: WebSocketMessage): void {
-    // Handle resource_change messages separately
-    if (message.type === "resource_change") {
+    if (isResourceChange(message)) {
       try {
-        handleResourceChange(message as unknown as ResourceChangeUpdate);
+        handleResourceChange(message);
       } catch (error) {
         console.error("GlobalWebSocketManager: Error handling resource change:", error);
       }
-      // Resource change messages are not routed to specific handlers
-      // They only trigger cache invalidation
       return;
     }
 
-    // Handle system_stats messages separately
-    if (message.type === "system_stats") {
+    if (isSystemStats(message)) {
       try {
-        handleSystemStats(message as unknown as Parameters<typeof handleSystemStats>[0]);
+        handleSystemStats(message);
       } catch (error) {
         console.error("GlobalWebSocketManager: Error handling system stats:", error);
       }
@@ -216,15 +229,8 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
       routingKeys.add(message.job_id);
     }
 
-    // RPC response frames carry a `request_id` and no thread/workflow/job id.
-    // Subscribers (e.g. sketch direct-gen) register against the request_id.
-    if (
-      message.type === "rpc_response" &&
-      typeof (message as { request_id?: unknown }).request_id === "string"
-    ) {
-      routingKeys.add(
-        (message as unknown as { request_id: string }).request_id
-      );
+    if (isRpcResponse(message)) {
+      routingKeys.add(message.request_id);
     }
 
     if (routingKeys.size === 0) {

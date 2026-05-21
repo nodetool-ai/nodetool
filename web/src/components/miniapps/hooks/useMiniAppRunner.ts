@@ -3,11 +3,6 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 
 import {
-  JobUpdate,
-  NodeProgress,
-  NodeUpdate,
-  OutputUpdate,
-  PreviewUpdate,
   Workflow,
   WorkflowAttributes
 } from "../../../stores/ApiTypes";
@@ -17,7 +12,7 @@ import {
   MsgpackData,
   WorkflowRunnerStore
 } from "../../../stores/WorkflowRunner";
-import { MiniAppResult, RunnerMessage } from "../types";
+import { MiniAppResult } from "../types";
 import { useMiniAppsStore } from "../../../stores/MiniAppsStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 
@@ -86,28 +81,18 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
         return;
       }
 
-      const typedData = data as RunnerMessage;
-      const messageType = typedData.type;
-
-      if (messageType === "output_update") {
+      if (data.type === "output_update") {
         try {
-          const update = typedData as unknown as OutputUpdate;
-
-          // Keep the value as-is - no base64 conversion needed
-          // The OutputRenderer will handle the value appropriately
-          const value = update.value;
-
-          // Generate unique ID for each streaming update to allow multiple items
           const timestamp = Date.now();
           const random = Math.random().toString(36).substring(2, 9);
           const result: MiniAppResult = {
-            id: `${update.node_id}:${update.output_name}:${timestamp}:${random}`,
-            nodeId: update.node_id,
-            nodeName: update.node_name,
-            outputName: update.output_name,
-            outputType: update.output_type,
-            value: value,
-            metadata: (update.metadata || {}) as Record<string, unknown>,
+            id: `${data.node_id}:${data.output_name}:${timestamp}:${random}`,
+            nodeId: data.node_id,
+            nodeName: data.node_name,
+            outputName: data.output_name,
+            outputType: data.output_type,
+            value: data.value,
+            metadata: (data.metadata || {}) as Record<string, unknown>,
             receivedAt: timestamp
           };
 
@@ -117,24 +102,17 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
         }
       }
 
-      if (messageType === "preview_update") {
+      if (data.type === "preview_update") {
         try {
-          const update = typedData as unknown as PreviewUpdate;
-
-          // Keep the value as-is - no base64 conversion needed
-          // The OutputRenderer will handle the value appropriately
-          const value = update.value;
-
-          // Generate unique ID for each streaming preview update to allow multiple items
           const timestamp = Date.now();
           const random = Math.random().toString(36).substring(2, 9);
           const result: MiniAppResult = {
-            id: `${update.node_id}:preview:${timestamp}:${random}`,
-            nodeId: update.node_id,
+            id: `${data.node_id}:preview:${timestamp}:${random}`,
+            nodeId: data.node_id,
             nodeName: "Preview",
             outputName: "preview",
             outputType: "image",
-            value: value,
+            value: data.value,
             metadata: {},
             receivedAt: timestamp
           };
@@ -145,16 +123,15 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
         }
       }
 
-      if (messageType === "node_update") {
-        const update = typedData as unknown as NodeUpdate;
-        if (update.error) {
+      if (data.type === "node_update") {
+        if (data.error) {
           const result: MiniAppResult = {
-            id: `${update.node_id}:error`,
-            nodeId: update.node_id,
-            nodeName: update.node_name || update.node_id,
+            id: `${data.node_id}:error`,
+            nodeId: data.node_id,
+            nodeName: data.node_name || data.node_id,
             outputName: "error",
             outputType: "error",
-            value: update.error,
+            value: data.error,
             metadata: {},
             receivedAt: Date.now()
           };
@@ -162,35 +139,32 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
         }
       }
 
-      if (messageType === "node_progress") {
-        const nodeProgress = typedData as unknown as NodeProgress;
+      if (data.type === "node_progress") {
         if (
-          typeof nodeProgress.total === "number" &&
-          nodeProgress.total > 0 &&
-          typeof nodeProgress.progress === "number"
+          typeof data.total === "number" &&
+          data.total > 0 &&
+          typeof data.progress === "number"
         ) {
           setProgressState(workflow.id, {
-            current: nodeProgress.progress,
-            total: nodeProgress.total
+            current: data.progress,
+            total: data.total
           });
         } else {
           setProgressState(workflow.id, null);
         }
       }
 
-      if (messageType === "job_update") {
-        const jobUpdate = typedData as unknown as JobUpdate;
+      if (data.type === "job_update") {
         if (
-          jobUpdate.status === "completed" ||
-          jobUpdate.status === "failed" ||
-          jobUpdate.status === "cancelled" ||
-          jobUpdate.status === "timed_out"
+          data.status === "completed" ||
+          data.status === "failed" ||
+          data.status === "cancelled" ||
+          data.status === "timed_out"
         ) {
           setProgressState(workflow.id, null);
         }
-        // Store duration when job completes successfully
-        if (jobUpdate.status === "completed" && jobUpdate.duration != null) {
-          setLastRunDuration(workflow.id, jobUpdate.duration);
+        if (data.status === "completed" && data.duration != null) {
+          setLastRunDuration(workflow.id, data.duration);
         }
       }
     };
