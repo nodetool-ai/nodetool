@@ -53,6 +53,8 @@ import {
   loadImageWithDimensions
 } from "../../sketch";
 import { useNodes } from "../../../contexts/NodeContext";
+import type { NodeStoreState } from "../../../stores/NodeStore";
+import type { Edge } from "@xyflow/react";
 import useSelect from "../../../hooks/nodes/useSelect";
 import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import useResultsStore from "../../../stores/ResultsStore";
@@ -467,7 +469,21 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const pendingDocumentSyncRef = useRef<SketchDocument | null>(null);
   const pendingNodePropsRef = useRef<Record<string, unknown>>({});
   const nodeSyncTimeoutRef = useRef<number | null>(null);
-  const edges = useNodes((s) => s.edges);
+  const nodeEdgesSelector = useMemo(() => {
+    let lastEdges: Edge[] | null = null;
+    let lastResult: Edge[] = [];
+    return (state: NodeStoreState) => {
+      if (state.edges === lastEdges) {
+        return lastResult;
+      }
+      lastEdges = state.edges;
+      lastResult = state.edges.filter(
+        (e) => e.target === props.id || e.source === props.id
+      );
+      return lastResult;
+    };
+  }, [props.id]);
+  const edges = useNodes(nodeEdgesSelector);
   const updateNodeProperties = useNodes((s) => s.updateNodeProperties);
   const updateNodeData = useNodes((s) => s.updateNodeData);
   const updateEdgeHandle = useNodes((s) => s.updateEdgeHandle);

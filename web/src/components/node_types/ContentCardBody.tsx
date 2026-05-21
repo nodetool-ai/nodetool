@@ -482,9 +482,6 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   const inlineFields = nodeMetadata.inline_fields ?? [];
 
   const properties = nodeMetadata.properties ?? [];
-  const inlineProps = useNewLayout
-    ? properties.filter((p) => inlineFields.includes(p.name))
-    : [];
   // Handle column = metadata input_fields ∪ user-promoted exposedInputs.
   const handleNames = useMemo(
     () =>
@@ -493,9 +490,20 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
         : null,
     [useNewLayout, nodeMetadata, data]
   );
-  const handleProps = useNewLayout
-    ? properties.filter((p) => handleNames!.has(p.name))
-    : properties; // fallback: all properties render as handles
+  const inlineProps = useMemo(
+    () =>
+      useNewLayout
+        ? properties.filter((p) => inlineFields.includes(p.name))
+        : [],
+    [useNewLayout, properties, inlineFields]
+  );
+  const handleProps = useMemo(
+    () =>
+      useNewLayout
+        ? properties.filter((p) => handleNames!.has(p.name))
+        : properties,
+    [useNewLayout, properties, handleNames]
+  );
 
   // Adding a dynamic property is the responsibility of dynamic-input wiring
   // landed in earlier work (NodeInputs / NodePropertyForm). For PR 4 we
