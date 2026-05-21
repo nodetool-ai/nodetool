@@ -157,37 +157,6 @@ jobs:
       - name: Print selected version
         run: echo "Using VERSION=$VERSION channel=$RELEASE_CHANNEL tag=$RELEASE_TAG"
 
-      - name: Free up disk space (macOS)
-        if: matrix.os == 'macos-latest'
-        shell: bash
-        run: |
-          set -uo pipefail
-          # Root cause of shipped-but-broken DMGs: the runner ran out of disk
-          # during dmgbuild's `ditto`, which silently dropped the Electron
-          # Framework binary from the artifact (see the "Verify macOS DMG/zip
-          # integrity" guard below). An Electron build never touches the iOS
-          # simulators, the Android SDK, or the extra Xcode versions that
-          # dominate the macOS runner image, so reclaim that space up front.
-          echo "Disk before cleanup:"; df -h /
-          xcrun simctl delete all 2>/dev/null || true
-          # Simulator runtimes/images are the largest reclaimable chunk after
-          # the extra Xcodes (tens of GB) and an Electron build never uses them.
-          sudo rm -rf /Library/Developer/CoreSimulator 2>/dev/null || true
-          sudo rm -rf ~/Library/Developer/CoreSimulator 2>/dev/null || true
-          sudo rm -rf ~/Library/Android /Users/runner/Library/Android 2>/dev/null || true
-          sudo rm -rf "${ANDROID_SDK_ROOT:-}" "${ANDROID_HOME:-}" 2>/dev/null || true
-          sudo rm -rf /usr/local/lib/android 2>/dev/null || true
-          # Keep the active Xcode (codesign/notarytool need it); drop the rest.
-          active="$(xcode-select -p 2>/dev/null | sed -E 's#(/Applications/Xcode[^/]*\.app).*#\1#')"
-          for x in /Applications/Xcode_*.app /Applications/Xcode.app; do
-            [ -e "$x" ] || continue
-            if [ "$x" != "$active" ]; then
-              echo "Removing unused $x"
-              sudo rm -rf "$x" 2>/dev/null || true
-            fi
-          done
-          echo "Disk after cleanup:"; df -h /
-
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
@@ -528,15 +497,6 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           ulimit -n 65536
-          # Diagnostic: log host free space every 20s for the duration of the
-          # build so a dmgbuild "No space left on device" can be correlated with
-          # actual host disk pressure. If df still shows GBs free when ENOSPC
-          # fires, the staging DMG image is undersized (not host disk).
-          if [ "$RUNNER_OS" = "macOS" ]; then
-            ( while true; do printf 'DISKMON %s ' "$(date -u +%H:%M:%S)"; df -h / | tail -1; sleep 20; done ) &
-            DISKMON_PID=$!
-            trap 'kill "$DISKMON_PID" 2>/dev/null || true' EXIT
-          fi
           cd electron
           npm run vite:build
           npm run prepare-backend
@@ -600,15 +560,18 @@ jobs:
         run: |
           set -euo pipefail
           # Guard against electron-builder/dmgbuild regressions that silently
-          # drop files from the produced artifacts. The observed failure mode is
-          # the runner running out of disk during dmgbuild's `ditto` copy: ditto
-          # fails on the largest file (the ~150 MB Electron Framework Mach-O) with
-          # "No space left on device", but electron-builder only logs the stderr
-          # and continues — shipping a DMG that mounts fine yet aborts at launch
-          # ("Nodetool cannot be opened because of a problem"). The smoke-launch
-          # above only exercises the *unpacked* app, so it cannot catch this.
-          # Mount each DMG and assert the framework binary is present and large
-          # enough to be real (>50 MB); do the same for the updater .zip.
+          # drop files from the produced artifacts. The observed failure mode:
+          # dmgbuild's auto-sized staging image is too small for the app's real
+          # on-disk footprint (thousands of small files inflate the HFS catalog),
+          # so `ditto` fails on the last large file (the ~150 MB Electron
+          # Framework Mach-O) with "No space left on device" — with ~130 GB of
+          # host disk still free. electron-builder only logs the stderr and
+          # continues, shipping a DMG that mounts fine yet aborts at launch
+          # ("Nodetool cannot be opened because of a problem"). The fix is the
+          # explicit `dmg.size` in electron-builder.json; this guard stays as the
+          # backstop. The smoke-launch above only exercises the *unpacked* app,
+          # so it cannot catch a broken DMG/zip. Mount each DMG and assert the
+          # framework binary is present and >50 MB; do the same for the .zip.
           fail=0
           shopt -s nullglob
           find_framework_binary() {
