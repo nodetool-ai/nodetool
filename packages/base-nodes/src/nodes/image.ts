@@ -1,9 +1,11 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import {
   type BlendMode,
+  blendModeGpuId,
   blendModeToSharpBlend,
   coerceBlendMode
 } from "@nodetool-ai/gpu";
+import { compositeImageLayers } from "@nodetool-ai/gpu/node";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -2101,6 +2103,135 @@ export class CompositorNode extends BaseNode {
 }
 
 /**
+ * CompositorGPU — the WebGPU-backed sibling of {@link CompositorNode}.
+ *
+ * Same inputs and per-layer model (dynamic `image_0`, `image_1`, … with
+ * positional `layers` state), but the blend is run on the GPU through the
+ * shared {@link WebGPULayerCompositor} (the same engine the sketch editor and
+ * timeline preview use), via Node.js Dawn. Sharp is used only as the codec
+ * layer here: decode each layer to straight-alpha RGBA on the way in, encode
+ * the composited RGBA to PNG on the way out. The blend math itself lives in
+ * `@nodetool-ai/gpu`, identical to the browser path.
+ *
+ * Requires WebGPU (the optional `webgpu`/Dawn package). There is no silent
+ * CPU fallback — for a pure-CPU path, use {@link CompositorNode}.
+ */
+export class CompositorGPUNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.CompositorGPU";
+  static readonly title = "Compositor (GPU)";
+  static readonly description =
+    "Composite multiple image layers on the GPU with per-layer opacity and blend mode.\n    image, compositor, blend, layers, gpu, webgpu";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly isDynamic = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
+
+  @prop({
+    type: "list",
+    default: [],
+    title: "Layers",
+    description:
+      "Per-layer state (positional): { opacity, blend_mode, visible }."
+  })
+  declare layers: unknown;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const layerStates = Array.isArray(this.layers) ? this.layers : [];
+
+    // Collect dynamic image_N inputs, sorted ascending by N. Position in
+    // that sorted list is the index into `layers` for per-layer state.
+    const collected: { index: number; image: ImageRefLike }[] = [];
+    for (const [key, value] of this.dynamicProps) {
+      const m = /^image_(\d+)$/.exec(key);
+      if (!m || !value || typeof value !== "object") continue;
+      collected.push({ index: Number(m[1]), image: value as ImageRefLike });
+    }
+    collected.sort((a, b) => a.index - b.index);
+
+    const inputs = collected.map((c, i) => ({
+      image: c.image,
+      state: compositorLayerState(layerStates[i])
+    }));
+
+    const visible = inputs.filter(
+      (l) => l.state.visible && l.state.opacity > 0
+    );
+
+    if (visible.length === 0) {
+      return {
+        output: imageRef(new Uint8Array(), {
+          uri: "",
+          width: undefined,
+          height: undefined
+        })
+      };
+    }
+
+    // Decode each visible layer to straight-alpha RGBA. The first visible
+    // layer defines the canvas size; layers stack at (0, 0) at native size.
+    const decoded: {
+      rgba: Uint8Array;
+      width: number;
+      height: number;
+      opacity: number;
+      blendModeId: number;
+    }[] = [];
+    for (const layer of visible) {
+      const bytes = await imageBytesAsync(layer.image, context);
+      if (bytes.length === 0) continue;
+      const { data, info } = await sharp(bytes, { failOn: "none" })
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      decoded.push({
+        rgba: new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
+        width: info.width,
+        height: info.height,
+        opacity: layer.state.opacity,
+        blendModeId: blendModeGpuId(layer.state.blend_mode)
+      });
+    }
+
+    if (decoded.length === 0) {
+      return {
+        output: imageRef(new Uint8Array(), {
+          uri: "",
+          width: undefined,
+          height: undefined
+        })
+      };
+    }
+
+    const canvasWidth = decoded[0].width;
+    const canvasHeight = decoded[0].height;
+    const result = await compositeImageLayers(
+      decoded,
+      canvasWidth,
+      canvasHeight
+    );
+
+    const png = await sharp(Buffer.from(result.rgba), {
+      raw: { width: result.width, height: result.height, channels: 4 }
+    })
+      .png()
+      .toBuffer();
+
+    return {
+      output: imageRef(new Uint8Array(png), {
+        uri: "",
+        mimeType: "image/png",
+        width: result.width,
+        height: result.height
+      })
+    };
+  }
+}
+
+/**
  * Painter — paint an alpha mask atop a source image. The mask is
  * authored interactively in the web UI; `mask_data` carries a base64
  * PNG of the painted mask (alpha == painted opacity). On execution we
@@ -2273,5 +2404,6 @@ export const IMAGE_NODES = [
   ImageToImageNode,
   ImageEditorNode,
   CompositorNode,
+  CompositorGPUNode,
   PainterNode
 ] as const;
