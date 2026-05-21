@@ -5,3 +5,4 @@
 export * from "./compositor.js";
 export * from "./shaders.js";
 export * from "./headless.js";
+export * from "./transform.js";

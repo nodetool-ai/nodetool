@@ -18,6 +18,7 @@ import {
   type HeadlessLayer,
   type HeadlessCompositeResult
 } from "./compositor/headless.js";
+import type { LayerTransform2D } from "./compositor/transform.js";
 
 type DawnModule = { create?: (flags: string[]) => GPU };
 
@@ -87,4 +88,4 @@ export async function compositeImageLayers(
 }
 
 export { compositeLayersHeadless };
-export type { HeadlessLayer, HeadlessCompositeResult };
+export type { HeadlessLayer, HeadlessCompositeResult, LayerTransform2D };

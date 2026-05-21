@@ -4,7 +4,10 @@ import {
   blendModeGpuId,
   coerceBlendMode
 } from "@nodetool-ai/gpu";
-import { compositeImageLayers } from "@nodetool-ai/gpu/node";
+import {
+  compositeImageLayers,
+  type LayerTransform2D
+} from "@nodetool-ai/gpu/node";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -1967,7 +1970,25 @@ type CompositorLayerState = {
   opacity: number;
   blend_mode: BlendMode;
   visible: boolean;
+  /** Placement on the canvas, authored in the editor. Undefined → native. */
+  transform?: LayerTransform2D;
 };
+
+function compositorLayerTransform(raw: unknown): LayerTransform2D | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  const num = (v: unknown, fallback: number): number =>
+    typeof v === "number" && Number.isFinite(v) ? v : fallback;
+  // A persisted transform must at least pin a position; scale defaults to 1.
+  if (typeof r.x !== "number" || typeof r.y !== "number") return undefined;
+  return {
+    x: r.x,
+    y: r.y,
+    scaleX: num(r.scaleX, 1),
+    scaleY: num(r.scaleY, 1),
+    rotation: num(r.rotation, 0)
+  };
+}
 
 function compositorLayerState(raw: unknown): CompositorLayerState {
   const r = (raw ?? {}) as Record<string, unknown>;
@@ -1978,7 +1999,12 @@ function compositorLayerState(raw: unknown): CompositorLayerState {
   const visible = r.visible === undefined ? true : !!r.visible;
   // Stored values are canonical blend modes; the legacy "over" name still
   // resolves to "normal" via coerceBlendMode.
-  return { opacity, blend_mode: coerceBlendMode(r.blend_mode), visible };
+  return {
+    opacity,
+    blend_mode: coerceBlendMode(r.blend_mode),
+    visible,
+    transform: compositorLayerTransform(r.transform)
+  };
 }
 
 /**
@@ -2013,9 +2039,27 @@ export class CompositorNode extends BaseNode {
     default: [],
     title: "Layers",
     description:
-      "Per-layer state (positional): { opacity, blend_mode, visible }."
+      "Per-layer state (positional): { opacity, blend_mode, visible, transform }."
   })
   declare layers: unknown;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Canvas width",
+    description:
+      "Composite canvas width in pixels. 0 → use the first visible layer's width."
+  })
+  declare canvas_width: number;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Canvas height",
+    description:
+      "Composite canvas height in pixels. 0 → use the first visible layer's height."
+  })
+  declare canvas_height: number;
 
   async process(
     context?: ProcessingContext
@@ -2056,15 +2100,15 @@ export class CompositorNode extends BaseNode {
       };
     }
 
-    // Decode each visible layer to straight-alpha RGBA. The first visible
-    // layer defines the canvas size; layers stack at (0, 0) at native size,
-    // cropped to the canvas (matching a top-left paste).
+    // Decode each visible layer to straight-alpha RGBA. Each layer is placed
+    // by its authored transform (default: top-left at the canvas origin).
     const decoded: {
       rgba: Uint8Array;
       width: number;
       height: number;
       opacity: number;
       blendModeId: number;
+      transform?: LayerTransform2D;
     }[] = [];
     for (const layer of visible) {
       const bytes = await imageBytesAsync(layer.image, context);
@@ -2079,7 +2123,8 @@ export class CompositorNode extends BaseNode {
           width: info.width,
           height: info.height,
           opacity: layer.state.opacity,
-          blendModeId: blendModeGpuId(layer.state.blend_mode)
+          blendModeId: blendModeGpuId(layer.state.blend_mode),
+          transform: layer.state.transform
         });
       } catch (err) {
         // Undecodable input → skip this layer, keep the rest of the stack.
@@ -2097,12 +2142,22 @@ export class CompositorNode extends BaseNode {
       };
     }
 
+    // Canvas size: explicit props win; otherwise the first layer's size.
+    const canvasWidth =
+      Number(this.canvas_width) > 0
+        ? Math.floor(Number(this.canvas_width))
+        : decoded[0].width;
+    const canvasHeight =
+      Number(this.canvas_height) > 0
+        ? Math.floor(Number(this.canvas_height))
+        : decoded[0].height;
+
     // Composite on the GPU through the shared WebGPULayerCompositor (the same
     // engine the sketch editor and timeline preview use), via Node.js Dawn.
     const result = await compositeImageLayers(
       decoded,
-      decoded[0].width,
-      decoded[0].height
+      canvasWidth,
+      canvasHeight
     );
 
     const png = await sharp(Buffer.from(result.rgba), {

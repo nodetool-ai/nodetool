@@ -16,7 +16,11 @@
  * matching a `top: 0, left: 0` paste.
  */
 
-import { WebGPULayerCompositor, type InverseAffine } from "./compositor.js";
+import { WebGPULayerCompositor } from "./compositor.js";
+import {
+  layerTransformToInverseAffine,
+  type LayerTransform2D
+} from "./transform.js";
 
 /** One input layer: straight-alpha RGBA8 pixels plus per-layer state. */
 export interface HeadlessLayer {
@@ -28,6 +32,11 @@ export interface HeadlessLayer {
   opacity: number;
   /** Canonical blend-mode gpuId (see blendModes.ts). */
   blendModeId: number;
+  /**
+   * Placement on the canvas. Omitted → the layer's top-left sits at the canvas
+   * origin at native size (an untransformed top-left paste).
+   */
+  transform?: LayerTransform2D;
 }
 
 /** Composited output: straight-alpha RGBA8 at the requested canvas size. */
@@ -36,16 +45,6 @@ export interface HeadlessCompositeResult {
   width: number;
   height: number;
 }
-
-/** Layers sit 1:1 at the canvas origin; no scale, rotation, or offset. */
-const IDENTITY_AFFINE: InverseAffine = {
-  a: 1,
-  b: 0,
-  tx: 0,
-  c: 0,
-  d: 1,
-  ty: 0
-};
 
 /** `copyTextureToBuffer` requires a 256-byte-aligned `bytesPerRow`. */
 const ROW_ALIGNMENT = 256;
@@ -118,13 +117,21 @@ export async function compositeLayersHeadless(
     );
     sources.push(source);
 
+    const transform =
+      layer.transform ?? {
+        x: lw / 2,
+        y: lh / 2,
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0
+      };
     compositor.renderBlendPass(encoder, read, write, {
       source,
       opacity: layer.opacity,
       blendModeId: layer.blendModeId,
       canvasW: width,
       canvasH: height,
-      invAffine: IDENTITY_AFFINE
+      invAffine: layerTransformToInverseAffine(transform, lw, lh)
     });
     // Swap: the texture we just wrote becomes the next pass's read.
     const next = read;
@@ -150,11 +157,33 @@ export async function compositeLayersHeadless(
   await readback.mapAsync(GPUMapMode.READ);
   const mapped = new Uint8Array(readback.getMappedRange());
   const rgba = new Uint8Array(width * height * 4);
+  // The blend shader writes premultiplied color; un-premultiply so the result
+  // is true straight-alpha RGBA (correct for a PNG encode, and matching a
+  // premultiplied-alpha preview canvas displaying the same texture).
   for (let row = 0; row < height; row++) {
-    rgba.set(
-      mapped.subarray(row * bytesPerRow, row * bytesPerRow + width * 4),
-      row * width * 4
-    );
+    const srcRow = row * bytesPerRow;
+    const dstRow = row * width * 4;
+    for (let col = 0; col < width; col++) {
+      const s = srcRow + col * 4;
+      const d = dstRow + col * 4;
+      const a = mapped[s + 3];
+      if (a === 0) {
+        rgba[d] = 0;
+        rgba[d + 1] = 0;
+        rgba[d + 2] = 0;
+        rgba[d + 3] = 0;
+      } else if (a === 255) {
+        rgba[d] = mapped[s];
+        rgba[d + 1] = mapped[s + 1];
+        rgba[d + 2] = mapped[s + 2];
+        rgba[d + 3] = 255;
+      } else {
+        rgba[d] = Math.min(255, Math.round((mapped[s] * 255) / a));
+        rgba[d + 1] = Math.min(255, Math.round((mapped[s + 1] * 255) / a));
+        rgba[d + 2] = Math.min(255, Math.round((mapped[s + 2] * 255) / a));
+        rgba[d + 3] = a;
+      }
+    }
   }
   readback.unmap();
   readback.destroy();
