@@ -44,6 +44,7 @@ import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions
 import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPosition";
 import { useRunningTime } from "../../hooks/useRunningTime";
 import { formatRunningTime } from "../../utils/timeFormat";
+import { useShallow } from "zustand/react/shallow";
 
 interface ToolbarButtonProps {
   icon: React.ReactNode;
@@ -368,12 +369,18 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     isSuspended
   } = useFloatingToolbarActions();
 
-  const isRightPanelVisible = useRightPanelStore((state) => state.panel.isVisible);
-  const rightPanelSize = useRightPanelStore((state) => state.panel.panelSize);
-  const bottomPanelVisible = useBottomPanelStore(
-    (state) => state.panel.isVisible
+  const { isRightPanelVisible, rightPanelSize } = useRightPanelStore(
+    useShallow((state) => ({
+      isRightPanelVisible: state.panel.isVisible,
+      rightPanelSize: state.panel.panelSize
+    }))
   );
-  const bottomPanelSize = useBottomPanelStore((state) => state.panel.panelSize);
+  const { bottomPanelVisible, bottomPanelSize } = useBottomPanelStore(
+    useShallow((state) => ({
+      bottomPanelVisible: state.panel.isVisible,
+      bottomPanelSize: state.panel.panelSize
+    }))
+  );
 
   const toolbarPosition = useFloatingToolbarPosition(
     isRightPanelVisible,
@@ -383,19 +390,29 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     isMobile
   );
 
-  const instantUpdate = useSettingsStore((state) => state.settings.instantUpdate);
-  const setInstantUpdate = useSettingsStore((state) => state.setInstantUpdate);
-  const editorViewMode = useSettingsStore((state) => state.settings.editorViewMode);
-  const setEditorViewMode = useSettingsStore((state) => state.setEditorViewMode);
+  const { instantUpdate, setInstantUpdate, editorViewMode, setEditorViewMode } =
+    useSettingsStore(
+      useShallow((state) => ({
+        instantUpdate: state.settings.instantUpdate,
+        setInstantUpdate: state.setInstantUpdate,
+        editorViewMode: state.settings.editorViewMode,
+        setEditorViewMode: state.setEditorViewMode
+      }))
+    );
 
   const isMiniMapVisible = useMiniMapStore((state) => state.visible);
 
   const workflow = useNodes((state) => state.workflow);
   const isComfyWorkflow = useNodes((state) => state.isComfyWorkflow());
-  const comfyIsConnected = useComfyUIStore((state) => state.isConnected);
-  const comfyIsConnecting = useComfyUIStore((state) => state.isConnecting);
-  const comfyConnectionError = useComfyUIStore((state) => state.connectionError);
-  const comfyBaseUrl = useComfyUIStore((state) => state.baseUrl);
+  const { comfyIsConnected, comfyIsConnecting, comfyConnectionError, comfyBaseUrl } =
+    useComfyUIStore(
+      useShallow((state) => ({
+        comfyIsConnected: state.isConnected,
+        comfyIsConnecting: state.isConnecting,
+        comfyConnectionError: state.connectionError,
+        comfyBaseUrl: state.baseUrl
+      }))
+    );
 
   // Auto-connect to ComfyUI when a comfy workflow is loaded (once per workflow)
   useEffect(() => {

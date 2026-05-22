@@ -20,6 +20,7 @@ import {
 } from "../../../stores/ModelManagerStore";
 import type { ModelSortField } from "../../../stores/ModelManagerStore";
 import { useTheme } from "@mui/material/styles";
+import { useShallow } from "zustand/react/shallow";
 
 interface ModelListHeaderProps {
   totalCount: number;
@@ -37,16 +38,31 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
   totalCount,
   filteredCount
 }) => {
-  const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
-  const setModelSearchTerm = useModelManagerStore((state) => state.setModelSearchTerm);
-  const maxModelSizeGB = useModelManagerStore((state) => state.maxModelSizeGB);
-  const setMaxModelSizeGB = useModelManagerStore((state) => state.setMaxModelSizeGB);
-  const filterStatus = useModelManagerStore((state) => state.filterStatus);
-  const setFilterStatus = useModelManagerStore((state) => state.setFilterStatus);
-  const sortField = useModelManagerStore((state) => state.sortField);
-  const setSortField = useModelManagerStore((state) => state.setSortField);
-  const sortDirection = useModelManagerStore((state) => state.sortDirection);
-  const toggleSortDirection = useModelManagerStore((state) => state.toggleSortDirection);
+  const {
+    modelSearchTerm,
+    setModelSearchTerm,
+    maxModelSizeGB,
+    setMaxModelSizeGB,
+    filterStatus,
+    setFilterStatus,
+    sortField,
+    setSortField,
+    sortDirection,
+    toggleSortDirection
+  } = useModelManagerStore(
+    useShallow((state) => ({
+      modelSearchTerm: state.modelSearchTerm,
+      setModelSearchTerm: state.setModelSearchTerm,
+      maxModelSizeGB: state.maxModelSizeGB,
+      setMaxModelSizeGB: state.setMaxModelSizeGB,
+      filterStatus: state.filterStatus,
+      setFilterStatus: state.setFilterStatus,
+      sortField: state.sortField,
+      setSortField: state.setSortField,
+      sortDirection: state.sortDirection,
+      toggleSortDirection: state.toggleSortDirection
+    }))
+  );
   const theme = useTheme();
 
   const handleSliderChange = (_: Event, value: number | number[]) => {
