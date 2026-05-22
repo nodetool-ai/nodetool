@@ -131,31 +131,22 @@ const styles = (theme: Theme) =>
       top: "0.5em"
     },
     ".property-row": {
-      position: "relative",
       width: "100%",
-      minWidth: 0,
-      "--property-visibility-toggle-size": "28px",
-      "--property-reset-slot-size": "22px"
-    },
-    ".property-row.has-header-editor-actions": {
-      "--property-reset-button-offset": "40px"
+      minWidth: 0
     },
     ".property-row .node-property": {
       width: "100%",
       minWidth: 0
     },
-    ".property-row.has-visibility-toggle .property-label": {
-      paddingRight:
-        "calc(var(--property-reset-button-offset, 0px) + var(--property-reset-slot-size, 22px) + var(--property-visibility-toggle-size, 28px))"
-    },
-    ".property-row.has-visibility-toggle .property-visibility-toggle": {
-      position: "absolute",
-      top: 0,
-      right:
-        "calc(var(--property-reset-button-offset, 0px) + var(--property-reset-slot-size, 22px))",
-      zIndex: 3,
-      marginTop: 0
-    },
+    ".property-row .property-label-actions > *, .property-row .property-label-actions .inspector-header-supplemental > *":
+      {
+        opacity: 0,
+        transition: "opacity 0.15s ease"
+      },
+    ".property-row:hover .property-label-actions > *, .property-row:hover .property-label-actions .inspector-header-supplemental > *, .property-row .property-label-actions > *:focus-visible, .property-row .property-label-actions .inspector-header-supplemental > *:focus-visible":
+      {
+        opacity: 1
+      },
     ".validation-banner": {
       margin: "0.5em 0 0.75em",
       padding: "0.5em 0.75em",

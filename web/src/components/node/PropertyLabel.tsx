@@ -11,7 +11,8 @@ import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "../editor_ui";
 import {
   useInspectorHeaderActions,
-  useInspectorHeaderReset
+  useInspectorHeaderReset,
+  useInspectorHeaderSupplemental
 } from "../../contexts/InspectorPropertyHeaderContext";
 import { FlexRow } from "../ui_primitives";
 
@@ -65,7 +66,12 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   const isInspector = scope === "inspector";
   const headerActions = useInspectorHeaderActions();
   const headerReset = useInspectorHeaderReset();
-  const hasHeaderActions = isInspector && (headerActions != null || headerReset != null);
+  const headerSupplemental = useInspectorHeaderSupplemental();
+  const hasHeaderActions =
+    isInspector &&
+    (headerActions != null ||
+      headerReset != null ||
+      headerSupplemental != null);
   const labelFontSize = isInspector ? theme.fontSizeSmall : theme.fontSizeSmall;
   const labelMarginBottom = density === "compact" ? 0 : theme.spacing(0.25);
   // Only show inline descriptions when explicitly requested, not automatically in inspector
@@ -136,8 +142,18 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
             className="property-label-actions"
             align="center"
             gap={0.25}
-            sx={{ flex: "0 0 auto" }}
+            sx={{ flex: "0 0 auto", flexShrink: 0 }}
           >
+            {headerSupplemental != null ? (
+              <FlexRow
+                className="inspector-header-supplemental"
+                align="center"
+                gap={0.25}
+                sx={{ flex: "0 0 auto" }}
+              >
+                {headerSupplemental}
+              </FlexRow>
+            ) : null}
             {headerReset}
             {headerActions}
           </FlexRow>
@@ -201,8 +217,6 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
           padding: "1px",
           borderRadius: "3px",
           color: theme.vars.palette.text.secondary,
-          opacity: 0,
-          transition: "opacity 0.15s ease",
           "&:hover": {
             color: theme.vars.palette.primary.main
           },
@@ -210,10 +224,18 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
             fontSize: "0.85rem"
           }
         },
-        ".property-label-row:hover .inspector-reset-button, .property-label-actions .inspector-reset-button:focus-visible":
-          {
-            opacity: 1
-          }
+        ".inspector-header-supplemental .MuiIconButton-root": {
+          padding: 0,
+          margin: 0,
+          width: 20,
+          height: 20
+        },
+        ".inspector-header-supplemental .MuiIconButton-root svg": {
+          fontSize: "0.75rem"
+        },
+        ".inspector-header-supplemental .copy-button svg": {
+          fontSize: "0.75rem !important"
+        }
       })}
     >
       {labelBlock}

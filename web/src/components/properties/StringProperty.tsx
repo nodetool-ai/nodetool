@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useState, useCallback, memo } from "react";
+import { useState, useCallback, memo, useMemo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
@@ -11,6 +11,7 @@ import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import ConnectedBadge from "./ConnectedBadge";
+import { useInspectorHeaderSupplementalRegistration } from "../../hooks/useInspectorHeaderSupplemental";
 
 const determineCodeLanguage = (nodeType: string) => {
   if (nodeType === "nodetool.code.ExecutePython") {
@@ -74,7 +75,8 @@ const StringProperty = ({
   tabIndex,
   nodeId,
   nodeType,
-  isDynamicProperty
+  isDynamicProperty,
+  isInspector
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -96,6 +98,26 @@ const StringProperty = ({
       return next;
     });
   }, []);
+
+  const editorActions = useMemo(
+    () => (
+      <>
+        <ToolbarIconButton
+          tooltip="Open Editor"
+          icon={<OpenInFullIcon />}
+          onClick={toggleExpand}
+          size="small"
+        />
+        <CopyButton value={value} buttonSize="small" />
+      </>
+    ),
+    [toggleExpand, value]
+  );
+
+  useInspectorHeaderSupplementalRegistration(
+    editorActions,
+    isInspector === true
+  );
 
   if (isConnected) {
     return (
@@ -123,12 +145,17 @@ const StringProperty = ({
           id={id}
           isDynamicProperty={isDynamicProperty}
         />
-        {isHovered && (
+        {!isInspector && isHovered ? (
           <div className="string-action-buttons">
-            <ToolbarIconButton tooltip="Open Editor" icon={<OpenInFullIcon />} onClick={toggleExpand} size="small" />
+            <ToolbarIconButton
+              tooltip="Open Editor"
+              icon={<OpenInFullIcon />}
+              onClick={toggleExpand}
+              size="small"
+            />
             <CopyButton value={value} buttonSize="small" />
           </div>
-        )}
+        ) : null}
         <div
           className="value-container"
           onMouseDown={(e) => e.stopPropagation()}

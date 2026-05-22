@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type * as monaco from "monaco-editor";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
@@ -9,6 +9,7 @@ import { CopyButton, LoadingSpinner, ToolbarIconButton } from "../ui_primitives"
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import TextEditorModal from "./TextEditorModal";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
+import { useInspectorHeaderSupplementalRegistration } from "../../hooks/useInspectorHeaderSupplemental";
 
 const JSONProperty = (props: PropertyProps) => {
   const id = `json-${props.property.name}-${props.propertyIndex}`;
@@ -103,6 +104,26 @@ const JSONProperty = (props: PropertyProps) => {
     void loadMonacoIfNeeded();
   }, [loadMonacoIfNeeded]);
 
+  const editorActions = useMemo(
+    () => (
+      <>
+        <ToolbarIconButton
+          tooltip="Open Editor"
+          icon={<OpenInFullIcon />}
+          onClick={toggleExpand}
+          size="small"
+        />
+        <CopyButton value={value} buttonSize="small" />
+      </>
+    ),
+    [toggleExpand, value]
+  );
+
+  useInspectorHeaderSupplementalRegistration(
+    editorActions,
+    props.isInspector === true
+  );
+
   return (
     <div
       className="json-property"
@@ -176,7 +197,7 @@ const JSONProperty = (props: PropertyProps) => {
           description={props.property.description}
           id={id}
         />
-        {isHovered && (
+        {!props.isInspector && isHovered ? (
           <div className="json-action-buttons">
             <ToolbarIconButton
               tooltip="Open Editor"
@@ -186,7 +207,7 @@ const JSONProperty = (props: PropertyProps) => {
             />
             <CopyButton value={value} buttonSize="small" />
           </div>
-        )}
+        ) : null}
         <div
           className="value-container"
           onMouseDown={(e) => e.stopPropagation()}
