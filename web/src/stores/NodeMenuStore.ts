@@ -13,6 +13,7 @@ import {
   filterNodesUtil,
   SearchResultGroup
 } from "../utils/nodeSearch";
+import { NODE_MENU_HOVER_INFO_DELAY_MS } from "../config/constants";
 
 export interface SplitNodeDescription {
   description: string;
@@ -117,6 +118,7 @@ type NodeMenuStoreOptions = {
 export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
   create<NodeMenuStore>((set, get) => {
     let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+    let hoveredNodeTimeout: ReturnType<typeof setTimeout> | null = null;
     let pendingSearchId = 0;
 
     const getFilteredMetadata = () => {
@@ -371,7 +373,21 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         set({ highlightedNamespaces: namespaces }),
       hoveredNode: null,
       setHoveredNode: (node) => {
-        set({ hoveredNode: node });
+        if (hoveredNodeTimeout !== null) {
+          clearTimeout(hoveredNodeTimeout);
+          hoveredNodeTimeout = null;
+        }
+        if (node === null) {
+          set({ hoveredNode: null });
+          return;
+        }
+        if (get().hoveredNode?.node_type === node.node_type) {
+          return;
+        }
+        hoveredNodeTimeout = setTimeout(() => {
+          hoveredNodeTimeout = null;
+          set({ hoveredNode: node });
+        }, NODE_MENU_HOVER_INFO_DELAY_MS);
       },
 
       // DraggableNodeDocumentation

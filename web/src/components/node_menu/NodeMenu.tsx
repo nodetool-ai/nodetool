@@ -41,8 +41,8 @@ const treeStyles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.background.paper,
       backdropFilter: theme.vars.palette.glass.blur,
       transition:
-        "background-color 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out",
-      animation: "fadeIn 0.2s ease-out forwards"
+        "background-color 0.1s ease-out, box-shadow 0.1s ease-out, border-color 0.2s ease-out",
+      animation: "fadeIn 0.1s ease-out forwards"
     },
     "@keyframes fadeIn": {
       "0%": { opacity: 0 },
