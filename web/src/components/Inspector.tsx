@@ -26,7 +26,7 @@ import FalPricingFooter from "./node/FalPricingFooter";
 import { DYNAMIC_KIE_NODE_TYPE } from "./node/DynamicKieSchemaNode";
 import PropertyVisibilityToggle from "./properties/PropertyVisibilityToggle";
 import { InspectorHeaderActionsProvider } from "../contexts/InspectorPropertyHeaderContext";
-import { canPromotePropertyToInputHandle } from "../utils/exposedInputs";
+import { canConfigureExposedPlacement } from "../utils/exposedInputs";
 import { useExposedInputToggle } from "../hooks/nodes/useExposedInputToggle";
 import usePropertyValidationStore from "../stores/PropertyValidationStore";
 
@@ -552,14 +552,14 @@ const Inspector: React.FC = () => {
               workflowId={selectedNode.data.workflow_id}
               nodeId={selectedNode.id}
             />
-            {/* Property list — every property gets the show-as-input
-                toggle except those whose handle is already determined by
-                metadata (inline rows or declared input_fields). */}
+            {/* Property list — placement toggle cycles off → top → bottom
+                for all metadata properties (including input_fields /
+                inline_fields defaults). */}
             {metadata.properties.map((property, index) => {
               if (property.json_schema_extra?.hidden_in_inspector === true) {
                 return null;
               }
-              const hasToggle = canPromotePropertyToInputHandle(
+              const hasToggle = canConfigureExposedPlacement(
                 metadata,
                 property.name
               );

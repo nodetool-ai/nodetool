@@ -3,6 +3,11 @@ import type { NodeData } from "../stores/NodeData";
 
 export type ExposedInputPlacement = "handle" | "labeled";
 
+export type ExposedInputPlacementData = Pick<
+  NodeData,
+  "exposedInputs" | "exposedInputsLabeled" | "exposedInputsHidden"
+>;
+
 /** Inspector toggle cycle: off → top handle → bottom labeled → off. */
 export const nextExposedInputPlacement = (
   current: ExposedInputPlacement | null
@@ -16,40 +21,39 @@ export const nextExposedInputPlacement = (
   return null;
 };
 
-/**
- * Resolve the set of properties that should appear as input handles on the
- * node body (left handle column). Combines metadata `input_fields` with
- * per-node `exposedInputs` — properties the user promoted as handle-only.
- */
-export const resolveExposedInputNames = (
+/** Metadata default before per-node overrides. */
+export const getDefaultExposedPlacement = (
   metadata: NodeMetadata,
-  data: NodeData
-): string[] => {
-  const inputs = metadata.input_fields ?? [];
-  const exposed = data.exposedInputs ?? [];
-  const labeled = new Set(data.exposedInputsLabeled ?? []);
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const n of inputs) {
-    if (!seen.has(n) && !labeled.has(n)) {
-      seen.add(n);
-      out.push(n);
-    }
+  propertyName: string
+): ExposedInputPlacement | null => {
+  if ((metadata.input_fields ?? []).includes(propertyName)) {
+    return "handle";
   }
-  for (const n of exposed) {
-    if (!seen.has(n) && !labeled.has(n)) {
-      seen.add(n);
-      out.push(n);
-    }
+  if ((metadata.inline_fields ?? []).includes(propertyName)) {
+    return "labeled";
   }
-  return out;
+  return null;
 };
 
-/** Properties promoted to labeled input rows at the bottom of the node body. */
-export const resolveExposedInputLabeledNames = (data: NodeData): string[] => [
-  ...(data.exposedInputsLabeled ?? [])
-];
+/** Effective placement including metadata defaults and per-node overrides. */
+export const getEffectiveExposedPlacement = (
+  metadata: NodeMetadata,
+  data: NodeData,
+  propertyName: string
+): ExposedInputPlacement | null => {
+  if ((data.exposedInputsHidden ?? []).includes(propertyName)) {
+    return null;
+  }
+  if ((data.exposedInputsLabeled ?? []).includes(propertyName)) {
+    return "labeled";
+  }
+  if ((data.exposedInputs ?? []).includes(propertyName)) {
+    return "handle";
+  }
+  return getDefaultExposedPlacement(metadata, propertyName);
+};
 
+/** @deprecated Use getEffectiveExposedPlacement with metadata. */
 export const getExposedInputPlacement = (
   data: NodeData,
   propertyName: string
@@ -63,12 +67,7 @@ export const getExposedInputPlacement = (
   return null;
 };
 
-/**
- * Pure helper: add `propertyName` to the exposed list if absent, preserving
- * order. Returns the same array reference when no change is needed so
- * callers can skip writes.
- */
-export const addExposedInput = (
+const addToList = (
   current: string[] | undefined,
   propertyName: string
 ): string[] => {
@@ -78,104 +77,178 @@ export const addExposedInput = (
   }
   return [...list, propertyName];
 };
+
+const removeFromList = (
+  current: string[] | undefined,
+  propertyName: string
+): string[] => {
+  const list = current ?? [];
+  if (!list.includes(propertyName)) {
+    return list;
+  }
+  return list.filter((n) => n !== propertyName);
+};
+
+/**
+ * Resolve the set of properties that should appear as input handles on the
+ * left handle column (top).
+ */
+export const resolveExposedInputNames = (
+  metadata: NodeMetadata,
+  data: NodeData
+): string[] => {
+  const hidden = new Set(data.exposedInputsHidden ?? []);
+  const labeled = new Set(data.exposedInputsLabeled ?? []);
+  const seen = new Set<string>();
+  const out: string[] = [];
+
+  const push = (name: string) => {
+    if (hidden.has(name) || labeled.has(name) || seen.has(name)) {
+      return;
+    }
+    seen.add(name);
+    out.push(name);
+  };
+
+  for (const n of metadata.input_fields ?? []) {
+    push(n);
+  }
+  for (const n of data.exposedInputs ?? []) {
+    push(n);
+  }
+  for (const n of metadata.inline_fields ?? []) {
+    if ((data.exposedInputs ?? []).includes(n)) {
+      push(n);
+    }
+  }
+  return out;
+};
+
+/** Inline-field rows (editors under preview / in generic body). */
+export const resolveInlineFieldNames = (
+  metadata: NodeMetadata,
+  data: NodeData
+): string[] => {
+  const hidden = new Set(data.exposedInputsHidden ?? []);
+  const labeled = new Set(data.exposedInputsLabeled ?? []);
+  const handleForced = new Set(data.exposedInputs ?? []);
+  return (metadata.inline_fields ?? []).filter(
+    (name) =>
+      !hidden.has(name) && !labeled.has(name) && !handleForced.has(name)
+  );
+};
+
+/** Bottom labeled section (explicit overrides only). */
+export const resolveExposedInputLabeledNames = (data: NodeData): string[] => [
+  ...(data.exposedInputsLabeled ?? [])
+];
+
+export const addExposedInput = (
+  current: string[] | undefined,
+  propertyName: string
+): string[] => addToList(current, propertyName);
 
 export const addExposedInputLabeled = (
   current: string[] | undefined,
   propertyName: string
-): string[] => {
-  const list = current ?? [];
-  if (list.includes(propertyName)) {
-    return list;
-  }
-  return [...list, propertyName];
-};
+): string[] => addToList(current, propertyName);
 
-/**
- * Pure helper: drop `propertyName` from the exposed list. Returns the same
- * array reference when no change is needed.
- */
 export const removeExposedInput = (
   current: string[] | undefined,
   propertyName: string
-): string[] => {
-  const list = current ?? [];
-  if (!list.includes(propertyName)) {
-    return list;
-  }
-  return list.filter((n) => n !== propertyName);
-};
+): string[] => removeFromList(current, propertyName);
 
 export const removeExposedInputLabeled = (
   current: string[] | undefined,
   propertyName: string
-): string[] => {
-  const list = current ?? [];
-  if (!list.includes(propertyName)) {
-    return list;
-  }
-  return list.filter((n) => n !== propertyName);
-};
-
-/** Remove from both placement lists (mutual exclusivity when re-adding). */
-export const removeExposedInputEverywhere = (
-  data: Pick<NodeData, "exposedInputs" | "exposedInputsLabeled">,
-  propertyName: string
-): {
-  exposedInputs: string[];
-  exposedInputsLabeled: string[];
-} => ({
-  exposedInputs: removeExposedInput(data.exposedInputs, propertyName),
-  exposedInputsLabeled: removeExposedInputLabeled(
-    data.exposedInputsLabeled,
-    propertyName
-  )
-});
+): string[] => removeFromList(current, propertyName);
 
 export type ExposedInputListsPatch = {
   exposedInputs?: string[];
   exposedInputsLabeled?: string[];
+  exposedInputsHidden?: string[];
 };
 
 /**
- * Set placement for a property. `null` removes from both lists.
- * Switching placement removes the property from the other list.
+ * Apply target placement for any property (including metadata input_fields /
+ * inline_fields). Uses override lists only when target differs from default.
  */
-export const patchExposedInputPlacement = (
-  data: Pick<NodeData, "exposedInputs" | "exposedInputsLabeled">,
+export const applyExposedPlacementTarget = (
+  metadata: NodeMetadata,
+  data: ExposedInputPlacementData,
   propertyName: string,
-  placement: ExposedInputPlacement | null
+  target: ExposedInputPlacement | null
 ): ExposedInputListsPatch => {
-  const cleared = removeExposedInputEverywhere(data, propertyName);
-  if (placement === null) {
-    const patch: ExposedInputListsPatch = {};
-    if (cleared.exposedInputs !== data.exposedInputs) {
-      patch.exposedInputs = cleared.exposedInputs;
+  const defaultPlacement = getDefaultExposedPlacement(metadata, propertyName);
+
+  let exposedInputs = [...(data.exposedInputs ?? [])];
+  let exposedInputsLabeled = [...(data.exposedInputsLabeled ?? [])];
+  let exposedInputsHidden = [...(data.exposedInputsHidden ?? [])];
+
+  exposedInputs = removeFromList(exposedInputs, propertyName);
+  exposedInputsLabeled = removeFromList(exposedInputsLabeled, propertyName);
+  exposedInputsHidden = removeFromList(exposedInputsHidden, propertyName);
+
+  if (target === null) {
+    if (defaultPlacement !== null) {
+      exposedInputsHidden = addToList(exposedInputsHidden, propertyName);
     }
-    if (cleared.exposedInputsLabeled !== data.exposedInputsLabeled) {
-      patch.exposedInputsLabeled = cleared.exposedInputsLabeled;
+  } else if (target === "handle") {
+    if (defaultPlacement !== "handle") {
+      exposedInputs = addToList(exposedInputs, propertyName);
     }
-    return patch;
+  } else if (defaultPlacement !== "labeled") {
+    exposedInputsLabeled = addToList(exposedInputsLabeled, propertyName);
   }
-  if (placement === "handle") {
-    const next = addExposedInput(cleared.exposedInputs, propertyName);
-    const patch: ExposedInputListsPatch = { exposedInputs: next };
-    if (cleared.exposedInputsLabeled !== data.exposedInputsLabeled) {
-      patch.exposedInputsLabeled = cleared.exposedInputsLabeled;
+
+  const patch: ExposedInputListsPatch = {};
+  const listChanged = (
+    next: string[],
+    prev: string[] | undefined
+  ): boolean => {
+    const previous = prev ?? [];
+    if (next.length !== previous.length) {
+      return true;
     }
-    return patch;
+    return next.some((name, index) => name !== previous[index]);
+  };
+  if (listChanged(exposedInputs, data.exposedInputs)) {
+    patch.exposedInputs = exposedInputs;
   }
-  const nextLabeled = addExposedInputLabeled(
-    cleared.exposedInputsLabeled,
-    propertyName
-  );
-  const patch: ExposedInputListsPatch = { exposedInputsLabeled: nextLabeled };
-  if (cleared.exposedInputs !== data.exposedInputs) {
-    patch.exposedInputs = cleared.exposedInputs;
+  if (listChanged(exposedInputsLabeled, data.exposedInputsLabeled)) {
+    patch.exposedInputsLabeled = exposedInputsLabeled;
+  }
+  if (listChanged(exposedInputsHidden, data.exposedInputsHidden)) {
+    patch.exposedInputsHidden = exposedInputsHidden;
   }
   return patch;
 };
 
-/** True when the inspector / menu may promote this property to an input handle. */
+/** @deprecated Use applyExposedPlacementTarget. */
+export const patchExposedInputPlacement = (
+  data: ExposedInputPlacementData,
+  propertyName: string,
+  placement: ExposedInputPlacement | null
+): ExposedInputListsPatch =>
+  applyExposedPlacementTarget(
+    { input_fields: [], inline_fields: [] } as NodeMetadata,
+    data,
+    propertyName,
+    placement
+  );
+
+/** All inspector-listed properties may cycle placement (not only advanced). */
+export const canConfigureExposedPlacement = (
+  metadata: NodeMetadata | undefined,
+  propertyName: string
+): boolean => {
+  if (!metadata) {
+    return false;
+  }
+  return (metadata.properties ?? []).some((p) => p.name === propertyName);
+};
+
+/** @deprecated Use canConfigureExposedPlacement — kept for advanced-only callers. */
 export const canPromotePropertyToInputHandle = (
   metadata: NodeMetadata | undefined,
   propertyName: string

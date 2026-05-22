@@ -291,7 +291,8 @@ const ReactFlowWrapper = ({
       // some other event (e.g. a connection drag) forces a refresh.
       const exposedPart = [
         ...(n.data.exposedInputs ?? []),
-        ...(n.data.exposedInputsLabeled ?? [])
+        ...(n.data.exposedInputsLabeled ?? []),
+        ...(n.data.exposedInputsHidden ?? [])
       ].join(",");
       const dynPropsPart = Object.keys(n.data.dynamic_properties ?? {})
         .sort()

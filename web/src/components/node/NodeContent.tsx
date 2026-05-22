@@ -12,7 +12,10 @@ import ContentCardBody from "../node_types/ContentCardBody";
 import { getBespokeBody } from "../node_types/editing/bespokeRegistry";
 import HandleColumn from "./HandleColumn";
 import { isSnippetCodeNode } from "./codeNodeUi";
-import { resolveExposedInputNames } from "../../utils/exposedInputs";
+import {
+  resolveExposedInputNames,
+  resolveInlineFieldNames
+} from "../../utils/exposedInputs";
 import ExposedLabeledInputs from "./ExposedLabeledInputs";
 
 interface NodeContentProps {
@@ -121,6 +124,16 @@ const arePropsEqual = (
   }
   for (let i = 0; i < prevLabeled.length; i++) {
     if (prevLabeled[i] !== nextLabeled[i]) {
+      return false;
+    }
+  }
+  const prevHidden = prevProps.data.exposedInputsHidden || [];
+  const nextHidden = nextProps.data.exposedInputsHidden || [];
+  if (prevHidden.length !== nextHidden.length) {
+    return false;
+  }
+  for (let i = 0; i < prevHidden.length; i++) {
+    if (prevHidden[i] !== nextHidden[i]) {
       return false;
     }
   }
@@ -241,11 +254,9 @@ const NodeContent: React.FC<NodeContentProps> = ({
   //   default       → Inspector only (hidden in node body)
   // Code nodes in snippet mode hide their `code` property from the inline
   // list — the snippet editor itself replaces that editor surface.
-  let inlineFieldNames = nodeMetadata.inline_fields ?? [];
-  if (isSnippetCodeNode(nodeType, data)) {
-    inlineFieldNames = inlineFieldNames.filter((n) => n !== "code");
-  }
-  // Input fields = metadata input_fields ∪ user-promoted exposedInputs.
+  const inlineFieldNames = resolveInlineFieldNames(nodeMetadata, data).filter(
+    (n) => !(isSnippetCodeNode(nodeType, data) && n === "code")
+  );
   const inputFieldNames = resolveExposedInputNames(nodeMetadata, data);
   const inlineProperties = allProperties.filter((p) =>
     inlineFieldNames.includes(p.name)

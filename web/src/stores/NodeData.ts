@@ -32,10 +32,15 @@ export type NodeData = {
    */
   exposedInputs?: string[];
   /**
-   * Advanced properties promoted as labeled input rows at the bottom of the
-   * node body (handle + title + matching property editors on the node).
+   * Properties shown as labeled rows at the bottom (handle + title + editors).
+   * Overrides metadata defaults when set explicitly.
    */
   exposedInputsLabeled?: string[];
+  /**
+   * Properties hidden on the node body (inspector only). Used when cycling
+   * metadata input_fields / inline_fields off their default placement.
+   */
+  exposedInputsHidden?: string[];
   // Original node type from the workflow graph (useful when React Flow falls back to "default" type)
   originalType?: string;
   size?: {

@@ -2,10 +2,10 @@ import { useCallback } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import {
-  canPromotePropertyToInputHandle,
-  getExposedInputPlacement,
+  applyExposedPlacementTarget,
+  canConfigureExposedPlacement,
+  getEffectiveExposedPlacement,
   nextExposedInputPlacement,
-  patchExposedInputPlacement,
   type ExposedInputPlacement
 } from "../../utils/exposedInputs";
 
@@ -19,12 +19,16 @@ export function useExposedInputToggle() {
   const getPlacement = useCallback(
     (nodeId: string, propertyName: string): ExposedInputPlacement | null => {
       const node = findNode(nodeId);
-      if (!node) {
+      if (!node?.type) {
         return null;
       }
-      return getExposedInputPlacement(node.data, propertyName);
+      const metadata = getMetadata(node.type as string);
+      if (!metadata) {
+        return null;
+      }
+      return getEffectiveExposedPlacement(metadata, node.data, propertyName);
     },
-    [findNode]
+    [findNode, getMetadata]
   );
 
   const isPropertyExposed = useCallback(
@@ -45,7 +49,7 @@ export function useExposedInputToggle() {
       if (!node?.type) {
         return false;
       }
-      return canPromotePropertyToInputHandle(
+      return canConfigureExposedPlacement(
         getMetadata(node.type as string),
         propertyName
       );
@@ -61,14 +65,15 @@ export function useExposedInputToggle() {
     ): void => {
       for (const nodeId of nodeIds) {
         const node = findNode(nodeId);
-        if (!node) {
+        if (!node?.type) {
           continue;
         }
         const nodeMeta = getMetadata(node.type as string);
-        if (!canPromotePropertyToInputHandle(nodeMeta, propertyName)) {
+        if (!canConfigureExposedPlacement(nodeMeta, propertyName)) {
           continue;
         }
-        const patch = patchExposedInputPlacement(
+        const patch = applyExposedPlacementTarget(
+          nodeMeta!,
           node.data,
           propertyName,
           placement
@@ -134,10 +139,8 @@ export function useExposedInputToggle() {
     [applyPlacementPatch, confirmDisconnectIfNeeded, getPlacement]
   );
 
-  /** @deprecated Use cycleExposedInputPlacement — kept as alias for callers. */
   const toggleExposedInput = cycleExposedInputPlacement;
 
-  /** Toggle labeled row at the bottom of the node (handle + param title). */
   const toggleExposedInputLabeled = useCallback(
     (nodeIds: string | readonly string[], propertyName: string): void => {
       const ids = typeof nodeIds === "string" ? [nodeIds] : nodeIds;

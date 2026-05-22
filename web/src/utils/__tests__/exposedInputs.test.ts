@@ -2,13 +2,16 @@ import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
 import {
   addExposedInput,
+  applyExposedPlacementTarget,
+  canConfigureExposedPlacement,
   canPromotePropertyToInputHandle,
+  getEffectiveExposedPlacement,
   getExposedInputPlacement,
   nextExposedInputPlacement,
-  patchExposedInputPlacement,
   removeExposedInput,
   resolveExposedInputLabeledNames,
-  resolveExposedInputNames
+  resolveExposedInputNames,
+  resolveInlineFieldNames
 } from "../exposedInputs";
 
 const baseMetadata = (
@@ -97,6 +100,76 @@ describe("exposedInputs utility", () => {
     });
   });
 
+  describe("getEffectiveExposedPlacement", () => {
+    it("uses metadata defaults for input_fields and inline_fields", () => {
+      const md = baseMetadata({
+        input_fields: ["image"],
+        inline_fields: ["prompt"]
+      });
+      const data = baseData();
+      expect(getEffectiveExposedPlacement(md, data, "image")).toBe("handle");
+      expect(getEffectiveExposedPlacement(md, data, "prompt")).toBe("labeled");
+      expect(getEffectiveExposedPlacement(md, data, "seed")).toBeNull();
+    });
+
+    it("respects exposedInputsHidden", () => {
+      const md = baseMetadata({ input_fields: ["image"] });
+      const data = baseData({ exposedInputsHidden: ["image"] });
+      expect(getEffectiveExposedPlacement(md, data, "image")).toBeNull();
+    });
+  });
+
+  describe("applyExposedPlacementTarget", () => {
+    it("hides metadata input_field via exposedInputsHidden", () => {
+      const md = baseMetadata({ input_fields: ["image"] });
+      const data = baseData();
+      const patch = applyExposedPlacementTarget(md, data, "image", null);
+      expect(patch.exposedInputsHidden).toEqual(["image"]);
+      expect(patch.exposedInputs).toBeUndefined();
+    });
+
+    it("moves inline_field to bottom without redundant list when default is labeled", () => {
+      const md = baseMetadata({ inline_fields: ["prompt"] });
+      const data = baseData();
+      expect(applyExposedPlacementTarget(md, data, "prompt", "labeled")).toEqual(
+        {}
+      );
+    });
+
+    it("moves inline_field to top via exposedInputs", () => {
+      const md = baseMetadata({ inline_fields: ["prompt"] });
+      const data = baseData();
+      const patch = applyExposedPlacementTarget(md, data, "prompt", "handle");
+      expect(patch.exposedInputs).toEqual(["prompt"]);
+    });
+  });
+
+  describe("resolveInlineFieldNames", () => {
+    it("excludes hidden, labeled override, and handle-forced inline fields", () => {
+      const md = baseMetadata({ inline_fields: ["a", "b", "c"] });
+      const data = baseData({
+        exposedInputsHidden: ["a"],
+        exposedInputsLabeled: ["b"],
+        exposedInputs: ["c"]
+      });
+      expect(resolveInlineFieldNames(md, data)).toEqual([]);
+    });
+  });
+
+  describe("canConfigureExposedPlacement", () => {
+    it("allows all metadata properties including input_fields", () => {
+      const md = baseMetadata({
+        input_fields: ["image"],
+        properties: [
+          { name: "image", type: { type: "image", type_args: [], optional: false } },
+          { name: "prompt", type: { type: "str", type_args: [], optional: false } }
+        ]
+      });
+      expect(canConfigureExposedPlacement(md, "image")).toBe(true);
+      expect(canConfigureExposedPlacement(md, "prompt")).toBe(true);
+    });
+  });
+
   describe("canPromotePropertyToInputHandle", () => {
     it("returns false for metadata input_fields and inline_fields", () => {
       const md = baseMetadata({
@@ -121,35 +194,6 @@ describe("exposedInputs utility", () => {
 
     it("treats missing field as empty", () => {
       expect(resolveExposedInputLabeledNames(baseData())).toEqual([]);
-    });
-  });
-
-  describe("patchExposedInputPlacement", () => {
-    it("adds handle placement and clears labeled list for same property", () => {
-      const data = baseData({
-        exposedInputsLabeled: ["prompt"],
-        exposedInputs: []
-      });
-      const patch = patchExposedInputPlacement(data, "prompt", "handle");
-      expect(patch.exposedInputs).toEqual(["prompt"]);
-      expect(patch.exposedInputsLabeled).toEqual([]);
-    });
-
-    it("adds labeled placement and clears handle list for same property", () => {
-      const data = baseData({ exposedInputs: ["prompt"] });
-      const patch = patchExposedInputPlacement(data, "prompt", "labeled");
-      expect(patch.exposedInputs).toEqual([]);
-      expect(patch.exposedInputsLabeled).toEqual(["prompt"]);
-    });
-
-    it("removes from both lists when placement is null", () => {
-      const data = baseData({
-        exposedInputs: ["a"],
-        exposedInputsLabeled: ["b"]
-      });
-      expect(patchExposedInputPlacement(data, "a", null)).toEqual({
-        exposedInputs: []
-      });
     });
   });
 

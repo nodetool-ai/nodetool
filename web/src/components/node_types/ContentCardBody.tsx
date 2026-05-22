@@ -59,7 +59,10 @@ import {
   getPrimaryOutput,
   type ContentCardVariant
 } from "./contentCardRegistry";
-import { resolveExposedInputNames } from "../../utils/exposedInputs";
+import {
+  resolveExposedInputNames,
+  resolveInlineFieldNames
+} from "../../utils/exposedInputs";
 import ExposedLabeledInputs from "../node/ExposedLabeledInputs";
 
 const styles = (theme: Theme) =>
@@ -488,9 +491,11 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   const useNewLayout =
     nodeMetadata.inline_fields !== undefined ||
     nodeMetadata.input_fields !== undefined;
-  const inlineFields = nodeMetadata.inline_fields ?? [];
-
   const properties = nodeMetadata.properties ?? [];
+  const inlineFieldNameSet = useMemo(
+    () => new Set(resolveInlineFieldNames(nodeMetadata, data)),
+    [nodeMetadata, data]
+  );
   // Handle column = metadata input_fields ∪ user-promoted exposedInputs.
   const handleNames = useMemo(
     () =>
@@ -502,22 +507,21 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   const inlineProps = useMemo(
     () =>
       useNewLayout
-        ? properties.filter((p) => inlineFields.includes(p.name))
+        ? properties.filter((p) => inlineFieldNameSet.has(p.name))
         : [],
-    [useNewLayout, properties, inlineFields]
-  );
-  const labeledHandleExclude = useMemo(
-    () => new Set(data.exposedInputsLabeled ?? []),
-    [data.exposedInputsLabeled]
+    [useNewLayout, properties, inlineFieldNameSet]
   );
   const handleProps = useMemo(
-    () => {
-      const base = useNewLayout
+    () =>
+      useNewLayout
         ? properties.filter((p) => handleNames!.has(p.name))
-        : properties;
-      return base.filter((p) => !labeledHandleExclude.has(p.name));
-    },
-    [useNewLayout, properties, handleNames, labeledHandleExclude]
+        : properties.filter(
+            (p) =>
+              !inlineFieldNameSet.has(p.name) &&
+              !(data.exposedInputsLabeled ?? []).includes(p.name) &&
+              !(data.exposedInputsHidden ?? []).includes(p.name)
+          ),
+    [useNewLayout, properties, handleNames, inlineFieldNameSet, data]
   );
 
   // Adding a dynamic property is the responsibility of dynamic-input wiring
