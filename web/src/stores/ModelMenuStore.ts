@@ -135,10 +135,21 @@ export type ModelMenuStoreHook<TModel extends ModelSelectorModel> = <Selected>(
   equalityFn?: (left: Selected, right: Selected) => boolean
 ) => Selected;
 
+export interface ModelMenuData<TModel extends ModelSelectorModel> {
+  models: TModel[] | undefined;
+  providers: string[];
+  filteredModels: TModel[];
+  favoriteModels: TModel[];
+  recentModels: TModel[];
+  totalCount: number;
+  filteredCount: number;
+  totalActiveCount: number;
+}
+
 export const useModelMenuData = <TModel extends ModelSelectorModel>(
   models: TModel[] | undefined,
   storeHook: ModelMenuStoreHook<TModel>
-) => {
+): ModelMenuData<TModel> => {
   const { isApiKeySet } = useSecrets();
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
   const favoritesSet = useModelPreferencesStore((s) => s.favorites);

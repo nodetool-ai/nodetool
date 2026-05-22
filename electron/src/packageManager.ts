@@ -21,6 +21,19 @@ interface PipPackage {
   version: string;
 }
 
+function isPipPackageArray(value: unknown): value is PipPackage[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        typeof (item as Record<string, unknown>).name === "string" &&
+        typeof (item as Record<string, unknown>).version === "string"
+    )
+  );
+}
+
 /** Shape of a package entry from the nodetool registry JSON. */
 interface RegistryPackageItem {
   name: string;
@@ -144,7 +157,8 @@ function getAppVersion(): string {
 async function getInstalledNodetoolPackages(): Promise<string[]> {
   try {
     const output = await runUvCommand(["pip", "list", "--format=json"], { silent: true });
-    const allPackages = JSON.parse(output) as PipPackage[];
+    const parsed = JSON.parse(output);
+    const allPackages = isPipPackageArray(parsed) ? parsed : [];
     return allPackages
       .filter((pkg) => pkg.name.startsWith("nodetool-"))
       .map((pkg) => pkg.name);
@@ -758,7 +772,8 @@ async function runUvCommand(
 async function listPythonInstalledPackages(): Promise<PackageModel[]> {
   try {
     const output = await runUvCommand(["pip", "list", "--format=json"], { silent: true });
-    const allPackages = JSON.parse(output) as PipPackage[];
+    const parsed = JSON.parse(output);
+    const allPackages = isPipPackageArray(parsed) ? parsed : [];
 
     return allPackages
       .filter((pkg) => pkg.name.startsWith("nodetool-"))

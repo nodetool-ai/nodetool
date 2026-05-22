@@ -11,6 +11,10 @@ import { logMessage } from "./logger";
  */
 type SettingsRecord = Record<string, unknown>;
 
+function isSettingsRecord(value: unknown): value is SettingsRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 // Add cache at the module level
 let settingsCache: SettingsRecord | null = null;
 
@@ -163,7 +167,8 @@ function readSettings(): SettingsRecord {
     logMessage(`Reading settings from ${settingsPath}`);
     const fileContents = fs.readFileSync(settingsPath, "utf8");
 
-    settingsCache = (yaml.load(fileContents) as SettingsRecord) || {};
+    const loaded = yaml.load(fileContents);
+    settingsCache = isSettingsRecord(loaded) ? loaded : {};
     logMessage(`Loaded ${Object.keys(settingsCache).length} settings`);
 
     return settingsCache;
@@ -202,7 +207,8 @@ async function readSettingsAsync(): Promise<SettingsRecord> {
     logMessage(`Reading settings from ${settingsPath}`);
     const fileContents = await fs.promises.readFile(settingsPath, "utf8");
 
-    settingsCache = (yaml.load(fileContents) as SettingsRecord) || {};
+    const loaded = yaml.load(fileContents);
+    settingsCache = isSettingsRecord(loaded) ? loaded : {};
     logMessage(`Loaded ${Object.keys(settingsCache).length} settings`);
 
     return settingsCache;
