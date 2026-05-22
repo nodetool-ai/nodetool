@@ -290,6 +290,8 @@ describe("NodeMenuStore", () => {
     it("sets hovered node", () => {
       const node = createMockNodeMetadata({ node_type: "hovered" });
       useNodeMenuStore.getState().setHoveredNode(node);
+      // setHoveredNode debounces via setTimeout; flush the pending timer.
+      jest.runOnlyPendingTimers();
       expect(useNodeMenuStore.getState().hoveredNode).toEqual(node);
     });
 

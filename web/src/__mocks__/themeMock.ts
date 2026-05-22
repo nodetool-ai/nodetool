@@ -33,8 +33,18 @@ const mockTheme = createTheme({
   fontSizeTiny: "0.65rem",
   fontSizeTinyer: "0.55rem",
   fontFamily1: "'Inter', Arial, sans-serif",
-  fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif"
-});
+  fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif",
+  // TanStack Virtual overscan — mirrors ThemeNodetool so virtualized
+  // components (LogsTable, ChatThreadView) can read it under test.
+  virtualScroll: {
+    overscan: {
+      small: 10,
+      normal: 25,
+      large: 50,
+      gridRow: 4
+    }
+  }
+} as any);
 
 // Add vars property directly to the theme object
 (mockTheme as any).vars = {
