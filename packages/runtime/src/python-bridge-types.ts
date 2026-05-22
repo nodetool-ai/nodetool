@@ -17,6 +17,7 @@ export interface PythonNodeMetadata {
   properties: NodeMetadataProperty[];
   outputs: NodeMetadataOutput[];
   required_settings: string[];
+  recommended_models?: unknown[];
   is_streaming_output?: boolean;
   is_streaming_input?: boolean;
   is_dynamic?: boolean;
