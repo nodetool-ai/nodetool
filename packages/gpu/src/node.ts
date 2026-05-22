@@ -20,9 +20,49 @@ import {
 } from "./compositor/headless.js";
 import type { LayerTransform2D } from "./compositor/transform.js";
 
-type DawnModule = { create?: (flags: string[]) => GPU };
+type DawnModule = {
+  create?: (flags: string[]) => GPU;
+  /**
+   * The WebGPU flag namespaces (`GPUShaderStage`, `GPUBufferUsage`,
+   * `GPUTextureUsage`, `GPUMapMode`, …). Dawn ships these to be installed on
+   * `globalThis` rather than defining them itself.
+   */
+  globals?: Record<string, unknown>;
+};
 
 let devicePromise: Promise<GPUDevice> | null = null;
+
+/**
+ * Dawn instances we've created, kept alive for the process lifetime.
+ *
+ * dawn.node's `AsyncRunner` schedules `InstanceBase::ProcessEvents()` on the
+ * Node event loop (via setImmediate) for as long as the GPU instance lives.
+ * Only the resulting `GPUDevice` is cached below — the instance itself is a
+ * local in {@link createNodeGPUDevice}, so once it returns, the instance is
+ * unreferenced and eligible for GC. If a queued `ProcessEvents()` callback
+ * then fires after the instance is finalized, it locks a freed mutex and the
+ * process dies with `SIGSEGV` in `dawn::native::InstanceBase::ProcessEvents`
+ * (no JS error, just a hard crash). Retaining every instance prevents that.
+ */
+const retainedDawnInstances: GPU[] = [];
+
+/**
+ * Install the WebGPU flag namespaces Dawn provides onto `globalThis`. In a
+ * browser these are ambient globals; under Node/Dawn they live on the module's
+ * `globals` export and must be assigned before anything references them. Both
+ * our own descriptors and typegpu's bind-group-layout builder read them as
+ * globals (e.g. `GPUShaderStage.FRAGMENT`), so a missing assignment surfaces as
+ * a `ReferenceError: GPUShaderStage is not defined` only once a layout is
+ * materialized. Existing globals are left untouched.
+ */
+function installWebGPUGlobals(dawn: DawnModule): void {
+  if (!dawn.globals) return;
+  for (const [key, value] of Object.entries(dawn.globals)) {
+    if (!(key in globalThis)) {
+      (globalThis as Record<string, unknown>)[key] = value;
+    }
+  }
+}
 
 /**
  * Acquire a fresh `GPUDevice` from Dawn. Throws a clear error if the optional
@@ -42,10 +82,15 @@ export async function createNodeGPUDevice(): Promise<GPUDevice> {
       { cause: err as Error }
     );
   }
+  installWebGPUGlobals(dawn);
   const gpu = dawn.create?.([]);
   if (!gpu) {
     throw new Error("Failed to create a Dawn GPU instance (webgpu.create)");
   }
+  // Keep the instance alive: its AsyncRunner keeps scheduling ProcessEvents()
+  // on the event loop, which segfaults if the instance is GC'd out from under
+  // it (see retainedDawnInstances).
+  retainedDawnInstances.push(gpu);
   const adapter = await gpu.requestAdapter();
   if (!adapter) {
     throw new Error("No WebGPU adapter available (Node/Dawn)");

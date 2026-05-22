@@ -17,6 +17,7 @@
  */
 
 import { WebGPULayerCompositor } from "./compositor.js";
+import { FULLSCREEN_QUAD_VERTEX, UNPREMULTIPLY_FRAGMENT } from "./shaders.js";
 import {
   layerTransformToInverseAffine,
   type LayerTransform2D
@@ -139,8 +140,52 @@ export async function compositeLayersHeadless(
     write = next;
   }
 
-  // `read` now holds the final composite (or the cleared seed if no layers).
+  // `read` now holds the final composite (premultiplied). Resolve it to
+  // straight alpha on the GPU instead of un-premultiplying per pixel on the
+  // CPU: a full-screen pass that divides RGB by alpha, into its own texture.
   const final = read;
+  const resolved = device.createTexture({
+    label: "headless-composite-resolved",
+    size: { width, height },
+    format,
+    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+  });
+  const resolveModule = device.createShaderModule({
+    label: "headless-composite-unpremultiply",
+    code: `${FULLSCREEN_QUAD_VERTEX}\n${UNPREMULTIPLY_FRAGMENT}`
+  });
+  const resolvePipeline = device.createRenderPipeline({
+    label: "headless-composite-unpremultiply",
+    layout: "auto",
+    vertex: { module: resolveModule, entryPoint: "vs_main" },
+    fragment: {
+      module: resolveModule,
+      entryPoint: "fs_unpremultiply",
+      targets: [{ format }]
+    },
+    primitive: { topology: "triangle-strip" }
+  });
+  const resolvePass = encoder.beginRenderPass({
+    colorAttachments: [
+      {
+        view: resolved.createView(),
+        loadOp: "clear",
+        clearValue: { r: 0, g: 0, b: 0, a: 0 },
+        storeOp: "store"
+      }
+    ]
+  });
+  resolvePass.setPipeline(resolvePipeline);
+  resolvePass.setBindGroup(
+    0,
+    device.createBindGroup({
+      layout: resolvePipeline.getBindGroupLayout(0),
+      entries: [{ binding: 0, resource: final.createView() }]
+    })
+  );
+  resolvePass.draw(4);
+  resolvePass.end();
+
   const bytesPerRow = Math.ceil((width * 4) / ROW_ALIGNMENT) * ROW_ALIGNMENT;
   const readback = device.createBuffer({
     label: "headless-composite-readback",
@@ -148,45 +193,26 @@ export async function compositeLayersHeadless(
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
   });
   encoder.copyTextureToBuffer(
-    { texture: final },
+    { texture: resolved },
     { buffer: readback, bytesPerRow, rowsPerImage: height },
     { width, height }
   );
   device.queue.submit([encoder.finish()]);
-
   await readback.mapAsync(GPUMapMode.READ);
   const mapped = new Uint8Array(readback.getMappedRange());
+  // Pixels are already straight-alpha; just drop the 256-byte row padding
+  // `copyTextureToBuffer` requires (a per-row memcpy, no per-pixel math).
   const rgba = new Uint8Array(width * height * 4);
-  // The blend shader writes premultiplied color; un-premultiply so the result
-  // is true straight-alpha RGBA (correct for a PNG encode, and matching a
-  // premultiplied-alpha preview canvas displaying the same texture).
+  const rowBytes = width * 4;
   for (let row = 0; row < height; row++) {
-    const srcRow = row * bytesPerRow;
-    const dstRow = row * width * 4;
-    for (let col = 0; col < width; col++) {
-      const s = srcRow + col * 4;
-      const d = dstRow + col * 4;
-      const a = mapped[s + 3];
-      if (a === 0) {
-        rgba[d] = 0;
-        rgba[d + 1] = 0;
-        rgba[d + 2] = 0;
-        rgba[d + 3] = 0;
-      } else if (a === 255) {
-        rgba[d] = mapped[s];
-        rgba[d + 1] = mapped[s + 1];
-        rgba[d + 2] = mapped[s + 2];
-        rgba[d + 3] = 255;
-      } else {
-        rgba[d] = Math.min(255, Math.round((mapped[s] * 255) / a));
-        rgba[d + 1] = Math.min(255, Math.round((mapped[s + 1] * 255) / a));
-        rgba[d + 2] = Math.min(255, Math.round((mapped[s + 2] * 255) / a));
-        rgba[d + 3] = a;
-      }
-    }
+    rgba.set(
+      mapped.subarray(row * bytesPerRow, row * bytesPerRow + rowBytes),
+      row * rowBytes
+    );
   }
   readback.unmap();
   readback.destroy();
+  resolved.destroy();
 
   for (const source of sources) {
     source.destroy();

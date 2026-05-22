@@ -169,3 +169,28 @@ fn fs_blit(@location(0) uv: vec2f) -> @location(0) vec4f {
   return textureLoad(blitTexture, px, 0);
 }
 `;
+
+// ─── Un-premultiply resolve fragment (premultiplied → straight alpha) ──────
+//
+// The blend pipeline accumulates premultiplied color. Headless readback wants
+// straight (non-premultiplied) RGBA for a faithful PNG encode, so this pass
+// divides RGB by alpha on the GPU — replacing a per-pixel CPU loop over the
+// whole readback. Pairs with `FULLSCREEN_QUAD_VERTEX` (`vs_main`).
+
+export const UNPREMULTIPLY_FRAGMENT = /* wgsl */ `
+@group(0) @binding(0) var srcTexture: texture_2d<f32>;
+
+@fragment
+fn fs_unpremultiply(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let dims = textureDimensions(srcTexture);
+  let px = vec2i(
+    i32(clamp(floor(uv.x * f32(dims.x)), 0.0, f32(dims.x) - 1.0)),
+    i32(clamp(floor(uv.y * f32(dims.y)), 0.0, f32(dims.y) - 1.0))
+  );
+  let c = textureLoad(srcTexture, px, 0);
+  if (c.a <= 0.0) {
+    return vec4f(0.0, 0.0, 0.0, 0.0);
+  }
+  return vec4f(c.rgb / c.a, c.a);
+}
+`;

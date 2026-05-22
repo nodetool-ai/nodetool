@@ -3,6 +3,7 @@ import { createExecutor } from "../src/executor.js";
 import { createGPUContextFromDevice } from "../src/context.js";
 import { createLabeledTexture } from "../src/texture.js";
 import { passthroughV1 } from "../src/shaders/_canary/passthrough/v1/module.js";
+import { createNodeGPUDevice } from "../src/node.js";
 
 /**
  * End-to-end proof of the Phase 1 chain: TypeGPU schema → bind group → WGSL
@@ -20,14 +21,11 @@ async function tryGetDevice(): Promise<GPUDevice | null> {
     const adapter = await nav.gpu.requestAdapter();
     return (await adapter?.requestDevice()) ?? null;
   }
+  // Use the production Node/Dawn acquisition path so the WebGPU flag globals
+  // (GPUShaderStage, GPUTextureUsage, …) get installed before typegpu and the
+  // executor reference them.
   try {
-    const spec = "webgpu";
-    const dawn = (await import(/* @vite-ignore */ spec)) as {
-      create?: (flags: string[]) => GPU;
-    };
-    const gpu = dawn.create?.([]);
-    const adapter = await gpu?.requestAdapter();
-    return (await adapter?.requestDevice()) ?? null;
+    return await createNodeGPUDevice();
   } catch {
     return null;
   }

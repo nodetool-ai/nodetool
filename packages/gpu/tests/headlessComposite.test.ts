@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { compositeLayersHeadless } from "../src/compositor/headless.js";
 import { blendModeGpuId } from "../src/blend/blendModes.js";
+import { createNodeGPUDevice } from "../src/node.js";
 
 /**
  * End-to-end proof of the headless (server-side) compositing path: upload two
@@ -15,14 +16,11 @@ async function tryGetDevice(): Promise<GPUDevice | null> {
     const adapter = await nav.gpu.requestAdapter();
     return (await adapter?.requestDevice()) ?? null;
   }
+  // Use the production Node/Dawn acquisition path so this test exercises the
+  // same global-install behaviour the server relies on (without it, typegpu's
+  // layout builder throws `GPUShaderStage is not defined`).
   try {
-    const spec = "webgpu";
-    const dawn = (await import(/* @vite-ignore */ spec)) as {
-      create?: (flags: string[]) => GPU;
-    };
-    const gpu = dawn.create?.([]);
-    const adapter = await gpu?.requestAdapter();
-    return (await adapter?.requestDevice()) ?? null;
+    return await createNodeGPUDevice();
   } catch {
     return null;
   }
@@ -106,5 +104,32 @@ describe.skipIf(!device)("headless composite (GPU)", () => {
     expect(result.rgba[1]).toBe(0);
     expect(Math.abs(result.rgba[2] - 127)).toBeLessThanOrEqual(2);
     expect(result.rgba[3]).toBe(255);
+  });
+
+  it("returns straight (un-premultiplied) alpha for a semi-transparent result", async () => {
+    // A single half-opacity layer over the transparent seed yields a partial
+    // alpha. The readback must be straight-alpha — i.e. the GPU un-premultiply
+    // pass divides RGB back out, so the colour is preserved at α≈128, not the
+    // premultiplied (~128,0,0) it is stored as.
+    const dev = device as GPUDevice;
+    const result = await compositeLayersHeadless(
+      dev,
+      [
+        {
+          rgba: solid(2, 2, [255, 0, 0, 255]),
+          width: 2,
+          height: 2,
+          opacity: 0.5,
+          blendModeId: blendModeGpuId("normal")
+        }
+      ],
+      2,
+      2
+    );
+    // Straight alpha: red stays ~255 (not halved), alpha ≈ 128.
+    expect(result.rgba[0]).toBeGreaterThanOrEqual(250);
+    expect(result.rgba[1]).toBe(0);
+    expect(result.rgba[2]).toBe(0);
+    expect(Math.abs(result.rgba[3] - 128)).toBeLessThanOrEqual(2);
   });
 });
