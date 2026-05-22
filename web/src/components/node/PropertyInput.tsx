@@ -4,6 +4,7 @@ import React, { useCallback, createElement, memo, useMemo } from "react";
 import { shallow } from "zustand/shallow";
 import { Property } from "../../stores/ApiTypes";
 import PropertyLabel from "./PropertyLabel";
+import { isCollectType } from "../../utils/TypeHandler";
 import useContextMenu from "../../stores/ContextMenuStore";
 import reduceUnionType from "../../hooks/reduceUnionType";
 import StringProperty from "../properties/StringProperty";
@@ -208,6 +209,7 @@ function InputProperty(props: PropertyProps) {
         id={id}
         handleTooltipType={props.property.type}
         handleTooltipPosition="left"
+        isCollectInput={isCollectType(props.property.type)}
       />
     </>
   );

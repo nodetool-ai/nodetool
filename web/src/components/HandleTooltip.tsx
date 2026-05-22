@@ -57,6 +57,7 @@ const HandleTooltip = memo(function HandleTooltip({
   enableHover = true,
   variant = "handle"
 }: HandleTooltipProps) {
+  const isPropertyVariant = variant === "property";
   const [showTooltip, setShowTooltip] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const tooltipIdRef = useRef<string>(generateTooltipId());
@@ -95,8 +96,10 @@ const HandleTooltip = memo(function HandleTooltip({
   }, [isConnecting]);
 
   useEffect(() => {
-    if (!nodeSelected || isConnecting || !enableHover) {
-      setShowTooltip(false);
+    if (isPropertyVariant || !nodeSelected || isConnecting || !enableHover) {
+      if (!isPropertyVariant) {
+        setShowTooltip(false);
+      }
       return;
     }
     if (showTimerRef.current !== null) {
@@ -104,7 +107,7 @@ const HandleTooltip = memo(function HandleTooltip({
       showTimerRef.current = null;
     }
     setShowTooltip(true);
-  }, [nodeSelected, isConnecting, enableHover]);
+  }, [nodeSelected, isConnecting, enableHover, isPropertyVariant]);
 
   const prettyName = displayName ?? paramName
     .split("_")
@@ -132,11 +135,11 @@ const HandleTooltip = memo(function HandleTooltip({
       showTimerRef.current = null;
     }
     setIsHovering(false);
-    if (nodeSelected) {
+    if (!isPropertyVariant && nodeSelected) {
       return;
     }
     setShowTooltip(false);
-  }, [nodeSelected]);
+  }, [nodeSelected, isPropertyVariant]);
 
   const handleFocus = useCallback(() => {
     if (!enableHover) {
@@ -148,13 +151,11 @@ const HandleTooltip = memo(function HandleTooltip({
 
   const handleBlur = useCallback(() => {
     setIsHovering(false);
-    if (nodeSelected) {
+    if (!isPropertyVariant && nodeSelected) {
       return;
     }
     setShowTooltip(false);
-  }, [nodeSelected]);
-
-  const isPropertyVariant = variant === "property";
+  }, [nodeSelected, isPropertyVariant]);
 
   // While a connection is being dragged, expose the names of every handle
   // that ReactFlow marked as compatible (the same `is-connectable` class
@@ -164,23 +165,29 @@ const HandleTooltip = memo(function HandleTooltip({
     () => className.split(/\s+/).includes("is-connectable"),
     [className]
   );
-  const connectingShow = isConnecting && isCompatibleForConnect;
-  const effectiveShow = showTooltip || connectingShow;
+  const connectingShow = !isPropertyVariant && isConnecting && isCompatibleForConnect;
+  const propertyHoverShow = isPropertyVariant && isHovering && showTooltip;
+  const handleShow = !isPropertyVariant && (showTooltip || connectingShow);
+  const effectiveShow = isPropertyVariant ? propertyHoverShow : handleShow;
+
+  const tooltipColor = isPropertyVariant
+    ? "var(--palette-grey-100)"
+    : colorForType(typeString);
 
   return (
     <div
-      className={`handle-tooltip-wrapper ${className}`}
+      className={`handle-tooltip-wrapper${isPropertyVariant ? " property-tooltip-wrapper" : ""} ${className}`.trim()}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
-      tabIndex={0}
-      role="button"
-      aria-label={`${prettyName} (${displayType})`}
+      tabIndex={isPropertyVariant ? -1 : 0}
+      role={isPropertyVariant ? undefined : "button"}
+      aria-label={isPropertyVariant ? undefined : `${prettyName} (${displayType})`}
       aria-describedby={effectiveShow ? tooltipIdRef.current : undefined}
     >
       {children}
-      {effectiveShow && (
+      {handleShow && (
         <div
           role="tooltip"
           id={tooltipIdRef.current}
@@ -193,25 +200,43 @@ const HandleTooltip = memo(function HandleTooltip({
             className="handle-tooltip-content"
             style={{
               backgroundColor: "transparent",
-              color: isPropertyVariant
-                ? "var(--palette-grey-100)"
-                : colorForType(typeString)
+              color: tooltipColor
             }}
           >
-            <div className="handle-tooltip-name">
-              {prettyName}
-            </div>
-            {isHovering && (
-              <div className="handle-tooltip-type">
-                {displayType}
+            <div className="handle-tooltip-label">
+              <div className="handle-tooltip-name">
+                {prettyName}
               </div>
-            )}
-            {isCollectInput && (
-              <div className="handle-tooltip-info">
+              {isHovering && (
+                <div className="handle-tooltip-details">
+                  <div className="handle-tooltip-type">
+                    {displayType}
+                  </div>
+                </div>
+              )}
+            </div>
+            {isHovering && isCollectInput && (
+              <div className={`handle-tooltip-info handle-tooltip-info-${handlePosition}`}>
                 Collect input - accepts multiple connections that are combined into a list
               </div>
             )}
           </div>
+        </div>
+      )}
+      {propertyHoverShow && (
+        <div
+          role="tooltip"
+          id={tooltipIdRef.current}
+          aria-live="polite"
+          className="property-handle-tooltip"
+          style={{ color: tooltipColor }}
+        >
+          <div className="property-handle-tooltip-type">{displayType}</div>
+          {isCollectInput && (
+            <div className={`handle-tooltip-info handle-tooltip-info-${handlePosition}`}>
+              Collect input - accepts multiple connections that are combined into a list
+            </div>
+          )}
         </div>
       )}
     </div>

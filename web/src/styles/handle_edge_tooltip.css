@@ -450,6 +450,39 @@ ul.multi-outputs li::marker {
   display: contents;
 }
 
+.property-tooltip-wrapper {
+  display: inline;
+  position: relative;
+  max-width: 100%;
+}
+
+.property-handle-tooltip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 999;
+  pointer-events: none;
+  margin-top: 2px;
+}
+
+.property-handle-tooltip-type {
+  font-size: var(--fontSizeSmaller);
+  font-family: var(--fontFamily2, monospace);
+  opacity: 0.9;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+}
+
+.property-handle-tooltip .handle-tooltip-info {
+  position: static;
+  transform: none;
+  margin-top: 0.35em;
+  padding: 0;
+  max-width: 220px;
+  text-align: left;
+}
+
 .handle-tooltip {
   position: absolute;
   pointer-events: none;
@@ -489,6 +522,7 @@ ul.multi-outputs li::marker {
 
 /* Handle tooltip inner content */
 .handle-tooltip-content {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -498,26 +532,42 @@ ul.multi-outputs li::marker {
   white-space: nowrap;
 }
 
+.handle-tooltip-label {
+  position: relative;
+  display: inline-block;
+}
+
 .handle-tooltip-name {
   font-size: var(--fontSizeNormal);
   font-weight: bold;
   border: 0;
   text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
-  width: 100%;
   padding: 0.25em 0.5em;
   line-height: 1.2;
+}
+
+.handle-tooltip-details {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translate(-50%, calc(-0.2em - 3px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
 }
 
 .handle-tooltip-type {
   font-size: var(--fontSizeSmaller);
   font-family: var(--fontFamily2, monospace);
   opacity: 0.8;
-  padding: 0 0.5em 0.2em;
-  line-height: 1.1;
+  padding: 0 0.35em;
+  line-height: 1;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
 }
 
-.handle-tooltip-streaming,
-.handle-tooltip-info {
+.handle-tooltip-streaming {
   font-size: var(--fontSizeSmall);
   font-style: italic;
   opacity: 0.9;
@@ -529,6 +579,35 @@ ul.multi-outputs li::marker {
   line-height: 1.3;
   white-space: normal;
   word-wrap: break-word;
+}
+
+/* Long collect-input copy sits outside the label stack so it does not cover neighbors. */
+.handle-tooltip-info {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--fontSizeSmall);
+  font-style: italic;
+  opacity: 0.9;
+  max-width: 200px;
+  line-height: 1.3;
+  white-space: normal;
+  word-wrap: break-word;
+  pointer-events: none;
+  padding: 0 0.35em;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+}
+
+.handle-tooltip-info.handle-tooltip-info-left {
+  left: 100%;
+  margin-left: 0.35em;
+  text-align: left;
+}
+
+.handle-tooltip-info.handle-tooltip-info-right {
+  right: 100%;
+  margin-right: 0.35em;
+  text-align: right;
 }
 
 /* =============================================================================

@@ -4,6 +4,7 @@
 
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { HandleTooltip } from '../HandleTooltip';
+import { NodeSelectionContext } from '../node/NodeSelectionContext';
 import { TypeMetadata } from '../../stores/ApiTypes';
 import useConnectionStore from '../../stores/ConnectionStore';
 
@@ -306,6 +307,21 @@ describe('HandleTooltip', () => {
       await waitFor(() => {
         const tooltipInfo = document.querySelector('.handle-tooltip-info');
         expect(tooltipInfo).toHaveTextContent('Collect input - accepts multiple connections that are combined into a list');
+      });
+    });
+
+    it('should hide collect input info when tooltip is shown without hover', async () => {
+      const props = { ...defaultProps, isCollectInput: true };
+
+      render(
+        <NodeSelectionContext.Provider value={true}>
+          <HandleTooltip {...props} />
+        </NodeSelectionContext.Provider>
+      );
+
+      await waitFor(() => {
+        expect(document.querySelector('.handle-tooltip-name')).toBeInTheDocument();
+        expect(document.querySelector('.handle-tooltip-info')).not.toBeInTheDocument();
       });
     });
 
