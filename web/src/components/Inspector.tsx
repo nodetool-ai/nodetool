@@ -263,7 +263,7 @@ const Inspector: React.FC = () => {
   const findNode = useNodes((state) => state.findNode);
   const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
   const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
-  const { toggleExposedInput } = useExposedInputToggle();
+  const { cycleExposedInputPlacement, getPlacement } = useExposedInputToggle();
 
   // Optimize: Only subscribe to edges that are connected to selected nodes to avoid re-renders
   // when unrelated edges change. This is especially important for dynamic properties lookup.
@@ -563,7 +563,8 @@ const Inspector: React.FC = () => {
                 metadata,
                 property.name
               );
-              const exposed = (selectedNode.data.exposedInputs ?? []).includes(
+              const exposurePlacement = getPlacement(
+                selectedNode.id,
                 property.name
               );
               const connected = connectedTargetHandles.has(property.name);
@@ -575,11 +576,14 @@ const Inspector: React.FC = () => {
                 .join(" ");
               const visibilityToggle = hasToggle ? (
                 <PropertyVisibilityToggle
-                  exposed={exposed}
+                  placement={exposurePlacement}
                   connected={connected}
                   onToggle={() =>
                     selectedNode &&
-                    toggleExposedInput(selectedNode.id, property.name)
+                    cycleExposedInputPlacement(
+                      selectedNode.id,
+                      property.name
+                    )
                   }
                 />
               ) : null;

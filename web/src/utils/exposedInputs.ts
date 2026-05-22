@@ -3,6 +3,19 @@ import type { NodeData } from "../stores/NodeData";
 
 export type ExposedInputPlacement = "handle" | "labeled";
 
+/** Inspector toggle cycle: off → top handle → bottom labeled → off. */
+export const nextExposedInputPlacement = (
+  current: ExposedInputPlacement | null
+): ExposedInputPlacement | null => {
+  if (current === null) {
+    return "handle";
+  }
+  if (current === "handle") {
+    return "labeled";
+  }
+  return null;
+};
+
 /**
  * Resolve the set of properties that should appear as input handles on the
  * node body (left handle column). Combines metadata `input_fields` with

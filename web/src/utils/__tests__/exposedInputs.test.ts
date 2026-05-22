@@ -4,6 +4,7 @@ import {
   addExposedInput,
   canPromotePropertyToInputHandle,
   getExposedInputPlacement,
+  nextExposedInputPlacement,
   patchExposedInputPlacement,
   removeExposedInput,
   resolveExposedInputLabeledNames,
@@ -149,6 +150,14 @@ describe("exposedInputs utility", () => {
       expect(patchExposedInputPlacement(data, "a", null)).toEqual({
         exposedInputs: []
       });
+    });
+  });
+
+  describe("nextExposedInputPlacement", () => {
+    it("cycles off → handle → labeled → off", () => {
+      expect(nextExposedInputPlacement(null)).toBe("handle");
+      expect(nextExposedInputPlacement("handle")).toBe("labeled");
+      expect(nextExposedInputPlacement("labeled")).toBeNull();
     });
   });
 

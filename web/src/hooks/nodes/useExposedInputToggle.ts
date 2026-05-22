@@ -4,6 +4,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import {
   canPromotePropertyToInputHandle,
   getExposedInputPlacement,
+  nextExposedInputPlacement,
   patchExposedInputPlacement,
   type ExposedInputPlacement
 } from "../../utils/exposedInputs";
@@ -113,26 +114,28 @@ export function useExposedInputToggle() {
     [deleteEdges, edges]
   );
 
-  /** Toggle handle-only placement (inspector arrow). Default top/left handles. */
-  const toggleExposedInput = useCallback(
+  /** Cycle placement: off → top handle → bottom labeled → off (inspector arrow). */
+  const cycleExposedInputPlacement = useCallback(
     (nodeIds: string | readonly string[], propertyName: string): void => {
       const ids = typeof nodeIds === "string" ? [nodeIds] : nodeIds;
       if (ids.length === 0) {
         return;
       }
 
-      const placement = getPlacement(ids[0], propertyName);
-      if (placement === "handle") {
+      const current = getPlacement(ids[0], propertyName);
+      const next = nextExposedInputPlacement(current);
+      if (current !== null && next === null) {
         if (!confirmDisconnectIfNeeded(ids, propertyName)) {
           return;
         }
-        applyPlacementPatch(ids, propertyName, null);
-      } else {
-        applyPlacementPatch(ids, propertyName, "handle");
       }
+      applyPlacementPatch(ids, propertyName, next);
     },
     [applyPlacementPatch, confirmDisconnectIfNeeded, getPlacement]
   );
+
+  /** @deprecated Use cycleExposedInputPlacement — kept as alias for callers. */
+  const toggleExposedInput = cycleExposedInputPlacement;
 
   /** Toggle labeled row at the bottom of the node (handle + param title). */
   const toggleExposedInputLabeled = useCallback(
@@ -186,6 +189,7 @@ export function useExposedInputToggle() {
     isPropertyExposed,
     isPropertyExposedLabeled,
     setExposedInputPlacement,
+    cycleExposedInputPlacement,
     toggleExposedInput,
     toggleExposedInputLabeled
   };
