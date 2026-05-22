@@ -17,7 +17,7 @@ const styles = (theme: Theme, exposed: boolean) =>
       "&:hover": {
         color: theme.vars.palette.primary.main
       },
-      "& svg": { fontSize: exposed ? 16 : 18 }
+      "& svg": { fontSize: "0.9375rem" }
     }
   });
 

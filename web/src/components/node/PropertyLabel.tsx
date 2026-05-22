@@ -251,15 +251,15 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
         ".inspector-header-toolbar .copy-button:not(.inspector-supplemental-action) svg": {
           fontSize: "0.75rem !important"
         },
-        ".inspector-header-toolbar .property-visibility-toggle:not(.exposed)": {
+        ".inspector-header-toolbar .property-visibility-toggle": {
           width: 22,
-          height: 22
+          height: 22,
+          padding: 0,
+          margin: 0,
+          flexShrink: 0
         },
-        ".inspector-header-toolbar .property-visibility-toggle:not(.exposed) svg": {
-          fontSize: "0.9375rem"
-        },
-        ".inspector-header-toolbar .property-visibility-toggle.exposed svg": {
-          fontSize: "0.75rem"
+        ".inspector-header-toolbar .property-visibility-toggle svg": {
+          fontSize: "0.9375rem !important"
         }
       })}
     >
