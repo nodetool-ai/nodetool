@@ -23,6 +23,7 @@ electron/dist/
 electron/dist-web/
 electron/dist-electron/
 electron/backend-bundle/
+electron/.node-runtime/
 electron/resources/micromamba
 conda-lock.yml
 # Temporary build files
