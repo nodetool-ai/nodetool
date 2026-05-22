@@ -76,12 +76,11 @@ RUN mkdir -p /runtime/packages /runtime/web \
            cp -a "$pkg/dist" "/runtime/$pkg/dist"; \
          fi; \
        done \
+    && mkdir -p /runtime/packages/base-nodes/nodetool \
     && if [ -d packages/base-nodes/nodetool/examples ]; then \
-         mkdir -p /runtime/packages/base-nodes/nodetool; \
          cp -a packages/base-nodes/nodetool/examples /runtime/packages/base-nodes/nodetool/examples; \
        fi \
     && if [ -d packages/base-nodes/nodetool/assets ]; then \
-         mkdir -p /runtime/packages/base-nodes/nodetool; \
          cp -a packages/base-nodes/nodetool/assets /runtime/packages/base-nodes/nodetool/assets; \
        fi \
     && cp web/package.json /runtime/web/package.json \
