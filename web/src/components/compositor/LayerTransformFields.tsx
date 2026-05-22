@@ -18,6 +18,9 @@ import type { LayerTransform2D } from "./types";
 
 const DEG = 180 / Math.PI;
 
+/** Round to 2 decimals for display so scale fields don't show raw float noise. */
+const round2 = (v: number): number => Math.round(v * 100) / 100;
+
 const styles = (theme: Theme) =>
   css({
     "&.transform-fields": {
@@ -74,6 +77,7 @@ const LayerTransformFieldsInner: React.FC<LayerTransformFieldsProps> = ({
         color="secondary"
         inputType="float"
         showSlider={false}
+        hideLabel
         onChange={(_, v) => patch(apply(v), false)}
         onChangeComplete={(v) => patch(apply(v), true)}
       />
@@ -88,10 +92,10 @@ const LayerTransformFieldsInner: React.FC<LayerTransformFieldsProps> = ({
         {field("Y", "y", Math.round(transform.y), (v) => ({ y: v }))}
       </FlexRow>
       <FlexRow gap={0.5}>
-        {field("Scale X", "scaleX", transform.scaleX, (v) => ({
+        {field("Scale X", "scaleX", round2(transform.scaleX), (v) => ({
           scaleX: Math.max(0.02, v)
         }), { min: 0.02, max: 64 })}
-        {field("Scale Y", "scaleY", transform.scaleY, (v) => ({
+        {field("Scale Y", "scaleY", round2(transform.scaleY), (v) => ({
           scaleY: Math.max(0.02, v)
         }), { min: 0.02, max: 64 })}
       </FlexRow>

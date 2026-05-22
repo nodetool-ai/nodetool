@@ -47,12 +47,10 @@ import LayerRow from "./LayerRow";
 
 import type { NodeMetadata, Property } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
 import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
-import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
+import { useNodeOutput, useUpstreamValues } from "../../../hooks/nodes/useNodeIO";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
-import { unwrapOutput } from "../../../utils/imageRef";
 
 const COMPOSITOR_NODE_TYPE = "nodetool.image.Compositor";
 
@@ -290,38 +288,25 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
   );
 
   // ── Edge / upstream resolution for per-layer thumbnails ──────────
+  // `edges` is still needed when deleting a layer (to drop its edge).
   const edges = useNodes(
     (state) => state.edges.filter((e) => e.target === id),
     shallow
   );
 
-  // Only subscribe to upstream source results relevant to this node's edges,
-  // not the entire results record.
-  const upstreamSourceIds = useMemo(
-    () => edges.map((e) => `${workflowId}:${e.source}`),
-    [edges, workflowId]
-  );
-  const upstreamResults = useResultsStore(
-    (state) => {
-      const out: Record<string, unknown> = {};
-      for (const key of upstreamSourceIds) {
-        const val = state.results[key];
-        if (val !== undefined) out[key] = val;
-      }
-      return out;
-    },
-    shallow
+  // Resolve each layer's upstream image through the shared resolver, which
+  // reads all three result channels (outputResults / results / previews) plus
+  // the literal-source fallback. The Compositor previously read only `results`,
+  // so images delivered via streaming `output_update` never reached the editor.
+  const upstreamValues = useUpstreamValues(
+    workflowId,
+    id,
+    imageKeys,
+    dynamicProperties
   );
   const upstreamForKey = useCallback(
-    (key: string): ImageRefLike | undefined => {
-      const edge = edges.find((e) => (e.targetHandle ?? "") === key);
-      if (!edge) {
-        return asImageRef(dynamicProperties[key]);
-      }
-      const sourceResult = upstreamResults[`${workflowId}:${edge.source}`];
-      return asImageRef(unwrapOutput(sourceResult, edge.sourceHandle));
-    },
-    [edges, upstreamResults, workflowId, dynamicProperties]
+    (key: string): ImageRefLike | undefined => asImageRef(upstreamValues[key]),
+    [upstreamValues]
   );
 
   // Own composited output for the top preview.

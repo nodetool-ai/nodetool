@@ -256,6 +256,7 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
                 color="secondary"
                 inputType="int"
                 showSlider={false}
+                hideLabel
                 onChange={(_, v) =>
                   onCanvasSizeChange(Math.round(v), canvasHeight, false)
                 }
@@ -278,6 +279,7 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
                 color="secondary"
                 inputType="int"
                 showSlider={false}
+                hideLabel
                 onChange={(_, v) =>
                   onCanvasSizeChange(canvasWidth, Math.round(v), false)
                 }
