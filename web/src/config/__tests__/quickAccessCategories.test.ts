@@ -165,4 +165,41 @@ describe("quickAccessCategories", () => {
     ).map((m) => m.title);
     expect(titles).toEqual(["Alpha", "Bravo", "Charlie"]);
   });
+
+  it("floats generic nodetool nodes above models, then curated popular models", () => {
+    const all = [
+      meta("zzz.OtherModel", "image", "Zzz Other Model"),
+      meta("fal.text_to_image.FluxDev", "image", "Flux Dev"),
+      meta("fal.text_to_image.NanoBananaPro", "image", "Nano Banana Pro"),
+      meta("nodetool.image.TextToImage", "image", "Text To Image")
+    ];
+    const ids = filterNodesForCategory(getCategory("image-models")!, all).map(
+      (m) => m.node_type
+    );
+    // generic first, then popular models in curated order, then the rest
+    expect(ids).toEqual([
+      "nodetool.image.TextToImage",
+      "fal.text_to_image.NanoBananaPro",
+      "fal.text_to_image.FluxDev",
+      "zzz.OtherModel"
+    ]);
+  });
+
+  it("ranking falls back to title sort while searching", () => {
+    const all = [
+      meta("fal.text_to_image.NanoBananaPro", "image", "Nano Banana Pro"),
+      meta("nodetool.image.TextToImage", "image", "Generate via prompt")
+    ];
+    // Both match the query; with a query active the curated/generic ranking
+    // is dropped and results sort by title alphabetically.
+    const ids = filterNodesForCategory(
+      getCategory("image-models")!,
+      all,
+      "a"
+    ).map((m) => m.node_type);
+    expect(ids).toEqual([
+      "nodetool.image.TextToImage",
+      "fal.text_to_image.NanoBananaPro"
+    ]);
+  });
 });
