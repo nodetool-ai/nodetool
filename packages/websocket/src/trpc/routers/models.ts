@@ -615,7 +615,13 @@ function toUnifiedLanguageModel(
 }
 
 function toUnifiedModel(
-  model: { id: string; name: string; provider: string; voices?: string[] },
+  model: {
+    id: string;
+    name: string;
+    provider: string;
+    voices?: string[];
+    supportedTasks?: string[];
+  },
   type: string
 ): UnifiedModel {
   return {
@@ -627,7 +633,8 @@ function toUnifiedModel(
     path: model.id,
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
     tags: [model.provider],
-    voices: model.voices ?? null
+    voices: model.voices ?? null,
+    supported_tasks: model.supportedTasks ?? null
   };
 }
 
