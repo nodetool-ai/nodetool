@@ -102,6 +102,8 @@ function getShortcutTooltipFromShortcut(
       case "escape":
       case "esc":
         return "ESC";
+      case "mouseright":
+        return "Right-Click";
       default:
         return key.length === 1 ? key.toUpperCase() : key;
     }
