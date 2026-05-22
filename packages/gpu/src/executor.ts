@@ -13,9 +13,11 @@
  * pixels to the CPU. Materialization is a deliberate host-side step at
  * boundaries (Phase 4).
  *
- * Phase 1 implements the `fragment` arm (full-screen pass), which the canary
- * exercises. The `dispatch` discriminator is a union from day one so Phase 2's
- * `compute` arm drops in without an interface change.
+ * The `fragment` arm (full-screen pass) drives image-in/image-out modules;
+ * the `compute` arm (a workgroup dispatch writing a storage-texture output)
+ * drives the migrated timeline effects. Both share input validation, the
+ * params packer, and bind-group construction — only the pipeline kind and the
+ * encoded pass differ.
  */
 
 import { writeToArrayBuffer } from "typegpu";
@@ -95,6 +97,7 @@ export function createExecutor(): Executor {
     ctx: GPUContext,
     module: ShaderModule,
     inputs: Record<string, LabeledTexture>,
+    output: LabeledTexture,
     uniformBuffer: GPUBuffer | null
   ): GPUBindGroup {
     const entries: GPUBindGroupEntry[] = [];
@@ -111,6 +114,10 @@ export function createExecutor(): Executor {
           );
         }
         entries.push({ binding: current, resource: { buffer: uniformBuffer } });
+      } else if ("storageTexture" in entry) {
+        // Storage textures are always the module's output — compute modules
+        // write their result here (read-write storage is not used in the pool).
+        entries.push({ binding: current, resource: output.createView() });
       } else if ("texture" in entry || "externalTexture" in entry) {
         const bound = inputs[name];
         if (!bound) {
@@ -174,6 +181,30 @@ export function createExecutor(): Executor {
     return pipeline;
   }
 
+  function getComputePipeline(
+    ctx: GPUContext,
+    module: ShaderModule
+  ): GPUComputePipeline {
+    const cacheKey = `${moduleKey(module.id, module.version)}:compute`;
+    const cached = ctx.pipelineCache.get(cacheKey);
+    if (cached) {
+      return cached as GPUComputePipeline;
+    }
+    const shaderModule = ctx.device.createShaderModule({
+      label: `${module.id}-shader`,
+      code: module.wgsl
+    });
+    const pipeline = ctx.device.createComputePipeline({
+      label: `${module.id}-pipeline`,
+      layout: ctx.device.createPipelineLayout({
+        bindGroupLayouts: [ctx.root.unwrap(module.layout)]
+      }),
+      compute: { module: shaderModule, entryPoint: module.entryPoint }
+    });
+    ctx.pipelineCache.set(cacheKey, pipeline);
+    return pipeline;
+  }
+
   function packUniform<Schema extends AnyWgslStruct>(
     ctx: GPUContext,
     module: ShaderModule<Schema>,
@@ -206,7 +237,7 @@ export function createExecutor(): Executor {
   ): void {
     const { ctx, module, encoder, inputs, output, params } = args;
     const uniformBuffer = packUniform(ctx, module, params);
-    const bindGroup = buildBindGroup(ctx, module, inputs, uniformBuffer);
+    const bindGroup = buildBindGroup(ctx, module, inputs, output, uniformBuffer);
     const pipeline = getFragmentPipeline(ctx, module, output.format);
 
     const pass = encoder.beginRenderPass({
@@ -222,6 +253,23 @@ export function createExecutor(): Executor {
     output.markWritten();
   }
 
+  function encodeCompute<Schema extends AnyWgslStruct>(
+    args: EncodeArgs<Schema>,
+    dispatch: { x: number; y: number; z?: number }
+  ): void {
+    const { ctx, module, encoder, inputs, output, params } = args;
+    const uniformBuffer = packUniform(ctx, module, params);
+    const bindGroup = buildBindGroup(ctx, module, inputs, output, uniformBuffer);
+    const pipeline = getComputePipeline(ctx, module);
+
+    const pass = encoder.beginComputePass({ label: `${module.id}-pass` });
+    pass.setPipeline(pipeline);
+    pass.setBindGroup(0, bindGroup);
+    pass.dispatchWorkgroups(dispatch.x, dispatch.y, dispatch.z ?? 1);
+    pass.end();
+    output.markWritten();
+  }
+
   return {
     encode<Schema extends AnyWgslStruct>(args: EncodeArgs<Schema>): void {
       validateInputs(args.module, args.inputs);
@@ -229,9 +277,7 @@ export function createExecutor(): Executor {
         encodeFragment(args);
         return;
       }
-      throw new Error(
-        `Executor: dispatch kind "${args.dispatch.kind}" not implemented until Phase 2`
-      );
+      encodeCompute(args, args.dispatch);
     }
   };
 }

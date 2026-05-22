@@ -9,12 +9,22 @@ import type {
   TrackChromaKeyEffect
 } from "@nodetool-ai/timeline";
 import {
-  blurComputeShader,
-  effectsComputeShader,
-  sharpenComputeShader,
-  vignetteComputeShader,
-  chromaKeyComputeShader
-} from "./shaders";
+  createGPUContextFromDevice,
+  createExecutor,
+  createLabeledTexture,
+  colorGradeV1,
+  blurGaussianV1,
+  sharpenUnsharpMaskV1,
+  vignetteV1,
+  chromaKeyV1,
+  type GPUContext,
+  type Executor,
+  type ExecutorDispatch,
+  type LabeledTexture,
+  type ShaderModule
+} from "@nodetool-ai/gpu/pool";
+import * as d from "typegpu/data";
+import type { AnyWgslStruct, Infer } from "typegpu/data";
 
 interface AggregatedColor {
   brightness: number;
@@ -38,24 +48,21 @@ const NEUTRAL_COLOR: AggregatedColor = {
   highlights: 0
 };
 
-const COLOR_UNIFORM_BYTES = 32;
-const BLUR_UNIFORM_BYTES = 16;
-const DIMS_UNIFORM_BYTES = 16;
-// sharpen: amount, threshold, _pad x 2 → 16 bytes
-const SHARPEN_UNIFORM_BYTES = 16;
-// vignette: intensity, radius, softness, _pad → 16 bytes
-const VIGNETTE_UNIFORM_BYTES = 16;
-// chromaKey: keyR, keyG, keyB, tolerance, softness, spill, _pad x 2 → 32 bytes
-const CHROMAKEY_UNIFORM_BYTES = 32;
+const WORKGROUP_SIZE = 16;
 
 interface IntermediatePool {
   width: number;
   height: number;
-  textures: [GPUTexture, GPUTexture];
-  dimsBuffer: GPUBuffer;
+  textures: [LabeledTexture, LabeledTexture];
   /** Currently holds the latest pixel state (input to next pass). */
   currentIndex: 0 | 1;
 }
+
+const INTERMEDIATE_USAGE =
+  GPUTextureUsage.TEXTURE_BINDING |
+  GPUTextureUsage.STORAGE_BINDING |
+  GPUTextureUsage.COPY_SRC |
+  GPUTextureUsage.COPY_DST;
 
 /**
  * GPU pre-pass for per-clip color grading and Gaussian blur. Caller passes
@@ -63,127 +70,22 @@ interface IntermediatePool {
  * original if no effects apply, or a processed intermediate). Intermediate
  * textures are pooled by layer id + source dimensions so we don't reallocate
  * every frame.
+ *
+ * Each effect is a shared `ShaderModule` from `@nodetool-ai/gpu` dispatched
+ * through the shared `Executor` — no host-side uniform packing or bind-group
+ * construction lives here anymore.
  */
 export class WebGPUEffectsProcessor {
   private device: GPUDevice;
-
-  private effectsPipeline: GPUComputePipeline;
-  private blurPipeline: GPUComputePipeline;
-  private sharpenPipeline: GPUComputePipeline;
-  private vignettePipeline: GPUComputePipeline;
-  private chromaKeyPipeline: GPUComputePipeline;
-  private bindGroupLayout: GPUBindGroupLayout;
-
-  private colorBuffer: GPUBuffer;
-  private blurBuffer: GPUBuffer;
-  private sharpenBuffer: GPUBuffer;
-  private vignetteBuffer: GPUBuffer;
-  private chromaKeyBuffer: GPUBuffer;
+  private ctx: GPUContext;
+  private executor: Executor;
 
   private pools = new Map<string, IntermediatePool>();
 
   constructor(device: GPUDevice) {
     this.device = device;
-
-    this.bindGroupLayout = device.createBindGroupLayout({
-      label: "preview-effects-layout",
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.COMPUTE,
-          texture: { sampleType: "float" }
-        },
-        {
-          binding: 1,
-          visibility: GPUShaderStage.COMPUTE,
-          storageTexture: { access: "write-only", format: "rgba8unorm" }
-        },
-        {
-          binding: 2,
-          visibility: GPUShaderStage.COMPUTE,
-          buffer: { type: "uniform" }
-        },
-        {
-          binding: 3,
-          visibility: GPUShaderStage.COMPUTE,
-          buffer: { type: "uniform" }
-        }
-      ]
-    });
-    const layout = device.createPipelineLayout({
-      bindGroupLayouts: [this.bindGroupLayout]
-    });
-    this.effectsPipeline = device.createComputePipeline({
-      label: "preview-color-effects",
-      layout,
-      compute: {
-        module: device.createShaderModule({ code: effectsComputeShader }),
-        entryPoint: "main"
-      }
-    });
-    this.blurPipeline = device.createComputePipeline({
-      label: "preview-blur",
-      layout,
-      compute: {
-        module: device.createShaderModule({ code: blurComputeShader }),
-        entryPoint: "main"
-      }
-    });
-    this.sharpenPipeline = device.createComputePipeline({
-      label: "preview-sharpen",
-      layout,
-      compute: {
-        module: device.createShaderModule({ code: sharpenComputeShader }),
-        entryPoint: "main"
-      }
-    });
-    this.vignettePipeline = device.createComputePipeline({
-      label: "preview-vignette",
-      layout,
-      compute: {
-        module: device.createShaderModule({ code: vignetteComputeShader }),
-        entryPoint: "main"
-      }
-    });
-    this.chromaKeyPipeline = device.createComputePipeline({
-      label: "preview-chromakey",
-      layout,
-      compute: {
-        module: device.createShaderModule({ code: chromaKeyComputeShader }),
-        entryPoint: "main"
-      }
-    });
-
-    this.colorBuffer = device.createBuffer({
-      label: "preview-color-uniforms",
-      size: COLOR_UNIFORM_BYTES,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    });
-    this.blurBuffer = device.createBuffer({
-      label: "preview-blur-uniforms",
-      size: BLUR_UNIFORM_BYTES,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    });
-    this.sharpenBuffer = device.createBuffer({
-      label: "preview-sharpen-uniforms",
-      size: SHARPEN_UNIFORM_BYTES,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    });
-    this.vignetteBuffer = device.createBuffer({
-      label: "preview-vignette-uniforms",
-      size: VIGNETTE_UNIFORM_BYTES,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    });
-    this.chromaKeyBuffer = device.createBuffer({
-      label: "preview-chromakey-uniforms",
-      size: CHROMAKEY_UNIFORM_BYTES,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    });
-  }
-
-  /** Returns a compatible bind group layout for callers that need it. */
-  getBindGroupLayout(): GPUBindGroupLayout {
-    return this.bindGroupLayout;
+    this.ctx = createGPUContextFromDevice(device);
+    this.executor = createExecutor();
   }
 
   /**
@@ -239,121 +141,79 @@ export class WebGPUEffectsProcessor {
     // Seed: copy source → textures[0]
     encoder.copyTextureToTexture(
       { texture: source },
-      { texture: pool.textures[0] },
+      { texture: pool.textures[0].texture },
       { width, height }
     );
     pool.currentIndex = 0;
 
+    const dispatch: ExecutorDispatch = {
+      kind: "compute",
+      x: Math.ceil(width / WORKGROUP_SIZE),
+      y: Math.ceil(height / WORKGROUP_SIZE),
+      z: 1
+    };
+
     if (chromaKeyActive && chromaKey) {
-      this.writeChromaKey(chromaKey);
-      this.dispatch(encoder, pool, this.chromaKeyPipeline);
+      const [r, g, b] = hexToRgb(chromaKey.keyColor);
+      this.encodeStep(encoder, pool, chromaKeyV1, dispatch, {
+        keyColor: d.vec3f(r, g, b),
+        tolerance: chromaKey.tolerance,
+        softness: chromaKey.softness,
+        spill: chromaKey.spill
+      });
     }
     if (colorActive) {
-      this.writeColor(color);
-      this.dispatch(encoder, pool, this.effectsPipeline);
+      this.encodeStep(encoder, pool, colorGradeV1, dispatch, { ...color });
     }
     if (blurActive) {
       const sigma = blurRadius / 3;
-      this.writeBlur(blurRadius, sigma, 1, 0);
-      this.dispatch(encoder, pool, this.blurPipeline);
-      this.writeBlur(blurRadius, sigma, 0, 1);
-      this.dispatch(encoder, pool, this.blurPipeline);
+      this.encodeStep(encoder, pool, blurGaussianV1, dispatch, {
+        radius: blurRadius,
+        sigma,
+        direction: d.vec2f(1, 0)
+      });
+      this.encodeStep(encoder, pool, blurGaussianV1, dispatch, {
+        radius: blurRadius,
+        sigma,
+        direction: d.vec2f(0, 1)
+      });
     }
     if (sharpenActive && sharpen) {
-      this.writeSharpen(sharpen);
-      this.dispatch(encoder, pool, this.sharpenPipeline);
+      this.encodeStep(encoder, pool, sharpenUnsharpMaskV1, dispatch, {
+        amount: sharpen.amount,
+        threshold: sharpen.threshold
+      });
     }
     if (vignetteActive && vignette) {
-      this.writeVignette(vignette);
-      this.dispatch(encoder, pool, this.vignettePipeline);
+      this.encodeStep(encoder, pool, vignetteV1, dispatch, {
+        intensity: vignette.intensity,
+        radius: vignette.radius,
+        softness: vignette.softness
+      });
     }
 
     this.device.queue.submit([encoder.finish()]);
-    return pool.textures[pool.currentIndex];
+    return pool.textures[pool.currentIndex].texture;
   }
 
-  private writeColor(c: AggregatedColor): void {
-    const data = new Float32Array([
-      c.brightness,
-      c.contrast,
-      c.saturation,
-      c.hue,
-      c.temperature,
-      c.tint,
-      c.shadows,
-      c.highlights
-    ]);
-    this.device.queue.writeBuffer(this.colorBuffer, 0, data.buffer, 0, data.byteLength);
-  }
-
-  private writeBlur(radius: number, sigma: number, dx: number, dy: number): void {
-    const data = new Float32Array([radius, sigma, dx, dy]);
-    this.device.queue.writeBuffer(this.blurBuffer, 0, data.buffer, 0, data.byteLength);
-  }
-
-  private writeSharpen(s: TrackSharpenEffect): void {
-    const data = new Float32Array([s.amount, s.threshold, 0, 0]);
-    this.device.queue.writeBuffer(this.sharpenBuffer, 0, data.buffer, 0, data.byteLength);
-  }
-
-  private writeVignette(v: TrackVignetteEffect): void {
-    const data = new Float32Array([v.intensity, v.radius, v.softness, 0]);
-    this.device.queue.writeBuffer(this.vignetteBuffer, 0, data.buffer, 0, data.byteLength);
-  }
-
-  private writeChromaKey(c: TrackChromaKeyEffect): void {
-    const rgb = hexToRgb(c.keyColor);
-    const data = new Float32Array([
-      rgb[0],
-      rgb[1],
-      rgb[2],
-      c.tolerance,
-      c.softness,
-      c.spill,
-      0,
-      0
-    ]);
-    this.device.queue.writeBuffer(this.chromaKeyBuffer, 0, data.buffer, 0, data.byteLength);
-  }
-
-  private dispatch(
+  private encodeStep<Schema extends AnyWgslStruct>(
     encoder: GPUCommandEncoder,
     pool: IntermediatePool,
-    pipeline: GPUComputePipeline
+    module: ShaderModule<Schema>,
+    dispatch: ExecutorDispatch,
+    params: Infer<Schema>
   ): void {
     const inIdx = pool.currentIndex;
     const outIdx = (1 - inIdx) as 0 | 1;
-    const uniformBuffer =
-      pipeline === this.effectsPipeline
-        ? this.colorBuffer
-        : pipeline === this.blurPipeline
-          ? this.blurBuffer
-          : pipeline === this.sharpenPipeline
-            ? this.sharpenBuffer
-            : pipeline === this.vignettePipeline
-              ? this.vignetteBuffer
-              : this.chromaKeyBuffer;
-
-    const bindGroup = this.device.createBindGroup({
-      layout: this.bindGroupLayout,
-      entries: [
-        { binding: 0, resource: pool.textures[inIdx].createView() },
-        { binding: 1, resource: pool.textures[outIdx].createView() },
-        { binding: 2, resource: { buffer: uniformBuffer } },
-        { binding: 3, resource: { buffer: pool.dimsBuffer } }
-      ]
+    this.executor.encode({
+      ctx: this.ctx,
+      module,
+      encoder,
+      inputs: { source: pool.textures[inIdx] },
+      output: pool.textures[outIdx],
+      params,
+      dispatch
     });
-
-    const pass = encoder.beginComputePass();
-    pass.setPipeline(pipeline);
-    pass.setBindGroup(0, bindGroup);
-    pass.dispatchWorkgroups(
-      Math.ceil(pool.width / 16),
-      Math.ceil(pool.height / 16),
-      1
-    );
-    pass.end();
-
     pool.currentIndex = outIdx;
   }
 
@@ -365,31 +225,20 @@ export class WebGPUEffectsProcessor {
     if (existing) {
       existing.textures[0].destroy();
       existing.textures[1].destroy();
-      existing.dimsBuffer.destroy();
     }
-    const make = (label: string) =>
-      this.device.createTexture({
+    const make = (label: string): LabeledTexture =>
+      createLabeledTexture(this.device, {
         label,
-        size: { width, height },
+        width,
+        height,
         format: "rgba8unorm",
-        usage:
-          GPUTextureUsage.TEXTURE_BINDING |
-          GPUTextureUsage.STORAGE_BINDING |
-          GPUTextureUsage.COPY_SRC |
-          GPUTextureUsage.COPY_DST
+        usage: INTERMEDIATE_USAGE,
+        meta: { colorSpace: "srgb", alpha: "premultiplied" }
       });
-    const dimsBuffer = this.device.createBuffer({
-      label: `preview-effects-dims-${key}`,
-      size: DIMS_UNIFORM_BYTES,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    });
-    const dims = new Uint32Array([width, height, 0, 0]);
-    this.device.queue.writeBuffer(dimsBuffer, 0, dims.buffer, 0, dims.byteLength);
     const pool: IntermediatePool = {
       width,
       height,
       textures: [make(`preview-effects-${key}-a`), make(`preview-effects-${key}-b`)],
-      dimsBuffer,
       currentIndex: 0
     };
     this.pools.set(key, pool);
@@ -401,7 +250,6 @@ export class WebGPUEffectsProcessor {
     if (!pool) return;
     pool.textures[0].destroy();
     pool.textures[1].destroy();
-    pool.dimsBuffer.destroy();
     this.pools.delete(key);
   }
 
@@ -416,14 +264,9 @@ export class WebGPUEffectsProcessor {
     for (const pool of this.pools.values()) {
       pool.textures[0].destroy();
       pool.textures[1].destroy();
-      pool.dimsBuffer.destroy();
     }
     this.pools.clear();
-    this.colorBuffer.destroy();
-    this.blurBuffer.destroy();
-    this.sharpenBuffer.destroy();
-    this.vignetteBuffer.destroy();
-    this.chromaKeyBuffer.destroy();
+    this.ctx.scratch.dispose();
   }
 }
 
