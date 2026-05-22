@@ -283,6 +283,16 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     return ct?.startsWith("image/") || false;
   }, [currentAsset?.content_type, contentType]);
 
+  // Check if current asset is an editable 3D model (.glb/.gltf)
+  const isModel3D = useMemo(() => {
+    const ct = currentAsset?.content_type || contentType || "";
+    if (ct.startsWith("model/") || ct.includes("gltf") || ct.includes("glb")) {
+      return true;
+    }
+    const ext = currentAsset?.name?.toLowerCase().split(".").pop();
+    return ext === "glb" || ext === "gltf";
+  }, [currentAsset?.content_type, currentAsset?.name, contentType]);
+
   // Check if there are multiple images to compare
   const imageAssets = useMemo(
     () => assetsToUse.filter((a) => a.content_type?.startsWith("image/")),
@@ -346,6 +356,12 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       navigate(`/assets/edit/${currentAsset.id}`);
     }
   }, [currentAsset, isImage, navigate]);
+
+  const handleOpenModel3DEditor = useCallback(() => {
+    if (currentAsset && isModel3D) {
+      navigate(`/assets/edit/${currentAsset.id}`);
+    }
+  }, [currentAsset, isModel3D, navigate]);
 
 
   // Copy to clipboard state and handler
@@ -698,6 +714,16 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               icon={<EditIcon />}
               tooltip="Edit Image"
               onClick={handleOpenImageEditor}
+              className="button edit"
+              nodrag={false}
+              sx={viewerActionButtonSx}
+            />
+          )}
+          {isModel3D && !compareMode && (
+            <ToolbarIconButton
+              icon={<EditIcon />}
+              tooltip="Edit in 3D Editor"
+              onClick={handleOpenModel3DEditor}
               className="button edit"
               nodrag={false}
               sx={viewerActionButtonSx}
