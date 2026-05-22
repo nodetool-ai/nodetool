@@ -135,7 +135,7 @@ export const RUNTIME_PACKAGES: Record<RuntimePackageId, RuntimePackage> = {
     id: "transformers-js",
     name: "Transformers.js",
     description:
-      "Optional Hugging Face Transformers.js runtime for local JavaScript AI nodes.",
+      "Optional Hugging Face Transformers.js runtime (includes the ONNX Runtime) for local JavaScript AI nodes.",
     category: "library",
     versionRange: "4.x",
     npmPackages: ["@huggingface/transformers@4.2.0", "kokoro-js@1.2.1"],
