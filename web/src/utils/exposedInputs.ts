@@ -14,16 +14,17 @@ export const resolveExposedInputNames = (
 ): string[] => {
   const inputs = metadata.input_fields ?? [];
   const exposed = data.exposedInputs ?? [];
+  const labeled = new Set(data.exposedInputsLabeled ?? []);
   const seen = new Set<string>();
   const out: string[] = [];
   for (const n of inputs) {
-    if (!seen.has(n)) {
+    if (!seen.has(n) && !labeled.has(n)) {
       seen.add(n);
       out.push(n);
     }
   }
   for (const n of exposed) {
-    if (!seen.has(n)) {
+    if (!seen.has(n) && !labeled.has(n)) {
       seen.add(n);
       out.push(n);
     }

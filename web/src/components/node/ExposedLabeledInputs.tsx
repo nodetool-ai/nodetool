@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 /**
  * Labeled input rows for user-promoted `exposedInputsLabeled` properties.
- * Renders handle + visible param title at the bottom of the node body.
+ * Renders handle + label + property editors at the bottom of the node body
+ * (same widgets as inline fields, promoted via exposedInputsLabeled).
  */
 
 import React, { memo, useMemo } from "react";
@@ -52,7 +53,7 @@ const ExposedLabeledInputsImpl: React.FC<ExposedLabeledInputsProps> = ({
         properties={labeledProperties}
         nodeType={nodeType}
         data={data}
-        showFields={false}
+        showFields={true}
         showHandle={true}
         editableDynamicInputs={false}
       />

@@ -62,6 +62,18 @@ describe("exposedInputs utility", () => {
       expect(resolveExposedInputNames(md, data)).toEqual(["a", "b", "c"]);
     });
 
+    it("excludes properties in exposedInputsLabeled from handle column", () => {
+      const md = baseMetadata({ input_fields: ["image"] });
+      const data = baseData({
+        exposedInputs: ["negative_prompt"],
+        exposedInputsLabeled: ["prompt"]
+      });
+      expect(resolveExposedInputNames(md, data)).toEqual([
+        "image",
+        "negative_prompt"
+      ]);
+    });
+
     it("treats an old workflow with no exposedInputs as []", () => {
       const md = baseMetadata({ input_fields: ["a"] });
       const data = baseData();

@@ -325,7 +325,7 @@ const PropertyContextMenuComponent: React.FC = () => {
                 ? isConnected
                   ? "Hide labeled input at bottom (disconnects edge)"
                   : "Hide labeled input at bottom"
-                : "Show input at bottom of node with parameter title"
+                : "Show input at bottom with parameter title and editor"
             }
           />
         </>

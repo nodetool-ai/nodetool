@@ -190,18 +190,35 @@ const NodeContent: React.FC<NodeContentProps> = ({
   //       → generic body (this component's default layout)
   // Utility nodes (control flow, constants, etc.) intentionally never appear
   // in either registry and stay on the generic body forever.
+  const allProperties = nodeMetadata.properties ?? [];
   const BespokeBody = getBespokeBody(nodeMetadata);
   if (BespokeBody) {
     return (
-      <BespokeBody
-        id={id}
-        nodeType={nodeType}
-        nodeMetadata={nodeMetadata}
-        data={data}
-        workflowId={workflowId}
-        status={status}
-        isOutputNode={isOutputNode}
-      />
+      <FlexColumn
+        fullWidth
+        fullHeight
+        sx={{
+          position: "relative",
+          minHeight: 0
+        }}
+      >
+        <BespokeBody
+          id={id}
+          nodeType={nodeType}
+          nodeMetadata={nodeMetadata}
+          data={data}
+          workflowId={workflowId}
+          status={status}
+          isOutputNode={isOutputNode}
+        />
+        <ExposedLabeledInputs
+          id={id}
+          nodeMetadata={nodeMetadata}
+          nodeType={nodeType}
+          data={data}
+          properties={allProperties}
+        />
+      </FlexColumn>
     );
   }
   if (isContentCardNode(nodeMetadata)) {
@@ -230,7 +247,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
   }
   // Input fields = metadata input_fields ∪ user-promoted exposedInputs.
   const inputFieldNames = resolveExposedInputNames(nodeMetadata, data);
-  const allProperties = nodeMetadata.properties ?? [];
   const inlineProperties = allProperties.filter((p) =>
     inlineFieldNames.includes(p.name)
   );

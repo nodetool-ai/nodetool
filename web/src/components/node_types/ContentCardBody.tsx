@@ -170,6 +170,14 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto",
       paddingTop: theme.spacing(0.5)
     },
+    ".exposed-labeled-inputs": {
+      flex: "0 0 auto",
+      paddingTop: theme.spacing(0.5),
+      "& .node-inputs": {
+        marginTop: 0,
+        marginBottom: 0
+      }
+    },
     // Input handles are rendered by <HandleColumn /> — see HandleColumn.tsx
     // for the left-edge absolute positioning.
     ".outputs-row": {
@@ -498,12 +506,18 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
         : [],
     [useNewLayout, properties, inlineFields]
   );
+  const labeledHandleExclude = useMemo(
+    () => new Set(data.exposedInputsLabeled ?? []),
+    [data.exposedInputsLabeled]
+  );
   const handleProps = useMemo(
-    () =>
-      useNewLayout
+    () => {
+      const base = useNewLayout
         ? properties.filter((p) => handleNames!.has(p.name))
-        : properties,
-    [useNewLayout, properties, handleNames]
+        : properties;
+      return base.filter((p) => !labeledHandleExclude.has(p.name));
+    },
+    [useNewLayout, properties, handleNames, labeledHandleExclude]
   );
 
   // Adding a dynamic property is the responsibility of dynamic-input wiring

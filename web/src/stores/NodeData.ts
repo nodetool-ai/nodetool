@@ -33,7 +33,7 @@ export type NodeData = {
   exposedInputs?: string[];
   /**
    * Advanced properties promoted as labeled input rows at the bottom of the
-   * node body (handle + visible param title, no inline editor on the node).
+   * node body (handle + title + matching property editors on the node).
    */
   exposedInputsLabeled?: string[];
   // Original node type from the workflow graph (useful when React Flow falls back to "default" type)
