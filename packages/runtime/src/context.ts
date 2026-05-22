@@ -1549,12 +1549,19 @@ export class ProcessingContext {
     return Array.from(new Set([primary, withoutExt].filter(Boolean)));
   }
 
-  async assetToSandbox(assetId: string, path: string): Promise<string> {
-    const outputPath = this.resolveSandboxFilePath(path);
+  /**
+   * Resolve an `asset://<id>[.ext]` reference (or bare id / storage URI) to its
+   * raw bytes. Tries storage backends first (memory/file/s3), then falls back
+   * to the asset API. Returns the bytes plus the `attempts` trail for callers
+   * that want to build a detailed error; `null` bytes means unresolved.
+   */
+  async resolveAssetBytes(
+    assetId: string
+  ): Promise<{ bytes: Uint8Array | null; attempts: string[] }> {
     const uriCandidates = new Set<string>();
     const idCandidates = this.parseAssetIdCandidates(assetId);
     const trimmed = assetId.trim();
-    const resolutionAttempts: string[] = [];
+    const attempts: string[] = [];
 
     if (trimmed.includes("://") && !trimmed.startsWith("asset://")) {
       uriCandidates.add(trimmed);
@@ -1566,73 +1573,72 @@ export class ProcessingContext {
       }
     }
 
-    let bytes: Uint8Array | null = null;
     if (this.storage) {
       for (const uri of uriCandidates) {
         try {
           const retrieved = await this.storage.retrieve(uri);
           if (retrieved) {
-            bytes = retrieved;
-            break;
+            return { bytes: retrieved, attempts };
           }
-          resolutionAttempts.push(`storage miss: ${uri}`);
+          attempts.push(`storage miss: ${uri}`);
         } catch (error) {
-          resolutionAttempts.push(
+          attempts.push(
             `storage error: ${uri} (${error instanceof Error ? error.message : String(error)})`
           );
         }
       }
     }
 
-    if (!bytes) {
-      let baseUrl = (
-        this.environment.NODETOOL_API_URL ??
-        process.env.NODETOOL_API_URL ??
-        "http://localhost:7777"
-      );
-      while (baseUrl.endsWith("/")) {
-        baseUrl = baseUrl.slice(0, -1);
-      }
-      for (const candidate of idCandidates) {
-        try {
-          const metaResponse = await this.httpGet(
-            `${baseUrl}/api/assets/${encodeURIComponent(candidate)}`
-          );
-          const metadata = (await metaResponse.json()) as Record<string, unknown>;
-          const getUrl = metadata.get_url;
-          const uri = metadata.uri;
-          if (typeof getUrl === "string" && getUrl) {
-            const downloadUrl = getUrl.startsWith("/")
-              ? `${baseUrl}${getUrl}`
-              : getUrl;
-            bytes = await this.downloadFile(downloadUrl, {
-              retry: { maxRetries: 1, backoffMs: 200 }
-            });
-            resolutionAttempts.push(`downloaded: ${downloadUrl}`);
-            break;
-          }
-          if (typeof uri === "string" && this.storage) {
-            const retrieved = await this.storage.retrieve(uri);
-            if (retrieved) {
-              bytes = retrieved;
-              resolutionAttempts.push(`storage hit via metadata: ${uri}`);
-              break;
-            }
-            resolutionAttempts.push(`storage miss via metadata: ${uri}`);
-          }
-        } catch (error) {
-          resolutionAttempts.push(
-            `api lookup error for ${candidate}: ${error instanceof Error ? error.message : String(error)}`
-          );
+    let baseUrl =
+      this.environment.NODETOOL_API_URL ??
+      process.env.NODETOOL_API_URL ??
+      "http://localhost:7777";
+    while (baseUrl.endsWith("/")) {
+      baseUrl = baseUrl.slice(0, -1);
+    }
+    for (const candidate of idCandidates) {
+      try {
+        const metaResponse = await this.httpGet(
+          `${baseUrl}/api/assets/${encodeURIComponent(candidate)}`
+        );
+        const metadata = (await metaResponse.json()) as Record<string, unknown>;
+        const getUrl = metadata.get_url;
+        const uri = metadata.uri;
+        if (typeof getUrl === "string" && getUrl) {
+          const downloadUrl = getUrl.startsWith("/")
+            ? `${baseUrl}${getUrl}`
+            : getUrl;
+          const bytes = await this.downloadFile(downloadUrl, {
+            retry: { maxRetries: 1, backoffMs: 200 }
+          });
+          attempts.push(`downloaded: ${downloadUrl}`);
+          return { bytes, attempts };
         }
+        if (typeof uri === "string" && this.storage) {
+          const retrieved = await this.storage.retrieve(uri);
+          if (retrieved) {
+            attempts.push(`storage hit via metadata: ${uri}`);
+            return { bytes: retrieved, attempts };
+          }
+          attempts.push(`storage miss via metadata: ${uri}`);
+        }
+      } catch (error) {
+        attempts.push(
+          `api lookup error for ${candidate}: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
 
+    return { bytes: null, attempts };
+  }
+
+  async assetToSandbox(assetId: string, path: string): Promise<string> {
+    const outputPath = this.resolveSandboxFilePath(path);
+    const { bytes, attempts } = await this.resolveAssetBytes(assetId);
+
     if (!bytes) {
       const details =
-        resolutionAttempts.length > 0
-          ? ` Attempts: ${resolutionAttempts.join("; ")}`
-          : "";
+        attempts.length > 0 ? ` Attempts: ${attempts.join("; ")}` : "";
       throw new Error(
         `Unable to resolve asset '${assetId}' to sandbox bytes.${details}`
       );
@@ -1759,13 +1765,25 @@ export class ProcessingContext {
   }
 
   /**
-   * Resolve /api/storage/ URIs in message content to data URIs so providers
-   * can fetch them without needing a base URL.
+   * Retrieve raw bytes for a media URI referenced in message content. Handles
+   * the `asset://<id>` reference scheme (via {@link resolveAssetBytes}) as well
+   * as opaque storage URIs (memory/file/s3) via the storage adapter.
    */
-  private async resolveMessageMediaUris(
-    messages: Message[]
-  ): Promise<Message[]> {
-    if (!this.storage) return messages;
+  private async retrieveMediaBytes(uri: string): Promise<Uint8Array | null> {
+    if (uri.startsWith("asset://")) {
+      const { bytes } = await this.resolveAssetBytes(uri);
+      return bytes;
+    }
+    return this.storage ? await this.storage.retrieve(uri) : null;
+  }
+
+  /**
+   * Resolve non-data, non-http media URIs in message content to data URIs so
+   * providers can consume them directly. Covers `/api/storage/` and other
+   * storage URIs as well as the `asset://<id>` reference scheme (assets
+   * mentioned inline in a prompt).
+   */
+  async resolveMessageMediaUris(messages: Message[]): Promise<Message[]> {
     const resolved: Message[] = [];
     for (const msg of messages) {
       if (!Array.isArray(msg.content)) {
@@ -1780,7 +1798,7 @@ export class ProcessingContext {
           !part.image.uri.startsWith("data:") &&
           !part.image.uri.startsWith("http")
         ) {
-          const bytes = await this.storage.retrieve(part.image.uri);
+          const bytes = await this.retrieveMediaBytes(part.image.uri);
           if (bytes) {
             const ext = part.image.uri.split(".").pop()?.toLowerCase() ?? "png";
             const mime: Record<string, string> = {
@@ -1805,7 +1823,7 @@ export class ProcessingContext {
           !part.audio.uri.startsWith("data:") &&
           !part.audio.uri.startsWith("http")
         ) {
-          const bytes = await this.storage.retrieve(part.audio.uri);
+          const bytes = await this.retrieveMediaBytes(part.audio.uri);
           if (bytes) {
             const ext = part.audio.uri.split(".").pop()?.toLowerCase() ?? "mp3";
             const mime: Record<string, string> = {

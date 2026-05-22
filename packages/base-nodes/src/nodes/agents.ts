@@ -460,12 +460,104 @@ function logThreadWarning(
   });
 }
 
+const ASSET_URI_RE = /asset:\/\/[A-Za-z0-9._~\-/]+/g;
+
+const IMAGE_EXT_MIME: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  bmp: "image/bmp",
+  svg: "image/svg+xml"
+};
+
+const AUDIO_EXT_MIME: Record<string, string> = {
+  mp3: "audio/mpeg",
+  mpeg: "audio/mpeg",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
+  m4a: "audio/mp4",
+  aac: "audio/aac",
+  flac: "audio/flac",
+  opus: "audio/opus"
+};
+
+/**
+ * Classify an `asset://<id>.<ext>` token by its extension. Only image and
+ * audio are provider-consumable media; everything else (text, video, unknown)
+ * returns null so the reference is left as literal text in the prompt.
+ */
+function classifyAssetToken(
+  token: string
+): { kind: "image" | "audio"; mime: string } | null {
+  const noScheme = token.slice("asset://".length);
+  const primary = noScheme.split(/[?#]/)[0];
+  const ext = (primary.split(".").pop() ?? "").toLowerCase();
+  if (ext in IMAGE_EXT_MIME) return { kind: "image", mime: IMAGE_EXT_MIME[ext] };
+  if (ext in AUDIO_EXT_MIME) return { kind: "audio", mime: AUDIO_EXT_MIME[ext] };
+  return null;
+}
+
+/**
+ * Split a prompt containing inline `asset://<id>.<ext>` references into a
+ * multimodal content array: text segments interleaved with image / audio
+ * blocks that carry the `asset://` URI verbatim. The blocks are NOT resolved
+ * here — the runtime layer (`ProcessingContext.resolveMessageMediaUris`)
+ * dereferences the URIs to data URIs just before the provider call. Tokens
+ * that aren't a supported media type (text, video, unknown) stay as literal
+ * text so the model still sees the mention.
+ */
+export function expandAssetReferences(prompt: string): MessageContent[] {
+  ASSET_URI_RE.lastIndex = 0;
+  if (!ASSET_URI_RE.test(prompt)) {
+    return [{ type: "text", text: prompt }];
+  }
+
+  const parts: MessageContent[] = [];
+  const pushText = (text: string) => {
+    if (text) parts.push({ type: "text", text });
+  };
+
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+  ASSET_URI_RE.lastIndex = 0;
+  while ((match = ASSET_URI_RE.exec(prompt)) !== null) {
+    let token = match[0];
+    // A trailing dot is sentence punctuation, not part of the extension.
+    const trailingDots = token.match(/\.+$/);
+    if (trailingDots) {
+      token = token.slice(0, token.length - trailingDots[0].length);
+    }
+    const classification = classifyAssetToken(token);
+    if (!classification) {
+      continue;
+    }
+    pushText(prompt.slice(cursor, match.index));
+    if (classification.kind === "image") {
+      parts.push({
+        type: "image_url",
+        image: { uri: token, mimeType: classification.mime }
+      });
+    } else {
+      parts.push({
+        type: "audio",
+        audio: { uri: token, mimeType: classification.mime }
+      });
+    }
+    cursor = match.index + token.length;
+  }
+  pushText(prompt.slice(cursor));
+
+  return parts.length > 0 ? parts : [{ type: "text", text: prompt }];
+}
+
 function buildUserMessage(
   prompt: string,
   image: unknown,
   audio: unknown
 ): Message {
-  const content: MessageContent[] = [{ type: "text", text: prompt }];
+  const content: MessageContent[] = expandAssetReferences(prompt);
   const imageRef = normalizeBinaryRef(image);
   if (imageRef) {
     content.push({ type: "image_url", image: imageRef });
@@ -2455,6 +2547,15 @@ export class AgentNode extends BaseNode {
 
     if (threadId) {
       await saveThreadMessage(context, threadId, messages[messages.length - 1]);
+    }
+
+    // Dereference inline asset:// references (mentioned in the prompt) to data
+    // URIs before the provider call. Resolution lives in the runtime layer so
+    // it's shared across nodes and providers stay asset-agnostic. Saved to the
+    // thread above first, so the stored message keeps the compact asset:// URI.
+    if (typeof context.resolveMessageMediaUris === "function") {
+      const resolved = await context.resolveMessageMediaUris(messages);
+      messages.splice(0, messages.length, ...resolved);
     }
 
     let lastTextOutput: string | null = null;
