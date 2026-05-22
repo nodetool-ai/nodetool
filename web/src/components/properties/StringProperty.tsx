@@ -6,6 +6,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
 import isEqual from "fast-deep-equal";
 import { useNodes } from "../../contexts/NodeContext";
+import { useTheme } from "@mui/material/styles";
 import { CopyButton, Tooltip, ToolbarIconButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
@@ -86,6 +87,14 @@ const StringProperty = ({
 
   const isConnectedSelector = useIsConnectedSelector(nodeId, property.name);
   const isConnected = useNodes(isConnectedSelector);
+  const theme = useTheme();
+  const inspectorToolbarActionSx = useMemo(
+    () => ({
+      color: theme.vars.palette.common.white,
+      "& svg": { fontSize: "0.9375rem" }
+    }),
+    [theme]
+  );
 
   const codeLanguage = determineCodeLanguage(nodeType);
   const stringValue = typeof value === "string" ? value : "";
@@ -104,15 +113,22 @@ const StringProperty = ({
     () => (
       <>
         <ToolbarIconButton
+          className="inspector-supplemental-action"
           tooltip="Open Editor"
           icon={<OpenInFullIcon />}
           onClick={toggleExpand}
           size="small"
+          sx={inspectorToolbarActionSx}
         />
-        <CopyButton value={value} buttonSize="small" />
+        <CopyButton
+          className="inspector-supplemental-action"
+          value={value}
+          buttonSize="small"
+          sx={inspectorToolbarActionSx}
+        />
       </>
     ),
-    [toggleExpand, value]
+    [inspectorToolbarActionSx, toggleExpand, value]
   );
 
   useInspectorHeaderSupplementalRegistration(

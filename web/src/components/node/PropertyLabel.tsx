@@ -204,16 +204,24 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
         ".inspector-header-toolbar .inspector-reset-button": {
           padding: 0,
           margin: 0,
-          width: 20,
-          height: 20,
+          width: 26,
+          height: 26,
           flexShrink: 0,
           "& svg": {
-            fontSize: "0.75rem"
-          },
-          "&.Mui-disabled": {
-            opacity: 0.35,
-            color: theme.vars.palette.text.disabled
+            fontSize: "1.0625rem !important"
           }
+        },
+        ".inspector-header-toolbar .inspector-reset-button.is-changed": {
+          color: theme.vars.palette.common.white,
+          opacity: 1
+        },
+        ".inspector-header-toolbar .inspector-reset-button.is-changed:hover": {
+          color: theme.vars.palette.common.white,
+          opacity: 0.85
+        },
+        ".inspector-header-toolbar .inspector-reset-button.Mui-disabled": {
+          opacity: 0.5,
+          color: theme.vars.palette.text.disabled
         },
         ".inspector-header-toolbar .MuiIconButton-root": {
           padding: 0,
@@ -224,10 +232,33 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
         ".inspector-header-toolbar .MuiIconButton-root svg": {
           fontSize: "0.75rem"
         },
-        ".inspector-header-toolbar .copy-button svg": {
+        ".inspector-header-toolbar .inspector-supplemental-action": {
+          width: 22,
+          height: 22,
+          padding: 0,
+          margin: 0,
+          flexShrink: 0,
+          color: theme.vars.palette.common.white,
+          "& svg": {
+            fontSize: "0.9375rem !important"
+          },
+          "&:hover": {
+            color: theme.vars.palette.common.white,
+            opacity: 0.85,
+            backgroundColor: "rgba(255, 255, 255, 0.08)"
+          }
+        },
+        ".inspector-header-toolbar .copy-button:not(.inspector-supplemental-action) svg": {
           fontSize: "0.75rem !important"
         },
-        ".inspector-header-toolbar .property-visibility-toggle svg": {
+        ".inspector-header-toolbar .property-visibility-toggle:not(.exposed)": {
+          width: 22,
+          height: 22
+        },
+        ".inspector-header-toolbar .property-visibility-toggle:not(.exposed) svg": {
+          fontSize: "0.9375rem"
+        },
+        ".inspector-header-toolbar .property-visibility-toggle.exposed svg": {
           fontSize: "0.75rem"
         }
       })}

@@ -749,21 +749,42 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     componentType === JSONProperty ||
     componentType === DataframeProperty;
 
-  const resetButton = isChanged ? (
-    <Tooltip title="Reset to default" placement="top" disableInteractive>
-      <span
-        className={isInspector ? "inspector-reset-tooltip" : undefined}
-        style={{ display: "inline-flex" }}
-      >
-        <div
-          className={isInspector ? "inspector-reset-button" : "reset-button"}
-          onClick={handleResetToDefault}
-        >
-          <SettingsBackupRestoreIcon />
-        </div>
-      </span>
-    </Tooltip>
-  ) : null;
+  const canvasResetButton =
+    !isInspector && isChanged ? (
+      <Tooltip title="Reset to default" placement="top" disableInteractive>
+        <span style={{ display: "inline-flex" }}>
+          <div className="reset-button" onClick={handleResetToDefault}>
+            <SettingsBackupRestoreIcon />
+          </div>
+        </span>
+      </Tooltip>
+    ) : null;
+
+  const inspectorResetButton =
+    isInspector && hasResetDefault ? (
+      <Tooltip title="Reset to default" placement="top" disableInteractive>
+        <span className="inspector-reset-tooltip" style={{ display: "inline-flex" }}>
+          <ToolbarIconButton
+            className={`inspector-reset-button${isChanged ? " is-changed" : ""}`}
+            onClick={handleResetToDefault}
+            disabled={!isChanged}
+            size="small"
+            icon={<SettingsBackupRestoreIcon />}
+            sx={
+              isChanged
+                ? { color: theme.vars.palette.common.white }
+                : {
+                    color: theme.vars.palette.text.disabled,
+                    "&.Mui-disabled": {
+                      opacity: 0.5,
+                      color: theme.vars.palette.text.disabled
+                    }
+                  }
+            }
+          />
+        </span>
+      </Tooltip>
+    ) : null;
 
   const container = (
     <div
@@ -797,7 +818,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   }
 
   return (
-    <InspectorHeaderResetProvider reset={resetButton}>
+    <InspectorHeaderResetProvider reset={inspectorResetButton}>
       {container}
     </InspectorHeaderResetProvider>
   );

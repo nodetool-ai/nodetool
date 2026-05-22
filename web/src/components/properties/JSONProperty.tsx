@@ -5,6 +5,7 @@ import type * as monaco from "monaco-editor";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import isEqual from "fast-deep-equal";
+import { useTheme } from "@mui/material/styles";
 import { CopyButton, LoadingSpinner, ToolbarIconButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import TextEditorModal from "./TextEditorModal";
@@ -12,7 +13,15 @@ import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
 import { useInspectorHeaderSupplementalRegistration } from "../../hooks/useInspectorHeaderSupplemental";
 
 const JSONProperty = (props: PropertyProps) => {
+  const theme = useTheme();
   const id = `json-${props.property.name}-${props.propertyIndex}`;
+  const inspectorToolbarActionSx = useMemo(
+    () => ({
+      color: theme.vars.palette.common.white,
+      "& svg": { fontSize: "0.9375rem" }
+    }),
+    [theme]
+  );
   const [error, setError] = useState<{ message: string; line: number } | null>(
     null
   );
@@ -108,15 +117,22 @@ const JSONProperty = (props: PropertyProps) => {
     () => (
       <>
         <ToolbarIconButton
+          className="inspector-supplemental-action"
           tooltip="Open Editor"
           icon={<OpenInFullIcon />}
           onClick={toggleExpand}
           size="small"
+          sx={inspectorToolbarActionSx}
         />
-        <CopyButton value={value} buttonSize="small" />
+        <CopyButton
+          className="inspector-supplemental-action"
+          value={value}
+          buttonSize="small"
+          sx={inspectorToolbarActionSx}
+        />
       </>
     ),
-    [toggleExpand, value]
+    [inspectorToolbarActionSx, toggleExpand, value]
   );
 
   useInspectorHeaderSupplementalRegistration(

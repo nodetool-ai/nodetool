@@ -13,11 +13,11 @@ const styles = (theme: Theme, exposed: boolean) =>
     "&.property-visibility-toggle": {
       color: exposed
         ? theme.vars.palette.primary.main
-        : theme.vars.palette.text.disabled,
+        : theme.vars.palette.common.white,
       "&:hover": {
         color: theme.vars.palette.primary.main
       },
-      "& svg": { fontSize: 16 }
+      "& svg": { fontSize: exposed ? 16 : 18 }
     }
   });
 
@@ -52,6 +52,11 @@ const PropertyVisibilityToggle = memo<PropertyVisibilityToggleProps>(
           ariaLabel={title}
           className={`property-visibility-toggle${exposed ? " exposed" : ""}`}
           css={styles(theme, exposed)}
+          sx={
+            exposed
+              ? undefined
+              : { color: theme.vars.palette.common.white }
+          }
           onClick={handleClick}
           icon={<ArrowForwardIcon />}
         />
