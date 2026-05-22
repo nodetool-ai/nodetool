@@ -44,6 +44,7 @@
   ],
   "scripts": {
     "postinstall": "node -e \"try{require('fs').unlinkSync('node_modules/.electron-native-rebuild-stamp')}catch{}\"",
+    "create:pack": "node scripts/create-pack.mjs",
     "build:packages": "turbo run build --filter=\"./packages/*\"",
     "build:packages:clean": "turbo run build --filter=\"./packages/*\" --force",
     "build:packages:tsc": "tsc --build tsconfig.build.json && node -e \"const fs=require('fs'); fs.cpSync('packages/replicate-nodes/src/replicate-manifest.json','packages/replicate-nodes/dist/replicate-manifest.json'); fs.cpSync('packages/fal-nodes/src/fal-manifest.json','packages/fal-nodes/dist/fal-manifest.json'); fs.cpSync('packages/kie-nodes/src/kie-manifest.json','packages/kie-nodes/dist/kie-manifest.json');\"",
