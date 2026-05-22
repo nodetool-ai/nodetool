@@ -11,6 +11,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { CopyButton, Tooltip, Text, Caption, NotificationBadge, ToolbarIconButton } from "../ui_primitives";
+import { useShallow } from "zustand/react/shallow";
 
 const popoverStyles = css({
   paddingRight: "4em",
@@ -40,9 +41,14 @@ const getNotificationButtonLabel = (unreadCount: number): string => {
 const NotificationButton: React.FC = React.memo(() => {
   const [notificationAnchor, setNotificationAnchor] =
     useState<null | HTMLElement>(null);
-  const notifications = useNotificationStore((state) => state.notifications);
-  const lastDisplayedTimestamp = useNotificationStore((state) => state.lastDisplayedTimestamp);
-  const updateLastDisplayedTimestamp = useNotificationStore((state) => state.updateLastDisplayedTimestamp);
+  const { notifications, lastDisplayedTimestamp, updateLastDisplayedTimestamp } =
+    useNotificationStore(
+      useShallow((state) => ({
+        notifications: state.notifications,
+        lastDisplayedTimestamp: state.lastDisplayedTimestamp,
+        updateLastDisplayedTimestamp: state.updateLastDisplayedTimestamp
+      }))
+    );
   const theme = useTheme();
   const unreadCount = useMemo(() => {
     if (!lastDisplayedTimestamp) {return notifications.length;}

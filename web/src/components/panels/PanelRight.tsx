@@ -342,9 +342,13 @@ const PanelRight: React.FC = () => {
     handlePanelToggle
   } = useResizeRightPanel("right");
 
-  const activeView = useRightPanelStore((state) => state.panel.activeView);
-  const setActiveView = useRightPanelStore((state) => state.setActiveView);
-  const setVisibility = useRightPanelStore((state) => state.setVisibility);
+  const { activeView, setActiveView, setVisibility } = useRightPanelStore(
+    useShallow((state) => ({
+      activeView: state.panel.activeView,
+      setActiveView: state.setActiveView,
+      setVisibility: state.setVisibility
+    }))
+  );
 
   // If a previous session persisted a production-disabled view, fall back to a safe default view.
   useEffect(() => {
