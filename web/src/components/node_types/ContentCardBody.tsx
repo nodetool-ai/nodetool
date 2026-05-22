@@ -77,12 +77,12 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(0.5),
       minHeight: 0
     },
-    // Preview grows to fill available height; minHeight 0 so flex can shrink
-    // when the node is resized smaller (overflow is clipped on node-content-container).
+    // Preview keeps a minimum strip when the node is resized very small;
+    // params (flex-shrink: 0) clip at the bottom via node-content-container.
     ".preview-area": {
       position: "relative",
-      flex: "1 1 auto",
-      minHeight: 0,
+      flex: "1 0 auto",
+      minHeight: theme.spacing(6),
       borderRadius: "var(--rounded-sm)",
       // Allow the handle column to extend past the preview's left edge so
       // the handle dots align with the card's outer edge (compensates for
