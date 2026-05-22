@@ -16,6 +16,7 @@ import {
   type Spread
 } from "lexical";
 
+import { useAssetById } from "../../../../serverState/useAssetById";
 import { assetMediaKind, parseAssetUri } from "./promptTokens";
 
 export type SerializedAssetMentionNode = Spread<
@@ -24,6 +25,7 @@ export type SerializedAssetMentionNode = Spread<
     version: 1;
     uri: string;
     label: string;
+    thumb?: string;
   },
   SerializedLexicalNode
 >;
@@ -47,13 +49,53 @@ const chipStyles = (theme: Theme) =>
     "& svg": { fontSize: "1em" }
   });
 
-const AssetMentionChip: React.FC<{ uri: string; label: string }> = ({
-  uri,
-  label
-}) => {
+const previewStyles = (theme: Theme) =>
+  css({
+    display: "inline-flex",
+    verticalAlign: "middle",
+    margin: "0 2px",
+    borderRadius: "var(--rounded-sm, 4px)",
+    overflow: "hidden",
+    border: `1px solid ${theme.vars.palette.primary.main}`,
+    userSelect: "none",
+    "& img": {
+      display: "block",
+      height: "2.6em",
+      maxWidth: 160,
+      objectFit: "cover"
+    }
+  });
+
+const AssetMentionChip: React.FC<{
+  uri: string;
+  label: string;
+  thumb?: string;
+}> = ({ uri, label, thumb }) => {
   const theme = useTheme();
-  const { ext } = parseAssetUri(uri);
+  const { assetId, ext } = parseAssetUri(uri);
   const kind = assetMediaKind(ext);
+  const wantsPreview = kind === "image" || kind === "video";
+  // Resolve the preview from the store only when we weren't handed one (e.g.
+  // after reloading a saved prompt, where the chip starts from the URN alone).
+  const { data: resolved } = useAssetById(
+    wantsPreview && !thumb ? assetId : undefined
+  );
+  const previewUrl =
+    thumb || resolved?.thumb_url || resolved?.get_url || undefined;
+
+  if (wantsPreview && previewUrl) {
+    return (
+      <span
+        css={previewStyles(theme)}
+        className="asset-mention-chip asset-mention-preview nodrag"
+        contentEditable={false}
+        title={label}
+      >
+        <img src={previewUrl} alt={label} />
+      </span>
+    );
+  }
+
   const Icon =
     kind === "image"
       ? ImageIcon
@@ -78,23 +120,35 @@ const AssetMentionChip: React.FC<{ uri: string; label: string }> = ({
 export class AssetMentionNode extends DecoratorNode<React.JSX.Element> {
   __uri: string;
   __label: string;
+  /** Display-only preview URL; never part of the on-disk prompt string. */
+  __thumb?: string;
 
   static getType(): string {
     return "asset-mention";
   }
 
   static clone(node: AssetMentionNode): AssetMentionNode {
-    return new AssetMentionNode(node.__uri, node.__label, node.__key);
+    return new AssetMentionNode(
+      node.__uri,
+      node.__label,
+      node.__thumb,
+      node.__key
+    );
   }
 
-  constructor(uri: string, label: string, key?: NodeKey) {
+  constructor(uri: string, label: string, thumb?: string, key?: NodeKey) {
     super(key);
     this.__uri = uri;
     this.__label = label;
+    this.__thumb = thumb;
   }
 
   static importJSON(serialized: SerializedAssetMentionNode): AssetMentionNode {
-    return $createAssetMentionNode(serialized.uri, serialized.label);
+    return $createAssetMentionNode(
+      serialized.uri,
+      serialized.label,
+      serialized.thumb
+    );
   }
 
   exportJSON(): SerializedAssetMentionNode {
@@ -102,7 +156,8 @@ export class AssetMentionNode extends DecoratorNode<React.JSX.Element> {
       type: "asset-mention",
       version: 1,
       uri: this.__uri,
-      label: this.__label
+      label: this.__label,
+      ...(this.__thumb != null && { thumb: this.__thumb })
     };
   }
 
@@ -136,14 +191,21 @@ export class AssetMentionNode extends DecoratorNode<React.JSX.Element> {
   }
 
   decorate(): React.JSX.Element {
-    return <AssetMentionChip uri={this.__uri} label={this.__label} />;
+    return (
+      <AssetMentionChip
+        uri={this.__uri}
+        label={this.__label}
+        thumb={this.__thumb}
+      />
+    );
   }
 }
 
 export const $createAssetMentionNode = (
   uri: string,
-  label: string
-): AssetMentionNode => new AssetMentionNode(uri, label || uri);
+  label: string,
+  thumb?: string
+): AssetMentionNode => new AssetMentionNode(uri, label || uri, thumb);
 
 export const $isAssetMentionNode = (
   node: LexicalNode | null | undefined

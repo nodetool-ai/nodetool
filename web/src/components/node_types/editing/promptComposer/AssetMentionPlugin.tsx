@@ -9,7 +9,7 @@ import * as ReactDOM from "react-dom";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { $createTextNode, $insertNodes } from "lexical";
+import { $createTextNode } from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   LexicalTypeaheadMenuPlugin,
@@ -20,6 +20,7 @@ import {
 import { useAssetStore } from "../../../../stores/AssetStore";
 import type { Asset } from "../../../../stores/ApiTypes";
 import { $createAssetMentionNode } from "./AssetMentionNode";
+import { $insertAssetMention } from "./promptEditorState";
 import { assetToUri } from "./promptTokens";
 
 class AssetTypeaheadOption extends MenuOption {
@@ -171,14 +172,10 @@ const AssetMentionPlugin: React.FC = () => {
         const { asset } = selectedOption;
         const node = $createAssetMentionNode(
           assetToUri(asset),
-          asset.name || asset.id
+          asset.name || asset.id,
+          asset.thumb_url || asset.get_url || undefined
         );
-        if (nodeToReplace) {
-          nodeToReplace.replace(node);
-        } else {
-          $insertNodes([node]);
-        }
-        node.insertAfter($createTextNode(" "));
+        $insertAssetMention(node, nodeToReplace);
         closeMenu();
       });
     },

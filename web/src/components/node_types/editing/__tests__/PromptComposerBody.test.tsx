@@ -1,6 +1,7 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PromptComposerBody } from "../PromptComposerBody";
 import mockTheme from "../../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
@@ -41,12 +42,22 @@ jest.mock("../../../node/NodeProgress", () => ({
 }));
 
 const mockSearch = jest.fn().mockResolvedValue({ assets: [] });
+const mockGet = jest.fn();
 jest.mock("../../../../stores/AssetStore", () => ({
-  useAssetStore: (selector: any) => selector({ search: mockSearch })
+  useAssetStore: (selector: any) =>
+    selector({ search: mockSearch, get: mockGet })
 }));
 
-const renderWithTheme = (ui: React.ReactElement) =>
-  render(<ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>);
+const renderWithTheme = (ui: React.ReactElement) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } }
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 const makeProps = (overrides: Record<string, unknown> = {}) => ({
   id: "node-1",
@@ -99,5 +110,42 @@ describe("PromptComposerBody", () => {
     expect(input).not.toBeNull();
     expect(input?.textContent).toContain("Describe");
     expect(input?.textContent).toContain("in detail");
+  });
+
+  it("renders a variable chip decorator inside the composer body", async () => {
+    const { container } = renderWithTheme(
+      <PromptComposerBody {...makeProps()} />
+    );
+    await waitFor(() => {
+      const chip = container.querySelector(".prompt-variable-chip");
+      expect(chip).not.toBeNull();
+      expect(chip?.textContent).toContain("subject");
+    });
+  });
+
+  it("renders an inline image preview for an asset URN in the prompt", async () => {
+    mockGet.mockResolvedValue({
+      id: "abc123",
+      content_type: "image/png",
+      get_url: "https://example.test/abc123.png"
+    });
+    const { container } = renderWithTheme(
+      <PromptComposerBody
+        {...makeProps({
+          data: {
+            properties: { prompt: "look at asset://abc123.png here" },
+            dynamic_properties: {}
+          }
+        })}
+      />
+    );
+    await waitFor(() => {
+      const img = container.querySelector(".asset-mention-preview img");
+      expect(img).not.toBeNull();
+      expect(img?.getAttribute("src")).toBe(
+        "https://example.test/abc123.png"
+      );
+    });
+    expect(mockGet).toHaveBeenCalledWith("abc123");
   });
 });

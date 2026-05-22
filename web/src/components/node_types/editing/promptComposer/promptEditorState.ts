@@ -6,12 +6,16 @@ import {
   $createParagraphNode,
   $createTextNode,
   $getRoot,
+  $insertNodes,
   $isElementNode,
-  type ElementNode
+  $isTextNode,
+  type ElementNode,
+  type LexicalNode
 } from "lexical";
 
 import {
-  $createAssetMentionNode
+  $createAssetMentionNode,
+  type AssetMentionNode
 } from "./AssetMentionNode";
 import { $createVariableNode } from "./VariableNode";
 import { parseAssetUri, tokenizePrompt } from "./promptTokens";
@@ -21,6 +25,38 @@ const shortAssetLabel = (uri: string): string => {
   const { assetId, ext } = parseAssetUri(uri);
   const id = assetId.length > 10 ? `${assetId.slice(0, 8)}…` : assetId;
   return ext ? `${id}.${ext}` : id;
+};
+
+const endsWithSpace = (text: string): boolean => /\s$/.test(text);
+const startsWithSpace = (text: string): boolean => /^\s/.test(text);
+
+/**
+ * Insert an asset-mention chip at the current selection (or in place of
+ * `nodeToReplace`), guaranteeing the URN ends up surrounded by spaces so it
+ * never glues to adjacent text in the serialized prompt.
+ */
+export const $insertAssetMention = (
+  node: AssetMentionNode,
+  nodeToReplace?: LexicalNode | null
+): void => {
+  if (nodeToReplace) {
+    nodeToReplace.replace(node);
+  } else {
+    $insertNodes([node]);
+  }
+  const prev = node.getPreviousSibling();
+  const prevIsSpacedText = $isTextNode(prev) && endsWithSpace(prev.getTextContent());
+  // No leading space at the very start of a line; otherwise pad unless the
+  // preceding text already ends in whitespace.
+  if (prev !== null && !prevIsSpacedText) {
+    node.insertBefore($createTextNode(" "));
+  }
+  const next = node.getNextSibling();
+  const nextIsSpacedText =
+    $isTextNode(next) && startsWithSpace(next.getTextContent());
+  if (!nextIsSpacedText) {
+    node.insertAfter($createTextNode(" "));
+  }
 };
 
 /** Serialize the editor tree to the canonical prompt string. */

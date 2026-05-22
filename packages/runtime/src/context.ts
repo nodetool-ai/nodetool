@@ -1551,44 +1551,98 @@ export class ProcessingContext {
 
   /**
    * Resolve an `asset://<id>[.ext]` reference (or bare id / storage URI) to its
-   * raw bytes. Tries storage backends first (memory/file/s3), then falls back
-   * to the asset API. Returns the bytes plus the `attempts` trail for callers
-   * that want to build a detailed error; `null` bytes means unresolved.
+   * raw bytes.
+   *
+   * Server-uploaded assets are stored under the key `<id>.<ext>` and served at
+   * `/api/storage/<id>.<ext>`; runtime-materialized refs live under `assets/`.
+   * Resolution order: the in-process storage adapter (file/s3/supabase/memory),
+   * a prefix listing that tolerates extension mismatches, then an HTTP download
+   * from the server's `/api/storage` route. Returns the bytes plus an `attempts`
+   * trail for callers that build detailed errors; `null` bytes means unresolved.
    */
   async resolveAssetBytes(
     assetId: string
   ): Promise<{ bytes: Uint8Array | null; attempts: string[] }> {
-    const uriCandidates = new Set<string>();
     const idCandidates = this.parseAssetIdCandidates(assetId);
     const trimmed = assetId.trim();
     const attempts: string[] = [];
 
-    if (trimmed.includes("://") && !trimmed.startsWith("asset://")) {
-      uriCandidates.add(trimmed);
-    }
-    for (const candidate of idCandidates) {
-      for (const prefix of ["memory://", "file://", "s3://"]) {
-        uriCandidates.add(`${prefix}${candidate}`);
-        uriCandidates.add(`${prefix}assets/${candidate}`);
+    const tryStorageUri = async (uri: string): Promise<Uint8Array | null> => {
+      if (!this.storage) {
+        return null;
       }
-    }
+      try {
+        const retrieved = await this.storage.retrieve(uri);
+        if (retrieved) {
+          return retrieved;
+        }
+        attempts.push(`storage miss: ${uri}`);
+      } catch (error) {
+        attempts.push(
+          `storage error: ${uri} (${error instanceof Error ? error.message : String(error)})`
+        );
+      }
+      return null;
+    };
 
-    if (this.storage) {
-      for (const uri of uriCandidates) {
+    // A concrete storage URI / http URL handed in directly.
+    if (trimmed.includes("://") && !trimmed.startsWith("asset://")) {
+      const direct = await tryStorageUri(trimmed);
+      if (direct) {
+        return { bytes: direct, attempts };
+      }
+      if (/^https?:\/\//.test(trimmed)) {
         try {
-          const retrieved = await this.storage.retrieve(uri);
-          if (retrieved) {
-            return { bytes: retrieved, attempts };
-          }
-          attempts.push(`storage miss: ${uri}`);
+          const bytes = await this.downloadFile(trimmed, {
+            retry: { maxRetries: 1, backoffMs: 200 }
+          });
+          attempts.push(`downloaded: ${trimmed}`);
+          return { bytes, attempts };
         } catch (error) {
           attempts.push(
-            `storage error: ${uri} (${error instanceof Error ? error.message : String(error)})`
+            `http error: ${trimmed} (${error instanceof Error ? error.message : String(error)})`
           );
         }
       }
     }
 
+    if (this.storage) {
+      // Keys assets are written under: `<id>.<ext>` (uploads, at root) and
+      // `assets/<id>` (runtime-materialized refs).
+      for (const candidate of idCandidates) {
+        for (const key of [candidate, `assets/${candidate}`]) {
+          const bytes = await tryStorageUri(this.storage.uriForKey(key));
+          if (bytes) {
+            return { bytes, attempts };
+          }
+        }
+      }
+      // Extension-tolerant fallback: locate the stored file whose name starts
+      // with the id, since the URN extension may differ from the one on disk
+      // (e.g. jpeg vs jpg). Only reached when the exact-key lookups all miss.
+      const bareId = idCandidates[idCandidates.length - 1];
+      if (bareId) {
+        try {
+          const listing = await this.storage.list("");
+          const match = listing.entries.find((entry) => {
+            const base = entry.key.split("/").pop() ?? "";
+            return base.startsWith(`${bareId}.`) && !base.includes("_thumb");
+          });
+          if (match) {
+            const bytes = await tryStorageUri(match.uri);
+            if (bytes) {
+              return { bytes, attempts };
+            }
+          }
+        } catch (error) {
+          attempts.push(
+            `storage list error (${error instanceof Error ? error.message : String(error)})`
+          );
+        }
+      }
+    }
+
+    // HTTP fallback: the server streams bytes at `/api/storage/<key>`.
     let baseUrl =
       this.environment.NODETOOL_API_URL ??
       process.env.NODETOOL_API_URL ??
@@ -1597,13 +1651,33 @@ export class ProcessingContext {
       baseUrl = baseUrl.slice(0, -1);
     }
     for (const candidate of idCandidates) {
+      if (!candidate.includes(".")) {
+        continue; // the storage route is keyed by filename (`<id>.<ext>`)
+      }
+      const url = `${baseUrl}/api/storage/${encodeURIComponent(candidate)}`;
+      try {
+        const bytes = await this.downloadFile(url, {
+          retry: { maxRetries: 1, backoffMs: 200 }
+        });
+        attempts.push(`downloaded: ${url}`);
+        return { bytes, attempts };
+      } catch (error) {
+        attempts.push(
+          `http miss: ${url} (${error instanceof Error ? error.message : String(error)})`
+        );
+      }
+    }
+
+    // Last resort: ask the asset API for metadata and follow its `get_url`.
+    // Handles bare ids (no extension, so the storage route can't be addressed
+    // directly) and backends that expose a single-asset metadata endpoint.
+    for (const candidate of idCandidates) {
       try {
         const metaResponse = await this.httpGet(
           `${baseUrl}/api/assets/${encodeURIComponent(candidate)}`
         );
         const metadata = (await metaResponse.json()) as Record<string, unknown>;
         const getUrl = metadata.get_url;
-        const uri = metadata.uri;
         if (typeof getUrl === "string" && getUrl) {
           const downloadUrl = getUrl.startsWith("/")
             ? `${baseUrl}${getUrl}`
@@ -1614,13 +1688,12 @@ export class ProcessingContext {
           attempts.push(`downloaded: ${downloadUrl}`);
           return { bytes, attempts };
         }
-        if (typeof uri === "string" && this.storage) {
-          const retrieved = await this.storage.retrieve(uri);
-          if (retrieved) {
-            attempts.push(`storage hit via metadata: ${uri}`);
-            return { bytes: retrieved, attempts };
+        const uri = metadata.uri;
+        if (typeof uri === "string") {
+          const bytes = await tryStorageUri(uri);
+          if (bytes) {
+            return { bytes, attempts };
           }
-          attempts.push(`storage miss via metadata: ${uri}`);
         }
       } catch (error) {
         attempts.push(

@@ -25,6 +25,7 @@ import { PlainTextPlugin } from "@lexical/react/LexicalPlainTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
+import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
 import { DynamicInputButton } from "../../ui_primitives";
@@ -41,6 +42,7 @@ import { debounce } from "../../../utils/lodashAlternatives";
 import { AssetMentionNode } from "./promptComposer/AssetMentionNode";
 import { VariableNode, $createVariableNode } from "./promptComposer/VariableNode";
 import AssetMentionPlugin from "./promptComposer/AssetMentionPlugin";
+import AssetDropPlugin from "./promptComposer/AssetDropPlugin";
 import {
   $serializePrompt,
   $setPromptFromString
@@ -275,11 +277,12 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
                   Write a prompt… @ to mention an asset
                 </div>
               }
-              ErrorBoundary={() => null}
+              ErrorBoundary={LexicalErrorBoundary}
             />
             <HistoryPlugin />
             <OnChangePlugin onChange={handleEditorChange} />
             <AssetMentionPlugin />
+            <AssetDropPlugin />
           </div>
 
           <VariableInsertBar
