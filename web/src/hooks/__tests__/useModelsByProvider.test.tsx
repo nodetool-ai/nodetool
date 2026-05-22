@@ -2,7 +2,10 @@ import React from "react";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc } from "../../lib/trpc";
-import { useLanguageModelsByProvider } from "../useModelsByProvider";
+import {
+  useLanguageModelsByProvider,
+  useImageModelsByProvider
+} from "../useModelsByProvider";
 
 // Mock both the providers list (used internally to fan-out to per-provider
 // queries) and the per-provider model-list query that the hook calls.
@@ -10,13 +13,27 @@ jest.mock("../../lib/trpc", () => ({
   trpc: {
     models: {
       providers: { query: jest.fn() },
-      llmByProvider: { query: jest.fn() }
+      llmByProvider: { query: jest.fn() },
+      imageByProvider: { query: jest.fn() }
     }
   }
 }));
 
+// useImageModelsByProvider fans out over the providers returned by
+// useImageModelProviders. Keep every other export real so the language-model
+// tests above still exercise the real useLanguageModelProviders.
+jest.mock("../useProviders", () => ({
+  ...jest.requireActual("../useProviders"),
+  useImageModelProviders: () => ({
+    providers: [{ provider: "fal_ai", capabilities: ["text_to_image"] }],
+    isLoading: false,
+    error: null
+  })
+}));
+
 const providersQuery = trpc.models.providers.query as jest.Mock;
 const llmByProviderQuery = trpc.models.llmByProvider.query as jest.Mock;
+const imageByProviderQuery = trpc.models.imageByProvider.query as jest.Mock;
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = new QueryClient({
@@ -89,5 +106,64 @@ describe("useLanguageModelsByProvider — requireToolSupport filter", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.models.map((m) => m.id)).toEqual(["explicit-null"]);
+  });
+});
+
+describe("useImageModelsByProvider — task filter", () => {
+  // Catalog mirrors what the backend now emits: generators tagged with both
+  // generation tasks, specialized transforms tagged exclusively, plus one
+  // untagged model standing in for an unclassified third-party (e.g. HF) model.
+  const CATALOG = [
+    { id: "fal-ai/flux/schnell", name: "Flux Schnell", provider: "fal_ai", supported_tasks: ["text_to_image", "image_to_image"] },
+    { id: "fal-ai/image-apps-v2/relighting", name: "Relight", provider: "fal_ai", supported_tasks: ["relight"] },
+    { id: "fal-ai/clarity-upscaler", name: "Clarity Upscaler", provider: "fal_ai", supported_tasks: ["upscale"] },
+    { id: "fal-ai/bria/background/remove", name: "Bria BG Remove", provider: "fal_ai", supported_tasks: ["remove_background"] },
+    { id: "untagged/legacy", name: "Untagged", provider: "fal_ai", supported_tasks: [] }
+  ];
+
+  beforeEach(() => imageByProviderQuery.mockResolvedValue(CATALOG));
+
+  it("relight (strict) returns ONLY relight models — no generators, no untagged", async () => {
+    const { result } = renderHook(
+      () => useImageModelsByProvider({ task: "relight" }),
+      { wrapper: wrapper() }
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.models.map((m) => m.id)).toEqual([
+      "fal-ai/image-apps-v2/relighting"
+    ]);
+  });
+
+  it("upscale (strict) returns only the upscaler", async () => {
+    const { result } = renderHook(
+      () => useImageModelsByProvider({ task: "upscale" }),
+      { wrapper: wrapper() }
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.models.map((m) => m.id)).toEqual([
+      "fal-ai/clarity-upscaler"
+    ]);
+  });
+
+  it("text_to_image (lenient) includes generators + untagged, excludes specialized transforms", async () => {
+    const { result } = renderHook(
+      () => useImageModelsByProvider({ task: "text_to_image" }),
+      { wrapper: wrapper() }
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const ids = result.current.models.map((m) => m.id);
+    expect(ids).toContain("fal-ai/flux/schnell");
+    expect(ids).toContain("untagged/legacy");
+    expect(ids).not.toContain("fal-ai/image-apps-v2/relighting");
+    expect(ids).not.toContain("fal-ai/clarity-upscaler");
+    expect(ids).not.toContain("fal-ai/bria/background/remove");
+  });
+
+  it("no task returns the full catalog (regression: undefined task = no filter)", async () => {
+    const { result } = renderHook(() => useImageModelsByProvider(), {
+      wrapper: wrapper()
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.models).toHaveLength(CATALOG.length);
   });
 });

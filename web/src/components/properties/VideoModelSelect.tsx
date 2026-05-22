@@ -5,6 +5,7 @@ import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { ModelPack, UnifiedModel, VideoModel } from "../../stores/ApiTypes";
 import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
+import type { VideoModelTask } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
 /**
@@ -20,7 +21,7 @@ interface VideoModelValue {
 interface VideoModelSelectProps {
   onChange: (value: VideoModelValue) => void;
   value: string;
-  task?: "text_to_video" | "image_to_video";
+  task?: VideoModelTask;
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
 }

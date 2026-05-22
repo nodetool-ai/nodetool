@@ -451,7 +451,7 @@ const Inspector: React.FC = () => {
                       propertyIndex={property.name}
                       showHandle={false}
                       isInspector={true}
-                      nodeType="inspector"
+                      nodeType={(nodesWithMetadata[0].node.type as string) ?? "inspector"}
                       data={nodesWithMetadata[0].node.data}
                       layout=""
                       inspectorBatchNodeIds={multiNodeIds}
@@ -596,7 +596,7 @@ const Inspector: React.FC = () => {
                       propertyIndex={index.toString()}
                       showHandle={false}
                       isInspector={true}
-                      nodeType="inspector"
+                      nodeType={(selectedNode.type as string) ?? "inspector"}
                       data={selectedNode.data}
                       layout=""
                     />
@@ -663,7 +663,7 @@ const Inspector: React.FC = () => {
                     propertyIndex={`dynamic-${index}`}
                     showHandle={false}
                     isInspector={true}
-                    nodeType="inspector"
+                    nodeType={(selectedNode.type as string) ?? "inspector"}
                     data={selectedNode.data}
                     layout=""
                     isDynamicProperty={true}
