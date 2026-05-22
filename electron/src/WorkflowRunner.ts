@@ -19,6 +19,10 @@ interface WebSocketMessage {
   content?: string;
 }
 
+function isWebSocketMessage(value: unknown): value is WebSocketMessage {
+  return typeof value === "object" && value !== null && typeof (value as Record<string, unknown>).type === "string";
+}
+
 interface WorkflowRunnerState {
   workflow: Workflow | null;
   socket: WebSocket | null;
@@ -135,7 +139,9 @@ export const createWorkflowRunner = () =>
             // Handle other types
             buffer = new Uint8Array(0);
           }
-          const data = decode(buffer) as WebSocketMessage;
+          const decoded = decode(buffer);
+          if (!isWebSocketMessage(decoded)) return;
+          const data = decoded;
 
           if (data.type === "job_update") {
             set({

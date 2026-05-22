@@ -1,7 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
 import {
   useWorkflowListViewStore,
-  useWorkflowListViewActions,
   useShowGraphPreview,
 } from "../WorkflowListViewStore";
 
@@ -18,49 +17,41 @@ describe("WorkflowListViewStore", () => {
 
   it("should toggle graph preview", () => {
     const { result: showResult } = renderHook(() => useShowGraphPreview());
-    const { result: actionsResult } = renderHook(() =>
-      useWorkflowListViewActions()
-    );
 
     expect(showResult.current).toBe(true);
 
     act(() => {
-      actionsResult.current.toggleGraphPreview();
+      useWorkflowListViewStore.getState().actions.toggleGraphPreview();
     });
 
     expect(useWorkflowListViewStore.getState().showGraphPreview).toBe(false);
 
     act(() => {
-      actionsResult.current.toggleGraphPreview();
+      useWorkflowListViewStore.getState().actions.toggleGraphPreview();
     });
 
     expect(useWorkflowListViewStore.getState().showGraphPreview).toBe(true);
   });
 
   it("should set graph preview to specific value", () => {
-    const { result } = renderHook(() => useWorkflowListViewActions());
-
     act(() => {
-      result.current.setShowGraphPreview(false);
+      useWorkflowListViewStore.getState().actions.setShowGraphPreview(false);
     });
 
     expect(useWorkflowListViewStore.getState().showGraphPreview).toBe(false);
 
     act(() => {
-      result.current.setShowGraphPreview(true);
+      useWorkflowListViewStore.getState().actions.setShowGraphPreview(true);
     });
 
     expect(useWorkflowListViewStore.getState().showGraphPreview).toBe(true);
   });
 
   it("should persist state to localStorage", () => {
-    const { result } = renderHook(() => useWorkflowListViewActions());
-
     act(() => {
-      result.current.setShowGraphPreview(false);
+      useWorkflowListViewStore.getState().actions.setShowGraphPreview(false);
     });
 
-    // Check localStorage
     const stored = localStorage.getItem("workflow-list-view");
     expect(stored).toBeTruthy();
     if (stored) {

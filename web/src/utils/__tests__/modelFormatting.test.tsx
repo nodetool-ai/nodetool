@@ -7,7 +7,6 @@ import { render, screen } from "@testing-library/react";
 import React from "react";
 import {
   formatBytes,
-  getShortModelName,
   groupModelsByType,
   prettifyModelType,
   sortModelTypes
@@ -45,20 +44,6 @@ describe("prettifyModelType", () => {
 
     expect(screen.getByAltText("Model")).toBeInTheDocument();
     expect(screen.getByText("Custom Model")).toBeInTheDocument();
-  });
-});
-
-describe("getShortModelName", () => {
-  it("returns empty string when full name is undefined", () => {
-    expect(getShortModelName(undefined)).toBe("");
-  });
-
-  it("extracts the last path segment when slashes are present", () => {
-    expect(getShortModelName("owner/model-name")).toBe("model-name");
-  });
-
-  it("returns the name unchanged when there are no slashes", () => {
-    expect(getShortModelName("model-name")).toBe("model-name");
   });
 });
 

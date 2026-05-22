@@ -17,7 +17,7 @@
  * entries are fed in for each dynamic input.
  */
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -29,12 +29,17 @@ import {
   BLEND_MODES,
   coerceBlendMode
 } from "@nodetool-ai/gpu";
+import type { LayerTransform2D } from "@nodetool-ai/gpu/webgpu";
 
 import {
   CheckerDropzone,
   DynamicInputButton,
-  FlexColumn
+  EditButton,
+  FlexColumn,
+  FlexRow
 } from "../../ui_primitives";
+import CompositorEditorModal from "../../compositor/CompositorEditorModal";
+import type { CompositorEditorLayer } from "../../compositor/types";
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
@@ -42,12 +47,10 @@ import LayerRow from "./LayerRow";
 
 import type { NodeMetadata, Property } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
 import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
-import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
+import { useNodeOutput, useUpstreamValues } from "../../../hooks/nodes/useNodeIO";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
-import { unwrapOutput } from "../../../utils/imageRef";
 
 const COMPOSITOR_NODE_TYPE = "nodetool.image.Compositor";
 
@@ -58,12 +61,29 @@ export interface CompositorLayerState {
   opacity: number;
   blend_mode: CompositorBlendMode;
   visible: boolean;
+  transform?: LayerTransform2D;
 }
 
 const DEFAULT_LAYER_STATE: CompositorLayerState = {
   opacity: 1,
   blend_mode: "normal",
   visible: true
+};
+
+/** Parse a persisted layer transform; undefined unless a position is pinned. */
+const parseTransform = (raw: unknown): LayerTransform2D | undefined => {
+  if (!raw || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.x !== "number" || typeof r.y !== "number") return undefined;
+  const num = (v: unknown, fallback: number): number =>
+    typeof v === "number" && Number.isFinite(v) ? v : fallback;
+  return {
+    x: r.x,
+    y: r.y,
+    scaleX: num(r.scaleX, 1),
+    scaleY: num(r.scaleY, 1),
+    rotation: num(r.rotation, 0)
+  };
 };
 
 export { BLEND_MODES };
@@ -95,29 +115,36 @@ const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
 };
 
 /**
- * Hook that resolves an `ImageRefLike` to a displayable URL.
- * Converts Uint8Array to a base64 data URI to avoid blob URL leaks.
+ * Resolve an `ImageRefLike` to a displayable URL (pure). Converts Uint8Array
+ * to a base64 data URI to avoid blob URL leaks.
  */
-export const useImageUrl = (image: ImageRefLike | undefined): string | undefined => {
-  return useMemo(() => {
-    if (!image) return undefined;
-    if (image.uri) return image.uri;
-    if (typeof image.data === "string") {
-      if (
-        image.data.startsWith("data:") ||
-        image.data.startsWith("blob:") ||
-        image.data.startsWith("http")
-      ) {
-        return image.data;
-      }
-      return `data:image/png;base64,${image.data}`;
+export const resolveImageUrl = (
+  image: ImageRefLike | undefined
+): string | undefined => {
+  if (!image) return undefined;
+  if (image.uri) return image.uri;
+  if (typeof image.data === "string") {
+    if (
+      image.data.startsWith("data:") ||
+      image.data.startsWith("blob:") ||
+      image.data.startsWith("http")
+    ) {
+      return image.data;
     }
-    if (image.data instanceof Uint8Array) {
-      return `data:image/png;base64,${uint8ArrayToBase64(image.data)}`;
-    }
-    return undefined;
-  }, [image]);
+    return `data:image/png;base64,${image.data}`;
+  }
+  if (image.data instanceof Uint8Array) {
+    return `data:image/png;base64,${uint8ArrayToBase64(image.data)}`;
+  }
+  return undefined;
 };
+
+/**
+ * Hook that resolves an `ImageRefLike` to a displayable URL.
+ */
+export const useImageUrl = (
+  image: ImageRefLike | undefined
+): string | undefined => useMemo(() => resolveImageUrl(image), [image]);
 
 /** Sort `image_N` keys by their numeric suffix. */
 export const sortImageKeys = (keys: string[]): string[] =>
@@ -246,7 +273,7 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
       const blend_mode = coerceBlendMode(raw.blend_mode);
       const visible =
         raw.visible === undefined ? DEFAULT_LAYER_STATE.visible : !!raw.visible;
-      return { opacity, blend_mode, visible };
+      return { opacity, blend_mode, visible, transform: parseTransform(raw.transform) };
     });
   }, [imageKeys, layersRaw]);
 
@@ -261,38 +288,25 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
   );
 
   // ── Edge / upstream resolution for per-layer thumbnails ──────────
+  // `edges` is still needed when deleting a layer (to drop its edge).
   const edges = useNodes(
     (state) => state.edges.filter((e) => e.target === id),
     shallow
   );
 
-  // Only subscribe to upstream source results relevant to this node's edges,
-  // not the entire results record.
-  const upstreamSourceIds = useMemo(
-    () => edges.map((e) => `${workflowId}:${e.source}`),
-    [edges, workflowId]
-  );
-  const upstreamResults = useResultsStore(
-    (state) => {
-      const out: Record<string, unknown> = {};
-      for (const key of upstreamSourceIds) {
-        const val = state.results[key];
-        if (val !== undefined) out[key] = val;
-      }
-      return out;
-    },
-    shallow
+  // Resolve each layer's upstream image through the shared resolver, which
+  // reads all three result channels (outputResults / results / previews) plus
+  // the literal-source fallback. The Compositor previously read only `results`,
+  // so images delivered via streaming `output_update` never reached the editor.
+  const upstreamValues = useUpstreamValues(
+    workflowId,
+    id,
+    imageKeys,
+    dynamicProperties
   );
   const upstreamForKey = useCallback(
-    (key: string): ImageRefLike | undefined => {
-      const edge = edges.find((e) => (e.targetHandle ?? "") === key);
-      if (!edge) {
-        return asImageRef(dynamicProperties[key]);
-      }
-      const sourceResult = upstreamResults[`${workflowId}:${edge.source}`];
-      return asImageRef(unwrapOutput(sourceResult, edge.sourceHandle));
-    },
-    [edges, upstreamResults, workflowId, dynamicProperties]
+    (key: string): ImageRefLike | undefined => asImageRef(upstreamValues[key]),
+    [upstreamValues]
   );
 
   // Own composited output for the top preview.
@@ -396,6 +410,50 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
     writeLayers(next, true);
   }, [dynamicProperties, layers, handleAddProperty, writeLayers]);
 
+  // ── Canvas size + per-layer transform (the layout editor) ────────
+  const baseImage = useMemo(
+    () => (imageKeys[0] ? upstreamForKey(imageKeys[0]) : undefined),
+    [imageKeys, upstreamForKey]
+  );
+  const propCanvasW = Number(data.properties?.canvas_width) || 0;
+  const propCanvasH = Number(data.properties?.canvas_height) || 0;
+  const canvasWidth =
+    propCanvasW > 0 ? propCanvasW : Math.round(baseImage?.width ?? 512);
+  const canvasHeight =
+    propCanvasH > 0 ? propCanvasH : Math.round(baseImage?.height ?? 512);
+
+  const onCanvasSizeChange = useCallback(
+    (width: number, height: number, complete: boolean) => {
+      setProperties({
+        canvas_width: Math.max(1, Math.round(width)),
+        canvas_height: Math.max(1, Math.round(height))
+      });
+      if (complete) setPropertyComplete();
+    },
+    [setProperties, setPropertyComplete]
+  );
+
+  const onTransformChange = useCallback(
+    (idx: number, transform: LayerTransform2D, complete: boolean) =>
+      updateLayer(idx, { transform }, complete),
+    [updateLayer]
+  );
+
+  const [editorOpen, setEditorOpen] = useState(false);
+
+  const editorLayers = useMemo<CompositorEditorLayer[]>(
+    () =>
+      imageKeys.map((key, i) => ({
+        id: key,
+        url: resolveImageUrl(upstreamForKey(key)),
+        opacity: layers[i]?.opacity ?? DEFAULT_LAYER_STATE.opacity,
+        blendMode: layers[i]?.blend_mode ?? DEFAULT_LAYER_STATE.blend_mode,
+        visible: layers[i]?.visible ?? DEFAULT_LAYER_STATE.visible,
+        transform: layers[i]?.transform
+      })),
+    [imageKeys, layers, upstreamForKey]
+  );
+
   return (
     <div css={cssStyles} className="compositor-body" data-bespoke-body="Compositor">
       <HandleColumn id={id} properties={handleProperties} />
@@ -431,12 +489,32 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
         )}
       </FlexColumn>
 
-      <div className="add-row">
+      <FlexRow className="add-row" gap={0.5} align="center">
         <DynamicInputButton
           itemLabel="layer"
           onAdd={onAddLayer}
         />
-      </div>
+        <EditButton
+          onClick={() => setEditorOpen(true)}
+          tooltip="Open layout editor"
+        />
+      </FlexRow>
+
+      <CompositorEditorModal
+        open={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        canvasWidth={canvasWidth}
+        canvasHeight={canvasHeight}
+        layers={editorLayers}
+        onCanvasSizeChange={onCanvasSizeChange}
+        onOpacityChange={onOpacityChange}
+        onOpacityComplete={onOpacityComplete}
+        onBlendChange={onBlendChange}
+        onToggleVisible={onToggleVisible}
+        onDelete={onDeleteLayer}
+        onAddLayer={onAddLayer}
+        onTransformChange={onTransformChange}
+      />
 
       {!isOutputNode && (
         <div className="outputs-row">

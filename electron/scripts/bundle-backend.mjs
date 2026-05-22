@@ -38,6 +38,7 @@ const REQUIRED_EXTERNAL_PACKAGES = [
   "sharp",
   "better-sqlite3",
   "@jitl/quickjs-ng-wasmfile-release-sync",
+  "webgpu",
 ];
 
 const EXTERNAL_PACKAGES = [
@@ -49,6 +50,7 @@ const EXTERNAL_PACKAGES = [
   "node-web-audio-api",
   "keytar",
   "onnxruntime-node",
+  "webgpu",
 
   // Native optional deps (loaded by bundleable packages)
   "msgpackr",

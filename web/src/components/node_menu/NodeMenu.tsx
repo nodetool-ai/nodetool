@@ -22,6 +22,7 @@ import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { FlexColumn, FlexRow, Chip } from "../ui_primitives";
+import { useShallow } from "zustand/react/shallow";
 
 const treeStyles = (theme: Theme) =>
   css({
@@ -122,23 +123,39 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     Object.is
   );
 
-  // Subscribe to individual state slices to avoid deep-equality overhead
-  const menuHeight = useNodeMenuStore((state) => state.menuHeight);
-  const menuPosition = useNodeMenuStore((state) => state.menuPosition);
-  const searchResults = useNodeMenuStore((state) => state.searchResults);
-  const selectedInputType = useNodeMenuStore((state) => state.selectedInputType);
-  const selectedOutputType = useNodeMenuStore((state) => state.selectedOutputType);
-  const searchTerm = useNodeMenuStore((state) => state.searchTerm);
-
-  // Actions are stable references in Zustand — no equality check needed
-  const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
-  const setSelectedInputType = useNodeMenuStore((state) => state.setSelectedInputType);
-  const setSelectedOutputType = useNodeMenuStore((state) => state.setSelectedOutputType);
-  const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
-  const setMenuSize = useNodeMenuStore((state) => state.setMenuSize);
-  const moveSelectionUp = useNodeMenuStore((state) => state.moveSelectionUp);
-  const moveSelectionDown = useNodeMenuStore((state) => state.moveSelectionDown);
-  const getSelectedNode = useNodeMenuStore((state) => state.getSelectedNode);
+  const {
+    menuHeight,
+    menuPosition,
+    searchResults,
+    selectedInputType,
+    selectedOutputType,
+    searchTerm,
+    closeNodeMenu,
+    setSelectedInputType,
+    setSelectedOutputType,
+    setSearchTerm,
+    setMenuSize,
+    moveSelectionUp,
+    moveSelectionDown,
+    getSelectedNode
+  } = useNodeMenuStore(
+    useShallow((state) => ({
+      menuHeight: state.menuHeight,
+      menuPosition: state.menuPosition,
+      searchResults: state.searchResults,
+      selectedInputType: state.selectedInputType,
+      selectedOutputType: state.selectedOutputType,
+      searchTerm: state.searchTerm,
+      closeNodeMenu: state.closeNodeMenu,
+      setSelectedInputType: state.setSelectedInputType,
+      setSelectedOutputType: state.setSelectedOutputType,
+      setSearchTerm: state.setSearchTerm,
+      setMenuSize: state.setMenuSize,
+      moveSelectionUp: state.moveSelectionUp,
+      moveSelectionDown: state.moveSelectionDown,
+      getSelectedNode: state.getSelectedNode
+    }))
+  );
 
   const namespaceTree = useNamespaceTree();
   const theme = useTheme();

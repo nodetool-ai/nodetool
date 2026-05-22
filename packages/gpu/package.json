@@ -14,6 +14,9 @@
   "dependencies": {
     "typegpu": "^0.11.6"
   },
+  "optionalDependencies": {
+    "webgpu": "^0.4.0"
+  },
   "devDependencies": {
     "@webgpu/types": "^0.1.70",
     "typescript": "^5.7.2",
@@ -37,6 +40,12 @@
       "types": "./dist/webgpu/index.d.ts",
       "import": "./dist/webgpu/index.js",
       "default": "./dist/webgpu/index.js"
+    },
+    "./node": {
+      "nodetool-dev": "./src/node.ts",
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js",
+      "default": "./dist/node.js"
     }
   },
   "license": "MIT",

@@ -20,6 +20,7 @@ import useResultsStore from "../../stores/ResultsStore";
 import { unwrapOutput } from "../../utils/imageRef";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import type { NodeStoreState } from "../../stores/NodeStore";
+import type { Edge } from "@xyflow/react";
 
 const readAnyStoreValue = (
   state: ReturnType<typeof useResultsStore.getState>,
@@ -91,5 +92,63 @@ export const useUpstreamValue = (
       findNode
     );
     return resolved.hasValue ? resolved.value : undefined;
+  }, shallow);
+};
+
+/**
+ * Resolve the values feeding several named inputs at once — the array-valued
+ * sibling of `useUpstreamValue` for nodes with a variable number of inputs
+ * (e.g. the Compositor's dynamic `image_N` layers). Each input is resolved
+ * with identical semantics: a wired edge's upstream output (all three stores,
+ * unwrapped by `sourceHandle`, with the literal-source fallback), otherwise
+ * the per-input constant from `constants`.
+ *
+ * Returns a record keyed by input name. Single subscription per store,
+ * shallow-compared, so the hook count stays constant regardless of how many
+ * inputs are passed.
+ */
+export const useUpstreamValues = (
+  workflowId: string,
+  nodeId: string,
+  inputNames: string[],
+  constants?: Record<string, unknown>
+): Record<string, unknown> => {
+  const edges = useNodes(
+    (state: NodeStoreState) => state.edges.filter((e) => e.target === nodeId),
+    shallow
+  );
+  const findNode = useNodes((state: NodeStoreState) => state.findNode);
+
+  const edgeByHandle = useMemo(() => {
+    const map = new Map<string, Edge>();
+    for (const e of edges) map.set(e.targetHandle ?? "", e);
+    return map;
+  }, [edges]);
+
+  return useResultsStore((state) => {
+    const out: Record<string, unknown> = {};
+    for (const name of inputNames) {
+      const edge = edgeByHandle.get(name);
+      if (!edge) {
+        out[name] = constants?.[name];
+        continue;
+      }
+      const storeValue = unwrapOutput(
+        readAnyStoreValue(state, workflowId, edge.source),
+        edge.sourceHandle
+      );
+      if (storeValue !== undefined) {
+        out[name] = storeValue;
+        continue;
+      }
+      const resolved = resolveExternalEdgeValue(
+        edge,
+        workflowId,
+        (wf, src) => readAnyStoreValue(state, wf, src),
+        findNode
+      );
+      out[name] = resolved.hasValue ? resolved.value : undefined;
+    }
+    return out;
   }, shallow);
 };

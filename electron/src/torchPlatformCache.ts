@@ -4,6 +4,16 @@ import type { TorchruntimeDetectionResult, TorchPlatform } from "./torchruntime"
 
 const TORCH_PLATFORM_SETTING_KEY = "TORCH_PLATFORM_DETECTED";
 
+const VALID_TORCH_PLATFORMS: ReadonlySet<string> = new Set([
+  "cu118", "cu124", "cu128", "cu129",
+  "rocm5.2", "rocm5.7", "rocm6.2", "rocm6.4",
+  "mps", "cpu"
+]);
+
+function isTorchPlatform(value: string): value is TorchPlatform {
+  return VALID_TORCH_PLATFORMS.has(value);
+}
+
 interface SavedTorchData {
   platform: string;
   indexUrl: string | null;
@@ -38,8 +48,13 @@ export function getSavedTorchPlatform(): TorchruntimeDetectionResult | null {
       return null;
     }
 
+    if (!isTorchPlatform(saved.platform)) {
+      logMessage(`Unknown torch platform "${saved.platform}" in settings, ignoring`, "warn");
+      return null;
+    }
+
     return {
-      platform: saved.platform as TorchPlatform,
+      platform: saved.platform,
       indexUrl: saved.indexUrl,
       error: saved.error,
     };
