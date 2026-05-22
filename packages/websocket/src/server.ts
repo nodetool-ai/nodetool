@@ -28,6 +28,7 @@ import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes"
 import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-provider";
 import { registerFalNodes } from "@nodetool-ai/fal-nodes";
 import { registerKieNodes } from "@nodetool-ai/kie-nodes";
+import { registerTopazNodes } from "@nodetool-ai/topaz-nodes";
 import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
 import {
   initTelemetry,
@@ -383,6 +384,7 @@ if (process.env["NODETOOL_ENV"] !== "production") {
 }
 registerFalNodes(registry);
 registerKieNodes(registry);
+registerTopazNodes(registry);
 registerReplicateNodes(registry);
 setLlmAgentGraphPlannerRegistry(registry);
 if (process.env["NODETOOL_ENV"] !== "production") {

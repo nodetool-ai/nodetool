@@ -371,6 +371,11 @@ s(
   "KIE",
   "Global timeout in seconds for Kie.ai API calls (0 = use default per-model timeout)"
 );
+sec(
+  "TOPAZ_API_KEY",
+  "Topaz",
+  "Topaz Labs API key for image and video enhancement. Get yours at https://developer.topazlabs.com/"
+);
 sec("MESHY_API_KEY", "Meshy", "Meshy AI API key for 3D model generation. Get yours at https://app.meshy.ai/settings/api-keys");
 sec("RODIN_API_KEY", "Rodin", "Rodin AI API key for 3D model generation. Get yours at https://hyperhuman.deemos.com/");
 sec(
