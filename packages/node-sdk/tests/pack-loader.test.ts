@@ -7,11 +7,13 @@ import { NodeRegistry } from "../src/registry.js";
 import {
   discoverPacks,
   loadInstalledPacks,
+  resolvePackTrust,
   PACK_API_VERSION
 } from "../src/pack-loader.js";
 
 let root: string;
 let nodeModules: string;
+const savedEnv: Record<string, string | undefined> = {};
 
 function writePack(
   dirName: string,
@@ -25,9 +27,10 @@ function writePack(
   writeFileSync(join(pkgDir, entryFile), entrySource);
 }
 
-const NODE_SOURCE = `
+function nodeSource(nodeType = "acme.Hello"): string {
+  return `
 class HelloNode {
-  static nodeType = "acme.Hello";
+  static nodeType = "${nodeType}";
   static title = "Hello";
   static description = "";
   static metadataOutputTypes = { output: "str" };
@@ -40,15 +43,35 @@ export function register(registry) {
   registry.register(HelloNode);
 }
 `;
+}
+
+const NODE_SOURCE = nodeSource();
+
+// Force deterministic trust resolution regardless of host env / config file.
+const TRUST_ALL = { allowlist: ["*"] };
 
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), "pack-loader-"));
   nodeModules = join(root, "node_modules");
   mkdirSync(nodeModules, { recursive: true });
+  for (const key of [
+    "NODETOOL_ENV",
+    "NODETOOL_PACKS_ALLOWLIST",
+    "NODETOOL_PACKS_CONFIG"
+  ]) {
+    savedEnv[key] = process.env[key];
+    delete process.env[key];
+  }
+  // Point config file at a nonexistent path so the real ~/.config isn't read.
+  process.env["NODETOOL_PACKS_CONFIG"] = join(root, "no-such-packs.json");
 });
 
 afterEach(() => {
   rmSync(root, { recursive: true, force: true });
+  for (const [key, value] of Object.entries(savedEnv)) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
 });
 
 describe("discoverPacks", () => {
@@ -94,10 +117,12 @@ describe("loadInstalledPacks", () => {
     );
     const registry = new NodeRegistry();
     const results = await loadInstalledPacks(registry, {
-      searchPaths: [nodeModules]
+      searchPaths: [nodeModules],
+      trust: TRUST_ALL
     });
     expect(results).toHaveLength(1);
-    expect(results[0]!.ok).toBe(true);
+    expect(results[0]!.status).toBe("loaded");
+    expect(results[0]!.registered).toEqual(["acme.Hello"]);
     expect(registry.has("acme.Hello")).toBe(true);
   });
 
@@ -109,10 +134,16 @@ describe("loadInstalledPacks", () => {
         main: "index.js",
         nodetool: { register: "registerAcmeNodes" }
       },
-      NODE_SOURCE.replace("export function register", "export function registerAcmeNodes")
+      NODE_SOURCE.replace(
+        "export function register",
+        "export function registerAcmeNodes"
+      )
     );
     const registry = new NodeRegistry();
-    await loadInstalledPacks(registry, { searchPaths: [nodeModules] });
+    await loadInstalledPacks(registry, {
+      searchPaths: [nodeModules],
+      trust: TRUST_ALL
+    });
     expect(registry.has("acme.Hello")).toBe(true);
   });
 
@@ -128,10 +159,11 @@ describe("loadInstalledPacks", () => {
     );
     const registry = new NodeRegistry();
     const results = await loadInstalledPacks(registry, {
-      searchPaths: [nodeModules]
+      searchPaths: [nodeModules],
+      trust: TRUST_ALL
     });
-    expect(results[0]!.ok).toBe(false);
-    expect(results[0]!.error?.message).toMatch(/pack API/);
+    expect(results[0]!.status).toBe("skipped");
+    expect(results[0]!.reason).toMatch(/pack API/);
     expect(registry.has("acme.Hello")).toBe(false);
   });
 
@@ -148,10 +180,121 @@ describe("loadInstalledPacks", () => {
     );
     const registry = new NodeRegistry();
     const results = await loadInstalledPacks(registry, {
-      searchPaths: [nodeModules]
+      searchPaths: [nodeModules],
+      trust: TRUST_ALL
     });
     expect(results).toHaveLength(2);
-    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(results.filter((r) => r.status === "loaded")).toHaveLength(1);
+    expect(results.filter((r) => r.status === "error")).toHaveLength(1);
     expect(registry.has("acme.Hello")).toBe(true);
+  });
+});
+
+describe("trust / allowlist", () => {
+  it("skips packs not on the allowlist when allowUnlisted is false", async () => {
+    writePack(
+      "acme-nodes",
+      { name: "acme-nodes", main: "index.js", nodetool: {} },
+      NODE_SOURCE
+    );
+    const registry = new NodeRegistry();
+    const results = await loadInstalledPacks(registry, {
+      searchPaths: [nodeModules],
+      trust: { allowlist: [], allowUnlisted: false }
+    });
+    expect(results[0]!.status).toBe("skipped");
+    expect(results[0]!.reason).toMatch(/allowlist/);
+    expect(registry.has("acme.Hello")).toBe(false);
+  });
+
+  it("loads an explicitly allowlisted pack even when allowUnlisted is false", async () => {
+    writePack(
+      "acme-nodes",
+      { name: "acme-nodes", main: "index.js", nodetool: {} },
+      NODE_SOURCE
+    );
+    const registry = new NodeRegistry();
+    await loadInstalledPacks(registry, {
+      searchPaths: [nodeModules],
+      trust: { allowlist: ["acme-nodes"], allowUnlisted: false }
+    });
+    expect(registry.has("acme.Hello")).toBe(true);
+  });
+
+  it("defaults to allowUnlisted=false in production", () => {
+    process.env["NODETOOL_ENV"] = "production";
+    expect(resolvePackTrust().allowUnlisted).toBe(false);
+  });
+
+  it("defaults to allowUnlisted=true outside production", () => {
+    delete process.env["NODETOOL_ENV"];
+    expect(resolvePackTrust().allowUnlisted).toBe(true);
+  });
+
+  it("reads the allowlist from NODETOOL_PACKS_ALLOWLIST", () => {
+    process.env["NODETOOL_PACKS_ALLOWLIST"] = "@acme/a, @acme/b";
+    expect(resolvePackTrust().allowlist).toEqual(["@acme/a", "@acme/b"]);
+  });
+});
+
+describe("registry guards", () => {
+  it("does not let a pack shadow an existing node type", async () => {
+    writePack(
+      "acme-nodes",
+      { name: "acme-nodes", main: "index.js", nodetool: {} },
+      NODE_SOURCE
+    );
+    const registry = new NodeRegistry();
+    // Pre-register a node with the same type (simulating a built-in).
+    class Builtin {
+      static nodeType = "acme.Hello";
+      static title = "Builtin";
+      static description = "";
+      static metadataOutputTypes = { output: "str" };
+      static getDeclaredProperties() {
+        return [];
+      }
+      static getDeclaredOutputs() {
+        return {};
+      }
+      static toDescriptor() {
+        return { outputs: {} };
+      }
+      async process() {
+        return {};
+      }
+    }
+    registry.register(Builtin as never);
+
+    const results = await loadInstalledPacks(registry, {
+      searchPaths: [nodeModules],
+      trust: TRUST_ALL
+    });
+    expect(results[0]!.status).toBe("loaded");
+    expect(results[0]!.registered).toEqual([]);
+    expect(results[0]!.skippedNodes).toEqual([
+      { nodeType: "acme.Hello", reason: "collision" }
+    ]);
+    // Built-in class is preserved.
+    expect(registry.getClass("acme.Hello")).toBe(Builtin);
+  });
+
+  it("blocks registration under a reserved namespace", async () => {
+    writePack(
+      "evil-nodes",
+      { name: "evil-nodes", main: "index.js", nodetool: {} },
+      nodeSource("nodetool.text.Override")
+    );
+    const registry = new NodeRegistry();
+    const results = await loadInstalledPacks(registry, {
+      searchPaths: [nodeModules],
+      trust: TRUST_ALL
+    });
+    expect(results[0]!.status).toBe("loaded");
+    expect(results[0]!.registered).toEqual([]);
+    expect(results[0]!.skippedNodes).toEqual([
+      { nodeType: "nodetool.text.Override", reason: "reserved-namespace" }
+    ]);
+    expect(registry.has("nodetool.text.Override")).toBe(false);
   });
 });

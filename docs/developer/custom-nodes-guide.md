@@ -62,8 +62,29 @@ is nothing to wire up by hand — installing the package is enough.
 - **`register`** — name of the entry export to call with the registry. Defaults
   to `register` if omitted.
 
-> Packs run in-process, exactly like any other dependency. Only install packs you
-> trust.
+### Trust model
+
+> **Custom nodes run in the server process as the server user** — full
+> filesystem, network, secret-store, and `process.env` access, with no sandbox.
+> A pack is as trusted as any dependency you `npm install`. Only install packs
+> you trust.
+
+Because of that, loading is gated:
+
+- **Allowlist** — a list of trusted pack names. `"*"` allows all. Set via the
+  `NODETOOL_PACKS_ALLOWLIST` env var (comma-separated) or `allow` in
+  `~/.config/nodetool/packs.json` (path overridable with `NODETOOL_PACKS_CONFIG`).
+- **`allowUnlisted`** — whether packs not on the allowlist load anyway. Defaults
+  to **`true` in development** (so installing a pack just works) and **`false` in
+  production** (`NODETOOL_ENV=production`), so a deployed server never silently
+  runs whatever happens to be in `node_modules`. Override via the config file.
+
+Two further guards protect the registry regardless of trust:
+
+- **Reserved namespaces** — packs cannot register node types under first-party
+  namespaces (`nodetool.`, `lib.`, provider names, etc.); such nodes are skipped.
+- **Collision protection** — a pack cannot shadow an already-registered node type
+  (e.g. a built-in); the conflicting node is skipped with a warning.
 
 ## 3. Configure `tsconfig.json`
 

@@ -1,11 +1,9 @@
 /**
- * Dynamic node pack loader.
+ * Dynamic node pack loader with a trust/governance layer.
  *
  * Discovers installed third-party node packs and registers their nodes into a
- * {@link NodeRegistry} at startup, so the server no longer needs a hardcoded
- * import for every pack.
- *
- * A pack is any npm package whose `package.json` carries a `nodetool` field:
+ * {@link NodeRegistry}. A pack is any npm package whose `package.json` carries a
+ * `nodetool` field:
  *
  * ```jsonc
  * {
@@ -13,17 +11,33 @@
  *   "main": "dist/index.js",
  *   "nodetool": {
  *     "apiVersion": 1,
- *     "register": "registerNodes"  // named export to call with the registry
+ *     "register": "register"   // named export called with the registry
  *   }
  * }
  * ```
  *
- * The named export is called with the registry: `registerNodes(registry)`.
- * It may be sync or async. Trust model: packs run in-process, exactly like any
- * other installed dependency — only install packs you trust.
+ * Trust model — packs run in-process with full server privileges (filesystem,
+ * secrets, network), so loading is gated:
+ *
+ *   - **Allowlist**: explicit list of trusted pack names. `"*"` allows all.
+ *   - **allowUnlisted**: whether packs not on the allowlist load anyway.
+ *     Defaults to `true` in development and `false` in production, so a
+ *     production server never silently runs whatever happens to be in
+ *     `node_modules`.
+ *
+ * Resolved (when not passed explicitly) from `NODETOOL_PACKS_ALLOWLIST` and a
+ * config file at `~/.config/nodetool/packs.json` (override via
+ * `NODETOOL_PACKS_CONFIG`).
+ *
+ * Two further guards protect the registry from misbehaving packs:
+ *   - **Reserved namespaces**: packs cannot register node types under
+ *     first-party namespaces (`nodetool.`, `lib.`, provider names, …).
+ *   - **Collision protection**: a pack cannot shadow an already-registered node
+ *     type (e.g. a built-in); the conflicting node is skipped with a warning.
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -36,6 +50,35 @@ export const PACK_API_VERSION = 1;
 /** Default named export a pack's entry should expose. */
 const DEFAULT_REGISTER_EXPORT = "register";
 
+/**
+ * First-party node-type namespaces a third-party pack may not register under.
+ * Matched against the first dot-separated segment of a node type.
+ */
+export const DEFAULT_RESERVED_NAMESPACES: readonly string[] = [
+  "nodetool",
+  "lib",
+  "comfy",
+  "default",
+  "huggingface",
+  "hf",
+  "mlx",
+  "transformers",
+  "openai",
+  "gemini",
+  "anthropic",
+  "mistral",
+  "groq",
+  "ollama",
+  "replicate",
+  "fal",
+  "elevenlabs",
+  "kie",
+  "vector",
+  "apify",
+  "search",
+  "messaging"
+];
+
 /** The `nodetool` field in a pack's package.json. */
 export interface PackManifest {
   /** Pack API version the pack was built against. Defaults to {@link PACK_API_VERSION}. */
@@ -47,6 +90,7 @@ export interface PackManifest {
 /** A registry-like target the loader registers nodes into. */
 export interface PackRegistry {
   register: (nodeClass: NodeClass) => void;
+  has: (nodeType: string) => boolean;
 }
 
 /** A pack discovered on disk, before its code is imported. */
@@ -62,11 +106,33 @@ export interface DiscoveredPack {
   manifest: PackManifest;
 }
 
+/** Why a pack or one of its nodes was not loaded. */
+export type SkipReason =
+  | "not-allowed"
+  | "api-version"
+  | "reserved-namespace"
+  | "collision"
+  | "no-node-type";
+
 /** Result of attempting to load a single pack. */
 export interface LoadedPackResult {
   pack: DiscoveredPack;
-  ok: boolean;
+  status: "loaded" | "skipped" | "error";
+  /** Present when `status` is `skipped` (pack-level) or `error`. */
+  reason?: string;
+  /** Node types successfully registered. */
+  registered: string[];
+  /** Nodes the pack tried to register but the guard rejected. */
+  skippedNodes: { nodeType: string; reason: SkipReason }[];
   error?: Error;
+}
+
+/** Trust configuration governing which packs may load. */
+export interface PackTrustOptions {
+  /** Allowlisted pack names. `"*"` allows all. */
+  allowlist?: string[];
+  /** Load packs not on the allowlist. Defaults: dev `true`, production `false`. */
+  allowUnlisted?: boolean;
 }
 
 export interface LoadPacksOptions {
@@ -75,7 +141,11 @@ export interface LoadPacksOptions {
    * `process.cwd()` collecting every `node_modules` along the way.
    */
   searchPaths?: string[];
-  /** Called once per load attempt (success or failure). */
+  /** Trust gate. If omitted, resolved from env + config file. */
+  trust?: PackTrustOptions;
+  /** Namespaces packs may not register under. Defaults to {@link DEFAULT_RESERVED_NAMESPACES}. */
+  reservedNamespaces?: readonly string[];
+  /** Called once per pack (loaded, skipped, or error). */
   onResult?: (result: LoadedPackResult) => void;
 }
 
@@ -104,6 +174,64 @@ export function defaultPackSearchPaths(start: string = process.cwd()): string[] 
 }
 
 /**
+ * Resolve the effective trust config from explicit options, then environment,
+ * then the config file, then defaults.
+ */
+export function resolvePackTrust(
+  options: PackTrustOptions = {}
+): Required<PackTrustOptions> {
+  const fromFile = readTrustConfigFile();
+  const envAllow = process.env["NODETOOL_PACKS_ALLOWLIST"];
+  const envList = envAllow
+    ? envAllow
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : undefined;
+
+  const allowlist =
+    options.allowlist ?? envList ?? fromFile.allow ?? [];
+
+  const isProd = process.env["NODETOOL_ENV"] === "production";
+  const allowUnlisted =
+    options.allowUnlisted ?? fromFile.allowUnlisted ?? !isProd;
+
+  return { allowlist, allowUnlisted };
+}
+
+function readTrustConfigFile(): { allow?: string[]; allowUnlisted?: boolean } {
+  const path =
+    process.env["NODETOOL_PACKS_CONFIG"] ??
+    join(homedir(), ".config", "nodetool", "packs.json");
+  try {
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as {
+      allow?: unknown;
+      allowUnlisted?: unknown;
+    };
+    return {
+      allow: Array.isArray(parsed.allow)
+        ? parsed.allow.filter((v): v is string => typeof v === "string")
+        : undefined,
+      allowUnlisted:
+        typeof parsed.allowUnlisted === "boolean"
+          ? parsed.allowUnlisted
+          : undefined
+    };
+  } catch {
+    return {};
+  }
+}
+
+function isAllowed(
+  name: string,
+  trust: Required<PackTrustOptions>
+): boolean {
+  if (trust.allowlist.includes("*")) return true;
+  if (trust.allowlist.includes(name)) return true;
+  return trust.allowUnlisted;
+}
+
+/**
  * Scan the given `node_modules` directories for packs.
  *
  * The first occurrence of a given package name wins, so nearer `node_modules`
@@ -123,19 +251,32 @@ export function discoverPacks(
 }
 
 /**
- * Discover and load all installed packs into `registry`.
+ * Discover and load all trusted installed packs into `registry`.
  *
- * A failure in one pack (bad import, throwing register fn, version mismatch)
- * is captured and reported via `onResult`; it never aborts the others.
+ * Loading is gated by the trust config; reserved namespaces and existing node
+ * types are protected. A failure in one pack never aborts the others.
  */
 export async function loadInstalledPacks(
   registry: NodeRegistry,
   options: LoadPacksOptions = {}
 ): Promise<LoadedPackResult[]> {
+  const trust = resolvePackTrust(options.trust);
+  const reserved = options.reservedNamespaces ?? DEFAULT_RESERVED_NAMESPACES;
   const packs = discoverPacks(options.searchPaths);
   const results: LoadedPackResult[] = [];
   for (const pack of packs) {
-    const result = await loadPack(registry, pack);
+    let result: LoadedPackResult;
+    if (!isAllowed(pack.name, trust)) {
+      result = {
+        pack,
+        status: "skipped",
+        reason: "not on pack allowlist",
+        registered: [],
+        skippedNodes: []
+      };
+    } else {
+      result = await loadPack(registry, pack, reserved);
+    }
     results.push(result);
     options.onResult?.(result);
   }
@@ -143,19 +284,30 @@ export async function loadInstalledPacks(
 }
 
 async function loadPack(
-  registry: PackRegistry,
-  pack: DiscoveredPack
+  registry: NodeRegistry,
+  pack: DiscoveredPack,
+  reserved: readonly string[]
 ): Promise<LoadedPackResult> {
   const declared = pack.manifest.apiVersion ?? PACK_API_VERSION;
   if (declared > PACK_API_VERSION) {
     return {
       pack,
-      ok: false,
-      error: new Error(
-        `pack "${pack.name}" requires pack API v${declared}, host supports v${PACK_API_VERSION}`
-      )
+      status: "skipped",
+      reason: `requires pack API v${declared}, host supports v${PACK_API_VERSION}`,
+      registered: [],
+      skippedNodes: []
     };
   }
+
+  const registered: string[] = [];
+  const skippedNodes: { nodeType: string; reason: SkipReason }[] = [];
+  const guarded = makeGuardedRegistry(
+    registry,
+    reserved,
+    registered,
+    skippedNodes
+  );
+
   try {
     const mod = (await import(pathToFileURL(pack.entry).href)) as Record<
       string,
@@ -167,22 +319,64 @@ async function loadPack(
         `entry "${pack.entry}" has no callable export "${pack.registerExport}"`
       );
     }
-    await register(registry);
-    return { pack, ok: true };
+    await register(guarded);
+    return { pack, status: "loaded", registered, skippedNodes };
   } catch (error) {
     return {
       pack,
-      ok: false,
-      error: error instanceof Error ? error : new Error(String(error))
+      status: "error",
+      error: error instanceof Error ? error : new Error(String(error)),
+      registered,
+      skippedNodes
     };
   }
+}
+
+function makeGuardedRegistry(
+  target: NodeRegistry,
+  reserved: readonly string[],
+  registered: string[],
+  skippedNodes: { nodeType: string; reason: SkipReason }[]
+): PackRegistry {
+  return {
+    has: (nodeType: string) => target.has(nodeType),
+    register: (nodeClass: NodeClass) => {
+      const nodeType = nodeClass.nodeType;
+      if (!nodeType) {
+        // Let the real registry surface the "no nodeType" error.
+        target.register(nodeClass);
+        return;
+      }
+      if (isReservedNamespace(nodeType, reserved)) {
+        skippedNodes.push({ nodeType, reason: "reserved-namespace" });
+        return;
+      }
+      if (target.has(nodeType)) {
+        skippedNodes.push({ nodeType, reason: "collision" });
+        return;
+      }
+      target.register(nodeClass);
+      registered.push(nodeType);
+    }
+  };
+}
+
+function isReservedNamespace(
+  nodeType: string,
+  reserved: readonly string[]
+): boolean {
+  const dot = nodeType.indexOf(".");
+  const head = dot > 0 ? nodeType.slice(0, dot) : nodeType;
+  return reserved.includes(head);
 }
 
 function resolveRegisterFn(
   mod: Record<string, unknown>,
   exportName: string
 ): ((registry: PackRegistry) => void | Promise<void>) | undefined {
-  const candidate = mod[exportName] ?? (mod["default"] as Record<string, unknown> | undefined)?.[exportName];
+  const candidate =
+    mod[exportName] ??
+    (mod["default"] as Record<string, unknown> | undefined)?.[exportName];
   return typeof candidate === "function"
     ? (candidate as (registry: PackRegistry) => void | Promise<void>)
     : undefined;

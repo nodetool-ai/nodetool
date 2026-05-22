@@ -207,8 +207,15 @@ pack with a `nodetool` field in `package.json`, naming the export above:
 On startup the server scans installed dependencies, imports any package with a
 `nodetool` field, and calls the named export with the registry. Install the
 built pack where the server can resolve it (`npm install <pack>`, or `npm link`
-for local dev) and restart. The export may be sync or `async`. Packs run
-in-process — only install packs you trust.
+for local dev) and restart. The export may be sync or `async`.
+
+**Trust model.** Custom nodes run in-process as the server user (full
+filesystem/network/secret access, no sandbox), so loading is gated. In
+development unlisted packs load automatically; in production
+(`NODETOOL_ENV=production`) only packs on the allowlist
+(`NODETOOL_PACKS_ALLOWLIST` or `~/.config/nodetool/packs.json`) load. Packs also
+cannot register under reserved namespaces (`nodetool.`, `lib.`, provider names)
+or shadow an existing node type. Only install packs you trust.
 
 # Testing
 
