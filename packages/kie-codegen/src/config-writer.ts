@@ -30,7 +30,13 @@ export async function writeKieConfigs(
 ): Promise<void> {
   const modules = new Map<string, NodeConfig[]>();
   for (const node of nodes) {
-    const moduleName = node.outputType === "video" ? "video" : node.outputType === "audio" ? "audio" : "image";
+    const moduleName =
+      node.moduleName ??
+      (node.outputType === "video"
+        ? "video"
+        : node.outputType === "audio"
+          ? "audio"
+          : "image");
     if (!modules.has(moduleName)) {
       modules.set(moduleName, []);
     }

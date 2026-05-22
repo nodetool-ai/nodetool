@@ -96,7 +96,7 @@ export const videoConfig: ModuleConfig = {
       "fields": [
         {
           "name": "images",
-          "type": "list[video]",
+          "type": "list[image]",
           "default": [],
           "title": "Images",
           "description": "Provide an external image URL as a reference for video generation. Up to 7 images are supported. Do not use it simultaneously with task_id. In your prompt, reference an uploaded image by typing @image(n) followed by a space (for example: @image1 a sunset over the ocean). - Supports JPEG, PNG, and WEBP formats - Maximum file size for each image: 10MB - The Spicy mode is not available when using external images - The array can contain a maximum of seven URLs",
@@ -192,7 +192,7 @@ export const videoConfig: ModuleConfig = {
       "uploads": [
         {
           "field": "images",
-          "kind": "video",
+          "kind": "image",
           "isList": true,
           "paramName": "image_urls"
         }
@@ -377,7 +377,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "images",
-          "type": "list[video]",
+          "type": "list[image]",
           "default": [],
           "title": "Images",
           "description": "Image URLs for video generation. (Uploaded file URLs, not file content; supported types: image/jpeg, image/png; maximum file size: 10.0MB)",
@@ -408,7 +408,7 @@ export const videoConfig: ModuleConfig = {
       "uploads": [
         {
           "field": "images",
-          "kind": "video",
+          "kind": "image",
           "isList": true,
           "paramName": "image_urls"
         }
@@ -444,15 +444,13 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "image",
-          "type": "video",
+          "type": "image",
           "default": {
-            "type": "video",
+            "type": "image",
             "uri": "",
             "asset_id": null,
             "data": null,
-            "metadata": null,
-            "duration": null,
-            "format": null
+            "metadata": null
           },
           "title": "Image",
           "description": "URL of the image to be used for the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
@@ -493,7 +491,7 @@ export const videoConfig: ModuleConfig = {
       "uploads": [
         {
           "field": "image",
-          "kind": "video",
+          "kind": "image",
           "paramName": "image_url"
         }
       ],
@@ -722,15 +720,13 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "image",
-          "type": "video",
+          "type": "image",
           "default": {
-            "type": "video",
+            "type": "image",
             "uri": "",
             "asset_id": null,
             "data": null,
-            "metadata": null,
-            "duration": null,
-            "format": null
+            "metadata": null
           },
           "title": "Image",
           "description": "URL of the image to be used for the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
@@ -771,7 +767,7 @@ export const videoConfig: ModuleConfig = {
       "uploads": [
         {
           "field": "image",
-          "kind": "video",
+          "kind": "image",
           "paramName": "image_url"
         }
       ],
@@ -870,15 +866,13 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "image",
-          "type": "video",
+          "type": "image",
           "default": {
-            "type": "video",
+            "type": "image",
             "uri": "",
             "asset_id": null,
             "data": null,
-            "metadata": null,
-            "duration": null,
-            "format": null
+            "metadata": null
           },
           "title": "Image",
           "description": "URL of the image to be used for the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
@@ -917,15 +911,13 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "tail_image",
-          "type": "video",
+          "type": "image",
           "default": {
-            "type": "video",
+            "type": "image",
             "uri": "",
             "asset_id": null,
             "data": null,
-            "metadata": null,
-            "duration": null,
-            "format": null
+            "metadata": null
           },
           "title": "Tail Image",
           "description": "URL of the image to be used for the end of the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
@@ -935,12 +927,12 @@ export const videoConfig: ModuleConfig = {
       "uploads": [
         {
           "field": "image",
-          "kind": "video",
+          "kind": "image",
           "paramName": "image_url"
         },
         {
           "field": "tail_image",
-          "kind": "video",
+          "kind": "image",
           "paramName": "tail_image_url"
         }
       ],
@@ -970,15 +962,13 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "image",
-          "type": "video",
+          "type": "image",
           "default": {
-            "type": "video",
+            "type": "image",
             "uri": "",
             "asset_id": null,
             "data": null,
-            "metadata": null,
-            "duration": null,
-            "format": null
+            "metadata": null
           },
           "title": "Image",
           "description": "URL of the image to be used for the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
@@ -1019,7 +1009,7 @@ export const videoConfig: ModuleConfig = {
       "uploads": [
         {
           "field": "image",
-          "kind": "video",
+          "kind": "image",
           "paramName": "image_url"
         }
       ],
@@ -1665,15 +1655,13 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "image",
-          "type": "video",
+          "type": "image",
           "default": {
-            "type": "video",
+            "type": "image",
             "uri": "",
             "asset_id": null,
             "data": null,
-            "metadata": null,
-            "duration": null,
-            "format": null
+            "metadata": null
           },
           "title": "Image",
           "description": "The URL of the image used to generate video (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
@@ -1715,7 +1703,7 @@ export const videoConfig: ModuleConfig = {
       "uploads": [
         {
           "field": "image",
-          "kind": "video",
+          "kind": "image",
           "paramName": "image_url"
         }
       ],
@@ -1745,15 +1733,13 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "image",
-          "type": "video",
+          "type": "image",
           "default": {
-            "type": "video",
+            "type": "image",
             "uri": "",
             "asset_id": null,
             "data": null,
-            "metadata": null,
-            "duration": null,
-            "format": null
+            "metadata": null
           },
           "title": "Image",
           "description": "The URL of the image used to generate video (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
@@ -1822,7 +1808,7 @@ export const videoConfig: ModuleConfig = {
       "uploads": [
         {
           "field": "image",
-          "kind": "video",
+          "kind": "image",
           "paramName": "image_url"
         }
       ],
@@ -1952,15 +1938,13 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "image",
-          "type": "video",
+          "type": "image",
           "default": {
-            "type": "video",
+            "type": "image",
             "uri": "",
             "asset_id": null,
             "data": null,
-            "metadata": null,
-            "duration": null,
-            "format": null
+            "metadata": null
           },
           "title": "Image",
           "description": "The URL of the image used to generate video (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
@@ -2019,15 +2003,13 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "end_image",
-          "type": "video",
+          "type": "image",
           "default": {
-            "type": "video",
+            "type": "image",
             "uri": "",
             "asset_id": null,
             "data": null,
-            "metadata": null,
-            "duration": null,
-            "format": null
+            "metadata": null
           },
           "title": "End Image",
           "description": "The URL of the image the video ends with. Defaults to None. (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
@@ -2045,12 +2027,12 @@ export const videoConfig: ModuleConfig = {
       "uploads": [
         {
           "field": "image",
-          "kind": "video",
+          "kind": "image",
           "paramName": "image_url"
         },
         {
           "field": "end_image",
-          "kind": "video",
+          "kind": "image",
           "paramName": "end_image_url"
         }
       ],
@@ -2389,15 +2371,13 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "end_image",
-          "type": "video",
+          "type": "image",
           "default": {
-            "type": "video",
+            "type": "image",
             "uri": "",
             "asset_id": null,
             "data": null,
-            "metadata": null,
-            "duration": null,
-            "format": null
+            "metadata": null
           },
           "title": "End Image",
           "description": "Optional URL of the image to use as the last frame of the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
@@ -2428,7 +2408,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "field": "end_image",
-          "kind": "video",
+          "kind": "image",
           "paramName": "end_image_url"
         }
       ],
@@ -2511,15 +2491,13 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "image",
-          "type": "video",
+          "type": "image",
           "default": {
-            "type": "video",
+            "type": "image",
             "uri": "",
             "asset_id": null,
             "data": null,
-            "metadata": null,
-            "duration": null,
-            "format": null
+            "metadata": null
           },
           "title": "Image",
           "description": "The URL of the image to use as the first frame of the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
@@ -2527,15 +2505,13 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "end_image",
-          "type": "video",
+          "type": "image",
           "default": {
-            "type": "video",
+            "type": "image",
             "uri": "",
             "asset_id": null,
             "data": null,
-            "metadata": null,
-            "duration": null,
-            "format": null
+            "metadata": null
           },
           "title": "End Image",
           "description": "Optional URL of the image to use as the last frame of the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
@@ -2585,12 +2561,12 @@ export const videoConfig: ModuleConfig = {
       "uploads": [
         {
           "field": "image",
-          "kind": "video",
+          "kind": "image",
           "paramName": "image_url"
         },
         {
           "field": "end_image",
-          "kind": "video",
+          "kind": "image",
           "paramName": "end_image_url"
         }
       ],
@@ -4757,6 +4733,7 @@ export const videoConfig: ModuleConfig = {
       "title": "Gemini Omni Video",
       "description": "Gemini Omni Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Create Task",
       "outputType": "video",
+      "moduleName": "video",
       "fields": [
         {
           "name": "prompt",
@@ -4777,7 +4754,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "audio_ids",
-          "type": "list[image]",
+          "type": "list[str]",
           "default": [],
           "title": "Audio Ids",
           "description": "Array of audio IDs generated by the `gemini-omni-audio` endpoint. Useful for narration, dialogue, music, or audio guidance in the generated video. Max 3 items.",
@@ -4785,7 +4762,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "video_list",
-          "type": "list[image]",
+          "type": "list[video]",
           "default": [],
           "title": "Video List",
           "description": "Array of video clips. Each item defines a source video and the trim range to use during generation. Video limits: - Each file must be no larger than `100MB` - Video duration must not exceed `30s` - `ends` should be greater than `start` - The difference between the end time and the start time must not exceed `10s`. - Max 1 items. Equal 2 images",
@@ -4793,7 +4770,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "character_ids",
-          "type": "list[image]",
+          "type": "list[str]",
           "default": [],
           "title": "Character Ids",
           "description": "An array of character IDs generated by the `gemini-omni-character` API. Used to provide character appearance, identity, or person references for the video. Each character_id uses 1 image slot. The base limit is 7 image slots; if video_list is also provided, video_list uses 2 image slots, so character_ids can contain up to 3 IDs.",
@@ -4855,6 +4832,13 @@ export const videoConfig: ModuleConfig = {
           "kind": "image",
           "isList": true,
           "paramName": "image_urls"
+        },
+        {
+          "field": "video_list",
+          "kind": "video",
+          "isList": true,
+          "isVideoClip": true,
+          "paramName": "video_list"
         }
       ],
       "validation": [
@@ -4867,6 +4851,124 @@ export const videoConfig: ModuleConfig = {
           "field": "duration",
           "rule": "not_empty",
           "message": "Duration is required"
+        }
+      ]
+    },
+    {
+      "className": "GeminiOmniAudio",
+      "modelId": "gemini-omni-audio",
+      "title": "Gemini Omni Audio",
+      "description": "Gemini Omni Audio via Kie.ai.\n\n    kie, video, ai\n\n    ## Create Task",
+      "outputType": "text",
+      "moduleName": "video",
+      "useOmniDirect": true,
+      "submitEndpoint": "/api/v1/omni/audio/create",
+      "responseIdKey": "audioId",
+      "fields": [
+        {
+          "name": "audio_id",
+          "type": "str",
+          "default": "",
+          "title": "Audio Id",
+          "description": "Enum voice ID, used to select a preset voice character. achernar - female, soft, high pitch achird - male, friendly, mid pitch algenib - male, raspy, low pitch algieba - male, easygoing, mid-low pitch alnilam - male, steady, mid-low pitch aoede - female, brisk, mid pitch autonoe - female, bright, mid pitch callirrhoe - female, easygoing, mid pitch charon - male, intellectual, low pitch despina - female, smooth, mid pitch enceladus - male, breathy, low pitch erinome - female, clear, mid pitch fenrir - male, lively, younger pitch gacrux - female, mature, mid pitch iapetus - male, clear, mid-low pitch kore - female, capable, mid pitch laomedeia - female, cheerful, mid-high pitch leda - female, young, mid-high pitch orus - male, steady, mid-low pitch puck - male, cheerful, mid pitch pulcherrima - genderless, forward, mid-high pitch rasalgethi - male, intellectual, mid pitch sadachbia - male, vivid, low pitch sadaltager - male, knowledgeable, mid pitch schedar - male, smooth, mid-low pitch sulafat - female, warm, mid pitch umbriel - male, smooth, low pitch vindemiatrix - female, gentle, mid pitch zephyr - female, bright, mid-high pitch zubenelgenubi - male, casual, mid-low pitch",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "str",
+          "default": "",
+          "title": "Name",
+          "description": "Voice name. Maximum length: `210` characters.",
+          "required": true
+        },
+        {
+          "name": "voice_description",
+          "type": "str",
+          "default": "",
+          "title": "Voice Description",
+          "description": "Voice characteristic description used to define timbre, style, speaking rate, emotion, and other traits. Maximum length: `20000` characters.",
+          "required": false
+        },
+        {
+          "name": "example_dialogue",
+          "type": "str",
+          "default": "",
+          "title": "Example Dialogue",
+          "description": "Example dialogue, such as \"Hello, I am Adam\". Maximum length: `120` characters.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "audio_id",
+          "rule": "not_empty",
+          "message": "Audio Id is required"
+        },
+        {
+          "field": "name",
+          "rule": "not_empty",
+          "message": "Name is required"
+        }
+      ]
+    },
+    {
+      "className": "GeminiOmniCharacter",
+      "modelId": "gemini-omni-character",
+      "title": "Gemini Omni Character",
+      "description": "Gemini Omni Character via Kie.ai.\n\n    kie, video, ai\n\n    - `image_urls` supports only `1` image, and each image must be no larger than `20MB`",
+      "outputType": "text",
+      "moduleName": "video",
+      "useOmniDirect": true,
+      "submitEndpoint": "/api/v1/omni/character/create",
+      "responseIdKey": "characterId",
+      "fields": [
+        {
+          "name": "descriptions",
+          "type": "str",
+          "default": "",
+          "title": "Descriptions",
+          "description": "Character description used to define the appearance, identity, style, clothing, or personality of the character.",
+          "required": true
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Array of character reference image URLs. Only `1` image is supported. Image limits: - Each image must be no larger than `20MB` - Use a publicly accessible image URL",
+          "required": true,
+          "max": 1
+        },
+        {
+          "name": "audio_ids",
+          "type": "list[str]",
+          "default": [],
+          "title": "Audio Ids",
+          "description": "Array of audio IDs generated by the `gemini-omni-audio` endpoint. These can be used to provide voice traits, tone, or persona guidance for the character.",
+          "required": false
+        },
+        {
+          "name": "character_name",
+          "type": "str",
+          "default": "",
+          "title": "Character Name",
+          "description": "Character name",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "descriptions",
+          "rule": "not_empty",
+          "message": "Descriptions is required"
         }
       ]
     }

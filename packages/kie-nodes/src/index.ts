@@ -11,6 +11,7 @@ export {
   getApiKey,
   isRefSet,
   kieExecuteTask,
+  kieExecuteOmniDirect,
   kieImageRef,
   uploadAudioInput,
   uploadImageInput,

@@ -8,6 +8,7 @@ import {
   getApiKey,
   isRefSet,
   kieExecuteTask,
+  kieExecuteOmniDirect,
   kieImageRef,
   uploadAudioInput,
   uploadImageInput,
@@ -36,8 +37,60 @@ interface KieParamInfo {
 interface KieSchemaBundle {
   modelId: string;
   params: KieParamInfo[];
-  outputType: string; // "image" | "video" | "audio"
+  outputType: string; // "image" | "video" | "audio" | "text"
+  execution: KieExecutionConfig;
 }
+
+interface KieExecutionConfig {
+  mode: "createTask" | "omniDirect";
+  submitEndpoint?: string;
+  responseIdKey?: string;
+}
+
+const OMNI_VIDEO_SUPPLEMENTS: KieParamInfo[] = [
+  {
+    name: "duration",
+    type: "string",
+    required: true,
+    description: "Generated video duration in seconds (4, 6, 8, or 10).",
+    default: "8",
+    options: ["4", "6", "8", "10"],
+    isFileUrl: false,
+    isFileUrlArray: false,
+    isVideoClipList: false,
+    acceptedFileTypes: []
+  },
+  {
+    name: "audio_ids",
+    type: "array",
+    required: false,
+    description: "Audio IDs from gemini-omni-audio for narration or dialogue.",
+    isFileUrl: false,
+    isFileUrlArray: false,
+    isVideoClipList: false,
+    acceptedFileTypes: []
+  },
+  {
+    name: "character_ids",
+    type: "array",
+    required: false,
+    description: "Character IDs from gemini-omni-character.",
+    isFileUrl: false,
+    isFileUrlArray: false,
+    isVideoClipList: false,
+    acceptedFileTypes: []
+  },
+  {
+    name: "video_list",
+    type: "array",
+    required: false,
+    description: "Source video clips with trim ranges for video editing.",
+    isFileUrl: false,
+    isFileUrlArray: true,
+    isVideoClipList: true,
+    acceptedFileTypes: []
+  }
+];
 
 export interface ResolvedKieDynamicSchema {
   model_id: string;
@@ -122,6 +175,9 @@ function isVideoClipSchema(schema: JsonRecord): boolean {
 }
 
 function inferOutputType(modelId: string, _text: string): string {
+  if (modelId === "gemini-omni-audio" || modelId === "gemini-omni-character") {
+    return "text";
+  }
   const lower = modelId.toLowerCase();
   const videoKws = [
     "video",
@@ -132,12 +188,51 @@ function inferOutputType(modelId: string, _text: string): string {
     "hailuo",
     "sora",
     "wan",
-    "infinitalk"
+    "infinitalk",
+    "omni-video"
   ];
   if (videoKws.some((kw) => lower.includes(kw))) return "video";
-  const audioKws = ["audio", "music", "suno", "speech", "tts"];
+  const audioKws = ["music", "suno", "speech", "tts"];
   if (audioKws.some((kw) => lower.includes(kw))) return "audio";
+  if (lower.includes("audio") && !lower.includes("omni-audio")) return "audio";
   return "image";
+}
+
+function resolveExecutionConfig(modelId: string): KieExecutionConfig {
+  if (modelId === "gemini-omni-audio") {
+    return {
+      mode: "omniDirect",
+      submitEndpoint: "/api/v1/omni/audio/create",
+      responseIdKey: "audioId"
+    };
+  }
+  if (modelId === "gemini-omni-character") {
+    return {
+      mode: "omniDirect",
+      submitEndpoint: "/api/v1/omni/character/create",
+      responseIdKey: "characterId"
+    };
+  }
+  return { mode: "createTask" };
+}
+
+function supplementOmniParams(modelId: string, params: KieParamInfo[]): KieParamInfo[] {
+  if (modelId !== "gemini-omni-video") {
+    return params;
+  }
+  const existing = new Set(params.map((p) => p.name));
+  const extras = OMNI_VIDEO_SUPPLEMENTS.filter((p) => !existing.has(p.name));
+  return extras.length ? [...params, ...extras] : params;
+}
+
+function normalizeStringList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map(String).filter((item) => item.trim().length > 0);
+  }
+  if (typeof value === "string" && value.trim()) {
+    return [value.trim()];
+  }
+  return [];
 }
 
 function parseInputParams(text: string): KieParamInfo[] {
@@ -314,7 +409,46 @@ function openApiPropertyToParam(
   };
 }
 
-function parseOpenApiInputParams(text: string): KieParamInfo[] {
+function parseFlatOpenApiParams(text: string, path: string): KieParamInfo[] {
+  const openApi = extractOpenApi(text);
+  if (!openApi) return [];
+
+  const paths = asRecord(openApi.paths);
+  const post = asRecord(asRecord(paths?.[path])?.post);
+  if (!post) return [];
+
+  const requestBody = asRecord(post.requestBody);
+  const content = asRecord(requestBody?.content);
+  const json = asRecord(content?.["application/json"]);
+  const schema = asRecord(json?.schema);
+  const properties = asRecord(schema?.properties);
+  if (!properties) return [];
+
+  const requiredFields = new Set(asStringArray(schema?.required) ?? []);
+  const params: KieParamInfo[] = [];
+
+  for (const [name, rawSchema] of Object.entries(properties)) {
+    const param = openApiPropertyToParam(
+      name,
+      asRecord(rawSchema) ?? {},
+      requiredFields.has(name)
+    );
+    if (param) params.push(param);
+  }
+
+  return params;
+}
+
+function parseOpenApiInputParams(text: string, modelId: string): KieParamInfo[] {
+  if (modelId === "gemini-omni-audio") {
+    const omni = parseFlatOpenApiParams(text, "/api/v1/omni/audio/create");
+    if (omni.length) return omni;
+  }
+  if (modelId === "gemini-omni-character") {
+    const omni = parseFlatOpenApiParams(text, "/api/v1/omni/character/create");
+    if (omni.length) return omni;
+  }
+
   const openApi = extractOpenApi(text);
   if (!openApi) return [];
 
@@ -419,6 +553,10 @@ function parseBounds(text: string): { min?: number; max?: number } {
 }
 
 function detectMediaKindFromText(text: string): "image" | "audio" | "video" | null {
+  const firstToken = text.split(/\s+/)[0]?.toLowerCase() ?? "";
+  if (/^image_urls?$|^images?$/.test(firstToken)) return "image";
+  if (/^video_urls?$|^video_list$/.test(firstToken)) return "video";
+  if (/^audio_urls?$/.test(firstToken)) return "audio";
   const joined = text.toLowerCase();
   if (joined.includes("image/")) return "image";
   if (joined.includes("audio/")) return "audio";
@@ -458,6 +596,9 @@ function fieldNameForParam(param: KieParamInfo): string {
 }
 
 function mapParamType(param: KieParamInfo): TypeMetadata {
+  if (param.name.endsWith("_ids") && param.type === "array") {
+    return { type: "list", type_args: [{ type: "str", type_args: [] }] };
+  }
   if (param.isFileUrlArray) {
     const kind = detectMediaKind(param) ?? "image";
     return { type: "list", type_args: [{ type: kind, type_args: [] }] };
@@ -530,6 +671,9 @@ function defaultDynamicValue(param: KieParamInfo): unknown {
 }
 
 function mapOutputType(outputType: string): TypeMetadata {
+  if (outputType === "text") {
+    return { type: "str", type_args: [], optional: false };
+  }
   if (outputType === "video") {
     return { type: "video", type_args: [], optional: false };
   }
@@ -542,10 +686,15 @@ function mapOutputType(outputType: string): TypeMetadata {
 function parseKieDocs(text: string): KieSchemaBundle {
   const modelId = extractModelId(text);
   if (!modelId) throw new Error("Could not find model ID in documentation");
+  const params = supplementOmniParams(
+    modelId,
+    mergeKieParams(parseInputParams(text), parseOpenApiInputParams(text, modelId))
+  );
   return {
     modelId,
-    params: mergeKieParams(parseInputParams(text), parseOpenApiInputParams(text)),
-    outputType: inferOutputType(modelId, text)
+    params,
+    outputType: inferOutputType(modelId, text),
+    execution: resolveExecutionConfig(modelId)
   };
 }
 
@@ -576,7 +725,9 @@ export function resolveKieDynamicSchema(
       ? "video"
       : bundle.outputType === "audio"
         ? "audio"
-        : "image";
+        : bundle.outputType === "text"
+          ? "output"
+          : "image";
 
   return {
     model_id: bundle.modelId,
@@ -676,6 +827,9 @@ export class KieAINode extends BaseNode {
           }
         }
         if (urls.length) apiInput[p.name] = urls;
+      } else if (p.name.endsWith("_ids") && p.type === "array") {
+        const list = normalizeStringList(val);
+        if (list.length) apiInput[p.name] = list;
       } else if (p.isFileUrl) {
         const kind = detectMediaKind(p) ?? "image";
         const uploadFn =
@@ -694,14 +848,30 @@ export class KieAINode extends BaseNode {
       }
     }
 
-    const result = await kieExecuteTask(
-      apiKey,
-      bundle.modelId,
-      apiInput,
-      2000,
-      300
-    );
+    let result: { data: string; taskId: string };
+    if (bundle.execution.mode === "omniDirect") {
+      if (!bundle.execution.submitEndpoint || !bundle.execution.responseIdKey) {
+        throw new Error(`Omni model ${bundle.modelId} is missing direct endpoint config`);
+      }
+      result = await kieExecuteOmniDirect(
+        apiKey,
+        bundle.execution.submitEndpoint,
+        apiInput,
+        bundle.execution.responseIdKey
+      );
+    } else {
+      result = await kieExecuteTask(
+        apiKey,
+        bundle.modelId,
+        apiInput,
+        2000,
+        300
+      );
+    }
 
+    if (bundle.outputType === "text") {
+      return { output: result.data };
+    }
     if (bundle.outputType === "video")
       return { video: { type: "video", uri: "", data: result.data } };
     if (bundle.outputType === "audio")

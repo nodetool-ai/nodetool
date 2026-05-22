@@ -84,9 +84,9 @@ async function pollStatus(
     if (data.code !== undefined) checkStatus(data);
     const state = (data.data as Record<string, unknown>)?.state as string;
     if (state === "success") return data;
-    if (state === "failed") {
-      const msg =
-        (data.data as Record<string, unknown>)?.failMsg || "Unknown error";
+    if (state === "failed" || state === "fail") {
+      const inner = data.data as Record<string, unknown>;
+      const msg = inner?.failMsg || data.msg || "Unknown error";
       throw new Error(withTaskId(`Task failed: ${msg}`, taskId));
     }
     await new Promise((r) => setTimeout(r, pollInterval));
@@ -367,6 +367,62 @@ async function downloadCustomResult(
   return Buffer.from(await res.arrayBuffer());
 }
 
+async function downloadTextResult(
+  apiKey: string,
+  taskId: string,
+  resultObjectKey: string
+): Promise<string> {
+  const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
+  const res = await fetch(url, { headers: headers(apiKey) });
+  if (!res.ok) throw new Error(withTaskId(`Failed to get result: ${res.status}`, taskId));
+  const data = (await res.json()) as Record<string, unknown>;
+  if (data.code !== undefined) checkStatus(data);
+  const resultJsonStr = (data.data as Record<string, unknown>)?.resultJson as string;
+  if (!resultJsonStr) throw new Error(withTaskId("No resultJson in response", taskId));
+  const resultData = JSON.parse(resultJsonStr) as Record<string, unknown>;
+  const resultObject = asRecord(resultData.resultObject) ?? resultData;
+  const value = resultObject[resultObjectKey];
+  if (typeof value === "string" && value) {
+    return value;
+  }
+  throw new Error(
+    withTaskId(`No ${resultObjectKey} in resultJson`, taskId)
+  );
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+export async function kieExecuteOmniDirect(
+  apiKey: string,
+  endpoint: string,
+  body: Record<string, unknown>,
+  responseIdKey: string
+): Promise<{ data: string; taskId: string }> {
+  const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
+    method: "POST",
+    headers: headers(apiKey),
+    body: JSON.stringify(body)
+  });
+  const data = (await res.json()) as Record<string, unknown>;
+  const code = Number(data.code);
+  if (code !== 200 && code !== 0) {
+    if (data.code !== undefined) checkStatus(data);
+  }
+  if (!res.ok) {
+    throw new Error(`Omni submit failed: ${res.status} ${JSON.stringify(data)}`);
+  }
+  const inner = asRecord(data.data);
+  const id = inner?.[responseIdKey];
+  if (typeof id !== "string" || !id) {
+    throw new Error(`No ${responseIdKey} in response: ${JSON.stringify(data)}`);
+  }
+  return { data: id, taskId: "" };
+}
+
 export async function kieExecuteTask(
   apiKey: string,
   model: string,
@@ -374,7 +430,8 @@ export async function kieExecuteTask(
   pollInterval = 2000,
   maxAttempts = 300,
   submitEndpoint?: string,
-  pollEndpoint?: string
+  pollEndpoint?: string,
+  resultObjectKey?: string
 ): Promise<{ data: string; taskId: string }> {
   if (submitEndpoint) {
     // Custom submit/poll endpoints (Veo, Runway, etc.)
@@ -391,6 +448,10 @@ export async function kieExecuteTask(
   }
   const taskId = await submitTask(apiKey, model, input);
   await pollStatus(apiKey, taskId, pollInterval, maxAttempts);
+  if (resultObjectKey) {
+    const text = await downloadTextResult(apiKey, taskId, resultObjectKey);
+    return { data: text, taskId };
+  }
   const result = await downloadResult(apiKey, taskId);
   return { data: result.bytes.toString("base64"), taskId: result.taskId };
 }

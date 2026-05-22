@@ -754,16 +754,26 @@ describe("resolveKieDynamicSchema gemini-omni-video", () => {
     ]);
   });
 
-  it("markdown-only export omits omni-specific params", () => {
+  it("markdown-only docs supplement omni video chaining inputs", () => {
     const schema = resolveKieDynamicSchema(GEMINI_OMNI_MARKDOWN);
     expect(Object.keys(schema.dynamic_inputs).sort()).toEqual([
       "aspect_ratio",
+      "audio_ids",
+      "character_ids",
       "duration",
       "images",
       "prompt",
       "resolution",
-      "seed"
+      "seed",
+      "video_list"
     ]);
+    expect(schema.dynamic_inputs.video_list).toMatchObject({
+      type: "list",
+      type_args: [{ type: "video", type_args: [] }]
+    });
+    expect(schema.dynamic_outputs).toMatchObject({
+      video: { type: "video", type_args: [] }
+    });
   });
 
   it("submits video_list audio_ids and character_ids to createTask", async () => {
@@ -818,6 +828,90 @@ describe("resolveKieDynamicSchema gemini-omni-video", () => {
     ]);
     expect(body.input.audio_ids).toEqual(["audio_01"]);
     expect(body.input.character_ids).toEqual(["character_01"]);
+  });
+
+  it("resolves gemini omni audio as text output with omni direct OpenAPI", () => {
+    const docs = `# Gemini Omni Audio
+
+| **Format** | \`gemini-omni-audio\` |
+
+\`\`\`yaml
+openapi: 3.0.1
+paths:
+  /api/v1/omni/audio/create:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                audio_id:
+                  type: string
+                name:
+                  type: string
+                voice_description:
+                  type: string
+\`\`\`
+`;
+
+    const schema = resolveKieDynamicSchema(docs);
+    expect(schema.model_id).toBe("gemini-omni-audio");
+    expect(schema.dynamic_outputs).toMatchObject({
+      output: { type: "str", type_args: [] }
+    });
+    expect(schema.dynamic_inputs.name).toBeDefined();
+  });
+
+  it("calls omni direct endpoint for gemini omni audio", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({
+        code: 200,
+        data: { audioId: "audio_dynamic_01", name: "Test Voice" }
+      })
+    );
+
+    const docs = `# Gemini Omni Audio
+
+| **Format** | \`gemini-omni-audio\` |
+
+\`\`\`yaml
+openapi: 3.0.1
+paths:
+  /api/v1/omni/audio/create:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                audio_id:
+                  type: string
+                name:
+                  type: string
+\`\`\`
+`;
+
+    const node = new KieAINode();
+    node.assign({ model_info: docs });
+    (node as any).audio_id = "achernar";
+    (node as any).name = "Test Voice";
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
+
+    const result = await node.process();
+    expect(result).toEqual({ output: "audio_dynamic_01" });
+
+    const call = mockFetch.mock.calls[0];
+    expect(String(call[0])).toContain("/api/v1/omni/audio/create");
+    expect(JSON.parse(call[1].body)).toMatchObject({
+      audio_id: "achernar",
+      name: "Test Voice"
+    });
   });
 });
 

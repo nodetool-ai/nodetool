@@ -35,7 +35,9 @@ Do not edit generated files. Fix `schema-parser.ts`, `schema-fetcher.ts`, or `pa
 2. Extract embedded OpenAPI YAML from each page.
 3. Write configs and manifest.
 
-Codegen picks up standard task endpoints (`/api/v1/jobs/createTask`) and some audio/Suno paths. Other API shapes (for example `/api/v1/omni/*`) need parser and runtime support first.
+Codegen picks up standard task endpoints (`/api/v1/jobs/createTask`), Suno direct paths, and Gemini Omni sync endpoints (`/api/v1/omni/audio/create`, `/api/v1/omni/character/create`).
+
+**Gemini Omni chaining:** Audio and Character nodes output plain text IDs (`audioId`, `characterId`) that wire into Gemini Omni Video `audio_ids` / `character_ids`. There is no KIE asset list API — create IDs in upstream nodes in the same workflow.
 
 Marketing pages like [kie.ai/gemini-omni](https://kie.ai/gemini-omni) are not used — only `docs.kie.ai` links from `llms.txt`.
 

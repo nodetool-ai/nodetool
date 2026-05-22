@@ -16,6 +16,7 @@ import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import {
   getApiKey,
   kieExecuteTask,
+  kieExecuteOmniDirect,
   kieExecuteSunoTask,
   kieImageRef,
   isRefSet,
@@ -39,6 +40,7 @@ export interface KieFieldDef {
     | "image"
     | "audio"
     | "video"
+    | "list[str]"
     | "list[image]"
     | "list[video]"
     | "list[audio]";
@@ -55,6 +57,7 @@ export interface KieUploadDef {
   field: string;
   kind: "image" | "audio" | "video";
   isList?: boolean;
+  isVideoClip?: boolean;
   paramName?: string;
   groupKey?: string;
 }
@@ -82,8 +85,11 @@ export interface KieManifestEntry {
   maxAttempts: number;
   useSuno?: boolean;
   sunoEndpoint?: string;
+  useOmniDirect?: boolean;
   submitEndpoint?: string;
   pollEndpoint?: string;
+  responseIdKey?: string;
+  resultObjectKey?: string;
   fields: KieFieldDef[];
   uploads?: KieUploadDef[];
   validation?: KieValidationDef[];
@@ -96,7 +102,28 @@ export interface KieManifestEntry {
 // ---------------------------------------------------------------------------
 
 function isAssetType(type: string): boolean {
-  return ["image", "audio", "video", "list[image]", "list[video]", "list[audio]"].includes(type);
+  return [
+    "image",
+    "audio",
+    "video",
+    "list[image]",
+    "list[video]",
+    "list[audio]"
+  ].includes(type);
+}
+
+function isListStrType(type: string): boolean {
+  return type === "list[str]";
+}
+
+function normalizeStringList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map(String).filter((item) => item.trim().length > 0);
+  }
+  if (typeof value === "string" && value.trim()) {
+    return [value.trim()];
+  }
+  return [];
 }
 
 function castValue(value: unknown, type: string): unknown {
@@ -112,19 +139,19 @@ function castValue(value: unknown, type: string): unknown {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Field Classification
-// ---------------------------------------------------------------------------
-
-/**
- * Compute inlineFields and inputFields from a Kie field list.
- * Delegates to the shared `classifyFields` rule in node-sdk after mapping
- * each Kie `KieFieldDef.type` onto the `{ name, propType }` shape it expects.
- */
 function computeFieldClassification(fields: KieFieldDef[]) {
-  return classifyFields(
+  const base = classifyFields(
     fields.map((f) => ({ name: f.name, propType: f.type }))
   );
+  for (const field of fields) {
+    if (
+      field.type === "list[str]" &&
+      !base.inputFields.includes(field.name)
+    ) {
+      base.inputFields.push(field.name);
+    }
+  }
+  return base;
 }
 
 function defaultForType(type: string): unknown {
@@ -151,6 +178,7 @@ function defaultForType(type: string): unknown {
     case "list[image]":
     case "list[video]":
     case "list[audio]":
+    case "list[str]":
       return [];
     default:
       return "";
@@ -174,6 +202,41 @@ function uploadFnForKind(
   }
 }
 
+async function buildVideoClips(
+  apiKey: string,
+  value: unknown,
+  context?: Parameters<BaseNode["process"]>[0]
+): Promise<Array<{ url: string; start: number; ends: number }>> {
+  const items = Array.isArray(value) ? value : [];
+  const clips: Array<{ url: string; start: number; ends: number }> = [];
+  for (const item of items) {
+    if (
+      item &&
+      typeof item === "object" &&
+      typeof (item as { url?: unknown }).url === "string" &&
+      (item as { url: string }).url
+    ) {
+      const clip = item as { url: string; start?: number; ends?: number };
+      clips.push({
+        url: clip.url,
+        start: typeof clip.start === "number" ? clip.start : 0,
+        ends: typeof clip.ends === "number" ? clip.ends : 10
+      });
+      continue;
+    }
+    if (isRefSet(item)) {
+      const url = await uploadVideoInput(apiKey, item, context);
+      const duration =
+        typeof (item as { duration?: unknown }).duration === "number" &&
+        (item as { duration: number }).duration > 0
+          ? Math.min((item as { duration: number }).duration, 10)
+          : 10;
+      clips.push({ url, start: 0, ends: duration });
+    }
+  }
+  return clips;
+}
+
 async function buildParams(
   instance: BaseNode,
   spec: KieManifestEntry,
@@ -181,13 +244,25 @@ async function buildParams(
   context?: Parameters<BaseNode["process"]>[0]
 ): Promise<Record<string, unknown>> {
   const params: Record<string, unknown> = {};
+  const clipUploads = new Set(
+    spec.uploads?.filter((u) => u.isVideoClip).map((u) => u.field) ?? []
+  );
 
-  // Scalar fields
+  // Scalar and list[str] fields
   for (const field of spec.fields) {
-    if (isAssetType(field.type)) continue;
+    if (isAssetType(field.type) || clipUploads.has(field.name)) continue;
     const value = (instance as unknown as Record<string, unknown>)[field.name];
     const paramName = spec.paramNames?.[field.name] ?? field.name;
     const defLit = field.default ?? defaultForType(field.type);
+
+    if (isListStrType(field.type)) {
+      const list = normalizeStringList(value ?? defLit);
+      if (list.length) {
+        params[paramName] = list;
+      }
+      continue;
+    }
+
     const cast = castValue(value ?? defLit, field.type);
 
     const conditional = spec.conditionalFields?.find(
@@ -216,6 +291,15 @@ async function buildParams(
       ];
       const fn = uploadFnForKind(upload.kind);
 
+      if (upload.isVideoClip) {
+        const clips = await buildVideoClips(apiKey, value, context);
+        const paramName = upload.paramName ?? upload.field;
+        if (clips.length) {
+          params[paramName] = clips;
+        }
+        continue;
+      }
+
       if (upload.groupKey) {
         if (!groups.has(upload.groupKey)) groups.set(upload.groupKey, []);
         if (isRefSet(value)) {
@@ -242,7 +326,9 @@ async function buildParams(
     // Emit grouped uploads
     for (const [groupKey, urls] of groups) {
       if (urls.length) {
-        const groupUpload: KieUploadDef | undefined = spec.uploads!.find((u) => u.groupKey === groupKey);
+        const groupUpload: KieUploadDef | undefined = spec.uploads!.find(
+          (u) => u.groupKey === groupKey
+        );
         const paramName = groupUpload?.paramName ?? "image_urls";
         params[paramName] = urls;
       }
@@ -261,7 +347,7 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
   const title = spec.title || classNameToTitle(spec.className);
   const description = spec.description;
   const isImageOutput = spec.outputType === "image";
-  // Generative outputs — auto-save assets and auto-show result preview in UI
+  const isTextOutput = spec.outputType === "text";
   const isGenerativeOutput = ["image", "audio", "video"].includes(
     spec.outputType
   );
@@ -288,7 +374,19 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
       const params = await buildParams(this, specRef, apiKey, context);
 
       let result: { data: string; taskId: string };
-      if (specRef.useSuno) {
+      if (specRef.useOmniDirect) {
+        if (!specRef.submitEndpoint || !specRef.responseIdKey) {
+          throw new Error(
+            `Omni node ${specRef.className} missing submitEndpoint or responseIdKey`
+          );
+        }
+        result = await kieExecuteOmniDirect(
+          apiKey,
+          specRef.submitEndpoint,
+          params,
+          specRef.responseIdKey
+        );
+      } else if (specRef.useSuno) {
         result = await kieExecuteSunoTask(
           apiKey,
           params,
@@ -304,10 +402,14 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
           specRef.pollInterval,
           specRef.maxAttempts,
           specRef.submitEndpoint,
-          specRef.pollEndpoint
+          specRef.pollEndpoint,
+          specRef.resultObjectKey
         );
       }
 
+      if (isTextOutput) {
+        return { output: result.data };
+      }
       if (isImageOutput) {
         return { output: await kieImageRef(result.data) };
       }

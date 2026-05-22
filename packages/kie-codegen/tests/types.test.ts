@@ -18,7 +18,8 @@ describe("FieldDef type", () => {
       "video",
       "list[image]",
       "list[video]",
-      "list[audio]"
+      "list[audio]",
+      "list[str]"
     ];
     for (const type of types) {
       const field: FieldDef = { name: "test", type };
