@@ -91,6 +91,44 @@ const TOOLS_NODE_TYPES = new Set<string>([
   "lib.image.Mask"
 ]);
 
+/**
+ * Curated, ordered list of the models we want surfaced first in the model
+ * categories (after the generic capability nodes). Order here is the display
+ * order. Spans image/video/audio — each entry only shows up in a category if
+ * it also passes that category's `filter`, so one combined list is fine.
+ *
+ * This ranking only applies when the user is NOT searching; an active query
+ * falls back to plain alphabetical so matches aren't reordered under them.
+ */
+const POPULAR_MODELS_2026: readonly string[] = [
+  // Image
+  "fal.text_to_image.NanoBananaPro",
+  "fal.text_to_image.GptImage2",
+  "fal.text_to_image.Imagen4PreviewUltra",
+  "fal.text_to_image.FluxV1Pro",
+  "fal.text_to_image.FluxDev",
+  "fal.text_to_image.BytedanceSeedreamV45TextToImage",
+  "fal.text_to_image.QwenImage",
+  "fal.text_to_image.RecraftV3",
+  "fal.text_to_image.StableDiffusionV35Large",
+  "fal.image_to_image.NanoBananaProEdit",
+  // Video
+  "fal.text_to_video.Veo31",
+  "fal.text_to_video.Sora2TextToVideo",
+  "fal.text_to_video.KlingVideoV26ProTextToVideo",
+  "fal.text_to_video.SeeDanceV15ProTextToVideo",
+  "fal.text_to_video.MinimaxHailuo23ProTextToVideo",
+  "fal.text_to_video.WanV26TextToVideo",
+  // Audio
+  "fal.text_to_speech.ElevenlabsTtsTurboV25",
+  "fal.text_to_speech.MinimaxSpeech26Hd",
+  "fal.text_to_speech.MinimaxSpeech26Turbo"
+];
+
+const POPULAR_MODEL_RANK: ReadonlyMap<string, number> = new Map(
+  POPULAR_MODELS_2026.map((nodeType, index) => [nodeType, index])
+);
+
 export const QUICK_ACCESS_CATEGORIES: readonly QuickAccessCategory[] = [
   {
     id: "search",
@@ -226,6 +264,35 @@ export const filterNodesForCategory = (
       m.namespace.toLowerCase().includes(q)
     );
   });
-  matches.sort((a, b) => a.title.localeCompare(b.title));
+
+  // While searching, rank purely by title so matches aren't shuffled by the
+  // curated ordering. With no query, float generic capability nodes to the
+  // top, then the curated popular models, then everything else alphabetically.
+  if (q) {
+    matches.sort((a, b) => a.title.localeCompare(b.title));
+    return matches;
+  }
+
+  // 0 = generic (first-party nodetool.* nodes), 1 = curated popular model,
+  // 2 = everything else.
+  const tierOf = (m: NodeMetadata): number => {
+    if (m.node_type.startsWith("nodetool.")) {
+      return 0;
+    }
+    return POPULAR_MODEL_RANK.has(m.node_type) ? 1 : 2;
+  };
+
+  matches.sort((a, b) => {
+    const tierA = tierOf(a);
+    const tierB = tierOf(b);
+    if (tierA !== tierB) {
+      return tierA - tierB;
+    }
+    if (tierA === 1) {
+      return POPULAR_MODEL_RANK.get(a.node_type)! -
+        POPULAR_MODEL_RANK.get(b.node_type)!;
+    }
+    return a.title.localeCompare(b.title);
+  });
   return matches;
 };
