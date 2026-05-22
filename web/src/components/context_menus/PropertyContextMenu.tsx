@@ -71,8 +71,12 @@ const PropertyContextMenuComponent: React.FC = () => {
     shallow
   );
   const metadata = useMetadataStore((state) => state.metadata);
-  const { canToggleExposed, isPropertyExposed, toggleExposedInput } =
-    useExposedInputToggle();
+  const {
+    canToggleExposed,
+    getPlacement,
+    toggleExposedInput,
+    toggleExposedInputLabeled
+  } = useExposedInputToggle();
 
   if (!menuPosition) {
     return null;
@@ -85,8 +89,12 @@ const PropertyContextMenuComponent: React.FC = () => {
     propertyName.length > 0 &&
     targetIds.length > 0 &&
     canToggleExposed(targetIds[0], propertyName);
-  const isExposed =
-    showExposedToggle && isPropertyExposed(targetIds[0], propertyName);
+  const exposedPlacement =
+    showExposedToggle && targetIds[0]
+      ? getPlacement(targetIds[0], propertyName)
+      : null;
+  const isExposedHandle = exposedPlacement === "handle";
+  const isExposedLabeled = exposedPlacement === "labeled";
   const isConnected =
     showExposedToggle &&
     targetIds.some((nid) =>
@@ -101,6 +109,17 @@ const PropertyContextMenuComponent: React.FC = () => {
       event.stopPropagation();
     }
     toggleExposedInput(targetIds, propertyName);
+    closeContextMenu();
+  };
+
+  const handleToggleExposedInputLabeled = (
+    event?: React.MouseEvent<HTMLElement>
+  ) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    toggleExposedInputLabeled(targetIds, propertyName);
     closeContextMenu();
   };
 
@@ -274,19 +293,42 @@ const PropertyContextMenuComponent: React.FC = () => {
       />
 
       {showExposedToggle && (
-        <ContextMenuItem
-          onClick={handleToggleExposedInput}
-          label={isExposed ? "Hide Input Handle" : "Show As Input Handle"}
-          addButtonClassName="toggle-exposed-input"
-          IconComponent={<ArrowForwardIcon />}
-          tooltip={
-            isExposed
-              ? isConnected
-                ? "Hide input handle (disconnects edge)"
-                : "Hide input handle"
-              : "Show as input handle on the node"
-          }
-        />
+        <>
+          <ContextMenuItem
+            onClick={handleToggleExposedInput}
+            label={
+              isExposedHandle
+                ? "Hide Input Handle (Top)"
+                : "Show As Input Handle (Top)"
+            }
+            addButtonClassName="toggle-exposed-input"
+            IconComponent={<ArrowForwardIcon />}
+            tooltip={
+              isExposedHandle
+                ? isConnected
+                  ? "Hide top input handle (disconnects edge)"
+                  : "Hide top input handle"
+                : "Show as handle on the left/top of the node (no label)"
+            }
+          />
+          <ContextMenuItem
+            onClick={handleToggleExposedInputLabeled}
+            label={
+              isExposedLabeled
+                ? "Hide Labeled Input (Bottom)"
+                : "Show Labeled Input (Bottom)"
+            }
+            addButtonClassName="toggle-exposed-input-labeled"
+            IconComponent={<ArrowForwardIcon />}
+            tooltip={
+              isExposedLabeled
+                ? isConnected
+                  ? "Hide labeled input at bottom (disconnects edge)"
+                  : "Hide labeled input at bottom"
+                : "Show input at bottom with parameter title and editor"
+            }
+          />
+        </>
       )}
 
       {isDynamicProperty && <Divider />}

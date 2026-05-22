@@ -2,9 +2,11 @@ import { useCallback } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import {
-  addExposedInput,
-  canPromotePropertyToInputHandle,
-  removeExposedInput
+  applyExposedPlacementTarget,
+  canConfigureExposedPlacement,
+  getEffectiveExposedPlacement,
+  nextExposedInputPlacement,
+  type ExposedInputPlacement
 } from "../../utils/exposedInputs";
 
 export function useExposedInputToggle() {
@@ -14,12 +16,31 @@ export function useExposedInputToggle() {
   const updateNodeData = useNodes((state) => state.updateNodeData);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
-  const isPropertyExposed = useCallback(
-    (nodeId: string, propertyName: string): boolean => {
+  const getPlacement = useCallback(
+    (nodeId: string, propertyName: string): ExposedInputPlacement | null => {
       const node = findNode(nodeId);
-      return (node?.data.exposedInputs ?? []).includes(propertyName);
+      if (!node?.type) {
+        return null;
+      }
+      const metadata = getMetadata(node.type as string);
+      if (!metadata) {
+        return null;
+      }
+      return getEffectiveExposedPlacement(metadata, node.data, propertyName);
     },
-    [findNode]
+    [findNode, getMetadata]
+  );
+
+  const isPropertyExposed = useCallback(
+    (nodeId: string, propertyName: string): boolean =>
+      getPlacement(nodeId, propertyName) === "handle",
+    [getPlacement]
+  );
+
+  const isPropertyExposedLabeled = useCallback(
+    (nodeId: string, propertyName: string): boolean =>
+      getPlacement(nodeId, propertyName) === "labeled",
+    [getPlacement]
   );
 
   const canToggleExposed = useCallback(
@@ -28,7 +49,7 @@ export function useExposedInputToggle() {
       if (!node?.type) {
         return false;
       }
-      return canPromotePropertyToInputHandle(
+      return canConfigureExposedPlacement(
         getMetadata(node.type as string),
         propertyName
       );
@@ -36,88 +57,143 @@ export function useExposedInputToggle() {
     [findNode, getMetadata]
   );
 
-  const toggleExposedInput = useCallback(
+  const applyPlacementPatch = useCallback(
+    (
+      nodeIds: readonly string[],
+      propertyName: string,
+      placement: ExposedInputPlacement | null
+    ): void => {
+      for (const nodeId of nodeIds) {
+        const node = findNode(nodeId);
+        if (!node?.type) {
+          continue;
+        }
+        const nodeMeta = getMetadata(node.type as string);
+        if (!canConfigureExposedPlacement(nodeMeta, propertyName)) {
+          continue;
+        }
+        const patch = applyExposedPlacementTarget(
+          nodeMeta!,
+          node.data,
+          propertyName,
+          placement
+        );
+        if (Object.keys(patch).length > 0) {
+          updateNodeData(nodeId, patch);
+        }
+      }
+    },
+    [findNode, getMetadata, updateNodeData]
+  );
+
+  const confirmDisconnectIfNeeded = useCallback(
+    (nodeIds: readonly string[], propertyName: string): boolean => {
+      const hasConnectedEdge = nodeIds.some((nodeId) =>
+        edges.some(
+          (edge) =>
+            edge.target === nodeId && edge.targetHandle === propertyName
+        )
+      );
+      if (
+        hasConnectedEdge &&
+        !window.confirm(
+          `Hide input for "${propertyName}"? The connected edge will be removed.`
+        )
+      ) {
+        return false;
+      }
+      if (hasConnectedEdge) {
+        const edgeIds = edges
+          .filter(
+            (edge) =>
+              nodeIds.includes(edge.target) &&
+              edge.targetHandle === propertyName
+          )
+          .map((edge) => edge.id);
+        if (edgeIds.length > 0) {
+          deleteEdges(edgeIds);
+        }
+      }
+      return true;
+    },
+    [deleteEdges, edges]
+  );
+
+  /** Cycle placement: off → top handle → bottom labeled → off (inspector arrow). */
+  const cycleExposedInputPlacement = useCallback(
     (nodeIds: string | readonly string[], propertyName: string): void => {
       const ids = typeof nodeIds === "string" ? [nodeIds] : nodeIds;
       if (ids.length === 0) {
         return;
       }
 
-      const firstNode = findNode(ids[0]);
-      if (!firstNode?.type) {
-        return;
-      }
-      const metadata = getMetadata(firstNode.type as string);
-      if (!canPromotePropertyToInputHandle(metadata, propertyName)) {
-        return;
-      }
-
-      const currentlyExposed = (firstNode.data.exposedInputs ?? []).includes(
-        propertyName
-      );
-
-      if (currentlyExposed) {
-        const hasConnectedEdge = ids.some((nodeId) =>
-          edges.some(
-            (edge) =>
-              edge.target === nodeId && edge.targetHandle === propertyName
-          )
-        );
-        if (
-          hasConnectedEdge &&
-          !window.confirm(
-            `Hide input handle for "${propertyName}"? The connected edge will be removed.`
-          )
-        ) {
+      const current = getPlacement(ids[0], propertyName);
+      const next = nextExposedInputPlacement(current);
+      if (current !== null && next === null) {
+        if (!confirmDisconnectIfNeeded(ids, propertyName)) {
           return;
         }
-        if (hasConnectedEdge) {
-          const edgeIds = edges
-            .filter(
-              (edge) =>
-                ids.includes(edge.target) && edge.targetHandle === propertyName
-            )
-            .map((edge) => edge.id);
-          if (edgeIds.length > 0) {
-            deleteEdges(edgeIds);
-          }
+      }
+      applyPlacementPatch(ids, propertyName, next);
+    },
+    [applyPlacementPatch, confirmDisconnectIfNeeded, getPlacement]
+  );
+
+  const toggleExposedInput = cycleExposedInputPlacement;
+
+  const toggleExposedInputLabeled = useCallback(
+    (nodeIds: string | readonly string[], propertyName: string): void => {
+      const ids = typeof nodeIds === "string" ? [nodeIds] : nodeIds;
+      if (ids.length === 0) {
+        return;
+      }
+
+      const placement = getPlacement(ids[0], propertyName);
+      if (placement === "labeled") {
+        if (!confirmDisconnectIfNeeded(ids, propertyName)) {
+          return;
         }
-        for (const nodeId of ids) {
-          const node = findNode(nodeId);
-          if (!node) {
-            continue;
-          }
-          const next = removeExposedInput(
-            node.data.exposedInputs,
-            propertyName
-          );
-          if (next !== node.data.exposedInputs) {
-            updateNodeData(nodeId, { exposedInputs: next });
-          }
-        }
+        applyPlacementPatch(ids, propertyName, null);
       } else {
-        for (const nodeId of ids) {
-          const node = findNode(nodeId);
-          if (!node) {
-            continue;
-          }
-          const nodeMeta = getMetadata(node.type as string);
-          if (!canPromotePropertyToInputHandle(nodeMeta, propertyName)) {
-            continue;
-          }
-          const next = addExposedInput(node.data.exposedInputs, propertyName);
-          if (next !== node.data.exposedInputs) {
-            updateNodeData(nodeId, { exposedInputs: next });
-          }
-        }
+        applyPlacementPatch(ids, propertyName, "labeled");
       }
     },
-    [deleteEdges, edges, findNode, getMetadata, updateNodeData]
+    [applyPlacementPatch, confirmDisconnectIfNeeded, getPlacement]
+  );
+
+  const setExposedInputPlacement = useCallback(
+    (
+      nodeIds: string | readonly string[],
+      propertyName: string,
+      placement: ExposedInputPlacement | null
+    ): void => {
+      const ids = typeof nodeIds === "string" ? [nodeIds] : nodeIds;
+      if (ids.length === 0) {
+        return;
+      }
+      const current = getPlacement(ids[0], propertyName);
+      if (current !== null && placement === null) {
+        if (!confirmDisconnectIfNeeded(ids, propertyName)) {
+          return;
+        }
+      } else if (current !== null && current !== placement) {
+        if (!confirmDisconnectIfNeeded(ids, propertyName)) {
+          return;
+        }
+      }
+      applyPlacementPatch(ids, propertyName, placement);
+    },
+    [applyPlacementPatch, confirmDisconnectIfNeeded, getPlacement]
   );
 
   return {
     canToggleExposed,
+    getPlacement,
     isPropertyExposed,
-    toggleExposedInput
+    isPropertyExposedLabeled,
+    setExposedInputPlacement,
+    cycleExposedInputPlacement,
+    toggleExposedInput,
+    toggleExposedInputLabeled
   };
 }

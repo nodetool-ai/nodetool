@@ -289,7 +289,11 @@ const ReactFlowWrapper = ({
       // ReactFlow caches handle bounds, so we must signal a refresh whenever
       // the set of handles can change, or new handles stay un-draggable until
       // some other event (e.g. a connection drag) forces a refresh.
-      const exposedPart = (n.data.exposedInputs ?? []).join(",");
+      const exposedPart = [
+        ...(n.data.exposedInputs ?? []),
+        ...(n.data.exposedInputsLabeled ?? []),
+        ...(n.data.exposedInputsHidden ?? [])
+      ].join(",");
       const dynPropsPart = Object.keys(n.data.dynamic_properties ?? {})
         .sort()
         .join(",");

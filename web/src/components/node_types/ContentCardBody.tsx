@@ -59,7 +59,11 @@ import {
   getPrimaryOutput,
   type ContentCardVariant
 } from "./contentCardRegistry";
-import { resolveExposedInputNames } from "../../utils/exposedInputs";
+import {
+  resolveExposedInputNames,
+  resolveInlineFieldNames
+} from "../../utils/exposedInputs";
+import ExposedLabeledInputs from "../node/ExposedLabeledInputs";
 
 const styles = (theme: Theme) =>
   css({
@@ -73,12 +77,12 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(0.5),
       minHeight: 0
     },
-    // Preview dominates the card — fixed-min height so a freshly dropped
-    // card still feels content-forward even before its first run.
+    // Preview keeps a minimum strip when the node is resized very small;
+    // params (flex-shrink: 0) clip at the bottom via node-content-container.
     ".preview-area": {
       position: "relative",
-      flex: "1 1 auto",
-      minHeight: 160,
+      flex: "1 0 auto",
+      minHeight: theme.spacing(6),
       borderRadius: "var(--rounded-sm)",
       // Allow the handle column to extend past the preview's left edge so
       // the handle dots align with the card's outer edge (compensates for
@@ -168,6 +172,14 @@ const styles = (theme: Theme) =>
     ".inline-fields": {
       flex: "0 0 auto",
       paddingTop: theme.spacing(0.5)
+    },
+    ".exposed-labeled-inputs": {
+      flex: "0 0 auto",
+      paddingTop: theme.spacing(0.5),
+      "& .node-inputs": {
+        marginTop: 0,
+        marginBottom: 0
+      }
     },
     // Input handles are rendered by <HandleColumn /> — see HandleColumn.tsx
     // for the left-edge absolute positioning.
@@ -479,9 +491,11 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   const useNewLayout =
     nodeMetadata.inline_fields !== undefined ||
     nodeMetadata.input_fields !== undefined;
-  const inlineFields = nodeMetadata.inline_fields ?? [];
-
   const properties = nodeMetadata.properties ?? [];
+  const inlineFieldNameSet = useMemo(
+    () => new Set(resolveInlineFieldNames(nodeMetadata, data)),
+    [nodeMetadata, data]
+  );
   // Handle column = metadata input_fields ∪ user-promoted exposedInputs.
   const handleNames = useMemo(
     () =>
@@ -493,16 +507,21 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   const inlineProps = useMemo(
     () =>
       useNewLayout
-        ? properties.filter((p) => inlineFields.includes(p.name))
+        ? properties.filter((p) => inlineFieldNameSet.has(p.name))
         : [],
-    [useNewLayout, properties, inlineFields]
+    [useNewLayout, properties, inlineFieldNameSet]
   );
   const handleProps = useMemo(
     () =>
       useNewLayout
         ? properties.filter((p) => handleNames!.has(p.name))
-        : properties,
-    [useNewLayout, properties, handleNames]
+        : properties.filter(
+            (p) =>
+              !inlineFieldNameSet.has(p.name) &&
+              !(data.exposedInputsLabeled ?? []).includes(p.name) &&
+              !(data.exposedInputsHidden ?? []).includes(p.name)
+          ),
+    [useNewLayout, properties, handleNames, inlineFieldNameSet, data]
   );
 
   // Adding a dynamic property is the responsibility of dynamic-input wiring
@@ -552,6 +571,14 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
           />
         </div>
       )}
+
+      <ExposedLabeledInputs
+        id={id}
+        nodeMetadata={nodeMetadata}
+        nodeType={nodeType}
+        data={data}
+        properties={properties}
+      />
 
       {!isOutputNode && (
         <div className="outputs-row">

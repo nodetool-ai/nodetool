@@ -134,10 +134,8 @@ const WorkflowNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           flex: "1 1 auto",
           minHeight: 120,
           width: "100%",
-          overflow: "visible",
           display: "flex",
-          flexDirection: "column",
-          clipPath: "inset(0 -20px)"
+          flexDirection: "column"
         }}
       >
         <WorkflowNodeContent

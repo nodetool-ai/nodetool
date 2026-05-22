@@ -20,6 +20,19 @@
   margin-bottom: 0;
 }
 
+/* Value differs from default — thin left accent (same inset pattern as validation). */
+.node-property:has(> .property-input-container.value-changed)::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 2px;
+  background-color: color-mix(in srgb, var(--palette-primary-main) 35%, transparent);
+  pointer-events: none;
+}
+
 /* Pre-flight validation: a property value is missing or invalid for the
    declared type. Goal is to draw the eye without overwhelming the node:
    a thin left accent bar, red label, and a focus-style ring on the input.

@@ -73,17 +73,26 @@ const propertyInputContainerStyles = (theme: Theme) =>
   css({
     "&.property-input-container": {
       position: "relative",
+      minHeight: 0
     },
-    "&.property-input-container.value-changed::before": {
-      content: '""',
+    // Changed-value bar is painted on `.node-property` in properties.css
+    // (class kept for :has() + numberInputStyles).
+    ".property-reset-anchor": {
       position: "absolute",
-      left: -5,
       top: 0,
-      bottom: 0,
-      width: 2,
-      backgroundColor: theme.vars.palette.primary.main,
-      opacity: 0.2,
-      borderRadius: "var(--rounded-xs)",
+      right: "var(--property-reset-button-offset, 0px)",
+      width: 0,
+      height: 0,
+      overflow: "visible",
+      lineHeight: 0,
+      fontSize: 0,
+      pointerEvents: "none"
+    },
+    ".property-reset-anchor .reset-button": {
+      pointerEvents: "none"
+    },
+    ".property-reset-anchor .reset-button.is-active": {
+      pointerEvents: "auto"
     },
 
     // ACTION ICONS — hidden by default, shown on hover
@@ -104,7 +113,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       boxShadow: `0 1px 4px ${theme.vars.palette.action.focus}`,
     },
 
-    "&:hover .action-icons, &:hover .reset-button": {
+    "&:hover .action-icons, &:hover .reset-button.is-active": {
       opacity: 1
     },
 
@@ -750,10 +759,19 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     componentType === DataframeProperty;
 
   const canvasResetButton =
-    !isInspector && isChanged ? (
-      <Tooltip title="Reset to default" placement="top" disableInteractive>
-        <span style={{ display: "inline-flex" }}>
-          <div className="reset-button" onClick={handleResetToDefault}>
+    !isInspector && hasResetDefault ? (
+      <Tooltip
+        title="Reset to default"
+        placement="top"
+        disableInteractive
+        disabled={!isChanged}
+      >
+        <span className="property-reset-anchor">
+          <div
+            className={`reset-button${isChanged ? " is-active" : ""}`}
+            onClick={isChanged ? handleResetToDefault : undefined}
+            aria-hidden={!isChanged}
+          >
             <SettingsBackupRestoreIcon />
           </div>
         </span>
