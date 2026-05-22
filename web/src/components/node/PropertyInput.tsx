@@ -67,6 +67,9 @@ import { NodeData } from "../../stores/NodeData";
 import { useInputNodeAutoRun } from "../../hooks/nodes/useInputNodeAutoRun";
 import { inferOutputKeysFromCode, inferInputKeysFromCode } from "../../utils/codeOutputInference";
 import { InspectorHeaderResetProvider } from "../../contexts/InspectorPropertyHeaderContext";
+import type { PropertyProps } from "./PropertyInput.types";
+
+export type { PropertyProps } from "./PropertyInput.types";
 
 const RESET_BUTTON_OFFSET_CSS = css({
   "--property-reset-button-offset": "40px"
@@ -175,30 +178,6 @@ const propertyInputContainerStyles = (theme: Theme) =>
       fontSize: "inherit"
     }
   });
-
-export type PropertyProps = {
-  property: Property;
-  value: any;
-  nodeType: string;
-  nodeId: string;
-  hideLabel?: boolean;
-  propertyIndex: string;
-  isInspector?: boolean;
-  onChange: (value: any) => void;
-  /**
-   * Called when the user finishes changing the value (e.g., on mouseup for sliders).
-   * Useful for triggering actions only when the user has committed their change.
-   */
-  onChangeComplete?: () => void;
-  tabIndex?: number;
-  isDynamicProperty?: boolean;
-  /**
-   * Value differs from default — shows visual indicator
-   */
-  changed?: boolean;
-  /** Right-click on the property field (forwarded from text/json editors). */
-  onPropertyContextMenu?: (event: React.MouseEvent<HTMLElement>) => void;
-};
 
 function InputProperty(props: PropertyProps) {
   const id = `edge-${props.property.name}-${props.propertyIndex}`;
