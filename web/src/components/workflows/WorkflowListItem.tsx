@@ -236,6 +236,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
       className={
         "workflow list" +
         (showGraphPreview ? " with-preview" : "") +
+        (hideDate ? " hide-date" : "") +
         (isSelected ? " selected" : "") +
         (isCurrent ? " current" : "") +
         (isAlternate ? " alternate" : "") +
@@ -275,6 +276,9 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         ) : (
           <Text
             className="name"
+            size="small"
+            weight={400}
+            sx={{ lineHeight: 1.35 }}
             onDoubleClick={handleNameDoubleClick}
             title="Double-click to rename"
           >
@@ -328,7 +332,16 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
       </Box>
       <Box className="date-container">
         {isFavorite && <StarIcon className="favorite-indicator" sx={{ fontSize: "0.85rem", color: "warning.main" }} />}
-        {!hideDate && <Text className="date">{relativeTime(workflow.updated_at)}</Text>}
+        {!hideDate && (
+          <Text
+            className="date"
+            size="small"
+            color="secondary"
+            sx={{ lineHeight: 2.4, textTransform: "uppercase" }}
+          >
+            {relativeTime(workflow.updated_at)}
+          </Text>
+        )}
       </Box>
     </Box>
   );

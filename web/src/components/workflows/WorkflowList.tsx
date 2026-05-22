@@ -46,7 +46,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[300]
     },
     ".workflow-items": {
-      padding: "0.75em 0.75em 1em",
+      padding: "0.5em 0.75em 0.75em",
       flex: 1,
       overflow: "hidden"
     },
