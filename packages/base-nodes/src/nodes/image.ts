@@ -9,8 +9,10 @@ import {
   type LayerTransform2D
 } from "@nodetool-ai/gpu/node";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import { RAW_RGBA_MIME, isRawRgbaImage } from "@nodetool-ai/protocol";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { encodeRawRgbaToPng } from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,13 +35,12 @@ function toBytes(data: Uint8Array | string | undefined): Uint8Array {
   return Uint8Array.from(Buffer.from(b64, "base64"));
 }
 
-function imageBytes(image: unknown): Uint8Array {
-  if (!image || typeof image !== "object") return new Uint8Array();
-  return toBytes((image as ImageRefLike).data);
-}
-
 async function imageBytesAsync(image: unknown, context?: ProcessingContext): Promise<Uint8Array> {
   if (!image || typeof image !== "object") return new Uint8Array();
+  // Raw in-flight RGBA → encode to PNG so callers always get an encoded image.
+  if (isRawRgbaImage(image)) {
+    return encodeRawRgbaToPng(image.data, image.width, image.height);
+  }
   const ref = image as ImageRefLike;
   if (ref.data) return toBytes(ref.data);
   if (typeof ref.uri === "string" && ref.uri) {
@@ -87,6 +88,53 @@ function imageRef(data: Uint8Array, extras: Partial<ImageRef> = {}): ImageRef {
     type: "image",
     data: Buffer.from(data).toString("base64"),
     ...extras
+  };
+}
+
+interface RawRgba {
+  rgba: Uint8Array;
+  width: number;
+  height: number;
+}
+
+/**
+ * Build a raw-RGBA `ImageRef`: `data` carries straight-alpha RGBA8 pixels and
+ * `mimeType` marks it as the in-flight raw format (see {@link RAW_RGBA_MIME}).
+ * GPU ops emit this so an adjacent GPU op reuses the pixels via {@link decodeRgba}
+ * instead of decoding an encoded image; the bytes are lazily encoded to PNG at
+ * any boundary that needs a portable image.
+ */
+export function rawRgbaImageRef(
+  rgba: Uint8Array,
+  width: number,
+  height: number
+): ImageRef {
+  return { type: "image", data: rgba, mimeType: RAW_RGBA_MIME, width, height };
+}
+
+/**
+ * Decode an image input to straight-alpha RGBA. Reuses the pixels directly when
+ * the input is already raw (an upstream GPU op left them, no codec work);
+ * otherwise decodes the encoded bytes with sharp. Returns an empty buffer for
+ * missing/empty input.
+ */
+export async function decodeRgba(
+  image: unknown,
+  context?: ProcessingContext
+): Promise<RawRgba> {
+  if (isRawRgbaImage(image)) {
+    return { rgba: image.data, width: image.width, height: image.height };
+  }
+  const bytes = await imageBytesAsync(image, context);
+  if (bytes.length === 0) return { rgba: new Uint8Array(), width: 0, height: 0 };
+  const { data, info } = await sharp(bytes, { failOn: "none" })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  return {
+    rgba: new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
+    width: info.width,
+    height: info.height
   };
 }
 
@@ -473,7 +521,7 @@ export class SaveImageFileImageNode extends BaseNode {
       }
     }
 
-    await fs.writeFile(p, imageBytes(this.image));
+    await fs.writeFile(p, await imageBytesAsync(this.image));
     return { output: p };
   }
 }
@@ -2111,17 +2159,15 @@ export class CompositorNode extends BaseNode {
       transform?: LayerTransform2D;
     }[] = [];
     for (const layer of visible) {
-      const bytes = await imageBytesAsync(layer.image, context);
-      if (bytes.length === 0) continue;
       try {
-        const { data, info } = await sharp(bytes, { failOn: "none" })
-          .ensureAlpha()
-          .raw()
-          .toBuffer({ resolveWithObject: true });
+        // Reuses an upstream GPU op's raw RGBA when present (skips the PNG
+        // decode); otherwise decodes the encoded bytes.
+        const { rgba, width, height } = await decodeRgba(layer.image, context);
+        if (rgba.length === 0) continue;
         decoded.push({
-          rgba: new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
-          width: info.width,
-          height: info.height,
+          rgba,
+          width,
+          height,
           opacity: layer.state.opacity,
           blendModeId: blendModeGpuId(layer.state.blend_mode),
           transform: layer.state.transform
@@ -2160,19 +2206,11 @@ export class CompositorNode extends BaseNode {
       canvasHeight
     );
 
-    const png = await sharp(Buffer.from(result.rgba), {
-      raw: { width: result.width, height: result.height, channels: 4 }
-    })
-      .png()
-      .toBuffer();
-
+    // Emit raw RGBA as the in-flight format — no eager PNG encode. An adjacent
+    // GPU op reuses the pixels directly; any boundary that needs a portable
+    // image (client preview, save, Python bridge) encodes to PNG lazily.
     return {
-      output: imageRef(new Uint8Array(png), {
-        uri: "",
-        mimeType: "image/png",
-        width: result.width,
-        height: result.height
-      })
+      output: rawRgbaImageRef(result.rgba, result.width, result.height)
     };
   }
 }
