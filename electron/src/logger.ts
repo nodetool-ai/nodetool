@@ -60,7 +60,7 @@ export function logMessage(
       stream.write(trimmedMessage + "\n");
     }
   } catch (error) {
-    console.error(`Error in log function: ${(error as Error).message}`);
+    console.error(`Error in log function: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

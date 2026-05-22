@@ -104,3 +104,77 @@ describe("findNativeModuleNames", () => {
     expect(names).toEqual([]);
   });
 });
+
+const afterPackExtra = require("../../scripts/after-pack.cjs") as {
+  placeNodeRuntime: (
+    context: Record<string, unknown>,
+    cacheRoot: string
+  ) => Promise<void>;
+  pruneDawnBinaries: (backendDir: string, platform: string, arch: string) => void;
+  resolveResourcesDir: (context: Record<string, unknown>) => string;
+};
+
+describe("placeNodeRuntime", () => {
+  let tempDir: string;
+  beforeEach(async () => {
+    tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "nt-place-node-"));
+  });
+  afterEach(async () => {
+    await fs.promises.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it("copies the matching-arch node binary into backend/runtime", async () => {
+    const cacheRoot = path.join(tempDir, "cache");
+    const srcDir = path.join(cacheRoot, "darwin-arm64");
+    await fs.promises.mkdir(srcDir, { recursive: true });
+    await fs.promises.writeFile(path.join(srcDir, "node"), "#!fake-node\n");
+
+    const appOutDir = path.join(tempDir, "dist");
+    const context = {
+      electronPlatformName: "darwin",
+      arch: "arm64",
+      appOutDir,
+      packager: { appInfo: { productFilename: "Nodetool" } },
+    };
+
+    await afterPackExtra.placeNodeRuntime(context, cacheRoot);
+
+    const placed = path.join(
+      afterPackExtra.resolveResourcesDir(context),
+      "backend",
+      "runtime",
+      "node"
+    );
+    expect(fs.existsSync(placed)).toBe(true);
+    expect((fs.statSync(placed).mode & 0o111) !== 0).toBe(true); // executable
+  });
+});
+
+describe("pruneDawnBinaries", () => {
+  let tempDir: string;
+  beforeEach(async () => {
+    tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "nt-prune-dawn-"));
+  });
+  afterEach(async () => {
+    await fs.promises.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it("keeps darwin-universal and deletes off-platform binaries on mac", async () => {
+    const dist = path.join(tempDir, "node_modules", "webgpu", "dist");
+    await fs.promises.mkdir(dist, { recursive: true });
+    for (const f of [
+      "darwin-universal.dawn.node",
+      "linux-x64.dawn.node",
+      "linux-arm64.dawn.node",
+      "win32-x64.dawn.node",
+      "d3dcompiler_47.dll",
+    ]) {
+      await fs.promises.writeFile(path.join(dist, f), "x");
+    }
+
+    afterPackExtra.pruneDawnBinaries(tempDir, "darwin", "arm64");
+
+    const remaining = fs.readdirSync(dist).sort();
+    expect(remaining).toEqual(["darwin-universal.dawn.node"]);
+  });
+});

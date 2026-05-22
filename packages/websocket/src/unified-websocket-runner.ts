@@ -49,9 +49,11 @@ import type {
 import {
   ProcessingContext as RuntimeProcessingContext,
   executeComfy,
+  encodeRawRgbaToPng,
   type ComfyProgressEvent,
   type ComfyExecutionHandle
 } from "@nodetool-ai/runtime";
+import { isRawRgbaImage } from "@nodetool-ai/protocol";
 import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   UnifiedCommandType,
@@ -327,21 +329,34 @@ async function autoSaveAssets(
 
     const assetType = String(assetValue.type);
 
-    // Get bytes from inline data or URI
-    let bytes = decodeAssetBytes(assetValue.data);
-    if (!bytes && typeof assetValue.uri === "string") {
-      bytes = await readBytesFromUri(assetValue.uri as string);
+    // Get bytes. Raw in-flight RGBA is encoded to PNG first so the stored
+    // asset (and its thumbnail) is a real image.
+    const isRaw = isRawRgbaImage(assetValue);
+    let bytes: Uint8Array | null;
+    if (isRaw) {
+      bytes = await encodeRawRgbaToPng(
+        assetValue.data as Uint8Array,
+        assetValue.width as number,
+        assetValue.height as number
+      );
+    } else {
+      bytes = decodeAssetBytes(assetValue.data);
+      if (!bytes && typeof assetValue.uri === "string") {
+        bytes = await readBytesFromUri(assetValue.uri as string);
+      }
     }
     if (!bytes) continue;
 
-    // Determine mime/ext, preferring explicit content_type
-    const explicitMime = assetValue.mime_type ?? assetValue.content_type;
+    // Determine mime/ext, preferring explicit content_type.
+    const explicitMime = isRaw
+      ? "image/png"
+      : (assetValue.mime_type ?? assetValue.content_type);
     const contentType =
       typeof explicitMime === "string" && explicitMime
         ? explicitMime
         : (ASSET_TYPE_MIME[assetType] ?? "application/octet-stream");
 
-    const ext = ASSET_TYPE_EXT[assetType] ?? "bin";
+    const ext = isRaw ? "png" : (ASSET_TYPE_EXT[assetType] ?? "bin");
 
     // Create Asset record
     const asset = new Asset({
@@ -360,9 +375,16 @@ async function autoSaveAssets(
       asset.size = bytes.length;
       await asset.save();
 
-      // Mutate the result value in-place
+      // Mutate the result value in-place. For raw assets, also drop the raw
+      // pixels and fix the mime so later normalization treats it as the saved
+      // PNG, not raw RGBA.
       assetValue.asset_id = asset.id;
       assetValue.uri = `asset://${fileName}`;
+      if (isRaw) {
+        const mutable = assetValue as Record<string, unknown>;
+        mutable.data = undefined;
+        mutable.mimeType = "image/png";
+      }
     } catch (err) {
       log.warn("Auto-save asset failed", {
         nodeId: opts.nodeId,

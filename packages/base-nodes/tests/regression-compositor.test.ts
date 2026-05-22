@@ -5,10 +5,32 @@
  * with `layers[i]`, visibility / zero-opacity filtering, blend modes,
  * mismatched dimensions, corrupt-input handling, and that the output
  * is a non-empty PNG image of the base layer's dimensions.
+ *
+ * `CompositorNode` composites on the GPU (WebGPU/Dawn) with no CPU fallback,
+ * so the suite requires a real device and skips when none is available — CI
+ * hosts without a GPU stay green; GPU-capable hosts get real coverage.
  */
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
 import { CompositorNode } from "../src/index.js";
+
+async function gpuAvailable(): Promise<boolean> {
+  try {
+    const spec = "webgpu";
+    const dawn = (await import(spec)) as {
+      create?: (flags: string[]) => {
+        requestAdapter: () => Promise<unknown>;
+      };
+    };
+    const gpu = dawn.create?.([]);
+    const adapter = await gpu?.requestAdapter();
+    return !!adapter;
+  } catch {
+    return false;
+  }
+}
+
+const hasGpu = await gpuAvailable();
 
 async function solidPng(
   w: number,
@@ -38,7 +60,7 @@ function asImageRef(buf: Buffer, w: number, h: number) {
   };
 }
 
-describe("CompositorNode", () => {
+describe.skipIf(!hasGpu)("CompositorNode", () => {
   it("produces an empty image when no inputs are connected", async () => {
     const node = new CompositorNode();
     node.assign({ layers: [] });

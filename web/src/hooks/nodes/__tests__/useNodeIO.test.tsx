@@ -1,7 +1,7 @@
 import React from "react";
 import { renderHook } from "@testing-library/react";
 
-import { useNodeOutput, useUpstreamValue } from "../useNodeIO";
+import { useNodeOutput, useUpstreamValue, useUpstreamValues } from "../useNodeIO";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -192,5 +192,87 @@ describe("useUpstreamValue", () => {
       useUpstreamValue("wf", "painter", "image", { uri: "local.png" })
     );
     expect(result.current).toEqual({ uri: "asset://img-1", type: "image" });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// useUpstreamValues — the multi-input resolver behind the Compositor's
+// dynamic `image_N` layers.
+// ---------------------------------------------------------------------------
+
+describe("useUpstreamValues", () => {
+  it("resolves several inputs at once, keyed by input name", () => {
+    setMockState(
+      [
+        { source: "a", sourceHandle: "output", target: "comp", targetHandle: "image_0" },
+        { source: "b", sourceHandle: "output", target: "comp", targetHandle: "image_1" }
+      ],
+      {
+        outputResults: { a: { uri: "a.png" } },
+        results: { b: { output: { uri: "b.png" } } }
+      }
+    );
+    const { result } = renderHook(() =>
+      useUpstreamValues("wf", "comp", ["image_0", "image_1"])
+    );
+    expect(result.current).toEqual({
+      image_0: { uri: "a.png" },
+      image_1: { uri: "b.png" }
+    });
+  });
+
+  it("resolves an image delivered via outputResults (streaming output_update)", () => {
+    // This is the channel the Compositor previously ignored: a producer that
+    // emits its image through output_update lands in outputResults, not results.
+    setMockState(
+      [{ source: "load", sourceHandle: "output", target: "comp", targetHandle: "image_0" }],
+      { outputResults: { load: { uri: "streamed.png" } } }
+    );
+    const { result } = renderHook(() =>
+      useUpstreamValues("wf", "comp", ["image_0"])
+    );
+    expect(result.current).toEqual({ image_0: { uri: "streamed.png" } });
+  });
+
+  it("picks the latest entry from an accumulated outputResults array", () => {
+    setMockState(
+      [{ source: "load", sourceHandle: "output", target: "comp", targetHandle: "image_0" }],
+      { outputResults: { load: [{ uri: "old.png" }, { uri: "new.png" }] } }
+    );
+    const { result } = renderHook(() =>
+      useUpstreamValues("wf", "comp", ["image_0"])
+    );
+    expect(result.current).toEqual({ image_0: { uri: "new.png" } });
+  });
+
+  it("falls back to the per-input constant when no edge feeds an input", () => {
+    setMockState([]);
+    const { result } = renderHook(() =>
+      useUpstreamValues("wf", "comp", ["image_0", "image_1"], {
+        image_0: { uri: "const0.png" }
+      })
+    );
+    expect(result.current).toEqual({
+      image_0: { uri: "const0.png" },
+      image_1: undefined
+    });
+  });
+
+  it("falls back to a literal source node's property when wired but not run", () => {
+    setMockState(
+      [{ source: "const-img", sourceHandle: "output", target: "comp", targetHandle: "image_0" }],
+      {},
+      {
+        "const-img": {
+          id: "const-img",
+          type: "nodetool.constant.Image",
+          data: { properties: { value: { uri: "asset://img-1" } } }
+        }
+      }
+    );
+    const { result } = renderHook(() =>
+      useUpstreamValues("wf", "comp", ["image_0"])
+    );
+    expect(result.current).toEqual({ image_0: { uri: "asset://img-1" } });
   });
 });

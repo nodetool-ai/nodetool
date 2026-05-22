@@ -35,22 +35,28 @@ const styles = (theme: Theme) =>
   css({
     "&.layer-row": {
       display: "grid",
-      gridTemplateColumns: "36px 1fr 120px auto auto",
+      gridTemplateColumns: "40px minmax(0, 1fr) 96px 28px 28px",
       alignItems: "center",
-      gap: theme.spacing(0.5),
-      padding: `${theme.spacing(0.25)} ${theme.spacing(0.5)}`,
+      gap: theme.spacing(0.75),
+      minHeight: 46,
+      padding: `${theme.spacing(0.5)} ${theme.spacing(0.75)}`,
       borderRadius: "var(--rounded-sm)",
-      background: theme.vars.palette.action.hover,
+      background: theme.vars.palette.grey[800],
       border: `1px solid ${theme.vars.palette.divider}`,
+      transition: "background 0.12s ease, border-color 0.12s ease",
+      "&:hover": {
+        background: theme.vars.palette.action.hover
+      },
       "&.is-hidden": {
-        opacity: 0.55
+        opacity: 0.5
       }
     },
     ".thumb": {
-      width: 36,
-      height: 36,
+      width: 40,
+      height: 40,
       borderRadius: "var(--rounded-sm)",
       background: theme.vars.palette.grey[900],
+      border: `1px solid ${theme.vars.palette.divider}`,
       overflow: "hidden",
       display: "flex",
       alignItems: "center",
@@ -64,16 +70,26 @@ const styles = (theme: Theme) =>
       }
     },
     ".opacity": {
-      minWidth: 0
+      minWidth: 0,
+      "& .number-input": { width: "100%" }
     },
     ".blend": {
-      minWidth: 0
+      minWidth: 0,
+      justifySelf: "stretch"
     },
     ".blend-select": {
-      marginBottom: "0 !important"
+      marginBottom: "0 !important",
+      "& .MuiSelect-select": {
+        fontSize: theme.fontSizeSmall,
+        padding: "2px 18px 2px 2px",
+        minHeight: "unset"
+      },
+      "& .MuiInput-root": { marginTop: 0 },
+      "& .MuiSvgIcon-root": { fontSize: 16, right: 0 }
     },
     ".vis-btn, .del-btn": {
-      padding: 4,
+      justifySelf: "center",
+      padding: 3,
       "& svg": {
         fontSize: 18
       }
@@ -157,6 +173,7 @@ const LayerRowImpl: React.FC<LayerRowProps> = ({
           color="secondary"
           inputType="float"
           showSlider={true}
+          hideLabel
           onChange={handleOpacity}
           onChangeComplete={onOpacityComplete}
         />

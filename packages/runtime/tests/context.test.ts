@@ -14,6 +14,7 @@ import {
   type MessageCreateRequestLike
 } from "../src/context.js";
 import type { ProcessingMessage, NodeUpdate } from "@nodetool-ai/protocol";
+import { RAW_RGBA_MIME } from "@nodetool-ai/protocol";
 import { BaseProvider } from "../src/providers/base-provider.js";
 import type {
   Message,
@@ -519,6 +520,58 @@ describe("output normalization", () => {
     expect(normalized.image.uri.startsWith("memory://assets/")).toBe(true);
     expect(normalized.image.data).toBeUndefined();
     expect(await storage.exists(normalized.image.uri)).toBe(true);
+  });
+
+  const rawImage = (w: number, h: number) => ({
+    type: "image",
+    mimeType: RAW_RGBA_MIME,
+    width: w,
+    height: h,
+    data: new Uint8Array(w * h * 4).fill(128)
+  });
+
+  it("encodes a raw-RGBA image to a PNG data URI", async () => {
+    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "data_uri" });
+    const normalized = (await ctx.normalizeOutputValue({
+      image: rawImage(2, 2)
+    })) as { image: { uri: string; mimeType: string; data?: unknown } };
+
+    expect(normalized.image.uri.startsWith("data:image/png;base64,")).toBe(true);
+    expect(normalized.image.mimeType).toBe("image/png");
+    // The base64 payload decodes to a real PNG (magic bytes \x89PNG).
+    const b64 = normalized.image.uri.split(",")[1];
+    const bytes = Buffer.from(b64, "base64");
+    expect([...bytes.subarray(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47]);
+  });
+
+  it("encodes a raw-RGBA image to PNG bytes in storage and drops raw data", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "storage_url",
+      storage
+    });
+    const normalized = (await ctx.normalizeOutputValue({
+      image: rawImage(3, 3)
+    })) as { image: { uri: string; mimeType: string; data?: unknown } };
+
+    expect(normalized.image.uri.endsWith(".png")).toBe(true);
+    expect(normalized.image.data).toBeUndefined();
+    const stored = await storage.retrieve(normalized.image.uri);
+    expect(stored).not.toBeNull();
+    expect([...(stored as Uint8Array).subarray(0, 4)]).toEqual([
+      0x89, 0x50, 0x4e, 0x47
+    ]);
+  });
+
+  it("keeps raw-RGBA untouched in native mode (in-process handoff)", async () => {
+    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "native" });
+    const img = rawImage(2, 2);
+    const normalized = (await ctx.normalizeOutputValue({ image: img })) as {
+      image: { mimeType: string; data: Uint8Array };
+    };
+    expect(normalized.image.mimeType).toBe(RAW_RGBA_MIME);
+    expect(normalized.image.data).toBe(img.data);
   });
 
   it("materializes asset refs to temp URLs via resolver", async () => {
