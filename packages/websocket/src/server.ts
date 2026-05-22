@@ -20,7 +20,7 @@ import {
   getPostgresDatabaseUrl,
   loadEnvironment
 } from "@nodetool-ai/config";
-import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { NodeRegistry, loadInstalledPacks } from "@nodetool-ai/node-sdk";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
@@ -384,6 +384,23 @@ if (process.env["NODETOOL_ENV"] !== "production") {
 registerFalNodes(registry);
 registerKieNodes(registry);
 registerReplicateNodes(registry);
+
+// Discover and register installed third-party node packs (any npm package with
+// a `nodetool` field in its package.json). Trusted in-process, like any dep.
+await loadInstalledPacks(registry, {
+  onResult: (result) => {
+    if (result.ok) {
+      log.info(
+        `Loaded node pack ${result.pack.name}@${result.pack.version ?? "?"}`
+      );
+    } else {
+      log.warn(
+        `Failed to load node pack ${result.pack.name}: ${result.error?.message}`
+      );
+    }
+  }
+});
+
 setLlmAgentGraphPlannerRegistry(registry);
 if (process.env["NODETOOL_ENV"] !== "production") {
   registerTransformersJsProvider();

@@ -44,9 +44,26 @@ Declare your package with `@nodetool-ai/node-sdk` as a dependency:
     "@types/node": "^20.0.0",
     "typescript": "^5.4.0",
     "vitest": "^1.6.1"
+  },
+  "nodetool": {
+    "apiVersion": 1,
+    "register": "registerMypackNodes"
   }
 }
 ```
+
+The `nodetool` field marks the package as a node pack. When the server starts it
+scans installed dependencies, and for any package carrying this field it imports
+the entry module and calls the named `register` export with the registry. There
+is nothing to wire up by hand — installing the package is enough.
+
+- **`apiVersion`** — the pack API version you built against (current: `1`). Packs
+  declaring a version newer than the host supports are skipped with a warning.
+- **`register`** — name of the entry export to call with the registry. Defaults
+  to `register` if omitted.
+
+> Packs run in-process, exactly like any other dependency. Only install packs you
+> trust.
 
 ## 3. Configure `tsconfig.json`
 
@@ -183,6 +200,10 @@ export function registerMypackNodes(registry: NodeRegistry): void {
 
 The `registerBaseNodes()` function in `@nodetool-ai/base-nodes` follows this same pattern -- it iterates `ALL_BASE_NODES` and calls `registry.register()` for each class.
 
+Name this export in your `package.json` `nodetool.register` field (see section 2)
+so the server's pack loader can find and call it automatically. The function may
+be sync or `async` (useful if you build node classes from a manifest at load time).
+
 ## 6. Build the package
 
 Compile TypeScript to JavaScript:
@@ -199,7 +220,8 @@ Repeat this cycle as you add or modify nodes:
 
 1. Edit node source in `src/nodes/`
 2. Run `npm run build` to compile
-3. Register nodes by calling your registration function at startup
+3. Install the pack into the server (`npm install <pack>` or `npm link` for local
+   development) — the loader discovers and registers it on the next server start
 
 Run type checking without emitting files:
 
