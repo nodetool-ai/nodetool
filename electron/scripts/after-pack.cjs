@@ -113,9 +113,19 @@ async function placeNodeRuntime(context, cacheRoot) {
   const binName = nodeBinaryName(platform);
   const src = path.join(cacheRoot, `${platform}-${arch}`, binName);
   if (!fs.existsSync(src)) {
-    throw new Error(
-      `Bundled Node binary not found: ${src}. Run scripts/fetch-node-runtime.mjs.`
-    );
+    // Self-heal: the release pipeline invokes electron-builder directly (not
+    // `npm run build`), so the fetch step may not have run. Fetch this exact
+    // target now — fetch-node-runtime is idempotent and caches by arch.
+    console.info(`Bundled Node missing; fetching ${platform}-${arch}...`);
+    const fetchScript = path.join(ELECTRON_DIR, "scripts", "fetch-node-runtime.mjs");
+    const r = spawnSync(process.execPath, [fetchScript, `${platform}-${arch}`], {
+      stdio: "inherit",
+    });
+    if (r.status !== 0 || !fs.existsSync(src)) {
+      throw new Error(
+        `Bundled Node binary not found and fetch failed: ${src} (fetch exit ${r.status})`
+      );
+    }
   }
   const runtimeDir = path.join(resolveResourcesDir(context), "backend", "runtime");
   await fsp.mkdir(runtimeDir, { recursive: true });
