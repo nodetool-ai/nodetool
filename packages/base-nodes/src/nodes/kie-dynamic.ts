@@ -1,6 +1,7 @@
 /**
  * Dynamic Kie.ai node that creates inputs/outputs from pasted API documentation.
  */
+import { parse as parseYaml } from "yaml";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
@@ -14,6 +15,8 @@ import {
 } from "@nodetool-ai/kie-nodes";
 import type { TypeMetadata } from "@nodetool-ai/node-sdk";
 
+type JsonRecord = Record<string, unknown>;
+
 interface KieParamInfo {
   name: string;
   type: string;
@@ -25,6 +28,8 @@ interface KieParamInfo {
   maxVal?: number;
   isFileUrl: boolean;
   isFileUrlArray: boolean;
+  /** gemini-omni-video style: [{ url, start, ends }] */
+  isVideoClipList: boolean;
   acceptedFileTypes: string[];
 }
 
@@ -51,6 +56,25 @@ export interface ResolvedKieDynamicSchema {
 
 const HIDDEN_PARAMS = new Set(["upload_method", "callBackUrl", "callback_url"]);
 
+function asRecord(value: unknown): JsonRecord | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as JsonRecord)
+    : undefined;
+}
+
+function asStringArray(value: unknown): string[] | undefined {
+  return Array.isArray(value) && value.every((item) => typeof item === "string")
+    ? value
+    : undefined;
+}
+
+function cleanDescription(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+  return value.replace(/\s+/g, " ").trim();
+}
+
 function extractModelId(text: string): string | null {
   let m = text.match(/\*\*Format\*\*\s*\|\s*`([^`]+)`/);
   if (m) return m[1].trim();
@@ -58,7 +82,43 @@ function extractModelId(text: string): string | null {
   if (m) return m[1].trim();
   m = text.match(/"model"\s*:\s*"([^"]+)"/);
   if (m) return m[1].trim();
+
+  const openApiModel = extractOpenApiModelId(text);
+  if (openApiModel) return openApiModel;
+
   return null;
+}
+
+function extractOpenApiModelId(text: string): string | null {
+  const openApi = extractOpenApi(text);
+  if (!openApi) return null;
+
+  const paths = asRecord(openApi.paths);
+  const createTask = asRecord(paths?.["/api/v1/jobs/createTask"]);
+  const post = asRecord(createTask?.post);
+  const requestBody = asRecord(post?.requestBody);
+  const content = asRecord(requestBody?.content);
+  const json = asRecord(content?.["application/json"]);
+  const schema = asRecord(json?.schema);
+  const properties = asRecord(schema?.properties);
+  const model = asRecord(properties?.model);
+  const enumValues = asStringArray(model?.enum);
+  if (enumValues?.[0]) return enumValues[0];
+  return typeof model?.default === "string" ? model.default : null;
+}
+
+function extractOpenApi(text: string): JsonRecord | null {
+  const match = text.match(/```ya?ml\s*([\s\S]*?)```/i);
+  if (!match) return null;
+  const parsed = parseYaml(match[1]) as unknown;
+  return asRecord(parsed) ?? null;
+}
+
+function isVideoClipSchema(schema: JsonRecord): boolean {
+  const items = asRecord(schema.items);
+  if (items?.type !== "object") return false;
+  const props = asRecord(items.properties);
+  return Boolean(props?.url);
 }
 
 function inferOutputType(modelId: string, _text: string): string {
@@ -126,12 +186,19 @@ function parseInputParams(text: string): KieParamInfo[] {
 
     let isFileUrl = false;
     let isFileUrlArray = false;
+    let isVideoClipList = false;
     const acceptedFileTypes: string[] = [];
     const ftMatch = trimmed.match(/\*\*Accepted File Types\*\*:\s*(.+)/);
     if (ftMatch)
       acceptedFileTypes.push(...ftMatch[1].split(",").map((t) => t.trim()));
 
-    if (
+    if (name.endsWith("_ids") && paramType === "array") {
+      isFileUrl = false;
+      isFileUrlArray = false;
+    } else if (name === "video_list" && paramType === "array") {
+      isFileUrlArray = true;
+      isVideoClipList = true;
+    } else if (
       acceptedFileTypes.length ||
       description.includes("Upload") ||
       description.includes("URL")
@@ -153,10 +220,161 @@ function parseInputParams(text: string): KieParamInfo[] {
       maxVal,
       isFileUrl,
       isFileUrlArray,
+      isVideoClipList,
       acceptedFileTypes
     });
   }
   return params;
+}
+
+function openApiPropertyToParam(
+  name: string,
+  schema: JsonRecord,
+  required: boolean
+): KieParamInfo | null {
+  if (HIDDEN_PARAMS.has(name)) return null;
+
+  const schemaType = String(schema.type ?? "string");
+  const description = cleanDescription(schema.description);
+  const enumValues = asStringArray(schema.enum);
+  const isArray = schemaType === "array";
+  const itemSchema = asRecord(schema.items) ?? {};
+  const isUrlArray =
+    isArray &&
+    (name.endsWith("_urls") ||
+      itemSchema.format === "uri" ||
+      description.includes("asset://"));
+  const isUrl =
+    schemaType === "string" && (name.endsWith("_url") || schema.format === "uri");
+  const isVideoClipList =
+    name === "video_list" || (isArray && isVideoClipSchema(schema));
+  const isIdArray = isArray && name.endsWith("_ids");
+  const mediaKind =
+    isUrl || isUrlArray || isVideoClipList
+      ? detectMediaKindFromText(
+          `${name} ${description} ${String(itemSchema.description ?? "")}`
+        )
+      : null;
+
+  let paramType = schemaType;
+  if (isArray) paramType = "array";
+
+  let defaultVal: unknown = schema.default;
+  if (defaultVal === undefined && enumValues?.length) {
+    defaultVal = enumValues[0];
+  }
+
+  let options: string[] | undefined = enumValues;
+  if (isArray && asStringArray(itemSchema.enum)?.length) {
+    options = asStringArray(itemSchema.enum);
+  }
+
+  const bounds = parseBounds(description);
+  let isFileUrl = false;
+  let isFileUrlArray = false;
+
+  if (isIdArray) {
+    isFileUrl = false;
+    isFileUrlArray = false;
+  } else if (isVideoClipList) {
+    isFileUrlArray = true;
+  } else if (mediaKind && isUrlArray) {
+    isFileUrlArray = true;
+  } else if (mediaKind && isUrl) {
+    isFileUrl = true;
+  } else if (
+    isArray &&
+    (name.endsWith("_urls") ||
+      description.includes("Upload") ||
+      /\bURL\b/i.test(description))
+  ) {
+    isFileUrlArray = true;
+  } else if (
+    schemaType === "string" &&
+    (name.endsWith("_url") ||
+      description.includes("Upload") ||
+      /\bURL\b/i.test(description))
+  ) {
+    isFileUrl = true;
+  }
+
+  return {
+    name,
+    type: paramType,
+    required,
+    description,
+    default: defaultVal,
+    options,
+    minVal: bounds.min,
+    maxVal: bounds.max,
+    isFileUrl,
+    isFileUrlArray,
+    isVideoClipList,
+    acceptedFileTypes: []
+  };
+}
+
+function parseOpenApiInputParams(text: string): KieParamInfo[] {
+  const openApi = extractOpenApi(text);
+  if (!openApi) return [];
+
+  const paths = asRecord(openApi.paths);
+  const createTask = asRecord(paths?.["/api/v1/jobs/createTask"]);
+  const post = asRecord(createTask?.post);
+  if (!post) return [];
+
+  const requestBody = asRecord(post.requestBody);
+  const content = asRecord(requestBody?.content);
+  const json = asRecord(content?.["application/json"]);
+  const schema = asRecord(json?.schema);
+  const properties = asRecord(schema?.properties);
+  const inputSchema = asRecord(properties?.input);
+  const inputProperties = asRecord(inputSchema?.properties);
+  if (!inputProperties) return [];
+
+  const requiredFields = new Set(asStringArray(inputSchema?.required) ?? []);
+  const params: KieParamInfo[] = [];
+
+  for (const [name, rawSchema] of Object.entries(inputProperties)) {
+    const param = openApiPropertyToParam(
+      name,
+      asRecord(rawSchema) ?? {},
+      requiredFields.has(name)
+    );
+    if (param) params.push(param);
+  }
+
+  return params;
+}
+
+function mergeKieParams(
+  markdownParams: KieParamInfo[],
+  openApiParams: KieParamInfo[]
+): KieParamInfo[] {
+  const merged = new Map<string, KieParamInfo>();
+  for (const param of openApiParams) {
+    merged.set(param.name, param);
+  }
+  for (const param of markdownParams) {
+    const existing = merged.get(param.name);
+    if (!existing) {
+      merged.set(param.name, param);
+      continue;
+    }
+    merged.set(param.name, {
+      ...existing,
+      ...param,
+      description: param.description || existing.description,
+      options: param.options?.length ? param.options : existing.options,
+      acceptedFileTypes: param.acceptedFileTypes.length
+        ? param.acceptedFileTypes
+        : existing.acceptedFileTypes,
+      isVideoClipList: param.isVideoClipList || existing.isVideoClipList,
+      isFileUrlArray: param.isFileUrlArray || existing.isFileUrlArray,
+      isFileUrl: param.isFileUrl || existing.isFileUrl
+    });
+  }
+  return [...merged.values()];
 }
 
 function coerceDefault(raw: string, paramType: string): unknown {
@@ -200,10 +418,8 @@ function parseBounds(text: string): { min?: number; max?: number } {
   };
 }
 
-function detectMediaKind(
-  param: KieParamInfo
-): "image" | "audio" | "video" | null {
-  const joined = `${param.name} ${param.description} ${param.acceptedFileTypes.join(",")}`.toLowerCase();
+function detectMediaKindFromText(text: string): "image" | "audio" | "video" | null {
+  const joined = text.toLowerCase();
   if (joined.includes("image/")) return "image";
   if (joined.includes("audio/")) return "audio";
   if (joined.includes("video/")) return "video";
@@ -213,8 +429,20 @@ function detectMediaKind(
   return null;
 }
 
+function detectMediaKind(
+  param: KieParamInfo
+): "image" | "audio" | "video" | null {
+  if (param.isVideoClipList) return "video";
+  return detectMediaKindFromText(
+    `${param.name} ${param.description} ${param.acceptedFileTypes.join(",")}`
+  );
+}
+
 function fieldNameForParam(param: KieParamInfo): string {
   const kind = detectMediaKind(param) ?? "image";
+  if (param.isVideoClipList) {
+    return param.name;
+  }
   if (param.isFileUrlArray) {
     if (param.name === "input_urls") return `${kind}s`;
     if (param.name.endsWith(`_${kind}_urls`)) {
@@ -316,7 +544,7 @@ function parseKieDocs(text: string): KieSchemaBundle {
   if (!modelId) throw new Error("Could not find model ID in documentation");
   return {
     modelId,
-    params: parseInputParams(text),
+    params: mergeKieParams(parseInputParams(text), parseOpenApiInputParams(text)),
     outputType: inferOutputType(modelId, text)
   };
 }
@@ -401,7 +629,36 @@ export class KieAINode extends BaseNode {
         continue;
       }
 
-      if (p.isFileUrlArray) {
+      if (p.isVideoClipList) {
+        const items = Array.isArray(val) ? val : [];
+        const clips: Array<{ url: string; start: number; ends: number }> = [];
+        for (const item of items) {
+          if (
+            item &&
+            typeof item === "object" &&
+            typeof (item as { url?: unknown }).url === "string" &&
+            (item as { url: string }).url
+          ) {
+            const clip = item as { url: string; start?: number; ends?: number };
+            clips.push({
+              url: clip.url,
+              start: typeof clip.start === "number" ? clip.start : 0,
+              ends: typeof clip.ends === "number" ? clip.ends : 10
+            });
+            continue;
+          }
+          if (isRefSet(item)) {
+            const url = await uploadVideoInput(apiKey, item, context);
+            const duration =
+              typeof (item as { duration?: unknown }).duration === "number" &&
+              (item as { duration: number }).duration > 0
+                ? Math.min((item as { duration: number }).duration, 10)
+                : 10;
+            clips.push({ url, start: 0, ends: duration });
+          }
+        }
+        if (clips.length) apiInput[p.name] = clips;
+      } else if (p.isFileUrlArray) {
         const kind = detectMediaKind(p) ?? "image";
         const uploadFn =
           kind === "audio"

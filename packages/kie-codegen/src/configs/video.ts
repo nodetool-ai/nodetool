@@ -2603,529 +2603,6 @@ export const videoConfig: ModuleConfig = {
       ]
     },
     {
-      "className": "Sora2ImageToVideo",
-      "modelId": "sora-2-image-to-video",
-      "title": "Sora2 - Image to Video",
-      "description": "Sora2 - Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    Transform images into dynamic videos powered by Sora-2-image-to-video's advanced AI model",
-      "outputType": "video",
-      "fields": [
-        {
-          "name": "prompt",
-          "type": "str",
-          "default": "",
-          "title": "Prompt",
-          "description": "The text prompt describing the desired video motion (Max length: 10000 characters)",
-          "required": true,
-          "max": 10000
-        },
-        {
-          "name": "images",
-          "type": "list[image]",
-          "default": [],
-          "title": "Images",
-          "description": "URL of the image to use as the first frame. Must be publicly accessible (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-          "required": true,
-          "max": 1
-        },
-        {
-          "name": "aspect_ratio",
-          "type": "enum",
-          "default": "landscape",
-          "title": "Aspect Ratio",
-          "description": "This parameter defines the aspect ratio of the image.",
-          "required": false,
-          "values": [
-            "portrait",
-            "landscape"
-          ]
-        },
-        {
-          "name": "n_frames",
-          "type": "enum",
-          "default": "10",
-          "title": "N Frames",
-          "description": "The number of frames to be generated.",
-          "required": false,
-          "values": [
-            "10",
-            "15"
-          ]
-        },
-        {
-          "name": "remove_watermark",
-          "type": "bool",
-          "default": false,
-          "title": "Remove Watermark",
-          "description": "When enabled, removes watermarks from the generated video. (Boolean value (true/false))",
-          "required": false
-        },
-        {
-          "name": "character_id_list",
-          "type": "list[image]",
-          "default": [],
-          "title": "Character Id List",
-          "description": "Optional array of character IDs from Sora-2-characters model to incorporate character animations into the video generation. Maximum 5 character IDs allowed. Leave empty if not using character animations.",
-          "required": false,
-          "max": 5
-        },
-        {
-          "name": "upload_method",
-          "type": "enum",
-          "default": "s3",
-          "title": "Upload Method",
-          "description": "Upload destination. Defaults to s3; choose oss for Aliyun storage (better access within China).",
-          "required": true,
-          "values": [
-            "s3",
-            "oss"
-          ]
-        }
-      ],
-      "uploads": [
-        {
-          "field": "images",
-          "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
-        }
-      ],
-      "validation": [
-        {
-          "field": "prompt",
-          "rule": "not_empty",
-          "message": "Prompt is required"
-        },
-        {
-          "field": "upload_method",
-          "rule": "not_empty",
-          "message": "Upload Method is required"
-        }
-      ]
-    },
-    {
-      "className": "Sora2TextToVideo",
-      "modelId": "sora-2-text-to-video",
-      "title": "Sora2 - Text to Video",
-      "description": "Sora2 - Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    High-quality video generation from text descriptions powered by Sora-2-text-to-video's advanced AI model",
-      "outputType": "video",
-      "fields": [
-        {
-          "name": "prompt",
-          "type": "str",
-          "default": "",
-          "title": "Prompt",
-          "description": "The text prompt describing the desired video motion (Max length: 10000 characters)",
-          "required": true,
-          "max": 10000
-        },
-        {
-          "name": "aspect_ratio",
-          "type": "enum",
-          "default": "landscape",
-          "title": "Aspect Ratio",
-          "description": "This parameter defines the aspect ratio of the image.",
-          "required": false,
-          "values": [
-            "portrait",
-            "landscape"
-          ]
-        },
-        {
-          "name": "n_frames",
-          "type": "enum",
-          "default": "10",
-          "title": "N Frames",
-          "description": "The number of frames to be generated.",
-          "required": false,
-          "values": [
-            "10",
-            "15"
-          ]
-        },
-        {
-          "name": "remove_watermark",
-          "type": "bool",
-          "default": false,
-          "title": "Remove Watermark",
-          "description": "When enabled, removes watermarks from the generated video. (Boolean value (true/false))",
-          "required": false
-        },
-        {
-          "name": "character_id_list",
-          "type": "list[image]",
-          "default": [],
-          "title": "Character Id List",
-          "description": "Optional array of character IDs from Sora-2-characters model to incorporate character animations into the video generation. Maximum 5 character IDs allowed. Leave empty if not using character animations.",
-          "required": false,
-          "max": 5
-        },
-        {
-          "name": "upload_method",
-          "type": "enum",
-          "default": "s3",
-          "title": "Upload Method",
-          "description": "Upload destination. Defaults to s3; choose oss for Aliyun storage (better access within China).",
-          "required": true,
-          "values": [
-            "s3",
-            "oss"
-          ]
-        }
-      ],
-      "validation": [
-        {
-          "field": "prompt",
-          "rule": "not_empty",
-          "message": "Prompt is required"
-        },
-        {
-          "field": "upload_method",
-          "rule": "not_empty",
-          "message": "Upload Method is required"
-        }
-      ]
-    },
-    {
-      "className": "Sora2ProImageToVideo",
-      "modelId": "sora-2-pro-image-to-video",
-      "title": "Sora2 - Pro Image to Video",
-      "description": "Sora2 - Pro Image to Video via Kie.ai.\n\n    kie, video, ai\n\n    Transform images into dynamic videos powered by Sora-2-pro-image-to-video's advanced AI model",
-      "outputType": "video",
-      "fields": [
-        {
-          "name": "prompt",
-          "type": "str",
-          "default": "",
-          "title": "Prompt",
-          "description": "The text prompt describing the desired video motion (Max length: 10000 characters)",
-          "required": true,
-          "max": 10000
-        },
-        {
-          "name": "images",
-          "type": "list[image]",
-          "default": [],
-          "title": "Images",
-          "description": "URL of the image to use as the first frame. Must be publicly accessible (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB)",
-          "required": true,
-          "max": 1
-        },
-        {
-          "name": "aspect_ratio",
-          "type": "enum",
-          "default": "landscape",
-          "title": "Aspect Ratio",
-          "description": "This parameter defines the aspect ratio of the image.",
-          "required": false,
-          "values": [
-            "portrait",
-            "landscape"
-          ]
-        },
-        {
-          "name": "n_frames",
-          "type": "enum",
-          "default": "10",
-          "title": "N Frames",
-          "description": "The number of frames to be generated.",
-          "required": false,
-          "values": [
-            "10",
-            "15"
-          ]
-        },
-        {
-          "name": "size",
-          "type": "enum",
-          "default": "standard",
-          "title": "Size",
-          "description": "The quality or size of the generated image.",
-          "required": false,
-          "values": [
-            "standard",
-            "high"
-          ]
-        },
-        {
-          "name": "remove_watermark",
-          "type": "bool",
-          "default": false,
-          "title": "Remove Watermark",
-          "description": "When enabled, removes watermarks from the generated video. (Boolean value (true/false))",
-          "required": false
-        },
-        {
-          "name": "character_id_list",
-          "type": "list[image]",
-          "default": [],
-          "title": "Character Id List",
-          "description": "Optional array of character IDs from Sora-2-characters model to incorporate character animations into the video generation. Maximum 5 character IDs allowed. Leave empty if not using character animations.",
-          "required": false,
-          "max": 5
-        },
-        {
-          "name": "upload_method",
-          "type": "enum",
-          "default": "s3",
-          "title": "Upload Method",
-          "description": "Upload destination. Defaults to s3; choose oss for Aliyun storage (better access within China).",
-          "required": true,
-          "values": [
-            "oss",
-            "s3"
-          ]
-        }
-      ],
-      "uploads": [
-        {
-          "field": "images",
-          "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
-        }
-      ],
-      "validation": [
-        {
-          "field": "prompt",
-          "rule": "not_empty",
-          "message": "Prompt is required"
-        },
-        {
-          "field": "upload_method",
-          "rule": "not_empty",
-          "message": "Upload Method is required"
-        }
-      ]
-    },
-    {
-      "className": "Sora2ProTextToVideo",
-      "modelId": "sora-2-pro-text-to-video",
-      "title": "Sora2 - Pro Text to Video",
-      "description": "Sora2 - Pro Text to Video via Kie.ai.\n\n    kie, video, ai\n\n    High-quality video generation from text descriptions powered by Sora-2-pro-text-to-video's advanced AI model",
-      "outputType": "video",
-      "fields": [
-        {
-          "name": "prompt",
-          "type": "str",
-          "default": "",
-          "title": "Prompt",
-          "description": "The text prompt describing the desired video motion (Max length: 10000 characters)",
-          "required": true,
-          "max": 10000
-        },
-        {
-          "name": "aspect_ratio",
-          "type": "enum",
-          "default": "landscape",
-          "title": "Aspect Ratio",
-          "description": "This parameter defines the aspect ratio of the image.",
-          "required": false,
-          "values": [
-            "portrait",
-            "landscape"
-          ]
-        },
-        {
-          "name": "n_frames",
-          "type": "enum",
-          "default": "10",
-          "title": "N Frames",
-          "description": "The number of frames to be generated.",
-          "required": false,
-          "values": [
-            "10",
-            "15"
-          ]
-        },
-        {
-          "name": "size",
-          "type": "enum",
-          "default": "high",
-          "title": "Size",
-          "description": "The quality or size of the generated image.",
-          "required": false,
-          "values": [
-            "standard",
-            "high"
-          ]
-        },
-        {
-          "name": "remove_watermark",
-          "type": "bool",
-          "default": false,
-          "title": "Remove Watermark",
-          "description": "When enabled, removes watermarks from the generated video. (Boolean value (true/false))",
-          "required": false
-        },
-        {
-          "name": "character_id_list",
-          "type": "list[image]",
-          "default": [],
-          "title": "Character Id List",
-          "description": "Optional array of character IDs from Sora-2-characters model to incorporate character animations into the video generation. Maximum 5 character IDs allowed. Leave empty if not using character animations.",
-          "required": false,
-          "max": 5
-        },
-        {
-          "name": "upload_method",
-          "type": "enum",
-          "default": "s3",
-          "title": "Upload Method",
-          "description": "Upload destination. Defaults to s3; choose oss for Aliyun storage (better access within China).",
-          "required": true,
-          "values": [
-            "s3",
-            "oss"
-          ]
-        }
-      ],
-      "validation": [
-        {
-          "field": "prompt",
-          "rule": "not_empty",
-          "message": "Prompt is required"
-        },
-        {
-          "field": "upload_method",
-          "rule": "not_empty",
-          "message": "Upload Method is required"
-        }
-      ]
-    },
-    {
-      "className": "SoraWatermarkRemover",
-      "modelId": "sora-watermark-remover",
-      "title": "Sora2 - Watermark Remover",
-      "description": "Sora2 - Watermark Remover via Kie.ai.\n\n    kie, video, ai\n\n    Content generation using sora-watermark-remover",
-      "outputType": "video",
-      "fields": [
-        {
-          "name": "video",
-          "type": "video",
-          "default": {
-            "type": "video",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "duration": null,
-            "format": null
-          },
-          "title": "Video",
-          "description": "Enter the Sora 2 video URL — it must be a publicly accessible link from OpenAI (starting with sora.chatgpt.com). (Max length: 500 characters)",
-          "required": true,
-          "max": 500
-        },
-        {
-          "name": "upload_method",
-          "type": "enum",
-          "default": "s3",
-          "title": "Upload Method",
-          "description": "Upload destination. Defaults to s3; choose oss for Aliyun storage (better access within China).",
-          "required": true,
-          "values": [
-            "oss",
-            "s3"
-          ]
-        }
-      ],
-      "uploads": [
-        {
-          "field": "video",
-          "kind": "video",
-          "paramName": "video_url"
-        }
-      ],
-      "validation": [
-        {
-          "field": "upload_method",
-          "rule": "not_empty",
-          "message": "Upload Method is required"
-        }
-      ]
-    },
-    {
-      "className": "Sora2ProStoryboard",
-      "modelId": "sora-2-pro-storyboard",
-      "title": "Sora2 - Pro Storyboard",
-      "description": "Sora2 - Pro Storyboard via Kie.ai.\n\n    kie, video, ai\n\n    Video generation using sora-2-pro-storyboard",
-      "outputType": "video",
-      "fields": [
-        {
-          "name": "shots",
-          "type": "list[image]",
-          "default": [],
-          "title": "Shots",
-          "description": "Array of shot descriptions with durations. Total duration of all shots cannot exceed the selected n_frames value.",
-          "required": false,
-          "min": 1,
-          "max": 10
-        },
-        {
-          "name": "n_frames",
-          "type": "enum",
-          "default": "15",
-          "title": "N Frames",
-          "description": "Total length of the video",
-          "required": false,
-          "values": [
-            "10",
-            "15",
-            "25"
-          ]
-        },
-        {
-          "name": "images",
-          "type": "list[image]",
-          "default": [],
-          "title": "Images",
-          "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 10.0MB). Limited to exactly 1 image.",
-          "required": false,
-          "min": 1,
-          "max": 1
-        },
-        {
-          "name": "aspect_ratio",
-          "type": "enum",
-          "default": "landscape",
-          "title": "Aspect Ratio",
-          "description": "This parameter defines the aspect ratio of the image.",
-          "required": false,
-          "values": [
-            "portrait",
-            "landscape"
-          ]
-        },
-        {
-          "name": "upload_method",
-          "type": "enum",
-          "default": "",
-          "title": "Upload Method",
-          "description": "Upload destination. Defaults to s3; choose oss for Aliyun storage (better access within China).",
-          "required": true,
-          "values": [
-            "s3",
-            "oss"
-          ]
-        }
-      ],
-      "uploads": [
-        {
-          "field": "images",
-          "kind": "image",
-          "isList": true,
-          "paramName": "image_urls"
-        }
-      ],
-      "validation": [
-        {
-          "field": "upload_method",
-          "rule": "not_empty",
-          "message": "Upload Method is required"
-        }
-      ]
-    },
-    {
       "className": "Wan22A14bImageToVideoTurbo",
       "modelId": "wan/2-2-a14b-image-to-video-turbo",
       "title": "Wan - Image to Video",
@@ -5271,6 +4748,125 @@ export const videoConfig: ModuleConfig = {
           "field": "prompt",
           "rule": "not_empty",
           "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "GeminiOmniVideo",
+      "modelId": "gemini-omni-video",
+      "title": "Gemini Omni Video",
+      "description": "Gemini Omni Video via Kie.ai.\n\n    kie, video, ai\n\n    ## Create Task",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Video prompt used to describe the target content, style, camera language, or character actions in the generated video.",
+          "required": true,
+          "max": 20000
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Array of image URLs. You can provide one or more reference images for characters, scenes, styles, or storyboard guidance. Image limits: - Each file must be no larger than `20MB` - Use publicly accessible image URLs - Max 7 images",
+          "required": false
+        },
+        {
+          "name": "audio_ids",
+          "type": "list[image]",
+          "default": [],
+          "title": "Audio Ids",
+          "description": "Array of audio IDs generated by the `gemini-omni-audio` endpoint. Useful for narration, dialogue, music, or audio guidance in the generated video. Max 3 items.",
+          "required": false
+        },
+        {
+          "name": "video_list",
+          "type": "list[image]",
+          "default": [],
+          "title": "Video List",
+          "description": "Array of video clips. Each item defines a source video and the trim range to use during generation. Video limits: - Each file must be no larger than `100MB` - Video duration must not exceed `30s` - `ends` should be greater than `start` - The difference between the end time and the start time must not exceed `10s`. - Max 1 items. Equal 2 images",
+          "required": false
+        },
+        {
+          "name": "character_ids",
+          "type": "list[image]",
+          "default": [],
+          "title": "Character Ids",
+          "description": "An array of character IDs generated by the `gemini-omni-character` API. Used to provide character appearance, identity, or person references for the video. Each character_id uses 1 image slot. The base limit is 7 image slots; if video_list is also provided, video_list uses 2 image slots, so character_ids can contain up to 3 IDs.",
+          "required": false
+        },
+        {
+          "name": "duration",
+          "type": "enum",
+          "default": "",
+          "title": "Duration",
+          "description": "The duration of the generated video in seconds. Available values are 4, 6, 8, and 10. When video input is provided, the output duration is determined by the model automatically. This duration parameter will not take effect.Note: when video input is provided, the output duration is determined by the model automatically. This duration parameter will not take effect.",
+          "required": true,
+          "values": [
+            "4",
+            "6",
+            "8",
+            "10"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated video. `16:9` is landscape, and `9:16` is portrait.",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16"
+          ]
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed. Range: [0, 2147483647]. If not specified, the system generates a seed automatically. Fixing the seed can improve reproducibility, but results may still vary due to the model’s stochasticity.",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "The resolution of the generated video. Available values are 720p, 1080p, and 4k.",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p",
+            "4k"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "duration",
+          "rule": "not_empty",
+          "message": "Duration is required"
         }
       ]
     }
