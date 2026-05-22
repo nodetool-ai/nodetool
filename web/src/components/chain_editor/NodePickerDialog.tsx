@@ -132,7 +132,7 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
     count: searchResults.length,
     getScrollElement: () => listScrollRef.current,
     estimateSize: () => ROW_HEIGHT,
-    overscan: 8,
+    overscan: theme.virtualScroll.overscan.small,
   });
 
   return (

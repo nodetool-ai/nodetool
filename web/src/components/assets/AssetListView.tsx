@@ -354,7 +354,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
       virtualListItems[index]?.type === "header"
         ? TYPE_SECTION_HEIGHT
         : ROW_HEIGHT,
-    overscan: 8,
+    overscan: theme.virtualScroll.overscan.small,
     getItemKey: (index) => virtualListItems[index]?.key ?? index,
   });
 

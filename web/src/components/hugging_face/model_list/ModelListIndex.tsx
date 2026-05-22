@@ -209,7 +209,7 @@ const ModelListIndex: React.FC = () => {
     getScrollElement: () => scrollRef.current,
     estimateSize: (index) =>
       flattenedList[index]?.type === "header" ? 48 : 168,
-    overscan: 5,
+    overscan: theme.virtualScroll.overscan.small,
     getItemKey: (index) => {
       const item = flattenedList[index];
       return item.type === "header"

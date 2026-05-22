@@ -475,7 +475,7 @@ const TemplateGrid = memo(function TemplateGrid() {
     count: rowCount,
     getScrollElement: () => gridScrollRef.current,
     estimateSize: () => CARD_HEIGHT + GAP,
-    overscan: 2,
+    overscan: theme.virtualScroll.overscan.gridRow,
   });
 
   // Show loading state

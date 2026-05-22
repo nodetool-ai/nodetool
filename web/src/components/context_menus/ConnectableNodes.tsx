@@ -199,7 +199,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     count: totalCount,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => NODE_ROW_HEIGHT,
-    overscan: 12,
+    overscan: theme.virtualScroll.overscan.normal,
     getItemKey: (index) => filteredNodes[index]?.node_type ?? index
   });
 

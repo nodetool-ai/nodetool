@@ -30,7 +30,6 @@ import { useNavigate } from "react-router-dom";
 import type { Theme } from "@mui/material/styles";
 
 const ROW_HEIGHT = 50;
-const OVERSCAN = 50;  // number of extra rows to render    
 const listStyles = (theme: Theme) =>
   css({
     overflowY: "auto",
@@ -134,7 +133,7 @@ function ModelList<TModel extends ModelSelectorModel>({
     count: models.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ROW_HEIGHT,
-    overscan: OVERSCAN,
+    overscan: theme.virtualScroll.overscan.large,
     getItemKey: (index) => `${models[index].provider}:${models[index].id}`,
   });
 

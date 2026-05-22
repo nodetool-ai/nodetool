@@ -307,7 +307,7 @@ const OutputContextMenu: React.FC = () => {
     getScrollElement: () => scrollRef.current,
     estimateSize: () => NODE_ROW_HEIGHT,
     initialRect: { height: 160, width: 320 },
-    overscan: 12,
+    overscan: theme.virtualScroll.overscan.normal,
     getItemKey: (index) => rankedConnectableNodes[index]?.node_type ?? index
   });
 

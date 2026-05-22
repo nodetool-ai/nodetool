@@ -11,6 +11,7 @@ import {
 import { Text } from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
+import { useTheme } from "@mui/material/styles";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import useMetadataStore from "../../stores/MetadataStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -27,6 +28,7 @@ const NODE_ROW_HEIGHT = 48;
 type StatusFilter = "all" | "passed" | "failed" | "idle";
 
 function NodeTestPage() {
+  const theme = useTheme();
   const metadata = useMetadataStore((s) => s.metadata);
   const {
     results,
@@ -133,7 +135,7 @@ function NodeTestPage() {
       flatRows[index]?.type === "namespace"
         ? NAMESPACE_ROW_HEIGHT
         : NODE_ROW_HEIGHT,
-    overscan: 8,
+    overscan: theme.virtualScroll.overscan.small,
     getItemKey: (index) => {
       const row = flatRows[index];
       return row.type === "namespace"

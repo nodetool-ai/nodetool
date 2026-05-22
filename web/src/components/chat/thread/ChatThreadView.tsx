@@ -339,7 +339,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     count: filteredMessages.length,
     getScrollElement: () => scrollHost,
     estimateSize: () => ESTIMATED_MESSAGE_HEIGHT,
-    overscan: 6,
+    overscan: theme.virtualScroll.overscan.small,
     getItemKey: (index) => filteredMessages[index].id ?? `msg-${index}`,
     initialRect: { width: 0, height: 800 }
   });

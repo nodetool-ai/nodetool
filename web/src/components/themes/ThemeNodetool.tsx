@@ -71,6 +71,15 @@ const ThemeNodetool = createTheme({
     menuRadius: "8px",
     menuShadow: "0 10px 30px rgba(0, 0, 0, 0.5)"
   },
+  // TanStack Virtual overscan — extra item/row count rendered outside the viewport.
+  virtualScroll: {
+    overscan: {
+      small: 10,
+      normal: 25,
+      large: 50,
+      gridRow: 4
+    }
+  },
   typography: {
     fontFamily: "'Inter', sans-serif",
     fontSize: 15
