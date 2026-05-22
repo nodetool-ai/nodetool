@@ -17,9 +17,9 @@
     "@nodetool-ai/runtime": "*"
   },
   "devDependencies": {
-    "@huggingface/transformers": "^4.2.0",
-    "kokoro-js": "^1.2.1",
+    "@huggingface/transformers": "^3.7.6",
     "@types/node": "^22.0.0",
+    "kokoro-js": "^1.2.1",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   },
