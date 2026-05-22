@@ -8,11 +8,12 @@ vi.mock("../src/kie-base.js", async (importOriginal) => {
     ...actual,
     getApiKey: () => "test-key",
     kieExecuteOmniDirect: vi.fn(),
-    kieExecuteTask: vi.fn()
+    kieExecuteTask: vi.fn(),
+    uploadVideoInput: vi.fn(async () => "https://cdn.example.com/source.mp4")
   };
 });
 
-import { kieExecuteOmniDirect, kieExecuteTask } from "../src/kie-base.js";
+import { kieExecuteOmniDirect, kieExecuteTask, uploadVideoInput } from "../src/kie-base.js";
 
 const audioSpec: KieManifestEntry = {
   className: "GeminiOmniAudio",
@@ -74,6 +75,59 @@ describe("createKieNodeClass omni chaining", () => {
       "/api/v1/omni/audio/create",
       { audio_id: "achernar", name: "Test Voice" },
       "audioId"
+    );
+  });
+
+  it("submits video_list clip trim metadata to createTask", async () => {
+    vi.mocked(kieExecuteTask).mockResolvedValue({
+      data: Buffer.from("video-bytes").toString("base64"),
+      taskId: "task_clip"
+    });
+
+    const clipVideoSpec: KieManifestEntry = {
+      ...videoSpec,
+      fields: [
+        ...videoSpec.fields,
+        { name: "video_list", type: "video_clip_list", default: [] }
+      ],
+      uploads: [
+        {
+          field: "video_list",
+          kind: "video",
+          isList: true,
+          isVideoClip: true,
+          paramName: "video_list"
+        }
+      ]
+    };
+
+    const NodeClass = createKieNodeClass(clipVideoSpec);
+    const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
+    (node as unknown as Record<string, unknown>).prompt = "Neon city";
+    (node as unknown as Record<string, unknown>).duration = "8";
+    (node as unknown as Record<string, unknown>).video_list = [
+      {
+        type: "video",
+        uri: "asset://clip.mp4",
+        metadata: { clipStart: 2, clipEnd: 7 }
+      }
+    ];
+    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
+
+    await node.process();
+
+    expect(uploadVideoInput).toHaveBeenCalled();
+    expect(kieExecuteTask).toHaveBeenCalledWith(
+      "test-key",
+      "gemini-omni-video",
+      expect.objectContaining({
+        video_list: [{ url: "https://cdn.example.com/source.mp4", start: 2, ends: 7 }]
+      }),
+      8000,
+      450,
+      undefined,
+      undefined,
+      undefined
     );
   });
 

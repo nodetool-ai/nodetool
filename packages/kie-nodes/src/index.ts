@@ -17,6 +17,14 @@ export {
   uploadImageInput,
   uploadVideoInput
 } from "./kie-base.js";
+export {
+  buildVideoClipsFromRefs,
+  readClipStart,
+  readClipEnd,
+  clampClipEnd,
+  MAX_VIDEO_CLIP_SPAN
+} from "./video-clip.js";
+export type { VideoClipPayload } from "./video-clip.js";
 
 function loadManifest(): KieManifestEntry[] {
   const dir = dirname(fileURLToPath(import.meta.url));

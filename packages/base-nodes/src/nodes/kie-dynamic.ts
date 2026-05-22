@@ -12,7 +12,8 @@ import {
   kieImageRef,
   uploadAudioInput,
   uploadImageInput,
-  uploadVideoInput
+  uploadVideoInput,
+  buildVideoClipsFromRefs
 } from "@nodetool-ai/kie-nodes";
 import type { TypeMetadata } from "@nodetool-ai/node-sdk";
 
@@ -596,6 +597,14 @@ function fieldNameForParam(param: KieParamInfo): string {
 }
 
 function mapParamType(param: KieParamInfo): TypeMetadata {
+  if (param.isVideoClipList) {
+    return {
+      type: "video_clip_list",
+      type_args: [],
+      ...(param.minVal !== undefined ? { min: param.minVal } : {}),
+      ...(param.maxVal !== undefined ? { max: param.maxVal } : {})
+    };
+  }
   if (param.name.endsWith("_ids") && param.type === "array") {
     return { type: "list", type_args: [{ type: "str", type_args: [] }] };
   }
@@ -649,7 +658,7 @@ function defaultRefForKind(kind: "image" | "audio" | "video"): unknown {
 }
 
 function defaultDynamicValue(param: KieParamInfo): unknown {
-  if (param.isFileUrlArray) {
+  if (param.isVideoClipList || param.isFileUrlArray) {
     return [];
   }
   if (param.isFileUrl) {
@@ -781,33 +790,10 @@ export class KieAINode extends BaseNode {
       }
 
       if (p.isVideoClipList) {
-        const items = Array.isArray(val) ? val : [];
-        const clips: Array<{ url: string; start: number; ends: number }> = [];
-        for (const item of items) {
-          if (
-            item &&
-            typeof item === "object" &&
-            typeof (item as { url?: unknown }).url === "string" &&
-            (item as { url: string }).url
-          ) {
-            const clip = item as { url: string; start?: number; ends?: number };
-            clips.push({
-              url: clip.url,
-              start: typeof clip.start === "number" ? clip.start : 0,
-              ends: typeof clip.ends === "number" ? clip.ends : 10
-            });
-            continue;
-          }
-          if (isRefSet(item)) {
-            const url = await uploadVideoInput(apiKey, item, context);
-            const duration =
-              typeof (item as { duration?: unknown }).duration === "number" &&
-              (item as { duration: number }).duration > 0
-                ? Math.min((item as { duration: number }).duration, 10)
-                : 10;
-            clips.push({ url, start: 0, ends: duration });
-          }
-        }
+        const clips = await buildVideoClipsFromRefs(
+          (ref) => uploadVideoInput(apiKey, ref, context),
+          val
+        );
         if (clips.length) apiInput[p.name] = clips;
       } else if (p.isFileUrlArray) {
         const kind = detectMediaKind(p) ?? "image";

@@ -29,7 +29,8 @@ const ASSET_PROP_TYPES: ReadonlySet<string> = new Set([
   "tensor",
   "list[image]",
   "list[video]",
-  "list[audio]"
+  "list[audio]",
+  "video_clip_list"
 ]);
 
 const TEXT_PROP_TYPES: ReadonlySet<string> = new Set(["str", "text"]);

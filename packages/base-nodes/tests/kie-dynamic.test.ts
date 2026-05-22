@@ -713,8 +713,8 @@ describe("resolveKieDynamicSchema gemini-omni-video", () => {
 
     expect(schema.model_id).toBe("gemini-omni-video");
     expect(schema.dynamic_inputs.video_list).toMatchObject({
-      type: "list",
-      type_args: [{ type: "video", type_args: [] }],
+      type: "video_clip_list",
+      type_args: [],
       optional: true
     });
     expect(schema.dynamic_inputs.audio_ids).toMatchObject({
@@ -768,8 +768,8 @@ describe("resolveKieDynamicSchema gemini-omni-video", () => {
       "video_list"
     ]);
     expect(schema.dynamic_inputs.video_list).toMatchObject({
-      type: "list",
-      type_args: [{ type: "video", type_args: [] }]
+      type: "video_clip_list",
+      type_args: []
     });
     expect(schema.dynamic_outputs).toMatchObject({
       video: { type: "video", type_args: [] }
@@ -828,6 +828,60 @@ describe("resolveKieDynamicSchema gemini-omni-video", () => {
     ]);
     expect(body.input.audio_ids).toEqual(["audio_01"]);
     expect(body.input.character_ids).toEqual(["character_01"]);
+  });
+
+  it("submits video_list clip trim metadata from video refs", async () => {
+    mockFetch.mockImplementation(async (url: string | URL) => {
+      const urlStr = String(url);
+      if (urlStr.includes("createTask")) {
+        return jsonResponse({ code: 200, data: { taskId: "task_clip" } });
+      }
+      if (urlStr.includes("recordInfo")) {
+        return jsonResponse({
+          code: 200,
+          data: {
+            state: "success",
+            resultJson: JSON.stringify({
+              resultUrls: ["https://cdn.example.com/output.mp4"]
+            })
+          }
+        });
+      }
+      if (urlStr.includes("cdn.example.com")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => null,
+          text: async () => "",
+          arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer
+        } as unknown as Response;
+      }
+      if (urlStr.includes("upload") || urlStr.includes("source.mp4")) {
+        return jsonResponse({ data: { url: "https://cdn.example.com/source.mp4" } });
+      }
+      return jsonResponse({ error: "unknown" }, 404);
+    });
+
+    const node = new KieAINode();
+    node.assign({ model_info: GEMINI_OMNI_OPENAPI });
+    (node as any).prompt = "A neon city walk";
+    (node as any).video_list = [
+      {
+        type: "video",
+        uri: "https://example.com/source.mp4",
+        metadata: { clipStart: 2, clipEnd: 7 }
+      }
+    ];
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
+    await node.process();
+
+    const createCall = mockFetch.mock.calls.find((c: unknown[]) =>
+      String(c[0]).includes("createTask")
+    );
+    const body = JSON.parse(createCall![1].body);
+    expect(body.input.video_list).toEqual([
+      { url: "https://example.com/source.mp4", start: 2, ends: 7 }
+    ]);
   });
 
   it("resolves gemini omni audio as text output with omni direct OpenAPI", () => {

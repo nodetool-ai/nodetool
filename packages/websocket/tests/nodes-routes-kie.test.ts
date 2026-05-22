@@ -507,8 +507,8 @@ paths:
       model_id: "gemini-omni-video",
       dynamic_inputs: {
         video_list: {
-          type: "list",
-          type_args: [{ type: "video", type_args: [] }]
+          type: "video_clip_list",
+          type_args: []
         },
         audio_ids: {
           type: "list",

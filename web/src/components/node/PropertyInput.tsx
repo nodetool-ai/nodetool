@@ -49,6 +49,7 @@ import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
 import ImageListProperty from "../properties/ImageListProperty";
 import VideoListProperty from "../properties/VideoListProperty";
+import VideoClipListProperty from "../properties/VideoClipListProperty";
 import AudioListProperty from "../properties/AudioListProperty";
 import TextListProperty from "../properties/TextListProperty";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -308,6 +309,8 @@ function componentForType(type: string): React.ComponentType<PropertyProps> {
       return ImageListProperty;
     case "video_list":
       return VideoListProperty;
+    case "video_clip_list":
+      return VideoClipListProperty;
     case "audio_list":
       return AudioListProperty;
     case "text_list":

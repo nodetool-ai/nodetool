@@ -253,7 +253,7 @@ function coerceDefault(schema: JsonRecord, type: FieldDef["type"]): unknown {
   if (type === "image" || type === "audio" || type === "video") {
     return defaultForMedia(type);
   }
-  if (type.startsWith("list[")) {
+  if (type.startsWith("list[") || type === "video_clip_list") {
     return [];
   }
   if (schema.default !== undefined) {
@@ -308,7 +308,7 @@ function mapField(paramName: string, schema: JsonRecord, required: boolean): {
   if (isArray && (sourceName === "video_list" || isVideoClipSchema(schema))) {
     const field: FieldDef = {
       name: "video_list",
-      type: "list[video]",
+      type: "video_clip_list",
       default: [],
       title: "Video List",
       description: cleanDescription(schema.description),

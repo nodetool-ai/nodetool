@@ -24,6 +24,7 @@ import {
   uploadAudioInput,
   uploadVideoInput
 } from "./kie-base.js";
+import { buildVideoClipsFromRefs } from "./video-clip.js";
 
 // ---------------------------------------------------------------------------
 // Manifest types — mirrors kie-codegen types.ts
@@ -43,7 +44,8 @@ export interface KieFieldDef {
     | "list[str]"
     | "list[image]"
     | "list[video]"
-    | "list[audio]";
+    | "list[audio]"
+    | "video_clip_list";
   default?: unknown;
   title?: string;
   description?: string;
@@ -108,7 +110,8 @@ function isAssetType(type: string): boolean {
     "video",
     "list[image]",
     "list[video]",
-    "list[audio]"
+    "list[audio]",
+    "video_clip_list"
   ].includes(type);
 }
 
@@ -179,6 +182,7 @@ function defaultForType(type: string): unknown {
     case "list[video]":
     case "list[audio]":
     case "list[str]":
+    case "video_clip_list":
       return [];
     default:
       return "";
@@ -207,34 +211,10 @@ async function buildVideoClips(
   value: unknown,
   context?: Parameters<BaseNode["process"]>[0]
 ): Promise<Array<{ url: string; start: number; ends: number }>> {
-  const items = Array.isArray(value) ? value : [];
-  const clips: Array<{ url: string; start: number; ends: number }> = [];
-  for (const item of items) {
-    if (
-      item &&
-      typeof item === "object" &&
-      typeof (item as { url?: unknown }).url === "string" &&
-      (item as { url: string }).url
-    ) {
-      const clip = item as { url: string; start?: number; ends?: number };
-      clips.push({
-        url: clip.url,
-        start: typeof clip.start === "number" ? clip.start : 0,
-        ends: typeof clip.ends === "number" ? clip.ends : 10
-      });
-      continue;
-    }
-    if (isRefSet(item)) {
-      const url = await uploadVideoInput(apiKey, item, context);
-      const duration =
-        typeof (item as { duration?: unknown }).duration === "number" &&
-        (item as { duration: number }).duration > 0
-          ? Math.min((item as { duration: number }).duration, 10)
-          : 10;
-      clips.push({ url, start: 0, ends: duration });
-    }
-  }
-  return clips;
+  return buildVideoClipsFromRefs(
+    (ref) => uploadVideoInput(apiKey, ref, context),
+    value
+  );
 }
 
 async function buildParams(
