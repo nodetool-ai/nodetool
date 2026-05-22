@@ -166,8 +166,14 @@ export type ProviderCapability =
   | "generate_messages"
   | "text_to_image"
   | "image_to_image"
+  | "upscale_image"
+  | "remove_background"
+  | "relight_image"
+  | "vectorize_image"
   | "text_to_video"
   | "image_to_video"
+  | "video_to_video"
+  | "lip_sync"
   | "text_to_speech"
   | "automatic_speech_recognition"
   | "generate_embedding";
@@ -1895,6 +1901,45 @@ export class ProcessingContext {
           durationSeconds: params.duration_seconds as number | undefined,
           aspectRatio: params.aspect_ratio as string | undefined,
           resolution: params.resolution as string | undefined
+        });
+      case "upscale_image":
+        return provider.upscaleImage(params.image as Uint8Array, {
+          model: { id: req.model, name: req.model, provider: req.provider },
+          scale: params.scale as number | undefined,
+          prompt: params.prompt as string | undefined,
+          creativity: params.creativity as number | undefined,
+          seed: params.seed as number | undefined
+        });
+      case "remove_background":
+        return provider.removeBackground(params.image as Uint8Array, {
+          model: { id: req.model, name: req.model, provider: req.provider }
+        });
+      case "relight_image":
+        return provider.relightImage(params.image as Uint8Array, {
+          model: { id: req.model, name: req.model, provider: req.provider },
+          prompt: params.prompt as string | undefined,
+          negativePrompt: params.negative_prompt as string | undefined,
+          seed: params.seed as number | undefined
+        });
+      case "vectorize_image":
+        return provider.vectorizeImage(params.image as Uint8Array, {
+          model: { id: req.model, name: req.model, provider: req.provider }
+        });
+      case "video_to_video":
+        return provider.videoToVideo(params.video as Uint8Array, {
+          model: { id: req.model, name: req.model, provider: req.provider },
+          prompt: params.prompt as string | undefined,
+          negativePrompt: params.negative_prompt as string | undefined,
+          strength: params.strength as number | undefined,
+          durationSeconds: params.duration_seconds as number | undefined,
+          resolution: params.resolution as string | undefined,
+          seed: params.seed as number | undefined
+        });
+      case "lip_sync":
+        return provider.lipSync(params.video as Uint8Array, {
+          model: { id: req.model, name: req.model, provider: req.provider },
+          audio: params.audio as Uint8Array,
+          seed: params.seed as number | undefined
         });
       case "automatic_speech_recognition":
         return provider.automaticSpeechRecognition({
