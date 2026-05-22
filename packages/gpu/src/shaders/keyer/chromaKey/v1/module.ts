@@ -3,7 +3,9 @@
  * edge softness, and key-channel spill suppression.
  *
  * Migrated verbatim from the timeline preview's `chromaKeyComputeShader`. The
- * host converts the `#rrggbb` key color to a linear `vec3f` before packing.
+ * host converts the `#rrggbb` key color to a normalized sRGB `vec3f` (channels
+ * in `0..1`, no linearization) and the comparison runs in that same encoded
+ * space the texture is stored in — behavior-preserving with the legacy path.
  * Hand-packed uniform → TypeGPU `ChromaKeyParams` (the leading `vec3f` forces
  * the same 16-byte alignment the legacy struct had).
  */
@@ -20,7 +22,7 @@ export const ChromaKeyParams = d.struct({
 });
 
 const layout = tgpu.bindGroupLayout({
-  inputTexture: { texture: "float" },
+  source: { texture: "float" },
   outputTexture: { storageTexture: "rgba8unorm" },
   params: { uniform: ChromaKeyParams }
 });
@@ -39,7 +41,7 @@ export const chromaKeyV1 = defineModule({
     spill: 0.5
   },
   paramUi: {
-    keyColor: { label: "Key color", notes: "linear RGB" },
+    keyColor: { label: "Key color", notes: "normalized sRGB, 0..1 per channel" },
     tolerance: { min: 0, max: 1, step: 0.01, label: "Tolerance" },
     softness: { min: 0, max: 1, step: 0.01, label: "Softness" },
     spill: { min: 0, max: 1, step: 0.01, label: "Spill" }
@@ -49,11 +51,11 @@ export const chromaKeyV1 = defineModule({
   wgsl: /* wgsl */ `
 @compute @workgroup_size(16, 16, 1)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let dims = textureDimensions(layout.$.inputTexture);
+  let dims = textureDimensions(layout.$.source);
   if (gid.x >= dims.x || gid.y >= dims.y) { return; }
   let coords = vec2<i32>(i32(gid.x), i32(gid.y));
   let ck = layout.$.params;
-  let color = textureLoad(layout.$.inputTexture, coords, 0);
+  let color = textureLoad(layout.$.source, coords, 0);
 
   let dist = length(color.rgb - ck.keyColor);
   let inner = ck.tolerance;

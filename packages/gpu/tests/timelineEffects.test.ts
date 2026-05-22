@@ -80,6 +80,20 @@ describe("timeline compute effects", () => {
         expect(entries.some((e) => e && "storageTexture" in e)).toBe(true);
         expect(entries.some((e) => e && "uniform" in e)).toBe(true);
       });
+
+      it("layout texture-binding keys match io.inputs keys", () => {
+        // The Executor binds inputs by layout-entry name, so every declared
+        // io.input must have a same-named texture binding in the layout (and
+        // there must be no extra texture bindings the caller can't supply).
+        const layoutEntries = module.layout.entries as Record<
+          string,
+          Record<string, unknown> | null
+        >;
+        const textureKeys = Object.entries(layoutEntries)
+          .filter(([, e]) => e && "texture" in e)
+          .map(([name]) => name);
+        expect(textureKeys.sort()).toEqual(Object.keys(module.io.inputs).sort());
+      });
     });
   }
 

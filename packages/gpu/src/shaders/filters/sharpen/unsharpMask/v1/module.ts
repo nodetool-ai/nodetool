@@ -16,7 +16,7 @@ export const SharpenParams = d.struct({
 });
 
 const layout = tgpu.bindGroupLayout({
-  inputTexture: { texture: "float" },
+  source: { texture: "float" },
   outputTexture: { storageTexture: "rgba8unorm" },
   params: { uniform: SharpenParams }
 });
@@ -37,21 +37,21 @@ export const sharpenUnsharpMaskV1 = defineModule({
   workgroupSize: [16, 16, 1],
   wgsl: /* wgsl */ `
 fn loadClamped(coords: vec2<i32>) -> vec4<f32> {
-  let dims = textureDimensions(layout.$.inputTexture);
+  let dims = textureDimensions(layout.$.source);
   let c = vec2<i32>(
     clamp(coords.x, 0, i32(dims.x) - 1),
     clamp(coords.y, 0, i32(dims.y) - 1)
   );
-  return textureLoad(layout.$.inputTexture, c, 0);
+  return textureLoad(layout.$.source, c, 0);
 }
 
 @compute @workgroup_size(16, 16, 1)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let dims = textureDimensions(layout.$.inputTexture);
+  let dims = textureDimensions(layout.$.source);
   if (gid.x >= dims.x || gid.y >= dims.y) { return; }
   let coords = vec2<i32>(i32(gid.x), i32(gid.y));
   let sharpen = layout.$.params;
-  let center = textureLoad(layout.$.inputTexture, coords, 0);
+  let center = textureLoad(layout.$.source, coords, 0);
 
   // 3x3 box average as the low-pass; sharpen = center + amount * (center - blur).
   var sum = vec4<f32>(0.0);

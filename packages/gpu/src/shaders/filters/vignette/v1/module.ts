@@ -16,7 +16,7 @@ export const VignetteParams = d.struct({
 });
 
 const layout = tgpu.bindGroupLayout({
-  inputTexture: { texture: "float" },
+  source: { texture: "float" },
   outputTexture: { storageTexture: "rgba8unorm" },
   params: { uniform: VignetteParams }
 });
@@ -39,11 +39,11 @@ export const vignetteV1 = defineModule({
   wgsl: /* wgsl */ `
 @compute @workgroup_size(16, 16, 1)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let dims = textureDimensions(layout.$.inputTexture);
+  let dims = textureDimensions(layout.$.source);
   if (gid.x >= dims.x || gid.y >= dims.y) { return; }
   let coords = vec2<i32>(i32(gid.x), i32(gid.y));
   let v = layout.$.params;
-  let color = textureLoad(layout.$.inputTexture, coords, 0);
+  let color = textureLoad(layout.$.source, coords, 0);
 
   // Normalize to [-1, 1] coordinates centered on the frame.
   let uv = vec2<f32>(

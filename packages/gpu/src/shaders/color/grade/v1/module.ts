@@ -28,7 +28,7 @@ export const ColorGradeParams = d.struct({
 });
 
 const layout = tgpu.bindGroupLayout({
-  inputTexture: { texture: "float" },
+  source: { texture: "float" },
   outputTexture: { storageTexture: "rgba8unorm" },
   params: { uniform: ColorGradeParams }
 });
@@ -110,11 +110,11 @@ fn smoothstepCustom(e0: f32, e1: f32, x: f32) -> f32 {
 
 @compute @workgroup_size(16, 16, 1)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let dims = textureDimensions(layout.$.inputTexture);
+  let dims = textureDimensions(layout.$.source);
   if (gid.x >= dims.x || gid.y >= dims.y) { return; }
   let coords = vec2<i32>(i32(gid.x), i32(gid.y));
   let effects = layout.$.params;
-  var color = textureLoad(layout.$.inputTexture, coords, 0);
+  var color = textureLoad(layout.$.source, coords, 0);
   var rgb = color.rgb;
 
   if (abs(effects.brightness) > 0.001) {

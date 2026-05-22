@@ -48,8 +48,6 @@ const NEUTRAL_COLOR: AggregatedColor = {
   highlights: 0
 };
 
-const WORKGROUP_SIZE = 16;
-
 interface IntermediatePool {
   width: number;
   height: number;
@@ -146,16 +144,9 @@ export class WebGPUEffectsProcessor {
     );
     pool.currentIndex = 0;
 
-    const dispatch: ExecutorDispatch = {
-      kind: "compute",
-      x: Math.ceil(width / WORKGROUP_SIZE),
-      y: Math.ceil(height / WORKGROUP_SIZE),
-      z: 1
-    };
-
     if (chromaKeyActive && chromaKey) {
       const [r, g, b] = hexToRgb(chromaKey.keyColor);
-      this.encodeStep(encoder, pool, chromaKeyV1, dispatch, {
+      this.encodeStep(encoder, pool, chromaKeyV1, {
         keyColor: d.vec3f(r, g, b),
         tolerance: chromaKey.tolerance,
         softness: chromaKey.softness,
@@ -163,29 +154,29 @@ export class WebGPUEffectsProcessor {
       });
     }
     if (colorActive) {
-      this.encodeStep(encoder, pool, colorGradeV1, dispatch, { ...color });
+      this.encodeStep(encoder, pool, colorGradeV1, { ...color });
     }
     if (blurActive) {
       const sigma = blurRadius / 3;
-      this.encodeStep(encoder, pool, blurGaussianV1, dispatch, {
+      this.encodeStep(encoder, pool, blurGaussianV1, {
         radius: blurRadius,
         sigma,
         direction: d.vec2f(1, 0)
       });
-      this.encodeStep(encoder, pool, blurGaussianV1, dispatch, {
+      this.encodeStep(encoder, pool, blurGaussianV1, {
         radius: blurRadius,
         sigma,
         direction: d.vec2f(0, 1)
       });
     }
     if (sharpenActive && sharpen) {
-      this.encodeStep(encoder, pool, sharpenUnsharpMaskV1, dispatch, {
+      this.encodeStep(encoder, pool, sharpenUnsharpMaskV1, {
         amount: sharpen.amount,
         threshold: sharpen.threshold
       });
     }
     if (vignetteActive && vignette) {
-      this.encodeStep(encoder, pool, vignetteV1, dispatch, {
+      this.encodeStep(encoder, pool, vignetteV1, {
         intensity: vignette.intensity,
         radius: vignette.radius,
         softness: vignette.softness
@@ -200,11 +191,17 @@ export class WebGPUEffectsProcessor {
     encoder: GPUCommandEncoder,
     pool: IntermediatePool,
     module: ShaderModule<Schema>,
-    dispatch: ExecutorDispatch,
     params: Infer<Schema>
   ): void {
     const inIdx = pool.currentIndex;
     const outIdx = (1 - inIdx) as 0 | 1;
+    const [wgX, wgY] = module.workgroupSize;
+    const dispatch: ExecutorDispatch = {
+      kind: "compute",
+      x: Math.ceil(pool.width / wgX),
+      y: Math.ceil(pool.height / wgY),
+      z: 1
+    };
     this.executor.encode({
       ctx: this.ctx,
       module,

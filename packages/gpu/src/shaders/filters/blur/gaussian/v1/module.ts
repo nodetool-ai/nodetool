@@ -21,7 +21,7 @@ export const BlurParams = d.struct({
 });
 
 const layout = tgpu.bindGroupLayout({
-  inputTexture: { texture: "float" },
+  source: { texture: "float" },
   outputTexture: { storageTexture: "rgba8unorm" },
   params: { uniform: BlurParams }
 });
@@ -49,13 +49,13 @@ fn gaussianWeight(offset: f32, sigma: f32) -> f32 {
 
 @compute @workgroup_size(16, 16, 1)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let dims = textureDimensions(layout.$.inputTexture);
+  let dims = textureDimensions(layout.$.source);
   if (gid.x >= dims.x || gid.y >= dims.y) { return; }
   let coords = vec2<i32>(i32(gid.x), i32(gid.y));
   let blur = layout.$.params;
 
   if (blur.radius < 0.5) {
-    textureStore(layout.$.outputTexture, coords, textureLoad(layout.$.inputTexture, coords, 0));
+    textureStore(layout.$.outputTexture, coords, textureLoad(layout.$.source, coords, 0));
     return;
   }
 
@@ -74,7 +74,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       clamp(coords.y + offset.y, 0, i32(dims.y) - 1)
     );
     let w = gaussianWeight(f32(i), sigma);
-    colorSum = colorSum + textureLoad(layout.$.inputTexture, s, 0) * w;
+    colorSum = colorSum + textureLoad(layout.$.source, s, 0) * w;
     weightSum = weightSum + w;
   }
   textureStore(layout.$.outputTexture, coords, colorSum / weightSum);
