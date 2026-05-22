@@ -3,6 +3,13 @@ const fsp = fs.promises;
 const path = require("path");
 const { spawnSync } = require("child_process");
 
+const {
+  NODE_RUNTIME_VERSION,
+  nodeBinaryName,
+  ALL_DAWN_FILES,
+  dawnKeepFiles,
+} = require("./node-runtime.constants.cjs");
+
 function resolveResourcesDir(context) {
   const { electronPlatformName, appOutDir, packager } = context;
   if (electronPlatformName === "darwin") {
@@ -97,34 +104,53 @@ function resolveArch(context) {
   return ["ia32", "x64", "armv7l", "arm64", "universal"][context.arch] ?? "x64";
 }
 
-function resolveElectronVersion(context) {
-  return (
-    context.packager.config.electronVersion ??
-    context.packager.electronVersion ??
-    require("electron/package.json").version
-  );
+const ELECTRON_DIR = path.dirname(__dirname);
+
+/** Copy the build target's bundled Node binary into backend/runtime/. */
+async function placeNodeRuntime(context, cacheRoot) {
+  const platform = context.electronPlatformName;
+  const arch = resolveArch(context);
+  const binName = nodeBinaryName(platform);
+  const src = path.join(cacheRoot, `${platform}-${arch}`, binName);
+  if (!fs.existsSync(src)) {
+    throw new Error(
+      `Bundled Node binary not found: ${src}. Run scripts/fetch-node-runtime.mjs.`
+    );
+  }
+  const runtimeDir = path.join(resolveResourcesDir(context), "backend", "runtime");
+  await fsp.mkdir(runtimeDir, { recursive: true });
+  const dest = path.join(runtimeDir, binName);
+  await fsp.copyFile(src, dest);
+  if (platform !== "win32") await fsp.chmod(dest, 0o755);
+  console.info(`Placed bundled Node (${platform}-${arch}) at ${dest}`);
 }
 
-// Invoke `node-gyp rebuild` directly against Electron's headers. This matches
-// what scripts/electron-dev.mjs does for the dev workflow and avoids
-// @electron/rebuild's prebuild-install path, which has a tendency to
-// silently leave the wrong-ABI binary in place when it can't resolve a
-// matching prebuilt asset (observed for better-sqlite3 v12 + Electron 39:
-// rebuild reports success but leaves the node-vNNN prebuild from npm install).
-//
+/** Delete dawn.node binaries that don't belong to this build's platform. */
+function pruneDawnBinaries(backendDir, platform, arch) {
+  const dist = path.join(backendDir, "node_modules", "webgpu", "dist");
+  if (!fs.existsSync(dist)) return;
+  const keep = new Set(dawnKeepFiles(platform, arch));
+  for (const f of ALL_DAWN_FILES) {
+    if (keep.has(f)) continue;
+    const p = path.join(dist, f);
+    if (fs.existsSync(p)) fs.rmSync(p, { force: true });
+  }
+}
+
+// Invoke `node-gyp rebuild` directly against the bundled Node's headers.
 // We resolve node-gyp's bin script via require.resolve and run it through the
 // current Node interpreter, which sidesteps PATH/npx surprises when the
 // module being rebuilt lives deep inside the packaged app's resources tree.
-function nodeGypRebuild(modulePath, electronVersion, arch) {
+function nodeGypRebuild(modulePath, nodeVersion, arch) {
   const nodeGypBin = require.resolve("node-gyp/bin/node-gyp.js");
   const result = spawnSync(
     process.execPath,
     [
       nodeGypBin,
       "rebuild",
-      `--target=${electronVersion}`,
+      "--release",
+      `--target=${nodeVersion}`,
       `--arch=${arch}`,
-      "--dist-url=https://electronjs.org/headers",
     ],
     { cwd: modulePath, stdio: "inherit" }
   );
@@ -135,39 +161,47 @@ function nodeGypRebuild(modulePath, electronVersion, arch) {
   }
 }
 
-async function rebuildNativeModulesForElectron(context) {
-  const resourcesDir = resolveResourcesDir(context);
-  const backendDir = path.join(resourcesDir, "backend");
-  const electronVersion = resolveElectronVersion(context);
+// Only V8/NAN-locked modules need a rebuild to match the bundled Node's ABI.
+// N-API modules (sharp, dawn.node, bufferutil, keytar, msgpackr-extract,
+// onnxruntime-node) are ABI-stable across Node versions and must NOT be rebuilt.
+const V8_LOCKED_MODULES = new Set(["better-sqlite3"]);
+
+async function rebuildNativeModulesForBackend(context) {
+  const backendDir = path.join(resolveResourcesDir(context), "backend");
   const arch = resolveArch(context);
-
   const runtimeNodeModulesPath = path.join(backendDir, "node_modules");
-  const moduleNames = findNativeModuleNames(runtimeNodeModulesPath);
+  const found = findNativeModuleNames(runtimeNodeModulesPath);
+  const toRebuild = found.filter((n) => V8_LOCKED_MODULES.has(n));
 
-  if (moduleNames.length === 0) {
+  if (!toRebuild.includes("better-sqlite3")) {
     throw new Error(
-      `No native modules found to rebuild in ${runtimeNodeModulesPath}. ` +
-      `Expected at least better-sqlite3. Did bundle-backend.mjs stage modules correctly?`
+      `better-sqlite3 not found in ${runtimeNodeModulesPath}. ` +
+      `Did bundle-backend.mjs stage modules correctly?`
     );
   }
 
   console.info(
-    `Rebuilding ${moduleNames.length} native backend module(s) for Electron ${electronVersion} (${arch}): ${moduleNames.join(", ")}`
+    `Rebuilding ${toRebuild.join(", ")} for Node ${NODE_RUNTIME_VERSION} (${arch})`
   );
-
-  for (const name of moduleNames) {
-    const modulePath = path.join(runtimeNodeModulesPath, name);
-    console.info(`  -> ${name}`);
-    nodeGypRebuild(modulePath, electronVersion, arch);
+  for (const name of toRebuild) {
+    nodeGypRebuild(path.join(runtimeNodeModulesPath, name), NODE_RUNTIME_VERSION, arch);
   }
-
   console.info("Native backend module rebuild complete.");
 }
 
 module.exports = async function afterPack(context) {
   try {
     await promoteBackendNodeModules(context);
-    await rebuildNativeModulesForElectron(context);
+    await placeNodeRuntime(
+      context,
+      path.join(ELECTRON_DIR, ".node-runtime", NODE_RUNTIME_VERSION)
+    );
+    pruneDawnBinaries(
+      path.join(resolveResourcesDir(context), "backend"),
+      context.electronPlatformName,
+      resolveArch(context)
+    );
+    await rebuildNativeModulesForBackend(context);
   } catch (error) {
     console.error("afterPack failed", error);
     throw error;
@@ -177,3 +211,5 @@ module.exports = async function afterPack(context) {
 module.exports.promoteBackendNodeModules = promoteBackendNodeModules;
 module.exports.resolveResourcesDir = resolveResourcesDir;
 module.exports.findNativeModuleNames = findNativeModuleNames;
+module.exports.placeNodeRuntime = placeNodeRuntime;
+module.exports.pruneDawnBinaries = pruneDawnBinaries;
