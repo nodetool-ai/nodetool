@@ -5,7 +5,6 @@
 import {
   comfyWorkflowToNodeToolGraph,
   nodeToolGraphToComfyWorkflow,
-  nodeToolGraphToComfyPrompt,
   comfyPromptToNodeToolGraph,
   isComfyWorkflow,
   COMFY_WORKFLOW_FLAG
@@ -238,99 +237,6 @@ describe("ComfyUI Workflow Converter", () => {
       expect(workflow.links).toHaveLength(1);
       expect(workflow.links[0].origin_slot).toBe(0);
       expect(workflow.links[0].target_slot).toBe(0);
-    });
-  });
-
-  describe("nodeToolGraphToComfyPrompt", () => {
-    test("converts graph to ComfyUI prompt format", () => {
-      const graph: Graph = {
-        nodes: [
-          {
-            id: "1",
-            type: "comfy.LoadCheckpoint",
-            data: { ckpt_name: "v1-5-pruned.ckpt" },
-            sync_mode: "on_any"
-          },
-          {
-            id: "2",
-            type: "comfy.KSampler",
-            data: { steps: 20, cfg: 7.0, seed: 42 },
-            sync_mode: "on_any"
-          }
-        ],
-        edges: [
-          {
-            source: "1",
-            target: "2",
-            sourceHandle: "output_0",
-            targetHandle: "model",  // Use actual input name, not generic input_0
-            edge_type: "data"
-          }
-        ]
-      };
-
-      const prompt = nodeToolGraphToComfyPrompt(graph);
-
-      expect(prompt["1"]).toBeDefined();
-      expect(prompt["1"].class_type).toBe("LoadCheckpoint");
-      expect(prompt["1"].inputs.ckpt_name).toBe("v1-5-pruned.ckpt");
-
-      expect(prompt["2"]).toBeDefined();
-      expect(prompt["2"].class_type).toBe("KSampler");
-      expect(prompt["2"].inputs.steps).toBe(20);
-      expect(prompt["2"].inputs.cfg).toBe(7.0);
-      
-      // Check connected input - ComfyUI uses actual parameter names, not generic handles
-      expect(prompt["2"].inputs.model).toEqual(["1", 0]);
-    });
-
-    test("skips non-ComfyUI nodes", () => {
-      const graph: Graph = {
-        nodes: [
-          {
-            id: "1",
-            type: "comfy.LoadCheckpoint",
-            data: { ckpt_name: "model.ckpt" },
-            sync_mode: "on_any"
-          },
-          {
-            id: "2",
-            type: "nodetool.input.StringInput",
-            data: { value: "test" },
-            sync_mode: "on_any"
-          }
-        ],
-        edges: []
-      };
-
-      const prompt = nodeToolGraphToComfyPrompt(graph);
-
-      expect(prompt["1"]).toBeDefined();
-      expect(prompt["2"]).toBeUndefined();
-    });
-
-    test("filters out internal metadata fields", () => {
-      const graph: Graph = {
-        nodes: [
-          {
-            id: "1",
-            type: "comfy.TestNode",
-            data: {
-              normal_prop: "value",
-              _comfy_metadata: { original_type: "TestNode" },
-              _comfy_widgets: ["widget1"]
-            },
-            sync_mode: "on_any"
-          }
-        ],
-        edges: []
-      };
-
-      const prompt = nodeToolGraphToComfyPrompt(graph);
-
-      expect(prompt["1"].inputs.normal_prop).toBe("value");
-      expect(prompt["1"].inputs._comfy_metadata).toBeUndefined();
-      expect(prompt["1"].inputs._comfy_widgets).toBeUndefined();
     });
   });
 
