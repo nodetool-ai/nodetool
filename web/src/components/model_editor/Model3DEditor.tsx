@@ -297,9 +297,11 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
           disposeObject(gltf.scene);
           return;
         }
-        // Clear any previously loaded content.
+        // Dispose any previously loaded content before swapping in the new model.
         while (root.children.length > 0) {
-          root.remove(root.children[0]);
+          const child = root.children[0];
+          root.remove(child);
+          disposeObject(child);
         }
         gltf.scene.name = gltf.scene.name || "Model";
         root.add(gltf.scene);
@@ -324,6 +326,12 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
 
     return () => {
       cancelled = true;
+      // Release GPU resources for the current scene on URL change/unmount.
+      while (root.children.length > 0) {
+        const child = root.children[0];
+        root.remove(child);
+        disposeObject(child);
+      }
     };
   }, [url, root, bump]);
 

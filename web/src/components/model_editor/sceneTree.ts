@@ -52,15 +52,15 @@ export const flattenTree = (nodes: SceneTreeNode[]): SceneTreeNode[] => {
 /** Recursively dispose geometries and materials owned by an object subtree. */
 export const disposeObject = (object: THREE.Object3D): void => {
   object.traverse((child) => {
-    const mesh = child as THREE.Mesh;
-    if (mesh.geometry) {
-      mesh.geometry.dispose();
+    if (!(child instanceof THREE.Mesh)) {
+      return;
     }
-    const material = (mesh as THREE.Mesh).material;
+    child.geometry?.dispose();
+    const material = child.material;
     if (Array.isArray(material)) {
       material.forEach((m) => m.dispose());
-    } else if (material) {
-      material.dispose();
+    } else {
+      material?.dispose();
     }
   });
 };

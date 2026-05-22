@@ -44,7 +44,7 @@ const mockTheme = createTheme({
       gridRow: 4
     }
   }
-} as any);
+});
 
 // Add vars property directly to the theme object
 (mockTheme as any).vars = {
