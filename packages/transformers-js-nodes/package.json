@@ -12,13 +12,13 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@huggingface/transformers": "^3.7.6",
-    "kokoro-js": "^1.2.1",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/runtime": "*"
   },
   "devDependencies": {
+    "@huggingface/transformers": "^4.2.0",
+    "kokoro-js": "^1.2.1",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"

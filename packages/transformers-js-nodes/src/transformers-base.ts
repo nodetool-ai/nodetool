@@ -95,7 +95,9 @@ export async function loadTransformers(): Promise<TransformersModule> {
       } catch (err) {
         throw new Error(
           "The '@huggingface/transformers' package is required to run " +
-            "Transformers.js nodes. Install it with `npm install @huggingface/transformers`. " +
+            "Transformers.js nodes. Install the \"Transformers.js\" runtime " +
+            "package from the Package Manager (it bundles @huggingface/transformers " +
+            "and onnxruntime). " +
             `Original error: ${(err as Error)?.message ?? err}`
         );
       }
