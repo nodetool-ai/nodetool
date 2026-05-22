@@ -27,6 +27,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
+import { isEditableModel3DAsset } from "../model_editor/isEditableModel3D";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
 import {
@@ -283,6 +284,12 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     return ct?.startsWith("image/") || false;
   }, [currentAsset?.content_type, contentType]);
 
+  // Check if current asset is an editable 3D model (.glb/.gltf)
+  const isModel3D = useMemo(
+    () => (currentAsset ? isEditableModel3DAsset(currentAsset) : false),
+    [currentAsset]
+  );
+
   // Check if there are multiple images to compare
   const imageAssets = useMemo(
     () => assetsToUse.filter((a) => a.content_type?.startsWith("image/")),
@@ -346,6 +353,12 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       navigate(`/assets/edit/${currentAsset.id}`);
     }
   }, [currentAsset, isImage, navigate]);
+
+  const handleOpenModel3DEditor = useCallback(() => {
+    if (currentAsset && isModel3D) {
+      navigate(`/assets/edit/${currentAsset.id}`);
+    }
+  }, [currentAsset, isModel3D, navigate]);
 
 
   // Copy to clipboard state and handler
@@ -698,6 +711,16 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               icon={<EditIcon />}
               tooltip="Edit Image"
               onClick={handleOpenImageEditor}
+              className="button edit"
+              nodrag={false}
+              sx={viewerActionButtonSx}
+            />
+          )}
+          {isModel3D && !compareMode && (
+            <ToolbarIconButton
+              icon={<EditIcon />}
+              tooltip="Edit in 3D Editor"
+              onClick={handleOpenModel3DEditor}
               className="button edit"
               nodrag={false}
               sx={viewerActionButtonSx}
