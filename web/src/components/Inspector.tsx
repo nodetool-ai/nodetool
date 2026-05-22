@@ -85,31 +85,32 @@ const styles = (theme: Theme) =>
     },
     ".namespace-button": {
       alignSelf: "flex-start",
-      marginTop: theme.spacing(0.25),
-      padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
-      fontSize: theme.fontSizeTiny,
-      color: theme.vars.palette.text.disabled,
+      marginTop: theme.spacing(0.5),
+      padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.text.secondary,
       fontFamily: "monospace",
       letterSpacing: "0.02em",
-      fontWeight: 400,
+      fontWeight: 500,
       textTransform: "none",
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: theme.shape.borderRadius,
+      backgroundColor: theme.vars.palette.action.hover,
       whiteSpace: "nowrap",
       maxWidth: "100%",
       overflow: "hidden",
       textOverflow: "ellipsis",
       "&:hover": {
-        bgcolor: "action.hover",
-        color: theme.vars.palette.text.secondary
+        bgcolor: theme.vars.palette.action.selected,
+        color: theme.vars.palette.text.primary,
+        borderColor: theme.vars.palette.text.secondary
       }
     },
     ".header-description": {
-      color: theme.vars.palette.text.secondary,
-      fontSize: theme.fontSizeTiny,
-      lineHeight: 1.4,
+      color: theme.vars.palette.text.primary,
+      fontSize: theme.fontSizeSmaller,
+      lineHeight: 1.45,
       marginTop: theme.spacing(0.5),
-      opacity: 0.8,
       whiteSpace: "pre-wrap"
     },
     ".description": {
@@ -565,8 +566,8 @@ const Inspector: React.FC = () => {
               ) : null}
               {metadata.namespace ? (
                 <Tooltip
-                  delay={TOOLTIP_ENTER_DELAY * 2}
-                  title="Open Node Menu here"
+                  delay={TOOLTIP_ENTER_DELAY}
+                  title="Browse related nodes in the node menu"
                   placement="bottom"
                   arrow
                 >
