@@ -13,6 +13,7 @@ import { getBespokeBody } from "../node_types/editing/bespokeRegistry";
 import HandleColumn from "./HandleColumn";
 import { isSnippetCodeNode } from "./codeNodeUi";
 import { resolveExposedInputNames } from "../../utils/exposedInputs";
+import ExposedLabeledInputs from "./ExposedLabeledInputs";
 
 interface NodeContentProps {
   id: string;
@@ -102,7 +103,7 @@ const arePropsEqual = (
     }
   }
 
-  // Compare exposedInputs (affects which props render as handles)
+  // Compare exposed input placements (affects node-body handles / labeled rows)
   const prevExposed = prevProps.data.exposedInputs || [];
   const nextExposed = nextProps.data.exposedInputs || [];
   if (prevExposed.length !== nextExposed.length) {
@@ -110,6 +111,16 @@ const arePropsEqual = (
   }
   for (let i = 0; i < prevExposed.length; i++) {
     if (prevExposed[i] !== nextExposed[i]) {
+      return false;
+    }
+  }
+  const prevLabeled = prevProps.data.exposedInputsLabeled || [];
+  const nextLabeled = nextProps.data.exposedInputsLabeled || [];
+  if (prevLabeled.length !== nextLabeled.length) {
+    return false;
+  }
+  for (let i = 0; i < prevLabeled.length; i++) {
+    if (prevLabeled[i] !== nextLabeled[i]) {
       return false;
     }
   }
@@ -244,6 +255,13 @@ const NodeContent: React.FC<NodeContentProps> = ({
         properties={inlineProperties}
         nodeType={nodeType}
         data={data}
+      />
+      <ExposedLabeledInputs
+        id={id}
+        nodeMetadata={nodeMetadata}
+        nodeType={nodeType}
+        data={data}
+        properties={allProperties}
       />
       {(nodeMetadata?.is_dynamic || nodeMetadata?.supports_dynamic_outputs) && (
         <NodePropertyForm

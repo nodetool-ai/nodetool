@@ -60,6 +60,7 @@ import {
   type ContentCardVariant
 } from "./contentCardRegistry";
 import { resolveExposedInputNames } from "../../utils/exposedInputs";
+import ExposedLabeledInputs from "../node/ExposedLabeledInputs";
 
 const styles = (theme: Theme) =>
   css({
@@ -552,6 +553,14 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
           />
         </div>
       )}
+
+      <ExposedLabeledInputs
+        id={id}
+        nodeMetadata={nodeMetadata}
+        nodeType={nodeType}
+        data={data}
+        properties={properties}
+      />
 
       {!isOutputNode && (
         <div className="outputs-row">

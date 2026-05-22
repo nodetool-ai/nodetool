@@ -55,6 +55,7 @@ import {
   ToolbarIconButton
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
+import ExposedLabeledInputs from "../../node/ExposedLabeledInputs";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 import NumberInput from "../../inputs/NumberInput";
@@ -1173,6 +1174,14 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
           </div>
         </FlexRow>
       </FlexColumn>
+
+      <ExposedLabeledInputs
+        id={id}
+        nodeMetadata={nodeMetadata}
+        nodeType={nodeType}
+        data={data}
+        properties={properties}
+      />
 
       {!isOutputNode && (
         <div className="outputs-row">

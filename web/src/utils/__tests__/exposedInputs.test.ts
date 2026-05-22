@@ -3,7 +3,10 @@ import type { NodeData } from "../../stores/NodeData";
 import {
   addExposedInput,
   canPromotePropertyToInputHandle,
+  getExposedInputPlacement,
+  patchExposedInputPlacement,
   removeExposedInput,
+  resolveExposedInputLabeledNames,
   resolveExposedInputNames
 } from "../exposedInputs";
 
@@ -94,6 +97,58 @@ describe("exposedInputs utility", () => {
 
     it("returns false when metadata is missing", () => {
       expect(canPromotePropertyToInputHandle(undefined, "x")).toBe(false);
+    });
+  });
+
+  describe("resolveExposedInputLabeledNames", () => {
+    it("returns exposedInputsLabeled in order", () => {
+      const data = baseData({ exposedInputsLabeled: ["prompt", "seed"] });
+      expect(resolveExposedInputLabeledNames(data)).toEqual(["prompt", "seed"]);
+    });
+
+    it("treats missing field as empty", () => {
+      expect(resolveExposedInputLabeledNames(baseData())).toEqual([]);
+    });
+  });
+
+  describe("patchExposedInputPlacement", () => {
+    it("adds handle placement and clears labeled list for same property", () => {
+      const data = baseData({
+        exposedInputsLabeled: ["prompt"],
+        exposedInputs: []
+      });
+      const patch = patchExposedInputPlacement(data, "prompt", "handle");
+      expect(patch.exposedInputs).toEqual(["prompt"]);
+      expect(patch.exposedInputsLabeled).toEqual([]);
+    });
+
+    it("adds labeled placement and clears handle list for same property", () => {
+      const data = baseData({ exposedInputs: ["prompt"] });
+      const patch = patchExposedInputPlacement(data, "prompt", "labeled");
+      expect(patch.exposedInputs).toEqual([]);
+      expect(patch.exposedInputsLabeled).toEqual(["prompt"]);
+    });
+
+    it("removes from both lists when placement is null", () => {
+      const data = baseData({
+        exposedInputs: ["a"],
+        exposedInputsLabeled: ["b"]
+      });
+      expect(patchExposedInputPlacement(data, "a", null)).toEqual({
+        exposedInputs: []
+      });
+    });
+  });
+
+  describe("getExposedInputPlacement", () => {
+    it("returns handle or labeled or null", () => {
+      const data = baseData({
+        exposedInputs: ["a"],
+        exposedInputsLabeled: ["b"]
+      });
+      expect(getExposedInputPlacement(data, "a")).toBe("handle");
+      expect(getExposedInputPlacement(data, "b")).toBe("labeled");
+      expect(getExposedInputPlacement(data, "c")).toBeNull();
     });
   });
 

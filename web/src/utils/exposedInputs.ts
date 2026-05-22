@@ -1,10 +1,12 @@
 import type { NodeMetadata } from "../stores/ApiTypes";
 import type { NodeData } from "../stores/NodeData";
 
+export type ExposedInputPlacement = "handle" | "labeled";
+
 /**
  * Resolve the set of properties that should appear as input handles on the
- * node body. Combines metadata `input_fields` with per-node `exposedInputs`
- * — properties the user has promoted via the inspector toggle.
+ * node body (left handle column). Combines metadata `input_fields` with
+ * per-node `exposedInputs` — properties the user promoted as handle-only.
  */
 export const resolveExposedInputNames = (
   metadata: NodeMetadata,
@@ -29,12 +31,41 @@ export const resolveExposedInputNames = (
   return out;
 };
 
+/** Properties promoted to labeled input rows at the bottom of the node body. */
+export const resolveExposedInputLabeledNames = (data: NodeData): string[] => [
+  ...(data.exposedInputsLabeled ?? [])
+];
+
+export const getExposedInputPlacement = (
+  data: NodeData,
+  propertyName: string
+): ExposedInputPlacement | null => {
+  if ((data.exposedInputs ?? []).includes(propertyName)) {
+    return "handle";
+  }
+  if ((data.exposedInputsLabeled ?? []).includes(propertyName)) {
+    return "labeled";
+  }
+  return null;
+};
+
 /**
  * Pure helper: add `propertyName` to the exposed list if absent, preserving
  * order. Returns the same array reference when no change is needed so
  * callers can skip writes.
  */
 export const addExposedInput = (
+  current: string[] | undefined,
+  propertyName: string
+): string[] => {
+  const list = current ?? [];
+  if (list.includes(propertyName)) {
+    return list;
+  }
+  return [...list, propertyName];
+};
+
+export const addExposedInputLabeled = (
   current: string[] | undefined,
   propertyName: string
 ): string[] => {
@@ -58,6 +89,76 @@ export const removeExposedInput = (
     return list;
   }
   return list.filter((n) => n !== propertyName);
+};
+
+export const removeExposedInputLabeled = (
+  current: string[] | undefined,
+  propertyName: string
+): string[] => {
+  const list = current ?? [];
+  if (!list.includes(propertyName)) {
+    return list;
+  }
+  return list.filter((n) => n !== propertyName);
+};
+
+/** Remove from both placement lists (mutual exclusivity when re-adding). */
+export const removeExposedInputEverywhere = (
+  data: Pick<NodeData, "exposedInputs" | "exposedInputsLabeled">,
+  propertyName: string
+): {
+  exposedInputs: string[];
+  exposedInputsLabeled: string[];
+} => ({
+  exposedInputs: removeExposedInput(data.exposedInputs, propertyName),
+  exposedInputsLabeled: removeExposedInputLabeled(
+    data.exposedInputsLabeled,
+    propertyName
+  )
+});
+
+export type ExposedInputListsPatch = {
+  exposedInputs?: string[];
+  exposedInputsLabeled?: string[];
+};
+
+/**
+ * Set placement for a property. `null` removes from both lists.
+ * Switching placement removes the property from the other list.
+ */
+export const patchExposedInputPlacement = (
+  data: Pick<NodeData, "exposedInputs" | "exposedInputsLabeled">,
+  propertyName: string,
+  placement: ExposedInputPlacement | null
+): ExposedInputListsPatch => {
+  const cleared = removeExposedInputEverywhere(data, propertyName);
+  if (placement === null) {
+    const patch: ExposedInputListsPatch = {};
+    if (cleared.exposedInputs !== data.exposedInputs) {
+      patch.exposedInputs = cleared.exposedInputs;
+    }
+    if (cleared.exposedInputsLabeled !== data.exposedInputsLabeled) {
+      patch.exposedInputsLabeled = cleared.exposedInputsLabeled;
+    }
+    return patch;
+  }
+  if (placement === "handle") {
+    const next = addExposedInput(cleared.exposedInputs, propertyName);
+    const patch: ExposedInputListsPatch = { exposedInputs: next };
+    if (cleared.exposedInputsLabeled !== data.exposedInputsLabeled) {
+      patch.exposedInputsLabeled = cleared.exposedInputsLabeled;
+    }
+    return patch;
+  }
+  const nextLabeled = addExposedInputLabeled(
+    cleared.exposedInputsLabeled,
+    propertyName
+  );
+  const patch: ExposedInputListsPatch = { exposedInputsLabeled: nextLabeled };
+  if (cleared.exposedInputs !== data.exposedInputs) {
+    patch.exposedInputs = cleared.exposedInputs;
+  }
+  return patch;
 };
 
 /** True when the inspector / menu may promote this property to an input handle. */
