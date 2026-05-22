@@ -581,10 +581,7 @@ export class ReplicateProvider extends BaseProvider {
     const input: Record<string, unknown> = {
       image: this.dataUri(image, "image/png")
     };
-    if (params.scale != null) {
-      input.scale = params.scale;
-      input.scale_factor = params.scale;
-    }
+    if (params.scale != null) input.scale = params.scale;
     if (params.prompt) input.prompt = params.prompt;
     if (params.creativity != null) input.creativity = params.creativity;
     if (params.seed != null) input.seed = params.seed;
