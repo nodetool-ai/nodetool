@@ -21,6 +21,7 @@ export * from "./fullscreenQuad.js";
 export {
   ceilToBucket,
   makeScratchPool,
+  makeUniformRing,
   createGPUContextFromDevice
 } from "./context.js";
 export type {
@@ -29,7 +30,8 @@ export type {
   PipelineCache,
   CachedPipeline,
   ScratchPool,
-  ScratchSpec
+  ScratchSpec,
+  UniformRing
 } from "./context.js";
 export {
   ALL_SHADERS,

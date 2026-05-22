@@ -218,16 +218,12 @@ export function createExecutor(): Executor {
     }
     // The module's TypeGPU schema is the single source of truth for the byte
     // layout — `writeToArrayBuffer` packs `params` exactly as the WGSL struct
-    // expects. (Phase 2's Executor adds a reused per-frame buffer ring; Phase
-    // 1 allocates per encode, which is enough for the canary.)
+    // expects. The packed bytes go into a buffer from the context's reused
+    // ring (see `UniformRing`) rather than a fresh per-encode allocation.
     const size = d.sizeOf(module.params);
     const data = new ArrayBuffer(size);
     writeToArrayBuffer(data, module.params, params);
-    const buffer = ctx.device.createBuffer({
-      label: `${module.id}-uniform`,
-      size,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    });
+    const buffer = ctx.uniformRing.acquire(size);
     ctx.device.queue.writeBuffer(buffer, 0, data);
     return buffer;
   }

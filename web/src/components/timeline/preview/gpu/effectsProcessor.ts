@@ -142,6 +142,7 @@ export class WebGPUEffectsProcessor {
       { texture: pool.textures[0].texture },
       { width, height }
     );
+    pool.textures[0].markWritten();
     pool.currentIndex = 0;
 
     if (chromaKeyActive && chromaKey) {
@@ -264,6 +265,7 @@ export class WebGPUEffectsProcessor {
     }
     this.pools.clear();
     this.ctx.scratch.dispose();
+    this.ctx.uniformRing.dispose();
   }
 }
 

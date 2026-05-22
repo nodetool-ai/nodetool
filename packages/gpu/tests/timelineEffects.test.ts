@@ -63,10 +63,11 @@ describe("timeline compute effects", () => {
         expect(d.sizeOf(module.params)).toBe(uniformBytes);
       });
 
-      it("every schema field appears in the resolved WGSL", () => {
+      it("every param field appears in the resolved WGSL", () => {
+        // Derive field names from module-owned `paramDefaults` (stable) rather
+        // than reaching into TypeGPU's internal schema representation.
         const fields = Object.keys(
-          (module.params as unknown as { propTypes: Record<string, unknown> })
-            .propTypes
+          module.paramDefaults as Record<string, unknown>
         );
         expect(fields.length).toBeGreaterThan(0);
         for (const field of fields) {

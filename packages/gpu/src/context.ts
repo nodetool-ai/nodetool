@@ -49,12 +49,31 @@ export interface ScratchPool {
   dispose(): void;
 }
 
+/**
+ * Bounded ring of reusable uniform buffers. The Executor packs each dispatch's
+ * params into the next buffer in the ring rather than allocating a fresh
+ * `GPUBuffer` per encode — without this, a host dispatching effects every
+ * frame (the timeline preview) grows GPU buffer allocations without bound.
+ *
+ * Reuse is safe because of WebGPU's queue ordering: a `writeBuffer` is ordered
+ * after every previously-submitted command on the queue timeline, so reusing a
+ * buffer never races a prior submit's read of it. The only constraint is
+ * *within a single submit*: two concurrent dispatches must not share a buffer,
+ * so the ring size must exceed the number of uniform dispatches a host encodes
+ * into one command buffer (the timeline encodes at most a handful).
+ */
+export interface UniformRing {
+  acquire(size: number): GPUBuffer;
+  dispose(): void;
+}
+
 export interface GPUContext {
   readonly root: TgpuRoot;
   readonly device: GPUDevice;
   readonly capabilities: GPUCapabilities;
   readonly pipelineCache: PipelineCache;
   readonly scratch: ScratchPool;
+  readonly uniformRing: UniformRing;
 }
 
 /** Round a dimension up to the allocation bucket (multiple of 64, pow2 ≥ 256). */
@@ -150,6 +169,42 @@ export function makeScratchPool(device: GPUDevice): ScratchPool {
   };
 }
 
+/** Slots in the uniform ring. Far exceeds the dispatches any host packs into
+ * one submit (the timeline tops out at ~6), so no two intra-submit dispatches
+ * ever alias the same buffer. */
+const UNIFORM_RING_SIZE = 64;
+
+/** Bounded, cycling pool of uniform buffers. See {@link UniformRing}. */
+export function makeUniformRing(device: GPUDevice): UniformRing {
+  const buffers: (GPUBuffer | undefined)[] = new Array(UNIFORM_RING_SIZE);
+  let index = 0;
+
+  return {
+    acquire(size) {
+      const slot = index;
+      index = (index + 1) % UNIFORM_RING_SIZE;
+      const wanted = Math.max(16, size);
+      let buffer = buffers[slot];
+      if (!buffer || buffer.size < wanted) {
+        buffer?.destroy();
+        buffer = device.createBuffer({
+          label: `uniform-ring-${slot}`,
+          size: wanted,
+          usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+        buffers[slot] = buffer;
+      }
+      return buffer;
+    },
+    dispose() {
+      for (const buffer of buffers) {
+        buffer?.destroy();
+      }
+      buffers.fill(undefined);
+    }
+  };
+}
+
 function detectCapabilities(device: GPUDevice): GPUCapabilities {
   const features = device.features;
   return {
@@ -190,6 +245,7 @@ export function createGPUContextFromDevice(device: GPUDevice): GPUContext {
     device,
     capabilities: detectCapabilities(device),
     pipelineCache: makePipelineCache(),
-    scratch: makeScratchPool(device)
+    scratch: makeScratchPool(device),
+    uniformRing: makeUniformRing(device)
   };
 }
