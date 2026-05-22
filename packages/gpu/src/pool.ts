@@ -21,6 +21,7 @@ export * from "./fullscreenQuad.js";
 export {
   ceilToBucket,
   makeScratchPool,
+  makeUniformRing,
   createGPUContextFromDevice
 } from "./context.js";
 export type {
@@ -29,9 +30,18 @@ export type {
   PipelineCache,
   CachedPipeline,
   ScratchPool,
-  ScratchSpec
+  ScratchSpec,
+  UniformRing
 } from "./context.js";
-export { ALL_SHADERS, passthroughV1 } from "./shaders/index.js";
+export {
+  ALL_SHADERS,
+  passthroughV1,
+  colorGradeV1,
+  blurGaussianV1,
+  sharpenUnsharpMaskV1,
+  vignetteV1,
+  chromaKeyV1
+} from "./shaders/index.js";
 
 import { ShaderRegistry } from "./registry.js";
 import { ALL_SHADERS } from "./shaders/index.js";
