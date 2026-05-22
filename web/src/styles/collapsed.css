@@ -91,6 +91,7 @@
    collapsed, hide the preview's visual children but keep the slot itself so
    the handle column stays mounted and its absolute positioning resolves
    against the collapsed strip. */
+.react-flow__node.collapsed .preview-area,
 .node-body.collapsed .preview-area {
   height: 0 !important;
   min-height: 0 !important;
@@ -99,8 +100,65 @@
   overflow: visible !important;
   flex: none !important;
 }
+.react-flow__node.collapsed .preview-area > *:not(.handle-column),
 .node-body.collapsed .preview-area > *:not(.handle-column) {
   display: none !important;
+}
+
+/* Bespoke / content-card bodies: shrink root and hide chrome. Match both
+   `.node-body.collapsed` and `.react-flow__node.collapsed` (RF shell + inner
+   body). Emotion min-heights on `.preview-area` lose to !important here, but
+   some bodies also ship co-located `.node-body.collapsed &.…-body` rules. */
+.react-flow__node.collapsed [data-bespoke-body],
+.node-body.collapsed [data-bespoke-body] {
+  padding: 0 !important;
+  gap: 0 !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  overflow: visible !important;
+}
+.react-flow__node.collapsed [data-bespoke-body] > *:not(.handle-column):not(.preview-area):not(.outputs-row):not(.paint-row),
+.node-body.collapsed [data-bespoke-body] > *:not(.handle-column):not(.preview-area):not(.outputs-row):not(.paint-row) {
+  display: none !important;
+}
+.react-flow__node.collapsed [data-bespoke-body] > .preview-tab-bar,
+.react-flow__node.collapsed [data-bespoke-body] > .controls,
+.node-body.collapsed [data-bespoke-body] > .preview-tab-bar,
+.node-body.collapsed [data-bespoke-body] > .controls {
+  display: none !important;
+}
+.react-flow__node.collapsed .content-card-body > *:not(.preview-area):not(.outputs-row),
+.node-body.collapsed .content-card-body > *:not(.preview-area):not(.outputs-row) {
+  display: none !important;
+}
+
+/* PainterBody: input handles live inside `.paint-row`, not `.preview-area`. */
+.react-flow__node.collapsed .paint-row,
+.node-body.collapsed .paint-row {
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  flex: none !important;
+}
+.react-flow__node.collapsed .paint-row > *:not(.handle-column),
+.node-body.collapsed .paint-row > *:not(.handle-column) {
+  display: none !important;
+}
+
+/* Output socket column — zero height slot; handles stay absolutely positioned. */
+.react-flow__node.collapsed [data-bespoke-body] > .outputs-row,
+.react-flow__node.collapsed .content-card-body > .outputs-row,
+.node-body.collapsed [data-bespoke-body] > .outputs-row,
+.node-body.collapsed .content-card-body > .outputs-row {
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  flex: none !important;
 }
 
 /*

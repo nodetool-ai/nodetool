@@ -77,6 +77,12 @@ const styles = (theme: Theme) =>
         objectFit: "contain"
       }
     },
+    ".preview-tab-bar": {
+      flex: "0 0 auto"
+    },
+    ".tab-toggle-row": {
+      width: "100%"
+    },
     ".tab-toggle": {
       width: "100%",
       ".MuiToggleButton-root": {
@@ -88,32 +94,73 @@ const styles = (theme: Theme) =>
         minWidth: 0
       }
     },
-    ".controls": {
-      flex: "0 0 auto"
+    ".image-preview": {
+      width: "100%",
+      height: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: 0
     },
     ".outputs-row": {
       flex: "0 0 auto"
+    },
+    /* Collapsed: co-locate with PainterBody — Emotion order beats global collapsed.css. */
+    ".node-body.collapsed &.simple-filter-body": {
+      padding: 0,
+      gap: 0,
+      minHeight: 0,
+      height: 0,
+      overflow: "visible",
+      "& > .preview-area": {
+        display: "none"
+      },
+      "& > .preview-tab-bar, & > .controls": {
+        display: "none"
+      },
+      "& > .outputs-row": {
+        height: 0,
+        minHeight: 0,
+        padding: 0,
+        margin: 0,
+        flex: "none",
+        overflow: "visible"
+      }
     }
   });
 
-const ImagePreview: React.FC<{ value: unknown; placeholder: string }> = memo(
-  ({ value, placeholder }) => {
-    if (typeof value === "string" && value) {
-      return <ImageView source={value} />;
-    }
+const ImagePreview: React.FC<{
+  value: unknown;
+  placeholder: string;
+  tab: SimpleFilterTab;
+}> = memo(({ value, placeholder, tab }) => {
+  let content: React.ReactNode;
+  if (typeof value === "string" && value) {
+    content = <ImageView source={value} />;
+  } else {
     const ref = asImageRef(value);
     if (ref?.uri) {
-      return <ImageView source={ref.uri} />;
+      content = <ImageView source={ref.uri} />;
+    } else if (ref?.data instanceof Uint8Array) {
+      content = <ImageView source={ref.data} />;
+    } else if (Array.isArray(ref?.data)) {
+      content = <ImageView source={new Uint8Array(ref!.data as number[])} />;
+    } else {
+      content = (
+        <CheckerDropzone
+          className="preview-empty"
+          message={placeholder}
+          icon={<ImageIcon />}
+        />
+      );
     }
-    if (ref?.data instanceof Uint8Array) {
-      return <ImageView source={ref.data} />;
-    }
-    if (Array.isArray(ref?.data)) {
-      return <ImageView source={new Uint8Array(ref!.data as number[])} />;
-    }
-    return <CheckerDropzone message={placeholder} icon={<ImageIcon />} />;
   }
-);
+  return (
+    <div className={`image-preview preview-${tab}`} data-preview-tab={tab}>
+      {content}
+    </div>
+  );
+});
 ImagePreview.displayName = "SimpleFilterImagePreview";
 
 export interface SimpleFilterBodyProps {
@@ -168,19 +215,24 @@ const SimpleFilterBodyInner: React.FC<SimpleFilterBodyProps> = ({
       data-bespoke-body="SimpleFilter"
     >
       <HandleColumn id={id} properties={imageProperty} />
-      <div className="preview-area">
+      <div className={`preview-area preview-${tab}`} data-preview-tab={tab}>
         {tab === "before" ? (
-          <ImagePreview value={beforeValue} placeholder="Connect an image" />
+          <ImagePreview
+            tab="before"
+            value={beforeValue}
+            placeholder="Connect an image"
+          />
         ) : (
           <ImagePreview
+            tab="after"
             value={afterValue}
             placeholder="Run the node to see the result"
           />
         )}
       </div>
 
-      <FlexColumn className="controls" gap={0.5}>
-        <FlexRow align="center" gap={0.25}>
+      <FlexColumn className="preview-tab-bar" gap={0.5}>
+        <FlexRow className="tab-toggle-row" align="center" gap={0.25}>
           <ToggleGroup
             className="tab-toggle"
             size="small"
@@ -189,10 +241,18 @@ const SimpleFilterBodyInner: React.FC<SimpleFilterBodyProps> = ({
             onChange={handleTabChange}
             aria-label="Preview tab"
           >
-            <ToggleOption value="before" aria-label="Before">
+            <ToggleOption
+              className="tab-option tab-option-before"
+              value="before"
+              aria-label="Before"
+            >
               Before
             </ToggleOption>
-            <ToggleOption value="after" aria-label="After">
+            <ToggleOption
+              className="tab-option tab-option-after"
+              value="after"
+              aria-label="After"
+            >
               After
             </ToggleOption>
           </ToggleGroup>
