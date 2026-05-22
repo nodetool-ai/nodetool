@@ -139,21 +139,12 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
             {labelWithTooltip}
           </div>
           <FlexRow
-            className="property-label-actions"
+            className="property-label-actions inspector-header-toolbar inspector-toolbar-hoverable"
             align="center"
             gap={0.25}
             sx={{ flex: "0 0 auto", flexShrink: 0 }}
           >
-            {headerSupplemental != null ? (
-              <FlexRow
-                className="inspector-header-supplemental"
-                align="center"
-                gap={0.25}
-                sx={{ flex: "0 0 auto" }}
-              >
-                {headerSupplemental}
-              </FlexRow>
-            ) : null}
+            {headerSupplemental}
             {headerReset}
             {headerActions}
           </FlexRow>
@@ -210,31 +201,34 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
         "&.property-label-with-actions": {
           marginBottom: labelMarginBottom
         },
-        ".property-label-actions .inspector-reset-button": {
-          display: "flex",
-          alignItems: "center",
-          cursor: "pointer",
-          padding: "1px",
-          borderRadius: "3px",
-          color: theme.vars.palette.text.secondary,
-          "&:hover": {
-            color: theme.vars.palette.primary.main
-          },
+        ".inspector-header-toolbar .inspector-reset-button": {
+          padding: 0,
+          margin: 0,
+          width: 20,
+          height: 20,
+          flexShrink: 0,
           "& svg": {
-            fontSize: "0.85rem"
+            fontSize: "0.75rem"
+          },
+          "&.Mui-disabled": {
+            opacity: 0.35,
+            color: theme.vars.palette.text.disabled
           }
         },
-        ".inspector-header-supplemental .MuiIconButton-root": {
+        ".inspector-header-toolbar .MuiIconButton-root": {
           padding: 0,
           margin: 0,
           width: 20,
           height: 20
         },
-        ".inspector-header-supplemental .MuiIconButton-root svg": {
+        ".inspector-header-toolbar .MuiIconButton-root svg": {
           fontSize: "0.75rem"
         },
-        ".inspector-header-supplemental .copy-button svg": {
+        ".inspector-header-toolbar .copy-button svg": {
           fontSize: "0.75rem !important"
+        },
+        ".inspector-header-toolbar .property-visibility-toggle svg": {
+          fontSize: "0.75rem"
         }
       })}
     >

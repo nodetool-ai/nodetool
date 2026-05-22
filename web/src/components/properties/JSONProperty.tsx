@@ -191,6 +191,7 @@ const JSONProperty = (props: PropertyProps) => {
           handleInteract();
         }}
         onMouseLeave={() => setIsHovered(false)}
+        onContextMenuCapture={props.onPropertyContextMenu}
       >
         <PropertyLabel
           name={props.property.name}
@@ -210,6 +211,7 @@ const JSONProperty = (props: PropertyProps) => {
         ) : null}
         <div
           className="value-container"
+          onContextMenuCapture={props.onPropertyContextMenu}
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >

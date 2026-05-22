@@ -138,12 +138,11 @@ const styles = (theme: Theme) =>
       width: "100%",
       minWidth: 0
     },
-    ".property-row .property-label-actions > *, .property-row .property-label-actions .inspector-header-supplemental > *":
-      {
-        opacity: 0,
-        transition: "opacity 0.15s ease"
-      },
-    ".property-row:hover .property-label-actions > *, .property-row:hover .property-label-actions .inspector-header-supplemental > *, .property-row .property-label-actions > *:focus-visible, .property-row .property-label-actions .inspector-header-supplemental > *:focus-visible":
+    ".property-row .inspector-header-toolbar.inspector-toolbar-hoverable": {
+      opacity: 0,
+      transition: "opacity 0.15s ease"
+    },
+    ".property-row:hover .inspector-header-toolbar.inspector-toolbar-hoverable, .property-row .inspector-header-toolbar.inspector-toolbar-hoverable:focus-within":
       {
         opacity: 1
       },

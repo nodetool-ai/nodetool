@@ -76,7 +76,8 @@ const StringProperty = ({
   nodeId,
   nodeType,
   isDynamicProperty,
-  isInspector
+  isInspector,
+  onPropertyContextMenu
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -158,6 +159,7 @@ const StringProperty = ({
         ) : null}
         <div
           className="value-container"
+          onContextMenuCapture={onPropertyContextMenu}
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
