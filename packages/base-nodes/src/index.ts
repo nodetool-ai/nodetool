@@ -3,6 +3,8 @@ import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
 export {
   IfNode,
   ForEachNode,
+  RepeatCountNode,
+  RepeatValueStreamNode,
   TakeNode,
   DropNode,
   TakeWhileNode,
@@ -20,6 +22,13 @@ export {
   TryCatchNode,
   CONTROL_NODES
 } from "./nodes/control.js";
+export {
+  RangeNode,
+  TileNode,
+  RepeatEachNode,
+  RepeatValueNode,
+  LIST_NODES
+} from "./nodes/list.js";
 export {
   SplitTextNode,
   ExtractTextNode,
@@ -679,6 +688,7 @@ export {
   LIB_NLP_NODES
 } from "./nodes/lib-nlp.js";
 import { CONTROL_NODES } from "./nodes/control.js";
+import { LIST_NODES } from "./nodes/list.js";
 import { TEXT_EXTRA_NODES } from "./nodes/text-extra.js";
 import { CONSTANT_NODES } from "./nodes/constant.js";
 import { EXTENDED_PLACEHOLDER_NODES } from "./nodes/extended-placeholders.js";
@@ -748,6 +758,7 @@ import { LIB_VALIDATE_NODES } from "./nodes/lib-validate.js";
 
 export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...CONTROL_NODES,
+  ...LIST_NODES,
   ...TEXT_EXTRA_NODES,
   ...CONSTANT_NODES,
   ...EXTENDED_PLACEHOLDER_NODES,

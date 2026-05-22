@@ -99,6 +99,93 @@ export class ForEachNode extends BaseNode {
   }
 }
 
+export class RepeatCountNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.RepeatCount";
+  static readonly title = "Repeat Count";
+  static readonly description =
+    "Emit N sequential ticks without needing an input list.\n    repeat, loop, count, times, iterate, batch\n\n    Use cases:\n    - Run the same downstream step N times (e.g. generate N images from one prompt)\n    - Drive iteration by count instead of building a range list\n    - Pair with Collect to gather N results";
+  static readonly metadataOutputTypes = {
+    output: "int",
+    index: "int"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
+
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "iteration", source: "__execution__", group: "items" },
+    index: { kind: "iteration", source: "__execution__", group: "items" }
+  };
+
+  @prop({
+    type: "int",
+    default: 1,
+    min: 0,
+    title: "Count",
+    description: "Number of ticks to emit (0 emits nothing)."
+  })
+  declare count: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const total = Math.max(0, Math.floor(Number(this.count ?? 0)));
+    for (let index = 0; index < total; index++) {
+      yield { output: index, index };
+    }
+  }
+}
+
+export class RepeatValueStreamNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.RepeatValue";
+  static readonly title = "Repeat Value";
+  static readonly description =
+    "Emit the same value N times without building a list first.\n    repeat, loop, duplicate, scalar, batch, stream\n\n    Use cases:\n    - Run downstream steps N times with a wired prompt or parameter\n    - Repeat one image ref, text, or dict through a pipeline\n    - Pair with Collect to gather N results";
+  static readonly metadataOutputTypes = {
+    output: "any",
+    index: "int"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
+
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "iteration", source: "__execution__", group: "items" },
+    index: { kind: "iteration", source: "__execution__", group: "items" }
+  };
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Value",
+    description: "Single value to emit on each tick."
+  })
+  declare value: any;
+
+  @prop({
+    type: "int",
+    default: 1,
+    min: 0,
+    title: "Count",
+    description: "Number of times to emit the value (0 emits nothing)."
+  })
+  declare count: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const value = this.value ?? null;
+    const total = Math.max(0, Math.floor(Number(this.count ?? 0)));
+    for (let index = 0; index < total; index++) {
+      yield { output: value, index };
+    }
+  }
+}
+
 export class TakeNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Take";
   static readonly title = "Take";
@@ -1251,6 +1338,8 @@ export class CrossNode extends BaseNode {
 export const CONTROL_NODES = [
   IfNode,
   ForEachNode,
+  RepeatCountNode,
+  RepeatValueStreamNode,
   TakeNode,
   DropNode,
   TakeWhileNode,

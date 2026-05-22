@@ -77,6 +77,12 @@ describe("base node registration", () => {
     registerBaseNodes(registry);
 
     expect(registry.has(IfNode.nodeType)).toBe(true);
+    expect(registry.has("nodetool.control.RepeatCount")).toBe(true);
+    expect(registry.has("nodetool.control.RepeatValue")).toBe(true);
+    expect(registry.has("nodetool.list.Range")).toBe(true);
+    expect(registry.has("nodetool.list.Tile")).toBe(true);
+    expect(registry.has("nodetool.list.RepeatEach")).toBe(true);
+    expect(registry.has("nodetool.list.RepeatValue")).toBe(true);
     expect(registry.has("nodetool.input.StringInput")).toBe(true);
     expect(registry.has("nodetool.output.Output")).toBe(true);
     expect(registry.has("nodetool.workflows.base_node.Preview")).toBe(true);
