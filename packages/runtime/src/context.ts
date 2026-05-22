@@ -12,6 +12,7 @@
 
 import type { AssetRef, ProcessingMessage } from "@nodetool-ai/protocol";
 import { AgentMemory } from "./agent-memory.js";
+import { encodeRawImageRef } from "./image-codec.js";
 import { randomUUID } from "node:crypto";
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import {
@@ -2113,12 +2114,17 @@ export class ProcessingContext {
   }
 
   private async materializeAsset(
-    asset: Record<string, unknown>,
+    rawAsset: Record<string, unknown>,
     mode: AssetOutputMode
   ): Promise<Record<string, unknown>> {
     if (mode === "native" || mode === "raw") {
-      return asset;
+      // In-process consumers handle the raw asset as-is (incl. raw RGBA).
+      return rawAsset;
     }
+
+    // Raw in-flight RGBA → encode to PNG up front so every downstream mode
+    // treats it as an ordinary image (correct mime, extension, and bytes).
+    const asset = (await encodeRawImageRef(rawAsset)) as Record<string, unknown>;
 
     const bytes = await this.getAssetBytes(asset);
     if (!bytes) return asset;
@@ -2126,10 +2132,10 @@ export class ProcessingContext {
     const mime = ProcessingContext.guessAssetMime(asset);
 
     if (mode === "data_uri") {
-      const encoded = Buffer.from(bytes).toString("base64");
+      const base64 = Buffer.from(bytes).toString("base64");
       return {
         ...asset,
-        uri: `data:${mime};base64,${encoded}`
+        uri: `data:${mime};base64,${base64}`
       };
     }
 

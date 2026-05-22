@@ -122,3 +122,50 @@ if (leaked.length > 0) {
 
 const sizeMB = (Buffer.byteLength(main) / 1048576).toFixed(2);
 console.log(`verify-bundle: dist-electron/main.js OK (${sizeMB} MB, no forbidden markers)`);
+
+// --- webgpu (dawn.node) staging check ---
+// The server-side GPU compositor loads `webgpu` via a variable-specifier
+// dynamic import, so esbuild can't see it. It must be copied to _modules/ or
+// the packaged compositor fails with "requires the optional 'webgpu' package".
+//
+// This check only runs when backend-bundle/_modules/ already exists (i.e.
+// after prepare-backend). vite:build and the `build` script both invoke
+// verify-bundle BEFORE prepare-backend, so guard to avoid a spurious failure.
+{
+  const webgpuDist = path.join(
+    ELECTRON_DIR,
+    "backend-bundle",
+    "_modules",
+    "webgpu",
+    "dist"
+  );
+  let dawnFiles = [];
+  try {
+    dawnFiles = readdirSync(webgpuDist).filter((f) => f.endsWith(".dawn.node"));
+  } catch {
+    // backend-bundle/_modules/ not present yet — prepare-backend hasn't run.
+    // Skip the check rather than failing a step that runs before staging.
+    const backendBundle = path.join(ELECTRON_DIR, "backend-bundle", "_modules");
+    let bundleExists = false;
+    try {
+      readdirSync(backendBundle);
+      bundleExists = true;
+    } catch {
+      bundleExists = false;
+    }
+    if (bundleExists) {
+      fail(
+        `webgpu not staged: ${webgpuDist} missing. Add "webgpu" to EXTERNAL_PACKAGES in bundle-backend.mjs.`
+      );
+    } else {
+      console.log("verify-bundle: webgpu staging check skipped (backend-bundle not yet present)");
+    }
+    dawnFiles = null; // signal skip
+  }
+  if (dawnFiles !== null) {
+    if (dawnFiles.length === 0) {
+      fail(`webgpu staged but no *.dawn.node binary found in ${webgpuDist}`);
+    }
+    console.log(`verify-bundle: webgpu staged with ${dawnFiles.length} dawn.node binary(ies)`);
+  }
+}
