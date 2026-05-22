@@ -4,7 +4,8 @@ const mockFetch = jest.fn();
 
 beforeEach(() => {
   jest.clearAllMocks();
-  global.fetch = mockFetch as unknown as typeof fetch;
+  // @ts-expect-error
+  global.fetch = mockFetch;
 });
 
 describe("fetchLiveFalPricing", () => {
