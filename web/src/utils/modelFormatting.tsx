@@ -72,15 +72,6 @@ export const prettifyModelType = (type: string) => {
   );
 };
 
-export const getShortModelName = (fullName: string | undefined): string => {
-  if (!fullName) {return "";}
-  const lastSlashIndex = fullName.lastIndexOf("/");
-  if (lastSlashIndex !== -1 && lastSlashIndex < fullName.length - 1) {
-    return fullName.substring(lastSlashIndex + 1);
-  }
-  return fullName;
-};
-
 export const formatBytes = (bytes?: number): string => {
   if (bytes === undefined || bytes === null || isNaN(bytes)) {
     return "";

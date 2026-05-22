@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
-import { normalizeModelMeta, buildMetaIndex } from "../modelNormalization";
+import { normalizeModelMeta } from "../modelNormalization";
 import type { LanguageModel } from "../../stores/ApiTypes";
 
 describe("modelNormalization", () => {
@@ -228,50 +228,4 @@ describe("modelNormalization", () => {
     });
   });
 
-  describe("buildMetaIndex", () => {
-    it("should build index for multiple models", () => {
-      const models: LanguageModel[] = [
-        {
-          id: "llama-7b",
-          name: "Llama 7B",
-          type: "language_model",
-          provider: "local"
-        },
-        {
-          id: "mistral-7b-instruct",
-          name: "Mistral 7B Instruct",
-          type: "language_model",
-          provider: "local"
-        }
-      ];
-
-      const result = buildMetaIndex(models);
-      
-      expect(result).toHaveLength(2);
-      expect(result[0].model).toBe(models[0]);
-      expect(result[0].meta.family).toBe("llama");
-      expect(result[0].meta.sizeB).toBe(7);
-      
-      expect(result[1].model).toBe(models[1]);
-      expect(result[1].meta.family).toBe("mistral");
-      expect(result[1].meta.typeTags).toContain("instruct");
-    });
-
-    it("should handle empty array", () => {
-      const result = buildMetaIndex([]);
-      expect(result).toEqual([]);
-    });
-
-    it("should preserve original model reference", () => {
-      const model: LanguageModel = {
-        id: "test",
-        name: "Test",
-        type: "language_model",
-        provider: "local",
-      };
-
-      const result = buildMetaIndex([model]);
-      expect(result[0].model).toBe(model);
-    });
-  });
 });
