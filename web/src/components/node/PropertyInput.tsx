@@ -63,6 +63,7 @@ import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { NodeData } from "../../stores/NodeData";
 import { useInputNodeAutoRun } from "../../hooks/nodes/useInputNodeAutoRun";
 import { inferOutputKeysFromCode, inferInputKeysFromCode } from "../../utils/codeOutputInference";
+import { InspectorHeaderResetProvider } from "../../contexts/InspectorPropertyHeaderContext";
 
 const RESET_BUTTON_OFFSET_CSS = css({
   "--property-reset-button-offset": "40px"
@@ -786,24 +787,29 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     componentType === JSONProperty ||
     componentType === DataframeProperty;
 
-  return (
+  const resetButton = isChanged ? (
+    <Tooltip title="Reset to default" placement="top" disableInteractive>
+      <div
+        className={`reset-button${isInspector ? " inspector-reset-button" : ""}`}
+        onClick={handleResetToDefault}
+      >
+        <SettingsBackupRestoreIcon />
+      </div>
+    </Tooltip>
+  ) : null;
+
+  const container = (
     <div
       className={`property-input-container${isChanged ? " value-changed" : ""}`}
       css={[
         containerCss,
-        hasTopRightPropertyActions && RESET_BUTTON_OFFSET_CSS
+        hasTopRightPropertyActions && !isInspector && RESET_BUTTON_OFFSET_CSS
       ]}
       onContextMenu={onContextMenu}
       onDoubleClick={handleDoubleClick}
     >
       {inputField}
-      {isChanged && (
-        <Tooltip title="Reset to default" placement="top" disableInteractive>
-          <div className="reset-button" onClick={handleResetToDefault}>
-            <SettingsBackupRestoreIcon />
-          </div>
-        </Tooltip>
-      )}
+      {isChanged && !isInspector && resetButton}
       {isDynamicProperty && !hideActionIcons && (
         <div className="action-icons">
           <Edit
@@ -817,6 +823,16 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         </div>
       )}
     </div>
+  );
+
+  if (!isInspector) {
+    return container;
+  }
+
+  return (
+    <InspectorHeaderResetProvider reset={resetButton}>
+      {container}
+    </InspectorHeaderResetProvider>
   );
 };
 

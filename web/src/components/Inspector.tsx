@@ -25,10 +25,9 @@ import {
 import FalPricingFooter from "./node/FalPricingFooter";
 import { DYNAMIC_KIE_NODE_TYPE } from "./node/DynamicKieSchemaNode";
 import PropertyVisibilityToggle from "./properties/PropertyVisibilityToggle";
-import {
-  addExposedInput,
-  removeExposedInput
-} from "../utils/exposedInputs";
+import { InspectorHeaderActionsProvider } from "../contexts/InspectorPropertyHeaderContext";
+import { canPromotePropertyToInputHandle } from "../utils/exposedInputs";
+import { useExposedInputToggle } from "../hooks/nodes/useExposedInputToggle";
 import usePropertyValidationStore from "../stores/PropertyValidationStore";
 
 const styles = (theme: Theme) =>
@@ -132,20 +131,30 @@ const styles = (theme: Theme) =>
       top: "0.5em"
     },
     ".property-row": {
-      display: "flex",
-      alignItems: "flex-start",
-      gap: theme.spacing(0.5),
+      position: "relative",
+      width: "100%",
+      minWidth: 0,
+      "--property-visibility-toggle-size": "28px",
+      "--property-reset-slot-size": "22px"
+    },
+    ".property-row.has-header-editor-actions": {
+      "--property-reset-button-offset": "40px"
+    },
+    ".property-row .node-property": {
       width: "100%",
       minWidth: 0
     },
-    ".property-row .node-property": {
-      flex: "1 1 auto",
-      minWidth: 0,
-      width: "100%"
+    ".property-row.has-visibility-toggle .property-label": {
+      paddingRight:
+        "calc(var(--property-reset-button-offset, 0px) + var(--property-reset-slot-size, 22px) + var(--property-visibility-toggle-size, 28px))"
     },
-    ".property-row .property-visibility-toggle": {
-      flex: "0 0 auto",
-      marginTop: "0.15em"
+    ".property-row.has-visibility-toggle .property-visibility-toggle": {
+      position: "absolute",
+      top: 0,
+      right:
+        "calc(var(--property-reset-button-offset, 0px) + var(--property-reset-slot-size, 22px))",
+      zIndex: 3,
+      marginTop: 0
     },
     ".validation-banner": {
       margin: "0.5em 0 0.75em",
@@ -263,9 +272,8 @@ const Inspector: React.FC = () => {
   );
   const findNode = useNodes((state) => state.findNode);
   const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
-  const updateNodeData = useNodes((state) => state.updateNodeData);
-  const deleteEdges = useNodes((state) => state.deleteEdges);
   const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
+  const { toggleExposedInput } = useExposedInputToggle();
 
   // Optimize: Only subscribe to edges that are connected to selected nodes to avoid re-renders
   // when unrelated edges change. This is especially important for dynamic properties lookup.
@@ -390,61 +398,6 @@ const Inspector: React.FC = () => {
         .map((edge) => edge.targetHandle as string)
     );
   }, [edges, selectedNode]);
-
-  // Properties whose handle is already determined by metadata don't get
-  // the user-facing visibility toggle — there's nothing to opt into.
-  const metadataHandleNames = useMemo(() => {
-    if (!metadata) {
-      return new Set<string>();
-    }
-    return new Set([
-      ...(metadata.inline_fields ?? []),
-      ...(metadata.input_fields ?? [])
-    ]);
-  }, [metadata]);
-
-  const handleToggleExposed = useCallback(
-    (propertyName: string) => {
-      if (!selectedNode) {
-        return;
-      }
-      const current = selectedNode.data.exposedInputs ?? [];
-      const isExposed = current.includes(propertyName);
-      if (isExposed) {
-        const isConnected = connectedTargetHandles.has(propertyName);
-        if (
-          isConnected &&
-          !window.confirm(
-            `Hide input handle for "${propertyName}"? The connected edge will be removed.`
-          )
-        ) {
-          return;
-        }
-        if (isConnected) {
-          const edgeIds = edges
-            .filter(
-              (edge) =>
-                edge.target === selectedNode.id &&
-                edge.targetHandle === propertyName
-            )
-            .map((edge) => edge.id);
-          if (edgeIds.length > 0) {
-            deleteEdges(edgeIds);
-          }
-        }
-        const next = removeExposedInput(current, propertyName);
-        if (next !== current) {
-          updateNodeData(selectedNode.id, { exposedInputs: next });
-        }
-      } else {
-        const next = addExposedInput(current, propertyName);
-        if (next !== current) {
-          updateNodeData(selectedNode.id, { exposedInputs: next });
-        }
-      }
-    },
-    [selectedNode, connectedTargetHandles, edges, deleteEdges, updateNodeData]
-  );
 
   if (selectedNodes.length === 0) {
     return (
@@ -616,34 +569,48 @@ const Inspector: React.FC = () => {
               if (property.json_schema_extra?.hidden_in_inspector === true) {
                 return null;
               }
-              const hasToggle = !metadataHandleNames.has(property.name);
+              const hasToggle = canPromotePropertyToInputHandle(
+                metadata,
+                property.name
+              );
               const exposed = (selectedNode.data.exposedInputs ?? []).includes(
                 property.name
               );
               const connected = connectedTargetHandles.has(property.name);
+              const propertyRowClass = [
+                "property-row",
+                hasToggle && "has-visibility-toggle"
+              ]
+                .filter(Boolean)
+                .join(" ");
+              const visibilityToggle = hasToggle ? (
+                <PropertyVisibilityToggle
+                  exposed={exposed}
+                  connected={connected}
+                  onToggle={() =>
+                    selectedNode &&
+                    toggleExposedInput(selectedNode.id, property.name)
+                  }
+                />
+              ) : null;
               return (
                 <div
-                  className="property-row"
+                  className={propertyRowClass}
                   key={`inspector-${property.name}-${selectedNode.id}`}
                 >
-                  <PropertyField
-                    id={selectedNode.id}
-                    value={selectedNode.data.properties[property.name]}
-                    property={property}
-                    propertyIndex={index.toString()}
-                    showHandle={false}
-                    isInspector={true}
-                    nodeType="inspector"
-                    data={selectedNode.data}
-                    layout=""
-                  />
-                  {hasToggle && (
-                    <PropertyVisibilityToggle
-                      exposed={exposed}
-                      connected={connected}
-                      onToggle={() => handleToggleExposed(property.name)}
+                  <InspectorHeaderActionsProvider actions={visibilityToggle}>
+                    <PropertyField
+                      id={selectedNode.id}
+                      value={selectedNode.data.properties[property.name]}
+                      property={property}
+                      propertyIndex={index.toString()}
+                      showHandle={false}
+                      isInspector={true}
+                      nodeType="inspector"
+                      data={selectedNode.data}
+                      layout=""
                     />
-                  )}
+                  </InspectorHeaderActionsProvider>
                 </div>
               );
             })}

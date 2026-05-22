@@ -9,6 +9,11 @@ import { TypeMetadata } from "../../stores/ApiTypes";
 import HandleTooltip from "../HandleTooltip";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "../editor_ui";
+import {
+  useInspectorHeaderActions,
+  useInspectorHeaderReset
+} from "../../contexts/InspectorPropertyHeaderContext";
+import { FlexRow } from "../ui_primitives";
 
 interface PropertyLabelProps {
   id: string;
@@ -58,6 +63,9 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   }, [name, isDynamicProperty]);
 
   const isInspector = scope === "inspector";
+  const headerActions = useInspectorHeaderActions();
+  const headerReset = useInspectorHeaderReset();
+  const hasHeaderActions = isInspector && (headerActions != null || headerReset != null);
   const labelFontSize = isInspector ? theme.fontSizeSmall : theme.fontSizeSmall;
   const labelMarginBottom = density === "compact" ? 0 : theme.spacing(0.25);
   // Only show inline descriptions when explicitly requested, not automatically in inspector
@@ -109,9 +117,55 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
     </Tooltip>
   );
 
+  const labelBlock = (
+    <>
+      {hasHeaderActions ? (
+        <FlexRow
+          className="property-label-row"
+          align="center"
+          gap={0.25}
+          sx={{ width: "100%", minWidth: 0 }}
+        >
+          <div
+            className="property-label-main"
+            css={css({ flex: "1 1 auto", minWidth: 0, overflow: "hidden" })}
+          >
+            {labelWithTooltip}
+          </div>
+          <FlexRow
+            className="property-label-actions"
+            align="center"
+            gap={0.25}
+            sx={{ flex: "0 0 auto" }}
+          >
+            {headerReset}
+            {headerActions}
+          </FlexRow>
+        </FlexRow>
+      ) : (
+        labelWithTooltip
+      )}
+      {shouldShowInlineDescription && description && (
+        <span
+          css={css({
+            display: "block",
+            fontSize: theme.fontSizeSmaller,
+            color: theme.vars.palette.text.disabled,
+            lineHeight: 1.3,
+            marginTop: "1px",
+            marginBottom: theme.spacing(0.5),
+            userSelect: "none",
+          })}
+        >
+          {description}
+        </span>
+      )}
+    </>
+  );
+
   return (
     <div
-      className="property-label"
+      className={`property-label${hasHeaderActions ? " property-label-with-actions" : ""}`}
       css={css({
         width: "100%",
         height: "auto",
@@ -129,32 +183,40 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
           fontSize: labelFontSize,
           color: theme.vars.palette.text.secondary,
           padding: 0,
-          margin: `0 0 ${labelMarginBottom} 0`,
+          margin: hasHeaderActions ? 0 : `0 0 ${labelMarginBottom} 0`,
           lineHeight: "1em",
           maxHeight: "2em",
           minHeight: "13px",
           textTransform: "capitalize",
           letterSpacing: "0.01em",
           userSelect: "none"
-        }
+        },
+        "&.property-label-with-actions": {
+          marginBottom: labelMarginBottom
+        },
+        ".property-label-actions .inspector-reset-button": {
+          display: "flex",
+          alignItems: "center",
+          cursor: "pointer",
+          padding: "1px",
+          borderRadius: "3px",
+          color: theme.vars.palette.text.secondary,
+          opacity: 0,
+          transition: "opacity 0.15s ease",
+          "&:hover": {
+            color: theme.vars.palette.primary.main
+          },
+          "& svg": {
+            fontSize: "0.85rem"
+          }
+        },
+        ".property-label-row:hover .inspector-reset-button, .property-label-actions .inspector-reset-button:focus-visible":
+          {
+            opacity: 1
+          }
       })}
     >
-      {labelWithTooltip}
-      {shouldShowInlineDescription && description && (
-        <span
-          css={css({
-            display: "block",
-            fontSize: theme.fontSizeSmaller,
-            color: theme.vars.palette.text.disabled,
-            lineHeight: 1.3,
-            marginTop: "1px",
-            marginBottom: theme.spacing(0.5),
-            userSelect: "none",
-          })}
-        >
-          {description}
-        </span>
-      )}
+      {labelBlock}
     </div>
   );
 };
