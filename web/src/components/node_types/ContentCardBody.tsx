@@ -77,12 +77,12 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(0.5),
       minHeight: 0
     },
-    // Preview dominates the card — fixed-min height so a freshly dropped
-    // card still feels content-forward even before its first run.
+    // Preview grows to fill available height; minHeight 0 so flex can shrink
+    // when the node is resized smaller (overflow is clipped on node-content-container).
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
-      minHeight: 160,
+      minHeight: 0,
       borderRadius: "var(--rounded-sm)",
       // Allow the handle column to extend past the preview's left edge so
       // the handle dots align with the card's outer edge (compensates for

@@ -103,8 +103,7 @@ const NAMESPACE_BUTTON_SX = {
 const NODE_CONTENT_CONTAINER_STYLE: React.CSSProperties = {
   flex: "1 1 auto",
   minHeight: 0,
-  width: "100%",
-  overflow: "visible"
+  width: "100%"
 };
 
 /** Collapsed: no side clip-path — clipping a zero-height box can hide sockets and confuse RF measurements */

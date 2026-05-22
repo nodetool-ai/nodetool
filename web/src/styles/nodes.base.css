@@ -59,6 +59,18 @@
   isolation: isolate;
 }
 
+/* Resized nodes: clip overflowing params at the bottom (y) while side handles
+   can still protrude horizontally (x). Collapsed nodes override in collapsed.css. */
+.react-flow__node .node-content-container {
+  overflow: visible clip;
+}
+
+@supports not (overflow: clip) {
+  .react-flow__node .node-content-container {
+    overflow: visible hidden;
+  }
+}
+
 .react-flow__node .node-body::after {
   content: "";
   position: absolute;
