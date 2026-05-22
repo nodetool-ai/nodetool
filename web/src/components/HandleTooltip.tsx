@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useContext, useMemo, useRef, useEffect } from "react";
+import React, { memo, useState, useCallback, useContext, useMemo, useRef, useEffect, isValidElement, cloneElement, type ReactElement } from "react";
 import { colorForType } from "../config/data_types";
 import { typeToString } from "../utils/TypeHandler";
 import { TypeMetadata } from "../stores/ApiTypes";
@@ -174,11 +174,36 @@ const HandleTooltip = memo(function HandleTooltip({
     ? "var(--palette-grey-100)"
     : colorForType(typeString);
 
+  type InteractiveChildProps = {
+    onMouseEnter?: (event: React.MouseEvent<HTMLElement>) => void;
+    onMouseLeave?: (event: React.MouseEvent<HTMLElement>) => void;
+    onFocus?: (event: React.FocusEvent<HTMLElement>) => void;
+    onBlur?: (event: React.FocusEvent<HTMLElement>) => void;
+  };
+
+  const interactiveChildren = useMemo(() => {
+    if (isPropertyVariant || !isValidElement(children)) {
+      return children;
+    }
+
+    const child = children as ReactElement<InteractiveChildProps>;
+    return cloneElement(child, {
+      onMouseEnter: (event: React.MouseEvent<HTMLElement>) => {
+        child.props.onMouseEnter?.(event);
+        handleMouseEnter();
+      },
+      onMouseLeave: (event: React.MouseEvent<HTMLElement>) => {
+        child.props.onMouseLeave?.(event);
+        handleMouseLeave();
+      }
+    });
+  }, [children, handleMouseEnter, handleMouseLeave, isPropertyVariant]);
+
   return (
     <div
       className={`handle-tooltip-wrapper${isPropertyVariant ? " property-tooltip-wrapper" : ""} ${className}`.trim()}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={isPropertyVariant ? handleMouseEnter : undefined}
+      onMouseLeave={isPropertyVariant ? handleMouseLeave : undefined}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex={isPropertyVariant ? -1 : 0}
@@ -186,7 +211,7 @@ const HandleTooltip = memo(function HandleTooltip({
       aria-label={isPropertyVariant ? undefined : `${prettyName} (${displayType})`}
       aria-describedby={effectiveShow ? tooltipIdRef.current : undefined}
     >
-      {children}
+      {interactiveChildren}
       {handleShow && (
         <div
           role="tooltip"

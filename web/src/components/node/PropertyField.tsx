@@ -154,7 +154,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             className={classConnectable}
             handlePosition="left"
             isCollectInput={isCollectHandle}
-            enableHover={false}
+            enableHover={true}
           >
             <Handle
               type="target"

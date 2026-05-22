@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useMemo } from "react";
+import React, { memo, useContext, useMemo } from "react";
 import { titleizeString } from "../../utils/titleizeString";
 import isEqual from "fast-deep-equal";
 import { Tooltip } from "../ui_primitives";
@@ -15,6 +15,8 @@ import {
   useInspectorHeaderSupplemental
 } from "../../contexts/InspectorPropertyHeaderContext";
 import { FlexRow } from "../ui_primitives";
+import { PropertyHandleTooltipContext } from "../../contexts/PropertyHandleTooltipContext";
+import { isCollectType } from "../../utils/TypeHandler";
 
 interface PropertyLabelProps {
   id: string;
@@ -55,6 +57,12 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   isCollectInput = false
 }) => {
   const theme = useTheme();
+  const contextHandleTooltipType = useContext(PropertyHandleTooltipContext);
+  const resolvedHandleTooltipType = handleTooltipType ?? contextHandleTooltipType;
+  const resolvedIsCollectInput =
+    isCollectInput ||
+    (resolvedHandleTooltipType != null &&
+      isCollectType(resolvedHandleTooltipType));
   const scope = useEditorScope();
   const formattedName = useMemo(() => {
     if (isDynamicProperty) {
@@ -83,12 +91,12 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
     </label>
   );
 
-  const labelWithTooltip = handleTooltipType ? (
+  const labelWithTooltip = resolvedHandleTooltipType ? (
     <HandleTooltip
-      typeMetadata={handleTooltipType}
+      typeMetadata={resolvedHandleTooltipType}
       paramName={name}
       handlePosition={handleTooltipPosition}
-      isCollectInput={isCollectInput}
+      isCollectInput={resolvedIsCollectInput}
       variant="property"
     >
       {label}

@@ -209,10 +209,10 @@ describe('HandleTooltip', () => {
 
       render(<HandleTooltip {...defaultProps} />);
 
-      const wrapper = screen.getByRole('button');
+      const handle = screen.getByTestId('test-child');
 
       act(() => {
-        fireEvent.mouseEnter(wrapper);
+        fireEvent.mouseEnter(handle);
       });
 
       act(() => {
@@ -238,10 +238,10 @@ describe('HandleTooltip', () => {
 
       render(<HandleTooltip {...defaultProps} />);
 
-      const wrapper = screen.getByRole('button');
+      const handle = screen.getByTestId('test-child');
 
       act(() => {
-        fireEvent.mouseEnter(wrapper);
+        fireEvent.mouseEnter(handle);
         jest.advanceTimersByTime(1500);
       });
 

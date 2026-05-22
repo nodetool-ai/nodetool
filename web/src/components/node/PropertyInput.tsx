@@ -4,6 +4,7 @@ import React, { useCallback, createElement, memo, useMemo } from "react";
 import { shallow } from "zustand/shallow";
 import { Property } from "../../stores/ApiTypes";
 import PropertyLabel from "./PropertyLabel";
+import { PropertyHandleTooltipContext } from "../../contexts/PropertyHandleTooltipContext";
 import { isCollectType } from "../../utils/TypeHandler";
 import useContextMenu from "../../stores/ContextMenuStore";
 import reduceUnionType from "../../hooks/reduceUnionType";
@@ -816,7 +817,9 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       onContextMenu={onContextMenu}
       onDoubleClick={handleDoubleClick}
     >
-      {inputField}
+      <PropertyHandleTooltipContext.Provider value={property.type}>
+        {inputField}
+      </PropertyHandleTooltipContext.Provider>
       {canvasResetButton}
       {isDynamicProperty && !hideActionIcons && (
         <div className="action-icons">
