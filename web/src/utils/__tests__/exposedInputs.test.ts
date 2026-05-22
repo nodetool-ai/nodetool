@@ -2,6 +2,7 @@ import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
 import {
   addExposedInput,
+  canPromotePropertyToInputHandle,
   removeExposedInput,
   resolveExposedInputNames
 } from "../exposedInputs";
@@ -77,6 +78,22 @@ describe("exposedInputs utility", () => {
 
     it("handles undefined current list", () => {
       expect(addExposedInput(undefined, "x")).toEqual(["x"]);
+    });
+  });
+
+  describe("canPromotePropertyToInputHandle", () => {
+    it("returns false for metadata input_fields and inline_fields", () => {
+      const md = baseMetadata({
+        input_fields: ["prompt"],
+        inline_fields: ["preview"]
+      });
+      expect(canPromotePropertyToInputHandle(md, "prompt")).toBe(false);
+      expect(canPromotePropertyToInputHandle(md, "preview")).toBe(false);
+      expect(canPromotePropertyToInputHandle(md, "input_text")).toBe(true);
+    });
+
+    it("returns false when metadata is missing", () => {
+      expect(canPromotePropertyToInputHandle(undefined, "x")).toBe(false);
     });
   });
 

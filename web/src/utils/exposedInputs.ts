@@ -59,3 +59,18 @@ export const removeExposedInput = (
   }
   return list.filter((n) => n !== propertyName);
 };
+
+/** True when the inspector / menu may promote this property to an input handle. */
+export const canPromotePropertyToInputHandle = (
+  metadata: NodeMetadata | undefined,
+  propertyName: string
+): boolean => {
+  if (!metadata) {
+    return false;
+  }
+  const fixedHandles = new Set([
+    ...(metadata.inline_fields ?? []),
+    ...(metadata.input_fields ?? [])
+  ]);
+  return !fixedHandles.has(propertyName);
+};
