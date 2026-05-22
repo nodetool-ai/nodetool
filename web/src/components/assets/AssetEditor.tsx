@@ -11,21 +11,9 @@ import { BASE_URL } from "../../stores/BASE_URL";
 import type { Asset } from "../../stores/ApiTypes";
 import { ImageEditor } from "../node/image_editor";
 
-const Model3DEditor = React.lazy(() => import("../model_editor/Model3DEditor"));
+import { isEditableModel3DAsset } from "../model_editor/isEditableModel3D";
 
-/** Detect editable 3D model assets (.glb/.gltf). */
-const isModel3DAsset = (asset: Asset): boolean => {
-    const type = asset.content_type || "";
-    if (
-        type.startsWith("model/") ||
-        type.includes("gltf") ||
-        type.includes("glb")
-    ) {
-        return true;
-    }
-    const ext = asset.name.toLowerCase().split(".").pop();
-    return ext === "glb" || ext === "gltf";
-};
+const Model3DEditor = React.lazy(() => import("../model_editor/Model3DEditor"));
 
 /**
  * Normalize API media URLs for use in <img> / canvas loaders.
@@ -124,7 +112,7 @@ const AssetEditor: React.FC = () => {
         if (!loading && !asset) {
             return "Asset not found";
         }
-        if (asset && !asset.content_type?.startsWith("image/") && !isModel3DAsset(asset)) {
+        if (asset && !asset.content_type?.startsWith("image/") && !isEditableModel3DAsset(asset)) {
             return "Asset is not an editable image or 3D model";
         }
         if (asset && asset.content_type?.startsWith("image/")) {
@@ -137,7 +125,7 @@ const AssetEditor: React.FC = () => {
                 return "This image has no download URL (get_url). Cannot open the editor.";
             }
         }
-        if (asset && isModel3DAsset(asset) && !resolvePublicMediaUrl(asset.get_url)) {
+        if (asset && isEditableModel3DAsset(asset) && !resolvePublicMediaUrl(asset.get_url)) {
             console.error(
                 "[AssetEditor] 3D model asset has no get_url; cannot load the editor.",
                 asset.id
@@ -152,7 +140,7 @@ const AssetEditor: React.FC = () => {
         [asset]
     );
 
-    const is3DModel = useMemo(() => (asset ? isModel3DAsset(asset) : false), [asset]);
+    const is3DModel = useMemo(() => (asset ? isEditableModel3DAsset(asset) : false), [asset]);
 
     const model3DUrl = useMemo(
         () => (asset && is3DModel ? resolvePublicMediaUrl(asset.get_url) : null),

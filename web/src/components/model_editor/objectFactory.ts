@@ -19,8 +19,10 @@ export const PRIMITIVE_LABELS: Record<PrimitiveKind, string> = {
   pointLight: "Point Light"
 };
 
+// MeshPhysicalMaterial (extends MeshStandardMaterial) so the Properties panel
+// can expose the full PBR set — clearcoat, transmission, sheen, iridescence, …
 const standardMaterial = () =>
-  new THREE.MeshStandardMaterial({
+  new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(0xcccccc),
     metalness: 0.1,
     roughness: 0.8
@@ -42,7 +44,7 @@ export const createPrimitive = (kind: PrimitiveKind): THREE.Object3D => {
     case "plane": {
       const mesh = new THREE.Mesh(
         new THREE.PlaneGeometry(2, 2),
-        new THREE.MeshStandardMaterial({
+        new THREE.MeshPhysicalMaterial({
           color: new THREE.Color(0xcccccc),
           metalness: 0.1,
           roughness: 0.8,

@@ -27,6 +27,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
+import { isEditableModel3DAsset } from "../model_editor/isEditableModel3D";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
 import {
@@ -284,14 +285,10 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   }, [currentAsset?.content_type, contentType]);
 
   // Check if current asset is an editable 3D model (.glb/.gltf)
-  const isModel3D = useMemo(() => {
-    const ct = currentAsset?.content_type || contentType || "";
-    if (ct.startsWith("model/") || ct.includes("gltf") || ct.includes("glb")) {
-      return true;
-    }
-    const ext = currentAsset?.name?.toLowerCase().split(".").pop();
-    return ext === "glb" || ext === "gltf";
-  }, [currentAsset?.content_type, currentAsset?.name, contentType]);
+  const isModel3D = useMemo(
+    () => (currentAsset ? isEditableModel3DAsset(currentAsset) : false),
+    [currentAsset]
+  );
 
   // Check if there are multiple images to compare
   const imageAssets = useMemo(
