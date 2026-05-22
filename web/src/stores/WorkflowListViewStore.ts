@@ -71,9 +71,6 @@ export const useWorkflowListViewStore = create<WorkflowListViewState>()(
   )
 );
 
-export const useWorkflowListViewActions = (): WorkflowListViewState["actions"] =>
-  useWorkflowListViewStore((state) => state.actions);
-
 export const useShowGraphPreview = (): boolean =>
   useWorkflowListViewStore((state) => state.showGraphPreview);
 
