@@ -17,7 +17,7 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import isEqual from "fast-deep-equal";
-import { Tooltip, EditorButton, Container } from "../ui_primitives";
+import { Container } from "../ui_primitives";
 import FalPricingFooter from "./FalPricingFooter";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
@@ -50,8 +50,6 @@ import { useDelayedVisibility } from "../../hooks/useDelayedVisibility";
 
 import { useNodeFocusStore } from "../../stores/NodeFocusStore";
 import { useNodes } from "../../contexts/NodeContext";
-import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
   CONTROL_HANDLE_ID,
   isAgentNodeType
@@ -77,28 +75,6 @@ const MIN_RESIZE_HEIGHT = 100;
 
 const isEmptyResult = (obj: unknown) =>
   obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
-
-const NAMESPACE_BUTTON_SX = {
-  position: "absolute",
-  bottom: -25,
-  left: "50%",
-  transform: "translateX(-50%)",
-  bgcolor: "background.paper",
-  color: "text.secondary",
-  px: 1,
-  py: 0.25,
-  borderRadius: 1,
-  fontSize: "0.65rem",
-  fontWeight: 400,
-  zIndex: 1000,
-  border: "1px solid",
-  borderColor: "divider",
-  whiteSpace: "nowrap",
-  cursor: "pointer",
-  "&:hover": {
-    bgcolor: "action.hover"
-  }
-} as const;
 
 const NODE_CONTENT_CONTAINER_STYLE: React.CSSProperties = {
   flex: "1 1 auto",
@@ -632,21 +608,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [data.collapsed]
   );
 
-  const handleNamespaceClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      e.preventDefault();
-      // Open nodeMenu at that namespace
-      const namespacePath = metadata.namespace?.split(".") || [];
-      useNodeMenuStore.getState().openNodeMenu({
-        x: e.clientX,
-        y: e.clientY,
-        selectedPath: namespacePath
-      });
-    },
-    [metadata.namespace]
-  );
-
   // Track error state for node dimension management
   const hasError = useErrorStore((state) =>
     workflow_id !== undefined
@@ -810,24 +771,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
       {title && type !== CODE_NODE_TYPE && (
         <EditableTitle nodeId={id} title={title} />
-      )}
-
-      {selected && metadata.namespace && (
-        <Tooltip
-          delay={TOOLTIP_ENTER_DELAY * 2}
-          title="Open Node Menu here"
-          placement="bottom"
-          arrow
-        >
-          <EditorButton
-            variant="text"
-            className="node-namespace nodrag nopan"
-            onClick={handleNamespaceClick}
-            sx={NAMESPACE_BUTTON_SX}
-          >
-            {metadata.namespace}
-          </EditorButton>
-        </Tooltip>
       )}
 
       <FalPricingFooter metadata={metadata} selected={!!selected} />

@@ -18,10 +18,13 @@ import {
   Caption,
   CloseButton,
   CollapsibleSection,
+  EditorButton,
   ScrollArea,
   Text,
   Tooltip
 } from "./ui_primitives";
+import useNodeMenuStore from "../stores/NodeMenuStore";
+import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import FalPricingFooter from "./node/FalPricingFooter";
 import { DYNAMIC_KIE_NODE_TYPE } from "./node/DynamicKieSchemaNode";
 import PropertyVisibilityToggle from "./properties/PropertyVisibilityToggle";
@@ -80,12 +83,26 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeNormal,
       fontWeight: 500
     },
-    ".namespace": {
+    ".namespace-button": {
+      alignSelf: "flex-start",
+      marginTop: theme.spacing(0.25),
+      padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
       fontSize: theme.fontSizeTiny,
       color: theme.vars.palette.text.disabled,
       fontFamily: "monospace",
       letterSpacing: "0.02em",
-      marginTop: theme.spacing(0.25)
+      fontWeight: 400,
+      textTransform: "none",
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: theme.shape.borderRadius,
+      whiteSpace: "nowrap",
+      maxWidth: "100%",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      "&:hover": {
+        bgcolor: "action.hover",
+        color: theme.vars.palette.text.secondary
+      }
     },
     ".header-description": {
       color: theme.vars.palette.text.secondary,
@@ -373,6 +390,21 @@ const Inspector: React.FC = () => {
     ? getMetadata(selectedNode.type as string)
     : null;
 
+  const handleNamespaceClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (!metadata?.namespace) {
+        return;
+      }
+      e.stopPropagation();
+      useNodeMenuStore.getState().openNodeMenu({
+        x: e.clientX,
+        y: e.clientY,
+        selectedPath: metadata.namespace.split(".")
+      });
+    },
+    [metadata?.namespace]
+  );
+
   // Connected target-handle names for the focused node, used to (a) gate the
   // demotion confirmation prompt and (b) flag the toggle as "connected".
   const connectedTargetHandles = useMemo(() => {
@@ -531,7 +563,22 @@ const Inspector: React.FC = () => {
                   />
                 </Box>
               ) : null}
-              <div className="namespace">{metadata.node_type}</div>
+              {metadata.namespace ? (
+                <Tooltip
+                  delay={TOOLTIP_ENTER_DELAY * 2}
+                  title="Open Node Menu here"
+                  placement="bottom"
+                  arrow
+                >
+                  <EditorButton
+                    variant="text"
+                    className="namespace-button"
+                    onClick={handleNamespaceClick}
+                  >
+                    {metadata.namespace}
+                  </EditorButton>
+                </Tooltip>
+              ) : null}
               {metadata.description && (
                 <CollapsibleSection
                   title={<Caption size="tiny" color="muted">Description</Caption>}
