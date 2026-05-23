@@ -5,7 +5,6 @@ import PropertyField from "./node/PropertyField";
 import { Box } from "@mui/material";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
-import NodeExplorer from "./node/NodeExplorer";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { NodeMetadata, TypeMetadata, Property } from "../stores/ApiTypes";
@@ -423,18 +422,7 @@ const Inspector: React.FC = () => {
   }, [edges, selectedNode]);
 
   if (selectedNodes.length === 0) {
-    return (
-      <EditorUiProvider scope="inspector">
-        <Box className="inspector" css={inspectorStyles}>
-          <Box className="top">
-            <ScrollArea className="top-content" direction="vertical">
-              <NodeExplorer />
-            </ScrollArea>
-          </Box>
-          <Box className="bottom"></Box>
-        </Box>
-      </EditorUiProvider>
-    );
+    return null;
   }
 
   if (isMultiSelect) {
@@ -519,20 +507,7 @@ const Inspector: React.FC = () => {
   }
 
   if (!selectedNode) {
-    return (
-      <Box className="inspector" css={inspectorStyles}>
-        <Box className="top">
-          <ScrollArea className="top-content" direction="vertical">
-            <Box className="inspector-header">
-              <Caption size="smaller" color="muted">
-                Select a node to inspect
-              </Caption>
-            </Box>
-          </ScrollArea>
-        </Box>
-        <Box className="bottom"></Box>
-      </Box>
-    );
+    return null;
   }
 
   if (!metadata) {

@@ -12,11 +12,11 @@ describe("BottomPanelStore", () => {
   describe("initial state", () => {
     it("should have correct default values", () => {
       const state = useBottomPanelStore.getState();
-      expect(state.panel.panelSize).toBe(300);
+      expect(state.panel.panelSize).toBe(320);
       expect(state.panel.isVisible).toBe(false);
       expect(state.panel.isDragging).toBe(false);
       expect(state.panel.hasDragged).toBe(false);
-      expect(state.panel.activeView).toBe("trace");
+      expect(state.panel.activeView).toBe("logs");
     });
   });
 
@@ -32,8 +32,8 @@ describe("BottomPanelStore", () => {
     });
 
     it("should cap size at maximum", () => {
-      useBottomPanelStore.getState().setSize(700);
-      expect(useBottomPanelStore.getState().panel.panelSize).toBe(600);
+      useBottomPanelStore.getState().setSize(800);
+      expect(useBottomPanelStore.getState().panel.panelSize).toBe(700);
     });
   });
 
@@ -59,7 +59,7 @@ describe("BottomPanelStore", () => {
 
     it("should use default size when no size provided", () => {
       useBottomPanelStore.getState().initializePanelSize();
-      expect(useBottomPanelStore.getState().panel.panelSize).toBe(300);
+      expect(useBottomPanelStore.getState().panel.panelSize).toBe(320);
     });
 
     it("should clamp size below minimum", () => {
@@ -68,8 +68,8 @@ describe("BottomPanelStore", () => {
     });
 
     it("should clamp size above maximum", () => {
-      useBottomPanelStore.getState().initializePanelSize(800);
-      expect(useBottomPanelStore.getState().panel.panelSize).toBe(600);
+      useBottomPanelStore.getState().initializePanelSize(900);
+      expect(useBottomPanelStore.getState().panel.panelSize).toBe(700);
     });
   });
 
@@ -106,7 +106,7 @@ describe("BottomPanelStore", () => {
   describe("handleViewChange", () => {
     it("should toggle visibility for same view", () => {
       useBottomPanelStore.getState().setVisibility(true);
-      useBottomPanelStore.getState().handleViewChange("trace");
+      useBottomPanelStore.getState().handleViewChange("logs");
       expect(useBottomPanelStore.getState().panel.isVisible).toBe(false);
     });
 
@@ -120,7 +120,7 @@ describe("BottomPanelStore", () => {
     it("should expand panel if collapsed when same view selected", () => {
       useBottomPanelStore.getState().setSize(40);
       useBottomPanelStore.getState().setVisibility(false);
-      useBottomPanelStore.getState().handleViewChange("trace");
+      useBottomPanelStore.getState().handleViewChange("logs");
       expect(useBottomPanelStore.getState().panel.panelSize).toBe(200);
       expect(useBottomPanelStore.getState().panel.isVisible).toBe(true);
     });

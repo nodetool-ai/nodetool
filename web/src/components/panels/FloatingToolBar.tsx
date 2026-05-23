@@ -32,7 +32,6 @@ import EditIcon from "@mui/icons-material/Edit";
 import LinearScaleIcon from "@mui/icons-material/LinearScale";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -369,12 +368,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     isSuspended
   } = useFloatingToolbarActions();
 
-  const { isRightPanelVisible, rightPanelSize } = useRightPanelStore(
-    useShallow((state) => ({
-      isRightPanelVisible: state.panel.isVisible,
-      rightPanelSize: state.panel.panelSize
-    }))
-  );
   const { bottomPanelVisible, bottomPanelSize } = useBottomPanelStore(
     useShallow((state) => ({
       bottomPanelVisible: state.panel.isVisible,
@@ -383,11 +376,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   );
 
   const toolbarPosition = useFloatingToolbarPosition(
-    isRightPanelVisible,
-    rightPanelSize,
     bottomPanelVisible,
-    bottomPanelSize,
-    isMobile
+    bottomPanelSize
   );
 
   const { instantUpdate, setInstantUpdate, editorViewMode, setEditorViewMode } =
