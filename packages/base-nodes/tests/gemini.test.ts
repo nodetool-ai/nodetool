@@ -221,7 +221,7 @@ describe("ImageGenerationNode", () => {
     const node = new ImageGenerationNode();
     const d = node.serialize();
     expect(d.prompt).toBe("");
-    expect(d.model).toBe("imagen-3.0-generate-002");
+    expect(d.model).toBe("imagen-4.0-generate-001");
   });
 
   it("throws when prompt is empty", async () => {

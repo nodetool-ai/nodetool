@@ -246,12 +246,12 @@ export class ImageGenerationNode extends BaseNode {
 
   @prop({
     type: "enum",
-    default: "imagen-3.0-generate-002",
+    default: "imagen-4.0-generate-001",
     title: "Model",
     description: "The image generation model to use",
     values: [
-      "gemini-2.0-flash-preview-image-generation",
-      "imagen-3.0-generate-002"
+      "gemini-3.1-flash-image-preview",
+      "imagen-4.0-generate-001"
     ]
   })
   declare model: any;
@@ -273,7 +273,7 @@ export class ImageGenerationNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getGeminiApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
-    const model = String(this.model ?? "imagen-3.0-generate-002");
+    const model = String(this.model ?? "imagen-4.0-generate-001");
     const image = (this.image ?? {}) as Record<string, unknown>;
 
     if (!prompt) throw new Error("The input prompt cannot be empty.");

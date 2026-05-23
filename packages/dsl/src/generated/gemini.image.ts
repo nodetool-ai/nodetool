@@ -6,7 +6,7 @@ import type { ImageRef } from "../types.js";
 // Image Generation — gemini.image.ImageGeneration
 export interface ImageGenerationInputs {
   prompt?: Connectable<string>;
-  model?: Connectable<"gemini-2.0-flash-preview-image-generation" | "imagen-3.0-generate-002">;
+  model?: Connectable<"gemini-3.1-flash-image-preview" | "imagen-4.0-generate-001">;
   image?: Connectable<ImageRef>;
 }
 
