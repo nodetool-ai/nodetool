@@ -32,8 +32,9 @@
   "author": "matti.georgi@gmail.com",
   "license": "AGPL-3.0-only",
   "devDependencies": {
-    "@electron/rebuild": "^4.0.1",
     "@eslint/compat": "^2.1.0",
+    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^9.39.4",
     "@jest/globals": "^29.7.0",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
