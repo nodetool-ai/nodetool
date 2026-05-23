@@ -1,12 +1,13 @@
 /**
- * useTimelineDirectGenJob — direct-gen (text-to-image / image-to-image) for
- * timeline clips. Mirrors `useDirectGenJob` for the sketch editor: fires a
- * `generate_media` WebSocket RPC and writes the resulting asset back onto
- * the clip (currentAssetId + ClipVersion) when it returns.
+ * useTimelineDirectGenJob — direct-gen (text-to-image / image-to-image /
+ * text-to-video / text-to-audio) for timeline clips. Mirrors
+ * `useDirectGenJob` for the sketch editor: fires a `generate_media`
+ * WebSocket RPC and writes the resulting asset back onto the clip
+ * (currentAssetId + ClipVersion) when it returns.
  *
  * Workflow-bound clips go through `useGenerateClip` instead; this hook only
- * handles clips whose `bindingKind` is `"text-to-image"` or
- * `"image-to-image"`.
+ * handles clips whose `bindingKind` is `"text-to-image"`, `"image-to-image"`,
+ * `"text-to-video"`, or `"text-to-audio"`.
  */
 import { useCallback } from "react";
 import {
@@ -71,7 +72,12 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
       .clips.find((c) => c.id === clipId);
     if (!clip) return null;
     const kind = clip.bindingKind;
-    if (kind !== "text-to-image" && kind !== "image-to-image") {
+    if (
+      kind !== "text-to-image" &&
+      kind !== "image-to-image" &&
+      kind !== "text-to-video" &&
+      kind !== "text-to-audio"
+    ) {
       return null;
     }
     if (clip.status === "queued" || clip.status === "generating") {
@@ -180,7 +186,14 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         command: "generate_media",
         request_id: requestId,
         data: {
-          mode: kind === "text-to-image" ? "image" : "image_edit",
+          mode:
+            kind === "text-to-image"
+              ? "image"
+              : kind === "image-to-image"
+                ? "image_edit"
+                : kind === "text-to-video"
+                  ? "video"
+                  : "audio",
           provider: clip.provider,
           model: clip.model,
           prompt,
@@ -189,7 +202,8 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
           height: clip.height,
           strength: clip.strength,
           num_inference_steps: clip.numInferenceSteps,
-          variations: 1
+          variations: 1,
+          voice: kind === "text-to-audio" ? clip.voice : undefined
         }
       });
     } catch {

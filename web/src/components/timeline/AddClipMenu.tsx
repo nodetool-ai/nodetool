@@ -40,13 +40,60 @@ import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import { useTimelineDirectGenJob } from "../../hooks/timeline/useTimelineDirectGenJob";
 import { useLastDirectGenModel } from "../../hooks/timeline/useLastDirectGenModel";
 import ImageModelSelect from "../properties/ImageModelSelect";
-import type { ImageModelValue } from "../../stores/ApiTypes";
+import VideoModelSelect from "../properties/VideoModelSelect";
+import TTSModelSelect from "../properties/TTSModelSelect";
+import type { ImageModelValue, TTSModelValue } from "../../stores/ApiTypes";
+import type { TimelineTrack } from "@nodetool-ai/timeline";
+
+interface VideoModelChange {
+  type: "video_model";
+  id: string;
+  provider: string;
+  name: string;
+}
+
+type DirectGenKind = "image" | "video" | "audio";
+
+/**
+ * Map a track type to the direct-gen flavour that makes sense on it.
+ * Subtitle tracks fall through to `null` — the prompt section is hidden
+ * and only workflow-bound clips remain available.
+ */
+const trackDirectGenKind = (
+  trackType: TimelineTrack["type"]
+): DirectGenKind | null => {
+  switch (trackType) {
+    case "video":
+      return "video";
+    case "overlay":
+      return "image";
+    case "audio":
+      return "audio";
+    default:
+      return null;
+  }
+};
+
+const trackMediaType = (
+  trackType: TimelineTrack["type"]
+): "image" | "video" | "audio" | "overlay" | null => {
+  switch (trackType) {
+    case "video":
+      return "video";
+    case "overlay":
+      return "overlay";
+    case "audio":
+      return "audio";
+    default:
+      return null;
+  }
+};
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
 const menuStyles = (theme: Theme) =>
   css({
-    width: 320,
+    width: 360,
     padding: theme.spacing(1)
   });
 
@@ -226,10 +273,12 @@ export interface AddClipMenuProps {
   /** Start time for the new clip in milliseconds */
   startMs: number;
   /**
-   * If this track is an overlay track, pass `"overlay"` so the clip's
-   * mediaType is set to "overlay" instead of "video".
+   * Track type — drives which direct-gen flow is offered (video tracks get
+   * the video model selector + text-to-video binding; overlay tracks get the
+   * image selector + an overlay clip; audio/subtitle tracks hide the prompt
+   * section entirely and only expose workflow-bound clips).
    */
-  mediaTypeOverride?: "overlay";
+  trackType: TimelineTrack["type"];
   /** Anchor element for the popover */
   anchorEl: HTMLElement | null;
   /** Called when the popover should close */
@@ -246,8 +295,10 @@ export interface AddClipMenuProps {
  * Rendered from a track-lane context menu or the top-bar "+" button.
  */
 export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
-  ({ trackId, startMs, mediaTypeOverride, anchorEl, onClose }) => {
+  ({ trackId, startMs, trackType, anchorEl, onClose }) => {
     const theme = useTheme();
+    const directGenKind = trackDirectGenKind(trackType);
+    const mediaTypeForClip = trackMediaType(trackType);
     const [activeTab, setActiveTab] = useState<"templates" | "all">(
       "templates"
     );
@@ -256,12 +307,15 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
     const [error, setError] = useState<string | null>(null);
 
     // ── Direct-gen prompt state ────────────────────────────────────────────
-    const lastModel = useLastDirectGenModel();
+    const lastModel = useLastDirectGenModel(directGenKind ?? "image");
     const [prompt, setPrompt] = useState("");
     const [directProvider, setDirectProvider] = useState<string | undefined>(
       undefined
     );
     const [directModel, setDirectModel] = useState<string | undefined>(
+      undefined
+    );
+    const [directVoice, setDirectVoice] = useState<string | undefined>(
       undefined
     );
 
@@ -274,6 +328,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
       setError(null);
       setDirectProvider(lastModel.provider);
       setDirectModel(lastModel.model);
+      setDirectVoice(lastModel.voice);
     // Seed defaults on open only — picking up `lastModel` changes while the
     // popover is already open would stomp the user's mid-edit choices.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -313,7 +368,9 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
         setError(null);
         try {
           await addGeneratedClip(workflowId, trackId, startMs, {
-            mediaTypeOverride,
+            // `addGeneratedClip` only knows about the `"overlay"` override; for
+            // image/video tracks it picks mediaType from the workflow output.
+            mediaTypeOverride: trackType === "overlay" ? "overlay" : undefined,
             selectedOutputNodeId
           });
           onClose();
@@ -325,7 +382,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
           setIsAdding(false);
         }
       },
-      [addGeneratedClip, trackId, startMs, mediaTypeOverride, onClose]
+      [addGeneratedClip, trackId, startMs, trackType, onClose]
     );
 
     // ── Handlers ───────────────────────────────────────────────────────────
@@ -402,7 +459,19 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
       setDirectModel(v.id);
     }, []);
 
+    const handleDirectVideoModelChange = useCallback((v: VideoModelChange) => {
+      setDirectProvider(v.provider);
+      setDirectModel(v.id);
+    }, []);
+
+    const handleDirectTTSModelChange = useCallback((v: TTSModelValue) => {
+      setDirectProvider(v.provider);
+      setDirectModel(v.id);
+      setDirectVoice(v.selected_voice || v.voices?.[0] || undefined);
+    }, []);
+
     const canSubmitPrompt =
+      directGenKind !== null &&
       prompt.trim().length > 0 &&
       !!directProvider &&
       !!directModel &&
@@ -410,20 +479,28 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
 
     const handlePromptSubmit = useCallback(async () => {
       if (!canSubmitPrompt) return;
+      if (!directGenKind || !mediaTypeForClip) return;
       // Clear any stale failure toast from a prior attempt before we try
       // again — the user shouldn't see an error linger after a successful
       // retry.
       setError(null);
       setIsAdding(true);
       try {
+        const bindingKind =
+          directGenKind === "video"
+            ? "text-to-video"
+            : directGenKind === "audio"
+              ? "text-to-audio"
+              : "text-to-image";
         const clipId = addDirectGenClip({
           trackId,
           startMs,
-          mediaType: mediaTypeOverride ?? "image",
-          bindingKind: "text-to-image",
+          mediaType: mediaTypeForClip,
+          bindingKind,
           prompt: prompt.trim(),
           provider: directProvider,
-          model: directModel
+          model: directModel,
+          voice: directGenKind === "audio" ? directVoice : undefined
         });
         selectClip(clipId);
         // Kick off generation right away — the whole point is "type → see".
@@ -436,13 +513,15 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
       }
     }, [
       canSubmitPrompt,
+      directGenKind,
+      mediaTypeForClip,
       addDirectGenClip,
       trackId,
       startMs,
-      mediaTypeOverride,
       prompt,
       directProvider,
       directModel,
+      directVoice,
       selectClip,
       directGen,
       onClose
@@ -484,46 +563,82 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
               </FlexRow>
 
               {/* ── Prompt-first quick-add ────────────────────────────────── */}
-              <FlexColumn gap={0.5} data-testid="add-clip-prompt-section">
-                <TextInput
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={handlePromptKeyDown}
-                  placeholder="Describe an image and press Enter…"
-                  multiline
-                  minRows={2}
-                  maxRows={5}
-                  compact
-                  autoFocus
-                  fullWidth
-                  inputProps={{
-                    "aria-label": "Prompt",
-                    "data-testid": "add-clip-prompt-input"
-                  }}
-                />
-                <FlexRow gap={1} align="center">
-                  <ImageModelSelect
-                    value={directModel ?? ""}
-                    task="text_to_image"
-                    onChange={handleDirectModelChange}
-                  />
-                  <Caption
-                    sx={{ color: "text.secondary", flex: 1, textAlign: "right" }}
-                  >
-                    Enter to generate · Shift+Enter for new line
-                  </Caption>
-                </FlexRow>
-              </FlexColumn>
+              {directGenKind !== null && (
+                <>
+                  <FlexColumn gap={0.5} data-testid="add-clip-prompt-section">
+                    <TextInput
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      onKeyDown={handlePromptKeyDown}
+                      placeholder={
+                        directGenKind === "video"
+                          ? "Describe a video and press Enter…"
+                          : directGenKind === "audio"
+                            ? "Type text to speak and press Enter…"
+                            : "Describe an image and press Enter…"
+                      }
+                      multiline
+                      minRows={2}
+                      maxRows={5}
+                      compact
+                      autoFocus
+                      fullWidth
+                      inputProps={{
+                        "aria-label": "Prompt",
+                        "data-testid": "add-clip-prompt-input"
+                      }}
+                    />
+                    <Caption
+                      sx={{
+                        color: "text.disabled",
+                        textAlign: "right",
+                        fontSize: 10
+                      }}
+                    >
+                      ↵ generate · ⇧↵ new line
+                    </Caption>
+                    {directGenKind === "video" ? (
+                      <VideoModelSelect
+                        value={directModel ?? ""}
+                        task="text_to_video"
+                        onChange={handleDirectVideoModelChange}
+                      />
+                    ) : directGenKind === "audio" ? (
+                      <TTSModelSelect
+                        value={
+                          directModel
+                            ? ({
+                                type: "tts_model",
+                                id: directModel,
+                                provider: directProvider ?? "",
+                                name: directModel,
+                                voices: directVoice ? [directVoice] : [],
+                                selected_voice: directVoice ?? ""
+                              } as TTSModelValue)
+                            : ""
+                        }
+                        onChange={handleDirectTTSModelChange}
+                      />
+                    ) : (
+                      <ImageModelSelect
+                        value={directModel ?? ""}
+                        task="text_to_image"
+                        onChange={handleDirectModelChange}
+                      />
+                    )}
+                  </FlexColumn>
 
-              <Caption
-                sx={{
-                  color: "text.disabled",
-                  textAlign: "center",
-                  fontSize: 10
-                }}
-              >
-                — or use a workflow —
-              </Caption>
+                  <Caption
+                    sx={{
+                      color: "text.disabled",
+                      textAlign: "center",
+                      fontSize: 10
+                    }}
+                  >
+                    — or use a workflow —
+                  </Caption>
+                </>
+              )}
 
               {/* Tabs */}
               <TabGroup
@@ -605,7 +720,7 @@ export interface AddClipButtonProps
  * renders `AddClipMenu` when clicked.
  */
 export const AddClipButton: React.FC<AddClipButtonProps> = memo(
-  ({ trackId, startMs, mediaTypeOverride, tooltip = "Add generated clip" }) => {
+  ({ trackId, startMs, trackType, tooltip = "Add generated clip" }) => {
     const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
     const handleOpen = useCallback(
@@ -631,7 +746,7 @@ export const AddClipButton: React.FC<AddClipButtonProps> = memo(
           <AddClipMenu
             trackId={trackId}
             startMs={startMs}
-            mediaTypeOverride={mediaTypeOverride}
+            trackType={trackType}
             anchorEl={anchorEl}
             onClose={handleClose}
           />

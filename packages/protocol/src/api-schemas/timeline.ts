@@ -194,7 +194,9 @@ export type ClipEffect = z.infer<typeof clipEffect>;
 export const clipBindingKind = z.enum([
   "workflow",
   "text-to-image",
-  "image-to-image"
+  "image-to-image",
+  "text-to-video",
+  "text-to-audio"
 ]);
 export type ClipBindingKind = z.infer<typeof clipBindingKind>;
 
@@ -217,6 +219,8 @@ export const timelineClip = z
     negativePrompt: z.string().optional(),
     provider: z.string().optional(),
     model: z.string().optional(),
+    /** TTS voice id for `text-to-audio` direct-gen clips. */
+    voice: z.string().optional(),
     sourceClipId: z.string().nullable().optional(),
     width: z.number().optional(),
     height: z.number().optional(),

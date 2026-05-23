@@ -417,12 +417,17 @@ export interface GetNodeRequest {
 
 /**
  * Request payload for the `generate_media` RPC. Drives the sketch editor's
- * direct-generation layers (text-to-image and image-to-image) — bypasses the
- * chat path so no thread/Message row is created. Returns `{ asset_ids: string[] }`.
+ * direct-generation layers (text-to-image and image-to-image) and the
+ * timeline's direct-gen clips (text-to-video, text-to-audio) — bypasses
+ * the chat path so no thread/Message row is created. Returns
+ * `{ asset_ids: string[] }`.
  */
 export interface GenerateMediaRequest {
-  /** "image" = text-to-image; "image_edit" = image-to-image. */
-  mode: "image" | "image_edit";
+  /**
+   * "image" = text-to-image; "image_edit" = image-to-image;
+   * "video" = text-to-video; "audio" = text-to-speech.
+   */
+  mode: "image" | "image_edit" | "video" | "audio";
   provider: string;
   model: string;
   prompt: string;
@@ -434,6 +439,12 @@ export interface GenerateMediaRequest {
   num_inference_steps?: number;
   /** Number of variations to request (1..8, clamped server-side). */
   variations?: number;
+  /** TTS voice id, when mode === "audio". */
+  voice?: string;
+  /** Playback rate for TTS, when mode === "audio". */
+  speed?: number;
+  /** Requested audio container ("mp3", "wav", "flac", "ogg", "aac", "pcm"). */
+  audio_format?: string;
 }
 
 export interface GenerateMediaResponse {

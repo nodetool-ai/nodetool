@@ -220,11 +220,20 @@ export interface TrackChromaKeyEffect {
  *   - `"text-to-image"` / `"image-to-image"`: calls the runner's
  *     `generate_media` RPC directly with a model + prompt. No workflow, no
  *     param overrides. `sourceClipId` is the input clip for i2i.
+ *   - `"text-to-video"`: calls the runner's `generate_media` RPC with a video
+ *     model + prompt. Returns a single `video/mp4` asset.
+ *   - `"text-to-audio"`: calls the runner's `generate_media` RPC with a TTS
+ *     model + voice + prompt text. Returns a single audio asset (wav/mp3/...).
  *
  * Optional in the persisted shape so clips written before this field existed
  * default to `"workflow"` on load.
  */
-export type ClipBindingKind = "workflow" | "text-to-image" | "image-to-image";
+export type ClipBindingKind =
+  | "workflow"
+  | "text-to-image"
+  | "image-to-image"
+  | "text-to-video"
+  | "text-to-audio";
 
 export interface TimelineClip {
   id: string;
@@ -247,6 +256,8 @@ export interface TimelineClip {
   negativePrompt?: string;
   provider?: string;
   model?: string;
+  /** TTS voice id for `text-to-audio` direct-gen clips. */
+  voice?: string;
   /** Source clip for image-to-image. Reads the source clip's currentAssetId at submit time. */
   sourceClipId?: string | null;
   width?: number;

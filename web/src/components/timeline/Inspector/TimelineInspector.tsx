@@ -177,12 +177,15 @@ export const TimelineInspector: React.FC = memo(() => {
 
   if (!clip) return null;
 
-  // Direct-gen clips (text-to-image / image-to-image) get the prompt-driven
-  // inspector; workflow-bound generated clips get the workflow inputs view.
+  // Direct-gen clips (text-to-image / image-to-image / text-to-video /
+  // text-to-audio) get the prompt-driven inspector; workflow-bound generated
+  // clips get the workflow inputs view.
   if (clip.sourceType === "generated") {
     if (
       clip.bindingKind === "text-to-image" ||
-      clip.bindingKind === "image-to-image"
+      clip.bindingKind === "image-to-image" ||
+      clip.bindingKind === "text-to-video" ||
+      clip.bindingKind === "text-to-audio"
     ) {
       return <DirectGenClipPanel clipId={clip.id} />;
     }

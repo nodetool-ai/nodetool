@@ -261,11 +261,16 @@ export interface TimelineStoreState {
     trackId: string;
     startMs: number;
     durationMs?: number;
-    mediaType?: "image" | "overlay";
-    bindingKind?: "text-to-image" | "image-to-image";
+    mediaType?: "image" | "video" | "audio" | "overlay";
+    bindingKind?:
+      | "text-to-image"
+      | "image-to-image"
+      | "text-to-video"
+      | "text-to-audio";
     prompt: string;
     provider?: string;
     model?: string;
+    voice?: string;
     sourceClipId?: string | null;
     width?: number;
     height?: number;
@@ -295,6 +300,7 @@ export interface TimelineStoreState {
         | "negativePrompt"
         | "provider"
         | "model"
+        | "voice"
         | "sourceClipId"
         | "width"
         | "height"
@@ -883,7 +889,11 @@ export const createTimelineStore = (
               ? trimmedPrompt.slice(0, 40)
               : bindingKind === "image-to-image"
                 ? "Image-to-Image"
-                : "Text-to-Image";
+                : bindingKind === "text-to-video"
+                  ? "Text-to-Video"
+                  : bindingKind === "text-to-audio"
+                    ? "Text-to-Audio"
+                    : "Text-to-Image";
 
           const clip = makeClip({
             id: createTimeOrderedUuid(),
@@ -897,6 +907,7 @@ export const createTimelineStore = (
             prompt: opts.prompt,
             provider: opts.provider,
             model: opts.model,
+            voice: opts.voice,
             sourceClipId: opts.sourceClipId ?? null,
             width: opts.width,
             height: opts.height,
