@@ -28,7 +28,9 @@ export const useFloatingToolbarPosition = (
       style.right = `${Math.max(rightPanelSize + 20, 72)}px`;
     }
 
-    // Adjust vertical position when bottom panel is visible
+    // The bottom panel is always present as a thin tab rail (~36px) and
+    // expands when visible. Offset the toolbar above whichever height applies.
+    const BOTTOM_RAIL_HEIGHT = 36;
     if (bottomPanelVisible) {
       const maxBottomSize =
         typeof window !== "undefined"
@@ -39,7 +41,7 @@ export const useFloatingToolbarPosition = (
         80
       )}px`;
     } else {
-      style.bottom = "20px";
+      style.bottom = `${BOTTOM_RAIL_HEIGHT + 12}px`;
     }
 
     return style;

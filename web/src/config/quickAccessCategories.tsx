@@ -1,14 +1,13 @@
 /** @jsxImportSource @emotion/react */
 /**
- * Quick-access sidebar categories (plan §7.3, §7.6).
+ * Left-panel sidebar (top-level) and node-browser sub-tabs.
  *
- * Each category is one icon in the left-rail. Categories are either:
- *  - "panel" — content rendered by an existing component (Search, History,
- *    Workflows, Assets).
- *  - "tile-grid" — filtered tile grid of nodes from MetadataStore (Image
- *    Models, Video Models, 3D Models, Quick access, Tools).
+ *  - `LEFT_PANEL_TOP_LEVEL` (5 entries): one icon per top-level view shown in
+ *    the vertical rail.
+ *  - `NODE_SUBCATEGORIES` (8 entries): tile-grid sub-tabs nested inside the
+ *    "Nodes" view. Each filters MetadataStore down to a node family.
  *
- * Order in this array drives sidebar order.
+ * Order in each array drives display order.
  */
 import type { ReactNode } from "react";
 import SearchIcon from "@mui/icons-material/Search";
@@ -22,6 +21,7 @@ import BuildIcon from "@mui/icons-material/Build";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import LoginIcon from "@mui/icons-material/Login";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
+import HubIcon from "@mui/icons-material/Hub";
 import { IconForType } from "./data_types";
 
 import type { NodeMetadata } from "../stores/ApiTypes";
@@ -29,33 +29,19 @@ import {
   getContentCardVariant,
   getPrimaryOutput
 } from "../components/node_types/contentCardRegistry";
+import type { LeftPanelView, NodeCategoryId } from "../stores/PanelStore";
 
-export type QuickAccessCategoryId =
-  | "search"
-  | "history"
-  | "workflows"
-  | "assets"
-  | "io"
-  | "image-models"
-  | "video-models"
-  | "audio-models"
-  | "3d-models"
-  | "agents"
-  | "control-flow"
-  | "tools";
-
-export type QuickAccessCategoryKind = "panel" | "tile-grid";
-
-export interface QuickAccessCategory {
-  id: QuickAccessCategoryId;
+export interface LeftPanelTopLevelCategory {
+  id: LeftPanelView;
   label: string;
   icon: ReactNode;
-  kind: QuickAccessCategoryKind;
-  /**
-   * For `tile-grid` categories: predicate over node metadata that determines
-   * whether the node appears in this category. Undefined for panel-kind.
-   */
-  filter?: (m: NodeMetadata) => boolean;
+}
+
+export interface NodeSubcategory {
+  id: NodeCategoryId;
+  label: string;
+  icon: ReactNode;
+  filter: (m: NodeMetadata) => boolean;
 }
 
 const primaryVariantIs =
@@ -66,10 +52,8 @@ const primaryVariantIs =
   };
 
 /**
- * Tools category (plan §7.3 row "Tools"): editing nodes (Levels, Crop,
- * Channels, Blur, Compositor, Painter, etc.). Mapped to existing base-nodes
- * editing primitives; bespoke bodies arrive in later PRs but the underlying
- * nodes already exist.
+ * Tools sub-category: editing primitives (Levels, Crop, Channels, Blur,
+ * Compositor, Painter, etc.) mapped to existing base-nodes.
  */
 const TOOLS_NODE_TYPES = new Set<string>([
   "nodetool.image.Resize",
@@ -95,15 +79,6 @@ const TOOLS_NODE_TYPES = new Set<string>([
   "lib.image.Mask"
 ]);
 
-/**
- * Curated, ordered list of the models we want surfaced first in the model
- * categories (after the generic capability nodes). Order here is the display
- * order. Spans image/video/audio — each entry only shows up in a category if
- * it also passes that category's `filter`, so one combined list is fine.
- *
- * This ranking only applies when the user is NOT searching; an active query
- * falls back to plain alphabetical so matches aren't reordered under them.
- */
 const POPULAR_MODELS_2026: readonly string[] = [
   // Image
   "fal.text_to_image.NanoBananaPro",
@@ -133,36 +108,31 @@ const POPULAR_MODEL_RANK: ReadonlyMap<string, number> = new Map(
   POPULAR_MODELS_2026.map((nodeType, index) => [nodeType, index])
 );
 
-export const QUICK_ACCESS_CATEGORIES: readonly QuickAccessCategory[] = [
-  {
-    id: "search",
-    label: "Search",
-    icon: <SearchIcon />,
-    kind: "panel"
-  },
-  {
-    id: "history",
-    label: "History",
-    icon: <HistoryIcon />,
-    kind: "panel"
-  },
-  {
-    id: "workflows",
-    label: "Workflows",
-    icon: <GridViewIcon />,
-    kind: "panel"
-  },
+/**
+ * Top-level sidebar icons. Reduced from 12 → 5 by collapsing all node
+ * tile-grids under a single "Nodes" entry with sub-tabs.
+ */
+export const LEFT_PANEL_TOP_LEVEL: readonly LeftPanelTopLevelCategory[] = [
+  { id: "search", label: "Search", icon: <SearchIcon /> },
+  { id: "workflows", label: "Workflows", icon: <GridViewIcon /> },
+  { id: "history", label: "History", icon: <HistoryIcon /> },
   {
     id: "assets",
     label: "Assets",
-    icon: <IconForType iconName="asset" showTooltip={false} iconSize="small" />,
-    kind: "panel"
+    icon: <IconForType iconName="asset" showTooltip={false} iconSize="small" />
   },
+  { id: "nodes", label: "Nodes", icon: <HubIcon /> }
+];
+
+/**
+ * Node sub-tabs shown inside the Nodes view. Each entry filters
+ * MetadataStore down to one family of nodes.
+ */
+export const NODE_SUBCATEGORIES: readonly NodeSubcategory[] = [
   {
     id: "io",
     label: "Inputs / Outputs",
     icon: <LoginIcon />,
-    kind: "tile-grid",
     filter: (m) =>
       m.node_type.startsWith("nodetool.input.") ||
       m.node_type.startsWith("nodetool.output.")
@@ -171,67 +141,65 @@ export const QUICK_ACCESS_CATEGORIES: readonly QuickAccessCategory[] = [
     id: "tools",
     label: "Tools",
     icon: <BuildIcon />,
-    kind: "tile-grid",
     filter: (m) => TOOLS_NODE_TYPES.has(m.node_type)
   },
   {
     id: "image-models",
-    label: "Image Models",
+    label: "Image",
     icon: <ImageIcon />,
-    kind: "tile-grid",
     filter: primaryVariantIs("image", "image_mask")
   },
   {
     id: "video-models",
-    label: "Video Models",
+    label: "Video",
     icon: <MovieIcon />,
-    kind: "tile-grid",
     filter: primaryVariantIs("video")
   },
   {
     id: "audio-models",
-    label: "Audio Models",
+    label: "Audio",
     icon: <AudiotrackIcon />,
-    kind: "tile-grid",
     filter: primaryVariantIs("audio")
   },
   {
     id: "3d-models",
-    label: "3D Models",
+    label: "3D",
     icon: <ViewInArIcon />,
-    kind: "tile-grid",
     filter: primaryVariantIs("model_3d")
   },
   {
     id: "agents",
     label: "Agents",
     icon: <SmartToyIcon />,
-    kind: "tile-grid",
     filter: (m) => /(^|\.)agents\./.test(m.node_type)
   },
   {
     id: "control-flow",
-    label: "Control Flow",
+    label: "Control",
     icon: <CallSplitIcon />,
-    kind: "tile-grid",
     filter: (m) => m.node_type.startsWith("nodetool.control.")
   }
 ];
 
-export const getCategory = (
-  id: QuickAccessCategoryId
-): QuickAccessCategory | undefined =>
-  QUICK_ACCESS_CATEGORIES.find((c) => c.id === id);
+export const getTopLevelCategory = (
+  id: LeftPanelView
+): LeftPanelTopLevelCategory | undefined =>
+  LEFT_PANEL_TOP_LEVEL.find((c) => c.id === id);
+
+export const getNodeSubcategory = (
+  id: NodeCategoryId
+): NodeSubcategory | undefined =>
+  NODE_SUBCATEGORIES.find((c) => c.id === id);
 
 /**
- * Combined view of all curated `node_type` strings referenced by the
- * tile-grid categories — used by `useAuditCuratedCategories` to flag drift
+ * Combined view of all curated `node_type` strings referenced by
+ * sub-categories — used by `useAuditCuratedCategories` to flag drift
  * between this config and the live node registry.
  */
-export const CURATED_NODE_TYPES: ReadonlyMap<string, QuickAccessCategoryId[]> =
+export const CURATED_NODE_TYPES: ReadonlyMap<string, NodeCategoryId[]> =
   (() => {
-    const m = new Map<string, QuickAccessCategoryId[]>();
-    const add = (set: ReadonlySet<string>, id: QuickAccessCategoryId) => {
+    const m = new Map<string, NodeCategoryId[]>();
+    const add = (set: ReadonlySet<string>, id: NodeCategoryId) => {
       for (const t of set) {
         const arr = m.get(t) ?? [];
         arr.push(id);
@@ -243,20 +211,18 @@ export const CURATED_NODE_TYPES: ReadonlyMap<string, QuickAccessCategoryId[]> =
   })();
 
 /**
- * Filter all metadata to the entries that should appear under this category.
- * Returns the list sorted by title. Panel-kind categories return [].
+ * Filter all metadata to the entries that should appear under this
+ * sub-category. Returns the list sorted with first-party nodes first,
+ * then curated popular models, then alphabetical.
  */
 export const filterNodesForCategory = (
-  category: QuickAccessCategory,
+  category: NodeSubcategory,
   all: NodeMetadata[],
   query: string = ""
 ): NodeMetadata[] => {
-  if (category.kind !== "tile-grid" || !category.filter) {
-    return [];
-  }
   const q = query.trim().toLowerCase();
   const matches = all.filter((m) => {
-    if (!category.filter!(m)) {
+    if (!category.filter(m)) {
       return false;
     }
     if (!q) {
@@ -269,16 +235,11 @@ export const filterNodesForCategory = (
     );
   });
 
-  // While searching, rank purely by title so matches aren't shuffled by the
-  // curated ordering. With no query, float generic capability nodes to the
-  // top, then the curated popular models, then everything else alphabetically.
   if (q) {
     matches.sort((a, b) => a.title.localeCompare(b.title));
     return matches;
   }
 
-  // 0 = generic (first-party nodetool.* nodes), 1 = curated popular model,
-  // 2 = everything else.
   const tierOf = (m: NodeMetadata): number => {
     if (m.node_type.startsWith("nodetool.")) {
       return 0;

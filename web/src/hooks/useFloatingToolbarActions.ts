@@ -6,7 +6,6 @@ import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../stores/SettingsStore";
 import { triggerAutosaveForWorkflow } from "./useAutosave";
 import useNodeMenuStore from "../stores/NodeMenuStore";
-import { useRightPanelStore } from "../stores/RightPanelStore";
 import { useBottomPanelStore } from "../stores/BottomPanelStore";
 import { useMiniMapStore } from "../stores/MiniMapStore";
 
@@ -62,7 +61,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
   const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
   const isMenuOpen = useNodeMenuStore((state) => state.isMenuOpen);
 
-  const toggleWorkflowPanel = useRightPanelStore(
+  const toggleWorkflowPanel = useBottomPanelStore(
     (state) => () => state.handleViewChange("workflow")
   );
 

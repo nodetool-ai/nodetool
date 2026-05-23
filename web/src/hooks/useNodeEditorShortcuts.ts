@@ -21,6 +21,7 @@ import { useMenuHandler } from "./useIpcRenderer";
 import { useReactFlow } from "@xyflow/react";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
+import { useBottomPanelStore } from "../stores/BottomPanelStore";
 import { NodeData } from "../stores/NodeData";
 import { getCollapseTogglePatches } from "../stores/collapseNodeLayout";
 import { Node } from "@xyflow/react";
@@ -116,6 +117,7 @@ export const useNodeEditorShortcuts = (
     (state) => state.addNotification
   );
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
+  const bottomPanelToggle = useBottomPanelStore((state) => state.handleViewChange);
   const findInWorkflow = useFindInWorkflow();
   const nodeFocus = useNodeFocus();
   // All hooks above this line
@@ -447,8 +449,8 @@ export const useNodeEditorShortcuts = (
   }, [inspectorToggle]);
 
   const handleWorkflowSettingsToggle = useCallback(() => {
-    inspectorToggle("workflow");
-  }, [inspectorToggle]);
+    bottomPanelToggle("workflow");
+  }, [bottomPanelToggle]);
 
   const handleToggleSelectedNodesCollapsed = useCallback(() => {
     const selected = nodeStore.getState().getSelectedNodes();

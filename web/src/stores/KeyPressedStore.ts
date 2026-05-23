@@ -16,7 +16,7 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { KeyboardContext } from "../components/KeyboardProvider";
 import { isEditableElement } from "../utils/browser";
-import { useRightPanelStore } from "./RightPanelStore";
+import { useBottomPanelStore } from "./BottomPanelStore";
 
 // Allowed key combinations for HTMLTextAreaElement
 const ALLOWED_TEXTAREA_COMBOS: Array<{
@@ -430,7 +430,7 @@ const useCombo = (
 };
 
 const assistantCallback = () => {
-  const { handleViewChange } = useRightPanelStore.getState();
+  const { handleViewChange } = useBottomPanelStore.getState();
   handleViewChange("assistant");
 };
 

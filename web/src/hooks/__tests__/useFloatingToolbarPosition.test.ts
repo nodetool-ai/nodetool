@@ -2,13 +2,17 @@ import { renderHook } from "@testing-library/react";
 import { useFloatingToolbarPosition } from "../useFloatingToolbarPosition";
 
 describe("useFloatingToolbarPosition", () => {
+  // The bottom panel always renders a thin tab rail (36px), so the toolbar
+  // sits 12px above it (48px) when no view is expanded.
+  const COLLAPSED_BOTTOM = "48px";
+
   it("returns default position when no panels are visible", () => {
     const { result } = renderHook(() =>
       useFloatingToolbarPosition(false, 0, false, 0)
     );
 
     expect(result.current).toEqual({
-      bottom: "20px"
+      bottom: COLLAPSED_BOTTOM
     });
   });
 
@@ -21,7 +25,7 @@ describe("useFloatingToolbarPosition", () => {
       left: "auto",
       transform: "none",
       right: "320px",
-      bottom: "20px"
+      bottom: COLLAPSED_BOTTOM
     });
   });
 
@@ -34,7 +38,7 @@ describe("useFloatingToolbarPosition", () => {
       left: "auto",
       transform: "none",
       right: "72px",
-      bottom: "20px"
+      bottom: COLLAPSED_BOTTOM
     });
   });
 
@@ -66,7 +70,7 @@ describe("useFloatingToolbarPosition", () => {
 
     // On mobile the right panel renders as a bottom sheet, so the toolbar
     // should stay centered (no `right`/`left`/`transform` override).
-    expect(result.current).toEqual({ bottom: "20px" });
+    expect(result.current).toEqual({ bottom: COLLAPSED_BOTTOM });
   });
 
   it("respects minimum bottom offset of 80px", () => {
