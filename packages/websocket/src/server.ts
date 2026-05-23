@@ -20,16 +20,9 @@ import {
   getPostgresDatabaseUrl,
   loadEnvironment
 } from "@nodetool-ai/config";
-import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
-import { registerBaseNodes } from "@nodetool-ai/base-nodes";
-import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
-import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
 import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-provider";
-import { registerFalNodes } from "@nodetool-ai/fal-nodes";
-import { registerKieNodes } from "@nodetool-ai/kie-nodes";
-import { registerTopazNodes } from "@nodetool-ai/topaz-nodes";
-import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
+import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   initTelemetry,
   PythonStdioBridge
@@ -374,34 +367,15 @@ log.info(`Metadata roots detected [${startupMs()}]`, {
 // Node registry
 // ---------------------------------------------------------------------------
 
-const registry = new NodeRegistry();
-registry.loadPythonMetadata({ roots: metadataRoots, maxDepth: 8 });
-log.info(`Python metadata loaded [${startupMs()}]`);
-registerBaseNodes(registry);
-registerElevenLabsNodes(registry);
-if (process.env["NODETOOL_ENV"] !== "production") {
-  registerTransformersJsNodes(registry);
-}
-registerFalNodes(registry);
-registerKieNodes(registry);
-registerTopazNodes(registry);
-registerReplicateNodes(registry);
+const registry = await bootstrapNodeRegistry({
+  metadataRoots,
+  log
+});
+log.info(`Node registry ready [${startupMs()}]`);
 setLlmAgentGraphPlannerRegistry(registry);
 if (process.env["NODETOOL_ENV"] !== "production") {
   registerTransformersJsProvider();
 }
-// In production, unregister optional JS-only nodes that require on-demand npm packages.
-if (process.env["NODETOOL_ENV"] === "production") {
-  const skippedPrefixes = ["lib.tensorflow.", "transformers.", "vector."];
-  for (const nodeType of registry.list()) {
-    if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
-      if (registry.unregister(nodeType)) {
-        log.info(`Unregistered ${nodeType} in production`);
-      }
-    }
-  }
-}
-log.info(`Node registry ready [${startupMs()}]`);
 
 // ---------------------------------------------------------------------------
 // Python bridge

@@ -22,13 +22,7 @@ import {
   rankNodeMetadata,
   type NodeMetadata
 } from "@nodetool-ai/node-sdk";
-import { registerBaseNodes } from "@nodetool-ai/base-nodes";
-import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
-import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
-import { registerFalNodes } from "@nodetool-ai/fal-nodes";
-import { registerKieNodes } from "@nodetool-ai/kie-nodes";
-import { registerTopazNodes } from "@nodetool-ai/topaz-nodes";
-import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
+import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
   PythonStdioBridge,
@@ -80,28 +74,13 @@ function getRuntimeEnvironment(
 ): Promise<RuntimeEnvironment> {
   if (!runtimeEnvironmentPromise) {
     runtimeEnvironmentPromise = (async () => {
-      const registry = new NodeRegistry();
-      registry.loadPythonMetadata({
-        roots: options?.metadataRoots,
-        maxDepth: options?.metadataMaxDepth ?? 8
+      const registry = await bootstrapNodeRegistry({
+        ...(options?.metadataRoots
+          ? { metadataRoots: options.metadataRoots }
+          : {}),
+        metadataMaxDepth: options?.metadataMaxDepth ?? 8,
+        log
       });
-      registerBaseNodes(registry);
-      registerElevenLabsNodes(registry);
-      if (process.env["NODETOOL_ENV"] !== "production") {
-        registerTransformersJsNodes(registry);
-      }
-      registerFalNodes(registry);
-      registerKieNodes(registry);
-      registerTopazNodes(registry);
-      registerReplicateNodes(registry);
-      if (process.env["NODETOOL_ENV"] === "production") {
-        const skippedPrefixes = ["lib.tensorflow.", "transformers."];
-        for (const nodeType of registry.list()) {
-          if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
-            registry.unregister(nodeType);
-          }
-        }
-      }
 
       const pythonBridge = new PythonStdioBridge({
         workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
