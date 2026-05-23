@@ -16,6 +16,7 @@ import {
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { makeClipVersion } from "@nodetool-ai/timeline";
 import type { TimelineClip } from "@nodetool-ai/timeline";
+import { deriveIdleClipStatus } from "./useGenerateClip";
 
 interface DirectGenRpcResponse extends WebSocketMessage {
   type: "rpc_response";
@@ -202,7 +203,17 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
 
   const cancel = useCallback((clipId: string) => {
     clearInFlight(clipId);
-    useTimelineStore.getState().patchClip(clipId, { status: "draft" });
+    // Settle back to whatever idle status the clip's fields warrant — a
+    // generated/stale clip should not regress to "Draft" just because the
+    // user cancelled a re-roll. `deriveIdleClipStatus` produces draft only
+    // when the clip has no rendered asset.
+    const clip = useTimelineStore
+      .getState()
+      .clips.find((c) => c.id === clipId);
+    if (!clip) return;
+    useTimelineStore
+      .getState()
+      .patchClip(clipId, { status: deriveIdleClipStatus(clip) });
   }, []);
 
   return { start, cancel };

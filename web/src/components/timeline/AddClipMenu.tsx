@@ -12,7 +12,7 @@
  *  2. `TimelineStore.addGeneratedClip` is called to clone the workflow and create the clip.
  */
 
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -38,6 +38,7 @@ import { trpcClient } from "../../trpc/client";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import { useTimelineDirectGenJob } from "../../hooks/timeline/useTimelineDirectGenJob";
+import { useLastDirectGenModel } from "../../hooks/timeline/useLastDirectGenModel";
 import ImageModelSelect from "../properties/ImageModelSelect";
 import type { ImageModelValue } from "../../stores/ApiTypes";
 
@@ -236,30 +237,6 @@ export interface AddClipMenuProps {
 }
 
 /**
- * Returns the provider + model from the most-recently-added direct-gen clip
- * in the current sequence, so a fresh prompt doesn't require re-picking a
- * model every time. Falls back to undefined when no direct-gen clip exists.
- */
-function pickLastDirectGenModel(): {
-  provider: string | undefined;
-  model: string | undefined;
-} {
-  const clips = useTimelineStore.getState().clips;
-  for (let i = clips.length - 1; i >= 0; i--) {
-    const c = clips[i];
-    if (
-      (c.bindingKind === "text-to-image" ||
-        c.bindingKind === "image-to-image") &&
-      c.provider &&
-      c.model
-    ) {
-      return { provider: c.provider, model: c.model };
-    }
-  }
-  return { provider: undefined, model: undefined };
-}
-
-/**
  * AddClipMenu — Popover for adding a generated clip to the timeline.
  *
  * The popover opens on a **prompt-first** layout: type a prompt + pick an
@@ -279,14 +256,28 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
     const [error, setError] = useState<string | null>(null);
 
     // ── Direct-gen prompt state ────────────────────────────────────────────
-    const lastModel = useMemo(pickLastDirectGenModel, [anchorEl]);
+    const lastModel = useLastDirectGenModel();
     const [prompt, setPrompt] = useState("");
     const [directProvider, setDirectProvider] = useState<string | undefined>(
-      lastModel.provider
+      undefined
     );
     const [directModel, setDirectModel] = useState<string | undefined>(
-      lastModel.model
+      undefined
     );
+
+    // Reset transient state when the popover (re)opens. Without this, a stale
+    // prompt or error from a previous open would still be visible, and the
+    // model picker wouldn't reflect any direct-gen clips added since.
+    useEffect(() => {
+      if (!anchorEl) return;
+      setPrompt("");
+      setError(null);
+      setDirectProvider(lastModel.provider);
+      setDirectModel(lastModel.model);
+    // Seed defaults on open only — picking up `lastModel` changes while the
+    // popover is already open would stomp the user's mid-edit choices.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [anchorEl]);
 
     // Multi-output selection state
     const [pendingWorkflow, setPendingWorkflow] = useState<{
@@ -419,8 +410,11 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
 
     const handlePromptSubmit = useCallback(async () => {
       if (!canSubmitPrompt) return;
-      setIsAdding(true);
+      // Clear any stale failure toast from a prior attempt before we try
+      // again — the user shouldn't see an error linger after a successful
+      // retry.
       setError(null);
+      setIsAdding(true);
       try {
         const clipId = addDirectGenClip({
           trackId,

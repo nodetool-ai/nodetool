@@ -45,7 +45,14 @@ const jobContexts = new Map<string, JobSubscriptionContext>();
 const isActiveStatus = (status: string): boolean =>
   status === "queued" || status === "running";
 
-const deriveIdleClipStatus = (clip: TimelineClipLike): NonGeneratingClipStatus => {
+/**
+ * Compute the non-generating clip status from current clip fields. Used by
+ * generation hooks to settle back to a sensible idle state after a job
+ * ends (e.g. cancel, completion, failure).
+ */
+export const deriveIdleClipStatus = (
+  clip: TimelineClipLike
+): NonGeneratingClipStatus => {
   if (clip.locked) {
     return "locked";
   }
