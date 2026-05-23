@@ -15,7 +15,7 @@ import {
   BottomPanelView,
   useBottomPanelStore
 } from "../../stores/BottomPanelStore";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useEffect } from "react";
 import isEqual from "fast-deep-equal";
 import TracePanel from "./TracePanel";
 import LogPanel from "./LogPanel";
@@ -427,22 +427,25 @@ const PanelBottom: React.FC = () => {
   } = useResizeBottomPanel();
 
   const activeView = useBottomPanelStore((state) => state.panel.activeView);
+  const setActiveView = useBottomPanelStore((state) => state.setActiveView);
+  const setVisibility = useBottomPanelStore((state) => state.setVisibility);
 
   useCombo(["Control", "Shift", "T"], () => handlePanelToggle("trace"), false);
   useCombo(["l"], () => handlePanelToggle("logs"), false);
 
-  // Production-disabled-view safeguard: fall back to logs when restored view
-  // is gated off.
-  const safeActiveView: BottomPanelView = useMemo(() => {
+  // Production-disabled-view safeguard: if a previous session persisted a
+  // gated-off view (workspace/sandboxes), migrate the store to "logs" so the
+  // active view and the rendered body stay in sync — otherwise the close
+  // button would need two clicks (the first would just switch views).
+  useEffect(() => {
     if (!VIEW_SPECS[activeView]?.enabled) {
-      return "logs";
+      setActiveView("logs");
     }
-    return activeView;
-  }, [activeView]);
+  }, [activeView, setActiveView]);
 
   const handleClose = useCallback(() => {
-    handlePanelToggle(safeActiveView);
-  }, [handlePanelToggle, safeActiveView]);
+    setVisibility(false);
+  }, [setVisibility]);
 
   const openHeight = isVisible
     ? Math.min(
@@ -513,7 +516,7 @@ const PanelBottom: React.FC = () => {
                         <TabButton
                           key={view}
                           spec={VIEW_SPECS[view]}
-                          active={isVisible && safeActiveView === view}
+                          active={isVisible && activeView === view}
                           onClick={() => handlePanelToggle(view)}
                         />
                       ))}
@@ -531,7 +534,7 @@ const PanelBottom: React.FC = () => {
             )}
           </div>
           <div className="panel-body">
-            {isVisible && <PanelBodyContent activeView={safeActiveView} />}
+            {isVisible && <PanelBodyContent activeView={activeView} />}
           </div>
         </div>
       </Drawer>
