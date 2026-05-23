@@ -5,11 +5,15 @@ import { join } from "node:path";
 
 import { NodeRegistry } from "../src/registry.js";
 import {
+  defaultPackSearchPaths,
   discoverPacks,
   loadInstalledPacks,
   resolvePackTrust,
+  writePackTrustConfig,
   PACK_API_VERSION
 } from "../src/pack-loader.js";
+import { readFileSync } from "node:fs";
+import { join as joinPath } from "node:path";
 
 let root: string;
 let nodeModules: string;
@@ -296,5 +300,56 @@ describe("registry guards", () => {
       { nodeType: "nodetool.text.Override", reason: "reserved-namespace" }
     ]);
     expect(registry.has("nodetool.text.Override")).toBe(false);
+  });
+});
+
+describe("writePackTrustConfig", () => {
+  it("round-trips via resolvePackTrust", () => {
+    const path = joinPath(root, "packs.json");
+    process.env["NODETOOL_PACKS_CONFIG"] = path;
+    writePackTrustConfig(
+      { allowlist: ["@acme/a", "@acme/b"], allowUnlisted: false },
+      path
+    );
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as {
+      allow: string[];
+      allowUnlisted: boolean;
+    };
+    expect(parsed.allow).toEqual(["@acme/a", "@acme/b"]);
+    expect(parsed.allowUnlisted).toBe(false);
+    const resolved = resolvePackTrust();
+    expect(resolved.allowlist).toEqual(["@acme/a", "@acme/b"]);
+    expect(resolved.allowUnlisted).toBe(false);
+  });
+
+  it("creates parent directories as needed", () => {
+    const path = joinPath(root, "nested", "dir", "packs.json");
+    writePackTrustConfig({ allowlist: [], allowUnlisted: true }, path);
+    expect(JSON.parse(readFileSync(path, "utf8"))).toEqual({
+      allow: [],
+      allowUnlisted: true
+    });
+  });
+});
+
+describe("defaultPackSearchPaths", () => {
+  it("picks up NODETOOL_OPTIONAL_NODE_MODULES as an extra root", () => {
+    process.env["NODETOOL_OPTIONAL_NODE_MODULES"] = nodeModules;
+    try {
+      expect(defaultPackSearchPaths()).toContain(nodeModules);
+    } finally {
+      delete process.env["NODETOOL_OPTIONAL_NODE_MODULES"];
+    }
+  });
+
+  it("dedupes when an env path overlaps the cwd walk", () => {
+    process.env["NODETOOL_OPTIONAL_NODE_MODULES"] = nodeModules;
+    try {
+      const all = defaultPackSearchPaths();
+      const occurrences = all.filter((p) => p === nodeModules).length;
+      expect(occurrences).toBe(1);
+    } finally {
+      delete process.env["NODETOOL_OPTIONAL_NODE_MODULES"];
+    }
   });
 });

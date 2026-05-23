@@ -127,6 +127,28 @@ function validateRepoId(repoId: string): string {
   return repoId;
 }
 
+/** Validate an npm package spec — name with optional scope and version. */
+function validateNpmSpec(spec: string): string {
+  if (typeof spec !== "string") {
+    throw new Error("Pack spec must be a string");
+  }
+  if (!/^(@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*(@[\w.\-^~><=*]+)?$/i.test(spec)) {
+    throw new Error("Invalid npm pack spec");
+  }
+  return spec;
+}
+
+/** Validate a bare npm package name (no version). */
+function validateNpmName(name: string): string {
+  if (typeof name !== "string") {
+    throw new Error("Pack name must be a string");
+  }
+  if (!/^(@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*$/i.test(name)) {
+    throw new Error("Invalid npm pack name");
+  }
+  return name;
+}
+
 // ============================================================================
 // API Definition
 // ============================================================================
@@ -324,6 +346,32 @@ const api = {
     /** Open folder picker for conda install location */
     selectInstallLocation: () =>
       ipcRenderer.invoke(IpcChannels.RUNTIME_SELECT_INSTALL_LOCATION),
+  },
+
+  // ============================================================================
+  // nodePacks: third-party TypeScript node packs (separate from `packages`,
+  // which manages Python nodes via the registry)
+  // ============================================================================
+  nodePacks: {
+    /** List packs installed in the Electron-managed install root. */
+    listInstalled: () =>
+      ipcRenderer.invoke(IpcChannels.NODE_PACK_LIST_INSTALLED),
+
+    /** Install a pack by npm spec (e.g. `@acme/cool-nodes` or `cool-nodes@1.2.3`). */
+    install: (spec: string) =>
+      ipcRenderer.invoke(IpcChannels.NODE_PACK_INSTALL, {
+        spec: validateNpmSpec(spec),
+      }),
+
+    /** Uninstall a pack by package name. */
+    uninstall: (name: string) =>
+      ipcRenderer.invoke(IpcChannels.NODE_PACK_UNINSTALL, {
+        name: validateNpmName(name),
+      }),
+
+    /** Path of the install root (so the UI can show it). */
+    getInstallDir: () =>
+      ipcRenderer.invoke(IpcChannels.NODE_PACK_GET_INSTALL_DIR),
   },
 
   // ============================================================================

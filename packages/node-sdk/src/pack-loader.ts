@@ -36,7 +36,7 @@
  *     type (e.g. a built-in); the conflicting node is skipped with a warning.
  */
 
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -159,9 +159,17 @@ interface PackageJsonShape {
 
 /**
  * Walk up from `start` collecting each `node_modules` directory that exists.
+ *
+ * Also includes any extra `node_modules` directories named in the
+ * `NODETOOL_OPTIONAL_NODE_MODULES` or `NODETOOL_PACK_SEARCH_PATHS` env vars
+ * (comma- or platform-separator-delimited). These are how the Electron app and
+ * other hosts hand the loader an install root outside the project tree.
  */
 export function defaultPackSearchPaths(start: string = process.cwd()): string[] {
   const paths: string[] = [];
+  for (const extra of readEnvPackPaths()) {
+    if (existsSync(extra)) paths.push(extra);
+  }
   let dir = resolve(start);
   for (;;) {
     const candidate = join(dir, "node_modules");
@@ -170,7 +178,22 @@ export function defaultPackSearchPaths(start: string = process.cwd()): string[] 
     if (parent === dir) break;
     dir = parent;
   }
-  return paths;
+  // Dedupe — an env-supplied path may also be on the cwd walk.
+  return [...new Set(paths)];
+}
+
+function readEnvPackPaths(): string[] {
+  const out: string[] = [];
+  const single = process.env["NODETOOL_OPTIONAL_NODE_MODULES"];
+  if (single) out.push(single);
+  const list = process.env["NODETOOL_PACK_SEARCH_PATHS"];
+  if (list) {
+    for (const entry of list.split(/[,;:]/)) {
+      const trimmed = entry.trim();
+      if (trimmed) out.push(trimmed);
+    }
+  }
+  return out;
 }
 
 /**
@@ -199,12 +222,16 @@ export function resolvePackTrust(
   return { allowlist, allowUnlisted };
 }
 
-function readTrustConfigFile(): { allow?: string[]; allowUnlisted?: boolean } {
-  const path =
+function trustConfigPath(): string {
+  return (
     process.env["NODETOOL_PACKS_CONFIG"] ??
-    join(homedir(), ".config", "nodetool", "packs.json");
+    join(homedir(), ".config", "nodetool", "packs.json")
+  );
+}
+
+function readTrustConfigFile(): { allow?: string[]; allowUnlisted?: boolean } {
   try {
-    const parsed = JSON.parse(readFileSync(path, "utf8")) as {
+    const parsed = JSON.parse(readFileSync(trustConfigPath(), "utf8")) as {
       allow?: unknown;
       allowUnlisted?: unknown;
     };
@@ -220,6 +247,26 @@ function readTrustConfigFile(): { allow?: string[]; allowUnlisted?: boolean } {
   } catch {
     return {};
   }
+}
+
+/**
+ * Persist a trust config to disk so it's picked up by {@link resolvePackTrust}
+ * on the next call. Creates parent directories as needed.
+ */
+export function writePackTrustConfig(
+  trust: { allowlist: string[]; allowUnlisted: boolean },
+  path: string = trustConfigPath()
+): void {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(
+    path,
+    JSON.stringify(
+      { allow: trust.allowlist, allowUnlisted: trust.allowUnlisted },
+      null,
+      2
+    ) + "\n",
+    "utf8"
+  );
 }
 
 function isAllowed(

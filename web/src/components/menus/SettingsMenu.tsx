@@ -42,6 +42,7 @@ import WorkspacesManager from "../workspaces/WorkspacesManager";
 import { getAboutSidebarSections } from "./aboutSidebarUtils";
 import DefaultModelsMenu from "./DefaultModelsMenu";
 import MCPSettingsMenu from "./MCPSettingsMenu";
+import PackagesMenu from "./PackagesMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -50,6 +51,7 @@ import { settingsStyles } from "./settingsMenuStyles";
 
 const workspacesEnabled = !isProduction;
 const aboutTabIndex = workspacesEnabled ? 5 : 4;
+const packagesTabIndex = aboutTabIndex + 1;
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -92,6 +94,9 @@ function SettingsPage() {
       case 4:
         return "Workspaces and project organization.";
       default:
+        if (tab === packagesTabIndex) {
+          return "Discover, trust, and install third-party node packs.";
+        }
         return "Manage API keys, providers, and editor preferences.";
     }
   };
@@ -99,7 +104,7 @@ function SettingsPage() {
   const settingsTab = useMemo(() => {
     const raw = Number(searchParams.get("tab") ?? 0);
     if (Number.isNaN(raw)) return 0;
-    const bounded = Math.min(5, Math.max(0, raw));
+    const bounded = Math.min(packagesTabIndex, Math.max(0, raw));
     if (!workspacesEnabled && bounded === 5) {
       return aboutTabIndex;
     }
@@ -488,6 +493,7 @@ function SettingsPage() {
                 <Tab label="Collections" id="settings-tab-3" />
                 {workspacesEnabled && <Tab label="Workspaces" id="settings-tab-4" />}
                 <Tab label="About" id={`settings-tab-${aboutTabIndex}`} />
+                <Tab label="Packages" id={`settings-tab-${packagesTabIndex}`} />
               </Tabs>
             </div>
 
@@ -512,7 +518,10 @@ function SettingsPage() {
 
               <div
                 className={`settings-content${
-                  settingsTab === 2 || settingsTab === 3 || (settingsTab === 4 && workspacesEnabled)
+                  settingsTab === 2 ||
+                  settingsTab === 3 ||
+                  (settingsTab === 4 && workspacesEnabled) ||
+                  settingsTab === packagesTabIndex
                     ? " settings-content--full"
                     : ""
                 }${settingsTab === 1 ? " settings-content--api-keys" : ""}`}
@@ -964,6 +973,11 @@ function SettingsPage() {
                 {/* About */}
                 <TabPanel value={settingsTab} index={aboutTabIndex}>
                   <AboutMenu />
+                </TabPanel>
+
+                {/* Packages */}
+                <TabPanel value={settingsTab} index={packagesTabIndex}>
+                  <PackagesMenu />
                 </TabPanel>
               </div>
 

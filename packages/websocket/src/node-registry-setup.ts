@@ -13,6 +13,7 @@ import {
   loadInstalledPacks,
   type LoadedPackResult
 } from "@nodetool-ai/node-sdk";
+import { setPackSnapshot } from "./pack-snapshot.js";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
 import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
@@ -107,11 +108,17 @@ export async function bootstrapNodeRegistry(
   });
   registerBuiltInNodes(registry);
   if (options.loadPacks !== false) {
-    await loadInstalledPacks(registry, {
-      searchPaths: options.packSearchPaths,
+    const results = await loadInstalledPacks(registry, {
+      ...(options.packSearchPaths
+        ? { searchPaths: options.packSearchPaths }
+        : {}),
       onResult: (result) => logPackResult(result, options.log)
     });
+    setPackSnapshot(results);
   }
   applyProductionNodePolicy(registry, options.log);
   return registry;
 }
+
+// Re-export so existing callers don't have to switch import paths.
+export { getPackSnapshot, reloadPacks } from "./pack-snapshot.js";
