@@ -372,7 +372,6 @@ const registry = await bootstrapNodeRegistry({
   log
 });
 log.info(`Node registry ready [${startupMs()}]`);
-
 setLlmAgentGraphPlannerRegistry(registry);
 if (process.env["NODETOOL_ENV"] !== "production") {
   registerTransformersJsProvider();
