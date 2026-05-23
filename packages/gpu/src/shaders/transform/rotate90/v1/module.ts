@@ -5,8 +5,10 @@
  * `turns` packs the quarter-turn count: `0` identity, `1` 90° CW, `2` 180°,
  * `3` 270° CW (= 90° CCW). Output dimensions are `derived`: the host swaps
  * width/height for odd quarter-turns (90/270) and keeps them for even ones
- * (0/180). The shader reads the source's dimensions and maps each output
- * UV back to the corresponding source UV based on `turns`.
+ * (0/180). The shader maps each output UV back to the corresponding source
+ * UV using only normalized-UV arithmetic — quarter-turn rotation around the
+ * canvas center is `(u, v) → (1-v, u)` for 90° CW, so the sampler never
+ * needs `textureDimensions`.
  *
  * For arbitrary rotations (and translation/scale combined), use
  * `transform.affine@1`. This module exists specifically because quarter-turns

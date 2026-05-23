@@ -3,15 +3,16 @@
  * source coverage.
  *
  * The "Color Overlay" layer-effect from sketch / image-editor vocabulary: a
- * constant RGBA fill is mixed over the source, but only where the source has
- * coverage so the overlay never spills outside the image's silhouette.
- * Premultiplied alpha throughout; `amount` controls the mix strength
- * (`0` passthrough, `1` full overlay).
+ * constant RGB fill is mixed into the source's colours but the output
+ * **silhouette (alpha) is preserved** — the overlay never spills outside
+ * the source, and never erodes its coverage either. `amount` controls the
+ * RGB mix strength (`0` passthrough, `1` full overlay) and is scaled by the
+ * picker's `color.a`, so a half-opacity colour applied at full amount
+ * behaves like a fully-opaque colour at half amount.
  *
- * `color` is supplied straight (R, G, B, opacity) — the shader does the
- * premultiplication. This matches the workflow-node UX of picking an
- * "overlay color" with an "opacity" slider, rather than asking the user to
- * think in premultiplied space.
+ * `color` is supplied straight (R, G, B, opacity) — the shader handles
+ * un/re-premultiplication so the output stays premultiplied per the pool
+ * convention.
  */
 
 import tgpu from "typegpu";
@@ -55,10 +56,13 @@ export const mixerColorOverlayV1 = defineModule({
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let p = layout.$.params;
-  // Premultiply the overlay color and mask it by source coverage so the
-  // overlay only paints inside the source's existing silhouette.
-  let overlay = vec4f(p.color.rgb * p.color.a, p.color.a) * src.a;
-  return mix(src, overlay, p.amount);
+  // Blend RGB in straight space, then re-premultiply against the source's
+  // own coverage. The output silhouette stays = src.a regardless of color.a
+  // or amount — overlay opacity affects colour, not coverage.
+  let safeA = max(src.a, 0.0001);
+  let straightRgb = src.rgb / safeA;
+  let mixedStraight = mix(straightRgb, p.color.rgb, clamp(p.amount * p.color.a, 0.0, 1.0));
+  return vec4f(mixedStraight * src.a, src.a);
 }
 `,
   io: {

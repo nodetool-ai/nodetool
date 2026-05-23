@@ -7,11 +7,11 @@
  * identity permutation `(0, 1, 2, 3)` is passthrough; common swaps include
  * RGB↔BGR (`2, 1, 0, 3`) and "alpha to grayscale" (`3, 3, 3, 3`).
  *
- * Note on premultiplication: this module manipulates the bits as-is. If the
- * source is premultiplied and the shuffle changes the alpha channel, the
- * RGB values are no longer premultiplied against the new alpha; chain
- * `color.channelMerge` for the canonical "swap alpha while keeping colors
- * straight" operation.
+ * Premultiplication: the pool's contract is that alpha is premultiplied
+ * between modules, so the shader un-premultiplies the source's RGB by its
+ * original alpha before picking, then re-premultiplies the result by the
+ * shuffled output alpha. That keeps the canonical premultiplied invariant
+ * intact regardless of which input channel `aFrom` points at.
  */
 
 import tgpu from "typegpu";
@@ -66,12 +66,16 @@ fn pick(src: vec4f, idx: i32) -> f32 {
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let p = layout.$.params;
-  return vec4f(
-    pick(src, i32(round(p.rFrom)) & 3),
-    pick(src, i32(round(p.gFrom)) & 3),
-    pick(src, i32(round(p.bFrom)) & 3),
-    pick(src, i32(round(p.aFrom)) & 3)
-  );
+  // Un-premultiply by the source alpha so channels are picked in straight
+  // space, then re-premultiply by the chosen output alpha — keeps the pool's
+  // premultiplied-between-modules invariant regardless of aFrom.
+  let safeA = max(src.a, 0.0001);
+  let straight = vec4f(src.rgb / safeA, src.a);
+  let outA = pick(straight, i32(round(p.aFrom)) & 3);
+  let outR = pick(straight, i32(round(p.rFrom)) & 3) * outA;
+  let outG = pick(straight, i32(round(p.gFrom)) & 3) * outA;
+  let outB = pick(straight, i32(round(p.bFrom)) & 3) * outA;
+  return vec4f(outR, outG, outB, outA);
 }
 `,
   io: {

@@ -64,6 +64,13 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let factor = 1.0 + amount * (1.0 - r2);
   let warped = centered * factor;
   let s = warped * 0.5 + vec2f(0.5);
+  // Positive amount magnifies (factor > 1) and can push s outside [0,1].
+  // Return transparent black rather than smearing the edge — matches the
+  // out-of-bounds convention in transform.affine / transform.cornerPin /
+  // transform.crop.
+  if (s.x < 0.0 || s.x > 1.0 || s.y < 0.0 || s.y > 1.0) {
+    return vec4f(0.0);
+  }
   return textureSample(layout.$.source, layout.$.samp, s);
 }
 `,
