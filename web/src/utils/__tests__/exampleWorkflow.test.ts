@@ -1,5 +1,5 @@
 import { examplePackageName, exampleSeedRef } from "../exampleWorkflow";
-import type { Workflow } from "../stores/ApiTypes";
+import type { Workflow } from "../../stores/ApiTypes";
 
 describe("exampleWorkflow helpers", () => {
   it("uses json filename id as seed ref", () => {
