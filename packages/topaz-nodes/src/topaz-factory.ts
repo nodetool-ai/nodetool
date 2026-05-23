@@ -18,6 +18,7 @@ import {
   getApiKey,
   probeVideoMetadata,
   refToBytes,
+  sourceContainerFromRef,
   topazExecuteImageTask,
   topazExecuteVideoTask,
   topazImageRef,
@@ -148,9 +149,9 @@ export function createTopazNodeClass(spec: TopazManifestEntry): NodeClass {
       const asset = (this as unknown as Record<string, unknown>)[assetField];
 
       if (isVideo) {
-        const container = String(fields.output_container ?? "mp4");
+        const sourceContainer = sourceContainerFromRef(asset);
         const videoBytes = await refToBytes(asset, context);
-        const sourceMeta = await probeVideoMetadata(videoBytes, container);
+        const sourceMeta = await probeVideoMetadata(videoBytes, sourceContainer);
         const out = await topazExecuteVideoTask(
           apiKey,
           specRef as unknown as TopazVideoSpec,

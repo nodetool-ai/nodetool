@@ -50,6 +50,36 @@ export interface TopazVideoMetadata {
   frameCount: number;
 }
 
+const CONTAINER_CONTENT_TYPES: Record<string, string> = {
+  mp4: "video/mp4",
+  m4v: "video/mp4",
+  mov: "video/quicktime",
+  mkv: "video/x-matroska",
+  webm: "video/webm",
+  avi: "video/x-msvideo"
+};
+
+export function containerContentType(container: string | null | undefined): string {
+  if (!container) return "application/octet-stream";
+  const key = container.replace(/^\./, "").toLowerCase();
+  return CONTAINER_CONTENT_TYPES[key] ?? "application/octet-stream";
+}
+
+/**
+ * Derive the source container (file extension, no leading dot) from a VideoRef.
+ * Prefers an explicit `format` field, then the URI extension, then `mp4`.
+ */
+export function sourceContainerFromRef(ref: unknown): string {
+  if (!ref || typeof ref !== "object") return "mp4";
+  const r = ref as { format?: string | null; uri?: string };
+  if (r.format) return r.format.replace(/^\./, "").toLowerCase();
+  if (r.uri) {
+    const m = r.uri.match(/\.(mp4|m4v|mov|mkv|webm|avi)(?:[?#]|$)/i);
+    if (m) return m[1].toLowerCase();
+  }
+  return "mp4";
+}
+
 type StorageLike = {
   retrieve: (uri: string) => Promise<Uint8Array | null> | Uint8Array | null;
 } | null;
@@ -442,6 +472,7 @@ export async function topazExecuteVideoTask(
   const size = videoBytes.byteLength;
   const partSize = Math.ceil(size / uploadUrls.length);
   const uploadResults: Array<{ partNum: number; eTag: string }> = [];
+  const uploadContentType = containerContentType(sourceMeta.container);
   for (let i = 0; i < uploadUrls.length; i++) {
     const slice = videoBytes.slice(
       i * partSize,
@@ -449,7 +480,7 @@ export async function topazExecuteVideoTask(
     );
     const put = await fetchWithRetry(uploadUrls[i], {
       method: "PUT",
-      headers: { "Content-Type": "video/mp4" },
+      headers: { "Content-Type": uploadContentType },
       body: slice
     });
     if (!put.ok) {

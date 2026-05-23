@@ -1,9 +1,14 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
+  containerContentType,
   getApiKey,
   refToBytes,
+  sourceContainerFromRef,
   topazExecuteImageTask,
-  type TopazImageSpec
+  topazExecuteVideoTask,
+  type TopazImageSpec,
+  type TopazVideoMetadata,
+  type TopazVideoSpec
 } from "../src/topaz-base.js";
 
 // ---------------------------------------------------------------------------
@@ -148,3 +153,234 @@ describe("topazExecuteImageTask", () => {
     ).rejects.toThrow("did not return a process_id");
   });
 });
+
+// ---------------------------------------------------------------------------
+// sourceContainerFromRef
+// ---------------------------------------------------------------------------
+describe("sourceContainerFromRef", () => {
+  it("prefers explicit format field", () => {
+    expect(sourceContainerFromRef({ format: "mov", uri: "/tmp/x.mp4" })).toBe(
+      "mov"
+    );
+  });
+
+  it("strips a leading dot from format", () => {
+    expect(sourceContainerFromRef({ format: ".MKV" })).toBe("mkv");
+  });
+
+  it("derives from URI extension when format is missing", () => {
+    expect(sourceContainerFromRef({ uri: "/tmp/clip.MOV" })).toBe("mov");
+    expect(sourceContainerFromRef({ uri: "https://x/y.webm?token=z" })).toBe(
+      "webm"
+    );
+  });
+
+  it("falls back to mp4 when nothing matches", () => {
+    expect(sourceContainerFromRef({})).toBe("mp4");
+    expect(sourceContainerFromRef({ uri: "/no/ext" })).toBe("mp4");
+    expect(sourceContainerFromRef(null)).toBe("mp4");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// containerContentType
+// ---------------------------------------------------------------------------
+describe("containerContentType", () => {
+  it("maps known containers to MIME types", () => {
+    expect(containerContentType("mp4")).toBe("video/mp4");
+    expect(containerContentType("mov")).toBe("video/quicktime");
+    expect(containerContentType("mkv")).toBe("video/x-matroska");
+    expect(containerContentType("webm")).toBe("video/webm");
+  });
+
+  it("returns octet-stream for unknown / missing containers", () => {
+    expect(containerContentType("flv")).toBe("application/octet-stream");
+    expect(containerContentType(null)).toBe("application/octet-stream");
+    expect(containerContentType(undefined)).toBe("application/octet-stream");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// topazExecuteVideoTask
+// ---------------------------------------------------------------------------
+describe("topazExecuteVideoTask", () => {
+  const originalFetch = global.fetch;
+  const spec: TopazVideoSpec = {
+    submitEndpoint: "https://api.topazlabs.com/video/",
+    acceptEndpoint: "https://api.topazlabs.com/video/{request_id}/accept",
+    completeEndpoint:
+      "https://api.topazlabs.com/video/{request_id}/complete-upload",
+    statusEndpoint: "https://api.topazlabs.com/video/{request_id}/status",
+    pollInterval: 0,
+    maxAttempts: 5
+  };
+
+  const sourceMeta: TopazVideoMetadata = {
+    resolution: { width: 1920, height: 1080 },
+    container: "mov",
+    size: 1024,
+    duration: 1,
+    frameRate: 30,
+    frameCount: 30
+  };
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  it("runs create → accept → multipart upload → complete → poll → download", async () => {
+    const requests: Array<{ url: string; method: string; headers?: HeadersInit }> = [];
+    const uploadCalls: Array<{ url: string; contentType: string | undefined }> = [];
+
+    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const u = String(url);
+      const method = init?.method ?? "GET";
+      requests.push({ url: u, method, headers: init?.headers });
+
+      if (u === spec.submitEndpoint && method === "POST") {
+        return { ok: true, json: async () => ({ id: "req-1" }) } as Response;
+      }
+      if (u.endsWith("/accept")) {
+        return {
+          ok: true,
+          json: async () => ({
+            uploadUrls: [
+              "https://upload.topaz/part1",
+              "https://upload.topaz/part2"
+            ]
+          })
+        } as Response;
+      }
+      if (u.startsWith("https://upload.topaz/")) {
+        const ct = (init?.headers as Record<string, string>)?.["Content-Type"];
+        uploadCalls.push({ url: u, contentType: ct });
+        const headers = new Headers({ ETag: '"etag-' + u.slice(-5) + '"' });
+        return { ok: true, headers } as unknown as Response;
+      }
+      if (u.endsWith("/complete-upload")) {
+        return { ok: true, json: async () => ({}) } as Response;
+      }
+      if (u.endsWith("/status")) {
+        return {
+          ok: true,
+          json: async () => ({
+            status: "Completed",
+            downloadUrl: "https://cdn.topaz/result.mov"
+          })
+        } as Response;
+      }
+      if (u === "https://cdn.topaz/result.mov") {
+        return {
+          ok: true,
+          arrayBuffer: async () => Uint8Array.from([7, 7, 7]).buffer
+        } as Response;
+      }
+      throw new Error(`unexpected fetch: ${u}`);
+    }) as unknown as typeof fetch;
+
+    const out = await topazExecuteVideoTask(
+      "key",
+      spec,
+      {
+        model: "prob-4",
+        output_container: "mp4",
+        audio_codec: "copy",
+        slowmo: 1
+      },
+      Uint8Array.from(new Array(1024).fill(1)),
+      sourceMeta
+    );
+
+    expect([...out]).toEqual([7, 7, 7]);
+    // Two upload PUTs, each with Content-Type derived from sourceMeta.container.
+    expect(uploadCalls.length).toBe(2);
+    for (const c of uploadCalls) {
+      expect(c.contentType).toBe("video/quicktime");
+    }
+    // complete-upload body should reference the parts' ETags.
+    const completeReq = requests.find((r) => r.url.endsWith("/complete-upload"));
+    expect(completeReq?.method).toBe("PATCH");
+
+    // Create body should send the *source* container, not the output container.
+    const createCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) => String(c[0]) === spec.submitEndpoint
+    );
+    const createBody = JSON.parse(
+      (createCall?.[1] as RequestInit).body as string
+    );
+    expect(createBody.source.container).toBe("mov");
+    expect(createBody.output.container).toBe("mp4");
+  });
+
+  it("throws when accept returns no upload URLs", async () => {
+    global.fetch = vi.fn(async (url: string | URL) => {
+      const u = String(url);
+      if (u === spec.submitEndpoint) {
+        return { ok: true, json: async () => ({ id: "r" }) } as Response;
+      }
+      if (u.endsWith("/accept")) {
+        return { ok: true, json: async () => ({}) } as Response;
+      }
+      throw new Error(`unexpected: ${u}`);
+    }) as unknown as typeof fetch;
+
+    await expect(
+      topazExecuteVideoTask(
+        "key",
+        spec,
+        { model: "prob-4" },
+        Uint8Array.from([1, 2]),
+        sourceMeta
+      )
+    ).rejects.toThrow("No upload URL");
+  });
+
+  it("uses octet-stream Content-Type for unknown source containers", async () => {
+    const captured: Array<string | undefined> = [];
+    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const u = String(url);
+      if (u === spec.submitEndpoint) {
+        return { ok: true, json: async () => ({ id: "r2" }) } as Response;
+      }
+      if (u.endsWith("/accept")) {
+        return {
+          ok: true,
+          json: async () => ({ uploadUrls: ["https://upload.topaz/only"] })
+        } as Response;
+      }
+      if (u === "https://upload.topaz/only") {
+        captured.push(
+          (init?.headers as Record<string, string>)?.["Content-Type"]
+        );
+        return { ok: true, headers: new Headers() } as unknown as Response;
+      }
+      if (u.endsWith("/complete-upload")) {
+        return { ok: true, json: async () => ({}) } as Response;
+      }
+      if (u.endsWith("/status")) {
+        return {
+          ok: true,
+          json: async () => ({ status: "Completed", url: "https://cdn/x" })
+        } as Response;
+      }
+      if (u === "https://cdn/x") {
+        return {
+          ok: true,
+          arrayBuffer: async () => Uint8Array.from([0]).buffer
+        } as Response;
+      }
+      throw new Error(`unexpected: ${u}`);
+    }) as unknown as typeof fetch;
+
+    await topazExecuteVideoTask(
+      "key",
+      spec,
+      { model: "prob-4" },
+      Uint8Array.from([1]),
+      { ...sourceMeta, container: "weirdformat" }
+    );
+    expect(captured[0]).toBe("application/octet-stream");
+  });
+});
+

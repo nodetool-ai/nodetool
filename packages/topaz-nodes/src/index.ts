@@ -16,7 +16,9 @@ export {
   probeVideoMetadata,
   topazImageRef,
   topazExecuteImageTask,
-  topazExecuteVideoTask
+  topazExecuteVideoTask,
+  sourceContainerFromRef,
+  containerContentType
 } from "./topaz-base.js";
 export type {
   TopazImageSpec,
