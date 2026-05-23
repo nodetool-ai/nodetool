@@ -30,11 +30,16 @@ import {
   SearchInput,
   TabGroup,
   TabPanel,
+  TextInput,
   ToolbarIconButton
 } from "../ui_primitives";
 import { trpc } from "../../trpc/client";
 import { trpcClient } from "../../trpc/client";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
+import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
+import { useTimelineDirectGenJob } from "../../hooks/timeline/useTimelineDirectGenJob";
+import ImageModelSelect from "../properties/ImageModelSelect";
+import type { ImageModelValue } from "../../stores/ApiTypes";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -231,7 +236,35 @@ export interface AddClipMenuProps {
 }
 
 /**
- * AddClipMenu — Popover for picking a workflow to add as a generated clip.
+ * Returns the provider + model from the most-recently-added direct-gen clip
+ * in the current sequence, so a fresh prompt doesn't require re-picking a
+ * model every time. Falls back to undefined when no direct-gen clip exists.
+ */
+function pickLastDirectGenModel(): {
+  provider: string | undefined;
+  model: string | undefined;
+} {
+  const clips = useTimelineStore.getState().clips;
+  for (let i = clips.length - 1; i >= 0; i--) {
+    const c = clips[i];
+    if (
+      (c.bindingKind === "text-to-image" ||
+        c.bindingKind === "image-to-image") &&
+      c.provider &&
+      c.model
+    ) {
+      return { provider: c.provider, model: c.model };
+    }
+  }
+  return { provider: undefined, model: undefined };
+}
+
+/**
+ * AddClipMenu — Popover for adding a generated clip to the timeline.
+ *
+ * The popover opens on a **prompt-first** layout: type a prompt + pick an
+ * image model and press Enter to drop a direct-gen clip at the playhead.
+ * Workflow-bound generation lives under the tabs below.
  *
  * Rendered from a track-lane context menu or the top-bar "+" button.
  */
@@ -245,6 +278,16 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
     const [isAdding, setIsAdding] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // ── Direct-gen prompt state ────────────────────────────────────────────
+    const lastModel = useMemo(pickLastDirectGenModel, [anchorEl]);
+    const [prompt, setPrompt] = useState("");
+    const [directProvider, setDirectProvider] = useState<string | undefined>(
+      lastModel.provider
+    );
+    const [directModel, setDirectModel] = useState<string | undefined>(
+      lastModel.model
+    );
+
     // Multi-output selection state
     const [pendingWorkflow, setPendingWorkflow] = useState<{
       id: string;
@@ -255,6 +298,9 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
     >(null);
 
     const addGeneratedClip = useTimelineStore((s) => s.addGeneratedClip);
+    const addDirectGenClip = useTimelineStore((s) => s.addDirectGenClip);
+    const selectClip = useTimelineUIStore((s) => s.selectClip);
+    const directGen = useTimelineDirectGenJob();
 
     // ── Data fetching ──────────────────────────────────────────────────────
 
@@ -360,6 +406,64 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
       setSearchQuery("");
     }, []);
 
+    const handleDirectModelChange = useCallback((v: ImageModelValue) => {
+      setDirectProvider(v.provider);
+      setDirectModel(v.id);
+    }, []);
+
+    const canSubmitPrompt =
+      prompt.trim().length > 0 &&
+      !!directProvider &&
+      !!directModel &&
+      !isAdding;
+
+    const handlePromptSubmit = useCallback(async () => {
+      if (!canSubmitPrompt) return;
+      setIsAdding(true);
+      setError(null);
+      try {
+        const clipId = addDirectGenClip({
+          trackId,
+          startMs,
+          mediaType: mediaTypeOverride ?? "image",
+          bindingKind: "text-to-image",
+          prompt: prompt.trim(),
+          provider: directProvider,
+          model: directModel
+        });
+        selectClip(clipId);
+        // Kick off generation right away — the whole point is "type → see".
+        await directGen.start(clipId);
+        onClose();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to add clip");
+      } finally {
+        setIsAdding(false);
+      }
+    }, [
+      canSubmitPrompt,
+      addDirectGenClip,
+      trackId,
+      startMs,
+      mediaTypeOverride,
+      prompt,
+      directProvider,
+      directModel,
+      selectClip,
+      directGen,
+      onClose
+    ]);
+
+    const handlePromptKeyDown = useCallback(
+      (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          void handlePromptSubmit();
+        }
+      },
+      [handlePromptSubmit]
+    );
+
     // ── Templates list ─────────────────────────────────────────────────────
 
     const templateWorkflows = templatesQuery.data?.workflows ?? [];
@@ -384,6 +488,48 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                 </Text>
                 {isAdding && <LoadingSpinner size="small" />}
               </FlexRow>
+
+              {/* ── Prompt-first quick-add ────────────────────────────────── */}
+              <FlexColumn gap={0.5} data-testid="add-clip-prompt-section">
+                <TextInput
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={handlePromptKeyDown}
+                  placeholder="Describe an image and press Enter…"
+                  multiline
+                  minRows={2}
+                  maxRows={5}
+                  compact
+                  autoFocus
+                  fullWidth
+                  inputProps={{
+                    "aria-label": "Prompt",
+                    "data-testid": "add-clip-prompt-input"
+                  }}
+                />
+                <FlexRow gap={1} align="center">
+                  <ImageModelSelect
+                    value={directModel ?? ""}
+                    task="text_to_image"
+                    onChange={handleDirectModelChange}
+                  />
+                  <Caption
+                    sx={{ color: "text.secondary", flex: 1, textAlign: "right" }}
+                  >
+                    Enter to generate · Shift+Enter for new line
+                  </Caption>
+                </FlexRow>
+              </FlexColumn>
+
+              <Caption
+                sx={{
+                  color: "text.disabled",
+                  textAlign: "center",
+                  fontSize: 10
+                }}
+              >
+                — or use a workflow —
+              </Caption>
 
               {/* Tabs */}
               <TabGroup

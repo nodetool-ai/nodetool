@@ -191,6 +191,13 @@ export const clipEffect = z.discriminatedUnion("type", [
 ]);
 export type ClipEffect = z.infer<typeof clipEffect>;
 
+export const clipBindingKind = z.enum([
+  "workflow",
+  "text-to-image",
+  "image-to-image"
+]);
+export type ClipBindingKind = z.infer<typeof clipBindingKind>;
+
 export const timelineClip = z
   .object({
     id: z.string(),
@@ -202,9 +209,20 @@ export const timelineClip = z
     outPointMs: z.number().optional(),
     mediaType: z.enum(["image", "video", "audio", "overlay"]),
     sourceType: z.enum(["imported", "generated"]),
+    bindingKind: clipBindingKind.optional(),
     workflowId: z.string().optional(),
     selectedOutputNodeId: z.string().optional(),
     paramOverrides: z.record(z.string(), z.unknown()).optional(),
+    prompt: z.string().optional(),
+    negativePrompt: z.string().optional(),
+    provider: z.string().optional(),
+    model: z.string().optional(),
+    sourceClipId: z.string().nullable().optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    strength: z.number().optional(),
+    numInferenceSteps: z.number().optional(),
+    seed: z.number().optional(),
     dependencyHash: z.string().optional(),
     lastGeneratedHash: z.string().optional(),
     currentAssetId: z.string().optional(),

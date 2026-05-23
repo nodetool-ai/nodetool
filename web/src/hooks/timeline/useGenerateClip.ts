@@ -17,6 +17,7 @@ import {
   globalWebSocketManager,
   WebSocketMessage
 } from "../../lib/websocket/GlobalWebSocketManager";
+import { useTimelineDirectGenJob } from "./useTimelineDirectGenJob";
 
 interface JobSubscriptionContext {
   clipId: string;
@@ -305,10 +306,33 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
 
   const registerJob = useTimelineGenerationStore((state) => state.registerJob);
   const clearJob = useTimelineGenerationStore((state) => state.clearJob);
+  const directGen = useTimelineDirectGenJob();
+
+  // Direct-gen clips skip the workflow runner and `TimelineGenerationStore`
+  // entirely — status is driven straight from the RPC response and reflected
+  // on `clip.status`.
+  const isDirectGen =
+    clip?.bindingKind === "text-to-image" ||
+    clip?.bindingKind === "image-to-image";
+  const isDirectGenActive =
+    isDirectGen && (clip?.status === "queued" || clip?.status === "generating");
+  const isDirectGenFailed = isDirectGen && clip?.status === "failed";
 
   const generateClip = useCallback(async () => {
-    const workflowId = clip?.workflowId;
-    if (!clip || !workflowId) {
+    if (!clip) {
+      throw new Error("Clip not found");
+    }
+
+    if (
+      clip.bindingKind === "text-to-image" ||
+      clip.bindingKind === "image-to-image"
+    ) {
+      await directGen.start(clip.id);
+      return;
+    }
+
+    const workflowId = clip.workflowId;
+    if (!workflowId) {
       throw new Error("Clip is not bound to a workflow");
     }
 
@@ -354,9 +378,14 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
       },
       false
     );
-  }, [clip, registerJob]);
+  }, [clip, registerJob, directGen]);
 
   const cancelClipGeneration = useCallback(async () => {
+    if (isDirectGen) {
+      directGen.cancel(clipId);
+      return;
+    }
+
     if (!jobState?.jobId) {
       return;
     }
@@ -371,7 +400,19 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
     if (currentClip) {
       patchClip(clipId, { status: deriveIdleClipStatus(currentClip) });
     }
-  }, [jobState?.jobId, clearJob, clipId, patchClip]);
+  }, [isDirectGen, directGen, jobState?.jobId, clearJob, clipId, patchClip]);
+
+  if (isDirectGen) {
+    return {
+      generateClip,
+      cancelClipGeneration,
+      isActive: isDirectGenActive,
+      isGenerating: clip?.status === "generating",
+      isQueued: clip?.status === "queued",
+      isFailed: isDirectGenFailed,
+      currentJobId: undefined
+    };
+  }
 
   return {
     generateClip,
