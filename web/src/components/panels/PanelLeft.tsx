@@ -6,7 +6,6 @@ import {
   Box,
   useMediaQuery
 } from "@mui/material";
-import { EditorButton } from "../editor_ui";
 import { ToolbarIconButton } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -40,7 +39,6 @@ import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
 
 import { Fullscreen } from "@mui/icons-material";
-import { getShortcutTooltip } from "../../config/shortcuts";
 // Models, Workspaces, and Collections (modals)
 
 const HEADER_HEIGHT = 77;

@@ -21,8 +21,6 @@ import {
   PlanningUpdate,
   LogUpdate,
   Thread,
-  ThreadUpdateRequest,
-  ThreadSummarizeRequest,
   LanguageModel
 } from "./ApiTypes";
 import { isLocalhost } from "../lib/env";
