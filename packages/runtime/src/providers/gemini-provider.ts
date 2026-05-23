@@ -674,11 +674,11 @@ export class GeminiProvider extends BaseProvider {
   async getAvailableImageModels(): Promise<ImageModel[]> {
     return [
       {
-        id: "gemini-2.0-flash-preview-image-generation",
-        name: "Gemini 2.0 Flash Image Gen",
+        id: "gemini-3.1-flash-image-preview",
+        name: "Gemini 3.1 Flash Image Preview",
         provider: "gemini"
       },
-      { id: "imagen-3.0-generate-002", name: "Imagen 3.0", provider: "gemini" }
+      { id: "imagen-4.0-generate-001", name: "Imagen 4.0", provider: "gemini" }
     ];
   }
 
