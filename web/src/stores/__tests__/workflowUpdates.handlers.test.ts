@@ -38,8 +38,7 @@ beforeEach(() => {
     chunks: {},
     tasks: {},
     toolCalls: {},
-    planningUpdates: {},
-    previews: {}
+    planningUpdates: {}
   });
   useStatusStore.setState({ statuses: {} });
   useLogsStore.setState({ logs: [], logsByNode: {} });

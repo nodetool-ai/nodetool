@@ -554,8 +554,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     for (const [layerId, connection] of Object.entries(layerInputConnections)) {
       out[layerId] =
         state.getOutputResult(props.data.workflow_id, connection.sourceId) ??
-        state.getResult(props.data.workflow_id, connection.sourceId) ??
-        state.getPreview(props.data.workflow_id, connection.sourceId);
+        state.getResult(props.data.workflow_id, connection.sourceId);
     }
     return out;
   }, shallow);

@@ -8,7 +8,7 @@ import { useNodeOutput, useUpstreamValue, useUpstreamValues } from "../useNodeIO
 // ---------------------------------------------------------------------------
 //
 // The hooks read from two stores: NodeStore (via NodeContext, for edges) and
-// ResultsStore (for outputs / previews). The simplest test setup mocks each
+// ResultsStore (for outputs). The simplest test setup mocks each
 // store hook so we can drive selectors with hand-rolled state objects.
 
 let mockEdges: Array<{
@@ -21,8 +21,7 @@ let mockEdges: Array<{
 let mockStores: {
   outputResults: Record<string, unknown>;
   results: Record<string, unknown>;
-  previews: Record<string, unknown>;
-} = { outputResults: {}, results: {}, previews: {} };
+} = { outputResults: {}, results: {} };
 
 const setMockState = (
   edges: typeof mockEdges,
@@ -32,8 +31,7 @@ const setMockState = (
   mockEdges = edges;
   mockStores = {
     outputResults: stores.outputResults ?? {},
-    results: stores.results ?? {},
-    previews: stores.previews ?? {}
+    results: stores.results ?? {}
   };
   for (const key of Object.keys(mockNodes)) {
     delete mockNodes[key];
@@ -57,8 +55,7 @@ jest.mock("../../../stores/ResultsStore", () => ({
   default: (selector: (state: unknown) => unknown) =>
     selector({
       getOutputResult: (_w: string, n: string) => mockStores.outputResults[n],
-      getResult: (_w: string, n: string) => mockStores.results[n],
-      getPreview: (_w: string, n: string) => mockStores.previews[n]
+      getResult: (_w: string, n: string) => mockStores.results[n]
     })
 }));
 

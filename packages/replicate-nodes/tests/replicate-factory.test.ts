@@ -118,4 +118,57 @@ describe("Replicate factory argument building", () => {
       seed: 0
     });
   });
+
+  it("streams one generative output per Replicate array item", async () => {
+    replicateSubmit.mockResolvedValueOnce({ output: ["u1", "u2", "u3"] });
+
+    const NodeClass = createReplicateNodeClass({
+      endpointId: "owner/model",
+      className: "MultiImageModel",
+      moduleName: "image.generate",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "image",
+      inputFields: [],
+      outputFields: [],
+      enums: []
+    });
+    const instance = new NodeClass({});
+
+    const outputs: unknown[] = [];
+    for await (const output of instance.genProcess()) {
+      outputs.push(output);
+    }
+
+    expect(outputs).toEqual([
+      { output: { type: "image", uri: "u1" } },
+      { output: { type: "image", uri: "u2" } },
+      { output: { type: "image", uri: "u3" } }
+    ]);
+    expect(NodeClass.outputCorrelation).toEqual({
+      output: { kind: "iteration", source: "__execution__" }
+    });
+    expect(NodeClass.toDescriptor("replicate").output_correlation).toEqual({
+      output: { kind: "iteration", source: "__execution__" }
+    });
+  });
+
+  it("does not mark text outputs as streaming iterations", () => {
+    const NodeClass = createReplicateNodeClass({
+      endpointId: "owner/model",
+      className: "TextModel",
+      moduleName: "text.generate",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "str",
+      inputFields: [],
+      outputFields: [],
+      enums: []
+    });
+
+    expect(NodeClass.outputCorrelation).toBeUndefined();
+    expect(NodeClass.toDescriptor("text").is_streaming_output).toBe(false);
+  });
 });
